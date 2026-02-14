@@ -1,0 +1,9 @@
+{
+  "enabledMcpjsonServers": [
+    "sequential-thinking",
+    "context7",
+    "playwright",
+    "filesystem"
+  ],
+  "enableAllProjectMcpServers": true
+}
