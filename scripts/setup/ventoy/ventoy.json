@@ -1,0 +1,11 @@
+{
+    "auto_install": [
+        {
+            "image": "/ubuntu-24.04.4-live-server-amd64.iso",
+            "template": [
+                "/ventoy/node1-autoinstall.yaml",
+                "/ventoy/node2-autoinstall.yaml"
+            ]
+        }
+    ]
+}

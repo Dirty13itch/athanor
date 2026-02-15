@@ -1,9 +1,29 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(for ip in 192.168.1.139 192.168.1.244 192.168.1.245 192.168.1.10 192.168.1.165 192.168.1.80)",
+      "Bash(do echo -n \"$ip: \")",
+      "Bash(done)",
+      "Bash(wmic cpu get:*)",
+      "Bash(wmic:*)",
+      "Bash(# Check for existing talosconfig or kubeconfig files ls -la ~/.kube/config ; ls -la ~/talosconfig ; ls -la ~/.talosconfig ; find /c/Users/Shaun -maxdepth 2 -name \"\"talosconfig\"\" -o -name \"\".talosconfig\"\")",
+      "Bash(TALOSCONFIG=/c/Users/Shaun/kaizen-core/talosconfig talosctl version:*)",
+      "Bash(TALOSCONFIG=/c/Users/Shaun/kaizen-core/talosconfig talosctl:*)",
+      "Bash(pip install:*)",
+      "Bash(# Ping .65 and scan ports ping -n 1 -w 2000 192.168.1.65)",
+      "Bash(# Decode and inspect the certs from the talosconfig cd /c/Users/Shaun/kaizen-core # Extract the CA cert grep \"\"ca:\"\" talosconfig -A1 | tail -1 | tr -d '' '' | base64 -d | openssl x509 -noout -text 2>&1)",
+      "Bash(openssl x509:*)",
+      "Bash(TALOSCONFIG=\"C:\\\\Users\\\\Shaun\\\\athanor\\\\tmp-certs\\\\talosconfig\" talosctl:*)",
+      "Bash(# Recheck the known IPMI addresses plus .201 from browser tab for ip in 192.168.1.65 192.168.1.245 192.168.1.201; do echo -n \"\"$ip ping: \"\" ping -n 1 -w 1500 $ip)",
+      "Bash(# Also re-ping .201 with longer timeout and check .65 from a different angle ping -n 2 -w 3000 192.168.1.201)",
+      "Bash(# Ping sweep all known IPs for ip in 192.168.1.139 192.168.1.203 192.168.1.244 192.168.1.245 192.168.1.10 192.168.1.65 192.168.1.165 192.168.1.80; do echo -n \"\"$ip: \"\" ping -n 1 -w 1500 $ip)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "sequential-thinking",
     "context7",
     "playwright",
     "filesystem"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
