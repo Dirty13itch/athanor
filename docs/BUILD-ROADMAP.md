@@ -129,11 +129,15 @@ See `docs/research/2026-02-16-hybrid-system-architecture.md` for full design.
 - [ ] Test NCCL over InfiniBand
 - [ ] Pipeline parallelism across nodes for large MoE models
 
-## Phase 9: Claude Code Companion Tools
+## Phase 9: Claude Code Companion Tools — COMPLETE
 
-- [ ] Install Tier 2 MCP servers (Grafana, Docker, Home Assistant, Homelab)
-- [ ] Install usage monitoring (ccusage or ccflare)
-- [ ] Evaluate skill collections (obra/superpowers, Claude Command Suite, cc-devops-skills)
+- [x] **Grafana MCP** (`@leval/mcp-grafana`) — added to `.mcp.json`, needs Grafana password verification
+- [x] **ccusage** — works via `npx ccusage@latest`. $117.34 across first 4 days of Athanor build.
+- [x] **Docker MCP** — skipped (local-only, useless for remote nodes)
+- [x] **Home Assistant MCP** — skipped (HA onboarding not complete yet)
+- [x] **Homelab MCP** — skipped (Python-only, local Docker socket, overlaps with Desktop Commander)
+- [x] **ccflare** — skipped (full proxy server, overkill for single user — ccusage sufficient)
+- [x] **Skill collections** — all skipped (obra/superpowers, Claude Command Suite, cc-devops-skills). Our 5 custom commands + 7 skills + 4 hooks are better tailored. Generic frameworks add context bloat and risk conflicting with CLAUDE.md workflow.
 
 ---
 
@@ -155,6 +159,8 @@ These require hands at the rack:
 ## Blocked / Needs Shaun
 
 - **HA onboarding**: Navigate to http://192.168.1.203:8123 in a browser to complete initial setup
+- **Grafana MCP auth**: Verify Grafana admin password at http://192.168.1.203:3000 — update `.mcp.json` if not default admin/admin
+- **HA MCP**: Install after HA onboarding is complete (needs long-lived access token)
 - **qBittorrent VPN**: NordVPN token/credentials need updating in Gluetun config
 - **Plex claim**: Visit http://192.168.1.203:32400/web and claim the server
 - ~~**Flux models**~~: Done — FP8 dev + text encoders + VAE downloaded

@@ -17,6 +17,20 @@
         "-y",
         "@upstash/context7-mcp@latest"
       ]
+    },
+    "grafana": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@leval/mcp-grafana"
+      ],
+      "env": {
+        "GRAFANA_URL": "http://192.168.1.203:3000",
+        "GRAFANA_USERNAME": "admin",
+        "GRAFANA_PASSWORD": "admin"
+      }
     }
   }
 }
