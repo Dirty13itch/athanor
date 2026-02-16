@@ -4,26 +4,45 @@ Deploy a model on vLLM. Handles model selection, GPU assignment, and health chec
 
 ## Prerequisites
 
-- NVIDIA drivers 580+ installed ✅
-- Docker + NVIDIA CTK installed ✅
-- NFS mount to VAULT /mnt/user/models (for model cache)
+- NVIDIA drivers 580+ installed
+- Docker + NVIDIA CTK installed
+- NFS mount to VAULT at /mnt/vault/models
 
-## Deployment Patterns
+## CRITICAL: Blackwell GPU Compatibility
 
-### Node 1: 4-GPU Tensor Parallel (Primary Inference)
+The official `vllm/vllm-openai:latest` image does NOT work with driver 580 / Blackwell GPUs.
 
-```bash
-ssh node1
-sudo mkdir -p /opt/athanor/vllm
-```
+**Working image**: `nvcr.io/nvidia/vllm:25.12-py3`
+- PyTorch 2.10.0a0 (NVIDIA build), CUDA 13.1, vLLM 0.11.1
+- Confirmed working on 4x RTX 5070 Ti (sm_120) with driver 580.126.09
+
+**Key settings for 16 GB GPUs (5070 Ti)**:
+- `--gpu-memory-utilization 0.85` (0.90 causes OOM during warmup)
+- `--max-num-seqs 128` (256 default causes OOM)
+- `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+- `VLLM_FLASH_ATTN_VERSION=2` (FA3 not supported on Blackwell)
+
+## Deployment: Node 1 (4-GPU Tensor Parallel)
 
 ```yaml
 # /opt/athanor/vllm/docker-compose.yml
 services:
   vllm:
-    image: vllm/vllm-openai:latest
+    image: nvcr.io/nvidia/vllm:25.12-py3
     container_name: vllm
     restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - /mnt/vault/models:/models:ro
+    environment:
+      - HF_HUB_OFFLINE=1
+      - VLLM_FLASH_ATTN_VERSION=2
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
     deploy:
       resources:
         reservations:
@@ -31,132 +50,61 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    ports:
-      - "8000:8000"
-    volumes:
-      - /mnt/vault/models:/models
-      - ./cache:/root/.cache/huggingface
-    environment:
-      - HF_HOME=/models
-      - VLLM_ATTENTION_BACKEND=FLASHINFER
-    command: >
-      --model meta-llama/Llama-3.1-70B-Instruct
-      --tensor-parallel-size 4
-      --host 0.0.0.0
-      --port 8000
-      --max-model-len 8192
-      --gpu-memory-utilization 0.90
-    ipc: host
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 300s
+    entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+    command:
+      - --model
+      - /models/Qwen3-14B
+      - --tensor-parallel-size
+      - "4"
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --max-model-len
+      - "8192"
+      - --gpu-memory-utilization
+      - "0.85"
+      - --max-num-seqs
+      - "128"
+      - --dtype
+      - auto
 ```
 
-### Node 2: Single GPU Instances
+## Available Models on VAULT NFS
 
-RTX 5090 (GPU 1) — larger models:
-```yaml
-services:
-  vllm-5090:
-    image: vllm/vllm-openai:latest
-    container_name: vllm-5090
-    restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ['1']
-              capabilities: [gpu]
-    ports:
-      - "8000:8000"
-    volumes:
-      - /mnt/vault/models:/models
-    environment:
-      - HF_HOME=/models
-      - NVIDIA_VISIBLE_DEVICES=1
-    command: >
-      --model meta-llama/Llama-3.1-8B-Instruct
-      --host 0.0.0.0
-      --port 8000
-    ipc: host
-```
-
-RTX 4090 (GPU 0) — fast chat:
-```yaml
-  vllm-4090:
-    image: vllm/vllm-openai:latest
-    container_name: vllm-4090
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              device_ids: ['0']
-              capabilities: [gpu]
-    ports:
-      - "8001:8000"
-    volumes:
-      - /mnt/vault/models:/models
-    environment:
-      - HF_HOME=/models
-      - NVIDIA_VISIBLE_DEVICES=0
-    command: >
-      --model mistralai/Mistral-7B-Instruct-v0.3
-      --host 0.0.0.0
-      --port 8000
-    ipc: host
-```
-
-## Model Sizing Guide
-
-| Model | FP16 VRAM | NVFP4 VRAM | Fits Where |
-|-------|-----------|------------|------------|
-| Llama 3.1 70B | ~140 GB | ~35 GB | Node 1 (4-GPU TP) or Node 2 5090 (NVFP4) |
-| Qwen 72B | ~144 GB | ~36 GB | Node 1 (4-GPU TP) |
-| Llama 3.1 8B | ~16 GB | ~4 GB | Any single GPU |
-| Mistral 7B | ~14 GB | ~3.5 GB | Any single GPU |
-| Phi-3 Mini (3.8B) | ~8 GB | ~2 GB | Any single GPU |
-
-Note: NVFP4 is Blackwell-only (5070 Ti, 5090). RTX 4090 uses GPTQ/AWQ/FP16.
+| Model | Size | Quantization | Fits Where |
+|-------|------|-------------|------------|
+| Qwen3-14B | ~28 GB FP16 | None | Node 1 TP=4 (current) |
+| Qwen3-32B-AWQ | ~20 GB | AWQ | Node 1 TP=4 or Node 2 5090 single |
+| gte-Qwen2-7B-instruct | ~14 GB | None | Any single GPU |
 
 ## Validation
 
 ```bash
-# Health check
-curl http://node1:8000/health
-
 # List models
-curl http://node1:8000/v1/models
+curl http://192.168.1.244:8000/v1/models
 
 # Test inference
-curl http://node1:8000/v1/chat/completions \
+curl http://192.168.1.244:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "meta-llama/Llama-3.1-70B-Instruct",
+    "model": "/models/Qwen3-14B",
     "messages": [{"role": "user", "content": "Hello"}],
     "max_tokens": 100
   }'
 ```
 
-## Blackwell Build Notes
+## Upgrading vLLM
 
-If the official vllm/vllm-openai image doesn't support sm_120 (Blackwell), build from source:
+When newer NGC vLLM images are released (e.g., 26.01, 26.02):
+1. Check Blackwell/sm_120 support in release notes
+2. Test CUDA init: `docker run --rm --gpus all --entrypoint python3 <image> -c "import torch; print(torch.cuda.is_available())"`
+3. If True, update the image tag in docker-compose.yml
 
-```dockerfile
-FROM nvidia/cuda:12.8.0-devel-ubuntu22.04
-RUN pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
-RUN TORCH_CUDA_ARCH_LIST="12.0" pip install vllm
-ENV VLLM_ATTENTION_BACKEND=FLASHINFER
-```
+Alternative: Build from source using `nvcr.io/nvidia/pytorch:25.02-py3` base + PyTorch nightly cu128.
 
 ## Ports
 
 | Service | Node | Port | Purpose |
 |---------|------|------|---------|
 | vLLM primary | Node 1 | 8000 | 4-GPU TP, large models |
-| vLLM 5090 | Node 2 | 8000 | Single-GPU, large models |
-| vLLM 4090 | Node 2 | 8001 | Fast chat, small models |

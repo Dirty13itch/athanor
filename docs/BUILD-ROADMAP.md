@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-15 (Phase 0 re-audited, Phase 1 confirmed, NFS exports already on VAULT)
+Last updated: 2026-02-16 (Phase 3 vLLM deployed, Phase 4 monitoring deployed, Phase 5 media+HA deployed)
 
 ---
 
@@ -34,40 +34,43 @@ Last updated: 2026-02-15 (Phase 0 re-audited, Phase 1 confirmed, NFS exports alr
 ## Phase 2: Storage + Network (ADR-002, ADR-003)
 
 - [x] Configure NFS exports on VAULT (/mnt/user/data, /mnt/user/models, /mnt/user/appdata, /mnt/user/system) — already configured
-- [ ] Mount NFS shares on both nodes (fstab entries)
+- [x] Mount NFS shares on both nodes (fstab entries) — /mnt/vault/{models,data,appdata}
 - [ ] Verify 10GbE throughput between nodes and VAULT (iperf3)
 - [ ] Set static IPs or DHCP reservations for all nodes
 - [ ] Order Mellanox ConnectX-3 FDR InfiniBand cards (2x, ~$30 each on eBay)
 
 ## Phase 3: First Services (ADR-005, ADR-006, ADR-007)
 
-- [ ] Deploy vLLM on Node 1 — single GPU test first
-- [ ] Scale vLLM to tensor-parallel-size=4 with NVFP4
+- [x] Deploy vLLM on Node 1 — **Qwen3-14B, TP=4 across all 4x 5070 Ti, NVIDIA NGC vLLM 25.12 (0.11.1)**
+- [x] vLLM API serving at http://192.168.1.244:8000 (OpenAI-compatible)
+- [ ] Scale to Qwen3-32B-AWQ (available on VAULT NFS)
 - [ ] Deploy ComfyUI on Node 2 pinned to RTX 5090
-- [ ] Deploy Open WebUI on Node 2 pointing to vLLM
-- [ ] Test end-to-end: chat via Open WebUI → vLLM inference on Node 1
+- [x] Deploy Open WebUI on Node 2 pointing to vLLM — http://192.168.1.225:3000
+- [x] Test end-to-end: chat via Open WebUI → vLLM inference on Node 1
 - [ ] Test image generation: ComfyUI with Flux dev on 5090
 
-## Phase 4: Monitoring (ADR-009)
+## Phase 4: Monitoring (ADR-009) — COMPLETE
 
-- [ ] Deploy Prometheus on VAULT
-- [ ] Deploy Grafana on VAULT
-- [ ] Install node_exporter on Node 1 + Node 2
-- [ ] Install dcgm-exporter on Node 1 + Node 2
-- [ ] Import DCGM dashboard (#12239) and Node Exporter dashboard (#1860)
+- [x] Deploy Prometheus on VAULT
+- [x] Deploy Grafana on VAULT — http://192.168.1.203:3000
+- [x] Install node_exporter on Node 1 + Node 2
+- [x] Install dcgm-exporter on Node 1 + Node 2
+- [x] Import DCGM dashboard (#12239) and Node Exporter dashboard (#1860)
 - [ ] Set up critical alerts (GPU overtemp, disk full, service down)
 
 ## Phase 5: Supporting Services (ADR-010, ADR-011)
 
-- [ ] Deploy Home Assistant on VAULT (Docker, host networking)
+- [x] Deploy Home Assistant on VAULT (Docker, host networking) — http://192.168.1.203:8123
 - [ ] Configure Lutron integration (.158)
 - [ ] Configure UniFi integration (UDM Pro)
-- [ ] Verify/deploy Plex with Arc A380 transcoding on VAULT
-- [ ] Deploy Sonarr + Radarr + Prowlarr on VAULT
+- [x] Deploy Plex on VAULT — http://192.168.1.203:32400/web (needs claim)
+- [x] Deploy Sonarr + Radarr + Prowlarr on VAULT
 - [ ] Set up TRaSH Guides path structure on VAULT
-- [ ] Deploy SABnzbd + qBittorrent (with Gluetun VPN)
-- [ ] Deploy Stash on VAULT
-- [ ] Deploy Tautulli on VAULT
+- [x] Deploy SABnzbd on VAULT
+- [ ] Deploy qBittorrent (with Gluetun VPN)
+- [x] Deploy Stash on VAULT (was already running)
+- [x] Deploy Tautulli on VAULT
+- [x] Install Aider 0.86.2 + Goose 1.24.0 on Node 2
 
 ## Phase 6: Dashboard + Agents (ADR-007, ADR-008)
 
