@@ -12,19 +12,28 @@ interface Message {
   content: string;
 }
 
+interface ModelEntry {
+  id: string;
+  backend: string;
+  backendUrl: string;
+}
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [modelName, setModelName] = useState<string | null>(null);
+  const [models, setModels] = useState<ModelEntry[]>([]);
+  const [selectedModel, setSelectedModel] = useState<ModelEntry | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/models")
       .then((r) => r.json())
       .then((data) => {
-        if (data.models?.length > 0) setModelName(data.models[0]);
+        const m = data.models ?? [];
+        setModels(m);
+        if (m.length > 0) setSelectedModel(m[0]);
       })
       .catch(() => {});
   }, []);
@@ -39,7 +48,7 @@ export default function ChatPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!input.trim() || isStreaming) return;
+    if (!input.trim() || isStreaming || !selectedModel) return;
 
     const userMessage: Message = { role: "user", content: input.trim() };
     const newMessages = [...messages, userMessage];
@@ -54,7 +63,8 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: newMessages,
-          model: modelName ?? undefined,
+          model: selectedModel.id,
+          backendUrl: selectedModel.backendUrl,
         }),
       });
 
@@ -108,17 +118,47 @@ export default function ChatPage() {
     }
   }
 
+  function displayModelName(m: ModelEntry): string {
+    const short = m.id.replace(/^\/models\//, "");
+    return `${short} (${m.backend})`;
+  }
+
   return (
     <div className="flex h-[calc(100vh-3rem)] flex-col space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Chat</h1>
-          <p className="text-muted-foreground">Chat with vLLM on Node 1</p>
+          <p className="text-muted-foreground">
+            {selectedModel
+              ? `Connected to ${selectedModel.backend}`
+              : "Loading models..."}
+          </p>
         </div>
-        {modelName && (
-          <Badge variant="outline" className="text-xs">
-            {modelName}
-          </Badge>
+        {models.length > 0 && (
+          <select
+            value={selectedModel ? `${selectedModel.backendUrl}::${selectedModel.id}` : ""}
+            onChange={(e) => {
+              const [url, ...idParts] = e.target.value.split("::");
+              const id = idParts.join("::");
+              const m = models.find((m) => m.backendUrl === url && m.id === id);
+              if (m) {
+                setSelectedModel(m);
+                setMessages([]);
+                setError(null);
+              }
+            }}
+            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+            disabled={isStreaming}
+          >
+            {models.map((m) => (
+              <option
+                key={`${m.backendUrl}::${m.id}`}
+                value={`${m.backendUrl}::${m.id}`}
+              >
+                {displayModelName(m)}
+              </option>
+            ))}
+          </select>
         )}
       </div>
 
@@ -131,7 +171,8 @@ export default function ChatPage() {
             <div className="space-y-4 py-4">
               {messages.length === 0 && (
                 <p className="text-center text-sm text-muted-foreground py-8">
-                  Send a message to start chatting with the model.
+                  Send a message to start chatting
+                  {selectedModel ? ` with ${displayModelName(selectedModel)}` : ""}.
                 </p>
               )}
               {messages.map((msg, i) => (
@@ -171,7 +212,7 @@ export default function ChatPage() {
               className="flex-1"
               autoFocus
             />
-            <Button type="submit" disabled={isStreaming || !input.trim()}>
+            <Button type="submit" disabled={isStreaming || !input.trim() || !selectedModel}>
               {isStreaming ? "..." : "Send"}
             </Button>
           </form>

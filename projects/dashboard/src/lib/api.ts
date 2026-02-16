@@ -42,79 +42,14 @@ export async function queryPrometheusRange(
   return data.data.result;
 }
 
-// --- vLLM Chat ---
+// --- Chat ---
+// Chat completion and model listing are now handled by API routes:
+//   /api/chat    — proxies to selected backend with streaming
+//   /api/models  — aggregates models from all inference backends
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
-}
-
-export interface ChatCompletionResponse {
-  id: string;
-  choices: {
-    index: number;
-    message: ChatMessage;
-    finish_reason: string;
-  }[];
-  model: string;
-  usage: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-}
-
-export async function chatCompletion(
-  messages: ChatMessage[],
-  model?: string
-): Promise<ChatCompletionResponse> {
-  const url = `${config.vllm.url}${config.vllm.chatEndpoint}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: model ?? "default",
-      messages,
-      max_tokens: 2048,
-      temperature: 0.7,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`vLLM chat failed (${res.status}): ${text}`);
-  }
-  return res.json();
-}
-
-export async function streamChatCompletion(
-  messages: ChatMessage[],
-  model?: string
-): Promise<ReadableStream<Uint8Array>> {
-  const url = `${config.vllm.url}${config.vllm.chatEndpoint}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: model ?? "default",
-      messages,
-      max_tokens: 2048,
-      temperature: 0.7,
-      stream: true,
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`vLLM stream failed (${res.status}): ${text}`);
-  }
-  return res.body!;
-}
-
-export async function getModels(): Promise<string[]> {
-  const url = `${config.vllm.url}${config.vllm.modelsEndpoint}`;
-  const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.data?.map((m: { id: string }) => m.id) ?? [];
 }
 
 // --- Service Health ---

@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 9000
 
+    sonarr_api_key: str = ""
+    radarr_api_key: str = ""
+    tautulli_api_key: str = ""
+
     model_config = {"env_prefix": "ATHANOR_"}
 
 

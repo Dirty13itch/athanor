@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-16 (Phase 6: agent framework deployed — General Assistant with tool calling)
+Last updated: 2026-02-16 (Phase 6: Media Agent + vLLM on Node 2 RTX 4090)
 
 ---
 
@@ -50,6 +50,10 @@ Last updated: 2026-02-16 (Phase 6: agent framework deployed — General Assistan
 - [x] Deploy Open WebUI on Node 2 pointing to vLLM — http://192.168.1.225:3000
 - [x] Test end-to-end: chat via Open WebUI → vLLM inference on Node 1
 - [x] Download Flux models for ComfyUI — FP8 dev (12 GB), CLIP-L, T5-XXL FP8, VAE (~17 GB total)
+- [x] Deploy vLLM on Node 2 RTX 4090 — **Qwen3-14B-AWQ, awq_marlin, ~92 tok/s**
+  - http://192.168.1.225:8000 (OpenAI-compatible)
+  - 9.4 GB model, 21.5 GB VRAM used, 32K context
+  - Tool calling enabled (hermes parser)
 
 ## Phase 4: Monitoring (ADR-009) — COMPLETE
 
@@ -89,7 +93,7 @@ Last updated: 2026-02-16 (Phase 6: agent framework deployed — General Assistan
   - FastAPI server, OpenAI-compatible API, Docker with host networking
   - vLLM tool calling enabled (hermes parser)
 - [x] First agent: General Assistant — tools: service health, GPU metrics, vLLM models, storage
-- [ ] Media Agent (Sonarr/Radarr/Tautulli APIs)
+- [x] Media Agent — tools: TV search/add/calendar/queue (Sonarr), movie search/add/calendar/queue (Radarr), Plex activity/history/libraries (Tautulli)
 - [ ] Home Agent (HA API)
 
 ## Phase 7: Ansible + Hardening
