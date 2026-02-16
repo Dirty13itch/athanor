@@ -162,7 +162,7 @@ These require hands at the rack:
 - **Grafana MCP auth**: Verify Grafana admin password at http://192.168.1.203:3000 — update `.mcp.json` if not default admin/admin
 - **HA MCP**: Install after HA onboarding is complete (needs long-lived access token)
 - **qBittorrent VPN**: NordVPN token/credentials need updating in Gluetun config
-- **Plex claim**: Visit http://192.168.1.203:32400/web and claim the server
+- ~~**Plex claim**~~: Done — claimed with token, healthy on host networking
 - ~~**Flux models**~~: Done — FP8 dev + text encoders + VAE downloaded
 
 ---
