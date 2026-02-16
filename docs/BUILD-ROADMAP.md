@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-16 (Phase 3 vLLM deployed, Phase 4 monitoring deployed, Phase 5 media+HA deployed)
+Last updated: 2026-02-16 (Phase 3 fully deployed, Phase 4 monitoring deployed, Phase 5 media+HA deployed, Phase 6 dashboard scaffolded)
 
 ---
 
@@ -39,15 +39,17 @@ Last updated: 2026-02-16 (Phase 3 vLLM deployed, Phase 4 monitoring deployed, Ph
 - [ ] Set static IPs or DHCP reservations for all nodes
 - [ ] Order Mellanox ConnectX-3 FDR InfiniBand cards (2x, ~$30 each on eBay)
 
-## Phase 3: First Services (ADR-005, ADR-006, ADR-007)
+## Phase 3: First Services (ADR-005, ADR-006, ADR-007) — COMPLETE
 
-- [x] Deploy vLLM on Node 1 — **Qwen3-14B, TP=4 across all 4x 5070 Ti, NVIDIA NGC vLLM 25.12 (0.11.1)**
+- [x] Deploy vLLM on Node 1 — **Qwen3-32B-AWQ, TP=4 across 4x 5070 Ti, NGC vLLM 25.12 (0.11.1)**
 - [x] vLLM API serving at http://192.168.1.244:8000 (OpenAI-compatible)
-- [ ] Scale to Qwen3-32B-AWQ (available on VAULT NFS)
-- [ ] Deploy ComfyUI on Node 2 pinned to RTX 5090
+- [x] Upgraded from Qwen3-14B to Qwen3-32B-AWQ — 15.6 GB/GPU, 32K context
+- [x] Deploy ComfyUI on Node 2 pinned to RTX 5090 — http://192.168.1.225:8188
+  - Custom image (athanor/comfyui:blackwell) built from NGC PyTorch base for Blackwell compat
+  - ComfyUI 0.13.0, PyTorch 2.7.0a0, 32 GB VRAM
 - [x] Deploy Open WebUI on Node 2 pointing to vLLM — http://192.168.1.225:3000
 - [x] Test end-to-end: chat via Open WebUI → vLLM inference on Node 1
-- [ ] Test image generation: ComfyUI with Flux dev on 5090
+- [ ] Download Flux dev model for ComfyUI image generation testing
 
 ## Phase 4: Monitoring (ADR-009) — COMPLETE
 
@@ -56,28 +58,32 @@ Last updated: 2026-02-16 (Phase 3 vLLM deployed, Phase 4 monitoring deployed, Ph
 - [x] Install node_exporter on Node 1 + Node 2
 - [x] Install dcgm-exporter on Node 1 + Node 2
 - [x] Import DCGM dashboard (#12239) and Node Exporter dashboard (#1860)
-- [ ] Set up critical alerts (GPU overtemp, disk full, service down)
+- [x] Set up critical alerts (GPU overtemp >85C, disk >90%, service down)
 
 ## Phase 5: Supporting Services (ADR-010, ADR-011)
 
 - [x] Deploy Home Assistant on VAULT (Docker, host networking) — http://192.168.1.203:8123
-- [ ] Configure Lutron integration (.158)
-- [ ] Configure UniFi integration (UDM Pro)
+- [ ] Complete HA onboarding (browser required) then configure Lutron (.158) + UniFi integrations
 - [x] Deploy Plex on VAULT — http://192.168.1.203:32400/web (needs claim)
 - [x] Deploy Sonarr + Radarr + Prowlarr on VAULT
-- [ ] Set up TRaSH Guides path structure on VAULT
+- [x] Set up TRaSH Guides path structure — /mnt/user/data/{torrents,usenet,media}/{movies,tv,music}
+- [x] Configure Sonarr root folder (/data/media/tv) + Radarr root folder (/data/media/movies)
 - [x] Deploy SABnzbd on VAULT
-- [ ] Deploy qBittorrent (with Gluetun VPN)
+- [ ] Deploy qBittorrent (with Gluetun VPN) — compose ready, NordVPN credentials need update
 - [x] Deploy Stash on VAULT (was already running)
 - [x] Deploy Tautulli on VAULT
 - [x] Install Aider 0.86.2 + Goose 1.24.0 on Node 2
 
 ## Phase 6: Dashboard + Agents (ADR-007, ADR-008)
 
-- [ ] Scaffold Next.js dashboard project
-- [ ] System health panel (Prometheus API)
-- [ ] GPU panel (DCGM metrics)
-- [ ] Chat integration (Open WebUI embed or API)
+- [x] Scaffold Next.js 16 dashboard project — projects/dashboard/
+  - App Router, TypeScript, Tailwind v4, shadcn/ui
+  - Dark theme, sidebar navigation
+- [x] Dashboard home page — node cards, service health summary, GPU utilization bars
+- [x] GPU metrics page — per-GPU temp/util/memory/power from Prometheus/DCGM
+- [x] Chat page — streaming SSE chat with vLLM via API proxy
+- [x] Services page — health checks for all running services
+- [x] API routes: /api/chat (vLLM proxy), /api/services, /api/models
 - [ ] Set up LangGraph agent framework on Node 1
 - [ ] First agent: General Assistant
 - [ ] Media Agent (Sonarr/Radarr/Tautulli APIs)
@@ -109,6 +115,15 @@ These require hands at the rack:
 - Reconnect JetKVM ATX power cable on Node 2
 - Install InfiniBand cards (when purchased)
 - Install Hyper M.2 adapter in Node 1 (for NVMe expansion, ADR-003)
+
+---
+
+## Blocked / Needs Shaun
+
+- **HA onboarding**: Navigate to http://192.168.1.203:8123 in a browser to complete initial setup
+- **qBittorrent VPN**: NordVPN token/credentials need updating in Gluetun config
+- **Plex claim**: Visit http://192.168.1.203:32400/web and claim the server
+- **Flux models**: Download Flux dev checkpoint for ComfyUI (~24 GB)
 
 ---
 

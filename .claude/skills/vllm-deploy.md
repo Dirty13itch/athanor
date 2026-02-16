@@ -53,7 +53,9 @@ services:
     entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
     command:
       - --model
-      - /models/Qwen3-14B
+      - /models/Qwen3-32B-AWQ
+      - --quantization
+      - awq
       - --tensor-parallel-size
       - "4"
       - --host
@@ -61,7 +63,7 @@ services:
       - --port
       - "8000"
       - --max-model-len
-      - "8192"
+      - "32768"
       - --gpu-memory-utilization
       - "0.85"
       - --max-num-seqs
@@ -74,8 +76,8 @@ services:
 
 | Model | Size | Quantization | Fits Where |
 |-------|------|-------------|------------|
-| Qwen3-14B | ~28 GB FP16 | None | Node 1 TP=4 (current) |
-| Qwen3-32B-AWQ | ~20 GB | AWQ | Node 1 TP=4 or Node 2 5090 single |
+| Qwen3-32B-AWQ | ~20 GB | AWQ | Node 1 TP=4 (current, 15.6 GB/GPU) |
+| Qwen3-14B | ~28 GB FP16 | None | Node 1 TP=4 |
 | gte-Qwen2-7B-instruct | ~14 GB | None | Any single GPU |
 
 ## Validation

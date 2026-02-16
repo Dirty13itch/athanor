@@ -17,25 +17,6 @@
         "-y",
         "@upstash/context7-mcp@latest"
       ]
-    },
-    "playwright": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@anthropic/mcp-server-playwright"
-      ]
-    },
-    "filesystem": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "C:\\Users\\Shaun"
-      ]
     }
   }
 }
