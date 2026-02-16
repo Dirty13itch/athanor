@@ -222,39 +222,48 @@ Athanor is not a fixed-scope project. It is designed to grow. New workloads, new
 
 ## Current State
 
-### Hardware (to be audited)
-- **Node 1** — Silverstone RM52 Upper, running Talos Linux (unhealthy cluster). IPs: 192.168.1.244, 192.168.1.245. Has IPMI via ASRock Q270 Pro BTC+. JetKVM on 192.168.1.165.
-- **Node 2** — Silverstone RM52 Middle, running Talos Linux (unhealthy cluster). IP: 192.168.1.10 (both ports).
-- **VAULT** — Unraid server, running, accessible. IP: 192.168.1.139. JetKVM on 192.168.1.80.
-- **DEV** — Windows 11 desktop (Shaun's daily driver, where he sits and works). IP: 192.168.1.181. Runs Claude Code and Claude Desktop. Not a server node.
-- **Loose hardware** — additional components not currently installed in any node. To be inventoried by Shaun.
+*Updated 2026-02-15. Full hardware details in `docs/hardware/inventory.md`.*
 
-CPUs, GPUs, RAM, drives, and NICs per node are **unknown until audited**. Do not assume anything from prior projects. The audit is the first real task.
+### Hardware (audited)
+- **Node 1** — Silverstone RM52 Upper. EPYC 7663 56C/112T, 224 GB DDR4 ECC, 4x RTX 5070 Ti (64 GB VRAM), 2x Intel X550 10GbE. BMC at 192.168.1.216. OS IP pending (fresh Ubuntu install).
+- **Node 2** — Silverstone RM52 Middle. Ryzen 9 9950X 16C/32T, 128 GB DDR5, RTX 5090 + RTX 4090 (56 GB VRAM), Aquantia 10GbE. OS IP pending (fresh Ubuntu install). JetKVM on 192.168.1.165.
+- **VAULT** — Unraid. Threadripper 7960X 24C/48T, 128 GB DDR5 ECC, Arc A380, 164 TB HDD array. IP: 192.168.1.203. JetKVM on 192.168.1.80.
+- **DEV** — Windows 11 workstation (Shaun's daily driver). i7-13700K, 64 GB DDR5, RTX 3060 12 GB. IP: 192.168.1.215. Not a server node.
+- **Loose hardware** — i7-12700K, i5-12600K, i7-9700K, RX 5700 XT, 192 GB loose RAM, 10 TB loose NVMe, 3x Hyper M.2 adapters, 3x 10GbE NICs, 2x HBAs, 4 PSUs, 3 motherboards. Full list in `docs/hardware/loose-inventory.md`.
 
 ### Network
-- UniFi Dream Machine Pro (router/gateway)
-- USW Pro 24 PoE (main switch, all servers connected here at 1GbE)
-- USW Pro XG 10 PoE (10GbE switch, available but no server connections yet)
-- USW Flex (garage)
-- Multiple U6 APs (Flex Room, Master Bedroom, Den, Dining Room, Basement, Living Room)
-- Lutron lighting controller (192.168.1.158)
-- USP PDU Pro (rack power management)
+- UniFi Dream Machine Pro (gateway, 192.168.1.1)
+- USW Pro 24 PoE (1GbE management — APs, IoT, DEV)
+- USW Pro XG 10 PoE (10GbE data plane — servers need to be moved here)
+- USW Flex (garage), 6x U6 APs, Lutron controller (.158), USP PDU Pro
 - 3 electrical circuits powering the rack
 
 ### Software
-- Node 1 and Node 2: Talos Linux (unhealthy Kubernetes cluster from previous project)
+- Node 1 and Node 2: Ubuntu Server 24.04.4 LTS (fresh install, no services yet)
 - VAULT: Unraid (running, media services operational)
-- DEV: Windows 11 with Claude Code, Claude Desktop
+- DEV: Windows 11 with Claude Code
 
-**Important:** The Talos Linux installation and Kubernetes cluster are remnants of a previous project (Kaizen). They carry no weight in Athanor decisions. Every technology choice is evaluated fresh. Talos and Kubernetes may or may not be the right answer — that's what the research phase determines.
+### Architecture Decisions (complete)
+All 11 ADRs documented in `docs/decisions/`. Key decisions:
+- **ADR-001:** Ubuntu 24.04 + Docker Compose + Ansible
+- **ADR-005:** vLLM inference engine with NVFP4 on Blackwell
+- **ADR-006:** ComfyUI creative pipeline on Node 2
+- **ADR-007:** Open WebUI + custom Next.js dashboard
+- Full list in `docs/research/2026-02-15-research-roadmap.md`
 
 ---
 
 ## What Comes Next
 
-1. **Hardware audit** — Claude Code gets access to every reachable node and documents exactly what's installed. Shaun inventories loose hardware. This produces the complete bill of materials.
-2. **Research phase** — Evaluate current state of the art for each major component against Athanor's principles. Not just "what's popular" but "what's right for a one-person-maintainable, AI-first, open-scope system."
-3. **Architecture decisions** — Made one at a time, in dependency order, each documented with rationale. No decision is made until the research supports it.
-4. **Build** — Incremental. Get something running, use it, refine it. Layer by layer. The athanor heats up slowly.
+1. ~~**Hardware audit**~~ — Complete. Full inventory in `docs/hardware/`.
+2. ~~**Research phase**~~ — Complete. 11 research docs and 11 ADRs in `docs/`.
+3. **Build** — Incremental. Get something running, use it, refine it. Layer by layer:
+   - Get node IPs, SSH in, install NVIDIA drivers (validation spike)
+   - Docker + NVIDIA CTK on both nodes
+   - 10GbE connections, NFS mounts from VAULT
+   - First services: vLLM on Node 1, ComfyUI on Node 2, Open WebUI
+   - Monitoring stack on VAULT (Prometheus + Grafana)
+   - Dashboard, agents, home automation, media stack
+4. **Refine** — The athanor is never finished. Continuous improvement.
 
 The name tells you how: slow fire, self-feeding, continuous transformation.
