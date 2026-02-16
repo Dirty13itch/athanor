@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-16 (Phase 6: Media Agent + vLLM on Node 2 RTX 4090)
+Last updated: 2026-02-16 (Hybrid architecture planning, companion tools evaluation)
 
 ---
 
@@ -16,14 +16,14 @@ Last updated: 2026-02-16 (Phase 6: Media Agent + vLLM on Node 2 RTX 4090)
 
 ## Phase 1: NVIDIA + Docker (ADR-001 validation)
 
-### Node 1 — COMPLETE
+### Node 1 (EPYC 7663 56C/112T, 224 GB ECC DDR4) — COMPLETE
 - [x] Upgrade to HWE kernel 6.17.0-14-generic
 - [x] Install NVIDIA driver 580.126.09 (open modules) — **4x 5070 Ti validation spike PASSED**
 - [x] Install Docker Engine 29.2.1 + Compose v5.0.2
 - [x] Install NVIDIA Container Toolkit, configure Docker runtime
 - [x] Test: `docker run --gpus all nvidia/cuda:12.8.0-base nvidia-smi` — **all 4 GPUs visible**
 
-### Node 2 — COMPLETE
+### Node 2 (Threadripper 7960X 24C/48T, 128 GB DDR5) — COMPLETE
 - [x] Upgrade to HWE kernel 6.17.0-14-generic
 - [x] Install NVIDIA driver 580.126.09 (open modules) — RTX 5090 + RTX 4090
 - [x] Install Docker Engine 29.2.1 + Compose v5.0.2
@@ -104,13 +104,36 @@ Last updated: 2026-02-16 (Phase 6: Media Agent + vLLM on Node 2 RTX 4090)
 - [ ] Node 2 playbook: NVIDIA drivers, Docker, GPU isolation
 - [ ] Set static IPs, configure BMC at .216
 
-## Phase 8: InfiniBand + Multi-Node (ADR-002, ADR-005)
+## Phase 8: Hardware Reconfiguration (Hybrid Architecture)
 
+See `docs/research/2026-02-16-hybrid-system-architecture.md` for full design.
+
+**Strategy**: Cloud APIs for frontier coding models (50-100+ tok/s). Local for everything that needs to be uncensored, private, always-on, or GPU-accelerated.
+
+### Node 1 → "Foundry" (6 GPUs, 100 GB VRAM) *(physical)*
+- [ ] Move RTX 3060 from DEV → Node 1 (slot 6)
+- [ ] Move Node 1 into mining GPU enclosure with PCIe risers
+- [ ] Install dual PSU (parts available: SF1000L + one of RM750/EVGA 600B)
+- [ ] Wire Add2PSU adapter for sync start
+- [ ] Validate all 6 GPUs visible: 4x 5070 Ti (64 GB) + 4090 (24 GB) + 3060 (12 GB)
+
+### Node 2 → "Workshop" (5090, 32 GB VRAM)
+- [ ] Keep RTX 5090 on Node 2 (sole GPU until future Max-Q)
+- [ ] Swap X870E ↔ TRX50 motherboard between DEV and Node 2 *(physical, future)*
+- [ ] Install 64 GB loose DDR5 kit → 192 GB total *(physical)*
+
+### InfiniBand (optional, $75)
 - [ ] Install ConnectX-3 FDR cards in Node 1 + Node 2
 - [ ] Direct cable between nodes
 - [ ] Install OFED drivers, configure IPoIB
 - [ ] Test NCCL over InfiniBand
-- [ ] Multi-node vLLM via Ray for 120 GB combined VRAM
+- [ ] Pipeline parallelism across nodes for large MoE models
+
+## Phase 9: Claude Code Companion Tools
+
+- [ ] Install Tier 2 MCP servers (Grafana, Docker, Home Assistant, Homelab)
+- [ ] Install usage monitoring (ccusage or ccflare)
+- [ ] Evaluate skill collections (obra/superpowers, Claude Command Suite, cc-devops-skills)
 
 ---
 
@@ -120,8 +143,12 @@ These require hands at the rack:
 - Verify Samsung 990 PRO seat on Node 1
 - Move ethernet cables to 10GbE switch
 - Reconnect JetKVM ATX power cable on Node 2
+- Move RTX 3060 from DEV → Node 1
+- Move Node 1 into mining GPU enclosure with risers + dual PSU
+- Install 64 GB DDR5 kit in Node 2 (or VAULT donor RAM after swap)
 - Install InfiniBand cards (when purchased)
 - Install Hyper M.2 adapter in Node 1 (for NVMe expansion, ADR-003)
+- Future: Swap X870E ↔ TRX50 motherboard between DEV and Node 2
 
 ---
 
@@ -136,8 +163,12 @@ These require hands at the rack:
 
 ## Purchase List
 
-| Item | Est. Cost | Priority | ADR |
-|------|-----------|----------|-----|
-| 2x Mellanox ConnectX-3 FDR (56G IB) | ~$60 | Medium | ADR-002 |
+| Item | Est. Cost | Priority | Notes |
+|------|-----------|----------|-------|
+| Mining GPU enclosure (6-8 slot) | ~$100-200 | High | For Node 1 6-GPU build |
+| Add2PSU adapter | ~$10-15 | High | Sync dual PSUs |
+| PCIe riser cables (6x) | ~$30-50 | High | For mining enclosure |
+| 2x Mellanox ConnectX-3 FDR (56G IB) | ~$60 | Medium | ADR-002, pipeline parallelism |
 | 1x QSFP+ FDR cable (1-2m) | ~$15 | Medium | ADR-002 |
 | 1-2x 24TB HDD (VAULT expansion) | ~$600-800 | Low | ADR-003 |
+| NVIDIA PRO 6000 Max-Q (96 GB) | ~$4,500-8,000 | Deferred | Node 2 second GPU — revisit when pricing stabilizes |
