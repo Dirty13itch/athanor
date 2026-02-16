@@ -1,0 +1,83 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux1-dev-fp8.safetensors",
+      "weight_dtype": "fp8_e4m3fn"
+    }
+  },
+  "2": {
+    "class_type": "DualCLIPLoader",
+    "inputs": {
+      "clip_name1": "t5xxl_fp8_e4m3fn.safetensors",
+      "clip_name2": "clip_l.safetensors",
+      "type": "flux"
+    }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Positive Prompt" },
+    "inputs": {
+      "text": "Cinematic portrait of a beautiful woman with an intense, regal expression. She has dark hair swept back, dramatic lighting from the left side casting deep shadows across her face. She wears ornate dark armor with gold filigree details. The background is a dimly lit throne room with candlelight. Photorealistic, 8k, cinematic color grading, shallow depth of field, film grain.",
+      "clip": ["2", 0]
+    }
+  },
+  "4": {
+    "class_type": "FluxGuidance",
+    "inputs": {
+      "conditioning": ["3", 0],
+      "guidance": 3.5
+    }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Negative Prompt (empty for Flux)" },
+    "inputs": {
+      "text": "",
+      "clip": ["2", 0]
+    }
+  },
+  "6": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 832,
+      "height": 1216,
+      "batch_size": 1
+    }
+  },
+  "7": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["1", 0],
+      "seed": 42,
+      "steps": 25,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "latent_image": ["6", 0],
+      "denoise": 1.0
+    }
+  },
+  "8": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    }
+  },
+  "9": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["7", 0],
+      "vae": ["8", 0]
+    }
+  },
+  "10": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["9", 0],
+      "filename_prefix": "EoBQ/character"
+    }
+  }
+}

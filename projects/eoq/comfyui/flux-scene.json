@@ -1,0 +1,83 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux1-dev-fp8.safetensors",
+      "weight_dtype": "fp8_e4m3fn"
+    }
+  },
+  "2": {
+    "class_type": "DualCLIPLoader",
+    "inputs": {
+      "clip_name1": "t5xxl_fp8_e4m3fn.safetensors",
+      "clip_name2": "clip_l.safetensors",
+      "type": "flux"
+    }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Scene Prompt" },
+    "inputs": {
+      "text": "A grand throne room in a dark fantasy castle. Massive stone pillars rise to a vaulted ceiling lost in shadow. Warm candlelight flickers from iron chandeliers, casting long dancing shadows across weathered stone floors. A throne of black iron and bone sits elevated at the far end, draped in dark crimson velvet. Dust motes float in beams of pale moonlight streaming through tall narrow windows. Cinematic wide shot, photorealistic, 8k, dramatic lighting, moody atmosphere, film color grading.",
+      "clip": ["2", 0]
+    }
+  },
+  "4": {
+    "class_type": "FluxGuidance",
+    "inputs": {
+      "conditioning": ["3", 0],
+      "guidance": 3.5
+    }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "Negative Prompt (empty for Flux)" },
+    "inputs": {
+      "text": "",
+      "clip": ["2", 0]
+    }
+  },
+  "6": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": 1344,
+      "height": 768,
+      "batch_size": 1
+    }
+  },
+  "7": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["1", 0],
+      "seed": 123,
+      "steps": 25,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "latent_image": ["6", 0],
+      "denoise": 1.0
+    }
+  },
+  "8": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    }
+  },
+  "9": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["7", 0],
+      "vae": ["8", 0]
+    }
+  },
+  "10": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["9", 0],
+      "filename_prefix": "EoBQ/scene"
+    }
+  }
+}

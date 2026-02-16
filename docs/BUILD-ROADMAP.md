@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-16 (Phase 3 fully deployed, Phase 4 monitoring deployed, Phase 5 media+HA deployed, Phase 6 dashboard scaffolded)
+Last updated: 2026-02-16 (Phase 3 complete + Flux models, Phase 4 monitoring, Phase 5 media+HA, Phase 6 dashboard deployed + EoBQ workflows)
 
 ---
 
@@ -49,7 +49,7 @@ Last updated: 2026-02-16 (Phase 3 fully deployed, Phase 4 monitoring deployed, P
   - ComfyUI 0.13.0, PyTorch 2.7.0a0, 32 GB VRAM
 - [x] Deploy Open WebUI on Node 2 pointing to vLLM — http://192.168.1.225:3000
 - [x] Test end-to-end: chat via Open WebUI → vLLM inference on Node 1
-- [ ] Download Flux dev model for ComfyUI image generation testing
+- [x] Download Flux models for ComfyUI — FP8 dev (12 GB), CLIP-L, T5-XXL FP8, VAE (~17 GB total)
 
 ## Phase 4: Monitoring (ADR-009) — COMPLETE
 
@@ -84,6 +84,7 @@ Last updated: 2026-02-16 (Phase 3 fully deployed, Phase 4 monitoring deployed, P
 - [x] Chat page — streaming SSE chat with vLLM via API proxy
 - [x] Services page — health checks for all running services
 - [x] API routes: /api/chat (vLLM proxy), /api/services, /api/models
+- [x] Deploy dashboard to Node 2 — http://192.168.1.225:3001 (Docker standalone)
 - [ ] Set up LangGraph agent framework on Node 1
 - [ ] First agent: General Assistant
 - [ ] Media Agent (Sonarr/Radarr/Tautulli APIs)

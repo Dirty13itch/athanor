@@ -48,6 +48,7 @@ services:
       - comfyui-custom-nodes:/opt/ComfyUI/custom_nodes
       - comfyui-user:/opt/ComfyUI/user
       - /mnt/vault/models:/mnt/vault/models:ro
+      - /opt/athanor/comfyui/extra_model_paths.yaml:/opt/ComfyUI/extra_model_paths.yaml:ro
     ipc: host
     ulimits:
       memlock: -1
@@ -62,6 +63,27 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=1
 ```
+
+## Models (on VAULT NFS → /mnt/vault/models/comfyui/)
+
+```yaml
+# /opt/athanor/comfyui/extra_model_paths.yaml
+vault_nfs:
+    base_path: /mnt/vault/models/comfyui/
+    diffusion_models: unet/
+    clip: clip/
+    vae: vae/
+    checkpoints: checkpoints/
+```
+
+| File | Size | Path |
+|------|------|------|
+| flux1-dev-fp8.safetensors | 12 GB | unet/ |
+| clip_l.safetensors | 235 MB | clip/ |
+| t5xxl_fp8_e4m3fn.safetensors | 4.6 GB | clip/ |
+| ae.safetensors | 320 MB | vae/ |
+
+**Note**: Full-precision Flux dev (23 GB) requires HuggingFace auth (gated repo). FP8 version from [Kijai/flux-fp8](https://huggingface.co/Kijai/flux-fp8) is public and works great on RTX 5090.
 
 ## Rebuilding
 
