@@ -93,7 +93,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **What's running:** vLLM (Node 1), ComfyUI + Flux (Node 2), Dashboard (Node 2), Open WebUI (Node 2), full monitoring stack (VAULT), media stack (VAULT), Home Assistant (VAULT), Stash (VAULT).
 
-**Biggest gap:** No AI agents. VISION.md says agents are what makes Athanor "more than a homelab." ADR-008 chose LangGraph. Not started.
+**Agent framework:** General Assistant deployed (Node 1:9000). LangGraph + FastAPI, OpenAI-compatible API. Tools: service health, GPU metrics, vLLM models, storage info. Next: Media Agent, Home Agent.
 
 **Biggest waste:** RTX 4090 on Node 2 is completely idle (24 GB VRAM doing nothing).
 
@@ -104,6 +104,7 @@ Full details in `docs/hardware/inventory.md`.
 | Service | Node | Port | Status |
 |---------|------|------|--------|
 | vLLM (Qwen3-32B-AWQ, TP=4) | Node 1 | 8000 | Running |
+| Agent Server (General Assistant) | Node 1 | 9000 | Running |
 | node_exporter | Node 1 | 9100 | Running |
 | dcgm-exporter | Node 1 | 9400 | Running |
 | Dashboard | Node 2 | 3001 | Running |
@@ -177,12 +178,12 @@ Run `/mcp` to check current status.
 ## Blockers Requiring Shaun
 
 ### Browser Tasks (10 minutes)
+- **Add agent to Open WebUI**: Settings → Connections → OpenAI → URL: `http://192.168.1.244:9000/v1`, Key: `not-needed`
 - **Claim Plex**: http://192.168.1.203:32400/web
 - **HA onboarding**: http://192.168.1.203:8123
 
 ### Credentials Needed
 - **NordVPN** service credentials → unblocks qBittorrent + Gluetun VPN
-- **UniFi admin** login → unblocks static IPs / DHCP reservations
 - **HuggingFace token** (optional) → full-precision Flux dev model
 
 ### Physical Rack Session (~20 min)

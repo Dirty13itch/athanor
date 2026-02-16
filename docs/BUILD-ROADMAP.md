@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-16 (Phase 3 complete + Flux models, Phase 4 monitoring, Phase 5 media+HA, Phase 6 dashboard deployed + EoBQ workflows)
+Last updated: 2026-02-16 (Phase 6: agent framework deployed — General Assistant with tool calling)
 
 ---
 
@@ -85,8 +85,10 @@ Last updated: 2026-02-16 (Phase 3 complete + Flux models, Phase 4 monitoring, Ph
 - [x] Services page — health checks for all running services
 - [x] API routes: /api/chat (vLLM proxy), /api/services, /api/models
 - [x] Deploy dashboard to Node 2 — http://192.168.1.225:3001 (Docker standalone)
-- [ ] Set up LangGraph agent framework on Node 1
-- [ ] First agent: General Assistant
+- [x] Set up LangGraph agent framework on Node 1 — http://192.168.1.244:9000
+  - FastAPI server, OpenAI-compatible API, Docker with host networking
+  - vLLM tool calling enabled (hermes parser)
+- [x] First agent: General Assistant — tools: service health, GPU metrics, vLLM models, storage
 - [ ] Media Agent (Sonarr/Radarr/Tautulli APIs)
 - [ ] Home Agent (HA API)
 

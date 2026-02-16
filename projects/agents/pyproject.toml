@@ -1,0 +1,18 @@
+[project]
+name = "athanor-agents"
+version = "0.1.0"
+description = "Athanor AI agent framework — LangGraph agents with vLLM backend"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.4",
+    "langchain-openai>=0.3",
+    "langchain-core>=0.3",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "httpx>=0.28",
+    "pydantic-settings>=2.7",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
