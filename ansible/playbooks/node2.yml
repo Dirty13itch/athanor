@@ -1,0 +1,11 @@
+---
+# Node 2 (Workshop) — full stack
+# Usage: ansible-playbook playbooks/node2.yml
+
+- name: Configure Node 2
+  hosts: node2
+  roles:
+    - common
+    - nvidia
+    - docker
+    - monitoring

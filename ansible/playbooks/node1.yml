@@ -1,0 +1,11 @@
+---
+# Node 1 (Foundry) — full stack
+# Usage: ansible-playbook playbooks/node1.yml
+
+- name: Configure Node 1
+  hosts: node1
+  roles:
+    - common
+    - nvidia
+    - docker
+    - monitoring

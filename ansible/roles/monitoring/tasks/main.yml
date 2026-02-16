@@ -1,0 +1,53 @@
+---
+# Prometheus exporters on compute nodes
+
+- name: Run node_exporter container
+  community.docker.docker_container:
+    name: node-exporter
+    image: prom/node-exporter:latest
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    pid_mode: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    published_ports: []
+
+- name: Run dcgm-exporter container
+  community.docker.docker_container:
+    name: dcgm-exporter
+    image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.9-3.6.1-ubuntu22.04
+    state: started
+    restart_policy: unless-stopped
+    runtime: nvidia
+    capabilities:
+      - SYS_ADMIN
+    published_ports:
+      - "9400:9400"
+    env:
+      NVIDIA_VISIBLE_DEVICES: all
+
+- name: Verify node_exporter is responding
+  ansible.builtin.uri:
+    url: http://localhost:9100/metrics
+    return_content: false
+    status_code: 200
+  register: node_exporter_check
+  retries: 3
+  delay: 5
+
+- name: Verify dcgm-exporter is responding
+  ansible.builtin.uri:
+    url: http://localhost:9400/metrics
+    return_content: false
+    status_code: 200
+  register: dcgm_exporter_check
+  retries: 3
+  delay: 5

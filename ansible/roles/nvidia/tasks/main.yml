@@ -1,0 +1,33 @@
+---
+# NVIDIA driver installation for compute nodes
+# Installs nvidia-driver-575-open metapackage (resolves to 580.126.09)
+
+- name: Install NVIDIA driver prerequisites
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - dkms
+      - linux-headers-{{ ansible_kernel }}
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install NVIDIA driver (open kernel modules)
+  ansible.builtin.apt:
+    name: "{{ nvidia_driver_package }}"
+    state: present
+
+- name: Verify nvidia-smi works
+  ansible.builtin.command: nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+  register: nvidia_smi_output
+  changed_when: false
+
+- name: Show detected GPUs
+  ansible.builtin.debug:
+    msg: "{{ nvidia_smi_output.stdout_lines }}"
+
+- name: Verify expected GPU count
+  ansible.builtin.assert:
+    that:
+      - nvidia_smi_output.stdout_lines | length == gpu_count
+    fail_msg: "Expected {{ gpu_count }} GPUs but found {{ nvidia_smi_output.stdout_lines | length }}"

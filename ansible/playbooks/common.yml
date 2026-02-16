@@ -1,0 +1,8 @@
+---
+# Common setup only — packages, NFS, firewall
+# Usage: ansible-playbook playbooks/common.yml
+
+- name: Common setup for compute nodes
+  hosts: compute
+  roles:
+    - common

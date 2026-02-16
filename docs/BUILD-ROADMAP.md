@@ -36,7 +36,7 @@ Last updated: 2026-02-16 (Hybrid architecture planning, companion tools evaluati
 - [x] Configure NFS exports on VAULT (/mnt/user/data, /mnt/user/models, /mnt/user/appdata, /mnt/user/system) — already configured
 - [x] Mount NFS shares on both nodes (fstab entries) — /mnt/vault/{models,data,appdata}
 - [ ] Verify 10GbE throughput between nodes and VAULT (iperf3)
-- [ ] Set static IPs or DHCP reservations for all nodes
+- [x] Set static IPs on Node 1 (.244/.246) and Node 2 (.225) — netplan configs, dual default route fix
 - [ ] Order Mellanox ConnectX-3 FDR InfiniBand cards (2x, ~$30 each on eBay)
 
 ## Phase 3: First Services (ADR-005, ADR-006, ADR-007) — COMPLETE
@@ -98,11 +98,14 @@ Last updated: 2026-02-16 (Hybrid architecture planning, companion tools evaluati
 
 ## Phase 7: Ansible + Hardening
 
-- [ ] Write Ansible inventory (Node 1, Node 2, VAULT)
-- [ ] Common playbook: users, SSH keys, firewall, NFS mounts
-- [ ] Node 1 playbook: NVIDIA drivers, Docker, multi-GPU config
-- [ ] Node 2 playbook: NVIDIA drivers, Docker, GPU isolation
-- [ ] Set static IPs, configure BMC at .216
+- [x] Set static IPs on both nodes (netplan, removed cloud-init DHCP)
+- [x] Write Ansible inventory (Node 1, Node 2, VAULT) with host/group vars
+- [x] Common role: packages, NFS mounts, timezone, UFW firewall
+- [x] NVIDIA role: driver install, GPU count validation
+- [x] Docker role: Docker CE, Compose, NVIDIA Container Toolkit, daemon.json
+- [x] Monitoring role: node_exporter + dcgm-exporter containers
+- [x] Playbooks: site.yml, common.yml, node1.yml, node2.yml
+- [ ] Configure BMC at .216 (set static IP, change default creds)
 
 ## Phase 8: Hardware Reconfiguration (Hybrid Architecture)
 

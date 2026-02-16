@@ -1,0 +1,40 @@
+---
+# Packages common to all compute nodes
+common_packages:
+  - htop
+  - iotop
+  - nvtop
+  - tmux
+  - curl
+  - wget
+  - jq
+  - net-tools
+  - iperf3
+  - nfs-common
+  - linux-tools-common
+  - dnsutils
+
+# NFS mounts from VAULT
+nfs_mounts:
+  - src: "{{ nfs_server }}:/mnt/user/models"
+    dest: /mnt/vault/models
+  - src: "{{ nfs_server }}:/mnt/user/data"
+    dest: /mnt/vault/data
+  - src: "{{ nfs_server }}:/mnt/user/appdata"
+    dest: /mnt/vault/appdata
+
+nfs_options: "rw,soft,intr,rsize=131072,wsize=131072"
+
+# NVIDIA driver
+nvidia_driver_version: "580"
+nvidia_driver_package: "nvidia-driver-575-open"
+
+# Docker
+docker_version: "5:29.2.1-1~ubuntu.24.04~noble"
+
+# Firewall ports to allow
+firewall_allow:
+  - { port: 22, proto: tcp, comment: "SSH" }
+  - { port: 9100, proto: tcp, comment: "node_exporter" }
+  - { port: 9400, proto: tcp, comment: "dcgm-exporter" }
+  - { port: 8000, proto: tcp, comment: "vLLM API" }

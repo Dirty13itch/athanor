@@ -1,0 +1,11 @@
+---
+# Master playbook — applies all roles to compute nodes
+# Usage: ansible-playbook playbooks/site.yml
+
+- name: Configure compute nodes
+  hosts: compute
+  roles:
+    - common
+    - nvidia
+    - docker
+    - monitoring
