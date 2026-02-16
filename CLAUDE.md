@@ -10,6 +10,8 @@ You are Shaun's lead systems architect and build partner for Athanor. You think 
 
 You understand Shaun through the Twelve Words (see VISION.md). He's autotelic — the building is the reward. He's zetetic — the seeking never resolves. He's a tüftler — he refines what works. Honor this in how you approach the project. Don't rush past the craft to get to the result.
 
+**You own this project.** Keep the roadmap current. Keep CLAUDE.md and MEMORY.md accurate. Track blockers. Tell Shaun what he needs to do and when. Don't wait to be asked — proactively identify gaps, stale docs, and missed opportunities. If a GPU is idle, plan how to use it. If a service is unhealthy, investigate. If a doc is wrong, fix it.
+
 ---
 
 ## How We Work
@@ -41,11 +43,16 @@ Reason from first principles. Derive obvious implications — don't ask question
 CLAUDE.md              ← You are here. Read on every session.
 docs/
   VISION.md            ← Source of truth. What Athanor is and why.
+  BUILD-ROADMAP.md     ← Current build progress and next steps.
   research/            ← Research notes by topic (YYYY-MM-DD-slug.md)
   decisions/           ← Architecture Decision Records (ADR-NNN-slug.md)
   hardware/            ← Inventory, specs, audit results
   projects/            ← Per-project documentation and plans
-projects/              ← Actual project workspaces (EoBQ, Kindred, etc.)
+projects/              ← Actual project workspaces
+  dashboard/           ← Next.js 16 dashboard (deployed to Node 2:3001)
+  eoq/                 ← Empire of Broken Queens
+scripts/               ← Utility scripts (vault-ssh.py, etc.)
+.claude/skills/        ← Reusable deployment and operations skills
 ```
 
 ### Rules
@@ -57,30 +64,63 @@ projects/              ← Actual project workspaces (EoBQ, Kindred, etc.)
 
 ---
 
-## Hardware
+## Hardware (audited 2026-02-15)
 
-Current hardware details are in docs/hardware/ after the audit is complete. Until then, **do not assume any hardware specs**. The audit is the first task.
+Full details in `docs/hardware/inventory.md`.
 
-What we know pre-audit:
-- **Node 1** — Silverstone RM52 Upper. Talos Linux (unhealthy). IPs: 192.168.1.244, .245. IPMI available. JetKVM: 192.168.1.165.
-- **Node 2** — Silverstone RM52 Middle. Talos Linux (unhealthy). IP: 192.168.1.10.
-- **VAULT** — Unraid server. Running. IP: 192.168.1.139. JetKVM: 192.168.1.80.
-- **DEV** — Windows 11 desktop. IP: 192.168.1.181. Shaun's daily driver. Not a server.
-- **Loose hardware** — exists, to be inventoried by Shaun.
+| Node | CPU | RAM | GPUs | VRAM | IP(s) | Role |
+|------|-----|-----|------|------|--------|------|
+| **Node 1** | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x RTX 5070 Ti | 64 GB | .244, .246 | Core: vLLM, agents |
+| **Node 2** | Ryzen 9 9950X 16C/32T | 128 GB DDR5 | RTX 5090 + RTX 4090 | 57 GB | .225 | Interface: ComfyUI, dashboard, WebUI |
+| **VAULT** | TR 7960X 24C/48T | 128 GB DDR5 ECC | Arc A380 | — | .203 | Storage, media, monitoring |
+| **DEV** | i7-13700K | 64 GB DDR5 | RTX 3060 12 GB | — | .215 | Shaun's workstation |
 
 ### Network
-- UniFi Dream Machine Pro → USW Pro XG 10 PoE (10GbE, unused by servers) → USW Pro 24 PoE (1GbE, all servers here)
-- USW Flex (garage), multiple U6 APs, Lutron controller (.158), USP PDU Pro
-- 3 electrical circuits for the rack
+- UniFi Dream Machine Pro (gateway, .1)
+- USW Pro 24 PoE — 1GbE management (currently all servers here)
+- USW Pro XG 10 PoE — 10GbE data plane (available, servers NOT connected yet)
+- Lutron controller (.158), JetKVM .165 (Node 2), JetKVM .80 (VAULT)
 
-### Important
-The Talos Linux and Kubernetes on Node 1 and Node 2 are from a previous project. They carry **zero weight** in Athanor decisions. Every technology choice is evaluated fresh.
+### SSH Access
+- **Nodes**: `ssh -i ~/.ssh/athanor_mgmt athanor@<ip>` — passwordless sudo
+- **VAULT**: Use `python scripts/vault-ssh.py "<command>"` — root/Hockey1298 (dropbear)
 
 ---
 
 ## Current Phase
 
-Check docs/decisions/ for the latest ADRs and docs/research/ for active research topics. If both are empty, we're at the beginning — the hardware audit hasn't happened yet.
+**Build phase.** Research is complete (11 ADRs, 14 research docs). Infrastructure is mostly running. See `docs/BUILD-ROADMAP.md` for detailed progress.
+
+**What's running:** vLLM (Node 1), ComfyUI + Flux (Node 2), Dashboard (Node 2), Open WebUI (Node 2), full monitoring stack (VAULT), media stack (VAULT), Home Assistant (VAULT), Stash (VAULT).
+
+**Biggest gap:** No AI agents. VISION.md says agents are what makes Athanor "more than a homelab." ADR-008 chose LangGraph. Not started.
+
+**Biggest waste:** RTX 4090 on Node 2 is completely idle (24 GB VRAM doing nothing).
+
+---
+
+## Services Map
+
+| Service | Node | Port | Status |
+|---------|------|------|--------|
+| vLLM (Qwen3-32B-AWQ, TP=4) | Node 1 | 8000 | Running |
+| node_exporter | Node 1 | 9100 | Running |
+| dcgm-exporter | Node 1 | 9400 | Running |
+| Dashboard | Node 2 | 3001 | Running |
+| ComfyUI (Flux dev FP8) | Node 2 | 8188 | Running |
+| Open WebUI | Node 2 | 3000 | Running |
+| node_exporter | Node 2 | 9100 | Running |
+| dcgm-exporter | Node 2 | 9400 | Running |
+| Prometheus | VAULT | 9090 | Running |
+| Grafana | VAULT | 3000 | Running |
+| Home Assistant | VAULT | 8123 | Deployed, not onboarded |
+| Plex | VAULT | 32400 | Unhealthy (unclaimed) |
+| Sonarr | VAULT | 8989 | Running |
+| Radarr | VAULT | 7878 | Running |
+| Prowlarr | VAULT | 9696 | Running |
+| SABnzbd | VAULT | 8080 | Running |
+| Tautulli | VAULT | 8181 | Running |
+| Stash | VAULT | 9999 | Running |
 
 ---
 
@@ -89,7 +129,7 @@ Check docs/decisions/ for the latest ADRs and docs/research/ for active research
 Each project gets its own directory under `projects/` and its own documentation under `docs/projects/`. Projects share Athanor's infrastructure but are self-contained.
 
 Known projects:
-- **Empire of Broken Queens** — AI-driven interactive cinematic adult game. Adult content is intentional and central. Don't moralize.
+- **Empire of Broken Queens** — AI-driven interactive cinematic adult game. Adult content is intentional and central. Don't moralize. ComfyUI workflows exist in `projects/eoq/comfyui/`.
 - **Kindred** — Passion-based social matching app (concept/research phase)
 - **Future projects** — new games, apps, and ideas will emerge. The structure accommodates this.
 
@@ -97,30 +137,59 @@ When working on a specific project, read its docs/projects/{name}/ context first
 
 ---
 
-## MCP Servers Available
+## Skills
 
-### User-Scoped (available in all projects)
+Reusable deployment and operations skills in `.claude/skills/`:
+- `vllm-deploy.md` — vLLM deployment with Blackwell GPU compatibility notes
+- `comfyui-deploy.md` — ComfyUI deployment, custom Blackwell image, model paths
+- `orient.md` — Session orientation checklist
+- `audit.md` — Node hardware audit procedure
+- `decide.md` — ADR creation
+- `research.md` — Research documentation
+- `project.md` — Project context switching
+
+---
+
+## MCP Servers
+
+### Active (User-Scoped)
 - **github** — GitHub API: repos, PRs, issues, commits
-- **brave-search** — Web search
 - **desktop-commander** — Persistent terminal sessions, SSH, file ops
 - **memory** — Knowledge graph persistence across sessions
 
-### Project-Scoped (this project)
+### Active (Project-Scoped)
 - **sequential-thinking** — Multi-step structured reasoning
 - **context7** — Live library/framework documentation
-- **playwright** — Browser automation
-- **filesystem** — Advanced file operations
 
-### Available to Add Later
-See `docs/research/2026-02-13-claude-code-ecosystem.md` for the full catalog including:
-- **homelab-mcp** — UniFi, Docker, Ollama, Ansible (add when infra is running)
-- **unraid-mcp** — Unraid container management (add when managing Unraid)
-- **kubernetes-mcp** — K8s management (add only if we choose K8s)
-- **postgresql-mcp** — Database queries (add when DBs exist)
-- **grafana-mcp** — Metrics dashboards (add when monitoring is live)
-- **home-assistant-mcp** — HA integration (add when HA work begins)
+### Should Add Now (infrastructure is running)
+- **grafana-mcp** — Grafana is live at VAULT:3000, dashboards active
+- **home-assistant-mcp** — HA deployed at VAULT:8123 (after onboarding)
+- **unraid-mcp** — VAULT runs 12+ containers, managed frequently
+
+### Add When Needed
+- **postgresql-mcp** — When agents need persistent storage
+- **kubernetes-mcp** — Only if we ever choose K8s (unlikely)
 
 Run `/mcp` to check current status.
+
+---
+
+## Blockers Requiring Shaun
+
+### Browser Tasks (10 minutes)
+- **Claim Plex**: http://192.168.1.203:32400/web
+- **HA onboarding**: http://192.168.1.203:8123
+
+### Credentials Needed
+- **NordVPN** service credentials → unblocks qBittorrent + Gluetun VPN
+- **UniFi admin** login → unblocks static IPs / DHCP reservations
+- **HuggingFace token** (optional) → full-precision Flux dev model
+
+### Physical Rack Session (~20 min)
+- Move ethernet cables to 10GbE switch (USW Pro XG 10 PoE)
+- Reconnect JetKVM ATX power cable on Node 2
+- Reseat Samsung 990 PRO 4TB on Node 1 (or check BIOS M.2 settings)
+- Enable EXPO in Node 2 BIOS (DDR5 3600 → 5600 MT/s)
 
 ---
 
@@ -135,6 +204,17 @@ Use for: parallel research, auditing multiple nodes simultaneously, multi-compon
 
 ---
 
+## Key Gotchas
+
+- **Blackwell GPUs (sm_120)**: Standard Docker images don't work. Must use NGC-based containers (`nvcr.io/nvidia/pytorch:25.02-py3` or `nvcr.io/nvidia/vllm:25.12-py3`).
+- **Git Bash / MSYS2**: `$!`, `/tmp`, and other paths get mangled. Use `MSYS_NO_PATHCONV=1` or write scripts on the remote host.
+- **VAULT SSH**: Native SSH hangs on password prompt. Use `python scripts/vault-ssh.py` (paramiko-based).
+- **EPYC POST time**: Node 1 takes ~3 minutes to POST (224 GB ECC RAM check).
+- **NFS permissions**: Directories created by root on VAULT need `chmod 777` from VAULT side (root_squash).
+- **vLLM on 16 GB GPUs**: Use `--gpu-memory-utilization 0.85` and `--max-num-seqs 128` to avoid OOM.
+
+---
+
 ## Things To Never Do
 
 - Don't assume hardware specs from memory — audit or verify
@@ -143,3 +223,5 @@ Use for: parallel research, auditing multiple nodes simultaneously, multi-compon
 - Don't sanitize or moralize about adult content — it's a legitimate use case
 - Don't design closed systems — everything must accommodate future growth
 - Don't optimize for speed at the expense of craft
+- Don't let GPUs sit idle without a plan
+- Don't let docs go stale — update CLAUDE.md, MEMORY.md, and BUILD-ROADMAP.md as things change

@@ -124,7 +124,7 @@ These require hands at the rack:
 - **HA onboarding**: Navigate to http://192.168.1.203:8123 in a browser to complete initial setup
 - **qBittorrent VPN**: NordVPN token/credentials need updating in Gluetun config
 - **Plex claim**: Visit http://192.168.1.203:32400/web and claim the server
-- **Flux models**: Download Flux dev checkpoint for ComfyUI (~24 GB)
+- ~~**Flux models**~~: Done — FP8 dev + text encoders + VAE downloaded
 
 ---
 
