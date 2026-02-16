@@ -2,30 +2,38 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-15
+Last updated: 2026-02-15 (Phase 0 re-audited, Phase 1 confirmed, NFS exports already on VAULT)
 
 ---
 
-## Phase 0: Foundation (current)
+## Phase 0: Foundation
 
-- [ ] Get DHCP IPs for Node 1 and Node 2 (check JetKVM consoles or UDM DHCP leases)
-- [ ] SSH into both nodes with athanor/athanor2026
-- [ ] Verify Samsung 990 PRO 4TB physical seat on Node 1 (not detected in audit)
-- [ ] Reconnect JetKVM ATX power cable on Node 2
-- [ ] Move Node 1 + Node 2 ethernet to USW Pro XG 10 PoE (10GbE data plane)
+- [x] Get DHCP IPs for Node 1 and Node 2 — Node 1: .244/.246, Node 2: .225
+- [x] SSH into both nodes with athanor/athanor2026
+- [ ] Verify Samsung 990 PRO 4TB physical seat on Node 1 (not detected in audit) *(physical)*
+- [ ] Reconnect JetKVM ATX power cable on Node 2 *(physical)*
+- [ ] Move Node 1 + Node 2 ethernet to USW Pro XG 10 PoE (10GbE data plane) *(physical)*
 
 ## Phase 1: NVIDIA + Docker (ADR-001 validation)
 
-- [ ] Install NVIDIA driver 570+ (open modules) on Node 1 — **4x 5070 Ti validation spike**
-- [ ] Install NVIDIA driver 570+ (open modules) on Node 2 — 5090 + 4090
-- [ ] Install Docker Engine on both nodes
-- [ ] Install NVIDIA Container Toolkit on both nodes
-- [ ] Test: `docker run --gpus all nvidia/cuda:12.8.0-base nvidia-smi` on both
-- [ ] Verify all 4 GPUs visible on Node 1, both GPUs visible on Node 2
+### Node 1 — COMPLETE
+- [x] Upgrade to HWE kernel 6.17.0-14-generic
+- [x] Install NVIDIA driver 580.126.09 (open modules) — **4x 5070 Ti validation spike PASSED**
+- [x] Install Docker Engine 29.2.1 + Compose v5.0.2
+- [x] Install NVIDIA Container Toolkit, configure Docker runtime
+- [x] Test: `docker run --gpus all nvidia/cuda:12.8.0-base nvidia-smi` — **all 4 GPUs visible**
+
+### Node 2 — COMPLETE
+- [x] Upgrade to HWE kernel 6.17.0-14-generic
+- [x] Install NVIDIA driver 580.126.09 (open modules) — RTX 5090 + RTX 4090
+- [x] Install Docker Engine 29.2.1 + Compose v5.0.2
+- [x] Install NVIDIA Container Toolkit, configure Docker runtime
+- [x] Test: `docker run --gpus all nvidia/cuda:12.8.0-base nvidia-smi` — **both GPUs visible**
+- [x] RTX 4090 (24,564 MiB) + RTX 5090 (32,607 MiB) = 57.2 GB VRAM confirmed
 
 ## Phase 2: Storage + Network (ADR-002, ADR-003)
 
-- [ ] Configure NFS exports on VAULT (/mnt/user/data, /mnt/user/models)
+- [x] Configure NFS exports on VAULT (/mnt/user/data, /mnt/user/models, /mnt/user/appdata, /mnt/user/system) — already configured
 - [ ] Mount NFS shares on both nodes (fstab entries)
 - [ ] Verify 10GbE throughput between nodes and VAULT (iperf3)
 - [ ] Set static IPs or DHCP reservations for all nodes
