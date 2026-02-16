@@ -159,7 +159,7 @@ These require hands at the rack:
 ## Blocked / Needs Shaun
 
 - **HA onboarding**: Navigate to http://192.168.1.203:8123 in a browser to complete initial setup
-- **Grafana MCP auth**: Verify Grafana admin password at http://192.168.1.203:3000 — update `.mcp.json` if not default admin/admin
+- ~~**Grafana MCP auth**~~: Done — password reset to newpass123, compose + .mcp.json updated
 - **HA MCP**: Install after HA onboarding is complete (needs long-lived access token)
 - **qBittorrent VPN**: NordVPN token/credentials need updating in Gluetun config
 - ~~**Plex claim**~~: Done — claimed with token, healthy on host networking

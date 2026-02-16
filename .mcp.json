@@ -29,7 +29,7 @@
       "env": {
         "GRAFANA_URL": "http://192.168.1.203:3000",
         "GRAFANA_USERNAME": "admin",
-        "GRAFANA_PASSWORD": "admin"
+        "GRAFANA_PASSWORD": "newpass123"
       }
     }
   }
