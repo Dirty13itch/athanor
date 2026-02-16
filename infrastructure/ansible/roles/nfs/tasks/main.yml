@@ -1,0 +1,18 @@
+---
+# Mount NFS shares from VAULT
+
+- name: Create NFS mount points
+  ansible.builtin.file:
+    path: "{{ item.dest }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ nfs_mounts }}"
+
+- name: Mount NFS shares via fstab
+  ansible.posix.mount:
+    src: "{{ nfs_server }}:{{ item.src }}"
+    path: "{{ item.dest }}"
+    fstype: nfs
+    opts: "{{ nfs_options }}"
+    state: mounted
+  loop: "{{ nfs_mounts }}"

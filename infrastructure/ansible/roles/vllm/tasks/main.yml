@@ -1,0 +1,26 @@
+---
+# Deploy vLLM inference server
+
+- name: Create vLLM directory
+  ansible.builtin.file:
+    path: "/opt/athanor/{{ vllm_dir | default('vllm') }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy vLLM compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "/opt/athanor/{{ vllm_dir | default('vllm') }}/docker-compose.yml"
+    mode: "0644"
+  register: vllm_compose
+
+- name: Pull vLLM image
+  ansible.builtin.command:
+    cmd: docker compose pull
+    chdir: "/opt/athanor/{{ vllm_dir | default('vllm') }}"
+
+- name: Start vLLM
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "/opt/athanor/{{ vllm_dir | default('vllm') }}"
+  when: vllm_compose.changed

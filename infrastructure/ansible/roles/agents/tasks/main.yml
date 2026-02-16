@@ -1,0 +1,37 @@
+---
+# Deploy Athanor agent framework
+
+- name: Create agents directory
+  ansible.builtin.file:
+    path: /opt/athanor/agents
+    state: directory
+    mode: "0755"
+
+- name: Sync agent source code
+  ansible.builtin.synchronize:
+    src: "{{ playbook_dir }}/../../projects/agents/"
+    dest: /opt/athanor/agents/
+    delete: true
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=*.pyc"
+      - "--exclude=.venv"
+      - "--exclude=*.egg-info"
+
+- name: Deploy agents compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/athanor/agents/docker-compose.yml
+    mode: "0644"
+  register: agents_compose
+
+- name: Build agent image
+  ansible.builtin.command:
+    cmd: docker compose build
+    chdir: /opt/athanor/agents
+
+- name: Start agent server
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: /opt/athanor/agents
+  when: agents_compose.changed

@@ -1,0 +1,17 @@
+---
+# Provision and deploy Node 1 (core) only
+# Usage: ansible-playbook playbooks/node1.yml
+
+- name: Provision Node 1
+  hosts: core
+  roles:
+    - common
+    - nvidia
+    - docker
+    - nfs
+    - monitoring
+    - role: vllm
+      vars:
+        vllm_container_name: vllm
+        vllm_dir: vllm
+    - agents

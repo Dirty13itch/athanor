@@ -1,0 +1,26 @@
+---
+# Deploy/update services only (skip OS provisioning)
+# Usage: ansible-playbook playbooks/deploy-services.yml
+# Useful for pushing config changes without touching the OS layer
+
+- name: Deploy Node 1 services
+  hosts: core
+  roles:
+    - monitoring
+    - role: vllm
+      vars:
+        vllm_container_name: vllm
+        vllm_dir: vllm
+    - agents
+
+- name: Deploy Node 2 services
+  hosts: interface
+  roles:
+    - monitoring
+    - role: vllm
+      vars:
+        vllm_container_name: vllm-node2
+        vllm_dir: vllm-node2
+    - comfyui
+    - dashboard
+    - open-webui

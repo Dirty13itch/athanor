@@ -1,0 +1,27 @@
+services:
+  comfyui:
+    image: athanor/comfyui:blackwell
+    container_name: comfyui
+    restart: unless-stopped
+    ipc: host
+    ports:
+      - "{{ comfyui_port }}:8188"
+    volumes:
+      - /mnt/vault/models/comfyui:/models:ro
+      - comfyui-output:/app/ComfyUI/output
+      - comfyui-input:/app/ComfyUI/input
+      - /opt/athanor/comfyui/extra_model_paths.yaml:/app/ComfyUI/extra_model_paths.yaml:ro
+    environment:
+      - NVIDIA_VISIBLE_DEVICES={{ comfyui_gpu_device }}
+      - CUDA_VISIBLE_DEVICES={{ comfyui_gpu_device }}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["{{ comfyui_gpu_device }}"]
+              capabilities: [gpu]
+
+volumes:
+  comfyui-output:
+  comfyui-input:

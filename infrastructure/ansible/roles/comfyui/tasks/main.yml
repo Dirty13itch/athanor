@@ -1,0 +1,27 @@
+---
+# Deploy ComfyUI on RTX 5090
+
+- name: Create ComfyUI directory
+  ansible.builtin.file:
+    path: /opt/athanor/comfyui
+    state: directory
+    mode: "0755"
+
+- name: Deploy ComfyUI compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/athanor/comfyui/docker-compose.yml
+    mode: "0644"
+  register: comfyui_compose
+
+- name: Deploy extra_model_paths.yaml
+  ansible.builtin.template:
+    src: extra_model_paths.yaml.j2
+    dest: /opt/athanor/comfyui/extra_model_paths.yaml
+    mode: "0644"
+
+- name: Start ComfyUI
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: /opt/athanor/comfyui
+  when: comfyui_compose.changed

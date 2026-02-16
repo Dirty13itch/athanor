@@ -1,0 +1,18 @@
+# Node 2 (interface) — Ryzen 9 9950X, 128 GB RAM, RTX 4090 + RTX 5090
+
+vllm_model: /models/Qwen3-14B-AWQ
+vllm_quantization: awq_marlin
+vllm_gpu_device: "0"
+vllm_gpu_memory_utilization: "0.90"
+vllm_max_model_len: 32768
+vllm_max_num_seqs: 64
+vllm_extra_args: "--enable-auto-tool-choice --tool-call-parser hermes"
+
+comfyui_gpu_device: "1"
+
+deploy_services:
+  - vllm
+  - comfyui
+  - dashboard
+  - open-webui
+  - monitoring

@@ -1,0 +1,15 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "{{ open_webui_port }}:8080"
+    environment:
+      - OPENAI_API_BASE_URL=http://{{ node1_ip }}:{{ vllm_port }}/v1
+      - OPENAI_API_KEY=not-needed
+    volumes:
+      - open-webui-data:/app/backend/data
+
+volumes:
+  open-webui-data:

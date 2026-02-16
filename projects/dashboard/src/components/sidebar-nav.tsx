@@ -17,8 +17,8 @@ export function SidebarNav() {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 flex w-56 flex-col border-r border-border bg-card">
       <div className="flex h-14 items-center border-b border-border px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-foreground">
-          <span className="text-lg">Athanor</span>
+        <Link href="/" className="flex items-center gap-2 text-foreground">
+          <span className="font-heading text-xl font-semibold tracking-wide">Athanor</span>
         </Link>
       </div>
       <nav className="flex-1 space-y-1 p-2">

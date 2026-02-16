@@ -1,0 +1,26 @@
+---
+# Deploy node_exporter + dcgm-exporter
+
+- name: Create monitoring directory
+  ansible.builtin.file:
+    path: /opt/athanor/monitoring
+    state: directory
+    mode: "0755"
+
+- name: Deploy monitoring compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/athanor/monitoring/docker-compose.yml
+    mode: "0644"
+  register: monitoring_compose
+
+- name: Pull monitoring images
+  ansible.builtin.command:
+    cmd: docker compose pull
+    chdir: /opt/athanor/monitoring
+
+- name: Start monitoring stack
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: /opt/athanor/monitoring
+  when: monitoring_compose.changed

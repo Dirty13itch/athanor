@@ -1,0 +1,28 @@
+---
+# Deploy Athanor dashboard (Next.js)
+
+- name: Create dashboard directory
+  ansible.builtin.file:
+    path: /opt/athanor/dashboard
+    state: directory
+    mode: "0755"
+
+- name: Sync dashboard source code
+  ansible.builtin.synchronize:
+    src: "{{ playbook_dir }}/../../projects/dashboard/"
+    dest: /opt/athanor/dashboard/
+    delete: true
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=.next"
+      - "--exclude=.git"
+
+- name: Build dashboard image
+  ansible.builtin.command:
+    cmd: docker compose build --no-cache
+    chdir: /opt/athanor/dashboard
+
+- name: Start dashboard
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: /opt/athanor/dashboard

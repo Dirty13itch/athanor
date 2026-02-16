@@ -1,0 +1,26 @@
+---
+# Deploy Open WebUI
+
+- name: Create Open WebUI directory
+  ansible.builtin.file:
+    path: /opt/athanor/open-webui
+    state: directory
+    mode: "0755"
+
+- name: Deploy Open WebUI compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: /opt/athanor/open-webui/docker-compose.yml
+    mode: "0644"
+  register: openwebui_compose
+
+- name: Pull Open WebUI image
+  ansible.builtin.command:
+    cmd: docker compose pull
+    chdir: /opt/athanor/open-webui
+
+- name: Start Open WebUI
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: /opt/athanor/open-webui
+  when: openwebui_compose.changed

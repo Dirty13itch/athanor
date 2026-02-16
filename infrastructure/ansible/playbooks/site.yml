@@ -1,0 +1,32 @@
+---
+# Full site playbook — provision all nodes from scratch
+# Usage: ansible-playbook playbooks/site.yml
+
+- name: Provision GPU nodes
+  hosts: nodes
+  roles:
+    - common
+    - nvidia
+    - docker
+    - nfs
+    - monitoring
+
+- name: Deploy Node 1 services
+  hosts: core
+  roles:
+    - role: vllm
+      vars:
+        vllm_container_name: vllm
+        vllm_dir: vllm
+    - agents
+
+- name: Deploy Node 2 services
+  hosts: interface
+  roles:
+    - role: vllm
+      vars:
+        vllm_container_name: vllm-node2
+        vllm_dir: vllm-node2
+    - comfyui
+    - dashboard
+    - open-webui
