@@ -1,0 +1,42 @@
+---
+all:
+  vars:
+    timezone: America/Chicago
+    nfs_server: 192.168.1.203
+
+  children:
+    compute:
+      children:
+        node1:
+          hosts:
+            core:
+              ansible_host: 192.168.1.244
+              node_role: foundry
+              gpu_count: 4
+              gpu_type: "RTX 5070 Ti"
+              vram_total_gb: 64
+              extra_firewall:
+                - { port: 9000, proto: tcp, comment: "Agent Server" }
+        node2:
+          hosts:
+            interface:
+              ansible_host: 192.168.1.225
+              node_role: workshop
+              gpu_count: 2
+              gpu_type: "RTX 5090 + RTX 4090"
+              vram_total_gb: 57
+              extra_firewall:
+                - { port: 3000, proto: tcp, comment: "Open WebUI" }
+                - { port: 3001, proto: tcp, comment: "Dashboard" }
+                - { port: 8188, proto: tcp, comment: "ComfyUI" }
+
+    # VAULT is managed via scripts/vault-ssh.py or Ansible with vault-encrypted vars
+    # Do NOT run ad-hoc commands against VAULT — write playbooks for review
+    storage:
+      hosts:
+        vault:
+          ansible_host: 192.168.1.203
+          ansible_user: root
+          ansible_connection: paramiko
+          ansible_password: "{{ vault_password }}"
+          node_role: storage

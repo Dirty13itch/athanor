@@ -1,0 +1,36 @@
+services:
+  comfyui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: athanor/comfyui:blackwell
+    container_name: comfyui
+    restart: unless-stopped
+    ports:
+      - "8188:8188"
+    volumes:
+      - comfyui-output:/opt/ComfyUI/output
+      - comfyui-input:/opt/ComfyUI/input
+      - comfyui-custom-nodes:/opt/ComfyUI/custom_nodes
+      - comfyui-user:/opt/ComfyUI/user
+      - /mnt/vault/models:/mnt/vault/models:ro
+      - /opt/athanor/comfyui/extra_model_paths.yaml:/opt/ComfyUI/extra_model_paths.yaml:ro
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["1"]
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=1
+
+volumes:
+  comfyui-output:
+  comfyui-input:
+  comfyui-custom-nodes:
+  comfyui-user:

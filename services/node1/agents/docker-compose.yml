@@ -1,0 +1,17 @@
+services:
+  agents:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: athanor/agents:latest
+    container_name: athanor-agents
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - ATHANOR_VLLM_BASE_URL=http://localhost:8000/v1
+      - ATHANOR_VLLM_MODEL=/models/Qwen3-32B-AWQ
+      - ATHANOR_PROMETHEUS_URL=http://192.168.1.203:9090
+      - ATHANOR_PORT=9000
+      - ATHANOR_SONARR_API_KEY=00c61e0aab6b4e469f90ca3afd0dc07b
+      - ATHANOR_RADARR_API_KEY=c6269fccc2b644498ec1c9ffcbc40124
+      - ATHANOR_TAUTULLI_API_KEY=c5f35f970e614f6d90301dcad8cdf092

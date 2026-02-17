@@ -1,0 +1,12 @@
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: athanor/dashboard:latest
+    container_name: athanor-dashboard
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_PROMETHEUS_URL=http://192.168.1.203:9090
