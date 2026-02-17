@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-16 (Hybrid architecture planning, companion tools evaluation)
+Last updated: 2026-02-16 (Ansible service roles, Home Agent, service configs synced to git)
 
 ---
 
@@ -95,7 +95,9 @@ Last updated: 2026-02-16 (Hybrid architecture planning, companion tools evaluati
   - vLLM tool calling enabled (hermes parser)
 - [x] First agent: General Assistant — tools: service health, GPU metrics, vLLM models, storage
 - [x] Media Agent — tools: TV search/add/calendar/queue (Sonarr), movie search/add/calendar/queue (Radarr), Plex activity/history/libraries (Tautulli)
-- [ ] Home Agent (HA API)
+- [x] Home Agent skeleton — 8 HA tools (entity state, search, services, lights, climate, automations)
+  - Conditionally activates when ATHANOR_HA_TOKEN is set (blocked on HA onboarding)
+- [x] Deploy script (scripts/deploy-agents.sh) — fast local→Node 1 dev loop
 
 ## Phase 7: Ansible + Hardening
 
@@ -106,7 +108,12 @@ Last updated: 2026-02-16 (Hybrid architecture planning, companion tools evaluati
 - [x] Docker role: Docker CE, Compose, NVIDIA Container Toolkit, daemon.json
 - [x] Monitoring role: node_exporter + dcgm-exporter containers
 - [x] Playbooks: site.yml, common.yml, node1.yml, node2.yml
-- [ ] Configure BMC at .216 (set static IP, change default creds)
+- [x] Ansible inventory.yml with per-host vars (host_vars/core.yml, host_vars/interface.yml)
+- [x] Service deployment roles: vllm, agents, comfyui, open-webui, dashboard
+  - Templated compose files, per-host config, health checks
+  - Full stack reproducible: `ansible-playbook playbooks/site.yml`
+- [x] Synced all remote service configs to git (services/node1/, services/node2/)
+- [ ] Configure BMC at .216 — AMI MegaRAC, admin/Will2live!, web UI works, IPMI-over-LAN needs enabling *(browser)*
 
 ## Phase 8: Hardware Reconfiguration (Hybrid Architecture)
 
