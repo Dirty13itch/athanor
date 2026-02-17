@@ -1,0 +1,19 @@
+services:
+  open-webui:
+    image: {{ open_webui_image }}
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "{{ open_webui_port }}:8080"
+    volumes:
+      - open-webui-data:/app/backend/data
+    environment:
+      - OPENAI_API_BASE_URL={{ open_webui_vllm_url }}
+      - OPENAI_API_KEY=not-needed
+      - WEBUI_AUTH=false
+      - ENABLE_OLLAMA_API=false
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  open-webui-data:

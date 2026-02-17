@@ -1,0 +1,36 @@
+---
+- name: Create vLLM deploy directory
+  ansible.builtin.file:
+    path: "{{ vllm_deploy_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Deploy vLLM docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ vllm_deploy_dir }}/docker-compose.yml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: vllm_compose
+
+- name: Pull vLLM image
+  community.docker.docker_compose_v2_pull:
+    project_src: "{{ vllm_deploy_dir }}"
+
+- name: Deploy vLLM
+  community.docker.docker_compose_v2:
+    project_src: "{{ vllm_deploy_dir }}"
+    state: present
+    recreate: "{{ 'always' if vllm_compose.changed else 'never' }}"
+
+- name: Wait for vLLM health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vllm_port }}/health"
+    status_code: 200
+  register: vllm_health
+  retries: 30
+  delay: 10
+  until: vllm_health.status == 200

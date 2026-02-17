@@ -1,0 +1,17 @@
+services:
+  agents:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: athanor/agents:latest
+    container_name: athanor-agents
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - ATHANOR_VLLM_BASE_URL={{ agent_vllm_url }}
+      - ATHANOR_VLLM_MODEL={{ agent_vllm_model }}
+      - ATHANOR_PROMETHEUS_URL={{ agent_prometheus_url }}
+      - ATHANOR_PORT={{ agent_port }}
+      - ATHANOR_SONARR_API_KEY={{ agent_sonarr_api_key }}
+      - ATHANOR_RADARR_API_KEY={{ agent_radarr_api_key }}
+      - ATHANOR_TAUTULLI_API_KEY={{ agent_tautulli_api_key }}

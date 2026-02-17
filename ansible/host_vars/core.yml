@@ -1,0 +1,19 @@
+---
+# Node 1 (core / Foundry) — host-specific vars
+
+vllm_model: /models/Qwen3-32B-AWQ
+vllm_quantization: awq
+vllm_tensor_parallel: 4
+vllm_port: 8000
+vllm_gpu_memory_util: "0.85"
+vllm_max_model_len: 32768
+vllm_max_num_seqs: 128
+vllm_gpu_devices: all
+
+agent_port: 9000
+agent_vllm_url: "http://localhost:8000/v1"
+agent_vllm_model: /models/Qwen3-32B-AWQ
+agent_prometheus_url: "http://192.168.1.203:9090"
+agent_sonarr_api_key: "00c61e0aab6b4e469f90ca3afd0dc07b"
+agent_radarr_api_key: "c6269fccc2b644498ec1c9ffcbc40124"
+agent_tautulli_api_key: "c5f35f970e614f6d90301dcad8cdf092"

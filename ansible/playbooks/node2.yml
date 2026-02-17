@@ -9,3 +9,7 @@
     - nvidia
     - docker
     - monitoring
+    - vllm
+    - comfyui
+    - open-webui
+    - dashboard

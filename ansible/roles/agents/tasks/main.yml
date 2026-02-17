@@ -1,0 +1,60 @@
+---
+- name: Create agents deploy directory
+  ansible.builtin.file:
+    path: "{{ agent_deploy_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Sync agent source code
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../roles/agents/files/src/"
+    dest: "{{ agent_deploy_dir }}/src/"
+    delete: true
+    rsync_opts:
+      - "--exclude=__pycache__"
+  register: agent_src
+
+- name: Deploy agent Dockerfile
+  ansible.builtin.copy:
+    src: Dockerfile
+    dest: "{{ agent_deploy_dir }}/Dockerfile"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: agent_dockerfile
+
+- name: Deploy agent pyproject.toml
+  ansible.builtin.copy:
+    src: pyproject.toml
+    dest: "{{ agent_deploy_dir }}/pyproject.toml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: agent_pyproject
+
+- name: Deploy agent docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ agent_deploy_dir }}/docker-compose.yml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: agent_compose
+
+- name: Build and deploy agents
+  community.docker.docker_compose_v2:
+    project_src: "{{ agent_deploy_dir }}"
+    state: present
+    build: "{{ 'always' if (agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed) else 'never' }}"
+    recreate: "{{ 'always' if (agent_compose.changed or agent_src.changed) else 'never' }}"
+
+- name: Wait for agent server health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ agent_port }}/v1/models"
+    status_code: 200
+  register: agent_health
+  retries: 12
+  delay: 5
+  until: agent_health.status == 200

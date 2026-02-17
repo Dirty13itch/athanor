@@ -1,0 +1,26 @@
+---
+# Node 2 (interface / Workshop) — host-specific vars
+
+vllm_model: /models/Qwen3-14B-AWQ
+vllm_quantization: awq_marlin
+vllm_tensor_parallel: 1
+vllm_port: 8000
+vllm_gpu_memory_util: "0.90"
+vllm_max_model_len: 32768
+vllm_max_num_seqs: 64
+vllm_gpu_devices: "0"
+vllm_container_name: vllm-node2
+vllm_deploy_dir: /opt/athanor/vllm-node2
+vllm_dtype: float16
+vllm_extra_env:
+  - "NVIDIA_VISIBLE_DEVICES=0"
+  - "CUDA_VISIBLE_DEVICES=0"
+
+comfyui_gpu_device: "1"
+comfyui_port: 8188
+
+open_webui_port: 3000
+open_webui_vllm_url: "http://192.168.1.244:8000/v1"
+
+dashboard_port: 3001
+dashboard_prometheus_url: "http://192.168.1.203:9090"

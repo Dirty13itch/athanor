@@ -1,0 +1,36 @@
+---
+- name: Create Open WebUI deploy directory
+  ansible.builtin.file:
+    path: "{{ open_webui_deploy_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Deploy Open WebUI docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ open_webui_deploy_dir }}/docker-compose.yml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: webui_compose
+
+- name: Pull Open WebUI image
+  community.docker.docker_compose_v2_pull:
+    project_src: "{{ open_webui_deploy_dir }}"
+
+- name: Deploy Open WebUI
+  community.docker.docker_compose_v2:
+    project_src: "{{ open_webui_deploy_dir }}"
+    state: present
+    recreate: "{{ 'always' if webui_compose.changed else 'never' }}"
+
+- name: Wait for Open WebUI health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ open_webui_port }}"
+    status_code: [200, 302]
+  register: webui_health
+  retries: 12
+  delay: 5
+  until: webui_health.status in [200, 302]

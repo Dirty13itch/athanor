@@ -1,0 +1,5 @@
+---
+open_webui_deploy_dir: /opt/athanor/open-webui
+open_webui_port: 3000
+open_webui_vllm_url: "http://192.168.1.244:8000/v1"
+open_webui_image: "ghcr.io/open-webui/open-webui:main"

@@ -9,3 +9,5 @@
     - nvidia
     - docker
     - monitoring
+    - vllm
+    - agents

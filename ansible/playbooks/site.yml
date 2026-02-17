@@ -2,10 +2,24 @@
 # Master playbook — applies all roles to compute nodes
 # Usage: ansible-playbook playbooks/site.yml
 
-- name: Configure compute nodes
-  hosts: compute
+- name: Configure Node 1 (Foundry)
+  hosts: node1
   roles:
     - common
     - nvidia
     - docker
     - monitoring
+    - vllm
+    - agents
+
+- name: Configure Node 2 (Workshop)
+  hosts: node2
+  roles:
+    - common
+    - nvidia
+    - docker
+    - monitoring
+    - vllm
+    - comfyui
+    - open-webui
+    - dashboard

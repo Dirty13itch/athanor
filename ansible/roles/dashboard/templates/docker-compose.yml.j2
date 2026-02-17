@@ -1,0 +1,12 @@
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: {{ dashboard_image }}
+    container_name: athanor-dashboard
+    restart: unless-stopped
+    ports:
+      - "{{ dashboard_port }}:3001"
+    environment:
+      - NEXT_PUBLIC_PROMETHEUS_URL={{ dashboard_prometheus_url }}

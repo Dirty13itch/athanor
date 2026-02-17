@@ -1,0 +1,51 @@
+---
+- name: Create ComfyUI deploy directory
+  ansible.builtin.file:
+    path: "{{ comfyui_deploy_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Deploy ComfyUI Dockerfile
+  ansible.builtin.copy:
+    src: Dockerfile
+    dest: "{{ comfyui_deploy_dir }}/Dockerfile"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: comfyui_dockerfile
+
+- name: Deploy ComfyUI extra_model_paths.yaml
+  ansible.builtin.copy:
+    src: extra_model_paths.yaml
+    dest: "{{ comfyui_deploy_dir }}/extra_model_paths.yaml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: comfyui_model_paths
+
+- name: Deploy ComfyUI docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ comfyui_deploy_dir }}/docker-compose.yml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: comfyui_compose
+
+- name: Build and deploy ComfyUI
+  community.docker.docker_compose_v2:
+    project_src: "{{ comfyui_deploy_dir }}"
+    state: present
+    build: "{{ 'always' if comfyui_dockerfile.changed else 'never' }}"
+    recreate: "{{ 'always' if (comfyui_compose.changed or comfyui_model_paths.changed) else 'never' }}"
+
+- name: Wait for ComfyUI health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ comfyui_port }}"
+    status_code: 200
+  register: comfyui_health
+  retries: 12
+  delay: 5
+  until: comfyui_health.status == 200

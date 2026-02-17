@@ -1,0 +1,44 @@
+---
+- name: Create dashboard deploy directory
+  ansible.builtin.file:
+    path: "{{ dashboard_deploy_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Sync dashboard source code
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../projects/dashboard/"
+    dest: "{{ dashboard_deploy_dir }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=.next"
+      - "--exclude=.git"
+  register: dashboard_src
+
+- name: Deploy dashboard docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ dashboard_deploy_dir }}/docker-compose.yml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: dashboard_compose
+
+- name: Build and deploy dashboard
+  community.docker.docker_compose_v2:
+    project_src: "{{ dashboard_deploy_dir }}"
+    state: present
+    build: "{{ 'always' if dashboard_src.changed else 'never' }}"
+    recreate: "{{ 'always' if (dashboard_compose.changed or dashboard_src.changed) else 'never' }}"
+
+- name: Wait for dashboard health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ dashboard_port }}"
+    status_code: 200
+  register: dashboard_health
+  retries: 12
+  delay: 5
+  until: dashboard_health.status == 200

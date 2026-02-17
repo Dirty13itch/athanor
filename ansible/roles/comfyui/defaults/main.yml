@@ -1,0 +1,5 @@
+---
+comfyui_deploy_dir: /opt/athanor/comfyui
+comfyui_port: 8188
+comfyui_gpu_device: "1"
+comfyui_image: "athanor/comfyui:blackwell"

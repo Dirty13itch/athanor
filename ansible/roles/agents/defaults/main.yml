@@ -1,0 +1,9 @@
+---
+agent_deploy_dir: /opt/athanor/agents
+agent_port: 9000
+agent_vllm_url: "http://localhost:8000/v1"
+agent_vllm_model: /models/Qwen3-32B-AWQ
+agent_prometheus_url: "http://192.168.1.203:9090"
+agent_sonarr_api_key: ""
+agent_radarr_api_key: ""
+agent_tautulli_api_key: ""
