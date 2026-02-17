@@ -67,7 +67,8 @@ Last updated: 2026-02-16 (Hybrid architecture planning, companion tools evaluati
 ## Phase 5: Supporting Services (ADR-010, ADR-011)
 
 - [x] Deploy Home Assistant on VAULT (Docker, host networking) — http://192.168.1.203:8123
-- [ ] Complete HA onboarding (browser required) then configure Lutron (.158) + UniFi integrations
+- [x] Complete HA onboarding
+- [ ] Configure Lutron (.158) + UniFi integrations in HA
 - [x] Deploy Plex on VAULT — http://192.168.1.203:32400/web (needs claim)
 - [x] Deploy Sonarr + Radarr + Prowlarr on VAULT
 - [x] Set up TRaSH Guides path structure — /mnt/user/data/{torrents,usenet,media}/{movies,tv,music}
