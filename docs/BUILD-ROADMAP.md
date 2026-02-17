@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-16 (Ansible service roles, Home Agent, service configs synced to git)
+Last updated: 2026-02-16 (UFW firewall, Grafana dashboard, Ansible roles, Home Agent)
 
 ---
 
@@ -63,6 +63,7 @@ Last updated: 2026-02-16 (Ansible service roles, Home Agent, service configs syn
 - [x] Install dcgm-exporter on Node 1 + Node 2
 - [x] Import DCGM dashboard (#12239) and Node Exporter dashboard (#1860)
 - [x] Set up critical alerts (GPU overtemp >85C, disk >90%, service down)
+- [x] Athanor Overview dashboard — custom 8-panel dashboard (GPU temp/util/VRAM/power, CPU, memory, disk, network)
 
 ## Phase 5: Supporting Services (ADR-010, ADR-011)
 
@@ -113,6 +114,7 @@ Last updated: 2026-02-16 (Ansible service roles, Home Agent, service configs syn
   - Templated compose files, per-host config, health checks
   - Full stack reproducible: `ansible-playbook playbooks/site.yml`
 - [x] Synced all remote service configs to git (services/node1/, services/node2/)
+- [x] UFW firewall enabled on Node 1 + Node 2 — service ports + LAN allowed, verified all services accessible
 - [ ] Configure BMC at .216 — AMI MegaRAC, admin/Will2live!, web UI works, IPMI-over-LAN needs enabling *(browser)*
 
 ## Phase 8: Hardware Reconfiguration (Hybrid Architecture)
