@@ -15,3 +15,6 @@ services:
       - ATHANOR_SONARR_API_KEY={{ agent_sonarr_api_key }}
       - ATHANOR_RADARR_API_KEY={{ agent_radarr_api_key }}
       - ATHANOR_TAUTULLI_API_KEY={{ agent_tautulli_api_key }}
+{% if agent_ha_token is defined and agent_ha_token %}
+      - ATHANOR_HA_TOKEN={{ agent_ha_token }}
+{% endif %}

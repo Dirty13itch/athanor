@@ -74,8 +74,9 @@ Tasks that cannot proceed without Shaun's physical presence, credentials, or bro
 
 ## BMC Configuration (.216)
 
-- **Status**: HTTP responds (301 redirect), IPMI with default admin/admin fails
-- **What**: Need to identify correct credentials or reset BMC
+- **Type**: AMI MegaRAC (ASRock EPYC board)
+- **Status**: Web UI at https://192.168.1.216 (HTTPS, responds 200). IPMI port 623 open. SSH port 22 open. VNC port 5901 open.
+- **Credentials**: admin / Will2live! (per Shaun). IPMI-over-LAN and SSH both reject these — likely a web-only login or IPMI-over-LAN is disabled in BMC config.
+- **What Shaun needs to do**: Try logging into https://192.168.1.216 in a browser with admin/Will2live!. If it works, enable IPMI-over-LAN in BMC settings for remote management.
 - **Blocks**: Remote power/BIOS management of Node 1
-- **Priority**: Low — SSH access works fine for now
-- **Note**: Investigating remotely — may resolve without physical access
+- **Priority**: Low — SSH access to the OS works fine for all current tasks
