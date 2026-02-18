@@ -68,7 +68,7 @@ Last updated: 2026-02-16 (UFW firewall, Grafana dashboard, Ansible roles, Home A
 ## Phase 5: Supporting Services (ADR-010, ADR-011)
 
 - [x] Deploy Home Assistant on VAULT (Docker, host networking) — http://192.168.1.203:8123
-- [x] Complete HA onboarding
+- [ ] Complete HA onboarding *(browser task — http://192.168.1.203:8123)*
 - [ ] Configure Lutron (.158) + UniFi integrations in HA
 - [x] Deploy Plex on VAULT — http://192.168.1.203:32400/web (needs claim)
 - [x] Deploy Sonarr + Radarr + Prowlarr on VAULT
@@ -120,20 +120,29 @@ Last updated: 2026-02-16 (UFW firewall, Grafana dashboard, Ansible roles, Home A
 ## Phase 8: Hardware Reconfiguration (Hybrid Architecture)
 
 See `docs/research/2026-02-16-hybrid-system-architecture.md` for full design.
+See `docs/hardware/rack-session.md` for the complete physical checklist.
 
 **Strategy**: Cloud APIs for frontier coding models (50-100+ tok/s). Local for everything that needs to be uncensored, private, always-on, or GPU-accelerated.
 
 ### Node 1 → "Foundry" (6 GPUs, 100 GB VRAM) *(physical)*
-- [ ] Move RTX 3060 from DEV → Node 1 (slot 6)
-- [ ] Move Node 1 into mining GPU enclosure with PCIe risers
-- [ ] Install dual PSU (parts available: SF1000L + one of RM750/EVGA 600B)
-- [ ] Wire Add2PSU adapter for sync start
+- Node 1 PSU: **Corsair 1600W** (confirmed)
+- GPU power limits set to 220W/card → ~1,305W with 3060 included, within 1600W budget
+- [ ] Reseat Samsung 990 PRO 4TB (M.2 — not detected in audit)
+- [ ] Install Hyper M.2 X16 Gen5 adapter + 4x Crucial T700 4TB Gen5 → 16 TB local NVMe
+- [ ] Move RTX 3060 from DEV → Node 1 (if physical slot clearance allows; defer to enclosure build if not)
+- [ ] Move Node 1 into mining GPU enclosure with PCIe risers *(needs purchase)*
+- [ ] Install dual PSU — Corsair 1600W (primary) + ASUS ROG 1200W (secondary, from loose)
+- [ ] Order Add2PSU adapter (~$15) for dual PSU sync start
 - [ ] Validate all 6 GPUs visible: 4x 5070 Ti (64 GB) + 4090 (24 GB) + 3060 (12 GB)
 
-### Node 2 → "Workshop" (5090, 32 GB VRAM)
-- [ ] Keep RTX 5090 on Node 2 (sole GPU until future Max-Q)
-- [ ] Swap X870E ↔ TRX50 motherboard between DEV and Node 2 *(physical, future)*
-- [ ] Install 64 GB loose DDR5 kit → 192 GB total *(physical)*
+### Node 2 → "Workshop" (5090 + 4090, TRX50)
+- Node 2 PSU: **MSI 1600W** (confirmed — handles 7960X + RTX 5090 + RTX 4090)
+- [ ] Swap TRX50 AERO D + 7960X from VAULT into Node 2 chassis *(see rack-session.md)*
+- [ ] Swap X870E CREATOR + 9950X from Node 2 into VAULT chassis *(see rack-session.md)*
+- [ ] Install 64 GB loose G.Skill DDR5 (non-ECC) into TRX50 empty slots → 192 GB total
+  - Mixed ECC + non-ECC: ECC disables, system should run stable
+  - Pull G.Skill sticks if POST fails, run 128 GB ECC only
+- [ ] Enable EXPO in Node 2 BIOS → DDR5 3600 → 5600 MT/s *(do before swap)*
 
 ### InfiniBand (optional, $75)
 - [ ] Install ConnectX-3 FDR cards in Node 1 + Node 2
