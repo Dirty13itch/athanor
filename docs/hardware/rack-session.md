@@ -22,12 +22,12 @@
   - After X870E install: VAULT will get a new random IP on first boot (new MACs)
   - Fix: log in via JetKVM (.80) → Unraid Settings → Network Settings → configure static 192.168.1.203 directly, OR update UniFi DHCP reservation to new X870E MAC
   - X870E has Aquantia 10GbE + Intel 2.5GbE — bonding config may need rebuild with new interface names
-- VAULT NVMe pools identified via SSH (by-id):
-  - **nvme1n1** = `CT4000T700SSD5_2423E8B78B09` → appdata cache (T700 4TB) ✓
-  - **nvme0n1** = `CT1000P310SSD8_25064E23123B` → docker/vms/transcode pool (P310 1TB)
-  - **nvme2n1** = `CT1000P310SSD8_25074E225AF9` → docker/vms/transcode pool (P310 1TB)
-  - **nvme3n1** = `CT1000P310SSD8_25074E227551` → docker/vms/transcode pool (P310 1TB)
-  - After X870E install: device paths may shift — reassign pools by serial number in Unraid UI if needed
+- VAULT NVMe pool assignments confirmed via SSH — exact mapping:
+  - **nvme1n1** = `CT4000T700SSD5_2423E8B78B09` → **/mnt/appdatacache** (T700 4TB)
+  - **nvme0n1** = `CT1000P310SSD8_25064E23123B` → **/mnt/docker** (P310 1TB)
+  - **nvme2n1** = `CT1000P310SSD8_25074E225AF9` → **/mnt/transcode** (P310 1TB)
+  - **nvme3n1** = `CT1000P310SSD8_25074E227551` → **/mnt/vms** (P310 1TB)
+  - After X870E install device paths may shift — reassign using serial numbers above in Unraid UI → Main → Pools
 - [ ] Clone Unraid boot USB to a second USB stick (insurance)
 - [x] On Node 2: `cat /etc/netplan/*.yaml` → interface **enp13s0**, static 192.168.1.225/24, gateway .1
 - [x] On Node 2: `lsblk` → OS drive is **nvme3n1** (has /boot/efi, /boot, / — LVM)
@@ -60,44 +60,48 @@ iperf3 -c 192.168.1.203  # from Node 2 — expect 9+ Gbps
 
 ---
 
-## Phase 2 — EXPO on Node 2 (~5 min, reboot)
+## Phase 2 — EXPO *(deferred — handled in Phase 7.5)*
 
-Node 2 RAM is running at 3600 MT/s. Rated speed is 5600 MT/s. EXPO enables the XMP profile.
+**SKIP this phase.** Node 2's current X870E board is going to VAULT during Phase 5. Rebooting Node 2 just to enable EXPO on a board that's leaving wastes a cycle and creates unnecessary risk before the swap.
 
-- [ ] Reboot Node 2 → enter BIOS (DEL or F2 at POST)
-- [ ] Navigate to: AI Tweaker → DOCP/EXPO → Enable
-- [ ] Select the 5600 MT/s profile
-- [ ] Save and reboot
-- [ ] Verify:
-  ```bash
-  sudo dmidecode -t memory | grep "Configured Memory Speed"
-  # Should show 5600 MT/s (or 4800 MT/s minimum — anything above 3600 is a win)
-  ```
+EXPO is enabled for both boards in their final positions during **Phase 7.5 BIOS Configuration** (post-swap):
+- Node 2 (TRX50 + Kingston RDIMMs): EXPO → 5600 MT/s
+- VAULT (X870E + Micron DDR5): EXPO → rated speed (4800–5600 MT/s depending on profile)
 
 ---
 
 ## Phase 3 — Node 1 (~30–45 min, shutdown required)
 
 ```bash
-docker stop $(docker ps -q) && sudo shutdown now
+# Before shutdown — audit all installed NVMe drives (may find a 2nd 4TB drive)
+lsblk -d -o NAME,SIZE,MODEL,SERIAL | grep -E 'nvme|disk'
+sudo shutdown now
 ```
 
 - [ ] Open Node 1 chassis
 - [ ] **Photograph everything** before touching cables
 - [ ] Read and photograph PSU label *(Corsair 1600W — already confirmed, still document model)*
+- [ ] **Catalog any NVMe drives already installed** — look at M.2 slots, note serials on label. Expected: Crucial P3 Plus (OS) + Samsung 990 PRO slot. If a 2nd 4TB drive is present, document it.
 - [ ] **Reseat Samsung 990 PRO 4TB** (M.2 slot — push until it clicks, secure screw)
+  - If still not detected after boot: check BIOS → Advanced → M.2 configuration. The 990 PRO slot may share PCIe lanes with a GPU slot — lane sharing must be disabled or the M.2 slot explicitly enabled.
 - [ ] Install **1× Hyper M.2 X16 Gen5 adapter** in available PCIe x16 slot
+  - **Critical:** This adapter requires PCIe bifurcation (x4x4x4x4) configured in BIOS. Without it, only slot 0 will be addressable. Set this in BIOS before first OS boot (see Phase 7.5).
 - [ ] Install **4× Crucial T700 4TB Gen5** NVMe drives into the adapter (16 TB local NVMe)
 - [ ] Assess physical clearance for 5th GPU (RTX 3060) — look at remaining PCIe slot spacing with 4× 5070 Ti installed
 - [ ] If clearance is good: install **RTX 3060** in the free slot
   - Connect PCIe power cable(s)
   - 250W power limits already set and persistent (nvidia-power-limits.service) — 4×250+240+170+80≈1,440W, within 1,600W budget
-- [ ] Close chassis, power on
+- [ ] Close chassis, **boot into BIOS first** (see Phase 7.5 Node 1 section):
+  - Set PCIe bifurcation on Hyper M.2 slot → x4x4x4x4
+  - Verify M.2 Samsung slot is enabled (not sharing lanes with GPU slots)
+  - Save and boot to OS
 
 **Verify:**
 ```bash
 lsblk  # Samsung 990 PRO should appear (~3.6 TB)
-        # 4x T700 should appear (~3.6 TB each)
+        # 4x T700 should appear (~3.6 TB each via Hyper M.2 adapter)
+        # If T700s missing: PCIe bifurcation not set — go back to BIOS
+        # If 990 PRO missing: BIOS M.2 slot config issue — check lane sharing
 nvidia-smi  # 5x GPUs if 3060 installed: 4x 5070 Ti + 1x 3060
 ```
 
@@ -185,6 +189,7 @@ docker stop $(docker ps -q) && sudo shutdown now
   - **2× 8-pin EPS** CPU connectors (7960X requires both — verify MSI 1600W cables)
   - PCIe power for both GPUs
 - [ ] Connect front panel headers, case fans, USB headers
+- [ ] **Reconnect JetKVM ATX power cable** to TRX50 ATX header (was on X870E — move it over)
 - [ ] Do not power on yet
 
 ---
@@ -246,7 +251,7 @@ docker stop $(docker ps -q) && sudo shutdown now
 - [ ] Verify:
   ```bash
   nvidia-smi          # RTX 5090 + RTX 4090 visible
-  free -h             # should show ~192 GB (or 128 GB if G.Skill sticks were pulled)
+  free -h             # should show ~128 GB DDR5 ECC RDIMM (4× Kingston 32 GB)
   sudo dmidecode -t memory | grep "Configured Memory"
   docker ps           # all services running
   ```
@@ -282,12 +287,60 @@ ssh -i ~/.ssh/athanor_mgmt athanor@192.168.1.225 "nvidia-smi && free -h"
 
 ---
 
+## Phase 7.5 — BIOS Configuration
+
+Do these on first boot (or before first OS boot where noted). All are persistent settings.
+
+### Node 1 (EPYC SP3 — unchanged board, new hardware installed)
+
+- [ ] **PCIe bifurcation** — Required for Hyper M.2 X16 Gen5 adapter
+  - BIOS → Advanced → PCIe/PCI Subsystem Settings → find the x16 slot hosting the adapter
+  - Set bifurcation: **x4 x4 x4 x4** (enables all 4 M.2 slots on the adapter)
+  - Without this, only 1 of 4 T700 drives will appear in OS
+- [ ] **M.2 slot enable** — If Samsung 990 PRO still missing after reseat
+  - BIOS → Advanced → M.2 configuration → ensure the 990 PRO slot is enabled
+  - Some EPYC boards disable M.2 slots when GPU PCIe lanes conflict — disable lane sharing
+  - Note which slot the 990 PRO is in; confirm it's not sharing bandwidth with a GPU slot
+- [ ] Save and exit → boot to OS → run verify commands from Phase 3
+
+### Node 2 (TRX50 AERO D — new board post-swap)
+
+- [ ] **EXPO / memory speed**
+  - BIOS → Advanced → Memory Configuration → EXPO: **Enable**
+  - Select **5600 MT/s** profile (Kingston RDIMMs are rated DDR5-5600)
+  - If instability: drop to 5200 or 4800 and retry
+- [ ] **Fan curves** — TRX50 is large chassis, reconfigure for RM52 case
+  - BIOS → Hardware Monitor → fan curves for CPU fan + chassis fans
+  - Target: silent at idle, ramp aggressively above 70°C
+- [ ] **PCIe slot config** — ensure x16 slots for 5090 and 4090 are both at x16 (not shared)
+- [ ] Save, reboot, verify:
+  ```bash
+  sudo dmidecode -t memory | grep "Configured Memory Speed"
+  # Should show 5600 MT/s
+  ```
+
+### VAULT (X870E CREATOR — new board post-swap)
+
+- [ ] **Static IP** — set before or immediately after boot (DHCP will give wrong IP with new MAC)
+  - Option A (preferred): BIOS/Unraid → see Phase 6 network recovery steps
+  - Option B: Set in BIOS if X870E has built-in IP config (unlikely — do it in Unraid UI)
+- [ ] **EXPO / memory speed**
+  - BIOS → AMD CBS → Memory → EXPO: **Enable**
+  - Select rated profile for Micron DDR5 (check sticker on sticks for rated speed)
+- [ ] **Storage controller** — ensure LSI HBA PCIe slot is recognized
+  - BIOS → Advanced → PCIe → verify the HBA slot is x8 or x16 (not limited to x4)
+- [ ] **Boot order** — Unraid boots from USB; ensure USB is first in boot order
+  - SanDisk Cruzer Glide should appear as USB device
+- [ ] Save and exit → Unraid boots → verify array and pools
+
+---
+
 ## Known Risks
 
 | Risk | Mitigation |
 |------|-----------|
-| Node 2 Ubuntu boot fails on TRX50 (GRUB/initrd issue) | JetKVM (.165) for console; reinstall Ubuntu if needed |
-| Node 2 Ubuntu boot fails on TRX50 | JetKVM (.165) for console; reinstall Ubuntu if needed (NVMe drives are data only) |
+| Node 2 Ubuntu boot fails on TRX50 (GRUB/initrd issue) | JetKVM (.165) for console; reinstall Ubuntu if needed — NVMe OS drives are separate from data |
+| Hyper M.2 T700s invisible (PCIe bifurcation not set) | Boot Node 1 BIOS → set x4x4x4x4 bifurcation on adapter slot → reboot |
 | VAULT Unraid won't boot on X870E | JetKVM (.80) for console; re-flash Unraid USB if needed |
 | NVMe pool assignments wrong in Unraid | Reassign manually in UI — data is intact, just path changes |
 | Node 2 network interface name changes | Fix netplan — TRX50 has same Aquantia driver, likely same name |
