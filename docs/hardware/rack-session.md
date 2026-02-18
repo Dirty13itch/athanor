@@ -15,15 +15,19 @@
 
 ## Pre-Session (Remote, Before Touching Hardware)
 
-- [ ] Screenshot VAULT Unraid → Main → array disk assignments (disk1–disk9) *(browser — UI confirmation)*
-- [ ] Screenshot VAULT Unraid → Pools → cache/appdata/docker/vms/transcode assignments *(browser)*
-- [ ] Screenshot VAULT Unraid → Settings → Network Settings (record current MAC + IP) *(browser)*
+- [x] Screenshot VAULT Unraid → Main → array disk assignments — captured (Unraid2.PNG)
+- [x] Screenshot VAULT Unraid → Settings → Network Settings — captured (Unraid1.PNG)
+- **VAULT current MAC: `10:FF:E0:3E:8F:1E`** (bond0, active-backup eth0+eth1)
+- **IP method: DHCP reservation in UniFi** (not static in Unraid) — tied to this MAC
+  - After X870E install: VAULT will get a new random IP on first boot (new MACs)
+  - Fix: log in via JetKVM (.80) → Unraid Settings → Network Settings → configure static 192.168.1.203 directly, OR update UniFi DHCP reservation to new X870E MAC
+  - X870E has Aquantia 10GbE + Intel 2.5GbE — bonding config may need rebuild with new interface names
 - VAULT NVMe pools identified via SSH (by-id):
-  - **nvme1n1** = `CT4000T700SSD5_2423E8B78B09` → appdata cache (T700 4TB)
-  - **nvme0n1** = `CT1000P310SSD8_25064E23123B` → pool 1 (P310 1TB)
-  - **nvme2n1** = `CT1000P310SSD8_25074E225AF9` → pool 2 (P310 1TB)
-  - **nvme3n1** = `CT1000P310SSD8_25074E227551` → pool 3 (P310 1TB)
-  - After X870E install: Unraid re-assigns NVMe pools by device path — use serial numbers above to reassign if needed
+  - **nvme1n1** = `CT4000T700SSD5_2423E8B78B09` → appdata cache (T700 4TB) ✓
+  - **nvme0n1** = `CT1000P310SSD8_25064E23123B` → docker/vms/transcode pool (P310 1TB)
+  - **nvme2n1** = `CT1000P310SSD8_25074E225AF9` → docker/vms/transcode pool (P310 1TB)
+  - **nvme3n1** = `CT1000P310SSD8_25074E227551` → docker/vms/transcode pool (P310 1TB)
+  - After X870E install: device paths may shift — reassign pools by serial number in Unraid UI if needed
 - [ ] Clone Unraid boot USB to a second USB stick (insurance)
 - [x] On Node 2: `cat /etc/netplan/*.yaml` → interface **enp13s0**, static 192.168.1.225/24, gateway .1
 - [x] On Node 2: `lsblk` → OS drive is **nvme3n1** (has /boot/efi, /boot, / — LVM)
@@ -213,7 +217,10 @@ docker stop $(docker ps -q) && sudo shutdown now
 - [ ] Power on VAULT
 - [ ] Monitor via JetKVM (.80) if needed
 - [ ] Unraid should boot from USB — new hardware, same OS
-- [ ] **Fix MAC address:** Unraid → Settings → Network Settings → update interface MAC or switch to DHCP then re-set static 192.168.1.203
+- [ ] **Fix network** (VAULT's old MAC was `10:FF:E0:3E:8F:1E` — X870E will have a different MAC, IP will be random):
+  - Option A (easiest): Unraid → Settings → Network Settings → change IPv4 assignment from Automatic to Static → set 192.168.1.203/24, gateway 192.168.1.1
+  - Option B: Note new X870E MAC from Network Settings, update UniFi DHCP reservation to new MAC
+  - Old bonding config (eth0+eth1 active-backup) may not apply to new interface names — simplest is single interface static
 - [ ] Main → **Start Array** — all 9 data disks should mount (they didn't move)
 - [ ] Check Pools: appdata, docker, vms, transcode — reassign NVMe devices if needed
 - [ ] Start Docker: Settings → Docker → Start (or auto-starts)
