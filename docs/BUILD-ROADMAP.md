@@ -198,6 +198,5 @@ These require hands at the rack:
 | PCIe riser cables (6x) | ~$30-50 | High | For mining enclosure |
 | 2x Mellanox ConnectX-3 FDR (56G IB) | ~$60 | Medium | ADR-002, pipeline parallelism |
 | 1x QSFP+ FDR cable (1-2m) | ~$15 | Medium | ADR-002 |
-| 4× 48 GB DDR5 RDIMM (e.g., Kingston KSM56E46BD8KM-48HM) | ~$600-800 | Low | Node 2 192 GB — TRX50 RDIMM-only, 4 slots |
 | 1-2x 24TB HDD (VAULT expansion) | ~$600-800 | Low | ADR-003 |
 | NVIDIA PRO 6000 Max-Q (96 GB) | ~$4,500-8,000 | Deferred | Node 2 second GPU — revisit when pricing stabilizes |
