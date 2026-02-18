@@ -15,18 +15,25 @@
 
 ## Pre-Session (Remote, Before Touching Hardware)
 
-- [ ] Screenshot VAULT Unraid → Main → array disk assignments (disk1–disk9)
-- [ ] Screenshot VAULT Unraid → Pools → cache/appdata/docker/vms/transcode assignments
-- [ ] Screenshot VAULT Unraid → Settings → Network Settings (record current MAC + IP)
+- [ ] Screenshot VAULT Unraid → Main → array disk assignments (disk1–disk9) *(browser — UI confirmation)*
+- [ ] Screenshot VAULT Unraid → Pools → cache/appdata/docker/vms/transcode assignments *(browser)*
+- [ ] Screenshot VAULT Unraid → Settings → Network Settings (record current MAC + IP) *(browser)*
+- VAULT NVMe pools identified via SSH (by-id):
+  - **nvme1n1** = `CT4000T700SSD5_2423E8B78B09` → appdata cache (T700 4TB)
+  - **nvme0n1** = `CT1000P310SSD8_25064E23123B` → pool 1 (P310 1TB)
+  - **nvme2n1** = `CT1000P310SSD8_25074E225AF9` → pool 2 (P310 1TB)
+  - **nvme3n1** = `CT1000P310SSD8_25074E227551` → pool 3 (P310 1TB)
+  - After X870E install: Unraid re-assigns NVMe pools by device path — use serial numbers above to reassign if needed
 - [ ] Clone Unraid boot USB to a second USB stick (insurance)
-- [ ] On Node 2: `cat /etc/netplan/*.yaml` → save static IP config for reference
-- [ ] On Node 2: `lsblk` → note which nvme device is the OS drive (nvme3n1, boot at /boot/efi)
-- [ ] On Node 1: set GPU power limits before installing 3060
+- [x] On Node 2: `cat /etc/netplan/*.yaml` → interface **enp13s0**, static 192.168.1.225/24, gateway .1
+- [x] On Node 2: `lsblk` → OS drive is **nvme3n1** (has /boot/efi, /boot, / — LVM)
+- [x] On Node 1: set GPU power limits before installing 3060
+  - Min power limit on 5070 Ti is **250W** (not 220W — that's below hardware minimum)
+  - 4 × 250W + EPYC 240W + RTX 3060 170W + mobo/misc ~80W ≈ 1,440W → within 1,600W budget
   ```bash
-  nvidia-smi -pl 220 -i 0,1,2,3
+  sudo nvidia-smi -pm 1 && sudo nvidia-smi -pl 250 -i 0,1,2,3
   ```
-  Then run a quick inference request and confirm tok/s is unchanged.
-- [ ] Make power limits persistent (add to vLLM service startup or systemd unit)
+- [x] Make power limits persistent — `nvidia-power-limits.service` systemd unit deployed and enabled on Node 1
 
 ---
 
@@ -80,7 +87,7 @@ docker stop $(docker ps -q) && sudo shutdown now
 - [ ] Assess physical clearance for 5th GPU (RTX 3060) — look at remaining PCIe slot spacing with 4× 5070 Ti installed
 - [ ] If clearance is good: install **RTX 3060** in the free slot
   - Connect PCIe power cable(s)
-  - 220W power limits already set — system stays within Corsair 1600W budget
+  - 250W power limits already set and persistent (nvidia-power-limits.service) — 4×250+240+170+80≈1,440W, within 1,600W budget
 - [ ] Close chassis, power on
 
 **Verify:**

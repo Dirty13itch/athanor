@@ -31,3 +31,21 @@
     that:
       - nvidia_smi_output.stdout_lines | length == gpu_count
     fail_msg: "Expected {{ gpu_count }} GPUs but found {{ nvidia_smi_output.stdout_lines | length }}"
+
+- name: Deploy GPU power limits systemd service
+  ansible.builtin.template:
+    src: nvidia-power-limits.service.j2
+    dest: /etc/systemd/system/nvidia-power-limits.service
+    owner: root
+    group: root
+    mode: '0644'
+  when: nvidia_power_limit_watts is defined
+  notify: reload systemd
+
+- name: Enable and start GPU power limits service
+  ansible.builtin.systemd:
+    name: nvidia-power-limits.service
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: nvidia_power_limit_watts is defined

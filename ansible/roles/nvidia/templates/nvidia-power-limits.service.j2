@@ -1,0 +1,13 @@
+[Unit]
+Description=Set NVIDIA GPU power limits
+After=nvidia-persistenced.service
+Before=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/nvidia-smi -pm 1
+ExecStart=/usr/bin/nvidia-smi -pl {{ nvidia_power_limit_watts }} -i {{ range(gpu_count) | join(',') }}
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

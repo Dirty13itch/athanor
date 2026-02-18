@@ -93,9 +93,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **What's running:** vLLM (Node 1), ComfyUI + Flux (Node 2), Dashboard (Node 2), Open WebUI (Node 2), full monitoring stack (VAULT), media stack (VAULT), Home Assistant (VAULT), Stash (VAULT).
 
-**Agent framework:** General Assistant deployed (Node 1:9000). LangGraph + FastAPI, OpenAI-compatible API. Tools: service health, GPU metrics, vLLM models, storage info. Next: Media Agent, Home Agent.
-
-**Biggest waste:** RTX 4090 on Node 2 is completely idle (24 GB VRAM doing nothing).
+**Agent framework:** General Assistant + Media Agent running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent skeleton deployed (blocked on HA onboarding). Dashboard has no agent routing page yet — agents accessible via direct API only.
 
 ---
 
@@ -104,7 +102,8 @@ Full details in `docs/hardware/inventory.md`.
 | Service | Node | Port | Status |
 |---------|------|------|--------|
 | vLLM (Qwen3-32B-AWQ, TP=4) | Node 1 | 8000 | Running |
-| Agent Server (General Assistant) | Node 1 | 9000 | Running |
+| vLLM (Qwen3-14B-AWQ, RTX 4090) | Node 2 | 8000 | Running |
+| Agent Server (General + Media + Home skeleton) | Node 1 | 9000 | Running |
 | node_exporter | Node 1 | 9100 | Running |
 | dcgm-exporter | Node 1 | 9400 | Running |
 | Dashboard | Node 2 | 3001 | Running |
@@ -115,7 +114,7 @@ Full details in `docs/hardware/inventory.md`.
 | Prometheus | VAULT | 9090 | Running |
 | Grafana | VAULT | 3000 | Running |
 | Home Assistant | VAULT | 8123 | Deployed, not onboarded |
-| Plex | VAULT | 32400 | Unhealthy (unclaimed) |
+| Plex | VAULT | 32400 | Running (claimed) |
 | Sonarr | VAULT | 8989 | Running |
 | Radarr | VAULT | 7878 | Running |
 | Prowlarr | VAULT | 9696 | Running |
