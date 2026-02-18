@@ -1,6 +1,8 @@
 # Rack Session Checklist
 
-**Goal:** 10GbE everywhere, EXPO on Node 2, Node 1 storage + 5th GPU, DEV refresh, VAULT ↔ Node 2 motherboard swap with 192 GB RAM.
+**Goal:** 10GbE everywhere, EXPO on Node 2, Node 1 storage + 5th GPU, DEV refresh, VAULT ↔ Node 2 motherboard swap.
+
+**RAM note:** 192 GB is NOT achievable with current hardware. TRX50 AERO D has 4 DIMM slots (not 8) and requires DDR5 RDIMM only — G.Skill non-ECC UDIMMs are incompatible. Node 2 will have 128 GB DDR5 ECC RDIMM post-swap (same 4× Kingston KF556R28RBE2-32 sticks, same capacity, better CPU). To reach 192 GB would require buying 4× 48 GB DDR5 RDIMMs (~$600-800).
 
 **Confirmed hardware:**
 - Node 1 PSU: Corsair 1600W
@@ -158,12 +160,12 @@ docker stop $(docker ps -q) && sudo shutdown now
 - [ ] Mount **TRX50 AERO D** in RM52 chassis (ATX form factor, standard mounting)
 - [ ] Install **7960X** CPU — align triangle markers, zero-insertion-force socket
 - [ ] Apply thermal paste, install **CPU cooler** (Threadripper mount — verify cooler bracket matches sTR5)
-- [ ] Install **RAM — 6 DIMM config (192 GB):**
-  - 4× Kingston DDR5 ECC 32 GB → slots currently populated (A/C/E/G or per manual)
-  - 2× G.Skill DDR5 non-ECC 32 GB → 2 of the remaining empty slots
-  - **Refer to TRX50 AERO D manual for recommended 6-DIMM slot config**
-  - ECC will be disabled in mixed mode — system should still POST and run stably
-  - If it refuses to POST: remove G.Skill sticks, run 128 GB ECC only for now
+- [ ] Install **RAM — 4 DIMM config (128 GB DDR5 ECC RDIMM):**
+  - 4× Kingston KF556R28RBE2-32 DDR5 ECC RDIMM 32 GB from VAULT
+  - Slots: DDR5_A1, DDR5_B1, DDR5_C1, DDR5_D1 (all 4 slots — board is fully populated)
+  - **The G.Skill F5-5600J4040D32GX2 kit is NOT compatible** — UDIMMs will not POST on TRX50
+  - TRX50 requires DDR5 RDIMM exclusively (per Gigabyte manual + Kingston population rules)
+  - 192 GB target is not achievable with current hardware; would require 4× 48 GB RDIMMs
 - [ ] Reseat **RTX 5090** in PCIe slot 1 (x16) — connect 16-pin power
 - [ ] Reseat **RTX 4090** in PCIe slot 2 (x16) — connect PCIe power
 - [ ] Install **4× Samsung 990 EVO Plus** NVMe in TRX50 M.2 slots (Node 2's Ubuntu OS drives)
@@ -270,7 +272,7 @@ ssh -i ~/.ssh/athanor_mgmt athanor@192.168.1.225 "nvidia-smi && free -h"
 
 | Risk | Mitigation |
 |------|-----------|
-| TRX50 won't POST with mixed ECC + non-ECC RAM | Pull G.Skill sticks, run 128 GB ECC only |
+| Node 2 Ubuntu boot fails on TRX50 (GRUB/initrd issue) | JetKVM (.165) for console; reinstall Ubuntu if needed |
 | Node 2 Ubuntu boot fails on TRX50 | JetKVM (.165) for console; reinstall Ubuntu if needed (NVMe drives are data only) |
 | VAULT Unraid won't boot on X870E | JetKVM (.80) for console; re-flash Unraid USB if needed |
 | NVMe pool assignments wrong in Unraid | Reassign manually in UI — data is intact, just path changes |
@@ -284,7 +286,7 @@ ssh -i ~/.ssh/athanor_mgmt athanor@192.168.1.225 "nvidia-smi && free -h"
 | System | Before | After |
 |--------|--------|-------|
 | **Node 1** | 990 PRO missing, no extra NVMe | 990 PRO reseated, 16 TB T700 NVMe, RTX 3060 (if fits) |
-| **Node 2** | 9950X, 128 GB @ 3600 MT/s, X870E | 7960X, 192 GB DDR5, TRX50 AERO D, same GPUs |
+| **Node 2** | 9950X, 128 GB @ 3600 MT/s, X870E | 7960X, 128 GB DDR5 ECC RDIMM, TRX50 AERO D, same GPUs |
 | **VAULT** | 7960X, 128 GB DDR5 ECC, TRX50 | 9950X, 128 GB DDR5, X870E |
 | **DEV** | RTX 3060, 1GbE | RX 5700 XT, 10GbE |
 | **Network** | All servers on 1GbE management switch | All servers on 10GbE XG switch |

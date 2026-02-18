@@ -139,10 +139,10 @@ See `docs/hardware/rack-session.md` for the complete physical checklist.
 - Node 2 PSU: **MSI 1600W** (confirmed — handles 7960X + RTX 5090 + RTX 4090)
 - [ ] Swap TRX50 AERO D + 7960X from VAULT into Node 2 chassis *(see rack-session.md)*
 - [ ] Swap X870E CREATOR + 9950X from Node 2 into VAULT chassis *(see rack-session.md)*
-- [ ] Install 64 GB loose G.Skill DDR5 (non-ECC) into TRX50 empty slots → 192 GB total
-  - Mixed ECC + non-ECC: ECC disables, system should run stable
-  - Pull G.Skill sticks if POST fails, run 128 GB ECC only
-- [ ] Enable EXPO in Node 2 BIOS → DDR5 3600 → 5600 MT/s *(do before swap)*
+- Note: Node 2 will have **128 GB DDR5 ECC RDIMM** post-swap (same 4× Kingston sticks, same capacity, faster CPU)
+  - TRX50 AERO D has 4 DIMM slots max, RDIMM-only — G.Skill non-ECC UDIMMs are incompatible
+  - 192 GB requires 4× 48 GB DDR5 RDIMMs (~$600-800, deferred to purchase list)
+- [ ] Enable EXPO in Node 2 BIOS → DDR5 5600 MT/s *(VAULT currently running at 4800, EXPO not enabled)*
 
 ### InfiniBand (optional, $75)
 - [ ] Install ConnectX-3 FDR cards in Node 1 + Node 2
@@ -198,5 +198,6 @@ These require hands at the rack:
 | PCIe riser cables (6x) | ~$30-50 | High | For mining enclosure |
 | 2x Mellanox ConnectX-3 FDR (56G IB) | ~$60 | Medium | ADR-002, pipeline parallelism |
 | 1x QSFP+ FDR cable (1-2m) | ~$15 | Medium | ADR-002 |
+| 4× 48 GB DDR5 RDIMM (e.g., Kingston KSM56E46BD8KM-48HM) | ~$600-800 | Low | Node 2 192 GB — TRX50 RDIMM-only, 4 slots |
 | 1-2x 24TB HDD (VAULT expansion) | ~$600-800 | Low | ADR-003 |
 | NVIDIA PRO 6000 Max-Q (96 GB) | ~$4,500-8,000 | Deferred | Node 2 second GPU — revisit when pricing stabilizes |

@@ -49,7 +49,7 @@ Last updated: 2026-02-15.
 |---|-------|--------|----------|------------|------------|-----------|----------------|-------------|
 | 1 | ASRock Rack ROMED8-2T | SP3 | DDR4 ECC RDIMM | 8 | 7 (3x x16 + 4x x8) | 2 | 2x Intel X550 10GbE | Node 1 |
 | 2 | ASUS ProArt X870E-CREATOR WIFI | AM5 | DDR5 | 4 | 2 (1x 5.0 x16, 1x 4.0 x16) | 2+ | Aquantia 10GbE + Intel 2.5GbE + WiFi 7 | Node 2 |
-| 3 | Gigabyte TRX50 AERO D | sTR5 | DDR5 ECC | 8 | Multiple | Multiple | Aquantia 10GbE + RTL8125 2.5GbE + TB4 | VAULT |
+| 3 | Gigabyte TRX50 AERO D | sTR5 | DDR5 ECC RDIMM only | 4 | Multiple | Multiple | Aquantia 10GbE + RTL8125 2.5GbE + TB4 | VAULT |
 | 4 | Gigabyte Z690 AORUS ULTRA | LGA 1700 | DDR5 | 4 | Multiple | Multiple | Intel I225-V 1GbE + WiFi 6 | DEV |
 | 5 | Gigabyte Z690 AORUS ELITE AX DDR4 | LGA 1700 | DDR4 | 4 | 3 (1x 5.0 x16, 1x 3.0 x16, 1x 3.0 x1) | 4 | 2.5GbE + WiFi 6E | Loose |
 | 6 | Gigabyte Z390 AORUS PRO WIFI | LGA 1151 | DDR4 | 4 | 3 (2x 3.0 x16, 1x 3.0 x1) | 2 | 1GbE + WiFi | Loose |
@@ -66,7 +66,7 @@ Last updated: 2026-02-15.
 |---|--------|------|----------|-------|---------|-------------|
 | 1–7 | Samsung M393A4K40DB3-CWE (x7) | DDR4 ECC RDIMM | 224 GB (7x32GB) | 3200 MT/s | — | Node 1 |
 | 8–11 | Micron CP32G60C40U5B.M8B3 (x4) | DDR5 UDIMM | 128 GB (4x32GB) | 5600 MT/s | CL40 | Node 2 |
-| 12–15 | Kingston KF556R28-32 (x4) | DDR5 ECC UDIMM | 128 GB (4x32GB) | 5600 MT/s (running 4800) | — | VAULT |
+| 12–15 | Kingston KF556R28RBE2-32 (x4) | DDR5 ECC RDIMM | 128 GB (4x32GB) | 5600 MT/s (running 4800, EXPO not enabled) | CL28 | VAULT |
 | 16–17 | G.Skill F5-5200J3636D32G (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5200 MT/s | CL36 | DEV |
 | 18–19 | G.Skill Ripjaws S5 F5-5600J4040D32GX2 (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5600 MT/s | CL40 | Loose |
 | 20–21 | Crucial Ballistix BL32G32C16U4B (x2) | DDR4 UDIMM | 64 GB (2x32GB) | 3200 MT/s | CL16 | Loose |
@@ -138,8 +138,8 @@ Last updated: 2026-02-15.
 
 | # | PSU | Wattage | Rating | Form Factor | Currently In |
 |---|-----|---------|--------|-------------|-------------|
-| 1 | (unidentified) | ? | ? | ? | Node 1 |
-| 2 | (unidentified) | ? | ? | ? | Node 2 |
+| 1 | Corsair | 1600W | — | ATX | Node 1 |
+| 2 | MSI | 1600W | — | ATX | Node 2 |
 | 3 | (unidentified) | ? | ? | ? | VAULT |
 | 4 | (unidentified) | ? | ? | ? | DEV |
 | 5 | Corsair SF1000L | 1000W | 80+ Gold | SFX-L | Loose |
