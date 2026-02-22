@@ -1,0 +1,38 @@
+---
+# Node 1 GPU Power Limit Service
+# Ensures optimized power limits are applied on every boot
+
+- name: Copy GPU power limit script
+  copy:
+    src: ../../../../scripts/set-gpu-power-limits.sh
+    dest: /usr/local/bin/set-gpu-power-limits.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Create systemd service for GPU power limits
+  copy:
+    dest: /etc/systemd/system/gpu-power-limits.service
+    content: |
+      [Unit]
+      Description=Set GPU Power Limits
+      After=nvidia-persistenced.service
+      Wants=nvidia-persistenced.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/set-gpu-power-limits.sh
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Enable and start GPU power limits service
+  systemd:
+    name: gpu-power-limits
+    enabled: yes
+    state: started
+    daemon_reload: yes
