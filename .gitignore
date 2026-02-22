@@ -34,6 +34,7 @@ venv/
 # Node
 node_modules/
 package-lock.json
+.next/
 
 # Temp
 tmp/

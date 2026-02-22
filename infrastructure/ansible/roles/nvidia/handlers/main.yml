@@ -1,6 +1,0 @@
----
-- name: reboot if needed
-  ansible.builtin.reboot:
-    msg: "Rebooting for NVIDIA driver install"
-    reboot_timeout: 300
-  when: nvidia_reboot | default(false)

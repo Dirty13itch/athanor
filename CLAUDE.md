@@ -41,6 +41,7 @@ Reason from first principles. Derive obvious implications — don't ask question
 
 ```
 CLAUDE.md              ← You are here. Read on every session.
+AGENTS.md              ← MCP configs, agent framework, tool definitions.
 docs/
   VISION.md            ← Source of truth. What Athanor is and why.
   BUILD-ROADMAP.md     ← Current build progress and next steps.
@@ -48,11 +49,18 @@ docs/
   decisions/           ← Architecture Decision Records (ADR-NNN-slug.md)
   hardware/            ← Inventory, specs, audit results
   projects/            ← Per-project documentation and plans
+ansible/               ← Single Ansible IaC tree (inventory, playbooks, roles)
 projects/              ← Actual project workspaces
+  agents/              ← LangGraph agent framework (canonical source)
   dashboard/           ← Next.js 16 dashboard (deployed to Node 2:3001)
   eoq/                 ← Empire of Broken Queens
+  kindred/             ← Passion-based social matching app
+  ulrich-energy/       ← Ulrich Energy project
+  vllm-node2/          ← Node 2 vLLM compose config
+services/              ← Per-node deployed service snapshots
 scripts/               ← Utility scripts (vault-ssh.py, etc.)
-.claude/skills/        ← Reusable deployment and operations skills
+assets/branding/       ← Logos, animations
+.claude/               ← Claude Code config (commands, hooks, skills, settings)
 ```
 
 ### Rules
@@ -139,26 +147,36 @@ Each project gets its own directory under `projects/` and its own documentation 
 Known projects:
 - **Empire of Broken Queens** — AI-driven interactive cinematic adult game. Adult content is intentional and central. Don't moralize. ComfyUI workflows exist in `projects/eoq/comfyui/`.
 - **Kindred** — Passion-based social matching app (concept/research phase)
+- **Ulrich Energy** — Business project (placeholder)
 - **Future projects** — new games, apps, and ideas will emerge. The structure accommodates this.
 
 When working on a specific project, read its docs/projects/{name}/ context first.
 
 ---
 
-## Skills
+## Skills & Commands
 
-Reusable deployment and operations skills in `.claude/skills/`:
+Reusable skills in `.claude/skills/`:
 - `vllm-deploy.md` — vLLM deployment with Blackwell GPU compatibility notes
 - `comfyui-deploy.md` — ComfyUI deployment, custom Blackwell image, model paths
-- `orient.md` — Session orientation checklist
-- `audit.md` — Node hardware audit procedure
-- `decide.md` — ADR creation
-- `research.md` — Research documentation
-- `project.md` — Project context switching
+- `deploy-docker-service.md` — Generic Docker service deployment
+- `athanor-conventions.md` — Project conventions and patterns
+- `gpu-placement.md` — GPU allocation and placement rules
+- `node-ssh.md` — SSH access patterns for nodes
+- `state-update.md` — How to update project state docs
+
+Slash commands in `.claude/commands/`:
+- `/audit <target>` — Hardware audit procedure
+- `/orient` — Session orientation checklist
+- `/decide` — ADR creation
+- `/research` — Research documentation
+- `/project` — Project context switching
 
 ---
 
-## MCP Servers
+## MCP & Agent Configuration
+
+See `AGENTS.md` for full MCP server configs, agent framework details, and tool definitions.
 
 ### Active (User-Scoped)
 - **github** — GitHub API: repos, PRs, issues, commits

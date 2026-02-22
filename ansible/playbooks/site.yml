@@ -8,6 +8,7 @@
     - common
     - nvidia
     - docker
+    - nfs
     - monitoring
     - vllm
     - agents
@@ -18,6 +19,7 @@
     - common
     - nvidia
     - docker
+    - nfs
     - monitoring
     - vllm
     - comfyui

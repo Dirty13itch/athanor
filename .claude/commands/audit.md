@@ -1,26 +1,25 @@
 ---
 description: Audit a node's hardware by connecting to it and discovering what's installed. Produces a complete hardware inventory.
-allowed-tools: Bash(ssh:*), Bash(curl:*), Bash(talosctl:*), Bash(ping:*), Bash(nmap:*), Bash(cat:*), Bash(powershell:*), Read, Write, Edit, mcp__desktop-commander__*
+allowed-tools: Bash(ssh:*), Bash(curl:*), Bash(ping:*), Bash(nmap:*), Bash(cat:*), Bash(powershell:*), Read, Write, Edit, mcp__desktop-commander__*
 ---
 
 Audit the hardware on: $ARGUMENTS
 
 Use Desktop Commander for persistent SSH sessions when possible — it maintains state between commands unlike basic bash.
 
-If the target is "unraid" or "vault":
-- SSH to 192.168.1.139
+If the target is "vault":
+- SSH via `python scripts/vault-ssh.py` (paramiko, root/Hockey1298)
 - Run: cat /proc/cpuinfo, free -h, lspci -nn, lsblk, ip addr, nvidia-smi (if available)
 - Check Unraid dashboard API if accessible
 - Inventory all Docker containers running
 
 If the target is "node1":
-- Try talosctl against 192.168.1.244 or .245
-- Run: talosctl get members, talosctl get cpu, talosctl get memory, talosctl get blockdevices
-- If talosctl fails, try SSH or note what access method is needed
-- Check IPMI at the ASRock Q270 Pro BTC+ interface
+- SSH to athanor@192.168.1.244 using athanor_mgmt key
+- Run: lscpu, free -h, lspci -nn, lsblk, ip addr, nvidia-smi, docker ps
+- Check GPU power limits: nvidia-smi -q -d POWER
 
 If the target is "node2":
-- Try talosctl against 192.168.1.10
+- SSH to athanor@192.168.1.225 using athanor_mgmt key
 - Same commands as node1
 
 If the target is "dev":

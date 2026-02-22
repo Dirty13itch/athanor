@@ -9,7 +9,7 @@
 
 - name: Sync agent source code
   ansible.posix.synchronize:
-    src: "{{ playbook_dir }}/../roles/agents/files/src/"
+    src: "{{ playbook_dir }}/../../projects/agents/src/"
     dest: "{{ agent_deploy_dir }}/src/"
     delete: true
     rsync_opts:
@@ -18,7 +18,7 @@
 
 - name: Deploy agent Dockerfile
   ansible.builtin.copy:
-    src: Dockerfile
+    src: "{{ playbook_dir }}/../../projects/agents/Dockerfile"
     dest: "{{ agent_deploy_dir }}/Dockerfile"
     owner: athanor
     group: athanor
@@ -27,7 +27,7 @@
 
 - name: Deploy agent pyproject.toml
   ansible.builtin.copy:
-    src: pyproject.toml
+    src: "{{ playbook_dir }}/../../projects/agents/pyproject.toml"
     dest: "{{ agent_deploy_dir }}/pyproject.toml"
     owner: athanor
     group: athanor
