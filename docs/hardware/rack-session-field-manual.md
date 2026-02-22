@@ -20,7 +20,7 @@ Four machines. One session. The work breaks into two independent rounds that sha
 - NVMe drives and RAM swap with their boards
 
 **End state:**
-- Node 1: 990 PRO reseated, 16 TB T700 NVMe on Hyper M.2, RTX 3060 added
+- Node 1: 990 PRO reseated, 4 TB T700 NVMe (4× 1TB) on Hyper M.2, RTX 3060 added
 - Node 2: 7960X, 128 GB DDR5 ECC RDIMM, TRX50 AERO D
 - VAULT: 9950X, 128 GB DDR5, X870E CREATOR WIFI
 - DEV: RX 5700 XT, Intel X540-T2 10GbE
@@ -68,7 +68,7 @@ You have three identical ASUS Hyper M.2 X16 Gen5 cards. They are interchangeable
 ### 1.2 — Identifying the Crucial T700 NVMe Drives
 
 **Crucial T700 (the Gen5 drives going into Node 1):**
-- 4 loose, all identical, all 4TB
+- 4 loose, all identical, all **1TB each** (4TB total)
 - Physical label reads "Crucial T700" with "PCIe Gen 5 NVMe" marking
 - Form factor: M.2 2280 (22mm wide, 80mm long — standard size)
 - Has a dark/black heatsink or label, distinct from the P310s
@@ -595,7 +595,7 @@ Pick any one of the three Hyper M.2 Gen5 adapters.
 
 #### Step R1-5: Install T700 Drives into the Adapter
 
-Install all 4x Crucial T700 4TB drives into the Hyper M.2 adapter's 4 M.2 slots.
+Install all 4× Crucial T700 1TB drives into the Hyper M.2 adapter's 4 M.2 slots (4TB total).
 
 1. Follow the NVMe installation procedure in Section 3.4 for each drive.
 2. All 4 drives are identical — slot order doesn't matter.

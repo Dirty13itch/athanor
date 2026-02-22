@@ -29,17 +29,18 @@ Last updated: 2026-02-15.
 
 | # | GPU | VRAM | Interface | CUDA Cores | Tensor Cores | Currently In |
 |---|-----|------|-----------|------------|-------------|-------------|
-| 1 | NVIDIA RTX 5070 Ti (MSI) | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 1 |
-| 2 | NVIDIA RTX 5070 Ti (MSI) | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 1 |
-| 3 | NVIDIA RTX 5070 Ti (Gigabyte) | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 1 |
-| 4 | NVIDIA RTX 5070 Ti (Gigabyte) | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 1 |
-| 5 | NVIDIA RTX 5090 (PNY) | 32 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 2 |
-| 6 | NVIDIA RTX 4090 (ASUS) | 24 GB GDDR6X | PCIe 4.0 x16 | Yes | Yes | Node 2 |
-| 7 | NVIDIA RTX 3060 | 12 GB GDDR6 | PCIe 4.0 x16 | Yes | Yes | DEV |
-| 8 | Intel Arc A380 | 6 GB GDDR6 | PCIe 4.0 x16 | No | No | VAULT |
-| 9 | ASUS ROG STRIX RX 5700 XT 8G | 8 GB GDDR6 | PCIe 4.0 x16 | No | No | Loose |
+| 1 | NVIDIA RTX 5070 Ti (MSI) | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 1 (Slot 2, TP=4 pool) |
+| 2 | NVIDIA RTX 5070 Ti (MSI) | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 1 (Slot 3, TP=4 pool) |
+| 3 | NVIDIA RTX 5070 Ti (Gigabyte) | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 1 (Slot 4, TP=4 pool) |
+| 4 | NVIDIA RTX 5070 Ti (Gigabyte) | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 1 (Slot 5, TP=4 pool) |
+| 5 | NVIDIA RTX 5090 (PNY) | 32 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 2 (Slot 1, ComfyUI primary) |
+| 6 | NVIDIA RTX 4090 (ASUS) | 24 GB GDDR6X | PCIe 4.0 x16 | Yes | Yes | Node 1 (Slot 1, fast agent serving) |
+| 7 | NVIDIA RTX 5060 Ti | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 2 (Slot 2, tool calling) |
+| 8 | NVIDIA RTX 3060 | 12 GB GDDR6 | PCIe 4.0 x16 | Yes | Yes | Node 1 (Slot 6, embeddings + utility) |
+| 9 | Intel Arc A380 | 6 GB GDDR6 | PCIe 4.0 x16 | No | No | VAULT (Plex transcoding) |
+| 10 | ASUS ROG STRIX RX 5700 XT 8G | 8 GB GDDR6 | PCIe 4.0 x16 | No | No | DEV (display output) |
 
-**Total NVIDIA VRAM: 132 GB** (7 cards) | **Total all GPU VRAM: 146 GB** (9 cards)
+**Total NVIDIA VRAM: 148 GB** (8 cards) | **Total all GPU VRAM: 162 GB** (10 cards)
 
 ---
 
@@ -84,16 +85,19 @@ Last updated: 2026-02-15.
 
 | # | Drive | Gen | Capacity | Currently In |
 |---|-------|-----|----------|-------------|
-| 1 | Crucial P3 (CT4000P3SSD8) | Gen3 | 4 TB | Node 1 |
-| 2 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Node 1 (not detected in audit — verify seat/BIOS) |
-| 3–6 | Samsung 990 EVO Plus (x4) | Gen4 | 4 TB (4x1TB) | Node 2 |
-| 7 | Crucial T700 | Gen5 | 4 TB | VAULT (cache) |
-| 8–10 | Crucial P310 (x3) | Gen4 | 3 TB (3x1TB) | VAULT (docker/transcode/vms) |
-| 11 | Crucial P3 Plus (CT4000P3PSSD8) | Gen4 | 4 TB | DEV (C:) |
-| 12 | Crucial P310 (CT2000P310SSD8) | Gen4 | 2 TB | DEV (D:) |
-| 13 | Samsung 970 EVO | Gen3 | 250 GB | DEV (E:) |
-| 14–17 | Crucial T700 (x4) | Gen5 | 4 TB (4x1TB) | Loose |
-| 18–22 | Crucial P310 (x5) | Gen4 | 5 TB (5x1TB) | Loose |
+| 1 | Crucial P3 (CT4000P3SSD8) | Gen3 | 4 TB | Node 1 (M.2_1, OS/system) |
+| 2 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Node 1 (M.2_2, hot models) |
+| 3–6 | Samsung 990 EVO Plus (x4) | Gen4 | 4 TB (4x1TB) | VAULT (motherboard) |
+| 7 | Crucial T700 | Gen5 | 4 TB | Node 2 (M.2 Slot 1, OS/system) |
+| 8–11 | Crucial P310 (x4) | Gen4 | 4 TB (4x1TB) | VAULT (Hyper M.2 Gen5 adapter) |
+| 12 | Crucial P3 Plus (CT4000P3PSSD8) | Gen4 | 4 TB | Loose |
+| 13 | Crucial P310 (CT2000P310SSD8) | Gen4 | 2 TB | Loose |
+| 14 | Samsung 970 EVO | Gen3 | 250 GB | Loose |
+| 15 | Crucial T700 | Gen5 | 1 TB | Node 2 (M.2 Slot 2, Docker) |
+| 16 | Crucial T700 | Gen5 | 1 TB | Node 2 (M.2 Slot 3, Temp/scratch) |
+| 17 | Crucial T700 | Gen5 | 1 TB | Node 2 (M.2 Slot 4, ComfyUI) |
+| 18 | Crucial T700 | Gen5 | 1 TB | Loose |
+| 19–22 | Crucial P310 (x4) | Gen4 | 4 TB (4x1TB) | Loose |
 | 23 | Samsung 970 EVO Plus | Gen3 | 1 TB | Loose |
 | 24 | WD Black SN750 | Gen3 | 1 TB | Loose |
 
@@ -125,12 +129,13 @@ Last updated: 2026-02-15.
 | # | Card | Function | Interface | Currently In |
 |---|------|----------|-----------|-------------|
 | 1 | Broadcom/LSI SAS3224 | SAS-3 HBA | PCIe 3.0 x8 | VAULT |
-| 2–4 | ASUS Hyper M.2 X16 Gen5 (x3) | 4x NVMe carrier | PCIe 5.0 x16 | Loose |
+| 2 | ASUS Hyper M.2 X16 Gen5 | 4x NVMe carrier (4× P310 1TB) | PCIe 5.0 x16 | VAULT |
+| 3–4 | ASUS Hyper M.2 X16 Gen5 (x2) | 4x NVMe carrier | PCIe 5.0 x16 | Loose |
 | 5 | Intel X540-T2 | Dual-port 10GbE RJ45 | PCIe 2.1 x8 | Loose |
 | 6–7 | SR-PT02-X540 / X540 clone (x2) | Dual-port 10GbE RJ45 | PCIe 2.1 x8 | Loose |
 | 8 | LSI SAS9300-16i | 16-port SAS/SATA HBA | PCIe 3.0 x8 | Loose |
 
-**Loose 10GbE: 3 cards, 6 ports** | **Hyper M.2 adapters: 3 (12 NVMe slots)**
+**Loose 10GbE: 3 cards, 6 ports** | **Hyper M.2 adapters: 2 loose, 1 in VAULT**
 
 ---
 

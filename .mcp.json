@@ -1,36 +1,32 @@
 {
   "mcpServers": {
     "sequential-thinking": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ]
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "env": {}
     },
     "context7": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@upstash/context7-mcp@latest"
-      ]
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "env": {}
     },
     "grafana": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@leval/mcp-grafana"
-      ],
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@leval/mcp-grafana"],
       "env": {
         "GRAFANA_URL": "http://192.168.1.203:3000",
         "GRAFANA_USERNAME": "admin",
         "GRAFANA_PASSWORD": "newpass123"
       }
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/shaun/athanor"],
+      "env": {}
     }
   }
 }
