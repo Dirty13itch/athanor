@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-16 (UFW firewall, Grafana dashboard, Ansible roles, Home Agent)
+Last updated: 2026-02-21 (GPU reallocation complete: Node 1 has 5 GPUs [88 GB], Node 2 has 2 GPUs [48 GB])
 
 ---
 
@@ -25,11 +25,12 @@ Last updated: 2026-02-16 (UFW firewall, Grafana dashboard, Ansible roles, Home A
 
 ### Node 2 (Threadripper 7960X 24C/48T, 128 GB DDR5) — COMPLETE
 - [x] Upgrade to HWE kernel 6.17.0-14-generic
-- [x] Install NVIDIA driver 580.126.09 (open modules) — RTX 5090 + RTX 4090
+- [x] Install NVIDIA driver 580.126.09 (open modules) — RTX 5090 + RTX 5060 Ti
 - [x] Install Docker Engine 29.2.1 + Compose v5.0.2
 - [x] Install NVIDIA Container Toolkit, configure Docker runtime
 - [x] Test: `docker run --gpus all nvidia/cuda:12.8.0-base nvidia-smi` — **both GPUs visible**
-- [x] RTX 4090 (24,564 MiB) + RTX 5090 (32,607 MiB) = 57.2 GB VRAM confirmed
+- [x] RTX 5060 Ti (16 GB) + RTX 5090 (32 GB) = 48 GB VRAM confirmed
+- **Note:** RTX 4090 was moved to Node 1 (now has 5 GPUs total)
 
 ## Phase 2: Storage + Network (ADR-002, ADR-003)
 
@@ -50,10 +51,11 @@ Last updated: 2026-02-16 (UFW firewall, Grafana dashboard, Ansible roles, Home A
 - [x] Deploy Open WebUI on Node 2 pointing to vLLM — http://192.168.1.225:3000
 - [x] Test end-to-end: chat via Open WebUI → vLLM inference on Node 1
 - [x] Download Flux models for ComfyUI — FP8 dev (12 GB), CLIP-L, T5-XXL FP8, VAE (~17 GB total)
-- [x] Deploy vLLM on Node 2 RTX 4090 — **Qwen3-14B-AWQ, awq_marlin, ~92 tok/s**
+- [x] Deploy vLLM on Node 2 RTX 5060 Ti — **Qwen3-14B-AWQ, awq_marlin, ~92 tok/s**
   - http://192.168.1.225:8000 (OpenAI-compatible)
   - 9.4 GB model, 21.5 GB VRAM used, 32K context
   - Tool calling enabled (hermes parser)
+  - **Note:** Previously on RTX 4090 before GPU reallocation
 
 ## Phase 4: Monitoring (ADR-009) — COMPLETE
 
@@ -124,25 +126,46 @@ See `docs/hardware/rack-session.md` for the complete physical checklist.
 
 **Strategy**: Cloud APIs for frontier coding models (50-100+ tok/s). Local for everything that needs to be uncensored, private, always-on, or GPU-accelerated.
 
-### Node 1 → "Foundry" (6 GPUs, 100 GB VRAM) *(physical)*
-- Node 1 PSU: **Corsair 1600W** (confirmed)
-- GPU power limits set to 220W/card → ~1,305W with 3060 included, within 1600W budget
+### Node 1 → "Foundry" (5 GPUs, 88 GB VRAM) ✅ **GPU INSTALLATION COMPLETE**
+- Node 1 PSU: **MSI MEG Ai1600T PCIE5** (corrected, 1600W 80+ Titanium)
+- [x] **All 5 GPUs installed and verified:** 4× RTX 5070 Ti (64 GB) + RTX 4090 (24 GB) = 88 GB VRAM
+- [x] **Power wiring complete:** 2× native 12V-2x6 + 9× PCIe 8-pin via adapters
+- [x] **Power limits configured:** RTX 4090 @ 320W, RTX 5070 Ti @ 240W each
+- [x] **System power budget:** 1,520W optimized (95% of 1,600W PSU, 80W headroom)
+- [x] **Wiring documentation:** Created NODE1-GPU-POWER-WIRING.md field manual
+- [x] **Slot 6 NVMe:** Hyper M.2 X16 Gen5 + 4× Crucial P310 1TB = 4 TB installed
+- [x] **Total local NVMe:** 12 TB (8 TB onboard when 990 PRO reseated + 4 TB Slot 6)
+- [ ] Set up systemd service for persistent power limits (gpu-power-limits.service)
 - [ ] Reseat Samsung 990 PRO 4TB (M.2 — not detected in audit)
-- [ ] Install Hyper M.2 X16 Gen5 adapter + 4x Crucial T700 4TB Gen5 → 16 TB local NVMe
-- [ ] Move RTX 3060 from DEV → Node 1 (if physical slot clearance allows; defer to enclosure build if not)
-- [ ] Move Node 1 into mining GPU enclosure with PCIe risers *(needs purchase)*
-- [ ] Install dual PSU — Corsair 1600W (primary) + ASUS ROG 1200W (secondary, from loose)
-- [ ] Order Add2PSU adapter (~$15) for dual PSU sync start
-- [ ] Validate all 6 GPUs visible: 4x 5070 Ti (64 GB) + 4090 (24 GB) + 3060 (12 GB)
+- **Note:** Second Hyper M.2 allocated to DEV for Gen5 storage (see DEV section below)
+- [ ] Move RTX 3060 from DEV → Node 1 (deferred - would exceed PSU budget without dual PSU)
+- [ ] Move Node 1 into mining GPU enclosure with PCIe risers *(needs purchase, Phase C)*
+- [ ] Install dual PSU — MSI 1600W (primary) + ASUS ROG 1200W (secondary) *(Phase C)*
+- [ ] Order Add2PSU adapter (~$15) for dual PSU sync start *(Phase C)*
 
-### Node 2 → "Workshop" (5090 + 4090, TRX50)
-- Node 2 PSU: **MSI 1600W** (confirmed — handles 7960X + RTX 5090 + RTX 4090)
-- [ ] Swap TRX50 AERO D + 7960X from VAULT into Node 2 chassis *(see rack-session.md)*
-- [ ] Swap X870E CREATOR + 9950X from Node 2 into VAULT chassis *(see rack-session.md)*
+### Node 2 → "Workshop" (5090 + 5060 Ti, TRX50 AERO D) ✅ **CURRENT STATE**
+- Node 2 PSU: **MSI 1600W** (confirmed — handles 7960X + RTX 5090 + RTX 5060 Ti, 55% util)
+- **Current:** Node 2 already has TRX50 AERO D (sTR5) + Threadripper 7960X
+- **Current:** VAULT already has ProArt X870E (AM5) + Ryzen 9950X
+- **GPUs:** RTX 5090 (32 GB) + RTX 5060 Ti (16 GB) = 48 GB VRAM
 - Note: Node 2 will have **128 GB DDR5 ECC RDIMM** post-swap (same 4× Kingston sticks, same capacity, faster CPU)
   - TRX50 AERO D has 4 DIMM slots max, RDIMM-only — G.Skill non-ECC UDIMMs are incompatible
   - 192 GB requires 4× 48 GB DDR5 RDIMMs (~$600-800, deferred to purchase list)
 - [ ] Enable EXPO in Node 2 BIOS → DDR5 5600 MT/s *(VAULT currently running at 4800, EXPO not enabled)*
+
+### DEV → "Workstation" (Development Desktop) ✅ **STORAGE CONFIGURED**
+- DEV Motherboard: **Gigabyte Z690 AORUS ULTRA (U3E1)** (LGA 1700, i7-13700K)
+- [x] **PCIe Slot 1:** Hyper M.2 X16 Gen5 adapter + Crucial T700 1TB Gen5 = **12,400 MB/s** (full Gen5 speed!)
+- [x] **PCIe Slot 2:** ASUS ROG STRIX RX 5700 XT 8GB (Gen3 x4 - zero performance impact for 3-monitor desktop)
+- [x] **M.2_1 (CPU):** Crucial P3 Plus 4TB Gen4 (7,400 MB/s) - Docker, repos, builds
+- [x] **M.2_2 (CPU):** Crucial P310 2TB Gen4 (7,100 MB/s) - projects, cache, scratch
+- **Total local NVMe:** 7 TB (1 TB Gen5 + 6 TB Gen4)
+- **Notes:**
+  - T700 achieves full Gen5 speed in Hyper M.2 adapter (77% faster than Gen4)
+  - Gen4 drives in CPU-attached M.2 slots for lower latency vs PCIe adapter
+  - GPU in Slot 2: adequate bandwidth for desktop workload (research confirmed)
+  - M.2_3 and M.2_4 left empty for future expansion
+  - Loose spares: 970 EVO Plus 1TB, SN750 1TB, 970 EVO 250GB
 
 ### InfiniBand (optional, $75)
 - [ ] Install ConnectX-3 FDR cards in Node 1 + Node 2
@@ -166,14 +189,17 @@ See `docs/hardware/rack-session.md` for the complete physical checklist.
 ## Physical Tasks (Shaun only)
 
 These require hands at the rack:
-- Verify Samsung 990 PRO seat on Node 1
+- ~~Install Hyper M.2 adapter in Node 1 Slot 6~~ — Done (4× P310 1TB)
+- ~~Install Hyper M.2 adapter in DEV Slot 1~~ — Done (T700 1TB Gen5 only)
+- ~~Install P3 Plus 4TB in DEV M.2_1~~ — Done
+- ~~Install P310 2TB in DEV M.2_2~~ — Done
+- ~~Move RX 5700 XT to DEV Slot 2~~ — Done
+- Verify Samsung 990 PRO 4TB seat on Node 1 (M.2 not detected in audit)
 - Move ethernet cables to 10GbE switch
 - Reconnect JetKVM ATX power cable on Node 2
-- Move RTX 3060 from DEV → Node 1
+- Move RTX 3060 from DEV → Node 1 (deferred - PSU budget)
 - Move Node 1 into mining GPU enclosure with risers + dual PSU
-- Install 64 GB DDR5 kit in Node 2 (or VAULT donor RAM after swap)
 - Install InfiniBand cards (when purchased)
-- Install Hyper M.2 adapter in Node 1 (for NVMe expansion, ADR-003)
 - Future: Swap X870E ↔ TRX50 motherboard between DEV and Node 2
 
 ---
