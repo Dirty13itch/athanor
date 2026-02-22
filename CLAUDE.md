@@ -64,16 +64,22 @@ scripts/               ← Utility scripts (vault-ssh.py, etc.)
 
 ---
 
-## Hardware (audited 2026-02-15)
+## Hardware (audited 2026-02-15, updated 2026-02-21)
 
 Full details in `docs/hardware/inventory.md`.
 
 | Node | CPU | RAM | GPUs | VRAM | IP(s) | Role |
 |------|-----|-----|------|------|--------|------|
-| **Node 1** | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x RTX 5070 Ti | 64 GB | .244, .246 | Core: vLLM, agents |
-| **Node 2** | Ryzen 9 9950X 16C/32T | 128 GB DDR5 | RTX 5090 + RTX 4090 | 57 GB | .225 | Interface: ComfyUI, dashboard, WebUI |
-| **VAULT** | TR 7960X 24C/48T | 128 GB DDR5 ECC | Arc A380 | — | .203 | Storage, media, monitoring |
-| **DEV** | i7-13700K | 64 GB DDR5 | RTX 3060 12 GB | — | .215 | Shaun's workstation |
+| **Node 1** | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x RTX 5070 Ti + RTX 4090 | 88 GB | .244, .246 | Core: vLLM, agents |
+| **Node 2** | TR 7960X 24C/48T | 128 GB DDR5 ECC | RTX 5090 + RTX 5060 Ti | 48 GB | .225 | Interface: ComfyUI, dashboard, WebUI |
+| **VAULT** | Ryzen 9950X 16C/32T | 128 GB DDR5 | Arc A380 | — | .203 | Storage, media, monitoring |
+| **DEV** | i7-13700K 16C/24T | 64 GB DDR5 | RX 5700 XT 8 GB | — | .215 | Shaun's workstation |
+
+### DEV Storage
+- **PCIe Slot 1**: Hyper M.2 X16 Gen5 → Crucial T700 1TB Gen5 (12,400 MB/s)
+- **M.2_1 (CPU)**: Crucial P3 Plus 4TB Gen4 (7,400 MB/s)
+- **M.2_2 (CPU)**: Crucial P310 2TB Gen4 (7,100 MB/s)
+- **Total**: 7 TB local NVMe (1 TB Gen5 + 6 TB Gen4)
 
 ### Network
 - UniFi Dream Machine Pro (gateway, .1)
@@ -89,11 +95,13 @@ Full details in `docs/hardware/inventory.md`.
 
 ## Current Phase
 
-**Build phase.** Research is complete (11 ADRs, 14 research docs). Infrastructure is mostly running. See `docs/BUILD-ROADMAP.md` for detailed progress.
+**Build phase.** Research is complete (11 ADRs, 24 research docs). Infrastructure is mostly running. See `docs/BUILD-ROADMAP.md` for detailed progress.
 
-**What's running:** vLLM (Node 1), ComfyUI + Flux (Node 2), Dashboard (Node 2), Open WebUI (Node 2), full monitoring stack (VAULT), media stack (VAULT), Home Assistant (VAULT), Stash (VAULT).
+**What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4) + Node 2 (Qwen3-14B-AWQ), ComfyUI + Flux (Node 2 RTX 5090), Dashboard (Node 2), Open WebUI (Node 2), full monitoring stack (VAULT), media stack (VAULT), Home Assistant (VAULT, not onboarded), Stash (VAULT).
 
-**Agent framework:** General Assistant + Media Agent running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent skeleton deployed (blocked on HA onboarding). Dashboard has no agent routing page yet — agents accessible via direct API only.
+**Agent framework:** General Assistant + Media Agent + Home Agent skeleton running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent blocked on HA onboarding. Dashboard has no agent routing page yet — agents accessible via direct API only.
+
+**GPU allocation:** Node 1 (5 GPUs, 88 GB) runs vLLM TP=4 + agent server. Node 2 (2 GPUs, 48 GB) runs ComfyUI on RTX 5090, vLLM on RTX 5060 Ti.
 
 ---
 
@@ -102,19 +110,19 @@ Full details in `docs/hardware/inventory.md`.
 | Service | Node | Port | Status |
 |---------|------|------|--------|
 | vLLM (Qwen3-32B-AWQ, TP=4) | Node 1 | 8000 | Running |
-| vLLM (Qwen3-14B-AWQ, RTX 4090) | Node 2 | 8000 | Running |
+| vLLM (Qwen3-14B-AWQ, RTX 5060 Ti) | Node 2 | 8000 | Running |
 | Agent Server (General + Media + Home skeleton) | Node 1 | 9000 | Running |
 | node_exporter | Node 1 | 9100 | Running |
 | dcgm-exporter | Node 1 | 9400 | Running |
 | Dashboard | Node 2 | 3001 | Running |
-| ComfyUI (Flux dev FP8) | Node 2 | 8188 | Running |
+| ComfyUI (Flux dev FP8, RTX 5090) | Node 2 | 8188 | Running |
 | Open WebUI | Node 2 | 3000 | Running |
 | node_exporter | Node 2 | 9100 | Running |
 | dcgm-exporter | Node 2 | 9400 | Running |
 | Prometheus | VAULT | 9090 | Running |
 | Grafana | VAULT | 3000 | Running |
 | Home Assistant | VAULT | 8123 | Deployed, not onboarded |
-| Plex | VAULT | 32400 | Running (claimed) |
+| Plex | VAULT | 32400 | Running (needs claim) |
 | Sonarr | VAULT | 8989 | Running |
 | Radarr | VAULT | 7878 | Running |
 | Prowlarr | VAULT | 9696 | Running |
