@@ -25,7 +25,7 @@
     "filesystem": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:/Users/Shaun/athanor"],
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/athanor"],
       "env": {}
     }
   }

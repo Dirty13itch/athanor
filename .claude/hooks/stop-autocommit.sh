@@ -2,7 +2,7 @@
 # Stop hook: Auto-commit state files if infrastructure was modified
 # Checks for changes to docs/ state files and commits them
 
-cd "C:/Users/Shaun/athanor" 2>/dev/null || exit 0
+cd "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || exit 0
 
 # Check if any state files were modified
 STATE_FILES=$(git diff --name-only docs/BUILD-ROADMAP.md docs/VISION.md docs/hardware/ 2>/dev/null)

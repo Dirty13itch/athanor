@@ -103,7 +103,7 @@ Full details in `docs/hardware/inventory.md`.
 
 ## Current Phase
 
-**Build phase.** Research is complete (11 ADRs, 24 research docs). Infrastructure is mostly running. See `docs/BUILD-ROADMAP.md` for detailed progress.
+**Build phase.** Research is complete (12 ADRs, 23 research docs). Infrastructure is mostly running. See `docs/BUILD-ROADMAP.md` for detailed progress.
 
 **What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4) + Node 2 (Qwen3-14B-AWQ), ComfyUI + Flux (Node 2 RTX 5090), Dashboard (Node 2), Open WebUI (Node 2), full monitoring stack (VAULT), media stack (VAULT), Home Assistant (VAULT, not onboarded), Stash (VAULT).
 
@@ -130,7 +130,7 @@ Full details in `docs/hardware/inventory.md`.
 | Prometheus | VAULT | 9090 | Running |
 | Grafana | VAULT | 3000 | Running |
 | Home Assistant | VAULT | 8123 | Deployed, not onboarded |
-| Plex | VAULT | 32400 | Running (needs claim) |
+| Plex | VAULT | 32400 | Running |
 | Sonarr | VAULT | 8989 | Running |
 | Radarr | VAULT | 7878 | Running |
 | Prowlarr | VAULT | 9696 | Running |
@@ -172,6 +172,12 @@ Slash commands in `.claude/commands/`:
 - `/research` — Research documentation
 - `/project` — Project context switching
 
+Hooks in `.claude/hooks/`:
+- `session-start-health.sh` — Quick SSH health check of all nodes on session start (GPU temps, container counts)
+- `pre-tool-use-protect-paths.sh` — Blocks Write/Edit to protected paths (Unraid boot, SSH keys, parity configs)
+- `stop-autocommit.sh` — Auto-commits state file changes on session end
+- `pre-compact-save.sh` — Saves session state to `/tmp` before context compaction
+
 ---
 
 ## MCP & Agent Configuration
@@ -186,9 +192,10 @@ See `AGENTS.md` for full MCP server configs, agent framework details, and tool d
 ### Active (Project-Scoped)
 - **sequential-thinking** — Multi-step structured reasoning
 - **context7** — Live library/framework documentation
+- **grafana** — Query Grafana dashboards at VAULT:3000 (`@leval/mcp-grafana`)
+- **filesystem** — File operations within project directory
 
 ### Should Add Now (infrastructure is running)
-- **grafana-mcp** — Grafana is live at VAULT:3000, dashboards active
 - **home-assistant-mcp** — HA deployed at VAULT:8123 (after onboarding)
 - **unraid-mcp** — VAULT runs 12+ containers, managed frequently
 
@@ -202,9 +209,8 @@ Run `/mcp` to check current status.
 
 ## Blockers Requiring Shaun
 
-### Browser Tasks (10 minutes)
+### Browser Tasks
 - **Add agent to Open WebUI**: Settings → Connections → OpenAI → URL: `http://192.168.1.244:9000/v1`, Key: `not-needed`
-- **Claim Plex**: http://192.168.1.203:32400/web
 - **HA onboarding**: http://192.168.1.203:8123
 
 ### Credentials Needed

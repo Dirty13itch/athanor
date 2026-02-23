@@ -9,7 +9,7 @@ How to update Athanor state files after infrastructure changes.
 | `docs/BUILD-ROADMAP.md` | Phase checklist | When tasks are completed or added |
 | `docs/VISION.md` (Current State) | High-level system state | When major milestones change |
 | `docs/hardware/inventory.md` | Hardware allocation | When hardware moves between nodes |
-| `MEMORY.md` | Session-persistent state | When IPs, credentials, or status changes |
+| `CLAUDE.md` | Services map, blockers, hardware summary | When services or blockers change |
 
 ## Process
 
@@ -19,10 +19,10 @@ How to update Athanor state files after infrastructure changes.
    - Use checkboxes `[x]` in BUILD-ROADMAP.md for completed items
    - Update timestamps ("Last updated: YYYY-MM-DD")
 
-2. For MEMORY.md (auto memory):
-   - Update the "Build Phase Status" section
-   - Update "Next Priorities" if the queue changed
-   - Add new gotchas discovered during work
+2. For CLAUDE.md:
+   - Update the Services Map table if services were deployed/removed
+   - Update Blockers section if items were resolved or new ones found
+   - Update Hardware section if hardware changed
 
 3. Commit state file changes:
    ```bash
@@ -33,10 +33,10 @@ How to update Athanor state files after infrastructure changes.
 ## State File Locations
 
 ```
-C:\Users\Shaun\athanor\docs\BUILD-ROADMAP.md     — Build progress
-C:\Users\Shaun\athanor\docs\VISION.md             — System overview
-C:\Users\Shaun\athanor\docs\hardware\inventory.md — Hardware
-C:\Users\Shaun\.claude\projects\C--Users-Shaun-athanor\memory\MEMORY.md — Auto memory
+docs/BUILD-ROADMAP.md                — Build progress
+docs/VISION.md                       — System overview
+docs/hardware/inventory.md           — Hardware
+CLAUDE.md                            — Project instructions (services map, blockers, hardware summary)
 ```
 
 ## Example: After Deploying vLLM on Node 1
