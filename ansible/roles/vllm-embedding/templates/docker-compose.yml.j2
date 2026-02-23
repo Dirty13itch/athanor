@@ -9,7 +9,6 @@ services:
     environment:
       - HF_HUB_OFFLINE=1
       - CUDA_DEVICE_ORDER=PCI_BUS_ID
-      - CUDA_VISIBLE_DEVICES={{ vllm_embedding_gpu_device }}
     ipc: host
     ulimits:
       memlock: -1
