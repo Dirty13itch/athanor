@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-21 (GPU reallocation complete: Node 1 has 5 GPUs [88 GB], Node 2 has 2 GPUs [48 GB])
+Last updated: 2026-02-23 (Node 1 upgraded to Qwen3-32B-AWQ, Node 2 runs Qwen3-14B, monitoring running)
 
 ---
 
@@ -10,9 +10,9 @@ Last updated: 2026-02-21 (GPU reallocation complete: Node 1 has 5 GPUs [88 GB], 
 
 - [x] Get DHCP IPs for Node 1 and Node 2 — Node 1: .244/.246, Node 2: .225
 - [x] SSH into both nodes with athanor/athanor2026
-- [ ] Verify Samsung 990 PRO 4TB physical seat on Node 1 (not detected in audit) *(physical)*
-- [ ] Reconnect JetKVM ATX power cable on Node 2 *(physical)*
-- [ ] Move Node 1 + Node 2 ethernet to USW Pro XG 10 PoE (10GbE data plane) *(physical)*
+- [x] Verify Samsung 990 PRO 4TB physical seat on Node 1 — reseated during rack session (verify detection in BIOS)
+- [x] Reconnect JetKVM ATX power cable on Node 2 — Done (Session 3)
+- [x] Move Node 1 + Node 2 ethernet to USW Pro XG 10 PoE (10GbE data plane) — Done (Session 3)
 
 ## Phase 1: NVIDIA + Docker (ADR-001 validation)
 
@@ -42,20 +42,21 @@ Last updated: 2026-02-21 (GPU reallocation complete: Node 1 has 5 GPUs [88 GB], 
 
 ## Phase 3: First Services (ADR-005, ADR-006, ADR-007) — COMPLETE
 
-- [x] Deploy vLLM on Node 1 — **Qwen3-32B-AWQ, TP=4 across 4x 5070 Ti, NGC vLLM 25.12 (0.11.1)**
+- [x] Deploy vLLM on Node 1 — **Qwen3-32B-AWQ, TP=4 across 3x 5070 Ti + RTX 4090, NGC vLLM 25.12**
 - [x] vLLM API serving at http://192.168.1.244:8000 (OpenAI-compatible)
-- [x] Upgraded from Qwen3-14B to Qwen3-32B-AWQ — 15.6 GB/GPU, 32K context
+- [x] Qwen3-32B-AWQ downloaded to NFS (~19 GB), deployed with `--quantization awq` (Marlin kernels incompatible with Blackwell sm_120)
+- **Note:** Model uses ~15.6 GiB/GPU on 5070 Ti, ~15.8 GiB on 4090. KV cache: ~127K tokens (3.88x concurrent 32K requests).
 - [x] Deploy ComfyUI on Node 2 pinned to RTX 5090 — http://192.168.1.225:8188
   - Custom image (athanor/comfyui:blackwell) built from NGC PyTorch base for Blackwell compat
   - ComfyUI 0.13.0, PyTorch 2.7.0a0, 32 GB VRAM
 - [x] Deploy Open WebUI on Node 2 pointing to vLLM — http://192.168.1.225:3000
 - [x] Test end-to-end: chat via Open WebUI → vLLM inference on Node 1
 - [x] Download Flux models for ComfyUI — FP8 dev (12 GB), CLIP-L, T5-XXL FP8, VAE (~17 GB total)
-- [x] Deploy vLLM on Node 2 RTX 5060 Ti — **Qwen3-14B-AWQ, awq_marlin, ~92 tok/s**
+- [x] Deploy vLLM on Node 2 RTX 5090 — **Qwen3-14B, enforce-eager, float16**
   - http://192.168.1.225:8000 (OpenAI-compatible)
-  - 9.4 GB model, 21.5 GB VRAM used, 32K context
+  - gpu_memory_util=0.95, max_model_len=8192, max_num_seqs=32
   - Tool calling enabled (hermes parser)
-  - **Note:** Previously on RTX 4090 before GPU reallocation
+  - **Note:** RTX 5060 Ti assigned to ComfyUI. vLLM on RTX 5090 with constrained context to fit memory.
 
 ## Phase 4: Monitoring (ADR-009) — COMPLETE
 
@@ -194,9 +195,9 @@ These require hands at the rack:
 - ~~Install P3 Plus 4TB in DEV M.2_1~~ — Done
 - ~~Install P310 2TB in DEV M.2_2~~ — Done
 - ~~Move RX 5700 XT to DEV Slot 2~~ — Done
-- Verify Samsung 990 PRO 4TB seat on Node 1 (M.2 not detected in audit)
-- Move ethernet cables to 10GbE switch
-- Reconnect JetKVM ATX power cable on Node 2
+- ~~Verify Samsung 990 PRO 4TB seat on Node 1~~ — Reseated (verify detection in BIOS)
+- ~~Move ethernet cables to 10GbE switch~~ — Done
+- ~~Reconnect JetKVM ATX power cable on Node 2~~ — Done
 - Move RTX 3060 from DEV → Node 1 (deferred - PSU budget)
 - Move Node 1 into mining GPU enclosure with risers + dual PSU
 - Install InfiniBand cards (when purchased)
@@ -207,11 +208,16 @@ These require hands at the rack:
 ## Blocked / Needs Shaun
 
 - **HA onboarding**: Navigate to http://192.168.1.203:8123 in a browser to complete initial setup
-- ~~**Grafana MCP auth**~~: Done — password reset to newpass123, compose + .mcp.json updated
 - **HA MCP**: Install after HA onboarding is complete (needs long-lived access token)
 - **qBittorrent VPN**: NordVPN token/credentials need updating in Gluetun config
-- ~~**Plex claim**~~: Done — claimed with token, healthy on host networking
-- ~~**Flux models**~~: Done — FP8 dev + text encoders + VAE downloaded
+- ~~**Qwen3-32B-AWQ download**~~: Done — downloaded and deployed on Node 1 with `--quantization awq`
+- **Node 2 EXPO**: Enable in BIOS via JetKVM (DDR5 4800 → 5600 MT/s)
+- ~~**Grafana MCP auth**~~: Done
+- ~~**Plex claim**~~: Done
+- ~~**Flux models**~~: Done
+- ~~**10GbE migration**~~: Done
+- ~~**JetKVM ATX cable**~~: Done
+- ~~**DHCP reservations**~~: Done (6 Fixed IPs)
 
 ---
 

@@ -90,8 +90,8 @@ Specialist slots are defined by interface contracts, not model names. Any model 
 
 | Slot | Contract | Current Model |
 |------|----------|---------------|
-| **Reasoning** | Tool calling, 32K+ context, structured output | Qwen3-32B-AWQ (TP=4) |
-| **Fast Agent** | Tool calling, low latency, 8K context sufficient | Qwen3-14B-AWQ |
+| **Reasoning** | Tool calling, 32K+ context, structured output | Qwen3-32B-AWQ (TP=4, `--quantization awq`, 32K context) |
+| **Fast Agent** | Tool calling, low latency, 8K context sufficient | Qwen3-14B (RTX 5090, 8K context, enforce-eager) |
 | **Embedding** | Dense embeddings, 8K input | Planned: Qwen3-Embedding-0.6B |
 | **Reranker** | Cross-encoder reranking | Planned: Qwen3-Reranker-0.6B |
 | **Image Gen** | Text-to-image, LoRA support | FLUX.1 dev FP8 |

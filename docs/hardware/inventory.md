@@ -36,11 +36,11 @@ Last updated: 2026-02-22.
 | 5 | NVIDIA RTX 5090 (PNY) | 32 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 2 (Slot 1, ComfyUI primary) |
 | 6 | NVIDIA RTX 4090 (ASUS) | 24 GB GDDR6X | PCIe 4.0 x16 | Yes | Yes | Node 1 (Slot 1, fast agent serving) |
 | 7 | NVIDIA RTX 5060 Ti | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 2 (Slot 2, tool calling) |
-| 8 | NVIDIA RTX 3060 | 12 GB GDDR6 | PCIe 4.0 x16 | Yes | Yes | Node 1 (Slot 6, embeddings + utility) |
+| 8 | NVIDIA RTX 3060 | 12 GB GDDR6 | PCIe 4.0 x16 | Yes | Yes | Loose (planned for Node 1, deferred — PSU budget) |
 | 9 | Intel Arc A380 | 6 GB GDDR6 | PCIe 4.0 x16 | No | No | VAULT (Plex transcoding) |
 | 10 | ASUS ROG STRIX RX 5700 XT 8G | 8 GB GDDR6 | PCIe 4.0 x16 | No | No | DEV (display output) |
 
-**Total NVIDIA VRAM: 148 GB** (8 cards) | **Total all GPU VRAM: 162 GB** (10 cards)
+**Total NVIDIA VRAM: 148 GB** (8 cards, but RTX 3060 is loose/uninstalled) | **Installed NVIDIA VRAM: 136 GB** (7 cards across Node 1 + Node 2) | **Total all GPU VRAM: 162 GB** (10 cards including loose)
 
 ---
 

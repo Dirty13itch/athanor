@@ -72,7 +72,7 @@ assets/branding/       ← Logos, animations
 
 ---
 
-## Hardware (audited 2026-02-15, updated 2026-02-21)
+## Hardware (audited 2026-02-15, updated 2026-02-23)
 
 Full details in `docs/hardware/inventory.md`.
 
@@ -91,9 +91,11 @@ Full details in `docs/hardware/inventory.md`.
 
 ### Network
 - UniFi Dream Machine Pro (gateway, .1)
-- USW Pro 24 PoE — 1GbE management (currently all servers here)
-- USW Pro XG 10 PoE — 10GbE data plane (available, servers NOT connected yet)
+- USW Pro XG 10 PoE (.31) — 10GbE data plane: Node 1 (ports 5+6), Node 2 (port 4), VAULT (port 2 @ 10G, port 1 @ 2.5G)
+- USW Pro 24 PoE — 1GbE management: JetKVMs, BMC, APs, IoT, home devices
+- SFP+ daisy-chain: UDM Pro → XG port 11 → XG port 12 → 24-port port 25
 - Lutron controller (.158), JetKVM .165 (Node 2), JetKVM .80 (VAULT)
+- All server DHCP reservations in place (6 Fixed IPs in UniFi)
 
 ### SSH Access
 - **Nodes**: `ssh -i ~/.ssh/athanor_mgmt athanor@<ip>` — passwordless sudo
@@ -105,11 +107,11 @@ Full details in `docs/hardware/inventory.md`.
 
 **Build phase.** Research is complete (11 ADRs, 24 research docs). Infrastructure is mostly running. See `docs/BUILD-ROADMAP.md` for detailed progress.
 
-**What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4) + Node 2 (Qwen3-14B-AWQ), ComfyUI + Flux (Node 2 RTX 5090), Dashboard (Node 2), Open WebUI (Node 2), full monitoring stack (VAULT), media stack (VAULT), Home Assistant (VAULT, not onboarded), Stash (VAULT).
+**What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4 across 3x 5070 Ti + 4090) + Node 2 (Qwen3-14B, single RTX 5090), ComfyUI + Flux (Node 2 RTX 5060 Ti), Dashboard (Node 2), Open WebUI (Node 2), Prometheus + Grafana (VAULT, fresh deploy). **VAULT media stack (Plex, Sonarr, Radarr, etc.) is DOWN** — all containers were lost during motherboard swap. Docker templates may still exist on Unraid USB boot drive — investigating.
 
 **Agent framework:** General Assistant + Media Agent + Home Agent skeleton running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent blocked on HA onboarding. Dashboard has no agent routing page yet — agents accessible via direct API only.
 
-**GPU allocation:** Node 1 (5 GPUs, 88 GB) runs vLLM TP=4 + agent server. Node 2 (2 GPUs, 48 GB) runs ComfyUI on RTX 5090, vLLM on RTX 5060 Ti.
+**GPU allocation:** Node 1 (5 GPUs, 88 GB) runs vLLM TP=4 on GPUs 0-3 (3x 5070 Ti + 4090, ~15.6 GiB each) + agent server. GPU 4 (5070 Ti) idle/available. Node 2 (2 GPUs, 48 GB) runs vLLM on RTX 5090 (GPU 0), ComfyUI on RTX 5060 Ti (GPU 1).
 
 ---
 
@@ -117,26 +119,26 @@ Full details in `docs/hardware/inventory.md`.
 
 | Service | Node | Port | Status |
 |---------|------|------|--------|
-| vLLM (Qwen3-32B-AWQ, TP=4) | Node 1 | 8000 | Running |
-| vLLM (Qwen3-14B-AWQ, RTX 5060 Ti) | Node 2 | 8000 | Running |
+| vLLM (Qwen3-32B-AWQ, TP=4 across 3x 5070 Ti + 4090) | Node 1 | 8000 | Running |
+| vLLM (Qwen3-14B, RTX 5090, enforce-eager) | Node 2 | 8000 | Running |
 | Agent Server (General + Media + Home skeleton) | Node 1 | 9000 | Running |
 | node_exporter | Node 1 | 9100 | Running |
 | dcgm-exporter | Node 1 | 9400 | Running |
 | Dashboard | Node 2 | 3001 | Running |
-| ComfyUI (Flux dev FP8, RTX 5090) | Node 2 | 8188 | Running |
+| ComfyUI (Flux dev FP8, RTX 5060 Ti) | Node 2 | 8188 | Running |
 | Open WebUI | Node 2 | 3000 | Running |
 | node_exporter | Node 2 | 9100 | Running |
 | dcgm-exporter | Node 2 | 9400 | Running |
-| Prometheus | VAULT | 9090 | Running |
-| Grafana | VAULT | 3000 | Running |
-| Home Assistant | VAULT | 8123 | Deployed, not onboarded |
-| Plex | VAULT | 32400 | Running (needs claim) |
-| Sonarr | VAULT | 8989 | Running |
-| Radarr | VAULT | 7878 | Running |
-| Prowlarr | VAULT | 9696 | Running |
-| SABnzbd | VAULT | 8080 | Running |
-| Tautulli | VAULT | 8181 | Running |
-| Stash | VAULT | 9999 | Running |
+| Prometheus | VAULT | 9090 | Running (fresh deploy, all 5 scrape targets UP) |
+| Grafana | VAULT | 3000 | Running (admin/newpass123, Prometheus source + Node Exporter + DCGM dashboards) |
+| Home Assistant | VAULT | 8123 | **DOWN — lost in mobo swap, needs redeploy** |
+| Plex | VAULT | 32400 | **DOWN — lost in mobo swap, needs redeploy** |
+| Sonarr | VAULT | 8989 | **DOWN — lost in mobo swap, needs redeploy** |
+| Radarr | VAULT | 7878 | **DOWN — lost in mobo swap, needs redeploy** |
+| Prowlarr | VAULT | 9696 | **DOWN — lost in mobo swap, needs redeploy** |
+| SABnzbd | VAULT | 8080 | **DOWN — lost in mobo swap, needs redeploy** |
+| Tautulli | VAULT | 8181 | **DOWN — lost in mobo swap, needs redeploy** |
+| Stash | VAULT | 9999 | **DOWN — lost in mobo swap, needs redeploy** |
 
 ---
 
@@ -187,10 +189,10 @@ See `AGENTS.md` for full MCP server configs, agent framework details, and tool d
 - **sequential-thinking** — Multi-step structured reasoning
 - **context7** — Live library/framework documentation
 
-### Should Add Now (infrastructure is running)
-- **grafana-mcp** — Grafana is live at VAULT:3000, dashboards active
-- **home-assistant-mcp** — HA deployed at VAULT:8123 (after onboarding)
-- **unraid-mcp** — VAULT runs 12+ containers, managed frequently
+### Should Add Now
+- **grafana-mcp** — Active in `.mcp.json`, Grafana at VAULT:3000 (admin/newpass123)
+- **home-assistant-mcp** — After HA is redeployed and onboarded
+- **unraid-mcp** — For managing VAULT containers (when available)
 
 ### Add When Needed
 - **postgresql-mcp** — When agents need persistent storage
@@ -202,20 +204,35 @@ Run `/mcp` to check current status.
 
 ## Blockers Requiring Shaun
 
-### Browser Tasks (10 minutes)
+### CRITICAL: VAULT Media Stack Lost
+The motherboard swap destroyed the ZFS NVMe pool (`hpc_nvme`) that held all container appdata. All media service configs (Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, HA, Stash) are gone. **Media files on the HDD array are intact** — only container configs/metadata lost.
+
+**Recovery plan (Shaun needs to do via Unraid Web UI):**
+1. Open http://192.168.1.203 → Docker tab → Add Container
+2. Install from Community Apps: Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Home Assistant, Stash
+3. Configure each: set appdata paths to `/mnt/user/appdata/<service>`, media paths to `/mnt/user/data/media/`
+4. Re-configure Sonarr/Radarr root folders, re-add indexers in Prowlarr
+5. Plex: re-scan libraries (watch history lost), re-claim at http://192.168.1.203:32400/web
+6. **Note:** Old Plex template exists at `/boot/config/plugins/dockerMan/templates-user/my-Plex-Media-Server.xml`
+7. **Note:** Stash template exists in backup at `/mnt/user/Backups/pre_disassembly_Unraid_2026-01-10_162547/`
+
+### Browser Tasks (~5 minutes)
+- **HA onboarding**: After reinstalling HA container, navigate to http://192.168.1.203:8123
 - **Add agent to Open WebUI**: Settings → Connections → OpenAI → URL: `http://192.168.1.244:9000/v1`, Key: `not-needed`
-- **Claim Plex**: http://192.168.1.203:32400/web
-- **HA onboarding**: http://192.168.1.203:8123
 
 ### Credentials Needed
 - **NordVPN** service credentials → unblocks qBittorrent + Gluetun VPN
-- **HuggingFace token** (optional) → full-precision Flux dev model
 
-### Physical Rack Session (~20 min)
-- Move ethernet cables to 10GbE switch (USW Pro XG 10 PoE)
-- Reconnect JetKVM ATX power cable on Node 2
-- Reseat Samsung 990 PRO 4TB on Node 1 (or check BIOS M.2 settings)
-- Enable EXPO in Node 2 BIOS (DDR5 3600 → 5600 MT/s)
+### Physical / BIOS (~10 min)
+- Enable EXPO in Node 2 BIOS (DDR5 4800 → 5600 MT/s) — via JetKVM
+- Verify Samsung 990 PRO 4TB on Node 1 (reseated during rack session — check if detected now)
+
+### Completed (Session 3-4)
+- ~~Claim Plex~~ — Done
+- ~~Move ethernet to 10GbE switch~~ — Done (all servers on XG switch)
+- ~~Reconnect JetKVM ATX cable~~ — Done
+- ~~Create DHCP reservations~~ — Done (6 Fixed IPs)
+- ~~Motherboard swap (X870E ↔ TRX50)~~ — Done
 
 ---
 
@@ -238,6 +255,10 @@ Use for: parallel research, auditing multiple nodes simultaneously, multi-compon
 - **EPYC POST time**: Node 1 takes ~3 minutes to POST (224 GB ECC RAM check).
 - **NFS permissions**: Directories created by root on VAULT need `chmod 777` from VAULT side (root_squash).
 - **vLLM on 16 GB GPUs**: Use `--gpu-memory-utilization 0.85` and `--max-num-seqs 128` to avoid OOM.
+- **AWQ Marlin kernels on Blackwell**: vLLM auto-upgrades AWQ to `awq_marlin` which crashes on sm_120 GPUs (`cudaErrorUnsupportedPtxVersion`). Must use `--quantization awq` explicitly + `CUDA_DEVICE_ORDER=PCI_BUS_ID` env var.
+- **Mixed GPU architectures (TP)**: Node 1 runs TP=4 across 5070 Ti (sm_120) + 4090 (sm_89). Works with `--quantization awq` (not Marlin). Set `CUDA_DEVICE_ORDER=PCI_BUS_ID` for consistent ordering.
+- **VAULT NVMe pools**: Old ZFS pool (`hpc_nvme`) destroyed during mobo swap. Now 4x btrfs single-drive pools (appdatacache, docker, transcode, vms). 1.9TB of old ZFS data (appdata, models cache, domains) is gone.
+- **SSH from DEV**: Use `~/.ssh/id_ed25519` (athanor-dev) or `~/.ssh/athanor_mgmt` — both work for Node 1 and Node 2. VAULT requires `vault-ssh.py`.
 
 ---
 

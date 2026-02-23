@@ -15,6 +15,7 @@ services:
       - HF_HUB_OFFLINE=1
       - VLLM_FLASH_ATTN_VERSION=2
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
 {% for env in vllm_extra_env %}
       - {{ env }}
 {% endfor %}
@@ -53,8 +54,10 @@ services:
       - "{{ vllm_gpu_memory_util }}"
       - --max-num-seqs
       - "{{ vllm_max_num_seqs }}"
+{% if not vllm_quantization %}
       - --dtype
       - {{ vllm_dtype }}
+{% endif %}
 {% for arg in vllm_extra_args %}
       - {{ arg }}
 {% endfor %}

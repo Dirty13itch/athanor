@@ -4,8 +4,8 @@
 # GPU power limits (250W = hardware minimum for RTX 5070 Ti; creates headroom for RTX 3060 within 1600W PSU)
 nvidia_power_limit_watts: 250
 
-vllm_model: /models/Qwen3-14B
-vllm_quantization: ""
+vllm_model: /models/Qwen3-32B-AWQ
+vllm_quantization: awq
 vllm_tensor_parallel: 4
 vllm_port: 8000
 vllm_gpu_memory_util: "0.85"
@@ -19,7 +19,7 @@ vllm_extra_args:
 
 agent_port: 9000
 agent_vllm_url: "http://localhost:8000/v1"
-agent_vllm_model: /models/Qwen3-14B
+agent_vllm_model: /models/Qwen3-32B-AWQ
 agent_prometheus_url: "{{ prometheus_url }}"
 agent_sonarr_api_key: "{{ vault_agent_sonarr_api_key }}"
 agent_radarr_api_key: "{{ vault_agent_radarr_api_key }}"
