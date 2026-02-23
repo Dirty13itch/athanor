@@ -53,6 +53,6 @@ services:
       - "{{ vllm_max_num_seqs }}"
       - --dtype
       - {{ vllm_dtype }}
-      - --enable-auto-tool-choice
-      - --tool-call-parser
-      - hermes
+{% for arg in vllm_extra_args %}
+      - {{ arg }}
+{% endfor %}

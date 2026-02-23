@@ -5,7 +5,7 @@ Treat this as the starting point — as if every node were disassembled and ever
 laid on the table. Current node assignments are noted but carry no weight for future
 allocation decisions.
 
-Last updated: 2026-02-15.
+Last updated: 2026-02-22.
 
 ---
 
@@ -14,8 +14,8 @@ Last updated: 2026-02-15.
 | # | CPU | Socket | Cores/Threads | Base/Boost | TDP | Arch | Currently In |
 |---|-----|--------|---------------|------------|-----|------|-------------|
 | 1 | AMD EPYC 7663 | SP3 | 56C/112T | 2.0/3.54 GHz | 240W | Zen 3 (Milan) | Node 1 |
-| 2 | AMD Ryzen 9 9950X | AM5 | 16C/32T | 4.3/5.75 GHz | 170W | Zen 5 | Node 2 |
-| 3 | AMD Threadripper 7960X | sTR5 | 24C/48T | 4.2/5.665 GHz | 350W | Zen 4 | VAULT |
+| 2 | AMD Ryzen 9 9950X | AM5 | 16C/32T | 4.3/5.75 GHz | 170W | Zen 5 | VAULT |
+| 3 | AMD Threadripper 7960X | sTR5 | 24C/48T | 4.2/5.665 GHz | 350W | Zen 4 | Node 2 |
 | 4 | Intel Core i7-13700K | LGA 1700 | 16C/24T (8P+8E) | 3.4 GHz | 253W | Raptor Lake | DEV |
 | 5 | Intel Core i7-12700K | LGA 1700 | 12C/20T (8P+4E) | 3.6 GHz | 190W | Alder Lake | Loose |
 | 6 | Intel Core i5-12600K | LGA 1700 | 10C/16T (6P+4E) | 3.7 GHz | 150W | Alder Lake | Loose |
@@ -49,8 +49,8 @@ Last updated: 2026-02-15.
 | # | Board | Socket | RAM Type | DIMM Slots | PCIe Slots | M.2 Slots | Onboard Network | Currently In |
 |---|-------|--------|----------|------------|------------|-----------|----------------|-------------|
 | 1 | ASRock Rack ROMED8-2T | SP3 | DDR4 ECC RDIMM | 8 | 7 (3x x16 + 4x x8) | 2 | 2x Intel X550 10GbE | Node 1 |
-| 2 | ASUS ProArt X870E-CREATOR WIFI | AM5 | DDR5 | 4 | 2 (1x 5.0 x16, 1x 4.0 x16) | 2+ | Aquantia 10GbE + Intel 2.5GbE + WiFi 7 | Node 2 |
-| 3 | Gigabyte TRX50 AERO D | sTR5 | DDR5 ECC RDIMM only | 4 | Multiple | Multiple | Aquantia 10GbE + RTL8125 2.5GbE + TB4 | VAULT |
+| 2 | ASUS ProArt X870E-CREATOR WIFI | AM5 | DDR5 | 4 | 2 (1x 5.0 x16, 1x 4.0 x16) | 2+ | Aquantia 10GbE + Intel 2.5GbE + WiFi 7 | VAULT |
+| 3 | Gigabyte TRX50 AERO D | sTR5 | DDR5 ECC RDIMM only | 4 | Multiple | Multiple | Aquantia 10GbE + RTL8125 2.5GbE + TB4 | Node 2 |
 | 4 | Gigabyte Z690 AORUS ULTRA | LGA 1700 | DDR5 | 4 | Multiple | Multiple | Intel I225-V 1GbE + WiFi 6 | DEV |
 | 5 | Gigabyte Z690 AORUS ELITE AX DDR4 | LGA 1700 | DDR4 | 4 | 3 (1x 5.0 x16, 1x 3.0 x16, 1x 3.0 x1) | 4 | 2.5GbE + WiFi 6E | Loose |
 | 6 | Gigabyte Z390 AORUS PRO WIFI | LGA 1151 | DDR4 | 4 | 3 (2x 3.0 x16, 1x 3.0 x1) | 2 | 1GbE + WiFi | Loose |
@@ -66,8 +66,8 @@ Last updated: 2026-02-15.
 | # | Module | Type | Capacity | Speed | Latency | Currently In |
 |---|--------|------|----------|-------|---------|-------------|
 | 1–7 | Samsung M393A4K40DB3-CWE (x7) | DDR4 ECC RDIMM | 224 GB (7x32GB) | 3200 MT/s | — | Node 1 |
-| 8–11 | Micron CP32G60C40U5B.M8B3 (x4) | DDR5 UDIMM | 128 GB (4x32GB) | 5600 MT/s | CL40 | Node 2 |
-| 12–15 | Kingston KF556R28RBE2-32 (x4) | DDR5 ECC RDIMM | 128 GB (4x32GB) | 5600 MT/s (running 4800, EXPO not enabled) | CL28 | VAULT |
+| 8–11 | Micron CP32G60C40U5B.M8B3 (x4) | DDR5 UDIMM | 128 GB (4x32GB) | 5600 MT/s | CL40 | VAULT |
+| 12–15 | Kingston KF556R28RBE2-32 (x4) | DDR5 ECC RDIMM | 128 GB (4x32GB) | 5600 MT/s (running 4800, EXPO not enabled) | CL28 | Node 2 |
 | 16–17 | G.Skill F5-5200J3636D32G (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5200 MT/s | CL36 | DEV |
 | 18–19 | G.Skill Ripjaws S5 F5-5600J4040D32GX2 (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5600 MT/s | CL40 | Loose |
 | 20–21 | Crucial Ballistix BL32G32C16U4B (x2) | DDR4 UDIMM | 64 GB (2x32GB) | 3200 MT/s | CL16 | Loose |
@@ -87,7 +87,7 @@ Last updated: 2026-02-15.
 |---|-------|-----|----------|-------------|
 | 1 | Crucial P3 (CT4000P3SSD8) | Gen3 | 4 TB | Node 1 (M.2_1, OS/system) |
 | 2 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Node 1 (M.2_2, hot models) |
-| 3–6 | Samsung 990 EVO Plus (x4) | Gen4 | 4 TB (4x1TB) | VAULT (motherboard) |
+| 3–6 | Samsung 990 EVO Plus (x4) | Gen4 | 4 TB (4x1TB) | Node 2 (motherboard M.2 slots) |
 | 7 | Crucial T700 | Gen5 | 4 TB | Node 2 (M.2 Slot 1, OS/system) |
 | 8–11 | Crucial P310 (x4) | Gen4 | 4 TB (4x1TB) | VAULT (Hyper M.2 Gen5 adapter) |
 | 12 | Crucial P3 Plus (CT4000P3PSSD8) | Gen4 | 4 TB | Loose |
@@ -161,8 +161,8 @@ Last updated: 2026-02-15.
 | Device | Type | Ports | Notes |
 |--------|------|-------|-------|
 | UniFi Dream Machine Pro | Router/Gateway | — | Core router |
-| USW Pro 24 PoE | Switch | 24x 1GbE + 2x 10G SFP+ | All servers currently here |
-| USW Pro XG 10 PoE | Switch | 8x 10GbE RJ45 + 4x 10G SFP+ | **Unused by servers** |
+| USW Pro 24 PoE | Switch | 24x 1GbE + 2x 10G SFP+ | JetKVMs, BMC, home devices |
+| USW Pro XG 10 PoE | Switch | 8x 10GbE RJ45 + 4x 10G SFP+ | All server 10GbE links |
 | USW Flex | Switch | 5x 1GbE | Garage |
 | U6 APs (x6) | WiFi 6 | — | Whole-home coverage |
 | Lutron controller | Lighting | — | .158 |

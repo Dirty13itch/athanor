@@ -12,9 +12,9 @@ all:
             core:
               ansible_host: 192.168.1.244
               node_role: foundry
-              gpu_count: 4
-              gpu_type: "RTX 5070 Ti"
-              vram_total_gb: 64
+              gpu_count: 5
+              gpu_type: "4x RTX 5070 Ti + RTX 4090"
+              vram_total_gb: 88
               extra_firewall:
                 - { port: 9000, proto: tcp, comment: "Agent Server" }
         node2:
@@ -23,8 +23,8 @@ all:
               ansible_host: 192.168.1.225
               node_role: workshop
               gpu_count: 2
-              gpu_type: "RTX 5090 + RTX 4090"
-              vram_total_gb: 57
+              gpu_type: "RTX 5090 + RTX 5060 Ti"
+              vram_total_gb: 48
               extra_firewall:
                 - { port: 3000, proto: tcp, comment: "Open WebUI" }
                 - { port: 3001, proto: tcp, comment: "Dashboard" }

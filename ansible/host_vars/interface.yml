@@ -15,12 +15,16 @@ vllm_dtype: float16
 vllm_extra_env:
   - "NVIDIA_VISIBLE_DEVICES=0"
   - "CUDA_VISIBLE_DEVICES=0"
+vllm_extra_args:
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - hermes
 
 comfyui_gpu_device: "1"
 comfyui_port: 8188
 
 open_webui_port: 3000
-open_webui_vllm_url: "http://192.168.1.244:8000/v1"
+open_webui_vllm_url: "http://{{ node1_ip }}:8000/v1"
 
 dashboard_port: 3001
-dashboard_prometheus_url: "http://192.168.1.203:9090"
+dashboard_prometheus_url: "{{ prometheus_url }}"

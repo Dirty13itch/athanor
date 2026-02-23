@@ -1,5 +1,5 @@
 ---
 dashboard_deploy_dir: /opt/athanor/dashboard
 dashboard_port: 3001
-dashboard_prometheus_url: "http://192.168.1.203:9090"
+dashboard_prometheus_url: "{{ prometheus_url }}"
 dashboard_image: "athanor/dashboard:latest"

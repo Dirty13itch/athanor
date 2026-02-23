@@ -11,4 +11,8 @@ vllm_max_num_seqs: 128
 vllm_gpu_devices: all
 vllm_dtype: auto
 vllm_extra_env: []
+vllm_extra_args:
+  - --enable-auto-tool-choice
+  - --tool-call-parser
+  - hermes
 vllm_deploy_dir: /opt/athanor/vllm
