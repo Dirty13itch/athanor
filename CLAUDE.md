@@ -107,7 +107,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4) + Node 2 (Qwen3-14B-AWQ), ComfyUI + Flux (Node 2 RTX 5090), Dashboard (Node 2), Open WebUI (Node 2), full monitoring stack (VAULT), media stack (VAULT), Home Assistant (VAULT, not onboarded), Stash (VAULT).
 
-**Agent framework:** General Assistant + Media Agent + Home Agent skeleton running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent blocked on HA onboarding. Dashboard has no agent routing page yet — agents accessible via direct API only.
+**Agent framework:** General Assistant + Media Agent + Home Agent skeleton running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent blocked on HA onboarding. Dashboard has Agents page with health/descriptions/quick-start, chat page supports agent routing via grouped dropdown and `?agent=` deep links.
 
 **GPU allocation:** Node 1 (5 GPUs, 88 GB) runs vLLM TP=4 + agent server. Node 2 (2 GPUs, 48 GB) runs ComfyUI on RTX 5090, vLLM on RTX 5060 Ti.
 

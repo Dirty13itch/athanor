@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutIcon },
   { href: "/gpu", label: "GPU Metrics", icon: CpuIcon },
+  { href: "/agents", label: "Agents", icon: BotIcon },
   { href: "/chat", label: "Chat", icon: MessageIcon },
   { href: "/services", label: "Services", icon: ActivityIcon },
 ];
@@ -74,6 +75,17 @@ function MessageIcon({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function BotIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 8V4H8" />
+      <rect width="16" height="12" x="4" y="8" rx="2" />
+      <path d="M2 14h2" /><path d="M20 14h2" />
+      <path d="M15 13v2" /><path d="M9 13v2" />
     </svg>
   );
 }

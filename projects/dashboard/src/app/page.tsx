@@ -30,18 +30,34 @@ async function getGpuUtilByNode(): Promise<Map<string, number>> {
   return avgMap;
 }
 
-export default async function DashboardPage() {
-  let services;
+interface AgentStatus {
+  serverOnline: boolean;
+  agents: string[];
+}
+
+async function getAgentStatus(): Promise<AgentStatus> {
   try {
-    services = await checkAllServices();
+    const res = await fetch("http://192.168.1.244:9000/health", {
+      signal: AbortSignal.timeout(3000),
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return { serverOnline: false, agents: [] };
+    const data = await res.json();
+    return { serverOnline: true, agents: data.agents ?? [] };
   } catch {
-    services = null;
+    return { serverOnline: false, agents: [] };
   }
+}
+
+export default async function DashboardPage() {
+  const [services, gpuUtil, agentStatus] = await Promise.all([
+    checkAllServices().catch(() => null),
+    getGpuUtilByNode(),
+    getAgentStatus(),
+  ]);
 
   const healthyCount = services?.filter((s) => s.healthy).length ?? 0;
   const totalCount = services?.length ?? config.services.length;
-
-  const gpuUtil = await getGpuUtilByNode();
 
   return (
     <div className="space-y-6">
@@ -141,39 +157,82 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Quick links */}
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Agent Status */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Grafana</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Agents</CardTitle>
+              <Badge variant={agentStatus.serverOnline ? "default" : "destructive"}>
+                {agentStatus.serverOnline ? "online" : "offline"}
+              </Badge>
+            </div>
+            <CardDescription>LangGraph agents on Node 1:9000</CardDescription>
           </CardHeader>
           <CardContent>
-            <a
-              href="http://192.168.1.203:3000"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary underline-offset-4 hover:underline"
-            >
-              Open Grafana dashboards
-            </a>
+            {agentStatus.serverOnline ? (
+              <div className="space-y-2">
+                {agentStatus.agents.map((name) => (
+                  <div
+                    key={name}
+                    className="flex items-center justify-between rounded-md border border-border p-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="text-sm font-medium">
+                        {name.split("-").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                      </span>
+                    </div>
+                    <a
+                      href={`/chat?agent=${name}`}
+                      className="text-xs text-primary hover:underline underline-offset-4"
+                    >
+                      Chat
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Agent server unreachable.</p>
+            )}
           </CardContent>
         </Card>
+
+        {/* Quick Links */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Prometheus</CardTitle>
+            <CardTitle>Quick Links</CardTitle>
+            <CardDescription>External service UIs</CardDescription>
           </CardHeader>
           <CardContent>
-            <a
-              href="http://192.168.1.203:9090"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary underline-offset-4 hover:underline"
-            >
-              Open Prometheus UI
-            </a>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {QUICK_LINKS.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-md border border-border p-3 text-sm hover:bg-accent transition-colors"
+                >
+                  <span className="font-medium">{link.name}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{link.node}</span>
+                </a>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+
+const QUICK_LINKS = [
+  { name: "Grafana", url: "http://192.168.1.203:3000", node: "VAULT" },
+  { name: "Prometheus", url: "http://192.168.1.203:9090", node: "VAULT" },
+  { name: "ComfyUI", url: "http://192.168.1.225:8188", node: "Node 2" },
+  { name: "Open WebUI", url: "http://192.168.1.225:3000", node: "Node 2" },
+  { name: "Plex", url: "http://192.168.1.203:32400/web", node: "VAULT" },
+  { name: "Sonarr", url: "http://192.168.1.203:8989", node: "VAULT" },
+  { name: "Radarr", url: "http://192.168.1.203:7878", node: "VAULT" },
+  { name: "Tautulli", url: "http://192.168.1.203:8181", node: "VAULT" },
+] as const;

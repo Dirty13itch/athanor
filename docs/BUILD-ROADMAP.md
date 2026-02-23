@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-21 (GPU reallocation complete: Node 1 has 5 GPUs [88 GB], Node 2 has 2 GPUs [48 GB])
+Last updated: 2026-02-23 (Dashboard agents page, agent routing, GPU systemd service)
 
 ---
 
@@ -101,6 +101,10 @@ Last updated: 2026-02-21 (GPU reallocation complete: Node 1 has 5 GPUs [88 GB], 
 - [x] Home Agent skeleton — 8 HA tools (entity state, search, services, lights, climate, automations)
   - Conditionally activates when ATHANOR_HA_TOKEN is set (blocked on HA onboarding)
 - [x] Deploy script (scripts/deploy-agents.sh) — fast local→Node 1 dev loop
+- [x] Dashboard Agents page — agent health, descriptions, tools, quick-start chat buttons
+- [x] Chat page agent routing — grouped model dropdown (Inference/Agents), ?agent= query param pre-selection
+- [x] Dashboard home page — agent status card, quick links to all service UIs
+- [x] API route /api/agents — agent health proxy with metadata
 
 ## Phase 7: Ansible + Hardening
 
@@ -135,7 +139,7 @@ See `docs/hardware/rack-session.md` for the complete physical checklist.
 - [x] **Wiring documentation:** Created NODE1-GPU-POWER-WIRING.md field manual
 - [x] **Slot 6 NVMe:** Hyper M.2 X16 Gen5 + 4× Crucial P310 1TB = 4 TB installed
 - [x] **Total local NVMe:** 12 TB (8 TB onboard when 990 PRO reseated + 4 TB Slot 6)
-- [ ] Set up systemd service for persistent power limits (gpu-power-limits.service)
+- [x] Set up systemd service for persistent power limits — Ansible template with per-GPU wattage support
 - [ ] Reseat Samsung 990 PRO 4TB (M.2 — not detected in audit)
 - **Note:** Second Hyper M.2 allocated to DEV for Gen5 storage (see DEV section below)
 - [ ] Move RTX 3060 from DEV → Node 1 (deferred - would exceed PSU budget without dual PSU)

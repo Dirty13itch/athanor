@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { Suspense, useState, useRef, useEffect, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,25 @@ interface ModelEntry {
   backendUrl: string;
 }
 
+const AGENT_BACKEND_NAME = "Agents";
+
 export default function ChatPage() {
+  return (
+    <Suspense fallback={<ChatLoading />}>
+      <ChatContent />
+    </Suspense>
+  );
+}
+
+function ChatLoading() {
+  return (
+    <div className="flex h-[calc(100vh-3rem)] items-center justify-center">
+      <p className="text-sm text-muted-foreground">Loading chat...</p>
+    </div>
+  );
+}
+
+function ChatContent() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -26,17 +45,31 @@ export default function ChatPage() {
   const [models, setModels] = useState<ModelEntry[]>([]);
   const [selectedModel, setSelectedModel] = useState<ModelEntry | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     fetch("/api/models")
       .then((r) => r.json())
       .then((data) => {
-        const m = data.models ?? [];
+        const m: ModelEntry[] = data.models ?? [];
         setModels(m);
+
+        // Pre-select agent if ?agent= query param is set
+        const agentParam = searchParams.get("agent");
+        if (agentParam) {
+          const agentModel = m.find(
+            (model) => model.id === agentParam && model.backend === AGENT_BACKEND_NAME
+          );
+          if (agentModel) {
+            setSelectedModel(agentModel);
+            return;
+          }
+        }
+
         if (m.length > 0) setSelectedModel(m[0]);
       })
       .catch(() => {});
-  }, []);
+  }, [searchParams]);
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -118,9 +151,21 @@ export default function ChatPage() {
     }
   }
 
+  // Group models by type: inference vs agents
+  const inferenceModels = models.filter((m) => m.backend !== AGENT_BACKEND_NAME);
+  const agentModels = models.filter((m) => m.backend === AGENT_BACKEND_NAME);
+  const isAgent = selectedModel?.backend === AGENT_BACKEND_NAME;
+
   function displayModelName(m: ModelEntry): string {
+    if (m.backend === AGENT_BACKEND_NAME) {
+      return m.id.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    }
     const short = m.id.replace(/^\/models\//, "");
     return `${short} (${m.backend})`;
+  }
+
+  function modelKey(m: ModelEntry): string {
+    return `${m.backendUrl}::${m.id}`;
   }
 
   return (
@@ -130,36 +175,53 @@ export default function ChatPage() {
           <h1 className="text-2xl font-bold tracking-tight">Chat</h1>
           <p className="text-muted-foreground">
             {selectedModel
-              ? `Connected to ${selectedModel.backend}`
+              ? isAgent
+                ? `Agent: ${displayModelName(selectedModel)}`
+                : `Model: ${displayModelName(selectedModel)}`
               : "Loading models..."}
           </p>
         </div>
-        {models.length > 0 && (
-          <select
-            value={selectedModel ? `${selectedModel.backendUrl}::${selectedModel.id}` : ""}
-            onChange={(e) => {
-              const [url, ...idParts] = e.target.value.split("::");
-              const id = idParts.join("::");
-              const m = models.find((m) => m.backendUrl === url && m.id === id);
-              if (m) {
-                setSelectedModel(m);
-                setMessages([]);
-                setError(null);
-              }
-            }}
-            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-            disabled={isStreaming}
-          >
-            {models.map((m) => (
-              <option
-                key={`${m.backendUrl}::${m.id}`}
-                value={`${m.backendUrl}::${m.id}`}
-              >
-                {displayModelName(m)}
-              </option>
-            ))}
-          </select>
-        )}
+        <div className="flex items-center gap-2">
+          {isAgent && (
+            <Badge variant="outline" className="text-xs">Agent</Badge>
+          )}
+          {models.length > 0 && (
+            <select
+              value={selectedModel ? modelKey(selectedModel) : ""}
+              onChange={(e) => {
+                const [url, ...idParts] = e.target.value.split("::");
+                const id = idParts.join("::");
+                const m = models.find((m) => m.backendUrl === url && m.id === id);
+                if (m) {
+                  setSelectedModel(m);
+                  setMessages([]);
+                  setError(null);
+                }
+              }}
+              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+              disabled={isStreaming}
+            >
+              {inferenceModels.length > 0 && (
+                <optgroup label="Inference">
+                  {inferenceModels.map((m) => (
+                    <option key={modelKey(m)} value={modelKey(m)}>
+                      {displayModelName(m)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {agentModels.length > 0 && (
+                <optgroup label="Agents">
+                  {agentModels.map((m) => (
+                    <option key={modelKey(m)} value={modelKey(m)}>
+                      {displayModelName(m)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          )}
+        </div>
       </div>
 
       <Card className="flex flex-1 flex-col overflow-hidden">
@@ -171,8 +233,11 @@ export default function ChatPage() {
             <div className="space-y-4 py-4">
               {messages.length === 0 && (
                 <p className="text-center text-sm text-muted-foreground py-8">
-                  Send a message to start chatting
-                  {selectedModel ? ` with ${displayModelName(selectedModel)}` : ""}.
+                  {isAgent
+                    ? `Send a message to ${displayModelName(selectedModel!)}`
+                    : selectedModel
+                      ? `Send a message to start chatting with ${displayModelName(selectedModel)}`
+                      : "Select a model or agent to begin"}
                 </p>
               )}
               {messages.map((msg, i) => (
@@ -207,7 +272,7 @@ export default function ChatPage() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type a message..."
+              placeholder={isAgent ? `Ask ${displayModelName(selectedModel!)}...` : "Type a message..."}
               disabled={isStreaming}
               className="flex-1"
               autoFocus

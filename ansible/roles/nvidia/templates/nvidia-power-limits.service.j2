@@ -6,7 +6,13 @@ Before=docker.service
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/nvidia-smi -pm 1
-ExecStart=/usr/bin/nvidia-smi -pl {{ nvidia_power_limit_watts }} -i {{ range(gpu_count) | join(',') }}
+{% if nvidia_gpu_power_limits is defined %}
+{% for gpu in nvidia_gpu_power_limits %}
+ExecStart=/usr/bin/nvidia-smi -i {{ gpu.index }} -pl {{ gpu.watts }}
+{% endfor %}
+{% else %}
+ExecStart=/usr/bin/nvidia-smi -pl {{ nvidia_power_limit_watts }}
+{% endif %}
 RemainAfterExit=yes
 
 [Install]
