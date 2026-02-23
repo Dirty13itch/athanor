@@ -1,0 +1,35 @@
+---
+# Home Assistant on VAULT
+#
+# Post-deploy: Navigate to http://192.168.1.203:8123 to complete onboarding
+# After onboarding: create a long-lived access token for the home-assistant MCP
+
+- name: Create Home Assistant appdata directory
+  ansible.builtin.file:
+    path: "{{ vault_appdata_path }}/homeassistant"
+    state: directory
+    mode: "0755"
+
+- name: Run Home Assistant container
+  community.docker.docker_container:
+    name: homeassistant
+    image: "{{ homeassistant_image }}"
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    privileged: true
+    env:
+      TZ: "{{ vault_tz }}"
+    volumes:
+      - "{{ vault_appdata_path }}/homeassistant:/config"
+      - /run/dbus:/run/dbus:ro
+  when: not ansible_check_mode
+
+- name: Wait for Home Assistant to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ homeassistant_port }}"
+    status_code: [200, 302]
+  register: ha_ready
+  retries: 10
+  delay: 10
+  when: not ansible_check_mode

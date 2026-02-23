@@ -1,0 +1,186 @@
+---
+# VAULT media stack — all services deployed via Docker API
+#
+# Post-deploy manual steps:
+#   - Plex: claim at http://192.168.1.203:32400/web (first deploy only)
+#   - Sonarr/Radarr: add root folders pointing to /media/tv and /media/movies
+#   - Prowlarr: add indexers, connect to Sonarr/Radarr
+#   - SABnzbd: configure download categories and paths
+#   - Stash: run initial scan at http://192.168.1.203:9999
+
+# --- Appdata directories ---
+
+- name: Create appdata directories for media services
+  ansible.builtin.file:
+    path: "{{ vault_appdata_path }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - plex
+    - sonarr
+    - radarr
+    - prowlarr
+    - sabnzbd
+    - tautulli
+    - stash
+
+# --- Plex ---
+
+- name: Run Plex container
+  community.docker.docker_container:
+    name: plex
+    image: "{{ plex_image }}"
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    env:
+      PUID: "{{ vault_puid }}"
+      PGID: "{{ vault_pgid }}"
+      TZ: "{{ vault_tz }}"
+      VERSION: docker
+      PLEX_CLAIM: "{{ plex_claim_token }}"
+    volumes:
+      - "{{ vault_appdata_path }}/plex:/config"
+      - "{{ vault_media_path }}:/media"
+    devices:
+      - /dev/dri:/dev/dri  # Intel Arc A380 for HW transcoding
+  when:
+    - media_enable_plex
+    - not ansible_check_mode
+  tags: [plex]
+
+# --- Sonarr ---
+
+- name: Run Sonarr container
+  community.docker.docker_container:
+    name: sonarr
+    image: "{{ sonarr_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ sonarr_port }}:8989"
+    env:
+      PUID: "{{ vault_puid }}"
+      PGID: "{{ vault_pgid }}"
+      TZ: "{{ vault_tz }}"
+    volumes:
+      - "{{ vault_appdata_path }}/sonarr:/config"
+      - "{{ vault_media_path }}:/media"
+      - "{{ vault_downloads_path }}:/downloads"
+  when:
+    - media_enable_sonarr
+    - not ansible_check_mode
+  tags: [sonarr]
+
+# --- Radarr ---
+
+- name: Run Radarr container
+  community.docker.docker_container:
+    name: radarr
+    image: "{{ radarr_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ radarr_port }}:7878"
+    env:
+      PUID: "{{ vault_puid }}"
+      PGID: "{{ vault_pgid }}"
+      TZ: "{{ vault_tz }}"
+    volumes:
+      - "{{ vault_appdata_path }}/radarr:/config"
+      - "{{ vault_media_path }}:/media"
+      - "{{ vault_downloads_path }}:/downloads"
+  when:
+    - media_enable_radarr
+    - not ansible_check_mode
+  tags: [radarr]
+
+# --- Prowlarr ---
+
+- name: Run Prowlarr container
+  community.docker.docker_container:
+    name: prowlarr
+    image: "{{ prowlarr_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ prowlarr_port }}:9696"
+    env:
+      PUID: "{{ vault_puid }}"
+      PGID: "{{ vault_pgid }}"
+      TZ: "{{ vault_tz }}"
+    volumes:
+      - "{{ vault_appdata_path }}/prowlarr:/config"
+  when:
+    - media_enable_prowlarr
+    - not ansible_check_mode
+  tags: [prowlarr]
+
+# --- SABnzbd ---
+
+- name: Run SABnzbd container
+  community.docker.docker_container:
+    name: sabnzbd
+    image: "{{ sabnzbd_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ sabnzbd_port }}:8080"
+    env:
+      PUID: "{{ vault_puid }}"
+      PGID: "{{ vault_pgid }}"
+      TZ: "{{ vault_tz }}"
+    volumes:
+      - "{{ vault_appdata_path }}/sabnzbd:/config"
+      - "{{ vault_downloads_path }}:/downloads"
+  when:
+    - media_enable_sabnzbd
+    - not ansible_check_mode
+  tags: [sabnzbd]
+
+# --- Tautulli ---
+
+- name: Run Tautulli container
+  community.docker.docker_container:
+    name: tautulli
+    image: "{{ tautulli_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ tautulli_port }}:8181"
+    env:
+      PUID: "{{ vault_puid }}"
+      PGID: "{{ vault_pgid }}"
+      TZ: "{{ vault_tz }}"
+    volumes:
+      - "{{ vault_appdata_path }}/tautulli:/config"
+  when:
+    - media_enable_tautulli
+    - not ansible_check_mode
+  tags: [tautulli]
+
+# --- Stash ---
+
+- name: Run Stash container
+  community.docker.docker_container:
+    name: stash
+    image: "{{ stash_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ stash_port }}:9999"
+    env:
+      STASH_STASH: /data/
+      STASH_GENERATED: /generated/
+      STASH_METADATA: /metadata/
+      STASH_CACHE: /cache/
+    volumes:
+      - "{{ vault_appdata_path }}/stash/config:/root/.stash"
+      - "{{ vault_appdata_path }}/stash/generated:/generated"
+      - "{{ vault_appdata_path }}/stash/metadata:/metadata"
+      - "{{ vault_appdata_path }}/stash/cache:/cache"
+      - "{{ vault_media_path }}:/data:ro"
+  when:
+    - media_enable_stash
+    - not ansible_check_mode
+  tags: [stash]

@@ -207,14 +207,26 @@ Run `/mcp` to check current status.
 ### CRITICAL: VAULT Media Stack Lost
 The motherboard swap destroyed the ZFS NVMe pool (`hpc_nvme`) that held all container appdata. All media service configs (Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, HA, Stash) are gone. **Media files on the HDD array are intact** — only container configs/metadata lost.
 
-**Recovery plan (Shaun needs to do via Unraid Web UI):**
+**Recovery plan — two options:**
+
+**Option A (Ansible — recommended, reproducible):**
+```bash
+ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx
+```
+This deploys all VAULT services (monitoring, media, HA) via Docker API. Get Plex claim token from https://plex.tv/claim first.
+
+**Option B (Unraid Web UI — manual):**
 1. Open http://192.168.1.203 → Docker tab → Add Container
 2. Install from Community Apps: Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Home Assistant, Stash
-3. Configure each: set appdata paths to `/mnt/user/appdata/<service>`, media paths to `/mnt/user/data/media/`
-4. Re-configure Sonarr/Radarr root folders, re-add indexers in Prowlarr
-5. Plex: re-scan libraries (watch history lost), re-claim at http://192.168.1.203:32400/web
-6. **Note:** Old Plex template exists at `/boot/config/plugins/dockerMan/templates-user/my-Plex-Media-Server.xml`
-7. **Note:** Stash template exists in backup at `/mnt/user/Backups/pre_disassembly_Unraid_2026-01-10_162547/`
+3. Configure each: appdata → `/mnt/user/appdata/<service>`, media → `/mnt/user/data/media/`
+
+**Post-deploy manual steps (both options):**
+1. Plex: claim at http://192.168.1.203:32400/web, re-scan libraries
+2. Sonarr/Radarr: add root folders (/media/tv, /media/movies), connect to Prowlarr
+3. Prowlarr: add indexers
+4. HA: onboard at http://192.168.1.203:8123
+5. **Note:** Old templates at `/boot/config/plugins/dockerMan/templates-user/`
+6. **Note:** Stash backup at `/mnt/user/Backups/pre_disassembly_Unraid_2026-01-10_162547/`
 
 ### Browser Tasks (~5 minutes)
 - **HA onboarding**: After reinstalling HA container, navigate to http://192.168.1.203:8123

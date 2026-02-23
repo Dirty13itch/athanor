@@ -1,0 +1,23 @@
+---
+# VAULT playbook — deploys monitoring, media stack, and Home Assistant
+#
+# Usage:
+#   ansible-playbook playbooks/vault.yml                    # Full deploy
+#   ansible-playbook playbooks/vault.yml --tags monitoring  # Monitoring only
+#   ansible-playbook playbooks/vault.yml --tags media       # Media stack only
+#   ansible-playbook playbooks/vault.yml --tags plex        # Single service
+#   ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx  # First Plex deploy
+#
+# Note: VAULT uses paramiko (dropbear SSH) with root user.
+# Privilege escalation (become) is not needed — we're already root.
+
+- name: Configure VAULT (Storage)
+  hosts: vault
+  become: false  # Already root via ansible_user
+  roles:
+    - role: vault-monitoring
+      tags: [monitoring]
+    - role: vault-media
+      tags: [media]
+    - role: vault-homeassistant
+      tags: [homeassistant]

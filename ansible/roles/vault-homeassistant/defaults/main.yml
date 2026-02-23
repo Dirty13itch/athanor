@@ -1,0 +1,5 @@
+---
+homeassistant_image: ghcr.io/home-assistant/home-assistant:stable
+homeassistant_port: 8123
+vault_appdata_path: /mnt/user/appdata
+vault_tz: America/Chicago

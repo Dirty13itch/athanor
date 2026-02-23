@@ -1,0 +1,76 @@
+---
+# VAULT monitoring: Prometheus + Grafana
+# These run directly on Unraid via Docker API
+
+- name: Create Prometheus config directory
+  ansible.builtin.file:
+    path: "{{ prometheus_config_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Create Grafana data directory
+  ansible.builtin.file:
+    path: "{{ grafana_data_path }}"
+    state: directory
+    mode: "0755"
+    owner: "472"  # grafana user inside container
+    group: "472"
+
+- name: Deploy Prometheus config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_config_path }}/prometheus.yml"
+    mode: "0644"
+  register: prometheus_config
+
+- name: Run Prometheus container
+  community.docker.docker_container:
+    name: prometheus
+    image: "{{ prometheus_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ prometheus_port }}:9090"
+    volumes:
+      - "{{ prometheus_config_path }}/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+      - "{{ prometheus_config_path }}/data:/prometheus"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=90d
+      - --web.enable-lifecycle
+    restart: "{{ prometheus_config.changed | default(false) }}"
+  when: not ansible_check_mode
+
+- name: Run Grafana container
+  community.docker.docker_container:
+    name: grafana
+    image: "{{ grafana_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ grafana_port }}:3000"
+    volumes:
+      - "{{ grafana_data_path }}:/var/lib/grafana"
+    env:
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+  when: not ansible_check_mode
+
+- name: Wait for Prometheus to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ prometheus_port }}/-/ready"
+    status_code: 200
+  register: prom_ready
+  retries: 5
+  delay: 5
+  when: not ansible_check_mode
+
+- name: Wait for Grafana to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ grafana_port }}/api/health"
+    status_code: 200
+  register: grafana_ready
+  retries: 5
+  delay: 5
+  when: not ansible_check_mode

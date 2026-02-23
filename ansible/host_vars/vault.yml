@@ -1,0 +1,45 @@
+---
+# VAULT (storage / Unraid) — host-specific vars
+# Note: vault_password (SSH auth) is defined in group_vars/all/secrets.vault.yml
+
+# Paths (Unraid conventions)
+vault_appdata_path: /mnt/user/appdata
+vault_media_path: /mnt/user/data/media
+vault_downloads_path: /mnt/user/data/downloads
+vault_models_path: /mnt/user/models
+
+# Timezone (linuxserver.io images use TZ env var)
+vault_tz: America/Chicago
+vault_puid: "99"   # Unraid 'nobody' user
+vault_pgid: "100"  # Unraid 'users' group
+
+# Monitoring
+prometheus_port: 9090
+grafana_port: 3000
+grafana_admin_password: "{{ vault_grafana_admin_password | default('newpass123') }}"
+
+# Prometheus scrape targets
+prometheus_scrape_targets:
+  - job_name: prometheus
+    targets: ["localhost:9090"]
+  - job_name: node1-node
+    targets: ["{{ node1_ip }}:9100"]
+  - job_name: node2-node
+    targets: ["{{ node2_ip }}:9100"]
+  - job_name: node1-gpu
+    targets: ["{{ node1_ip }}:9400"]
+  - job_name: node2-gpu
+    targets: ["{{ node2_ip }}:9400"]
+
+# Media services
+plex_port: 32400
+plex_claim_token: ""  # Set via --extra-vars on first deploy
+sonarr_port: 8989
+radarr_port: 7878
+prowlarr_port: 9696
+sabnzbd_port: 8080
+tautulli_port: 8181
+stash_port: 9999
+
+# Home Assistant
+homeassistant_port: 8123

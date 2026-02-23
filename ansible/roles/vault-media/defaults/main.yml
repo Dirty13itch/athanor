@@ -1,0 +1,40 @@
+---
+# Default images — linuxserver.io where available (standard for Unraid/homelab)
+plex_image: lscr.io/linuxserver/plex:latest
+sonarr_image: lscr.io/linuxserver/sonarr:latest
+radarr_image: lscr.io/linuxserver/radarr:latest
+prowlarr_image: lscr.io/linuxserver/prowlarr:latest
+sabnzbd_image: lscr.io/linuxserver/sabnzbd:latest
+tautulli_image: lscr.io/linuxserver/tautulli:latest
+stash_image: stashapp/stash:latest
+
+# Paths
+vault_appdata_path: /mnt/user/appdata
+vault_media_path: /mnt/user/data/media
+vault_downloads_path: /mnt/user/data/downloads
+
+# Timezone and user/group for linuxserver.io images
+vault_tz: America/Chicago
+vault_puid: "99"
+vault_pgid: "100"
+
+# Ports
+plex_port: 32400
+sonarr_port: 8989
+radarr_port: 7878
+prowlarr_port: 9696
+sabnzbd_port: 8080
+tautulli_port: 8181
+stash_port: 9999
+
+# Plex claim token (required on first deploy only, get from https://plex.tv/claim)
+plex_claim_token: ""
+
+# Feature flags — enable/disable individual services
+media_enable_plex: true
+media_enable_sonarr: true
+media_enable_radarr: true
+media_enable_prowlarr: true
+media_enable_sabnzbd: true
+media_enable_tautulli: true
+media_enable_stash: true
