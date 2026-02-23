@@ -34,11 +34,16 @@
     mode: "0644"
   register: comfyui_compose
 
+- name: Check if ComfyUI image exists
+  community.docker.docker_image_info:
+    name: "{{ comfyui_image }}"
+  register: comfyui_image_info
+
 - name: Build and deploy ComfyUI
   community.docker.docker_compose_v2:
     project_src: "{{ comfyui_deploy_dir }}"
     state: present
-    build: "{{ 'always' if comfyui_dockerfile.changed else 'never' }}"
+    build: "{{ 'always' if (comfyui_dockerfile.changed or comfyui_image_info.images | length == 0) else 'never' }}"
     recreate: "{{ 'always' if (comfyui_compose.changed or comfyui_model_paths.changed) else 'never' }}"
 
 - name: Wait for ComfyUI health

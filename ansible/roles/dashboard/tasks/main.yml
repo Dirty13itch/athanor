@@ -27,11 +27,16 @@
     mode: "0644"
   register: dashboard_compose
 
+- name: Check if dashboard image exists
+  community.docker.docker_image_info:
+    name: "{{ dashboard_image }}"
+  register: dashboard_image_info
+
 - name: Build and deploy dashboard
   community.docker.docker_compose_v2:
     project_src: "{{ dashboard_deploy_dir }}"
     state: present
-    build: "{{ 'always' if dashboard_src.changed else 'never' }}"
+    build: "{{ 'always' if (dashboard_src.changed or dashboard_image_info.images | length == 0) else 'never' }}"
     recreate: "{{ 'always' if (dashboard_compose.changed or dashboard_src.changed) else 'never' }}"
 
 - name: Wait for dashboard health

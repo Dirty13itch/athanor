@@ -5,9 +5,9 @@ vllm_model: /models/Qwen3-14B
 vllm_quantization: ""
 vllm_tensor_parallel: 1
 vllm_port: 8000
-vllm_gpu_memory_util: "0.90"
-vllm_max_model_len: 32768
-vllm_max_num_seqs: 64
+vllm_gpu_memory_util: "0.95"
+vllm_max_model_len: 8192
+vllm_max_num_seqs: 32
 vllm_gpu_devices: "0"
 vllm_container_name: vllm-node2
 vllm_deploy_dir: /opt/athanor/vllm-node2
@@ -19,6 +19,7 @@ vllm_extra_args:
   - --enable-auto-tool-choice
   - --tool-call-parser
   - hermes
+  - --enforce-eager
 
 comfyui_gpu_device: "1"
 comfyui_port: 8188
