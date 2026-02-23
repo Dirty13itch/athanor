@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "projects/dashboard", "run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "agents",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "uvicorn", "athanor_agents.server:app", "--host", "0.0.0.0", "--port", "9000", "--reload", "--app-dir", "projects/agents/src"],
+      "port": 9000
+    }
+  ]
+}
