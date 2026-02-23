@@ -43,5 +43,5 @@ CLAUDE.md                            — Project instructions (services map, blo
 
 1. BUILD-ROADMAP.md: Check off `[x] Deploy vLLM on Node 1 — single GPU test first`
 2. VISION.md Current State: Add "vLLM running on Node 1"
-3. MEMORY.md: Update "Build Phase Status" with vLLM details
+3. CLAUDE.md: Update Services Map with vLLM entry
 4. Commit: `git commit -m "State: vLLM deployed on Node 1"`
