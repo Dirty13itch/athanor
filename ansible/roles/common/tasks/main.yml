@@ -64,4 +64,4 @@
     port: "{{ item.port }}"
     proto: "{{ item.proto }}"
     comment: "{{ item.comment }}"
-  loop: "{{ firewall_allow }}"
+  loop: "{{ firewall_allow + (extra_firewall | default([])) }}"
