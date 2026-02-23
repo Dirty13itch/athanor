@@ -34,3 +34,4 @@
   retries: 12
   delay: 5
   until: webui_health.status in [200, 302]
+  when: not ansible_check_mode

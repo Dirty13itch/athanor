@@ -34,3 +34,4 @@
   retries: 30
   delay: 10
   until: vllm_health.status == 200
+  when: not ansible_check_mode

@@ -42,6 +42,7 @@
   register: node_exporter_check
   retries: 3
   delay: 5
+  when: not ansible_check_mode
 
 - name: Verify dcgm-exporter is responding
   ansible.builtin.uri:
@@ -51,3 +52,4 @@
   register: dcgm_exporter_check
   retries: 3
   delay: 5
+  when: not ansible_check_mode

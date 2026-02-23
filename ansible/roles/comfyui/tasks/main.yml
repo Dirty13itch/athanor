@@ -49,3 +49,4 @@
   retries: 12
   delay: 5
   until: comfyui_health.status == 200
+  when: not ansible_check_mode

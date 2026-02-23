@@ -21,16 +21,19 @@
   ansible.builtin.command: nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
   register: nvidia_smi_output
   changed_when: false
+  check_mode: false
+  ignore_errors: true
 
 - name: Show detected GPUs
   ansible.builtin.debug:
-    msg: "{{ nvidia_smi_output.stdout_lines }}"
+    msg: "{{ nvidia_smi_output.stdout_lines | default([]) }}"
 
 - name: Verify expected GPU count
   ansible.builtin.assert:
     that:
       - nvidia_smi_output.stdout_lines | length == gpu_count
     fail_msg: "Expected {{ gpu_count }} GPUs but found {{ nvidia_smi_output.stdout_lines | length }}"
+  when: nvidia_smi_output is succeeded
 
 - name: Deploy GPU power limits systemd service
   ansible.builtin.template:

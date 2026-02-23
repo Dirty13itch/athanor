@@ -81,7 +81,9 @@
     --query-gpu=name --format=csv,noheader
   register: docker_gpu_test
   changed_when: false
+  check_mode: false
+  ignore_errors: true
 
 - name: Show Docker GPU test result
   ansible.builtin.debug:
-    msg: "{{ docker_gpu_test.stdout_lines }}"
+    msg: "{{ docker_gpu_test.stdout_lines | default([]) }}"
