@@ -1,0 +1,41 @@
+services:
+  vllm-embedding:
+    image: {{ vllm_embedding_image }}
+    container_name: {{ vllm_embedding_container_name }}
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /mnt/vault/models:/models:ro
+    environment:
+      - HF_HUB_OFFLINE=1
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+      - CUDA_VISIBLE_DEVICES={{ vllm_embedding_gpu_device }}
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["{{ vllm_embedding_gpu_device }}"]
+              capabilities: [gpu]
+    entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+    command:
+      - --model
+      - {{ vllm_embedding_model }}
+      - --task
+      - embedding
+      - --host
+      - 0.0.0.0
+      - --port
+      - "{{ vllm_embedding_port }}"
+      - --max-model-len
+      - "{{ vllm_embedding_max_model_len }}"
+      - --gpu-memory-utilization
+      - "{{ vllm_embedding_gpu_memory_util }}"
+      - --max-num-seqs
+      - "{{ vllm_embedding_max_num_seqs }}"
+      - --dtype
+      - {{ vllm_embedding_dtype }}

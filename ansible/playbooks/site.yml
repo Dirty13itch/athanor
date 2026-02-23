@@ -10,6 +10,7 @@
     - docker
     - monitoring
     - vllm
+    - vllm-embedding
     - agents
 
 - name: Configure Node 2 (Workshop)

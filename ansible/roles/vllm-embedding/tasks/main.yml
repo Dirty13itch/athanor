@@ -1,0 +1,40 @@
+---
+# vLLM Embedding Server — serves embedding models on a dedicated GPU
+# Runs alongside the main vLLM instance on a different port
+
+- name: Create vLLM embedding deploy directory
+  ansible.builtin.file:
+    path: "{{ vllm_embedding_deploy_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Deploy vLLM embedding docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ vllm_embedding_deploy_dir }}/docker-compose.yml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: vllm_embedding_compose
+
+- name: Pull vLLM embedding image
+  community.docker.docker_compose_v2_pull:
+    project_src: "{{ vllm_embedding_deploy_dir }}"
+
+- name: Deploy vLLM embedding
+  community.docker.docker_compose_v2:
+    project_src: "{{ vllm_embedding_deploy_dir }}"
+    state: present
+    recreate: "{{ 'always' if vllm_embedding_compose.changed else 'never' }}"
+
+- name: Wait for vLLM embedding health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vllm_embedding_port }}/health"
+    status_code: 200
+  register: vllm_embedding_health
+  retries: 20
+  delay: 5
+  until: vllm_embedding_health.status == 200
+  when: not ansible_check_mode

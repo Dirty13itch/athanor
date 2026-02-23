@@ -16,6 +16,7 @@ all:
               gpu_type: "4x RTX 5070 Ti + RTX 4090"
               vram_total_gb: 88
               extra_firewall:
+                - { port: 8001, proto: tcp, comment: "vLLM Embedding API" }
                 - { port: 9000, proto: tcp, comment: "Agent Server" }
         node2:
           hosts:
