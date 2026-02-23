@@ -111,11 +111,11 @@ Full details in `docs/hardware/inventory.md`.
 
 **Agent framework:** General Assistant + Media Agent + Home Agent skeleton running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent blocked on HA onboarding. Dashboard has no agent routing page yet — agents accessible via direct API only.
 
-**GPU allocation:** Node 1 (5 GPUs, 88 GB) runs vLLM TP=4 on GPUs 0-3 (3x 5070 Ti + 4090, ~15.6 GiB each) + agent server. GPU 4 (5070 Ti) idle/available. Node 2 (2 GPUs, 48 GB) runs vLLM on RTX 5090 (GPU 0), ComfyUI on RTX 5060 Ti (GPU 1).
+**GPU allocation:** Node 1 (5 GPUs, 88 GB) runs vLLM TP=4 on GPUs 0-3 (3x 5070 Ti + 4090, ~15.6 GiB each) + vLLM embedding on GPU 4 (5070 Ti, ~14.6 GiB) + agent server. All 5 GPUs active. Node 2 (2 GPUs, 48 GB) runs vLLM on RTX 5090 (GPU 0), ComfyUI on RTX 5060 Ti (GPU 1).
 
 **Models on NFS** (`/mnt/vault/models/`): Qwen3-32B-AWQ (18G, reasoning), Qwen3-14B (28G, fast), Qwen3-0.6B (1.5G, draft/speculative), Qwen3-Embedding-0.6B (1.2G, embedding), gte-Qwen2-7B-instruct (14G, legacy embedding).
 
-**Ansible state:** Both nodes fully converged via `site.yml` (Session 5, 2026-02-23). Check-mode shows 0 real drift — only check-mode artifacts (Docker GPG key re-download, image pull dry-run, rsync timestamps).
+**Ansible state:** Both nodes fully converged via `site.yml` (Session 5-6, 2026-02-23). Common role now detects stale NFS mounts (stat check + force unmount) and merges `extra_firewall` into UFW rules. Speculative decoding support added to vLLM template (disabled by default via `vllm_speculative_config`). VAULT playbook syntax-valid but `vault_password` missing from encrypted secrets — needs Shaun to add it.
 
 ---
 
@@ -124,6 +124,7 @@ Full details in `docs/hardware/inventory.md`.
 | Service | Node | Port | Status |
 |---------|------|------|--------|
 | vLLM (Qwen3-32B-AWQ, TP=4 across 3x 5070 Ti + 4090) | Node 1 | 8000 | Running |
+| vLLM Embedding (Qwen3-Embedding-0.6B, RTX 5070 Ti GPU 4) | Node 1 | 8001 | Running |
 | vLLM (Qwen3-14B, RTX 5090, enforce-eager) | Node 2 | 8000 | Running |
 | Agent Server (General + Media + Home skeleton) | Node 1 | 9000 | Running |
 | node_exporter | Node 1 | 9100 | Running |
@@ -238,6 +239,7 @@ This deploys all VAULT services (monitoring, media, HA) via Docker API. Get Plex
 
 ### Credentials Needed
 - **NordVPN** service credentials → unblocks qBittorrent + Gluetun VPN
+- **VAULT root password** → needs adding to `ansible/group_vars/all/secrets.vault.yml` as `vault_password` (then re-encrypt). Currently the VAULT playbook fails at connection because this var is undefined.
 
 ### Physical / BIOS (~10 min)
 - Enable EXPO in Node 2 BIOS (DDR5 4800 → 5600 MT/s) — via JetKVM
@@ -254,6 +256,10 @@ This deploys all VAULT services (monitoring, media, HA) via Docker API. Get Plex
 - ~~Write VAULT Ansible roles~~ — Done (vault-monitoring, vault-media, vault-homeassistant)
 - ~~Full Ansible convergence (both nodes)~~ — Done (Session 5)
 - ~~Fix stale NFS handles (Node 1 + Node 2)~~ — Done (Session 5)
+- ~~Deploy embedding model on GPU 4~~ — Done (Session 6, Qwen3-Embedding-0.6B, 1024-dim, port 8001)
+- ~~Add speculative decoding template support~~ — Done (Session 6, disabled by default)
+- ~~Wire extra_firewall into common role~~ — Done (Session 6, ports 8001/9000/3000/3001/8188 now in UFW)
+- ~~Harden NFS stale mount detection in Ansible~~ — Done (Session 6, stat + force unmount + EEXIST tolerance)
 
 ---
 
