@@ -58,6 +58,10 @@ services:
       - --dtype
       - {{ vllm_dtype }}
 {% endif %}
+{% if vllm_speculative_config %}
+      - --speculative-config
+      - '{{ vllm_speculative_config }}'
+{% endif %}
 {% for arg in vllm_extra_args %}
       - {{ arg }}
 {% endfor %}
