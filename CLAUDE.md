@@ -107,11 +107,15 @@ Full details in `docs/hardware/inventory.md`.
 
 **Build phase.** Research is complete (11 ADRs, 24 research docs). Infrastructure is mostly running. See `docs/BUILD-ROADMAP.md` for detailed progress.
 
-**What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4 across 3x 5070 Ti + 4090) + Node 2 (Qwen3-14B, single RTX 5090), ComfyUI + Flux (Node 2 RTX 5060 Ti), Dashboard (Node 2), Open WebUI (Node 2), Prometheus + Grafana (VAULT, fresh deploy). **VAULT media stack (Plex, Sonarr, Radarr, etc.) is DOWN** — all containers were lost during motherboard swap. Docker templates may still exist on Unraid USB boot drive — investigating.
+**What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4 across 3x 5070 Ti + 4090) + Node 2 (Qwen3-14B, single RTX 5090), ComfyUI + Flux (Node 2 RTX 5060 Ti), Dashboard (Node 2), Open WebUI (Node 2), Prometheus + Grafana (VAULT). **VAULT media stack (Plex, Sonarr, Radarr, etc.) is DOWN** — Ansible roles written and ready (`ansible-playbook playbooks/vault.yml`), just needs running.
 
 **Agent framework:** General Assistant + Media Agent + Home Agent skeleton running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent blocked on HA onboarding. Dashboard has no agent routing page yet — agents accessible via direct API only.
 
 **GPU allocation:** Node 1 (5 GPUs, 88 GB) runs vLLM TP=4 on GPUs 0-3 (3x 5070 Ti + 4090, ~15.6 GiB each) + agent server. GPU 4 (5070 Ti) idle/available. Node 2 (2 GPUs, 48 GB) runs vLLM on RTX 5090 (GPU 0), ComfyUI on RTX 5060 Ti (GPU 1).
+
+**Models on NFS** (`/mnt/vault/models/`): Qwen3-32B-AWQ (18G, reasoning), Qwen3-14B (28G, fast), Qwen3-0.6B (1.5G, draft/speculative), Qwen3-Embedding-0.6B (1.2G, embedding), gte-Qwen2-7B-instruct (14G, legacy embedding).
+
+**Ansible state:** Both nodes fully converged via `site.yml` (Session 5, 2026-02-23). Check-mode shows 0 real drift — only check-mode artifacts (Docker GPG key re-download, image pull dry-run, rsync timestamps).
 
 ---
 
@@ -239,12 +243,17 @@ This deploys all VAULT services (monitoring, media, HA) via Docker API. Get Plex
 - Enable EXPO in Node 2 BIOS (DDR5 4800 → 5600 MT/s) — via JetKVM
 - Verify Samsung 990 PRO 4TB on Node 1 (reseated during rack session — check if detected now)
 
-### Completed (Session 3-4)
+### Completed (Session 3-5)
 - ~~Claim Plex~~ — Done
 - ~~Move ethernet to 10GbE switch~~ — Done (all servers on XG switch)
 - ~~Reconnect JetKVM ATX cable~~ — Done
 - ~~Create DHCP reservations~~ — Done (6 Fixed IPs)
 - ~~Motherboard swap (X870E ↔ TRX50)~~ — Done
+- ~~Upgrade Node 1 vLLM to Qwen3-32B-AWQ~~ — Done (Session 5)
+- ~~Download Qwen3-Embedding-0.6B + Qwen3-0.6B~~ — Done (Session 5)
+- ~~Write VAULT Ansible roles~~ — Done (vault-monitoring, vault-media, vault-homeassistant)
+- ~~Full Ansible convergence (both nodes)~~ — Done (Session 5)
+- ~~Fix stale NFS handles (Node 1 + Node 2)~~ — Done (Session 5)
 
 ---
 
@@ -270,7 +279,8 @@ Use for: parallel research, auditing multiple nodes simultaneously, multi-compon
 - **AWQ Marlin kernels on Blackwell**: vLLM auto-upgrades AWQ to `awq_marlin` which crashes on sm_120 GPUs (`cudaErrorUnsupportedPtxVersion`). Must use `--quantization awq` explicitly + `CUDA_DEVICE_ORDER=PCI_BUS_ID` env var.
 - **Mixed GPU architectures (TP)**: Node 1 runs TP=4 across 5070 Ti (sm_120) + 4090 (sm_89). Works with `--quantization awq` (not Marlin). Set `CUDA_DEVICE_ORDER=PCI_BUS_ID` for consistent ordering.
 - **VAULT NVMe pools**: Old ZFS pool (`hpc_nvme`) destroyed during mobo swap. Now 4x btrfs single-drive pools (appdatacache, docker, transcode, vms). 1.9TB of old ZFS data (appdata, models cache, domains) is gone.
-- **SSH from DEV**: Use `~/.ssh/id_ed25519` (athanor-dev) or `~/.ssh/athanor_mgmt` — both work for Node 1 and Node 2. VAULT requires `vault-ssh.py`.
+- **Stale NFS file handles**: After VAULT reboots or array stops/starts, NFS mounts on Node 1/2 go stale (`d?????????` in ls, `Stale file handle` errors). Fix: `sudo umount -f /mnt/vault/models && sudo mount -a`. The Ansible common role tolerates EEXIST on mount dirs for this reason.
+- **SSH from DEV**: Use `~/.ssh/id_ed25519` (athanor-dev) or `~/.ssh/athanor_mgmt` — both work for Node 1 and Node 2. VAULT requires `vault-ssh.py`. Desktop Commander MCP SSH fails (exit 255) — always use Git Bash via the `Bash` tool with `MSYS_NO_PATHCONV=1`.
 
 ---
 

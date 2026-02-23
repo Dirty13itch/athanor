@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-23 (Node 1 upgraded to Qwen3-32B-AWQ, Node 2 runs Qwen3-14B, monitoring running)
+Last updated: 2026-02-23 (Session 5: 32B-AWQ deployed, VAULT Ansible roles written, both nodes converged, models downloaded)
 
 ---
 
@@ -116,9 +116,16 @@ Last updated: 2026-02-23 (Node 1 upgraded to Qwen3-32B-AWQ, Node 2 runs Qwen3-14
 - [x] Service deployment roles: vllm, agents, comfyui, open-webui, dashboard
   - Templated compose files, per-host config, health checks
   - Full stack reproducible: `ansible-playbook playbooks/site.yml`
+- [x] VAULT deployment roles: vault-monitoring, vault-media, vault-homeassistant
+  - `ansible-playbook playbooks/vault.yml` (separate from site.yml — VAULT is storage, not compute)
+  - Tag-based: `--tags monitoring`, `--tags media`, `--tags plex`, etc.
+  - Feature flags for each media service (media_enable_plex, etc.)
+  - Plex uses Intel Arc A380 HW transcoding (/dev/dri passthrough)
 - [x] Synced all remote service configs to git (services/node1/, services/node2/)
 - [x] UFW firewall enabled on Node 1 + Node 2 — service ports + LAN allowed, verified all services accessible
+- [x] Full Ansible convergence — both nodes at 0 real drift (Session 5, 2026-02-23)
 - [ ] Configure BMC at .216 — AMI MegaRAC, admin/Will2live!, web UI works, IPMI-over-LAN needs enabling *(browser)*
+- [ ] Run VAULT playbook: `ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx`
 
 ## Phase 8: Hardware Reconfiguration (Hybrid Architecture)
 
