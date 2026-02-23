@@ -37,8 +37,10 @@ services:
     command:
       - --model
       - {{ vllm_model }}
+{% if vllm_quantization %}
       - --quantization
       - {{ vllm_quantization }}
+{% endif %}
       - --tensor-parallel-size
       - "{{ vllm_tensor_parallel }}"
       - --host

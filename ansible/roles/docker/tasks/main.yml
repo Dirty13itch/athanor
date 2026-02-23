@@ -9,15 +9,29 @@
       - gnupg
     state: present
 
-- name: Add Docker GPG key
-  ansible.builtin.apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
+- name: Create keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
 
-- name: Add Docker repository
+- name: Add Docker GPG key (signed-by keyring)
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+    force: false
+
+- name: Add Docker repository (signed-by)
   ansible.builtin.apt_repository:
-    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
     state: present
+    filename: docker
+
+- name: Remove legacy Docker repo (if present)
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/download_docker_com_linux_ubuntu.list
+    state: absent
 
 - name: Install Docker CE
   ansible.builtin.apt:
@@ -44,15 +58,17 @@
 # NVIDIA Container Toolkit
 
 - name: Add NVIDIA Container Toolkit GPG key
-  ansible.builtin.apt_key:
-    url: https://nvidia.github.io/libnvidia-container/gpgkey
-    state: present
+  ansible.builtin.shell: >
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey |
+    gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg --yes
+  args:
+    creates: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
 - name: Add NVIDIA Container Toolkit repository
-  ansible.builtin.apt_repository:
-    repo: "deb https://nvidia.github.io/libnvidia-container/stable/deb/$(ARCH) /"
-    state: present
-    filename: nvidia-container-toolkit
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    content: "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/deb/$(ARCH) /\n"
+    mode: "0644"
 
 - name: Install NVIDIA Container Toolkit
   ansible.builtin.apt:

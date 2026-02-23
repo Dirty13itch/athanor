@@ -23,13 +23,12 @@ common_packages:
   - dnsutils
 
 # NFS mounts from VAULT
+# Note: appdata removed — not exported by VAULT. Re-add when export is created.
 nfs_mounts:
   - src: "{{ nfs_server }}:/mnt/user/models"
     dest: /mnt/vault/models
   - src: "{{ nfs_server }}:/mnt/user/data"
     dest: /mnt/vault/data
-  - src: "{{ nfs_server }}:/mnt/user/appdata"
-    dest: /mnt/vault/appdata
 
 nfs_options: "rw,soft,intr,rsize=131072,wsize=131072"
 

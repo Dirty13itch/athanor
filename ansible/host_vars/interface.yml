@@ -1,8 +1,8 @@
 ---
 # Node 2 (interface / Workshop) — host-specific vars
 
-vllm_model: /models/Qwen3-14B-AWQ
-vllm_quantization: awq_marlin
+vllm_model: /models/Qwen3-14B
+vllm_quantization: ""
 vllm_tensor_parallel: 1
 vllm_port: 8000
 vllm_gpu_memory_util: "0.90"

@@ -1,8 +1,8 @@
 ---
 vllm_image: "nvcr.io/nvidia/vllm:25.12-py3"
 vllm_container_name: vllm
-vllm_model: /models/Qwen3-32B-AWQ
-vllm_quantization: awq
+vllm_model: /models/Qwen3-14B
+vllm_quantization: ""
 vllm_tensor_parallel: 4
 vllm_port: 8000
 vllm_gpu_memory_util: "0.85"
