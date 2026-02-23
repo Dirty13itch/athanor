@@ -87,7 +87,7 @@ Last updated: 2026-02-22.
 |---|-------|-----|----------|-------------|
 | 1 | Crucial P3 (CT4000P3SSD8) | Gen3 | 4 TB | Node 1 (M.2_1, OS/system) |
 | 2 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Node 1 (M.2_2, hot models) |
-| 3–6 | Samsung 990 EVO Plus (x4) | Gen4 | 4 TB (4x1TB) | Node 2 (motherboard M.2 slots) |
+| 3–6 | Samsung 990 EVO Plus (x4) | Gen4 | 4 TB (4x1TB) | VAULT (X870E M.2 slots) |
 | 7 | Crucial T700 | Gen5 | 4 TB | Node 2 (M.2 Slot 1, OS/system) |
 | 8–11 | Crucial P310 (x4) | Gen4 | 4 TB (4x1TB) | VAULT (Hyper M.2 Gen5 adapter) |
 | 12 | Crucial P3 Plus (CT4000P3PSSD8) | Gen4 | 4 TB | Loose |
