@@ -2,6 +2,9 @@ export const config = {
   prometheus: {
     url: process.env.NEXT_PUBLIC_PROMETHEUS_URL ?? "http://192.168.1.203:9090",
   },
+  agentServer: {
+    url: "http://192.168.1.244:9000",
+  },
   inferenceBackends: [
     {
       name: "Node 1 — Qwen3-32B",
@@ -10,10 +13,6 @@ export const config = {
     {
       name: "Node 2 — Qwen3-14B",
       url: "http://192.168.1.225:8000",
-    },
-    {
-      name: "Agents",
-      url: "http://192.168.1.244:9000",
     },
   ],
   services: [

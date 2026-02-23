@@ -44,6 +44,12 @@ async def models():
     }
 
 
+@app.get("/v1/agents")
+async def agents_endpoint():
+    from .agents import get_agent_info
+    return {"agents": get_agent_info()}
+
+
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request):
     body = await request.json()
@@ -115,23 +121,59 @@ async def _stream_response(agent, messages, config, model_name):
     yield _sse_chunk(chat_id, created, model_name, {"role": "assistant"})
 
     in_think = False
+    tool_timers: dict[str, float] = {}  # run_id -> start_time
+
     async for event in agent.astream_events(
         {"messages": messages},
         config=config,
         version="v2",
     ):
-        if event["event"] != "on_chat_model_stream":
+        kind = event["event"]
+
+        # --- Tool start ---
+        if kind == "on_tool_start":
+            run_id = event.get("run_id", "")
+            tool_timers[run_id] = time.time()
+            tool_event = {
+                "type": "tool_start",
+                "name": event.get("name", "unknown"),
+                "args": event.get("data", {}).get("input", {}),
+            }
+            yield f"data: {json.dumps(tool_event)}\n\n"
             continue
 
-        chunk = event["data"]["chunk"]
-        text = chunk.content if hasattr(chunk, "content") else ""
-        if not text:
+        # --- Tool end ---
+        if kind == "on_tool_end":
+            run_id = event.get("run_id", "")
+            start = tool_timers.pop(run_id, None)
+            duration_ms = int((time.time() - start) * 1000) if start else 0
+            output_data = event.get("data", {})
+            # LangGraph tool output is in data.output (ToolMessage content)
+            output = output_data.get("output", "")
+            if hasattr(output, "content"):
+                output = output.content
+            output_str = str(output) if output else ""
+            # Truncate very long outputs to avoid blowing up SSE
+            if len(output_str) > 4000:
+                output_str = output_str[:4000] + "\n... (truncated)"
+            tool_event = {
+                "type": "tool_end",
+                "name": event.get("name", "unknown"),
+                "output": output_str,
+                "duration_ms": duration_ms,
+            }
+            yield f"data: {json.dumps(tool_event)}\n\n"
             continue
 
-        # Filter out <think> blocks from Qwen3
-        text, in_think = _filter_think_streaming(text, in_think)
-        if text:
-            yield _sse_chunk(chat_id, created, model_name, {"content": text})
+        # --- LLM text stream ---
+        if kind == "on_chat_model_stream":
+            chunk = event["data"]["chunk"]
+            text = chunk.content if hasattr(chunk, "content") else ""
+            if not text:
+                continue
+            text, in_think = _filter_think_streaming(text, in_think)
+            if text:
+                yield _sse_chunk(chat_id, created, model_name, {"content": text})
 
     # Finish
     yield _sse_chunk(chat_id, created, model_name, {}, finish_reason="stop")
