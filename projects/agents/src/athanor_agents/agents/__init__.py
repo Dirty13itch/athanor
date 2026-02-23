@@ -49,13 +49,13 @@ def get_agent_info() -> list[dict]:
         # Extract tool names from the LangGraph agent
         tools = []
         try:
-            # create_react_agent stores tools in the graph's nodes
-            # Access via the agent's tool node
+            # create_react_agent wraps ToolNode in a PregelNode
+            # Path: agent.nodes["tools"].bound.tools_by_name
             tool_node = agent.nodes.get("tools")
-            if tool_node and hasattr(tool_node, "tools_by_name"):
-                tools = list(tool_node.tools_by_name.keys())
-            elif hasattr(agent, "tools"):
-                tools = [t.name for t in agent.tools]
+            if tool_node and hasattr(tool_node, "bound"):
+                bound = tool_node.bound
+                if hasattr(bound, "tools_by_name"):
+                    tools = list(bound.tools_by_name.keys())
         except Exception:
             pass
         result.append({
