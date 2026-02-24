@@ -1,12 +1,9 @@
 {
   "permissions": {
-    "allow": []
-  },
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "sequential-thinking",
-    "context7",
-    "playwright",
-    "filesystem"
-  ]
+    "allow": [
+      "WebSearch",
+      "Bash(grep:*)",
+      "Bash(gh repo:*)"
+    ]
+  }
 }
