@@ -263,6 +263,40 @@ This deploys all VAULT services (monitoring, media, HA) via Docker API. Get Plex
 
 ---
 
+## Claude Code CLI Environment
+
+Claude Code v2.1.51 runs on DEV (WSL 2 Ubuntu). This is the execution layer — plan in web/Desktop, teleport to CLI to execute.
+
+### Setup
+- **Location**: `~/repos/Athanor/` in WSL 2 Ubuntu on DEV
+- **Auth**: Max subscription, Opus 4.6
+- **Sandbox**: Enabled (restricts filesystem writes to project dir; SSH/docker/remote commands unaffected)
+- **claude-squad**: `cs` command for parallel agent sessions in tmux with git worktree isolation
+
+### Installed Plugins (10)
+code-review, feature-dev, hookify, pyright-lsp, security-guidance, claude-code-setup, plugin-dev, github, commit-commands, context7 — all from `claude-plugins-official` marketplace.
+
+### Workflow Patterns
+
+**Web → CLI teleport**: Plan in claude.ai/code → click "Continue in Claude Code CLI" → paste `claude --resume <id>` into WSL terminal. Full conversation history + all plugins/hooks load automatically.
+
+**Parallel agents**: `cs` in the Athanor repo → press `n` to spawn sessions with different prompts. Each gets its own git worktree. Monitor with ↑/↓, attach with Enter, see diffs with Tab.
+
+**Background research**: `@researcher <query>` runs the researcher agent in background. Continue other work, check results when ready.
+
+### Session-Start Hook
+Fires on every session (injected as context, not printed to terminal):
+- Node hostname, repo root, branch, last commit
+- Uncommitted changes count
+- Build principle reminder
+
+### MCP Servers (7)
+Project-scoped (`.mcp.json`): context7 ✅, filesystem ✅, grafana ✅, sequential-thinking ✅
+claude.ai: Context7 ✅
+Built-in: plugin:context7 ✅, plugin:github ❌ (needs GITHUB_TOKEN)
+
+---
+
 ## Agent Teams
 
 Native multi-agent orchestration is available. Enable with:
