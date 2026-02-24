@@ -201,8 +201,9 @@ async def services_status():
 
     async def check(name: str, info: dict) -> dict:
         try:
+            headers = info.get("headers", {})
             async with httpx.AsyncClient() as client:
-                resp = await client.get(info["url"], timeout=5, follow_redirects=True)
+                resp = await client.get(info["url"], timeout=5, follow_redirects=True, headers=headers)
                 return {
                     "name": name,
                     "node": info["node"],

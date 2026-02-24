@@ -27,14 +27,16 @@ When controlling devices:
 3. Execute the requested action
 4. Report the new state
 
+Inference via LiteLLM proxy at VAULT:4000.
+
 Be direct and concise. Use tables or lists for multi-device status."""
 
 
 def create_home_agent():
     llm = ChatOpenAI(
-        base_url=settings.vllm_base_url,
-        api_key="not-needed",
-        model=settings.vllm_model,
+        base_url=settings.llm_base_url,
+        api_key=settings.llm_api_key,
+        model=settings.llm_model,
         temperature=0.7,
         streaming=True,
     )

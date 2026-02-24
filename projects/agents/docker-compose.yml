@@ -8,10 +8,19 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - ATHANOR_VLLM_BASE_URL=http://localhost:8000/v1
-      - ATHANOR_VLLM_MODEL=/models/Qwen3-32B-AWQ
+      # LiteLLM proxy — single entry point for all inference
+      - ATHANOR_LLM_BASE_URL=http://192.168.1.203:4000/v1
+      - ATHANOR_LLM_API_KEY=sk-athanor-litellm-2026
+      - ATHANOR_LLM_MODEL=reasoning
+      - ATHANOR_LLM_MODEL_FAST=fast
+      # Direct vLLM endpoints (for status tools only)
+      - ATHANOR_VLLM_NODE1_URL=http://192.168.1.244:8000/v1
+      - ATHANOR_VLLM_NODE2_URL=http://192.168.1.225:8000/v1
+      - ATHANOR_VLLM_EMBEDDING_URL=http://192.168.1.244:8001/v1
+      # Monitoring
       - ATHANOR_PROMETHEUS_URL=http://192.168.1.203:9090
       - ATHANOR_PORT=9000
+      # Media stack API keys (from .env or secrets)
       - ATHANOR_SONARR_API_KEY=${ATHANOR_SONARR_API_KEY}
       - ATHANOR_RADARR_API_KEY=${ATHANOR_RADARR_API_KEY}
       - ATHANOR_TAUTULLI_API_KEY=${ATHANOR_TAUTULLI_API_KEY}

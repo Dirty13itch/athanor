@@ -8,10 +8,19 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - ATHANOR_VLLM_BASE_URL={{ agent_vllm_url }}
-      - ATHANOR_VLLM_MODEL={{ agent_vllm_model }}
+      # LiteLLM proxy — single entry point for all inference
+      - ATHANOR_LLM_BASE_URL={{ agent_llm_base_url }}
+      - ATHANOR_LLM_API_KEY={{ agent_llm_api_key }}
+      - ATHANOR_LLM_MODEL={{ agent_llm_model }}
+      - ATHANOR_LLM_MODEL_FAST={{ agent_llm_model_fast }}
+      # Direct vLLM endpoints (for status tools only)
+      - ATHANOR_VLLM_NODE1_URL={{ agent_vllm_node1_url }}
+      - ATHANOR_VLLM_NODE2_URL={{ agent_vllm_node2_url }}
+      - ATHANOR_VLLM_EMBEDDING_URL={{ agent_vllm_embedding_url }}
+      # Monitoring
       - ATHANOR_PROMETHEUS_URL={{ agent_prometheus_url }}
       - ATHANOR_PORT={{ agent_port }}
+      # Media stack API keys
       - ATHANOR_SONARR_API_KEY={{ agent_sonarr_api_key }}
       - ATHANOR_RADARR_API_KEY={{ agent_radarr_api_key }}
       - ATHANOR_TAUTULLI_API_KEY={{ agent_tautulli_api_key }}

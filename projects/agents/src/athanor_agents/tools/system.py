@@ -1,8 +1,15 @@
 import httpx
 from langchain_core.tools import tool
 
+from athanor_agents.config import settings
+
 SERVICES = {
-    "vLLM": {"url": "http://192.168.1.244:8000/health", "node": "Node 1"},
+    "LiteLLM": {"url": "http://192.168.1.203:4000/v1/models", "node": "VAULT",
+                 "headers": {"Authorization": f"Bearer {settings.llm_api_key}"}},
+    "vLLM (Node 1)": {"url": "http://192.168.1.244:8000/health", "node": "Node 1"},
+    "vLLM Embedding": {"url": "http://192.168.1.244:8001/health", "node": "Node 1"},
+    "vLLM (Node 2)": {"url": "http://192.168.1.225:8000/health", "node": "Node 2"},
+    "Qdrant": {"url": "http://192.168.1.244:6333/collections", "node": "Node 1"},
     "ComfyUI": {"url": "http://192.168.1.225:8188/system_stats", "node": "Node 2"},
     "Open WebUI": {"url": "http://192.168.1.225:3000", "node": "Node 2"},
     "Dashboard": {"url": "http://192.168.1.225:3001", "node": "Node 2"},
@@ -23,7 +30,8 @@ def check_services() -> str:
     results = []
     for name, info in SERVICES.items():
         try:
-            resp = httpx.get(info["url"], timeout=5, follow_redirects=True)
+            headers = info.get("headers", {})
+            resp = httpx.get(info["url"], timeout=5, follow_redirects=True, headers=headers)
             status = "UP" if resp.status_code < 400 else f"ERROR ({resp.status_code})"
         except httpx.ConnectError:
             status = "DOWN"
@@ -49,7 +57,7 @@ def get_gpu_metrics() -> str:
     for label, query in metrics:
         try:
             resp = httpx.get(
-                "http://192.168.1.203:9090/api/v1/query",
+                f"{settings.prometheus_url}/api/v1/query",
                 params={"query": query},
                 timeout=5,
             )
@@ -66,19 +74,39 @@ def get_gpu_metrics() -> str:
 
 @tool
 def get_vllm_models() -> str:
-    """List the AI models currently loaded and available on the vLLM inference server."""
+    """List all AI models available through the LiteLLM routing proxy and directly on vLLM instances."""
+    lines = ["Models Available:"]
+
+    # Query LiteLLM proxy (authoritative list of routable models)
     try:
-        resp = httpx.get("http://192.168.1.244:8000/v1/models", timeout=5)
+        resp = httpx.get(
+            f"{settings.llm_base_url}/models",
+            headers={"Authorization": f"Bearer {settings.llm_api_key}"},
+            timeout=5,
+        )
         data = resp.json()
         models = data.get("data", [])
-        if not models:
-            return "No models loaded in vLLM."
-        lines = ["vLLM Models:"]
+        lines.append("  LiteLLM Proxy (VAULT:4000):")
         for m in models:
-            lines.append(f"  - {m['id']} (owned_by: {m.get('owned_by', 'N/A')})")
-        return "\n".join(lines)
+            lines.append(f"    - {m['id']} (owned_by: {m.get('owned_by', 'N/A')})")
     except Exception as e:
-        return f"Error querying vLLM: {e}"
+        lines.append(f"  LiteLLM: Error - {e}")
+
+    # Query direct vLLM instances (for operational visibility)
+    for label, url in [
+        ("Node 1 (TP=4)", settings.vllm_node1_url),
+        ("Node 2 (5090)", settings.vllm_node2_url),
+        ("Embedding (GPU 4)", settings.vllm_embedding_url),
+    ]:
+        try:
+            resp = httpx.get(f"{url}/models", timeout=5)
+            data = resp.json()
+            for m in data.get("data", []):
+                lines.append(f"  {label}: {m['id']}")
+        except Exception as e:
+            lines.append(f"  {label}: Error - {e}")
+
+    return "\n".join(lines)
 
 
 @tool
@@ -87,7 +115,7 @@ def get_storage_info() -> str:
     try:
         query = 'node_filesystem_avail_bytes{instance=~"192.168.1.203.*",fstype!~"tmpfs|devtmpfs|overlay"}'
         resp = httpx.get(
-            "http://192.168.1.203:9090/api/v1/query",
+            f"{settings.prometheus_url}/api/v1/query",
             params={"query": query},
             timeout=5,
         )

@@ -58,7 +58,7 @@ The LangGraph agent framework runs on Node 1:9000. Source code lives in `project
 | **General Assistant** | Reactive | On-demand | Running |
 | **Research Agent** | Reactive | On-demand | Planned |
 | **Media Agent** | Proactive | Every 15 min | Running |
-| **Home Agent** | Proactive | Every 5 min | Skeleton (blocked on HA onboarding) |
+| **Home Agent** | Proactive | Every 5 min | Not registered (blocked on HA onboarding) |
 | **Creative Agent** | Reactive | On-demand | Planned |
 | **Knowledge Agent** | Proactive | Daily 3 AM | Planned |
 

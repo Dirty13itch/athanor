@@ -1,9 +1,22 @@
 ---
 agent_deploy_dir: /opt/athanor/agents
 agent_port: 9000
-agent_vllm_url: "http://localhost:8000/v1"
-agent_vllm_model: /models/Qwen3-32B-AWQ
-agent_prometheus_url: "{{ prometheus_url }}"
+
+# LiteLLM proxy — single entry point for all inference
+agent_llm_base_url: "http://192.168.1.203:4000/v1"
+agent_llm_api_key: "sk-athanor-litellm-2026"
+agent_llm_model: "reasoning"
+agent_llm_model_fast: "fast"
+
+# Direct vLLM endpoints (for status tools only)
+agent_vllm_node1_url: "http://192.168.1.244:8000/v1"
+agent_vllm_node2_url: "http://192.168.1.225:8000/v1"
+agent_vllm_embedding_url: "http://192.168.1.244:8001/v1"
+
+# Monitoring
+agent_prometheus_url: "{{ prometheus_url | default('http://192.168.1.203:9090') }}"
+
+# Media stack API keys
 agent_sonarr_api_key: ""
 agent_radarr_api_key: ""
 agent_tautulli_api_key: ""

@@ -21,19 +21,18 @@ When asked to add content:
 3. Add it using the TVDB ID (TV) or TMDB ID (movies)
 
 Infrastructure:
-- Sonarr: http://192.168.1.203:8989
-- Radarr: http://192.168.1.203:7878
-- Tautulli: http://192.168.1.203:8181
-- Plex: http://192.168.1.203:32400 (unclaimed — streaming data via Tautulli)
+- All services on VAULT (192.168.1.203)
+- Sonarr: port 8989, Radarr: port 7878, Tautulli: port 8181
+- Inference via LiteLLM proxy at VAULT:4000
 
 Be direct and concise. Use tables or lists for results."""
 
 
 def create_media_agent():
     llm = ChatOpenAI(
-        base_url=settings.vllm_base_url,
-        api_key="not-needed",
-        model=settings.vllm_model,
+        base_url=settings.llm_base_url,
+        api_key=settings.llm_api_key,
+        model=settings.llm_model,
         temperature=0.7,
         streaming=True,
     )

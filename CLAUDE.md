@@ -135,7 +135,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4) + Node 2 (Qwen3-14B), LiteLLM proxy (VAULT:4000, routes all inference), Qdrant vector DB (Node 1:6333), ComfyUI + Flux (Node 2), Dashboard (Node 2), Open WebUI (Node 2), Prometheus + Grafana (VAULT), VAULT media stack (Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, HA).
 
-**Agent framework:** General Assistant + Media Agent + Home Agent skeleton running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent blocked on HA onboarding. Dashboard has no agent routing page yet — agents accessible via direct API only.
+**Agent framework:** General Assistant + Media Agent running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent skeleton not yet registered (blocked on HA onboarding). Dashboard has no agent routing page yet — agents accessible via direct API only.
 
 **GPU allocation:** Node 1 (5 GPUs, 88 GB) runs vLLM TP=4 on GPUs 0-3 (3x 5070 Ti + 4090, ~15.6 GiB each) + vLLM embedding on GPU 4 (5070 Ti, ~14.6 GiB) + agent server. All 5 GPUs active. Node 2 (2 GPUs, 48 GB) runs vLLM on RTX 5090 (GPU 0), ComfyUI on RTX 5060 Ti (GPU 1).
 
