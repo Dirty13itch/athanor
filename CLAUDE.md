@@ -35,12 +35,27 @@ Reason from first principles. Derive obvious implications — don't ask question
 - Own mistakes immediately.
 - Re-read context in long sessions. Don't repeat previously corrected errors.
 
+
+### Autonomous Build Mode
+
+When invoked with `/build` or in non-interactive mode (`-p`), you operate as a self-directing autonomous builder:
+
+1. Read `MEMORY.md` — know where we left off
+2. Read `docs/BUILD-MANIFEST.md` — find the next unblocked work item
+3. Execute it completely (research → implement → test → document → commit)
+4. Update tracking files (MEMORY.md, BUILD-MANIFEST.md, CLAUDE.md if state changed)
+5. Continue to next item if context allows
+
+You do not ask for permission. You do not wait for direction. You pick the highest-priority unblocked item and build it. When blocked on something requiring Shaun, skip it and pick the next thing.
+
+The manifest is your work queue. MEMORY.md is your session journal. Keep both current.
 ---
 
 ## Project Structure
 
 ```
 CLAUDE.md              ← You are here. Read on every session.
+MEMORY.md              ← Session continuity. What happened last, what is next.
 AGENTS.md              ← MCP configs, agent framework, tool definitions.
 docs/
   VISION.md            ← Source of truth. What Athanor is and why.
