@@ -136,14 +136,14 @@ Full details in `docs/hardware/inventory.md`.
 | dcgm-exporter | Node 2 | 9400 | Running |
 | Prometheus | VAULT | 9090 | Running (fresh deploy, all 5 scrape targets UP) |
 | Grafana | VAULT | 3000 | Running (admin/newpass123, Prometheus source + Node Exporter + DCGM dashboards) |
-| Home Assistant | VAULT | 8123 | **DOWN — lost in mobo swap, needs redeploy** |
-| Plex | VAULT | 32400 | **DOWN — lost in mobo swap, needs redeploy** |
-| Sonarr | VAULT | 8989 | **DOWN — lost in mobo swap, needs redeploy** |
-| Radarr | VAULT | 7878 | **DOWN — lost in mobo swap, needs redeploy** |
-| Prowlarr | VAULT | 9696 | **DOWN — lost in mobo swap, needs redeploy** |
-| SABnzbd | VAULT | 8080 | **DOWN — lost in mobo swap, needs redeploy** |
-| Tautulli | VAULT | 8181 | **DOWN — lost in mobo swap, needs redeploy** |
-| Stash | VAULT | 9999 | **DOWN — lost in mobo swap, needs redeploy** |
+| Home Assistant | VAULT | 8123 | Running (Ansible deploy 2026-02-24, needs onboarding at :8123) |
+| Plex | VAULT | 32400 | Running (Ansible deploy 2026-02-24, claimed, libraries added) |
+| Sonarr | VAULT | 8989 | Running (Ansible deploy 2026-02-24, needs indexer config) |
+| Radarr | VAULT | 7878 | Running (Ansible deploy 2026-02-24, needs indexer config) |
+| Prowlarr | VAULT | 9696 | Running (Ansible deploy 2026-02-24, needs indexers added) |
+| SABnzbd | VAULT | 8080 | Running (Ansible deploy 2026-02-24, needs Usenet config) |
+| Tautulli | VAULT | 8181 | Running (Ansible deploy 2026-02-24) |
+| Stash | VAULT | 9999 | Running (Ansible deploy 2026-02-24) |
 
 ---
 
@@ -209,7 +209,9 @@ Run `/mcp` to check current status.
 
 ## Blockers Requiring Shaun
 
-### CRITICAL: VAULT Media Stack Lost
+### ~~CRITICAL: VAULT Media Stack Lost~~ ✅ RESOLVED
+
+**Resolved 2026-02-24.** All 10 containers deployed via Ansible (`ansible-playbook playbooks/vault.yml`). Plex claimed, libraries added. Remaining: HA onboarding, Sonarr/Radarr/Prowlarr indexer config, SABnzbd Usenet setup.
 The motherboard swap destroyed the ZFS NVMe pool (`hpc_nvme`) that held all container appdata. All media service configs (Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, HA, Stash) are gone. **Media files on the HDD array are intact** — only container configs/metadata lost.
 
 **Recovery plan — two options:**
@@ -239,7 +241,7 @@ This deploys all VAULT services (monitoring, media, HA) via Docker API. Get Plex
 
 ### Credentials Needed
 - **NordVPN** service credentials → unblocks qBittorrent + Gluetun VPN
-- **VAULT root password** → needs adding to `ansible/group_vars/all/secrets.vault.yml` as `vault_password` (then re-encrypt). Currently the VAULT playbook fails at connection because this var is undefined.
+- ~~**VAULT root password**~~ — Done. Added to `ansible/group_vars/all/secrets.vault.yml` as `vault_password`, vault encrypted.
 
 ### Physical / BIOS (~10 min)
 - Enable EXPO in Node 2 BIOS (DDR5 4800 → 5600 MT/s) — via JetKVM
@@ -247,6 +249,8 @@ This deploys all VAULT services (monitoring, media, HA) via Docker API. Get Plex
 
 ### Completed (Session 3-5)
 - ~~Claim Plex~~ — Done
+- ~~VAULT media stack Ansible deploy~~ — Done (10 containers, 2026-02-24)
+- ~~Plex claim + library setup~~ — Done (2026-02-24)
 - ~~Move ethernet to 10GbE switch~~ — Done (all servers on XG switch)
 - ~~Reconnect JetKVM ATX cable~~ — Done
 - ~~Create DHCP reservations~~ — Done (6 Fixed IPs)
@@ -270,7 +274,8 @@ Claude Code v2.1.51 runs on DEV (WSL 2 Ubuntu). This is the execution layer — 
 ### Setup
 - **Location**: `~/repos/Athanor/` in WSL 2 Ubuntu on DEV
 - **Auth**: Max subscription, Opus 4.6
-- **Sandbox**: Enabled (restricts filesystem writes to project dir; SSH/docker/remote commands unaffected)
+- **Sandbox**: Disabled (full filesystem access for infrastructure management)
+- **Non-interactive mode**: Fully enabled — all tools pre-approved in `.claude/settings.local.json` for autonomous `-p` runs
 - **claude-squad**: `cs` command for parallel agent sessions in tmux with git worktree isolation
 
 ### Installed Plugins (10)

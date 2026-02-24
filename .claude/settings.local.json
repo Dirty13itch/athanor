@@ -1,19 +1,35 @@
 {
   "permissions": {
-    "allow": []
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "TodoRead(*)",
+      "TodoWrite(*)",
+      "WebFetch(*)",
+      "mcp__sequential-thinking__sequentialthinking(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__filesystem__*(*)",
+      "mcp__grafana__*(*)"
+    ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "sequential-thinking",
     "context7",
     "playwright",
-    "filesystem"
+    "filesystem",
+    "grafana"
   ],
+  "sandbox": {
+    "enabled": false,
+    "autoAllowBashIfSandboxed": false
+  },
   "remote": {
     "defaultEnvironmentId": "env_01TdXPs4C1XSR7NV7BXNMhdG"
-  },
-  "sandbox": {
-    "enabled": true,
-    "autoAllowBashIfSandboxed": true
   }
 }
