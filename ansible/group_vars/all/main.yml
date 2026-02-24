@@ -1,0 +1,4 @@
+
+# Node IPs (needed by VAULT Prometheus config)
+node1_ip: "192.168.1.244"
+node2_ip: "192.168.1.225"
