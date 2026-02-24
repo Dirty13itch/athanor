@@ -5,5 +5,12 @@
       "Bash(grep:*)",
       "Bash(gh repo:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "sequential-thinking",
+    "context7",
+    "grafana",
+    "filesystem"
+  ],
+  "enableAllProjectMcpServers": true
 }
