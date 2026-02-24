@@ -1,179 +1,453 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { checkAllServices, queryPrometheus } from "@/lib/api";
+import { queryPrometheus, queryPrometheusRange, type PrometheusResult } from "@/lib/api";
 import { config } from "@/lib/config";
+import { GpuCard } from "@/components/gpu-card";
+import { ActivityFeed, type ActivityItem } from "@/components/activity-feed";
+import { ProgressBar } from "@/components/progress-bar";
 
-export const revalidate = 30;
+export const revalidate = 15;
 
-async function getGpuUtilByNode(): Promise<Map<string, number>> {
-  const byNode = new Map<string, number[]>();
-  try {
-    const results = await queryPrometheus("DCGM_FI_DEV_GPU_UTIL");
-    for (const r of results) {
-      const instance = r.metric.instance ?? "";
-      let node = instance;
-      if (instance.includes("192.168.1.244")) node = "Node 1";
-      else if (instance.includes("192.168.1.225")) node = "Node 2";
-      const vals = byNode.get(node) ?? [];
-      vals.push(parseFloat(r.value[1]));
-      byNode.set(node, vals);
-    }
-  } catch {
-    // Prometheus unavailable
-  }
+// --- Data fetching ---
 
-  const avgMap = new Map<string, number>();
-  for (const [node, vals] of byNode) {
-    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-    avgMap.set(node, avg);
-  }
-  return avgMap;
+interface GpuMetric {
+  gpuName: string;
+  gpuIndex: number;
+  instance: string;
+  utilization: number;
+  temperature: number;
+  memoryUsed: number;
+  memoryTotal: number;
+  power: number;
 }
 
-export default async function DashboardPage() {
-  let services;
-  try {
-    services = await checkAllServices();
-  } catch {
-    services = null;
+async function getGpuMetrics(): Promise<GpuMetric[]> {
+  const [utilization, memUsed, memTotal, temperature, power] = await Promise.all([
+    queryPrometheus("DCGM_FI_DEV_GPU_UTIL").catch(() => [] as PrometheusResult[]),
+    queryPrometheus("DCGM_FI_DEV_FB_USED").catch(() => [] as PrometheusResult[]),
+    queryPrometheus("DCGM_FI_DEV_FB_FREE + DCGM_FI_DEV_FB_USED").catch(() => [] as PrometheusResult[]),
+    queryPrometheus("DCGM_FI_DEV_GPU_TEMP").catch(() => [] as PrometheusResult[]),
+    queryPrometheus("DCGM_FI_DEV_POWER_USAGE").catch(() => [] as PrometheusResult[]),
+  ]);
+
+  const gpuMap = new Map<string, GpuMetric>();
+
+  for (const r of utilization) {
+    const instance = r.metric.instance ?? "";
+    const gpu = r.metric.gpu ?? r.metric.gpu_bus_id ?? "0";
+    const key = `${instance}::${gpu}`;
+    gpuMap.set(key, {
+      gpuName: r.metric.modelName ?? r.metric.gpu_name ?? "GPU",
+      gpuIndex: parseInt(r.metric.gpu ?? "0"),
+      instance,
+      utilization: parseFloat(r.value[1]),
+      temperature: 0,
+      memoryUsed: 0,
+      memoryTotal: 0,
+      power: 0,
+    });
   }
 
-  const healthyCount = services?.filter((s) => s.healthy).length ?? 0;
-  const totalCount = services?.length ?? config.services.length;
+  const find = (results: PrometheusResult[], instance: string, gpu: string) =>
+    results.find(
+      (r) => r.metric.instance === instance && (r.metric.gpu === gpu || r.metric.gpu_bus_id === gpu)
+    )?.value[1];
 
-  const gpuUtil = await getGpuUtilByNode();
+  for (const [key, g] of gpuMap) {
+    const [inst, gpu] = key.split("::");
+    g.temperature = parseFloat(find(temperature, inst, gpu) ?? "0");
+    g.memoryUsed = parseFloat(find(memUsed, inst, gpu) ?? "0");
+    g.memoryTotal = parseFloat(find(memTotal, inst, gpu) ?? "0");
+    g.power = parseFloat(find(power, inst, gpu) ?? "0");
+  }
+
+  return Array.from(gpuMap.values());
+}
+
+interface AgentStatus {
+  serverOnline: boolean;
+  agents: string[];
+}
+
+async function getAgentStatus(): Promise<AgentStatus> {
+  try {
+    const res = await fetch(`${config.agentServer.url}/health`, {
+      signal: AbortSignal.timeout(3000),
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return { serverOnline: false, agents: [] };
+    const data = await res.json();
+    return { serverOnline: true, agents: data.agents ?? [] };
+  } catch {
+    return { serverOnline: false, agents: [] };
+  }
+}
+
+interface MediaStatus {
+  plex_activity: { stream_count?: number; sessions?: { friendly_name?: string; full_title?: string; state?: string; progress_percent?: string }[] };
+  sonarr_queue: { title?: string; sizeleft?: number; size?: number; status?: string }[];
+  radarr_queue: { title?: string; sizeleft?: number; size?: number; status?: string }[];
+  tv_library: { total?: number; episodes?: number; size_gb?: number };
+  movie_library: { total?: number; has_file?: number; size_gb?: number };
+  watch_history: { friendly_name?: string; full_title?: string; date?: string }[];
+}
+
+async function getMediaStatus(): Promise<MediaStatus | null> {
+  try {
+    const res = await fetch(`${config.agentServer.url}/v1/status/media`, {
+      signal: AbortSignal.timeout(8000),
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+interface ComfyUIStatus {
+  queue_running: unknown[];
+  queue_pending: unknown[];
+}
+
+async function getComfyUIQueue(): Promise<ComfyUIStatus | null> {
+  try {
+    const res = await fetch(`${config.comfyui.url}/queue`, {
+      signal: AbortSignal.timeout(3000),
+      next: { revalidate: 15 },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+interface ServiceHealth {
+  name: string;
+  node: string;
+  status: string;
+}
+
+async function getServiceHealth(): Promise<ServiceHealth[]> {
+  try {
+    const res = await fetch(`${config.agentServer.url}/v1/status/services`, {
+      signal: AbortSignal.timeout(8000),
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.services ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function nodeFromInstance(instance: string): string {
+  if (instance.includes("192.168.1.244")) return "Foundry";
+  if (instance.includes("192.168.1.225")) return "Workshop";
+  return instance;
+}
+
+function getWorkload(instance: string, gpuIndex: number): string {
+  const ip = instance.split(":")[0];
+  return config.gpuWorkloads[ip]?.[gpuIndex] ?? "Unknown";
+}
+
+function getPowerLimit(instance: string, gpuIndex: number): number {
+  const ip = instance.split(":")[0];
+  return config.gpuPowerLimits[ip]?.[gpuIndex] ?? 300;
+}
+
+// --- Component ---
+
+export default async function DashboardPage() {
+  const [gpus, agentStatus, media, comfyQueue, services] = await Promise.all([
+    getGpuMetrics(),
+    getAgentStatus(),
+    getMediaStatus(),
+    getComfyUIQueue(),
+    getServiceHealth(),
+  ]);
+
+  // Group GPUs by node
+  const gpusByNode = new Map<string, GpuMetric[]>();
+  for (const gpu of gpus) {
+    const node = nodeFromInstance(gpu.instance);
+    const group = gpusByNode.get(node) ?? [];
+    group.push(gpu);
+    gpusByNode.set(node, group);
+  }
+
+  // Totals
+  const totalVramUsed = gpus.reduce((sum, g) => sum + g.memoryUsed, 0);
+  const totalVramTotal = gpus.reduce((sum, g) => sum + g.memoryTotal, 0);
+  const totalPower = gpus.reduce((sum, g) => sum + g.power, 0);
+  const totalPowerBudget = config.nodes.reduce((sum, n) => sum + (n.psuWatts ?? 0), 0);
+  const nodesOnline = new Set(gpus.map((g) => nodeFromInstance(g.instance))).size;
+  const servicesUp = services.filter((s) => s.status === "up").length;
+  const servicesTotal = services.length;
+
+  // Plex activity
+  const plexSessions = media?.plex_activity?.sessions ?? [];
+  const plexStreamCount = media?.plex_activity?.stream_count ?? 0;
+
+  // Download queue
+  const downloads = [
+    ...(media?.sonarr_queue ?? []).map((d) => ({ ...d, source: "Sonarr" })),
+    ...(media?.radarr_queue ?? []).map((d) => ({ ...d, source: "Radarr" })),
+  ];
+
+  // ComfyUI
+  const comfyRunning = comfyQueue?.queue_running?.length ?? 0;
+  const comfyPending = comfyQueue?.queue_pending?.length ?? 0;
+
+  // Build activity feed from watch history + downloads
+  const activityItems: ActivityItem[] = [];
+  for (const w of media?.watch_history ?? []) {
+    activityItems.push({
+      type: "stream",
+      source: "Plex",
+      title: w.full_title ?? "Unknown",
+      detail: `${w.friendly_name ?? "Someone"} watched`,
+      timestamp: w.date ? new Date(parseInt(String(w.date)) * 1000).toISOString() : new Date().toISOString(),
+      link: "/media",
+    });
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Athanor homelab overview</p>
-      </div>
+      {/* System Pulse Strip */}
+      <Card>
+        <CardContent className="py-4">
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              {gpus.map((g, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <div className="w-3 h-8 rounded-sm bg-muted overflow-hidden flex flex-col-reverse">
+                    <div
+                      className={`w-full rounded-sm ${
+                        g.utilization > 80 ? "bg-red-500" : g.utilization > 50 ? "bg-yellow-500" : "bg-green-500"
+                      }`}
+                      style={{ height: `${Math.max(2, g.utilization)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <span className="text-xs text-muted-foreground ml-1">{gpus.length} GPUs</span>
+            </div>
+            <div className="text-xs">
+              <span className="text-muted-foreground">VRAM</span>{" "}
+              <span className="font-mono font-medium">
+                {(totalVramUsed / 1024).toFixed(0)}/{(totalVramTotal / 1024).toFixed(0)} GB
+              </span>
+            </div>
+            <div className="text-xs">
+              <span className="text-muted-foreground">Nodes</span>{" "}
+              <span className="font-mono font-medium">{nodesOnline}/{config.nodes.length}</span>
+            </div>
+            <div className="text-xs">
+              <span className="text-muted-foreground">Power</span>{" "}
+              <span className="font-mono font-medium">
+                {totalPower.toFixed(0)}W / {totalPowerBudget}W
+              </span>
+            </div>
+            <div className="text-xs">
+              <span className="text-muted-foreground">Services</span>{" "}
+              <span className="font-mono font-medium">{servicesUp}/{servicesTotal}</span>
+            </div>
+            {agentStatus.serverOnline && (
+              <div className="text-xs">
+                <span className="text-muted-foreground">Agents</span>{" "}
+                <Badge variant="default" className="text-xs py-0 px-1.5">{agentStatus.agents.length} online</Badge>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Node cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {config.nodes.map((node) => (
-          <Card key={node.name}>
+      {/* GPU Map + Active Workloads */}
+      <div className="grid gap-4 lg:grid-cols-5">
+        {/* GPU Map - takes 3 columns */}
+        <div className="lg:col-span-3 space-y-4">
+          {Array.from(gpusByNode.entries()).map(([node, nodeGpus]) => {
+            const nodeConfig = config.nodes.find((n) => n.name === node);
+            return (
+              <div key={node}>
+                <div className="flex items-center gap-2 mb-2">
+                  <h2 className="text-sm font-semibold">{node}</h2>
+                  <span className="text-xs text-muted-foreground">
+                    {nodeConfig?.role} — {nodeGpus.length} GPUs, {(nodeConfig?.vram ?? 0)} GB VRAM
+                  </span>
+                </div>
+                <div className={`grid gap-2 ${nodeGpus.length > 3 ? "grid-cols-3 lg:grid-cols-5" : "grid-cols-2"}`}>
+                  {nodeGpus.map((gpu, i) => (
+                    <GpuCard
+                      key={`${gpu.instance}-${gpu.gpuIndex}-${i}`}
+                      name={gpu.gpuName}
+                      node={node}
+                      workload={getWorkload(gpu.instance, gpu.gpuIndex)}
+                      utilization={gpu.utilization}
+                      temperature={gpu.temperature}
+                      power={gpu.power}
+                      powerLimit={getPowerLimit(gpu.instance, gpu.gpuIndex)}
+                      memoryUsed={gpu.memoryUsed}
+                      memoryTotal={gpu.memoryTotal}
+                      compact
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Active Workloads - takes 2 columns */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Inference */}
+          <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">{node.name}</CardTitle>
-              <CardDescription>{node.ip}</CardDescription>
+              <CardTitle className="text-sm">Inference</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">{node.role}</p>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span>Qwen3-32B TP=4</span>
+                <Badge variant="outline" className="text-xs">Foundry</Badge>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span>Qwen3-14B</span>
+                <Badge variant="outline" className="text-xs">Workshop</Badge>
+              </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Service health summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Services</CardTitle>
-            <CardDescription>
-              {healthyCount}/{totalCount} healthy
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {services ? (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {services.map((svc) => (
+          {/* Creative */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Creative</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between text-xs">
+                <span>ComfyUI (Flux dev)</span>
+                {comfyRunning > 0 ? (
+                  <Badge className="text-xs">{comfyRunning} generating</Badge>
+                ) : comfyPending > 0 ? (
+                  <Badge variant="outline" className="text-xs">{comfyPending} queued</Badge>
+                ) : comfyQueue ? (
+                  <span className="text-muted-foreground">Idle</span>
+                ) : (
+                  <Badge variant="destructive" className="text-xs">Offline</Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Media */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Media</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span>Plex</span>
+                {plexStreamCount > 0 ? (
+                  <span className="text-green-400">{plexStreamCount} stream{plexStreamCount > 1 ? "s" : ""}</span>
+                ) : (
+                  <span className="text-muted-foreground">No streams</span>
+                )}
+              </div>
+              {plexSessions.map((s, i) => (
+                <div key={i} className="text-xs text-muted-foreground ml-2">
+                  {s.friendly_name}: {s.full_title} ({s.progress_percent}%)
+                </div>
+              ))}
+              {downloads.length > 0 ? (
+                <div className="space-y-1">
+                  {downloads.slice(0, 3).map((d, i) => {
+                    const pct = d.size ? ((d.size - (d.sizeleft ?? 0)) / d.size) * 100 : 0;
+                    return (
+                      <div key={i} className="text-xs">
+                        <div className="flex justify-between">
+                          <span className="truncate max-w-[180px]">{d.title}</span>
+                          <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
+                        </div>
+                        <ProgressBar value={pct} className="mt-0.5" />
+                      </div>
+                    );
+                  })}
+                  {downloads.length > 3 && (
+                    <p className="text-xs text-muted-foreground">+{downloads.length - 3} more</p>
+                  )}
+                </div>
+              ) : media ? (
+                <p className="text-xs text-muted-foreground">No active downloads</p>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          {/* Services summary */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Services</CardTitle>
+              <CardDescription>{servicesUp}/{servicesTotal} online</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-1">
+                {services.map((s) => (
                   <div
-                    key={svc.name}
-                    className="flex items-center justify-between rounded-md border border-border p-3"
+                    key={s.name}
+                    className="flex items-center gap-1 text-xs"
+                    title={`${s.name} (${s.node})`}
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{svc.name}</p>
-                      <p className="text-xs text-muted-foreground">{svc.node}</p>
-                    </div>
-                    <Badge variant={svc.healthy ? "default" : "destructive"}>
-                      {svc.healthy ? `${svc.latencyMs}ms` : "down"}
-                    </Badge>
+                    <div className={`h-1.5 w-1.5 rounded-full ${s.status === "up" ? "bg-green-500" : "bg-red-500"}`} />
+                    <span className="text-muted-foreground">{s.name.split("(")[0].trim()}</span>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Unable to reach services.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* GPU Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle>GPU Overview</CardTitle>
-            <CardDescription>Average utilization by node</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {gpuUtil.size > 0 ? (
-              <div className="space-y-4">
-                {Array.from(gpuUtil.entries()).map(([node, avg]) => (
-                  <div key={node}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium">{node}</span>
-                      <span className="text-sm font-mono text-muted-foreground">
-                        {avg.toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          avg > 80
-                            ? "bg-red-500"
-                            : avg > 50
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
-                        }`}
-                        style={{ width: `${Math.min(100, avg)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No GPU metrics available.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Quick links */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Recent Activity */}
+      {activityItems.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Grafana</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <a
-              href="http://192.168.1.203:3000"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary underline-offset-4 hover:underline"
-            >
-              Open Grafana dashboards
-            </a>
+            <ActivityFeed items={activityItems.slice(0, 8)} />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Prometheus</CardTitle>
-          </CardHeader>
-          <CardContent>
+      )}
+
+      {/* Quick Links */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Quick Links</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
             <a
-              href="http://192.168.1.203:9090"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary underline-offset-4 hover:underline"
+              href="/chat"
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent transition-colors"
             >
-              Open Prometheus UI
+              Chat with Agent
             </a>
-          </CardContent>
-        </Card>
-      </div>
+            {config.quickLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent transition-colors"
+              >
+                {link.name}
+              </a>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

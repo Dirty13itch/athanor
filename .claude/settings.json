@@ -21,7 +21,6 @@
       "Bash(head:*)",
       "Bash(tail:*)",
       "Bash(diff:*)",
-      "Bash(tree:*)",
       "Bash(mkdir:*)",
       "Bash(cp:*)",
       "Bash(mv:*)",
@@ -54,37 +53,14 @@
       "mcp__desktop-commander__*",
       "mcp__memory__*"
     ],
-    "deny": [
-      "Bash(rm -rf /)*",
-      "Bash(sudo rm:*)",
-      "Bash(dd:*)",
-      "Bash(mkfs:*)",
-      "Bash(fdisk:*)"
-    ]
+    "deny": []
   },
   "enableAllProjectMcpServers": true,
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/session-start.sh"
-          }
-        ]
-      }
-    ]
-  },
-  "agents": {
-    "directory": ".claude/agents"
-  },
-  "skills": {
-    "directory": ".claude/skills"
-  },
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80",
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0",
+    "GITHUB_TOKEN": "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",
     "ATHANOR_NODE_DEV": "i7-13700K",
     "ATHANOR_NODE1": "EPYC-7663",
     "ATHANOR_NODE2": "TR-7960X",

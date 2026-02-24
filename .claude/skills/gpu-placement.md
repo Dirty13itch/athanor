@@ -1,21 +1,23 @@
 # GPU Placement Reference
 
-Actual GPU topology from live audit (2026-02-15).
+Updated 2026-02-23 (GPU reallocation: RTX 4090 moved Node 2 → Node 1, RTX 5060 Ti added to Node 2).
+Original topology audit 2026-02-15. Bus IDs for 5th GPU on Node 1 and RTX 5060 Ti on Node 2 need re-audit.
 
 ## Node 1 — core (192.168.1.244)
 
-4x NVIDIA GeForce RTX 5070 Ti (Blackwell, sm_120)
+4x NVIDIA GeForce RTX 5070 Ti (Blackwell, sm_120) + 1x RTX 4090 (Ada Lovelace, sm_89)
 
-| GPU | Bus ID | VRAM | Brand | Interconnect |
-|-----|--------|------|-------|-------------|
-| 0 | 01:00.0 | 16,303 MiB | MSI | NODE to GPU1, NODE to GPU2/3 |
-| 1 | 47:00.0 | 16,303 MiB | MSI | NODE to GPU0, NODE to GPU2/3 |
-| 2 | 81:00.0 | 16,303 MiB | Gigabyte | NODE to GPU0/1, PHB to GPU3 |
-| 3 | 82:00.0 | 16,303 MiB | Gigabyte | NODE to GPU0/1, PHB to GPU2 |
+| GPU | Bus ID | VRAM | Model | Brand | Notes |
+|-----|--------|------|-------|-------|-------|
+| 0 | 01:00.0 | 16,303 MiB | RTX 5070 Ti | MSI | NODE to GPU1 |
+| 1 | 47:00.0 | 16,303 MiB | RTX 5070 Ti | MSI | NODE to GPU0 |
+| 2 | 81:00.0 | 16,303 MiB | RTX 5070 Ti | Gigabyte | PHB to GPU3 |
+| 3 | 82:00.0 | 16,303 MiB | RTX 5070 Ti | Gigabyte | PHB to GPU2, display attached |
+| 4 | TBD | 24,564 MiB | RTX 4090 | — | Added 2026-02-21, bus ID needs audit |
 
-Total: 65,212 MiB (~63.7 GB)
+Total: ~88 GB VRAM (64 GB Blackwell + 24 GB Ada)
 
-### Topology Matrix
+### Topology (5070 Ti only — original 4-GPU audit)
 ```
       GPU0  GPU1  GPU2  GPU3
 GPU0   X    NODE  NODE  NODE
@@ -25,40 +27,34 @@ GPU3  NODE  NODE  PHB    X
 ```
 
 - All single NUMA node (NUMA 0), CPU affinity 0-111
-- GPU2 and GPU3 share a PCIe host bridge (PHB) — slightly better P2P between them
-- GPU0 and GPU1 are on separate PCIe root complexes (NODE)
 - No NVLink — all communication via PCIe 4.0 (EPYC 7663 is Gen4)
-- **GPU 3 (82:00.0) has display attached** — use for console output, not primary compute if possible
+- GPU2 and GPU3 share a PCIe host bridge (PHB)
+- RTX 4090 topology relative to 5070 Ti GPUs unknown until re-audit
 
 ### Optimal Placement
-- **4-GPU tensor parallelism**: Use all GPUs (`--gpus all`). NCCL handles topology automatically.
+- **4-GPU tensor parallelism (vLLM)**: Use 4x RTX 5070 Ti (`CUDA_VISIBLE_DEVICES=0,1,2,3`). Same architecture required for TP.
+- **RTX 4090**: Independent workloads only — cannot TP with 5070 Ti (different architecture). Good for second vLLM instance, agent inference, or batch jobs.
 - **Single GPU jobs**: Prefer GPU 0 or GPU 1 (no display attached, separate host bridges)
-- **2-GPU pairs**: GPU 2+3 (PHB, best interconnect) or GPU 0+1 (separate bridges, least contention)
+- **Power limits configured**: RTX 4090 @ 320W, RTX 5070 Ti @ 240W each
 
 ## Node 2 — interface (192.168.1.225)
 
 | GPU | Bus ID | VRAM | Model | Architecture |
 |-----|--------|------|-------|-------------|
-| 0 | 01:00.0 | 24,564 MiB | RTX 4090 | Ada Lovelace (sm_89) |
-| 1 | 03:00.0 | 32,607 MiB | RTX 5090 | Blackwell (sm_120) |
+| 0 | 03:00.0 | 32,607 MiB | RTX 5090 | Blackwell (sm_120) |
+| 1 | TBD | 16,384 MiB | RTX 5060 Ti | Blackwell (sm_120) |
 
-Total: 57,171 MiB (~55.8 GB)
+Total: ~48 GB VRAM
 
-### Topology Matrix
-```
-      GPU0  GPU1
-GPU0   X    PHB
-GPU1  PHB    X
-```
-
-- Single NUMA node (NUMA 0), CPU affinity 0-31
-- PHB interconnect (via CPU PCIe host bridge)
-- Different architectures — cannot do tensor parallelism across them
+### Notes
+- Both Blackwell architecture — TP theoretically possible but different GPU tiers (32 GB vs 16 GB)
+- RTX 5060 Ti bus ID needs re-audit (installed after original audit)
+- PHB interconnect expected (via CPU PCIe host bridge)
 
 ### Optimal Placement
-- **RTX 5090 (GPU 1)**: NVFP4-capable, 32 GB. Use for large models, creative inference, ComfyUI.
-- **RTX 4090 (GPU 0)**: 24 GB, Ada. Use for fast chat (7B-13B FP16), concurrent workloads, no NVFP4.
-- **Never TP across these GPUs** — different architectures.
+- **RTX 5090 (GPU 0)**: 32 GB. ComfyUI (Flux), creative inference, large single-GPU models.
+- **RTX 5060 Ti (GPU 1)**: 16 GB. vLLM (Qwen3-14B-AWQ), fast chat, lightweight workloads.
+- Use `--gpu-memory-utilization 0.85` and `--max-num-seqs 128` on 16 GB GPUs to avoid OOM.
 
 ## VAULT — no NVIDIA GPUs
 
@@ -67,12 +63,13 @@ GPU1  PHB    X
 
 ## DEV — not a server
 
-- RTX 3060 12 GB — local development/testing only
+- ASUS ROG STRIX RX 5700 XT 8 GB — 3-monitor desktop display only, no CUDA
+- Not usable for inference
 
 ## VRAM Budget Summary
 
-| Node | Total VRAM | Primary Use |
-|------|-----------|-------------|
-| Node 1 | 63.7 GB | 4-GPU TP inference (70B models via NVFP4) |
-| Node 2 | 55.8 GB | Dual independent: 5090 (creative/large) + 4090 (chat) |
-| Combined | 119.5 GB | Multi-node via Ray+InfiniBand (future) |
+| Node | Total VRAM | GPUs | Primary Use |
+|------|-----------|------|-------------|
+| Node 1 | 88 GB | 4x 5070 Ti + 4090 | TP=4 inference (Qwen3-32B-AWQ) + independent 4090 |
+| Node 2 | 48 GB | 5090 + 5060 Ti | ComfyUI (5090) + fast chat vLLM (5060 Ti) |
+| Combined | 136 GB | 7 GPUs | Multi-node via Ray+InfiniBand (future) |

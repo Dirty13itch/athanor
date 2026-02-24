@@ -1,8 +1,13 @@
 ---
 # Node 1 (core / Foundry) — host-specific vars
 
-# GPU power limits (250W = hardware minimum for RTX 5070 Ti; creates headroom for RTX 3060 within 1600W PSU)
-nvidia_power_limit_watts: 250
+# Per-GPU power limits (mixed GPU config: RTX 4090 + 4x RTX 5070 Ti)
+nvidia_gpu_power_limits:
+  - { index: 0, watts: 320 }   # RTX 4090 (slot 1)
+  - { index: 1, watts: 240 }   # RTX 5070 Ti (slot 2)
+  - { index: 2, watts: 240 }   # RTX 5070 Ti (slot 3)
+  - { index: 3, watts: 240 }   # RTX 5070 Ti (slot 4)
+  - { index: 4, watts: 240 }   # RTX 5070 Ti (slot 5)
 
 vllm_model: /models/Qwen3-32B-AWQ
 vllm_quantization: awq

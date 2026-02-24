@@ -1,16 +1,19 @@
 {
   "permissions": {
-    "allow": [
-      "WebSearch",
-      "Bash(grep:*)",
-      "Bash(gh repo:*)"
-    ]
+    "allow": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "sequential-thinking",
     "context7",
-    "grafana",
+    "playwright",
     "filesystem"
   ],
-  "enableAllProjectMcpServers": true
+  "remote": {
+    "defaultEnvironmentId": "env_01TdXPs4C1XSR7NV7BXNMhdG"
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  }
 }

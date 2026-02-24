@@ -1,9 +1,12 @@
+import asyncio
 import json
 import re
 import time
 import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -20,7 +23,60 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Athanor Agent Server", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Athanor Agent Server", version="0.2.0", lifespan=lifespan)
+
+
+# --- Agent metadata (single source of truth) ---
+
+AGENT_METADATA = {
+    "general-assistant": {
+        "description": "System monitoring and infrastructure management across all 3 nodes.",
+        "tools": ["check_services", "get_gpu_metrics", "get_vllm_models", "get_storage_info"],
+        "type": "reactive",
+    },
+    "media-agent": {
+        "description": "Media stack control — search/add TV (Sonarr), movies (Radarr), monitor Plex streams (Tautulli).",
+        "tools": [
+            "search_tv_shows", "get_tv_calendar", "get_tv_queue", "get_tv_library", "add_tv_show",
+            "search_movies", "get_movie_calendar", "get_movie_queue", "get_movie_library", "add_movie",
+            "get_plex_activity", "get_watch_history", "get_plex_libraries",
+        ],
+        "type": "proactive",
+        "schedule": "every 15 min",
+    },
+    "home-agent": {
+        "description": "Smart home control via Home Assistant — lights, climate, automations, presence.",
+        "tools": [
+            "get_ha_states", "get_entity_state", "find_entities", "call_ha_service",
+            "set_light_brightness", "set_climate_temperature", "list_automations", "trigger_automation",
+        ],
+        "type": "proactive",
+        "schedule": "every 5 min",
+        "status_note": "Blocked on HA onboarding",
+    },
+    "creative-agent": {
+        "description": "Image generation via ComfyUI — character portraits, scene generation, EoBQ asset pipeline.",
+        "tools": ["queue_generation", "check_queue", "get_history", "load_workflow"],
+        "type": "reactive",
+        "status_note": "Planned",
+    },
+    "research-agent": {
+        "description": "Web research and information synthesis — citations, fact-checking, source aggregation.",
+        "tools": ["web_search", "summarize", "extract_facts", "compare_sources"],
+        "type": "reactive",
+        "status_note": "Planned",
+    },
+    "knowledge-agent": {
+        "description": "Knowledge base maintenance — documentation sync, stale doc detection, cross-reference updates.",
+        "tools": ["scan_docs", "check_freshness", "update_index", "find_conflicts"],
+        "type": "proactive",
+        "schedule": "daily 3 AM",
+        "status_note": "Planned",
+    },
+}
+
+
+# --- Health & Models ---
 
 
 @app.get("/health")
@@ -44,10 +100,123 @@ async def models():
     }
 
 
+# --- Agent metadata endpoint ---
+
+
 @app.get("/v1/agents")
-async def agents_endpoint():
-    from .agents import get_agent_info
-    return {"agents": get_agent_info()}
+async def agents_metadata():
+    active = list_agents()
+    agents = []
+    for name, meta in AGENT_METADATA.items():
+        agents.append({
+            "name": name,
+            "description": meta["description"],
+            "tools": meta["tools"],
+            "type": meta["type"],
+            "schedule": meta.get("schedule"),
+            "status": "online" if name in active else "planned",
+            "status_note": meta.get("status_note"),
+        })
+    return {"agents": agents}
+
+
+# --- Media status endpoint ---
+
+
+@app.get("/v1/status/media")
+async def media_status():
+    from .tools.media import _sonarr_get, _radarr_get, _tautulli_get
+
+    async def plex():
+        data = await asyncio.to_thread(_tautulli_get, "get_activity")
+        return data.get("response", {}).get("data", {})
+
+    async def sonarr_queue():
+        data = await asyncio.to_thread(_sonarr_get, "/queue", {"pageSize": 20})
+        return data.get("records", [])
+
+    async def radarr_queue():
+        data = await asyncio.to_thread(_radarr_get, "/queue", {"pageSize": 20})
+        return data.get("records", [])
+
+    async def tv_calendar():
+        start = datetime.now().strftime("%Y-%m-%d")
+        end = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+        return await asyncio.to_thread(_sonarr_get, "/calendar", {"start": start, "end": end})
+
+    async def movie_calendar():
+        start = datetime.now().strftime("%Y-%m-%d")
+        end = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+        return await asyncio.to_thread(_radarr_get, "/calendar", {"start": start, "end": end})
+
+    async def tv_library():
+        series = await asyncio.to_thread(_sonarr_get, "/series")
+        return {
+            "total": len(series),
+            "monitored": sum(1 for s in series if s.get("monitored")),
+            "episodes": sum(s.get("statistics", {}).get("episodeFileCount", 0) for s in series),
+            "size_gb": round(sum(s.get("statistics", {}).get("sizeOnDisk", 0) for s in series) / (1024**3), 1),
+        }
+
+    async def movie_library():
+        movies = await asyncio.to_thread(_radarr_get, "/movie")
+        return {
+            "total": len(movies),
+            "monitored": sum(1 for m in movies if m.get("monitored")),
+            "has_file": sum(1 for m in movies if m.get("hasFile")),
+            "size_gb": round(sum(m.get("sizeOnDisk", 0) for m in movies) / (1024**3), 1),
+        }
+
+    async def watch_history():
+        data = await asyncio.to_thread(_tautulli_get, "get_history", {"length": "10"})
+        return data.get("response", {}).get("data", {}).get("data", [])
+
+    results = await asyncio.gather(
+        plex(), sonarr_queue(), radarr_queue(), tv_calendar(), movie_calendar(),
+        tv_library(), movie_library(), watch_history(),
+        return_exceptions=True,
+    )
+
+    def safe(r, default=None):
+        return default if isinstance(r, BaseException) else r
+
+    return {
+        "plex_activity": safe(results[0], {}),
+        "sonarr_queue": safe(results[1], []),
+        "radarr_queue": safe(results[2], []),
+        "tv_upcoming": safe(results[3], []),
+        "movie_upcoming": safe(results[4], []),
+        "tv_library": safe(results[5], {}),
+        "movie_library": safe(results[6], {}),
+        "watch_history": safe(results[7], []),
+    }
+
+
+# --- Service status endpoint ---
+
+
+@app.get("/v1/status/services")
+async def services_status():
+    from .tools.system import SERVICES
+
+    async def check(name: str, info: dict) -> dict:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(info["url"], timeout=5, follow_redirects=True)
+                return {
+                    "name": name,
+                    "node": info["node"],
+                    "status": "up" if resp.status_code < 400 else "error",
+                    "latency_ms": int(resp.elapsed.total_seconds() * 1000),
+                }
+        except Exception:
+            return {"name": name, "node": info["node"], "status": "down", "latency_ms": None}
+
+    results = await asyncio.gather(*[check(n, i) for n, i in SERVICES.items()])
+    return {"services": list(results)}
+
+
+# --- Chat completions ---
 
 
 @app.post("/v1/chat/completions")
@@ -121,8 +290,6 @@ async def _stream_response(agent, messages, config, model_name):
     yield _sse_chunk(chat_id, created, model_name, {"role": "assistant"})
 
     in_think = False
-    tool_timers: dict[str, float] = {}  # run_id -> start_time
-
     async for event in agent.astream_events(
         {"messages": messages},
         config=config,
@@ -130,50 +297,34 @@ async def _stream_response(agent, messages, config, model_name):
     ):
         kind = event["event"]
 
-        # --- Tool start ---
+        # Tool call start — emit named SSE event
         if kind == "on_tool_start":
+            name = event.get("name", "unknown")
             run_id = event.get("run_id", "")
-            tool_timers[run_id] = time.time()
-            tool_event = {
-                "type": "tool_start",
-                "name": event.get("name", "unknown"),
-                "args": event.get("data", {}).get("input", {}),
-            }
-            yield f"data: {json.dumps(tool_event)}\n\n"
+            args = event.get("data", {}).get("input", {})
+            yield f'event: tool_start\ndata: {json.dumps({"name": name, "run_id": run_id, "args": args})}\n\n'
             continue
 
-        # --- Tool end ---
+        # Tool call end — emit named SSE event
         if kind == "on_tool_end":
+            name = event.get("name", "unknown")
             run_id = event.get("run_id", "")
-            start = tool_timers.pop(run_id, None)
-            duration_ms = int((time.time() - start) * 1000) if start else 0
-            output_data = event.get("data", {})
-            # LangGraph tool output is in data.output (ToolMessage content)
-            output = output_data.get("output", "")
-            if hasattr(output, "content"):
-                output = output.content
-            output_str = str(output) if output else ""
-            # Truncate very long outputs to avoid blowing up SSE
-            if len(output_str) > 4000:
-                output_str = output_str[:4000] + "\n... (truncated)"
-            tool_event = {
-                "type": "tool_end",
-                "name": event.get("name", "unknown"),
-                "output": output_str,
-                "duration_ms": duration_ms,
-            }
-            yield f"data: {json.dumps(tool_event)}\n\n"
+            output = str(event.get("data", {}).get("output", ""))[:2000]
+            yield f'event: tool_end\ndata: {json.dumps({"name": name, "run_id": run_id, "result": output})}\n\n'
             continue
 
-        # --- LLM text stream ---
-        if kind == "on_chat_model_stream":
-            chunk = event["data"]["chunk"]
-            text = chunk.content if hasattr(chunk, "content") else ""
-            if not text:
-                continue
-            text, in_think = _filter_think_streaming(text, in_think)
-            if text:
-                yield _sse_chunk(chat_id, created, model_name, {"content": text})
+        if kind != "on_chat_model_stream":
+            continue
+
+        chunk = event["data"]["chunk"]
+        text = chunk.content if hasattr(chunk, "content") else ""
+        if not text:
+            continue
+
+        # Filter out <think> blocks from Qwen3
+        text, in_think = _filter_think_streaming(text, in_think)
+        if text:
+            yield _sse_chunk(chat_id, created, model_name, {"content": text})
 
     # Finish
     yield _sse_chunk(chat_id, created, model_name, {}, finish_reason="stop")

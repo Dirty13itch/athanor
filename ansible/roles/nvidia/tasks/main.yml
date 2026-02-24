@@ -42,7 +42,7 @@
     owner: root
     group: root
     mode: '0644'
-  when: nvidia_power_limit_watts is defined
+  when: nvidia_power_limit_watts is defined or nvidia_gpu_power_limits is defined
   notify: reload systemd
 
 - name: Enable and start GPU power limits service
@@ -51,4 +51,4 @@
     enabled: true
     state: started
     daemon_reload: true
-  when: nvidia_power_limit_watts is defined
+  when: nvidia_power_limit_watts is defined or nvidia_gpu_power_limits is defined
