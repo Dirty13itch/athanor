@@ -14,7 +14,15 @@ export const config = {
   homeAssistant: {
     url: "http://192.168.1.203:8123",
   },
+  litellm: {
+    url: "http://192.168.1.203:4000",
+    apiKey: "sk-athanor-litellm-2026",
+  },
   inferenceBackends: [
+    {
+      name: "LiteLLM Proxy",
+      url: "http://192.168.1.203:4000",
+    },
     {
       name: "Node 1 — Qwen3-32B",
       url: "http://192.168.1.244:8000",
@@ -29,8 +37,11 @@ export const config = {
     },
   ],
   services: [
+    { name: "LiteLLM Proxy", url: "http://192.168.1.203:4000/health/readiness", node: "VAULT" },
     { name: "vLLM (Node 1)", url: "http://192.168.1.244:8000/v1/models", node: "Foundry" },
+    { name: "vLLM Embedding", url: "http://192.168.1.244:8001/health", node: "Foundry" },
     { name: "vLLM (Node 2)", url: "http://192.168.1.225:8000/v1/models", node: "Workshop" },
+    { name: "Qdrant", url: "http://192.168.1.244:6333/collections", node: "Foundry" },
     { name: "Agent Server", url: "http://192.168.1.244:9000/health", node: "Foundry" },
     { name: "Prometheus", url: "http://192.168.1.203:9090/-/healthy", node: "VAULT" },
     { name: "Grafana", url: "http://192.168.1.203:3000/api/health", node: "VAULT" },
@@ -57,15 +68,15 @@ export const config = {
   // Known GPU → workload mapping (static, will be made dynamic later)
   gpuWorkloads: {
     "192.168.1.244": {
-      0: "vLLM TP0 (Qwen3-32B)",
+      0: "vLLM TP0 (Qwen3-32B-AWQ)",
       1: "vLLM TP1",
       2: "vLLM TP2",
-      3: "vLLM TP3",
-      4: "RTX 4090 — Idle",
+      3: "vLLM TP3 (RTX 4090)",
+      4: "vLLM Embedding (Qwen3-Embedding-0.6B)",
     },
     "192.168.1.225": {
-      0: "ComfyUI (Flux)",
-      1: "vLLM (Qwen3-14B)",
+      0: "vLLM (Qwen3-14B, RTX 5090)",
+      1: "ComfyUI (Flux, RTX 5060 Ti)",
     },
   } as Record<string, Record<number, string>>,
   // Power limits per GPU (watts) — matches Ansible config

@@ -13,8 +13,13 @@ export async function GET() {
   await Promise.all(
     config.inferenceBackends.map(async (backend) => {
       try {
+        const headers: Record<string, string> = {};
+        if (config.litellm && backend.url.startsWith(config.litellm.url)) {
+          headers["Authorization"] = `Bearer ${config.litellm.apiKey}`;
+        }
         const res = await fetch(`${backend.url}/v1/models`, {
           signal: AbortSignal.timeout(5000),
+          headers,
         });
         if (!res.ok) return;
         const data = await res.json();
