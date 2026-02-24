@@ -4,38 +4,41 @@
 
 ---
 
-## Last Session: 2026-02-24 (Session 7: VAULT Media Stack + Claude Code Autonomy)
+## Last Session: 2026-02-24 (Session 8: Post-Deployment Hardening)
 
 ### What happened
-- Deployed all 10 VAULT containers via Ansible (Prometheus, Grafana, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant)
-- Resolved 7 deployment blockers: vault secrets, SSH keys, Python on Unraid (OpenSSL compat), node IP vars, Docker SDK version pinning
-- Plex claimed and libraries configured by Shaun
-- Fixed Claude Code non-interactive mode — added broad tool permissions to `.claude/settings.local.json`
-- Created BUILD-MANIFEST.md for autonomous build execution
-- Created `/build` command for self-directed build sessions
-- All services verified healthy via `docker ps`
+- Pushed 3 unpushed commits to origin/main (media stack, autonomy fix, build system)
+- Fixed git remote: switched from SSH to HTTPS (gh credential helper) — SSH key not registered with GitHub
+- Verified full monitoring pipeline: Prometheus 5/5 targets UP, Grafana healthy (v12.3.3)
+- Verified all 7 GPUs reporting via DCGM (Node 1: 5 GPUs 28-40°C, Node 2: 2 GPUs 30-38°C)
+- Verified all 10 VAULT containers have `restart=unless-stopped`
+- Verified NFS mounts healthy: Node 1 (models+data+appdata), Node 2 (models+data)
+- Updated BUILD-ROADMAP.md: marked Phase 5 items complete, added remaining config tasks
+- Node memory confirmed: Node 1 = 220 GB, Node 2 = 125 GB
 
-### Key decisions made
-- Python 3.12.12 installed to `/boot/extra/` on VAULT for persistence across reboots
-- Docker SDK pinned to `<7` and requests to `<2.32` for transport adapter compatibility on VAULT
-- Ansible vault password: AthanorVault2026 (stored in `ansible/vault-password`)
-- Broad tool permissions in `.claude/settings.local.json` — all Bash, Read, Write, Edit, MCP tools pre-approved
+### Key findings
+- DEV→Node SSH now works (athanor_mgmt key, via ssh-agent) — blocker from Session 7 resolved
+- Git SSH to GitHub does NOT work — id_ed25519 key not added to GitHub. Using HTTPS via gh auth instead
+- Node 2 missing `/mnt/vault/appdata` mount — not critical (models+data are the important ones)
+- VAULT data array at 89% capacity (146T/165T) — worth monitoring
 
 ### Current blockers
-- DEV/WSL cannot SSH to Node 1 (192.168.1.244) or Node 2 (192.168.1.225) — needs diagnosis
 - HA onboarding requires Shaun in browser (http://192.168.1.203:8123)
+- Sonarr/Radarr/Prowlarr need indexer config via Prowlarr UI
+- SABnzbd needs Usenet provider credentials
 - NordVPN credentials needed for qBittorrent + Gluetun
+- Grafana MCP tool needs permission approval in Claude Code settings
 
 ### What's next (from BUILD-MANIFEST.md)
-- P0: Fix DEV→Node SSH access (item 1.1)
 - P0: LiteLLM routing layer (item 1.2)
-- P0: Verify/deploy embedding model (item 1.3)
-- P0: Deploy Qdrant (item 1.4)
+- P0: Deploy Qdrant vector DB (item 1.4)
+- P1: Add GitHub SSH key to account (or keep using HTTPS)
+- P1: Monitor VAULT data array capacity (89% full)
 
 ### Git state
 - Branch: main
-- Unpushed commits: 2 (media stack deploy + autonomy fix)
-- No uncommitted changes
+- All commits pushed to origin
+- No uncommitted changes (pending: roadmap + memory updates)
 
 ---
 
@@ -49,3 +52,4 @@
 | 5 | 2026-02-23 | Full convergence | Ansible site.yml, Qwen3-32B-AWQ, embeddings, dashboard, agents |
 | 6 | 2026-02-23 | Refinement | Embedding model, speculative decoding, UFW, NFS hardening |
 | 7 | 2026-02-24 | VAULT + Autonomy | 10 VAULT containers, Claude Code autonomy, BUILD-MANIFEST |
+| 8 | 2026-02-24 | Post-deploy hardening | Git push, monitoring verified, NFS verified, restart policies confirmed |

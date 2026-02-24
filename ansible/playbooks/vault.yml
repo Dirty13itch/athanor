@@ -5,6 +5,7 @@
 #   ansible-playbook playbooks/vault.yml                    # Full deploy
 #   ansible-playbook playbooks/vault.yml --tags monitoring  # Monitoring only
 #   ansible-playbook playbooks/vault.yml --tags media       # Media stack only
+#   ansible-playbook playbooks/vault.yml --tags litellm     # LiteLLM proxy only
 #   ansible-playbook playbooks/vault.yml --tags plex        # Single service
 #   ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx  # First Plex deploy
 #
@@ -21,3 +22,5 @@
       tags: [media]
     - role: vault-homeassistant
       tags: [homeassistant]
+    - role: vault-litellm
+      tags: [litellm]

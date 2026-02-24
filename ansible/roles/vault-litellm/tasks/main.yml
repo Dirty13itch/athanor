@@ -1,0 +1,45 @@
+---
+# VAULT LiteLLM: Model routing proxy
+# Runs on VAULT via Docker API (Unraid)
+
+- name: Create LiteLLM config directory
+  ansible.builtin.file:
+    path: "{{ litellm_config_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy LiteLLM config
+  ansible.builtin.template:
+    src: litellm_config.yaml.j2
+    dest: "{{ litellm_config_path }}/config.yaml"
+    mode: "0644"
+  register: litellm_config
+
+- name: Run LiteLLM container
+  community.docker.docker_container:
+    name: litellm
+    image: "{{ litellm_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ litellm_port }}:4000"
+    volumes:
+      - "{{ litellm_config_path }}/config.yaml:/app/config.yaml:ro"
+    command:
+      - --config
+      - /app/config.yaml
+      - --port
+      - "4000"
+    env:
+      LITELLM_MASTER_KEY: "{{ litellm_master_key }}"
+    restart: "{{ litellm_config.changed | default(false) }}"
+  when: not ansible_check_mode
+
+- name: Wait for LiteLLM to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ litellm_port }}/health/liveliness"
+    status_code: 200
+  register: litellm_ready
+  retries: 10
+  delay: 5
+  when: not ansible_check_mode

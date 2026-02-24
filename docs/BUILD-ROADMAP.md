@@ -2,7 +2,7 @@
 
 *Research phase complete. This is the build plan.*
 
-Last updated: 2026-02-23 (Session 5: 32B-AWQ deployed, VAULT Ansible roles written, both nodes converged, models downloaded)
+Last updated: 2026-02-24 (Session 8: Post-deployment hardening, monitoring verified, git pushed)
 
 ---
 
@@ -73,13 +73,13 @@ Last updated: 2026-02-23 (Session 5: 32B-AWQ deployed, VAULT Ansible roles writt
 - [x] Deploy Home Assistant on VAULT (Docker, host networking) — http://192.168.1.203:8123
 - [ ] Complete HA onboarding *(browser task — http://192.168.1.203:8123)*
 - [ ] Configure Lutron (.158) + UniFi integrations in HA
-- [x] Deploy Plex on VAULT — http://192.168.1.203:32400/web (needs claim)
-- [x] Deploy Sonarr + Radarr + Prowlarr on VAULT
+- [x] Deploy Plex on VAULT — http://192.168.1.203:32400/web *(claimed, movies+TV libraries added)*
+- [x] Deploy Sonarr + Radarr + Prowlarr on VAULT *(needs indexer config via Prowlarr)*
 - [x] Set up TRaSH Guides path structure — /mnt/user/data/{torrents,usenet,media}/{movies,tv,music}
 - [x] Configure Sonarr root folder (/data/media/tv) + Radarr root folder (/data/media/movies)
-- [x] Deploy SABnzbd on VAULT
+- [x] Deploy SABnzbd on VAULT *(needs Usenet provider config)*
 - [ ] Deploy qBittorrent (with Gluetun VPN) — compose ready, NordVPN credentials need update
-- [x] Deploy Stash on VAULT (was already running)
+- [x] Deploy Stash on VAULT
 - [x] Deploy Tautulli on VAULT
 - [x] Install Aider 0.86.2 + Goose 1.24.0 on Node 2
 
@@ -125,7 +125,7 @@ Last updated: 2026-02-23 (Session 5: 32B-AWQ deployed, VAULT Ansible roles writt
 - [x] UFW firewall enabled on Node 1 + Node 2 — service ports + LAN allowed, verified all services accessible
 - [x] Full Ansible convergence — both nodes at 0 real drift (Session 5, 2026-02-23)
 - [ ] Configure BMC at .216 — AMI MegaRAC, admin/Will2live!, web UI works, IPMI-over-LAN needs enabling *(browser)*
-- [ ] Run VAULT playbook: `ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx`
+- [x] Run VAULT playbook — all 10 containers deployed (Session 7, 2026-02-24)
 
 ## Phase 8: Hardware Reconfiguration (Hybrid Architecture)
 
@@ -216,11 +216,14 @@ These require hands at the rack:
 
 - **HA onboarding**: Navigate to http://192.168.1.203:8123 in a browser to complete initial setup
 - **HA MCP**: Install after HA onboarding is complete (needs long-lived access token)
+- **Sonarr/Radarr/Prowlarr indexer config**: Add indexers in Prowlarr, sync to Sonarr/Radarr
+- **SABnzbd Usenet config**: Add Usenet provider credentials
 - **qBittorrent VPN**: NordVPN token/credentials need updating in Gluetun config
-- ~~**Qwen3-32B-AWQ download**~~: Done — downloaded and deployed on Node 1 with `--quantization awq`
 - **Node 2 EXPO**: Enable in BIOS via JetKVM (DDR5 4800 → 5600 MT/s)
+- ~~**Qwen3-32B-AWQ download**~~: Done
 - ~~**Grafana MCP auth**~~: Done
-- ~~**Plex claim**~~: Done
+- ~~**Plex claim**~~: Done — claimed, movies+TV libraries added
+- ~~**VAULT media stack**~~: Done — all 10 containers deployed via Ansible (2026-02-24)
 - ~~**Flux models**~~: Done
 - ~~**10GbE migration**~~: Done
 - ~~**JetKVM ATX cable**~~: Done
