@@ -20,15 +20,15 @@
 - NordVPN credentials needed for qBittorrent + Gluetun
 
 ### What's next (from BUILD-MANIFEST.md)
-- P1: Media agent live verification (item 2.5) — API keys confirmed, needs tool-level testing
-- P1: Dashboard agent integration (item 3.2) — now unblocked by 2.6
-- P1: Dashboard design system (item 3.1)
-- P0: Neo4j graph store on VAULT (item 1.5)
-- P1: Research agent (item 2.1)
+- P1: Dashboard design system (item 3.1) — craft work, Cormorant Garamond + dark palette
+- P0: Neo4j graph store on VAULT (item 1.5) — structured entity relationships
+- P1: Research agent (item 2.1) — web search + summarization
+- P1: Creative agent (item 2.3) — ComfyUI integration
+- P1: Dashboard monitoring page (item 3.3) — Grafana embed
 
 ### Git state
-- Branch: main, ahead of origin by 2 commits
-- Last commit: `feat(agents): route all inference through LiteLLM proxy`
+- Branch: main, pushed to origin
+- Last commit: `chore: mark BUILD-MANIFEST 3.2 done`
 
 ---
 
