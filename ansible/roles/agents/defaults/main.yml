@@ -17,6 +17,6 @@ agent_vllm_embedding_url: "http://192.168.1.244:8001/v1"
 agent_prometheus_url: "{{ prometheus_url | default('http://192.168.1.203:9090') }}"
 
 # Media stack API keys (from deployed Sonarr/Radarr/Tautulli on VAULT)
-agent_sonarr_api_key: "00c61e0aab6b4e469f90ca3afd0dc07b"
-agent_radarr_api_key: "c6269fccc2b644498ec1c9ffcbc40124"
-agent_tautulli_api_key: "c5f35f970e614f6d90301dcad8cdf092"
+agent_sonarr_api_key: "86be972e19674a00844e722e43e29d07"
+agent_radarr_api_key: "628ed6a9560a40a0b2d54e05be435b0b"
+agent_tautulli_api_key: "efd937b752a74e42b62ce32b7e3b5bd5"

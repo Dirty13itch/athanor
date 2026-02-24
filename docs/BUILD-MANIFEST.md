@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 10: 2.6 done, 4.2-4.3 docs extracted)
+Last updated: 2026-02-24 (Session 10: 2.5+2.6 done, 4.2-4.3 docs extracted)
 
 ---
 
@@ -105,12 +105,11 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `projects/agents/src/athanor_agents/agents/home.py`, `projects/agents/src/athanor_agents/tools/home.py`
 
 ### 2.5 — Media Agent wiring
-- **Status:** 🔲
-- **Why:** Media agent code exists but needs verification against the freshly deployed VAULT services. Sonarr/Radarr/Prowlarr API keys may need updating.
-- **Scope:** Verify media agent tools work against live Sonarr (:8989), Radarr (:7878), Prowlarr (:9696), Tautulli (:8181). Update API keys/URLs. Test each tool.
-- **Done when:** Media agent can search for a show via Sonarr API, search for a movie via Radarr, and report Plex activity via Tautulli.
-- **Depends on:** 1.1 or direct VAULT access
-- **Files:** `projects/agents/src/athanor_agents/tools/media.py`, `projects/agents/src/athanor_agents/config.py`
+- **Status:** ✅ (Session 10, 2026-02-24)
+- **What changed:** Found deployed API keys were stale (from pre-recovery containers). Extracted fresh keys from VAULT config files. Updated Ansible defaults and deployed container.
+- **Verified:** All 3 APIs authenticate (Sonarr, Radarr, Tautulli). Search tools work end-to-end: media agent searched Breaking Bad (103 results) and Inception (11 results) successfully. Media status endpoint returns structured data.
+- **Keys:** Sonarr `86be97...d07`, Radarr `628ed6...b0b`, Tautulli `efd937...bd5`
+- **Note:** Libraries empty — Sonarr/Radarr need Prowlarr indexer config, Tautulli needs Plex connection (both require Shaun in browser)
 
 ### 2.6 — Agent routing via LiteLLM
 - **Status:** ✅ (Session 10, 2026-02-24)
