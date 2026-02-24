@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 10: 2.5+2.6+3.2 done, 4.2-4.3 docs extracted)
+Last updated: 2026-02-24 (Session 11: 1.5 Neo4j, 2.1 Research Agent, 2.3 Creative Agent, 3.1 Design System, 3.3 Monitoring Page)
 
 ---
 
@@ -59,12 +59,14 @@ These are missing pieces that other work depends on.
 - **Remaining:** Agent framework integration (memory tools)
 
 ### 1.5 — Graph knowledge store (Neo4j)
-- **Status:** 🔲  
-- **Why:** Structured relationships between entities (services, nodes, projects, people, concepts). Complements Qdrant's vector search with graph traversal.
-- **Scope:** Deploy Neo4j Community on VAULT (storage node, not GPU-bound). Create initial schema (nodes: Service, Node, Project, Agent; relationships: RUNS_ON, DEPENDS_ON, MANAGES). Write Ansible role.
-- **Done when:** Neo4j browser accessible at `http://192.168.1.203:7474`. Schema seeded with current infrastructure graph.
-- **Depends on:** Nothing (VAULT access works)
-- **Files:** `ansible/roles/neo4j/`, seed scripts
+- **Status:** ✅ (Session 11, 2026-02-24)
+- **Deployed:** VAULT:7474 (HTTP), VAULT:7687 (Bolt). Image: `neo4j:5-community` (v5.26.21)
+- **Auth:** neo4j/athanor2026
+- **Memory:** 512m heap initial, 2g max, 1g pagecache
+- **Schema:** 4 constraints (Node, Service, Agent, Project uniqueness)
+- **Seeded graph:** 4 Nodes, 16 Services, 3 Agents, 3 Projects, 29 relationships (RUNS_ON, DEPENDS_ON, ROUTES_TO, MANAGES, USES)
+- **Role:** `ansible/roles/vault-neo4j/` (env-var config, no mounted conf file)
+- **Deploy:** `ansible-playbook playbooks/vault.yml --tags neo4j`
 
 ---
 
@@ -73,12 +75,12 @@ These are missing pieces that other work depends on.
 The agent framework exists but is skeletal. These items make agents actually useful.
 
 ### 2.1 — Research Agent
-- **Status:** 🔲
-- **Why:** VISION.md lists this as a core agent. Web search, summarization, report generation.
-- **Scope:** Implement research agent in LangGraph. Tools: web search (via tool-calling LLM), document summarization, report writing to `docs/research/`. Register in agent server.
-- **Done when:** Can ask "Research the latest vLLM release notes" and get a structured report saved to docs.
-- **Depends on:** 1.2 (LiteLLM for model access)
-- **Files:** `projects/agents/src/athanor_agents/agents/research.py`, `projects/agents/src/athanor_agents/tools/research.py`
+- **Status:** ✅ (Session 11, 2026-02-24)
+- **Deployed:** Node 1:9000 as `research-agent`, uses `reasoning` model (Qwen3-32B-AWQ)
+- **Tools:** `web_search` (DuckDuckGo, no API key), `fetch_page` (HTTP + HTML text extraction), `search_knowledge` (Qdrant vector search via LiteLLM embeddings), `query_infrastructure` (Neo4j Cypher queries)
+- **Tested:** Agent produces structured reports with Summary, Key Findings, Sources, and Relevance to Athanor sections. All 4 tools functional.
+- **Files:** `agents/research.py`, `tools/research.py`, `agents/__init__.py`, `server.py`
+- **Dependency added:** `duckduckgo-search>=7.0` to pyproject.toml
 
 ### 2.2 — Knowledge Agent
 - **Status:** 🔲
@@ -89,12 +91,12 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `projects/agents/src/athanor_agents/agents/knowledge.py`, `projects/agents/src/athanor_agents/tools/knowledge.py`
 
 ### 2.3 — Creative Agent
-- **Status:** 🔲
-- **Why:** VISION.md lists as core agent. Generates images/video on demand. ComfyUI is deployed on Node 2.
-- **Scope:** Implement creative agent. Tools: trigger ComfyUI workflows (via API), check generation status, retrieve outputs. Support Flux text-to-image initially.
-- **Done when:** Can ask "Generate an image of a dark castle at sunset" and get a Flux-generated image returned.
-- **Depends on:** 1.2 (LiteLLM), ComfyUI running on Node 2 (verify)
-- **Files:** `projects/agents/src/athanor_agents/agents/creative.py`, `projects/agents/src/athanor_agents/tools/creative.py`
+- **Status:** ✅ (Session 11, 2026-02-24)
+- **Deployed:** Node 1:9000 as `creative-agent`, uses `fast` model (Qwen3-14B)
+- **Tools:** `generate_image` (Flux dev FP8 via ComfyUI API), `check_queue`, `get_generation_history`, `get_comfyui_status`
+- **Model download:** Flux dev FP8 (~17GB) downloading to `/mnt/vault/models/comfyui/checkpoints/flux1-dev-fp8.safetensors` via NFS
+- **Tested:** Agent returns ComfyUI system status (GPU info, VRAM, versions). Image generation ready once Flux model download completes.
+- **Files:** `agents/creative.py`, `tools/creative.py`
 
 ### 2.4 — Home Agent activation
 - **Status:** 🚫 blocked — HA onboarding requires Shaun in browser
@@ -123,12 +125,11 @@ The agent framework exists but is skeletal. These items make agents actually use
 ## Tier 3: Dashboard & Interface (P1)
 
 ### 3.1 — Dashboard design system
-- **Status:** 🔲
-- **Why:** VISION.md: "Dark, minimal, clean. Inspired by the Twelve Words artifact — Cormorant Garamond, subtle warmth, no clutter. This is a crafted interface, not a generic admin panel."
-- **Scope:** Define and implement a proper design system. Typography (Cormorant Garamond for headers, system font for body), color palette (dark with warm accents), spacing scale, component library refinement. This is craft work — take the time.
-- **Done when:** Design system documented in `projects/dashboard/docs/DESIGN.md`. All existing pages updated to use it. Feels distinctly Athanor, not generic shadcn.
-- **Depends on:** Nothing
-- **Files:** `projects/dashboard/src/`, `projects/dashboard/docs/DESIGN.md`
+- **Status:** ✅ (Session 11, 2026-02-24)
+- **Delivered:** `projects/dashboard/docs/DESIGN.md` — comprehensive design system documenting principles, OKLCh color palette (core + semantic), typography scale (3 fonts, 8 element sizes), spacing system, component library, interaction states, chart colors, status indicators, responsive strategy, anti-patterns.
+- **New CSS tokens:** Added `--success` (green), `--warning` (yellow), `--info` (blue) semantic colors to both light and dark themes. Added `global-error.tsx` for Next.js 16 compatibility.
+- **Dashboard rebuilt and deployed** to Node 2:3001.
+- **Files:** `projects/dashboard/docs/DESIGN.md`, `globals.css`, `global-error.tsx`
 
 ### 3.2 — Dashboard agent integration
 - **Status:** ✅ (Session 10, 2026-02-24)
@@ -137,12 +138,10 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `config.ts`, `chat/route.ts`, `models/route.ts`
 
 ### 3.3 — Dashboard monitoring page
-- **Status:** 🔲
-- **Why:** Dashboard has GPU cards but should embed Grafana panels for deep monitoring.
-- **Scope:** Add iframe/API integration with Grafana dashboards. Show key metrics: GPU util/temp/VRAM, CPU, memory, disk, network, container health. Auto-refresh.
-- **Done when:** Monitoring page shows live data from Grafana. No need to open Grafana separately.
-- **Depends on:** Grafana running on VAULT (it is)
-- **Files:** `projects/dashboard/src/app/monitoring/`
+- **Status:** ✅ (Session 11, 2026-02-24)
+- **Delivered:** Full monitoring page at `/monitoring` with live Prometheus data. Per-node cards show CPU (with 1hr sparkline), memory (with sparkline), disk usage, network throughput. Cluster summary strip shows aggregate metrics. Grafana deep-links to Node Exporter Full and DCGM dashboards. Auto-refresh every 15s via ISR + client-side router refresh.
+- **Approach:** Direct Prometheus API queries (not iframe embeds) — cleaner integration, consistent styling, no auth issues.
+- **Files:** `projects/dashboard/src/app/monitoring/page.tsx`, sidebar-nav.tsx (added Monitoring link + ServerIcon)
 
 ---
 

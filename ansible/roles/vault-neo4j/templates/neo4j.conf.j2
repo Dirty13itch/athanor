@@ -1,0 +1,28 @@
+# Athanor Neo4j Configuration
+# Managed by Ansible — do not edit manually
+
+# Memory
+server.memory.heap.initial_size={{ neo4j_heap_initial }}
+server.memory.heap.max_size={{ neo4j_heap_max }}
+server.memory.pagecache.size={{ neo4j_pagecache_size }}
+
+# Network
+server.default_listen_address=0.0.0.0
+server.bolt.listen_address=0.0.0.0:7687
+server.http.listen_address=0.0.0.0:7474
+
+# Disable HTTPS (internal network only)
+server.https.enabled=false
+
+# Allow remote connections
+dbms.security.auth_enabled=true
+
+# Transaction timeout (prevent runaway queries)
+db.transaction.timeout=30s
+
+# Query logging
+db.logs.query.enabled=OFF
+
+# JVM additional settings for container environment
+server.jvm.additional=-XX:+UseG1GC
+server.jvm.additional=-XX:+ExitOnOutOfMemoryError

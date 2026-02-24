@@ -1,0 +1,6 @@
+---
+qdrant_image: qdrant/qdrant:v1.13.2
+qdrant_rest_port: 6333
+qdrant_grpc_port: 6334
+qdrant_data_path: /opt/athanor/qdrant/storage
+qdrant_config_path: /opt/athanor/qdrant/config

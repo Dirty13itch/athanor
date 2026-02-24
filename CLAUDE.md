@@ -135,11 +135,11 @@ Full details in `docs/hardware/inventory.md`.
 
 **What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4) + Node 2 (Qwen3-14B), LiteLLM proxy (VAULT:4000, routes all inference), Qdrant vector DB (Node 1:6333), ComfyUI + Flux (Node 2), Dashboard (Node 2), Open WebUI (Node 2), Prometheus + Grafana (VAULT), VAULT media stack (Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, HA).
 
-**Agent framework:** General Assistant + Media Agent running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent skeleton not yet registered (blocked on HA onboarding). Dashboard has no agent routing page yet — agents accessible via direct API only.
+**Agent framework:** 4 agents running on Node 1:9000. General Assistant (system tools), Media Agent (Sonarr/Radarr/Tautulli), Research Agent (web search, Qdrant, Neo4j), Creative Agent (ComfyUI Flux). Home Agent blocked on HA onboarding.
 
 **GPU allocation:** Node 1 (5 GPUs, 88 GB) runs vLLM TP=4 on GPUs 0-3 (3x 5070 Ti + 4090, ~15.6 GiB each) + vLLM embedding on GPU 4 (5070 Ti, ~14.6 GiB) + agent server. All 5 GPUs active. Node 2 (2 GPUs, 48 GB) runs vLLM on RTX 5090 (GPU 0), ComfyUI on RTX 5060 Ti (GPU 1).
 
-**Models on NFS** (`/mnt/vault/models/`): Qwen3-32B-AWQ (18G, reasoning), Qwen3-14B (28G, fast), Qwen3-0.6B (1.5G, draft/speculative), Qwen3-Embedding-0.6B (1.2G, embedding), gte-Qwen2-7B-instruct (14G, legacy embedding).
+**Models on NFS** (`/mnt/vault/models/`): Qwen3-32B-AWQ (18G, reasoning), Qwen3-14B (28G, fast), Qwen3-0.6B (1.5G, draft/speculative), Qwen3-Embedding-0.6B (1.2G, embedding), gte-Qwen2-7B-instruct (14G, legacy embedding), Flux dev FP8 (17G, image generation, in `comfyui/checkpoints/`).
 
 **Ansible state:** Both nodes converged via `site.yml`. VAULT playbook adds monitoring, media, HA, and LiteLLM roles. Qdrant role written for Node 1. All roles idempotent.
 
@@ -152,7 +152,7 @@ Full details in `docs/hardware/inventory.md`.
 | vLLM (Qwen3-32B-AWQ, TP=4 across 3x 5070 Ti + 4090) | Node 1 | 8000 | Running |
 | vLLM Embedding (Qwen3-Embedding-0.6B, RTX 5070 Ti GPU 4) | Node 1 | 8001 | Running |
 | vLLM (Qwen3-14B, RTX 5090, enforce-eager) | Node 2 | 8000 | Running |
-| Agent Server (General + Media + Home skeleton) | Node 1 | 9000 | Running |
+| Agent Server (General + Media + Research + Home skeleton) | Node 1 | 9000 | Running |
 | node_exporter | Node 1 | 9100 | Running |
 | dcgm-exporter | Node 1 | 9400 | Running |
 | Dashboard | Node 2 | 3001 | Running |
@@ -172,6 +172,7 @@ Full details in `docs/hardware/inventory.md`.
 | Stash | VAULT | 9999 | Running (Ansible deploy 2026-02-24) |
 | LiteLLM Proxy | VAULT | 4000 | Running (Session 9, routes: reasoning/fast/embedding) |
 | Qdrant | Node 1 | 6333 | Running (Session 9, collections: knowledge, conversations) |
+| Neo4j | VAULT | 7474 | Running (Session 11, 26 entities, 29 relationships) |
 
 ---
 

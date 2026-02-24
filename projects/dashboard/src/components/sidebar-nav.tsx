@@ -7,12 +7,13 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutIcon },
   { href: "/gpu", label: "GPUs", icon: CpuIcon },
+  { href: "/monitoring", label: "Monitoring", icon: ActivityIcon },
   { href: "/agents", label: "Agents", icon: BotIcon },
   { href: "/chat", label: "Chat", icon: MessageIcon },
   { href: "/gallery", label: "Gallery", icon: ImageIcon },
   { href: "/media", label: "Media", icon: FilmIcon },
   { href: "/home", label: "Home", icon: HomeIcon },
-  { href: "/services", label: "Services", icon: ActivityIcon },
+  { href: "/services", label: "Services", icon: ServerIcon },
 ];
 
 export function SidebarNav() {
@@ -128,6 +129,17 @@ function HomeIcon({ className }: { className?: string }) {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
       <path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+}
+
+function ServerIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+      <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+      <line x1="6" x2="6.01" y1="6" y2="6" />
+      <line x1="6" x2="6.01" y1="18" y2="18" />
     </svg>
   );
 }

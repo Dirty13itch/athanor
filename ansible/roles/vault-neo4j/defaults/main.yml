@@ -1,0 +1,19 @@
+---
+neo4j_image: neo4j:5-community
+neo4j_http_port: 7474
+neo4j_bolt_port: 7687
+neo4j_appdata_path: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/neo4j"
+
+# Auth — changed on first boot via NEO4J_AUTH
+neo4j_admin_user: neo4j
+neo4j_admin_password: athanor2026
+
+# Memory — VAULT has 128GB, allocate conservatively for a graph DB
+# Heap: for query execution and transaction state
+# Pagecache: for graph traversal (should fit most of graph in RAM)
+neo4j_heap_initial: "512m"
+neo4j_heap_max: "2g"
+neo4j_pagecache_size: "1g"
+
+# Feature flag
+neo4j_enable: true

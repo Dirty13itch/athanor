@@ -1,5 +1,7 @@
 from .general import create_general_assistant
 from .media import create_media_agent
+from .research import create_research_agent
+from .creative import create_creative_agent
 
 _AGENTS: dict = {}
 
@@ -8,6 +10,8 @@ def _init_agents():
     if not _AGENTS:
         _AGENTS["general-assistant"] = create_general_assistant()
         _AGENTS["media-agent"] = create_media_agent()
+        _AGENTS["research-agent"] = create_research_agent()
+        _AGENTS["creative-agent"] = create_creative_agent()
 
 
 def get_agent(name: str):
@@ -36,6 +40,16 @@ _AGENT_META = {
         "name": "Home Agent",
         "description": "Smart home control — lights, climate, automations via Home Assistant",
         "icon": "home",
+    },
+    "research-agent": {
+        "name": "Research Agent",
+        "description": "Web research, knowledge search, infrastructure queries — structured reports with citations",
+        "icon": "search",
+    },
+    "creative-agent": {
+        "name": "Creative Agent",
+        "description": "Image generation via ComfyUI Flux — text-to-image, queue management, generation history",
+        "icon": "image",
     },
 }
 

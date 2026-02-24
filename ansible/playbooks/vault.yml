@@ -6,6 +6,7 @@
 #   ansible-playbook playbooks/vault.yml --tags monitoring  # Monitoring only
 #   ansible-playbook playbooks/vault.yml --tags media       # Media stack only
 #   ansible-playbook playbooks/vault.yml --tags litellm     # LiteLLM proxy only
+#   ansible-playbook playbooks/vault.yml --tags neo4j       # Neo4j graph DB only
 #   ansible-playbook playbooks/vault.yml --tags plex        # Single service
 #   ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx  # First Plex deploy
 #
@@ -24,3 +25,5 @@
       tags: [homeassistant]
     - role: vault-litellm
       tags: [litellm]
+    - role: vault-neo4j
+      tags: [neo4j]

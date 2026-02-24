@@ -1,0 +1,13 @@
+# Qdrant configuration — managed by Ansible
+storage:
+  storage_path: /qdrant/storage
+
+service:
+  grpc_port: 6334
+  http_port: 6333
+  enable_tls: false
+
+# Optimized for Athanor workload — small collections, frequent updates
+optimizers:
+  default_segment_number: 2
+  indexing_threshold_kb: 20000

@@ -55,16 +55,14 @@ AGENT_METADATA = {
         "status_note": "Blocked on HA onboarding",
     },
     "creative-agent": {
-        "description": "Image generation via ComfyUI — character portraits, scene generation, EoBQ asset pipeline.",
-        "tools": ["queue_generation", "check_queue", "get_history", "load_workflow"],
+        "description": "Image generation via ComfyUI Flux — text-to-image, queue management, generation history.",
+        "tools": ["generate_image", "check_queue", "get_generation_history", "get_comfyui_status"],
         "type": "reactive",
-        "status_note": "Planned",
     },
     "research-agent": {
-        "description": "Web research and information synthesis — citations, fact-checking, source aggregation.",
-        "tools": ["web_search", "summarize", "extract_facts", "compare_sources"],
+        "description": "Web research and information synthesis — citations, fact-checking, knowledge search, graph queries.",
+        "tools": ["web_search", "fetch_page", "search_knowledge", "query_infrastructure"],
         "type": "reactive",
-        "status_note": "Planned",
     },
     "knowledge-agent": {
         "description": "Knowledge base maintenance — documentation sync, stale doc detection, cross-reference updates.",

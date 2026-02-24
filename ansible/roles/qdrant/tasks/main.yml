@@ -1,0 +1,69 @@
+---
+# Qdrant vector database for agent memory and knowledge retrieval
+# Deployed on Node 1 (core) — co-located with embedding model
+
+- name: Create Qdrant directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ qdrant_data_path }}"
+    - "{{ qdrant_config_path }}"
+
+- name: Deploy Qdrant config
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ qdrant_config_path }}/config.yaml"
+    mode: "0644"
+  register: qdrant_config
+
+- name: Run Qdrant container
+  community.docker.docker_container:
+    name: qdrant
+    image: "{{ qdrant_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ qdrant_rest_port }}:6333"
+      - "{{ qdrant_grpc_port }}:6334"
+    volumes:
+      - "{{ qdrant_data_path }}:/qdrant/storage"
+      - "{{ qdrant_config_path }}/config.yaml:/qdrant/config/config.yaml:ro"
+    restart: "{{ qdrant_config.changed | default(false) }}"
+
+- name: Wait for Qdrant to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ qdrant_rest_port }}/readyz"
+    status_code: 200
+  register: qdrant_ready
+  retries: 10
+  delay: 3
+
+- name: Create knowledge collection
+  ansible.builtin.uri:
+    url: "http://localhost:{{ qdrant_rest_port }}/collections/knowledge"
+    method: PUT
+    body_format: json
+    body:
+      vectors:
+        size: 1024
+        distance: Cosine
+      optimizers_config:
+        indexing_threshold: 20000
+    status_code: [200, 409]
+  register: knowledge_collection
+
+- name: Create conversations collection
+  ansible.builtin.uri:
+    url: "http://localhost:{{ qdrant_rest_port }}/collections/conversations"
+    method: PUT
+    body_format: json
+    body:
+      vectors:
+        size: 1024
+        distance: Cosine
+      optimizers_config:
+        indexing_threshold: 20000
+    status_code: [200, 409]
+  register: conversations_collection

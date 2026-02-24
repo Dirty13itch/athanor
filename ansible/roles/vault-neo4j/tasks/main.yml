@@ -1,0 +1,291 @@
+---
+# VAULT Neo4j: Graph knowledge store
+# Community Edition — free, single-database, full Cypher support
+# Stores structured entity relationships for Athanor infrastructure + projects
+
+- name: Create Neo4j appdata directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ neo4j_appdata_path }}/data"
+    - "{{ neo4j_appdata_path }}/logs"
+
+- name: Run Neo4j container
+  community.docker.docker_container:
+    name: neo4j
+    image: "{{ neo4j_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ neo4j_http_port }}:7474"
+      - "{{ neo4j_bolt_port }}:7687"
+    volumes:
+      - "{{ neo4j_appdata_path }}/data:/data"
+      - "{{ neo4j_appdata_path }}/logs:/logs"
+    env:
+      NEO4J_AUTH: "{{ neo4j_admin_user }}/{{ neo4j_admin_password }}"
+      NEO4J_server_memory_heap_initial__size: "{{ neo4j_heap_initial }}"
+      NEO4J_server_memory_heap_max__size: "{{ neo4j_heap_max }}"
+      NEO4J_server_memory_pagecache_size: "{{ neo4j_pagecache_size }}"
+      NEO4J_server_default__listen__address: "0.0.0.0"
+      NEO4J_server_bolt_listen__address: "0.0.0.0:7687"
+      NEO4J_server_http_listen__address: "0.0.0.0:7474"
+      NEO4J_server_https_enabled: "false"
+      NEO4J_db_transaction_timeout: "30s"
+      NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
+  when:
+    - neo4j_enable
+    - not ansible_check_mode
+
+- name: Wait for Neo4j HTTP API
+  ansible.builtin.uri:
+    url: "http://localhost:{{ neo4j_http_port }}"
+    status_code: 200
+  register: neo4j_ready
+  retries: 15
+  delay: 5
+  until: neo4j_ready.status == 200
+  when:
+    - neo4j_enable
+    - not ansible_check_mode
+
+- name: Seed infrastructure graph schema
+  ansible.builtin.uri:
+    url: "http://localhost:{{ neo4j_http_port }}/db/neo4j/tx/commit"
+    method: POST
+    user: "{{ neo4j_admin_user }}"
+    password: "{{ neo4j_admin_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      statements:
+        - statement: >
+            CREATE CONSTRAINT node_name IF NOT EXISTS
+            FOR (n:Node) REQUIRE n.name IS UNIQUE
+        - statement: >
+            CREATE CONSTRAINT service_name IF NOT EXISTS
+            FOR (s:Service) REQUIRE s.name IS UNIQUE
+        - statement: >
+            CREATE CONSTRAINT agent_name IF NOT EXISTS
+            FOR (a:Agent) REQUIRE a.name IS UNIQUE
+        - statement: >
+            CREATE CONSTRAINT project_name IF NOT EXISTS
+            FOR (p:Project) REQUIRE p.name IS UNIQUE
+    status_code: [200]
+  when:
+    - neo4j_enable
+    - not ansible_check_mode
+  register: neo4j_constraints
+
+- name: Seed infrastructure nodes
+  ansible.builtin.uri:
+    url: "http://localhost:{{ neo4j_http_port }}/db/neo4j/tx/commit"
+    method: POST
+    user: "{{ neo4j_admin_user }}"
+    password: "{{ neo4j_admin_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      statements:
+        # Hardware nodes
+        - statement: >
+            MERGE (n:Node {name: 'node1'})
+            SET n.hostname = 'core', n.ip = '192.168.1.244',
+                n.cpu = 'EPYC 7663 56C/112T', n.ram_gb = 224,
+                n.gpu_count = 5, n.vram_gb = 88, n.role = 'inference'
+        - statement: >
+            MERGE (n:Node {name: 'node2'})
+            SET n.hostname = 'interface', n.ip = '192.168.1.225',
+                n.cpu = 'TR 7960X 24C/48T', n.ram_gb = 128,
+                n.gpu_count = 2, n.vram_gb = 48, n.role = 'interface'
+        - statement: >
+            MERGE (n:Node {name: 'vault'})
+            SET n.hostname = 'vault', n.ip = '192.168.1.203',
+                n.cpu = 'Ryzen 9950X 16C/32T', n.ram_gb = 128,
+                n.role = 'storage'
+        - statement: >
+            MERGE (n:Node {name: 'dev'})
+            SET n.hostname = 'dev', n.ip = '192.168.1.215',
+                n.cpu = 'i7-13700K 16C/24T', n.ram_gb = 64,
+                n.role = 'workstation'
+        # Services
+        - statement: >
+            MERGE (s:Service {name: 'vllm-reasoning'})
+            SET s.port = 8000, s.model = 'Qwen3-32B-AWQ', s.type = 'inference'
+        - statement: >
+            MERGE (s:Service {name: 'vllm-fast'})
+            SET s.port = 8000, s.model = 'Qwen3-14B', s.type = 'inference'
+        - statement: >
+            MERGE (s:Service {name: 'vllm-embedding'})
+            SET s.port = 8001, s.model = 'Qwen3-Embedding-0.6B', s.type = 'embedding'
+        - statement: >
+            MERGE (s:Service {name: 'litellm'})
+            SET s.port = 4000, s.type = 'proxy'
+        - statement: >
+            MERGE (s:Service {name: 'qdrant'})
+            SET s.port = 6333, s.type = 'vector-db'
+        - statement: >
+            MERGE (s:Service {name: 'neo4j'})
+            SET s.port = 7474, s.type = 'graph-db'
+        - statement: >
+            MERGE (s:Service {name: 'agent-server'})
+            SET s.port = 9000, s.type = 'agent-framework'
+        - statement: >
+            MERGE (s:Service {name: 'comfyui'})
+            SET s.port = 8188, s.type = 'image-generation'
+        - statement: >
+            MERGE (s:Service {name: 'dashboard'})
+            SET s.port = 3001, s.type = 'ui'
+        - statement: >
+            MERGE (s:Service {name: 'open-webui'})
+            SET s.port = 3000, s.type = 'ui'
+        - statement: >
+            MERGE (s:Service {name: 'prometheus'})
+            SET s.port = 9090, s.type = 'monitoring'
+        - statement: >
+            MERGE (s:Service {name: 'grafana'})
+            SET s.port = 3000, s.type = 'monitoring'
+        - statement: >
+            MERGE (s:Service {name: 'plex'})
+            SET s.port = 32400, s.type = 'media'
+        - statement: >
+            MERGE (s:Service {name: 'sonarr'})
+            SET s.port = 8989, s.type = 'media'
+        - statement: >
+            MERGE (s:Service {name: 'radarr'})
+            SET s.port = 7878, s.type = 'media'
+        - statement: >
+            MERGE (s:Service {name: 'home-assistant'})
+            SET s.port = 8123, s.type = 'home-automation'
+        # Agents
+        - statement: >
+            MERGE (a:Agent {name: 'general-assistant'})
+            SET a.model = 'reasoning', a.status = 'active'
+        - statement: >
+            MERGE (a:Agent {name: 'media-agent'})
+            SET a.model = 'fast', a.status = 'active'
+        - statement: >
+            MERGE (a:Agent {name: 'home-agent'})
+            SET a.model = 'fast', a.status = 'blocked'
+        # Projects
+        - statement: >
+            MERGE (p:Project {name: 'eoq'})
+            SET p.title = 'Empire of Broken Queens', p.status = 'scaffold'
+        - statement: >
+            MERGE (p:Project {name: 'kindred'})
+            SET p.title = 'Kindred', p.status = 'concept'
+        - statement: >
+            MERGE (p:Project {name: 'ulrich-energy'})
+            SET p.title = 'Ulrich Energy', p.status = 'placeholder'
+    status_code: [200]
+  when:
+    - neo4j_enable
+    - not ansible_check_mode
+
+- name: Seed infrastructure relationships
+  ansible.builtin.uri:
+    url: "http://localhost:{{ neo4j_http_port }}/db/neo4j/tx/commit"
+    method: POST
+    user: "{{ neo4j_admin_user }}"
+    password: "{{ neo4j_admin_password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      statements:
+        # RUNS_ON relationships
+        - statement: >
+            MATCH (s:Service {name: 'vllm-reasoning'}), (n:Node {name: 'node1'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'vllm-embedding'}), (n:Node {name: 'node1'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'qdrant'}), (n:Node {name: 'node1'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'agent-server'}), (n:Node {name: 'node1'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'vllm-fast'}), (n:Node {name: 'node2'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'comfyui'}), (n:Node {name: 'node2'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'dashboard'}), (n:Node {name: 'node2'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'open-webui'}), (n:Node {name: 'node2'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'litellm'}), (n:Node {name: 'vault'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'neo4j'}), (n:Node {name: 'vault'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'prometheus'}), (n:Node {name: 'vault'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'grafana'}), (n:Node {name: 'vault'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'plex'}), (n:Node {name: 'vault'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'sonarr'}), (n:Node {name: 'vault'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'radarr'}), (n:Node {name: 'vault'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'home-assistant'}), (n:Node {name: 'vault'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        # DEPENDS_ON relationships
+        - statement: >
+            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'vllm-reasoning'})
+            MERGE (s)-[:ROUTES_TO]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'vllm-fast'})
+            MERGE (s)-[:ROUTES_TO]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'vllm-embedding'})
+            MERGE (s)-[:ROUTES_TO]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'agent-server'}), (t:Service {name: 'litellm'})
+            MERGE (s)-[:DEPENDS_ON]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'agent-server'}), (t:Service {name: 'qdrant'})
+            MERGE (s)-[:DEPENDS_ON]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'dashboard'}), (t:Service {name: 'agent-server'})
+            MERGE (s)-[:DEPENDS_ON]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'dashboard'}), (t:Service {name: 'prometheus'})
+            MERGE (s)-[:DEPENDS_ON]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'grafana'}), (t:Service {name: 'prometheus'})
+            MERGE (s)-[:DEPENDS_ON]->(t)
+        # MANAGES relationships (agents → services)
+        - statement: >
+            MATCH (a:Agent {name: 'media-agent'}), (s:Service {name: 'sonarr'})
+            MERGE (a)-[:MANAGES]->(s)
+        - statement: >
+            MATCH (a:Agent {name: 'media-agent'}), (s:Service {name: 'radarr'})
+            MERGE (a)-[:MANAGES]->(s)
+        - statement: >
+            MATCH (a:Agent {name: 'home-agent'}), (s:Service {name: 'home-assistant'})
+            MERGE (a)-[:MANAGES]->(s)
+        # USES relationships (projects → infrastructure)
+        - statement: >
+            MATCH (p:Project {name: 'eoq'}), (s:Service {name: 'comfyui'})
+            MERGE (p)-[:USES]->(s)
+        - statement: >
+            MATCH (p:Project {name: 'eoq'}), (s:Service {name: 'vllm-reasoning'})
+            MERGE (p)-[:USES]->(s)
+    status_code: [200]
+  when:
+    - neo4j_enable
+    - not ansible_check_mode
