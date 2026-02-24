@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 10: 2.5+2.6 done, 4.2-4.3 docs extracted)
+Last updated: 2026-02-24 (Session 10: 2.5+2.6+3.2 done, 4.2-4.3 docs extracted)
 
 ---
 
@@ -131,12 +131,10 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `projects/dashboard/src/`, `projects/dashboard/docs/DESIGN.md`
 
 ### 3.2 — Dashboard agent integration
-- **Status:** 🔲
-- **Why:** Dashboard has a chat page but it talks directly to vLLM. Should route through the agent framework for tool-calling capabilities.
-- **Scope:** Update chat API route to hit agent server (:9000). Support streaming. Show tool calls in the UI. Allow agent selection (general, media, home, creative).
-- **Done when:** Chat in dashboard can trigger agent tools (e.g., "show me GPU temps" actually calls the system tools agent).
-- **Depends on:** 2.6 (agents on LiteLLM), 1.1 (SSH for deploy)
-- **Files:** `projects/dashboard/src/app/chat/`, `projects/dashboard/src/app/api/chat/`
+- **Status:** ✅ (Session 10, 2026-02-24)
+- **What changed:** Dashboard already had full agent routing + tool call visualization — just needed config updates. Added LiteLLM as inference backend (with auth), added 3 missing service checks (LiteLLM, Qdrant, vLLM Embedding), fixed GPU workload labels. Models endpoint now shows all 4 backends (LiteLLM, Node 1, Node 2, Agents).
+- **Verified:** 21/22 services UP on dashboard (HA blocked on onboarding). Chat selector shows LiteLLM aliases + direct models + agents. Tool call cards render correctly.
+- **Files:** `config.ts`, `chat/route.ts`, `models/route.ts`
 
 ### 3.3 — Dashboard monitoring page
 - **Status:** 🔲
