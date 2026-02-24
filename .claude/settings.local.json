@@ -8,5 +8,12 @@
     "context7",
     "playwright",
     "filesystem"
-  ]
+  ],
+  "remote": {
+    "defaultEnvironmentId": "env_01TdXPs4C1XSR7NV7BXNMhdG"
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  }
 }
