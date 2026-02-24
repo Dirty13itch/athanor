@@ -4,41 +4,31 @@
 
 ---
 
-## Last Session: 2026-02-24 (Session 8: Post-Deployment Hardening)
+## Last Session: 2026-02-24 (Session 10: Context Reconciliation + LiteLLM Agent Routing)
 
 ### What happened
-- Pushed 3 unpushed commits to origin/main (media stack, autonomy fix, build system)
-- Fixed git remote: switched from SSH to HTTPS (gh credential helper) — SSH key not registered with GitHub
-- Verified full monitoring pipeline: Prometheus 5/5 targets UP, Grafana healthy (v12.3.3)
-- Verified all 7 GPUs reporting via DCGM (Node 1: 5 GPUs 28-40°C, Node 2: 2 GPUs 30-38°C)
-- Verified all 10 VAULT containers have `restart=unless-stopped`
-- Verified NFS mounts healthy: Node 1 (models+data+appdata), Node 2 (models+data)
-- Updated BUILD-ROADMAP.md: marked Phase 5 items complete, added remaining config tasks
-- Node memory confirmed: Node 1 = 220 GB, Node 2 = 125 GB
-
-### Key findings
-- DEV→Node SSH now works (athanor_mgmt key, via ssh-agent) — blocker from Session 7 resolved
-- Git SSH to GitHub does NOT work — id_ed25519 key not added to GitHub. Using HTTPS via gh auth instead
-- Node 2 missing `/mnt/vault/appdata` mount — not critical (models+data are the important ones)
-- VAULT data array at 89% capacity (146T/165T) — worth monitoring
+- **Reconciled context doc** (1,509-line claude.ai architecture dump): Identified 6 contradictions with ground truth, extracted 15 genuinely new items into proper repo locations (ADR-013, design docs, project specs)
+- **Agent LiteLLM routing** (manifest 2.6): Rewired all agent inference from direct vLLM to LiteLLM proxy. Config uses model aliases. Service checks expanded to 16 services. Deployed to Node 1:9000, tested end-to-end.
+- **Verified 16/16 services UP**: LiteLLM, both vLLMs, Qdrant, ComfyUI, Open WebUI, Dashboard, Prometheus, Grafana, Sonarr, Radarr, SABnzbd, Tautulli, Stash, Plex
+- **Doc extraction**: Kindred CONCEPT.md (4.2), Ulrich Energy WORKFLOWS.md (4.3), dashboard SPEC.md, EoBQ ARCHITECTURE.md, 11 design docs, ADR-013 security architecture
+- **Media API keys confirmed**: Sonarr/Radarr/Tautulli keys working in deployed agent container
 
 ### Current blockers
 - HA onboarding requires Shaun in browser (http://192.168.1.203:8123)
 - Sonarr/Radarr/Prowlarr need indexer config via Prowlarr UI
 - SABnzbd needs Usenet provider credentials
 - NordVPN credentials needed for qBittorrent + Gluetun
-- Grafana MCP tool needs permission approval in Claude Code settings
 
 ### What's next (from BUILD-MANIFEST.md)
-- P0: LiteLLM routing layer (item 1.2)
-- P0: Deploy Qdrant vector DB (item 1.4)
-- P1: Add GitHub SSH key to account (or keep using HTTPS)
-- P1: Monitor VAULT data array capacity (89% full)
+- P1: Media agent live verification (item 2.5) — API keys confirmed, needs tool-level testing
+- P1: Dashboard agent integration (item 3.2) — now unblocked by 2.6
+- P1: Dashboard design system (item 3.1)
+- P0: Neo4j graph store on VAULT (item 1.5)
+- P1: Research agent (item 2.1)
 
 ### Git state
-- Branch: main
-- All commits pushed to origin
-- No uncommitted changes (pending: roadmap + memory updates)
+- Branch: main, ahead of origin by 2 commits
+- Last commit: `feat(agents): route all inference through LiteLLM proxy`
 
 ---
 
@@ -53,3 +43,5 @@
 | 6 | 2026-02-23 | Refinement | Embedding model, speculative decoding, UFW, NFS hardening |
 | 7 | 2026-02-24 | VAULT + Autonomy | 10 VAULT containers, Claude Code autonomy, BUILD-MANIFEST |
 | 8 | 2026-02-24 | Post-deploy hardening | Git push, monitoring verified, NFS verified, restart policies confirmed |
+| 9 | 2026-02-24 | SSH + LiteLLM + Qdrant | Fixed WSL SSH keys, LiteLLM on VAULT:4000, Qdrant on Node 1:6333 |
+| 10 | 2026-02-24 | Context reconciliation + Agent routing | 15 docs extracted, agents wired to LiteLLM, 16/16 services verified |

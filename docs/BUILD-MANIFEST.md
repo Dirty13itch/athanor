@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24
+Last updated: 2026-02-24 (Session 10: 2.6 done, 4.2-4.3 docs extracted)
 
 ---
 
@@ -26,38 +26,37 @@ Last updated: 2026-02-24
 These are missing pieces that other work depends on.
 
 ### 1.1 — Fix DEV→Node SSH access
-- **Status:** 🔲
-- **Why:** Claude Code on DEV/WSL can't SSH to Node 1 or Node 2. This blocks all remote management.
-- **Scope:** Diagnose why `ssh shaun@192.168.1.244` and `ssh shaun@192.168.1.225` fail from WSL. Check key, check connectivity (`ping`), check if nodes are up. Fix or document the access path.
-- **Done when:** `ssh shaun@192.168.1.244 hostname` and `ssh shaun@192.168.1.225 hostname` both succeed from DEV/WSL.
-- **Depends on:** Nothing
-- **Files:** `~/.ssh/config`, `~/.ssh/known_hosts`
+- **Status:** ✅ (Session 8, 2026-02-24)
+- **Root cause:** WSL had different SSH keys than Windows. The `athanor_mgmt` symlink in WSL pointed to a WSL-generated `id_ed25519`, not the Windows key that was deployed to nodes.
+- **Fix:** Copied Windows SSH keys (`athanor_mgmt`, `id_ed25519`) to WSL `~/.ssh/`. Added WSL public key to both nodes' `authorized_keys`. Created `~/.ssh/config` with node aliases.
+- **Verified:** `ssh node1 hostname` → `core`, `ssh node2 hostname` → `interface`, passwordless sudo works.
 
 ### 1.2 — LiteLLM routing layer
-- **Status:** 🔲
-- **Why:** ADR-012 decided on LiteLLM. Without it, agents talk directly to individual vLLM instances. LiteLLM provides model aliasing, fallback, load balancing, and a single endpoint for all inference.
-- **Scope:** Deploy LiteLLM on Node 1 (or Node 2) via Docker. Configure routes to Node 1 vLLM (Qwen3-32B-AWQ :8000) and Node 2 vLLM (Qwen3-14B :8000). Write Ansible role. Test from dashboard and agents.
-- **Done when:** `curl http://<litellm-host>:4000/v1/models` returns both models. Agents and dashboard point to LiteLLM instead of direct vLLM.
-- **Depends on:** 1.1 (SSH access to deploy)
-- **Files:** `ansible/roles/litellm/`, ADR-012, `projects/agents/src/athanor_agents/config.py`
-- **Research:** Read ADR-012 first. Check latest LiteLLM Docker image and config format.
+- **Status:** ✅ (Session 8, 2026-02-24)
+- **Deployed:** VAULT:4000 via Ansible (`ansible-playbook playbooks/vault.yml --tags litellm`)
+- **Image:** `ghcr.io/berriai/litellm:main-v1.81.9-stable` (stateless, no DB)
+- **Routes:** `reasoning` → Node 1 Qwen3-32B-AWQ, `fast` → Node 2 Qwen3-14B, `embedding` → Node 1 Qwen3-Embedding-0.6B
+- **Aliases:** `gpt-4` → reasoning, `gpt-3.5-turbo` → fast, `text-embedding-ada-002` → embedding
+- **Auth:** Bearer `sk-athanor-litellm-2026`
+- **Role:** `ansible/roles/vault-litellm/`
+- **Remaining:** Wire agents and dashboard to use LiteLLM instead of direct vLLM (item 2.6)
 
 ### 1.3 — Embedding model service
-- **Status:** 🔲
-- **Why:** RAG, knowledge agent, and semantic search all need embeddings. Qwen3-Embedding-0.6B was downloaded but the service config in BUILD-ROADMAP says it was deployed on GPU 4 port 8001 — verify this is actually running.
-- **Scope:** Verify or deploy embedding model via vLLM on Node 1 GPU 4 (RTX 5070 Ti). Expose on port 8001. Write/update Ansible role. Test embedding generation.
-- **Done when:** `curl http://192.168.1.244:8001/v1/embeddings` with a test string returns a vector.
-- **Depends on:** 1.1
-- **Files:** `ansible/roles/vllm/`, `services/node1/`
+- **Status:** ✅ (Verified Session 8, deployed Session 6)
+- **Running:** Qwen3-Embedding-0.6B on Node 1 GPU 4 (RTX 5070 Ti), port 8001
+- **Model name:** `/models/Qwen3-Embedding-0.6B` (not HuggingFace path)
+- **Dimensions:** 1024, max sequence length 32768
+- **Also routed via:** LiteLLM at VAULT:4000 as `embedding`
 
 ### 1.4 — Memory persistence layer (Qdrant)
-- **Status:** 🔲
-- **Why:** Agents need persistent vector memory. Knowledge agent needs a vector store. This is the foundation for all RAG and semantic retrieval.
-- **Scope:** Deploy Qdrant on Node 1 via Docker. Create initial collections (conversations, knowledge, embeddings). Write Ansible role. Integrate with agent framework.
-- **Done when:** Qdrant API responds at `http://192.168.1.244:6333`. At least one collection created. Agent framework can store and retrieve vectors.
-- **Depends on:** 1.1, 1.3 (embeddings for vector storage)
-- **Files:** `ansible/roles/qdrant/`, `projects/agents/src/athanor_agents/tools/memory.py`
-- **Research:** Qdrant Docker deployment, collection schema design, optimal distance metrics for Qwen3 embeddings.
+- **Status:** ✅ (Session 8, 2026-02-24)
+- **Deployed:** Node 1:6333 (REST), Node 1:6334 (gRPC)
+- **Image:** `qdrant/qdrant:v1.13.2`
+- **Collections:** `knowledge` (1024-dim, Cosine), `conversations` (1024-dim, Cosine)
+- **Storage:** `/opt/athanor/qdrant/storage`
+- **Role:** `ansible/roles/qdrant/`
+- **E2E tested:** LiteLLM embedding → Qdrant upsert → semantic search (score 0.78)
+- **Remaining:** Agent framework integration (memory tools)
 
 ### 1.5 — Graph knowledge store (Neo4j)
 - **Status:** 🔲  
@@ -114,12 +113,11 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `projects/agents/src/athanor_agents/tools/media.py`, `projects/agents/src/athanor_agents/config.py`
 
 ### 2.6 — Agent routing via LiteLLM
-- **Status:** 🔲
-- **Why:** Agents currently hardcode vLLM endpoints. Should route through LiteLLM for model aliasing and fallback.
-- **Scope:** Update agent config to use LiteLLM endpoint. Map agent types to model aliases (reasoning tasks → Qwen3-32B, fast responses → Qwen3-14B). Update dashboard chat API route.
-- **Done when:** All agents use LiteLLM. Model selection is by alias, not direct URL.
-- **Depends on:** 1.2 (LiteLLM deployed)
-- **Files:** `projects/agents/src/athanor_agents/config.py`, `projects/dashboard/src/lib/config.ts`
+- **Status:** ✅ (Session 10, 2026-02-24)
+- **What changed:** Rewired all agent inference from direct vLLM to LiteLLM proxy (VAULT:4000). Config uses model aliases (`reasoning`/`fast`). Service health checks now cover LiteLLM, Qdrant, all vLLM instances (16 services total). Fixed system prompt inaccuracies. Ansible role updated.
+- **Verified:** Agent server deployed on Node 1:9000, chat completion works end-to-end through LiteLLM → Qwen3-32B-AWQ. All 16 service health checks pass.
+- **Files:** `config.py`, `system.py`, `general.py`, `media.py`, `home.py`, `server.py`, `docker-compose.yml`, Ansible role
+- **Remaining:** Dashboard chat route still needs updating (item 3.2)
 
 ---
 
@@ -162,20 +160,15 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `projects/eoq/`, `docs/decisions/ADR-013-eoq-engine.md`, `docs/projects/eoq/`
 
 ### 4.2 — Kindred concept document
-- **Status:** 🔲
-- **Why:** Listed in VISION.md as a known project. Needs concept crystallization.
-- **Scope:** Write concept document defining what Kindred is, how it works, what tech it needs. Not implementation — just clear thinking on paper.
-- **Done when:** `docs/projects/kindred/CONCEPT.md` exists with clear product vision.
-- **Depends on:** Nothing
-- **Files:** `docs/projects/kindred/`
+- **Status:** ✅ (Session 10, 2026-02-24)
+- **Delivered:** `docs/projects/kindred/CONCEPT.md` — passion-based matching, dual-embedding architecture, privacy-first design. Extracted from context doc.
+- **Files:** `docs/projects/kindred/CONCEPT.md`
 
 ### 4.3 — Ulrich Energy tooling
-- **Status:** 🔲
-- **Why:** Listed as a project. Shaun's business could benefit from automation tools.
-- **Scope:** Audit what Shaun needs for Ulrich Energy (scheduling, reporting, compliance docs, duct leakage forecasting). The airtight-iq-dl-forecasting-engine was mentioned in memory. Create project structure.
-- **Done when:** `docs/projects/ulrich-energy/REQUIREMENTS.md` exists. Project scaffold in `projects/ulrich-energy/`.
-- **Depends on:** Conversation with Shaun about priorities
-- **Files:** `projects/ulrich-energy/`, `docs/projects/ulrich-energy/`
+- **Status:** ✅ (Session 10, 2026-02-24 — partial: workflows doc)
+- **Delivered:** `docs/projects/ulrich-energy/WORKFLOWS.md` — 4 automation workflows (report generation, duct leakage forecasting, scheduling, compliance). Extracted from context doc.
+- **Remaining:** Full requirements doc, project scaffold in `projects/ulrich-energy/`
+- **Files:** `docs/projects/ulrich-energy/WORKFLOWS.md`
 
 ---
 

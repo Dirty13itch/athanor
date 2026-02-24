@@ -18,6 +18,8 @@ all:
               extra_firewall:
                 - { port: 8001, proto: tcp, comment: "vLLM Embedding API" }
                 - { port: 9000, proto: tcp, comment: "Agent Server" }
+                - { port: 6333, proto: tcp, comment: "Qdrant REST API" }
+                - { port: 6334, proto: tcp, comment: "Qdrant gRPC" }
         node2:
           hosts:
             interface:
