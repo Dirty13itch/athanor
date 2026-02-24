@@ -1,3 +1,36 @@
+# Athanor — Complete Architectural Context (RAW EXPORT)
+
+> **WARNING: This is a conversation export from claude.ai dated 2026-02-24.**
+>
+> **DO NOT treat this as authoritative.** It contains known inaccuracies:
+> - Claims LiteLLM was rejected — LiteLLM IS deployed on VAULT:4000 (ADR-012)
+> - Claims Qdrant not needed — Qdrant IS deployed on Node 1:6333
+> - References a 4090 on Node 2 — the 4090 is on Node 1; Node 2 has RTX 5090 + RTX 5060 Ti
+> - References Qwen3-30B-A3B on Node 2 — Node 2 runs Qwen3-14B
+> - States "Direct vLLM API (no proxy)" as current architecture — LiteLLM proxy routes all inference
+>
+> **Valuable content has been extracted to proper locations:**
+> - Security architecture → `docs/decisions/ADR-013-security-architecture.md`
+> - Dashboard spec → `docs/projects/dashboard/SPEC.md`
+> - EoBQ architecture → `docs/projects/eoq/ARCHITECTURE.md`
+> - DEV tool stack → `docs/dev-environment.md`
+> - Home Agent HA integration → `docs/design/home-agent-ha-integration.md`
+> - Tdarr deployment → `docs/design/tdarr-deployment.md`
+> - Intelligence layers → `docs/design/intelligence-layers.md`
+> - VRAM workload profiles → `docs/design/vram-workload-profiles.md`
+> - Kindred concept → `docs/projects/kindred/CONCEPT.md`
+> - Ulrich Energy workflows → `docs/projects/ulrich-energy/WORKFLOWS.md`
+> - LoRA training pipeline → `docs/design/lora-training-pipeline.md`
+> - Audio generation pipeline → `docs/design/audio-generation-pipeline.md`
+> - Dashboard interactions → `docs/design/dashboard-interactions.md`
+> - Model swap protocol → `docs/design/model-swap-protocol.md`
+> - VPN torrent stack → `docs/design/vpn-torrent-stack.md`
+>
+> **Kept as reference only.** If you need any of this content, read the extracted files above instead.
+
+---
+
+*Original content follows below. See the source file for full text.*
 # Athanor — Complete Architectural Context
 
 *Everything decided across claude.ai conversations that isn't yet committed to repo docs. This document bridges the gap between what was discussed and what Claude Code can read in the repo.*

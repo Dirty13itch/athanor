@@ -28,12 +28,20 @@ The system is designed to grow. When making architecture decisions, always consi
 ### Depth Mandate
 Reason from first principles. Derive obvious implications — don't ask questions with self-evident answers. Exhaust your own thinking before asking Shaun. Multiple layers deep. Never surface-level.
 
+### How Shaun Works
+- **Orchestrator, not coder.** Shaun specifies requirements and architectural intent. AI agents write the code. Shaun reviews, tests, and refines. Quality of specs determines quality of output.
+- **Terminal-first.** WSL2 Ubuntu, tmux for session persistence, Termius on phone for mobile SSH. Not an IDE person.
+- **Schedule constraints.** Day job (energy inspections) limits weekday build time to evenings. Weekend sessions are the primary build windows. Amanda is home — the house should remain livable (noise, heat, power draw).
+- **Reddit identity:** SudoMakeMeAHotdish — configured for NSFW access, relevant for Stash + Reddit sourcing pipeline.
+
 ### Communication Style
 - Direct, no hedging or filler. Warm, not sycophantic.
 - Senior technical level — don't explain basics.
 - Code blocks for configs, tables for comparisons.
 - Own mistakes immediately.
 - Re-read context in long sessions. Don't repeat previously corrected errors.
+- One question per response max unless genuinely blocked on multiple independent things.
+- Never give placeholder values in copy-paste commands. If you need info, ask first.
 
 
 ### Autonomous Build Mode
@@ -60,10 +68,13 @@ AGENTS.md              ← MCP configs, agent framework, tool definitions.
 docs/
   VISION.md            ← Source of truth. What Athanor is and why.
   BUILD-ROADMAP.md     ← Current build progress and next steps.
+  dev-environment.md   ← DEV tool stack, fallback chain, subscriptions.
   research/            ← Research notes by topic (YYYY-MM-DD-slug.md)
   decisions/           ← Architecture Decision Records (ADR-NNN-slug.md)
+  design/              ← Implementation specs and design docs
   hardware/            ← Inventory, specs, audit results
   projects/            ← Per-project documentation and plans
+  architecture/        ← Architectural reference (raw context export)
 ansible/               ← Single Ansible IaC tree (inventory, playbooks, roles)
 projects/              ← Actual project workspaces
   agents/              ← LangGraph agent framework (canonical source)
@@ -122,7 +133,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **Build phase.** Research is complete (11 ADRs, 24 research docs). Infrastructure is mostly running. See `docs/BUILD-ROADMAP.md` for detailed progress.
 
-**What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4 across 3x 5070 Ti + 4090) + Node 2 (Qwen3-14B, single RTX 5090), ComfyUI + Flux (Node 2 RTX 5060 Ti), Dashboard (Node 2), Open WebUI (Node 2), Prometheus + Grafana (VAULT). **VAULT media stack (Plex, Sonarr, Radarr, etc.) is DOWN** — Ansible roles written and ready (`ansible-playbook playbooks/vault.yml`), just needs running.
+**What's running:** vLLM on Node 1 (Qwen3-32B-AWQ, TP=4) + Node 2 (Qwen3-14B), LiteLLM proxy (VAULT:4000, routes all inference), Qdrant vector DB (Node 1:6333), ComfyUI + Flux (Node 2), Dashboard (Node 2), Open WebUI (Node 2), Prometheus + Grafana (VAULT), VAULT media stack (Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, HA).
 
 **Agent framework:** General Assistant + Media Agent + Home Agent skeleton running on Node 1:9000. LangGraph + FastAPI, OpenAI-compatible API. Home Agent blocked on HA onboarding. Dashboard has no agent routing page yet — agents accessible via direct API only.
 
@@ -130,7 +141,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **Models on NFS** (`/mnt/vault/models/`): Qwen3-32B-AWQ (18G, reasoning), Qwen3-14B (28G, fast), Qwen3-0.6B (1.5G, draft/speculative), Qwen3-Embedding-0.6B (1.2G, embedding), gte-Qwen2-7B-instruct (14G, legacy embedding).
 
-**Ansible state:** Both nodes fully converged via `site.yml` (Session 5-6, 2026-02-23). Common role now detects stale NFS mounts (stat check + force unmount) and merges `extra_firewall` into UFW rules. Speculative decoding support added to vLLM template (disabled by default via `vllm_speculative_config`). VAULT playbook syntax-valid but `vault_password` missing from encrypted secrets — needs Shaun to add it.
+**Ansible state:** Both nodes converged via `site.yml`. VAULT playbook adds monitoring, media, HA, and LiteLLM roles. Qdrant role written for Node 1. All roles idempotent.
 
 ---
 
@@ -159,6 +170,8 @@ Full details in `docs/hardware/inventory.md`.
 | SABnzbd | VAULT | 8080 | Running (Ansible deploy 2026-02-24, needs Usenet config) |
 | Tautulli | VAULT | 8181 | Running (Ansible deploy 2026-02-24) |
 | Stash | VAULT | 9999 | Running (Ansible deploy 2026-02-24) |
+| LiteLLM Proxy | VAULT | 4000 | Running (Session 9, routes: reasoning/fast/embedding) |
+| Qdrant | Node 1 | 6333 | Running (Session 9, collections: knowledge, conversations) |
 
 ---
 
@@ -340,7 +353,7 @@ Use for: parallel research, auditing multiple nodes simultaneously, multi-compon
 - **Mixed GPU architectures (TP)**: Node 1 runs TP=4 across 5070 Ti (sm_120) + 4090 (sm_89). Works with `--quantization awq` (not Marlin). Set `CUDA_DEVICE_ORDER=PCI_BUS_ID` for consistent ordering.
 - **VAULT NVMe pools**: Old ZFS pool (`hpc_nvme`) destroyed during mobo swap. Now 4x btrfs single-drive pools (appdatacache, docker, transcode, vms). 1.9TB of old ZFS data (appdata, models cache, domains) is gone.
 - **Stale NFS file handles**: After VAULT reboots or array stops/starts, NFS mounts on Node 1/2 go stale (`d?????????` in ls, `Stale file handle` errors). Fix: `sudo umount -f /mnt/vault/models && sudo mount -a`. The Ansible common role tolerates EEXIST on mount dirs for this reason.
-- **SSH from DEV**: Use `~/.ssh/id_ed25519` (athanor-dev) or `~/.ssh/athanor_mgmt` — both work for Node 1 and Node 2. VAULT requires `vault-ssh.py`. Desktop Commander MCP SSH fails (exit 255) — always use Git Bash via the `Bash` tool with `MSYS_NO_PATHCONV=1`.
+- **SSH from DEV (WSL)**: Use `ssh node1` or `ssh node2` (aliases in `~/.ssh/config`). Keys: `~/.ssh/athanor_mgmt` (athanor-management) and `~/.ssh/id_ed25519` (athanor-dev) — both synced from Windows and authorized on nodes. VAULT: use `python scripts/vault-ssh.py`. WSL key (`id_ed25519_wsl`) also added to node authorized_keys as backup.
 
 ---
 
