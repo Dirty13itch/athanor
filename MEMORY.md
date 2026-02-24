@@ -13,7 +13,9 @@
 - **Research Agent** (manifest 2.1) — 4 tools: web_search (DuckDuckGo), fetch_page (HTTP+HTML extraction), search_knowledge (Qdrant), query_infrastructure (Neo4j Cypher). Deployed to Node 1:9000. Tested end-to-end.
 - **Creative Agent** (manifest 2.3) — 4 tools: generate_image (Flux via ComfyUI API), check_queue, get_generation_history, get_comfyui_status. Deployed. Flux dev FP8 model download complete (17GB).
 - **Monitoring page** (manifest 3.3) — Full `/monitoring` page with live Prometheus data. Per-node cards: CPU (1hr sparkline), memory (sparkline), disk, network. Cluster summary. Grafana deep-links. Auto-refresh 15s. Deployed.
-- **4 agents now live**: general-assistant, media-agent, research-agent, creative-agent
+- **Knowledge Agent** (manifest 2.2) — 5 tools: search_knowledge, list_documents, query_knowledge_graph, find_related_docs, get_knowledge_stats. Indexer script indexed 81 docs → 922 chunks in Qdrant. Deployed to Node 1:9000.
+- **Neo4j graph names fixed** — Renamed node1→Foundry, node2→Workshop, vault→VAULT, dev→DEV. Added knowledge-agent + research-agent + creative-agent entities.
+- **5 agents now live**: general-assistant, media-agent, research-agent, creative-agent, knowledge-agent
 
 ### Current blockers
 - HA onboarding requires Shaun in browser (http://192.168.1.203:8123)
@@ -23,11 +25,11 @@
 - Tailscale install needs sudo password on DEV
 
 ### What's next (from BUILD-MANIFEST.md)
-- P1: Knowledge Agent (item 2.2) — needs Neo4j + Qdrant integration
-- P2: Backup strategy (item 5.3) — needs ADR
 - P2: EoBQ scaffold (item 4.1) — game engine ADR, project structure
+- P2: Backup strategy (item 5.3) — needs ADR
 - P2: Ansible full convergence test (item 5.2)
 - P2: CLAUDE.md optimization (item 5.5)
+- P2: 10GbE throughput verification (item 5.1)
 
 ### Git state
 - Branch: main, uncommitted changes (this session's work)

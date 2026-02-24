@@ -65,11 +65,9 @@ AGENT_METADATA = {
         "type": "reactive",
     },
     "knowledge-agent": {
-        "description": "Knowledge base maintenance — documentation sync, stale doc detection, cross-reference updates.",
-        "tools": ["scan_docs", "check_freshness", "update_index", "find_conflicts"],
-        "type": "proactive",
-        "schedule": "daily 3 AM",
-        "status_note": "Planned",
+        "description": "Project librarian — search docs, ADRs, research notes, infrastructure graph, find related knowledge.",
+        "tools": ["search_knowledge", "list_documents", "query_knowledge_graph", "find_related_docs", "get_knowledge_stats"],
+        "type": "reactive",
     },
 }
 

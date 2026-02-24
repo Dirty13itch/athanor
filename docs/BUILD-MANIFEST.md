@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 11: 1.5 Neo4j, 2.1 Research Agent, 2.3 Creative Agent, 3.1 Design System, 3.3 Monitoring Page)
+Last updated: 2026-02-24 (Session 11: 1.5 Neo4j, 2.1-2.3 Agents, 3.1 Design, 3.3 Monitoring, 2.2 Knowledge Agent)
 
 ---
 
@@ -83,12 +83,12 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Dependency added:** `duckduckgo-search>=7.0` to pyproject.toml
 
 ### 2.2 — Knowledge Agent
-- **Status:** 🔲
-- **Why:** VISION.md: "organizes and surfaces accumulated data: 1,173+ bookmarks, documents, research notes." Proactive, runs daily.
-- **Scope:** Implement knowledge agent. Ingests markdown docs from `docs/`, indexes into Qdrant, builds graph relationships in Neo4j. Can answer questions about the project's own documentation and history.
-- **Done when:** Can ask "What ADR covers our inference engine choice?" and get accurate retrieval. Daily indexing cron configured.
-- **Depends on:** 1.4 (Qdrant), 1.5 (Neo4j), 1.3 (embeddings)
-- **Files:** `projects/agents/src/athanor_agents/agents/knowledge.py`, `projects/agents/src/athanor_agents/tools/knowledge.py`
+- **Status:** ✅ (Session 11, 2026-02-24)
+- **Deployed:** Node 1:9000 as `knowledge-agent`, uses `reasoning` model (Qwen3-32B-AWQ), temperature 0.3
+- **Tools:** `search_knowledge` (Qdrant semantic search), `list_documents` (browse by category), `query_knowledge_graph` (Neo4j structural queries with node name aliasing), `find_related_docs` (combined semantic + graph), `get_knowledge_stats` (collection sizes + graph counts)
+- **Indexer:** `scripts/index-knowledge.py` — scans 81 docs, chunks into 922 points, embeds via LiteLLM, upserts to Qdrant. Run from DEV.
+- **Tested:** "What ADR covers our inference engine choice?" → correctly finds ADR-005. "What services run on Foundry?" → correctly queries Neo4j graph.
+- **Files:** `agents/knowledge.py`, `tools/knowledge.py`, `scripts/index-knowledge.py`
 
 ### 2.3 — Creative Agent
 - **Status:** ✅ (Session 11, 2026-02-24)

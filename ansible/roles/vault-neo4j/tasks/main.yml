@@ -91,22 +91,22 @@
       statements:
         # Hardware nodes
         - statement: >
-            MERGE (n:Node {name: 'node1'})
+            MERGE (n:Node {name: 'Foundry'})
             SET n.hostname = 'core', n.ip = '192.168.1.244',
                 n.cpu = 'EPYC 7663 56C/112T', n.ram_gb = 224,
                 n.gpu_count = 5, n.vram_gb = 88, n.role = 'inference'
         - statement: >
-            MERGE (n:Node {name: 'node2'})
+            MERGE (n:Node {name: 'Workshop'})
             SET n.hostname = 'interface', n.ip = '192.168.1.225',
                 n.cpu = 'TR 7960X 24C/48T', n.ram_gb = 128,
                 n.gpu_count = 2, n.vram_gb = 48, n.role = 'interface'
         - statement: >
-            MERGE (n:Node {name: 'vault'})
+            MERGE (n:Node {name: 'VAULT'})
             SET n.hostname = 'vault', n.ip = '192.168.1.203',
                 n.cpu = 'Ryzen 9950X 16C/32T', n.ram_gb = 128,
                 n.role = 'storage'
         - statement: >
-            MERGE (n:Node {name: 'dev'})
+            MERGE (n:Node {name: 'DEV'})
             SET n.hostname = 'dev', n.ip = '192.168.1.215',
                 n.cpu = 'i7-13700K 16C/24T', n.ram_gb = 64,
                 n.role = 'workstation'
@@ -169,6 +169,15 @@
         - statement: >
             MERGE (a:Agent {name: 'home-agent'})
             SET a.model = 'fast', a.status = 'blocked'
+        - statement: >
+            MERGE (a:Agent {name: 'research-agent'})
+            SET a.model = 'reasoning', a.status = 'active'
+        - statement: >
+            MERGE (a:Agent {name: 'creative-agent'})
+            SET a.model = 'fast', a.status = 'active'
+        - statement: >
+            MERGE (a:Agent {name: 'knowledge-agent'})
+            SET a.model = 'reasoning', a.status = 'active'
         # Projects
         - statement: >
             MERGE (p:Project {name: 'eoq'})
@@ -196,52 +205,52 @@
       statements:
         # RUNS_ON relationships
         - statement: >
-            MATCH (s:Service {name: 'vllm-reasoning'}), (n:Node {name: 'node1'})
+            MATCH (s:Service {name: 'vllm-reasoning'}), (n:Node {name: 'Foundry'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'vllm-embedding'}), (n:Node {name: 'node1'})
+            MATCH (s:Service {name: 'vllm-embedding'}), (n:Node {name: 'Foundry'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'qdrant'}), (n:Node {name: 'node1'})
+            MATCH (s:Service {name: 'qdrant'}), (n:Node {name: 'Foundry'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'agent-server'}), (n:Node {name: 'node1'})
+            MATCH (s:Service {name: 'agent-server'}), (n:Node {name: 'Foundry'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'vllm-fast'}), (n:Node {name: 'node2'})
+            MATCH (s:Service {name: 'vllm-fast'}), (n:Node {name: 'Workshop'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'comfyui'}), (n:Node {name: 'node2'})
+            MATCH (s:Service {name: 'comfyui'}), (n:Node {name: 'Workshop'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'dashboard'}), (n:Node {name: 'node2'})
+            MATCH (s:Service {name: 'dashboard'}), (n:Node {name: 'Workshop'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'open-webui'}), (n:Node {name: 'node2'})
+            MATCH (s:Service {name: 'open-webui'}), (n:Node {name: 'Workshop'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'litellm'}), (n:Node {name: 'vault'})
+            MATCH (s:Service {name: 'litellm'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'neo4j'}), (n:Node {name: 'vault'})
+            MATCH (s:Service {name: 'neo4j'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'prometheus'}), (n:Node {name: 'vault'})
+            MATCH (s:Service {name: 'prometheus'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'grafana'}), (n:Node {name: 'vault'})
+            MATCH (s:Service {name: 'grafana'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'plex'}), (n:Node {name: 'vault'})
+            MATCH (s:Service {name: 'plex'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'sonarr'}), (n:Node {name: 'vault'})
+            MATCH (s:Service {name: 'sonarr'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'radarr'}), (n:Node {name: 'vault'})
+            MATCH (s:Service {name: 'radarr'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'home-assistant'}), (n:Node {name: 'vault'})
+            MATCH (s:Service {name: 'home-assistant'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         # DEPENDS_ON relationships
         - statement: >
