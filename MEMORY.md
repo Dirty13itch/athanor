@@ -4,34 +4,32 @@
 
 ---
 
-## Last Session: 2026-02-25 (Session 19: Dashboard Workspace + Conversations Pages)
+## Last Session: 2026-02-25 (Session 19: Autonomous Workforce — Task Engine + Scheduler)
 
 ### What happened
-- **Creative-agent fix:** Redeployed agents with correct 5-tool metadata (generate_video was missing from registry).
-- **Dashboard Workspace page:** New `/workspace` page showing GWT broadcasts, agent registry, event ingestion.
-- **Dashboard Conversations page:** New `/conversations` page with logged conversation history, agent filtering, semantic search.
-- **MEMORY.md updated** with Sessions 16-18 history (was stale at Session 15).
-- **SYSTEM-SPEC.md updated** with GWT Phase 2 features.
-
-### Sessions 16-18 recap (previously unrecorded)
-- **Session 16-17 (2026-02-25):** Tier 6 progress — Wan2.x T2V pipeline verified, Creative Agent wired with generate_video, Stash agent deployed (8 agents total), voice containers deployed (wyoming-whisper, Speaches, wyoming-piper, wyoming-openwakeword), HA voice pipeline configured, Layer 2 context injection for all agents.
-- **Session 18 (2026-02-25):** Maintenance sweep — knowledge re-indexed (1203 pts), HA dashboard auth fix (26/26 UP), Neo4j graph updated (43 rels), backup script updated (14 services), agent contracts updated. GWT Phase 2 — conversation logging, agent registry, event ingestion, Redis pub/sub. Ansible convergence verified (vault.yml changed=0).
+- **Task Execution Engine (8.1):** `tasks.py` — Redis-backed queue, background worker (5s poll, max 2 concurrent), step logging via astream_events, priority ordering, crash recovery, GWT broadcasting. Delegation tools (`delegate_to_agent`, `check_task_status`). API: POST/GET /v1/tasks, stats, cancel. MCP bridge: 14 tools. Dashboard Task Board page.
+- **Proactive Agent Scheduler (8.2):** `scheduler.py` — asyncio-based with per-agent intervals. general-assistant (30min), media-agent (15min), home-agent (5min), knowledge-agent (24h, disabled). Redis-tracked last-run. API: GET /v1/tasks/schedules. First scheduled batch verified working.
+- **Dashboard updates:** Workspace page, Conversations page, Task Board page (16 pages total).
+- **Creative-agent fix:** 5-tool metadata corrected.
+- **Think-tag fix:** Task results stripped of `<think>` tags via regex.
+- **Step persistence fix:** Every tool call persisted (was every 3).
 
 ### Current blockers
 - NordVPN credentials needed for qBittorrent + Gluetun (6.5)
 - Tailscale needs UDM Pro SSH + Tailscale account (6.8)
 - vLLM sleep mode blocked on NGC image upgrade (sleep endpoints 404)
 - Sonarr/Radarr need Prowlarr indexer config via browser
+- DuckDuckGo web search unreliable from Docker container (research-agent limitation)
 
 ### What's next
-- GWT Phase 3 (agents subscribing to broadcasts, reactive behavior, semantic relevance scoring)
-- GPU orchestrator Phase 3 (priority preemption, LiteLLM wake-before-route)
-- Dashboard: more workspace visualizations (competition history, salience trends)
-- Stash Phase 2: VLM auto-tagging, face recognition
+- **8.3 Execution Tools:** Filesystem read/write (scoped), shell execution (Docker sandbox), git ops — gives agents actual coding ability
+- **8.4 Dedicated Coding Model:** Deploy Qwen3-Coder-30B-A3B on RTX 4090
+- **8.5 Quality Gating & Cascade:** Local generates → tests → escalate to cloud on failure
+- GWT Phase 3 (agent subscriptions + reactive behavior)
 
 ### Git state
 - Branch: main, all pushed to origin
-- Latest: `97a5f31` docs: update CLAUDE.md with GWT Phase 2 state
+- Latest: `1b7e646` feat: Task Execution Engine
 
 ---
 
@@ -53,4 +51,4 @@
 | 15 | 2026-02-25 | System design + full Tier 7 | SYSTEM-SPEC, agent contracts, hybrid-dev docs. Redis, Coding Agent, MCP bridge, escalation, GWT workspace, GPU orchestrator, 3 dashboard pages. **All 14/14 Tier 7 items complete.** |
 | 16-17 | 2026-02-25 | Tier 6 + Voice + Context | Wan2.x T2V verified, Creative Agent video tools, Stash agent, 4 voice containers, HA voice pipeline, Layer 2 context injection. |
 | 18 | 2026-02-25 | Maintenance + GWT Phase 2 | Knowledge re-index (1203 pts), HA auth fix (26/26 UP), Neo4j 43 rels, backup 14 svcs. GWT Phase 2: conversation logging, agent registry, event ingestion, pub/sub. |
-| 19 | 2026-02-25 | Dashboard expansion | Workspace + Conversations dashboard pages. Creative-agent registry fix. |
+| 19 | 2026-02-25 | Autonomous Workforce | Task Execution Engine (8.1), Proactive Scheduler (8.2), Task Board dashboard, delegation tools, MCP bridge 14 tools. Workspace + Conversations pages. |

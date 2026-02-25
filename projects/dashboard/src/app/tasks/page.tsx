@@ -46,6 +46,21 @@ interface TaskStats {
   worker_running: boolean;
 }
 
+interface AgentSchedule {
+  agent: string;
+  interval_seconds: number;
+  interval_human: string;
+  enabled: boolean;
+  last_run: number | null;
+  next_run_in: number;
+  priority: string;
+}
+
+interface ScheduleStatus {
+  schedules: AgentSchedule[];
+  scheduler_running: boolean;
+}
+
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400",
   running: "bg-blue-500/20 text-blue-400",
@@ -99,6 +114,7 @@ function ClipboardIcon() {
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [stats, setStats] = useState<TaskStats | null>(null);
+  const [schedules, setSchedules] = useState<ScheduleStatus | null>(null);
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
@@ -115,9 +131,10 @@ export default function TasksPage() {
       if (agentFilter) params.set("agent", agentFilter);
       params.set("limit", "50");
 
-      const [tasksRes, statsRes] = await Promise.all([
+      const [tasksRes, statsRes, schedRes] = await Promise.all([
         fetch(`${config.agentServer.url}/v1/tasks?${params}`),
         fetch(`${config.agentServer.url}/v1/tasks/stats`),
+        fetch(`${config.agentServer.url}/v1/tasks/schedules`),
       ]);
 
       if (tasksRes.ok) {
@@ -126,6 +143,9 @@ export default function TasksPage() {
       }
       if (statsRes.ok) {
         setStats(await statsRes.json());
+      }
+      if (schedRes.ok) {
+        setSchedules(await schedRes.json());
       }
     } catch (e) {
       console.error("Failed to fetch tasks:", e);
@@ -237,6 +257,51 @@ export default function TasksPage() {
             Task worker {stats.worker_running ? "running" : "stopped"}
           </span>
         </div>
+      )}
+
+      {/* Proactive Schedules */}
+      {schedules && schedules.schedules.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Proactive Schedules</CardTitle>
+              <div className="flex items-center gap-2 text-xs">
+                <span className={`w-2 h-2 rounded-full ${schedules.scheduler_running ? "bg-green-500" : "bg-red-500"}`} />
+                <span className="text-muted-foreground">
+                  Scheduler {schedules.scheduler_running ? "active" : "stopped"}
+                </span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {schedules.schedules.map((s) => (
+                <div
+                  key={s.agent}
+                  className={`flex items-center justify-between p-2 rounded border text-sm ${
+                    s.enabled ? "border-border" : "border-border/50 opacity-50"
+                  }`}
+                >
+                  <div>
+                    <Badge className={AGENT_COLORS[s.agent] || "bg-zinc-500/20 text-zinc-400"}>
+                      {s.agent}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      every {s.interval_human}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {s.enabled ? (
+                      s.next_run_in > 0 ? `in ${formatDuration(s.next_run_in * 1000)}` : "due now"
+                    ) : (
+                      "disabled"
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Submit Task Form */}

@@ -21,11 +21,13 @@ async def lifespan(app: FastAPI):
     from .activity import ensure_collections
     from .workspace import start_competition, stop_competition, register_agent
     from .tasks import start_task_worker, stop_task_worker
+    from .scheduler import start_scheduler, stop_scheduler
 
     _init_agents()
     ensure_collections()
     await start_competition()
     await start_task_worker()
+    await start_scheduler()
 
     # Register all agents in Redis for discovery (Phase 2)
     for name, meta in AGENT_METADATA.items():
@@ -37,6 +39,7 @@ async def lifespan(app: FastAPI):
         )
 
     yield
+    await stop_scheduler()
     await stop_task_worker()
     await stop_competition()
 
@@ -579,6 +582,14 @@ async def task_stats():
     from .tasks import get_task_stats
 
     return await get_task_stats()
+
+
+@app.get("/v1/tasks/schedules")
+async def task_schedules():
+    """Get proactive agent schedule status."""
+    from .scheduler import get_schedule_status
+
+    return await get_schedule_status()
 
 
 @app.get("/v1/tasks/{task_id}")

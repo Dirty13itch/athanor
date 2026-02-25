@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-25 (Session 18: Maintenance sweep — knowledge re-index 1203pts, HA auth fix, Neo4j 43 rels, backup 14 svcs)
+Last updated: 2026-02-25 (Session 19: Autonomous Workforce — Task Engine 8.1 ✅, Scheduler 8.2 ✅)
 
 ---
 
@@ -397,9 +397,13 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `tasks.py`, `tools/execution.py`, `tools/__init__.py`, `server.py`, `mcp-athanor-agents.py`, dashboard `tasks/page.tsx`
 
 ### 8.2 — Proactive Agent Scheduler
-- **Status:** 🔲 todo
-- **Scope:** APScheduler or asyncio cron for agent-initiated work. Media-agent checks every 15min, knowledge-agent re-indexes daily, home-agent monitors continuously.
-- **Depends on:** 8.1 ✅
+- **Status:** ✅ (Session 19, 2026-02-25)
+- **Deployed:** `scheduler.py` module. Asyncio-based with per-agent intervals, Redis-tracked last-run timestamps, 60s startup delay.
+- **Schedules:** general-assistant (30min health check), media-agent (15min download/activity check), home-agent (5min entity state check), knowledge-agent (24h, disabled until re-indexing wired).
+- **API:** `GET /v1/tasks/schedules` — returns all schedule configs + next-run timers + scheduler status.
+- **Dashboard:** Schedule display section added to Task Board page.
+- **Verified:** First scheduled batch fired correctly — all 3 enabled agents submitted tasks within 60s of startup.
+- **Files:** `scheduler.py`, `server.py` (lifespan + endpoint), dashboard `tasks/page.tsx`
 
 ### 8.3 — Execution Tools (filesystem, shell, git)
 - **Status:** 🔲 todo
