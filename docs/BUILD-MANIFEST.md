@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 13: 5.2 Ansible convergence, 2.4 Home Agent, backup deployment)
+Last updated: 2026-02-24 (Session 14: EoBQ game loop wired, remote access ADR-016)
 
 ---
 
@@ -155,7 +155,8 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Research:** `docs/research/2026-02-24-eoq-game-engine.md` — evaluated Ren'Py, Godot, Next.js, Ink, TyranoScript, Pixi'VN. Ren'Py can't stream LLM responses (screen freezes 5–30s). Godot is overkill. Ink/Tyrano designed for pre-authored content.
 - **Decision:** ADR-014 — Custom Next.js web app. Native HTTP streaming, CORS eliminated via API routes, React/TypeScript most AI-generatable, shares existing dashboard infrastructure.
 - **Scaffold:** `projects/eoq/` — Next.js 16, React 19, Tailwind + Framer Motion, Zustand state management. VN components (SceneBackground, CharacterPortrait, DialogueBox, ChoicePanel, useTypewriter hook). API routes for dialogue (LiteLLM SSE streaming) and image generation (ComfyUI proxy). Type system for characters (personality vectors, relationships, emotions, memories), world state, and game sessions.
-- **Next:** Mock data for a playable test scene, npm install + build, game loop wiring.
+- **Game loop wired (Session 14):** Mock scene data (Isolde + Shattered Throne Room, 4 dialogue turns with choices), game engine hook (`useGameEngine`), page.tsx wired with startGame/advanceDialogue/handleChoice, click-to-advance for non-choice turns, scene header, streaming text display. API contract aligned between engine and chat route. Builds clean.
+- **Remaining:** Deploy to Node 2 for playtesting, ComfyUI workflow JSONs for scene/portrait generation, character memory (Qdrant integration).
 - **Files:** `projects/eoq/`, `docs/decisions/ADR-014-eoq-engine.md`, `docs/research/2026-02-24-eoq-game-engine.md`
 
 ### 4.2 — Kindred concept document
@@ -227,6 +228,10 @@ The agent framework exists but is skeletal. These items make agents actually use
 ### 6.6 — Stash AI integration (adult content agent)
 ### 6.7 — Mining GPU enclosure migration
 ### 6.8 — Remote access (Tailscale/WireGuard)
+- **Status:** 🚫 Blocked on Shaun (needs UDM Pro SSH + Tailscale account creation)
+- **Research:** `docs/research/2026-02-24-remote-access.md` — 5 options evaluated, Tailscale recommended
+- **Decision:** ADR-016 — Tailscale with UDM Pro as subnet router. Free tier, CGNAT-proof, zero exposed ports, ~30 min deploy.
+- **Implementation:** Requires Shaun to SSH into UDM Pro and install community package. See ADR-016 for step-by-step.
 
 ---
 
@@ -241,3 +246,4 @@ These require human action. Claude Code cannot do them.
 | Node 2 EXPO | BIOS via JetKVM | Performance |
 | Samsung 990 PRO reseat | Physical at rack | Node 1 storage |
 | BMC config at .216 | Browser: http://192.168.1.216 | Remote power mgmt |
+| Tailscale on UDM Pro | SSH root@192.168.1.1, install tailscale-udm, create account | 6.8 (Remote access) |

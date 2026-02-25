@@ -8,10 +8,11 @@ export function DialogueBox() {
   const history = session?.dialogueHistory ?? [];
   const lastTurn = history[history.length - 1];
 
-  // Use streaming text if generating, otherwise show the last completed turn
+  // Use streaming text if generating, otherwise show the last completed turn.
+  // delayMs=0 always — streaming provides the animation, no need to re-typewriter.
   const displayText = isGenerating ? streamingText : (lastTurn?.text ?? "");
   const speaker = isGenerating ? "..." : (lastTurn?.speaker ?? "");
-  const animatedText = useTypewriter(displayText, isGenerating ? 0 : 20);
+  const animatedText = useTypewriter(displayText, 0);
 
   if (!displayText && !isGenerating) return null;
 
