@@ -121,7 +121,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 12 tools to Claude Code — coding, knowledge search, system status, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
 
-**Tier 6 progress:** 6.1 Video gen complete (Creative Agent wired with T2V). 6.3 Voice Phase 1 complete (4 containers: whisper+Speaches on Node 1 GPU 4, Piper+openWakeWord on VAULT CPU; vLLM-embedding resized to 0.40 mem). 6.6 Stash AI Phase 1 (agent deployed, library empty). vLLM sleep mode blocked on NGC image upgrade.
+**Tier 6 progress:** 6.1 Video gen complete (Creative Agent wired with T2V). 6.3 Voice complete (4 containers deployed, HA "Athanor Voice" pipeline configured with STT/TTS/wake word, 43 entities). 6.6 Stash AI Phase 1 (agent deployed, library empty). vLLM sleep mode blocked on NGC image upgrade.
 
 ---
 

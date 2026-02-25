@@ -243,17 +243,18 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Note:** Requires physical work (cable routing, card installation)
 
 ### 6.3 — Voice interaction
-- **Status:** ✅ Phase 1 complete — all 4 voice containers deployed and healthy
+- **Status:** ✅ Complete — 4 voice containers deployed, HA voice pipeline configured
 - **Research:** `docs/research/2026-02-24-voice-interaction.md` — faster-whisper + Kokoro TTS + Piper (HA) + openWakeWord
 - **Architecture:** GPU 4 shared between vLLM-embedding (0.40 mem, 8K ctx), wyoming-whisper (float16), Speaches (lazy GPU). Wyoming protocol for HA integration. Piper (CPU) for HA voice responses.
 - **Deployed:**
   - VAULT: wyoming-piper (10200, CPU, en_US-lessac-medium) + wyoming-openwakeword (10400, CPU) ✅
   - Node 1: wyoming-whisper (10300, GPU 4, faster-distil-whisper-large-v3 float16) ✅
   - Node 1: Speaches (8200, GPU 4, OpenAI-compatible STT+TTS API) ✅
+- **HA Integration:** 3 Wyoming config entries added via API. "Athanor Voice" pipeline created as preferred: STT→conversation→TTS with wake word (ok_nabu). 43 entities total.
 - **Ansible:** `ansible/roles/voice/` (Node 1), `ansible/roles/vault-voice/` (VAULT)
 - **GPU 4 tuning:** vLLM-embedding resized from 0.90→0.40 mem, 32K→8K ctx to share GPU 4. Total: 8.8 GB / 16.3 GB used.
 - **Blackwell gotchas:** CTranslate2 int8 fails on sm_120, must use float16. Speaches image tag is `latest-cuda` not `latest`.
-- **Remaining:** Configure HA Wyoming integration (Devices & Services), test end-to-end voice pipeline
+- **Remaining:** Physical voice satellite device (e.g., ESP32-S3), custom wake word training
 
 ### 6.4 — Mobile access
 - **Status:** 🔲 Backlog — depends on 6.8 (remote access)
