@@ -33,7 +33,7 @@ purpose: |
   for general questions about Athanor's state, health, and capabilities.
 
 tools:
-  - check_services    # Health check all 24 services
+  - check_services    # Health check all 25 services
   - get_gpu_metrics   # GPU utilization, temp, VRAM, power via Prometheus
   - get_vllm_models   # List all available models (LiteLLM + direct)
   - get_storage_info  # VAULT NFS storage usage via Prometheus
@@ -331,36 +331,34 @@ categories: |
 
 ---
 
-## Coding Agent (Planned)
+## Coding Agent
 
 ```yaml
 name: coding-agent
-model: reasoning (Qwen3-32B-AWQ) or dedicated coding model
+model: reasoning (Qwen3-32B-AWQ)
 temperature: 0.3
 mode: reactive
-status: planned
+status: deployed (Tier 7.6)
 
 purpose: |
-  Code generation, refactoring, and test execution. The local counterpart
-  to Claude Code — handles boilerplate and pattern application.
+  Code generation, review, and transformation. The local counterpart
+  to Claude Code — handles boilerplate, pattern application, and refactoring.
+  Dispatched from Claude Code via MCP bridge.
 
-tools_planned:
+tools:
   - generate_code      # Generate code from specification
-  - refactor_code      # Apply refactoring patterns
-  - run_tests          # Execute test suites
-  - lint_code          # Run linters and type checkers
-  - read_file          # Read project files for context
-  - search_codebase    # Grep/find across project directories
+  - review_code        # Review code for bugs and quality
+  - explain_code       # Explain how code works
+  - transform_code     # Apply refactoring patterns
 
 escalation:
   autonomous:
     - Generate code from explicit specification
-    - Run tests and report results
-    - Lint and type-check
-    - Read files for context
+    - Review code and report findings
+    - Explain code behavior
+    - Transform/refactor code
   notify:
-    - Tests failing after generation
-    - Lint errors found
+    - Lint errors or quality issues found during review
   ask:
     - Write to any file (always requires confirmation)
     - Delete files
@@ -370,17 +368,19 @@ learns_from:
   - Which generated code patterns get accepted vs modified
   - Project-specific conventions and style
   - Common error patterns → avoid in future generation
-  - Test patterns that catch real bugs
+  - Review findings that lead to actual fixes vs ignored
 
 boundaries: |
   Cannot push to git, deploy to production, or modify infrastructure.
   All file writes require explicit confirmation.
   Cannot access network services outside the codebase.
   Cannot install packages without confirmation.
+  Low temperature (0.3) for deterministic, predictable output.
 
 implementation_notes: |
   Dispatched from Claude Code via MCP bridge (scripts/mcp-athanor-agents.py).
   See docs/design/hybrid-development.md for the full architecture.
+  MCP tools: coding_generate, coding_review, coding_transform.
   May use dedicated coding model (Qwen3-Coder) when available on Node 2.
 ```
 

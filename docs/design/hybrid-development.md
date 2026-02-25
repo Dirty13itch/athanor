@@ -53,23 +53,34 @@ Agent Server (Node 1:9000, Qwen3-32B-AWQ)
 
 ### 1. MCP Bridge (`scripts/mcp-athanor-agents.py`)
 
-A lightweight MCP (Model Context Protocol) server that exposes the Athanor agent server's capabilities as tools in Claude Code. ~200 lines of Python.
+A lightweight MCP (Model Context Protocol) server that exposes the Athanor agent server's capabilities as tools in Claude Code. ~350 lines of Python.
 
-**Tools exposed:**
+**Tools exposed (12):**
 
 ```python
+# Deep research (via Research Agent, 10-min timeout)
+deep_research(topic: str, context: str, depth: str) -> str  # quick/thorough/comprehensive
+
 # Coding tools (via Coding Agent)
-coding_generate(spec: str, language: str, context: list[str]) -> str
-coding_refactor(code: str, instruction: str) -> str
-coding_test(test_spec: str, source_files: list[str]) -> str
+coding_generate(spec: str, language: str, context: str) -> str
+coding_review(code: str, focus: str) -> str
+coding_transform(code: str, instruction: str) -> str
 
 # Knowledge tools (via Knowledge Agent)
 knowledge_search(query: str) -> str
-knowledge_graph(cypher: str) -> str
+knowledge_graph(question: str) -> str
 
 # System tools (via General Assistant)
 system_status() -> str
 gpu_status() -> str
+
+# Activity & Preferences
+recent_activity(agent: str, limit: int) -> str
+store_preference(content: str, agent: str, category: str) -> str
+search_preferences(query: str, agent: str) -> str
+
+# Agent metadata
+list_agents() -> str
 ```
 
 **Protocol:** The MCP bridge receives tool calls from Claude Code, translates them to chat completions requests to the agent server (Node 1:9000), and returns the results.

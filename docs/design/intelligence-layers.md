@@ -6,60 +6,53 @@ Last updated: 2026-02-25
 
 ---
 
-## Layer 1 — Reactive Intelligence (current state)
+## Layer 1 — Reactive Intelligence (deployed)
 
 Each agent responds to requests. No memory between invocations beyond what's in the conversation thread (InMemorySaver, not persistent across restarts). The agent server routes by model name to the correct LangGraph agent. Agents call tools, get results, generate responses via LiteLLM → vLLM.
 
-Simple, debuggable, working. This is where we are now.
+Simple, debuggable, working.
 
-**What works:** 6 agents live, 24 services healthy, all tools functional, streaming responses, tool call visualization in dashboard.
+**What works:** 7 agents live, 25 services healthy, all tools functional, streaming responses, tool call visualization in dashboard, escalation protocol, GWT workspace.
 
-**What's missing:** No memory across sessions. No learning from past interactions. No proactive behavior. No inter-agent coordination.
+**What's shallow:** Agents treat every request as if they've never seen the user before. No accumulated context injection. No behavioral adaptation. The ReAct loop works but doesn't deepen over time.
 
 ---
 
-## Layer 2 — Accumulated Knowledge (partially deployed)
+## Layer 2 — Accumulated Knowledge (deployed, incomplete)
 
 ### What's Deployed
 
-The Knowledge Agent indexes all project documentation:
-1. `scripts/index-knowledge.py` scans 81 docs, chunks into 922 vectors
-2. Embeddings via Qwen3-Embedding-0.6B on Node 1 GPU 4 (port 8001, 1024-dim)
-3. Stored in Qdrant `knowledge` collection (Node 1:6333)
-4. Neo4j graph stores structural relationships (30 nodes, 29 relationships)
-5. Any agent can query accumulated knowledge via Knowledge Agent tools
+1. **Knowledge base:** 922 doc vectors in Qdrant `knowledge` collection, 30 Neo4j graph nodes
+2. **Preference storage:** `preferences` Qdrant collection (1024-dim, editable via dashboard)
+   - Signal types: `thumbs_up`, `thumbs_down`, `remember_this`, `config_choice`
+   - Semantic search — "I prefer dark themes" matches queries about UI colors
+   - REST API: POST/GET at Node 1:9000/v1/preferences
+3. **Activity logging:** `activity` Qdrant collection, fire-and-forget asyncio on every chat completion
+   - Logged: agent name, action type, input/output summaries, tools used, duration, timestamp
+   - Dashboard Activity Feed renders this collection
+4. **Escalation protocol:** 3-tier confidence system (act/notify/ask) with per-agent thresholds
+5. **GWT workspace:** Redis-backed inter-agent coordination, 1Hz competition cycle, capacity 7
 
 ### What's Missing for Full Layer 2
 
-**Preference storage:** A `preferences` Qdrant collection for explicit user signals.
+**Context injection:** Agents don't yet query preferences/activity/conversations before responding. The collections exist and are populated, but no agent actually reads them at request time to enrich its context. This is the single biggest gap — the data is there, the plumbing to use it is not.
 
-Implementation:
-- Collection schema: 1024-dim embeddings + metadata (agent, category, timestamp, signal_type)
-- Signal types: `thumbs_up`, `thumbs_down`, `remember_this`, `config_choice`
-- Agents query preferences before acting: "Has Shaun expressed a preference about this?"
-- Preferences are semantic — "I prefer dark themes" matches queries about UI colors
-- Editable via dashboard Preferences page
-
-**Activity logging:** An `activity` Qdrant collection for every agent action.
-
-Implementation:
-- Every agent action logged: agent name, action type, input summary, output summary, timestamp, confidence score
-- Queryable by agent, time range, action type
-- Dashboard Activity Feed renders this collection
-- Enables pattern detection in Layer 3
+Implementation needed:
+- Agent server request handler queries relevant collections before routing
+- Each agent gets different context (Research → prior research, Media → viewing history, etc.)
+- Inject as system message prefix, not tool calls (faster, always present)
 
 **Conversation history:** The `conversations` collection exists in Qdrant but isn't populated.
 
-Implementation:
+Implementation needed:
 - After each agent interaction, embed the conversation and store
 - Metadata: agent, timestamp, topic tags, user satisfaction signal (if provided)
 - Enables "here's what Shaun previously asked about X" context injection
 
 **Proactive indexing:** Knowledge indexing is currently manual (`python3 scripts/index-knowledge.py`).
 
-Implementation:
+Implementation needed:
 - Cron job on DEV or Node 1 at 03:00 (after backups)
-- Watch for git commits or file changes → trigger re-index
 - Incremental updates (only re-embed changed documents)
 
 ### Layer 2 Context Injection
@@ -172,19 +165,21 @@ This is where Athanor genuinely starts managing itself. The recursive nature of 
 
 | Layer | Requires | Status |
 |-------|----------|--------|
-| 1 (Reactive) | vLLM, LangGraph, LiteLLM, tool APIs | **Running** |
-| 2 (Knowledge) | Qdrant, Neo4j, embedding model, Knowledge Agent | **Partially deployed** — knowledge indexed, preferences/activity/conversations not yet |
-| 3 (Patterns) | Preference collection, activity logging, pattern detection jobs, escalation protocol | Planned (Tier 7) |
-| 4 (Self-Optimization) | All above + metrics correlation + A/B testing + auto-evaluation | Future |
+| 1 (Reactive) | vLLM, LangGraph, LiteLLM, tool APIs | **Deployed** |
+| 2 (Knowledge) | Qdrant, Neo4j, embedding model, preferences, activity logging | **Deployed** — collections live, context injection not yet wired |
+| 3 (Patterns) | Context injection, conversation history, pattern detection jobs | **Not started** |
+| 4 (Self-Optimization) | All above + metrics correlation + A/B testing + auto-evaluation | **Future** |
 
-## Implementation Sequence
+## Implementation Sequence (remaining)
 
-1. **Add `preferences` and `activity` Qdrant collections** — Schema definition, collection creation, basic CRUD endpoints on agent server
-2. **Add activity logging middleware** — Every agent action logged automatically
-3. **Add preference storage/retrieval** — Endpoints + agent context injection
-4. **Implement escalation protocol** — Confidence scoring + threshold config + notification routing
-5. **Populate conversation history** — Post-interaction embedding + storage
-6. **Pattern detection jobs** — Hourly/daily analysis of activity logs
-7. **Dashboard integration** — Activity Feed, Preferences, Insights pages
+1. ~~Add preferences and activity Qdrant collections~~ ✅ Deployed (Tier 7.8)
+2. ~~Add activity logging middleware~~ ✅ Deployed (fire-and-forget asyncio)
+3. ~~Add preference storage/retrieval~~ ✅ Deployed (REST API + dashboard)
+4. ~~Implement escalation protocol~~ ✅ Deployed (3-tier, per-agent thresholds)
+5. **Wire context injection** — Agent server queries preferences/activity before routing to agent
+6. **Populate conversation history** — Post-interaction embedding + storage
+7. **Pattern detection jobs** — Hourly/daily analysis of activity logs
+8. ~~Dashboard integration — Activity Feed, Preferences~~ ✅ Deployed (Tier 7.12-7.14)
+9. **Dashboard Insights page** — Pattern detections, agent learning signals
 
-See `docs/BUILD-MANIFEST.md` Tier 7 for the full implementation plan.
+See `docs/BUILD-MANIFEST.md` for tracking.

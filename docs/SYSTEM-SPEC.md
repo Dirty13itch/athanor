@@ -10,11 +10,11 @@ Last updated: 2026-02-25
 
 Athanor is a 4-node homelab that unifies AI inference, media management, home automation, creative tools, and game development under one coherent system. It is owned and operated by one person (Shaun Ulrich). Every design decision passes a single filter: **can one person understand, operate, debug, and fix this alone?**
 
-The system runs 7 GPUs (136 GB VRAM), 6 AI agents, 24 services, and serves a unified dashboard. All inference routes through a central proxy. All configuration is managed by Ansible. All decisions are documented as ADRs.
+The system runs 7 GPUs (136 GB VRAM), 7 AI agents, 25 services, and serves a unified dashboard. All inference routes through a central proxy. All configuration is managed by Ansible. All decisions are documented as ADRs.
 
-**What makes it more than a homelab:** The agent layer. Six specialized AI agents do real work — managing media, controlling the home, generating images, searching the web, answering questions about the system itself. They share a knowledge base (Qdrant vector store + Neo4j graph), route through a unified inference layer (LiteLLM), and are all accessible through a single dashboard with a chat interface.
+**What makes it more than a homelab:** The agent layer. Seven specialized AI agents do real work — managing media, controlling the home, generating images, searching the web, writing code, answering questions about the system itself. They share a knowledge base (Qdrant vector store + Neo4j graph), route through a unified inference layer (LiteLLM), and are all accessible through a single dashboard with a chat interface.
 
-**Where it's going:** From reactive (agents wait for commands) to proactive (agents act autonomously within defined boundaries). A GWT-inspired workspace (ADR-017) will enable inter-agent coordination. A GPU orchestrator (ADR-018) will maximize hardware utilization. Preference learning will make agents better over time.
+**Where it's going:** From reactive (agents wait for commands) to proactive (agents act autonomously within defined boundaries). A GWT-inspired workspace (ADR-017, Phase 1 deployed) enables inter-agent coordination. A GPU orchestrator (ADR-018, Phase 2 deployed) manages hardware utilization. Preference learning and activity logging are live — pattern recognition is next.
 
 For the full philosophy, see `docs/VISION.md`. For the build history, see `docs/BUILD-MANIFEST.md`.
 
@@ -79,7 +79,7 @@ scripts/index-knowledge.py (DEV cron or manual)
 
 Full inventory in `docs/SERVICES.md`. Summary:
 
-- **Node 1 (6 services):** vLLM (32B), vLLM Embedding, Agent Server, Qdrant, node_exporter, dcgm-exporter
+- **Node 1 (7 services):** vLLM (32B), vLLM Embedding, Agent Server, Qdrant, GPU Orchestrator, node_exporter, dcgm-exporter
 - **Node 2 (7 services):** vLLM (14B), Dashboard, ComfyUI, EoBQ, Open WebUI, node_exporter, dcgm-exporter
 - **VAULT (12 services):** LiteLLM, Neo4j, Prometheus, Grafana, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant
 
@@ -108,7 +108,7 @@ All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use mod
 | Research Agent | reasoning (32B) | 0.7 | Reactive | Live |
 | Creative Agent | fast (14B) | 0.8 | Reactive | Live |
 | Knowledge Agent | reasoning (32B) | 0.3 | Reactive | Live |
-| Coding Agent | — | — | Reactive | Planned |
+| Coding Agent | reasoning (32B) | 0.3 | Reactive | Live |
 | Stash Agent | — | — | Reactive + Proactive | Planned |
 
 All agents are LangGraph `create_react_agent` instances with tool-calling and in-memory conversation checkpointing. They expose an OpenAI-compatible chat completions API at Node 1:9000.
@@ -117,9 +117,7 @@ Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`
 
 ### Inter-Agent Coordination
 
-**Current state:** No inter-agent coordination. Each agent operates independently, routed by the client's model selection.
-
-**Planned (ADR-017):** GWT-inspired shared workspace backed by Redis. Agents compete to broadcast information. A 1Hz competition cycle selects the most salient items (capacity: 7) and broadcasts them to all subscribed agents. This enables:
+**GWT Workspace (ADR-017, Phase 1 deployed):** Redis-backed shared workspace. Agents compete to broadcast information. A 1Hz competition cycle selects the most salient items (capacity: 7) and broadcasts them to all subscribed agents. REST API at Node 1:9000/v1/workspace. This enables:
 - Media Agent detects new episode → broadcasts to workspace → Home Agent dims lights
 - Research Agent finds relevant info → broadcasts → Knowledge Agent indexes it
 - Home Agent detects Shaun left → broadcasts → Media Agent pauses Plex
@@ -134,11 +132,9 @@ Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`
 3. **Sleep** — Agent stays registered but releases resources (future, tied to GPU orchestrator)
 4. **Deactivation** — Agent removed from rotation (manual, for maintenance)
 
-### Escalation Protocol
+### Escalation Protocol (deployed)
 
-**Current:** All agents act on every request without confidence assessment.
-
-**Planned three-tier escalation:**
+Three-tier confidence-based escalation with per-agent/per-action thresholds:
 
 | Confidence | Action | Notification |
 |------------|--------|-------------|
@@ -187,13 +183,19 @@ Every agent action is visible. Nothing happens silently.
 | Page | Status | Purpose |
 |------|--------|---------|
 | Home | Live | System overview, quick links, health summary |
-| Monitoring | Live | Per-node CPU/memory/disk/network metrics, GPU status |
+| GPUs | Live | GPU utilization, VRAM, temperature, orchestrator status |
+| Monitoring | Live | Per-node CPU/memory/disk/network metrics |
+| Agents | Live | Agent roster, status, capabilities |
 | Chat | Live | Talk to any agent, tool call visualization |
-| Activity Feed | Planned | Every agent action, searchable, filterable |
+| Gallery | Live | Image generation history from ComfyUI |
+| Media | Live | Sonarr/Radarr/Plex integration |
+| Home | Live | Home Assistant entity overview |
+| Services | Live | Service health checks across all nodes |
+| Activity Feed | Live | Every agent action, searchable, filterable |
+| Notifications | Live | Escalation alerts, agent requests |
+| Preferences | Live | Stored preferences, editable |
 | Workspace | Planned | GWT workspace — what agents are working on |
-| Preferences | Planned | Stored preferences, editable |
 | Insights | Planned | What agents learned, pattern detections |
-| Jobs | Planned | Background job schedule, status, logs |
 
 ### Feedback Mechanisms
 
@@ -286,18 +288,19 @@ Agents respond to requests. No memory between invocations beyond what's in the c
 **Infrastructure:** vLLM, LangGraph, LiteLLM, tool APIs.
 **Verification:** Agent responds correctly to direct questions. Tools return accurate data.
 
-### Layer 2: Accumulated Knowledge (partially deployed)
+### Layer 2: Accumulated Knowledge (deployed, context injection pending)
 
-The Knowledge Agent indexes all project documentation into Qdrant (922 vectors). Any agent can query accumulated knowledge before acting. Neo4j stores structural relationships (30 nodes, 29 relationships).
+Knowledge base (922 vectors), preferences collection, activity logging, and escalation protocol are all deployed. Neo4j stores structural relationships (30 nodes, 29 relationships).
+
+**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence).
 
 **What's missing for full Layer 2:**
-- Conversation history indexing (conversations collection exists but isn't populated)
-- Preference storage (planned `preferences` collection)
-- Activity logging (planned `activity` collection)
+- Context injection — agents don't query preferences/activity before responding (data exists, plumbing doesn't)
+- Conversation history indexing (collection exists but isn't populated)
 - Proactive knowledge indexing (currently manual, should be cron)
 
-**Infrastructure:** Qdrant, Neo4j, embedding model, index scripts.
-**Verification:** Agent cites relevant ADRs/research when answering questions about past decisions.
+**Infrastructure:** Qdrant, Neo4j, embedding model, index scripts, Redis.
+**Verification:** Agent cites relevant ADRs/research when answering questions about past decisions. Preferences are stored and queryable.
 
 ### Layer 3: Pattern Recognition (planned)
 
@@ -316,7 +319,7 @@ Agents recognize patterns in their own operation and user behavior:
 - Explicit: thumbs up/down, "remember this" statements, preference edits
 - Meta: which agent actions led to follow-up requests (indicating incomplete results)
 
-**Infrastructure:** Preference collection, activity logging, pattern detection jobs.
+**Infrastructure:** Preference collection (deployed), activity logging (deployed), pattern detection jobs (not started), context injection (not started).
 **Verification:** Agent recommendations improve measurably over time. Media Agent stops suggesting genres Shaun ignores.
 
 ### Layer 4: Self-Optimization (future)
