@@ -156,7 +156,8 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Decision:** ADR-014 — Custom Next.js web app. Native HTTP streaming, CORS eliminated via API routes, React/TypeScript most AI-generatable, shares existing dashboard infrastructure.
 - **Scaffold:** `projects/eoq/` — Next.js 16, React 19, Tailwind + Framer Motion, Zustand state management. VN components (SceneBackground, CharacterPortrait, DialogueBox, ChoicePanel, useTypewriter hook). API routes for dialogue (LiteLLM SSE streaming) and image generation (ComfyUI proxy). Type system for characters (personality vectors, relationships, emotions, memories), world state, and game sessions.
 - **Game loop wired (Session 14):** Mock scene data (Isolde + Shattered Throne Room, 4 dialogue turns with choices), game engine hook (`useGameEngine`), page.tsx wired with startGame/advanceDialogue/handleChoice, click-to-advance for non-choice turns, scene header, streaming text display. API contract aligned between engine and chat route. Builds clean.
-- **Remaining:** Deploy to Node 2 for playtesting, ComfyUI workflow JSONs for scene/portrait generation, character memory (Qdrant integration).
+- **Deployed (Session 14):** Node 2:3002, Docker container `athanor-eoq`, Ansible role `eoq`. Accessible at http://192.168.1.225:3002.
+- **Remaining:** ComfyUI workflow JSONs for scene/portrait generation, character memory (Qdrant integration), additional scenes/characters.
 - **Files:** `projects/eoq/`, `docs/decisions/ADR-014-eoq-engine.md`, `docs/research/2026-02-24-eoq-game-engine.md`
 
 ### 4.2 — Kindred concept document
