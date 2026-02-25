@@ -1,0 +1,16 @@
+services:
+  eoq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: {{ eoq_image }}
+    container_name: athanor-eoq
+    restart: unless-stopped
+    ports:
+      - "{{ eoq_port }}:3002"
+    environment:
+      - LITELLM_URL={{ eoq_litellm_url }}
+      - LITELLM_KEY={{ eoq_litellm_key }}
+      - COMFYUI_URL={{ eoq_comfyui_url }}
+      - QDRANT_URL={{ eoq_qdrant_url }}
+      - DIALOGUE_MODEL={{ eoq_dialogue_model }}

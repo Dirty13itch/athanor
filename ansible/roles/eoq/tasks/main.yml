@@ -1,0 +1,56 @@
+---
+- name: Create EoBQ deploy directory
+  ansible.builtin.file:
+    path: "{{ eoq_deploy_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Sync EoBQ source code
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../projects/eoq/"
+    dest: "{{ eoq_deploy_dir }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=.next"
+      - "--exclude=.git"
+  register: eoq_src
+
+- name: Deploy EoBQ docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ eoq_deploy_dir }}/docker-compose.yml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: eoq_compose
+
+- name: Check if EoBQ image exists
+  community.docker.docker_image_info:
+    name: "{{ eoq_image }}"
+  register: eoq_image_info
+
+- name: Stop EoBQ before rebuild
+  community.docker.docker_compose_v2:
+    project_src: "{{ eoq_deploy_dir }}"
+    state: absent
+  when: eoq_src.changed and eoq_image_info.images | length > 0
+
+- name: Build and deploy EoBQ
+  community.docker.docker_compose_v2:
+    project_src: "{{ eoq_deploy_dir }}"
+    state: present
+    build: "{{ 'always' if (eoq_src.changed or eoq_image_info.images | length == 0) else 'never' }}"
+    recreate: "{{ 'always' if (eoq_compose.changed or eoq_src.changed) else 'never' }}"
+
+- name: Wait for EoBQ health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ eoq_port }}"
+    status_code: 200
+  register: eoq_health
+  retries: 12
+  delay: 5
+  until: eoq_health.status == 200
+  when: not ansible_check_mode

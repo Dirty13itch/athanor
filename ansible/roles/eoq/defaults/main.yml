@@ -1,0 +1,11 @@
+---
+eoq_deploy_dir: /opt/athanor/eoq
+eoq_port: 3002
+eoq_image: "athanor/eoq:latest"
+
+# Server-side env vars (API routes use these)
+eoq_litellm_url: "http://192.168.1.203:4000"
+eoq_litellm_key: "sk-athanor-litellm-2026"
+eoq_comfyui_url: "http://192.168.1.225:8188"
+eoq_qdrant_url: "http://192.168.1.244:6333"
+eoq_dialogue_model: "reasoning"

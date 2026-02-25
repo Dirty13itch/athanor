@@ -2,7 +2,7 @@
 
 *Live service inventory. Updated when services change.*
 
-Last updated: 2026-02-24 (Session 11)
+Last updated: 2026-02-24 (Session 14)
 
 ## Node 1 — Foundry (192.168.1.244)
 
@@ -10,7 +10,7 @@ Last updated: 2026-02-24 (Session 11)
 |---------|------|---------|
 | vLLM (Qwen3-32B-AWQ) | 8000 | TP=4 across 3x RTX 5070 Ti + RTX 4090, `--quantization awq` |
 | vLLM Embedding (Qwen3-Embedding-0.6B) | 8001 | RTX 5070 Ti GPU 4, 1024-dim embeddings |
-| Agent Server | 9000 | 5 agents: general, media, research, creative, knowledge |
+| Agent Server | 9000 | 6 agents: general, media, research, creative, knowledge, home |
 | Qdrant | 6333/6334 | Vector DB, collections: knowledge (922 pts), conversations |
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics |
@@ -22,6 +22,7 @@ Last updated: 2026-02-24 (Session 11)
 | vLLM (Qwen3-14B) | 8000 | RTX 5090, enforce-eager mode |
 | Dashboard | 3001 | Next.js 16, dark theme |
 | ComfyUI | 8188 | Flux dev FP8, RTX 5060 Ti |
+| EoBQ | 3002 | Empire of Broken Queens — Next.js game app |
 | Open WebUI | 3000 | Chat interface |
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics |
@@ -41,7 +42,7 @@ Last updated: 2026-02-24 (Session 11)
 | SABnzbd | 8080 | Needs Usenet provider config |
 | Tautulli | 8181 | Running |
 | Stash | 9999 | Running |
-| Home Assistant | 8123 | Needs onboarding in browser |
+| Home Assistant | 8123 | v2026.2.3, 38 entities, agent token active |
 
 ## Models on NFS (`/mnt/vault/models/`)
 

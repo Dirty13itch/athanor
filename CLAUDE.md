@@ -145,8 +145,8 @@ Read `docs/projects/{name}/` for project-specific context.
 
 | Action | Where | Unblocks |
 |--------|-------|----------|
-| HA onboarding | Browser: http://192.168.1.203:8123 | Home Agent (2.4) |
 | NordVPN credentials | Provide to Claude | qBittorrent (6.5) |
+| Tailscale on UDM Pro | SSH root@192.168.1.1 + create account | Remote access (6.8) |
 | Node 2 EXPO | BIOS via JetKVM | DDR5 5600 MT/s |
 | Samsung 990 PRO check | Physical at rack | Node 1 4TB NVMe |
 | Add agents to Open WebUI | Settings → Connections → OpenAI → `http://192.168.1.244:9000/v1` | Chat access |
