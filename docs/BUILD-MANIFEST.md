@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 11: 1.5 Neo4j, 2.1-2.3 Agents, 3.1 Design, 3.3 Monitoring, 2.2 Knowledge Agent)
+Last updated: 2026-02-24 (Session 11: all P0/P1 done, 5.5 CLAUDE.md optimized)
 
 ---
 
@@ -195,10 +195,9 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Depends on:** 1.1
 
 ### 5.5 — CLAUDE.md optimization
-- **Status:** 🔲
-- **Scope:** CLAUDE.md is 336 lines. Move operational state to MEMORY.md, move service details to dedicated docs. Keep CLAUDE.md focused on role, principles, and structure. Target <200 lines.
-- **Done when:** CLAUDE.md is lean. Operational state lives in MEMORY.md. No information lost.
-- **Depends on:** Nothing
+- **Status:** ✅ (Session 11, 2026-02-24)
+- **Result:** 371 → 165 lines (56% reduction). Services map moved to `docs/SERVICES.md`. Resolved blockers, CLI environment, MCP config, skills list, and agent teams sections removed (all in dedicated files or discoverable). Core identity, principles, hardware, gotchas, and active blockers retained.
+- **Files:** `CLAUDE.md`, `docs/SERVICES.md` (new)
 
 ---
 
