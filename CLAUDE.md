@@ -117,7 +117,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **Knowledge + Memory:** 922 doc chunks in Qdrant `knowledge`, activity log in `activity`, preferences in `preferences`. Neo4j graph (30 relationships). Redis on VAULT for GWT workspace + GPU orchestrator state.
 
-**Dashboard:** 12 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Activity, Notifications, Preferences. 25 service health checks.
+**Dashboard:** 12 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Activity, Notifications, Preferences. 26 service health checks.
 
 **MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 12 tools to Claude Code — coding, knowledge search, system status, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
 
