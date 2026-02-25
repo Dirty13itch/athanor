@@ -29,7 +29,7 @@
 
 ### Git state
 - Branch: main, all pushed to origin
-- Latest: `1b7e646` feat: Task Execution Engine
+- Latest: `f2272c5` feat: Execution tools — agents can read, write, and run code
 
 ---
 

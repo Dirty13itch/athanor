@@ -415,8 +415,8 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `tools/execution.py`, `tools/__init__.py`, `agents/coding.py`, `Dockerfile`, `docker-compose.yml`, Ansible role
 
 ### 8.4 — Dedicated Coding Model (Qwen3-Coder-30B-A3B)
-- **Status:** 🔲 todo
-- **Scope:** Deploy Qwen3-Coder-30B-A3B on RTX 4090 (18.6 GB Q4, 73 tok/s). Wire as `coding` model in LiteLLM. Point Coding Agent at it for better SWE-bench performance.
+- **Status:** 🔲 deferred
+- **Rationale:** Current Qwen3-32B-AWQ (SWE-bench 70.7%) outperforms Qwen3-Coder-30B-A3B (50.3%). The coding agent's test failures were quality issues, not speed issues. A faster but lower-quality model wouldn't help. Node 2's 5090 is fully loaded with Qwen3-14B at FP16 (31 GB / 32 GB). Revisit when: (a) AWQ quant available for Coder-Next 80B/3B (SWE-bench 70.6%), or (b) Node 2 GPU can be freed.
 - **Research:** `docs/research/2026-02-16-tool-calling-coding-models.md`
 
 ### 8.5 — Quality Gating & Cascade

@@ -51,10 +51,11 @@ app = FastAPI(title="Athanor Agent Server", version="0.3.0", lifespan=lifespan)
 
 AGENT_METADATA = {
     "general-assistant": {
-        "description": "System monitoring, infrastructure management, and task coordination across all 3 nodes.",
+        "description": "System monitoring, infrastructure management, task coordination, and codebase inspection.",
         "tools": ["check_services", "get_gpu_metrics", "get_vllm_models", "get_storage_info",
-                  "delegate_to_agent", "check_task_status"],
-        "type": "reactive",
+                  "delegate_to_agent", "check_task_status",
+                  "read_file", "list_directory", "search_files"],
+        "type": "proactive",
     },
     "media-agent": {
         "description": "Media stack control — search/add TV (Sonarr), movies (Radarr), monitor Plex streams (Tautulli).",

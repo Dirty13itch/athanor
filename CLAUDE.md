@@ -119,9 +119,15 @@ Full details in `docs/hardware/inventory.md`.
 
 **Dashboard:** 16 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Tasks, Workspace, Conversations, Activity, Notifications, Preferences. 26/26 service health checks UP.
 
-**MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 12 tools to Claude Code — coding, knowledge search, system status, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
+**MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 14 tools to Claude Code — coding, knowledge search, system status, task submission, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
 
-**Task Execution Engine (Session 19):** Background autonomous task execution. Redis-backed queue, worker loop (5s poll, max 2 concurrent), step logging, delegation tools (`delegate_to_agent`, `check_task_status`), GWT workspace broadcasting. API: `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/{id}`, `GET /v1/tasks/stats`.
+**Autonomous Workforce (Session 19):** Complete task execution pipeline:
+- **Task Engine:** Redis-backed queue, worker loop (5s poll, max 2 concurrent), step logging, delegation tools, GWT broadcasting.
+- **Proactive Scheduler:** general-assistant (30min), media-agent (15min), home-agent (5min). Redis-tracked intervals.
+- **Execution Tools:** `read_file`, `write_file`, `list_directory`, `search_files`, `run_command`. Path-scoped security. Volume mounts: `/opt/athanor:/workspace:ro`, `/opt/athanor/agent-output:/output`.
+- **Coding Agent:** 9 tools (4 coding + 5 execution). Autonomous loop verified: read → generate → write → test → self-correct.
+- **General Assistant:** 9 tools (4 system + 2 delegation + 3 read-only filesystem).
+- **API:** `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/{id}`, `GET /v1/tasks/stats`, `GET /v1/tasks/schedules`, `POST /v1/tasks/{id}/cancel`.
 
 **GWT Phase 2 deployed:** Agent registration in Redis, event ingestion (`POST /v1/events`), Redis pub/sub for workspace broadcasts, conversation history logging to Qdrant. Phase 3 remaining: agent subscription + reactive behavior.
 
