@@ -33,8 +33,8 @@
 - Update hardware inventory with 6 corrections found by audits
 
 ### Git state
-- Branch: main
-- Latest: `e646ef0` feat: read-only filesystem tools for general-assistant, docs update
+- Branch: main, all pushed to origin
+- Latest: `49b2aaf` feat: P1 quick wins — kernel tuning, Qdrant ulimit, inventory corrections
 
 ---
 
