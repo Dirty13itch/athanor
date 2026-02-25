@@ -110,7 +110,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **Build phase.** All P0/P1 infrastructure and agent items complete. See `docs/BUILD-MANIFEST.md` for remaining P2 work and `docs/SERVICES.md` for full service inventory.
 
-**5 agents live** on Node 1:9000: General Assistant, Media Agent, Research Agent, Creative Agent, Knowledge Agent. Home Agent blocked on HA onboarding.
+**6 agents live** on Node 1:9000: General Assistant, Media Agent, Research Agent, Creative Agent, Knowledge Agent, Home Agent. 18/18 service health checks passing.
 
 **All 7 GPUs active.** Node 1: vLLM TP=4 (GPUs 0-3) + embedding (GPU 4). Node 2: vLLM (GPU 0) + ComfyUI Flux (GPU 1).
 

@@ -3,6 +3,7 @@ from .media import create_media_agent
 from .research import create_research_agent
 from .creative import create_creative_agent
 from .knowledge import create_knowledge_agent
+from .home import create_home_agent
 
 _AGENTS: dict = {}
 
@@ -14,6 +15,7 @@ def _init_agents():
         _AGENTS["research-agent"] = create_research_agent()
         _AGENTS["creative-agent"] = create_creative_agent()
         _AGENTS["knowledge-agent"] = create_knowledge_agent()
+        _AGENTS["home-agent"] = create_home_agent()
 
 
 def get_agent(name: str):

@@ -21,6 +21,9 @@ SERVICES = {
     "Tautulli": {"url": "http://192.168.1.203:8181", "node": "VAULT"},
     "Stash": {"url": "http://192.168.1.203:9999", "node": "VAULT"},
     "Plex": {"url": "http://192.168.1.203:32400/identity", "node": "VAULT"},
+    "Home Assistant": {"url": "http://192.168.1.203:8123/api/", "node": "VAULT",
+                        "headers": {"Authorization": f"Bearer {settings.ha_token}"}},
+    "Neo4j": {"url": "http://192.168.1.203:7474", "node": "VAULT"},
 }
 
 

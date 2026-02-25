@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     radarr_api_key: str = ""
     tautulli_api_key: str = ""
 
+    ha_token: str = ""
+
     model_config = {"env_prefix": "ATHANOR_"}
 
 

@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 13: 5.2 Ansible convergence verified idempotent)
+Last updated: 2026-02-24 (Session 13: 5.2 Ansible convergence, 2.4 Home Agent, backup deployment)
 
 ---
 
@@ -99,12 +99,15 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `agents/creative.py`, `tools/creative.py`
 
 ### 2.4 — Home Agent activation
-- **Status:** 🚫 blocked — HA onboarding requires Shaun in browser
-- **Why:** Skeleton exists but tools are disabled pending HA long-lived access token.
-- **Scope:** After Shaun completes HA onboarding at :8123, get long-lived token, set ATHANOR_HA_TOKEN, configure Lutron + UniFi integrations, activate home agent tools.
-- **Done when:** Home agent can query entity states and control lights.
-- **Depends on:** Shaun completing HA onboarding
-- **Files:** `projects/agents/src/athanor_agents/agents/home.py`, `projects/agents/src/athanor_agents/tools/home.py`
+- **Status:** ✅ (Session 13, 2026-02-24)
+- **Deployed:** Node 1:9000 as `home-agent`, uses `reasoning` model (Qwen3-32B-AWQ)
+- **Tools:** `get_ha_states`, `get_entity_state`, `find_entities`, `call_ha_service`, `set_light_brightness`, `set_climate_temperature`, `list_automations`, `trigger_automation`
+- **HA Token:** Long-lived access token created for "Athanor Agent Server" (10-year expiry), passed via `ATHANOR_HA_TOKEN` env var
+- **HA State:** v2026.2.3, 38 entities (13 domains) — fresh install with cast devices, Sonos controls, weather. Lutron/UniFi integrations not yet added.
+- **Service checks:** 18/18 UP (added HA + Neo4j to health checks)
+- **Tested:** Agent successfully queries device overview, groups by domain, responds naturally.
+- **Remaining:** Add Lutron and UniFi integrations to HA for light/network control
+- **Files:** `config.py`, `agents/__init__.py`, `server.py`, `tools/system.py`, `ansible/roles/agents/defaults/main.yml`
 
 ### 2.5 — Media Agent wiring
 - **Status:** ✅ (Session 10, 2026-02-24)
@@ -233,7 +236,7 @@ These require human action. Claude Code cannot do them.
 
 | Item | Action | Unblocks |
 |------|--------|----------|
-| HA onboarding | Browser: http://192.168.1.203:8123 | 2.4 (Home Agent) |
+| ~~HA onboarding~~ | ~~Done (Session 13)~~ | ~~2.4 (Home Agent)~~ |
 | NordVPN credentials | Provide service creds | 6.5 (qBittorrent) |
 | Node 2 EXPO | BIOS via JetKVM | Performance |
 | Samsung 990 PRO reseat | Physical at rack | Node 1 storage |

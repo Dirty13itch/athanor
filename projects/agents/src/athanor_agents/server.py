@@ -52,7 +52,7 @@ AGENT_METADATA = {
         ],
         "type": "proactive",
         "schedule": "every 5 min",
-        "status_note": "Blocked on HA onboarding",
+        "status_note": None,
     },
     "creative-agent": {
         "description": "Image generation via ComfyUI Flux — text-to-image, queue management, generation history.",
