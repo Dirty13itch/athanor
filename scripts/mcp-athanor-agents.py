@@ -21,13 +21,15 @@ from mcp.server.fastmcp import FastMCP
 
 AGENT_URL = os.environ.get("ATHANOR_AGENT_URL", "http://192.168.1.244:9000")
 _client = httpx.Client(timeout=120)
+_client_long = httpx.Client(timeout=600)  # 10 min for deep research
 
 mcp = FastMCP("athanor-agents")
 
 
-def _chat(agent: str, prompt: str) -> str:
+def _chat(agent: str, prompt: str, long: bool = False) -> str:
     """Send a chat completion request to the agent server and return the text."""
-    resp = _client.post(
+    client = _client_long if long else _client
+    resp = client.post(
         f"{AGENT_URL}/v1/chat/completions",
         json={
             "model": agent,
@@ -37,6 +39,101 @@ def _chat(agent: str, prompt: str) -> str:
     )
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
+
+
+# --- Deep research (via research-agent, long timeout) ---
+
+
+@mcp.tool()
+def deep_research(
+    topic: str,
+    context: str = "",
+    depth: str = "thorough",
+) -> str:
+    """Offload heavy research to local Qwen3-32B — saves Claude tokens on web search,
+    page reading, knowledge base lookups, and multi-source synthesis.
+
+    The local Research Agent will autonomously:
+    1. Search the web (DuckDuckGo) with multiple refined queries
+    2. Read and extract content from the most relevant pages
+    3. Cross-reference against Athanor's knowledge base (Qdrant)
+    4. Query the infrastructure graph (Neo4j) if relevant
+    5. Synthesize findings into a structured, cited report
+
+    Use this for any research task that would otherwise burn many Claude tokens
+    on web searches, page reads, and synthesis. Returns a structured report with
+    citations that you can use directly or refine further.
+
+    Args:
+        topic: The research question or topic. Be specific for better results.
+            Good: "vLLM 0.8 sleep mode API — configuration, limitations, GPU memory behavior"
+            Bad: "vLLM"
+        context: Optional context about why this research matters or constraints to consider.
+            Example: "We run Qwen3-32B on 4x 5070 Ti with 16GB VRAM each via TP=4"
+        depth: Research depth — "quick" (2-3 sources, fast scan), "thorough" (5-8 sources,
+            reads full pages, cross-references), "comprehensive" (10+ sources, multiple
+            search rounds, identifies gaps and contradictions). Default: "thorough"
+    """
+    depth_instructions = {
+        "quick": (
+            "Do a quick scan: 1-2 web searches, skim the top results, check the "
+            "knowledge base once. Spend no more than 2-3 tool calls total. "
+            "Prioritize speed over completeness."
+        ),
+        "thorough": (
+            "Do thorough research: 3-4 web searches with different angles, read the "
+            "full content of the 3-5 most relevant pages, cross-reference against "
+            "the knowledge base. If initial results are thin, refine your queries "
+            "and search again. Aim for 8-12 tool calls."
+        ),
+        "comprehensive": (
+            "Do comprehensive, exhaustive research: Start broad, then narrow. Use "
+            "5+ different search queries approaching the topic from multiple angles. "
+            "Read 5-8 full pages. Cross-reference everything against the knowledge "
+            "base and infrastructure graph. After your first pass, identify gaps in "
+            "your findings and do targeted follow-up searches to fill them. Note any "
+            "contradictions between sources. Aim for 15-20+ tool calls. Be thorough — "
+            "this is the kind of research that would take a human an hour."
+        ),
+    }
+
+    instructions = depth_instructions.get(depth, depth_instructions["thorough"])
+
+    prompt = f"""DEEP RESEARCH REQUEST — {depth.upper()} depth
+
+## Topic
+{topic}
+
+"""
+    if context:
+        prompt += f"""## Context
+{context}
+
+"""
+    prompt += f"""## Instructions
+{instructions}
+
+## Required Output Format
+
+### Executive Summary
+3-5 sentences. The key takeaway if someone reads nothing else.
+
+### Detailed Findings
+Numbered findings, each with:
+- The finding itself (specific, factual)
+- Source citation [URL]
+- Confidence level (high/medium/low based on source quality and corroboration)
+
+### Practical Implications for Athanor
+How this applies to our homelab specifically. Concrete recommendations.
+
+### Sources Consulted
+Numbered list of all URLs read, with a one-line note on what each contributed.
+
+### Knowledge Gaps
+What you couldn't find or verify. What would need further investigation.
+"""
+    return _chat("research-agent", prompt, long=True)
 
 
 # --- Coding tools (via coding-agent) ---

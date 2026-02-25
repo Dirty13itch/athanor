@@ -119,7 +119,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **Dashboard:** 12 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Activity, Notifications, Preferences. 25 service health checks.
 
-**MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 11 tools to Claude Code for local AI coding, knowledge search, and system status.
+**MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 12 tools to Claude Code — coding, knowledge search, system status, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
 
 **Next up:** 7.11 GPU orchestrator (pynvml + vLLM sleep/wake), then Tier 6 backlog.
 
