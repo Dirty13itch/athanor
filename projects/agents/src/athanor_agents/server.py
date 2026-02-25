@@ -19,11 +19,21 @@ from .config import settings
 async def lifespan(app: FastAPI):
     from .agents import _init_agents
     from .activity import ensure_collections
-    from .workspace import start_competition, stop_competition
+    from .workspace import start_competition, stop_competition, register_agent
 
     _init_agents()
     ensure_collections()
     await start_competition()
+
+    # Register all agents in Redis for discovery (Phase 2)
+    for name, meta in AGENT_METADATA.items():
+        await register_agent(
+            name=name,
+            capabilities=meta["tools"],
+            agent_type=meta["type"],
+            subscriptions=meta.get("subscriptions", []),
+        )
+
     yield
     await stop_competition()
 
@@ -60,8 +70,8 @@ AGENT_METADATA = {
         "status_note": None,
     },
     "creative-agent": {
-        "description": "Image generation via ComfyUI Flux — text-to-image, queue management, generation history.",
-        "tools": ["generate_image", "check_queue", "get_generation_history", "get_comfyui_status"],
+        "description": "Image and video generation via ComfyUI — Flux text-to-image, Wan2.x text-to-video, queue management.",
+        "tools": ["generate_image", "generate_video", "check_queue", "get_generation_history", "get_comfyui_status"],
         "type": "reactive",
     },
     "research-agent": {
@@ -439,6 +449,64 @@ async def workspace_stats():
     return await get_stats()
 
 
+@app.get("/v1/agents/registry")
+async def agents_registry():
+    """Get all registered agents from Redis (Phase 2 discovery)."""
+    from .workspace import get_registered_agents
+
+    agents = await get_registered_agents()
+    return {"agents": agents, "count": len(agents)}
+
+
+# --- Event Ingestion (Phase 2) ---
+
+EVENT_PRIORITY_MAP = {
+    "alert": "critical",
+    "state_change": "normal",
+    "schedule": "low",
+    "webhook": "normal",
+}
+
+
+@app.post("/v1/events")
+async def ingest_event(request: Request):
+    """Ingest an external event and convert it to a workspace item.
+
+    Accepts events from HA automations, cron jobs, webhooks, etc.
+    Body: {"source": "home-assistant", "event_type": "state_change",
+           "content": "Motion detected in garage", "metadata": {...}}
+    """
+    from .workspace import post_item
+
+    body = await request.json()
+    source = body.get("source", "external")
+    event_type = body.get("event_type", "webhook")
+    content = body.get("content", "")
+    metadata = body.get("metadata", {})
+    priority = EVENT_PRIORITY_MAP.get(event_type, "normal")
+
+    if not content:
+        return JSONResponse(status_code=400, content={"error": "content is required"})
+
+    metadata["event_type"] = event_type
+    metadata["source"] = source
+
+    item = await post_item(
+        source_agent=f"event:{source}",
+        content=content,
+        priority=priority,
+        ttl=600,  # Events live longer than agent items
+        metadata=metadata,
+    )
+
+    return {
+        "status": "ingested",
+        "item_id": item.id,
+        "priority": priority,
+        "salience": item.salience,
+    }
+
+
 # --- Context injection (diagnostic) ---
 
 
@@ -521,8 +589,8 @@ async def chat_completions(request: Request):
     content = _strip_think_tags(result["messages"][-1].content)
     duration_ms = int(time.time() * 1000) - start_ms
 
-    # Log activity (fire-and-forget)
-    from .activity import log_activity
+    # Log activity + conversation (fire-and-forget)
+    from .activity import log_activity, log_conversation
 
     asyncio.create_task(log_activity(
         agent=model_name,
@@ -530,6 +598,13 @@ async def chat_completions(request: Request):
         input_summary=user_input,
         output_summary=content[:500],
         duration_ms=duration_ms,
+    ))
+    asyncio.create_task(log_conversation(
+        agent=model_name,
+        user_message=user_input,
+        assistant_response=content,
+        duration_ms=duration_ms,
+        thread_id=thread_id,
     ))
 
     return {
@@ -615,16 +690,23 @@ async def _stream_response(agent, messages, config, model_name, user_input=""):
     yield _sse_chunk(chat_id, created, model_name, {}, finish_reason="stop")
     yield "data: [DONE]\n\n"
 
-    # Log activity (fire-and-forget)
+    # Log activity + conversation (fire-and-forget)
     duration_ms = int(time.time() * 1000) - start_ms
     full_response = "".join(collected_text)
-    from .activity import log_activity
+    from .activity import log_activity, log_conversation
 
     asyncio.create_task(log_activity(
         agent=model_name,
         action_type="chat",
         input_summary=user_input,
         output_summary=full_response[:500],
+        tools_used=tools_used,
+        duration_ms=duration_ms,
+    ))
+    asyncio.create_task(log_conversation(
+        agent=model_name,
+        user_message=user_input,
+        assistant_response=full_response,
         tools_used=tools_used,
         duration_ms=duration_ms,
     ))

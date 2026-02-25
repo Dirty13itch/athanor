@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 WORKSPACE_KEY = "athanor:workspace"
 WORKSPACE_HISTORY_KEY = "athanor:workspace:history"
+WORKSPACE_BROADCAST_CHANNEL = "athanor:workspace:broadcast"
 WORKSPACE_CAPACITY = 7
 COMPETITION_INTERVAL = 1.0  # seconds
 
@@ -236,7 +237,7 @@ async def _competition_cycle():
                     broadcast[0].source_agent, broadcast[0].salience,
                 )
 
-            # Archive history (last 100 broadcasts)
+            # Archive history + publish broadcast via pub/sub
             if broadcast:
                 r = await get_redis()
                 entry = json.dumps({
@@ -247,10 +248,57 @@ async def _competition_cycle():
                 await r.lpush(WORKSPACE_HISTORY_KEY, entry)
                 await r.ltrim(WORKSPACE_HISTORY_KEY, 0, 99)
 
+                # Publish to subscribers (Phase 2 pub/sub)
+                await r.publish(WORKSPACE_BROADCAST_CHANNEL, entry)
+
         except Exception as e:
             logger.warning("Competition cycle error: %s", e)
 
         await asyncio.sleep(COMPETITION_INTERVAL)
+
+
+AGENT_REGISTRY_KEY = "athanor:agents:registry"
+
+
+async def register_agent(
+    name: str,
+    capabilities: list[str],
+    agent_type: str = "reactive",
+    subscriptions: list[str] | None = None,
+):
+    """Register an agent's capabilities in Redis for discovery.
+
+    Args:
+        name: Agent name (e.g., "media-agent")
+        capabilities: List of tool names the agent provides
+        agent_type: "reactive" (on-demand) or "proactive" (scheduled)
+        subscriptions: Workspace topics this agent cares about
+    """
+    try:
+        r = await get_redis()
+        entry = json.dumps({
+            "name": name,
+            "capabilities": capabilities,
+            "type": agent_type,
+            "subscriptions": subscriptions or [],
+            "registered_at": time.time(),
+            "status": "online",
+        })
+        await r.hset(AGENT_REGISTRY_KEY, name, entry)
+        logger.info("Agent '%s' registered (%d capabilities)", name, len(capabilities))
+    except Exception as e:
+        logger.warning("Failed to register agent '%s': %s", name, e)
+
+
+async def get_registered_agents() -> dict[str, dict]:
+    """Get all registered agents from Redis."""
+    try:
+        r = await get_redis()
+        raw = await r.hgetall(AGENT_REGISTRY_KEY)
+        return {k: json.loads(v) for k, v in raw.items()}
+    except Exception as e:
+        logger.warning("Failed to get registered agents: %s", e)
+        return {}
 
 
 async def start_competition():

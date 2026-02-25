@@ -29,6 +29,9 @@ COLLECTIONS = {
     "preferences": {
         "vectors": {"size": 1024, "distance": "Cosine"},
     },
+    "conversations": {
+        "vectors": {"size": 1024, "distance": "Cosine"},
+    },
 }
 
 
@@ -112,6 +115,46 @@ async def log_activity(
         resp.raise_for_status()
     except Exception as e:
         logger.warning("Failed to log activity for %s: %s", agent, e)
+
+
+async def log_conversation(
+    agent: str,
+    user_message: str,
+    assistant_response: str,
+    tools_used: list[str] | None = None,
+    duration_ms: int | None = None,
+    thread_id: str = "",
+):
+    """Log a conversation turn to the conversations collection.
+
+    Embeds the user message for semantic search. Stores both sides
+    of the exchange plus metadata for retrieval.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+
+    try:
+        vector = _get_embedding(user_message[:2000])
+        point_id = _point_id(f"conv-{agent}-{now}-{user_message[:100]}")
+
+        payload = {
+            "agent": agent,
+            "user_message": user_message[:2000],
+            "assistant_response": assistant_response[:4000],
+            "tools_used": tools_used or [],
+            "duration_ms": duration_ms,
+            "thread_id": thread_id,
+            "timestamp": now,
+            "timestamp_unix": int(time.time()),
+        }
+
+        resp = httpx.put(
+            f"{_QDRANT_URL}/collections/conversations/points",
+            json={"points": [{"id": point_id, "vector": vector, "payload": payload}]},
+            timeout=15,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning("Failed to log conversation for %s: %s", agent, e)
 
 
 async def store_preference(

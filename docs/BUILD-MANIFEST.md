@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-25 (Session 17: Creative Agent video tools, voice deployment, vLLM embedding resize)
+Last updated: 2026-02-25 (Session 18: Maintenance sweep — knowledge re-index 1203pts, HA auth fix, Neo4j 43 rels, backup 14 svcs)
 
 ---
 
@@ -346,7 +346,12 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Deployed:** `workspace.py` module in agent server. Redis-backed (VAULT:6379). WorkspaceItem schema with salience scoring (urgency x relevance x recency). Capacity-limited to 7 items (GWT cognitive bottleneck). 1Hz background competition cycle with history archival.
 - **Endpoints:** `GET /v1/workspace` (broadcast), `POST /v1/workspace` (post item), `DELETE /v1/workspace/{id}`, `DELETE /v1/workspace`, `GET /v1/workspace/stats`.
 - **Verified:** Items post with computed salience, priority ordering correct (high > normal), recency decay working, competition cycle running.
-- **Remaining:** Phase 2 (agent registration protocol, event ingestion, Redis pub/sub broadcast), Phase 3 (coalition formation), Phase 4 (experience memory).
+- **Phase 2 delivered (Session 18):**
+  - **Agent registration:** All 8 agents register capabilities in Redis on startup. `GET /v1/agents/registry` for discovery.
+  - **Redis pub/sub:** Competition cycle publishes broadcast to `athanor:workspace:broadcast` channel.
+  - **Event ingestion:** `POST /v1/events` converts external events (HA, cron, webhooks) into workspace items with priority mapping.
+  - **Conversation logging:** Every chat completion logs to `conversations` Qdrant collection (both user message + agent response, embedded for semantic search).
+- **Remaining:** Phase 3 (agents subscribing + reacting to broadcasts, coalition formation, semantic relevance scoring), Phase 4 (experience memory).
 - **Decision:** ADR-017
 
 ### 7.11 — GPU Orchestrator (custom FastAPI service)
