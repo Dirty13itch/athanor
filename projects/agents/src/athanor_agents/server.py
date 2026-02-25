@@ -430,6 +430,36 @@ async def workspace_stats():
     return await get_stats()
 
 
+# --- Context injection (diagnostic) ---
+
+
+@app.post("/v1/context/preview")
+async def preview_context(request: Request):
+    """Preview what context would be injected for a given agent + message.
+
+    Body: {"agent": "media-agent", "message": "Add Breaking Bad"}
+    Returns the formatted context string without invoking the agent.
+    """
+    from .context import enrich_context
+
+    body = await request.json()
+    agent_name = body.get("agent", "general-assistant")
+    message = body.get("message", "")
+
+    start_ms = int(time.time() * 1000)
+    context_str = await enrich_context(agent_name, message)
+    duration_ms = int(time.time() * 1000) - start_ms
+
+    return {
+        "agent": agent_name,
+        "message": message,
+        "context": context_str,
+        "context_chars": len(context_str),
+        "context_tokens_est": len(context_str) // 4,
+        "duration_ms": duration_ms,
+    }
+
+
 # --- Chat completions ---
 
 
@@ -458,6 +488,17 @@ async def chat_completions(request: Request):
 
     # Extract user input summary for activity logging
     user_input = messages[-1].get("content", "")[:500] if messages else ""
+
+    # Context injection — enrich with preferences, activity, knowledge
+    if not body.get("skip_context", False):
+        from .context import enrich_context
+
+        try:
+            context_str = await enrich_context(model_name, user_input)
+            if context_str:
+                lc_messages.insert(0, SystemMessage(content=context_str))
+        except Exception:
+            pass  # Never let context injection block a request
 
     if stream:
         return StreamingResponse(

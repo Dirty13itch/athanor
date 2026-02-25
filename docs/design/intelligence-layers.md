@@ -33,14 +33,19 @@ Simple, debuggable, working.
 4. **Escalation protocol:** 3-tier confidence system (act/notify/ask) with per-agent thresholds
 5. **GWT workspace:** Redis-backed inter-agent coordination, 1Hz competition cycle, capacity 7
 
+### What's Deployed for Layer 2
+
+6. **Context injection** (`context.py`): Every chat completion request is enriched before routing:
+   - Single embedding call from user message, reused for all searches
+   - Three parallel Qdrant queries: preferences, recent activity, relevant knowledge docs
+   - Per-agent configuration: different agents get different context shapes and limits
+   - Injected as SystemMessage prefix (before user messages, after agent's static prompt)
+   - Graceful degradation: any failed query returns empty, never blocks the request
+   - 30-50ms typical latency, ~300-500 token budget
+   - Opt-out: `skip_context: true` in request body
+   - Diagnostic: `POST /v1/context/preview` to inspect injection without invoking agent
+
 ### What's Missing for Full Layer 2
-
-**Context injection:** Agents don't yet query preferences/activity/conversations before responding. The collections exist and are populated, but no agent actually reads them at request time to enrich its context. This is the single biggest gap — the data is there, the plumbing to use it is not.
-
-Implementation needed:
-- Agent server request handler queries relevant collections before routing
-- Each agent gets different context (Research → prior research, Media → viewing history, etc.)
-- Inject as system message prefix, not tool calls (faster, always present)
 
 **Conversation history:** The `conversations` collection exists in Qdrant but isn't populated.
 
@@ -55,24 +60,36 @@ Implementation needed:
 - Cron job on DEV or Node 1 at 03:00 (after backups)
 - Incremental updates (only re-embed changed documents)
 
-### Layer 2 Context Injection
+### Layer 2 Context Injection (deployed)
 
-When fully deployed, the agent server's request handler injects relevant context before routing to the agent:
+The agent server's request handler (`server.py`) calls `enrich_context()` from `context.py` before routing:
 
 ```
 Request arrives
-  → Query preferences collection for agent-specific priors
-  → Query conversations collection for relevant history
-  → Query knowledge collection for topic context
-  → Inject results as system message prefix
+  → Compute embedding from user message (1 call, ~30ms)
+  → asyncio.gather():
+      → Search preferences collection (agent-specific + global)
+      → Scroll recent activity for this agent
+      → Search knowledge collection for relevant docs
+  → Format as SystemMessage with sections:
+      ## Your Stored Preferences
+      ## Recent Interactions ({agent})
+      ## Relevant Documentation
+  → Prepend to message list
   → Route to agent with enriched context
 ```
 
-Each agent gets different context:
-- **Research Agent** → "Here's what we've already researched about this topic"
-- **General Assistant** → "Here's what Shaun has previously said about this"
-- **Media Agent** → "Here's Shaun's viewing history and content preferences"
-- **Home Agent** → "Here's what happened the last 50 times this event fired"
+Per-agent context configuration (`AGENT_CONTEXT_CONFIG`):
+
+| Agent | Prefs | Activity | Knowledge | Boost Terms |
+|-------|-------|----------|-----------|-------------|
+| general-assistant | 3 | 3 | 2 | monitoring, detail level |
+| media-agent | 5 | 5 | 0 | content, quality, genre |
+| home-agent | 5 | 5 | 0 | comfort, temperature, lighting |
+| research-agent | 3 | 3 | 3 | depth, format, citations |
+| creative-agent | 5 | 3 | 0 | style, visual, artistic |
+| knowledge-agent | 3 | 3 | 0 | format, detail |
+| coding-agent | 3 | 3 | 2 | conventions, style, stack |
 
 The more the system is used, the more knowledge accumulates, the better every agent performs.
 
@@ -166,8 +183,8 @@ This is where Athanor genuinely starts managing itself. The recursive nature of 
 | Layer | Requires | Status |
 |-------|----------|--------|
 | 1 (Reactive) | vLLM, LangGraph, LiteLLM, tool APIs | **Deployed** |
-| 2 (Knowledge) | Qdrant, Neo4j, embedding model, preferences, activity logging | **Deployed** — collections live, context injection not yet wired |
-| 3 (Patterns) | Context injection, conversation history, pattern detection jobs | **Not started** |
+| 2 (Knowledge) | Qdrant, Neo4j, embedding model, preferences, activity logging, context injection | **Deployed** — context injection live, conversation history not yet populated |
+| 3 (Patterns) | Conversation history, pattern detection jobs, context refinement | **Not started** |
 | 4 (Self-Optimization) | All above + metrics correlation + A/B testing + auto-evaluation | **Future** |
 
 ## Implementation Sequence (remaining)
@@ -176,7 +193,7 @@ This is where Athanor genuinely starts managing itself. The recursive nature of 
 2. ~~Add activity logging middleware~~ ✅ Deployed (fire-and-forget asyncio)
 3. ~~Add preference storage/retrieval~~ ✅ Deployed (REST API + dashboard)
 4. ~~Implement escalation protocol~~ ✅ Deployed (3-tier, per-agent thresholds)
-5. **Wire context injection** — Agent server queries preferences/activity before routing to agent
+5. ~~Wire context injection~~ ✅ Deployed — `context.py` module, 1 embedding + 3 parallel Qdrant queries, ~30-50ms latency
 6. **Populate conversation history** — Post-interaction embedding + storage
 7. **Pattern detection jobs** — Hourly/daily analysis of activity logs
 8. ~~Dashboard integration — Activity Feed, Preferences~~ ✅ Deployed (Tier 7.12-7.14)

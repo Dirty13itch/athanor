@@ -288,19 +288,18 @@ Agents respond to requests. No memory between invocations beyond what's in the c
 **Infrastructure:** vLLM, LangGraph, LiteLLM, tool APIs.
 **Verification:** Agent responds correctly to direct questions. Tools return accurate data.
 
-### Layer 2: Accumulated Knowledge (deployed, context injection pending)
+### Layer 2: Accumulated Knowledge (deployed)
 
-Knowledge base (922 vectors), preferences collection, activity logging, and escalation protocol are all deployed. Neo4j stores structural relationships (30 nodes, 29 relationships).
+Knowledge base (922 vectors), preferences collection, activity logging, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (30 nodes, 29 relationships).
 
-**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence).
+**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config).
 
-**What's missing for full Layer 2:**
-- Context injection — agents don't query preferences/activity before responding (data exists, plumbing doesn't)
+**What's remaining for full Layer 2:**
 - Conversation history indexing (collection exists but isn't populated)
 - Proactive knowledge indexing (currently manual, should be cron)
 
 **Infrastructure:** Qdrant, Neo4j, embedding model, index scripts, Redis.
-**Verification:** Agent cites relevant ADRs/research when answering questions about past decisions. Preferences are stored and queryable.
+**Verification:** Agent cites relevant ADRs/research when answering questions about past decisions. Preferences are stored, queryable, and injected into agent context at request time.
 
 ### Layer 3: Pattern Recognition (planned)
 
@@ -319,7 +318,7 @@ Agents recognize patterns in their own operation and user behavior:
 - Explicit: thumbs up/down, "remember this" statements, preference edits
 - Meta: which agent actions led to follow-up requests (indicating incomplete results)
 
-**Infrastructure:** Preference collection (deployed), activity logging (deployed), pattern detection jobs (not started), context injection (not started).
+**Infrastructure:** Preference collection (deployed), activity logging (deployed), context injection (deployed), pattern detection jobs (not started).
 **Verification:** Agent recommendations improve measurably over time. Media Agent stops suggesting genres Shaun ignores.
 
 ### Layer 4: Self-Optimization (future)
