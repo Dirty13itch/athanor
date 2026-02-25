@@ -43,6 +43,12 @@
     mode: "0644"
   register: agent_compose
 
+- name: Stop agents before rebuild
+  community.docker.docker_compose_v2:
+    project_src: "{{ agent_deploy_dir }}"
+    state: absent
+  when: agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed
+
 - name: Build and deploy agents
   community.docker.docker_compose_v2:
     project_src: "{{ agent_deploy_dir }}"

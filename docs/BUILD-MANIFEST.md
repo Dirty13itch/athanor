@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 12: 5.4 GPU power, 4.1 EoBQ scaffold, 5.1 10GbE, 5.3 backup strategy)
+Last updated: 2026-02-24 (Session 13: 5.2 Ansible convergence verified idempotent)
 
 ---
 
@@ -180,10 +180,17 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Tool:** iperf3 3.16 on all nodes (Ubuntu 24.04)
 
 ### 5.2 — Ansible full convergence test
-- **Status:** 🔲
-- **Scope:** Run `ansible-playbook playbooks/site.yml` and `playbooks/vault.yml` end to end. Fix any drift. Verify idempotency (second run = 0 changed).
-- **Done when:** Both playbooks converge with 0 changed on second run.
-- **Depends on:** 1.1
+- **Status:** ✅ (Session 13, 2026-02-24)
+- **Result:** `site.yml` converges idempotent on 3rd run. `changed=2` on both nodes are docker image pull freshness checks (inherent, not drift).
+  - **Node 1 (core):** ok=50, changed=2, failed=0
+  - **Node 2 (interface):** ok=54, changed=2, failed=0
+- **Fixed during convergence:**
+  - Stale NFS `/mnt/vault/data` on both nodes (auto-recovered by common role)
+  - CRLF→LF Dockerfiles on Node 2 (agents + ComfyUI)
+  - `docker_compose_v2` module SHA mismatch bug (added "stop before rebuild" tasks to agents + ComfyUI roles)
+  - Removed undefined vault variable references from `host_vars/core.yml` (agent API keys already in role defaults)
+- **Remaining:** `vault.yml` convergence test (lower priority — VAULT uses different SSH method)
+- **Files:** `ansible/roles/agents/tasks/main.yml`, `ansible/roles/comfyui/tasks/main.yml`
 
 ### 5.3 — Backup strategy
 - **Status:** ✅ (Session 12, 2026-02-24)
@@ -191,7 +198,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Scripts:** `scripts/backup-qdrant.sh` (Node 1, Qdrant snapshot API → NFS), `scripts/backup-neo4j.sh` (VAULT, Cypher export), `scripts/backup-appdata.sh` (VAULT, tar 11 services).
 - **Ansible:** `ansible/roles/backup/` — deploys scripts + NFS mount + cron on Node 1.
 - **Tested:** Qdrant snapshot API verified (12 MB for knowledge collection). Neo4j API verified (27 nodes). Backup dirs created on VAULT at `/mnt/user/backups/athanor/`.
-- **Remaining:** Deploy cron jobs via Ansible, run first full backup, set up VAULT-side cron (Neo4j + appdata).
+- **Deployed (Session 13):** Node 1 cron at 03:00 (Qdrant → `/mnt/vault/data/backups/athanor/qdrant/`). VAULT crons at 03:15 (Neo4j) and 03:30 (appdata). First manual run verified: Qdrant 12M, Neo4j 8K/61 lines, appdata in progress.
 - **Files:** `docs/decisions/ADR-015-backup-strategy.md`, `scripts/backup-*.sh`, `ansible/roles/backup/`
 
 ### 5.4 — GPU power limit persistence

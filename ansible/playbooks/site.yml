@@ -11,7 +11,9 @@
     - monitoring
     - vllm
     - vllm-embedding
+    - qdrant
     - agents
+    - backup
 
 - name: Configure Node 2 (Workshop)
   hosts: node2

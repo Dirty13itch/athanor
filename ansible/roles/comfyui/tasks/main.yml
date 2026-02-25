@@ -39,6 +39,12 @@
     name: "{{ comfyui_image }}"
   register: comfyui_image_info
 
+- name: Stop ComfyUI before rebuild
+  community.docker.docker_compose_v2:
+    project_src: "{{ comfyui_deploy_dir }}"
+    state: absent
+  when: comfyui_dockerfile.changed or comfyui_image_info.images | length == 0
+
 - name: Build and deploy ComfyUI
   community.docker.docker_compose_v2:
     project_src: "{{ comfyui_deploy_dir }}"

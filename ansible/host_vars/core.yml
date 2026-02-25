@@ -23,10 +23,4 @@ vllm_extra_args:
   - --tool-call-parser
   - hermes
 
-agent_port: 9000
-agent_vllm_url: "http://localhost:8000/v1"
-agent_vllm_model: /models/Qwen3-32B-AWQ
-agent_prometheus_url: "{{ prometheus_url }}"
-agent_sonarr_api_key: "{{ vault_agent_sonarr_api_key }}"
-agent_radarr_api_key: "{{ vault_agent_radarr_api_key }}"
-agent_tautulli_api_key: "{{ vault_agent_tautulli_api_key }}"
+# Agent config — API keys and LiteLLM routing in roles/agents/defaults/main.yml
