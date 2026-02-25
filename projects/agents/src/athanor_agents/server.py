@@ -261,6 +261,19 @@ async def get_activity(
     return {"activity": results, "count": len(results)}
 
 
+@app.get("/v1/conversations")
+async def get_conversations(
+    agent: str = "",
+    limit: int = 20,
+    since: int = 0,
+):
+    """Query recent conversations. Filterable by agent and time."""
+    from .activity import query_conversations
+
+    results = await query_conversations(agent=agent, limit=limit, since_unix=since)
+    return {"conversations": results, "count": len(results)}
+
+
 @app.get("/v1/preferences")
 async def get_preferences(query: str = "", agent: str = "", limit: int = 10):
     """Search stored user preferences by semantic similarity."""

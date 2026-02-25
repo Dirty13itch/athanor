@@ -117,14 +117,20 @@ Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`
 
 ### Inter-Agent Coordination
 
-**GWT Workspace (ADR-017, Phase 1 deployed):** Redis-backed shared workspace. Agents compete to broadcast information. A 1Hz competition cycle selects the most salient items (capacity: 7) and broadcasts them to all subscribed agents. REST API at Node 1:9000/v1/workspace. This enables:
+**GWT Workspace (ADR-017, Phase 2 deployed):** Redis-backed shared workspace. Agents compete to broadcast information. A 1Hz competition cycle selects the most salient items (capacity: 7) and broadcasts them via Redis pub/sub. REST API at Node 1:9000/v1/workspace. This enables:
 - Media Agent detects new episode → broadcasts to workspace → Home Agent dims lights
 - Research Agent finds relevant info → broadcasts → Knowledge Agent indexes it
 - Home Agent detects Shaun left → broadcasts → Media Agent pauses Plex
 
+**Phase 2 additions (Session 18):**
+- **Agent registry:** All 8 agents register capabilities in Redis on startup. Discovery via `GET /v1/agents/registry`.
+- **Event ingestion:** External events (HA state changes, cron, webhooks) converted to workspace items via `POST /v1/events` with priority mapping.
+- **Redis pub/sub:** Competition cycle publishes broadcast to `athanor:workspace:broadcast` channel.
+- **Conversation logging:** Every chat completion logged to Qdrant `conversations` collection (embedded for semantic search). Queryable via `GET /v1/conversations`.
+
 ### Agent Lifecycle
 
-**Current:** All agents initialize at server startup and stay loaded in memory. No sleep/wake, no dynamic registration.
+**Current:** All agents initialize at server startup, register capabilities in Redis, and stay loaded in memory.
 
 **Planned:**
 1. **Registration** — Agent declares capabilities, tools, activation thresholds
@@ -194,7 +200,8 @@ Every agent action is visible. Nothing happens silently.
 | Activity Feed | Live | Every agent action, searchable, filterable |
 | Notifications | Live | Escalation alerts, agent requests |
 | Preferences | Live | Stored preferences, editable |
-| Workspace | Planned | GWT workspace — what agents are working on |
+| Workspace | Live | GWT workspace broadcasts, agent registry, competition state |
+| Conversations | Live | Logged agent conversations, filterable, expandable |
 | Insights | Planned | What agents learned, pattern detections |
 
 ### Feedback Mechanisms

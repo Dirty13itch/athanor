@@ -314,3 +314,59 @@ async def query_activity(
     except Exception as e:
         logger.warning("Failed to query activity: %s", e)
         return []
+
+
+async def query_conversations(
+    agent: str = "",
+    limit: int = 20,
+    since_unix: int = 0,
+) -> list[dict]:
+    """Query recent conversations, optionally filtered by agent.
+
+    Args:
+        agent: Filter by agent name (empty = all)
+        limit: Max results
+        since_unix: Only return conversations after this unix timestamp
+    Returns:
+        List of conversation dicts sorted by recency.
+    """
+    try:
+        must_filters = []
+        if agent:
+            must_filters.append({"key": "agent", "match": {"value": agent}})
+        if since_unix > 0:
+            must_filters.append({"key": "timestamp_unix", "range": {"gte": since_unix}})
+
+        body: dict = {
+            "limit": limit,
+            "with_payload": True,
+        }
+        if must_filters:
+            body["filter"] = {"must": must_filters}
+
+        resp = httpx.post(
+            f"{_QDRANT_URL}/collections/conversations/points/scroll",
+            json=body,
+            timeout=10,
+        )
+        resp.raise_for_status()
+        points = resp.json().get("result", {}).get("points", [])
+
+        results = []
+        for p in points:
+            payload = p.get("payload", {})
+            results.append({
+                "agent": payload.get("agent", ""),
+                "user_message": payload.get("user_message", ""),
+                "assistant_response": payload.get("assistant_response", ""),
+                "tools_used": payload.get("tools_used", []),
+                "duration_ms": payload.get("duration_ms"),
+                "thread_id": payload.get("thread_id", ""),
+                "timestamp": payload.get("timestamp", ""),
+            })
+
+        results.sort(key=lambda x: x["timestamp"], reverse=True)
+        return results[:limit]
+    except Exception as e:
+        logger.warning("Failed to query conversations: %s", e)
+        return []
