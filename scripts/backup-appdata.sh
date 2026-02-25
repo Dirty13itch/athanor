@@ -30,6 +30,9 @@ SERVICES=(
     "neo4j"
     "grafana"
     "prometheus"
+    "redis"
+    "wyoming-piper"
+    "wyoming-openwakeword"
 )
 
 for SVC in "${SERVICES[@]}"; do

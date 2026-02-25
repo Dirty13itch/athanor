@@ -59,7 +59,7 @@ export const config = {
     { name: "SABnzbd", url: "http://192.168.1.203:8080", node: "VAULT" },
     { name: "Prowlarr", url: "http://192.168.1.203:9696/ping", node: "VAULT" },
     { name: "Stash", url: "http://192.168.1.203:9999", node: "VAULT" },
-    { name: "Home Assistant", url: "http://192.168.1.203:8123/api/", node: "VAULT" },
+    { name: "Home Assistant", url: "http://192.168.1.203:8123/api/", node: "VAULT", headers: { "Authorization": "Bearer eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJpc3MiOiAiYTQ2ZTRlNTJhZDFjNjgwNzg0ZDQ2NDc2N2NiNmJiZWEiLCAiaWF0IjogMTc3MTk4MzcxNCwgImV4cCI6IDIwODczNDM3MTR9.rvM9WSMEZucl9XTV-zRs1ts21vFAKeQFQRedIY2bVAs" } },
     { name: "Neo4j", url: "http://192.168.1.203:7474", node: "VAULT" },
     { name: "GPU Orchestrator", url: "http://192.168.1.244:9200/health", node: "Foundry" },
     { name: "Speaches", url: "http://192.168.1.244:8200/health", node: "Foundry" },

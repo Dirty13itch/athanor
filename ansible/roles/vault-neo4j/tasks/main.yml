@@ -159,24 +159,54 @@
         - statement: >
             MERGE (s:Service {name: 'home-assistant'})
             SET s.port = 8123, s.type = 'home-automation'
+        - statement: >
+            MERGE (s:Service {name: 'redis'})
+            SET s.port = 6379, s.type = 'cache'
+        - statement: >
+            MERGE (s:Service {name: 'gpu-orchestrator'})
+            SET s.port = 9200, s.type = 'orchestration'
+        - statement: >
+            MERGE (s:Service {name: 'wyoming-whisper'})
+            SET s.port = 10300, s.type = 'voice-stt'
+        - statement: >
+            MERGE (s:Service {name: 'speaches'})
+            SET s.port = 8200, s.type = 'voice-api'
+        - statement: >
+            MERGE (s:Service {name: 'wyoming-piper'})
+            SET s.port = 10200, s.type = 'voice-tts'
+        - statement: >
+            MERGE (s:Service {name: 'wyoming-openwakeword'})
+            SET s.port = 10400, s.type = 'voice-wakeword'
+        - statement: >
+            MERGE (s:Service {name: 'stash'})
+            SET s.port = 9999, s.type = 'media-adult'
+        - statement: >
+            MERGE (s:Service {name: 'eoq'})
+            SET s.port = 3002, s.type = 'game'
         # Agents
         - statement: >
             MERGE (a:Agent {name: 'general-assistant'})
             SET a.model = 'reasoning', a.status = 'active'
         - statement: >
             MERGE (a:Agent {name: 'media-agent'})
-            SET a.model = 'fast', a.status = 'active'
+            SET a.model = 'reasoning', a.status = 'active'
         - statement: >
             MERGE (a:Agent {name: 'home-agent'})
-            SET a.model = 'fast', a.status = 'blocked'
+            SET a.model = 'reasoning', a.status = 'active'
         - statement: >
             MERGE (a:Agent {name: 'research-agent'})
             SET a.model = 'reasoning', a.status = 'active'
         - statement: >
             MERGE (a:Agent {name: 'creative-agent'})
-            SET a.model = 'fast', a.status = 'active'
+            SET a.model = 'reasoning', a.status = 'active'
         - statement: >
             MERGE (a:Agent {name: 'knowledge-agent'})
+            SET a.model = 'reasoning', a.status = 'active'
+        - statement: >
+            MERGE (a:Agent {name: 'coding-agent'})
+            SET a.model = 'reasoning', a.status = 'active'
+        - statement: >
+            MERGE (a:Agent {name: 'stash-agent'})
             SET a.model = 'reasoning', a.status = 'active'
         # Projects
         - statement: >
@@ -252,6 +282,30 @@
         - statement: >
             MATCH (s:Service {name: 'home-assistant'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'redis'}), (n:Node {name: 'VAULT'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'stash'}), (n:Node {name: 'VAULT'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'wyoming-piper'}), (n:Node {name: 'VAULT'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'wyoming-openwakeword'}), (n:Node {name: 'VAULT'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'gpu-orchestrator'}), (n:Node {name: 'Foundry'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'wyoming-whisper'}), (n:Node {name: 'Foundry'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'speaches'}), (n:Node {name: 'Foundry'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'eoq'}), (n:Node {name: 'Workshop'})
+            MERGE (s)-[:RUNS_ON]->(n)
         # DEPENDS_ON relationships
         - statement: >
             MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'vllm-reasoning'})
@@ -287,6 +341,22 @@
         - statement: >
             MATCH (a:Agent {name: 'home-agent'}), (s:Service {name: 'home-assistant'})
             MERGE (a)-[:MANAGES]->(s)
+        - statement: >
+            MATCH (a:Agent {name: 'creative-agent'}), (s:Service {name: 'comfyui'})
+            MERGE (a)-[:MANAGES]->(s)
+        - statement: >
+            MATCH (a:Agent {name: 'stash-agent'}), (s:Service {name: 'stash'})
+            MERGE (a)-[:MANAGES]->(s)
+        # DEPENDS_ON relationships (new services)
+        - statement: >
+            MATCH (s:Service {name: 'agent-server'}), (t:Service {name: 'redis'})
+            MERGE (s)-[:DEPENDS_ON]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'agent-server'}), (t:Service {name: 'neo4j'})
+            MERGE (s)-[:DEPENDS_ON]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'gpu-orchestrator'}), (t:Service {name: 'redis'})
+            MERGE (s)-[:DEPENDS_ON]->(t)
         # USES relationships (projects → infrastructure)
         - statement: >
             MATCH (p:Project {name: 'eoq'}), (s:Service {name: 'comfyui'})

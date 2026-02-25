@@ -13,12 +13,16 @@ async function checkService(service: {
   name: string;
   url: string;
   node: string;
+  headers?: Record<string, string>;
 }): Promise<ServiceResult> {
   const start = Date.now();
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(service.url, { signal: controller.signal });
+    const res = await fetch(service.url, {
+      signal: controller.signal,
+      ...(service.headers && { headers: service.headers }),
+    });
     clearTimeout(timeout);
     return {
       ...service,

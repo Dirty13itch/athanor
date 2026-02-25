@@ -33,7 +33,7 @@ purpose: |
   for general questions about Athanor's state, health, and capabilities.
 
 tools:
-  - check_services    # Health check all 25 services
+  - check_services    # Health check all 26 services
   - get_gpu_metrics   # GPU utilization, temp, VRAM, power via Prometheus
   - get_vllm_models   # List all available models (LiteLLM + direct)
   - get_storage_info  # VAULT NFS storage usage via Prometheus
@@ -233,34 +233,35 @@ output_format: |
 
 ```yaml
 name: creative-agent
-model: fast (Qwen3-14B)
+model: reasoning (Qwen3-32B-AWQ)
 temperature: 0.8
 mode: reactive
 
 purpose: |
-  Image generation via ComfyUI with Flux. Prompt crafting, queue management,
-  generation history tracking.
+  Image and video generation via ComfyUI. Prompt crafting, queue management,
+  generation history tracking. Flux for images, Wan2.x for video.
 
 tools:
-  - generate_image           # Queue Flux generation on ComfyUI
+  - generate_image           # Queue Flux image generation on ComfyUI
+  - generate_video           # Queue Wan2.x T2V video generation on ComfyUI
   - check_queue              # ComfyUI queue status
   - get_generation_history   # Recent generation results
   - get_comfyui_status       # System status (GPU, VRAM, versions)
 
 escalation:
   autonomous:
-    - Generate images from explicit requests
+    - Generate images and videos from explicit requests
     - Check queue and history
     - Report ComfyUI status
   notify:
     - Generation completed (with preview)
     - Queue backed up (>5 items)
   ask:
-    - Batch generation (>10 images)
-    - Resolution above 1536px (VRAM pressure)
+    - Batch generation (>10 items)
+    - Resolution above 1536px for images (VRAM pressure)
 
 learns_from:
-  - Which prompts produce kept vs regenerated images → style preferences
+  - Which prompts produce kept vs regenerated outputs → style preferences
   - Preferred resolution and aspect ratio → default settings
   - Prompt expansion patterns that work → prompt engineering improvement
   - Generation time patterns → queue management optimization
@@ -272,10 +273,11 @@ boundaries: |
   Sequential generation only (one GPU, no parallelism).
 
 notes: |
-  Uses "fast" model (14B) because prompt crafting doesn't need 32B reasoning.
+  Uses "reasoning" model (32B) for reliable tool calling with video generation.
   Higher temperature (0.8) for creative variation in prompt expansion.
   ComfyUI runs on Node 2 GPU 1 (RTX 5060 Ti, 16 GB VRAM).
-  Flux dev FP8 model loaded at ~17 GB.
+  Video: Wan2.x T2V at 480×320, 17 frames, ~90s generation time.
+  Image: Flux dev FP8, up to 1536px.
 ```
 
 ---
@@ -325,8 +327,8 @@ boundaries: |
 
 categories: |
   Documents are tagged: adr, research, hardware, design, project, vision, build.
-  922 vectors in knowledge collection, 30 nodes in Neo4j graph.
-  Indexed from 81 documents across docs/ directory.
+  1203 vectors in knowledge collection, Neo4j graph with 8 agents + 24 services.
+  Indexed from 98 documents across docs/ directory.
 ```
 
 ---
@@ -461,3 +463,30 @@ These apply to all agents:
 6. **Streaming.** All agents support SSE streaming via the `/v1/chat/completions` endpoint.
 7. **Think-tag filtering.** Qwen3 `<think>` blocks are stripped before client delivery.
 8. **Memory.** Each agent has in-memory conversation checkpointing (InMemorySaver). Not persistent across restarts.
+
+---
+
+## Voice Pipeline (Infrastructure)
+
+Voice is not agent-owned — it's shared infrastructure available to all agents via HA.
+
+```yaml
+status: deployed
+pipeline_name: "Athanor Voice"
+
+components:
+  stt: wyoming-whisper (Node 1:10300, GPU 4, faster-distil-whisper-large-v3, float16)
+  tts: wyoming-piper (VAULT:10200, CPU, en_US-lessac-medium)
+  wake_word: wyoming-openwakeword (VAULT:10400, CPU, ok_nabu)
+  api: Speaches (Node 1:8200, GPU 4, OpenAI-compatible STT+TTS)
+
+ha_integration: |
+  3 Wyoming config entries in HA. "Athanor Voice" is the preferred pipeline.
+  Flow: wake word → STT → conversation agent → TTS → audio output.
+  43 HA entities total.
+
+notes: |
+  All voice services share GPU 4 with vLLM-embedding (0.40 mem utilization).
+  CTranslate2 int8 fails on Blackwell sm_120 — must use float16 for whisper.
+  Speaches lazy-loads models with 300s TTL (no permanent VRAM hold).
+```
