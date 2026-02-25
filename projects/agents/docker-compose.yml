@@ -17,6 +17,10 @@ services:
       - ATHANOR_VLLM_NODE1_URL=http://192.168.1.244:8000/v1
       - ATHANOR_VLLM_NODE2_URL=http://192.168.1.225:8000/v1
       - ATHANOR_VLLM_EMBEDDING_URL=http://192.168.1.244:8001/v1
+      # Qdrant vector database
+      - ATHANOR_QDRANT_URL=http://192.168.1.244:6333
+      # Redis (GWT workspace + GPU orchestrator state)
+      - ATHANOR_REDIS_URL=redis://192.168.1.203:6379/0
       # Monitoring
       - ATHANOR_PROMETHEUS_URL=http://192.168.1.203:9090
       - ATHANOR_PORT=9000

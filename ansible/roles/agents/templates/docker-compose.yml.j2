@@ -17,6 +17,10 @@ services:
       - ATHANOR_VLLM_NODE1_URL={{ agent_vllm_node1_url }}
       - ATHANOR_VLLM_NODE2_URL={{ agent_vllm_node2_url }}
       - ATHANOR_VLLM_EMBEDDING_URL={{ agent_vllm_embedding_url }}
+      # Qdrant vector database
+      - ATHANOR_QDRANT_URL={{ agent_qdrant_url }}
+      # Redis (GWT workspace + GPU orchestrator state)
+      - ATHANOR_REDIS_URL={{ agent_redis_url }}
       # Monitoring
       - ATHANOR_PROMETHEUS_URL={{ agent_prometheus_url }}
       - ATHANOR_PORT={{ agent_port }}

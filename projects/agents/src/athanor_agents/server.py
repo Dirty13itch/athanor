@@ -18,9 +18,14 @@ from .config import settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from .agents import _init_agents
+    from .activity import ensure_collections
+    from .workspace import start_competition, stop_competition
 
     _init_agents()
+    ensure_collections()
+    await start_competition()
     yield
+    await stop_competition()
 
 
 app = FastAPI(title="Athanor Agent Server", version="0.2.0", lifespan=lifespan)
@@ -67,6 +72,11 @@ AGENT_METADATA = {
     "knowledge-agent": {
         "description": "Project librarian — search docs, ADRs, research notes, infrastructure graph, find related knowledge.",
         "tools": ["search_knowledge", "list_documents", "query_knowledge_graph", "find_related_docs", "get_knowledge_stats"],
+        "type": "reactive",
+    },
+    "coding-agent": {
+        "description": "Code generation, review, and transformation — local Qwen3 coding engine.",
+        "tools": ["generate_code", "review_code", "explain_code", "transform_code"],
         "type": "reactive",
     },
 }
@@ -213,6 +223,213 @@ async def services_status():
     return {"services": list(results)}
 
 
+# --- Activity & Preferences ---
+
+
+@app.get("/v1/activity")
+async def get_activity(
+    agent: str = "",
+    action_type: str = "",
+    limit: int = 20,
+    since: int = 0,
+):
+    """Query recent agent activity. Filterable by agent, action type, and time."""
+    from .activity import query_activity
+
+    results = await query_activity(
+        agent=agent, action_type=action_type, limit=limit, since_unix=since
+    )
+    return {"activity": results, "count": len(results)}
+
+
+@app.get("/v1/preferences")
+async def get_preferences(query: str = "", agent: str = "", limit: int = 10):
+    """Search stored user preferences by semantic similarity."""
+    from .activity import query_preferences
+
+    if not query:
+        return {"preferences": [], "count": 0, "note": "Provide ?query= to search"}
+
+    results = await query_preferences(query=query, agent=agent, limit=limit)
+    return {"preferences": results, "count": len(results)}
+
+
+@app.post("/v1/preferences")
+async def add_preference(request: Request):
+    """Store a new user preference signal.
+
+    Body: {"agent": "media-agent", "signal_type": "remember_this",
+           "content": "I prefer 4K quality", "category": "media"}
+    """
+    from .activity import store_preference
+
+    body = await request.json()
+    agent_name = body.get("agent", "global")
+    signal_type = body.get("signal_type", "remember_this")
+    content = body.get("content", "")
+    category = body.get("category", "")
+    metadata = body.get("metadata")
+
+    if not content:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "content is required"},
+        )
+
+    await store_preference(
+        agent=agent_name,
+        signal_type=signal_type,
+        content=content,
+        category=category,
+        metadata=metadata,
+    )
+    return {"status": "stored", "agent": agent_name, "signal_type": signal_type}
+
+
+# --- Escalation & Notifications ---
+
+
+@app.get("/v1/notifications")
+async def get_notifications(include_resolved: bool = False):
+    """Get pending agent actions and notifications."""
+    from .escalation import get_pending, get_unread_count
+
+    items = get_pending(include_resolved=include_resolved)
+    return {
+        "notifications": items,
+        "count": len(items),
+        "unread": get_unread_count(),
+    }
+
+
+@app.post("/v1/notifications/{action_id}/resolve")
+async def resolve_notification(action_id: str, request: Request):
+    """Approve or reject a pending agent action.
+
+    Body: {"approved": true} or {"approved": false}
+    """
+    from .escalation import resolve_action
+
+    body = await request.json()
+    approved = body.get("approved", False)
+
+    if resolve_action(action_id, approved):
+        return {"status": "resolved", "id": action_id, "approved": approved}
+    return JSONResponse(
+        status_code=404,
+        content={"error": f"Action '{action_id}' not found or already resolved"},
+    )
+
+
+@app.get("/v1/escalation/config")
+async def get_escalation_config():
+    """Get escalation threshold configuration."""
+    from .escalation import get_thresholds_config
+
+    return {"thresholds": get_thresholds_config()}
+
+
+@app.post("/v1/escalation/evaluate")
+async def evaluate_escalation(request: Request):
+    """Evaluate an action against escalation thresholds.
+
+    Body: {"agent": "home-agent", "action": "dim lights", "category": "routine", "confidence": 0.7}
+    """
+    from .escalation import ActionCategory, evaluate
+
+    body = await request.json()
+    agent = body.get("agent", "")
+    action = body.get("action", "")
+    category_str = body.get("category", "read")
+    confidence = body.get("confidence", 0.5)
+
+    try:
+        category = ActionCategory(category_str)
+    except ValueError:
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Invalid category '{category_str}'. Valid: {[c.value for c in ActionCategory]}"},
+        )
+
+    tier = evaluate(agent, action, category, confidence)
+    return {
+        "agent": agent,
+        "action": action,
+        "category": category_str,
+        "confidence": confidence,
+        "tier": tier.value,
+    }
+
+
+# --- GWT Workspace ---
+
+
+@app.get("/v1/workspace")
+async def get_workspace_items():
+    """Get current workspace broadcast — top items by salience."""
+    from .workspace import get_broadcast
+
+    items = await get_broadcast()
+    return {
+        "broadcast": [i.to_dict() for i in items],
+        "count": len(items),
+    }
+
+
+@app.post("/v1/workspace")
+async def post_workspace_item(request: Request):
+    """Post an item to the workspace for competition.
+
+    Body: {"source_agent": "media-agent", "content": "New episode available",
+           "priority": "normal", "ttl": 300, "metadata": {}}
+    """
+    from .workspace import post_item
+
+    body = await request.json()
+    source = body.get("source_agent", "")
+    content = body.get("content", "")
+    priority = body.get("priority", "normal")
+    ttl = body.get("ttl", 300)
+    metadata = body.get("metadata", {})
+
+    if not content:
+        return JSONResponse(status_code=400, content={"error": "content is required"})
+
+    item = await post_item(
+        source_agent=source, content=content, priority=priority,
+        ttl=ttl, metadata=metadata,
+    )
+    return {"status": "posted", "item": item.to_dict()}
+
+
+@app.delete("/v1/workspace/{item_id}")
+async def delete_workspace_item(item_id: str):
+    """Remove an item from the workspace."""
+    from .workspace import clear_item
+
+    removed = await clear_item(item_id)
+    if removed:
+        return {"status": "removed", "id": item_id}
+    return JSONResponse(status_code=404, content={"error": f"Item '{item_id}' not found"})
+
+
+@app.delete("/v1/workspace")
+async def clear_workspace_all():
+    """Clear all workspace items."""
+    from .workspace import clear_workspace
+
+    count = await clear_workspace()
+    return {"status": "cleared", "items_removed": count}
+
+
+@app.get("/v1/workspace/stats")
+async def workspace_stats():
+    """Get workspace statistics — item counts, utilization, active agents."""
+    from .workspace import get_stats
+
+    return await get_stats()
+
+
 # --- Chat completions ---
 
 
@@ -239,15 +456,31 @@ async def chat_completions(request: Request):
     thread_id = body.get("thread_id", str(uuid.uuid4()))
     config = {"configurable": {"thread_id": thread_id}}
 
+    # Extract user input summary for activity logging
+    user_input = messages[-1].get("content", "")[:500] if messages else ""
+
     if stream:
         return StreamingResponse(
-            _stream_response(agent, lc_messages, config, model_name),
+            _stream_response(agent, lc_messages, config, model_name, user_input),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
         )
 
+    start_ms = int(time.time() * 1000)
     result = await agent.ainvoke({"messages": lc_messages}, config=config)
     content = _strip_think_tags(result["messages"][-1].content)
+    duration_ms = int(time.time() * 1000) - start_ms
+
+    # Log activity (fire-and-forget)
+    from .activity import log_activity
+
+    asyncio.create_task(log_activity(
+        agent=model_name,
+        action_type="chat",
+        input_summary=user_input,
+        output_summary=content[:500],
+        duration_ms=duration_ms,
+    ))
 
     return {
         "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
@@ -279,14 +512,17 @@ def _convert_messages(messages: list[dict]) -> list:
     return lc_messages
 
 
-async def _stream_response(agent, messages, config, model_name):
+async def _stream_response(agent, messages, config, model_name, user_input=""):
     chat_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
     created = int(time.time())
+    start_ms = int(time.time() * 1000)
 
     # Send initial role chunk
     yield _sse_chunk(chat_id, created, model_name, {"role": "assistant"})
 
     in_think = False
+    collected_text = []
+    tools_used = []
     async for event in agent.astream_events(
         {"messages": messages},
         config=config,
@@ -299,6 +535,7 @@ async def _stream_response(agent, messages, config, model_name):
             name = event.get("name", "unknown")
             run_id = event.get("run_id", "")
             args = event.get("data", {}).get("input", {})
+            tools_used.append(name)
             yield f'event: tool_start\ndata: {json.dumps({"name": name, "run_id": run_id, "args": args})}\n\n'
             continue
 
@@ -321,11 +558,26 @@ async def _stream_response(agent, messages, config, model_name):
         # Filter out <think> blocks from Qwen3
         text, in_think = _filter_think_streaming(text, in_think)
         if text:
+            collected_text.append(text)
             yield _sse_chunk(chat_id, created, model_name, {"content": text})
 
     # Finish
     yield _sse_chunk(chat_id, created, model_name, {}, finish_reason="stop")
     yield "data: [DONE]\n\n"
+
+    # Log activity (fire-and-forget)
+    duration_ms = int(time.time() * 1000) - start_ms
+    full_response = "".join(collected_text)
+    from .activity import log_activity
+
+    asyncio.create_task(log_activity(
+        agent=model_name,
+        action_type="chat",
+        input_summary=user_input,
+        output_summary=full_response[:500],
+        tools_used=tools_used,
+        duration_ms=duration_ms,
+    ))
 
 
 def _sse_chunk(chat_id, created, model, delta, finish_reason=None):

@@ -4,6 +4,7 @@ from .research import create_research_agent
 from .creative import create_creative_agent
 from .knowledge import create_knowledge_agent
 from .home import create_home_agent
+from .coding import create_coding_agent
 
 _AGENTS: dict = {}
 
@@ -16,6 +17,7 @@ def _init_agents():
         _AGENTS["creative-agent"] = create_creative_agent()
         _AGENTS["knowledge-agent"] = create_knowledge_agent()
         _AGENTS["home-agent"] = create_home_agent()
+        _AGENTS["coding-agent"] = create_coding_agent()
 
 
 def get_agent(name: str):
@@ -59,6 +61,11 @@ _AGENT_META = {
         "name": "Knowledge Agent",
         "description": "Project librarian — search docs, ADRs, research notes, infrastructure graph, find related knowledge",
         "icon": "book",
+    },
+    "coding-agent": {
+        "name": "Coding Agent",
+        "description": "Code generation, review, and transformation — local Qwen3 coding engine",
+        "icon": "code",
     },
 }
 

@@ -1,0 +1,11 @@
+---
+redis_image: redis:7-alpine
+redis_port: 6379
+redis_appdata_path: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/redis"
+
+# Memory limit — VAULT has 128GB, 512MB is conservative for workspace + state
+redis_maxmemory: "512mb"
+redis_maxmemory_policy: "allkeys-lru"
+
+# Feature flag
+redis_enable: true

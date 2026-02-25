@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     vllm_node2_url: str = "http://192.168.1.225:8000/v1"
     vllm_embedding_url: str = "http://192.168.1.244:8001/v1"
 
+    # Qdrant vector database
+    qdrant_url: str = "http://192.168.1.244:6333"
+
+    # Redis (GWT workspace + GPU orchestrator state)
+    redis_url: str = "redis://192.168.1.203:6379/0"
+
     prometheus_url: str = "http://192.168.1.203:9090"
     host: str = "0.0.0.0"
     port: int = 9000

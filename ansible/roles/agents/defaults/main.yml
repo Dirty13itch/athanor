@@ -13,6 +13,12 @@ agent_vllm_node1_url: "http://192.168.1.244:8000/v1"
 agent_vllm_node2_url: "http://192.168.1.225:8000/v1"
 agent_vllm_embedding_url: "http://192.168.1.244:8001/v1"
 
+# Qdrant vector database (on Node 1, same host as agents)
+agent_qdrant_url: "http://192.168.1.244:6333"
+
+# Redis (on VAULT, for GWT workspace + GPU orchestrator state)
+agent_redis_url: "redis://192.168.1.203:6379/0"
+
 # Monitoring
 agent_prometheus_url: "{{ prometheus_url | default('http://192.168.1.203:9090') }}"
 

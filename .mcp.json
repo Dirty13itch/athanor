@@ -27,6 +27,14 @@
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/shaun/repos/Athanor"],
       "env": {}
+    },
+    "athanor-agents": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["scripts/mcp-athanor-agents.py"],
+      "env": {
+        "ATHANOR_AGENT_URL": "http://192.168.1.244:9000"
+      }
     }
   }
 }

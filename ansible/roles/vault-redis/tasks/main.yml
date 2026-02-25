@@ -1,0 +1,41 @@
+---
+# VAULT Redis: Backing store for GWT workspace (ADR-017) and GPU orchestrator state (ADR-018)
+# Lightweight key-value store — single container, ~50MB RAM baseline
+
+- name: Create Redis appdata directory
+  ansible.builtin.file:
+    path: "{{ redis_appdata_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Run Redis container
+  community.docker.docker_container:
+    name: redis
+    image: "{{ redis_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ redis_port }}:6379"
+    volumes:
+      - "{{ redis_appdata_path }}:/data"
+    command: >
+      redis-server
+      --maxmemory {{ redis_maxmemory }}
+      --maxmemory-policy {{ redis_maxmemory_policy }}
+      --appendonly yes
+      --appendfsync everysec
+  when:
+    - redis_enable
+    - not ansible_check_mode
+
+- name: Wait for Redis to respond
+  ansible.builtin.command:
+    cmd: "docker exec redis redis-cli ping"
+  register: redis_ping
+  retries: 10
+  delay: 2
+  until: redis_ping.stdout is defined and redis_ping.stdout == "PONG"
+  changed_when: false
+  when:
+    - redis_enable
+    - not ansible_check_mode

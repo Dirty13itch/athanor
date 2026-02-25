@@ -4,35 +4,33 @@
 
 ---
 
-## Last Session: 2026-02-24 (Session 11: Neo4j + Design System + Agents + Monitoring)
+## Last Session: 2026-02-25 (Session 15: System Design Layer + Phase 1 Implementation)
 
 ### What happened
-- **Fixed DEV PATH** — Removed broken Windows-style PATH from `~/.bashrc`, replaced with proper Linux PATH (`/usr/bin:/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.npm-global/bin:$PATH`)
-- **Neo4j deployed** (manifest 1.5) — VAULT:7474/7687, v5.26.21 community. Seeded graph: 4 Nodes, 16 Services, 3 Agents, 3 Projects, 29 relationships. Ansible role: `vault-neo4j`
-- **Dashboard design system** (manifest 3.1) — Created `DESIGN.md` formalizing the dark+amber OKLCh palette, 3-font typography scale, spacing system, component library. Added semantic color tokens (`--success`, `--warning`, `--info`). Fixed Next.js 16 global-error bug. Deployed.
-- **Research Agent** (manifest 2.1) — 4 tools: web_search (DuckDuckGo), fetch_page (HTTP+HTML extraction), search_knowledge (Qdrant), query_infrastructure (Neo4j Cypher). Deployed to Node 1:9000. Tested end-to-end.
-- **Creative Agent** (manifest 2.3) — 4 tools: generate_image (Flux via ComfyUI API), check_queue, get_generation_history, get_comfyui_status. Deployed. Flux dev FP8 model download complete (17GB).
-- **Monitoring page** (manifest 3.3) — Full `/monitoring` page with live Prometheus data. Per-node cards: CPU (1hr sparkline), memory (sparkline), disk, network. Cluster summary. Grafana deep-links. Auto-refresh 15s. Deployed.
-- **Knowledge Agent** (manifest 2.2) — 5 tools: search_knowledge, list_documents, query_knowledge_graph, find_related_docs, get_knowledge_stats. Indexer script indexed 81 docs → 922 chunks in Qdrant. Deployed to Node 1:9000.
-- **Neo4j graph names fixed** — Renamed node1→Foundry, node2→Workshop, vault→VAULT, dev→DEV. Added knowledge-agent + research-agent + creative-agent entities.
-- **5 agents now live**: general-assistant, media-agent, research-agent, creative-agent, knowledge-agent
+- **System design documentation** (7.1-7.4) — Created `SYSTEM-SPEC.md` (460 lines, complete operational specification), `agent-contracts.md` (formal contracts for all 8 agents), `hybrid-development.md` (cloud/local coding architecture with MCP bridge design). Expanded `intelligence-layers.md` with preference learning, escalation protocol, feedback signals.
+- **Redis deployed** (7.5) — VAULT:6379, `redis:7-alpine`, AOF persistence, 512MB maxmemory. Ansible role `vault-redis`. Verified: PONG.
+- **Coding Agent deployed** (7.6) — 7th agent on Node 1:9000. Tools: generate_code, review_code, explain_code, transform_code. Uses reasoning model at temp 0.3. Verified: generates working Python.
+- **Activity + Preferences infrastructure** (7.8) — Two new Qdrant collections (activity, preferences, 1024-dim Cosine). Activity logging module (`activity.py`) with fire-and-forget asyncio logging on all chat completions. Three new API endpoints: `GET /v1/activity`, `GET /v1/preferences`, `POST /v1/preferences`. Semantic preference retrieval working.
+- **Bug fix:** Removed unsupported `order_by` parameter from Qdrant scroll endpoint (400 Bad Request). Sorting done in Python.
+- **Stash investigation:** Appdata exists but is empty (fresh container). Backup is empty too. No data to restore.
+- **7 agents now live**: general-assistant, media-agent, research-agent, creative-agent, knowledge-agent, home-agent, coding-agent
+- **MCP bridge deployed** — 11 tools exposed to Claude Code via `scripts/mcp-athanor-agents.py`. `.claude/agents/coder.md` + `.claude/skills/local-coding.md` created.
+- **Escalation protocol deployed** — 3-tier confidence system (act/notify/ask). Per-agent/per-action thresholds. Notification queue with approve/reject.
+- **Dashboard 3 new pages** — `/activity` (timeline with agent filters), `/notifications` (pending actions + escalation config), `/preferences` (store + semantic search). All deployed to Node 2:3001.
+- **GWT workspace deployed** — Redis-backed shared workspace. 1Hz competition cycle. Salience scoring (urgency x relevance x recency). Capacity 7 items.
 
 ### Current blockers
-- HA onboarding requires Shaun in browser (http://192.168.1.203:8123)
 - Sonarr/Radarr/Prowlarr need indexer config via Prowlarr UI
 - SABnzbd needs Usenet provider credentials
 - NordVPN credentials needed for qBittorrent + Gluetun
-- Tailscale install needs sudo password on DEV
+- Tailscale needs UDM Pro SSH + Tailscale account (6.8)
 
-### What's next (from BUILD-MANIFEST.md)
-- P2: EoBQ scaffold (item 4.1) — game engine ADR, project structure
-- P2: Backup strategy (item 5.3) — needs ADR
-- P2: Ansible full convergence test (item 5.2)
-- P2: CLAUDE.md optimization (item 5.5)
-- P2: 10GbE throughput verification (item 5.1)
+### What's next
+- 7.11 — GPU orchestrator (FastAPI on Node 1, pynvml, vLLM sleep/wake, priority scheduling) — last Tier 7 item
+- Tier 6 backlog: video gen (6.1), InfiniBand (6.2), voice (6.3), mobile (6.4), VPN (6.5), Stash AI (6.6), mining enclosure (6.7), remote access (6.8)
 
 ### Git state
-- Branch: main, uncommitted changes (this session's work)
+- Branch: main, uncommitted changes (Phase 0 docs committed as 5343beb, Phase 1 implementation uncommitted)
 
 ---
 
@@ -50,3 +48,5 @@
 | 9 | 2026-02-24 | SSH + LiteLLM + Qdrant | Fixed WSL SSH keys, LiteLLM on VAULT:4000, Qdrant on Node 1:6333 |
 | 10 | 2026-02-24 | Context reconciliation + Agent routing | 15 docs extracted, agents wired to LiteLLM, 16/16 services verified |
 | 11 | 2026-02-24 | Neo4j + Design + Agents + Monitoring | Neo4j, design system, Research + Creative agents, monitoring page, Flux model |
+| 12-14 | 2026-02-24 | Hardening + EoBQ + Remote access | 10GbE verified, backups deployed, EoBQ wired + deployed, ADR-016 Tailscale |
+| 15 | 2026-02-25 | System design + Phase 1 | SYSTEM-SPEC, agent contracts, hybrid-dev docs. Redis, Coding Agent, activity/preferences Qdrant collections deployed |

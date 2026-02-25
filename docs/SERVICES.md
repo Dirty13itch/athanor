@@ -2,7 +2,7 @@
 
 *Live service inventory. Updated when services change.*
 
-Last updated: 2026-02-24 (Session 14)
+Last updated: 2026-02-25 (Session 15)
 
 ## Node 1 — Foundry (192.168.1.244)
 
@@ -10,8 +10,8 @@ Last updated: 2026-02-24 (Session 14)
 |---------|------|---------|
 | vLLM (Qwen3-32B-AWQ) | 8000 | TP=4 across 3x RTX 5070 Ti + RTX 4090, `--quantization awq` |
 | vLLM Embedding (Qwen3-Embedding-0.6B) | 8001 | RTX 5070 Ti GPU 4, 1024-dim embeddings |
-| Agent Server | 9000 | 6 agents: general, media, research, creative, knowledge, home |
-| Qdrant | 6333/6334 | Vector DB, collections: knowledge (922 pts), conversations |
+| Agent Server | 9000 | 7 agents + GWT workspace + escalation + activity/preference APIs |
+| Qdrant | 6333/6334 | Vector DB, collections: knowledge (922 pts), conversations, activity, preferences |
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics |
 
@@ -33,6 +33,7 @@ Last updated: 2026-02-24 (Session 14)
 |---------|------|---------|
 | LiteLLM Proxy | 4000 | Routes: reasoning/fast/embedding. Auth: `sk-athanor-litellm-2026` |
 | Neo4j | 7474/7687 | Graph DB, auth: neo4j/athanor2026 |
+| Redis | 6379 | GWT workspace + GPU orchestrator state (ADR-017/018) |
 | Prometheus | 9090 | 5 scrape targets UP |
 | Grafana | 3000 | admin/newpass123, Prometheus + Node Exporter + DCGM dashboards |
 | Plex | 32400 | Claimed, libraries added |

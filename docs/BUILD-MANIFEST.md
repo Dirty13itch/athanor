@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-25 (Session 15: System design layer — SYSTEM-SPEC, agent contracts, hybrid dev)
+Last updated: 2026-02-25 (Session 15: System design + full Phase 1-2 implementation)
 
 ---
 
@@ -257,40 +257,50 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Updated:** `docs/design/intelligence-layers.md` — added preference learning mechanisms, escalation protocol with confidence thresholds, activity logging spec, pattern detection jobs, and per-agent feedback signals.
 
 ### 7.5 — Deploy Redis on VAULT
-- **Status:** 🔲
-- **Scope:** Single Redis container on VAULT, port 6379. Foundation for GWT workspace (ADR-017) and GPU orchestrator state (ADR-018).
-- **Ansible:** `ansible/roles/vault-redis/`
-- **Depends on:** Nothing
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Deployed:** VAULT:6379, `redis:7-alpine`, AOF persistence, 512MB maxmemory (allkeys-lru).
+- **Ansible:** `ansible/roles/vault-redis/`, deployed via `ansible-playbook playbooks/vault.yml --tags redis`
+- **Verified:** `docker exec redis redis-cli ping` → PONG
 - **Unblocks:** 7.10, 7.11
 
 ### 7.6 — Add Coding Agent to agent server
-- **Status:** 🔲
-- **Scope:** New LangGraph agent with file read, codebase search, linting, and code generation tools. Registered at Node 1:9000 as `coding-agent`.
-- **Depends on:** Nothing
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Deployed:** Node 1:9000 as `coding-agent`, uses `reasoning` model (Qwen3-32B-AWQ), temperature 0.3.
+- **Tools:** `generate_code`, `review_code`, `explain_code`, `transform_code` — structured prompt wrappers for LLM code generation.
+- **Files:** `agents/coding.py`, `tools/coding.py`, `agents/__init__.py`, `server.py`
+- **Verified:** 7 agents online, coding-agent generates working Python code.
 - **Unblocks:** 7.7
 
 ### 7.7 — Create MCP bridge for Claude Code → agent server
-- **Status:** 🔲
-- **Scope:** `scripts/mcp-athanor-agents.py` (~200 lines). Exposes coding, knowledge, and system tools as MCP tools. Add to `.mcp.json`. Create `.claude/agents/coder.md` and `.claude/skills/local-coding.md`.
-- **Depends on:** 7.6 (Coding Agent)
-- **Unblocks:** Hybrid development workflow
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Delivered:** `scripts/mcp-athanor-agents.py` — FastMCP stdio server exposing 11 tools: coding_generate, coding_review, coding_transform, knowledge_search, knowledge_graph, system_status, gpu_status, recent_activity, store_preference, search_preferences, list_agents.
+- **Config:** Added `athanor-agents` to `.mcp.json`. Created `.claude/agents/coder.md` (Local Coder agent) and `.claude/skills/local-coding.md` (dispatch heuristics).
+- **Depends on:** 7.6 (Coding Agent) ✅
+- **Note:** Requires `mcp` Python package installed on DEV. Tested import + compile.
 
 ### 7.8 — Add preferences and activity Qdrant collections
-- **Status:** 🔲
-- **Scope:** Create `preferences` (1024-dim, Cosine) and `activity` (1024-dim, Cosine) collections. Add CRUD endpoints to agent server. Add activity logging middleware.
-- **Depends on:** Nothing (Qdrant already deployed)
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Deployed:** Two new Qdrant collections: `activity` (1024-dim, Cosine) and `preferences` (1024-dim, Cosine). Auto-created on agent server startup.
+- **Module:** `activity.py` — `log_activity()`, `store_preference()`, `query_preferences()`, `query_activity()`. Fire-and-forget logging via asyncio tasks.
+- **Endpoints:** `GET /v1/activity`, `GET /v1/preferences`, `POST /v1/preferences`
+- **Activity logging:** All chat completions (streaming + non-streaming) auto-logged with agent, action_type, input/output summaries, tools_used, duration_ms.
+- **Verified:** 2 activity points logged from test interactions, preference storage + semantic retrieval working (score 0.73).
 - **Unblocks:** 7.9, 7.12
 
 ### 7.9 — Implement escalation protocol in agent server
-- **Status:** 🔲
-- **Scope:** Confidence scoring on agent outputs. Per-agent/per-action threshold config. Three tiers: act, notify, ask. Notification routing to dashboard.
-- **Depends on:** 7.8 (activity logging)
-- **Unblocks:** Proactive agent behavior
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Deployed:** `escalation.py` module with 3-tier confidence system (act/notify/ask). Per-agent/per-action-category thresholds. In-memory notification queue (Redis-backed in Phase 4).
+- **Endpoints:** `GET /v1/escalation/config`, `POST /v1/escalation/evaluate`, `GET /v1/notifications`, `POST /v1/notifications/{id}/resolve`
+- **Categories:** read (0.0), routine (0.5), content (0.8), delete (0.95), config (0.95), security (1.0). Agent overrides: home-agent routine=0.4, media-agent content=0.85.
+- **Verified:** Threshold evaluation correct across all tiers. Notification queue and resolution working.
+- **Unblocks:** Proactive agent behavior, dashboard notifications (7.13)
 
 ### 7.10 — GWT workspace (Phase 1: shared workspace)
-- **Status:** 🔲
-- **Scope:** Redis-backed workspace data model. WorkspaceItem schema. Salience scoring. Basic API (post, query, clear). 1Hz competition cycle (Phase 2).
-- **Depends on:** 7.5 (Redis)
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Deployed:** `workspace.py` module in agent server. Redis-backed (VAULT:6379). WorkspaceItem schema with salience scoring (urgency x relevance x recency). Capacity-limited to 7 items (GWT cognitive bottleneck). 1Hz background competition cycle with history archival.
+- **Endpoints:** `GET /v1/workspace` (broadcast), `POST /v1/workspace` (post item), `DELETE /v1/workspace/{id}`, `DELETE /v1/workspace`, `GET /v1/workspace/stats`.
+- **Verified:** Items post with computed salience, priority ordering correct (high > normal), recency decay working, competition cycle running.
+- **Remaining:** Phase 2 (agent registration protocol, event ingestion, Redis pub/sub broadcast), Phase 3 (coalition formation), Phase 4 (experience memory).
 - **Decision:** ADR-017
 
 ### 7.11 — GPU Orchestrator (custom FastAPI service)
@@ -300,19 +310,19 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Decision:** ADR-018
 
 ### 7.12 — Dashboard: Activity Feed page
-- **Status:** 🔲
-- **Scope:** New dashboard page at `/activity`. Queries activity Qdrant collection. Filterable by agent, time, action type. Real-time updates.
-- **Depends on:** 7.8 (activity collection)
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Deployed:** Dashboard `/activity` page at Node 2:3001. Queries agent server `/v1/activity`. Filterable by agent, adjustable limit (20/50/100). Auto-refresh every 15s. Timeline view with agent badges, duration, tools used, input/output summaries.
+- **Files:** `projects/dashboard/src/app/activity/page.tsx`, `sidebar-nav.tsx`
 
 ### 7.13 — Dashboard: Notification system
-- **Status:** 🔲
-- **Scope:** Bell icon in dashboard nav with unread count. Pending agent questions queue. Click to expand and respond.
-- **Depends on:** 7.9 (escalation protocol)
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Deployed:** Dashboard `/notifications` page at Node 2:3001. Shows pending actions (approve/reject buttons), notifications, and resolved items. Displays escalation threshold config. Auto-refresh every 5s. Color-coded tiers (ask=red, notify=yellow, act=green).
+- **Files:** `projects/dashboard/src/app/notifications/page.tsx`, `sidebar-nav.tsx`
 
 ### 7.14 — Dashboard: Preferences page
-- **Status:** 🔲
-- **Scope:** New dashboard page at `/preferences`. View/edit stored preferences. Per-agent sections. Escalation threshold tuning.
-- **Depends on:** 7.8 (preferences collection)
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Deployed:** Dashboard `/preferences` page at Node 2:3001. Store new preferences (agent selector, signal type, category). Semantic search across stored preferences. Results show relevance score, signal type, agent, timestamp.
+- **Files:** `projects/dashboard/src/app/preferences/page.tsx`, `sidebar-nav.tsx`
 
 ---
 

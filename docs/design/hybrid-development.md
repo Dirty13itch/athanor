@@ -190,11 +190,11 @@ Claude Code reads BUILD-MANIFEST.md
 
 | Component | Where | Dependencies | Status |
 |-----------|-------|-------------|--------|
-| MCP bridge script | DEV (local) | Python 3.11+, httpx | Planned |
-| Coding Agent | Node 1:9000 | Agent server, Qwen3-32B | Planned |
-| Agent Teams config | `.claude/agents/coder.md` | Claude Code | Planned |
-| Dispatch skill | `.claude/skills/local-coding.md` | Claude Code | Planned |
-| Coding tools | `projects/agents/src/athanor_agents/tools/coding.py` | Agent server | Planned |
+| MCP bridge script | DEV (local) | Python 3.11+, mcp, httpx | **Deployed** |
+| Coding Agent | Node 1:9000 | Agent server, Qwen3-32B | **Deployed** |
+| Agent Teams config | `.claude/agents/coder.md` | Claude Code | **Deployed** |
+| Dispatch skill | `.claude/skills/local-coding.md` | Claude Code | **Deployed** |
+| Coding tools | `projects/agents/src/athanor_agents/tools/coding.py` | Agent server | **Deployed** |
 
 ### Future: Dedicated Coding Model
 
