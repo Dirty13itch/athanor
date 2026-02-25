@@ -22,6 +22,16 @@ vllm_extra_args:
   - --enable-auto-tool-choice
   - --tool-call-parser
   - hermes
+  # NFS optimization: eager loading converts random page faults to sequential reads (2-5x faster model load)
+  - --safetensors-load-strategy
+  - eager
+  # Swap space for preemption recovery (16 GiB per GPU, uses system RAM)
+  - --swap-space
+  - "16"
+# Speculative decoding — Qwen3-0.6B as draft model, 2-3x throughput for ~1.2 GB extra VRAM
+# Uncomment to enable (requires vLLM restart):
+# vllm_speculative_config: '{"model": "/models/Qwen3-0.6B", "num_speculative_tokens": 5}'
+#
 # NOTE: --enable-sleep-mode requires newer vLLM than NGC 25.12-py3 (v0.11.1).
 # The flag activates CuMemAllocator (conflicts with expandable_segments)
 # but /sleep and /is_sleeping endpoints are not registered in this version.

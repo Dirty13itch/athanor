@@ -20,6 +20,9 @@ vllm_extra_args:
   - --tool-call-parser
   - hermes
   - --enforce-eager
+  # NFS optimization: eager loading converts random page faults to sequential reads
+  - --safetensors-load-strategy
+  - eager
 
 comfyui_gpu_device: "1"
 comfyui_port: 8188

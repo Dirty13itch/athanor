@@ -85,7 +85,7 @@ scripts/               ← Utility scripts (vault-ssh.py, index-knowledge.py)
 
 ---
 
-## Hardware (audited 2026-02-15)
+## Hardware (audited 2026-02-25)
 
 Full details in `docs/hardware/inventory.md`.
 
@@ -94,7 +94,7 @@ Full details in `docs/hardware/inventory.md`.
 | **Foundry** | EPYC 7663 56C/112T | 224 GB DDR4 | 4x 5070 Ti + 4090 | 88 GB | .244 | Inference, agents |
 | **Workshop** | TR 7960X 24C/48T | 128 GB DDR5 | 5090 + 5060 Ti | 48 GB | .225 | Creative, dashboard |
 | **VAULT** | Ryzen 9950X 16C/32T | 128 GB DDR5 | Arc A380 | — | .203 | Storage, media, monitoring |
-| **DEV** | i7-13700K 16C/24T | 64 GB DDR5 | RX 5700 XT | — | .215 | Workstation |
+| **DEV** | i7-13700K 16C/24T | 64 GB DDR5 | RTX 3060 12GB | — | .215 | Workstation |
 
 ### Network
 - UniFi Dream Machine Pro (gateway, .1)

@@ -30,6 +30,8 @@
     volumes:
       - "{{ qdrant_data_path }}:/qdrant/storage"
       - "{{ qdrant_config_path }}/config.yaml:/qdrant/config/config.yaml:ro"
+    ulimits:
+      - "nofile:65535:65535"
     restart: "{{ qdrant_config.changed | default(false) }}"
 
 - name: Wait for Qdrant to be ready

@@ -5,7 +5,7 @@ Treat this as the starting point — as if every node were disassembled and ever
 laid on the table. Current node assignments are noted but carry no weight for future
 allocation decisions.
 
-Last updated: 2026-02-22.
+Last updated: 2026-02-25. (Corrections from deep hardware audits)
 
 ---
 
@@ -35,12 +35,13 @@ Last updated: 2026-02-22.
 | 4 | NVIDIA RTX 5070 Ti (Gigabyte) | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 1 (Slot 5, TP=4 pool) |
 | 5 | NVIDIA RTX 5090 (PNY) | 32 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 2 (Slot 1, ComfyUI primary) |
 | 6 | NVIDIA RTX 4090 (ASUS) | 24 GB GDDR6X | PCIe 4.0 x16 | Yes | Yes | Node 1 (Slot 1, fast agent serving) |
-| 7 | NVIDIA RTX 5060 Ti | 16 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 2 (Slot 2, tool calling) |
+| 7 | NVIDIA RTX 5060 Ti | 16 GB GDDR7 | PCIe 5.0 x8 electrical | Yes | Yes | Node 2 (Slot 2, tool calling) |
 | 8 | NVIDIA RTX 3060 | 12 GB GDDR6 | PCIe 4.0 x16 | Yes | Yes | Loose (planned for Node 1, deferred — PSU budget) |
 | 9 | Intel Arc A380 | 6 GB GDDR6 | PCIe 4.0 x16 | No | No | VAULT (Plex transcoding) |
-| 10 | ASUS ROG STRIX RX 5700 XT 8G | 8 GB GDDR6 | PCIe 4.0 x16 | No | No | DEV (display output) |
+| 10 | NVIDIA RTX 3060 | 12 GB GDDR6 | PCIe 4.0 x16 | Yes | Yes | DEV (display output) |
+| 11 | ASUS ROG STRIX RX 5700 XT 8G | 8 GB GDDR6 | PCIe 4.0 x16 | No | No | Loose (was listed as DEV, audit confirmed RTX 3060 instead) |
 
-**Total NVIDIA VRAM: 148 GB** (8 cards, but RTX 3060 is loose/uninstalled) | **Installed NVIDIA VRAM: 136 GB** (7 cards across Node 1 + Node 2) | **Total all GPU VRAM: 162 GB** (10 cards including loose)
+**Total NVIDIA VRAM: 152 GB** (9 cards, RTX 3060 in DEV + loose RTX 3060) | **Installed NVIDIA VRAM: 136 GB** (7 cards across Node 1 + Node 2) + 12 GB DEV | **Total all GPU VRAM: 166 GB** (11 cards including loose)
 
 ---
 
@@ -65,11 +66,11 @@ Last updated: 2026-02-22.
 
 | # | Module | Type | Capacity | Speed | Latency | Currently In |
 |---|--------|------|----------|-------|---------|-------------|
-| 1–7 | Samsung M393A4K40DB3-CWE (x7) | DDR4 ECC RDIMM | 224 GB (7x32GB) | 3200 MT/s | — | Node 1 |
+| 1–7 | Samsung M393A4K40DB3-CWE (x7) | DDR4 ECC RDIMM | 224 GB (7x32GB) | 3200 MT/s | — | Node 1 (7/8 channels populated, channel H empty) |
 | 8–11 | Micron CP32G60C40U5B.M8B3 (x4) | DDR5 UDIMM | 128 GB (4x32GB) | 5600 MT/s | CL40 | VAULT |
 | 12–15 | Kingston KF556R28RBE2-32 (x4) | DDR5 ECC RDIMM | 128 GB (4x32GB) | 5600 MT/s (running 4800, EXPO not enabled) | CL28 | Node 2 |
-| 16–17 | G.Skill F5-5200J3636D32G (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5200 MT/s | CL36 | DEV |
-| 18–19 | G.Skill Ripjaws S5 F5-5600J4040D32GX2 (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5600 MT/s | CL40 | Loose |
+| 16–17 | G.Skill Ripjaws S5 F5-5600J4040D32GX2 (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5600 MT/s | CL40 | DEV (audit confirmed 5600/CL40) |
+| 18–19 | G.Skill F5-5200J3636D32G (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5200 MT/s | CL36 | Loose |
 | 20–21 | Crucial Ballistix BL32G32C16U4B (x2) | DDR4 UDIMM | 64 GB (2x32GB) | 3200 MT/s | CL16 | Loose |
 | 22–23 | G.Skill Ripjaws V F4-4000C18D-32GVK (x2) | DDR4 UDIMM | 32 GB (2x16GB) | 4000 MT/s | CL18 | Loose |
 | 24–25 | G.Skill TridentZ RGB F4-3200C16D-32GTZR (x2) | DDR4 UDIMM | 32 GB (2x16GB) | 3200 MT/s | CL16 | Loose |
@@ -86,22 +87,22 @@ Last updated: 2026-02-22.
 | # | Drive | Gen | Capacity | Currently In |
 |---|-------|-----|----------|-------------|
 | 1 | Crucial P3 (CT4000P3SSD8) | Gen3 | 4 TB | Node 1 (M.2_1, OS/system) |
-| 2 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Node 1 (M.2_2, hot models) |
+| 2 | Crucial P310 | Gen4 | 1 TB | Node 1 (M.2_2, mounted at /mnt/local-fast — audit confirmed P310, NOT Samsung 990 PRO) |
 | 3–6 | Samsung 990 EVO Plus (x4) | Gen4 | 4 TB (4x1TB) | VAULT (X870E M.2 slots) |
 | 7 | Crucial T700 | Gen5 | 4 TB | Node 2 (M.2 Slot 1, OS/system) |
-| 8–11 | Crucial P310 (x4) | Gen4 | 4 TB (4x1TB) | VAULT (Hyper M.2 Gen5 adapter) |
-| 12 | Crucial P3 Plus (CT4000P3PSSD8) | Gen4 | 4 TB | Loose |
-| 13 | Crucial P310 (CT2000P310SSD8) | Gen4 | 2 TB | Loose |
-| 14 | Samsung 970 EVO | Gen3 | 250 GB | Loose |
-| 15 | Crucial T700 | Gen5 | 1 TB | Node 2 (M.2 Slot 2, Docker) |
-| 16 | Crucial T700 | Gen5 | 1 TB | Node 2 (M.2 Slot 3, Temp/scratch) |
-| 17 | Crucial T700 | Gen5 | 1 TB | Node 2 (M.2 Slot 4, ComfyUI) |
-| 18 | Crucial T700 | Gen5 | 1 TB | Loose |
-| 19–22 | Crucial P310 (x4) | Gen4 | 4 TB (4x1TB) | Loose |
-| 23 | Samsung 970 EVO Plus | Gen3 | 1 TB | Loose |
-| 24 | WD Black SN750 | Gen3 | 1 TB | Loose |
+| 8 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Loose (was listed as Node 1, audit found P310 1TB there — physical location unknown) |
+| 9 | Crucial P3 Plus (CT4000P3PSSD8) | Gen4 | 4 TB | Loose |
+| 10 | Crucial P310 (CT2000P310SSD8) | Gen4 | 2 TB | Loose |
+| 11 | Samsung 970 EVO | Gen3 | 250 GB | Loose |
+| 12 | Crucial T700 | Gen5 | 1 TB | Node 2 (M.2 Slot 2, unmounted, stale ZFS label) |
+| 13 | Crucial T700 | Gen5 | 1 TB | Node 2 (M.2 Slot 3, unmounted, stale ZFS label) |
+| 14 | Crucial T700 | Gen5 | 1 TB | Node 2 (M.2 Slot 4, unmounted, stale ZFS label) |
+| 15 | Crucial T700 | Gen5 | 1 TB | Loose |
+| 16–19 | Crucial P310 (x4) | Gen4 | 4 TB (4x1TB) | Loose (were incorrectly listed as VAULT Hyper M.2 — card slots confirmed empty) |
+| 20 | Samsung 970 EVO Plus | Gen3 | 1 TB | Loose |
+| 21 | WD Black SN750 | Gen3 | 1 TB | Loose |
 
-**Total: 24 NVMe drives, 36.25 TB**
+**Total: 21 NVMe drives, 29.25 TB** (corrected: removed duplicate VAULT Hyper M.2 entries, Node 1 M.2_2 is P310 1TB not 990 PRO 4TB)
 
 ---
 
@@ -129,7 +130,7 @@ Last updated: 2026-02-22.
 | # | Card | Function | Interface | Currently In |
 |---|------|----------|-----------|-------------|
 | 1 | Broadcom/LSI SAS3224 | SAS-3 HBA | PCIe 3.0 x8 | VAULT |
-| 2 | ASUS Hyper M.2 X16 Gen5 | 4x NVMe carrier (4× P310 1TB) | PCIe 5.0 x16 | VAULT |
+| 2 | ASUS Hyper M.2 X16 Gen5 | 4x NVMe carrier (ALL SLOTS EMPTY — confirmed by PCIe enumeration) | PCIe 5.0 x16 | VAULT |
 | 3–4 | ASUS Hyper M.2 X16 Gen5 (x2) | 4x NVMe carrier | PCIe 5.0 x16 | Loose |
 | 5 | Intel X540-T2 | Dual-port 10GbE RJ45 | PCIe 2.1 x8 | Loose |
 | 6–7 | SR-PT02-X540 / X540 clone (x2) | Dual-port 10GbE RJ45 | PCIe 2.1 x8 | Loose |
