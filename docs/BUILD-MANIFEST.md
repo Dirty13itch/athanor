@@ -189,8 +189,8 @@ The agent framework exists but is skeletal. These items make agents actually use
   - CRLF→LF Dockerfiles on Node 2 (agents + ComfyUI)
   - `docker_compose_v2` module SHA mismatch bug (added "stop before rebuild" tasks to agents + ComfyUI roles)
   - Removed undefined vault variable references from `host_vars/core.yml` (agent API keys already in role defaults)
-- **Remaining:** `vault.yml` convergence test (lower priority — VAULT uses different SSH method)
-- **Files:** `ansible/roles/agents/tasks/main.yml`, `ansible/roles/comfyui/tasks/main.yml`
+- **vault.yml also verified:** ok=29, changed=0 on 2nd run (all 29 tasks idempotent including 10 containers, Neo4j seeding, LiteLLM, monitoring)
+- **Files:** `ansible/roles/agents/tasks/main.yml`, `ansible/roles/comfyui/tasks/main.yml`, `ansible/playbooks/site.yml`, `ansible/playbooks/node1.yml`
 
 ### 5.3 — Backup strategy
 - **Status:** ✅ (Session 12, 2026-02-24)
