@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-25 (Session 15: System design + full Phase 1-2 implementation)
+Last updated: 2026-02-25 (Session 16: Tier 6 backlog — video gen, Stash agent, voice research)
 
 ---
 
@@ -222,12 +222,49 @@ The agent framework exists but is skeletal. These items make agents actually use
 ## Tier 6: Future Capabilities (P3)
 
 ### 6.1 — Video generation pipeline (Wan2.x)
+- **Status:** ✅ Phase 1 complete — models downloaded, custom nodes installed, T2V verified
+- **Research:** `docs/research/2026-02-24-wan2x-video-deployment.md` — Wan2.2 MoE (27B total, 14B active), FP8 format
+- **Models downloaded (41 GB total):**
+  - `wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors` (14 GB) → `/mnt/vault/models/comfyui/unet/`
+  - `wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors` (14 GB) → `/mnt/vault/models/comfyui/unet/`
+  - `umt5-xxl-enc-fp8_e4m3fn.safetensors` (6.3 GB) → `/mnt/vault/models/comfyui/clip/` (Kijai non-scaled)
+  - `umt5_xxl_fp8_e4m3fn_scaled.safetensors` (6.3 GB) → `/mnt/vault/models/comfyui/clip/` (Comfy-Org scaled, unused)
+  - `wan_2.1_vae.safetensors` (243 MB) → `/mnt/vault/models/comfyui/vae/`
+- **Custom nodes:** ComfyUI-WanVideoWrapper (152 Wan nodes) + ComfyUI-KJNodes, baked into Dockerfile.
+- **Text encoder gotcha:** FP8 _scaled_ text encoders rejected by WanVideoWrapper. Must use Kijai's non-scaled version from `Kijai/WanVideo_comfy`.
+- **Performance (verified):** 17 frames at 480×320 in 91s (4.72s/step), peak 13.74 GB VRAM on 5060 Ti.
+- **Dockerfile:** NGC base → torch 2.10.0+cu128 (Blackwell sm_120 verified), torchaudio, clean opencv, WanVideoWrapper + KJNodes.
+- **Remaining:** Wire Creative Agent with video gen tools, explore higher resolutions
+- **Constraint:** 5060 Ti (16 GB) handles 480×320 comfortably. Higher res needs 5090 (GPU 0) via vLLM sleep mode (blocked)
+
 ### 6.2 — InfiniBand networking
+- **Status:** 🔲 Backlog
+- **Note:** Requires physical work (cable routing, card installation)
+
 ### 6.3 — Voice interaction
+- **Status:** 🔲 Research complete, deployment pending
+- **Research:** `docs/research/2026-02-24-voice-interaction.md` — faster-whisper + Kokoro TTS + Piper (HA) + openWakeWord
+- **Architecture:** Speaches container (STT+TTS, ~2.5 GB VRAM) on Node 1 GPU 4 alongside embedding model. Wyoming protocol for HA integration. Piper (CPU) for HA voice responses.
+- **Remaining:** Create Ansible roles for Speaches + Piper, deploy, configure HA Wyoming integration
+
 ### 6.4 — Mobile access
+- **Status:** 🔲 Backlog — depends on 6.8 (remote access)
+
 ### 6.5 — qBittorrent + Gluetun VPN (blocked on NordVPN creds)
+- **Status:** 🚫 Blocked on Shaun (NordVPN credentials)
+
 ### 6.6 — Stash AI integration (adult content agent)
+- **Status:** ✅ Phase 1 complete — Stash configured + agent deployed
+- **Research:** `docs/research/2026-02-24-stash-ai-integration.md`
+- **Stash setup:** VAULT:9999, schema v75, `/data/adult` library configured via GraphQL API
+- **Agent deployed:** Node 1:9000 as `stash-agent` (8th agent), uses `reasoning` model
+- **12 tools:** get_stash_stats, search_scenes, get_scene_details, search_performers, list_tags, find_duplicates, scan_library, auto_tag, generate_content, update_scene_rating, mark_scene_organized, get_recent_scenes
+- **Files:** `tools/stash.py`, `agents/stash.py`, `agents/__init__.py`, `server.py`
+- **Remaining Phase 2:** VLM auto-tagging plugin (AHavenVLMConnector), face recognition (LocalVisage), Qdrant recommendations collection
+
 ### 6.7 — Mining GPU enclosure migration
+- **Status:** 🔲 Backlog — requires physical work
+
 ### 6.8 — Remote access (Tailscale/WireGuard)
 - **Status:** 🚫 Blocked on Shaun (needs UDM Pro SSH + Tailscale account creation)
 - **Research:** `docs/research/2026-02-24-remote-access.md` — 5 options evaluated, Tailscale recommended
@@ -311,6 +348,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Verified:** 7 GPUs reporting (4x 5070 Ti, 4090, 5090, 5060 Ti), VRAM metrics correct, Prometheus metrics exporting, 18/19 service health checks passing.
 - **Ansible:** `ansible/roles/gpu-orchestrator/`, added to `site.yml` for Node 1.
 - **Remaining:** Phase 3 (priority preemption, LiteLLM wake-before-route, flex GPU assignment, dashboard GPU page). Requires `--enable-sleep-mode` on vLLM instances.
+- **vLLM sleep mode blocked:** NGC vllm:25.12-py3 (v0.11.1) accepts `--enable-sleep-mode` and activates CuMemAllocator, but does NOT register `/sleep` or `/is_sleeping` REST endpoints (404). Also conflicts with `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`. Template fixed (conditional expandable_segments), but sleep/wake won't work until NGC image upgrade. Revisit when newer NGC vLLM releases.
 - **Decision:** ADR-018
 
 ### 7.12 — Dashboard: Activity Feed page

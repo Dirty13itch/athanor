@@ -5,26 +5,26 @@
 - name: Configure Node 1 (Foundry)
   hosts: node1
   roles:
-    - common
-    - nvidia
-    - docker
-    - monitoring
-    - vllm
-    - vllm-embedding
-    - qdrant
-    - agents
-    - gpu-orchestrator
-    - backup
+    - { role: common, tags: [common] }
+    - { role: nvidia, tags: [nvidia] }
+    - { role: docker, tags: [docker] }
+    - { role: monitoring, tags: [monitoring] }
+    - { role: vllm, tags: [vllm] }
+    - { role: vllm-embedding, tags: [vllm-embedding] }
+    - { role: qdrant, tags: [qdrant] }
+    - { role: agents, tags: [agents] }
+    - { role: gpu-orchestrator, tags: [gpu-orchestrator] }
+    - { role: backup, tags: [backup] }
 
 - name: Configure Node 2 (Workshop)
   hosts: node2
   roles:
-    - common
-    - nvidia
-    - docker
-    - monitoring
-    - vllm
-    - comfyui
-    - open-webui
-    - dashboard
-    - eoq
+    - { role: common, tags: [common] }
+    - { role: nvidia, tags: [nvidia] }
+    - { role: docker, tags: [docker] }
+    - { role: monitoring, tags: [monitoring] }
+    - { role: vllm, tags: [vllm] }
+    - { role: comfyui, tags: [comfyui] }
+    - { role: open-webui, tags: [open-webui] }
+    - { role: dashboard, tags: [dashboard] }
+    - { role: eoq, tags: [eoq] }

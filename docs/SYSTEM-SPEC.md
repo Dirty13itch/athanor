@@ -109,7 +109,7 @@ All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use mod
 | Creative Agent | fast (14B) | 0.8 | Reactive | Live |
 | Knowledge Agent | reasoning (32B) | 0.3 | Reactive | Live |
 | Coding Agent | reasoning (32B) | 0.3 | Reactive | Live |
-| Stash Agent | — | — | Reactive + Proactive | Planned |
+| Stash Agent | reasoning (32B) | 0.7 | Reactive | Live |
 
 All agents are LangGraph `create_react_agent` instances with tool-calling and in-memory conversation checkpointing. They expose an OpenAI-compatible chat completions API at Node 1:9000.
 

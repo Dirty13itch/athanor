@@ -15,8 +15,14 @@ RUN git clone https://github.com/comfyanonymous/ComfyUI.git ${COMFYUI_DIR}
 
 WORKDIR ${COMFYUI_DIR}
 
-# Install ComfyUI requirements BUT preserve NGC PyTorch (which has Blackwell sm_120 support).
-# Only filter out exact torch, torchvision, torchaudio (not torchsde etc.)
+# Install torchaudio (needed by WanVideoWrapper). This upgrades torch from NGC 2.7.0a0
+# to stable 2.10.0+cu128 which has native Blackwell sm_120 support — verified working.
+# Remove NGC's stale opencv (compiled for numpy 1.x) and its artifacts to avoid conflicts.
+RUN pip uninstall -y opencv 2>/dev/null; \
+    rm -rf /usr/local/lib/python3.12/dist-packages/cv2* && \
+    pip install --no-cache-dir torchaudio opencv-python-headless
+
+# Install ComfyUI requirements, filtering out torch ecosystem (already installed above)
 RUN grep -viE "^torch(vision|audio)?([=>< ]|$)" requirements.txt > requirements_filtered.txt && \
     pip install --no-cache-dir -r requirements_filtered.txt
 
@@ -25,6 +31,13 @@ RUN pip install --no-cache-dir gitpython
 
 # Install ComfyUI Manager
 RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git ${COMFYUI_DIR}/custom_nodes/ComfyUI-Manager
+
+# Install custom nodes for video generation (Wan2.x)
+RUN git clone https://github.com/kijai/ComfyUI-WanVideoWrapper.git ${COMFYUI_DIR}/custom_nodes/ComfyUI-WanVideoWrapper && \
+    pip install --no-cache-dir -r ${COMFYUI_DIR}/custom_nodes/ComfyUI-WanVideoWrapper/requirements.txt
+
+RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git ${COMFYUI_DIR}/custom_nodes/ComfyUI-KJNodes && \
+    pip install --no-cache-dir -r ${COMFYUI_DIR}/custom_nodes/ComfyUI-KJNodes/requirements.txt
 
 EXPOSE 8188
 

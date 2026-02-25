@@ -79,6 +79,15 @@ AGENT_METADATA = {
         "tools": ["generate_code", "review_code", "explain_code", "transform_code"],
         "type": "reactive",
     },
+    "stash-agent": {
+        "description": "Adult content library management — search, browse, organize, tag, and manage via Stash.",
+        "tools": [
+            "get_stash_stats", "search_scenes", "get_scene_details", "search_performers",
+            "list_tags", "find_duplicates", "scan_library", "auto_tag", "generate_content",
+            "update_scene_rating", "mark_scene_organized", "get_recent_scenes",
+        ],
+        "type": "reactive",
+    },
 }
 
 

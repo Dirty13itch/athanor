@@ -22,5 +22,9 @@ vllm_extra_args:
   - --enable-auto-tool-choice
   - --tool-call-parser
   - hermes
+# NOTE: --enable-sleep-mode requires newer vLLM than NGC 25.12-py3 (v0.11.1).
+# The flag activates CuMemAllocator (conflicts with expandable_segments)
+# but /sleep and /is_sleeping endpoints are not registered in this version.
+# Revisit when upgrading NGC vLLM image.
 
 # Agent config — API keys and LiteLLM routing in roles/agents/defaults/main.yml

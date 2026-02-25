@@ -386,52 +386,65 @@ implementation_notes: |
 
 ---
 
-## Stash Agent (Planned)
+## Stash Agent
 
 ```yaml
 name: stash-agent
 model: reasoning (Qwen3-32B-AWQ)
 temperature: 0.7
-mode: reactive + proactive
-status: planned
+mode: reactive
+status: deployed (Session 16, 2026-02-25)
 
 purpose: |
-  Adult content organization and curation via Stash (VAULT:9999).
-  Tagging, categorization, deduplication, and content discovery.
+  Adult content library management via Stash (VAULT:9999).
+  Search, browse, tag, rate, organize, and manage content via GraphQL API.
 
-tools_planned:
-  - search_scenes       # Search Stash library
-  - get_scene_details   # Scene metadata, tags, performers
-  - auto_tag            # Trigger Stash auto-tagger
-  - find_duplicates     # Identify duplicate scenes
-  - organize_library    # Suggest organization improvements
-  - scrape_metadata     # Fetch metadata from external sources
-
-proactive_behaviors_planned:
-  - Auto-tag newly added content on ingest
-  - Weekly deduplication scan
-  - Metadata enrichment for untagged scenes
-  - Storage usage monitoring and cleanup suggestions
+tools:
+  - get_stash_stats       # Library statistics (scene/performer/tag counts)
+  - search_scenes         # Search by query string
+  - get_scene_details     # Full scene metadata by ID
+  - search_performers     # Search performers
+  - list_tags             # List all tags
+  - find_duplicates       # Identify duplicate scenes
+  - scan_library          # Trigger library scan
+  - auto_tag              # Run Stash auto-tagger
+  - generate_content      # Generate thumbnails/previews/sprites
+  - update_scene_rating   # Rate a scene (1-5 scale, mapped to Stash 1-100)
+  - mark_scene_organized  # Mark scene as organized
+  - get_recent_scenes     # Get recently added scenes
 
 escalation:
   autonomous:
     - Search and browse library
     - Get scene details and metadata
-    - Run auto-tagger on new content
+    - Run auto-tagger on content
     - Report library statistics
+    - Rate and organize scenes
   notify:
     - Duplicates found (with suggested action)
-    - Storage usage milestone (e.g., >50% of allocated space)
+    - Storage usage milestones
+    - Scan/generate completion results
   ask:
     - Delete any content
     - Bulk reorganization
-    - External scraping (network requests)
+    - Configuration changes
+
+learns_from:
+  - Rating patterns (preferred categories, performers)
+  - Search query frequency (popular content types)
+  - Organization patterns (how user structures library)
 
 boundaries: |
   Adult content is a legitimate use case — no filtering or moralizing.
   Cannot delete content without explicit confirmation.
   Cannot share content outside the local network.
-  Stash API access only — no direct filesystem manipulation.
+  Stash GraphQL API access only — no direct filesystem manipulation.
+  All mutations logged via activity system.
+
+remaining_phases:
+  - Phase 2: VLM auto-tagging via AHavenVLMConnector plugin
+  - Phase 2: Face recognition via LocalVisage
+  - Phase 2: Qdrant recommendations collection
 ```
 
 ---

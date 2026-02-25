@@ -109,11 +109,11 @@ Full details in `docs/hardware/inventory.md`.
 
 ## Current State
 
-**Tier 7 complete (14/14).** All build items Tiers 1-7 done. Tier 6 backlog remains (video gen, InfiniBand, voice, mobile, VPN, Stash AI, mining enclosure, remote access). See `docs/SYSTEM-SPEC.md` for operational specification, `docs/BUILD-MANIFEST.md` for tracking, `docs/SERVICES.md` for inventory.
+**Tier 7 complete (14/14).** Tier 6 backlog in progress. See `docs/SYSTEM-SPEC.md` for operational specification, `docs/BUILD-MANIFEST.md` for tracking, `docs/SERVICES.md` for inventory.
 
-**7 agents live** on Node 1:9000: General Assistant, Media Agent, Research Agent, Creative Agent, Knowledge Agent, Home Agent, Coding Agent. Activity logging, preference storage, escalation protocol, and GWT workspace all deployed.
+**8 agents live** on Node 1:9000: General Assistant, Media Agent, Research Agent, Creative Agent, Knowledge Agent, Home Agent, Coding Agent, Stash Agent. Activity logging, preference storage, escalation protocol, and GWT workspace all deployed.
 
-**All 7 GPUs active.** Node 1: vLLM TP=4 (GPUs 0-3) + embedding (GPU 4). Node 2: vLLM (GPU 0) + ComfyUI Flux (GPU 1). GPU Orchestrator on Node 1:9200 monitors all zones.
+**All 7 GPUs active.** Node 1: vLLM TP=4 (GPUs 0-3) + embedding (GPU 4). Node 2: vLLM (GPU 0) + ComfyUI Flux+Wan2.x (GPU 1). GPU Orchestrator on Node 1:9200 monitors all zones.
 
 **Knowledge + Memory:** 922 doc chunks in Qdrant `knowledge`, activity log in `activity`, preferences in `preferences`. Neo4j graph (30 relationships). Redis on VAULT for GWT workspace + GPU orchestrator state.
 
@@ -121,7 +121,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 12 tools to Claude Code — coding, knowledge search, system status, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
 
-**Next up:** 7.11 GPU orchestrator (pynvml + vLLM sleep/wake), then Tier 6 backlog.
+**Tier 6 progress:** 6.1 Video gen (models downloaded, custom nodes installed), 6.3 Voice (research complete), 6.6 Stash AI Phase 1 (agent deployed). vLLM sleep mode blocked on NGC image upgrade.
 
 ---
 
@@ -134,6 +134,10 @@ Full details in `docs/hardware/inventory.md`.
 - **NFS stale handles**: After VAULT reboots, fix with `sudo umount -f /mnt/vault/models && sudo mount -a`.
 - **NFS permissions**: Dirs created by root on VAULT need `chmod 777` (root_squash).
 - **vLLM on 16 GB GPUs**: Use `--gpu-memory-utilization 0.85` and `--max-num-seqs 128`.
+- **vLLM sleep mode**: NGC vllm:25.12-py3 (v0.11.1) accepts `--enable-sleep-mode` but doesn't register REST endpoints. Blocked until NGC upgrade.
+- **ComfyUI torch**: Upgraded from NGC 2.7.0a0 to torch 2.10.0+cu128 (Blackwell sm_120 works). NGC base still needed for CUDA.
+- **Wan2.x text encoder**: FP8 _scaled_ models rejected by WanVideoWrapper. Use Kijai's non-scaled `umt5-xxl-enc-fp8_e4m3fn.safetensors`.
+- **ComfyUI opencv**: NGC ships opencv 4.10.0 compiled against numpy 1.x. Must `rm -rf cv2*` and install `opencv-python-headless` fresh.
 - **EPYC POST time**: Node 1 takes ~3 min (224 GB ECC RAM check).
 
 ---
