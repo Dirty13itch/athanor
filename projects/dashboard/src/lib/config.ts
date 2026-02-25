@@ -62,6 +62,7 @@ export const config = {
     { name: "Home Assistant", url: "http://192.168.1.203:8123/api/", node: "VAULT" },
     { name: "Neo4j", url: "http://192.168.1.203:7474", node: "VAULT" },
     { name: "GPU Orchestrator", url: "http://192.168.1.244:9200/health", node: "Foundry" },
+    { name: "Speaches", url: "http://192.168.1.244:8200/health", node: "Foundry" },
   ],
   nodes: [
     { name: "Foundry", ip: "192.168.1.244", role: "AI inference + agents", gpuCount: 5, vram: 88, psuWatts: 1600 },
@@ -75,7 +76,7 @@ export const config = {
       1: "vLLM TP1",
       2: "vLLM TP2",
       3: "vLLM TP3 (RTX 4090)",
-      4: "vLLM Embedding (Qwen3-Embedding-0.6B)",
+      4: "Embedding + Whisper + Speaches",
     },
     "192.168.1.225": {
       0: "vLLM (Qwen3-14B, RTX 5090)",
