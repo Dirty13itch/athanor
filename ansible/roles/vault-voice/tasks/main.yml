@@ -1,0 +1,50 @@
+---
+# Voice services on VAULT — Piper TTS + openWakeWord (CPU-only)
+# Wyoming protocol for Home Assistant voice pipeline integration
+
+- name: Create voice data directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ piper_data_path }}"
+    - "{{ openwakeword_data_path }}"
+
+- name: Run wyoming-piper container (TTS for HA)
+  community.docker.docker_container:
+    name: wyoming-piper
+    image: "{{ piper_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ piper_port }}:10200"
+    volumes:
+      - "{{ piper_data_path }}:/data"
+    command: >
+      --voice {{ piper_voice }}
+    pull: true
+
+- name: Run wyoming-openwakeword container (wake word for HA)
+  community.docker.docker_container:
+    name: wyoming-openwakeword
+    image: "{{ openwakeword_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ openwakeword_port }}:10400"
+    volumes:
+      - "{{ openwakeword_data_path }}:/custom"
+    pull: true
+
+- name: Wait for Piper to be ready
+  ansible.builtin.wait_for:
+    port: "{{ piper_port }}"
+    timeout: 120
+    delay: 10
+
+- name: Wait for openWakeWord to be ready
+  ansible.builtin.wait_for:
+    port: "{{ openwakeword_port }}"
+    timeout: 60
+    delay: 5

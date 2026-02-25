@@ -8,6 +8,7 @@
 #   ansible-playbook playbooks/vault.yml --tags litellm     # LiteLLM proxy only
 #   ansible-playbook playbooks/vault.yml --tags neo4j       # Neo4j graph DB only
 #   ansible-playbook playbooks/vault.yml --tags redis       # Redis only
+#   ansible-playbook playbooks/vault.yml --tags voice       # Voice (Piper + openWakeWord)
 #   ansible-playbook playbooks/vault.yml --tags plex        # Single service
 #   ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx  # First Plex deploy
 #
@@ -30,3 +31,5 @@
       tags: [neo4j]
     - role: vault-redis
       tags: [redis]
+    - role: vault-voice
+      tags: [voice]

@@ -4,8 +4,8 @@ vllm_embedding_container_name: vllm-embedding
 vllm_embedding_model: /models/Qwen3-Embedding-0.6B
 vllm_embedding_port: 8001
 vllm_embedding_gpu_device: "4"
-vllm_embedding_gpu_memory_util: "0.90"
-vllm_embedding_max_model_len: 32768
+vllm_embedding_gpu_memory_util: "0.40"
+vllm_embedding_max_model_len: 8192
 vllm_embedding_max_num_seqs: 256
 vllm_embedding_dtype: auto
 vllm_embedding_deploy_dir: /opt/athanor/vllm-embedding

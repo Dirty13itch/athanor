@@ -2,19 +2,21 @@
 
 *Live service inventory. Updated when services change.*
 
-Last updated: 2026-02-25 (Session 16 — Tier 6 progress)
+Last updated: 2026-02-25 (Session 17 — Creative Agent video tools, voice deployment)
 
 ## Node 1 — Foundry (192.168.1.244)
 
 | Service | Port | Details |
 |---------|------|---------|
 | vLLM (Qwen3-32B-AWQ) | 8000 | TP=4 across 3x RTX 5070 Ti + RTX 4090, `--quantization awq` |
-| vLLM Embedding (Qwen3-Embedding-0.6B) | 8001 | RTX 5070 Ti GPU 4, 1024-dim embeddings |
+| vLLM Embedding (Qwen3-Embedding-0.6B) | 8001 | RTX 5070 Ti GPU 4, 0.40 mem util, 8K ctx, 1024-dim embeddings |
 | Agent Server | 9000 | 8 agents + GWT workspace + escalation + activity/preference APIs |
 | Qdrant | 6333/6334 | Vector DB, collections: knowledge (922 pts), conversations, activity, preferences |
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics |
 | GPU Orchestrator | 9200 | 4 zones, DCGM metrics, vLLM sleep/wake, TTL auto-sleep, Prometheus export |
+| wyoming-whisper | 10300 | STT for HA — faster-distil-whisper-large-v3 (float16), GPU 4 |
+| Speaches | 8200 | OpenAI-compatible STT+TTS API — Kokoro + faster-whisper, GPU 4 |
 
 ## Node 2 — Workshop (192.168.1.225)
 
@@ -45,6 +47,8 @@ Last updated: 2026-02-25 (Session 16 — Tier 6 progress)
 | Tautulli | 8181 | Running |
 | Stash | 9999 | Schema v75, `/data/adult` library configured, GraphQL API active |
 | Home Assistant | 8123 | v2026.2.3, 38 entities, agent token active |
+| wyoming-piper | 10200 | TTS for HA — en_US-lessac-medium voice, CPU-only |
+| wyoming-openwakeword | 10400 | Wake word detection for HA, CPU-only |
 
 ## Models on NFS (`/mnt/vault/models/`)
 

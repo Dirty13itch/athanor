@@ -1,0 +1,20 @@
+---
+# Voice services on Node 1 — STT (wyoming-whisper) + TTS/STT API (Speaches)
+# Both share GPU 4 (RTX 5070 Ti) with the embedding model
+
+# Wyoming faster-whisper (STT for Home Assistant)
+whisper_image: rhasspy/wyoming-whisper
+whisper_port: 10300
+whisper_model: Systran/faster-distil-whisper-large-v3
+whisper_language: en
+whisper_beam_size: 1
+whisper_device: cuda
+whisper_compute_type: float16
+whisper_data_path: /opt/athanor/voice/whisper
+whisper_gpu_id: "4"
+
+# Speaches (unified STT+TTS with OpenAI-compatible API)
+speaches_image: ghcr.io/speaches-ai/speaches:latest-cuda
+speaches_port: 8200
+speaches_data_path: /opt/athanor/voice/speaches
+speaches_gpu_id: "4"

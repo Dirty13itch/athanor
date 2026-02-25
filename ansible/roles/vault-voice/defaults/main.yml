@@ -1,0 +1,14 @@
+---
+# Voice services on VAULT — TTS (wyoming-piper) + Wake Word (openWakeWord)
+# CPU-only, no GPU required
+
+# Wyoming Piper (TTS for Home Assistant)
+piper_image: rhasspy/wyoming-piper
+piper_port: 10200
+piper_voice: en_US-lessac-medium
+piper_data_path: /mnt/user/appdata/voice/piper
+
+# Wyoming openWakeWord (wake word detection for HA)
+openwakeword_image: rhasspy/wyoming-openwakeword
+openwakeword_port: 10400
+openwakeword_data_path: /mnt/user/appdata/voice/openwakeword

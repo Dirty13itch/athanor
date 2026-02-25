@@ -121,7 +121,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 12 tools to Claude Code — coding, knowledge search, system status, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
 
-**Tier 6 progress:** 6.1 Video gen (models downloaded, custom nodes installed), 6.3 Voice (research complete), 6.6 Stash AI Phase 1 (agent deployed). vLLM sleep mode blocked on NGC image upgrade.
+**Tier 6 progress:** 6.1 Video gen complete (Creative Agent wired with T2V). 6.3 Voice Phase 1 complete (4 containers: whisper+Speaches on Node 1 GPU 4, Piper+openWakeWord on VAULT CPU; vLLM-embedding resized to 0.40 mem). 6.6 Stash AI Phase 1 (agent deployed, library empty). vLLM sleep mode blocked on NGC image upgrade.
 
 ---
 
@@ -138,6 +138,8 @@ Full details in `docs/hardware/inventory.md`.
 - **ComfyUI torch**: Upgraded from NGC 2.7.0a0 to torch 2.10.0+cu128 (Blackwell sm_120 works). NGC base still needed for CUDA.
 - **Wan2.x text encoder**: FP8 _scaled_ models rejected by WanVideoWrapper. Use Kijai's non-scaled `umt5-xxl-enc-fp8_e4m3fn.safetensors`.
 - **ComfyUI opencv**: NGC ships opencv 4.10.0 compiled against numpy 1.x. Must `rm -rf cv2*` and install `opencv-python-headless` fresh.
+- **CTranslate2 int8 on Blackwell**: Fails on sm_120. Use `float16` compute type for wyoming-whisper.
+- **Speaches Docker image**: Tag is `latest-cuda`, not `latest` (which 404s).
 - **EPYC POST time**: Node 1 takes ~3 min (224 GB ECC RAM check).
 
 ---

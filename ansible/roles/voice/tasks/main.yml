@@ -1,0 +1,71 @@
+---
+# Voice services — wyoming-whisper (STT) + Speaches (STT+TTS API)
+# Deployed on Node 1, GPU 4, alongside embedding model (~4 GB total VRAM)
+
+- name: Create voice data directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ whisper_data_path }}"
+    - "{{ speaches_data_path }}"
+
+- name: Run wyoming-whisper container (STT for HA)
+  community.docker.docker_container:
+    name: wyoming-whisper
+    image: "{{ whisper_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ whisper_port }}:10300"
+    volumes:
+      - "{{ whisper_data_path }}:/data"
+    command: >
+      --model {{ whisper_model }}
+      --language {{ whisper_language }}
+      --beam-size {{ whisper_beam_size }}
+      --device {{ whisper_device }}
+      --compute-type {{ whisper_compute_type }}
+    device_requests:
+      - driver: nvidia
+        device_ids:
+          - "{{ whisper_gpu_id }}"
+        capabilities:
+          - ["gpu"]
+    pull: true
+
+- name: Run Speaches container (OpenAI-compatible STT+TTS API)
+  community.docker.docker_container:
+    name: speaches
+    image: "{{ speaches_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ speaches_port }}:8000"
+    volumes:
+      - "{{ speaches_data_path }}:/root/.cache"
+    env:
+      NVIDIA_VISIBLE_DEVICES: "{{ speaches_gpu_id }}"
+    device_requests:
+      - driver: nvidia
+        device_ids:
+          - "{{ speaches_gpu_id }}"
+        capabilities:
+          - ["gpu"]
+    pull: true
+
+- name: Wait for wyoming-whisper to be ready
+  ansible.builtin.wait_for:
+    port: "{{ whisper_port }}"
+    timeout: 120
+    delay: 10
+
+- name: Wait for Speaches to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ speaches_port }}/health"
+    status_code: [200]
+  register: speaches_ready
+  retries: 20
+  delay: 5
+  ignore_errors: true

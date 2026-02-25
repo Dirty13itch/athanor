@@ -159,7 +159,7 @@ Thresholds are per-agent and per-action-type:
 | **Terminal** (DEV/WSL2) | Live | Claude Code sessions, Ansible, SSH |
 | **Open WebUI** (Node 2:3000) | Live | Direct model chat (no agents) |
 | **Mobile** (Termius) | Planned | SSH into tmux sessions from phone |
-| **Voice** | Future | Hands-free interaction |
+| **Voice** | Phase 1 | STT (whisper), TTS (Piper/Speaches), wake word. HA Wyoming integration pending. |
 
 The dashboard is the primary interface — a Next.js app with dark theme, live system metrics, and an integrated chat panel that can talk to any agent.
 

@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-25 (Session 16: Tier 6 backlog — video gen, Stash agent, voice research)
+Last updated: 2026-02-25 (Session 17: Creative Agent video tools, voice deployment, vLLM embedding resize)
 
 ---
 
@@ -222,7 +222,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 ## Tier 6: Future Capabilities (P3)
 
 ### 6.1 — Video generation pipeline (Wan2.x)
-- **Status:** ✅ Phase 1 complete — models downloaded, custom nodes installed, T2V verified
+- **Status:** ✅ Complete — pipeline verified, Creative Agent wired
 - **Research:** `docs/research/2026-02-24-wan2x-video-deployment.md` — Wan2.2 MoE (27B total, 14B active), FP8 format
 - **Models downloaded (41 GB total):**
   - `wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors` (14 GB) → `/mnt/vault/models/comfyui/unet/`
@@ -232,20 +232,28 @@ The agent framework exists but is skeletal. These items make agents actually use
   - `wan_2.1_vae.safetensors` (243 MB) → `/mnt/vault/models/comfyui/vae/`
 - **Custom nodes:** ComfyUI-WanVideoWrapper (152 Wan nodes) + ComfyUI-KJNodes, baked into Dockerfile.
 - **Text encoder gotcha:** FP8 _scaled_ text encoders rejected by WanVideoWrapper. Must use Kijai's non-scaled version from `Kijai/WanVideo_comfy`.
-- **Performance (verified):** 17 frames at 480×320 in 91s (4.72s/step), peak 13.74 GB VRAM on 5060 Ti.
+- **Performance (verified):** 17 frames at 480×320 in ~47-91s, peak 13.74 GB VRAM on 5060 Ti.
 - **Dockerfile:** NGC base → torch 2.10.0+cu128 (Blackwell sm_120 verified), torchaudio, clean opencv, WanVideoWrapper + KJNodes.
-- **Remaining:** Wire Creative Agent with video gen tools, explore higher resolutions
-- **Constraint:** 5060 Ti (16 GB) handles 480×320 comfortably. Higher res needs 5090 (GPU 0) via vLLM sleep mode (blocked)
+- **Creative Agent wired:** `generate_video` tool deployed. 5 tools total (image, video, queue, history, status). Agent switched to `reasoning` model for reliable tool calling.
+- **Workflow nodes:** WanVideoModelLoader → WanVideoVAELoader → WanVideoTextEncodeCached → WanVideoEmptyEmbeds → WanVideoSampler → WanVideoDecode → SaveAnimatedWEBP
+- **Remaining:** Explore higher resolutions (needs 5090 via vLLM sleep mode, blocked)
 
 ### 6.2 — InfiniBand networking
 - **Status:** 🔲 Backlog
 - **Note:** Requires physical work (cable routing, card installation)
 
 ### 6.3 — Voice interaction
-- **Status:** 🔲 Research complete, deployment pending
+- **Status:** ✅ Phase 1 complete — all 4 voice containers deployed and healthy
 - **Research:** `docs/research/2026-02-24-voice-interaction.md` — faster-whisper + Kokoro TTS + Piper (HA) + openWakeWord
-- **Architecture:** Speaches container (STT+TTS, ~2.5 GB VRAM) on Node 1 GPU 4 alongside embedding model. Wyoming protocol for HA integration. Piper (CPU) for HA voice responses.
-- **Remaining:** Create Ansible roles for Speaches + Piper, deploy, configure HA Wyoming integration
+- **Architecture:** GPU 4 shared between vLLM-embedding (0.40 mem, 8K ctx), wyoming-whisper (float16), Speaches (lazy GPU). Wyoming protocol for HA integration. Piper (CPU) for HA voice responses.
+- **Deployed:**
+  - VAULT: wyoming-piper (10200, CPU, en_US-lessac-medium) + wyoming-openwakeword (10400, CPU) ✅
+  - Node 1: wyoming-whisper (10300, GPU 4, faster-distil-whisper-large-v3 float16) ✅
+  - Node 1: Speaches (8200, GPU 4, OpenAI-compatible STT+TTS API) ✅
+- **Ansible:** `ansible/roles/voice/` (Node 1), `ansible/roles/vault-voice/` (VAULT)
+- **GPU 4 tuning:** vLLM-embedding resized from 0.90→0.40 mem, 32K→8K ctx to share GPU 4. Total: 8.8 GB / 16.3 GB used.
+- **Blackwell gotchas:** CTranslate2 int8 fails on sm_120, must use float16. Speaches image tag is `latest-cuda` not `latest`.
+- **Remaining:** Configure HA Wyoming integration (Devices & Services), test end-to-end voice pipeline
 
 ### 6.4 — Mobile access
 - **Status:** 🔲 Backlog — depends on 6.8 (remote access)

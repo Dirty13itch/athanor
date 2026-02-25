@@ -1,6 +1,5 @@
-"""Creative tools — ComfyUI image generation, queue management, history."""
+"""Creative tools — ComfyUI image/video generation, queue management, history."""
 
-import json
 import time
 import uuid
 
@@ -8,6 +7,12 @@ import httpx
 from langchain_core.tools import tool
 
 COMFYUI_URL = "http://192.168.1.225:8188"
+
+# Wan2.x model files (on NFS via extra_model_paths.yaml)
+WAN_UNET_HIGH = "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors"
+WAN_UNET_LOW = "wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors"
+WAN_VAE = "wan_2.1_vae.safetensors"
+WAN_CLIP = "umt5-xxl-enc-fp8_e4m3fn.safetensors"
 
 
 def _flux_workflow(prompt: str, width: int = 1024, height: int = 1024, steps: int = 20, seed: int | None = None) -> dict:
@@ -74,6 +79,162 @@ def _flux_workflow(prompt: str, width: int = 1024, height: int = 1024, steps: in
             },
         },
     }
+
+
+def _wan_t2v_workflow(
+    prompt: str,
+    width: int = 480,
+    height: int = 320,
+    num_frames: int = 17,
+    steps: int = 15,
+    seed: int | None = None,
+) -> dict:
+    """Build a Wan2.x text-to-video workflow for ComfyUI API.
+
+    Uses WanVideoWrapper nodes (Kijai). Verified on 5060 Ti 16 GB.
+    Node specs queried from ComfyUI /object_info endpoint.
+    """
+    if seed is None:
+        seed = int(time.time()) % (2**31)
+
+    return {
+        # Load Wan2.x unet model
+        "1": {
+            "class_type": "WanVideoModelLoader",
+            "inputs": {
+                "model": WAN_UNET_HIGH,
+                "base_precision": "bf16",
+                "quantization": "disabled",
+                "load_device": "offload_device",
+            },
+        },
+        # Load VAE
+        "2": {
+            "class_type": "WanVideoVAELoader",
+            "inputs": {
+                "model_name": WAN_VAE,
+                "precision": "bf16",
+            },
+        },
+        # Encode text prompt (non-scaled FP8 encoder)
+        "3": {
+            "class_type": "WanVideoTextEncodeCached",
+            "inputs": {
+                "model_name": WAN_CLIP,
+                "precision": "bf16",
+                "positive_prompt": prompt,
+                "negative_prompt": "",
+                "quantization": "fp8_e4m3fn",
+                "use_disk_cache": True,
+                "device": "gpu",
+            },
+        },
+        # Empty image embeds (required for T2V mode)
+        "4": {
+            "class_type": "WanVideoEmptyEmbeds",
+            "inputs": {
+                "width": width,
+                "height": height,
+                "num_frames": num_frames,
+            },
+        },
+        # Sampler
+        "5": {
+            "class_type": "WanVideoSampler",
+            "inputs": {
+                "shift": 5.0,
+                "steps": steps,
+                "cfg": 1.0,
+                "seed": seed,
+                "scheduler": "unipc",
+                "force_offload": True,
+                "riflex_freq_index": 0,
+                "model": ["1", 0],
+                "text_embeds": ["3", 0],
+                "image_embeds": ["4", 0],
+            },
+        },
+        # Decode latents to video frames
+        "6": {
+            "class_type": "WanVideoDecode",
+            "inputs": {
+                "enable_vae_tiling": True,
+                "tile_x": max(width, 272),
+                "tile_y": max(height, 272),
+                "tile_stride_x": max(width // 2, 144),
+                "tile_stride_y": max(height // 2, 128),
+                "samples": ["5", 0],
+                "vae": ["2", 0],
+            },
+        },
+        # Save as animated WEBP
+        "7": {
+            "class_type": "SaveAnimatedWEBP",
+            "inputs": {
+                "filename_prefix": "athanor_video",
+                "fps": 16.0,
+                "lossless": False,
+                "quality": 85,
+                "method": "default",
+                "images": ["6", 0],
+            },
+        },
+    }
+
+
+@tool
+def generate_video(prompt: str, width: int = 480, height: int = 320, num_frames: int = 17, steps: int = 15) -> str:
+    """Generate a short video clip using Wan2.x on ComfyUI. Returns the prompt ID for tracking.
+
+    Args:
+        prompt: Text description of the video to generate. Be specific about motion and action.
+        width: Video width in pixels (default 480). Must be divisible by 16.
+        height: Video height in pixels (default 320). Must be divisible by 16.
+        num_frames: Number of frames (default 17). More frames = longer video but more VRAM.
+        steps: Number of sampling steps (default 15). More steps = better quality but slower.
+
+    Constraints:
+        - Runs on 5060 Ti (16 GB VRAM). 480x320 @ 17 frames uses ~14 GB peak.
+        - Higher resolutions need more VRAM. Don't exceed 640x480 @ 17 frames on this GPU.
+        - Generation takes ~90s at default settings.
+
+    Example prompts:
+        "A cat walking across a sunlit garden, camera tracking shot, cinematic"
+        "Ocean waves crashing on rocky shore at golden hour, slow motion, 4K quality"
+    """
+    try:
+        # Round to nearest 16 (Wan2.x requirement)
+        width = (width // 16) * 16
+        height = (height // 16) * 16
+
+        workflow = _wan_t2v_workflow(prompt, width, height, num_frames, steps)
+        client_id = str(uuid.uuid4())
+
+        resp = httpx.post(
+            f"{COMFYUI_URL}/prompt",
+            json={"prompt": workflow, "client_id": client_id},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        prompt_id = data.get("prompt_id", "unknown")
+        number = data.get("number", "?")
+        est_time = int(steps * num_frames * 0.35)  # rough estimate
+
+        return (
+            f"Video generation queued successfully.\n"
+            f"Prompt ID: {prompt_id}\n"
+            f"Queue position: {number}\n"
+            f"Settings: {width}x{height}, {num_frames} frames, {steps} steps, Wan2.x T2V FP8\n"
+            f"Estimated time: ~{est_time}s\n"
+            f"Use check_queue to monitor progress."
+        )
+    except httpx.HTTPStatusError as e:
+        error_body = e.response.text[:500] if e.response else "No response"
+        return f"ComfyUI rejected the video generation request: {e.response.status_code}\n{error_body}"
+    except Exception as e:
+        return f"Failed to queue video generation: {e}"
 
 
 @tool
@@ -238,4 +399,4 @@ def get_comfyui_status() -> str:
         return f"ComfyUI unreachable: {e}"
 
 
-CREATIVE_TOOLS = [generate_image, check_queue, get_generation_history, get_comfyui_status]
+CREATIVE_TOOLS = [generate_image, generate_video, check_queue, get_generation_history, get_comfyui_status]
