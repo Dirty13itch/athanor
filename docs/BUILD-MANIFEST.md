@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 14: EoBQ game loop wired, remote access ADR-016)
+Last updated: 2026-02-25 (Session 15: System design layer — SYSTEM-SPEC, agent contracts, hybrid dev)
 
 ---
 
@@ -233,6 +233,86 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Research:** `docs/research/2026-02-24-remote-access.md` — 5 options evaluated, Tailscale recommended
 - **Decision:** ADR-016 — Tailscale with UDM Pro as subnet router. Free tier, CGNAT-proof, zero exposed ports, ~30 min deploy.
 - **Implementation:** Requires Shaun to SSH into UDM Pro and install community package. See ADR-016 for step-by-step.
+
+---
+
+## Tier 7: System Design & Meta-Orchestration (P2)
+
+*The design layer between VISION.md and BUILD-MANIFEST.md — how Athanor works as a system.*
+
+### 7.1 — System specification document
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Delivered:** `docs/SYSTEM-SPEC.md` — complete operational specification covering architecture, agents, user interaction, development model, intelligence progression, resource management, and organizational structure.
+
+### 7.2 — Agent behavior contracts
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Delivered:** `docs/design/agent-contracts.md` — formal contracts for all 6 live agents + 2 planned (Coding, Stash). Each defines purpose, tools, escalation rules, learning signals, and boundaries.
+
+### 7.3 — Hybrid development architecture
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Delivered:** `docs/design/hybrid-development.md` — cloud/local coding architecture with MCP bridge, Agent Teams integration, dispatch heuristics, and workflow examples.
+
+### 7.4 — Intelligence layers expansion
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Updated:** `docs/design/intelligence-layers.md` — added preference learning mechanisms, escalation protocol with confidence thresholds, activity logging spec, pattern detection jobs, and per-agent feedback signals.
+
+### 7.5 — Deploy Redis on VAULT
+- **Status:** 🔲
+- **Scope:** Single Redis container on VAULT, port 6379. Foundation for GWT workspace (ADR-017) and GPU orchestrator state (ADR-018).
+- **Ansible:** `ansible/roles/vault-redis/`
+- **Depends on:** Nothing
+- **Unblocks:** 7.10, 7.11
+
+### 7.6 — Add Coding Agent to agent server
+- **Status:** 🔲
+- **Scope:** New LangGraph agent with file read, codebase search, linting, and code generation tools. Registered at Node 1:9000 as `coding-agent`.
+- **Depends on:** Nothing
+- **Unblocks:** 7.7
+
+### 7.7 — Create MCP bridge for Claude Code → agent server
+- **Status:** 🔲
+- **Scope:** `scripts/mcp-athanor-agents.py` (~200 lines). Exposes coding, knowledge, and system tools as MCP tools. Add to `.mcp.json`. Create `.claude/agents/coder.md` and `.claude/skills/local-coding.md`.
+- **Depends on:** 7.6 (Coding Agent)
+- **Unblocks:** Hybrid development workflow
+
+### 7.8 — Add preferences and activity Qdrant collections
+- **Status:** 🔲
+- **Scope:** Create `preferences` (1024-dim, Cosine) and `activity` (1024-dim, Cosine) collections. Add CRUD endpoints to agent server. Add activity logging middleware.
+- **Depends on:** Nothing (Qdrant already deployed)
+- **Unblocks:** 7.9, 7.12
+
+### 7.9 — Implement escalation protocol in agent server
+- **Status:** 🔲
+- **Scope:** Confidence scoring on agent outputs. Per-agent/per-action threshold config. Three tiers: act, notify, ask. Notification routing to dashboard.
+- **Depends on:** 7.8 (activity logging)
+- **Unblocks:** Proactive agent behavior
+
+### 7.10 — GWT workspace (Phase 1: shared workspace)
+- **Status:** 🔲
+- **Scope:** Redis-backed workspace data model. WorkspaceItem schema. Salience scoring. Basic API (post, query, clear). 1Hz competition cycle (Phase 2).
+- **Depends on:** 7.5 (Redis)
+- **Decision:** ADR-017
+
+### 7.11 — GPU Orchestrator (custom FastAPI service)
+- **Status:** 🔲
+- **Scope:** FastAPI on Node 1, pynvml for GPU state, vLLM sleep/wake management, priority-based scheduling. ~1000 lines.
+- **Depends on:** 7.5 (Redis for state)
+- **Decision:** ADR-018
+
+### 7.12 — Dashboard: Activity Feed page
+- **Status:** 🔲
+- **Scope:** New dashboard page at `/activity`. Queries activity Qdrant collection. Filterable by agent, time, action type. Real-time updates.
+- **Depends on:** 7.8 (activity collection)
+
+### 7.13 — Dashboard: Notification system
+- **Status:** 🔲
+- **Scope:** Bell icon in dashboard nav with unread count. Pending agent questions queue. Click to expand and respond.
+- **Depends on:** 7.9 (escalation protocol)
+
+### 7.14 — Dashboard: Preferences page
+- **Status:** 🔲
+- **Scope:** New dashboard page at `/preferences`. View/edit stored preferences. Per-agent sections. Escalation threshold tuning.
+- **Depends on:** 7.8 (preferences collection)
 
 ---
 

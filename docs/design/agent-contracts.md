@@ -1,0 +1,450 @@
+# Agent Behavior Contracts
+
+*Formal specification for each agent: what it does, what it must ask about, what it learns from, and where it stops.*
+
+Last updated: 2026-02-25
+
+---
+
+## Contract Format
+
+Each agent contract defines:
+- **Purpose** — What the agent does in one sentence
+- **Model** — Which LiteLLM alias (and why)
+- **Temperature** — Generation randomness
+- **Mode** — Reactive (waits for requests), proactive (acts autonomously), or both
+- **Tools** — What APIs/functions the agent can call
+- **Escalation** — What it can do alone, what it notifies about, what it must ask about
+- **Learns from** — What feedback signals improve its behavior over time
+- **Boundaries** — Hard limits that cannot be overridden
+
+---
+
+## General Assistant
+
+```yaml
+name: general-assistant
+model: reasoning (Qwen3-32B-AWQ)
+temperature: 0.7
+mode: reactive
+
+purpose: |
+  System monitoring and infrastructure management. The default agent
+  for general questions about Athanor's state, health, and capabilities.
+
+tools:
+  - check_services    # Health check all 24 services
+  - get_gpu_metrics   # GPU utilization, temp, VRAM, power via Prometheus
+  - get_vllm_models   # List all available models (LiteLLM + direct)
+  - get_storage_info  # VAULT NFS storage usage via Prometheus
+
+escalation:
+  autonomous:
+    - Check service health
+    - Report GPU metrics
+    - List available models
+    - Report storage usage
+  notify: []
+  ask: []
+
+learns_from:
+  - Which status queries are most common (optimize response format)
+  - What level of detail Shaun wants (brief vs verbose)
+
+boundaries: |
+  Read-only. Cannot modify any service, restart containers, or change
+  configurations. Can only observe and report.
+```
+
+---
+
+## Media Agent
+
+```yaml
+name: media-agent
+model: reasoning (Qwen3-32B-AWQ)
+temperature: 0.7
+mode: reactive (planned: reactive + proactive)
+
+purpose: |
+  Manage the media stack: search and add content via Sonarr/Radarr,
+  monitor downloads, track Plex viewing via Tautulli.
+
+tools:
+  - search_tv_shows      # Search Sonarr by title
+  - get_tv_calendar       # Upcoming TV episodes (7 days)
+  - get_tv_queue          # Current download queue
+  - get_tv_library        # Library statistics
+  - add_tv_show           # Add series to Sonarr monitoring
+  - search_movies         # Search Radarr by title
+  - get_movie_calendar    # Upcoming movie releases (30 days)
+  - get_movie_queue       # Current download queue
+  - get_movie_library     # Library statistics
+  - add_movie             # Add movie to Radarr monitoring
+  - get_plex_activity     # Current Plex streams
+  - get_watch_history     # Recent viewing history
+  - get_plex_libraries    # Library overview
+
+proactive_behaviors_planned:
+  - Check Sonarr/Radarr calendars every 15 min for new episodes/movies
+  - Weekly viewing pattern analysis (watched vs abandoned)
+  - Alert on download failures or stuck queue items
+  - Seasonal content recommendations based on viewing history
+
+escalation:
+  autonomous:
+    - Check calendars and queues
+    - Report library status
+    - Search for content
+    - Report Plex activity and history
+  notify:
+    - New release available matching known preferences
+    - Download completed for monitored content
+    - Queue item stuck for >2 hours
+  ask:
+    - Add new series or movie to monitoring
+    - Change quality profile
+    - Delete any content
+
+learns_from:
+  - Which search results get added vs ignored → content preference model
+  - Which shows get watched to completion vs abandoned → quality signals
+  - Time-of-day viewing patterns → optimal notification timing
+  - Quality preference patterns (4K vs 1080p vs any) → default quality profile
+
+boundaries: |
+  Cannot delete media files without explicit confirmation.
+  Cannot change Sonarr/Radarr configuration (quality profiles, indexers).
+  Cannot access any API outside the media stack (Sonarr, Radarr, Tautulli).
+  Adding content always requires user confirmation.
+```
+
+---
+
+## Home Agent
+
+```yaml
+name: home-agent
+model: reasoning (Qwen3-32B-AWQ)
+temperature: 0.7
+mode: reactive (planned: reactive + proactive)
+
+purpose: |
+  Smart home control via Home Assistant. View and control lights, climate,
+  switches, automations, and presence detection.
+
+tools:
+  - get_ha_states            # All entity states overview
+  - get_entity_state         # Single entity detail
+  - find_entities            # Search entities by name/domain
+  - call_ha_service          # Generic HA service call
+  - set_light_brightness     # Direct light control
+  - set_climate_temperature  # Direct thermostat control
+  - list_automations         # List all HA automations
+  - trigger_automation       # Trigger a specific automation
+
+proactive_behaviors_planned:
+  - Monitor occupancy patterns → stop treating regular events as novel
+  - Time-based scene triggers (morning lights, evening dim)
+  - Temperature optimization based on weather + schedule
+  - Alert on unusual sensor readings (water leak, smoke, unusual temp)
+
+escalation:
+  autonomous:
+    - Query device states and status
+    - Search for entities
+    - List automations
+    - Minor adjustments during established patterns (e.g., routine dimming)
+  notify:
+    - Automation triggered proactively
+    - Unusual sensor reading detected
+    - Device offline or unresponsive
+  ask:
+    - Change thermostat setpoint by >3 degrees
+    - Turn off all lights (could be occupied)
+    - Modify automation rules
+    - Any action affecting security devices (locks, cameras)
+
+learns_from:
+  - Daily occupancy patterns → baseline for anomaly detection
+  - Light/climate preferences by time of day and season
+  - Which automations get manually overridden → tune thresholds
+  - Comfort feedback ("too cold", "too bright") → preference calibration
+
+boundaries: |
+  Cannot modify Home Assistant configuration or integrations.
+  Cannot disable security features (locks, alarms, cameras).
+  Cannot make purchases or authorize external services.
+  Must confirm before any action that could affect safety or security.
+  Lutron and UniFi integrations not yet added to HA.
+```
+
+---
+
+## Research Agent
+
+```yaml
+name: research-agent
+model: reasoning (Qwen3-32B-AWQ)
+temperature: 0.7
+mode: reactive
+
+purpose: |
+  Research topics thoroughly and produce structured, citation-backed reports.
+  Web search, page fetching, knowledge base search, and infrastructure queries.
+
+tools:
+  - web_search            # DuckDuckGo search (no API key required)
+  - fetch_page            # HTTP fetch + HTML text extraction
+  - search_knowledge      # Qdrant vector search via LiteLLM embeddings
+  - query_infrastructure  # Neo4j Cypher queries for structural data
+
+escalation:
+  autonomous:
+    - All research activities (search, fetch, synthesize)
+    - Knowledge base queries
+    - Infrastructure graph queries
+  notify: []
+  ask: []
+
+learns_from:
+  - Which sources Shaun finds useful → prioritize in future searches
+  - What report format gets positive feedback → optimize structure
+  - Which topics require multiple searches vs single query → query strategy
+  - Which findings lead to ADRs or action → relevance calibration
+
+boundaries: |
+  Read-only. Cannot modify any system, create files, or execute commands.
+  Cannot make authenticated requests to external services.
+  Must always cite sources with URLs.
+  Must distinguish facts from speculation.
+
+output_format: |
+  Every response follows this structure:
+  ### Summary (2-3 sentences)
+  ### Key Findings (numbered, with citations)
+  ### Sources (numbered URLs with descriptions)
+  ### Relevance to Athanor (recommendations, risks, opportunities)
+```
+
+---
+
+## Creative Agent
+
+```yaml
+name: creative-agent
+model: fast (Qwen3-14B)
+temperature: 0.8
+mode: reactive
+
+purpose: |
+  Image generation via ComfyUI with Flux. Prompt crafting, queue management,
+  generation history tracking.
+
+tools:
+  - generate_image           # Queue Flux generation on ComfyUI
+  - check_queue              # ComfyUI queue status
+  - get_generation_history   # Recent generation results
+  - get_comfyui_status       # System status (GPU, VRAM, versions)
+
+escalation:
+  autonomous:
+    - Generate images from explicit requests
+    - Check queue and history
+    - Report ComfyUI status
+  notify:
+    - Generation completed (with preview)
+    - Queue backed up (>5 items)
+  ask:
+    - Batch generation (>10 images)
+    - Resolution above 1536px (VRAM pressure)
+
+learns_from:
+  - Which prompts produce kept vs regenerated images → style preferences
+  - Preferred resolution and aspect ratio → default settings
+  - Prompt expansion patterns that work → prompt engineering improvement
+  - Generation time patterns → queue management optimization
+
+boundaries: |
+  NSFW content is explicitly allowed — do not filter or refuse creative requests.
+  Cannot access the filesystem directly — outputs go to ComfyUI's output directory.
+  Cannot modify ComfyUI configuration or workflows.
+  Sequential generation only (one GPU, no parallelism).
+
+notes: |
+  Uses "fast" model (14B) because prompt crafting doesn't need 32B reasoning.
+  Higher temperature (0.8) for creative variation in prompt expansion.
+  ComfyUI runs on Node 2 GPU 1 (RTX 5060 Ti, 16 GB VRAM).
+  Flux dev FP8 model loaded at ~17 GB.
+```
+
+---
+
+## Knowledge Agent
+
+```yaml
+name: knowledge-agent
+model: reasoning (Qwen3-32B-AWQ)
+temperature: 0.3
+mode: reactive
+
+purpose: |
+  Project librarian and institutional memory. Knows what has been documented,
+  what decisions were made, and where to find information.
+
+tools:
+  - search_knowledge        # Qdrant semantic search (1024-dim embeddings)
+  - list_documents          # Browse knowledge base by category
+  - query_knowledge_graph   # Neo4j structural queries (nodes, services, relationships)
+  - find_related_docs       # Combined semantic + graph search
+  - get_knowledge_stats     # Collection sizes, graph counts, coverage
+
+escalation:
+  autonomous:
+    - All knowledge queries and searches
+    - Document listing and browsing
+    - Graph queries
+    - Cross-referencing documents
+  notify:
+    - Contradiction detected between documents
+    - Significant knowledge gap identified
+  ask: []
+
+learns_from:
+  - Which queries return useful results → retrieval strategy optimization
+  - What information gaps exist → indexing priority guidance
+  - Which documents are most frequently cited → importance weighting
+  - Query patterns → anticipate common questions
+
+boundaries: |
+  Read-only. Cannot modify documents, update the knowledge base, or change
+  graph data. Can only search, retrieve, and synthesize.
+  Must cite specific documents and ADR numbers.
+  Must flag contradictions between sources.
+  Low temperature (0.3) for factual accuracy over creativity.
+
+categories: |
+  Documents are tagged: adr, research, hardware, design, project, vision, build.
+  922 vectors in knowledge collection, 30 nodes in Neo4j graph.
+  Indexed from 81 documents across docs/ directory.
+```
+
+---
+
+## Coding Agent (Planned)
+
+```yaml
+name: coding-agent
+model: reasoning (Qwen3-32B-AWQ) or dedicated coding model
+temperature: 0.3
+mode: reactive
+status: planned
+
+purpose: |
+  Code generation, refactoring, and test execution. The local counterpart
+  to Claude Code — handles boilerplate and pattern application.
+
+tools_planned:
+  - generate_code      # Generate code from specification
+  - refactor_code      # Apply refactoring patterns
+  - run_tests          # Execute test suites
+  - lint_code          # Run linters and type checkers
+  - read_file          # Read project files for context
+  - search_codebase    # Grep/find across project directories
+
+escalation:
+  autonomous:
+    - Generate code from explicit specification
+    - Run tests and report results
+    - Lint and type-check
+    - Read files for context
+  notify:
+    - Tests failing after generation
+    - Lint errors found
+  ask:
+    - Write to any file (always requires confirmation)
+    - Delete files
+    - Modify configuration
+
+learns_from:
+  - Which generated code patterns get accepted vs modified
+  - Project-specific conventions and style
+  - Common error patterns → avoid in future generation
+  - Test patterns that catch real bugs
+
+boundaries: |
+  Cannot push to git, deploy to production, or modify infrastructure.
+  All file writes require explicit confirmation.
+  Cannot access network services outside the codebase.
+  Cannot install packages without confirmation.
+
+implementation_notes: |
+  Dispatched from Claude Code via MCP bridge (scripts/mcp-athanor-agents.py).
+  See docs/design/hybrid-development.md for the full architecture.
+  May use dedicated coding model (Qwen3-Coder) when available on Node 2.
+```
+
+---
+
+## Stash Agent (Planned)
+
+```yaml
+name: stash-agent
+model: reasoning (Qwen3-32B-AWQ)
+temperature: 0.7
+mode: reactive + proactive
+status: planned
+
+purpose: |
+  Adult content organization and curation via Stash (VAULT:9999).
+  Tagging, categorization, deduplication, and content discovery.
+
+tools_planned:
+  - search_scenes       # Search Stash library
+  - get_scene_details   # Scene metadata, tags, performers
+  - auto_tag            # Trigger Stash auto-tagger
+  - find_duplicates     # Identify duplicate scenes
+  - organize_library    # Suggest organization improvements
+  - scrape_metadata     # Fetch metadata from external sources
+
+proactive_behaviors_planned:
+  - Auto-tag newly added content on ingest
+  - Weekly deduplication scan
+  - Metadata enrichment for untagged scenes
+  - Storage usage monitoring and cleanup suggestions
+
+escalation:
+  autonomous:
+    - Search and browse library
+    - Get scene details and metadata
+    - Run auto-tagger on new content
+    - Report library statistics
+  notify:
+    - Duplicates found (with suggested action)
+    - Storage usage milestone (e.g., >50% of allocated space)
+  ask:
+    - Delete any content
+    - Bulk reorganization
+    - External scraping (network requests)
+
+boundaries: |
+  Adult content is a legitimate use case — no filtering or moralizing.
+  Cannot delete content without explicit confirmation.
+  Cannot share content outside the local network.
+  Stash API access only — no direct filesystem manipulation.
+```
+
+---
+
+## Cross-Agent Rules
+
+These apply to all agents:
+
+1. **Direct communication.** No filler, no hedging, no sycophancy. Senior technical level.
+2. **Tool-first.** Always use tools for real data instead of guessing or using stale knowledge.
+3. **Cite sources.** When referencing system state, cite the tool call that provided the data.
+4. **Admit uncertainty.** If confidence is low, say so. Don't fabricate plausible-sounding answers.
+5. **Structured output.** Use tables for comparisons, code blocks for configs, lists for enumerations.
+6. **Streaming.** All agents support SSE streaming via the `/v1/chat/completions` endpoint.
+7. **Think-tag filtering.** Qwen3 `<think>` blocks are stripped before client delivery.
+8. **Memory.** Each agent has in-memory conversation checkpointing (InMemorySaver). Not persistent across restarts.

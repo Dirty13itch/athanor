@@ -62,6 +62,7 @@ CLAUDE.md              ← You are here. Role, principles, structure.
 MEMORY.md              ← Session continuity. What happened, what's next.
 docs/
   VISION.md            ← Source of truth. What Athanor is and why.
+  SYSTEM-SPEC.md       ← Complete operational specification. How everything works.
   BUILD-MANIFEST.md    ← Executable build plan with priorities.
   SERVICES.md          ← Live service inventory (ports, status, details).
   decisions/           ← Architecture Decision Records (ADR-NNN-slug.md)
@@ -108,13 +109,15 @@ Full details in `docs/hardware/inventory.md`.
 
 ## Current State
 
-**Build phase.** All P0/P1 infrastructure and agent items complete. See `docs/BUILD-MANIFEST.md` for remaining P2 work and `docs/SERVICES.md` for full service inventory.
+**System design phase.** All P0/P1/P2 build items complete (Tiers 1-5). Now building the design layer — the operational specification that describes how Athanor works as a system. See `docs/SYSTEM-SPEC.md` for the complete operational specification, `docs/BUILD-MANIFEST.md` Tier 7 for the implementation plan, and `docs/SERVICES.md` for the full service inventory.
 
-**6 agents live** on Node 1:9000: General Assistant, Media Agent, Research Agent, Creative Agent, Knowledge Agent, Home Agent. 18/18 service health checks passing.
+**6 agents live** on Node 1:9000: General Assistant, Media Agent, Research Agent, Creative Agent, Knowledge Agent, Home Agent. 24 services across 3 nodes.
 
 **All 7 GPUs active.** Node 1: vLLM TP=4 (GPUs 0-3) + embedding (GPU 4). Node 2: vLLM (GPU 0) + ComfyUI Flux (GPU 1).
 
 **Knowledge base:** 922 document chunks in Qdrant, 30 graph relationships in Neo4j. Run `python3 scripts/index-knowledge.py` to re-index after doc changes.
+
+**Next up:** Tier 7 implementation — Redis, Coding Agent, MCP bridge, preference/activity collections, escalation protocol, dashboard pages.
 
 ---
 
