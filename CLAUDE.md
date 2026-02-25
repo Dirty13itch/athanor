@@ -115,11 +115,13 @@ Full details in `docs/hardware/inventory.md`.
 
 **All 7 GPUs active.** Node 1: vLLM TP=4 (GPUs 0-3) + embedding (GPU 4). Node 2: vLLM (GPU 0) + ComfyUI Flux+Wan2.x (GPU 1). GPU Orchestrator on Node 1:9200 monitors all zones.
 
-**Knowledge + Memory:** 1203 doc chunks in Qdrant `knowledge` (98 docs), activity log in `activity`, preferences in `preferences`. Neo4j graph (8 agents, 24 services, 4 nodes, 3 projects, 43 relationships). Redis on VAULT for GWT workspace + GPU orchestrator state.
+**Knowledge + Memory:** 1203 doc chunks in Qdrant `knowledge` (98 docs), activity log in `activity`, preferences in `preferences`, conversations in `conversations`. Neo4j graph (8 agents, 24 services, 4 nodes, 3 projects, 43 relationships). Redis on VAULT for GWT workspace + GPU orchestrator state + agent registry.
 
 **Dashboard:** 12 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Activity, Notifications, Preferences. 26/26 service health checks UP (HA auth fixed Session 18).
 
 **MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 12 tools to Claude Code — coding, knowledge search, system status, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
+
+**GWT Phase 2 deployed:** Agent registration in Redis, event ingestion (`POST /v1/events`), Redis pub/sub for workspace broadcasts, conversation history logging to Qdrant. Phase 3 remaining: agent subscription + reactive behavior.
 
 **Tier 6 progress:** 6.1 Video gen complete (Creative Agent wired with T2V). 6.3 Voice complete (4 containers deployed, HA "Athanor Voice" pipeline configured with STT/TTS/wake word, 43 entities). 6.6 Stash AI Phase 1 (agent deployed, library empty). vLLM sleep mode blocked on NGC image upgrade.
 
