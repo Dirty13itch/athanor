@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  --color-gold: oklch(0.80 0.12 85);
+  --color-shadow: oklch(0.15 0.01 260);
+  --color-blood: oklch(0.45 0.18 25);
+  --color-ivory: oklch(0.93 0.01 90);
+}
+
+body {
+  background: var(--color-shadow);
+  color: var(--color-ivory);
+  font-family: "Georgia", "Times New Roman", serif;
+  overflow: hidden;
+  cursor: default;
+  user-select: none;
+}

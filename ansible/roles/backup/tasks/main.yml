@@ -1,0 +1,44 @@
+---
+# Deploy backup scripts and cron jobs.
+# Node 1: Qdrant backup (NFS mount to VAULT backups share required)
+# VAULT: Neo4j export + appdata tarball
+
+- name: Create backup script directory
+  file:
+    path: /opt/athanor/scripts
+    state: directory
+    mode: "0755"
+
+- name: Deploy Qdrant backup script (Node 1 only)
+  copy:
+    src: "{{ playbook_dir }}/../scripts/backup-qdrant.sh"
+    dest: /opt/athanor/scripts/backup-qdrant.sh
+    mode: "0755"
+  when: inventory_hostname == 'core'
+
+- name: Ensure NFS backups mount point exists (Node 1)
+  file:
+    path: /mnt/vault/backups
+    state: directory
+    mode: "0755"
+  when: inventory_hostname == 'core'
+
+- name: Mount VAULT backups share via NFS (Node 1)
+  mount:
+    path: /mnt/vault/backups
+    src: "192.168.1.203:/mnt/user/backups"
+    fstype: nfs4
+    opts: rw,soft,timeo=600
+    state: mounted
+  when: inventory_hostname == 'core'
+
+- name: Schedule Qdrant backup cron (Node 1, daily 03:00)
+  cron:
+    name: "athanor-backup-qdrant"
+    minute: "0"
+    hour: "3"
+    job: "/opt/athanor/scripts/backup-qdrant.sh >> /var/log/athanor-backup.log 2>&1"
+  when: inventory_hostname == 'core'
+
+# VAULT backup tasks would be deployed via vault.yml playbook
+# since VAULT uses a different SSH method (dropbear/paramiko)

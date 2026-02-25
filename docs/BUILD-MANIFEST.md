@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-24 (Session 11: all P0/P1 done, 5.5 CLAUDE.md optimized)
+Last updated: 2026-02-24 (Session 12: 5.4 GPU power, 4.1 EoBQ scaffold, 5.1 10GbE, 5.3 backup strategy)
 
 ---
 
@@ -148,12 +148,12 @@ The agent framework exists but is skeletal. These items make agents actually use
 ## Tier 4: Project Foundations (P2)
 
 ### 4.1 — Empire of Broken Queens scaffold
-- **Status:** 🔲
-- **Why:** EoBQ is the flagship creative project. Needs proper project structure, tech stack decisions, and initial prototype.
-- **Scope:** Research game engine options for AI-integrated visual novel (Ren'Py, Godot, custom web). Create ADR. Set up project structure in `projects/eoq/`. Define character system, dialogue pipeline, image generation workflow.
-- **Done when:** ADR written, project scaffold created, tech stack decided, README with architecture overview.
-- **Depends on:** Nothing (research phase)
-- **Files:** `projects/eoq/`, `docs/decisions/ADR-013-eoq-engine.md`, `docs/projects/eoq/`
+- **Status:** ✅ (Session 12, 2026-02-24)
+- **Research:** `docs/research/2026-02-24-eoq-game-engine.md` — evaluated Ren'Py, Godot, Next.js, Ink, TyranoScript, Pixi'VN. Ren'Py can't stream LLM responses (screen freezes 5–30s). Godot is overkill. Ink/Tyrano designed for pre-authored content.
+- **Decision:** ADR-014 — Custom Next.js web app. Native HTTP streaming, CORS eliminated via API routes, React/TypeScript most AI-generatable, shares existing dashboard infrastructure.
+- **Scaffold:** `projects/eoq/` — Next.js 16, React 19, Tailwind + Framer Motion, Zustand state management. VN components (SceneBackground, CharacterPortrait, DialogueBox, ChoicePanel, useTypewriter hook). API routes for dialogue (LiteLLM SSE streaming) and image generation (ComfyUI proxy). Type system for characters (personality vectors, relationships, emotions, memories), world state, and game sessions.
+- **Next:** Mock data for a playable test scene, npm install + build, game loop wiring.
+- **Files:** `projects/eoq/`, `docs/decisions/ADR-014-eoq-engine.md`, `docs/research/2026-02-24-eoq-game-engine.md`
 
 ### 4.2 — Kindred concept document
 - **Status:** ✅ (Session 10, 2026-02-24)
@@ -171,10 +171,13 @@ The agent framework exists but is skeletal. These items make agents actually use
 ## Tier 5: Hardening & Polish (P2)
 
 ### 5.1 — 10GbE throughput verification
-- **Status:** 🔲
-- **Scope:** Run iperf3 between all node pairs. Verify full 10Gbps on data plane. Document results.
-- **Done when:** iperf3 results documented, all pairs hitting >9 Gbps.
-- **Depends on:** 1.1
+- **Status:** ✅ (Session 12, 2026-02-24)
+- **Results:** All pairs >9.4 Gbps, zero retransmits on steady-state intervals.
+  - Node 2 → Node 1: **9.42 Gbps** sender / **9.41 Gbps** receiver (10s, 4 streams, 132 retransmits initial burst only)
+  - Node 1 → Node 2: **9.43 Gbps** sender / **9.41 Gbps** receiver (5s, 4 streams, 0 retransmits)
+  - Node 1 → VAULT: **9.43 Gbps** sender / **9.41 Gbps** receiver (5s, 4 streams, 0 retransmits)
+- **Note:** Node 2 UFW blocks non-service ports — had to temporarily allow 5201/tcp for reverse test. VAULT's 10G link (XG port 2) confirmed working at full speed.
+- **Tool:** iperf3 3.16 on all nodes (Ubuntu 24.04)
 
 ### 5.2 — Ansible full convergence test
 - **Status:** 🔲
@@ -183,16 +186,19 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Depends on:** 1.1
 
 ### 5.3 — Backup strategy
-- **Status:** 🔲
-- **Scope:** Design backup approach for: Ansible configs (git), container appdata (VAULT snapshots), databases (Qdrant/Neo4j dumps), dashboard/agent code (git). Document in ADR.
-- **Done when:** ADR written, backup scripts created, tested.
-- **Depends on:** 1.4, 1.5 (databases to back up)
+- **Status:** ✅ (Session 12, 2026-02-24)
+- **ADR:** ADR-015 — Daily automated backups to VAULT HDD array. Qdrant snapshots (API), Neo4j Cypher export, appdata tarballs. 7-day retention for DBs, 3 snapshots for appdata.
+- **Scripts:** `scripts/backup-qdrant.sh` (Node 1, Qdrant snapshot API → NFS), `scripts/backup-neo4j.sh` (VAULT, Cypher export), `scripts/backup-appdata.sh` (VAULT, tar 11 services).
+- **Ansible:** `ansible/roles/backup/` — deploys scripts + NFS mount + cron on Node 1.
+- **Tested:** Qdrant snapshot API verified (12 MB for knowledge collection). Neo4j API verified (27 nodes). Backup dirs created on VAULT at `/mnt/user/backups/athanor/`.
+- **Remaining:** Deploy cron jobs via Ansible, run first full backup, set up VAULT-side cron (Neo4j + appdata).
+- **Files:** `docs/decisions/ADR-015-backup-strategy.md`, `scripts/backup-*.sh`, `ansible/roles/backup/`
 
 ### 5.4 — GPU power limit persistence
-- **Status:** 🔲
-- **Scope:** Create systemd service on Node 1 for persistent GPU power limits (4090 @ 320W, 5070 Ti @ 240W). Add to Ansible nvidia role.
-- **Done when:** Power limits survive reboot.
-- **Depends on:** 1.1
+- **Status:** ✅ (Session 12, 2026-02-24)
+- **Result:** Systemd oneshot service (`nvidia-power-limits.service`) enabled on Node 1. Per-GPU limits via `nvidia-smi -i N -pl W`. RTX 5070 Ti @ 250W (minimum allowed, range 250–300/350W), RTX 4090 @ 320W (range 150–600W). GPU ordering verified via PCI bus IDs. Service file deployed, daemon-reload + restart confirmed all 5 GPUs.
+- **Note:** Initial attempt at 240W failed — RTX 5070 Ti minimum is 250W. Two 5070 Ti cards max at 300W, two at 350W (different PCB variants).
+- **Files:** `ansible/host_vars/core.yml`, `ansible/roles/nvidia/templates/nvidia-power-limits.service.j2` (unchanged), `/etc/systemd/system/nvidia-power-limits.service` (deployed)
 
 ### 5.5 — CLAUDE.md optimization
 - **Status:** ✅ (Session 11, 2026-02-24)

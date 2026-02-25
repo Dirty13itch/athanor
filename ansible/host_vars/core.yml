@@ -1,13 +1,14 @@
 ---
 # Node 1 (core / Foundry) — host-specific vars
 
-# Per-GPU power limits (mixed GPU config: RTX 4090 + 4x RTX 5070 Ti)
+# Per-GPU power limits (mixed GPU config: 4x RTX 5070 Ti + RTX 4090)
+# GPU order verified via nvidia-smi 2026-02-24
 nvidia_gpu_power_limits:
-  - { index: 0, watts: 320 }   # RTX 4090 (slot 1)
-  - { index: 1, watts: 240 }   # RTX 5070 Ti (slot 2)
-  - { index: 2, watts: 240 }   # RTX 5070 Ti (slot 3)
-  - { index: 3, watts: 240 }   # RTX 5070 Ti (slot 4)
-  - { index: 4, watts: 240 }   # RTX 5070 Ti (slot 5)
+  - { index: 0, watts: 250 }   # RTX 5070 Ti (PCI 01:00) — min 250W, max 300W
+  - { index: 1, watts: 250 }   # RTX 5070 Ti (PCI 02:00)
+  - { index: 2, watts: 320 }   # RTX 4090 (PCI 81:00) — min 100W, max 450W
+  - { index: 3, watts: 250 }   # RTX 5070 Ti (PCI 82:00)
+  - { index: 4, watts: 250 }   # RTX 5070 Ti (PCI C1:00, embedding)
 
 vllm_model: /models/Qwen3-32B-AWQ
 vllm_quantization: awq
