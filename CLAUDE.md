@@ -109,15 +109,15 @@ Full details in `docs/hardware/inventory.md`.
 
 ## Current State
 
-**Tier 7 nearly complete (13/14).** All build items Tiers 1-5 done. Tier 7 (System Design) delivered docs, infrastructure, and dashboard pages. Only 7.11 (GPU orchestrator) remains. See `docs/SYSTEM-SPEC.md` for the operational specification, `docs/BUILD-MANIFEST.md` for tracking, `docs/SERVICES.md` for inventory.
+**Tier 7 complete (14/14).** All build items Tiers 1-7 done. Tier 6 backlog remains (video gen, InfiniBand, voice, mobile, VPN, Stash AI, mining enclosure, remote access). See `docs/SYSTEM-SPEC.md` for operational specification, `docs/BUILD-MANIFEST.md` for tracking, `docs/SERVICES.md` for inventory.
 
 **7 agents live** on Node 1:9000: General Assistant, Media Agent, Research Agent, Creative Agent, Knowledge Agent, Home Agent, Coding Agent. Activity logging, preference storage, escalation protocol, and GWT workspace all deployed.
 
-**All 7 GPUs active.** Node 1: vLLM TP=4 (GPUs 0-3) + embedding (GPU 4). Node 2: vLLM (GPU 0) + ComfyUI Flux (GPU 1).
+**All 7 GPUs active.** Node 1: vLLM TP=4 (GPUs 0-3) + embedding (GPU 4). Node 2: vLLM (GPU 0) + ComfyUI Flux (GPU 1). GPU Orchestrator on Node 1:9200 monitors all zones.
 
-**Knowledge + Memory:** 922 doc chunks in Qdrant `knowledge`, activity log in `activity`, preferences in `preferences`. Neo4j graph (30 relationships). Redis on VAULT for GWT workspace.
+**Knowledge + Memory:** 922 doc chunks in Qdrant `knowledge`, activity log in `activity`, preferences in `preferences`. Neo4j graph (30 relationships). Redis on VAULT for GWT workspace + GPU orchestrator state.
 
-**Dashboard:** 12 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Activity, Notifications, Preferences.
+**Dashboard:** 12 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Activity, Notifications, Preferences. 25 service health checks.
 
 **MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 11 tools to Claude Code for local AI coding, knowledge search, and system status.
 

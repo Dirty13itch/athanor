@@ -24,6 +24,7 @@ SERVICES = {
     "Home Assistant": {"url": "http://192.168.1.203:8123/api/", "node": "VAULT",
                         "headers": {"Authorization": f"Bearer {settings.ha_token}"}},
     "Neo4j": {"url": "http://192.168.1.203:7474", "node": "VAULT"},
+    "GPU Orchestrator": {"url": "http://192.168.1.244:9200/health", "node": "Node 1"},
 }
 
 

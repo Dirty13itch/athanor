@@ -304,9 +304,13 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Decision:** ADR-017
 
 ### 7.11 — GPU Orchestrator (custom FastAPI service)
-- **Status:** 🔲
-- **Scope:** FastAPI on Node 1, pynvml for GPU state, vLLM sleep/wake management, priority-based scheduling. ~1000 lines.
-- **Depends on:** 7.5 (Redis for state)
+- **Status:** ✅ (Session 15, 2026-02-25)
+- **Deployed:** `projects/gpu-orchestrator/` — standalone FastAPI service on Node 1:9200. Phase 2 implementation per ADR-018.
+- **Features:** 4 GPU zones (primary_inference, flex_1, flex_2, creative), DCGM-exporter-based metrics (no pynvml dependency), vLLM sleep/wake management, TTL-based auto-sleep scheduler (30s polling), Redis state persistence, Prometheus metrics export.
+- **Endpoints:** `GET /status` (full GPU state both nodes), `GET /zones`, `GET /gpu/{zone}`, `POST /gpu/{zone}/sleep`, `POST /gpu/{zone}/wake`, `POST /gpu/{zone}/touch`, `GET|PUT /gpu/{zone}/ttl`, `GET /health`, `GET /metrics`.
+- **Verified:** 7 GPUs reporting (4x 5070 Ti, 4090, 5090, 5060 Ti), VRAM metrics correct, Prometheus metrics exporting, 18/19 service health checks passing.
+- **Ansible:** `ansible/roles/gpu-orchestrator/`, added to `site.yml` for Node 1.
+- **Remaining:** Phase 3 (priority preemption, LiteLLM wake-before-route, flex GPU assignment, dashboard GPU page). Requires `--enable-sleep-mode` on vLLM instances.
 - **Decision:** ADR-018
 
 ### 7.12 — Dashboard: Activity Feed page

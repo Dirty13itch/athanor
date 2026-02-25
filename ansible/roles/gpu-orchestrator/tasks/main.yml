@@ -1,0 +1,67 @@
+---
+- name: Create GPU orchestrator deploy directory
+  ansible.builtin.file:
+    path: "{{ gpu_orch_deploy_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Sync GPU orchestrator source code
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../projects/gpu-orchestrator/src/"
+    dest: "{{ gpu_orch_deploy_dir }}/src/"
+    delete: true
+    rsync_opts:
+      - "--exclude=__pycache__"
+  register: gpu_orch_src
+
+- name: Deploy GPU orchestrator Dockerfile
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../projects/gpu-orchestrator/Dockerfile"
+    dest: "{{ gpu_orch_deploy_dir }}/Dockerfile"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: gpu_orch_dockerfile
+
+- name: Deploy GPU orchestrator pyproject.toml
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../projects/gpu-orchestrator/pyproject.toml"
+    dest: "{{ gpu_orch_deploy_dir }}/pyproject.toml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: gpu_orch_pyproject
+
+- name: Deploy GPU orchestrator docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ gpu_orch_deploy_dir }}/docker-compose.yml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: gpu_orch_compose
+
+- name: Stop GPU orchestrator before rebuild
+  community.docker.docker_compose_v2:
+    project_src: "{{ gpu_orch_deploy_dir }}"
+    state: absent
+  when: gpu_orch_src.changed or gpu_orch_dockerfile.changed or gpu_orch_pyproject.changed
+
+- name: Build and deploy GPU orchestrator
+  community.docker.docker_compose_v2:
+    project_src: "{{ gpu_orch_deploy_dir }}"
+    state: present
+    build: "{{ 'always' if (gpu_orch_src.changed or gpu_orch_dockerfile.changed or gpu_orch_pyproject.changed) else 'never' }}"
+    recreate: "{{ 'always' if (gpu_orch_compose.changed or gpu_orch_src.changed) else 'never' }}"
+
+- name: Wait for GPU orchestrator health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ gpu_orch_port }}/health"
+    status_code: 200
+  register: gpu_orch_health
+  retries: 12
+  delay: 5
+  until: gpu_orch_health.status == 200
+  when: not ansible_check_mode

@@ -13,6 +13,7 @@
     - vllm-embedding
     - qdrant
     - agents
+    - gpu-orchestrator
     - backup
 
 - name: Configure Node 2 (Workshop)

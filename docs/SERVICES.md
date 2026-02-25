@@ -2,7 +2,7 @@
 
 *Live service inventory. Updated when services change.*
 
-Last updated: 2026-02-25 (Session 15)
+Last updated: 2026-02-25 (Session 15 — Tier 7 complete)
 
 ## Node 1 — Foundry (192.168.1.244)
 
@@ -14,6 +14,7 @@ Last updated: 2026-02-25 (Session 15)
 | Qdrant | 6333/6334 | Vector DB, collections: knowledge (922 pts), conversations, activity, preferences |
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics |
+| GPU Orchestrator | 9200 | 4 zones, DCGM metrics, vLLM sleep/wake, TTL auto-sleep, Prometheus export |
 
 ## Node 2 — Workshop (192.168.1.225)
 

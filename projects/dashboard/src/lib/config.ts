@@ -61,6 +61,7 @@ export const config = {
     { name: "Stash", url: "http://192.168.1.203:9999", node: "VAULT" },
     { name: "Home Assistant", url: "http://192.168.1.203:8123/api/", node: "VAULT" },
     { name: "Neo4j", url: "http://192.168.1.203:7474", node: "VAULT" },
+    { name: "GPU Orchestrator", url: "http://192.168.1.244:9200/health", node: "Foundry" },
   ],
   nodes: [
     { name: "Foundry", ip: "192.168.1.244", role: "AI inference + agents", gpuCount: 5, vram: 88, psuWatts: 1600 },
