@@ -7,6 +7,14 @@
     group: athanor
     mode: "0755"
 
+- name: Create agent output staging directory
+  ansible.builtin.file:
+    path: /opt/athanor/agent-output
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
 - name: Sync agent source code
   ansible.posix.synchronize:
     src: "{{ playbook_dir }}/../../projects/agents/src/"

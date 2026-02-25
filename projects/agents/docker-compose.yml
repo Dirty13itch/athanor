@@ -7,6 +7,11 @@ services:
     container_name: athanor-agents
     restart: unless-stopped
     network_mode: host
+    volumes:
+      # Read-only access to deployed Athanor codebase
+      - /opt/athanor:/workspace:ro
+      # Writable staging area for task outputs
+      - /opt/athanor/agent-output:/output
     environment:
       # LiteLLM proxy — single entry point for all inference
       - ATHANOR_LLM_BASE_URL=http://192.168.1.203:4000/v1

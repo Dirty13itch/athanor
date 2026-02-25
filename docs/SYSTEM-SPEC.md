@@ -139,7 +139,11 @@ Transforms agents from reactive chat endpoints to autonomous workers. Tasks are 
 - **Delegation tools:** `delegate_to_agent` and `check_task_status` tools enable inter-agent task routing.
 - **Recovery:** Stale "running" tasks auto-failed on server restart.
 - **Broadcasting:** Task completion/failure broadcast to GWT workspace.
-- **API:** `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/{id}`, `GET /v1/tasks/stats`, `POST /v1/tasks/{id}/cancel`.
+- **Proactive scheduler:** Asyncio-based, per-agent intervals (general-assistant 30min, media-agent 15min, home-agent 5min). `GET /v1/tasks/schedules`.
+- **Execution tools:** `read_file`, `write_file`, `list_directory`, `search_files`, `run_command`. Path-scoped security (read /workspace, write /output). Shell with timeout + blocklist.
+- **Volume mounts:** `/opt/athanor:/workspace:ro` (codebase), `/opt/athanor/agent-output:/output` (staging).
+- **Coding agent:** 9 tools (4 coding + 5 execution). Autonomous loop: read → generate → write → test → self-correct.
+- **API:** `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/{id}`, `GET /v1/tasks/stats`, `GET /v1/tasks/schedules`, `POST /v1/tasks/{id}/cancel`.
 
 ### Agent Lifecycle
 

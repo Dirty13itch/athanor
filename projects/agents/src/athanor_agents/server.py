@@ -92,9 +92,10 @@ AGENT_METADATA = {
         "type": "reactive",
     },
     "coding-agent": {
-        "description": "Code generation, review, and transformation — local Qwen3 coding engine.",
-        "tools": ["generate_code", "review_code", "explain_code", "transform_code"],
-        "type": "reactive",
+        "description": "Autonomous coding engine — generates, reviews, writes files, runs tests, iterates.",
+        "tools": ["generate_code", "review_code", "explain_code", "transform_code",
+                  "read_file", "write_file", "list_directory", "search_files", "run_command"],
+        "type": "proactive",
     },
     "stash-agent": {
         "description": "Adult content library management — search, browse, organize, tag, and manage via Stash.",

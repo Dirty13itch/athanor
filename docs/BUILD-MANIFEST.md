@@ -406,9 +406,13 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Files:** `scheduler.py`, `server.py` (lifespan + endpoint), dashboard `tasks/page.tsx`
 
 ### 8.3 — Execution Tools (filesystem, shell, git)
-- **Status:** 🔲 todo
-- **Scope:** `read_file`, `write_file` (scoped to safe directories), `run_command` (sandboxed Docker exec, timeout), `git_status`/`git_diff`/`git_commit`. Requires Docker volume mounts for project directories.
-- **Depends on:** 8.1 ✅
+- **Status:** ✅ (Session 19, 2026-02-25)
+- **Deployed:** 5 new tools in `tools/execution.py`: `read_file`, `write_file`, `list_directory`, `search_files`, `run_command`. Path-scoped security (read from /workspace, write to /output). Shell execution with timeout + command blocklist.
+- **Volume mounts:** `/opt/athanor:/workspace:ro` (read-only codebase), `/opt/athanor/agent-output:/output` (writable staging).
+- **Dockerfile:** Added `git` and `pytest` to container image.
+- **Coding agent:** 9 tools total (4 coding + 5 execution). Autonomous loop verified: read source → generate test → write file → run pytest → self-correct on failure → repeat.
+- **Verified:** 10-step coding task ran full loop (4 write-run cycles). Files persisted to disk. Timed out on complex mocks (model quality, not infra) — validates need for 8.5 cloud cascade.
+- **Files:** `tools/execution.py`, `tools/__init__.py`, `agents/coding.py`, `Dockerfile`, `docker-compose.yml`, Ansible role
 
 ### 8.4 — Dedicated Coding Model (Qwen3-Coder-30B-A3B)
 - **Status:** 🔲 todo
