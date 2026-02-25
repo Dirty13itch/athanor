@@ -30,6 +30,10 @@ TASKS_CHANNEL = "athanor:tasks:events"
 TASK_WORKER_INTERVAL = 5.0  # seconds between polls
 MAX_CONCURRENT_TASKS = 2
 TASK_TIMEOUT = 600  # 10 min max per task
+MAX_TASK_RETRIES = 1  # Auto-retry failed tasks once with error context
+TASK_TTL_COMPLETED = 86400  # 24h — purge completed tasks
+TASK_TTL_FAILED = 604800  # 7d — keep failed tasks longer for debugging
+CLEANUP_INTERVAL = 300  # Run cleanup every 5 minutes
 
 _worker_task: asyncio.Task | None = None
 _running_count = 0
@@ -51,6 +55,8 @@ class Task:
     completed_at: float = 0.0
     metadata: dict = field(default_factory=dict)
     parent_task_id: str = ""  # For delegated sub-tasks
+    retry_count: int = 0  # How many times this task has been retried
+    previous_error: str = ""  # Error from previous attempt (for retry context)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -67,6 +73,152 @@ class Task:
 
 
 PRIORITY_ORDER = {"critical": 0, "high": 1, "normal": 2, "low": 3}
+
+# Agent-specific task capabilities for system prompt
+_AGENT_TASK_HINTS = {
+    "coding-agent": (
+        "You have filesystem tools (read_file, write_file, list_directory, search_files) "
+        "and code execution (run_command). Plan your approach, then execute step by step. "
+        "Write files, run tests, fix failures, and iterate until the task is complete."
+    ),
+    "general-assistant": (
+        "You have service monitoring tools and filesystem access. "
+        "Check service health, inspect logs, and report findings with specifics."
+    ),
+    "research-agent": (
+        "You have web search, page fetching, and knowledge base tools. "
+        "Search thoroughly, cross-reference sources, and synthesize findings."
+    ),
+    "knowledge-agent": (
+        "You have knowledge base search and document listing tools. "
+        "Search the knowledge base, identify gaps, and report findings."
+    ),
+    "media-agent": (
+        "You have Sonarr, Radarr, and Plex tools. "
+        "Check media services, report notable items, and manage content."
+    ),
+    "home-agent": (
+        "You have Home Assistant tools for entity state, services, and automations. "
+        "Check states, identify anomalies, and take action when appropriate."
+    ),
+    "creative-agent": (
+        "You have ComfyUI image and video generation tools. "
+        "Generate content as requested, monitor the queue, and report results."
+    ),
+    "stash-agent": (
+        "You have Stash library management tools. "
+        "Search, browse, organize, and tag content as requested."
+    ),
+}
+
+
+def _build_task_prompt(task: Task) -> str:
+    """Build a task-mode system prompt for autonomous execution."""
+    parts = [
+        "You are executing an autonomous task. Work independently to completion.",
+        "",
+        f"Task ID: {task.id}",
+        f"Priority: {task.priority}",
+    ]
+
+    # Add retry context if this is a retry
+    if task.retry_count > 0 and task.previous_error:
+        parts.extend([
+            "",
+            f"IMPORTANT: This is retry #{task.retry_count}. The previous attempt failed with:",
+            f"  Error: {task.previous_error}",
+            "",
+            "Analyze what went wrong and try a different approach. Do NOT repeat the same steps that caused the failure.",
+        ])
+
+    # Add agent-specific hints
+    hint = _AGENT_TASK_HINTS.get(task.agent, "")
+    if hint:
+        parts.extend(["", hint])
+
+    parts.extend([
+        "",
+        "Instructions:",
+        "1. Plan your approach before acting",
+        "2. Execute steps one at a time using your tools",
+        "3. After each step, assess progress",
+        "4. If stuck on a step, try an alternative approach",
+        "5. When complete, provide a clear summary of what you accomplished",
+        "6. If you cannot complete the task, explain exactly what blocked you",
+    ])
+
+    return "\n".join(parts)
+
+
+async def _maybe_retry(task: Task):
+    """Auto-retry a failed task if under the retry limit.
+
+    Creates a new task with the same parameters plus error context
+    from the failed attempt. The retry gets bumped priority.
+    """
+    if task.retry_count >= MAX_TASK_RETRIES:
+        logger.info(
+            "Task %s exhausted retries (%d/%d), not retrying",
+            task.id, task.retry_count, MAX_TASK_RETRIES,
+        )
+        return
+
+    try:
+        retry = Task(
+            agent=task.agent,
+            prompt=task.prompt,
+            priority=task.priority,
+            metadata={**task.metadata, "retry_of": task.id, "source": "auto-retry"},
+            parent_task_id=task.parent_task_id,
+            retry_count=task.retry_count + 1,
+            previous_error=task.error[:2000],
+        )
+
+        r = await _get_redis()
+        await r.hset(TASKS_KEY, retry.id, json.dumps(retry.to_dict()))
+
+        logger.info(
+            "Task %s auto-retry submitted as %s (attempt %d/%d)",
+            task.id, retry.id, retry.retry_count, MAX_TASK_RETRIES,
+        )
+
+        await r.publish(TASKS_CHANNEL, json.dumps({
+            "event": "task_retried",
+            "task_id": retry.id,
+            "original_task_id": task.id,
+            "retry_count": retry.retry_count,
+            "timestamp": time.time(),
+        }))
+
+    except Exception as e:
+        logger.warning("Failed to auto-retry task %s: %s", task.id, e)
+
+
+async def _cleanup_old_tasks():
+    """Purge completed/failed tasks past their TTL."""
+    try:
+        r = await _get_redis()
+        raw = await r.hgetall(TASKS_KEY)
+        now = time.time()
+        removed = 0
+
+        for task_id, v in raw.items():
+            t = Task.from_dict(json.loads(v))
+            if not t.completed_at:
+                continue
+
+            age = now - t.completed_at
+            if t.status == "completed" and age > TASK_TTL_COMPLETED:
+                await r.hdel(TASKS_KEY, task_id)
+                removed += 1
+            elif t.status in ("failed", "cancelled") and age > TASK_TTL_FAILED:
+                await r.hdel(TASKS_KEY, task_id)
+                removed += 1
+
+        if removed:
+            logger.info("Cleaned up %d expired tasks", removed)
+    except Exception as e:
+        logger.warning("Task cleanup error: %s", e)
 
 
 async def _get_redis():
@@ -247,12 +399,9 @@ async def _execute_task(task: Task):
         except Exception:
             pass
 
-        # Add task-mode system prompt
-        messages.append(SystemMessage(content=(
-            "You are executing a background task autonomously. "
-            "Work through the task step by step using your tools. "
-            "Be thorough and report your findings clearly."
-        )))
+        # Build task-mode system prompt (agent-specific)
+        task_prompt = _build_task_prompt(task)
+        messages.append(SystemMessage(content=task_prompt))
         messages.append(HumanMessage(content=task.prompt))
 
         thread_id = f"task-{task.id}"
@@ -370,6 +519,9 @@ async def _execute_task(task: Task):
             metadata={"task_id": task.id, "status": "failed", "error": str(e)},
         ))
 
+        # Auto-retry if under retry limit
+        await _maybe_retry(task)
+
     finally:
         _running_count -= 1
 
@@ -399,11 +551,14 @@ async def _task_worker_loop():
 
     Runs continuously. Picks up to MAX_CONCURRENT_TASKS simultaneously.
     Priority ordering: critical > high > normal > low, then FIFO.
+    Runs cleanup every CLEANUP_INTERVAL seconds.
     """
     logger.info(
         "Task worker started (interval=%.1fs, max_concurrent=%d)",
         TASK_WORKER_INTERVAL, MAX_CONCURRENT_TASKS,
     )
+
+    last_cleanup = time.time()
 
     while True:
         try:
@@ -416,6 +571,12 @@ async def _task_worker_loop():
                         "Task %s picked up by worker (agent=%s, running=%d)",
                         task.id, task.agent, _running_count + 1,
                     )
+
+            # Periodic cleanup of expired tasks
+            if time.time() - last_cleanup > CLEANUP_INTERVAL:
+                await _cleanup_old_tasks()
+                last_cleanup = time.time()
+
         except Exception as e:
             logger.warning("Task worker poll error: %s", e)
 

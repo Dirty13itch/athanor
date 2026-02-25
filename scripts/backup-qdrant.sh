@@ -9,13 +9,13 @@
 set -euo pipefail
 
 QDRANT_URL="http://localhost:6333"
-BACKUP_DIR="${BACKUP_DIR:-/mnt/vault/backups/athanor/qdrant}"
+BACKUP_DIR="${BACKUP_DIR:-/mnt/vault/data/backups/athanor/qdrant}"
 RETENTION_DAYS=7
 DATE=$(date +%Y-%m-%d)
 
 echo "[$(date -Iseconds)] Starting Qdrant backup"
 
-# Ensure backup directory exists (requires NFS mount to /mnt/vault/backups/ on Node 1)
+# Ensure backup directory exists (uses NFS data mount: /mnt/vault/data/ on Node 1)
 mkdir -p "$BACKUP_DIR"
 
 # Get list of collections

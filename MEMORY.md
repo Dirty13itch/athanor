@@ -7,29 +7,34 @@
 ## Last Session: 2026-02-25 (Session 19: Autonomous Workforce — Task Engine + Scheduler)
 
 ### What happened
-- **Task Execution Engine (8.1):** `tasks.py` — Redis-backed queue, background worker (5s poll, max 2 concurrent), step logging via astream_events, priority ordering, crash recovery, GWT broadcasting. Delegation tools (`delegate_to_agent`, `check_task_status`). API: POST/GET /v1/tasks, stats, cancel. MCP bridge: 14 tools. Dashboard Task Board page.
-- **Proactive Agent Scheduler (8.2):** `scheduler.py` — asyncio-based with per-agent intervals. general-assistant (30min), media-agent (15min), home-agent (5min), knowledge-agent (24h, disabled). Redis-tracked last-run. API: GET /v1/tasks/schedules. First scheduled batch verified working.
-- **Dashboard updates:** Workspace page, Conversations page, Task Board page (16 pages total).
-- **Creative-agent fix:** 5-tool metadata corrected.
-- **Think-tag fix:** Task results stripped of `<think>` tags via regex.
-- **Step persistence fix:** Every tool call persisted (was every 3).
+- **Task Execution Engine (8.1):** `tasks.py` — Redis-backed queue, background worker (5s poll, max 2 concurrent), step logging, GWT broadcasting. Delegation tools. API: POST/GET /v1/tasks, stats, cancel. MCP bridge: 14 tools. Dashboard Task Board page.
+- **Proactive Agent Scheduler (8.2):** `scheduler.py` — asyncio-based per-agent intervals. Redis-tracked last-run. API: GET /v1/tasks/schedules.
+- **Execution Tools (8.3):** `read_file`, `write_file`, `list_directory`, `search_files`, `run_command`. Coding Agent 9 tools, General Assistant 9 tools.
+- **Task quality improvements:** `_build_task_prompt()`, `_maybe_retry()`, `_cleanup_old_tasks()` added to tasks.py.
+- **Massive research sweep:** 26 parallel agents (14 model categories + 5 hardware audits + 3 resource strategies + 4 cloud/cascade). 21 research docs + 5 hardware audits + master synthesis (docs/research/2026-02-25-master-synthesis.md).
+- **Key findings:** Qwen3.5-27B (72.4% SWE-bench) replaces Qwen3-32B-AWQ. vLLM v0.15.0+ critical blocker for DeltaNet. BFCL V4 correction: 48.71% not 68.2%. 99.13% GPU idle. 5090 zero requests. DEV has RTX 3060 12GB (not RX 5700 XT). Qdrant backups working (VAULT audit was wrong). VAULT Hyper M.2 card has 4 empty slots. MTU mismatch Node 2 (9000) vs Node 1/VAULT (1500).
+- **Backup script fix:** `backup-qdrant.sh` default path corrected to `/mnt/vault/data/backups/`.
 
 ### Current blockers
 - NordVPN credentials needed for qBittorrent + Gluetun (6.5)
 - Tailscale needs UDM Pro SSH + Tailscale account (6.8)
-- vLLM sleep mode blocked on NGC image upgrade (sleep endpoints 404)
-- Sonarr/Radarr need Prowlarr indexer config via browser
-- DuckDuckGo web search unreliable from Docker container (research-agent limitation)
+- **vLLM v0.15.0+ needed** — unlocks DeltaNet (Qwen3.5), NVFP4, SageAttention2, EAGLE-3 (NGC image currently v0.11.1)
+- 3 Crucial P310 NVMe drives location unknown (VAULT Hyper M.2 card empty)
 
-### What's next
-- **8.3 Execution Tools:** Filesystem read/write (scoped), shell execution (Docker sandbox), git ops — gives agents actual coding ability
-- **8.4 Dedicated Coding Model:** Deploy Qwen3-Coder-30B-A3B on RTX 4090
-- **8.5 Quality Gating & Cascade:** Local generates → tests → escalate to cloud on failure
-- GWT Phase 3 (agent subscriptions + reactive behavior)
+### What's next (P1 quick wins from synthesis)
+- Replace DEV ethernet cable (100 Mbps → 1 Gbps)
+- Mount Node 1 nvme1n1 (1 TB Crucial P310 unused)
+- Repurpose 5090 (zero-request Qwen3-14B → useful workload)
+- Add speculative decoding (Qwen3-0.6B draft model)
+- Fix MTU mismatch (Node 2 at 9000, Node 1/VAULT at 1500)
+- Tune TCP buffers for 10GbE (208 KB → 16 MB)
+- Move embedding to CPU (FastEmbed on EPYC, free GPU 4 VRAM)
+- Deploy Qwen3-Reranker-0.6B on GPU 4
+- Update hardware inventory with 6 corrections found by audits
 
 ### Git state
-- Branch: main, all pushed to origin
-- Latest: `f2272c5` feat: Execution tools — agents can read, write, and run code
+- Branch: main
+- Latest: `e646ef0` feat: read-only filesystem tools for general-assistant, docs update
 
 ---
 
@@ -51,4 +56,4 @@
 | 15 | 2026-02-25 | System design + full Tier 7 | SYSTEM-SPEC, agent contracts, hybrid-dev docs. Redis, Coding Agent, MCP bridge, escalation, GWT workspace, GPU orchestrator, 3 dashboard pages. **All 14/14 Tier 7 items complete.** |
 | 16-17 | 2026-02-25 | Tier 6 + Voice + Context | Wan2.x T2V verified, Creative Agent video tools, Stash agent, 4 voice containers, HA voice pipeline, Layer 2 context injection. |
 | 18 | 2026-02-25 | Maintenance + GWT Phase 2 | Knowledge re-index (1203 pts), HA auth fix (26/26 UP), Neo4j 43 rels, backup 14 svcs. GWT Phase 2: conversation logging, agent registry, event ingestion, pub/sub. |
-| 19 | 2026-02-25 | Autonomous Workforce | Task Execution Engine (8.1), Proactive Scheduler (8.2), Task Board dashboard, delegation tools, MCP bridge 14 tools. Workspace + Conversations pages. |
+| 19 | 2026-02-25 | Autonomous Workforce + Research Sweep | Task Engine (8.1), Scheduler (8.2), Exec Tools (8.3). 26-agent research sweep: 21 research + 5 hardware audit docs. Master synthesis. 6 inventory corrections. |
