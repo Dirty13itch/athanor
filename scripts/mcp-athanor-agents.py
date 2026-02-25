@@ -319,6 +319,80 @@ def search_preferences(query: str, agent: str = "") -> str:
         return f"Error: {e}"
 
 
+# --- Task management ---
+
+
+@mcp.tool()
+def submit_task(agent: str, prompt: str, priority: str = "normal") -> str:
+    """Submit a background task for autonomous agent execution.
+
+    The task runs asynchronously — the agent works through it using its
+    tools without requiring interaction. Check status with task_status().
+
+    Args:
+        agent: Which agent should execute (e.g., "research-agent", "creative-agent").
+        prompt: What the agent should do. Be specific and include all context.
+        priority: "critical", "high", "normal", or "low".
+    """
+    try:
+        resp = _client.post(
+            f"{AGENT_URL}/v1/tasks",
+            json={"agent": agent, "prompt": prompt, "priority": priority},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        task = data.get("task", {})
+        return f"Task submitted: id={task['id']} agent={task['agent']} status={task['status']}"
+    except Exception as e:
+        return f"Error submitting task: {e}"
+
+
+@mcp.tool()
+def task_status(task_id: str = "") -> str:
+    """Check status of background tasks.
+
+    Args:
+        task_id: Specific task ID to check. If empty, shows all recent tasks.
+    """
+    try:
+        if task_id:
+            resp = _client.get(f"{AGENT_URL}/v1/tasks/{task_id}", timeout=10)
+            resp.raise_for_status()
+            t = resp.json()["task"]
+            lines = [
+                f"Task {t['id']}: {t['status']}",
+                f"Agent: {t['agent']}",
+                f"Prompt: {t['prompt'][:200]}",
+                f"Steps: {len(t['steps'])}",
+            ]
+            if t["status"] == "completed":
+                duration = int((t["completed_at"] - t["started_at"]) * 1000)
+                lines.append(f"Duration: {duration}ms")
+                lines.append(f"Result:\n{t['result'][:2000]}")
+            elif t["status"] == "failed":
+                lines.append(f"Error: {t['error']}")
+            elif t["status"] == "running":
+                elapsed = int((__import__('time').time() - t["started_at"]) * 1000)
+                lines.append(f"Running for: {elapsed}ms")
+            return "\n".join(lines)
+        else:
+            resp = _client.get(f"{AGENT_URL}/v1/tasks", params={"limit": 10}, timeout=10)
+            resp.raise_for_status()
+            tasks = resp.json().get("tasks", [])
+            if not tasks:
+                return "No tasks found."
+            lines = []
+            for t in tasks:
+                lines.append(
+                    f"  [{t['status']}] {t['id']} ({t['agent']}): "
+                    f"{t['prompt'][:80]}"
+                )
+            return f"Recent tasks ({len(tasks)}):\n" + "\n".join(lines)
+    except Exception as e:
+        return f"Error: {e}"
+
+
 # --- Agent metadata ---
 
 

@@ -117,9 +117,11 @@ Full details in `docs/hardware/inventory.md`.
 
 **Knowledge + Memory:** 1203 doc chunks in Qdrant `knowledge` (98 docs), activity log in `activity`, preferences in `preferences`, conversations in `conversations`. Neo4j graph (8 agents, 24 services, 4 nodes, 3 projects, 43 relationships). Redis on VAULT for GWT workspace + GPU orchestrator state + agent registry.
 
-**Dashboard:** 12 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Activity, Notifications, Preferences. 26/26 service health checks UP (HA auth fixed Session 18).
+**Dashboard:** 16 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Tasks, Workspace, Conversations, Activity, Notifications, Preferences. 26/26 service health checks UP.
 
 **MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 12 tools to Claude Code — coding, knowledge search, system status, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
+
+**Task Execution Engine (Session 19):** Background autonomous task execution. Redis-backed queue, worker loop (5s poll, max 2 concurrent), step logging, delegation tools (`delegate_to_agent`, `check_task_status`), GWT workspace broadcasting. API: `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/{id}`, `GET /v1/tasks/stats`.
 
 **GWT Phase 2 deployed:** Agent registration in Redis, event ingestion (`POST /v1/events`), Redis pub/sub for workspace broadcasts, conversation history logging to Qdrant. Phase 3 remaining: agent subscription + reactive behavior.
 

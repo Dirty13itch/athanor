@@ -20,10 +20,12 @@ async def lifespan(app: FastAPI):
     from .agents import _init_agents
     from .activity import ensure_collections
     from .workspace import start_competition, stop_competition, register_agent
+    from .tasks import start_task_worker, stop_task_worker
 
     _init_agents()
     ensure_collections()
     await start_competition()
+    await start_task_worker()
 
     # Register all agents in Redis for discovery (Phase 2)
     for name, meta in AGENT_METADATA.items():
@@ -35,18 +37,20 @@ async def lifespan(app: FastAPI):
         )
 
     yield
+    await stop_task_worker()
     await stop_competition()
 
 
-app = FastAPI(title="Athanor Agent Server", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="Athanor Agent Server", version="0.3.0", lifespan=lifespan)
 
 
 # --- Agent metadata (single source of truth) ---
 
 AGENT_METADATA = {
     "general-assistant": {
-        "description": "System monitoring and infrastructure management across all 3 nodes.",
-        "tools": ["check_services", "get_gpu_metrics", "get_vllm_models", "get_storage_info"],
+        "description": "System monitoring, infrastructure management, and task coordination across all 3 nodes.",
+        "tools": ["check_services", "get_gpu_metrics", "get_vllm_models", "get_storage_info",
+                  "delegate_to_agent", "check_task_status"],
         "type": "reactive",
     },
     "media-agent": {
@@ -518,6 +522,90 @@ async def ingest_event(request: Request):
         "priority": priority,
         "salience": item.salience,
     }
+
+
+# --- Task Execution Engine ---
+
+
+@app.post("/v1/tasks")
+async def create_task(request: Request):
+    """Submit a task for background autonomous execution.
+
+    Body: {"agent": "research-agent", "prompt": "Research vLLM updates",
+           "priority": "normal", "metadata": {}}
+    """
+    from .tasks import submit_task
+
+    body = await request.json()
+    agent = body.get("agent", "")
+    prompt = body.get("prompt", "")
+    priority = body.get("priority", "normal")
+    metadata = body.get("metadata", {})
+
+    if not agent or not prompt:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Both 'agent' and 'prompt' are required"},
+        )
+
+    try:
+        task = await submit_task(
+            agent=agent,
+            prompt=prompt,
+            priority=priority,
+            metadata=metadata,
+        )
+        return {"status": "submitted", "task": task.to_dict()}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": str(e)})
+
+
+@app.get("/v1/tasks")
+async def get_tasks(
+    status: str = "",
+    agent: str = "",
+    limit: int = 50,
+):
+    """List tasks with optional filters."""
+    from .tasks import list_tasks
+
+    tasks = await list_tasks(status=status, agent=agent, limit=limit)
+    return {"tasks": tasks, "count": len(tasks)}
+
+
+@app.get("/v1/tasks/stats")
+async def task_stats():
+    """Get task execution statistics."""
+    from .tasks import get_task_stats
+
+    return await get_task_stats()
+
+
+@app.get("/v1/tasks/{task_id}")
+async def get_task_detail(task_id: str):
+    """Get detailed task status including execution steps."""
+    from .tasks import get_task
+
+    task = await get_task(task_id)
+    if not task:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task '{task_id}' not found"},
+        )
+    return {"task": task.to_dict()}
+
+
+@app.post("/v1/tasks/{task_id}/cancel")
+async def cancel_task_endpoint(task_id: str):
+    """Cancel a pending or running task."""
+    from .tasks import cancel_task
+
+    if await cancel_task(task_id):
+        return {"status": "cancelled", "task_id": task_id}
+    return JSONResponse(
+        status_code=404,
+        content={"error": f"Task '{task_id}' not found or already completed"},
+    )
 
 
 # --- Context injection (diagnostic) ---

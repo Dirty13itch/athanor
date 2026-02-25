@@ -382,6 +382,42 @@ The agent framework exists but is skeletal. These items make agents actually use
 
 ---
 
+## Tier 8: Autonomous Workforce (P1)
+
+*Transforms agents from reactive chat endpoints to autonomous workers that execute tasks, delegate to each other, and work proactively.*
+
+### 8.1 — Task Execution Engine (Phase 1)
+- **Status:** ✅ (Session 19, 2026-02-25)
+- **Deployed:** `tasks.py` module in agent server. Redis-backed task queue, background worker (5s poll, max 2 concurrent), step logging via astream_events, priority ordering, crash recovery, GWT workspace broadcasting.
+- **Delegation tools:** `delegate_to_agent` and `check_task_status` added to general-assistant via `tools/execution.py`.
+- **API:** `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/{id}`, `GET /v1/tasks/stats`, `POST /v1/tasks/{id}/cancel`.
+- **MCP bridge:** `submit_task` and `task_status` tools added (14 tools total).
+- **Dashboard:** Task Board page at `/tasks` — submit, monitor, filter, cancel tasks.
+- **Verified:** Test tasks completed successfully (general-assistant service check + research-agent web search).
+- **Files:** `tasks.py`, `tools/execution.py`, `tools/__init__.py`, `server.py`, `mcp-athanor-agents.py`, dashboard `tasks/page.tsx`
+
+### 8.2 — Proactive Agent Scheduler
+- **Status:** 🔲 todo
+- **Scope:** APScheduler or asyncio cron for agent-initiated work. Media-agent checks every 15min, knowledge-agent re-indexes daily, home-agent monitors continuously.
+- **Depends on:** 8.1 ✅
+
+### 8.3 — Execution Tools (filesystem, shell, git)
+- **Status:** 🔲 todo
+- **Scope:** `read_file`, `write_file` (scoped to safe directories), `run_command` (sandboxed Docker exec, timeout), `git_status`/`git_diff`/`git_commit`. Requires Docker volume mounts for project directories.
+- **Depends on:** 8.1 ✅
+
+### 8.4 — Dedicated Coding Model (Qwen3-Coder-30B-A3B)
+- **Status:** 🔲 todo
+- **Scope:** Deploy Qwen3-Coder-30B-A3B on RTX 4090 (18.6 GB Q4, 73 tok/s). Wire as `coding` model in LiteLLM. Point Coding Agent at it for better SWE-bench performance.
+- **Research:** `docs/research/2026-02-16-tool-calling-coding-models.md`
+
+### 8.5 — Quality Gating & Cascade
+- **Status:** 🔲 todo
+- **Scope:** Local model generates → runs tests → if tests fail, escalate to cloud (Claude/Kimi). Automated quality loops for coding tasks.
+- **Depends on:** 8.3, 8.4
+
+---
+
 ## Blocked on Shaun
 
 These require human action. Claude Code cannot do them.

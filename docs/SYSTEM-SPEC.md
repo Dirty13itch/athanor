@@ -128,9 +128,22 @@ Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`
 - **Redis pub/sub:** Competition cycle publishes broadcast to `athanor:workspace:broadcast` channel.
 - **Conversation logging:** Every chat completion logged to Qdrant `conversations` collection (embedded for semantic search). Queryable via `GET /v1/conversations`.
 
+### Task Execution Engine (deployed Session 19)
+
+Transforms agents from reactive chat endpoints to autonomous workers. Tasks are Redis-backed, executed by a background worker loop, with step logging and progress broadcasting via GWT workspace.
+
+- **Task queue:** `POST /v1/tasks` submits tasks for background execution. Redis-backed (`athanor:tasks`).
+- **Background worker:** Polls every 5s, picks highest-priority pending task, executes via agent's ReAct loop.
+- **Step logging:** Each tool call captured as a step with input/output. Queryable via `GET /v1/tasks/{id}`.
+- **Concurrency:** Max 2 simultaneous tasks (configurable). Priority ordering: critical > high > normal > low.
+- **Delegation tools:** `delegate_to_agent` and `check_task_status` tools enable inter-agent task routing.
+- **Recovery:** Stale "running" tasks auto-failed on server restart.
+- **Broadcasting:** Task completion/failure broadcast to GWT workspace.
+- **API:** `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/{id}`, `GET /v1/tasks/stats`, `POST /v1/tasks/{id}/cancel`.
+
 ### Agent Lifecycle
 
-**Current:** All agents initialize at server startup, register capabilities in Redis, and stay loaded in memory.
+**Current:** All agents initialize at server startup, register capabilities in Redis, and stay loaded in memory. Task worker starts automatically.
 
 **Planned:**
 1. **Registration** — Agent declares capabilities, tools, activation thresholds
@@ -200,6 +213,7 @@ Every agent action is visible. Nothing happens silently.
 | Activity Feed | Live | Every agent action, searchable, filterable |
 | Notifications | Live | Escalation alerts, agent requests |
 | Preferences | Live | Stored preferences, editable |
+| Tasks | Live | Task board — submit, monitor, cancel background agent tasks |
 | Workspace | Live | GWT workspace broadcasts, agent registry, competition state |
 | Conversations | Live | Logged agent conversations, filterable, expandable |
 | Insights | Planned | What agents learned, pattern detections |

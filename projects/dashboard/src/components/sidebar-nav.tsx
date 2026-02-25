@@ -14,6 +14,7 @@ const navItems = [
   { href: "/media", label: "Media", icon: FilmIcon },
   { href: "/home", label: "Home", icon: HomeIcon },
   { href: "/services", label: "Services", icon: ServerIcon },
+  { href: "/tasks", label: "Tasks", icon: ListChecksIcon },
   { href: "/workspace", label: "Workspace", icon: ZapIcon },
   { href: "/conversations", label: "Conversations", icon: MessagesIcon },
   { href: "/activity", label: "Activity", icon: ClockIcon },
@@ -180,6 +181,15 @@ function MessagesIcon({ className }: { className?: string }) {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4c0-1.1.9-2 2-2h8a2 2 0 0 1 2 2z" />
       <path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" />
+    </svg>
+  );
+}
+
+function ListChecksIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="m3 17 2 2 4-4" /><path d="m3 7 2 2 4-4" />
+      <path d="M13 6h8" /><path d="M13 12h8" /><path d="M13 18h8" />
     </svg>
   );
 }
