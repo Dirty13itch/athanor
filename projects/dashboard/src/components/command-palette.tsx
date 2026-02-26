@@ -25,6 +25,7 @@ const pages = [
   { href: "/home", label: "Home", keywords: "automation homeassistant lights" },
   { href: "/services", label: "Services", keywords: "health status uptime" },
   { href: "/tasks", label: "Tasks", keywords: "queue job worker" },
+  { href: "/outputs", label: "Outputs", keywords: "files produced artifacts content" },
   { href: "/workspace", label: "Workspace", keywords: "gwt workspace events" },
   { href: "/conversations", label: "Conversations", keywords: "history chat log" },
   { href: "/activity", label: "Activity", keywords: "log timeline recent" },

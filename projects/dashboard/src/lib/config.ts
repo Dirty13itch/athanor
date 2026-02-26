@@ -77,8 +77,8 @@ export const config = {
     "192.168.1.244": {
       0: "vLLM TP0 (Qwen3-32B-AWQ)",
       1: "vLLM TP1",
-      2: "vLLM TP2",
-      3: "vLLM TP3 (RTX 4090)",
+      2: "vLLM TP2 (RTX 4090)",
+      3: "vLLM TP3",
       4: "Embedding + Whisper + Speaches",
     },
     "192.168.1.225": {
@@ -88,11 +88,11 @@ export const config = {
   } as Record<string, Record<number, string>>,
   // Power limits per GPU (watts) — matches Ansible config
   gpuPowerLimits: {
-    "192.168.1.244": { 0: 320, 1: 240, 2: 240, 3: 240, 4: 240 },
+    "192.168.1.244": { 0: 300, 1: 300, 2: 450, 3: 300, 4: 300 },
     "192.168.1.225": { 0: 575, 1: 200 },
   } as Record<string, Record<number, number>>,
   quickLinks: [
-    { name: "Grafana", url: "http://192.168.1.203:3000", node: "VAULT", category: "monitoring" },
+    { name: "Grafana", url: "http://192.168.1.203:3000/d/3349e8df-5e19-458f-b663-29c2075b73bf/athanor-operations", node: "VAULT", category: "monitoring" },
     { name: "Prometheus", url: "http://192.168.1.203:9090", node: "VAULT", category: "monitoring" },
     { name: "ComfyUI", url: "http://192.168.1.225:8188", node: "Workshop", category: "creative" },
     { name: "Open WebUI", url: "http://192.168.1.225:3000", node: "Workshop", category: "ai" },

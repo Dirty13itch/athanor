@@ -804,9 +804,10 @@ async def redirect_workplan(request: Request):
         category="work_planning",
     )
 
-    # Generate a new plan with this focus
-    plan = await generate_work_plan(focus=direction)
-    return {"status": "redirected", "direction": direction, "plan": plan}
+    # Fire-and-forget plan generation — returns immediately so the UI doesn't hang
+    import asyncio
+    asyncio.create_task(generate_work_plan(focus=direction))
+    return {"status": "redirected", "direction": direction, "message": "Preference saved, plan generating in background"}
 
 
 @app.get("/v1/outputs")

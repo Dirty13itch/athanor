@@ -1,6 +1,6 @@
 export type LensId = "default" | "system" | "media" | "creative" | "eoq";
 
-export type SectionId = "pulse" | "crew" | "gpus" | "workloads" | "stream" | "watches" | "links" | "digest" | "smartstack";
+export type SectionId = "pulse" | "crew" | "gpus" | "workloads" | "stream" | "watches" | "links" | "digest" | "smartstack" | "workplan";
 
 export interface LensConfig {
   id: LensId;
@@ -22,7 +22,7 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     accent: "oklch(0.75 0.08 65)",
     accentHue: 65,
     agents: [],
-    sections: ["pulse", "crew", "smartstack", "gpus", "workloads", "stream", "watches", "links", "digest"],
+    sections: ["pulse", "crew", "smartstack", "workplan", "gpus", "workloads", "stream", "watches", "links", "digest"],
     streamFilter: [],
     navHighlight: [],
   },
@@ -33,7 +33,7 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     accent: "oklch(0.65 0.12 230)",
     accentHue: 230,
     agents: ["general-assistant", "coding-agent"],
-    sections: ["pulse", "smartstack", "gpus", "workloads", "crew", "stream", "links", "digest"],
+    sections: ["pulse", "smartstack", "workplan", "gpus", "workloads", "crew", "stream", "links", "digest"],
     streamFilter: ["task", "system"],
     navHighlight: ["/gpu", "/services", "/monitoring", "/tasks"],
   },
@@ -44,7 +44,7 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     accent: "oklch(0.65 0.12 160)",
     accentHue: 160,
     agents: ["media-agent"],
-    sections: ["pulse", "watches", "smartstack", "crew", "stream", "workloads", "gpus", "links", "digest"],
+    sections: ["pulse", "watches", "smartstack", "workplan", "crew", "stream", "workloads", "gpus", "links", "digest"],
     streamFilter: ["media", "task"],
     navHighlight: ["/media", "/gallery"],
   },
@@ -55,7 +55,7 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     accent: "oklch(0.7 0.1 330)",
     accentHue: 330,
     agents: ["creative-agent"],
-    sections: ["pulse", "crew", "smartstack", "workloads", "gpus", "stream", "links", "digest"],
+    sections: ["pulse", "crew", "smartstack", "workplan", "workloads", "gpus", "stream", "links", "digest"],
     streamFilter: ["task", "agent"],
     navHighlight: ["/gallery", "/chat"],
   },
@@ -66,7 +66,7 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     accent: "oklch(0.65 0.15 25)",
     accentHue: 25,
     agents: ["creative-agent", "coding-agent"],
-    sections: ["pulse", "crew", "smartstack", "stream", "workloads", "gpus", "links", "digest"],
+    sections: ["pulse", "crew", "smartstack", "workplan", "stream", "workloads", "gpus", "links", "digest"],
     streamFilter: ["task", "agent"],
     navHighlight: ["/chat", "/gallery", "/tasks"],
   },

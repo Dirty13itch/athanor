@@ -11,6 +11,7 @@ import { AgentCrewBar } from "@/components/agent-crew-bar";
 import { HomeSections } from "@/components/home-sections";
 import { DailyDigest } from "@/components/gen-ui/daily-digest";
 import { SmartStack } from "@/components/smart-stack";
+import { WorkPlan } from "@/components/work-plan";
 import type { SectionId } from "@/lib/lens";
 
 export const revalidate = 15;
@@ -393,6 +394,7 @@ export default async function DashboardPage() {
     ),
     digest: <DailyDigest />,
     smartstack: <SmartStack />,
+    workplan: <WorkPlan />,
   };
 
   return <HomeSections sections={sections} />;
