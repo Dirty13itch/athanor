@@ -73,7 +73,7 @@ AGENT_SCHEDULES = {
             "Identify any gaps in coverage."
         ),
         "priority": "low",
-        "enabled": False,  # Enable when re-indexing is wired
+        "enabled": True,
     },
 }
 
