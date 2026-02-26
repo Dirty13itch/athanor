@@ -30,8 +30,11 @@ _scheduler_task: asyncio.Task | None = None
 # Only agents with schedules are included.
 
 DAILY_DIGEST_KEY = "athanor:scheduler:daily_digest"
+PATTERN_DETECTION_KEY = "athanor:scheduler:pattern_detection"
 DIGEST_HOUR = 6   # 6:55 AM local time
 DIGEST_MINUTE = 55
+PATTERN_HOUR = 5   # 5:00 AM local time
+PATTERN_MINUTE = 0
 
 AGENT_SCHEDULES = {
     "general-assistant": {
@@ -138,6 +141,41 @@ async def _check_daily_digest():
         logger.warning("Scheduler: failed to submit daily digest: %s", e)
 
 
+async def _check_pattern_detection():
+    """Check if it's time to run daily pattern detection (5:00 AM local)."""
+    from .patterns import run_pattern_detection
+
+    now = datetime.now()
+    if now.hour != PATTERN_HOUR or now.minute != PATTERN_MINUTE:
+        return
+
+    # Check if already run today
+    try:
+        r = await _get_redis()
+        last_date = await r.get(PATTERN_DETECTION_KEY)
+        if last_date:
+            last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
+            if last_str == now.strftime("%Y-%m-%d"):
+                return  # Already ran today
+    except Exception:
+        pass
+
+    logger.info("Scheduler: running pattern detection")
+    try:
+        report = await run_pattern_detection()
+        r = await _get_redis()
+        await r.set(PATTERN_DETECTION_KEY, now.strftime("%Y-%m-%d"))
+
+        pattern_count = len(report.get("patterns", []))
+        rec_count = len(report.get("recommendations", []))
+        logger.info(
+            "Pattern detection completed: %d patterns, %d recommendations",
+            pattern_count, rec_count,
+        )
+    except Exception as e:
+        logger.warning("Scheduler: pattern detection failed: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -152,6 +190,7 @@ async def _scheduler_loop():
             now = time.time()
 
             # Check time-of-day tasks
+            await _check_pattern_detection()
             await _check_daily_digest()
 
             for agent, schedule in AGENT_SCHEDULES.items():

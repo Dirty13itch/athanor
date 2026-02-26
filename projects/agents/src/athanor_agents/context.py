@@ -258,12 +258,38 @@ def _format_knowledge(results: list[dict]) -> list[str]:
     return lines
 
 
+def _format_patterns(patterns: list[dict]) -> list[str]:
+    """Format detected patterns into context text."""
+    lines = []
+    for p in patterns:
+        ptype = p.get("type", "")
+        severity = p.get("severity", "info")
+        if ptype == "failure_cluster":
+            lines.append(f"- ⚠ You failed {p.get('count', 0)} tasks recently. Review your approach.")
+        elif ptype == "negative_feedback_trend":
+            lines.append(
+                f"- ⚠ Negative feedback trend: {p.get('thumbs_down', 0)} negative vs "
+                f"{p.get('thumbs_up', 0)} positive. Adjust your responses."
+            )
+        elif ptype == "high_escalation_rate":
+            lines.append(
+                f"- Note: {p.get('count', 0)} escalations triggered. "
+                f"Try to handle more tasks autonomously when confident."
+            )
+        elif ptype == "task_throughput":
+            rate = p.get("success_rate", 1.0)
+            if rate < 1.0:
+                lines.append(f"- System task success rate: {rate:.0%}")
+    return lines
+
+
 def _build_context_message(
     pref_lines: list[str],
     activity_lines: list[str],
     knowledge_lines: list[str],
     agent_name: str,
     goal_lines: list[str] | None = None,
+    pattern_lines: list[str] | None = None,
 ) -> str:
     """Assemble the final context injection string."""
     sections = []
@@ -273,6 +299,13 @@ def _build_context_message(
             "## Active Goals\n"
             "The user has set these steering goals. Align your actions accordingly:\n"
             + "\n".join(goal_lines)
+        )
+
+    if pattern_lines:
+        sections.append(
+            "## Performance Patterns\n"
+            "Recent patterns detected about your performance:\n"
+            + "\n".join(pattern_lines)
         )
 
     if pref_lines:
@@ -370,12 +403,20 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     activity = results[1] if not isinstance(results[1], BaseException) else []
     knowledge = results[2] if not isinstance(results[2], BaseException) else []
 
-    # Step 3: Fetch active goals (Redis, fast)
+    # Step 3: Fetch active goals + patterns (Redis, fast)
     goal_lines = []
     try:
         from .goals import get_goals_for_agent
         goal_texts = await get_goals_for_agent(agent_name)
         goal_lines = [f"- {t}" for t in goal_texts]
+    except Exception:
+        pass
+
+    pattern_lines = []
+    try:
+        from .patterns import get_agent_patterns
+        agent_patterns = await get_agent_patterns(agent_name)
+        pattern_lines = _format_patterns(agent_patterns)
     except Exception:
         pass
 
@@ -387,17 +428,18 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     elapsed_ms = int((time.monotonic() - start) * 1000)
     total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines)
 
-    if total_hits > 0 or goal_lines:
+    if total_hits > 0 or goal_lines or pattern_lines:
         logger.info(
-            "Context enrichment for %s: %d prefs, %d activity, %d knowledge, %d goals (%dms)",
+            "Context enrichment for %s: %d prefs, %d activity, %d knowledge, %d goals, %d patterns (%dms)",
             agent_name,
             len(pref_lines),
             len(activity_lines) // 2,  # 2 lines per activity item
             len(knowledge_lines),
             len(goal_lines),
+            len(pattern_lines),
             elapsed_ms,
         )
 
     return _build_context_message(
-        pref_lines, activity_lines, knowledge_lines, agent_name, goal_lines
+        pref_lines, activity_lines, knowledge_lines, agent_name, goal_lines, pattern_lines
     )

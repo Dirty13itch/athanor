@@ -565,6 +565,33 @@ async def query_events_endpoint(
     return {"events": events, "count": len(events)}
 
 
+@app.get("/v1/patterns")
+async def get_patterns(agent: str = ""):
+    """Get the latest pattern detection report.
+
+    Optionally filter patterns relevant to a specific agent.
+    """
+    from .patterns import get_latest_report, get_agent_patterns
+
+    if agent:
+        patterns = await get_agent_patterns(agent)
+        return {"agent": agent, "patterns": patterns, "count": len(patterns)}
+
+    report = await get_latest_report()
+    if not report:
+        return {"patterns": [], "recommendations": [], "message": "No pattern report yet. Runs daily at 5:00 AM."}
+    return report
+
+
+@app.post("/v1/patterns/run")
+async def trigger_pattern_detection():
+    """Manually trigger pattern detection (normally runs at 5:00 AM)."""
+    from .patterns import run_pattern_detection
+
+    report = await run_pattern_detection()
+    return report
+
+
 # --- Task Execution Engine ---
 
 
