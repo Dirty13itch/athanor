@@ -96,7 +96,7 @@ RUN pip install --no-cache-dir vllm==0.15.1 \
 2. ✅ Test image built on Node 1 (`athanor/vllm:test`, 34.6 GB)
 3. ✅ Version verified: `import vllm; print(vllm.__version__)` → 0.16.0
 4. ✅ **Node 1 deployed and serving** — inference + tool calling verified
-5. In progress: Deploy to Node 2
+5. ✅ **Node 2 deployed and serving** — Qwen3-14B FP16, inference + tool calling verified
 6. ✅ Regression test with Qwen3-32B-AWQ inference — PASSED
 7. Pending: Download + test Qwen3.5-27B-FP8
 
@@ -122,7 +122,7 @@ This unblocks:
 
 ## Remaining
 
-- **Qwen3.5-27B-FP8:** Available on HuggingFace. Need to download to NFS and test.
+- **Qwen3.5-27B-FP8:** Downloaded to `/mnt/vault/models/Qwen3.5-27B-FP8/` (29 GB, 11 shards). **Cannot load on vLLM v0.16.0** — `qwen3_5` model type was added in [PR #34110](https://github.com/vllm-project/vllm/pull/34110), merged to main **Feb 9, 2026** — one day after v0.16.0 branch cut (Feb 8). Available in nightly builds but not any stable release. Also requires transformers 5.1.0+ ([PR #43830](https://github.com/huggingface/transformers/pull/43830)). All Qwen3.5 models are multimodal VLMs (`Qwen3_5ForConditionalGeneration`), not text-only. The `--language-model-only` flag skips vision encoder. **Option:** Install vLLM nightly (`pip install vllm --extra-index-url https://wheels.vllm.ai/nightly/cu130`) + transformers 5.1.0+ in Dockerfile. Risk: nightly instability. **Safer option:** Wait for vLLM v0.17.0.
 - **GPU orchestrator sleep/wake:** Needs alternative to REST endpoints (perhaps GPU memory monitoring or vLLM's internal auto-sleep).
 
 ## Sources

@@ -82,7 +82,7 @@ SSH: `ssh node1`/`ssh node2` (passwordless). VAULT: `python3 scripts/vault-ssh.p
 
 See `docs/SYSTEM-SPEC.md` for full spec. `docs/BUILD-MANIFEST.md` for tracking. `docs/SERVICES.md` for inventory.
 
-**8 agents live** (Node 1:9000). **All 7 GPUs active.** **Tier 9 Command Center: 12/12 complete.** vLLM v0.16.0 deployed on Node 1 (verified, inference + tool calling working). Sleep mode REST endpoints not available in V1 engine. Knowledge: 2220 chunks in Qdrant. MCP bridge: 14 tools for Claude Code. Autonomous task engine + scheduler deployed.
+**8 agents live** (Node 1:9000). **All 7 GPUs active.** **Tier 9 Command Center: 12/12 complete.** vLLM v0.16.0 deployed on both nodes (Node 1: Qwen3-32B-AWQ TP=4, Node 2: Qwen3-14B FP16). Sleep mode REST endpoints not available in V1 engine. Knowledge: 2220 chunks in Qdrant. MCP bridge: 14 tools for Claude Code. Autonomous task engine + scheduler deployed.
 
 ---
 
