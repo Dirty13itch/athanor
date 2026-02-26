@@ -10,7 +10,7 @@ Last updated: 2026-02-25 (Session 17 — Creative Agent video tools, voice deplo
 |---------|------|---------|
 | vLLM (Qwen3-32B-AWQ) | 8000 | TP=4 across 3x RTX 5070 Ti + RTX 4090, `--quantization awq` |
 | vLLM Embedding (Qwen3-Embedding-0.6B) | 8001 | RTX 5070 Ti GPU 4, 0.40 mem util, 8K ctx, 1024-dim embeddings |
-| Agent Server | 9000 | 8 agents + GWT workspace + escalation + activity/preference APIs |
+| Agent Server | 9000 | 9 agents + GWT workspace + escalation + activity/preference APIs |
 | Qdrant | 6333/6334 | Vector DB, collections: knowledge (922 pts), conversations, activity, preferences |
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics |

@@ -14,7 +14,8 @@ Shaun (Owner / Alchemist / Product Vision)
         ├── General Assistant    ├── Media Agent
         ├── Home Agent           ├── Research Agent
         ├── Creative Agent       ├── Knowledge Agent
-        ├── Coding Agent         └── Stash Agent
+        ├── Coding Agent         ├── Stash Agent
+        └── Data Curator
 ```
 
 **Decide, don't defer.** Make operational decisions. Update docs. Direct agents. Escalate to Shaun only for: vision decisions, credentials, physical tasks, money. Report results, not options.
@@ -88,7 +89,7 @@ SSH: `ssh node1`/`ssh node2` (passwordless). VAULT: `python3 scripts/vault-ssh.p
 
 See `docs/SYSTEM-SPEC.md` for full spec. `docs/BUILD-MANIFEST.md` for tracking. `docs/SERVICES.md` for inventory.
 
-**8 agents live** (Node 1:9000). **All 7 GPUs active.** **Tier 9 Command Center: 12/12 complete.** vLLM v0.16.0 deployed on both nodes. Knowledge: 2376 chunks in Qdrant (incremental indexing). MCP bridge: 14 tools. Autonomous task engine + scheduler + **Proactive Work Engine** deployed.
+**9 agents live** (Node 1:9000). **All 7 GPUs active.** **Tier 9 Command Center: 12/12 complete.** vLLM v0.16.0 deployed on both nodes. Knowledge: 2484 chunks in Qdrant (incremental indexing). MCP bridge: 14 tools. Autonomous task engine + scheduler + **Proactive Work Engine** deployed. **Data Curator agent** for personal data indexing (6h schedule).
 
 **ADR-020** (interaction layers): All 6 layers deployed. **ADR-021** (autonomous loop): Phase 1-3 deployed — implicit feedback, time-decay prefs, notification budgets, event logs, pattern detection (5 AM daily), autonomy graduation, trust regression, **Work Planner v1** (knowledge-informed task generation, morning plan 7 AM, 2-hour refill, human steering via `/v1/workplan/redirect`). Prometheus alert polling every 5 min.
 
