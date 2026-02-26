@@ -30,7 +30,7 @@ Reason from first principles. Derive obvious implications — don't ask question
 
 ### How Shaun Works
 - **Orchestrator, not coder.** Shaun specifies requirements and architectural intent. AI agents write the code. Shaun reviews, tests, and refines.
-- **Terminal-first.** WSL2 Ubuntu, tmux, Termius on phone. Not an IDE person.
+- **Command Center.** The dashboard PWA is the primary interface — desktop and mobile are equally important, both polished. Terminal (WSL2, tmux) is the fallback, not the default. See `docs/design/command-center.md`.
 - **Schedule constraints.** Day job limits weekday build time to evenings. Weekend sessions are primary. Amanda is home — keep noise/heat/power reasonable.
 - **Reddit identity:** SudoMakeMeAHotdish — NSFW access, relevant for Stash + Reddit sourcing.
 
@@ -117,7 +117,7 @@ Full details in `docs/hardware/inventory.md`.
 
 **Knowledge + Memory:** 1203 doc chunks in Qdrant `knowledge` (98 docs), activity log in `activity`, preferences in `preferences`, conversations in `conversations`. Neo4j graph (8 agents, 24 services, 4 nodes, 3 projects, 43 relationships). Redis on VAULT for GWT workspace + GPU orchestrator state + agent registry.
 
-**Dashboard:** 16 pages at Node 2:3001 — Home, GPUs, Monitoring, Agents, Chat, Gallery, Media, Home, Services, Tasks, Workspace, Conversations, Activity, Notifications, Preferences. 26/26 service health checks UP.
+**Command Center:** 17 pages at Node 2:3001. PWA installable (manifest + service worker + icons). Responsive layout (sidebar desktop, bottom nav mobile). Command palette (Cmd+K). SSE `/api/stream` pushes live system metrics every 5s. Live SystemPulse with ambient warmth glow. Agent Crew Bar (8 agents, click-to-chat). Unified Activity Stream (tasks + agent activity merged). Agent proxy route for CORS-free access. Tier 9: 6/12 items complete (9.1-9.6).
 
 **MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 14 tools to Claude Code — coding, knowledge search, system status, task submission, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
 
@@ -169,7 +169,6 @@ Read `docs/projects/{name}/` for project-specific context.
 | Action | Where | Unblocks |
 |--------|-------|----------|
 | NordVPN credentials | Provide to Claude | qBittorrent (6.5) |
-| Tailscale on UDM Pro | SSH root@192.168.1.1 + create account | Remote access (6.8) |
 | Node 2 EXPO | BIOS via JetKVM | DDR5 5600 MT/s |
 | Samsung 990 PRO check | Physical at rack | Node 1 4TB NVMe |
 | Add agents to Open WebUI | Settings → Connections → OpenAI → `http://192.168.1.244:9000/v1` | Chat access |

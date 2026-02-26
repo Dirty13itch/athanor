@@ -1,10 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { queryPrometheus, queryPrometheusRange, type PrometheusResult } from "@/lib/api";
+import { queryPrometheus, type PrometheusResult } from "@/lib/api";
 import { config } from "@/lib/config";
 import { GpuCard } from "@/components/gpu-card";
 import { ActivityFeed, type ActivityItem } from "@/components/activity-feed";
+import { UnifiedStream } from "@/components/unified-stream";
 import { ProgressBar } from "@/components/progress-bar";
+import { SystemPulse } from "@/components/system-pulse";
+import { AgentCrewBar } from "@/components/agent-crew-bar";
 
 export const revalidate = 15;
 
@@ -64,24 +67,6 @@ async function getGpuMetrics(): Promise<GpuMetric[]> {
   return Array.from(gpuMap.values());
 }
 
-interface AgentStatus {
-  serverOnline: boolean;
-  agents: string[];
-}
-
-async function getAgentStatus(): Promise<AgentStatus> {
-  try {
-    const res = await fetch(`${config.agentServer.url}/health`, {
-      signal: AbortSignal.timeout(3000),
-      next: { revalidate: 30 },
-    });
-    if (!res.ok) return { serverOnline: false, agents: [] };
-    const data = await res.json();
-    return { serverOnline: true, agents: data.agents ?? [] };
-  } catch {
-    return { serverOnline: false, agents: [] };
-  }
-}
 
 interface MediaStatus {
   plex_activity: { stream_count?: number; sessions?: { friendly_name?: string; full_title?: string; state?: string; progress_percent?: string }[] };
@@ -162,9 +147,8 @@ function getPowerLimit(instance: string, gpuIndex: number): number {
 // --- Component ---
 
 export default async function DashboardPage() {
-  const [gpus, agentStatus, media, comfyQueue, services] = await Promise.all([
+  const [gpus, media, comfyQueue, services] = await Promise.all([
     getGpuMetrics(),
-    getAgentStatus(),
     getMediaStatus(),
     getComfyUIQueue(),
     getServiceHealth(),
@@ -179,12 +163,6 @@ export default async function DashboardPage() {
     gpusByNode.set(node, group);
   }
 
-  // Totals
-  const totalVramUsed = gpus.reduce((sum, g) => sum + g.memoryUsed, 0);
-  const totalVramTotal = gpus.reduce((sum, g) => sum + g.memoryTotal, 0);
-  const totalPower = gpus.reduce((sum, g) => sum + g.power, 0);
-  const totalPowerBudget = config.nodes.reduce((sum, n) => sum + (n.psuWatts ?? 0), 0);
-  const nodesOnline = new Set(gpus.map((g) => nodeFromInstance(g.instance))).size;
   const servicesUp = services.filter((s) => s.status === "up").length;
   const servicesTotal = services.length;
 
@@ -217,54 +195,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* System Pulse Strip */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              {gpus.map((g, i) => (
-                <div key={i} className="flex flex-col items-center">
-                  <div className="w-3 h-8 rounded-sm bg-muted overflow-hidden flex flex-col-reverse">
-                    <div
-                      className={`w-full rounded-sm ${
-                        g.utilization > 80 ? "bg-red-500" : g.utilization > 50 ? "bg-yellow-500" : "bg-green-500"
-                      }`}
-                      style={{ height: `${Math.max(2, g.utilization)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-              <span className="text-xs text-muted-foreground ml-1">{gpus.length} GPUs</span>
-            </div>
-            <div className="text-xs">
-              <span className="text-muted-foreground">VRAM</span>{" "}
-              <span className="font-mono font-medium">
-                {(totalVramUsed / 1024).toFixed(0)}/{(totalVramTotal / 1024).toFixed(0)} GB
-              </span>
-            </div>
-            <div className="text-xs">
-              <span className="text-muted-foreground">Nodes</span>{" "}
-              <span className="font-mono font-medium">{nodesOnline}/{config.nodes.length}</span>
-            </div>
-            <div className="text-xs">
-              <span className="text-muted-foreground">Power</span>{" "}
-              <span className="font-mono font-medium">
-                {totalPower.toFixed(0)}W / {totalPowerBudget}W
-              </span>
-            </div>
-            <div className="text-xs">
-              <span className="text-muted-foreground">Services</span>{" "}
-              <span className="font-mono font-medium">{servicesUp}/{servicesTotal}</span>
-            </div>
-            {agentStatus.serverOnline && (
-              <div className="text-xs">
-                <span className="text-muted-foreground">Agents</span>{" "}
-                <Badge variant="default" className="text-xs py-0 px-1.5">{agentStatus.agents.length} online</Badge>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Live System Pulse — SSE-powered, updates every 5s */}
+      <SystemPulse />
+
+      {/* Agent Crew — live status, click to chat */}
+      <AgentCrewBar />
 
       {/* GPU Map + Active Workloads */}
       <div className="grid gap-4 lg:grid-cols-5">
@@ -280,7 +215,7 @@ export default async function DashboardPage() {
                     {nodeConfig?.role} — {nodeGpus.length} GPUs, {(nodeConfig?.vram ?? 0)} GB VRAM
                   </span>
                 </div>
-                <div className={`grid gap-2 ${nodeGpus.length > 3 ? "grid-cols-3 lg:grid-cols-5" : "grid-cols-2"}`}>
+                <div className={`grid gap-2 ${nodeGpus.length > 3 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5" : "grid-cols-2"}`}>
                   {nodeGpus.map((gpu, i) => (
                     <GpuCard
                       key={`${gpu.instance}-${gpu.gpuIndex}-${i}`}
@@ -409,14 +344,24 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Activity */}
+      {/* Unified Stream — tasks + agent activity, live updates */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Activity Stream</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <UnifiedStream limit={10} />
+        </CardContent>
+      </Card>
+
+      {/* Plex Watch History */}
       {activityItems.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Recent Activity</CardTitle>
+            <CardTitle className="text-sm">Recent Watches</CardTitle>
           </CardHeader>
           <CardContent>
-            <ActivityFeed items={activityItems.slice(0, 8)} />
+            <ActivityFeed items={activityItems.slice(0, 5)} />
           </CardContent>
         </Card>
       )}

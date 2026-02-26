@@ -1016,7 +1016,7 @@ Installed as fallback chain members, but can't point at local vLLM:
 
 **HappyCoder**
 - Open-source mobile/web client for Claude Code. E2E encrypted (TweetNaCl). iOS + Android + web. Push notifications for permissions and task completion.
-- **Verdict: MAYBE (Phase 4+)** — useful for monitoring long-running agents from phone via Termius. But: reports of uploading API keys to "Happy Cloud" contradict privacy claims. Verify API key handling before trusting with Anthropic credentials. Don't install until trust is verified.
+- **Verdict: MAYBE (Phase 4+)** — useful for monitoring long-running agents from phone. But: reports of uploading API keys to "Happy Cloud" contradict privacy claims. Verify API key handling before trusting with Anthropic credentials. Don't install until trust is verified.
 
 #### Category 5: Agent Frameworks (Athanor's Cognitive Layer)
 
@@ -1134,7 +1134,7 @@ Shaun Ulrich. Dayton, Minnesota (Twin Cities metro). Engaged to Amanda. Runs Ulr
 ### How Shaun Works
 
 - **Orchestrator, not coder.** Shaun specifies requirements and architectural intent. AI agents write the code. Shaun reviews, tests, and refines. The quality of specs determines the quality of output.
-- **Terminal-first.** WSL2 Ubuntu, tmux for session persistence, Termius on phone for mobile SSH. Not an IDE person — VS Code installed but terminal is primary.
+- **WSL2 Ubuntu, tmux for session persistence.** Not an IDE person — VS Code installed but terminal is primary.
 - **Right over fast.** Research → document → decide → build. Don't skip steps. But don't analysis-paralyze either.
 - **One-person scale.** If it requires a team to maintain, it's wrong. Every decision must pass: "Can Shaun understand, operate, debug, and fix this alone?"
 - **Craft matters.** Clean configs, good docs, thoughtful architecture. The vessel determines the quality of the output.

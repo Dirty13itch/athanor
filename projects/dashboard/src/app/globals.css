@@ -141,3 +141,39 @@
     font-family: var(--font-heading), serif;
   }
 }
+
+/* Ambient system variables — driven by SSE in Phase 2 */
+:root {
+  --system-warmth: 0;
+  --breath-speed: 4s;
+  --furnace-glow: oklch(0.75 calc(0.02 + var(--system-warmth) * 0.06) 65);
+}
+
+/* Safe area for iPhone notch / gesture bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Standalone PWA — remove browser chrome spacing */
+@media (display-mode: standalone) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Touch feedback for mobile */
+@media (pointer: coarse) {
+  .tap-highlight {
+    -webkit-tap-highlight-color: oklch(0.75 0.08 65 / 20%);
+  }
+}
+
+/* Hide scrollbar but keep scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

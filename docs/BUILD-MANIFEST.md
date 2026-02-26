@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-25 (Session 19: Autonomous Workforce — Task Engine 8.1 ✅, Scheduler 8.2 ✅)
+Last updated: 2026-02-26 (Session 20 continued: Command Center Phase 1+2 built — PWA, mobile layout, SSE, crew bar, unified stream deployed)
 
 ---
 
@@ -274,11 +274,11 @@ The agent framework exists but is skeletal. These items make agents actually use
 ### 6.7 — Mining GPU enclosure migration
 - **Status:** 🔲 Backlog — requires physical work
 
-### 6.8 — Remote access (Tailscale/WireGuard)
-- **Status:** 🚫 Blocked on Shaun (needs UDM Pro SSH + Tailscale account creation)
-- **Research:** `docs/research/2026-02-24-remote-access.md` — 5 options evaluated, Tailscale recommended
-- **Decision:** ADR-016 — Tailscale with UDM Pro as subnet router. Free tier, CGNAT-proof, zero exposed ports, ~30 min deploy.
-- **Implementation:** Requires Shaun to SSH into UDM Pro and install community package. See ADR-016 for step-by-step.
+### 6.8 — Remote access
+- **Status:** 🔲 Backlog — deprioritized (not currently needed)
+- **Research:** `docs/research/2026-02-24-remote-access.md` — 5 options evaluated
+- **Decision:** ADR-016 written but approach TBD. Tailscale-on-UDM-Pro removed as requirement.
+- **Note:** Revisit if/when mobile access (6.4) becomes a priority.
 
 ---
 
@@ -426,6 +426,77 @@ The agent framework exists but is skeletal. These items make agents actually use
 
 ---
 
+## Tier 9: Command Center (P1)
+
+*Evolves the dashboard from monitoring surface to primary interface. Web-first PWA with mobile support, real-time updates, human-in-the-loop feedback, and development integration. Design: `docs/design/command-center.md`. Decision: ADR-019.*
+
+### 9.1 — PWA Foundation + Mobile Layout
+- **Status:** ✅ (Session 20, 2026-02-26)
+- **Scope:** PWA manifest (`app/manifest.ts`), service worker (`public/sw.js`), PWA icons (192/512/maskable), bottom nav (5 tabs), responsive layout (sidebar hidden on mobile, bottom nav `md:hidden`), 44px touch targets, safe-area padding, viewport meta, apple-web-app meta.
+- **Done:** Dashboard installable as PWA. Bottom nav on mobile. Sidebar on desktop. `/more` page for full nav. `/offline` fallback. All pages usable on 6" screen.
+
+### 9.2 — Command Palette (Cmd+K)
+- **Status:** ✅ (Session 20, 2026-02-26)
+- **Scope:** shadcn/ui `CommandDialog` + cmdk. Fuzzy search over 15 pages, 8 agents, quick actions. Cmd+K keyboard shortcut. Mobile FAB trigger button.
+- **Done:** Cmd+K opens palette. Searching finds pages/agents/actions. Mobile: floating search button above bottom nav.
+
+### 9.3 — Agent Portrait Bar + Calm Visual Foundation
+- **Status:** ✅ (Session 20, 2026-02-26)
+- **Scope:** `AgentCrewBar` component — 8 agent circles with per-agent colors, online indicators, click-to-chat links. `SystemPulse` with ambient glow powered by SSE warmth. CSS custom properties `--system-warmth`, `--breath-speed`, `--furnace-glow`. `motion` library installed.
+- **Done:** Crew bar on home page with live agent status. SystemPulse has warmth-driven box-shadow. Clicking agent opens chat.
+
+### 9.4 — SSE Real-Time Endpoint
+- **Status:** ✅ (Session 20, 2026-02-26)
+- **Scope:** `/api/stream` SSE endpoint — fetches GPU metrics (Prometheus), agent status, service health, task stats every 5s. `useSystemStream` hook with exponential backoff reconnection. Connection status indicator. `SystemPulse` replaces static polling on home page.
+- **Done:** All 7 GPUs, 8 agents, 19 services streaming live. Auto-reconnect on disconnect. 5-minute TTL prevents resource leaks.
+
+### 9.5 — Furnace Home Surface + Glanceable Widgets
+- **Status:** ✅ (Session 20, 2026-02-26)
+- **Scope:** Home page redesigned: live SystemPulse (warmth glow), Agent Crew bar, GPU map (responsive grid), workload cards, unified activity stream, quick links.
+- **Done:** Home page is visually alive. Idle system = calm dark surface. Active system = warmer amber glow. GPU cards responsive (2-col mobile, 3-col tablet, 5-col desktop).
+
+### 9.6 — Unified Activity Stream
+- **Status:** ✅ (Session 20, 2026-02-26)
+- **Scope:** `UnifiedStream` component — fetches tasks + activity via `/api/agents/proxy`, merges chronologically, auto-refreshes every 15s. Status dots (completed/running/failed/pending). Agent proxy route (`/api/agents/proxy`) for CORS-free agent server access.
+- **Done:** Activity Stream card on home page shows live tasks and agent activity. Separate Plex Watch History card below.
+
+### 9.7 — Push Notifications
+- **Status:** ✅ (Session 20, 2026-02-26)
+- **Scope:** VAPID key generation, `web-push` npm, push subscription API (`/api/push/subscribe`, `/api/push/send`), PushManager component in preferences page, service worker push handler (already in sw.js from 9.1). VAPID keys in docker-compose env.
+- **Done:** Push subscription + send infrastructure deployed. Subscribe/unsubscribe from Preferences page. SW handles push display + notification click routing + approve/reject actions. Remaining: wire agent escalation events to trigger sends (needs agent server integration).
+
+### 9.8 — Generative UI (Chat)
+- **Status:** 🔲 todo
+- **Scope:** Install Vercel AI SDK (`ai`). Chat responses render React components inline. Initial component types: GPU chart, media gallery, task status, approval card. Wire to agent server via LiteLLM.
+- **Depends on:** 9.4
+- **Done when:** Asking "how are the GPUs?" in chat returns an interactive GPU chart, not just text.
+
+### 9.9 — Lens Mode (Intent-Driven Layout)
+- **Status:** 🔲 todo
+- **Scope:** Lens state manager (React context + URL query param). Per-lens layout definitions. Command palette triggers lens changes. Smooth layout transitions via `motion`. Initial lenses: Default, System, Media, Creative, EoBQ.
+- **Depends on:** 9.2, 9.5
+- **Done when:** Typing "focus on media" in command palette reshapes the interface to show media-relevant agents, activity, and controls.
+
+### 9.10 — Goals API + Human-in-the-Loop Feedback
+- **Status:** 🔲 todo
+- **Scope:** Agent server endpoints: `/v1/goals`, `/v1/goals/steer`. Formalize autonomy levels (A/B/C/D) in agent config. Implicit feedback tracking. Explicit binary feedback (thumbs up/down on stream entries). Daily digest scheduled task (6:55 AM). Trust calibration (track record display, rubber-stamp detection). Impact visibility.
+- **Depends on:** 9.6 (stream for feedback surface)
+- **Done when:** Can set goals via dashboard. Agents adjust behavior from goals. Thumbs up/down on agent outputs. Daily morning digest available. Per-agent trust metrics visible.
+
+### 9.11 — Terminal Page (xterm.js)
+- **Status:** 🔲 todo
+- **Scope:** `/terminal` dashboard page with `react-xtermjs`. WebSocket backend on DEV running `node-pty` → Claude Code. Dynamic import with `ssr: false`.
+- **Depends on:** 9.1
+- **Done when:** Can open Claude Code in a terminal tab within the dashboard.
+
+### 9.12 — Claudeman Deployment
+- **Status:** 🔲 todo
+- **Scope:** Deploy Claudeman on DEV for multi-session Claude Code web access. Configure HTTPS for LAN access. Test overnight autonomous operation.
+- **Depends on:** Nothing
+- **Done when:** Claudeman accessible at DEV:3000 on LAN. Multi-session works. Respawn controller tested.
+
+---
+
 ## Blocked on Shaun
 
 These require human action. Claude Code cannot do them.
@@ -437,4 +508,3 @@ These require human action. Claude Code cannot do them.
 | Node 2 EXPO | BIOS via JetKVM | Performance |
 | Samsung 990 PRO reseat | Physical at rack | Node 1 storage |
 | BMC config at .216 | Browser: http://192.168.1.216 | Remote power mgmt |
-| Tailscale on UDM Pro | SSH root@192.168.1.1, install tailscale-udm, create account | 6.8 (Remote access) |

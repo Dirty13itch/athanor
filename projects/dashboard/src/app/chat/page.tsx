@@ -271,11 +271,11 @@ function ChatContent() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-3rem)] flex-col space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Chat</h1>
-          <p className="text-muted-foreground">
+    <div className="flex h-[calc(100vh-5rem)] flex-col space-y-3 md:h-[calc(100vh-3rem)] md:space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight md:text-2xl">Chat</h1>
+          <p className="truncate text-xs text-muted-foreground md:text-sm">
             {selectedModel
               ? isAgent
                 ? `Agent: ${displayModelName(selectedModel)}`
@@ -283,8 +283,8 @@ function ChatContent() {
               : "Loading models..."}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {isAgent && <Badge variant="outline" className="text-xs">Agent</Badge>}
+        <div className="flex shrink-0 items-center gap-2">
+          {isAgent && <Badge variant="outline" className="hidden text-xs sm:inline-flex">Agent</Badge>}
           {models.length > 0 && (
             <select
               value={selectedModel ? modelKey(selectedModel) : ""}
@@ -299,7 +299,7 @@ function ChatContent() {
                   setExpandedTools(new Set());
                 }
               }}
-              className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+              className="max-w-[160px] rounded-md border border-border bg-background px-2 py-1.5 text-xs md:max-w-none md:px-3 md:text-sm"
               disabled={isStreaming}
             >
               {inferenceModels.length > 0 && (
@@ -376,7 +376,7 @@ function ChatContent() {
                     className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 text-sm whitespace-pre-wrap ${
+                      className={`max-w-[90%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap md:max-w-[80%] md:px-4 ${
                         item.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-foreground"

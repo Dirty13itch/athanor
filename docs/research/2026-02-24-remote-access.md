@@ -10,7 +10,7 @@
 
 Athanor is a 4-node homelab (3 Linux servers + 1 Windows/WSL2 workstation) on a flat 192.168.1.0/24 subnet behind a UniFi Dream Machine Pro. The operator (Shaun) needs reliable remote access for:
 
-- SSH to all nodes from mobile (Termius on phone) and laptop
+- SSH to all nodes from mobile and laptop
 - Web dashboards: Grafana (:3000 on VAULT), Dashboard (:3001 on Node 2), Open WebUI (:3000 on Node 2), Home Assistant (:8123 on VAULT)
 - Must work behind CGNAT or changing IPs (common with US residential ISPs)
 - One-person operation: simple to set up, debug, and maintain
@@ -53,7 +53,7 @@ Then approve the routes in the Tailscale admin console. This means individual no
 
 **Important caveat:** The tailscale-udm package is community-maintained (not Ubiquiti or Tailscale official). UniFi OS firmware updates can break it, requiring reinstallation. The package uses systemd on UniFi OS 2.x+ and survives reboots, but major firmware upgrades need testing.
 
-**Mobile client support:** Excellent. Native iOS and Android apps, well-maintained, reliable. Integrates seamlessly with Termius -- just SSH to the Tailscale IP (100.x.y.z) or MagicDNS hostname. Multiple articles from 2025 document the Tailscale + Termius + tmux workflow on iPhone as "surprisingly usable."
+**Mobile client support:** Excellent. Native iOS and Android apps, well-maintained, reliable. SSH to the Tailscale IP (100.x.y.z) or MagicDNS hostname from any mobile SSH client.
 
 **MagicDNS / Split DNS:** Tailscale's MagicDNS automatically assigns DNS names to all devices (e.g., `node1.tailnet-name.ts.net`). Split DNS can route queries for a custom domain (e.g., `*.athanor.local`) to an internal DNS server through the Tailscale tunnel. This means you can access `grafana.athanor.local:3000` from your phone without remembering IPs.
 
@@ -85,7 +85,7 @@ Then approve the routes in the Tailscale admin console. This means individual no
 
 **UDM Pro support:** Native. Built into UniFi OS since ~2023. No third-party packages needed. Configure entirely through the UniFi web interface. This is the cleanest integration of any option.
 
-**Mobile client support:** Good. Official WireGuard app on iOS and Android. Import config via QR code. However, you must use WireGuard's own app -- Termius does not integrate WireGuard natively. You run WireGuard as a system VPN, then SSH normally through Termius.
+**Mobile client support:** Good. Official WireGuard app on iOS and Android. Import config via QR code. WireGuard runs as a system VPN, then SSH normally through any SSH client.
 
 **Performance overhead:** Lowest of any option. WireGuard kernel module adds ~1ms latency and negligible throughput overhead. No relay servers, no coordination layer. Direct encrypted tunnel.
 
@@ -113,7 +113,7 @@ Then approve the routes in the Tailscale admin console. This means individual no
 
 **Mobile client support:** Mixed.
 - **Web dashboards:** Excellent. Access via any browser with Cloudflare Access authentication. No app needed.
-- **SSH:** Poor for daily use. Two options: (a) browser-based SSH terminal (laggy, no Termius integration), or (b) install `cloudflared` on the client device as a proxy, then SSH through it. Neither integrates with Termius natively. This is a dealbreaker for Shaun's SSH-first workflow.
+- **SSH:** Poor for daily use. Two options: (a) browser-based SSH terminal (laggy), or (b) install `cloudflared` on the client device as a proxy, then SSH through it. Neither is a clean mobile SSH experience.
 
 **Performance overhead:**
 - All traffic routes through Cloudflare's edge (15-45ms added latency depending on proximity)
@@ -126,7 +126,7 @@ Then approve the routes in the Tailscale admin console. This means individual no
 **TOS considerations:** Cloudflare [updated their TOS](https://blog.cloudflare.com/updated-tos/) to move the old Section 2.8 content restriction to a CDN-specific section. Tunnel usage for non-CDN traffic (SSH, web apps) appears to be permitted. However, streaming video (e.g., Plex) through a Cloudflare Tunnel remains in a grey area -- the restriction now applies specifically to CDN-cached content, but community consensus is to avoid high-bandwidth media streaming through free tunnels.
 
 **Risks and maintenance burden:**
-- SSH workflow is clunky -- not a good fit for Termius-first usage
+- SSH workflow is clunky -- not a good fit for mobile SSH usage
 - Every service needs explicit hostname mapping (no blanket LAN access)
 - Cloudflare sees all your traffic (unencrypted at their edge)
 - Domain name required
@@ -208,7 +208,7 @@ This is a significant concern for mobile-first remote access.
 | **CGNAT compatible** | Yes | **NO** | Yes | Needs VPS | Yes |
 | **UDM Pro support** | Community pkg | Native | N/A (runs on server) | Community pkg | No |
 | **Subnet router on UDM Pro** | Yes (kernel mode) | N/A (native VPN) | No (per-service) | Yes (kernel mode) | No |
-| **Mobile SSH (Termius)** | Excellent | Good | Poor | OK (fiddly setup) | Poor (unstable app) |
+| **Mobile SSH** | Excellent | Good | Poor | OK (fiddly setup) | Poor (unstable app) |
 | **Mobile web dashboards** | Excellent | Good | Excellent | OK | Poor |
 | **SSH latency overhead** | 1-3ms (direct) | ~1ms | 15-45ms | 1-3ms (direct) | 1-3ms (direct) |
 | **MagicDNS / auto naming** | Yes | No | Via hostnames | Limited | Yes |
@@ -275,7 +275,7 @@ Rationale:
 
 2. **Single install point.** Tailscale on the UDM Pro as a subnet router means zero software to install or maintain on Node 1, Node 2, VAULT, or DEV. One package, one device, entire LAN accessible.
 
-3. **Termius integration is proven.** The Tailscale + Termius + tmux workflow on iOS is well-documented and widely used in 2025. SSH to `node1` by MagicDNS name or Tailscale IP, directly from Termius.
+3. **Mobile SSH is seamless.** SSH to `node1` by MagicDNS name or Tailscale IP from any mobile SSH client.
 
 4. **Zero exposed ports.** No port forwarding, no public endpoints, no firewall holes. All connections are outbound from the UDM Pro to Tailscale's coordination servers.
 
@@ -290,7 +290,7 @@ Rationale:
 ### Why not the others?
 
 - **Raw WireGuard:** Best performance and simplest architecture, but fails completely behind CGNAT. If Shaun confirms his ISP provides a real public IP, this becomes a viable alternative (and is already built into the UDM Pro). But it is fragile against ISP changes -- many US ISPs are moving to CGNAT.
-- **Cloudflare Tunnel:** Great for exposing web services publicly, but poor SSH experience kills it for a terminal-first user. Also requires per-service configuration (no blanket LAN access) and puts Cloudflare in the middle of all traffic.
+- **Cloudflare Tunnel:** Great for exposing web services publicly, but poor SSH experience. Also requires per-service configuration (no blanket LAN access) and puts Cloudflare in the middle of all traffic.
 - **Headscale:** All the operational burden of self-hosting with no benefit over Tailscale's free tier for a one-person homelab. The XDA article summarizes it well: "most people probably shouldn't."
 - **NetBird:** Promising technology but iOS app instability is a dealbreaker for mobile-first remote access. Worth revisiting in 12-18 months as the product matures post-Series A.
 
@@ -317,7 +317,7 @@ Rationale:
 
 5. **Install Tailscale on phone** (5 min): Download from App Store / Play Store, sign in with same account.
 
-6. **Configure Termius** (5 min): Add hosts using 192.168.1.x IPs (accessible via subnet route). Test SSH to each node.
+6. **Configure mobile SSH client** (5 min): Add hosts using 192.168.1.x IPs (accessible via subnet route). Test SSH to each node.
 
 7. **Optional: Configure MagicDNS** (10 min): In Tailscale admin console -> DNS -> enable MagicDNS. Optionally configure split DNS for a custom domain pointing to an internal DNS server.
 
@@ -360,7 +360,7 @@ This provides the reliability of native WireGuard with the CGNAT insurance of Ta
 - [NetBird - GitHub](https://github.com/netbirdio/netbird) -- Open-source WireGuard mesh
 - [NetBird iOS client issues - Forum](https://forum.netbird.io/t/state-of-ios-client/132/1) -- User reports of iOS app instability
 - [NetBird $10M Series A - Tech.eu](https://tech.eu/2026/01/13/netbird-announces-10m-series-a-to-expand-open-source-vpn-alternative/) -- Funding and growth
-- [Tailscale + Termius + tmux on iPhone](https://petesena.medium.com/how-to-run-claude-code-from-your-iphone-using-tailscale-termius-and-tmux-2e16d0e5f68b) -- Mobile SSH workflow
+- [Tailscale + tmux on iPhone](https://petesena.medium.com/how-to-run-claude-code-from-your-iphone-using-tailscale-termius-and-tmux-2e16d0e5f68b) -- Mobile SSH workflow
 - [WireGuard vs Tailscale performance - Contabo](https://contabo.com/blog/wireguard-vs-tailscale/) -- Benchmark comparison
 - [Cloudflare Tunnel vs ngrok vs Tailscale - DEV Community](https://dev.to/mechcloud_academy/cloudflare-tunnel-vs-ngrok-vs-tailscale-choosing-the-right-secure-tunneling-solution-4inm) -- Latency comparison
 - [CGNAT detection methods - PureVPN](https://www.purevpn.com/blog/how-to-check-whether-or-not-your-isp-performs-cgnat/) -- How to check for CGNAT

@@ -6,7 +6,7 @@
 
 ## Context
 
-Shaun needs reliable remote access to the homelab from mobile (Termius on iPhone) and laptop. Requirements:
+Shaun needs reliable remote access to the homelab from mobile and laptop. Requirements:
 
 - SSH to all 4 nodes from anywhere
 - Web dashboards (Grafana, Dashboard, Open WebUI, HA) accessible remotely
@@ -34,7 +34,7 @@ Install Tailscale on the UniFi Dream Machine Pro via community package ([SierraS
 
 1. **CGNAT-proof.** Works regardless of ISP configuration. No port forwarding needed.
 2. **Single install point.** One package on the UDM Pro gives access to the entire LAN. Zero software on compute nodes.
-3. **Proven Termius integration.** SSH to `192.168.1.244` (or MagicDNS hostname) directly from Termius on iPhone.
+3. **Mobile SSH works.** SSH to `192.168.1.244` (or MagicDNS hostname) directly from any mobile SSH client.
 4. **Zero exposed ports.** All connections are outbound from UDM Pro to Tailscale's coordination servers.
 5. **Free.** Personal plan: 3 users, 100 devices. Well within limits.
 6. **~30 minutes to deploy.** Install on UDM Pro, approve subnet route, install mobile app, done.
@@ -53,7 +53,7 @@ Requires Shaun (SSH into UDM Pro, create Tailscale account):
 4. Configure: `tailscale up --advertise-routes="192.168.1.0/24" --snat-subnet-routes=false --accept-routes --reset`
 5. Approve subnet route in Tailscale admin console
 6. Install Tailscale on phone, sign in
-7. Configure Termius hosts using 192.168.1.x IPs
+7. Configure mobile SSH client hosts using 192.168.1.x IPs
 
 **Fallback:** If UDM Pro community package breaks on firmware update, install Tailscale directly on VAULT as subnet router (5-minute recovery).
 

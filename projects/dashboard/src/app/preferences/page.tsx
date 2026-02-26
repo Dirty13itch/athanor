@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { config } from "@/lib/config";
+import { PushManager } from "@/components/push-manager";
 
 interface Preference {
   score: number;
@@ -109,6 +110,19 @@ export default function PreferencesPage() {
           </p>
         </div>
       </div>
+
+      {/* Push Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Notifications</CardTitle>
+          <CardDescription>
+            Get push notifications for agent escalations and system alerts
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PushManager />
+        </CardContent>
+      </Card>
 
       {/* Store new preference */}
       <Card>

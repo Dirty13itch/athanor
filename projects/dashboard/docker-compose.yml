@@ -10,3 +10,5 @@ services:
       - "3001:3001"
     environment:
       - NEXT_PUBLIC_PROMETHEUS_URL=http://192.168.1.203:9090
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=BFU67u2Kkj2yrC-ll29vulKVi1HR6qflEfLfPucaE5qDOG5Ojmka8NCaOs7QzDCTE4b8V5Apb5PFY8fCooOe2LA
+      - VAPID_PRIVATE_KEY=dKpgcebzfa_qxgzL4g7SjoVpSJweWQcjx1C267wKsN4

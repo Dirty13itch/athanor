@@ -181,7 +181,7 @@ Latency is fine. The problem is purely bandwidth.
 | id_ed25519 | Ed25519 | Primary identity |
 | id_ed25519_wsl | Ed25519 | WSL-specific (unclear purpose -- duplicate?) |
 | athanor_mgmt | Ed25519 | Cluster management key |
-| termius_key | Ed25519 | Mobile (Termius) access |
+| termius_key | Ed25519 | Mobile access (legacy key name) |
 
 **SSH Config (`~/.ssh/config`):**
 
@@ -202,7 +202,7 @@ Latency is fine. The problem is purely bandwidth.
 
 **SSH Agent:** NOT running. `ssh-add -l` fails with "Could not open a connection to your authentication agent." No auto-start in `.bashrc` or `.profile`. Keys work because they're specified in `~/.ssh/config` directly.
 
-**Authorized Keys:** Only Termius phone key is authorized for inbound SSH to DEV.
+**Authorized Keys:** Only the phone SSH key is authorized for inbound SSH to DEV.
 
 **Assessment:** SSH config is functional but fragile. No ssh-agent means every new tmux pane that needs agent forwarding will fail. The VAULT native SSH denial is a known issue (documented in MEMORY.md).
 
