@@ -42,6 +42,17 @@ interface TrustData {
   scores: Record<string, { score: number; level: string; feedback_count: number }>;
 }
 
+interface PatternItem {
+  type: string;
+  severity: string;
+  agent?: string;
+  count?: number;
+  thumbs_up?: number;
+  thumbs_down?: number;
+  success_rate?: number;
+  runs?: number;
+}
+
 interface AgentDetailPanelProps {
   agentName: string | null;
   agentColor: string;
@@ -55,6 +66,8 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [trust, setTrust] = useState<{ score: number; level: string; feedback_count: number } | null>(null);
+  const [patterns, setPatterns] = useState<PatternItem[]>([]);
+  const [autonomy, setAutonomy] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -71,7 +84,9 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
       proxy(`/v1/activity?agent=${agentName}&limit=5`),
       proxy(`/v1/tasks?agent=${agentName}&limit=5`),
       proxy("/v1/trust"),
-    ]).then(([agentsData, activityData, tasksData, trustData]) => {
+      proxy(`/v1/patterns?agent=${agentName}`),
+      proxy("/v1/autonomy"),
+    ]).then(([agentsData, activityData, tasksData, trustData, patternsData, autonomyData]) => {
       if (agentsData?.agents) {
         const found = agentsData.agents.find((a: AgentMeta) => a.name === agentName);
         setAgent(found ?? null);
@@ -83,6 +98,18 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
       } else {
         setTrust(null);
       }
+      setPatterns(patternsData?.patterns ?? []);
+      // Filter autonomy adjustments for this agent
+      const adj: Record<string, number> = {};
+      if (autonomyData?.adjustments) {
+        for (const [key, val] of Object.entries(autonomyData.adjustments)) {
+          if (key.startsWith(`${agentName}:`)) {
+            const category = key.split(":")[1];
+            adj[category] = val as number;
+          }
+        }
+      }
+      setAutonomy(adj);
       setLoading(false);
     });
   }, [agentName]);
@@ -169,13 +196,47 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
                 </Section>
               )}
 
-              {/* Trust & Feedback */}
-              {trust && (
-                <Section title="Trust">
-                  <div className="flex items-center gap-4 text-xs">
-                    <span>Score: <strong>{trust.score.toFixed(2)}</strong></span>
-                    <span>Level: <strong>{trust.level}</strong></span>
-                    <span>Feedback: <strong>{trust.feedback_count}</strong></span>
+              {/* Trust & Autonomy */}
+              {(trust || Object.keys(autonomy).length > 0) && (
+                <Section title="Trust & Autonomy">
+                  <div className="flex items-center gap-4 text-xs flex-wrap">
+                    {trust && (
+                      <>
+                        <span>Score: <strong>{trust.score.toFixed(2)}</strong></span>
+                        <span>Level: <strong>{trust.level}</strong></span>
+                        <span>Feedback: <strong>{trust.feedback_count}</strong></span>
+                      </>
+                    )}
+                    {Object.entries(autonomy).map(([cat, adj]) => (
+                      <span key={cat} className={adj > 0 ? "text-red-400" : adj < 0 ? "text-green-400" : ""}>
+                        {cat}: {adj > 0 ? "+" : ""}{adj.toFixed(3)}
+                      </span>
+                    ))}
+                  </div>
+                </Section>
+              )}
+
+              {/* Detected Patterns */}
+              {patterns.length > 0 && (
+                <Section title="Patterns">
+                  <div className="space-y-1">
+                    {patterns.map((p, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <Badge
+                          variant={p.severity === "high" ? "destructive" : "outline"}
+                          className="text-[10px] shrink-0"
+                        >
+                          {p.type.replace(/_/g, " ")}
+                        </Badge>
+                        <span className="text-muted-foreground">
+                          {p.type === "failure_cluster" && `${p.count} failures`}
+                          {p.type === "negative_feedback_trend" && `${p.thumbs_down}\u2193 vs ${p.thumbs_up}\u2191`}
+                          {p.type === "high_escalation_rate" && `${p.count} escalations`}
+                          {p.type === "schedule_summary" && `${p.runs} runs`}
+                          {p.type === "task_throughput" && `${((p.success_rate ?? 1) * 100).toFixed(0)}% success`}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </Section>
               )}

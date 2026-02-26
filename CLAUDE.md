@@ -88,7 +88,9 @@ SSH: `ssh node1`/`ssh node2` (passwordless). VAULT: `python3 scripts/vault-ssh.p
 
 See `docs/SYSTEM-SPEC.md` for full spec. `docs/BUILD-MANIFEST.md` for tracking. `docs/SERVICES.md` for inventory.
 
-**8 agents live** (Node 1:9000). **All 7 GPUs active.** **Tier 9 Command Center: 12/12 complete.** vLLM v0.16.0 on both nodes. Knowledge: 2220 chunks in Qdrant. MCP bridge: 14 tools. Autonomous task engine + scheduler deployed. ADR-020 (interaction layers) and ADR-021 (autonomous loop) Phase 1 deployed.
+**8 agents live** (Node 1:9000). **All 7 GPUs active.** **Tier 9 Command Center: 12/12 complete.** vLLM v0.16.0 deployed on Node 1 (verified, inference + tool calling working). Sleep mode REST endpoints not available in V1 engine. Knowledge: 2220 chunks in Qdrant. MCP bridge: 14 tools for Claude Code. Autonomous task engine + scheduler deployed.
+
+**ADR-020** (interaction layers): All 6 layers deployed. **ADR-021** (autonomous loop): Phase 1 + Phase 2 deployed — implicit feedback, time-decay prefs, notification budgets, event logs, pattern detection (5 AM daily), autonomy graduation, trust regression.
 
 **Claude Code setup:** 9 rules (path-scoped), 12 skills, 9 commands, 4 custom agents, 7 hooks across 6 events, 10 plugins, 5 MCP servers. Agent Teams enabled.
 
