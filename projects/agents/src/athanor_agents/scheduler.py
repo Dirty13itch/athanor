@@ -32,11 +32,16 @@ _scheduler_task: asyncio.Task | None = None
 DAILY_DIGEST_KEY = "athanor:scheduler:daily_digest"
 PATTERN_DETECTION_KEY = "athanor:scheduler:pattern_detection"
 ALERT_CHECK_KEY = "athanor:alerts:last_check"
+WORKPLAN_MORNING_KEY = "athanor:scheduler:morning_plan"
+WORKPLAN_REFILL_KEY = "athanor:workplan:last_refill_check"
 DIGEST_HOUR = 6   # 6:55 AM local time
 DIGEST_MINUTE = 55
 PATTERN_HOUR = 5   # 5:00 AM local time
 PATTERN_MINUTE = 0
+WORKPLAN_HOUR = 7  # 7:00 AM local time
+WORKPLAN_MINUTE = 0
 ALERT_CHECK_INTERVAL = 300  # 5 minutes
+WORKPLAN_REFILL_INTERVAL = 7200  # 2 hours
 
 AGENT_SCHEDULES = {
     "general-assistant": {
@@ -178,6 +183,73 @@ async def _check_pattern_detection():
         logger.warning("Scheduler: pattern detection failed: %s", e)
 
 
+async def _check_morning_plan():
+    """Check if it's time to run the morning work plan (7:00 AM local)."""
+    from .workplanner import generate_work_plan
+
+    now = datetime.now()
+    if now.hour != WORKPLAN_HOUR or now.minute != WORKPLAN_MINUTE:
+        return
+
+    # Check if already run today
+    try:
+        r = await _get_redis()
+        last_date = await r.get(WORKPLAN_MORNING_KEY)
+        if last_date:
+            last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
+            if last_str == now.strftime("%Y-%m-%d"):
+                return  # Already ran today
+    except Exception:
+        pass
+
+    logger.info("Scheduler: generating morning work plan")
+    try:
+        plan = await generate_work_plan(focus="morning planning — prioritize creative work for EoBQ")
+        r = await _get_redis()
+        await r.set(WORKPLAN_MORNING_KEY, now.strftime("%Y-%m-%d"))
+        logger.info(
+            "Morning work plan generated: %d tasks (plan_id=%s)",
+            plan.get("task_count", 0),
+            plan.get("plan_id", "?"),
+        )
+    except Exception as e:
+        logger.warning("Scheduler: morning work plan failed: %s", e)
+
+
+async def _check_workplan_refill():
+    """Check if the task queue needs refilling (every 2 hours)."""
+    from .workplanner import should_refill, generate_work_plan
+
+    try:
+        r = await _get_redis()
+        last_check = await r.get(WORKPLAN_REFILL_KEY)
+        if last_check:
+            ts = float(last_check.decode() if isinstance(last_check, bytes) else last_check)
+            if time.time() - ts < WORKPLAN_REFILL_INTERVAL:
+                return
+    except Exception:
+        pass
+
+    try:
+        if not await should_refill():
+            # Still update the check timestamp so we don't re-check too often
+            r = await _get_redis()
+            await r.set(WORKPLAN_REFILL_KEY, str(time.time()))
+            return
+
+        logger.info("Scheduler: task queue low, generating refill work plan")
+        plan = await generate_work_plan(focus="queue refill — pick up where we left off")
+        r = await _get_redis()
+        await r.set(WORKPLAN_REFILL_KEY, str(time.time()))
+        logger.info(
+            "Refill work plan generated: %d tasks (plan_id=%s)",
+            plan.get("task_count", 0),
+            plan.get("plan_id", "?"),
+        )
+    except Exception as e:
+        logger.warning("Scheduler: work plan refill failed: %s", e)
+
+
 async def _check_alerts():
     """Check Prometheus alerts every 5 minutes."""
     from .alerts import check_prometheus_alerts
@@ -225,6 +297,10 @@ async def _scheduler_loop():
             # Check time-of-day tasks
             await _check_pattern_detection()
             await _check_daily_digest()
+            await _check_morning_plan()
+
+            # Check work plan refill (every 2 hours)
+            await _check_workplan_refill()
 
             for agent, schedule in AGENT_SCHEDULES.items():
                 if not schedule.get("enabled", True):

@@ -708,6 +708,178 @@ async def cancel_task_endpoint(task_id: str):
     )
 
 
+# --- Work Planner ---
+
+
+@app.get("/v1/workplan")
+async def get_workplan():
+    """Get the current work plan and queue status."""
+    from .workplanner import get_current_plan, get_plan_history, should_refill
+
+    plan = await get_current_plan()
+    history = await get_plan_history(limit=5)
+    needs_refill = await should_refill()
+
+    return {
+        "current_plan": plan,
+        "history": history,
+        "needs_refill": needs_refill,
+    }
+
+
+@app.post("/v1/workplan/generate")
+async def trigger_workplan(request: Request):
+    """Manually trigger work plan generation.
+
+    Body: {"focus": "eoq"} or {} for general planning.
+    """
+    from .workplanner import generate_work_plan
+
+    body = await request.json()
+    focus = body.get("focus", "")
+
+    plan = await generate_work_plan(focus=focus)
+    return plan
+
+
+@app.get("/v1/projects")
+async def get_projects():
+    """Get all project definitions used by the work planner."""
+    from .workplanner import get_project_definitions
+
+    projects = get_project_definitions()
+    return {
+        "projects": {
+            pid: {
+                "name": p["name"],
+                "description": p["description"],
+                "status": p["status"],
+                "agents": p["agents"],
+                "needs_count": len(p["needs"]),
+                "constraints": p["constraints"],
+            }
+            for pid, p in projects.items()
+        },
+        "count": len(projects),
+    }
+
+
+@app.get("/v1/projects/{project_id}")
+async def get_project_detail(project_id: str):
+    """Get detailed project definition including all needs."""
+    from .workplanner import get_project
+
+    project = get_project(project_id)
+    if not project:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Project '{project_id}' not found"},
+        )
+    return {"project": project}
+
+
+@app.post("/v1/workplan/redirect")
+async def redirect_workplan(request: Request):
+    """Steer the work planner with a preference or focus direction.
+
+    Stores the preference in Qdrant and triggers a new plan generation
+    with the given focus. This is how the human stays in the loop.
+
+    Body: {"direction": "focus more on EoBQ character art, less infrastructure"}
+    """
+    from .activity import store_preference
+    from .workplanner import generate_work_plan
+
+    body = await request.json()
+    direction = body.get("direction", "")
+
+    if not direction:
+        return JSONResponse(status_code=400, content={"error": "direction is required"})
+
+    # Store as a durable preference so future plans also see it
+    await store_preference(
+        agent="global",
+        signal_type="work_direction",
+        content=direction,
+        category="work_planning",
+    )
+
+    # Generate a new plan with this focus
+    plan = await generate_work_plan(focus=direction)
+    return {"status": "redirected", "direction": direction, "plan": plan}
+
+
+@app.get("/v1/outputs")
+async def list_outputs():
+    """List files produced by agent tasks in the output directory."""
+    import os
+
+    output_dir = "/output"
+    files = []
+
+    for root, dirs, filenames in os.walk(output_dir):
+        # Skip hidden directories
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for fname in filenames:
+            if fname.startswith("."):
+                continue
+            full_path = os.path.join(root, fname)
+            rel_path = os.path.relpath(full_path, output_dir)
+            try:
+                stat = os.stat(full_path)
+                files.append({
+                    "path": rel_path,
+                    "size_bytes": stat.st_size,
+                    "modified": stat.st_mtime,
+                })
+            except OSError:
+                continue
+
+    files.sort(key=lambda f: f["modified"], reverse=True)
+    return {"outputs": files, "count": len(files)}
+
+
+@app.get("/v1/outputs/{path:path}")
+async def read_output(path: str):
+    """Read the contents of a specific output file."""
+    import os
+
+    full_path = os.path.join("/output", path)
+
+    # Security: prevent path traversal
+    real_path = os.path.realpath(full_path)
+    if not real_path.startswith("/output/"):
+        return JSONResponse(status_code=403, content={"error": "Path traversal blocked"})
+
+    if not os.path.isfile(real_path):
+        return JSONResponse(status_code=404, content={"error": f"File not found: {path}"})
+
+    try:
+        stat = os.stat(real_path)
+        # For binary files (images, etc.), return metadata only
+        _, ext = os.path.splitext(path)
+        if ext.lower() in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".mp4", ".webm"):
+            return {
+                "path": path,
+                "type": "binary",
+                "size_bytes": stat.st_size,
+                "extension": ext,
+                "modified": stat.st_mtime,
+            }
+        # For text files, return content
+        with open(real_path, encoding="utf-8", errors="replace") as f:
+            content = f.read(50000)  # Cap at 50KB
+        return {
+            "path": path,
+            "type": "text",
+            "content": content,
+            "size_bytes": stat.st_size,
+            "modified": stat.st_mtime,
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 # --- Feedback & Goals ---
 
 
