@@ -1,0 +1,18 @@
+---
+# Networking role — manages netplan configuration for MTU and static IPs
+
+- name: Deploy netplan configuration
+  ansible.builtin.template:
+    src: netplan.yaml.j2
+    dest: "/etc/netplan/{{ netplan_filename }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: network_interfaces | length > 0
+  notify: Apply netplan
+
+- name: Validate netplan configuration
+  ansible.builtin.command:
+    cmd: netplan validate
+  changed_when: false
+  when: network_interfaces | length > 0

@@ -6,6 +6,7 @@
   hosts: node1
   roles:
     - { role: common, tags: [common] }
+    - { role: networking, tags: [networking] }
     - { role: nvidia, tags: [nvidia] }
     - { role: docker, tags: [docker] }
     - { role: monitoring, tags: [monitoring] }
@@ -21,6 +22,7 @@
   hosts: node2
   roles:
     - { role: common, tags: [common] }
+    - { role: networking, tags: [networking] }
     - { role: nvidia, tags: [nvidia] }
     - { role: docker, tags: [docker] }
     - { role: monitoring, tags: [monitoring] }

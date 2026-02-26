@@ -28,6 +28,18 @@ vllm_extra_args:
 vllm_custom_build: true
 vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
 
+# Network interfaces — 10GbE primary + DHCP secondary
+network_interfaces:
+  - name: eno1
+    addresses: ["192.168.1.225/24"]
+    gateway: true
+    mtu: 9000
+  - name: enp71s0
+    dhcp: true
+    dhcp_overrides:
+      route-metric: 200
+    mtu: 1500
+
 comfyui_gpu_device: "1"
 comfyui_port: 8188
 

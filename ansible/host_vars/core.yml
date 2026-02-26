@@ -41,4 +41,19 @@ vllm_extra_args:
 vllm_custom_build: true
 vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
 
+# Network interfaces — dual 10GbE NICs, MTU 9000
+network_interfaces:
+  - name: enp66s0f0
+    addresses: ["192.168.1.244/24"]
+    gateway: true
+    mtu: 9000
+  - name: enp66s0f1
+    addresses: ["192.168.1.246/24"]
+    gateway: false
+    mtu: 9000
+    routes:
+      - to: "192.168.1.0/24"
+        scope: link
+        metric: 200
+
 # Agent config — API keys and LiteLLM routing in roles/agents/defaults/main.yml

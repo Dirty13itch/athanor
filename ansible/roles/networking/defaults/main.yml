@@ -1,0 +1,27 @@
+---
+# Networking defaults — override in host_vars for node-specific config
+
+network_mtu: 9000
+network_gateway: "192.168.1.1"
+network_dns:
+  - "192.168.1.1"
+
+# Override per host in host_vars
+network_interfaces: []
+# Example:
+# network_interfaces:
+#   - name: enp66s0f0
+#     addresses: ["192.168.1.244/24"]
+#     gateway: true
+#     mtu: 9000
+#   - name: enp66s0f1
+#     addresses: ["192.168.1.246/24"]
+#     gateway: false
+#     mtu: 9000
+#     routes:
+#       - to: "192.168.1.0/24"
+#         scope: link
+#         metric: 200
+
+# Netplan filename (dropped into /etc/netplan/)
+netplan_filename: "01-athanor.yaml"

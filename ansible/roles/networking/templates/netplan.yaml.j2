@@ -1,0 +1,56 @@
+# Managed by Ansible — do not edit manually
+# Role: networking | Template: netplan.yaml.j2
+network:
+  version: 2
+  ethernets:
+{% for iface in network_interfaces %}
+    {{ iface.name }}:
+{%- if iface.dhcp | default(false) %}
+      dhcp4: true
+{%- if iface.dhcp_overrides | default({}) %}
+      dhcp4-overrides:
+{%- for k, v in iface.dhcp_overrides.items() %}
+        {{ k }}: {{ v }}
+{%- endfor %}
+{%- endif %}
+{%- else %}
+      dhcp4: false
+      addresses:
+{%- for addr in iface.addresses %}
+        - {{ addr }}
+{%- endfor %}
+{%- if iface.gateway | default(false) %}
+      routes:
+        - to: default
+          via: {{ network_gateway }}
+{%- for route in iface.routes | default([]) %}
+        - to: {{ route.to }}
+{%- if route.scope | default('') %}
+          scope: {{ route.scope }}
+{%- endif %}
+{%- if route.metric | default('') %}
+          metric: {{ route.metric }}
+{%- endif %}
+{%- endfor %}
+      nameservers:
+        addresses:
+{%- for dns in network_dns %}
+          - {{ dns }}
+{%- endfor %}
+{%- else %}
+{%- if iface.routes | default([]) | length > 0 %}
+      routes:
+{%- for route in iface.routes %}
+        - to: {{ route.to }}
+{%- if route.scope | default('') %}
+          scope: {{ route.scope }}
+{%- endif %}
+{%- if route.metric | default('') %}
+          metric: {{ route.metric }}
+{%- endif %}
+{%- endfor %}
+{%- endif %}
+{%- endif %}
+{%- endif %}
+      mtu: {{ iface.mtu | default(network_mtu) }}
+{% endfor %}
