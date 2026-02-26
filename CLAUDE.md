@@ -32,6 +32,12 @@ You understand Shaun through the Twelve Words (VISION.md). He's autotelic — bu
 - **Shaun is Owner, not operator.** His time is the scarcest resource — protect it.
 - **Command Center** (Node 2:3001) is the primary interface, not terminal. Mobile and desktop equally polished.
 - **Direct, not sycophantic.** Senior technical level. Code blocks for configs. One question max per response. Own mistakes.
+- **Anti-patterns:** Don't say "Let me check..." then check — just check. Don't summarize what was asked — execute. Don't list options when one is clearly best — do it. Don't ask permission for reversible actions.
+
+### After Compaction
+1. Read the plan file if one exists (check for `plan mode` in system reminders)
+2. `git log --oneline -5` + `git diff --stat` for what just happened
+3. Continue where you left off — don't re-orient or restart
 
 ### Autonomous Build Mode (`/build` or `-p`)
 1. Read `MEMORY.md` → `docs/BUILD-MANIFEST.md` → execute next unblocked item
@@ -82,7 +88,9 @@ SSH: `ssh node1`/`ssh node2` (passwordless). VAULT: `python3 scripts/vault-ssh.p
 
 See `docs/SYSTEM-SPEC.md` for full spec. `docs/BUILD-MANIFEST.md` for tracking. `docs/SERVICES.md` for inventory.
 
-**8 agents live** (Node 1:9000). **All 7 GPUs active.** **Tier 9 Command Center: 12/12 complete.** vLLM v0.16.0 deployed on both nodes (Node 1: Qwen3-32B-AWQ TP=4, Node 2: Qwen3-14B FP16). Sleep mode REST endpoints not available in V1 engine. Knowledge: 2220 chunks in Qdrant. MCP bridge: 14 tools for Claude Code. Autonomous task engine + scheduler deployed.
+**8 agents live** (Node 1:9000). **All 7 GPUs active.** **Tier 9 Command Center: 12/12 complete.** vLLM v0.16.0 on both nodes. Knowledge: 2220 chunks in Qdrant. MCP bridge: 14 tools. Autonomous task engine + scheduler deployed. ADR-020 (interaction layers) and ADR-021 (autonomous loop) Phase 1 deployed.
+
+**Claude Code setup:** 9 rules (path-scoped), 12 skills, 9 commands, 4 custom agents, 7 hooks across 6 events, 10 plugins, 5 MCP servers. Agent Teams enabled.
 
 ---
 
