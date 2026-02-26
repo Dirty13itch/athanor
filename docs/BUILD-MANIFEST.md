@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-26 (Session 20 continued: Tier 9 complete — 12/12. Goals API agent server, MTU alignment, vLLM upgrade research)
+Last updated: 2026-02-26 (Session 35: Tier 10 Personal Data System — 8/10 complete. File content indexer: 2,304 Qdrant points, 3,095 Neo4j nodes)
 
 ---
 
@@ -486,16 +486,69 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Dashboard updated:** Agent cards now fetch trust from `/v1/trust` endpoint (real data) instead of deriving from escalation config. Feedback buttons aligned with API contract (`feedback_type`/`message_content` fields).
 
 ### 9.11 — Terminal Page (xterm.js)
-- **Status:** 🔲 todo
-- **Scope:** `/terminal` dashboard page with `react-xtermjs`. WebSocket backend on DEV running `node-pty` → Claude Code. Dynamic import with `ssr: false`.
-- **Depends on:** 9.1
-- **Done when:** Can open Claude Code in a terminal tab within the dashboard.
+- **Status:** ✅ (Session 35, 2026-02-26)
+- **Scope:** `/terminal` page with xterm.js + FitAddon + WebLinksAddon. WebSocket to ws-pty bridge (Node 2:3100). Node selector (DEV/Foundry/Workshop). Dark zinc theme. Dynamic import with `ssr: false`.
+- **Delivered:** Terminal page + TerminalView component + ws-pty bridge (node-pty + ws sidecar) all deployed and connected.
 
 ### 9.12 — Claudeman Deployment
 - **Status:** ✅ (Session 20 continued, 2026-02-26)
 - **Scope:** Deployed Claudeman on DEV for multi-session Claude Code web access. HTTPS configured with self-signed cert. Systemd user service with linger for persistence.
 - **Delivered:** `claudeman web --https --port 3000` running as `~/.config/systemd/user/claudeman.service`. Accessible at https://192.168.1.167:3000 from any LAN device. Auto-restarts on failure. Persists without login (loginctl linger enabled).
 - **Install:** `~/.claudeman/app/` (728 commits, 1435 tests, MIT). CLI at `~/.local/bin/claudeman`.
+
+---
+
+## Tier 10: Personal Data System (P1)
+
+Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all personal data. Design: `docs/design/personal-data-architecture.md`.
+
+### 10.1 — Data Transit (DEV → Node 1)
+- **Status:** ✅ (Session 33-34, 2026-02-26)
+- **Scope:** `scripts/sync-personal-data.sh` — rsync from DEV WSL to Node 1:/opt/athanor/personal-data/. Volume-mounted read-only in agent container.
+- **Result:** 632 MB synced (609 MB photos, 21 MB downloads, 1.6 MB docs, 228 KB configs). Cron: `0 */6 * * *`.
+
+### 10.2 — Bookmark Parse + Index
+- **Status:** ✅ (Session 33, 2026-02-26)
+- **Scope:** Parse Chrome Netscape HTML, index to Qdrant `personal_data`, Neo4j graph.
+- **Result:** 727 unique bookmarks in Qdrant. 727 Bookmark + 78 Topic nodes in Neo4j. 690 CATEGORIZED_AS + 77 SUBCATEGORY_OF relationships.
+
+### 10.3 — GitHub Repo + Star Index
+- **Status:** ✅ (Session 33, 2026-02-26)
+- **Scope:** Index owned repos (metadata + READMEs) and starred repos via `gh` CLI.
+- **Result:** 82 chunks (21 owned + 15 READMEs + 46 starred). 67 GitRepo + 283 Topic nodes in Neo4j. Evolution chain: hydra → kaizen → athanor.
+
+### 10.4 — LLM Entity Extraction
+- **Status:** ✅ (Session 34-35, 2026-02-26)
+- **Scope:** `scripts/extract-entities.py` — Qwen3-14B with thinking disabled extracts Person, Organization, Place entities from all 793 Qdrant points into Neo4j.
+- **Result:** 3,095 nodes (1055 Topics, 701 Documents, 391 Orgs, 97 People, 67 GitRepos, 24 Services, 18 Places). 4,447 relationships. Zero errors.
+
+### 10.5 — Agent Context Injection
+- **Status:** ✅ (Session 33, 2026-02-26)
+- **Scope:** `context.py` queries `personal_data` in parallel. 6 agents enriched.
+- **Result:** general-assistant(3), knowledge(5), research(3), data-curator(5), home(2), coding(2).
+
+### 10.6 — Personal Data Dashboard Page
+- **Status:** ✅ (Session 34, 2026-02-26)
+- **Scope:** `/personal-data` page with semantic search, category overview, graph summary, recent items.
+- **Result:** 7 new files. Stats and search API routes. Navigation added to sidebar and mobile.
+
+### 10.7 — Data Curator Agent
+- **Status:** ✅ (Session 33, 2026-02-26)
+- **Scope:** 9th agent with scan_directory, parse_document, analyze_content, index_document, search_personal, get_scan_status, sync_gdrive tools.
+- **Result:** Deployed on 6h schedule. Read access to /data/personal/ verified.
+
+### 10.8 — Google Drive Integration
+- **Status:** 🚫 blocked (Shaun needs to run `~/.local/bin/rclone config` for OAuth)
+- **Scope:** rclone sync from Google Drive to Node 1. Unlocks ~40% of personal data.
+
+### 10.9 — File Content Indexer
+- **Status:** ✅ done
+- **Scope:** `scripts/index-files.py` — 119/121 files indexed (XLSX, PDF, MD, JSON, configs). 1,511 new Qdrant chunks. Content hash for incremental updates. Qdrant `personal_data`: 2,304 total points.
+- **Depends on:** 10.1
+
+### 10.10 — Photo Analysis (VLM)
+- **Status:** 🚫 blocked (Qwen3.5-27B multimodal on vLLM 0.17+)
+- **Scope:** VLM-powered photo descriptions. EXIF extraction. Property photo → address linking.
 
 ---
 
@@ -507,6 +560,7 @@ These require human action. Claude Code cannot do them.
 |------|--------|----------|
 | ~~HA onboarding~~ | ~~Done (Session 13)~~ | ~~2.4 (Home Agent)~~ |
 | NordVPN credentials | Provide service creds | 6.5 (qBittorrent) |
+| Google Drive rclone OAuth | Run `~/.local/bin/rclone config` | 10.8 (Personal Data ~40%) |
 | Node 2 EXPO | BIOS via JetKVM | Performance |
 | Samsung 990 PRO reseat | Physical at rack | Node 1 storage |
 | BMC config at .216 | Browser: http://192.168.1.216 | Remote power mgmt |

@@ -85,6 +85,19 @@ AGENT_SCHEDULES = {
         "priority": "low",
         "enabled": True,
     },
+    "data-curator": {
+        "interval": 21600,  # 6 hours
+        "prompt": (
+            "Run an autonomous data curation cycle. "
+            "1. Check what's already indexed (get_scan_status). "
+            "2. Scan accessible roots for new or changed files. "
+            "3. Parse and index any unindexed files, prioritizing recently modified "
+            "and files in high-value directories (energy audits, AI docs, finance). "
+            "4. Report a summary of what was found and indexed."
+        ),
+        "priority": "low",
+        "enabled": True,
+    },
 }
 
 

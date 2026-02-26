@@ -62,6 +62,9 @@ def create_knowledge_agent():
         model=settings.llm_model,  # "reasoning" — knowledge retrieval needs accuracy
         temperature=0.3,  # Low temp for factual retrieval
         streaming=True,
+        extra_body={
+            "chat_template_kwargs": {"enable_thinking": False},
+        },
     )
 
     memory = InMemorySaver()

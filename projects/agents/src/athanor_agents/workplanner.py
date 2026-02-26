@@ -51,7 +51,8 @@ PROJECTS = {
         "description": (
             "AI-driven interactive cinematic adult game. Dark fantasy setting. "
             "Player choices affect story progression. Adult content is central "
-            "and expected — mature themes, explicit content, no censorship."
+            "and expected — mature themes, explicit content, no censorship. "
+            "ALL OUTPUT MUST BE IN ENGLISH. Do not use Chinese or any other language."
         ),
         "status": "deployed_empty",
         "location": "projects/eoq/ (Node 2:3002)",
@@ -469,6 +470,8 @@ DO NOT generate:
 - Tasks the assigned agent can't do with its tools
 - Pure monitoring tasks (the scheduler already handles those)
 - More than 2 infrastructure/monitoring tasks — focus on creative work
+
+CRITICAL: ALL content, prompts, and output MUST be in English. Never use Chinese or any other non-English language in task prompts or expected output.
 
 Respond with ONLY a JSON array. Each element:
 {{

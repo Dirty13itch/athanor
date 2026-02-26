@@ -171,6 +171,16 @@ async def run_pattern_detection() -> dict:
     except Exception as e:
         logger.warning("Failed to store pattern report: %s", e)
 
+    # --- Convention extraction from patterns ---
+    try:
+        from .conventions import extract_conventions_from_patterns
+        conventions = await extract_conventions_from_patterns(report)
+        if conventions:
+            report["conventions_proposed"] = len(conventions)
+            logger.info("Convention extraction: %d conventions proposed from patterns", len(conventions))
+    except Exception as e:
+        logger.warning("Convention extraction failed: %s", e)
+
     pattern_count = len(report["patterns"])
     rec_count = len(report["recommendations"])
     logger.info(

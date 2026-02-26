@@ -6,6 +6,7 @@ from .knowledge import create_knowledge_agent
 from .home import create_home_agent
 from .coding import create_coding_agent
 from .stash import create_stash_agent
+from .data_curator import create_data_curator
 
 _AGENTS: dict = {}
 
@@ -20,6 +21,7 @@ def _init_agents():
         _AGENTS["home-agent"] = create_home_agent()
         _AGENTS["coding-agent"] = create_coding_agent()
         _AGENTS["stash-agent"] = create_stash_agent()
+        _AGENTS["data-curator"] = create_data_curator()
 
 
 def get_agent(name: str):
@@ -73,6 +75,11 @@ _AGENT_META = {
         "name": "Stash Agent",
         "description": "Adult content library — search, browse, organize, tag, and manage via Stash",
         "icon": "lock",
+    },
+    "data-curator": {
+        "name": "Data Curator",
+        "description": "Personal data librarian — scan, parse, analyze, and index files from all sources",
+        "icon": "database",
     },
 }
 

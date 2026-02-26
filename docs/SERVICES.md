@@ -2,7 +2,7 @@
 
 *Live service inventory. Updated when services change.*
 
-Last updated: 2026-02-25 (Session 17 — Creative Agent video tools, voice deployment)
+Last updated: 2026-02-26 (Session 34 — Personal Data System, entity extraction, dashboard page)
 
 ## Node 1 — Foundry (192.168.1.244)
 
@@ -11,7 +11,7 @@ Last updated: 2026-02-25 (Session 17 — Creative Agent video tools, voice deplo
 | vLLM (Qwen3-32B-AWQ) | 8000 | TP=4 across 3x RTX 5070 Ti + RTX 4090, `--quantization awq` |
 | vLLM Embedding (Qwen3-Embedding-0.6B) | 8001 | RTX 5070 Ti GPU 4, 0.40 mem util, 8K ctx, 1024-dim embeddings |
 | Agent Server | 9000 | 9 agents + GWT workspace + escalation + activity/preference APIs |
-| Qdrant | 6333/6334 | Vector DB, collections: knowledge (922 pts), conversations, activity, preferences |
+| Qdrant | 6333/6334 | Vector DB: knowledge (2484), personal_data (2304), conversations, activity, preferences (55), implicit_feedback, events |
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics |
 | GPU Orchestrator | 9200 | 4 zones, DCGM metrics, vLLM sleep/wake, TTL auto-sleep, Prometheus export |
@@ -23,7 +23,8 @@ Last updated: 2026-02-25 (Session 17 — Creative Agent video tools, voice deplo
 | Service | Port | Details |
 |---------|------|---------|
 | vLLM (Qwen3-14B) | 8000 | RTX 5090, enforce-eager mode |
-| Dashboard | 3001 | Next.js 16, dark theme |
+| Dashboard | 3001 | Next.js 16, dark theme, /personal-data page with semantic search |
+| ws-pty Bridge | 3100 | WebSocket terminal bridge (node-pty + ws sidecar) |
 | ComfyUI | 8188 | Flux dev FP8 + Wan2.x T2V, RTX 5060 Ti, WanVideoWrapper + KJNodes |
 | EoBQ | 3002 | Empire of Broken Queens — Next.js game app |
 | Open WebUI | 3000 | Chat interface |
@@ -56,6 +57,7 @@ Last updated: 2026-02-25 (Session 17 — Creative Agent video tools, voice deplo
 |-------|------|---------|
 | Qwen3-32B-AWQ | 18G | Reasoning (LiteLLM alias: `reasoning`) |
 | Qwen3-14B | 28G | Fast inference (alias: `fast`) |
+| Qwen3.5-27B-FP8 | 29G | Next-gen reasoning (blocked on vLLM 0.17+ for qwen3_5 model type) |
 | Qwen3-0.6B | 1.5G | Draft/speculative decoding |
 | Qwen3-Embedding-0.6B | 1.2G | Embeddings (alias: `embedding`) |
 | gte-Qwen2-7B-instruct | 14G | Legacy embedding (unused) |

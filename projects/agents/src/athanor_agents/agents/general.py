@@ -25,6 +25,9 @@ def create_general_assistant():
         model=settings.llm_model,
         temperature=0.7,
         streaming=True,
+        extra_body={
+            "chat_template_kwargs": {"enable_thinking": False},
+        },
     )
 
     memory = InMemorySaver()

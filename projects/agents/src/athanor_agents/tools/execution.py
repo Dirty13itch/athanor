@@ -7,7 +7,7 @@ Phase 1: Agent delegation (works within current container).
 Phase 2: Filesystem + shell (requires Docker volume mounts).
 
 Security model:
-    - READ allowed from /workspace (read-only codebase mount)
+    - READ allowed from /workspace (read-only codebase), /data/personal (read-only personal data)
     - WRITE allowed only to /output (staging area)
     - Commands run in /output with timeout, blocklist enforced
     - Path traversal prevented (resolved paths must stay in allowed dirs)
@@ -26,8 +26,9 @@ logger = logging.getLogger(__name__)
 
 WORKSPACE_DIR = Path("/workspace")   # Read-only mount of /opt/athanor
 OUTPUT_DIR = Path("/output")         # Writable staging area
+PERSONAL_DIR = Path("/data/personal")  # Read-only mount of personal data
 
-READ_ALLOWED = [WORKSPACE_DIR, OUTPUT_DIR]
+READ_ALLOWED = [WORKSPACE_DIR, OUTPUT_DIR, PERSONAL_DIR]
 WRITE_ALLOWED = [OUTPUT_DIR]
 
 # Commands that are never allowed
@@ -181,7 +182,7 @@ async def read_file(path: str) -> str:
         /output/ — your generated files
 
     Args:
-        path: Absolute path to the file (must be under /workspace or /output)
+        path: Absolute path to the file (must be under /workspace, /output, or /data/personal)
     """
     try:
         resolved = _validate_read_path(path)
@@ -232,7 +233,7 @@ async def list_directory(path: str, pattern: str = "*") -> str:
     Use this to explore the codebase structure or check your output files.
 
     Args:
-        path: Directory path to list (must be under /workspace or /output)
+        path: Directory path to list (must be under /workspace, /output, or /data/personal)
         pattern: Glob pattern to filter results (default: "*", e.g., "*.py", "test_*")
     """
     try:
@@ -270,7 +271,7 @@ async def search_files(directory: str, pattern: str, file_glob: str = "*.py") ->
     or any text pattern across the codebase.
 
     Args:
-        directory: Directory to search in (must be under /workspace or /output)
+        directory: Directory to search in (must be under /workspace, /output, or /data/personal)
         pattern: Text pattern to search for (case-insensitive substring match)
         file_glob: Glob pattern for files to search (default: "*.py")
     """

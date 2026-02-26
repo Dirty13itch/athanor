@@ -107,6 +107,15 @@ AGENT_METADATA = {
         ],
         "type": "reactive",
     },
+    "data-curator": {
+        "description": "Personal data librarian — discovers, parses, analyzes, and indexes files from all sources into searchable Qdrant collection.",
+        "tools": [
+            "scan_directory", "parse_document", "analyze_content", "index_document",
+            "search_personal", "get_scan_status", "sync_gdrive",
+        ],
+        "type": "proactive",
+        "schedule": "every 6 hours",
+    },
 }
 
 
@@ -492,6 +501,74 @@ async def agents_registry():
     return {"agents": agents, "count": len(agents)}
 
 
+# --- Phase 3: Subscriptions & Endorsement ---
+
+
+@app.get("/v1/workspace/subscriptions")
+async def get_workspace_subscriptions():
+    """Get all agent subscriptions for workspace broadcasts."""
+    from .workspace import get_subscriptions
+
+    subs = await get_subscriptions()
+    return {
+        "subscriptions": {k: v.to_dict() for k, v in subs.items()},
+        "count": len(subs),
+    }
+
+
+@app.post("/v1/workspace/subscriptions")
+async def update_workspace_subscription(request: Request):
+    """Create or update an agent's workspace subscription.
+
+    Body: {"agent_name": "media-agent", "keywords": ["movie", "show"],
+           "source_filters": ["event:plex"], "threshold": 0.3,
+           "react_prompt_template": "Handle: '{content}' from {source_agent}"}
+    """
+    from .workspace import AgentSubscription, save_subscription
+
+    body = await request.json()
+    agent_name = body.get("agent_name", "")
+    if not agent_name:
+        return JSONResponse(status_code=400, content={"error": "agent_name is required"})
+
+    sub = AgentSubscription(
+        agent_name=agent_name,
+        keywords=body.get("keywords", []),
+        source_filters=body.get("source_filters", []),
+        threshold=body.get("threshold", 0.3),
+        react_prompt_template=body.get("react_prompt_template", ""),
+    )
+    await save_subscription(sub)
+    return {"status": "saved", "subscription": sub.to_dict()}
+
+
+@app.post("/v1/workspace/{item_id}/endorse")
+async def endorse_workspace_item(item_id: str, request: Request):
+    """Endorse a workspace item (coalition building).
+
+    Body: {"agent_name": "home-agent"}
+    An agent endorses an item to boost its salience. Multiple agents
+    endorsing the same item creates a coalition.
+    """
+    from .workspace import endorse_item
+
+    body = await request.json()
+    agent_name = body.get("agent_name", "")
+    if not agent_name:
+        return JSONResponse(status_code=400, content={"error": "agent_name is required"})
+
+    item = await endorse_item(item_id, agent_name)
+    if item is None:
+        return JSONResponse(status_code=404, content={"error": f"Item '{item_id}' not found"})
+
+    return {
+        "status": "endorsed",
+        "item_id": item_id,
+        "coalition": item.coalition,
+        "salience": item.salience,
+    }
+
+
 # --- Event Ingestion (Phase 2) ---
 
 EVENT_PRIORITY_MAP = {
@@ -614,6 +691,75 @@ async def trigger_pattern_detection():
 
     report = await run_pattern_detection()
     return report
+
+
+# --- Convention Library ---
+
+
+@app.get("/v1/conventions")
+async def get_conventions(status: str = "confirmed", agent: str = ""):
+    """Get conventions filtered by status (confirmed/proposed/rejected) and optionally by agent."""
+    from .conventions import get_conventions as _get_conventions
+
+    conventions = await _get_conventions(status=status, agent=agent or None)
+    return {
+        "conventions": [c.to_dict() for c in conventions],
+        "count": len(conventions),
+        "status": status,
+    }
+
+
+@app.post("/v1/conventions")
+async def propose_convention_endpoint(request: Request):
+    """Propose a new convention manually.
+
+    Body: {"type": "behavior", "agent": "coding-agent", "description": "...", "rule": "..."}
+    """
+    from .conventions import propose_convention
+
+    body = await request.json()
+    conv_type = body.get("type", "behavior")
+    agent = body.get("agent", "global")
+    description = body.get("description", "")
+    rule = body.get("rule", "")
+    source = body.get("source", "manual")
+
+    if not description or not rule:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Both 'description' and 'rule' are required"},
+        )
+
+    conv = await propose_convention(
+        convention_type=conv_type,
+        agent=agent,
+        description=description,
+        rule=rule,
+        source=source,
+    )
+    return {"status": conv.status, "convention": conv.to_dict()}
+
+
+@app.post("/v1/conventions/{convention_id}/confirm")
+async def confirm_convention_endpoint(convention_id: str):
+    """Confirm a proposed convention — activates it for context injection."""
+    from .conventions import confirm_convention
+
+    conv = await confirm_convention(convention_id)
+    if not conv:
+        return JSONResponse(status_code=404, content={"error": "Convention not found in proposed"})
+    return {"status": "confirmed", "convention": conv.to_dict()}
+
+
+@app.post("/v1/conventions/{convention_id}/reject")
+async def reject_convention_endpoint(convention_id: str):
+    """Reject a proposed convention — archived, never re-proposed."""
+    from .conventions import reject_convention
+
+    conv = await reject_convention(convention_id)
+    if not conv:
+        return JSONResponse(status_code=404, content={"error": "Convention not found in proposed"})
+    return {"status": "rejected", "convention": conv.to_dict()}
 
 
 # --- Task Execution Engine ---

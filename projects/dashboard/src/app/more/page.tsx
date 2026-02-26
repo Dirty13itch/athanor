@@ -25,6 +25,7 @@ const allPages = [
   { href: "/preferences", label: "Preferences", icon: SlidersIcon },
   { href: "/review", label: "Code Review", icon: DiffIcon },
   { href: "/terminal", label: "Terminal", icon: TerminalIcon },
+  { href: "/personal-data", label: "Personal Data", icon: DatabaseIcon },
 ];
 
 export default function MorePage() {
@@ -232,6 +233,16 @@ function SlidersIcon({ className }: { className?: string }) {
       <line x1="2" x2="6" y1="14" y2="14" />
       <line x1="10" x2="14" y1="8" y2="8" />
       <line x1="18" x2="22" y1="16" y2="16" />
+    </svg>
+  );
+}
+
+function DatabaseIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M3 5v14a9 3 0 0 0 18 0V5" />
+      <path d="M3 12a9 3 0 0 0 18 0" />
     </svg>
   );
 }

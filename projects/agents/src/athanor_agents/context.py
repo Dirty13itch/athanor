@@ -45,43 +45,57 @@ AGENT_CONTEXT_CONFIG = {
         "prefs_limit": 3,
         "activity_limit": 3,
         "knowledge_limit": 2,
+        "personal_limit": 3,
         "pref_boost": "system monitoring detail level verbosity",
     },
     "media-agent": {
         "prefs_limit": 5,
         "activity_limit": 5,
         "knowledge_limit": 0,  # media agent doesn't need doc knowledge
+        "personal_limit": 0,
         "pref_boost": "media content quality viewing genre preferences",
     },
     "home-agent": {
         "prefs_limit": 5,
         "activity_limit": 5,
         "knowledge_limit": 0,
+        "personal_limit": 2,
         "pref_boost": "home comfort temperature lighting schedule preferences",
     },
     "research-agent": {
         "prefs_limit": 3,
         "activity_limit": 3,
         "knowledge_limit": 3,  # research benefits from prior docs
+        "personal_limit": 3,
         "pref_boost": "research depth format citation preferences",
     },
     "creative-agent": {
         "prefs_limit": 5,
         "activity_limit": 3,
         "knowledge_limit": 0,
+        "personal_limit": 0,
         "pref_boost": "image style creative visual artistic preferences",
     },
     "knowledge-agent": {
         "prefs_limit": 3,
         "activity_limit": 3,
         "knowledge_limit": 0,  # knowledge agent has its own search tools
+        "personal_limit": 5,
         "pref_boost": "knowledge format detail preferences",
     },
     "coding-agent": {
         "prefs_limit": 3,
         "activity_limit": 3,
         "knowledge_limit": 2,
+        "personal_limit": 2,
         "pref_boost": "coding conventions style technology stack preferences",
+    },
+    "data-curator": {
+        "prefs_limit": 3,
+        "activity_limit": 5,  # needs history to avoid re-indexing
+        "knowledge_limit": 0,  # has its own search tools
+        "personal_limit": 5,
+        "pref_boost": "personal data files documents organization indexing preferences",
     },
 }
 
@@ -90,6 +104,7 @@ _DEFAULT_CONFIG = {
     "prefs_limit": 3,
     "activity_limit": 3,
     "knowledge_limit": 2,
+    "personal_limit": 0,
     "pref_boost": "",
 }
 
@@ -258,6 +273,21 @@ def _format_knowledge(results: list[dict]) -> list[str]:
     return lines
 
 
+def _format_personal_data(results: list[dict]) -> list[str]:
+    """Format personal data results into context text."""
+    lines = []
+    for r in results:
+        payload = r.get("payload", {})
+        title = payload.get("title", payload.get("source_file", "unknown"))
+        text = payload.get("text", "")[:300]
+        dtype = payload.get("data_type", "")
+        score = r.get("score", 0)
+        if text:
+            prefix = f"[{dtype}] " if dtype else ""
+            lines.append(f"- {prefix}**{title}** (relevance: {score:.2f}): {text}")
+    return lines
+
+
 def _format_patterns(patterns: list[dict]) -> list[str]:
     """Format detected patterns into context text."""
     lines = []
@@ -290,6 +320,8 @@ def _build_context_message(
     agent_name: str,
     goal_lines: list[str] | None = None,
     pattern_lines: list[str] | None = None,
+    convention_lines: list[str] | None = None,
+    personal_data_lines: list[str] | None = None,
 ) -> str:
     """Assemble the final context injection string."""
     sections = []
@@ -299,6 +331,13 @@ def _build_context_message(
             "## Active Goals\n"
             "The user has set these steering goals. Align your actions accordingly:\n"
             + "\n".join(goal_lines)
+        )
+
+    if convention_lines:
+        sections.append(
+            "## Learned Conventions\n"
+            "These rules have been confirmed from observed patterns. Follow them:\n"
+            + "\n".join(convention_lines)
         )
 
     if pattern_lines:
@@ -327,6 +366,13 @@ def _build_context_message(
             "## Relevant Documentation\n"
             "Potentially relevant knowledge base entries:\n"
             + "\n".join(knowledge_lines)
+        )
+
+    if personal_data_lines:
+        sections.append(
+            "## Personal Data\n"
+            "Relevant personal data from the user's indexed files:\n"
+            + "\n".join(personal_data_lines)
         )
 
     if not sections:
@@ -380,6 +426,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     prefs_limit = config.get("prefs_limit", 3)
     activity_limit = config.get("activity_limit", 3)
     knowledge_limit = config.get("knowledge_limit", 2)
+    personal_limit = config.get("personal_limit", 0)
 
     # Build preference filter (agent-specific OR global)
     pref_filter = None
@@ -395,6 +442,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
         _search_preferences_with_decay(vector, prefs_limit, pref_filter),
         _scroll_activity(agent_name, activity_limit),
         _search_collection("knowledge", vector, knowledge_limit),
+        _search_collection("personal_data", vector, personal_limit),
     ]
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -402,6 +450,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     prefs = results[0] if not isinstance(results[0], BaseException) else []
     activity = results[1] if not isinstance(results[1], BaseException) else []
     knowledge = results[2] if not isinstance(results[2], BaseException) else []
+    personal_data = results[3] if not isinstance(results[3], BaseException) else []
 
     # Step 3: Fetch active goals + patterns (Redis, fast)
     goal_lines = []
@@ -420,26 +469,38 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     except Exception:
         pass
 
+    convention_lines = []
+    try:
+        from .conventions import get_agent_conventions
+        convention_rules = await get_agent_conventions(agent_name)
+        convention_lines = [f"- {rule}" for rule in convention_rules]
+    except Exception:
+        pass
+
     # Step 4: Format
     pref_lines = _format_preferences(prefs)
     activity_lines = _format_activity(activity, agent_name)
     knowledge_lines = _format_knowledge(knowledge)
+    personal_data_lines = _format_personal_data(personal_data)
 
     elapsed_ms = int((time.monotonic() - start) * 1000)
-    total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines)
+    total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines) + len(personal_data_lines)
 
-    if total_hits > 0 or goal_lines or pattern_lines:
+    if total_hits > 0 or goal_lines or pattern_lines or convention_lines:
         logger.info(
-            "Context enrichment for %s: %d prefs, %d activity, %d knowledge, %d goals, %d patterns (%dms)",
+            "Context enrichment for %s: %d prefs, %d activity, %d knowledge, %d personal, %d goals, %d patterns, %d conventions (%dms)",
             agent_name,
             len(pref_lines),
             len(activity_lines) // 2,  # 2 lines per activity item
             len(knowledge_lines),
+            len(personal_data_lines),
             len(goal_lines),
             len(pattern_lines),
+            len(convention_lines),
             elapsed_ms,
         )
 
     return _build_context_message(
-        pref_lines, activity_lines, knowledge_lines, agent_name, goal_lines, pattern_lines
+        pref_lines, activity_lines, knowledge_lines, agent_name,
+        goal_lines, pattern_lines, convention_lines, personal_data_lines,
     )

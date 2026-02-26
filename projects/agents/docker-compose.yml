@@ -12,6 +12,8 @@ services:
       - /opt/athanor:/workspace:ro
       # Writable staging area for task outputs
       - /opt/athanor/agent-output:/output
+      # Data curator: personal data synced from DEV (read-only)
+      - /opt/athanor/personal-data:/data/personal:ro
     environment:
       # LiteLLM proxy — single entry point for all inference
       - ATHANOR_LLM_BASE_URL=http://192.168.1.203:4000/v1

@@ -543,7 +543,11 @@ async def _execute_task(task: Task):
 
 
 async def _recover_stale_tasks():
-    """On startup, reset any tasks stuck in 'running' state (from prior crash)."""
+    """On startup, cancel any tasks stuck in 'running' state (from prior crash).
+
+    Uses 'cancelled' status (not 'failed') so server restarts don't pollute
+    failure metrics. These aren't real agent failures.
+    """
     try:
         r = await _get_redis()
         raw = await r.hgetall(TASKS_KEY)
@@ -551,7 +555,7 @@ async def _recover_stale_tasks():
         for v in raw.values():
             t = Task.from_dict(json.loads(v))
             if t.status == "running":
-                t.status = "failed"
+                t.status = "cancelled"
                 t.error = "Server restarted during execution"
                 t.completed_at = time.time()
                 await r.hset(TASKS_KEY, t.id, json.dumps(t.to_dict()))

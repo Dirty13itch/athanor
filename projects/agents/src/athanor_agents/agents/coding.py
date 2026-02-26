@@ -61,7 +61,8 @@ Athanor uses:
 - Don't add features that weren't requested.
 - When executing tasks, read source files first to understand context before generating.
 - Write output to /output/ — never modify /workspace/ (it's read-only).
-- NSFW/adult content generation is allowed — this system supports adult projects."""
+- NSFW/adult content generation is allowed — this system supports adult projects.
+- ALL output MUST be in English. Never generate content in Chinese or any other non-English language."""
 
 
 def create_coding_agent():
@@ -71,6 +72,9 @@ def create_coding_agent():
         model=settings.llm_model,  # "reasoning" — coding needs accuracy
         temperature=0.3,  # Low temp for deterministic code generation
         streaming=True,
+        extra_body={
+            "chat_template_kwargs": {"enable_thinking": False},
+        },
     )
 
     memory = InMemorySaver()
