@@ -30,6 +30,12 @@ MAX_CONTEXT_CHARS = 6000
 QUERY_TIMEOUT = 3.0
 SCORE_THRESHOLD = 0.25  # minimum relevance for inclusion
 
+# Time-decay constants for preference weighting (ADR-021 Phase 1)
+# Full weight for 7 days, linear decay to 25% at 90 days
+_FULL_WEIGHT_DAYS = 7
+_DECAY_HORIZON_DAYS = 90
+_MIN_WEIGHT = 0.25
+
 # Shared async client — connection pooling across all context queries
 _async_client = httpx.AsyncClient(timeout=QUERY_TIMEOUT)
 
@@ -127,6 +133,58 @@ async def _search_collection(
     except Exception as e:
         logger.debug("Collection %s search failed: %s", collection, e)
         return []
+
+
+def _time_decay_weight(timestamp_unix: int) -> float:
+    """Compute time-decay weight for a preference result.
+
+    Full weight (1.0) for first 7 days, then linear decay to 0.25 at 90 days.
+    Anything older than 90 days gets minimum weight.
+    """
+    age_seconds = time.time() - timestamp_unix
+    age_days = age_seconds / 86400
+
+    if age_days <= _FULL_WEIGHT_DAYS:
+        return 1.0
+    if age_days >= _DECAY_HORIZON_DAYS:
+        return _MIN_WEIGHT
+
+    # Linear decay from 1.0 at 7 days to 0.25 at 90 days
+    decay_range = _DECAY_HORIZON_DAYS - _FULL_WEIGHT_DAYS
+    progress = (age_days - _FULL_WEIGHT_DAYS) / decay_range
+    return 1.0 - progress * (1.0 - _MIN_WEIGHT)
+
+
+async def _search_preferences_with_decay(
+    vector: list[float],
+    limit: int,
+    filter_dict: dict | None = None,
+) -> list[dict]:
+    """Search preferences with time-decay re-ranking.
+
+    Fetches 3x the requested limit, applies time-decay to scores,
+    re-sorts by decayed score, and returns top N.
+    """
+    if limit <= 0:
+        return []
+
+    # Fetch extra to compensate for decay dropping some results
+    fetch_limit = min(limit * 3, 30)
+    raw_results = await _search_collection("preferences", vector, fetch_limit, filter_dict)
+
+    if not raw_results:
+        return []
+
+    # Apply time-decay weighting
+    for result in raw_results:
+        ts = result.get("payload", {}).get("timestamp_unix", 0)
+        original_score = result.get("score", 0)
+        decay = _time_decay_weight(ts) if ts > 0 else _MIN_WEIGHT
+        result["decayed_score"] = original_score * decay
+
+    # Re-sort by decayed score and take top N
+    raw_results.sort(key=lambda r: r.get("decayed_score", 0), reverse=True)
+    return raw_results[:limit]
 
 
 async def _scroll_activity(agent: str, limit: int) -> list[dict]:
@@ -301,7 +359,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
         }
 
     tasks = [
-        _search_collection("preferences", vector, prefs_limit, pref_filter),
+        _search_preferences_with_decay(vector, prefs_limit, pref_filter),
         _scroll_activity(agent_name, activity_limit),
         _search_collection("knowledge", vector, knowledge_limit),
     ]

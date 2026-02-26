@@ -23,6 +23,20 @@ logger = logging.getLogger(__name__)
 
 GOALS_KEY = "athanor:goals"
 FEEDBACK_STATS_KEY = "athanor:feedback:stats"
+NOTIFICATION_BUDGET_KEY = "athanor:notification:budget"
+
+# Default daily notification limits per agent
+DEFAULT_NOTIFICATION_BUDGET = 10
+AGENT_NOTIFICATION_BUDGETS = {
+    "general-assistant": 15,
+    "home-agent": 20,  # More frequent state changes
+    "media-agent": 10,
+    "creative-agent": 5,
+    "coding-agent": 5,
+    "research-agent": 5,
+    "knowledge-agent": 5,
+    "stash-agent": 5,
+}
 
 
 @dataclass
@@ -60,6 +74,61 @@ class Goal:
 async def _get_redis():
     from .workspace import get_redis
     return await get_redis()
+
+
+# --- Notification Budget ---
+
+
+async def check_notification_budget(agent: str) -> dict:
+    """Check if an agent has remaining notification budget for today.
+
+    Returns dict with: allowed (bool), used (int), limit (int), remaining (int).
+    Budget resets daily at midnight UTC via Redis key expiry.
+    """
+    limit = AGENT_NOTIFICATION_BUDGETS.get(agent, DEFAULT_NOTIFICATION_BUDGET)
+    try:
+        r = await _get_redis()
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        key = f"{NOTIFICATION_BUDGET_KEY}:{agent}:{today}"
+        used = int(await r.get(key) or 0)
+        return {
+            "allowed": used < limit,
+            "used": used,
+            "limit": limit,
+            "remaining": max(0, limit - used),
+        }
+    except Exception as e:
+        logger.warning("Notification budget check failed for %s: %s", agent, e)
+        return {"allowed": True, "used": 0, "limit": limit, "remaining": limit}
+
+
+async def increment_notification_count(agent: str) -> int:
+    """Increment the daily notification counter for an agent.
+
+    Returns the new count. Key auto-expires at end of UTC day.
+    """
+    try:
+        r = await _get_redis()
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        key = f"{NOTIFICATION_BUDGET_KEY}:{agent}:{today}"
+        count = await r.incr(key)
+        if count == 1:
+            # First notification today — set TTL to expire at midnight UTC
+            await r.expire(key, 86400)
+        return count
+    except Exception as e:
+        logger.warning("Failed to increment notification count for %s: %s", agent, e)
+        return 0
+
+
+async def get_notification_budgets() -> dict:
+    """Get notification budget status for all agents."""
+    from .agents import list_agents
+
+    budgets = {}
+    for agent_name in list_agents():
+        budgets[agent_name] = await check_notification_budget(agent_name)
+    return budgets
 
 
 # --- Feedback ---

@@ -654,6 +654,46 @@ async def post_feedback(request: Request):
     return result
 
 
+@app.post("/v1/feedback/implicit")
+async def post_implicit_feedback(request: Request):
+    """Store batched implicit feedback events from the dashboard client.
+
+    Body: {"session_id": "abc123", "events": [
+        {"type": "page_view", "page": "/", "timestamp": 1740000000000},
+        {"type": "dwell", "page": "/agents", "duration_ms": 15000, "timestamp": 1740000015000},
+        {"type": "tap", "page": "/chat", "agent": "media-agent", "metadata": {"target": "send"}, "timestamp": 1740000020000}
+    ]}
+    """
+    from .activity import store_implicit_events
+
+    body = await request.json()
+    session_id = body.get("session_id", "")
+    events = body.get("events", [])
+
+    if not events:
+        return {"stored": 0}
+
+    if not session_id:
+        return JSONResponse(status_code=400, content={"error": "session_id is required"})
+
+    stored = await store_implicit_events(session_id=session_id, events=events)
+    return {"stored": stored, "received": len(events)}
+
+
+@app.get("/v1/notification-budget")
+async def get_notification_budget(agent: str = ""):
+    """Get notification budget status for agents.
+
+    Optionally filter by agent name. Returns daily limits, used counts, and remaining budget.
+    """
+    from .goals import check_notification_budget, get_notification_budgets
+
+    if agent:
+        budget = await check_notification_budget(agent)
+        return {"agent": agent, **budget}
+    return {"budgets": await get_notification_budgets()}
+
+
 @app.get("/v1/goals")
 async def get_goals(agent: str = "", active_only: bool = True):
     """List active steering goals."""

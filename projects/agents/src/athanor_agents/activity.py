@@ -1,10 +1,12 @@
 """Activity logging and preference storage via Qdrant.
 
-Two collections:
+Collections:
 - `activity`: Every agent action (searchable, filterable by agent/time/type)
 - `preferences`: Explicit user signals (thumbs up/down, "remember this", config choices)
+- `conversations`: Full conversation turns for retrieval
+- `implicit_feedback`: Behavioral signals (page views, dwell time, taps, lens changes)
 
-Both use 1024-dim Cosine embeddings from Qwen3-Embedding-0.6B via LiteLLM.
+All use 1024-dim Cosine embeddings from Qwen3-Embedding-0.6B via LiteLLM.
 """
 
 import hashlib
@@ -30,6 +32,9 @@ COLLECTIONS = {
         "vectors": {"size": 1024, "distance": "Cosine"},
     },
     "conversations": {
+        "vectors": {"size": 1024, "distance": "Cosine"},
+    },
+    "implicit_feedback": {
         "vectors": {"size": 1024, "distance": "Cosine"},
     },
 }
@@ -314,6 +319,71 @@ async def query_activity(
     except Exception as e:
         logger.warning("Failed to query activity: %s", e)
         return []
+
+
+async def store_implicit_events(
+    session_id: str,
+    events: list[dict],
+) -> int:
+    """Store a batch of implicit feedback events.
+
+    Events are lightweight behavioral signals (page views, dwell time, taps,
+    lens changes) from the dashboard client. Each gets embedded and stored
+    in the implicit_feedback collection for pattern analysis.
+
+    Returns count of successfully stored events.
+    """
+    stored = 0
+    now = datetime.now(timezone.utc).isoformat()
+
+    for event in events:
+        event_type = event.get("type", "unknown")
+        page = event.get("page", "")
+        agent_name = event.get("agent", "")
+        duration_ms = event.get("duration_ms", 0)
+        metadata = event.get("metadata", {})
+        timestamp = event.get("timestamp", int(time.time()))
+
+        # Build text for embedding — summarize the behavioral signal
+        text_parts = [f"User {event_type} on {page}"]
+        if agent_name:
+            text_parts.append(f"agent: {agent_name}")
+        if duration_ms and duration_ms > 0:
+            text_parts.append(f"duration: {duration_ms}ms")
+        if metadata:
+            for k, v in list(metadata.items())[:3]:
+                text_parts.append(f"{k}: {v}")
+        text = ". ".join(text_parts)
+
+        try:
+            vector = _get_embedding(text[:500])
+            point_id = _point_id(f"imp-{session_id}-{timestamp}-{event_type}-{page[:50]}")
+
+            payload = {
+                "session_id": session_id,
+                "event_type": event_type,
+                "page": page,
+                "agent": agent_name,
+                "duration_ms": duration_ms,
+                "metadata": metadata,
+                "timestamp": now,
+                "timestamp_unix": int(timestamp / 1000) if timestamp > 1e12 else int(timestamp),
+            }
+
+            resp = httpx.put(
+                f"{_QDRANT_URL}/collections/implicit_feedback/points",
+                json={"points": [{"id": point_id, "vector": vector, "payload": payload}]},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            stored += 1
+        except Exception as e:
+            logger.debug("Failed to store implicit event %s: %s", event_type, e)
+
+    if stored > 0:
+        logger.info("Stored %d/%d implicit feedback events (session %s)", stored, len(events), session_id[:8])
+
+    return stored
 
 
 async def query_conversations(

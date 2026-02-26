@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://192.168.1.203:6379/0"
 
     prometheus_url: str = "http://192.168.1.203:9090"
+    dashboard_url: str = "http://192.168.1.225:3001"
     host: str = "0.0.0.0"
     port: int = 9000
 

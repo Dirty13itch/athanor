@@ -8,12 +8,21 @@ Three tiers:
 Thresholds are per-agent and per-action-category.
 """
 
+import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
 
+import httpx
+
+from .config import settings
+
 logger = logging.getLogger(__name__)
+
+# Dashboard push notification endpoint (Node 2)
+_DASHBOARD_PUSH_URL = settings.dashboard_url + "/api/push/send"
+_push_client = httpx.AsyncClient(timeout=5.0)
 
 
 class EscalationTier(str, Enum):
@@ -70,6 +79,115 @@ class PendingAction:
 # In-memory notification queue (will be backed by Redis in Phase 4)
 _pending_actions: list[PendingAction] = []
 _notification_counter: int = 0
+
+
+async def _send_push_notification(
+    title: str,
+    body: str,
+    tag: str = "default",
+    url: str = "/",
+    actions: list[dict] | None = None,
+    data: dict | None = None,
+) -> bool:
+    """Send a push notification to the dashboard via the push API.
+
+    Checks notification budget before sending. Returns True if sent.
+    """
+    try:
+        payload: dict = {
+            "title": title,
+            "body": body,
+            "tag": tag,
+            "url": url,
+            "actions": actions or [],
+        }
+        if data:
+            payload["data"] = data
+
+        resp = await _push_client.post(
+            _DASHBOARD_PUSH_URL,
+            json=payload,
+        )
+        if resp.status_code == 200:
+            result = resp.json()
+            sent = result.get("sent", 0)
+            if sent > 0:
+                logger.info("Push notification sent: %s — %s (%d devices)", title, body[:50], sent)
+                return True
+            else:
+                logger.debug("Push notification: no subscriptions registered")
+                return False
+        else:
+            logger.debug("Push notification failed: HTTP %d", resp.status_code)
+            return False
+    except Exception as e:
+        logger.debug("Push notification failed: %s", e)
+        return False
+
+
+def _fire_push(pending: "PendingAction") -> None:
+    """Fire-and-forget push notification for an escalation event.
+
+    Checks notification budget, then sends push. Called from sync functions
+    by scheduling on the event loop.
+    """
+    async def _send():
+        # Check notification budget
+        try:
+            from .goals import check_notification_budget, increment_notification_count
+            budget = await check_notification_budget(pending.agent)
+            if not budget["allowed"]:
+                logger.info(
+                    "Push suppressed for %s: budget exhausted (%d/%d)",
+                    pending.agent, budget["used"], budget["limit"],
+                )
+                return
+        except Exception:
+            pass  # Budget check failure shouldn't block notification
+
+        if pending.tier == EscalationTier.ASK.value:
+            # Approval needed — show approve/reject buttons
+            await _send_push_notification(
+                title=f"🔔 {pending.agent}: Needs approval",
+                body=f"{pending.action}\n{pending.description[:100]}",
+                tag=f"escalation-{pending.id}",
+                url="/tasks",
+                actions=[
+                    {"action": "approve", "title": "Approve"},
+                    {"action": "reject", "title": "Reject"},
+                ],
+                data={"taskId": pending.id, "agent": pending.agent},
+            )
+        else:
+            # Notification only — show feedback buttons
+            await _send_push_notification(
+                title=f"📋 {pending.agent}: {pending.action[:50]}",
+                body=pending.description[:100],
+                tag=f"notify-{pending.id}",
+                url="/activity",
+                actions=[
+                    {"action": "feedback_up", "title": "👍"},
+                    {"action": "feedback_down", "title": "👎"},
+                ],
+                data={"agent": pending.agent, "content": pending.description[:200]},
+            )
+
+        # Increment budget counter
+        try:
+            from .goals import increment_notification_count
+            await increment_notification_count(pending.agent)
+        except Exception:
+            pass
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.ensure_future(_send())
+        else:
+            loop.run_until_complete(_send())
+    except RuntimeError:
+        # No event loop — skip push
+        pass
 
 
 def get_threshold(agent: str, category: ActionCategory) -> float:
@@ -135,6 +253,10 @@ def queue_pending_action(
         "Queued pending action %s for %s: %s (confidence=%.2f)",
         pending.id, agent, action, confidence,
     )
+
+    # Fire push notification (async, fire-and-forget)
+    _fire_push(pending)
+
     return pending
 
 
@@ -164,6 +286,10 @@ def add_notification(
         resolution="auto-acted",
     )
     _pending_actions.append(notif)
+
+    # Fire push notification (async, fire-and-forget)
+    _fire_push(notif)
+
     return notif
 
 
