@@ -1,6 +1,7 @@
 "use client";
 
 import { useSystemStream } from "@/hooks/use-system-stream";
+import { useLens } from "@/hooks/use-lens";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -17,16 +18,14 @@ const agentMeta: Record<string, { icon: string; color: string; shortName: string
 
 export function AgentCrewBar() {
   const { data } = useSystemStream();
+  const { config } = useLens();
 
   const agents = data?.agents.names ?? [];
   const isOnline = data?.agents.online ?? false;
 
-  // Determine which agents are currently running tasks
-  const busyAgents = new Set<string>();
-  if (data?.tasks && typeof data.tasks === "object" && "by_agent" in data.tasks) {
-    // We can't determine per-agent running state from stats alone,
-    // but if currently_running > 0 we know some agents are busy
-  }
+  // Lens highlights specific agents
+  const lensAgents = config.agents;
+  const hasLensFilter = lensAgents.length > 0;
 
   if (agents.length === 0) {
     return null;
@@ -38,6 +37,8 @@ export function AgentCrewBar() {
       <div className="flex items-center gap-1.5">
         {agents.map((name) => {
           const meta = agentMeta[name] ?? { icon: name[0].toUpperCase(), color: "oklch(0.5 0 0)", shortName: name };
+          const isLensHighlighted = hasLensFilter && lensAgents.includes(name);
+          const isDimmed = hasLensFilter && !lensAgents.includes(name);
           return (
             <Link
               key={name}
@@ -45,17 +46,16 @@ export function AgentCrewBar() {
               className={cn(
                 "group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all",
                 "hover:scale-110 hover:ring-2 hover:ring-primary/50",
-                isOnline ? "opacity-100" : "opacity-40"
+                isOnline && !isDimmed ? "opacity-100" : "opacity-40",
+                isLensHighlighted && "ring-2 ring-primary/60 animate-pulse"
               )}
               style={{ backgroundColor: meta.color, color: "#111" }}
               title={`${meta.shortName} — ${isOnline ? "online" : "offline"}`}
             >
               {meta.icon}
-              {/* Online indicator dot */}
               {isOnline && (
                 <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500" />
               )}
-              {/* Tooltip */}
               <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-1.5 py-0.5 text-[10px] text-popover-foreground opacity-0 shadow transition-opacity group-hover:opacity-100">
                 {meta.shortName}
               </span>

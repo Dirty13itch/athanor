@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useLens } from "@/hooks/use-lens";
+import { LensSwitcher } from "@/components/lens-switcher";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutIcon },
@@ -24,26 +26,34 @@ const navItems = [
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const { lens, config } = useLens();
+  const isHighlighted = (href: string) => config.navHighlight.includes(href);
+
+  // Build lens query suffix for preserving lens across navigation
+  const lensQuery = lens !== "default" ? `?lens=${lens}` : "";
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-border bg-card md:flex">
       <div className="flex h-14 items-center border-b border-border px-4">
-        <Link href="/" className="flex items-center gap-2 text-foreground">
+        <Link href={`/${lensQuery}`} className="flex items-center gap-2 text-foreground">
           <span className="font-heading text-xl font-semibold tracking-wide">Athanor</span>
         </Link>
       </div>
-      <nav className="flex-1 space-y-1 p-2">
+      <LensSwitcher />
+      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
         {navItems.map((item) => {
           const active = pathname === item.href;
+          const highlighted = isHighlighted(item.href);
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={`${item.href}${lensQuery}`}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 active
                   ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                highlighted && !active && "border-l-2 border-primary"
               )}
             >
               <item.icon className="h-4 w-4" />

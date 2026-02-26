@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToolCallCard } from "@/components/tool-call";
+import { MessageRenderer } from "@/components/gen-ui/message-renderer";
+import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
 
 interface Message {
   role: "user" | "assistant";
@@ -370,21 +372,30 @@ function ChatContent() {
                     />
                   );
                 }
+                const isLastAssistant = isStreaming && i === chatItems.length - 1 && item.role === "assistant";
                 return (
                   <div
                     key={i}
                     className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <div
-                      className={`max-w-[90%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap md:max-w-[80%] md:px-4 ${
-                        item.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
-                      }`}
-                    >
-                      {item.content}
-                      {isStreaming && i === chatItems.length - 1 && item.role === "assistant" && (
-                        <span className="inline-block w-1.5 h-4 ml-0.5 bg-foreground animate-pulse" />
+                    <div className={item.role === "user" ? "max-w-[90%] md:max-w-[80%]" : "max-w-[90%] md:max-w-[80%]"}>
+                      <div
+                        className={`rounded-lg px-3 py-2 text-sm whitespace-pre-wrap md:px-4 ${
+                          item.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground"
+                        }`}
+                      >
+                        <MessageRenderer content={item.content} role={item.role} />
+                        {isLastAssistant && (
+                          <span className="inline-block w-1.5 h-4 ml-0.5 bg-foreground animate-pulse" />
+                        )}
+                      </div>
+                      {item.role === "assistant" && !isLastAssistant && (
+                        <FeedbackButtons
+                          messageContent={item.content}
+                          agent={isAgent ? selectedModel?.id : undefined}
+                        />
                       )}
                     </div>
                   </div>

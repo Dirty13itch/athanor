@@ -8,6 +8,9 @@ import { UnifiedStream } from "@/components/unified-stream";
 import { ProgressBar } from "@/components/progress-bar";
 import { SystemPulse } from "@/components/system-pulse";
 import { AgentCrewBar } from "@/components/agent-crew-bar";
+import { HomeSections } from "@/components/home-sections";
+import { DailyDigest } from "@/components/gen-ui/daily-digest";
+import type { SectionId } from "@/lib/lens";
 
 export const revalidate = 15;
 
@@ -193,17 +196,12 @@ export default async function DashboardPage() {
     });
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Live System Pulse — SSE-powered, updates every 5s */}
-      <SystemPulse />
-
-      {/* Agent Crew — live status, click to chat */}
-      <AgentCrewBar />
-
-      {/* GPU Map + Active Workloads */}
+  // Build section map for lens-driven reordering
+  const sections: Record<SectionId, React.ReactNode> = {
+    pulse: <SystemPulse />,
+    crew: <AgentCrewBar />,
+    gpus: (
       <div className="grid gap-4 lg:grid-cols-5">
-        {/* GPU Map - takes 3 columns */}
         <div className="lg:col-span-3 space-y-4">
           {Array.from(gpusByNode.entries()).map(([node, nodeGpus]) => {
             const nodeConfig = config.nodes.find((n) => n.name === node);
@@ -236,115 +234,115 @@ export default async function DashboardPage() {
             );
           })}
         </div>
+      </div>
+    ),
+    workloads: (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Inference */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Inference</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span>Qwen3-32B TP=4</span>
+              <Badge variant="outline" className="text-xs">Foundry</Badge>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span>Qwen3-14B</span>
+              <Badge variant="outline" className="text-xs">Workshop</Badge>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Active Workloads - takes 2 columns */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Inference */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Inference</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span>Qwen3-32B TP=4</span>
-                <Badge variant="outline" className="text-xs">Foundry</Badge>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span>Qwen3-14B</span>
-                <Badge variant="outline" className="text-xs">Workshop</Badge>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Creative */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Creative</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between text-xs">
+              <span>ComfyUI (Flux dev)</span>
+              {comfyRunning > 0 ? (
+                <Badge className="text-xs">{comfyRunning} generating</Badge>
+              ) : comfyPending > 0 ? (
+                <Badge variant="outline" className="text-xs">{comfyPending} queued</Badge>
+              ) : comfyQueue ? (
+                <span className="text-muted-foreground">Idle</span>
+              ) : (
+                <Badge variant="destructive" className="text-xs">Offline</Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Creative */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Creative</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between text-xs">
-                <span>ComfyUI (Flux dev)</span>
-                {comfyRunning > 0 ? (
-                  <Badge className="text-xs">{comfyRunning} generating</Badge>
-                ) : comfyPending > 0 ? (
-                  <Badge variant="outline" className="text-xs">{comfyPending} queued</Badge>
-                ) : comfyQueue ? (
-                  <span className="text-muted-foreground">Idle</span>
-                ) : (
-                  <Badge variant="destructive" className="text-xs">Offline</Badge>
+        {/* Media */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Media</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span>Plex</span>
+              {plexStreamCount > 0 ? (
+                <span className="text-green-400">{plexStreamCount} stream{plexStreamCount > 1 ? "s" : ""}</span>
+              ) : (
+                <span className="text-muted-foreground">No streams</span>
+              )}
+            </div>
+            {plexSessions.map((s, i) => (
+              <div key={i} className="text-xs text-muted-foreground ml-2">
+                {s.friendly_name}: {s.full_title} ({s.progress_percent}%)
+              </div>
+            ))}
+            {downloads.length > 0 ? (
+              <div className="space-y-1">
+                {downloads.slice(0, 3).map((d, i) => {
+                  const pct = d.size ? ((d.size - (d.sizeleft ?? 0)) / d.size) * 100 : 0;
+                  return (
+                    <div key={i} className="text-xs">
+                      <div className="flex justify-between">
+                        <span className="truncate max-w-[180px]">{d.title}</span>
+                        <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
+                      </div>
+                      <ProgressBar value={pct} className="mt-0.5" />
+                    </div>
+                  );
+                })}
+                {downloads.length > 3 && (
+                  <p className="text-xs text-muted-foreground">+{downloads.length - 3} more</p>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            ) : media ? (
+              <p className="text-xs text-muted-foreground">No active downloads</p>
+            ) : null}
+          </CardContent>
+        </Card>
 
-          {/* Media */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Media</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span>Plex</span>
-                {plexStreamCount > 0 ? (
-                  <span className="text-green-400">{plexStreamCount} stream{plexStreamCount > 1 ? "s" : ""}</span>
-                ) : (
-                  <span className="text-muted-foreground">No streams</span>
-                )}
-              </div>
-              {plexSessions.map((s, i) => (
-                <div key={i} className="text-xs text-muted-foreground ml-2">
-                  {s.friendly_name}: {s.full_title} ({s.progress_percent}%)
+        {/* Services summary */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Services</CardTitle>
+            <CardDescription>{servicesUp}/{servicesTotal} online</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-1">
+              {services.map((s) => (
+                <div
+                  key={s.name}
+                  className="flex items-center gap-1 text-xs"
+                  title={`${s.name} (${s.node})`}
+                >
+                  <div className={`h-1.5 w-1.5 rounded-full ${s.status === "up" ? "bg-green-500" : "bg-red-500"}`} />
+                  <span className="text-muted-foreground">{s.name.split("(")[0].trim()}</span>
                 </div>
               ))}
-              {downloads.length > 0 ? (
-                <div className="space-y-1">
-                  {downloads.slice(0, 3).map((d, i) => {
-                    const pct = d.size ? ((d.size - (d.sizeleft ?? 0)) / d.size) * 100 : 0;
-                    return (
-                      <div key={i} className="text-xs">
-                        <div className="flex justify-between">
-                          <span className="truncate max-w-[180px]">{d.title}</span>
-                          <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
-                        </div>
-                        <ProgressBar value={pct} className="mt-0.5" />
-                      </div>
-                    );
-                  })}
-                  {downloads.length > 3 && (
-                    <p className="text-xs text-muted-foreground">+{downloads.length - 3} more</p>
-                  )}
-                </div>
-              ) : media ? (
-                <p className="text-xs text-muted-foreground">No active downloads</p>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          {/* Services summary */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Services</CardTitle>
-              <CardDescription>{servicesUp}/{servicesTotal} online</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-1">
-                {services.map((s) => (
-                  <div
-                    key={s.name}
-                    className="flex items-center gap-1 text-xs"
-                    title={`${s.name} (${s.node})`}
-                  >
-                    <div className={`h-1.5 w-1.5 rounded-full ${s.status === "up" ? "bg-green-500" : "bg-red-500"}`} />
-                    <span className="text-muted-foreground">{s.name.split("(")[0].trim()}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Unified Stream — tasks + agent activity, live updates */}
+    ),
+    stream: (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Activity Stream</CardTitle>
@@ -353,20 +351,18 @@ export default async function DashboardPage() {
           <UnifiedStream limit={10} />
         </CardContent>
       </Card>
-
-      {/* Plex Watch History */}
-      {activityItems.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Recent Watches</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ActivityFeed items={activityItems.slice(0, 5)} />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick Links */}
+    ),
+    watches: activityItems.length > 0 ? (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Recent Watches</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActivityFeed items={activityItems.slice(0, 5)} />
+        </CardContent>
+      </Card>
+    ) : null,
+    links: (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm">Quick Links</CardTitle>
@@ -393,6 +389,9 @@ export default async function DashboardPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    ),
+    digest: <DailyDigest />,
+  };
+
+  return <HomeSections sections={sections} />;
 }

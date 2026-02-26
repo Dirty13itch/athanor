@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Inter, Cormorant_Garamond } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import { CommandPalette } from "@/components/command-palette";
 import { RegisterSW } from "@/components/register-sw";
+import { LensProvider } from "@/hooks/use-lens";
 import "./globals.css";
 
 const inter = Inter({
@@ -58,12 +60,16 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${cormorant.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <SidebarNav />
-        <main className="min-h-screen p-4 pb-20 md:ml-56 md:p-6 md:pb-6">
-          {children}
-        </main>
-        <BottomNav />
-        <CommandPalette />
+        <Suspense>
+          <LensProvider>
+            <SidebarNav />
+            <main className="min-h-screen p-4 pb-20 md:ml-56 md:p-6 md:pb-6">
+              {children}
+            </main>
+            <BottomNav />
+            <CommandPalette />
+          </LensProvider>
+        </Suspense>
         <RegisterSW />
       </body>
     </html>

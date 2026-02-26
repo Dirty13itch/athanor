@@ -43,7 +43,7 @@ function typeIcon(type: StreamEvent["type"]) {
   }
 }
 
-export function UnifiedStream({ limit = 12 }: { limit?: number }) {
+export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; filterTypes?: string[] }) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -95,8 +95,13 @@ export function UnifiedStream({ limit = 12 }: { limit?: number }) {
         // Sort by timestamp descending
         merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
+        // Apply type filter if provided
+        const filtered = filterTypes && filterTypes.length > 0
+          ? merged.filter((e) => filterTypes.includes(e.type))
+          : merged;
+
         if (mounted) {
-          setEvents(merged.slice(0, limit));
+          setEvents(filtered.slice(0, limit));
           setLoading(false);
         }
       } catch {
@@ -110,7 +115,7 @@ export function UnifiedStream({ limit = 12 }: { limit?: number }) {
       mounted = false;
       clearInterval(interval);
     };
-  }, [limit]);
+  }, [limit, filterTypes]);
 
   if (loading) {
     return (

@@ -11,6 +11,8 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { useLens } from "@/hooks/use-lens";
+import { LENS_IDS, LENS_CONFIG, type LensId } from "@/lib/lens";
 
 const pages = [
   { href: "/", label: "Dashboard", keywords: "home overview" },
@@ -51,6 +53,7 @@ const quickActions = [
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { setLens } = useLens();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -143,6 +146,26 @@ export function CommandPalette() {
               </CommandItem>
             ))}
           </CommandGroup>
+
+          <CommandSeparator />
+
+          <CommandGroup heading="Switch Lens">
+            {LENS_IDS.map((id) => {
+              const cfg = LENS_CONFIG[id];
+              return (
+                <CommandItem
+                  key={id}
+                  value={`lens ${cfg.label} ${id}`}
+                  onSelect={() =>
+                    runCommand(() => setLens(id as LensId))
+                  }
+                >
+                  <LensIcon className="mr-2 h-4 w-4" style={{ color: cfg.accent }} />
+                  {cfg.label}
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
         </CommandList>
       </CommandDialog>
     </>
@@ -182,6 +205,17 @@ function BotIcon({ className }: { className?: string }) {
       <rect width="16" height="12" x="4" y="8" rx="2" />
       <path d="M2 14h2" /><path d="M20 14h2" />
       <path d="M15 13v2" /><path d="M9 13v2" />
+    </svg>
+  );
+}
+
+function LensIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="4" />
+      <line x1="21.17" x2="12" y1="8" y2="8" /><line x1="3.95" x2="8.54" y1="6.06" y2="14" />
+      <line x1="10.88" x2="15.46" y1="21.94" y2="14" />
     </svg>
   );
 }

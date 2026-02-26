@@ -177,3 +177,17 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Lens ambient overrides */
+[data-lens="system"] {
+  --furnace-glow: oklch(0.65 calc(0.02 + var(--system-warmth) * 0.06) 230);
+}
+[data-lens="media"] {
+  --furnace-glow: oklch(0.65 calc(0.02 + var(--system-warmth) * 0.06) 160);
+}
+[data-lens="creative"] {
+  --furnace-glow: oklch(0.7 calc(0.02 + var(--system-warmth) * 0.06) 330);
+}
+[data-lens="eoq"] {
+  --furnace-glow: oklch(0.65 calc(0.02 + var(--system-warmth) * 0.06) 25);
+}

@@ -16,6 +16,26 @@ interface AgentInfo {
   status_note?: string;
 }
 
+interface EscalationConfig {
+  [agent: string]: {
+    thresholds?: Record<string, string>;
+  };
+}
+
+// Derive trust level from escalation config: more "act" thresholds = higher trust
+function getTrustLevel(agentConfig?: { thresholds?: Record<string, string> }): { level: string; color: string } {
+  if (!agentConfig?.thresholds) return { level: "B", color: "text-blue-400" };
+  const values = Object.values(agentConfig.thresholds);
+  const actCount = values.filter((v) => v === "act").length;
+  const askCount = values.filter((v) => v === "ask").length;
+  const total = values.length || 1;
+  const actRatio = actCount / total;
+  if (actRatio >= 0.7) return { level: "A", color: "text-green-400" };
+  if (actRatio >= 0.4) return { level: "B", color: "text-blue-400" };
+  if (askCount > actCount) return { level: "D", color: "text-red-400" };
+  return { level: "C", color: "text-yellow-400" };
+}
+
 interface AgentResponse {
   status: "online" | "offline";
   agents: AgentInfo[];
@@ -25,6 +45,7 @@ export default function AgentsPage() {
   const [data, setData] = useState<AgentResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [escalationConfig, setEscalationConfig] = useState<EscalationConfig>({});
   const router = useRouter();
 
   const fetchAgents = useCallback(async () => {
@@ -46,6 +67,14 @@ export default function AgentsPage() {
     const id = setInterval(fetchAgents, 15000);
     return () => clearInterval(id);
   }, [fetchAgents]);
+
+  // Fetch escalation config for trust badges (best effort)
+  useEffect(() => {
+    fetch("/api/agents/proxy?path=/v1/escalation/config", { signal: AbortSignal.timeout(5000) })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data) setEscalationConfig(data); })
+      .catch(() => {});
+  }, []);
 
   const onlineAgents = data?.agents.filter((a) => a.status === "online") ?? [];
   const plannedAgents = data?.agents.filter((a) => a.status === "planned") ?? [];
@@ -100,7 +129,7 @@ export default function AgentsPage() {
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {onlineAgents.map((agent) => (
-              <AgentCard key={agent.name} agent={agent} onChat={() => router.push(`/chat?agent=${agent.name}`)} />
+              <AgentCard key={agent.name} agent={agent} trust={getTrustLevel(escalationConfig[agent.name])} onChat={() => router.push(`/chat?agent=${agent.name}`)} />
             ))}
           </div>
         </div>
@@ -131,14 +160,21 @@ export default function AgentsPage() {
   );
 }
 
-function AgentCard({ agent, onChat }: { agent: AgentInfo; onChat?: () => void }) {
+function AgentCard({ agent, trust, onChat }: { agent: AgentInfo; trust?: { level: string; color: string }; onChat?: () => void }) {
   const isPlanned = agent.status === "planned";
 
   return (
     <Card className={`flex flex-col ${isPlanned ? "opacity-60" : ""}`}>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{formatAgentName(agent.name)}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base">{formatAgentName(agent.name)}</CardTitle>
+            {trust && !isPlanned && (
+              <Badge variant="outline" className={`text-[10px] ${trust.color}`}>
+                Trust {trust.level}
+              </Badge>
+            )}
+          </div>
           <div className="flex items-center gap-1.5">
             <Badge
               variant={agent.type === "proactive" ? "default" : "outline"}

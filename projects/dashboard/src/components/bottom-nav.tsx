@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useLens } from "@/hooks/use-lens";
 
 const tabs = [
   { href: "/", label: "Home", icon: HomeTabIcon },
@@ -14,6 +15,8 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { lens } = useLens();
+  const lensQuery = lens !== "default" ? `?lens=${lens}` : "";
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center justify-around border-t border-border bg-card/95 backdrop-blur-sm md:hidden safe-area-bottom">
@@ -25,7 +28,7 @@ export function BottomNav() {
         return (
           <Link
             key={tab.href}
-            href={tab.href}
+            href={`${tab.href}${lensQuery}`}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-w-[64px] min-h-[44px] transition-colors",
               active
