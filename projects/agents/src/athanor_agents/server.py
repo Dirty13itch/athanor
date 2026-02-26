@@ -393,6 +393,18 @@ async def evaluate_escalation(request: Request):
         )
 
     tier = evaluate(agent, action, category, confidence)
+
+    # Log escalation events for pattern detection (NOTIFY and ASK only — ACT is normal)
+    if tier.value in ("notify", "ask"):
+        from .activity import log_event
+        import asyncio
+        asyncio.create_task(log_event(
+            event_type="escalation_triggered",
+            agent=agent,
+            description=f"{tier.value}: {action[:200]}",
+            data={"category": category_str, "confidence": confidence, "tier": tier.value},
+        ))
+
     return {
         "agent": agent,
         "action": action,
@@ -529,6 +541,30 @@ async def ingest_event(request: Request):
     }
 
 
+@app.get("/v1/events/query")
+async def query_events_endpoint(
+    event_type: str = "",
+    agent: str = "",
+    limit: int = 50,
+    since_unix: int = 0,
+):
+    """Query structured system events for pattern detection.
+
+    Supports filtering by event_type, agent, and time range.
+    Event types: task_completed, task_failed, escalation_triggered,
+    feedback_received, trust_change, goal_created, schedule_run.
+    """
+    from .activity import query_events
+
+    events = await query_events(
+        event_type=event_type,
+        agent=agent,
+        limit=limit,
+        since_unix=since_unix,
+    )
+    return {"events": events, "count": len(events)}
+
+
 # --- Task Execution Engine ---
 
 
@@ -651,6 +687,16 @@ async def post_feedback(request: Request):
         feedback_type=feedback_type,
         response_content=response_content,
     )
+
+    # Log feedback event for pattern detection
+    from .activity import log_event
+    asyncio.create_task(log_event(
+        event_type="feedback_received",
+        agent=agent,
+        description=f"{feedback_type}: {message_content[:200]}",
+        data={"feedback_type": feedback_type},
+    ))
+
     return result
 
 

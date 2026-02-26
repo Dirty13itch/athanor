@@ -5,6 +5,7 @@ Collections:
 - `preferences`: Explicit user signals (thumbs up/down, "remember this", config choices)
 - `conversations`: Full conversation turns for retrieval
 - `implicit_feedback`: Behavioral signals (page views, dwell time, taps, lens changes)
+- `events`: Structured system events for pattern detection (ADR-021 Phase 2)
 
 All use 1024-dim Cosine embeddings from Qwen3-Embedding-0.6B via LiteLLM.
 """
@@ -35,6 +36,9 @@ COLLECTIONS = {
         "vectors": {"size": 1024, "distance": "Cosine"},
     },
     "implicit_feedback": {
+        "vectors": {"size": 1024, "distance": "Cosine"},
+    },
+    "events": {
         "vectors": {"size": 1024, "distance": "Cosine"},
     },
 }
@@ -384,6 +388,90 @@ async def store_implicit_events(
         logger.info("Stored %d/%d implicit feedback events (session %s)", stored, len(events), session_id[:8])
 
     return stored
+
+
+async def log_event(
+    event_type: str,
+    agent: str,
+    data: dict | None = None,
+    description: str = "",
+):
+    """Log a structured system event for pattern detection.
+
+    Event types: task_completed, task_failed, escalation_triggered,
+    feedback_received, trust_change, goal_created, schedule_run.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    ts = int(time.time())
+    text = f"Event: {event_type}. Agent: {agent}. {description}"
+
+    try:
+        vector = _get_embedding(text[:1000])
+        point_id = _point_id(f"evt-{event_type}-{agent}-{ts}-{description[:50]}")
+
+        payload = {
+            "event_type": event_type,
+            "agent": agent,
+            "description": description[:500],
+            "data": data or {},
+            "timestamp": now,
+            "timestamp_unix": ts,
+        }
+
+        resp = httpx.put(
+            f"{_QDRANT_URL}/collections/events/points",
+            json={"points": [{"id": point_id, "vector": vector, "payload": payload}]},
+            timeout=15,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.debug("Failed to log event %s: %s", event_type, e)
+
+
+async def query_events(
+    event_type: str = "",
+    agent: str = "",
+    limit: int = 50,
+    since_unix: int = 0,
+) -> list[dict]:
+    """Query system events for pattern detection."""
+    try:
+        must_filters = []
+        if event_type:
+            must_filters.append({"key": "event_type", "match": {"value": event_type}})
+        if agent:
+            must_filters.append({"key": "agent", "match": {"value": agent}})
+        if since_unix > 0:
+            must_filters.append({"key": "timestamp_unix", "range": {"gte": since_unix}})
+
+        body: dict = {"limit": limit, "with_payload": True}
+        if must_filters:
+            body["filter"] = {"must": must_filters}
+
+        resp = httpx.post(
+            f"{_QDRANT_URL}/collections/events/points/scroll",
+            json=body,
+            timeout=10,
+        )
+        resp.raise_for_status()
+        points = resp.json().get("result", {}).get("points", [])
+
+        results = [
+            {
+                "event_type": p["payload"].get("event_type", ""),
+                "agent": p["payload"].get("agent", ""),
+                "description": p["payload"].get("description", ""),
+                "data": p["payload"].get("data", {}),
+                "timestamp": p["payload"].get("timestamp", ""),
+                "timestamp_unix": p["payload"].get("timestamp_unix", 0),
+            }
+            for p in points
+        ]
+        results.sort(key=lambda x: x["timestamp_unix"], reverse=True)
+        return results[:limit]
+    except Exception as e:
+        logger.warning("Failed to query events: %s", e)
+        return []
 
 
 async def query_conversations(

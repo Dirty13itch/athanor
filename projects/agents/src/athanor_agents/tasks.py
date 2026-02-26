@@ -478,7 +478,7 @@ async def _execute_task(task: Task):
             task.id, task.agent, len(task.steps), task.duration_ms or 0,
         )
 
-        # Log activity
+        # Log activity + event
         asyncio.create_task(log_activity(
             agent=task.agent,
             action_type="task",
@@ -486,6 +486,13 @@ async def _execute_task(task: Task):
             output_summary=result_text[:500],
             tools_used=tools_used,
             duration_ms=task.duration_ms,
+        ))
+        from .activity import log_event
+        asyncio.create_task(log_event(
+            event_type="task_completed",
+            agent=task.agent,
+            description=task.prompt[:200],
+            data={"task_id": task.id, "steps": len(task.steps), "duration_ms": task.duration_ms, "tools": tools_used},
         ))
 
         # Broadcast completion to GWT workspace
@@ -508,6 +515,15 @@ async def _execute_task(task: Task):
         task.completed_at = time.time()
         await _update_task(task)
         logger.error("Task %s failed: %s", task.id, e, exc_info=True)
+
+        # Log failure event
+        from .activity import log_event
+        asyncio.create_task(log_event(
+            event_type="task_failed",
+            agent=task.agent,
+            description=f"{task.prompt[:150]} — {str(e)[:100]}",
+            data={"task_id": task.id, "error": str(e)[:500]},
+        ))
 
         # Broadcast failure
         from .workspace import post_item

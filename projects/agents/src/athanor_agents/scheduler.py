@@ -174,6 +174,15 @@ async def _scheduler_loop():
                             metadata={"source": "scheduler", "interval": interval},
                         )
                         await _set_last_run(agent, now)
+
+                        # Log schedule_run event for pattern detection
+                        from .activity import log_event
+                        asyncio.create_task(log_event(
+                            event_type="schedule_run",
+                            agent=agent,
+                            description=f"Scheduled task submitted (interval={interval}s)",
+                            data={"interval": interval, "priority": schedule["priority"]},
+                        ))
                     except Exception as e:
                         logger.warning("Scheduler: failed to submit task for %s: %s", agent, e)
 
