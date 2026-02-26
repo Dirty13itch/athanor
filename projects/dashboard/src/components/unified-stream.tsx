@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
 
 interface StreamEvent {
   type: "task" | "agent" | "media" | "system";
@@ -141,7 +142,7 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
       {events.map((event, i) => {
         const Icon = typeIcon(event.type);
         return (
-          <div key={i} className="flex items-start gap-2 py-1 text-xs">
+          <div key={i} className="group/stream flex items-start gap-2 py-1 text-xs">
             <div className="relative mt-0.5 shrink-0">
               <Icon className="h-3.5 w-3.5 text-muted-foreground" />
               {event.status && (
@@ -162,6 +163,12 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
               {event.detail && (
                 <span className="text-muted-foreground"> — {event.detail}</span>
               )}
+            </div>
+            <div className="shrink-0 opacity-0 group-hover/stream:opacity-100 transition-opacity">
+              <FeedbackButtons
+                messageContent={`${event.source}: ${event.title}${event.detail ? ` — ${event.detail}` : ""}`}
+                agent={event.source}
+              />
             </div>
           </div>
         );

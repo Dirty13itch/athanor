@@ -791,7 +791,7 @@ For a self-hosted homelab dashboard used by one person:
 2. **Capacitor is the escape hatch if iOS push becomes unreliable.** Wrapping the PWA in Capacitor would give native push via APNs, background execution, and App Store distribution (though the last is irrelevant).
 3. **Do not invest in Capacitor now.** The overhead of maintaining a native build pipeline (Xcode, Android Studio, signing certificates) is not worth it until there's a concrete problem PWA can't solve.
 
-The one scenario where Capacitor becomes necessary: if Shaun wants reliable push notifications when the phone is not on the home network (i.e., remote access via Tailscale), and iOS's PWA push proves flaky. But that's a future problem.
+The one scenario where Capacitor becomes necessary: if Shaun wants reliable push notifications when the phone is not on the home network, and iOS's PWA push proves flaky. But that's a future problem.
 
 **Sources:**
 - [nextnative.dev: Capacitor vs React Native (2025)](https://nextnative.dev/blog/capacitor-vs-react-native)
@@ -807,8 +807,7 @@ The one scenario where Capacitor becomes necessary: if Shaun wants reliable push
 
 Athanor is a personal homelab dashboard. The threat model is:
 - **On LAN:** Trusted network. Authentication is nice-to-have, not essential.
-- **Via Tailscale:** Trusted tunnel. Tailscale handles identity. Authentication prevents unauthorized use if the Tailscale device is compromised.
-- **Via public internet:** Not planned (ADR-016 explicitly avoids exposing services publicly).
+- **Remote:** Not currently planned. Remote access cancelled (ADR-016 superseded 2026-02-26).
 
 ### Authentication Options
 
@@ -818,13 +817,10 @@ Athanor is a personal homelab dashboard. The threat model is:
 | **Basic auth** | Minimal | Bad (re-enter constantly) | Low | Poor |
 | **Cookie session with pin/password** | Low | Medium | Medium | Good |
 | **WebAuthn (biometric)** | Medium | Excellent | High | Excellent |
-| **Tailscale identity** | Low | Transparent | High | Good (if Tailscale installed) |
-
 ### Recommended: Layered Approach
 
 1. **LAN access:** No authentication required. If you're on the home network, you're trusted.
-2. **Tailscale access:** Use Tailscale's built-in identity headers (when using Tailscale Serve/Funnel) or simply trust that Tailscale's ACLs control who can reach the dashboard.
-3. **Optional WebAuthn:** Add biometric auth as an opt-in for Shaun's phone. Face ID / fingerprint to unlock the dashboard when accessed from mobile. This prevents someone who picks up Shaun's phone from seeing the dashboard (even though the data isn't particularly sensitive).
+2. **Optional WebAuthn:** Add biometric auth as an opt-in for Shaun's phone. Face ID / fingerprint to unlock the dashboard when accessed from mobile. This prevents someone who picks up Shaun's phone from seeing the dashboard (even though the data isn't particularly sensitive).
 
 ### WebAuthn Implementation
 
@@ -873,16 +869,13 @@ WebAuthn requires a secure context (HTTPS or localhost). Options for the homelab
 
 1. **Self-signed certificate:** Works but causes browser warnings. Needs manual trust installation on each device.
 2. **mkcert (local CA):** Generates certificates trusted by your devices. Best for LAN-only.
-3. **Tailscale HTTPS:** Tailscale can provision HTTPS certificates for `*.ts.net` domains. If Tailscale is deployed, this is the cleanest option.
-4. **Let's Encrypt via reverse proxy:** Only works if the dashboard is exposed to the internet (not planned).
+3. **Let's Encrypt via reverse proxy:** Only works if the dashboard is exposed to the internet (not planned).
 
-**Recommendation:** Use Tailscale HTTPS when Tailscale is deployed (ADR-016). Until then, HTTP on LAN is fine -- WebAuthn won't work without HTTPS, but basic cookie auth will.
+**Recommendation:** For HTTPS on LAN, use mkcert (local CA) — generates certificates trusted by your devices. HTTP on LAN is fine for now — WebAuthn won't work without HTTPS, but basic cookie auth will.
 
 **Sources:**
 - [MDN: Web Authentication API (WebAuthn)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API)
 - [Google: Build Your First WebAuthn App](https://developers.google.com/codelabs/webauthn-reauth)
-- [Headscale: Self-Hosted Tailscale Control Server](https://github.com/juanfont/headscale)
-- [blog.antsu.net: Authentik as Identity Provider for Tailscale](https://blog.antsu.net/custom-tailscale-oidc-provider-with-authentik/)
 
 ---
 
@@ -930,7 +923,7 @@ WebAuthn requires a secure context (HTTPS or localhost). Options for the homelab
 3. Add offline fallback page via service worker
 4. Add notification action buttons (approve/reject from notification)
 5. Consider Capacitor wrapper if iOS push proves unreliable
-6. Add WebAuthn when Tailscale HTTPS is available
+6. Add WebAuthn when HTTPS is available (mkcert or Let's Encrypt)
 
 ---
 

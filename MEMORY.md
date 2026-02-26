@@ -17,8 +17,7 @@
 
 ### Current blockers
 - NordVPN credentials needed for qBittorrent + Gluetun (6.5)
-- Tailscale needs UDM Pro SSH + Tailscale account (6.8)
-- **vLLM v0.15.0+ needed** — unlocks DeltaNet (Qwen3.5), NVFP4, SageAttention2, EAGLE-3 (NGC image currently v0.11.1)
+- **vLLM v0.17.0 needed** — unlocks Qwen3.5 (`qwen3_5` model type). v0.16.0 deployed on both nodes.
 - 3 Crucial P310 NVMe drives location unknown (VAULT Hyper M.2 card empty)
 
 ### What's next (P1 quick wins from synthesis)
@@ -52,7 +51,7 @@
 | 9 | 2026-02-24 | SSH + LiteLLM + Qdrant | Fixed WSL SSH keys, LiteLLM on VAULT:4000, Qdrant on Node 1:6333 |
 | 10 | 2026-02-24 | Context reconciliation + Agent routing | 15 docs extracted, agents wired to LiteLLM, 16/16 services verified |
 | 11 | 2026-02-24 | Neo4j + Design + Agents + Monitoring | Neo4j, design system, Research + Creative agents, monitoring page, Flux model |
-| 12-14 | 2026-02-24 | Hardening + EoBQ + Remote access | 10GbE verified, backups deployed, EoBQ wired + deployed, ADR-016 Tailscale |
+| 12-14 | 2026-02-24 | Hardening + EoBQ + Remote access | 10GbE verified, backups deployed, EoBQ wired + deployed, ADR-016 (superseded) |
 | 15 | 2026-02-25 | System design + full Tier 7 | SYSTEM-SPEC, agent contracts, hybrid-dev docs. Redis, Coding Agent, MCP bridge, escalation, GWT workspace, GPU orchestrator, 3 dashboard pages. **All 14/14 Tier 7 items complete.** |
 | 16-17 | 2026-02-25 | Tier 6 + Voice + Context | Wan2.x T2V verified, Creative Agent video tools, Stash agent, 4 voice containers, HA voice pipeline, Layer 2 context injection. |
 | 18 | 2026-02-25 | Maintenance + GWT Phase 2 | Knowledge re-index (1203 pts), HA auth fix (26/26 UP), Neo4j 43 rels, backup 14 svcs. GWT Phase 2: conversation logging, agent registry, event ingestion, pub/sub. |

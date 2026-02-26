@@ -519,7 +519,7 @@ The EPYC 7663 includes:
 - **NFS encryption**: Encrypt NFS traffic between nodes (currently unencrypted on LAN)
 - **Backup encryption**: Encrypt backups at rest on VAULT
 - **TLS termination**: Handle HTTPS for all services via nginx/Caddy
-- **VPN**: WireGuard/Tailscale uses minimal CPU but benefits from hardware crypto
+- **VPN**: WireGuard uses minimal CPU but benefits from hardware crypto (if remote access is ever needed)
 
 **Impact**: Low incremental benefit (encryption on modern CPUs is already fast), but enables security improvements at negligible CPU cost.
 

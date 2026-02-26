@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { config } from "@/lib/config";
+import { SwipeCard } from "@/components/swipe-card";
+import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
 
 interface TaskStep {
   index: number;
@@ -191,6 +193,23 @@ export default function TasksPage() {
       fetchData();
     } catch (e) {
       console.error("Failed to cancel task:", e);
+    }
+  };
+
+  const rerunTask = async (task: Task) => {
+    try {
+      await fetch(`${config.agentServer.url}/v1/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent: task.agent,
+          prompt: task.prompt,
+          priority: task.priority,
+        }),
+      });
+      fetchData();
+    } catch (e) {
+      console.error("Failed to rerun task:", e);
     }
   };
 
@@ -404,9 +423,21 @@ export default function TasksPage() {
           </Card>
         )}
 
-        {tasks.map((task) => (
-          <Card
+        {tasks.map((task) => {
+          const canCancel = task.status === "pending" || task.status === "running";
+          const canRerun = task.status === "completed" || task.status === "failed";
+          return (
+          <SwipeCard
             key={task.id}
+            onSwipeRight={canRerun ? () => rerunTask(task) : undefined}
+            onSwipeLeft={canCancel ? () => cancelTask(task.id) : undefined}
+            rightLabel="Re-run"
+            leftLabel="Cancel"
+            rightColor="bg-blue-500/20"
+            leftColor="bg-red-500/20"
+            disabled={!canCancel && !canRerun}
+          >
+          <Card
             className="cursor-pointer hover:border-primary/50 transition-colors"
             onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
           >
@@ -444,8 +475,8 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Cancel button for running/pending */}
-              {(task.status === "pending" || task.status === "running") && (
+              {/* Cancel button for running/pending (desktop fallback) */}
+              {canCancel && (
                 <button
                   onClick={(e) => { e.stopPropagation(); cancelTask(task.id); }}
                   className="mt-2 px-2 py-1 text-xs border border-red-500/30 text-red-400 rounded hover:bg-red-500/10"
@@ -464,6 +495,10 @@ export default function TasksPage() {
                       <pre className="text-xs bg-muted/50 rounded p-3 whitespace-pre-wrap max-h-64 overflow-y-auto">
                         {task.result}
                       </pre>
+                      <FeedbackButtons
+                        messageContent={`Task ${task.id}: ${task.prompt} → ${task.result.substring(0, 300)}`}
+                        agent={task.agent}
+                      />
                     </div>
                   )}
 
@@ -516,7 +551,9 @@ export default function TasksPage() {
               )}
             </CardContent>
           </Card>
-        ))}
+          </SwipeCard>
+          );
+        })}
       </div>
     </div>
   );

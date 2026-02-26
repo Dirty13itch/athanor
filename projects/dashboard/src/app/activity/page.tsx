@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { config } from "@/lib/config";
+import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
 
 interface ActivityItem {
   agent: string;
@@ -188,6 +189,10 @@ export default function ActivityPage() {
                       ))}
                     </div>
                   )}
+                  <FeedbackButtons
+                    messageContent={`${item.action_type}: ${item.input_summary}${item.output_summary ? ` → ${item.output_summary}` : ""}`}
+                    agent={item.agent}
+                  />
                 </div>
               </div>
             </CardContent>

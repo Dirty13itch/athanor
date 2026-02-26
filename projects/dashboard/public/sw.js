@@ -59,13 +59,33 @@ self.addEventListener("notificationclick", (event) => {
   const url = event.notification.data?.url ?? "/";
 
   if (event.action === "approve" || event.action === "reject") {
-    // Handle approval/rejection inline via API
     const taskId = event.notification.data?.taskId;
     if (taskId) {
+      const action = event.action === "approve" ? "approve" : "cancel";
       event.waitUntil(
-        fetch(`/api/tasks/${taskId}/${event.action}`, { method: "POST" })
+        fetch(`/api/agents/proxy?path=/v1/tasks/${taskId}/${action}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        })
       );
     }
+    return;
+  }
+
+  if (event.action === "feedback_up" || event.action === "feedback_down") {
+    const agent = event.notification.data?.agent ?? "unknown";
+    const content = event.notification.data?.content ?? event.notification.body ?? "";
+    event.waitUntil(
+      fetch("/api/agents/proxy?path=/v1/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feedback_type: event.action === "feedback_up" ? "thumbs_up" : "thumbs_down",
+          message_content: content.substring(0, 500),
+          agent: agent,
+        }),
+      })
+    );
     return;
   }
 

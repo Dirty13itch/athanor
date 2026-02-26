@@ -6,6 +6,7 @@ import { SidebarNav } from "@/components/sidebar-nav";
 import { BottomNav } from "@/components/bottom-nav";
 import { CommandPalette } from "@/components/command-palette";
 import { RegisterSW } from "@/components/register-sw";
+import { ImplicitFeedbackTracker } from "@/components/implicit-feedback-tracker";
 import { LensProvider } from "@/hooks/use-lens";
 import "./globals.css";
 
@@ -62,6 +63,7 @@ export default function RootLayout({
       >
         <Suspense>
           <LensProvider>
+            <ImplicitFeedbackTracker />
             <SidebarNav />
             <main className="min-h-screen p-4 pb-20 md:ml-56 md:p-6 md:pb-6">
               {children}

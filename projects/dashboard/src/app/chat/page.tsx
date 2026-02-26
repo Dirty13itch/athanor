@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToolCallCard } from "@/components/tool-call";
 import { MessageRenderer } from "@/components/gen-ui/message-renderer";
 import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
+import { VoiceInput } from "@/components/voice-input";
 
 interface Message {
   role: "user" | "assistant";
@@ -121,6 +122,10 @@ function ChatContent() {
     e.preventDefault();
     if (!input.trim() || isStreaming || !selectedModel) return;
     sendMessage(input.trim());
+  }
+
+  function handleVoiceTranscript(text: string) {
+    sendMessage(text);
   }
 
   async function sendMessage(text: string) {
@@ -411,6 +416,7 @@ function ChatContent() {
           )}
 
           <form onSubmit={handleSubmit} className="flex gap-2 border-t border-border p-4">
+            <VoiceInput onTranscript={handleVoiceTranscript} disabled={isStreaming} />
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}

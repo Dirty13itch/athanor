@@ -677,7 +677,7 @@ This provides:
 - Overnight autonomous operation with respawn controller
 - No dependency on Anthropic's infrastructure for the UI layer
 
-When Tailscale is deployed (ADR-016, currently blocked on Shaun), Claudeman becomes accessible from anywhere.
+Claudeman is LAN-accessible. Remote access via Tailscale was evaluated but cancelled (ADR-016 superseded 2026-02-26).
 
 #### Layer 3: Dashboard Terminal Page (Next Build Session)
 
@@ -751,7 +751,7 @@ Configure to use Qwen3-32B via vLLM (Node 1:8000) or Claude via LiteLLM (VAULT:4
 
 3. **Terminal backend location**: Should the node-pty backend run on DEV (where Claude Code runs) or Node 1? DEV is closer to the Claude Code process. Node 1 has more resources. If the backend runs on Node 1, it needs SSH access to DEV to spawn Claude Code there. Simplest: run backend on DEV, dashboard on Node 2 fetches via WebSocket across LAN.
 
-4. **Security for web terminal**: Any web-accessible terminal is a high-value target. The dashboard currently has no authentication. Before exposing terminal access, need at minimum token-based auth. When Tailscale is deployed, the Tailscale ACLs provide network-level security.
+4. **Security for web terminal**: Any web-accessible terminal is a high-value target. The dashboard currently has no authentication. Before exposing terminal access, need at minimum token-based auth. LAN-only access is acceptable for now (trusted network).
 
 5. **Remote Control vs Claudeman**: Both solve mobile access. Remote Control is simpler (zero deploy) but single-session and Anthropic-dependent. Claudeman is more capable (multi-session, agent viz, autonomous) but requires deployment and maintenance. They can coexist -- Remote Control for quick phone checks, Claudeman for serious work sessions.
 
