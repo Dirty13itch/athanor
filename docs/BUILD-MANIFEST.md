@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-26 (Session 20 continued: Command Center Phase 1+2 built — PWA, mobile layout, SSE, crew bar, unified stream deployed)
+Last updated: 2026-02-26 (Session 20 continued: Tier 9 items 9.8-9.10 built — Lens Mode, Generative UI, Goals Feedback deployed)
 
 ---
 
@@ -466,22 +466,22 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Done:** Push subscription + send infrastructure deployed. Subscribe/unsubscribe from Preferences page. SW handles push display + notification click routing + approve/reject actions. Remaining: wire agent escalation events to trigger sends (needs agent server integration).
 
 ### 9.8 — Generative UI (Chat)
-- **Status:** 🔲 todo
-- **Scope:** Install Vercel AI SDK (`ai`). Chat responses render React components inline. Initial component types: GPU chart, media gallery, task status, approval card. Wire to agent server via LiteLLM.
-- **Depends on:** 9.4
-- **Done when:** Asking "how are the GPUs?" in chat returns an interactive GPU chart, not just text.
+- **Status:** ✅ (Session 20 continued, 2026-02-26)
+- **Scope:** Rich tool result rendering in chat. Text parsing for known tool output formats with graceful fallback.
+- **Delivered:** `gen-ui/` component directory: `gpu-chart.tsx` (SVG horizontal bars), `service-grid.tsx` (colored dots grid), `task-card.tsx` (status + agent badges), `code-block.tsx` (monospace + copy button), `approval-card.tsx` (escalation approve/reject), `message-renderer.tsx` (splits fenced code blocks). `generative-ui.ts` parsers with `getToolRenderer()` dispatch. `ToolCallCard` upgraded to render rich components on successful parse, falls back to `<pre>`.
+- **Design decision:** No Vercel AI SDK — our SSE format has custom events (`tool_start`/`tool_end`) the SDK doesn't handle. Text parsing with regex on known agent output formats, graceful fallback. We control both sides.
 
 ### 9.9 — Lens Mode (Intent-Driven Layout)
-- **Status:** 🔲 todo
-- **Scope:** Lens state manager (React context + URL query param). Per-lens layout definitions. Command palette triggers lens changes. Smooth layout transitions via `motion`. Initial lenses: Default, System, Media, Creative, EoBQ.
-- **Depends on:** 9.2, 9.5
-- **Done when:** Typing "focus on media" in command palette reshapes the interface to show media-relevant agents, activity, and controls.
+- **Status:** ✅ (Session 20 continued, 2026-02-26)
+- **Scope:** 5 dashboard lenses (default/system/media/creative/eoq) with oklch accent theming, URL query param persistence, section reordering, agent highlighting.
+- **Delivered:** `lib/lens.ts` (types + 5 configs), `hooks/use-lens.tsx` (React context, CSS variable overrides, `data-lens` attribute), `components/lens-switcher.tsx` (5 circle buttons), `components/home-sections.tsx` (lens-driven section ordering). Layout wrapped in `LensProvider`. Sidebar nav shows `LensSwitcher` + highlights `navHighlight` items. Bottom nav preserves `?lens=` param. Command palette has "Switch Lens" group. Crew bar dims non-lens agents. Unified stream accepts `filterTypes` prop. Per-lens `--furnace-glow` CSS overrides in `globals.css`.
+- **Design decision:** Lens via URL query param (`?lens=system`) — persists across navigation, shareable, no session storage. `router.replace` prevents history pollution. CSS variable override for `--primary`/`--ring` recolors every shadcn component.
 
-### 9.10 — Goals API + Human-in-the-Loop Feedback
-- **Status:** 🔲 todo
-- **Scope:** Agent server endpoints: `/v1/goals`, `/v1/goals/steer`. Formalize autonomy levels (A/B/C/D) in agent config. Implicit feedback tracking. Explicit binary feedback (thumbs up/down on stream entries). Daily digest scheduled task (6:55 AM). Trust calibration (track record display, rubber-stamp detection). Impact visibility.
-- **Depends on:** 9.6 (stream for feedback surface)
-- **Done when:** Can set goals via dashboard. Agents adjust behavior from goals. Thumbs up/down on agent outputs. Daily morning digest available. Per-agent trust metrics visible.
+### 9.10 — Goals API + Human-in-the-Loop Feedback (Dashboard)
+- **Status:** ✅ (Session 20 continued, 2026-02-26) — dashboard portion complete
+- **Scope (delivered):** Thumbs up/down feedback buttons on assistant messages in chat, trust badges on agent cards derived from escalation config, daily digest card, POST support on agent proxy route. Graceful degradation when agent server endpoints don't exist.
+- **Delivered:** `gen-ui/feedback-buttons.tsx` (optimistic UI, POSTs to `/v1/feedback`, hides on 404), `gen-ui/daily-digest.tsx` (fetches from `/v1/tasks/stats` + `/v1/notifications`), agent proxy `POST` handler. Agent cards show trust level badges (A/B/C/D) derived from `act`/`ask` ratio in escalation config.
+- **Remaining (agent server):** `/v1/goals`, `/v1/goals/steer` endpoints, daily digest scheduled task (6:55 AM), trust calibration with track record, rubber-stamp detection.
 
 ### 9.11 — Terminal Page (xterm.js)
 - **Status:** 🔲 todo

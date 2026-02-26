@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useLens } from "@/hooks/use-lens";
+import { LensSwitcher } from "@/components/lens-switcher";
 
 const allPages = [
   { href: "/", label: "Dashboard", icon: LayoutIcon },
@@ -24,17 +26,26 @@ const allPages = [
 
 export default function MorePage() {
   const pathname = usePathname();
+  const { lens } = useLens();
+  const lensQuery = lens !== "default" ? `?lens=${lens}` : "";
 
   return (
     <div className="mx-auto max-w-lg">
       <h1 className="mb-6 font-heading text-2xl font-semibold">All Pages</h1>
+
+      {/* Lens switcher — visible on mobile where sidebar is hidden */}
+      <div className="mb-6 flex items-center gap-3 rounded-lg border border-border p-3">
+        <span className="text-sm font-medium text-muted-foreground">Lens</span>
+        <LensSwitcher />
+      </div>
+
       <div className="grid grid-cols-3 gap-3">
         {allPages.map((page) => {
           const active = pathname === page.href;
           return (
             <Link
               key={page.href}
-              href={page.href}
+              href={`${page.href}${lensQuery}`}
               className={cn(
                 "flex flex-col items-center gap-2 rounded-lg border border-border p-4 transition-colors",
                 active
