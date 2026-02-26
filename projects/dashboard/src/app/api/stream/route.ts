@@ -1,5 +1,9 @@
 import { queryPrometheus, type PrometheusResult } from "@/lib/api";
 import { config } from "@/lib/config";
+import { startNotificationBridge, getNotificationSummary } from "@/lib/notification-bridge";
+
+// Start the notification → push bridge (module-level singleton, runs once)
+startNotificationBridge();
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +22,7 @@ interface StreamPayload {
   agents: { online: boolean; count: number; names: string[] };
   services: { up: number; total: number; down: string[] };
   tasks: Record<string, unknown> | null;
+  notifications: { pending: number; total: number };
   timestamp: string;
 }
 
@@ -110,11 +115,15 @@ async function fetchSnapshot(): Promise<StreamPayload> {
     }
   } catch { /* task stats unavailable */ }
 
+  // Notification summary (from bridge polling, no extra fetch)
+  const notifSummary = getNotificationSummary();
+
   return {
     gpus: Array.from(gpuMap.values()),
     agents,
     services,
     tasks,
+    notifications: { pending: notifSummary.pending, total: notifSummary.total },
     timestamp: new Date().toISOString(),
   };
 }

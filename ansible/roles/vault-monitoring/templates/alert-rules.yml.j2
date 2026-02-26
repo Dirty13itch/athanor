@@ -1,0 +1,79 @@
+groups:
+  - name: storage
+    rules:
+      - alert: VaultDiskCritical
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/mnt/user", instance=~"192.168.1.203.*"} / node_filesystem_size_bytes{mountpoint="/mnt/user", instance=~"192.168.1.203.*"}) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VAULT data array above 95% ({{ "{{" }} $value | humanizePercentage {{ "}}" }})"
+          description: "VAULT /mnt/user is critically full. Immediate cleanup needed."
+
+      - alert: VaultDiskWarning
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/mnt/user", instance=~"192.168.1.203.*"} / node_filesystem_size_bytes{mountpoint="/mnt/user", instance=~"192.168.1.203.*"}) > 0.90
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VAULT data array above 90% ({{ "{{" }} $value | humanizePercentage {{ "}}" }})"
+
+      - alert: NodeDiskHigh
+        expr: (1 - node_filesystem_avail_bytes{fstype=~"ext4|btrfs|xfs", mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) > 0.85
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ "{{" }} $labels.instance {{ "}}" }} root disk above 85%"
+
+  - name: gpu
+    rules:
+      - alert: GpuTemperatureHigh
+        expr: DCGM_FI_DEV_GPU_TEMP > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} on {{ "{{" }} $labels.instance {{ "}}" }} at {{ "{{" }} $value {{ "}}" }}C"
+
+      - alert: GpuTemperatureCritical
+        expr: DCGM_FI_DEV_GPU_TEMP > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} on {{ "{{" }} $labels.instance {{ "}}" }} CRITICAL {{ "{{" }} $value {{ "}}" }}C"
+
+      - alert: GpuMemoryExhausted
+        expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) > 0.95
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} VRAM above 95% on {{ "{{" }} $labels.instance {{ "}}" }}"
+
+  - name: services
+    rules:
+      - alert: NodeDown
+        expr: up{job=~"node-exporter.*"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Node exporter down on {{ "{{" }} $labels.instance {{ "}}" }}"
+
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ "{{" }} $labels.instance {{ "}}" }} CPU above 90% for 15m"
+
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ "{{" }} $labels.instance {{ "}}" }} memory above 90%"

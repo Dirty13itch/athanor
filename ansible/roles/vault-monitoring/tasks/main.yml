@@ -23,6 +23,13 @@
     mode: "0644"
   register: prometheus_config
 
+- name: Deploy Prometheus alert rules
+  ansible.builtin.template:
+    src: alert-rules.yml.j2
+    dest: "{{ prometheus_config_path }}/alert-rules.yml"
+    mode: "0644"
+  register: alert_rules
+
 - name: Run Prometheus container
   community.docker.docker_container:
     name: prometheus
@@ -33,13 +40,14 @@
       - "{{ prometheus_port }}:9090"
     volumes:
       - "{{ prometheus_config_path }}/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
+      - "{{ prometheus_config_path }}/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro"
       - "{{ prometheus_config_path }}/data:/prometheus"
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=90d
       - --web.enable-lifecycle
-    restart: "{{ prometheus_config.changed | default(false) }}"
+    restart: "{{ (prometheus_config.changed | default(false)) or (alert_rules.changed | default(false)) }}"
   when: not ansible_check_mode
 
 - name: Run Grafana container

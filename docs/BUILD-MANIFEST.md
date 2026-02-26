@@ -490,10 +490,10 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Done when:** Can open Claude Code in a terminal tab within the dashboard.
 
 ### 9.12 — Claudeman Deployment
-- **Status:** 🔲 todo
-- **Scope:** Deploy Claudeman on DEV for multi-session Claude Code web access. Configure HTTPS for LAN access. Test overnight autonomous operation.
-- **Depends on:** Nothing
-- **Done when:** Claudeman accessible at DEV:3000 on LAN. Multi-session works. Respawn controller tested.
+- **Status:** ✅ (Session 20 continued, 2026-02-26)
+- **Scope:** Deployed Claudeman on DEV for multi-session Claude Code web access. HTTPS configured with self-signed cert. Systemd user service with linger for persistence.
+- **Delivered:** `claudeman web --https --port 3000` running as `~/.config/systemd/user/claudeman.service`. Accessible at https://192.168.1.167:3000 from any LAN device. Auto-restarts on failure. Persists without login (loginctl linger enabled).
+- **Install:** `~/.claudeman/app/` (728 commits, 1435 tests, MIT). CLI at `~/.local/bin/claudeman`.
 
 ---
 
