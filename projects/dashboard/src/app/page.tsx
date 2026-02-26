@@ -10,6 +10,7 @@ import { SystemPulse } from "@/components/system-pulse";
 import { AgentCrewBar } from "@/components/agent-crew-bar";
 import { HomeSections } from "@/components/home-sections";
 import { DailyDigest } from "@/components/gen-ui/daily-digest";
+import { SmartStack } from "@/components/smart-stack";
 import type { SectionId } from "@/lib/lens";
 
 export const revalidate = 15;
@@ -391,6 +392,7 @@ export default async function DashboardPage() {
       </Card>
     ),
     digest: <DailyDigest />,
+    smartstack: <SmartStack />,
   };
 
   return <HomeSections sections={sections} />;
