@@ -3,6 +3,7 @@ name: doc-writer
 description: Creates and maintains Athanor documentation with consistent style, structure, and technical accuracy
 model: sonnet
 isolation: worktree
+memory: project
 allowed-tools:
   - Read
   - Edit

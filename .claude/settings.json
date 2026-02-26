@@ -48,17 +48,10 @@
       "Bash(ansible:*)",
       "Bash(rsync:*)",
       "Bash(gh:*)",
-      "Bash(eval:*)",
+      "Bash(chmod:*)",
       "mcp__sequential-thinking__*",
       "mcp__context7__*",
-      "mcp__plugin_context7_context7__*",
-      "mcp__claude_ai_Context7__*",
-      "mcp__github__*",
-      "mcp__brave-search__*",
-      "mcp__playwright__*",
       "mcp__filesystem__*",
-      "mcp__desktop-commander__*",
-      "mcp__memory__*",
       "mcp__grafana__*",
       "mcp__athanor-agents__*"
     ],
@@ -78,6 +71,28 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/pre-tool-use-protect-paths.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/post-tool-use-typecheck.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/user-prompt-context.sh"
           }
         ]
       }

@@ -1,5 +1,14 @@
 # Agents & MCP Configuration
 
+## Claude Code Custom Agents (`.claude/agents/`)
+
+| Agent | Model | Purpose | Isolation |
+|-------|-------|---------|-----------|
+| **infra-auditor** | Opus | Audit hardware/network against documented state | Worktree |
+| **researcher** | Opus | Deep technical research with sources | Worktree, background |
+| **doc-writer** | Sonnet | Documentation creation and maintenance | Worktree |
+| **Local Coder** | — | Dispatch coding to local Qwen3-32B via MCP bridge | — |
+
 ## MCP Servers
 
 ### Project-Scoped (`.mcp.json`)
@@ -10,22 +19,14 @@
 | **context7** | Live library/framework documentation | Active |
 | **grafana** | Query Grafana dashboards at VAULT:3000 | Active |
 | **filesystem** | File operations within project directory | Active |
-
-### User-Scoped (Claude Code settings)
-
-| Server | Purpose | Status |
-|--------|---------|--------|
-| **github** | GitHub API: repos, PRs, issues, commits | Active |
-| **desktop-commander** | Persistent terminal sessions, SSH, file ops | Active |
-| **memory** | Knowledge graph persistence across sessions | Active |
+| **athanor-agents** | MCP bridge to 8 local agents (14 tools) | Active |
 
 ### Planned
 
 | Server | When | Prerequisite |
 |--------|------|-------------|
+| **memory** | When persistent cross-session knowledge graph needed | Node.js |
 | **home-assistant-mcp** | After HA onboarding | HA running at VAULT:8123 |
-| **unraid-mcp** | When available | VAULT Unraid API access |
-| **postgresql-mcp** | When agents need persistent storage | PostgreSQL deployed |
 
 ---
 
@@ -51,16 +52,18 @@ The LangGraph agent framework runs on Node 1:9000. Source code lives in `project
 - **Backend LLM**: vLLM at localhost:8000 (Qwen3-32B-AWQ, TP=4)
 - **Tool calling**: `--enable-auto-tool-choice --tool-call-parser hermes`
 
-### Agents
+### Agents (8 live)
 
-| Agent | Type | Schedule | Status |
-|-------|------|----------|--------|
-| **General Assistant** | Reactive | On-demand | Running |
-| **Research Agent** | Reactive | On-demand | Planned |
-| **Media Agent** | Proactive | Every 15 min | Running |
-| **Home Agent** | Proactive | Every 5 min | Not registered (blocked on HA onboarding) |
-| **Creative Agent** | Reactive | On-demand | Planned |
-| **Knowledge Agent** | Proactive | Daily 3 AM | Planned |
+| Agent | Type | Schedule | Tools | Status |
+|-------|------|----------|-------|--------|
+| **General Assistant** | Reactive + Delegation | 30 min | 9 + delegation | Running |
+| **Research Agent** | Reactive | On-demand | 5 | Running |
+| **Media Agent** | Proactive | 15 min | 6 (Sonarr/Radarr/Tautulli) | Running |
+| **Home Agent** | Proactive | 5 min | 5 (HA) | Running |
+| **Creative Agent** | Reactive | On-demand | 5 | Running |
+| **Knowledge Agent** | Proactive | 24h (disabled) | 5 | Running |
+| **Coding Agent** | Reactive | On-demand | 9 (autonomous loop) | Running |
+| **Stash Agent** | Reactive | On-demand | 12 (GraphQL) | Running |
 
 ### Tool Groups
 
@@ -88,11 +91,13 @@ Agents are deployed via Ansible role `ansible/roles/agents/` which sources from 
 
 Specialist slots are defined by interface contracts, not model names. Any model that satisfies the contract can fill the slot:
 
-| Slot | Contract | Current Model |
-|------|----------|---------------|
-| **Reasoning** | Tool calling, 32K+ context, structured output | Qwen3-32B-AWQ (TP=4, `--quantization awq`, 32K context) |
-| **Fast Agent** | Tool calling, low latency, 8K context sufficient | Qwen3-14B (RTX 5090, 8K context, enforce-eager) |
-| **Embedding** | Dense embeddings, 8K input | Planned: Qwen3-Embedding-0.6B |
-| **Reranker** | Cross-encoder reranking | Planned: Qwen3-Reranker-0.6B |
-| **Image Gen** | Text-to-image, LoRA support | FLUX.1 dev FP8 |
-| **Video Gen** | Text/image-to-video | Planned: Wan2.2 FP8 |
+| Slot | Contract | Current Model | Node |
+|------|----------|---------------|------|
+| **Reasoning** | Tool calling, 32K+ context, structured output | Qwen3-32B-AWQ (TP=4) | Node 1 |
+| **Fast Agent** | Tool calling, low latency | Qwen3-14B FP16 (5090) | Node 2 |
+| **Embedding** | Dense embeddings, 1024-dim, 8K input | Qwen3-Embedding-0.6B | Node 1 (GPU 4) |
+| **Reranker** | Cross-encoder reranking | Planned: Qwen3-Reranker-0.6B | Node 1 (CPU) |
+| **Image Gen** | Text-to-image, LoRA support | FLUX.1 dev FP8 | Node 2 (5090) |
+| **Video Gen** | Text/image-to-video | Wan2.1 FP8 | Node 2 (5090) |
+| **TTS** | Text-to-speech | Kokoro-82M ONNX (Speaches) | Node 1 (GPU 4) |
+| **STT** | Speech-to-text | wyoming-whisper | Node 1 (GPU 4) |

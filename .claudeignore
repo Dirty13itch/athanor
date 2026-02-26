@@ -1,14 +1,22 @@
+# Dependencies & build artifacts
 node_modules/
 .venv/
 __pycache__/
 dist/
 build/
 *.egg-info/
+.next/
+.pytest_cache/
+*.pyc
+
+# Secrets & credentials
 .env
 .env.*
 *.key
 *.pem
 secrets/
+
+# Large binaries & models
 *.iso
 *.img
 *.tar.gz
@@ -16,8 +24,23 @@ secrets/
 *.gguf
 *.safetensors
 *.bin
+*.pt
+*.pth
+*.onnx
+
+# Lock files (large, not useful for search)
+package-lock.json
+yarn.lock
+poetry.lock
+
+# OS / IDE
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Git internals & worktrees
 .git/
+.claude/worktrees/

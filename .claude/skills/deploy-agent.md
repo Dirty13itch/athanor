@@ -1,6 +1,7 @@
 ---
 name: Deploy Agent Server
 description: Complete procedure for deploying the Athanor agent server to Node 1. Rsync, build, restart, verify.
+disable-model-invocation: true
 ---
 
 # Deploy Agent Server

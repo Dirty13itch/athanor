@@ -4,6 +4,7 @@ description: Deep technical research on infrastructure, AI systems, hardware, an
 model: opus
 background: true
 isolation: worktree
+memory: project
 allowed-tools:
   - Read
   - Bash(cat *)

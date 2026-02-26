@@ -1,6 +1,7 @@
 ---
 name: vLLM Deploy
 description: Deploy and manage vLLM inference on Athanor nodes. Custom image v0.16.0 on NGC base.
+disable-model-invocation: true
 ---
 
 # vLLM Deploy
@@ -62,14 +63,9 @@ command:
 - `CUDA_DEVICE_ORDER=PCI_BUS_ID`
 - `--tensor-parallel-size 4` (uses GPUs 0-3, the 4x 5070 Ti)
 
-## Sleep Mode (v0.16.0+)
+## Sleep Mode
 
-vLLM v0.16.0 supports sleep mode REST endpoints:
-- `POST /sleep` — offloads model weights, frees VRAM
-- `POST /wake_up` — reloads model weights
-- `GET /is_sleeping` — check state
-
-Requires `--enable-sleep-mode` in command args. Managed by GPU Orchestrator (Node 1:9200).
+**BLOCKED:** `--enable-sleep-mode` flag is accepted by vLLM v0.16.0 without error, but the REST endpoints (`/sleep`, `/wake_up`, `/is_sleeping`) return 404 in V1 engine (default in v0.16.0). This is a known issue — the endpoints are only registered in the V0 engine path. Need vLLM v0.17.0+ or explicit V0 engine mode (which loses other V1 features).
 
 ## Available Models (VAULT NFS)
 

@@ -1,6 +1,8 @@
 ---
 description: Deploy a service to Athanor infrastructure. Usage: /deploy [service-name]
+disable-model-invocation: true
 allowed-tools: Bash(*), Read, Write, Edit, Glob, Grep
+argument-hint: "[agents|dashboard|vllm|comfyui|monitoring|gpu-orchestrator|all]"
 ---
 
 Deploy the specified service: $ARGUMENTS

@@ -3,6 +3,7 @@ name: infra-auditor
 description: Audits hardware inventory, network topology, node configurations, and physical infrastructure against documented state
 model: opus
 isolation: worktree
+memory: project
 allowed-tools:
   - Read
   - Bash(cat *)
