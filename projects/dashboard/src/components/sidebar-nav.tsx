@@ -22,6 +22,7 @@ const navItems = [
   { href: "/activity", label: "Activity", icon: ClockIcon },
   { href: "/notifications", label: "Notifications", icon: BellIcon },
   { href: "/preferences", label: "Preferences", icon: SlidersIcon },
+  { href: "/review", label: "Code Review", icon: DiffIcon },
   { href: "/terminal", label: "Terminal", icon: TerminalIcon },
 ];
 
@@ -210,6 +211,15 @@ function TerminalIcon({ className }: { className?: string }) {
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <polyline points="4 17 10 11 4 5" />
       <line x1="12" x2="20" y1="19" y2="19" />
+    </svg>
+  );
+}
+
+function DiffIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 3v14" /><path d="M5 10h14" />
+      <path d="M5 21h14" />
     </svg>
   );
 }
