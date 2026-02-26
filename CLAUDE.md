@@ -117,7 +117,9 @@ Full details in `docs/hardware/inventory.md`.
 
 **Knowledge + Memory:** 1203 doc chunks in Qdrant `knowledge` (98 docs), activity log in `activity`, preferences in `preferences`, conversations in `conversations`. Neo4j graph (8 agents, 24 services, 4 nodes, 3 projects, 43 relationships). Redis on VAULT for GWT workspace + GPU orchestrator state + agent registry.
 
-**Command Center:** 17 pages at Node 2:3001. PWA installable (manifest + service worker + icons). Responsive layout (sidebar desktop, bottom nav mobile). Command palette (Cmd+K). SSE `/api/stream` pushes live system metrics + notification counts every 5s. Live SystemPulse with ambient warmth glow. Agent Crew Bar (8 agents, click-to-chat). Unified Activity Stream (tasks + agent activity merged). Agent proxy route (GET + POST) for CORS-free access. **Tier 9: 11/12 items complete (9.1-9.10, 9.12).** Lens Mode (5 lenses with oklch theming). Generative UI (rich tool results). Goals Feedback (thumbs up/down, trust badges). Notification bridge (escalation → push notifications). Prometheus alert rules (9 rules: storage, GPU, services). **Claudeman** at DEV:3000 (HTTPS, systemd service, multi-session Claude Code web access). Remaining: 9.11 Terminal (deferred — Claudeman covers it).
+**Command Center:** 17 pages at Node 2:3001. PWA installable (manifest + service worker + icons). Responsive layout (sidebar desktop, bottom nav mobile). Command palette (Cmd+K). SSE `/api/stream` pushes live system metrics + notification counts every 5s. Live SystemPulse with ambient warmth glow. Agent Crew Bar (8 agents, click-to-chat). Unified Activity Stream (tasks + agent activity merged). Agent proxy route (GET + POST) for CORS-free access. **Tier 9: 12/12 complete.** Lens Mode (5 lenses with oklch theming). Generative UI (rich tool results). Goals API (feedback storage, steering goals in Redis, trust scores, daily digest at 6:55 AM, rubber-stamp detection, goals injected into agent context). Notification bridge (escalation → push notifications). Prometheus alert rules (9 rules: storage, GPU, services). **Claudeman** at DEV:3000 (HTTPS, systemd service, multi-session Claude Code web access). 9.11 Terminal deferred (Claudeman covers it).
+
+**10GbE MTU aligned.** Both Node 1 NICs at MTU 9000 (jumbo frames). enp66s0f0 (.244) preferred via metric. enp66s0f1 (.246) as fallback (metric 200). Verified: 8972-byte pings to Node 2 succeed.
 
 **MCP bridge:** `scripts/mcp-athanor-agents.py` exposes 14 tools to Claude Code — coding, knowledge search, system status, task submission, and `deep_research` (offloads heavy research to local Qwen3-32B, saving Claude tokens).
 
@@ -145,6 +147,7 @@ Full details in `docs/hardware/inventory.md`.
 - **NFS permissions**: Dirs created by root on VAULT need `chmod 777` (root_squash).
 - **vLLM on 16 GB GPUs**: Use `--gpu-memory-utilization 0.85` and `--max-num-seqs 128`.
 - **vLLM sleep mode**: NGC vllm:25.12-py3 (v0.11.1) accepts `--enable-sleep-mode` but doesn't register REST endpoints. Blocked until NGC upgrade.
+- **NGC vLLM is stale**: All NGC tags (25.09 through 26.01) ship vLLM v0.11.1. Need custom image (NGC base + pip vLLM nightly cu130) for Qwen3.5. See `docs/research/2026-02-26-vllm-upgrade-path.md`.
 - **ComfyUI torch**: Upgraded from NGC 2.7.0a0 to torch 2.10.0+cu128 (Blackwell sm_120 works). NGC base still needed for CUDA.
 - **Wan2.x text encoder**: FP8 _scaled_ models rejected by WanVideoWrapper. Use Kijai's non-scaled `umt5-xxl-enc-fp8_e4m3fn.safetensors`.
 - **ComfyUI opencv**: NGC ships opencv 4.10.0 compiled against numpy 1.x. Must `rm -rf cv2*` and install `opencv-python-headless` fresh.
@@ -169,9 +172,9 @@ Read `docs/projects/{name}/` for project-specific context.
 | Action | Where | Unblocks |
 |--------|-------|----------|
 | NordVPN credentials | Provide to Claude | qBittorrent (6.5) |
+| Anthropic API key | Provide to Claude | 8.5 Quality Cascade (cloud escalation) |
 | Node 2 EXPO | BIOS via JetKVM | DDR5 5600 MT/s |
 | Samsung 990 PRO check | Physical at rack | Node 1 4TB NVMe |
-| Add agents to Open WebUI | Settings → Connections → OpenAI → `http://192.168.1.244:9000/v1` | Chat access |
 
 ---
 

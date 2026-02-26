@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-26 (Session 20 continued: Tier 9 items 9.8-9.10 built — Lens Mode, Generative UI, Goals Feedback deployed)
+Last updated: 2026-02-26 (Session 20 continued: Tier 9 complete — 12/12. Goals API agent server, MTU alignment, vLLM upgrade research)
 
 ---
 
@@ -420,9 +420,12 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Research:** `docs/research/2026-02-16-tool-calling-coding-models.md`
 
 ### 8.5 — Quality Gating & Cascade
-- **Status:** 🔲 todo
-- **Scope:** Local model generates → runs tests → if tests fail, escalate to cloud (Claude/Kimi). Automated quality loops for coding tasks.
-- **Depends on:** 8.3, 8.4
+- **Status:** 🚫 Blocked on Shaun (Anthropic API key for cloud escalation)
+- **Scope:** Local model generates → runs tests → if tests fail, escalate to cloud (Claude). Automated quality loops for coding tasks.
+- **Existing:** Single auto-retry with error context (`_maybe_retry` in tasks.py). Step-level tool call logging.
+- **Missing:** Anthropic API credentials in agent config, `escalate_to_cloud` tool, multi-attempt strategy (local → cloud-fast → cloud-reasoning), reward model quality gate.
+- **Research:** See 8.5 analysis from Session 20 exploration agent.
+- **Depends on:** 8.3 ✅, Anthropic API key from Shaun
 
 ---
 
@@ -477,11 +480,11 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Delivered:** `lib/lens.ts` (types + 5 configs), `hooks/use-lens.tsx` (React context, CSS variable overrides, `data-lens` attribute), `components/lens-switcher.tsx` (5 circle buttons), `components/home-sections.tsx` (lens-driven section ordering). Layout wrapped in `LensProvider`. Sidebar nav shows `LensSwitcher` + highlights `navHighlight` items. Bottom nav preserves `?lens=` param. Command palette has "Switch Lens" group. Crew bar dims non-lens agents. Unified stream accepts `filterTypes` prop. Per-lens `--furnace-glow` CSS overrides in `globals.css`.
 - **Design decision:** Lens via URL query param (`?lens=system`) — persists across navigation, shareable, no session storage. `router.replace` prevents history pollution. CSS variable override for `--primary`/`--ring` recolors every shadcn component.
 
-### 9.10 — Goals API + Human-in-the-Loop Feedback (Dashboard)
-- **Status:** ✅ (Session 20 continued, 2026-02-26) — dashboard portion complete
-- **Scope (delivered):** Thumbs up/down feedback buttons on assistant messages in chat, trust badges on agent cards derived from escalation config, daily digest card, POST support on agent proxy route. Graceful degradation when agent server endpoints don't exist.
-- **Delivered:** `gen-ui/feedback-buttons.tsx` (optimistic UI, POSTs to `/v1/feedback`, hides on 404), `gen-ui/daily-digest.tsx` (fetches from `/v1/tasks/stats` + `/v1/notifications`), agent proxy `POST` handler. Agent cards show trust level badges (A/B/C/D) derived from `act`/`ask` ratio in escalation config.
-- **Remaining (agent server):** `/v1/goals`, `/v1/goals/steer` endpoints, daily digest scheduled task (6:55 AM), trust calibration with track record, rubber-stamp detection.
+### 9.10 — Goals API + Human-in-the-Loop Feedback
+- **Status:** ✅ (Session 20 continued, 2026-02-26) — fully complete (dashboard + agent server)
+- **Dashboard (Session 20a):** Thumbs up/down feedback buttons on assistant messages in chat, trust badges on agent cards, daily digest card, POST support on agent proxy route. Graceful degradation.
+- **Agent server (Session 20b):** `goals.py` module. Feedback storage (`POST /v1/feedback`) writes to Qdrant preferences + Redis counters. Goals CRUD (`GET/POST/DELETE /v1/goals`) in Redis. Trust scores (`GET /v1/trust`) computed from feedback + escalation history with sample-adjusted confidence, rubber-stamp detection. Goals injected into agent context enrichment. Daily digest scheduled task at 6:55 AM via scheduler (gathers task stats, pending approvals, trust scores, active goals).
+- **Dashboard updated:** Agent cards now fetch trust from `/v1/trust` endpoint (real data) instead of deriving from escalation config. Feedback buttons aligned with API contract (`feedback_type`/`message_content` fields).
 
 ### 9.11 — Terminal Page (xterm.js)
 - **Status:** 🔲 todo

@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import time
+from datetime import datetime
 
 from .config import settings
 
@@ -27,6 +28,10 @@ _scheduler_task: asyncio.Task | None = None
 # --- Schedule definitions ---
 # Each entry: interval_seconds, prompt, priority
 # Only agents with schedules are included.
+
+DAILY_DIGEST_KEY = "athanor:scheduler:daily_digest"
+DIGEST_HOUR = 6   # 6:55 AM local time
+DIGEST_MINUTE = 55
 
 AGENT_SCHEDULES = {
     "general-assistant": {
@@ -97,6 +102,42 @@ async def _set_last_run(agent: str, timestamp: float):
         logger.warning("Failed to set last run for %s: %s", agent, e)
 
 
+async def _check_daily_digest():
+    """Check if it's time to run the daily digest (6:55 AM local)."""
+    from .tasks import submit_task
+    from .goals import generate_digest_prompt
+
+    now = datetime.now()
+    if now.hour != DIGEST_HOUR or now.minute != DIGEST_MINUTE:
+        return
+
+    # Check if already run today
+    try:
+        r = await _get_redis()
+        last_date = await r.get(DAILY_DIGEST_KEY)
+        if last_date:
+            last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
+            if last_str == now.strftime("%Y-%m-%d"):
+                return  # Already ran today
+    except Exception:
+        pass
+
+    logger.info("Scheduler: generating daily digest")
+    try:
+        prompt = await generate_digest_prompt()
+        await submit_task(
+            agent="general-assistant",
+            prompt=prompt,
+            priority="normal",
+            metadata={"source": "daily_digest", "date": now.strftime("%Y-%m-%d")},
+        )
+        r = await _get_redis()
+        await r.set(DAILY_DIGEST_KEY, now.strftime("%Y-%m-%d"))
+        logger.info("Daily digest submitted for %s", now.strftime("%Y-%m-%d"))
+    except Exception as e:
+        logger.warning("Scheduler: failed to submit daily digest: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -109,6 +150,9 @@ async def _scheduler_loop():
     while True:
         try:
             now = time.time()
+
+            # Check time-of-day tasks
+            await _check_daily_digest()
 
             for agent, schedule in AGENT_SCHEDULES.items():
                 if not schedule.get("enabled", True):

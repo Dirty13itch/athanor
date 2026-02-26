@@ -205,9 +205,17 @@ def _build_context_message(
     activity_lines: list[str],
     knowledge_lines: list[str],
     agent_name: str,
+    goal_lines: list[str] | None = None,
 ) -> str:
     """Assemble the final context injection string."""
     sections = []
+
+    if goal_lines:
+        sections.append(
+            "## Active Goals\n"
+            "The user has set these steering goals. Align your actions accordingly:\n"
+            + "\n".join(goal_lines)
+        )
 
     if pref_lines:
         sections.append(
@@ -304,7 +312,16 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     activity = results[1] if not isinstance(results[1], BaseException) else []
     knowledge = results[2] if not isinstance(results[2], BaseException) else []
 
-    # Step 3: Format
+    # Step 3: Fetch active goals (Redis, fast)
+    goal_lines = []
+    try:
+        from .goals import get_goals_for_agent
+        goal_texts = await get_goals_for_agent(agent_name)
+        goal_lines = [f"- {t}" for t in goal_texts]
+    except Exception:
+        pass
+
+    # Step 4: Format
     pref_lines = _format_preferences(prefs)
     activity_lines = _format_activity(activity, agent_name)
     knowledge_lines = _format_knowledge(knowledge)
@@ -312,14 +329,17 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     elapsed_ms = int((time.monotonic() - start) * 1000)
     total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines)
 
-    if total_hits > 0:
+    if total_hits > 0 or goal_lines:
         logger.info(
-            "Context enrichment for %s: %d prefs, %d activity, %d knowledge (%dms)",
+            "Context enrichment for %s: %d prefs, %d activity, %d knowledge, %d goals (%dms)",
             agent_name,
             len(pref_lines),
             len(activity_lines) // 2,  # 2 lines per activity item
             len(knowledge_lines),
+            len(goal_lines),
             elapsed_ms,
         )
 
-    return _build_context_message(pref_lines, activity_lines, knowledge_lines, agent_name)
+    return _build_context_message(
+        pref_lines, activity_lines, knowledge_lines, agent_name, goal_lines
+    )

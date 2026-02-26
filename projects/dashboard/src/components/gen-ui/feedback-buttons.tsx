@@ -19,8 +19,8 @@ export function FeedbackButtons({ messageContent, agent }: FeedbackButtonsProps)
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          rating: value === "up" ? 1 : -1,
-          content: messageContent.substring(0, 500),
+          feedback_type: value === "up" ? "thumbs_up" : "thumbs_down",
+          message_content: messageContent.substring(0, 500),
           agent: agent ?? "unknown",
         }),
       });

@@ -16,24 +16,22 @@ interface AgentInfo {
   status_note?: string;
 }
 
-interface EscalationConfig {
-  [agent: string]: {
-    thresholds?: Record<string, string>;
-  };
+interface TrustData {
+  agents: Record<string, {
+    score: number;
+    grade: string;
+    feedback: { up: number; down: number; total: number };
+    samples: number;
+  }>;
 }
 
-// Derive trust level from escalation config: more "act" thresholds = higher trust
-function getTrustLevel(agentConfig?: { thresholds?: Record<string, string> }): { level: string; color: string } {
-  if (!agentConfig?.thresholds) return { level: "B", color: "text-blue-400" };
-  const values = Object.values(agentConfig.thresholds);
-  const actCount = values.filter((v) => v === "act").length;
-  const askCount = values.filter((v) => v === "ask").length;
-  const total = values.length || 1;
-  const actRatio = actCount / total;
-  if (actRatio >= 0.7) return { level: "A", color: "text-green-400" };
-  if (actRatio >= 0.4) return { level: "B", color: "text-blue-400" };
-  if (askCount > actCount) return { level: "D", color: "text-red-400" };
-  return { level: "C", color: "text-yellow-400" };
+function getTrustBadge(grade: string): { level: string; color: string } {
+  switch (grade) {
+    case "A": return { level: "A", color: "text-green-400" };
+    case "B": return { level: "B", color: "text-blue-400" };
+    case "D": return { level: "D", color: "text-red-400" };
+    default: return { level: "C", color: "text-yellow-400" };
+  }
 }
 
 interface AgentResponse {
@@ -45,7 +43,7 @@ export default function AgentsPage() {
   const [data, setData] = useState<AgentResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [escalationConfig, setEscalationConfig] = useState<EscalationConfig>({});
+  const [trustData, setTrustData] = useState<TrustData | null>(null);
   const router = useRouter();
 
   const fetchAgents = useCallback(async () => {
@@ -68,11 +66,11 @@ export default function AgentsPage() {
     return () => clearInterval(id);
   }, [fetchAgents]);
 
-  // Fetch escalation config for trust badges (best effort)
+  // Fetch trust scores for trust badges (best effort)
   useEffect(() => {
-    fetch("/api/agents/proxy?path=/v1/escalation/config", { signal: AbortSignal.timeout(5000) })
+    fetch("/api/agents/proxy?path=/v1/trust", { signal: AbortSignal.timeout(5000) })
       .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setEscalationConfig(data); })
+      .then((data) => { if (data?.agents) setTrustData(data); })
       .catch(() => {});
   }, []);
 
@@ -129,7 +127,7 @@ export default function AgentsPage() {
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {onlineAgents.map((agent) => (
-              <AgentCard key={agent.name} agent={agent} trust={getTrustLevel(escalationConfig[agent.name])} onChat={() => router.push(`/chat?agent=${agent.name}`)} />
+              <AgentCard key={agent.name} agent={agent} trust={trustData?.agents[agent.name] ? getTrustBadge(trustData.agents[agent.name].grade) : undefined} onChat={() => router.push(`/chat?agent=${agent.name}`)} />
             ))}
           </div>
         </div>
