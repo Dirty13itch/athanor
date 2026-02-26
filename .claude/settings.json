@@ -32,6 +32,7 @@
       "Bash(wget:*)",
       "Bash(jq:*)",
       "Bash(python:*)",
+      "Bash(python3:*)",
       "Bash(py:*)",
       "Bash(node:*)",
       "Bash(npm:*)",
@@ -40,18 +41,26 @@
       "Bash(nmap:*)",
       "Bash(docker:*)",
       "Bash(nslookup:*)",
-      "Bash(tracert:*)",
-      "Bash(ipconfig:*)",
+      "Bash(traceroute:*)",
+      "Bash(ip:*)",
       "Bash(netstat:*)",
-      "Bash(powershell:*)",
+      "Bash(ansible-playbook:*)",
+      "Bash(ansible:*)",
+      "Bash(rsync:*)",
+      "Bash(gh:*)",
+      "Bash(eval:*)",
       "mcp__sequential-thinking__*",
       "mcp__context7__*",
+      "mcp__plugin_context7_context7__*",
+      "mcp__claude_ai_Context7__*",
       "mcp__github__*",
       "mcp__brave-search__*",
       "mcp__playwright__*",
       "mcp__filesystem__*",
       "mcp__desktop-commander__*",
-      "mcp__memory__*"
+      "mcp__memory__*",
+      "mcp__grafana__*",
+      "mcp__athanor-agents__*"
     ],
     "deny": []
   },
@@ -59,11 +68,90 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80",
-    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0",
-    "GITHUB_TOKEN": "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",
-    "ATHANOR_NODE_DEV": "i7-13700K",
-    "ATHANOR_NODE1": "EPYC-7663",
-    "ATHANOR_NODE2": "TR-7960X",
-    "ATHANOR_VAULT": "Ryzen-9950X"
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-tool-use-protect-paths.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "notify-send -t 10000 'Claude Code' 'Permission request waiting' 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "notify-send -t 5000 'Claude Code' 'Waiting for input' 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/stop-autocommit.sh"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-compact-save.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-start.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-start-health.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat /tmp/athanor-session-state.md 2>/dev/null || echo 'No pre-compaction state found. Re-read CLAUDE.md and MEMORY.md for context.'"
+          }
+        ]
+      }
+    ]
   }
 }

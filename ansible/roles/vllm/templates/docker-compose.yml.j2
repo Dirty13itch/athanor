@@ -1,6 +1,13 @@
 services:
   vllm:
+{% if vllm_custom_build %}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: athanor/vllm:custom
+{% else %}
     image: {{ vllm_image }}
+{% endif %}
     container_name: {{ vllm_container_name }}
     restart: unless-stopped
 {% if vllm_gpu_devices == 'all' %}
@@ -13,11 +20,13 @@ services:
       - /mnt/vault/models:/models:ro
     environment:
       - HF_HUB_OFFLINE=1
-      - VLLM_FLASH_ATTN_VERSION=2
 {% if '--enable-sleep-mode' not in vllm_extra_args %}
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 {% endif %}
       - CUDA_DEVICE_ORDER=PCI_BUS_ID
+{% if vllm_custom_build %}
+      - FLASHINFER_DISABLE_VERSION_CHECK=1
+{% endif %}
 {% for env in vllm_extra_env %}
       - {{ env }}
 {% endfor %}
@@ -65,5 +74,5 @@ services:
       - '{{ vllm_speculative_config }}'
 {% endif %}
 {% for arg in vllm_extra_args %}
-      - {{ arg }}
+      - "{{ arg }}"
 {% endfor %}

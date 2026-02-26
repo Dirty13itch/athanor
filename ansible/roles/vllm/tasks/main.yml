@@ -7,6 +7,16 @@
     group: athanor
     mode: "0755"
 
+- name: Deploy vLLM Dockerfile (custom build)
+  ansible.builtin.template:
+    src: Dockerfile.j2
+    dest: "{{ vllm_deploy_dir }}/Dockerfile"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: vllm_dockerfile
+  when: vllm_custom_build
+
 - name: Deploy vLLM docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -16,15 +26,36 @@
     mode: "0644"
   register: vllm_compose
 
-- name: Pull vLLM image
+# NGC mode: pull pre-built image
+- name: Pull vLLM image (NGC)
   community.docker.docker_compose_v2_pull:
     project_src: "{{ vllm_deploy_dir }}"
+  when: not vllm_custom_build
 
-- name: Deploy vLLM
+# Custom build mode: stop before rebuild if Dockerfile changed
+- name: Stop vLLM before rebuild
+  community.docker.docker_compose_v2:
+    project_src: "{{ vllm_deploy_dir }}"
+    state: absent
+  when: vllm_custom_build and (vllm_dockerfile.changed | default(false))
+
+# Custom build mode: always build + recreate (Docker cache makes builds fast,
+# recreate ensures container matches latest image even if configs didn't change this run)
+- name: Build and deploy vLLM (custom)
+  community.docker.docker_compose_v2:
+    project_src: "{{ vllm_deploy_dir }}"
+    state: present
+    build: always
+    recreate: always
+  when: vllm_custom_build
+
+# NGC mode: deploy (no build)
+- name: Deploy vLLM (NGC)
   community.docker.docker_compose_v2:
     project_src: "{{ vllm_deploy_dir }}"
     state: present
     recreate: "{{ 'always' if vllm_compose.changed else 'never' }}"
+  when: not vllm_custom_build
 
 - name: Wait for vLLM health
   ansible.builtin.uri:

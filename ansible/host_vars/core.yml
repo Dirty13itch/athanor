@@ -16,7 +16,7 @@ vllm_tensor_parallel: 4
 vllm_port: 8000
 vllm_gpu_memory_util: "0.85"
 vllm_max_model_len: 32768
-vllm_max_num_seqs: 128
+vllm_max_num_seqs: 64
 vllm_gpu_devices: all
 vllm_extra_args:
   - --enable-auto-tool-choice
@@ -28,13 +28,17 @@ vllm_extra_args:
   # Swap space for preemption recovery (16 GiB per GPU, uses system RAM)
   - --swap-space
   - "16"
+  # Sleep mode: REST endpoints /sleep, /wake_up, /is_sleeping (v0.14.0+)
+  # GPU orchestrator uses these for TTL auto-sleep on idle
+  - --enable-sleep-mode
 # Speculative decoding — Qwen3-0.6B as draft model, 2-3x throughput for ~1.2 GB extra VRAM
 # Uncomment to enable (requires vLLM restart):
 # vllm_speculative_config: '{"model": "/models/Qwen3-0.6B", "num_speculative_tokens": 5}'
-#
-# NOTE: --enable-sleep-mode requires newer vLLM than NGC 25.12-py3 (v0.11.1).
-# The flag activates CuMemAllocator (conflicts with expandable_segments)
-# but /sleep and /is_sleeping endpoints are not registered in this version.
-# Revisit when upgrading NGC vLLM image.
+
+# Custom vLLM image: NGC CUDA 13.1 base + upstream vLLM nightly
+# Enables Qwen3.5, NVFP4, sleep mode, SageAttention2, EAGLE-3
+# See: docs/research/2026-02-26-vllm-upgrade-path.md
+vllm_custom_build: true
+vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
 
 # Agent config — API keys and LiteLLM routing in roles/agents/defaults/main.yml

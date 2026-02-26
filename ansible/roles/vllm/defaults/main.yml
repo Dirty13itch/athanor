@@ -7,7 +7,7 @@ vllm_tensor_parallel: 4
 vllm_port: 8000
 vllm_gpu_memory_util: "0.85"
 vllm_max_model_len: 32768
-vllm_max_num_seqs: 128
+vllm_max_num_seqs: 64
 vllm_gpu_devices: all
 vllm_dtype: auto
 vllm_extra_env: []
@@ -20,3 +20,13 @@ vllm_extra_args:
 # Requires: draft model on NFS, sufficient GPU memory headroom on at least one TP GPU
 vllm_speculative_config: ""
 vllm_deploy_dir: /opt/athanor/vllm
+
+# Custom image build: NGC base + upstream vLLM nightly
+# When true, builds a custom Docker image instead of pulling NGC directly.
+# Required for vLLM v0.15.0+ features (Qwen3.5, NVFP4, sleep mode, SageAttention2).
+vllm_custom_build: false
+vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
+# Pin to 0.16.0 for Qwen3.5 qwen3_5 model_type support (v0.15.1 insufficient)
+# NGC flash-attn is removed in Dockerfile (ABI mismatch) — vLLM uses FlashInfer instead
+vllm_pip_version: "0.16.0"
+vllm_pip_extra_index: "https://wheels.vllm.ai/nightly/cu130"

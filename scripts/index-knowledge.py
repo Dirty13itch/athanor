@@ -25,6 +25,8 @@ EXTRA_FILES = [
     REPO_ROOT / "AGENTS.md",
     REPO_ROOT / "docs" / "VISION.md",
     REPO_ROOT / "docs" / "BUILD-MANIFEST.md",
+    REPO_ROOT / "docs" / "SYSTEM-SPEC.md",
+    REPO_ROOT / "docs" / "SERVICES.md",
 ]
 
 QDRANT_URL = "http://192.168.1.244:6333"

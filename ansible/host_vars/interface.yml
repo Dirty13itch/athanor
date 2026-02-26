@@ -24,6 +24,10 @@ vllm_extra_args:
   - --safetensors-load-strategy
   - eager
 
+# Custom vLLM image for 5090 Blackwell support + newer features
+vllm_custom_build: true
+vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
+
 comfyui_gpu_device: "1"
 comfyui_port: 8188
 

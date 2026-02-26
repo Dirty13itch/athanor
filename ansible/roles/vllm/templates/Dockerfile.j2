@@ -1,0 +1,22 @@
+# Custom vLLM image: NGC CUDA 13.1 base + upstream vLLM
+# NGC containers ship stale vLLM (v0.13.0 in 26.01-py3).
+# We need v0.15.0+ for Qwen3.5 DeltaNet, NVFP4, sleep mode, SageAttention2.
+# NGC base is required for CUDA 13.1 (Blackwell sm_120 support).
+# See: docs/research/2026-02-26-vllm-upgrade-path.md
+
+FROM {{ vllm_base_image }}
+
+# Remove NGC's flash-attn (compiled against old PyTorch, ABI mismatch after upgrade)
+# vLLM v0.16.0 ships its own attention kernels via FlashInfer
+RUN pip uninstall -y flash-attn flash_attn 2>/dev/null; \
+    rm -f /usr/local/lib/python3.12/dist-packages/flash_attn_2_cuda*.so 2>/dev/null; \
+    true
+
+# Upgrade vLLM to target version (pinned for reproducibility)
+# cu130 wheels match NGC's CUDA 13.1 base
+RUN pip install --no-cache-dir vllm=={{ vllm_pip_version }} \
+    --extra-index-url {{ vllm_pip_extra_index }} \
+    && pip cache purge
+
+# Verify upgraded version
+RUN python3 -c "import vllm; print(f'vLLM version: {vllm.__version__}')"

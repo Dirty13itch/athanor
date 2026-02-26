@@ -360,7 +360,7 @@ This provides the reliability of native WireGuard with the CGNAT insurance of Ta
 - [NetBird - GitHub](https://github.com/netbirdio/netbird) -- Open-source WireGuard mesh
 - [NetBird iOS client issues - Forum](https://forum.netbird.io/t/state-of-ios-client/132/1) -- User reports of iOS app instability
 - [NetBird $10M Series A - Tech.eu](https://tech.eu/2026/01/13/netbird-announces-10m-series-a-to-expand-open-source-vpn-alternative/) -- Funding and growth
-- [Tailscale + tmux on iPhone](https://petesena.medium.com/how-to-run-claude-code-from-your-iphone-using-tailscale-termius-and-tmux-2e16d0e5f68b) -- Mobile SSH workflow
+- [Tailscale + tmux on iPhone](https://petesena.medium.com/how-to-run-claude-code-from-your-iphone-using-tailscale-termius-and-tmux-2e16d0e5f68b) -- Mobile SSH workflow (deprecated — using Claudeman instead)
 - [WireGuard vs Tailscale performance - Contabo](https://contabo.com/blog/wireguard-vs-tailscale/) -- Benchmark comparison
 - [Cloudflare Tunnel vs ngrok vs Tailscale - DEV Community](https://dev.to/mechcloud_academy/cloudflare-tunnel-vs-ngrok-vs-tailscale-choosing-the-right-secure-tunneling-solution-4inm) -- Latency comparison
 - [CGNAT detection methods - PureVPN](https://www.purevpn.com/blog/how-to-check-whether-or-not-your-isp-performs-cgnat/) -- How to check for CGNAT

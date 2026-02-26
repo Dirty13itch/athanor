@@ -18,8 +18,8 @@
       "args": ["-y", "@leval/mcp-grafana"],
       "env": {
         "GRAFANA_URL": "http://192.168.1.203:3000",
-        "GRAFANA_USERNAME": "admin",
-        "GRAFANA_PASSWORD": "newpass123"
+        "GRAFANA_USERNAME": "${GRAFANA_USERNAME}",
+        "GRAFANA_PASSWORD": "${GRAFANA_PASSWORD}"
       }
     },
     "filesystem": {

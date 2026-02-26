@@ -181,7 +181,7 @@ Latency is fine. The problem is purely bandwidth.
 | id_ed25519 | Ed25519 | Primary identity |
 | id_ed25519_wsl | Ed25519 | WSL-specific (unclear purpose -- duplicate?) |
 | athanor_mgmt | Ed25519 | Cluster management key |
-| termius_key | Ed25519 | Mobile access (legacy key name) |
+| mobile_key | Ed25519 | Mobile access (at ~/.ssh/termius_key, rename pending) |
 
 **SSH Config (`~/.ssh/config`):**
 
