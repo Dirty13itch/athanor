@@ -170,7 +170,7 @@ Latency is fine. The problem is purely bandwidth.
 
 **DNS:** Resolves via 10.255.255.254 (WSL2 internal DNS proxy). No reverse DNS for any node. No entries in /etc/hosts for cluster nodes.
 
-**Tailscale:** Running on Windows (service confirmed). CLI not accessible from WSL2. Remote access to DEV is possible via Tailscale, though the UDM Pro integration (for accessing nodes remotely) is still blocked per the manifest.
+**Tailscale:** Running on Windows (service confirmed) but **not needed** — Shaun confirmed remote access is not a requirement (2026-02-26). Should be uninstalled to free resources.
 
 ### 2.7 SSH Configuration
 
@@ -181,7 +181,7 @@ Latency is fine. The problem is purely bandwidth.
 | id_ed25519 | Ed25519 | Primary identity |
 | id_ed25519_wsl | Ed25519 | WSL-specific (unclear purpose -- duplicate?) |
 | athanor_mgmt | Ed25519 | Cluster management key |
-| mobile_key | Ed25519 | Mobile access (at ~/.ssh/termius_key, rename pending) |
+| mobile_key | Ed25519 | Mobile access (at ~/.ssh/mobile_key) |
 
 **SSH Config (`~/.ssh/config`):**
 
@@ -349,7 +349,7 @@ The UDM Pro web UI at `https://192.168.1.1` is reachable. Running UniFi OS 3.0.1
 
 | # | Item | Notes |
 |---|------|-------|
-| 13 | Tailscale running on Windows | Service active, but CLI not accessible from WSL. Could enable remote dev access. |
+| 13 | Tailscale running on Windows | Service active but not needed. **Uninstall recommended** (Shaun confirmed remote access not required 2026-02-26). |
 | 14 | Hyper-V VM present | "cowork-vm-vnet" virtual switch exists. Unknown purpose. Consumes resources. |
 | 15 | WSL2 sparse VHD + autoMemoryReclaim | Good settings, already enabled. |
 | 16 | `id_ed25519_wsl` key | Purpose unclear -- potentially redundant with `id_ed25519`. |
@@ -393,7 +393,7 @@ Storage:
 Network:
   Intel I225-V 1GbE      Connected at 100 Mbps (DEGRADED)
   Intel Wi-Fi 6 AX200    Disconnected
-  Tailscale              Running (Windows service)
+  Tailscale              Running (Windows service) — UNINSTALL (not needed per 2026-02-26)
 
 PSU: Unidentified
 Case: Unidentified

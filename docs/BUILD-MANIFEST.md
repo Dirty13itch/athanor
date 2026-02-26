@@ -275,10 +275,9 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Status:** 🔲 Backlog — requires physical work
 
 ### 6.8 — Remote access
-- **Status:** 🔲 Backlog — deprioritized (not currently needed)
-- **Research:** `docs/research/2026-02-24-remote-access.md` — 5 options evaluated
-- **Decision:** ADR-016 written but approach TBD. Tailscale-on-UDM-Pro removed as requirement.
-- **Note:** Revisit if/when mobile access (6.4) becomes a priority.
+- **Status:** ❌ Cancelled — not needed
+- **Research:** `docs/research/2026-02-24-remote-access.md` — 5 options evaluated (historical)
+- **Decision:** ADR-016 superseded 2026-02-26. No remote access required. Revisit only if Shaun's needs change.
 
 ---
 

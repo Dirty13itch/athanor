@@ -47,7 +47,7 @@ Daily at 03:00 CST via cron on each host. Qdrant backup runs on Node 1, Neo4j an
 ## Alternatives Considered
 
 ### Off-site to cloud (S3, Backblaze B2)
-Rejected for now. Databases are small (<1 GB total) so cost would be trivial, but requires remote access setup (item 6.8) and adds complexity. Revisit after Tailscale/WireGuard.
+Rejected for now. Databases are small (<1 GB total) so cost would be trivial, but adds complexity. Revisit if off-site backup becomes a priority.
 
 ### Cross-node replication
 Rejected. Adds network traffic for databases that can be re-seeded from Ansible in under an hour. The knowledge base can be re-indexed from docs in ~5 minutes. Not worth the operational overhead.

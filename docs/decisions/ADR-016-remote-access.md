@@ -1,8 +1,10 @@
 # ADR-016: Remote Access via Tailscale
 
 **Date:** 2026-02-24
-**Status:** Accepted
+**Status:** Superseded (2026-02-26) — Remote access deprioritized. Tailscale not needed.
 **Research:** `docs/research/2026-02-24-remote-access.md`
+
+> **2026-02-26 Update:** Shaun decided Tailscale is not needed. Remote access is not a current requirement. If it becomes one in the future, re-evaluate from scratch — the landscape will have changed. This ADR is preserved as decision history per convention.
 
 ## Context
 
