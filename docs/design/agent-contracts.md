@@ -2,7 +2,31 @@
 
 *Formal specification for each agent: what it does, what it must ask about, what it learns from, and where it stops.*
 
-Last updated: 2026-02-25
+Last updated: 2026-02-26
+
+---
+
+## Orchestration Hierarchy
+
+```
+Shaun (Owner / Alchemist)
+  └── Claude (COO / Meta Orchestrator / Lead Engineer)
+        ├── Directs all agents via task API and chat
+        ├── Makes operational decisions without escalation
+        ├── Monitors agent output quality and trust scores
+        ├── Adjusts agent configurations and schedules
+        └── 8 Local Agents (below)
+```
+
+**Claude as Meta Orchestrator** sits above all local agents. Claude:
+- Submits tasks to agents via `POST /v1/tasks`
+- Routes work to the right agent based on domain expertise
+- Reviews agent output quality (trust scores, feedback signals)
+- Adjusts agent schedules and escalation thresholds
+- Maintains agent contracts (this document)
+- Escalates to Shaun only for vision-level decisions, credentials, or physical tasks
+
+Local agents report to Claude, not directly to Shaun. Shaun interacts with agents through the Command Center, but the operational direction comes from Claude.
 
 ---
 
@@ -327,8 +351,8 @@ boundaries: |
 
 categories: |
   Documents are tagged: adr, research, hardware, design, project, vision, build.
-  1203 vectors in knowledge collection, Neo4j graph with 8 agents + 24 services.
-  Indexed from 98 documents across docs/ directory.
+  2220 vectors in knowledge collection, Neo4j graph with 8 agents + 24 services.
+  Indexed from docs/ directory. Re-indexed Session 22.
 ```
 
 ---

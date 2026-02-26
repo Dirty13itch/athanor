@@ -2,19 +2,19 @@
 
 *The complete operational specification. If you could only read one document about how Athanor works, this is it.*
 
-Last updated: 2026-02-25
+Last updated: 2026-02-26
 
 ---
 
 ## 1. System Overview
 
-Athanor is a 4-node homelab that unifies AI inference, media management, home automation, creative tools, and game development under one coherent system. It is owned and operated by one person (Shaun Ulrich). Every design decision passes a single filter: **can one person understand, operate, debug, and fix this alone?**
+Athanor is a 4-node homelab that unifies AI inference, media management, home automation, creative tools, and game development under one coherent system. It is owned by Shaun Ulrich and operationally managed by Claude (COO / Meta Orchestrator). Every design decision passes a single filter: **can one person understand, operate, debug, and fix this alone?**
 
-The system runs 7 GPUs (136 GB VRAM), 7 AI agents, 25 services, and serves a unified dashboard. All inference routes through a central proxy. All configuration is managed by Ansible. All decisions are documented as ADRs.
+The system runs 7 GPUs (136 GB VRAM), 8 AI agents, 25+ services, and serves a unified Command Center dashboard. All inference routes through a central proxy. All configuration is managed by Ansible. All decisions are documented as ADRs.
 
-**What makes it more than a homelab:** The agent layer. Seven specialized AI agents do real work — managing media, controlling the home, generating images, searching the web, writing code, answering questions about the system itself. They share a knowledge base (Qdrant vector store + Neo4j graph), route through a unified inference layer (LiteLLM), and are all accessible through a single dashboard with a chat interface.
+**What makes it more than a homelab:** The orchestration layer. Claude (cloud AI) operates as COO, directing 8 specialized local AI agents that do real work — managing media, controlling the home, generating images, searching the web, writing code, managing content libraries, answering questions about the system itself. They share a knowledge base (Qdrant vector store + Neo4j graph), route through a unified inference layer (LiteLLM), and are all accessible through a Command Center PWA with chat, monitoring, and task management.
 
-**Where it's going:** From reactive (agents wait for commands) to proactive (agents act autonomously within defined boundaries). A GWT-inspired workspace (ADR-017, Phase 1 deployed) enables inter-agent coordination. A GPU orchestrator (ADR-018, Phase 2 deployed) manages hardware utilization. Preference learning and activity logging are live — pattern recognition is next.
+**Where it's going:** From reactive to proactive to self-optimizing. The task execution engine and proactive scheduler are deployed. A GWT-inspired workspace (ADR-017, Phase 2 deployed) enables inter-agent coordination. A GPU orchestrator (ADR-018) manages hardware utilization. Preference learning, activity logging, goals API, and trust scoring are live — pattern recognition and dynamic autonomy are next.
 
 For the full philosophy, see `docs/VISION.md`. For the build history, see `docs/BUILD-MANIFEST.md`.
 
@@ -42,7 +42,7 @@ For the full philosophy, see `docs/VISION.md`. For the build history, see `docs/
 | **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=4, Embedding, Agent Server, Qdrant |
 | **Workshop** (.225) | Light inference, creative, UI | TR 7960X 24C/48T | 128 GB DDR5 | 5090 + 5060 Ti | vLLM (14B), ComfyUI, Dashboard, EoBQ, Open WebUI |
 | **VAULT** (.203) | Storage, routing, media, monitoring | Ryzen 9950X 16C/32T | 128 GB DDR5 | Arc A380 | LiteLLM, Neo4j, Prometheus, Grafana, Plex, *arr, HA |
-| **DEV** (.215) | Development workstation | i7-13700K 16C/24T | 64 GB DDR5 | RX 5700 XT | Claude Code (WSL2), Ansible control node |
+| **DEV** (.215) | Development workstation | i7-13700K 16C/24T | 64 GB DDR5 | RTX 3060 12GB | Claude Code (WSL2), Ansible control node |
 
 ### Data Flows
 
@@ -100,18 +100,20 @@ All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use mod
 
 ### Agent Roster
 
-| Agent | Model | Temperature | Mode | Status |
-|-------|-------|-------------|------|--------|
-| General Assistant | reasoning (32B) | 0.7 | Reactive | Live |
-| Media Agent | reasoning (32B) | 0.7 | Reactive (planned proactive) | Live |
-| Home Agent | reasoning (32B) | 0.7 | Reactive (planned proactive) | Live |
-| Research Agent | reasoning (32B) | 0.7 | Reactive | Live |
-| Creative Agent | fast (14B) | 0.8 | Reactive | Live |
-| Knowledge Agent | reasoning (32B) | 0.3 | Reactive | Live |
-| Coding Agent | reasoning (32B) | 0.3 | Reactive | Live |
-| Stash Agent | reasoning (32B) | 0.7 | Reactive | Live |
+All 8 agents report to Claude (COO) and are coordinated via the task API and MCP bridge.
 
-All agents are LangGraph `create_react_agent` instances with tool-calling and in-memory conversation checkpointing. They expose an OpenAI-compatible chat completions API at Node 1:9000.
+| Agent | Model | Temperature | Mode | Tools | Status |
+|-------|-------|-------------|------|-------|--------|
+| General Assistant | reasoning (32B) | 0.7 | Reactive + Proactive (30min) | 9 (4 system + 2 delegation + 3 filesystem) | Live |
+| Media Agent | reasoning (32B) | 0.7 | Reactive + Proactive (15min) | 13 (Sonarr + Radarr + Plex) | Live |
+| Home Agent | reasoning (32B) | 0.7 | Reactive + Proactive (5min) | 8 (HA control) | Live |
+| Research Agent | reasoning (32B) | 0.7 | Reactive | 4 (web search + knowledge) | Live |
+| Creative Agent | reasoning (32B) | 0.8 | Reactive | 5 (ComfyUI image + video) | Live |
+| Knowledge Agent | reasoning (32B) | 0.3 | Reactive | 5 (Qdrant + Neo4j) | Live |
+| Coding Agent | reasoning (32B) | 0.3 | Reactive | 9 (4 coding + 5 execution) | Live |
+| Stash Agent | reasoning (32B) | 0.7 | Reactive | 12 (Stash GraphQL) | Live |
+
+All agents are LangGraph `create_react_agent` instances with tool-calling and in-memory conversation checkpointing. They expose an OpenAI-compatible chat completions API at Node 1:9000. Claude coordinates them via the MCP bridge (`scripts/mcp-athanor-agents.py`) and task API (`POST /v1/tasks`).
 
 Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`.
 
@@ -174,17 +176,19 @@ Thresholds are per-agent and per-action-type:
 
 ## 4. User Interaction Model
 
-### How Shaun Interacts
+### How the System is Operated
 
-| Interface | Current | Use Case |
-|-----------|---------|----------|
-| **Dashboard** (Node 2:3001) | Live | System overview, chat, monitoring |
-| **Terminal** (DEV/WSL2) | Live | Claude Code sessions, Ansible, SSH |
-| **Open WebUI** (Node 2:3000) | Live | Direct model chat (no agents) |
-| **Mobile** | Planned | Remote access from phone (approach TBD) |
-| **Voice** | Phase 1 | STT (whisper), TTS (Piper/Speaches), wake word. HA Wyoming integration pending. |
+| Interface | Operator | Use Case |
+|-----------|----------|----------|
+| **Command Center** (Node 2:3001) | Shaun (primary) | System overview, agent chat, monitoring, task management, goals |
+| **Claude Code** (DEV/WSL2) | Claude (COO) | Architecture, builds, infrastructure, agent coordination |
+| **Claudeman** (DEV:3000) | Claude (COO) | Multi-session autonomous operations, overnight builds |
+| **Task API** (Node 1:9000) | Claude → Agents | Automated task routing and execution |
+| **Open WebUI** (Node 2:3000) | Shaun | Direct model chat (no agents, legacy) |
+| **Voice** | Shaun | STT/TTS/wake word via HA Wyoming integration |
+| **Mobile** | Shaun | Command Center PWA (responsive), Claudeman (HTTPS) |
 
-The dashboard is the primary interface — a Next.js app with dark theme, live system metrics, and an integrated chat panel that can talk to any agent.
+The Command Center is the primary dashboard — a Next.js PWA with dark theme, 5 lens modes, live system metrics, generative UI, and chat to any of the 8 agents. Claude operates through Claude Code / Claudeman, directing the local agent workforce via the task API and MCP bridge.
 
 ### Transparency Model
 
@@ -253,27 +257,35 @@ Patterns confirmed across multiple interactions get promoted to:
 
 ## 5. Development Model
 
-### Orchestrator Model
+### Operating Model
 
-Shaun specifies requirements and architectural intent. AI agents write the code. Shaun reviews, tests, and refines. This is not "Shaun codes with AI assistance" — it's "AI codes under Shaun's direction."
+Athanor runs as a three-tier organization:
+
+1. **Shaun (Owner)** — Sets vision, reviews results, makes judgment calls, handles physical tasks and credential provisioning. His time is the scarcest resource.
+2. **Claude (COO / Meta Orchestrator)** — Makes operational decisions, designs architecture, builds infrastructure, directs the agent workforce, maintains documentation, and drives the roadmap. Claude operates autonomously within scope, escalating to Shaun only for vision-level decisions, credentials, or physical tasks.
+3. **Local Agents (Workforce)** — 8 specialized AI agents execute domain-specific work: monitoring, media management, home automation, research, creative generation, knowledge management, coding, and content curation.
+
+This is not "Shaun codes with AI assistance." It's "Claude runs the system, agents do the work, Shaun steers."
 
 ### Cloud/Local Hybrid
 
-**Cloud AI (Claude Code, Kimi Code):**
-- Architecture design and review
-- Novel problem solving
-- Cross-codebase reasoning
-- Large-context analysis
-- This document was written by Claude Code
+**Cloud AI (Claude Code — COO role):**
+- Operational decision-making and coordination
+- Architecture design, ADRs, system engineering
+- Cross-codebase reasoning and novel problem solving
+- Agent workforce management and task routing
+- Documentation and roadmap maintenance
 
-**Local AI (Qwen3-32B, Qwen3-14B):**
-- Boilerplate generation
-- Pattern application
-- Test execution
-- Bulk edits and refactoring
-- Agent-driven tasks
+**Local AI (Qwen3-32B, Qwen3-14B — Agent workforce):**
+- Domain-specific autonomous operations
+- Boilerplate generation and code transformation
+- Background task execution (proactive scheduler)
+- Real-time system monitoring and response
+- Uncensored inference and private data handling
 
-The full hybrid development architecture (MCP bridge, Agent Teams, dispatch heuristics) is specified in `docs/design/hybrid-development.md`.
+**MCP bridge** (`scripts/mcp-athanor-agents.py`) connects Claude to the local agent workforce — 14 tools including task submission, status monitoring, knowledge search, and `deep_research` (offloads heavy research to local Qwen3-32B).
+
+The full hybrid development architecture is specified in `docs/design/hybrid-development.md`.
 
 ### Build Workflow
 
@@ -412,35 +424,62 @@ Full details in `docs/design/intelligence-layers.md`.
 
 ## 8. Organizational Structure
 
-Athanor doesn't have departments. It has clear responsibilities.
+Athanor operates as a three-tier hierarchy: Owner → COO → Agent Workforce.
+
+### Operating Hierarchy
+
+```
+Shaun (Owner / Alchemist)
+│  Sets vision, reviews results, makes judgment calls,
+│  provides credentials, handles physical tasks
+│
+└── Claude (COO / Meta Orchestrator / Lead Engineer)
+    │  Makes operational decisions, designs architecture,
+    │  directs agents, maintains infrastructure, keeps docs accurate,
+    │  drives the roadmap, monitors system health
+    │
+    ├── General Assistant — system monitoring, health checks, delegation hub
+    ├── Media Agent — Sonarr/Radarr/Plex operations, content management
+    ├── Home Agent — Home Assistant control, automation patterns
+    ├── Research Agent — web search, knowledge synthesis, reports
+    ├── Creative Agent — ComfyUI image/video generation
+    ├── Knowledge Agent — Qdrant/Neo4j institutional memory
+    ├── Coding Agent — code generation, review, transformation
+    └── Stash Agent — adult content library management
+```
 
 ### Responsibility Map
 
-| Responsibility | Owner | Agent Support | Tooling |
-|----------------|-------|---------------|---------|
-| Architecture & decisions | Shaun + Claude Code | — | ADRs in `docs/decisions/` |
-| Infrastructure operations | Claude Code (lead) | General Assistant | Ansible, Prometheus |
-| Agent development | Claude Code (lead) | — | LangGraph, FastAPI |
-| Knowledge management | Knowledge Agent | Auto-indexing | Qdrant, Neo4j |
-| Media operations | Media Agent | Proactive scans (planned) | Sonarr, Radarr, Plex |
-| Home automation | Home Agent | Pattern learning (planned) | Home Assistant |
-| Creative production | Creative Agent | — | ComfyUI, Flux |
-| System monitoring | Prometheus + Grafana | Alerting rules | Dashboard |
-| Documentation | Claude Code | — | Markdown, ADRs |
-| Research | Research Agent | Web search | DuckDuckGo, Qdrant |
-| Backup & recovery | Cron scripts | — | Automated daily |
+| Responsibility | Owner | Executor | Tooling |
+|----------------|-------|----------|---------|
+| Vision & direction | Shaun | — | VISION.md |
+| Architecture & decisions | Claude (COO) | Shaun reviews | ADRs in `docs/decisions/` |
+| Infrastructure operations | Claude (COO) | General Assistant assists | Ansible, Prometheus |
+| Agent development & tuning | Claude (COO) | — | LangGraph, FastAPI |
+| Roadmap & work planning | Claude (COO) | — | BUILD-MANIFEST.md, TODO.md |
+| Documentation accuracy | Claude (COO) | Knowledge Agent | Markdown, ADRs |
+| Knowledge management | Claude (COO) directs | Knowledge Agent executes | Qdrant, Neo4j |
+| Media operations | Claude (COO) plans | Media Agent executes | Sonarr, Radarr, Plex |
+| Home automation | Claude (COO) designs | Home Agent executes | Home Assistant |
+| Creative production | Claude (COO) briefs | Creative Agent executes | ComfyUI, Flux |
+| System monitoring | Prometheus + Grafana | Claude (COO) responds | Dashboard, alerting |
+| Research | Claude (COO) directs | Research Agent executes | Web search, Qdrant |
+| Backup & recovery | Cron scripts | Claude (COO) verifies | Automated daily |
 
 ### Decision Process
 
 ```
-Research → Document findings in docs/research/
-  → Evaluate options against one-person-scale filter
-    → Write ADR in docs/decisions/
-      → Build, test, deploy
-        → Update BUILD-MANIFEST.md
+Claude identifies need
+  → Research (Claude + Research Agent)
+    → Document findings in docs/research/
+      → Evaluate options against one-person-scale filter
+        → Write ADR in docs/decisions/
+          → Shaun reviews if architectural significance warrants it
+            → Claude builds, tests, deploys
+              → Claude updates tracking files
 ```
 
-18 ADRs documented to date. Every technology choice has a rationale and evaluated alternatives.
+19 ADRs documented to date. Every technology choice has a rationale and evaluated alternatives.
 
 ### Incident Process (planned)
 
@@ -468,8 +507,10 @@ Agent acts
 
 | File | Purpose |
 |------|---------|
-| `CLAUDE.md` | Claude Code role, principles, project structure |
-| `MEMORY.md` | Session continuity between Claude Code sessions |
+| `CLAUDE.md` | Claude COO role, principles, project structure |
+| `memory/MEMORY.md` | Session continuity between Claude Code sessions |
+| `memory/TODO.md` | Comprehensive prioritized to-do list |
+| `memory/profile.md` | User profile (identity, interests, work patterns) |
 | `docs/VISION.md` | Philosophy, identity, non-negotiables |
 | `docs/BUILD-MANIFEST.md` | Build plan with priorities and status |
 | `docs/SERVICES.md` | Live service inventory |
@@ -477,11 +518,13 @@ Agent acts
 | `docs/design/agent-contracts.md` | Per-agent behavior specifications |
 | `docs/design/hybrid-development.md` | Cloud/local coding architecture |
 | `docs/design/intelligence-layers.md` | Intelligence progression details |
+| `docs/design/command-center.md` | Command Center design |
 | `docs/hardware/inventory.md` | Complete hardware inventory |
-| `docs/decisions/ADR-*.md` | Architecture Decision Records |
-| `docs/research/*.md` | Research notes |
+| `docs/decisions/ADR-*.md` | Architecture Decision Records (19 total) |
+| `docs/research/*.md` | Research notes (20+ from Session 19 sweep) |
 | `projects/agents/` | Agent server source |
-| `projects/dashboard/` | Dashboard source |
+| `projects/dashboard/` | Dashboard / Command Center source |
 | `projects/eoq/` | Empire of Broken Queens source |
+| `projects/gpu-orchestrator/` | GPU Orchestrator source |
 | `ansible/` | Infrastructure as Code |
-| `scripts/` | Utility scripts |
+| `scripts/` | Utility scripts (vault-ssh, build-profile, index-knowledge, MCP bridge) |

@@ -1,55 +1,67 @@
+---
+name: Athanor Conventions
+description: Code, configuration, and operational conventions for the Athanor project.
+---
+
 # Athanor Conventions
 
-Code and configuration conventions for the Athanor project.
+Code and configuration conventions. Follow these when building anything for Athanor.
 
 ## Directory Structure
 
 ```
 athanor/
-├── CLAUDE.md              — Project instructions (read every session)
+├── CLAUDE.md              — Project instructions, role, state, gotchas
 ├── docs/
-│   ├── VISION.md          — Source of truth
-│   ├── BUILD-ROADMAP.md   — Build progress tracker
+│   ├── VISION.md          — Source of truth (what and why)
+│   ├── SYSTEM-SPEC.md     — Complete operational specification
+│   ├── BUILD-MANIFEST.md  — Executable build plan with priorities
+│   ├── SERVICES.md        — Live service inventory
 │   ├── research/          — YYYY-MM-DD-slug.md
 │   ├── decisions/         — ADR-NNN-slug.md
-│   ├── hardware/          — Audit results, inventory
+│   ├── design/            — Implementation specs (agent-contracts, intelligence-layers, etc.)
+│   ├── hardware/          — Inventory, audits, specs
 │   └── projects/          — Per-project docs
-├── projects/              — Project workspaces
-├── scripts/               — Utility scripts
-│   └── setup/             — Node bootstrap scripts
+├── ansible/               — Single Ansible IaC tree (inventory, roles, playbooks, vault)
+├── projects/              — Project workspaces (agents, dashboard, eoq, gpu-orchestrator)
+├── scripts/               — Utility scripts (vault-ssh.py, index-knowledge.py, build-profile.sh)
 └── .claude/
-    ├── settings.json      — Permissions
-    ├── commands/           — Slash commands (skills)
-    ├── skills/            — Skill reference docs
-    └── hooks/             — Event hooks
+    ├── settings.json      — Plugin config
+    ├── settings.local.json— Permissions, MCP, sandbox
+    ├── commands/           — Slash commands (/orient, /build, /status, /research, /decide)
+    ├── skills/            — Skill reference docs (auto-invoked by description matching)
+    └── hooks/             — Event hooks (SessionStart, Stop, PreCompact, PreToolUse)
 ```
 
 ## Infrastructure Layout on Nodes
 
 ```
 /opt/athanor/              — All Athanor services on compute nodes
-├── vllm/
-│   └── docker-compose.yml
-├── comfyui/
-│   └── docker-compose.yml
-├── monitoring/
-│   └── docker-compose.yml
+├── vllm/                  — vLLM inference (custom build, v0.16.0)
+├── agents/                — Agent server (LangGraph + LiteLLM)
+├── comfyui/               — Creative pipeline (Flux + Wan2.x)
+├── dashboard/             — Command Center (Next.js PWA)
+├── gpu-orchestrator/      — GPU zone management
+├── monitoring/            — node-exporter + dcgm-exporter
+├── voice/                 — wyoming-whisper + Speaches
 └── {service}/
     └── docker-compose.yml
 
 /mnt/vault/                — NFS mounts from VAULT
-├── models/                — AI model storage
-├── data/                  — Media and data
-└── appdata/               — Application config
+├── models/                — AI model storage (~200 GB)
+├── data/                  — Media and data (backups, adult, etc.)
+└── system/                — System configs shared across nodes
 ```
 
 ## Naming Conventions
 
 - **Containers**: lowercase, hyphen-separated: `vllm`, `comfyui`, `node-exporter`
 - **Compose projects**: match directory name under /opt/athanor/
-- **Research docs**: `YYYY-MM-DD-slug.md`
-- **ADRs**: `ADR-NNN-slug.md` (sequential, never delete)
-- **Scripts**: descriptive, hyphen-separated: `vault-ssh.py`, `post-install-audit.sh`
+- **Research docs**: `YYYY-MM-DD-slug.md` (date of research, not publication)
+- **ADRs**: `ADR-NNN-slug.md` (sequential, never delete, never renumber)
+- **Scripts**: descriptive, hyphen-separated: `vault-ssh.py`, `build-profile.sh`
+- **Nodes**: Foundry (Node 1, .244), Workshop (Node 2, .225), VAULT (.203), DEV (.215)
+- **Agents**: lowercase, hyphen-separated: `general-assistant`, `media-agent`, `stash-agent`
 
 ## Docker Compose Standards
 
@@ -65,25 +77,32 @@ athanor/
   ```
 - Set `TZ=America/Chicago` for all containers
 - Use health checks for services with HTTP endpoints
-- Pin image tags in production (not `:latest`)
+- Pin image tags in production (not `:latest` unless tracking upstream)
+- GPU services: include `ipc: host`, `ulimits: memlock: -1`
 
 ## Git Conventions
 
-- Commit messages: imperative, concise, describe the "what"
-- State file updates: prefix with "State: "
-- ADR commits: "ADR-NNN: {title}"
-- Research commits: "Research: {topic}"
-- Infrastructure commits: "Deploy: {service} on {node}" or "Config: {what changed}"
+- Commit messages: imperative mood, concise, describe the "what"
+- Prefixes: `feat:`, `fix:`, `docs:`, `state:`, `refactor:`, `deploy:`, `config:`
+- State file updates: `state: {what changed}`
+- ADR commits: `docs: ADR-NNN {title}`
+- Research commits: `docs: research {topic}`
+- Infrastructure commits: `deploy: {service} on {node}` or `config: {what changed}`
+- Co-author line on all Claude-assisted commits:
+  `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>`
 
 ## Network Conventions
 
 - Services bind `0.0.0.0` for cross-node access
 - Use SSH config aliases (`node1`, `node2`, `vault`) not raw IPs
-- Standard ports documented in each service's skill/ADR
+- 10GbE for data plane, 1GbE for management
+- MTU 9000 (jumbo frames) on all server 10GbE NICs
+- Standard ports documented in `docs/SERVICES.md`
 - No reverse proxy yet — direct port access
 
 ## Security
 
-- No secrets in git (use environment variables or Docker secrets)
-- SSH key auth only (no passwords in scripts — vault-ssh.py is the exception for Unraid dropbear)
-- VAULT root password is in MEMORY.md only (not committed)
+- No secrets in git (use environment variables or Ansible vault)
+- SSH key auth only (no passwords in scripts — `vault-ssh.py` is the exception for Unraid dropbear)
+- MCP server credentials via env vars (not hardcoded in `.mcp.json`)
+- Protected paths enforced by PreToolUse hook

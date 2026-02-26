@@ -1,47 +1,50 @@
+---
+name: State Update
+description: How to update Athanor state files after infrastructure or documentation changes.
+---
+
 # State Update
 
-How to update Athanor state files after infrastructure changes.
+How to update Athanor state files after any change to infrastructure, services, or documentation.
 
 ## Files to Update
 
 | File | What It Tracks | When to Update |
 |------|---------------|----------------|
-| `docs/BUILD-ROADMAP.md` | Phase checklist | When tasks are completed or added |
-| `docs/VISION.md` (Current State) | High-level system state | When major milestones change |
-| `docs/hardware/inventory.md` | Hardware allocation | When hardware moves between nodes |
-| `CLAUDE.md` | Services map, blockers, hardware summary | When services or blockers change |
+| `CLAUDE.md` | Role, hardware, services, state, gotchas, blockers | When services, state, or blockers change |
+| `docs/BUILD-MANIFEST.md` | Executable build plan with priorities | When tasks complete or new ones are added |
+| `docs/SYSTEM-SPEC.md` | Complete operational specification | When architecture, services, or agents change |
+| `docs/SERVICES.md` | Live service inventory | When services are deployed, removed, or change ports |
+| `docs/VISION.md` | High-level vision and current state | When major milestones change |
+| `docs/hardware/inventory.md` | Hardware allocation and specs | When hardware moves between nodes |
+| `docs/design/agent-contracts.md` | Agent behavior contracts | When agent tools, escalation, or boundaries change |
+| `docs/design/intelligence-layers.md` | Intelligence layer status | When layers are deployed or extended |
+| `MEMORY.md` (auto-memory) | Session continuity, patterns, decisions | After every session with significant findings |
 
 ## Process
 
-1. After any infrastructure change (deploy, config, hardware):
+1. After any infrastructure change (deploy, config, hardware, agent):
    - Identify which state files are affected
    - Update the specific sections that changed
-   - Use checkboxes `[x]` in BUILD-ROADMAP.md for completed items
-   - Update timestamps ("Last updated: YYYY-MM-DD")
+   - Update timestamps where present ("Last updated: YYYY-MM-DD")
+   - Keep descriptions consistent across files (don't say "8 agents" in one and "7" in another)
 
-2. For CLAUDE.md:
-   - Update the Services Map table if services were deployed/removed
-   - Update Blockers section if items were resolved or new ones found
-   - Update Hardware section if hardware changed
+2. For CLAUDE.md specifically:
+   - Update the Current State section if services/state changed
+   - Update Blockers table if items were resolved or new ones found
+   - Update Hardware table if hardware changed
+   - Update Key Gotchas if new gotchas were discovered
 
-3. Commit state file changes:
-   ```bash
-   git add docs/BUILD-ROADMAP.md docs/VISION.md
-   git commit -m "Update state: {what changed}"
-   ```
+3. For auto-memory (MEMORY.md):
+   - Update build progress
+   - Record new patterns, corrections, or gotchas
+   - Keep within 200-line limit (lines after 200 are truncated at session start)
 
-## State File Locations
+## Commit Convention
 
-```
-docs/BUILD-ROADMAP.md                — Build progress
-docs/VISION.md                       — System overview
-docs/hardware/inventory.md           — Hardware
-CLAUDE.md                            — Project instructions (services map, blockers, hardware summary)
+```bash
+git add CLAUDE.md docs/BUILD-MANIFEST.md docs/SYSTEM-SPEC.md  # stage what changed
+git commit -m "state: {what changed}"
 ```
 
-## Example: After Deploying vLLM on Node 1
-
-1. BUILD-ROADMAP.md: Check off `[x] Deploy vLLM on Node 1 — single GPU test first`
-2. VISION.md Current State: Add "vLLM running on Node 1"
-3. CLAUDE.md: Update Services Map with vLLM entry
-4. Commit: `git commit -m "State: vLLM deployed on Node 1"`
+Prefix with `state:` for tracking updates. Use specific descriptions ("state: vLLM upgraded to v0.16.0", not "state: update docs").

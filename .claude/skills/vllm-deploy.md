@@ -1,112 +1,101 @@
+---
+name: vLLM Deploy
+description: Deploy and manage vLLM inference on Athanor nodes. Custom image v0.16.0 on NGC base.
+---
+
 # vLLM Deploy
 
-Deploy a model on vLLM. Handles model selection, GPU assignment, and health checks.
+Deploy vLLM inference services on Athanor. Uses custom Docker image (NGC 26.01-py3 base + vLLM v0.16.0 via pip cu130 wheels).
 
-## Prerequisites
+## Architecture
 
-- NVIDIA drivers 580+ installed
-- Docker + NVIDIA CTK installed
-- NFS mount to VAULT at /mnt/vault/models
+| Instance | Node | Port | GPUs | Model | Purpose |
+|----------|------|------|------|-------|---------|
+| vllm (primary) | Foundry | 8000 | 0-3 (5070Ti) + 4090, TP=4 | Qwen3-32B-AWQ | Reasoning, agents |
+| vllm-embedding | Foundry | 8001 | 4 (4090), 0.40 mem | Qwen3-Embedding-0.6B | Embeddings (1024-dim) |
+| vllm (secondary) | Workshop | 8000 | 0 (5090) | Qwen3-14B-AWQ | Fast inference |
 
-## CRITICAL: Blackwell GPU Compatibility
+## Custom Image Build
 
-The official `vllm/vllm-openai:latest` image does NOT work with driver 580 / Blackwell GPUs.
+The standard vLLM Docker images don't support Blackwell (sm_120). NGC images ship stale vLLM versions. Our solution: NGC base + pip install vLLM from cu130 wheel index.
 
-**Working image**: `nvcr.io/nvidia/vllm:25.12-py3`
-- PyTorch 2.10.0a0 (NVIDIA build), CUDA 13.1, vLLM 0.11.1
-- Confirmed working on 4x RTX 5070 Ti (sm_120) with driver 580.126.09
-
-**Key settings for 16 GB GPUs (5070 Ti)**:
-- `--gpu-memory-utilization 0.85` (0.90 causes OOM during warmup)
-- `--max-num-seqs 128` (256 default causes OOM)
-- `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
-- `VLLM_FLASH_ATTN_VERSION=2` (FA3 not supported on Blackwell)
-
-## Deployment: Node 1 (4-GPU Tensor Parallel)
-
-```yaml
-# /opt/athanor/vllm/docker-compose.yml
-services:
-  vllm:
-    image: nvcr.io/nvidia/vllm:25.12-py3
-    container_name: vllm
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    volumes:
-      - /mnt/vault/models:/models:ro
-    environment:
-      - HF_HUB_OFFLINE=1
-      - VLLM_FLASH_ATTN_VERSION=2
-      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
-    ipc: host
-    ulimits:
-      memlock: -1
-      stack: 67108864
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
-    command:
-      - --model
-      - /models/Qwen3-32B-AWQ
-      - --quantization
-      - awq
-      - --tensor-parallel-size
-      - "4"
-      - --host
-      - 0.0.0.0
-      - --port
-      - "8000"
-      - --max-model-len
-      - "32768"
-      - --gpu-memory-utilization
-      - "0.85"
-      - --max-num-seqs
-      - "128"
-      - --dtype
-      - auto
+```dockerfile
+# Ansible template: ansible/roles/vllm/templates/Dockerfile.j2
+FROM nvcr.io/nvidia/vllm:{{ vllm_ngc_tag }}-py3
+RUN pip install vllm=={{ vllm_pip_version }} \
+    --extra-index-url https://download.pytorch.org/whl/cu{{ vllm_cuda_suffix }}
 ```
 
-## Available Models on VAULT NFS
+Built image: `athanor/vllm:latest` (34.6 GB). Verified: v0.16.0, sm_120 compatible.
 
-| Model | Size | Quantization | Fits Where |
-|-------|------|-------------|------------|
-| Qwen3-32B-AWQ | ~20 GB | AWQ | Node 1 TP=4 (current, 15.6 GB/GPU) |
-| Qwen3-14B | ~28 GB FP16 | None | Node 1 TP=4 |
-| gte-Qwen2-7B-instruct | ~14 GB | None | Any single GPU |
+## Deployment via Ansible
+
+```bash
+cd ansible
+ansible-playbook playbooks/site.yml --vault-password-file vault-password -i inventory.yml --tags vllm
+```
+
+Ansible vars (in `host_vars/`):
+- `vllm_custom_build: true` — builds from Dockerfile instead of pulling NGC
+- `vllm_pip_version: "0.16.0"` — vLLM version to install
+- `vllm_cuda_suffix: "130"` — cu130 for Blackwell
+- `vllm_ngc_tag: "26.01"` — NGC base image tag
+
+## Critical Blackwell (sm_120) Settings
+
+```yaml
+environment:
+  - CUDA_DEVICE_ORDER=PCI_BUS_ID          # Required for mixed GPU TP
+  - VLLM_FLASH_ATTN_VERSION=2             # FA3 not supported on Blackwell
+  - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  - HF_HUB_OFFLINE=1
+command:
+  - --quantization awq                     # Must be explicit (Marlin crashes on Blackwell)
+  - --gpu-memory-utilization 0.85          # 0.90 OOMs on 16GB GPUs during warmup
+  - --max-num-seqs 128                     # 256 default OOMs
+```
+
+## Mixed GPU Tensor Parallel (Node 1)
+
+4x RTX 5070 Ti (sm_120) + RTX 4090 (sm_89) work together with:
+- `--quantization awq` (not Marlin — Marlin kernel crashes on mixed architectures)
+- `CUDA_DEVICE_ORDER=PCI_BUS_ID`
+- `--tensor-parallel-size 4` (uses GPUs 0-3, the 4x 5070 Ti)
+
+## Sleep Mode (v0.16.0+)
+
+vLLM v0.16.0 supports sleep mode REST endpoints:
+- `POST /sleep` — offloads model weights, frees VRAM
+- `POST /wake_up` — reloads model weights
+- `GET /is_sleeping` — check state
+
+Requires `--enable-sleep-mode` in command args. Managed by GPU Orchestrator (Node 1:9200).
+
+## Available Models (VAULT NFS)
+
+| Model | Size | Quant | Fits Where |
+|-------|------|-------|------------|
+| Qwen3-32B-AWQ | ~20 GB | AWQ | Foundry TP=4 (current) |
+| Qwen3-14B-AWQ | ~8 GB | AWQ | Workshop single GPU |
+| Qwen3-Embedding-0.6B | ~1.2 GB | None | Foundry GPU 4 |
+| Qwen3.5-27B-FP8 | ~27 GB | FP8 | Foundry TP=4 (download needed) |
 
 ## Validation
 
 ```bash
-# List models
+# Check model serving
 curl http://192.168.1.244:8000/v1/models
 
 # Test inference
 curl http://192.168.1.244:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{
-    "model": "/models/Qwen3-14B",
-    "messages": [{"role": "user", "content": "Hello"}],
-    "max_tokens": 100
-  }'
+  -d '{"model":"/models/Qwen3-32B-AWQ","messages":[{"role":"user","content":"Hello"}],"max_tokens":50}'
+
+# Check embeddings
+curl http://192.168.1.244:8001/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{"model":"/models/Qwen3-Embedding-0.6B","input":"test"}'
+
+# Check sleep mode
+curl http://192.168.1.244:8000/is_sleeping
 ```
-
-## Upgrading vLLM
-
-When newer NGC vLLM images are released (e.g., 26.01, 26.02):
-1. Check Blackwell/sm_120 support in release notes
-2. Test CUDA init: `docker run --rm --gpus all --entrypoint python3 <image> -c "import torch; print(torch.cuda.is_available())"`
-3. If True, update the image tag in docker-compose.yml
-
-Alternative: Build from source using `nvcr.io/nvidia/pytorch:25.02-py3` base + PyTorch nightly cu128.
-
-## Ports
-
-| Service | Node | Port | Purpose |
-|---------|------|------|---------|
-| vLLM primary | Node 1 | 8000 | 4-GPU TP, large models |

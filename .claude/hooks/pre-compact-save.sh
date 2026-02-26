@@ -1,30 +1,61 @@
 #!/bin/bash
-# PreCompact hook: Save critical session state before context compaction
-# Writes current working state to a temp file that can be re-read after compaction
+# PreCompact hook: Save dynamic session state before context compaction
+# Captures real-time info that helps Claude recover context after compaction
 
 STATE_FILE="/tmp/athanor-session-state.md"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
-cat > "$STATE_FILE" << 'EOF'
-# Athanor Session State (Pre-Compaction Snapshot)
+{
+  echo "# Athanor Session State (Pre-Compaction Snapshot)"
+  echo "Captured: $(date -Iseconds)"
+  echo ""
 
-## Key Context
-- SSH: node1 (192.168.1.244), node2 (192.168.1.225), vault (192.168.1.203)
-- SSH config at ~/.ssh/config with aliases
-- All nodes have passwordless SSH via athanor_mgmt and id_ed25519 keys
-- VAULT uses dropbear; fallback: python scripts/vault-ssh.py
+  # Git state
+  echo "## Git State"
+  echo '```'
+  echo "Branch: $(git -C "$REPO_ROOT" branch --show-current 2>/dev/null)"
+  echo "Last 5 commits:"
+  git -C "$REPO_ROOT" log --oneline -5 2>/dev/null
+  echo ""
+  echo "Uncommitted changes:"
+  git -C "$REPO_ROOT" status --short 2>/dev/null || echo "  (none)"
+  echo '```'
+  echo ""
 
-## Current Infrastructure State
-- Node 1: Ubuntu 24.04, 4x RTX 5070 Ti + RTX 4090 (88 GB VRAM), vLLM (Qwen3-32B-AWQ TP=4), Agent Server ✅
-- Node 2: Ubuntu 24.04, RTX 5090 + RTX 5060 Ti (48 GB VRAM), vLLM (Qwen3-14B-AWQ), ComfyUI, Dashboard, Open WebUI ✅
-- VAULT: Unraid, Prometheus, Grafana, Plex, *arr stack, Stash, Home Assistant ✅
-- NFS mounted on both nodes at /mnt/vault/{models,data,appdata} ✅
-- Ansible IaC tree covers all services: ansible-playbook playbooks/site.yml
+  # Modified files diff summary
+  CHANGED=$(git -C "$REPO_ROOT" diff --stat 2>/dev/null)
+  if [ -n "$CHANGED" ]; then
+    echo "## Changed Files (unstaged)"
+    echo '```'
+    echo "$CHANGED"
+    echo '```'
+    echo ""
+  fi
 
-## Read These Files for Full Context
-- CLAUDE.md
-- docs/BUILD-ROADMAP.md
-- docs/VISION.md
-- .claude/skills/ (all files)
-EOF
+  # Staged files
+  STAGED=$(git -C "$REPO_ROOT" diff --cached --stat 2>/dev/null)
+  if [ -n "$STAGED" ]; then
+    echo "## Staged Files"
+    echo '```'
+    echo "$STAGED"
+    echo '```'
+    echo ""
+  fi
+
+  # Quick infrastructure status (non-blocking, 2s timeout)
+  echo "## Infrastructure (quick check)"
+  N1=$(ssh -o ConnectTimeout=2 -o BatchMode=yes node1 'echo UP' 2>/dev/null && echo "UP" || echo "DOWN")
+  N2=$(ssh -o ConnectTimeout=2 -o BatchMode=yes node2 'echo UP' 2>/dev/null && echo "UP" || echo "DOWN")
+  echo "- Foundry (Node 1): $N1"
+  echo "- Workshop (Node 2): $N2"
+  echo ""
+
+  # Remind what files to re-read
+  echo "## Re-read After Compaction"
+  echo "- CLAUDE.md (role, state, gotchas)"
+  echo "- MEMORY.md (session continuity)"
+  echo "- docs/BUILD-MANIFEST.md (work queue)"
+  echo "- The plan file if one exists"
+} > "$STATE_FILE" 2>/dev/null
 
 echo "Session state saved to $STATE_FILE"

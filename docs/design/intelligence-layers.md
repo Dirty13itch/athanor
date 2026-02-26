@@ -2,7 +2,23 @@
 
 *The self-improving loop. The furnace feeding itself. Extends ADR-008.*
 
-Last updated: 2026-02-25
+Last updated: 2026-02-26
+
+---
+
+## Layer 0 — Meta Orchestration (deployed)
+
+Above the agent layer sits Claude as COO and Meta Orchestrator. Claude provides the strategic intelligence that local agents lack: cross-domain reasoning, long-term planning, architectural decisions, and workforce coordination.
+
+```
+Claude (COO) — cloud intelligence, operational decisions
+  ↓ directs via task API + chat
+Local Agents — domain expertise, autonomous execution
+  ↓ act on
+Infrastructure — GPUs, services, storage, networking
+```
+
+Claude directs agent work, monitors quality (trust scores, feedback), adjusts schedules and escalation thresholds, and escalates to Shaun only when human judgment is required. This meta-orchestration layer is what transforms a collection of reactive agents into a coordinated workforce.
 
 ---
 
@@ -12,9 +28,9 @@ Each agent responds to requests. No memory between invocations beyond what's in 
 
 Simple, debuggable, working.
 
-**What works:** 7 agents live, 25 services healthy, all tools functional, streaming responses, tool call visualization in dashboard, escalation protocol, GWT workspace.
+**What works:** 8 agents live, 25+ services healthy, all tools functional, streaming responses, tool call visualization in dashboard, escalation protocol, GWT workspace, task execution engine, proactive scheduler.
 
-**What's shallow:** Agents treat every request as if they've never seen the user before. No accumulated context injection. No behavioral adaptation. The ReAct loop works but doesn't deepen over time.
+**What's evolved past:** Context injection now deployed (Layer 2). Agents receive preferences, activity history, knowledge docs, and active goals in every request. The "no memory" limitation is mitigated by the context enrichment pipeline.
 
 ---
 
@@ -22,7 +38,7 @@ Simple, debuggable, working.
 
 ### What's Deployed
 
-1. **Knowledge base:** 922 doc vectors in Qdrant `knowledge` collection, 30 Neo4j graph nodes
+1. **Knowledge base:** 2220 doc vectors in Qdrant `knowledge` collection, 30+ Neo4j graph nodes
 2. **Preference storage:** `preferences` Qdrant collection (1024-dim, editable via dashboard)
    - Signal types: `thumbs_up`, `thumbs_down`, `remember_this`, `config_choice`
    - Semantic search — "I prefer dark themes" matches queries about UI colors
@@ -182,8 +198,9 @@ This is where Athanor genuinely starts managing itself. The recursive nature of 
 
 | Layer | Requires | Status |
 |-------|----------|--------|
+| 0 (Meta Orchestration) | Claude as COO, MCP bridge, task API | **Deployed** — Claude directs all agents |
 | 1 (Reactive) | vLLM, LangGraph, LiteLLM, tool APIs | **Deployed** |
-| 2 (Knowledge) | Qdrant, Neo4j, embedding model, preferences, activity logging, context injection | **Deployed** — context injection live, conversation history not yet populated |
+| 2 (Knowledge) | Qdrant, Neo4j, embedding model, preferences, activity logging, context injection, goals | **Deployed** — context injection + goals live, conversation history not yet populated |
 | 3 (Patterns) | Conversation history, pattern detection jobs, context refinement | **Not started** |
 | 4 (Self-Optimization) | All above + metrics correlation + A/B testing + auto-evaluation | **Future** |
 
