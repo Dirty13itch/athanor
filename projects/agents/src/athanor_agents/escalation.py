@@ -190,12 +190,104 @@ def _fire_push(pending: "PendingAction") -> None:
         pass
 
 
+AUTONOMY_ADJUSTMENTS_KEY = "athanor:autonomy:adjustments"
+
+# Bounds: thresholds can be adjusted within these limits
+_MIN_THRESHOLD = 0.0   # READ category already uses 0.0
+_MAX_THRESHOLD = 1.0   # SECURITY category already uses 1.0
+_MAX_ADJUSTMENT = 0.15  # Max ±0.15 adjustment from base threshold
+
+
 def get_threshold(agent: str, category: ActionCategory) -> float:
-    """Get the autonomous action threshold for an agent + action category."""
+    """Get the autonomous action threshold for an agent + action category.
+
+    Checks for learned autonomy adjustments in Redis (set by pattern detection).
+    Falls back to static agent overrides, then defaults.
+    """
+    # Start with base threshold
     agent_overrides = AGENT_THRESHOLDS.get(agent, {})
     if category in agent_overrides:
-        return agent_overrides[category]
-    return DEFAULT_THRESHOLDS.get(category, 0.8)
+        base = agent_overrides[category]
+    else:
+        base = DEFAULT_THRESHOLDS.get(category, 0.8)
+
+    # Apply learned adjustment from Redis (cached in-memory)
+    adjustment = _get_cached_adjustment(agent, category.value)
+    if adjustment != 0.0:
+        adjusted = max(_MIN_THRESHOLD, min(_MAX_THRESHOLD, base + adjustment))
+        return adjusted
+
+    return base
+
+
+# In-memory cache for autonomy adjustments (refreshed by pattern detection)
+_adjustment_cache: dict[str, float] = {}
+_adjustment_cache_ts: float = 0.0
+_ADJUSTMENT_CACHE_TTL = 300.0  # 5 min cache
+
+
+def _get_cached_adjustment(agent: str, category: str) -> float:
+    """Get cached autonomy adjustment. Returns 0.0 if none."""
+    global _adjustment_cache, _adjustment_cache_ts
+
+    # Cache expired — will be refreshed on next async call
+    if time.time() - _adjustment_cache_ts > _ADJUSTMENT_CACHE_TTL:
+        return 0.0
+
+    key = f"{agent}:{category}"
+    return _adjustment_cache.get(key, 0.0)
+
+
+async def refresh_adjustment_cache():
+    """Refresh the in-memory adjustment cache from Redis."""
+    global _adjustment_cache, _adjustment_cache_ts
+
+    try:
+        from .workspace import get_redis
+        r = await get_redis()
+        raw = await r.hgetall(AUTONOMY_ADJUSTMENTS_KEY)
+        new_cache = {}
+        for k, v in raw.items():
+            key = k.decode() if isinstance(k, bytes) else k
+            val = v.decode() if isinstance(v, bytes) else v
+            try:
+                new_cache[key] = float(val)
+            except ValueError:
+                pass
+        _adjustment_cache = new_cache
+        _adjustment_cache_ts = time.time()
+        if new_cache:
+            logger.debug("Refreshed autonomy adjustments: %d entries", len(new_cache))
+    except Exception as e:
+        logger.debug("Failed to refresh autonomy adjustments: %s", e)
+
+
+async def set_autonomy_adjustment(agent: str, category: str, adjustment: float):
+    """Set an autonomy adjustment for an agent+category.
+
+    Positive adjustment = lower threshold = more autonomy.
+    Negative adjustment = higher threshold = less autonomy.
+    Clamped to ±MAX_ADJUSTMENT.
+    """
+    adjustment = max(-_MAX_ADJUSTMENT, min(_MAX_ADJUSTMENT, adjustment))
+
+    try:
+        from .workspace import get_redis
+        r = await get_redis()
+        key = f"{agent}:{category}"
+        await r.hset(AUTONOMY_ADJUSTMENTS_KEY, key, str(round(adjustment, 3)))
+
+        # Update cache immediately
+        _adjustment_cache[key] = adjustment
+        logger.info("Set autonomy adjustment: %s = %.3f", key, adjustment)
+    except Exception as e:
+        logger.warning("Failed to set autonomy adjustment: %s", e)
+
+
+async def get_all_adjustments() -> dict:
+    """Get all current autonomy adjustments."""
+    await refresh_adjustment_cache()
+    return dict(_adjustment_cache)
 
 
 def evaluate(

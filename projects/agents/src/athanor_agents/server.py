@@ -724,6 +724,14 @@ async def post_feedback(request: Request):
         data={"feedback_type": feedback_type},
     ))
 
+    # Immediate trust regression on negative feedback
+    if feedback_type == "thumbs_down":
+        from .escalation import get_all_adjustments, set_autonomy_adjustment
+        current = await get_all_adjustments()
+        key = f"{agent}:routine"
+        current_adj = current.get(key, 0.0)
+        asyncio.create_task(set_autonomy_adjustment(agent, "routine", current_adj + 0.03))
+
     return result
 
 
@@ -812,6 +820,49 @@ async def get_trust_scores():
     from .goals import compute_trust_scores
 
     return await compute_trust_scores()
+
+
+@app.get("/v1/autonomy")
+async def get_autonomy_adjustments():
+    """Get current autonomy threshold adjustments per agent.
+
+    Positive = less autonomy (higher thresholds).
+    Negative = more autonomy (lower thresholds).
+    """
+    from .escalation import get_all_adjustments
+
+    adjustments = await get_all_adjustments()
+    return {"adjustments": adjustments, "max_adjustment": 0.15}
+
+
+@app.post("/v1/autonomy/reset")
+async def reset_autonomy(request: Request):
+    """Reset autonomy adjustments for an agent (or all agents).
+
+    Body: {"agent": "media-agent"} or {} for all.
+    """
+    from .workspace import get_redis
+    from .escalation import AUTONOMY_ADJUSTMENTS_KEY, refresh_adjustment_cache
+
+    body = await request.json()
+    agent = body.get("agent", "")
+
+    r = await get_redis()
+    if agent:
+        # Remove all adjustments for this agent
+        all_keys = await r.hkeys(AUTONOMY_ADJUSTMENTS_KEY)
+        removed = 0
+        for k in all_keys:
+            key = k.decode() if isinstance(k, bytes) else k
+            if key.startswith(f"{agent}:"):
+                await r.hdel(AUTONOMY_ADJUSTMENTS_KEY, key)
+                removed += 1
+        await refresh_adjustment_cache()
+        return {"status": "reset", "agent": agent, "removed": removed}
+    else:
+        await r.delete(AUTONOMY_ADJUSTMENTS_KEY)
+        await refresh_adjustment_cache()
+        return {"status": "reset", "agent": "all"}
 
 
 # --- Context injection (diagnostic) ---

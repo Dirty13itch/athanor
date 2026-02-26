@@ -146,6 +146,9 @@ async def run_pattern_detection() -> dict:
                 f"Investigate failing agents."
             )
 
+    # --- Autonomy auto-graduation ---
+    await _apply_autonomy_adjustments(report, events, failures, feedback_events)
+
     # --- Store report in Redis ---
     try:
         r = await _get_redis()
@@ -176,6 +179,88 @@ async def run_pattern_detection() -> dict:
     )
 
     return report
+
+
+async def _apply_autonomy_adjustments(
+    report: dict,
+    events: list[dict],
+    failures: list[dict],
+    feedback_events: list[dict],
+):
+    """Adjust autonomy levels based on detected patterns.
+
+    Rules:
+    - Agent with 5+ successful tasks and 0 failures → lower threshold by 0.02
+      (more autonomy, capped at -0.15 total adjustment)
+    - Agent with 3+ failures → raise threshold by 0.05 (less autonomy)
+    - Agent with negative feedback trend → raise threshold by 0.03
+    - Adjustments are cumulative but clamped to ±0.15
+    """
+    from .escalation import get_all_adjustments, set_autonomy_adjustment
+
+    current = await get_all_adjustments()
+    completions = [e for e in events if e["event_type"] == "task_completed"]
+
+    # Count per-agent completions and failures
+    comp_by_agent = Counter(e["agent"] for e in completions)
+    fail_by_agent = Counter(e["agent"] for e in failures)
+
+    # Get agents with negative feedback
+    negative_agents = set()
+    fb_by_agent: dict[str, dict] = defaultdict(lambda: {"up": 0, "down": 0})
+    for e in feedback_events:
+        fb_type = e.get("data", {}).get("feedback_type", "")
+        if fb_type == "thumbs_up":
+            fb_by_agent[e["agent"]]["up"] += 1
+        elif fb_type == "thumbs_down":
+            fb_by_agent[e["agent"]]["down"] += 1
+    for agent, counts in fb_by_agent.items():
+        if counts["down"] > counts["up"] and (counts["up"] + counts["down"]) >= 3:
+            negative_agents.add(agent)
+
+    adjustments_made = []
+
+    # All agents that had any activity
+    all_agents = set(comp_by_agent.keys()) | set(fail_by_agent.keys()) | negative_agents
+
+    for agent in all_agents:
+        comps = comp_by_agent.get(agent, 0)
+        fails = fail_by_agent.get(agent, 0)
+
+        # Default category for graduated adjustments: "routine"
+        # (most common action type for scheduled tasks)
+        category = "routine"
+        key = f"{agent}:{category}"
+        current_adj = current.get(key, 0.0)
+
+        delta = 0.0
+
+        # Reward: 5+ completions with 0 failures
+        if comps >= 5 and fails == 0:
+            delta -= 0.02  # Lower threshold = more autonomy
+
+        # Penalize: 3+ failures
+        if fails >= 3:
+            delta += 0.05  # Raise threshold = less autonomy
+
+        # Penalize: negative feedback trend
+        if agent in negative_agents:
+            delta += 0.03
+
+        if delta != 0.0:
+            new_adj = current_adj + delta
+            await set_autonomy_adjustment(agent, category, new_adj)
+            adjustments_made.append({
+                "agent": agent,
+                "category": category,
+                "previous": round(current_adj, 3),
+                "delta": round(delta, 3),
+                "new": round(new_adj, 3),
+            })
+
+    if adjustments_made:
+        report["autonomy_adjustments"] = adjustments_made
+        logger.info("Autonomy adjustments applied: %d agents", len(adjustments_made))
 
 
 async def get_latest_report() -> dict | None:
