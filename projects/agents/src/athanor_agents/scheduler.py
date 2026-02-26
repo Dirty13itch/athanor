@@ -31,10 +31,12 @@ _scheduler_task: asyncio.Task | None = None
 
 DAILY_DIGEST_KEY = "athanor:scheduler:daily_digest"
 PATTERN_DETECTION_KEY = "athanor:scheduler:pattern_detection"
+ALERT_CHECK_KEY = "athanor:alerts:last_check"
 DIGEST_HOUR = 6   # 6:55 AM local time
 DIGEST_MINUTE = 55
 PATTERN_HOUR = 5   # 5:00 AM local time
 PATTERN_MINUTE = 0
+ALERT_CHECK_INTERVAL = 300  # 5 minutes
 
 AGENT_SCHEDULES = {
     "general-assistant": {
@@ -176,6 +178,34 @@ async def _check_pattern_detection():
         logger.warning("Scheduler: pattern detection failed: %s", e)
 
 
+async def _check_alerts():
+    """Check Prometheus alerts every 5 minutes."""
+    from .alerts import check_prometheus_alerts
+
+    try:
+        r = await _get_redis()
+        last_check = await r.get(ALERT_CHECK_KEY)
+        if last_check:
+            ts = float(last_check.decode() if isinstance(last_check, bytes) else last_check)
+            if time.time() - ts < ALERT_CHECK_INTERVAL:
+                return
+    except Exception:
+        pass
+
+    try:
+        result = await check_prometheus_alerts()
+        r = await _get_redis()
+        await r.set(ALERT_CHECK_KEY, str(time.time()))
+        if result.get("new", 0) > 0:
+            logger.info(
+                "Alert check: %d active, %d new",
+                result["active"],
+                result["new"],
+            )
+    except Exception as e:
+        logger.warning("Alert check failed: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -188,6 +218,9 @@ async def _scheduler_loop():
     while True:
         try:
             now = time.time()
+
+            # Check infrastructure alerts (every 5 min)
+            await _check_alerts()
 
             # Check time-of-day tasks
             await _check_pattern_detection()

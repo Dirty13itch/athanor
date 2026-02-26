@@ -565,6 +565,30 @@ async def query_events_endpoint(
     return {"events": events, "count": len(events)}
 
 
+# --- Prometheus Alerts ---
+
+
+@app.get("/v1/alerts")
+async def get_alerts():
+    """Get currently firing Prometheus alerts and recent history."""
+    from .alerts import get_active_alerts, get_alert_history
+
+    active = await get_active_alerts()
+    history = await get_alert_history(limit=20)
+    return {**active, "history": history}
+
+
+@app.post("/v1/alerts/check")
+async def trigger_alert_check():
+    """Manually trigger a Prometheus alert check (normally every 5 min)."""
+    from .alerts import check_prometheus_alerts
+
+    return await check_prometheus_alerts()
+
+
+# --- Pattern Detection ---
+
+
 @app.get("/v1/patterns")
 async def get_patterns(agent: str = ""):
     """Get the latest pattern detection report.

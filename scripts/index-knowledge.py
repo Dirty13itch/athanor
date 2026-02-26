@@ -2,14 +2,18 @@
 """Index Athanor documentation into Qdrant knowledge base.
 
 Run from DEV (where the git repo lives):
-    python3 scripts/index-knowledge.py
+    python3 scripts/index-knowledge.py              # incremental (default)
+    python3 scripts/index-knowledge.py --full        # full re-index
+
+Incremental mode: compares content hashes, only re-embeds changed/new files,
+removes points for deleted files. Takes <30s when nothing changed.
 
 This scans docs/ and key project files, chunks them, embeds via LiteLLM,
 and upserts into the Qdrant 'knowledge' collection.
 """
 
+import argparse
 import hashlib
-import os
 import sys
 import time
 from pathlib import Path
@@ -38,16 +42,9 @@ CHUNK_SIZE = 1500  # chars per chunk (with overlap)
 CHUNK_OVERLAP = 200
 
 
-def get_embedding(text: str) -> list[float]:
-    """Get embedding from LiteLLM proxy."""
-    resp = httpx.post(
-        f"{LITELLM_URL}/embeddings",
-        json={"model": "embedding", "input": text},
-        headers={"Authorization": f"Bearer {LITELLM_KEY}"},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    return resp.json()["data"][0]["embedding"]
+def content_hash(text: str) -> str:
+    """MD5 hash of file content for change detection."""
+    return hashlib.md5(text.encode()).hexdigest()
 
 
 def text_to_uuid(text: str) -> str:
@@ -78,9 +75,9 @@ def categorize_file(path: Path) -> str:
     return "general"
 
 
-def extract_title(content: str, filepath: Path) -> str:
+def extract_title(content_text: str, filepath: Path) -> str:
     """Extract title from markdown content or fall back to filename."""
-    for line in content.split("\n")[:10]:
+    for line in content_text.split("\n")[:10]:
         line = line.strip()
         if line.startswith("# "):
             return line[2:].strip()
@@ -99,12 +96,10 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 
         # Try to break at a paragraph or sentence boundary
         if end < len(text):
-            # Look for paragraph break
             para_break = text.rfind("\n\n", start + chunk_size // 2, end)
             if para_break > start:
                 end = para_break
             else:
-                # Look for sentence break
                 for sep in [". ", ".\n", "\n"]:
                     sent_break = text.rfind(sep, start + chunk_size // 2, end)
                     if sent_break > start:
@@ -114,7 +109,7 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
         chunks.append(text[start:end].strip())
         start = end - overlap
 
-    return [c for c in chunks if len(c) > 50]  # Skip tiny fragments
+    return [c for c in chunks if len(c) > 50]
 
 
 def ensure_collection():
@@ -137,14 +132,11 @@ def find_docs() -> list[Path]:
     """Find all markdown files to index."""
     files = set()
 
-    # All markdown in docs/
     for f in DOCS_DIR.rglob("*.md"):
-        # Skip any CLAUDE.md inside docs subdirs (these are context hints, not content)
         if f.name == "CLAUDE.md" and f.parent != DOCS_DIR:
             continue
         files.add(f)
 
-    # Extra top-level files
     for f in EXTRA_FILES:
         if f.exists():
             files.add(f)
@@ -152,23 +144,113 @@ def find_docs() -> list[Path]:
     return sorted(files)
 
 
-def index_file(filepath: Path, batch: list[dict]) -> int:
+def get_existing_hashes() -> dict[str, str]:
+    """Get content_hash for each source file already in Qdrant.
+
+    Returns: {source_path: content_hash}
+    Only reads chunk_index=0 points (one per file) to get the hash.
+    """
+    hashes: dict[str, str] = {}
+    offset = None
+
+    while True:
+        body: dict = {
+            "filter": {
+                "must": [{"key": "chunk_index", "match": {"value": 0}}],
+            },
+            "limit": 100,
+            "with_payload": ["source", "content_hash"],
+        }
+        if offset is not None:
+            body["offset"] = offset
+
+        resp = httpx.post(
+            f"{QDRANT_URL}/collections/{COLLECTION}/points/scroll",
+            json=body,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("result", {})
+        points = data.get("points", [])
+
+        for p in points:
+            payload = p.get("payload", {})
+            source = payload.get("source", "")
+            h = payload.get("content_hash", "")
+            if source:
+                hashes[source] = h
+
+        next_offset = data.get("next_page_offset")
+        if not next_offset or not points:
+            break
+        offset = next_offset
+
+    return hashes
+
+
+def get_source_point_ids(source: str) -> list[str]:
+    """Get all point IDs for a given source file."""
+    ids = []
+    offset = None
+
+    while True:
+        body: dict = {
+            "filter": {
+                "must": [{"key": "source", "match": {"value": source}}],
+            },
+            "limit": 100,
+            "with_payload": False,
+        }
+        if offset is not None:
+            body["offset"] = offset
+
+        resp = httpx.post(
+            f"{QDRANT_URL}/collections/{COLLECTION}/points/scroll",
+            json=body,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json().get("result", {})
+        points = data.get("points", [])
+
+        for p in points:
+            ids.append(p["id"])
+
+        next_offset = data.get("next_page_offset")
+        if not next_offset or not points:
+            break
+        offset = next_offset
+
+    return ids
+
+
+def delete_points(point_ids: list[str]):
+    """Delete specific points from Qdrant."""
+    if not point_ids:
+        return
+    resp = httpx.post(
+        f"{QDRANT_URL}/collections/{COLLECTION}/points/delete",
+        json={"points": point_ids},
+        timeout=15,
+    )
+    resp.raise_for_status()
+
+
+def index_file(filepath: Path, batch: list[dict], file_hash: str) -> int:
     """Read, chunk, and prepare a file for indexing. Returns chunk count."""
-    content = filepath.read_text(encoding="utf-8", errors="replace")
-    if len(content.strip()) < 50:
+    file_content = filepath.read_text(encoding="utf-8", errors="replace")
+    if len(file_content.strip()) < 50:
         return 0
 
-    title = extract_title(content, filepath)
+    title = extract_title(file_content, filepath)
     category = categorize_file(filepath)
     source = str(filepath.relative_to(REPO_ROOT))
     indexed_at = time.strftime("%Y-%m-%dT%H:%M:%S")
 
-    chunks = chunk_text(content)
+    chunks = chunk_text(file_content)
 
     for i, chunk in enumerate(chunks):
-        # Prepend title context to chunk for better embeddings
         embed_text = f"{title}\n\n{chunk}" if i > 0 else chunk
-
         point_id = text_to_uuid(f"{source}:chunk:{i}")
 
         batch.append({
@@ -181,6 +263,7 @@ def index_file(filepath: Path, batch: list[dict]) -> int:
                 "chunk_index": i,
                 "total_chunks": len(chunks),
                 "indexed_at": indexed_at,
+                "content_hash": file_hash,
                 "text": chunk,
             },
         })
@@ -193,10 +276,8 @@ def upsert_batch(batch: list[dict]):
     if not batch:
         return
 
-    # Embed all texts (batched for efficiency)
     texts = [p["text"] for p in batch]
 
-    # LiteLLM/vLLM can handle batched embeddings
     resp = httpx.post(
         f"{LITELLM_URL}/embeddings",
         json={"model": "embedding", "input": texts},
@@ -206,7 +287,6 @@ def upsert_batch(batch: list[dict]):
     resp.raise_for_status()
     embeddings = [d["embedding"] for d in resp.json()["data"]]
 
-    # Build Qdrant upsert payload
     points = []
     for item, vector in zip(batch, embeddings):
         points.append({
@@ -223,15 +303,13 @@ def upsert_batch(batch: list[dict]):
     resp.raise_for_status()
 
 
-def main():
-    print("=== Athanor Knowledge Indexer ===\n")
-
-    # Check connectivity
+def check_connectivity():
+    """Verify Qdrant and LiteLLM are reachable."""
     try:
         httpx.get(f"{QDRANT_URL}/collections", timeout=5).raise_for_status()
-        print(f"Qdrant: OK ({QDRANT_URL})")
+        print(f"  Qdrant: OK ({QDRANT_URL})")
     except Exception as e:
-        print(f"ERROR: Cannot reach Qdrant at {QDRANT_URL}: {e}")
+        print(f"ERROR: Cannot reach Qdrant at {QDRANT_URL}: {e}", file=sys.stderr)
         sys.exit(1)
 
     try:
@@ -240,38 +318,147 @@ def main():
             headers={"Authorization": f"Bearer {LITELLM_KEY}"},
             timeout=5,
         ).raise_for_status()
-        print(f"LiteLLM: OK ({LITELLM_URL})")
+        print(f"  LiteLLM: OK ({LITELLM_URL})")
     except Exception as e:
-        print(f"ERROR: Cannot reach LiteLLM at {LITELLM_URL}: {e}")
+        print(f"ERROR: Cannot reach LiteLLM at {LITELLM_URL}: {e}", file=sys.stderr)
         sys.exit(1)
 
-    ensure_collection()
+
+def run_full():
+    """Full re-index: re-embed every document."""
+    print("Mode: FULL re-index\n")
 
     docs = find_docs()
-    print(f"\nFound {len(docs)} documents to index\n")
+    print(f"Found {len(docs)} documents to index\n")
 
     batch: list[dict] = []
     total_chunks = 0
-    batch_size = 20  # Embed this many chunks at once
+    batch_size = 20
 
     for i, filepath in enumerate(docs):
         rel = filepath.relative_to(REPO_ROOT)
-        n = index_file(filepath, batch)
+        file_content = filepath.read_text(encoding="utf-8", errors="replace")
+        file_hash = content_hash(file_content)
+        n = index_file(filepath, batch, file_hash)
         total_chunks += n
-        print(f"  [{i+1}/{len(docs)}] {rel} → {n} chunks")
+        print(f"  [{i+1}/{len(docs)}] {rel} -> {n} chunks")
 
-        # Flush batch when it's large enough
         if len(batch) >= batch_size:
             print(f"    Embedding + upserting batch ({len(batch)} chunks)...")
             upsert_batch(batch)
             batch.clear()
 
-    # Final batch
     if batch:
         print(f"\n  Embedding + upserting final batch ({len(batch)} chunks)...")
         upsert_batch(batch)
 
     print(f"\n=== Done: {total_chunks} chunks from {len(docs)} documents indexed ===")
+
+
+def run_incremental():
+    """Incremental index: only re-embed changed/new files, delete removed."""
+    print("Mode: INCREMENTAL (hash-based change detection)\n")
+
+    # Step 1: Get current state from Qdrant
+    print("  Checking existing index...")
+    existing = get_existing_hashes()
+    print(f"  {len(existing)} files currently indexed\n")
+
+    # Step 2: Discover current docs
+    docs = find_docs()
+    current_sources: dict[str, Path] = {}
+    current_hashes: dict[str, str] = {}
+
+    for filepath in docs:
+        source = str(filepath.relative_to(REPO_ROOT))
+        file_content = filepath.read_text(encoding="utf-8", errors="replace")
+        current_sources[source] = filepath
+        current_hashes[source] = content_hash(file_content)
+
+    # Step 3: Classify files
+    new_files = []
+    changed_files = []
+    unchanged_files = []
+    deleted_sources = []
+
+    for source, filepath in current_sources.items():
+        if source not in existing:
+            new_files.append((source, filepath))
+        elif existing[source] != current_hashes[source]:
+            changed_files.append((source, filepath))
+        else:
+            unchanged_files.append(source)
+
+    for source in existing:
+        if source not in current_sources:
+            deleted_sources.append(source)
+
+    print(f"  New:       {len(new_files)} files")
+    print(f"  Changed:   {len(changed_files)} files")
+    print(f"  Unchanged: {len(unchanged_files)} files")
+    print(f"  Deleted:   {len(deleted_sources)} files")
+
+    if not new_files and not changed_files and not deleted_sources:
+        print("\n=== No changes detected. Knowledge base is up to date. ===")
+        return
+
+    # Step 4: Delete points for changed + deleted files
+    for source in deleted_sources:
+        print(f"  Removing: {source}")
+        ids = get_source_point_ids(source)
+        delete_points(ids)
+
+    for source, _ in changed_files:
+        ids = get_source_point_ids(source)
+        delete_points(ids)
+
+    # Step 5: Re-index new + changed files
+    to_index = new_files + changed_files
+    batch: list[dict] = []
+    total_chunks = 0
+    batch_size = 20
+
+    print()
+    for i, (source, filepath) in enumerate(to_index):
+        rel = filepath.relative_to(REPO_ROOT)
+        tag = "NEW" if source not in existing else "UPDATED"
+        n = index_file(filepath, batch, current_hashes[source])
+        total_chunks += n
+        print(f"  [{i+1}/{len(to_index)}] [{tag}] {rel} -> {n} chunks")
+
+        if len(batch) >= batch_size:
+            print(f"    Embedding + upserting batch ({len(batch)} chunks)...")
+            upsert_batch(batch)
+            batch.clear()
+
+    if batch:
+        print(f"\n  Embedding + upserting final batch ({len(batch)} chunks)...")
+        upsert_batch(batch)
+
+    deleted_count = len(deleted_sources)
+    print(f"\n=== Done: {total_chunks} chunks indexed, {deleted_count} sources removed ===")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Index Athanor documentation into Qdrant knowledge base."
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Full re-index (re-embed everything). Default is incremental.",
+    )
+    args = parser.parse_args()
+
+    print("=== Athanor Knowledge Indexer ===\n")
+    check_connectivity()
+    ensure_collection()
+    print()
+
+    if args.full:
+        run_full()
+    else:
+        run_incremental()
 
     # Verify
     resp = httpx.get(f"{QDRANT_URL}/collections/{COLLECTION}", timeout=5)
