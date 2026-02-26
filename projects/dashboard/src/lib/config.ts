@@ -11,6 +11,9 @@ export const config = {
   stash: {
     url: "http://192.168.1.203:9999",
   },
+  speaches: {
+    url: "http://192.168.1.244:8200",
+  },
   homeAssistant: {
     url: "http://192.168.1.203:8123",
   },

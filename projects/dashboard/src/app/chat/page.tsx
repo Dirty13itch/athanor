@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToolCallCard } from "@/components/tool-call";
 import { MessageRenderer } from "@/components/gen-ui/message-renderer";
 import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
+import { VoiceOutput } from "@/components/voice-output";
 import { VoiceInput } from "@/components/voice-input";
 
 interface Message {
@@ -397,10 +398,13 @@ function ChatContent() {
                         )}
                       </div>
                       {item.role === "assistant" && !isLastAssistant && (
-                        <FeedbackButtons
-                          messageContent={item.content}
-                          agent={isAgent ? selectedModel?.id : undefined}
-                        />
+                        <div className="mt-1 flex items-center gap-1 [&>div]:mt-0">
+                          <VoiceOutput messageContent={item.content} />
+                          <FeedbackButtons
+                            messageContent={item.content}
+                            agent={isAgent ? selectedModel?.id : undefined}
+                          />
+                        </div>
                       )}
                     </div>
                   </div>
