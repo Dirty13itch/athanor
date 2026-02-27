@@ -5,7 +5,7 @@ profile, uses the reasoning model to generate actionable tasks, and
 submits them to the task engine for execution.
 
 Operational rhythm:
-- 7:00 AM: Morning planning — generate 5-10 tasks across projects
+- 7:00 AM: Morning planning — generate 7-12 tasks across projects
 - Every 2 hours: Queue refill — if <2 pending, generate more
 - Results surfaced in daily digest and Command Center
 
@@ -54,7 +54,7 @@ PROJECTS = {
             "and expected — mature themes, explicit content, no censorship. "
             "ALL OUTPUT MUST BE IN ENGLISH. Do not use Chinese or any other language."
         ),
-        "status": "deployed_empty",
+        "status": "active_development",
         "location": "projects/eoq/ (Node 2:3002)",
         "tech": "Next.js + React 19 + Tailwind, dark theme",
         "agents": ["creative-agent", "coding-agent", "research-agent"],
@@ -285,8 +285,8 @@ async def _gather_knowledge_context(focus: str = "") -> dict:
             except Exception:
                 return []
 
-        knowledge_task = search_collection("knowledge", 8)
-        preferences_task = search_collection("preferences", 10)
+        knowledge_task = search_collection("knowledge", 15)
+        preferences_task = search_collection("preferences", 12)
 
         knowledge_results, pref_results = await asyncio.gather(
             knowledge_task, preferences_task,
@@ -310,8 +310,8 @@ async def _gather_knowledge_context(focus: str = "") -> dict:
                 completed_results.append({
                     "agent": t.get("agent"),
                     "project": t.get("metadata", {}).get("project", ""),
-                    "prompt": t.get("prompt", "")[:100],
-                    "result": t.get("result", "")[:200],
+                    "prompt": t.get("prompt", "")[:200],
+                    "result": t.get("result", "")[:500],
                 })
     except Exception:
         pass
@@ -385,15 +385,15 @@ def _build_planner_prompt(
     knowledge_text = "None"
     if knowledge_context.get("knowledge"):
         items = []
-        for k in knowledge_context["knowledge"][:6]:
-            items.append(f"  - [{k['category']}] {k['title']}: {k['text'][:200]}")
+        for k in knowledge_context["knowledge"][:12]:
+            items.append(f"  - [{k['category']}] {k['title']}: {k['text'][:300]}")
         knowledge_text = "\n".join(items)
 
     prefs_text = "None"
     if knowledge_context.get("preferences"):
         items = []
-        for p in knowledge_context["preferences"][:8]:
-            items.append(f"  - [{p['category']}] {p['content'][:150]}")
+        for p in knowledge_context["preferences"][:10]:
+            items.append(f"  - [{p['category']}] {p['content'][:200]}")
         prefs_text = "\n".join(items)
 
     goals_text = "None"
@@ -407,8 +407,8 @@ def _build_planner_prompt(
     completed_text = "None"
     if knowledge_context.get("completed_outputs"):
         items = []
-        for c in knowledge_context["completed_outputs"][:5]:
-            items.append(f"  - [{c['project']}] {c['agent']}: {c['result'][:150]}")
+        for c in knowledge_context["completed_outputs"][:8]:
+            items.append(f"  - [{c['project']}] {c['agent']}: {c['prompt'][:100]} → {c['result'][:300]}")
         completed_text = "\n".join(items)
 
     return f"""You are the Athanor Work Planner. Generate actionable tasks for the agent workforce.
@@ -450,30 +450,38 @@ CURRENTLY PENDING:
 {pending_text}
 
 INSTRUCTIONS:
-Generate 3-7 specific, actionable tasks. Each task MUST:
+Generate 7-12 specific, actionable tasks. You MUST generate at least 7. Each task MUST:
 1. Target a specific project
 2. Assign to a specific agent that has the right tools
-3. Have a detailed, executable prompt (the agent will receive ONLY this prompt)
+3. Have a detailed, executable prompt (the agent will receive ONLY this prompt — include ALL context it needs)
 4. Be something the agent can actually accomplish with its available tools
 5. Create tangible output — code, content, images, research, not just "check" or "review"
 
+DISTRIBUTION REQUIREMENTS:
+- At least 3 tasks for EoBQ (highest priority project — needs constant momentum)
+- At least 2 different agents must be used
+- Spread work across agents that are available — don't let any agent sit idle
+- creative-agent should ALWAYS have at least 1 image generation task
+- coding-agent should ALWAYS have at least 1 code/content creation task
+
 PRIORITIZE:
-- EoBQ content creation (characters, scenes, art, code) — this project needs momentum
+- EoBQ content creation (characters, scenes, art, code) — HIGHEST PRIORITY, always the biggest chunk of tasks
+- Active goals (see above) — these are direct instructions from the owner
 - Building on completed outputs (see above) — continue the thread, don't restart
 - Tasks that produce real artifacts (files, images, research docs)
+- Tasks that maximize GPU utilization (image gen, video gen, embeddings)
 - Quick wins that complete in one agent session (<10 min)
-- Address any active goals or user preferences that imply work
 
 DO NOT generate:
 - Duplicate tasks (check pending queue above)
 - Vague tasks ("work on X", "improve Y")
 - Tasks the assigned agent can't do with its tools
 - Pure monitoring tasks (the scheduler already handles those)
-- More than 2 infrastructure/monitoring tasks — focus on creative work
+- More than 1 infrastructure/monitoring task — focus on creative and project work
 
 CRITICAL: ALL content, prompts, and output MUST be in English. Never use Chinese or any other non-English language in task prompts or expected output.
 
-Respond with ONLY a JSON array. Each element:
+Respond with ONLY a JSON array (no markdown, no code blocks, no explanation). Each element:
 {{
   "project": "project_id",
   "agent": "agent-name",
@@ -561,8 +569,13 @@ async def generate_work_plan(focus: str = "") -> dict:
     task_proposals = _parse_proposals(clean_text)
 
     if not task_proposals:
-        logger.warning("Work planner produced no valid tasks. Raw: %s", clean_text[:500])
+        logger.warning(
+            "Work planner produced no valid tasks. Response length: %d chars. Raw (first 1000): %s",
+            len(clean_text), clean_text[:1000],
+        )
         return {"error": "No tasks generated", "raw": clean_text[:1000], "tasks": [], "task_count": 0}
+
+    logger.info("Work planner parsed %d task proposals from %d char response", len(task_proposals), len(clean_text))
 
     # Submit tasks to the task engine
     plan_id = f"wp-{int(time.time())}"

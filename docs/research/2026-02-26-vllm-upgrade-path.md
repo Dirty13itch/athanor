@@ -120,10 +120,52 @@ This unblocks:
 **Does NOT unblock:**
 - vLLM sleep mode REST endpoints (V1 engine doesn't expose them)
 
-## Remaining
+## Qwen3.5 Upgrade → NODE 2 COMPLETE
 
-- **Qwen3.5-27B-FP8:** Downloaded to `/mnt/vault/models/Qwen3.5-27B-FP8/` (29 GB, 11 shards). **Cannot load on vLLM v0.16.0** — `qwen3_5` model type was added in [PR #34110](https://github.com/vllm-project/vllm/pull/34110), merged to main **Feb 9, 2026** — one day after v0.16.0 branch cut (Feb 8). Available in nightly builds but not any stable release. Also requires transformers 5.1.0+ ([PR #43830](https://github.com/huggingface/transformers/pull/43830)). All Qwen3.5 models are multimodal VLMs (`Qwen3_5ForConditionalGeneration`), not text-only. The `--language-model-only` flag skips vision encoder. **Option:** Install vLLM nightly (`pip install vllm --extra-index-url https://wheels.vllm.ai/nightly/cu130`) + transformers 5.1.0+ in Dockerfile. Risk: nightly instability. **Safer option:** Wait for vLLM v0.17.0.
-- **GPU orchestrator sleep/wake:** Needs alternative to REST endpoints (perhaps GPU memory monitoring or vLLM's internal auto-sleep).
+**Date:** 2026-02-26 (Session 36-37)
+
+### vLLM v0.17.0 Status (researched)
+
+v0.17.0 does NOT exist yet as a stable release. Expected ~March 10, 2026 based on biweekly cadence. 537 commits on main since v0.16.0 branch cut. The `qwen3_5` model type was added in PR #34110 (merged Feb 9, 2026, one day after v0.16.0 branch cut).
+
+### Final Upgrade Path: Custom NGC + Nightly vLLM
+
+The upstream `vllm/vllm-openai:qwen3_5-cu130` image was tried but abandoned in favor of the existing custom build (NGC 26.01-py3 base + nightly vLLM pip install). The custom build already had both Qwen3.5 patches applied:
+1. **RMSNormGated activation** (PR #35423) — present in nightly
+2. **transformers rope_utils set()** — present in nightly
+
+### FP8 vs AWQ Decision
+
+- **FP8 (28.43 GiB):** Model loads on 5090 (32 GiB), but **OOMs during multimodal encoder profiling.** Even with `--language-model-only`, FP8 left only ~3 GiB headroom which was insufficient for KV cache initialization. Abandoned for single-GPU.
+- **AWQ (~21 GiB):** Fits comfortably on 5090. 6.78 GiB available for KV cache (27,440 tokens). 31.7/32.6 GiB total usage at 0.90 util.
+- **Architecture decision:** Node 2 (1x 5090) → AWQ. Node 1 (4x 5070 Ti TP=4) → FP8 (7 GiB/GPU).
+
+### Key Discovery: `--language-model-only` Flag
+
+This flag was incorrectly marked as "DOES NOT EXIST" in earlier sessions (tested against v0.16.0 stable). It exists in the nightly (0.16.1rc1.dev32) as part of `MultiModalConfig`:
+- **Without it:** vLLM profiles the VLM encoder with 229K dummy tokens → exceeds 131K max seq len → crash
+- **With it:** Sets all multimodal modality limits to 0, runs in text-only mode. Vision encoder weights still loaded but never profiled or used.
+
+### Key Discovery: `qwen3_xml` Tool Parser
+
+Qwen3.5 uses XML-style tool calls (`<tool_call><function=name><parameter=arg>value</parameter></tool_call>`), NOT hermes JSON format. The `hermes` parser silently fails — model generates correct output but parser doesn't match it.
+- **Correct:** `--tool-call-parser qwen3_xml`
+- **Wrong:** `--tool-call-parser hermes` (works for Qwen3, not Qwen3.5)
+
+### Deployment Status
+
+| Node | Model | Quant | VRAM | Status |
+|------|-------|-------|------|--------|
+| Node 2 (5090) | Qwen3.5-27B-AWQ | AWQ INT4 | 31.7/32.6 GiB | **LIVE** |
+| Node 1 (4x 5070 Ti) | Qwen3-32B-AWQ | AWQ INT4 | ~19 GiB TP=4 | Stable, upgrade pending |
+
+### Remaining Steps
+
+- **Node 1 upgrade to Qwen3.5-27B-FP8** — Config ready in Ansible. Needs image build + deploy. Deferred until Node 2 proves stable.
+- **GPU orchestrator sleep/wake:** V1 engine doesn't expose REST endpoints. Needs alternative mechanism.
+- **Agent framework compatibility:** Verify all 8 agents work correctly with Qwen3.5 output format (thinking mode, XML tool calls) via Node 2.
+- **LiteLLM `reasoning` alias:** Update after Node 1 upgrade.
+- **Docker image cleanup:** 6 intermediate images removed from Node 2. Only `athanor/vllm:qwen35` (35 GB) + NGC base remain.
 
 ## Sources
 

@@ -49,11 +49,9 @@
       "Bash(rsync:*)",
       "Bash(gh:*)",
       "Bash(chmod:*)",
-      "mcp__sequential-thinking__*",
-      "mcp__context7__*",
-      "mcp__filesystem__*",
       "mcp__grafana__*",
-      "mcp__athanor-agents__*"
+      "mcp__athanor-agents__*",
+      "mcp__docker__*"
     ],
     "deny": []
   },
@@ -71,6 +69,15 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/pre-tool-use-protect-paths.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-tool-use-bash-firewall.sh"
           }
         ]
       }

@@ -2,8 +2,8 @@
 # Managed by Ansible — do not edit manually
 #
 # Model aliases:
-#   "reasoning"  → Qwen3-32B-AWQ on Node 1 (TP=4, 88 GB VRAM)
-#   "fast"       → Qwen3-14B on Node 2 (RTX 5090, 32 GB VRAM)
+#   "reasoning"  → Qwen3-32B-AWQ on Node 1 (TP=4, 88 GB VRAM) — upgrading to Qwen3.5-27B-FP8
+#   "fast"       → Qwen3.5-27B-AWQ on Node 2 (RTX 5090, 32 GB VRAM)
 #   "embedding"  → Qwen3-Embedding-0.6B on Node 1 GPU 4
 
 model_list:
@@ -14,7 +14,7 @@ model_list:
       api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
       api_key: "not-needed"
 
-  # Fast model — 14B, single GPU, lower latency
+  # Fast model — 27B AWQ, single GPU, lower latency
   - model_name: "fast"
     litellm_params:
       model: "hosted_vllm/{{ vllm_node2_model }}"
@@ -23,27 +23,6 @@ model_list:
 
   # Embedding model — 1024-dim vectors
   - model_name: "embedding"
-    litellm_params:
-      model: "hosted_vllm/{{ vllm_embedding_model }}"
-      api_base: "http://{{ vllm_embedding_host }}:{{ vllm_embedding_port }}/v1"
-      api_key: "not-needed"
-    model_info:
-      mode: embedding
-
-  # Expose the actual model names too (for backwards compat)
-  - model_name: "{{ vllm_node1_model }}"
-    litellm_params:
-      model: "hosted_vllm/{{ vllm_node1_model }}"
-      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
-      api_key: "not-needed"
-
-  - model_name: "{{ vllm_node2_model }}"
-    litellm_params:
-      model: "hosted_vllm/{{ vllm_node2_model }}"
-      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
-      api_key: "not-needed"
-
-  - model_name: "{{ vllm_embedding_model }}"
     litellm_params:
       model: "hosted_vllm/{{ vllm_embedding_model }}"
       api_base: "http://{{ vllm_embedding_host }}:{{ vllm_embedding_port }}/v1"
@@ -72,3 +51,5 @@ litellm_settings:
 
 general_settings:
   master_key: "os.environ/LITELLM_MASTER_KEY"
+  background_health_checks: true
+  health_check_interval: 300

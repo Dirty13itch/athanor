@@ -19,3 +19,10 @@ paths:
 - Embedding model: Qwen3-Embedding-0.6B at `/models/Qwen3-Embedding-0.6B` on port 8001
 - Ansible `docker_compose_v2` needs `recreate: always` in custom build mode — otherwise stale containers persist
 - All `vllm_extra_args` must be quoted as `"{{ arg }}"` in compose template (YAML renders numbers as int)
+
+## Qwen3.5 Specifics
+- **`--language-model-only` REQUIRED** — Without it, VLM encoder profiling allocates 229K tokens → exceeds 131K max → crash. Only exists in nightly (not v0.16.0 stable).
+- **`--tool-call-parser qwen3_xml`** — Qwen3.5 uses XML tool format, not hermes JSON. `hermes` silently fails.
+- FP8 (28 GiB) OOMs on single 5090 (32 GiB) — insufficient headroom for KV cache after model load. Use AWQ (~21 GiB) for single-GPU, FP8 for TP=4.
+- `awq_marlin` auto-detected as faster; `--quantization awq` forces standard AWQ.
+- `fix-vllm-qwen35.py` in `ansible/roles/vllm/files/` — idempotent patches (both present in nightly, needed for future stable releases).

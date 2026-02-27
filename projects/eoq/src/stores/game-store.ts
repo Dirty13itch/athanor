@@ -6,6 +6,8 @@ import type {
   WorldState,
 } from "@/types/game";
 
+const SAVE_KEY = "eoq-save";
+
 interface GameState {
   /** Current game session (null if no game loaded) */
   session: GameSession | null;
@@ -19,8 +21,8 @@ interface GameState {
   backgroundUrl: string | null;
   /** Current character portrait URL */
   portraitUrl: string | null;
-  /** Mock mode — use pre-recorded responses instead of LLM */
-  mockMode: boolean;
+  /** Scenes the player has already visited (for intro tracking) */
+  visitedScenes: Set<string>;
 
   // Actions
   setSession: (session: GameSession) => void;
@@ -33,17 +35,24 @@ interface GameState {
   setPortraitUrl: (url: string | null) => void;
   updateCharacter: (id: string, updates: Partial<Character>) => void;
   updateWorldState: (updates: Partial<WorldState>) => void;
-  setMockMode: (mock: boolean) => void;
+  setPlotFlag: (flag: string, value: boolean) => void;
+  setPlotFlags: (flags: Record<string, boolean>) => void;
+  attachChoicesToLastTurn: (choices: import("@/types/game").PlayerChoice[]) => void;
+  addInventoryItem: (item: string) => void;
+  markSceneVisited: (sceneId: string) => void;
+  saveGame: () => void;
+  loadGame: () => boolean;
+  clearSave: () => void;
 }
 
-export const useGameStore = create<GameState>((set) => ({
+export const useGameStore = create<GameState>((set, get) => ({
   session: null,
   isGenerating: false,
   isGeneratingImage: false,
   streamingText: "",
   backgroundUrl: null,
   portraitUrl: null,
-  mockMode: process.env.NODE_ENV === "development",
+  visitedScenes: new Set(),
 
   setSession: (session) => set({ session }),
 
@@ -96,5 +105,109 @@ export const useGameStore = create<GameState>((set) => ({
       };
     }),
 
-  setMockMode: (mock) => set({ mockMode: mock }),
+  setPlotFlag: (flag, value) =>
+    set((state) => {
+      if (!state.session) return state;
+      return {
+        session: {
+          ...state.session,
+          worldState: {
+            ...state.session.worldState,
+            plotFlags: {
+              ...state.session.worldState.plotFlags,
+              [flag]: value,
+            },
+          },
+        },
+      };
+    }),
+
+  setPlotFlags: (flags) =>
+    set((state) => {
+      if (!state.session) return state;
+      return {
+        session: {
+          ...state.session,
+          worldState: {
+            ...state.session.worldState,
+            plotFlags: {
+              ...state.session.worldState.plotFlags,
+              ...flags,
+            },
+          },
+        },
+      };
+    }),
+
+  addInventoryItem: (item) =>
+    set((state) => {
+      if (!state.session) return state;
+      if (state.session.worldState.inventory.includes(item)) return state;
+      return {
+        session: {
+          ...state.session,
+          worldState: {
+            ...state.session.worldState,
+            inventory: [...state.session.worldState.inventory, item],
+          },
+        },
+      };
+    }),
+
+  attachChoicesToLastTurn: (choices) =>
+    set((state) => {
+      if (!state.session) return state;
+      const history = [...state.session.dialogueHistory];
+      if (history.length === 0) return state;
+      history[history.length - 1] = { ...history[history.length - 1], choices };
+      return {
+        session: { ...state.session, dialogueHistory: history },
+      };
+    }),
+
+  markSceneVisited: (sceneId) =>
+    set((state) => {
+      const visited = new Set(state.visitedScenes);
+      visited.add(sceneId);
+      return { visitedScenes: visited };
+    }),
+
+  saveGame: () => {
+    const { session, visitedScenes } = get();
+    if (!session) return;
+    try {
+      const data = {
+        session,
+        visitedScenes: Array.from(visitedScenes),
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    } catch {
+      // localStorage may be full or unavailable
+    }
+  },
+
+  loadGame: () => {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data.session) return false;
+      set({
+        session: data.session,
+        visitedScenes: new Set(data.visitedScenes ?? []),
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  clearSave: () => {
+    try {
+      localStorage.removeItem(SAVE_KEY);
+    } catch {
+      // ignore
+    }
+    set({ session: null, visitedScenes: new Set() });
+  },
 }));

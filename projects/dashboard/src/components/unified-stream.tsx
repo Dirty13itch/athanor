@@ -56,7 +56,7 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
         // Fetch tasks and activity in parallel
         const [tasksRes, activityRes] = await Promise.all([
           fetch("/api/agents/proxy?path=/v1/tasks&limit=20", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-          fetch("/api/agents/proxy?path=/v1/activity/recent&limit=20", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+          fetch("/api/agents/proxy?path=/v1/activity&limit=20", { signal: AbortSignal.timeout(5000) }).catch(() => null),
         ]);
 
         const merged: StreamEvent[] = [];
@@ -66,12 +66,17 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
           const data = await tasksRes.json();
           const tasks = data.tasks ?? data ?? [];
           for (const t of Array.isArray(tasks) ? tasks : []) {
+            // Handle epoch float timestamps (e.g. 1740000000.123)
+            const rawTs = t.updated_at ?? t.created_at;
+            const timestamp = typeof rawTs === "number"
+              ? new Date(rawTs * 1000).toISOString()
+              : rawTs ?? new Date().toISOString();
             merged.push({
               type: "task",
               source: t.agent ?? "system",
-              title: t.description ?? t.title ?? "Task",
+              title: t.description ?? t.title ?? t.prompt?.substring(0, 60) ?? "Task",
               detail: t.result?.substring(0, 80),
-              timestamp: t.updated_at ?? t.created_at ?? new Date().toISOString(),
+              timestamp,
               status: t.status,
               link: `/tasks`,
             });
@@ -81,13 +86,13 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
         // Parse activity
         if (activityRes?.ok) {
           const data = await activityRes.json();
-          const items = data.items ?? data ?? [];
+          const items = data.activity ?? data.items ?? data ?? [];
           for (const a of Array.isArray(items) ? items : []) {
             merged.push({
               type: "agent",
               source: a.agent ?? a.source ?? "system",
-              title: a.summary ?? a.action ?? "Activity",
-              detail: a.detail,
+              title: a.input_summary ?? a.summary ?? a.action ?? "Activity",
+              detail: a.output_summary ?? a.detail,
               timestamp: a.timestamp ?? new Date().toISOString(),
             });
           }

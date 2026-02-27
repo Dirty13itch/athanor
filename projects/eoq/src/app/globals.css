@@ -5,6 +5,7 @@
   --color-shadow: oklch(0.15 0.01 260);
   --color-blood: oklch(0.45 0.18 25);
   --color-ivory: oklch(0.93 0.01 90);
+  --color-ash: oklch(0.35 0.02 260);
 }
 
 body {
@@ -14,4 +15,130 @@ body {
   overflow: hidden;
   cursor: default;
   user-select: none;
+}
+
+/* Selection styling */
+::selection {
+  background: oklch(0.45 0.12 85 / 0.4);
+  color: var(--color-ivory);
+}
+
+/* Custom scrollbar for any overflow areas */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.30 0.02 260);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.40 0.05 85);
+}
+
+/* Dialogue text rendering */
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
+}
+
+/* Ambient vignette overlay for all scenes */
+.vignette::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 50%, oklch(0.05 0.01 260 / 0.7) 100%);
+}
+
+/* Pulsing glow for the title */
+@keyframes title-glow {
+  0%, 100% { text-shadow: 0 0 20px oklch(0.80 0.12 85 / 0.3), 0 2px 4px oklch(0 0 0 / 0.5); }
+  50% { text-shadow: 0 0 40px oklch(0.80 0.12 85 / 0.5), 0 2px 8px oklch(0 0 0 / 0.7); }
+}
+
+.title-glow {
+  animation: title-glow 4s ease-in-out infinite;
+}
+
+/* Subtle breathing effect for ambient elements */
+@keyframes breathe {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.25; }
+}
+
+.breathe {
+  animation: breathe 6s ease-in-out infinite;
+}
+
+/* Dialogue box subtle border glow when character speaks */
+@keyframes border-pulse {
+  0%, 100% { border-color: oklch(0.80 0.12 85 / 0.1); }
+  50% { border-color: oklch(0.80 0.12 85 / 0.25); }
+}
+
+.dialogue-active {
+  animation: border-pulse 3s ease-in-out infinite;
+}
+
+/* Smooth fade-in for player input */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scene name header glow */
+.scene-name-glow {
+  text-shadow: 0 0 10px oklch(0.80 0.12 85 / 0.2);
+}
+
+/* Resist bar pulse animation for near-threshold */
+@keyframes threshold-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(0.80 0.12 85 / 0); }
+  50% { box-shadow: 0 0 6px 2px oklch(0.80 0.12 85 / 0.15); }
+}
+
+/* Breaking stage transition flash */
+@keyframes stage-flash {
+  0% { color: oklch(0.90 0.15 85); }
+  100% { color: inherit; }
+}
+
+.stage-changed {
+  animation: stage-flash 1.5s ease-out;
+}
+
+/* Scene particle animations */
+@keyframes particle-rise {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-110vh) translateX(var(--drift, 0px)); opacity: 0; }
+}
+
+@keyframes particle-fall {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.3; }
+  100% { transform: translateY(110vh) translateX(var(--drift, 0px)); opacity: 0; }
+}
+
+@keyframes particle-float {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  25% { transform: translateY(-20px) translateX(calc(var(--drift, 0px) * 0.5)); opacity: 0.7; }
+  50% { transform: translateY(-10px) translateX(var(--drift, 0px)); opacity: 0.5; }
+  75% { transform: translateY(-30px) translateX(calc(var(--drift, 0px) * 0.3)); opacity: 0.6; }
+}
+
+/* Loading shimmer for generating states */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, oklch(0.80 0.12 85 / 0.05), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
 }

@@ -1,32 +1,34 @@
 ---
 # Node 2 (interface / Workshop) — host-specific vars
 
-vllm_model: /models/Qwen3-14B
-vllm_quantization: ""
+vllm_model: /models/Qwen3.5-27B-AWQ
+vllm_quantization: awq  # Explicit AWQ required on Blackwell (sm_120)
 vllm_tensor_parallel: 1
 vllm_port: 8000
-vllm_gpu_memory_util: "0.95"
-vllm_max_model_len: 8192
+vllm_gpu_memory_util: "0.90"
+vllm_max_model_len: 32768
 vllm_max_num_seqs: 32
 vllm_gpu_devices: "0"
 vllm_container_name: vllm-node2
 vllm_deploy_dir: /opt/athanor/vllm-node2
-vllm_dtype: float16
+vllm_dtype: auto
 vllm_extra_env:
   - "NVIDIA_VISIBLE_DEVICES=0"
   - "CUDA_VISIBLE_DEVICES=0"
 vllm_extra_args:
+  - --language-model-only
   - --enable-auto-tool-choice
   - --tool-call-parser
-  - hermes
-  - --enforce-eager
+  - qwen3_xml
   # NFS optimization: eager loading converts random page faults to sequential reads
   - --safetensors-load-strategy
   - eager
 
-# Custom vLLM image for 5090 Blackwell support + newer features
+# Custom vLLM image: NGC CUDA 13.1 base + nightly vLLM (Qwen3.5 support)
+# Upstream cu130 image fails with CUDA 13.0 vs Blackwell driver mismatch — NGC 13.1 base required
 vllm_custom_build: true
 vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
+vllm_pip_version: ""  # Empty = nightly (latest, unpinned) for Qwen3.5 qwen3_5 model type
 
 # Network interfaces — 10GbE primary + DHCP secondary
 network_interfaces:

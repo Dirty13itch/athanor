@@ -1,22 +1,35 @@
 # Custom vLLM image: NGC CUDA 13.1 base + upstream vLLM
 # NGC containers ship stale vLLM (v0.13.0 in 26.01-py3).
-# We need v0.15.0+ for Qwen3.5 DeltaNet, NVFP4, sleep mode, SageAttention2.
 # NGC base is required for CUDA 13.1 (Blackwell sm_120 support).
 # See: docs/research/2026-02-26-vllm-upgrade-path.md
 
 FROM {{ vllm_base_image }}
 
-# Remove NGC's flash-attn (compiled against old PyTorch, ABI mismatch after upgrade)
-# vLLM v0.16.0 ships its own attention kernels via FlashInfer
-RUN pip uninstall -y flash-attn flash_attn 2>/dev/null; \
+# Remove NGC's flash-attn (ABI mismatch) and stale vLLM (pip won't upgrade NGC's custom build)
+RUN pip uninstall -y flash-attn flash_attn vllm 2>/dev/null; \
     rm -f /usr/local/lib/python3.12/dist-packages/flash_attn_2_cuda*.so 2>/dev/null; \
     true
 
-# Upgrade vLLM to target version (pinned for reproducibility)
+# Install vLLM + transformers (Qwen3.5 requires transformers >= 5.1.0)
 # cu130 wheels match NGC's CUDA 13.1 base
-RUN pip install --no-cache-dir vllm=={{ vllm_pip_version }} \
+{% if vllm_pip_version %}
+RUN pip install --no-cache-dir "vllm=={{ vllm_pip_version }}" "transformers>=5.1.0" \
     --extra-index-url {{ vllm_pip_extra_index }} \
     && pip cache purge
+{% else %}
+# Nightly: install vLLM from cu130 index, then transformers from PyPI
+# Two-step install prevents pip resolver from falling back to old PyPI vllm
+RUN pip install --no-cache-dir --pre vllm \
+    --index-url {{ vllm_pip_extra_index }} \
+    --extra-index-url https://pypi.org/simple \
+    && pip install --no-cache-dir "transformers>=5.1.0" \
+    && pip cache purge
+{% endif %}
+
+# Fix PR #35423: RMSNormGated missing activation attribute (needed for Qwen3.5 DeltaNet)
+# Not yet merged upstream as of 2026-02-26. Remove this patch once vLLM nightly includes it.
+COPY fix-vllm-qwen35.py /tmp/fix-vllm-qwen35.py
+RUN python3 /tmp/fix-vllm-qwen35.py && rm /tmp/fix-vllm-qwen35.py
 
 # Verify upgraded version
 RUN python3 -c "import vllm; print(f'vLLM version: {vllm.__version__}')"

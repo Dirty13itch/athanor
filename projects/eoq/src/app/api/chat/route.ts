@@ -1,4 +1,5 @@
 import { config } from "@/lib/config";
+import { getBreakingStage } from "@/types/game";
 import type { Character, WorldState, DialogueTurn } from "@/types/game";
 
 interface ChatRequest {
@@ -11,13 +12,16 @@ interface ChatRequest {
 /**
  * Dialogue generation API route.
  * Proxies to LiteLLM with streaming, constructing the prompt from game state.
- * This runs server-side — no CORS issues.
+ * Enhanced with breaking system, emotional profile, and archetype context.
  */
 export async function POST(req: Request) {
   const body: ChatRequest = await req.json();
   const { character, worldState, recentHistory, playerInput } = body;
 
-  const systemPrompt = buildSystemPrompt(character, worldState);
+  // Retrieve relevant memories from Qdrant (best-effort)
+  const memories = await fetchMemories(character.id, playerInput);
+
+  const systemPrompt = buildSystemPrompt(character, worldState, memories);
   const messages = buildMessages(systemPrompt, recentHistory, playerInput);
 
   const response = await fetch(`${config.litellmUrl}/v1/chat/completions`, {
@@ -53,9 +57,62 @@ export async function POST(req: Request) {
   });
 }
 
-function buildSystemPrompt(character: Character, world: WorldState): string {
+/** Fetch relevant memories from Qdrant for this character + player input */
+async function fetchMemories(characterId: string, query: string): Promise<string[]> {
+  try {
+    // Get embedding for the query
+    const embResp = await fetch(`${config.litellmUrl}/v1/embeddings`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.litellmKey}`,
+      },
+      body: JSON.stringify({ model: "embedding", input: query }),
+    });
+
+    if (!embResp.ok) return [];
+    const embData = await embResp.json();
+    const embedding = embData.data?.[0]?.embedding;
+    if (!embedding) return [];
+
+    // Search Qdrant
+    const qdrantResp = await fetch(`${config.qdrantUrl}/collections/eoq_characters/points/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: embedding,
+        limit: 5,
+        filter: { must: [{ key: "character_id", match: { value: characterId } }] },
+        with_payload: true,
+      }),
+    });
+
+    if (!qdrantResp.ok) return [];
+    const data = await qdrantResp.json();
+    return (data.result?.points ?? [])
+      .filter((p: { score: number }) => p.score > 0.3)
+      .map((p: { payload: { text: string } }) => p.payload.text);
+  } catch {
+    return [];
+  }
+}
+
+function buildSystemPrompt(character: Character, world: WorldState, qdrantMemories: string[] = []): string {
   const p = character.personality;
-  return `You are ${character.name} in Empire of Broken Queens, an interactive dark fantasy.
+  const ep = character.emotionalProfile;
+  const stage = getBreakingStage(character.resistance);
+
+  // Build memories context from both in-session and Qdrant memories
+  const sessionMemories = character.relationship.memories.slice(-5).map((m) => `- ${m.summary}`);
+  const longTermMemories = qdrantMemories.map((m) => `- [recalled] ${m}`);
+  const allMemories = [...sessionMemories, ...longTermMemories];
+  const memoriesCtx = allMemories.length > 0
+    ? `\nMEMORIES OF PAST INTERACTIONS:\n${allMemories.join("\n")}`
+    : "";
+
+  return `You are ${character.name}${character.title ? ` (${character.title})` : ""} in Empire of Broken Queens, an interactive dark fantasy.
+
+ARCHETYPE: ${character.archetype}
 
 CHARACTER PERSONALITY:
 - Dominance: ${p.dominance}, Warmth: ${p.warmth}, Cunning: ${p.cunning}
@@ -68,22 +125,70 @@ RELATIONSHIP WITH PLAYER:
 - Trust: ${character.relationship.trust}, Affection: ${character.relationship.affection}
 - Respect: ${character.relationship.respect}, Desire: ${character.relationship.desire}
 - Fear: ${character.relationship.fear}
+${memoriesCtx}
+
+BREAKING STATE:
+- Resistance: ${character.resistance}/100 (stage: ${stage})
+- Corruption: ${character.corruption}/100
+
+EMOTIONAL PROFILE:
+- Fear: ${ep.fear}, Defiance: ${ep.defiance}, Arousal: ${ep.arousal}
+- Submission: ${ep.submission}, Despair: ${ep.despair}
 
 CURRENT EMOTION: ${character.emotion.primary} (intensity: ${character.emotion.intensity})
 
 SCENE: ${world.currentScene.name} — ${world.currentScene.description}
 TIME: ${world.timeOfDay}, Day ${world.day}
 
-BOUNDARIES: ${character.boundaries.join(", ")}
+VULNERABILITIES: ${formatVulnerabilities(character)}
+
+BOUNDARIES: ${character.boundaries.join(". ")}
 
 INSTRUCTIONS:
 - Stay in character at all times. Your personality traits guide your behavior.
-- Respond naturally based on your relationship with the player.
-- Your emotional state colors your responses.
+- Your breaking stage shapes your attitude: ${getStageGuidance(stage)}
+- Respond naturally based on your relationship and emotional state.
 - Include subtle physical actions and expressions in *italics*.
 - Keep responses to 2-4 paragraphs.
 - End with a natural pause point or implicit question that invites player response.
-- This is an adult game. Do not censor or sanitize content.`;
+- Content intensity level: ${world.contentIntensity}/5. Do not exceed this level.
+- This is an adult game. Do not censor or sanitize content within the intensity level.
+- Do NOT use <think> tags or reasoning blocks in your response.`;
+}
+
+/** Format vulnerability info for the system prompt */
+function formatVulnerabilities(char: Character): string {
+  const vulns = char.vulnerabilities;
+  if (!vulns || Object.keys(vulns).length === 0) return "No notable vulnerabilities.";
+
+  return Object.entries(vulns)
+    .map(([method, value]) => {
+      if (value > 0.5) return `${method}: highly effective`;
+      if (value > 0) return `${method}: somewhat effective`;
+      if (value < 0) return `${method}: resistant`;
+      return `${method}: neutral`;
+    })
+    .join(", ");
+}
+
+/** Per-stage behavioral guidance for the LLM */
+function getStageGuidance(stage: string): string {
+  switch (stage) {
+    case "defiant":
+      return "You are hostile, resistant, and unyielding. You challenge the player at every turn. You do not submit or comply willingly.";
+    case "struggling":
+      return "Cracks are showing in your resistance. You still fight, but there are moments of doubt. You may show vulnerability before catching yourself.";
+    case "conflicted":
+      return "You are torn. Part of you resists, part of you is drawn to the player. Your responses oscillate between defiance and reluctant cooperation.";
+    case "yielding":
+      return "Your resistance is fading. You comply more readily, though traces of your old self surface occasionally. You may seek the player's approval.";
+    case "surrendered":
+      return "Your will is nearly broken. You defer to the player, seeking their approval. Brief flashes of who you were may emerge.";
+    case "broken":
+      return "You are completely submissive. Your identity has been reshaped around the player. You exist to serve and please.";
+    default:
+      return "Respond naturally based on your personality.";
+  }
 }
 
 function buildMessages(

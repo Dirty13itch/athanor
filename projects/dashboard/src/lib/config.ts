@@ -31,7 +31,7 @@ export const config = {
       url: "http://192.168.1.244:8000",
     },
     {
-      name: "Node 2 — Qwen3-14B",
+      name: "Node 2 — Qwen3.5-27B-AWQ",
       url: "http://192.168.1.225:8000",
     },
     {
@@ -82,7 +82,7 @@ export const config = {
       4: "Embedding + Whisper + Speaches",
     },
     "192.168.1.225": {
-      0: "vLLM (Qwen3-14B, RTX 5090)",
+      0: "vLLM (Qwen3.5-27B-AWQ, RTX 5090)",
       1: "ComfyUI (Flux, RTX 5060 Ti)",
     },
   } as Record<string, Record<number, string>>,

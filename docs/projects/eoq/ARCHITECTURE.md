@@ -10,7 +10,84 @@ The hardest problem isn't generation — it's coherence over time. An LLM genera
 
 **The prompt is not the intelligence — the state management is.**
 
-Character consistency comes from what's IN the prompt, not the model's "memory." A well-constructed prompt with rich character state produces coherent dialogue from almost any capable model. A poorly-constructed prompt produces incoherent dialogue from even the best model. The state store is the most important component — not the model.
+Character consistency comes from what's IN the prompt, not the model's "memory." A well-constructed prompt with rich character state produces coherent dialogue from almost any capable model.
+
+---
+
+## Design Lineage
+
+The implementation reconciles three source documents from the Gaming-Ideas repo:
+
+| Document | Key Contributions |
+|----------|------------------|
+| `EMPIRE_OF_BROKEN_QUEENS_GDD.md` | Queen archetypes (12), breaking system (6 stages), Resistance/Corruption stats, breaking methods (Physical/Psychological/Magical/Social), content intensity levels |
+| `DIALOGUE_SYSTEM_DESIGN.md` | Emotional profile (Fear/Defiance/Arousal/Submission/Despair), dialogue node types, branching conditions, memory-triggered dialogue |
+| `STORYTELLING_MASTERY_FRAMEWORK.md` | Power asymmetry, resistance/erosion patterns, transformation narrative, Stockholm progression |
+
+**What was adopted:**
+- Breaking system with Resistance (0-100) and Corruption (0-100) per character
+- Breaking stages derived from resistance (Defiant/Struggling/Conflicted/Yielding/Surrendered/Broken)
+- 5-axis emotional profile (Fear/Defiance/Arousal/Submission/Despair) per character
+- Queen archetypes (12 types) informing personality and vulnerability
+- Vulnerability map per character (which breaking methods are effective)
+- Content intensity levels (1-5)
+- Player choice → breaking method mapping
+
+**What was adapted:**
+- The GDD's 12-queen strategy game → 5-character interactive novel format
+- Kingdom management/army systems → scene graph with conditional exits
+- Per-queen 5-chapter arcs → unified narrative arc with plot flags
+- Queen stats (RES/COR/LOY/ABL/BTY/INT) → simplified to resistance/corruption alongside existing relationship axes
+
+**What was deferred:**
+- Multiple campaigns, resource management, army systems
+- Separate breaking interface/minigame
+- Per-queen dedicated storylines (future acts)
+
+---
+
+## Current Stack
+
+```
+Next.js 16 + React 19 + Tailwind + Zustand
+├── src/types/game.ts          — Type system (Character, Breaking, Emotional)
+├── src/data/characters.ts     — 5 characters with full stat blocks
+├── src/data/scenes.ts         — 8 scenes, conditional scene graph
+├── src/data/narrative.ts      — Arc progression, scripted intros, flag system
+├── src/stores/game-store.ts   — Zustand store with localStorage persistence
+├── src/hooks/use-game-engine.ts — Game engine (scene nav, dialogue, effects)
+├── src/app/page.tsx           — Main game UI
+├── src/app/api/chat/route.ts  — LLM dialogue via LiteLLM SSE
+├── src/app/api/generate/route.ts — ComfyUI image generation
+└── comfyui/*.json             — Flux workflows (portrait 832x1216, scene 1344x768)
+```
+
+---
+
+## Character System
+
+Each character has:
+
+| Layer | Fields | Mutability |
+|-------|--------|-----------|
+| Identity | id, name, title, archetype, speechStyle, visualDescription, boundaries | Fixed |
+| Personality | 8-axis vector (dominance, warmth, cunning, loyalty, cruelty, sensuality, humor, ambition) | Fixed |
+| Relationship | trust, affection, respect, desire, fear, memories | Mutable per choice |
+| Breaking | resistance (0-100), corruption (0-100), vulnerabilities | Mutable per choice |
+| Emotion | simple label + intensity, plus 5-axis emotional profile | Mutable per interaction |
+
+**Breaking stage** is derived (not stored) from resistance level:
+- 80-100: Defiant — hostile, unyielding
+- 60-79: Struggling — cracks showing
+- 40-59: Conflicted — torn
+- 20-39: Yielding — resistance fading
+- 1-19: Surrendered — broken will
+- 0: Broken — total submission
+
+**Vulnerabilities** map breaking methods to effectiveness (-1 to 1):
+- Positive = effective
+- Negative = resistant
+- 0 = neutral
 
 ---
 
@@ -18,29 +95,27 @@ Character consistency comes from what's IN the prompt, not the model's "memory."
 
 ```
 ┌─────────────────────────────────────────┐
-│           Narrative State Store           │
-│  (SQLite initially, PostgreSQL if needed)│
-│                                           │
-│  Characters:                              │
-│    - personality vectors (fixed per char) │
-│    - relationship scores (mutable)        │
-│    - memory log (append-only)             │
-│    - current emotional state (mutable)    │
-│    - character-specific speech patterns   │
-│    - boundaries and preferences           │
-│                                           │
-│  World State:                             │
-│    - scene graph (current location)       │
-│    - time progression                     │
-│    - plot flags (branching state)         │
-│    - inventory / resources                │
-│    - environmental conditions             │
-│                                           │
-│  Session History:                         │
-│    - last N dialogue exchanges            │
-│    - key decisions made                   │
-│    - narrative arc position               │
-│    - player preference signals            │
+│           Zustand + localStorage         │
+│                                          │
+│  Characters:                             │
+│    - personality vectors (fixed)         │
+│    - relationship scores (mutable)       │
+│    - resistance / corruption (mutable)   │
+│    - emotional profile (mutable)         │
+│    - memory log (append-only)            │
+│    - vulnerability map (fixed)           │
+│                                          │
+│  World State:                            │
+│    - scene graph + current location      │
+│    - time of day / day number            │
+│    - plot flags (boolean map)            │
+│    - inventory                           │
+│    - content intensity level             │
+│                                          │
+│  Session:                                │
+│    - dialogue history                    │
+│    - narrative arc position              │
+│    - visited scenes set                  │
 └─────────────────────────────────────────┘
 ```
 
@@ -49,77 +124,47 @@ Character consistency comes from what's IN the prompt, not the model's "memory."
 ## Dialogue Generation Pipeline
 
 ```
-Player input
-  → Game engine parses intent
-  → Load character + world state from state store
-  → Construct prompt:
-      - Character personality vector
-      - Relationship context (this character ↔ player)
-      - Scene description and emotional tone
-      - Recent dialogue history (last N exchanges)
-      - Narrative constraints (plot flags, arc position)
-      - Player preference signals
-  → Generate via local abliterated model (vLLM on Node 1 or Node 2)
-  → Validate output:
-      - Character consistency check (does this sound like them?)
-      - Narrative coherence check (does this contradict established facts?)
-      - Content bounds check (custom, not cloud safety filters)
-      - If validation fails → regenerate with adjusted constraints
-  → Update state store:
-      - Append to character memory log
-      - Update relationship scores based on interaction
-      - Update emotional state
-      - Advance plot flags if applicable
-  → Return dialogue + scene direction to game client
+Player input / click to continue
+  → Check scripted queue (authored story beats play first)
+  → If no scripted content: call LLM via /api/chat
+      → Build system prompt from full character state:
+          - Personality, archetype, speech style
+          - Relationship with player
+          - Breaking stage + stage-specific behavioral guidance
+          - Emotional profile (Fear/Defiance/Arousal/Submission/Despair)
+          - Scene context, memories
+          - Content intensity ceiling
+      → Stream SSE via LiteLLM → vLLM (Qwen3-32B-AWQ)
+      → Strip <think> blocks from reasoning models
+  → Display with character-by-character streaming
+  → Update state store after dialogue completes
 ```
 
-### Model Routing
+---
 
-Cloud models handle most development work — architecture, code, UI, state management, database schemas. The line is specific operations that cloud providers refuse: explicitly sexual dialogue generation, uncensored image/video prompts, content that triggers safety filters.
+## Scene Graph (Act 1)
 
-Even within EoBQ, different pipeline steps route to different models:
-- Steps 1, 2, 4, 5 (parsing, state loading, validation, state update) — can use cloud models
-- Step 3 (dialogue generation) — **MUST be local abliterated model**
+```
+[courtyard] ←→ [throne-room] → [throne-close]
+    ↓
+[tavern] → [undercroft] → [crimson-gate] → [oracle-spire] → [vision-chamber]
+           (mira_trusts)  (kael_reveals)   (vaelis_grants)   (seraphine_invites)
+```
+
+Conditional exits require plot flags. Flags are earned through:
+1. Scripted choices (e.g., `met_isolde`)
+2. Relationship thresholds (e.g., Mira trust >= 40 → `undercroft_unlocked`)
+3. Arc transitions (e.g., met 3+ characters → `gathering_allies`)
 
 ---
 
 ## Asset Generation Pipeline
 
-- Scene images generated via ComfyUI (Flux/SDXL) using scene descriptions from narrative state
-- Character expressions generated dynamically or from LoRA-trained models for visual consistency
-- Video generation (Wan 2.2) for cinematic moments — cutscenes, transitions, key narrative beats
-- All generation runs on Node 2 GPUs:
-  - RTX 5090 (32GB) — primary for high-res generation and LLM time-sharing
-  - RTX 5060 Ti (16GB) — currently running Flux dev FP8
-- The model is swappable — upgrade architectures without touching the narrative system
-
----
-
-## Development Environment Requirements
-
-The dev environment must also be a testing environment for runtime LLM calls. This is unique to EoBQ — most software projects don't call an LLM at runtime.
-
-### Mock Mode
-
-Simulate LLM responses during UI iteration so you don't burn GPU cycles while tweaking layout and flow. Pre-recorded responses or simple template-based generation.
-
-### Quality Evaluation
-
-Acceptance criteria for generated text — does this dialogue meet minimum coherence, character consistency, and narrative advancement thresholds? Automated scoring via a second model or heuristic checks.
-
-### Regression Testing
-
-After model changes (new model version, different quantization, engine upgrade), run the same prompts through and compare output quality. Catch degradation before it reaches players.
-
-### Inference Stack as Test Dependency
-
-The vLLM stack on Athanor becomes part of the test environment. CI/CD for EoBQ needs to know the inference stack is healthy.
-
----
-
-## Existing Assets
-
-ComfyUI workflows exist at `projects/eoq/comfyui/` — image generation workflows for scene rendering.
+- Scene images: ComfyUI + Flux dev FP8 (1344x768 landscape)
+- Character portraits: ComfyUI + Flux dev FP8 (832x1216 portrait)
+- Workflow JSONs in `comfyui/` — prompt and seed injected at runtime
+- Future: Uncensored LoRA for NSFW content, Wan2.x T2V for cinematics
+- All generation on Node 2 GPUs (5090 32GB + 5060 Ti 16GB)
 
 ---
 
@@ -127,9 +172,12 @@ ComfyUI workflows exist at `projects/eoq/comfyui/` — image generation workflow
 
 | Component | Provided By | Notes |
 |-----------|-------------|-------|
-| Abliterated LLM | vLLM on Node 1 or Node 2 | Required for explicit dialogue |
-| Image generation | ComfyUI on Node 2 | Flux/SDXL for scene images |
-| Video generation | ComfyUI on Node 2 | Wan 2.2 for cinematics |
-| State storage | SQLite → PostgreSQL | Narrative state store |
-| Embedding search | Qdrant on Node 1:6333 | Character memory retrieval |
-| Model routing | LiteLLM on VAULT:4000 | Routes to correct backend |
+| Dialogue LLM | vLLM on Node 1 via LiteLLM | Qwen3-32B-AWQ, SSE streaming |
+| Image generation | ComfyUI on Node 2 | Flux dev FP8 |
+| State storage | Zustand + localStorage | Client-side, JSON serialization |
+| Model routing | LiteLLM on VAULT:4000 | `reasoning` alias |
+| Deploy target | Node 2:3002 | Docker, Ansible-managed |
+
+---
+
+Last updated: 2026-02-26

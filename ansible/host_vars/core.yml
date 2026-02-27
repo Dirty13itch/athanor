@@ -10,36 +10,34 @@ nvidia_gpu_power_limits:
   - { index: 3, watts: 250 }   # RTX 5070 Ti (PCI 82:00)
   - { index: 4, watts: 250 }   # RTX 5070 Ti (PCI C1:00, embedding)
 
-vllm_model: /models/Qwen3-32B-AWQ
-vllm_quantization: awq
+vllm_model: /models/Qwen3.5-27B-FP8
+vllm_quantization: ""
 vllm_tensor_parallel: 4
 vllm_port: 8000
-vllm_gpu_memory_util: "0.85"
+vllm_gpu_memory_util: "0.90"
 vllm_max_model_len: 32768
 vllm_max_num_seqs: 64
 vllm_gpu_devices: all
 vllm_extra_args:
+  - --language-model-only
   - --enable-auto-tool-choice
   - --tool-call-parser
-  - hermes
+  - qwen3_xml
   # NFS optimization: eager loading converts random page faults to sequential reads (2-5x faster model load)
   - --safetensors-load-strategy
   - eager
   # Swap space for preemption recovery (16 GiB per GPU, uses system RAM)
   - --swap-space
   - "16"
-  # Sleep mode: REST endpoints /sleep, /wake_up, /is_sleeping (v0.14.0+)
-  # GPU orchestrator uses these for TTL auto-sleep on idle
-  - --enable-sleep-mode
 # Speculative decoding — Qwen3-0.6B as draft model, 2-3x throughput for ~1.2 GB extra VRAM
 # Uncomment to enable (requires vLLM restart):
 # vllm_speculative_config: '{"model": "/models/Qwen3-0.6B", "num_speculative_tokens": 5}'
 
-# Custom vLLM image: NGC CUDA 13.1 base + upstream vLLM nightly
-# Enables Qwen3.5, NVFP4, sleep mode, SageAttention2, EAGLE-3
-# See: docs/research/2026-02-26-vllm-upgrade-path.md
+# Custom vLLM image: NGC CUDA 13.1 base + nightly vLLM (Qwen3.5 support)
+# Upstream cu130 image fails with CUDA 13.0 vs Blackwell driver mismatch — NGC 13.1 base required
 vllm_custom_build: true
 vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
+vllm_pip_version: ""  # Empty = nightly (latest, unpinned) for Qwen3.5 qwen3_5 model type
 
 # Network interfaces — dual 10GbE NICs, MTU 9000
 network_interfaces:

@@ -17,6 +17,15 @@
   register: vllm_dockerfile
   when: vllm_custom_build
 
+- name: Deploy vLLM Qwen3.5 patch script (custom build)
+  ansible.builtin.copy:
+    src: fix-vllm-qwen35.py
+    dest: "{{ vllm_deploy_dir }}/fix-vllm-qwen35.py"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  when: vllm_custom_build
+
 - name: Deploy vLLM docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2

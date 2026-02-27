@@ -9,7 +9,7 @@ paths:
 
 ## Qdrant Collections
 - All collections: 1024-dim vectors, Cosine distance
-- `knowledge` — 2220 points from docs/. Indexed by `scripts/index-knowledge.py`
+- `knowledge` — ~2500+ points from docs/. Indexed by `scripts/index-knowledge.py`
 - `conversations` — Agent conversation history (sparsely populated)
 - `activity` — Agent activity logs (fire-and-forget async)
 - `preferences` — User preferences + profile (17 profile points)
@@ -27,7 +27,7 @@ paths:
 - Metadata: file_path, section, timestamp
 
 ## Context Injection (context.py)
-- 1 embedding call + 3 parallel Qdrant queries + Redis goals
+- 1 embedding call + 4 parallel Qdrant queries + Redis goals
 - Time-decayed preferences: 7-day full / 90-day decay / 25% floor
 - Total latency: ~30-50ms per request
 - Injected as SystemMessage before user query

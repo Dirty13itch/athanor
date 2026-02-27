@@ -26,7 +26,7 @@ vllm_deploy_dir: /opt/athanor/vllm
 # Required for vLLM v0.15.0+ features (Qwen3.5, NVFP4, sleep mode, SageAttention2).
 vllm_custom_build: false
 vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
-# Pin to 0.16.0 for Qwen3.5 qwen3_5 model_type support (v0.15.1 insufficient)
+# Pin to specific version for stability, or leave empty for nightly (Qwen3.5 support)
 # NGC flash-attn is removed in Dockerfile (ABI mismatch) — vLLM uses FlashInfer instead
-vllm_pip_version: "0.16.0"
+vllm_pip_version: "0.16.0"  # Override to "" in host_vars for nightly
 vllm_pip_extra_index: "https://wheels.vllm.ai/nightly/cu130"

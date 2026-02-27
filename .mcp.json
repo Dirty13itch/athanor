@@ -1,31 +1,19 @@
 {
   "mcpServers": {
-    "sequential-thinking": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
-      "env": {}
-    },
-    "context7": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"],
-      "env": {}
-    },
     "grafana": {
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@leval/mcp-grafana"],
       "env": {
         "GRAFANA_URL": "http://192.168.1.203:3000",
-        "GRAFANA_USERNAME": "${GRAFANA_USERNAME}",
+        "GRAFANA_USERNAME": "admin",
         "GRAFANA_PASSWORD": "${GRAFANA_PASSWORD}"
       }
     },
-    "filesystem": {
+    "docker": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/shaun/repos/Athanor"],
+      "command": "python3",
+      "args": ["scripts/mcp-docker.py"],
       "env": {}
     },
     "athanor-agents": {

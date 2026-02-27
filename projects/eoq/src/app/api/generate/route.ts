@@ -1,4 +1,6 @@
 import { config } from "@/lib/config";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
 interface GenerateRequest {
   prompt: string;
@@ -8,14 +10,13 @@ interface GenerateRequest {
 
 /**
  * Image generation API route.
- * Sends a prompt to ComfyUI and returns the generated image URL.
- * This runs server-side — no CORS issues.
+ * Loads real ComfyUI workflow JSONs from the comfyui/ directory,
+ * injects the prompt and seed, then queues generation and polls for the result.
  */
 export async function POST(req: Request) {
   const { prompt, type, seed }: GenerateRequest = await req.json();
 
-  // Load the appropriate ComfyUI workflow template
-  const workflow = type === "portrait" ? portraitWorkflow(prompt, seed) : sceneWorkflow(prompt, seed);
+  const workflow = await buildWorkflow(type, prompt, seed);
 
   // Queue the generation
   const queueResp = await fetch(`${config.comfyuiUrl}/prompt`, {
@@ -31,10 +32,40 @@ export async function POST(req: Request) {
 
   const { prompt_id } = await queueResp.json();
 
-  // Poll for completion (simple approach — WebSocket in future)
+  // Poll for completion
   const imageUrl = await pollForResult(prompt_id);
 
   return Response.json({ imageUrl, promptId: prompt_id });
+}
+
+/**
+ * Load a ComfyUI workflow template and inject prompt + seed.
+ * Templates live in projects/eoq/comfyui/*.json
+ */
+async function buildWorkflow(
+  type: "portrait" | "scene",
+  prompt: string,
+  seed?: number
+): Promise<Record<string, unknown>> {
+  const filename = type === "portrait"
+    ? "flux-character-portrait.json"
+    : "flux-scene.json";
+
+  const workflowPath = join(process.cwd(), "comfyui", filename);
+  const raw = await readFile(workflowPath, "utf-8");
+  const workflow = JSON.parse(raw);
+
+  // Inject prompt into CLIPTextEncode node (node "3")
+  if (workflow["3"]?.inputs) {
+    workflow["3"].inputs.text = prompt;
+  }
+
+  // Inject seed into KSampler node (node "7")
+  if (workflow["7"]?.inputs) {
+    workflow["7"].inputs.seed = seed ?? Math.floor(Math.random() * 2147483647);
+  }
+
+  return workflow;
 }
 
 async function pollForResult(promptId: string, maxWait = 120000): Promise<string | null> {
@@ -61,35 +92,4 @@ async function pollForResult(promptId: string, maxWait = 120000): Promise<string
   }
 
   return null;
-}
-
-/** Minimal portrait workflow — placeholder until we load the full ComfyUI workflow JSONs */
-function portraitWorkflow(prompt: string, seed?: number) {
-  // TODO: Load from projects/eoq/comfyui/flux-character-portrait.json
-  // and inject the prompt + seed. For now, return a minimal structure.
-  return {
-    "3": {
-      class_type: "CLIPTextEncode",
-      inputs: {
-        text: `${prompt}, cinematic, photorealistic, 8k, dramatic lighting, shallow depth of field`,
-        clip: ["4", 0],
-      },
-    },
-    // ... rest of workflow nodes would go here
-    _placeholder: true,
-  };
-}
-
-function sceneWorkflow(prompt: string, seed?: number) {
-  // TODO: Load from projects/eoq/comfyui/flux-scene.json
-  return {
-    "3": {
-      class_type: "CLIPTextEncode",
-      inputs: {
-        text: `${prompt}, cinematic, wide shot, 8k, film color grading, deep focus`,
-        clip: ["4", 0],
-      },
-    },
-    _placeholder: true,
-  };
 }
