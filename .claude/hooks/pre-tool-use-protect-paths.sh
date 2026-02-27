@@ -17,6 +17,10 @@ PROTECTED_PATTERNS=(
   "/.ssh/authorized_keys"   # Managed by setup scripts
   "/proc/mdcmd"             # Unraid array commands
   "disk.cfg"                # Unraid disk/parity config
+  ".env"                    # Environment secrets
+  "vault-password"          # Ansible vault password
+  "credentials.json"        # Service credentials
+  ".secret"                 # Generic secrets
 )
 
 for PATTERN in "${PROTECTED_PATTERNS[@]}"; do

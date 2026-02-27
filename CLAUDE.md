@@ -40,6 +40,9 @@ You understand Shaun through the Twelve Words (VISION.md). He's autotelic — bu
 2. `git log --oneline -5` + `git diff --stat` for what just happened
 3. Continue where you left off — don't re-orient or restart
 
+### Compact Instructions
+Preserve: IP addresses (.244, .225, .203, .215), port numbers, container names, model names, GPU assignments, active task/plan details, file paths being edited, error messages being debugged. Drop: verbose tool outputs, intermediate search results, redundant re-reads of the same file.
+
 ### Autonomous Build Mode (`/build` or `-p`)
 1. Read `MEMORY.md` → `docs/BUILD-MANIFEST.md` → execute next unblocked item
 2. Update tracking files after each item. Continue if context allows.
@@ -87,13 +90,7 @@ SSH: `ssh node1`/`ssh node2` (passwordless). VAULT: `python3 scripts/vault-ssh.p
 
 ## Current State
 
-See `docs/SYSTEM-SPEC.md` for full spec. `docs/BUILD-MANIFEST.md` for tracking. `docs/SERVICES.md` for inventory.
-
-**9 agents live** (Node 1:9000). **All 7 GPUs active.** **Tier 9 Command Center: 12/12 complete.** vLLM: Node 1 v0.16.0 (Qwen3-32B-AWQ), Node 2 v0.16.1rc1 nightly (Qwen3.5-27B-AWQ). Knowledge: 2484 chunks in Qdrant (incremental indexing). MCP bridge: 14 tools. Autonomous task engine + scheduler + **Proactive Work Engine** deployed. **Data Curator agent** for personal data indexing (6h schedule). **Personal Data System**: 2,304 items in Qdrant `personal_data` (727 bookmarks + 66 GitHub + 1,511 file content chunks), 3,095 nodes + 4,447 relationships in Neo4j entity graph, `/personal-data` dashboard page live.
-
-**ADR-020** (interaction layers): All 6 layers deployed. **ADR-021** (autonomous loop): Phase 1-3 deployed — implicit feedback, time-decay prefs, notification budgets, event logs, pattern detection (5 AM daily), autonomy graduation, trust regression, **Work Planner v1** (knowledge-informed task generation, morning plan 7 AM, 2-hour refill, human steering via `/v1/workplan/redirect`). Prometheus alert polling every 5 min.
-
-**Claude Code setup:** 9 rules (path-scoped), 12 skills, 9 commands, 4 custom agents, 7 hooks across 6 events, 10 plugins, 5 MCP servers. Agent Teams enabled.
+See `docs/SYSTEM-SPEC.md` for full operational state. `docs/BUILD-MANIFEST.md` for work queue. `docs/SERVICES.md` for service inventory.
 
 ---
 
@@ -117,6 +114,16 @@ See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agen
 | Node 2 EXPO (BIOS) | DDR5 5600 MT/s |
 | Samsung 990 PRO check | Node 1 4TB NVMe |
 | Google Drive rclone OAuth | Personal data Phase 3 (~40% of data) |
+
+---
+
+## Verification
+
+After modifying code, verify with the relevant checker:
+- **Dashboard/EoBQ (TypeScript):** `cd projects/dashboard && npx tsc --noEmit` or `cd projects/eoq && npx tsc --noEmit`
+- **Agents (Python):** `python3 -m py_compile <file>`
+- **Ansible:** `ansible-lint playbooks/` (if available)
+- **YAML configs:** `python3 -c "import yaml; yaml.safe_load(open('<file>'))"`
 
 ---
 
