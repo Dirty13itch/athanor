@@ -53,13 +53,18 @@
       "mcp__athanor-agents__*",
       "mcp__docker__*"
     ],
-    "deny": []
+    "deny": [
+      "Bash(sudo rm -rf /*:*)",
+      "Bash(sudo mkfs:*)",
+      "Bash(sudo dd:*)"
+    ]
   },
   "enableAllProjectMcpServers": true,
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80",
-    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0"
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0",
+    "ENABLE_TOOL_SEARCH": "auto:5"
   },
   "hooks": {
     "PreToolUse": [
