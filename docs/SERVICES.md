@@ -22,7 +22,7 @@ Last updated: 2026-02-26 (Session 34 — Personal Data System, entity extraction
 
 | Service | Port | Details |
 |---------|------|---------|
-| vLLM (Qwen3-14B) | 8000 | RTX 5090, enforce-eager mode |
+| vLLM (Qwen3.5-27B-AWQ) | 8000 | RTX 5090, vLLM nightly, --language-model-only |
 | Dashboard | 3001 | Next.js 16, dark theme, /personal-data page with semantic search |
 | ws-pty Bridge | 3100 | WebSocket terminal bridge (node-pty + ws sidecar) |
 | ComfyUI | 8188 | Flux dev FP8 + Wan2.x T2V, RTX 5060 Ti, WanVideoWrapper + KJNodes |
@@ -56,8 +56,8 @@ Last updated: 2026-02-26 (Session 34 — Personal Data System, entity extraction
 | Model | Size | Purpose |
 |-------|------|---------|
 | Qwen3-32B-AWQ | 18G | Reasoning (LiteLLM alias: `reasoning`) |
-| Qwen3-14B | 28G | Fast inference (alias: `fast`) |
-| Qwen3.5-27B-FP8 | 29G | Next-gen reasoning (blocked on vLLM 0.17+ for qwen3_5 model type) |
+| Qwen3.5-27B-AWQ | ~16G | Fast inference (alias: `fast`) — deployed on Node 2 |
+| Qwen3.5-27B-FP8 | 29G | Next-gen reasoning for TP=4 (pending Node 1 upgrade) |
 | Qwen3-0.6B | 1.5G | Draft/speculative decoding |
 | Qwen3-Embedding-0.6B | 1.2G | Embeddings (alias: `embedding`) |
 | gte-Qwen2-7B-instruct | 14G | Legacy embedding (unused) |

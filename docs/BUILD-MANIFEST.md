@@ -35,7 +35,7 @@ These are missing pieces that other work depends on.
 - **Status:** ✅ (Session 8, 2026-02-24)
 - **Deployed:** VAULT:4000 via Ansible (`ansible-playbook playbooks/vault.yml --tags litellm`)
 - **Image:** `ghcr.io/berriai/litellm:main-v1.81.9-stable` (stateless, no DB)
-- **Routes:** `reasoning` → Node 1 Qwen3-32B-AWQ, `fast` → Node 2 Qwen3-14B, `embedding` → Node 1 Qwen3-Embedding-0.6B
+- **Routes:** `reasoning` → Node 1 Qwen3-32B-AWQ, `fast` → Node 2 Qwen3.5-27B-AWQ, `embedding` → Node 1 Qwen3-Embedding-0.6B
 - **Aliases:** `gpt-4` → reasoning, `gpt-3.5-turbo` → fast, `text-embedding-ada-002` → embedding
 - **Auth:** Bearer `sk-athanor-litellm-2026`
 - **Role:** `ansible/roles/vault-litellm/`
@@ -92,7 +92,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 
 ### 2.3 — Creative Agent
 - **Status:** ✅ (Session 11, 2026-02-24)
-- **Deployed:** Node 1:9000 as `creative-agent`, uses `fast` model (Qwen3-14B)
+- **Deployed:** Node 1:9000 as `creative-agent`, uses `fast` model (Qwen3.5-27B-AWQ)
 - **Tools:** `generate_image` (Flux dev FP8 via ComfyUI API), `check_queue`, `get_generation_history`, `get_comfyui_status`
 - **Model download:** Flux dev FP8 (~17GB) downloading to `/mnt/vault/models/comfyui/checkpoints/flux1-dev-fp8.safetensors` via NFS
 - **Tested:** Agent returns ComfyUI system status (GPU info, VRAM, versions). Image generation ready once Flux model download completes.
@@ -415,7 +415,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 
 ### 8.4 — Dedicated Coding Model (Qwen3-Coder-30B-A3B)
 - **Status:** 🔲 deferred
-- **Rationale:** Current Qwen3-32B-AWQ (SWE-bench 70.7%) outperforms Qwen3-Coder-30B-A3B (50.3%). The coding agent's test failures were quality issues, not speed issues. A faster but lower-quality model wouldn't help. Node 2's 5090 is fully loaded with Qwen3-14B at FP16 (31 GB / 32 GB). Revisit when: (a) AWQ quant available for Coder-Next 80B/3B (SWE-bench 70.6%), or (b) Node 2 GPU can be freed.
+- **Rationale:** Current Qwen3-32B-AWQ (SWE-bench 70.7%) outperforms Qwen3-Coder-30B-A3B (50.3%). The coding agent's test failures were quality issues, not speed issues. A faster but lower-quality model wouldn't help. Node 2's 5090 now runs Qwen3.5-27B-AWQ (~21 GB / 32 GB). Revisit when: (a) AWQ quant available for Coder-Next 80B/3B (SWE-bench 70.6%), or (b) a clearly superior coding model emerges.
 - **Research:** `docs/research/2026-02-16-tool-calling-coding-models.md`
 
 ### 8.5 — Quality Gating & Cascade
@@ -519,7 +519,7 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 
 ### 10.4 — LLM Entity Extraction
 - **Status:** ✅ (Session 34-35, 2026-02-26)
-- **Scope:** `scripts/extract-entities.py` — Qwen3-14B with thinking disabled extracts Person, Organization, Place entities from all 793 Qdrant points into Neo4j.
+- **Scope:** `scripts/extract-entities.py` — Qwen3.5-27B-AWQ with thinking disabled extracts Person, Organization, Place entities from all 793 Qdrant points into Neo4j.
 - **Result:** 3,095 nodes (1055 Topics, 701 Documents, 391 Orgs, 97 People, 67 GitRepos, 24 Services, 18 Places). 4,447 relationships. Zero errors.
 
 ### 10.5 — Agent Context Injection

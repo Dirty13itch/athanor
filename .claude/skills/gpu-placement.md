@@ -53,8 +53,8 @@ Total: ~48 GB VRAM
 
 ### Optimal Placement
 - **RTX 5090 (GPU 0)**: 32 GB. ComfyUI (Flux), creative inference, large single-GPU models.
-- **RTX 5060 Ti (GPU 1)**: 16 GB. vLLM (Qwen3-14B-AWQ), fast chat, lightweight workloads.
-- Use `--gpu-memory-utilization 0.85` and `--max-num-seqs 128` on 16 GB GPUs to avoid OOM.
+- **RTX 5060 Ti (GPU 1)**: 16 GB. vLLM (Qwen3.5-27B-AWQ via --language-model-only), fast chat, lightweight workloads.
+- Use `--gpu-memory-utilization 0.85` and `--max-num-seqs 64` on 16 GB GPUs to avoid OOM.
 
 ## VAULT — no NVIDIA GPUs
 
@@ -63,7 +63,7 @@ Total: ~48 GB VRAM
 
 ## DEV — not a server
 
-- ASUS ROG STRIX RX 5700 XT 8 GB — 3-monitor desktop display only, no CUDA
+- NVIDIA RTX 3060 12 GB — desktop display, light CUDA capability
 - Not usable for inference
 
 ## VRAM Budget Summary

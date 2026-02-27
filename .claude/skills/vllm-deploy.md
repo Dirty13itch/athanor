@@ -14,7 +14,7 @@ Deploy vLLM inference services on Athanor. Uses custom Docker image (NGC 26.01-p
 |----------|------|------|------|-------|---------|
 | vllm (primary) | Foundry | 8000 | 0-3 (5070Ti) + 4090, TP=4 | Qwen3-32B-AWQ | Reasoning, agents |
 | vllm-embedding | Foundry | 8001 | 4 (4090), 0.40 mem | Qwen3-Embedding-0.6B | Embeddings (1024-dim) |
-| vllm (secondary) | Workshop | 8000 | 0 (5090) | Qwen3-14B-AWQ | Fast inference |
+| vllm (secondary) | Workshop | 8000 | 0 (5090) | Qwen3.5-27B-AWQ | Fast inference |
 
 ## Custom Image Build
 
@@ -47,13 +47,13 @@ Ansible vars (in `host_vars/`):
 ```yaml
 environment:
   - CUDA_DEVICE_ORDER=PCI_BUS_ID          # Required for mixed GPU TP
-  - VLLM_FLASH_ATTN_VERSION=2             # FA3 not supported on Blackwell
+  # Do NOT set VLLM_FLASH_ATTN_VERSION — NGC image handles FA correctly
   - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
   - HF_HUB_OFFLINE=1
 command:
   - --quantization awq                     # Must be explicit (Marlin crashes on Blackwell)
   - --gpu-memory-utilization 0.85          # 0.90 OOMs on 16GB GPUs during warmup
-  - --max-num-seqs 128                     # 256 default OOMs
+  - --max-num-seqs 64                      # 128+ OOMs on 16GB GPUs
 ```
 
 ## Mixed GPU Tensor Parallel (Node 1)
@@ -72,7 +72,7 @@ command:
 | Model | Size | Quant | Fits Where |
 |-------|------|-------|------------|
 | Qwen3-32B-AWQ | ~20 GB | AWQ | Foundry TP=4 (current) |
-| Qwen3-14B-AWQ | ~8 GB | AWQ | Workshop single GPU |
+| Qwen3.5-27B-AWQ | ~16 GB | AWQ | Workshop single GPU (--language-model-only) |
 | Qwen3-Embedding-0.6B | ~1.2 GB | None | Foundry GPU 4 |
 | Qwen3.5-27B-FP8 | ~27 GB | FP8 | Foundry TP=4 (download needed) |
 

@@ -11,7 +11,7 @@ When deploying a new service, follow this pattern:
 | Workload Type | Node | Reason |
 |---------------|------|--------|
 | GPU inference (multi-GPU) | Node 1 (192.168.1.244) | 4x RTX 5070 Ti, EPYC 56C |
-| GPU creative/single-GPU | Node 2 (192.168.1.225) | RTX 5090 + RTX 4090 |
+| GPU creative/single-GPU | Node 2 (192.168.1.225) | RTX 5090 + RTX 5060 Ti |
 | Always-on services | VAULT (192.168.1.203) | Unraid, 24/7 operation |
 | Media/storage-bound | VAULT | 164 TB array, NFS exports |
 | Monitoring | VAULT | Survives compute node restarts |
@@ -106,7 +106,7 @@ Node 1 (4x RTX 5070 Ti):
 - GPU 3: PCIe 82:00.0 (display attached)
 - For tensor parallelism: use `device_ids: ['all']` or `--gpus all`
 
-Node 2 (RTX 4090 + RTX 5090):
-- GPU 0: RTX 4090 (PCIe 01:00.0) — 24 GB GDDR6X
-- GPU 1: RTX 5090 (PCIe 03:00.0) — 32 GB GDDR7
+Node 2 (RTX 5090 + RTX 5060 Ti):
+- GPU 0: RTX 5090 (PCIe 03:00.0) — 32 GB GDDR7
+- GPU 1: RTX 5060 Ti — 16 GB GDDR7
 - Isolate with `NVIDIA_VISIBLE_DEVICES=0` or `device_ids: ['0']`

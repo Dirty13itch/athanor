@@ -8,7 +8,7 @@ Audit the hardware on: $ARGUMENTS
 Use Desktop Commander for persistent SSH sessions when possible — it maintains state between commands unlike basic bash.
 
 If the target is "vault":
-- SSH via `python scripts/vault-ssh.py` (paramiko, root/Hockey1298)
+- SSH via `python3 scripts/vault-ssh.py` (paramiko — credentials in vault-password file)
 - Run: cat /proc/cpuinfo, free -h, lspci -nn, lsblk, ip addr, nvidia-smi (if available)
 - Check Unraid dashboard API if accessible
 - Inventory all Docker containers running

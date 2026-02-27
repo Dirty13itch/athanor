@@ -88,7 +88,7 @@ Full inventory in `docs/SERVICES.md`. Summary:
 | Model | Size | Location | GPU(s) | Purpose | LiteLLM Alias |
 |-------|------|----------|--------|---------|---------------|
 | Qwen3-32B-AWQ | 18 GB | Node 1:8000 | GPUs 0-3 (TP=4) | Reasoning, agents | `reasoning` |
-| Qwen3-14B | 28 GB | Node 2:8000 | GPU 0 (5090) | Fast inference | `fast` |
+| Qwen3.5-27B-AWQ | ~16 GB | Node 2:8000 | GPU 0 (5090) | Fast inference | `fast` |
 | Qwen3-Embedding-0.6B | 1.2 GB | Node 1:8001 | GPU 4 (5070 Ti) | Embeddings | `embedding` |
 | Flux dev FP8 | 17 GB | Node 2 ComfyUI | GPU 1 (5060 Ti) | Image generation | — |
 
@@ -276,7 +276,7 @@ This is not "Shaun codes with AI assistance." It's "Claude runs the system, agen
 - Agent workforce management and task routing
 - Documentation and roadmap maintenance
 
-**Local AI (Qwen3-32B, Qwen3-14B — Agent workforce):**
+**Local AI (Qwen3-32B, Qwen3.5-27B — Agent workforce):**
 - Domain-specific autonomous operations
 - Boilerplate generation and code transformation
 - Background task execution (proactive scheduler)
@@ -384,7 +384,7 @@ Full details in `docs/design/intelligence-layers.md`.
 | GPU 2 (5070 Ti) | Node 1 | 16 GB | vLLM TP=4 shard | ~10-27% |
 | GPU 3 (4090) | Node 1 | 24 GB | vLLM TP=4 shard | ~10-27% |
 | GPU 4 (5070 Ti) | Node 1 | 16 GB | Embedding model (1.2 GB used) | <5% |
-| GPU 0 (5090) | Node 2 | 32 GB | vLLM Qwen3-14B | ~10-15% |
+| GPU 0 (5090) | Node 2 | 32 GB | vLLM Qwen3.5-27B-AWQ | ~10-15% |
 | GPU 1 (5060 Ti) | Node 2 | 16 GB | ComfyUI Flux | <5% (idle unless generating) |
 
 **Total:** 136 GB VRAM allocated, ~15% average compute utilization.
