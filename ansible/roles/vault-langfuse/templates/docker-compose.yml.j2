@@ -1,0 +1,205 @@
+# Athanor LangFuse v3 — Managed by Ansible
+# 6 services on dedicated network. Only web port exposed.
+services:
+  langfuse-web:
+    image: {{ langfuse_image }}
+    container_name: langfuse-web
+    restart: unless-stopped
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_started
+      langfuse-clickhouse:
+        condition: service_healthy
+    ports:
+      - "{{ langfuse_port }}:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://{{ langfuse_pg_user }}:{{ langfuse_pg_password }}@langfuse-postgres:5432/{{ langfuse_pg_db }}
+      - NEXTAUTH_URL=http://192.168.1.203:{{ langfuse_port }}
+      - NEXTAUTH_SECRET={{ langfuse_nextauth_secret }}
+      - SALT={{ langfuse_salt }}
+      - ENCRYPTION_KEY={{ langfuse_encryption_key }}
+      - CLICKHOUSE_URL=http://langfuse-clickhouse:8123
+      - CLICKHOUSE_MIGRATION_URL=clickhouse://langfuse-clickhouse:9000
+      - REDIS_CONNECTION_STRING=redis://langfuse-redis:6379/0
+      - LANGFUSE_S3_EVENT_UPLOAD_ENABLED=true
+      - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
+      - LANGFUSE_S3_EVENT_UPLOAD_REGION=us-east-1
+      - LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID={{ langfuse_minio_user }}
+      - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY={{ langfuse_minio_password }}
+      - LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://langfuse-minio:9000
+      - LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
+      - LANGFUSE_S3_MEDIA_UPLOAD_ENABLED=true
+      - LANGFUSE_S3_MEDIA_UPLOAD_BUCKET=langfuse-media
+      - LANGFUSE_S3_MEDIA_UPLOAD_REGION=us-east-1
+      - LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID={{ langfuse_minio_user }}
+      - LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY={{ langfuse_minio_password }}
+      - LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT=http://langfuse-minio:9000
+      - LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE=true
+      - LANGFUSE_INIT_ORG_ID=athanor
+      - LANGFUSE_INIT_ORG_NAME=Athanor
+      - LANGFUSE_INIT_PROJECT_ID=athanor-main
+      - LANGFUSE_INIT_PROJECT_NAME=Athanor
+      - LANGFUSE_INIT_PROJECT_PUBLIC_KEY=pk-lf-athanor
+      - LANGFUSE_INIT_PROJECT_SECRET_KEY=sk-lf-athanor
+      - LANGFUSE_INIT_USER_EMAIL=shaun@athanor.local
+      - LANGFUSE_INIT_USER_PASSWORD=athanor2026
+      - TELEMETRY_ENABLED=false
+      - TZ=America/Chicago
+    networks:
+      - langfuse-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  langfuse-worker:
+    image: {{ langfuse_image }}
+    container_name: langfuse-worker
+    restart: unless-stopped
+    depends_on:
+      langfuse-postgres:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://{{ langfuse_pg_user }}:{{ langfuse_pg_password }}@langfuse-postgres:5432/{{ langfuse_pg_db }}
+      - CLICKHOUSE_URL=http://langfuse-clickhouse:8123
+      - CLICKHOUSE_MIGRATION_URL=clickhouse://langfuse-clickhouse:9000
+      - REDIS_CONNECTION_STRING=redis://langfuse-redis:6379/0
+      - LANGFUSE_S3_EVENT_UPLOAD_ENABLED=true
+      - LANGFUSE_S3_EVENT_UPLOAD_BUCKET=langfuse
+      - LANGFUSE_S3_EVENT_UPLOAD_REGION=us-east-1
+      - LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID={{ langfuse_minio_user }}
+      - LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY={{ langfuse_minio_password }}
+      - LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT=http://langfuse-minio:9000
+      - LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE=true
+      - LANGFUSE_S3_MEDIA_UPLOAD_ENABLED=true
+      - LANGFUSE_S3_MEDIA_UPLOAD_BUCKET=langfuse-media
+      - LANGFUSE_S3_MEDIA_UPLOAD_REGION=us-east-1
+      - LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID={{ langfuse_minio_user }}
+      - LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY={{ langfuse_minio_password }}
+      - LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT=http://langfuse-minio:9000
+      - LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE=true
+      - SALT={{ langfuse_salt }}
+      - ENCRYPTION_KEY={{ langfuse_encryption_key }}
+      - TELEMETRY_ENABLED=false
+      - TZ=America/Chicago
+    command: ["node", "packages/worker/dist/app.js"]
+    networks:
+      - langfuse-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  langfuse-postgres:
+    image: {{ langfuse_postgres_image }}
+    container_name: langfuse-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER={{ langfuse_pg_user }}
+      - POSTGRES_PASSWORD={{ langfuse_pg_password }}
+      - POSTGRES_DB={{ langfuse_pg_db }}
+      - TZ=America/Chicago
+    volumes:
+      - langfuse-pg-data:/var/lib/postgresql/data
+    networks:
+      - langfuse-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ langfuse_pg_user }} -d {{ langfuse_pg_db }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  langfuse-clickhouse:
+    image: {{ langfuse_clickhouse_image }}
+    container_name: langfuse-clickhouse
+    restart: unless-stopped
+    environment:
+      - CLICKHOUSE_DB=langfuse
+      - TZ=America/Chicago
+    volumes:
+      - langfuse-ch-data:/var/lib/clickhouse
+      - langfuse-ch-logs:/var/log/clickhouse-server
+    networks:
+      - langfuse-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  langfuse-redis:
+    image: {{ langfuse_redis_image }}
+    container_name: langfuse-redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - langfuse-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  langfuse-minio:
+    image: {{ langfuse_minio_image }}
+    container_name: langfuse-minio
+    restart: unless-stopped
+    entrypoint: >
+      /bin/sh -c "
+      minio server /data --console-address ':9001' &
+      sleep 5;
+      mc alias set local http://localhost:9000 {{ langfuse_minio_user }} {{ langfuse_minio_password }};
+      mc mb --ignore-existing local/langfuse;
+      mc mb --ignore-existing local/langfuse-media;
+      wait
+      "
+    environment:
+      - MINIO_ROOT_USER={{ langfuse_minio_user }}
+      - MINIO_ROOT_PASSWORD={{ langfuse_minio_password }}
+      - TZ=America/Chicago
+    volumes:
+      - langfuse-minio-data:/data
+    networks:
+      - langfuse-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  langfuse-net:
+    name: langfuse-net
+
+volumes:
+  langfuse-pg-data:
+  langfuse-ch-data:
+  langfuse-ch-logs:
+  langfuse-minio-data:

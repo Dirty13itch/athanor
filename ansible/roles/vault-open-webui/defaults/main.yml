@@ -1,0 +1,11 @@
+---
+vault_open_webui_deploy_dir: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/open-webui"
+vault_open_webui_port: 3090
+vault_open_webui_image: "ghcr.io/open-webui/open-webui:main"
+
+# Connect to LiteLLM proxy (same node) for model routing
+vault_open_webui_api_base: "http://192.168.1.203:4000/v1"
+vault_open_webui_api_key: "sk-athanor-litellm-2026"
+
+# Qdrant RAG integration (VAULT-local instance)
+vault_open_webui_rag_url: "http://192.168.1.203:6333"

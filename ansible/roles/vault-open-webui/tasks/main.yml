@@ -1,0 +1,39 @@
+---
+- name: Create Open WebUI deploy directory
+  file:
+    path: "{{ vault_open_webui_deploy_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy Open WebUI docker-compose
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ vault_open_webui_deploy_dir }}/docker-compose.yml"
+    mode: "0644"
+  register: owui_compose
+
+- name: Pull Open WebUI image
+  community.docker.docker_compose_v2_pull:
+    project_src: "{{ vault_open_webui_deploy_dir }}"
+
+- name: Start Open WebUI
+  community.docker.docker_compose_v2:
+    project_src: "{{ vault_open_webui_deploy_dir }}"
+    state: present
+  register: owui_result
+
+- name: Restart Open WebUI if config changed
+  community.docker.docker_compose_v2:
+    project_src: "{{ vault_open_webui_deploy_dir }}"
+    state: restarted
+  when: owui_compose.changed and not owui_result.changed
+
+- name: Wait for Open WebUI to be healthy
+  uri:
+    url: "http://localhost:{{ vault_open_webui_port }}"
+    method: GET
+    status_code: 200
+  register: owui_health
+  retries: 12
+  delay: 10
+  until: owui_health.status == 200

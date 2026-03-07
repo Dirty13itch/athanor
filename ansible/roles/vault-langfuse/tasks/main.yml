@@ -1,0 +1,40 @@
+---
+- name: Create LangFuse deploy directory
+  file:
+    path: "{{ langfuse_deploy_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy LangFuse docker-compose
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ langfuse_deploy_dir }}/docker-compose.yml"
+    mode: "0644"
+  register: langfuse_compose
+
+- name: Pull LangFuse images
+  community.docker.docker_compose_v2_pull:
+    project_src: "{{ langfuse_deploy_dir }}"
+
+- name: Start LangFuse stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ langfuse_deploy_dir }}"
+    state: present
+    remove_orphans: true
+  register: langfuse_result
+
+- name: Restart LangFuse if config changed
+  community.docker.docker_compose_v2:
+    project_src: "{{ langfuse_deploy_dir }}"
+    state: restarted
+  when: langfuse_compose.changed and not langfuse_result.changed
+
+- name: Wait for LangFuse web to be healthy
+  uri:
+    url: "http://localhost:{{ langfuse_port }}/api/public/health"
+    method: GET
+    status_code: 200
+  register: langfuse_health
+  retries: 30
+  delay: 10
+  until: langfuse_health.status == 200

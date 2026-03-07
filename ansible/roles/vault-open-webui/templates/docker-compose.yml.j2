@@ -1,0 +1,30 @@
+# Athanor Open WebUI on VAULT — Managed by Ansible
+# Routes through LiteLLM for model routing (reasoning/fast/embedding)
+services:
+  open-webui:
+    image: {{ vault_open_webui_image }}
+    container_name: vault-open-webui
+    restart: unless-stopped
+    ports:
+      - "{{ vault_open_webui_port }}:8080"
+    volumes:
+      - open-webui-data:/app/backend/data
+    environment:
+      - OPENAI_API_BASE_URL={{ vault_open_webui_api_base }}
+      - OPENAI_API_KEY={{ vault_open_webui_api_key }}
+      - WEBUI_AUTH=false
+      - ENABLE_OLLAMA_API=false
+      - RAG_EMBEDDING_ENGINE=openai
+      - RAG_OPENAI_API_BASE_URL={{ vault_open_webui_api_base }}
+      - RAG_OPENAI_API_KEY={{ vault_open_webui_api_key }}
+      - TZ=America/Chicago
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  open-webui-data:

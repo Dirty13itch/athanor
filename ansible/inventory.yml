@@ -34,6 +34,16 @@ all:
                 - { port: 3002, proto: tcp, comment: "EoBQ" }
                 - { port: 8188, proto: tcp, comment: "ComfyUI" }
 
+    dev:
+      hosts:
+        dev:
+          ansible_host: 192.168.1.189
+          ansible_user: shaun
+          node_role: dev
+          gpu_count: 1
+          gpu_type: "RTX 5060 Ti"
+          vram_total_gb: 16
+
     # VAULT is managed via scripts/vault-ssh.py or Ansible with vault-encrypted vars
     # Do NOT run ad-hoc commands against VAULT — write playbooks for review
     storage:

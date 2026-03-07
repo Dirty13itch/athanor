@@ -32,6 +32,9 @@
       - "4000"
     env:
       LITELLM_MASTER_KEY: "{{ litellm_master_key }}"
+      LANGFUSE_PUBLIC_KEY: "pk-lf-athanor"
+      LANGFUSE_SECRET_KEY: "sk-lf-athanor"
+      LANGFUSE_HOST: "http://192.168.1.203:3030"
     restart: "{{ litellm_config.changed | default(false) }}"
   when: not ansible_check_mode
 

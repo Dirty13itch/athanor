@@ -33,3 +33,7 @@
       tags: [redis]
     - role: vault-voice
       tags: [voice]
+    - role: vault-langfuse
+      tags: [langfuse]
+    - role: vault-open-webui
+      tags: [open-webui-vault]

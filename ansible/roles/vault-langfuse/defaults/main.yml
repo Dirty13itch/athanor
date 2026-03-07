@@ -1,0 +1,27 @@
+---
+langfuse_deploy_dir: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/langfuse"
+langfuse_port: 3030
+
+# Docker images
+langfuse_image: "langfuse/langfuse:3"
+langfuse_clickhouse_image: "clickhouse/clickhouse-server:24.3"
+langfuse_postgres_image: "postgres:16-alpine"
+langfuse_redis_image: "redis:7-alpine"
+langfuse_minio_image: "minio/minio:latest"
+
+# Auth — generate with: openssl rand -hex 32
+langfuse_nextauth_secret: "{{ vault_langfuse_nextauth_secret | default('changeme-generate-with-openssl-rand-hex-32') }}"
+langfuse_salt: "{{ vault_langfuse_salt | default('changeme-generate-with-openssl-rand-hex-32') }}"
+langfuse_encryption_key: "{{ vault_langfuse_encryption_key | default('0000000000000000000000000000000000000000000000000000000000000000') }}"
+
+# PostgreSQL (dedicated, internal network only)
+langfuse_pg_user: langfuse
+langfuse_pg_password: "{{ vault_langfuse_pg_password | default('langfuse-athanor-2026') }}"
+langfuse_pg_db: langfuse
+
+# MinIO (internal S3-compatible blob store)
+langfuse_minio_user: minioadmin
+langfuse_minio_password: "{{ vault_langfuse_minio_password | default('minioadmin-athanor-2026') }}"
+
+# LiteLLM integration
+litellm_host: "http://192.168.1.203:4000"
