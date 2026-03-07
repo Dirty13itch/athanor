@@ -82,7 +82,7 @@ Full details: `docs/hardware/inventory.md`. Quick ref: `memory/infrastructure.md
 | **Foundry** (EPYC 56C, 224GB) | 4x 5070 Ti + 4090 | 88 GB | .244 | Inference, agents |
 | **Workshop** (TR 24C, 128GB) | 5090 + 5060 Ti | 48 GB | .225 | Creative, dashboard |
 | **VAULT** (9950X, 128GB) | Arc A380 | — | .203 | Storage, monitoring |
-| **DEV** (i7-13700K, 64GB) | RTX 3060 | 12 GB | .215 | Workstation |
+| **DEV** (9900X, 64GB) | RTX 5060 Ti | 16 GB | .189 | Ops center |
 
 SSH: `ssh node1`/`ssh node2` (passwordless). VAULT: `python3 scripts/vault-ssh.py`.
 

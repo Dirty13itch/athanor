@@ -1,24 +1,8 @@
 # Blocked Tasks
 
-*Updated: 2026-02-16*
+*Updated: 2026-03-07*
 
 Tasks that cannot proceed without Shaun's physical presence, credentials, or browser access.
-
----
-
-## Browser Tasks (~10 min)
-
-### Home Assistant Onboarding
-- **URL**: http://192.168.1.203:8123
-- **What**: Complete initial setup wizard in browser
-- **Blocks**: Home Agent development, Lutron/UniFi integration, HA MCP server
-- **Priority**: High — unlocks three downstream tasks
-
-### Add Agent Server to Open WebUI
-- **URL**: Open WebUI → Settings → Connections → OpenAI
-- **What**: Add URL `http://192.168.1.244:9000/v1`, Key: `not-needed`
-- **Blocks**: Agent access from Open WebUI chat interface
-- **Priority**: Medium
 
 ---
 
@@ -29,6 +13,11 @@ Tasks that cannot proceed without Shaun's physical presence, credentials, or bro
 - **Blocks**: qBittorrent + Gluetun VPN deployment (compose file ready)
 - **Priority**: Medium — media acquisition stack incomplete without it
 
+### Anthropic API Key
+- **What**: API key for cloud escalation in Quality Cascade
+- **Blocks**: 8.5 (Quality Gating & Cascade — local → cloud auto-escalation)
+- **Priority**: P1 — enables autonomous coding quality loops
+
 ### HuggingFace Token (optional)
 - **What**: HF token for gated model access
 - **Blocks**: Full-precision Flux dev model download (FP8 version already working)
@@ -36,22 +25,21 @@ Tasks that cannot proceed without Shaun's physical presence, credentials, or bro
 
 ---
 
-## Physical Rack Session (~20 min)
+## OAuth / Auth Flows
 
-### 10GbE Switch Migration
-- **What**: Move Node 1 + Node 2 ethernet cables from USW Pro 24 PoE to USW Pro XG 10 PoE
-- **Blocks**: 10GbE throughput between nodes, iperf3 verification
-- **Priority**: High — 10x bandwidth for NFS and inter-node traffic
+### Google Drive rclone OAuth
+- **What**: Run `~/.local/bin/rclone config` on DEV to complete OAuth flow
+- **Blocks**: 10.8 (Personal Data ~40% — Google Drive sync)
+- **Priority**: Medium — unlocks significant personal data corpus
+
+---
+
+## Physical Rack Session (~15 min)
 
 ### Samsung 990 PRO 4TB (Node 1)
 - **What**: Verify physical seat of NVMe drive or check BIOS M.2 slot settings
 - **Blocks**: 4TB additional local storage on Node 1
 - **Priority**: Medium
-
-### JetKVM ATX Power Cable (Node 2)
-- **What**: Reconnect ATX power cable for remote power control
-- **Blocks**: Remote power management of Node 2
-- **Priority**: Low
 
 ### BIOS: Enable EXPO (Node 2)
 - **What**: Enable DDR5 EXPO profile in BIOS (3600 → 5600 MT/s)
@@ -60,23 +48,32 @@ Tasks that cannot proceed without Shaun's physical presence, credentials, or bro
 
 ---
 
-## Purchases Required
+## Software Blockers
 
-| Item | Est. Cost | Blocks | Priority |
-|------|-----------|--------|----------|
-| Mining GPU enclosure (6-8 slot) | ~$100-200 | Phase 8 Node 1 → 6 GPU build | High (when ready) |
-| Add2PSU adapter | ~$10-15 | Dual PSU sync for 6-GPU build | High (when ready) |
-| PCIe riser cables (6x) | ~$30-50 | 6-GPU build | High (when ready) |
-| 2x Mellanox ConnectX-3 FDR | ~$60 | InfiniBand inter-node link | Medium |
-| 1x QSFP+ FDR cable | ~$15 | InfiniBand inter-node link | Medium |
+### Photo Analysis (VLM)
+- **What**: Qwen3.5 multimodal support requires vLLM 0.17+ (currently nightly)
+- **Blocks**: 10.10 (Photo Analysis — VLM-powered descriptions, EXIF extraction)
+- **Priority**: P2 — waiting on upstream vLLM release
 
 ---
 
-## BMC Configuration (.216)
+## Resolved (removed from active list)
 
-- **Type**: AMI MegaRAC (ASRock EPYC board)
-- **Status**: Web UI at https://192.168.1.216 (HTTPS, responds 200). IPMI port 623 open. SSH port 22 open. VNC port 5901 open.
-- **Credentials**: admin / Will2live! (per Shaun). IPMI-over-LAN and SSH both reject these — likely a web-only login or IPMI-over-LAN is disabled in BMC config.
-- **What Shaun needs to do**: Try logging into https://192.168.1.216 in a browser with admin/Will2live!. If it works, enable IPMI-over-LAN in BMC settings for remote management.
-- **Blocks**: Remote power/BIOS management of Node 1
-- **Priority**: Low — SSH access to the OS works fine for all current tasks
+| Item | When | How |
+|------|------|-----|
+| 10GbE Switch Migration | Session 12, 2026-02-24 | Cables moved, iperf3 verified 9.4+ Gbps |
+| JetKVM ATX Power Cable | Session 3, 2026-02-16 | Reconnected during rack work |
+| HA Onboarding | Session 13, 2026-02-24 | Completed in browser, 38 entities discovered |
+| BMC Config (.216) | — | Deprioritized — SSH access sufficient for all current tasks |
+
+---
+
+## Purchases (Backlog)
+
+| Item | Est. Cost | Blocks | Priority |
+|------|-----------|--------|----------|
+| Mining GPU enclosure (6-8 slot) | ~$100-200 | Phase 8 Node 1 → 6 GPU build | Backlog |
+| Add2PSU adapter | ~$10-15 | Dual PSU sync for 6-GPU build | Backlog |
+| PCIe riser cables (6x) | ~$30-50 | 6-GPU build | Backlog |
+| 2x Mellanox ConnectX-3 FDR | ~$60 | InfiniBand inter-node link | Backlog |
+| 1x QSFP+ FDR cable | ~$15 | InfiniBand inter-node link | Backlog |

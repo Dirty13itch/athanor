@@ -4,36 +4,48 @@
 
 ---
 
-## Last Session: 2026-02-25 (Session 19: Autonomous Workforce — Task Engine + Scheduler)
+## Last Session: 2026-03-07 (Session 36: System Synthesis — Doc Refresh + Cluster Audit)
 
 ### What happened
-- **Task Execution Engine (8.1):** `tasks.py` — Redis-backed queue, background worker (5s poll, max 2 concurrent), step logging, GWT broadcasting. Delegation tools. API: POST/GET /v1/tasks, stats, cancel. MCP bridge: 14 tools. Dashboard Task Board page.
-- **Proactive Agent Scheduler (8.2):** `scheduler.py` — asyncio-based per-agent intervals. Redis-tracked last-run. API: GET /v1/tasks/schedules.
-- **Execution Tools (8.3):** `read_file`, `write_file`, `list_directory`, `search_files`, `run_command`. Coding Agent 9 tools, General Assistant 9 tools.
-- **Task quality improvements:** `_build_task_prompt()`, `_maybe_retry()`, `_cleanup_old_tasks()` added to tasks.py.
-- **Massive research sweep:** 26 parallel agents (14 model categories + 5 hardware audits + 3 resource strategies + 4 cloud/cascade). 21 research docs + 5 hardware audits + master synthesis (docs/research/2026-02-25-master-synthesis.md).
-- **Key findings:** Qwen3.5-27B (72.4% SWE-bench) replaces Qwen3-32B-AWQ. vLLM v0.15.0+ critical blocker for DeltaNet. BFCL V4 correction: 48.71% not 68.2%. 99.13% GPU idle. 5090 zero requests. DEV has RTX 3060 12GB (not RX 5700 XT). Qdrant backups working (VAULT audit was wrong). VAULT Hyper M.2 card has 4 empty slots. MTU mismatch Node 2 (9000) vs Node 1/VAULT (1500).
-- **Backup script fix:** `backup-qdrant.sh` default path corrected to `/mnt/vault/data/backups/`.
+- **Full cluster audit:** SSH into all 3 nodes, captured live state vs documented state.
+- **FOUNDRY model lineup changed significantly:** Now runs 3 vLLM instances — Qwen3-32B-AWQ (reasoning, TP=2, GPUs 0+1), GLM-4.7-Flash-GPTQ-4bit (creative, GPU 2/4090), Huihui-Qwen3-8B-abliterated-v2 (coding, GPU 3). GPU 4 is idle (no embedding model).
+- **WORKSHOP already upgraded:** Qwen3.5-35B-A3B-AWQ-4bit running on 5090 with correct safety flags. 5060Ti running ComfyUI (5.1 GB used).
+- **VAULT expanded:** 36 containers (was 14 in docs). LangFuse v3.155.1 healthy on :3030. Open WebUI on :3090. New undocumented services: Spiderfoot, Tdarr, Meilisearch, ntfy, cadvisor, field-inspect-app, Qdrant (VAULT-side), Postgres.
+- **LiteLLM routes expanded:** 14 models (reasoning, coding, fast, creative, embedding, reranker, worker, claude, gpt, deepseek, gemini + aliases). Cloud cascade models added.
+- **Ansible committed:** vault-langfuse + vault-open-webui roles, Workshop Qwen3.5-35B-A3B upgrade, DEV node in inventory, ops tooling (model-inventory.sh, test-endpoints.py).
+- **Doc refresh:** Updated MEMORY.md, SERVICES.md, BLOCKED.md, BUILD-MANIFEST.md (Tier 11 added). All docs brought to current reality.
+
+### Key findings from audit
+- FOUNDRY reasoning model uses `--kv-cache-dtype fp8_e5m2` — should be `auto` per safety rules (OK for Qwen3, NOT for Qwen3.5)
+- FOUNDRY reasoning model uses `--tool-call-parser hermes` — correct for Qwen3 (not Qwen3.5)
+- Workshop missing `--max-num-batched-tokens 2096` in running process (in Ansible but not yet applied)
+- VAULT disk at 88% (143TB/164TB) — not critical but worth monitoring
+- GPU 4 on FOUNDRY completely idle — embedding model not running
+- DNS resolution between nodes uses IPs only, hostnames don't resolve
 
 ### Current blockers
 - NordVPN credentials needed for qBittorrent + Gluetun (6.5)
-- **vLLM v0.17.0 needed** — unlocks Qwen3.5 (`qwen3_5` model type). v0.16.0 deployed on both nodes.
-- 3 Crucial P310 NVMe drives location unknown (VAULT Hyper M.2 card empty)
+- Anthropic API key needed for Quality Cascade cloud escalation (8.5)
+- Google Drive rclone OAuth needed (`~/.local/bin/rclone config`) for Personal Data ~40% (10.8)
+- Photo Analysis blocked on Qwen3.5 multimodal + vLLM 0.17+ (10.10)
 
-### What's next (P1 quick wins from synthesis)
-- Replace DEV ethernet cable (100 Mbps → 1 Gbps)
-- Mount Node 1 nvme1n1 (1 TB Crucial P310 unused)
-- Repurpose 5090 (zero-request Qwen3-14B → useful workload)
-- Add speculative decoding (Qwen3-0.6B draft model)
-- Fix MTU mismatch (Node 2 at 9000, Node 1/VAULT at 1500)
-- Tune TCP buffers for 10GbE (208 KB → 16 MB)
-- Move embedding to CPU (FastEmbed on EPYC, free GPU 4 VRAM)
-- Deploy Qwen3-Reranker-0.6B on GPU 4
-- Update hardware inventory with 6 corrections found by audits
+### What's next (Tier 11 priorities)
+- 11.1: Port GWT Attention Allocator from Kaizen (salience scoring upgrade)
+- 11.2: Port Preference Learning Engine from Hydra
+- 11.3: Workspace State Machine from Kaizen
+- 11.4: Agent Coalition Formation (GWT Phase 3)
+- 11.5: Autonomous Research Loops from Hydra
+- 11.6: Experience Memory (GWT Phase 4)
+
+### Quick wins still open
+- Restart embedding model on FOUNDRY GPU 4
+- Full Ansible convergence (dry run → apply)
+- Fix DNS resolution between nodes (add /etc/hosts entries via Ansible common role)
 
 ### Git state
-- Branch: main, all pushed to origin
-- Latest: `49b2aaf` feat: P1 quick wins — kernel tuning, Qdrant ulimit, inventory corrections
+- Branch: main, 1 commit ahead of origin
+- Latest: `ad68cba` feat: add vault-langfuse + vault-open-webui roles, upgrade Workshop to Qwen3.5-35B-A3B
+- DEV node: AMD 9900X + RTX 5060Ti (updated from i7-13700K + 3060)
 
 ---
 
@@ -52,7 +64,10 @@
 | 10 | 2026-02-24 | Context reconciliation + Agent routing | 15 docs extracted, agents wired to LiteLLM, 16/16 services verified |
 | 11 | 2026-02-24 | Neo4j + Design + Agents + Monitoring | Neo4j, design system, Research + Creative agents, monitoring page, Flux model |
 | 12-14 | 2026-02-24 | Hardening + EoBQ + Remote access | 10GbE verified, backups deployed, EoBQ wired + deployed, ADR-016 (superseded) |
-| 15 | 2026-02-25 | System design + full Tier 7 | SYSTEM-SPEC, agent contracts, hybrid-dev docs. Redis, Coding Agent, MCP bridge, escalation, GWT workspace, GPU orchestrator, 3 dashboard pages. **All 14/14 Tier 7 items complete.** |
-| 16-17 | 2026-02-25 | Tier 6 + Voice + Context | Wan2.x T2V verified, Creative Agent video tools, Stash agent, 4 voice containers, HA voice pipeline, Layer 2 context injection. |
-| 18 | 2026-02-25 | Maintenance + GWT Phase 2 | Knowledge re-index (1203 pts), HA auth fix (26/26 UP), Neo4j 43 rels, backup 14 svcs. GWT Phase 2: conversation logging, agent registry, event ingestion, pub/sub. |
-| 19 | 2026-02-25 | Autonomous Workforce + Research Sweep | Task Engine (8.1), Scheduler (8.2), Exec Tools (8.3). 26-agent research sweep: 21 research + 5 hardware audit docs. Master synthesis. 6 inventory corrections. |
+| 15 | 2026-02-25 | System design + full Tier 7 | SYSTEM-SPEC, agent contracts, hybrid-dev docs. All 14/14 Tier 7 items complete. |
+| 16-17 | 2026-02-25 | Tier 6 + Voice + Context | Wan2.x T2V, Creative Agent video tools, Stash agent, voice pipeline, Layer 2 context injection. |
+| 18 | 2026-02-25 | Maintenance + GWT Phase 2 | Knowledge re-index, HA auth fix, GWT Phase 2 (conversation logging, agent registry, pub/sub). |
+| 19 | 2026-02-25 | Autonomous Workforce + Research Sweep | Task Engine (8.1), Scheduler (8.2), Exec Tools (8.3). 26-agent research sweep. |
+| 20 | 2026-02-26 | Command Center (Tier 9) | PWA, Cmd+K, Agent Crew Bar, SSE streaming, Furnace Home, Lens Modes, Goals/Feedback, Push Notifications, Generative UI. All 9.1-9.10 complete. |
+| 33-35 | 2026-02-26 | Personal Data System (Tier 10) | Bookmarks (727), GitHub repos (82), entity extraction (3095 nodes), file indexer (2304 pts), Data Curator agent, Terminal page, Claudeman. 8/10 complete. |
+| 36 | 2026-03-07 | System Synthesis | Full cluster audit, doc refresh, Tier 11 defined, Ansible work committed. |

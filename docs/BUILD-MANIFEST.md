@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-02-26 (Session 35: Tier 10 Personal Data System — 8/10 complete. File content indexer: 2,304 Qdrant points, 3,095 Neo4j nodes)
+Last updated: 2026-03-07 (Session 36: System Synthesis — doc refresh, cluster audit, Tier 11 defined)
 
 ---
 
@@ -552,15 +552,63 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 
 ---
 
+## Tier 11: Intelligence Layer 3 — Pattern Recognition & Autonomy (P1)
+
+*Ported from reference repos (Kaizen GWT architecture, Hydra preference learning). Transforms agents from scheduled workers to pattern-recognizing, self-improving autonomous systems.*
+
+### 11.1 — GWT Attention Allocator (port from Kaizen)
+- **Status:** 🔲 todo
+- **Source:** `reference/kaizen/cognitive/orchestrator.py`, `specs/gwt-architecture.md`
+- **Scope:** Multi-factor salience scoring (urgency x relevance x recency decay x tier weight). Replace current simple priority ordering in `workspace.py` with proper attention allocation. 30 specialist slots organized in 6 tiers.
+- **Port strategy:** Extract algorithm (pure math), rewrite glue for async/await + Redis. ~200 lines.
+- **Depends on:** 7.10 (GWT Phase 1+2) done
+- **Priority:** P1
+
+### 11.2 — Preference Learning Engine (port from Hydra)
+- **Status:** 🔲 todo
+- **Source:** `reference/hydra/src/hydra_tools/preference_learning.py`, `preference_collector.py`
+- **Scope:** Learn user preferences from feedback signals. Currently feedback goes to Qdrant `preferences` collection but nothing learns from it. Port the preference modeling algorithms to create adaptive agent behavior.
+- **Port strategy:** Extract learning algorithms, wire to existing `/v1/feedback` + `/v1/preferences` endpoints. ~500 lines.
+- **Depends on:** 7.8 (preferences collection) done, 9.10 (feedback API) done
+- **Priority:** P1
+
+### 11.3 — Workspace State Machine (port from Kaizen)
+- **Status:** 🔲 todo
+- **Source:** `reference/kaizen/cognitive/workspace.py`
+- **Scope:** Formal FSM for workspace lifecycle (IDLE -> POLLING -> FOCUSING -> BROADCASTING -> RESOLVING). Current workspace has competition cycle but no enforced state transitions.
+- **Port strategy:** Add state machine to existing `workspace.py`. ~100 lines.
+- **Priority:** P2
+
+### 11.4 — Agent Coalition Formation (GWT Phase 3)
+- **Status:** 🔲 todo
+- **Scope:** Agents subscribe to workspace broadcasts, form coalitions for complex tasks, semantic relevance scoring for broadcast filtering. Multi-agent collaboration on single goals.
+- **Depends on:** 11.1, 11.3
+- **Priority:** P2
+
+### 11.5 — Autonomous Research Loops (port from Hydra)
+- **Status:** 🔲 todo
+- **Source:** `reference/hydra/src/hydra_tools/autonomous_research.py`, `autonomous_queue.py`
+- **Scope:** Self-directed research: identify knowledge gaps -> search -> analyze -> store. Currently research agent is reactive only. Port the autonomous search/analysis loop.
+- **Port strategy:** Extract search/analysis loop, wire to task engine + scheduler. ~300 lines.
+- **Depends on:** 8.1 (task engine) done, 8.2 (scheduler) done
+- **Priority:** P2
+
+### 11.6 — Experience Memory (GWT Phase 4)
+- **Status:** 🔲 todo
+- **Scope:** Working memory -> episodic memory consolidation. Hourly sweep of workspace history into long-term Qdrant storage with semantic indexing. Pattern detection across consolidated experiences.
+- **Source pattern:** `reference/kaizen/specs/gwt-architecture.md` (memory tiers section)
+- **Priority:** P3
+
+---
+
 ## Blocked on Shaun
 
 These require human action. Claude Code cannot do them.
 
 | Item | Action | Unblocks |
 |------|--------|----------|
-| ~~HA onboarding~~ | ~~Done (Session 13)~~ | ~~2.4 (Home Agent)~~ |
 | NordVPN credentials | Provide service creds | 6.5 (qBittorrent) |
+| Anthropic API key | Provide API key | 8.5 (Quality Cascade cloud escalation) |
 | Google Drive rclone OAuth | Run `~/.local/bin/rclone config` | 10.8 (Personal Data ~40%) |
 | Node 2 EXPO | BIOS via JetKVM | Performance |
 | Samsung 990 PRO reseat | Physical at rack | Node 1 storage |
-| BMC config at .216 | Browser: http://192.168.1.216 | Remote power mgmt |
