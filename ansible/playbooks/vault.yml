@@ -9,6 +9,7 @@
 #   ansible-playbook playbooks/vault.yml --tags neo4j       # Neo4j graph DB only
 #   ansible-playbook playbooks/vault.yml --tags redis       # Redis only
 #   ansible-playbook playbooks/vault.yml --tags voice       # Voice (Piper + openWakeWord)
+#   ansible-playbook playbooks/vault.yml --tags alerts      # Grafana alerts + backup exporter
 #   ansible-playbook playbooks/vault.yml --tags plex        # Single service
 #   ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx  # First Plex deploy
 #
@@ -37,3 +38,5 @@
       tags: [langfuse]
     - role: vault-open-webui
       tags: [open-webui-vault]
+    - role: vault-grafana-alerts
+      tags: [alerts]
