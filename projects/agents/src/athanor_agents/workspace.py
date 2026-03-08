@@ -278,12 +278,15 @@ async def get_stats() -> dict:
 async def _competition_cycle():
     """Background competition cycle — runs at 1Hz.
 
-    Each cycle:
-    1. Collect all candidates
+    GWT-compliant competition with specialist evaluation:
+    1. Collect all workspace candidates
     2. Recompute salience scores (including coalition bonus)
-    3. Select top-7 (workspace capacity)
-    4. Archive history + publish broadcast via pub/sub
-    5. Phase 3: Trigger reactive tasks for subscribed agents
+    3. Evaluate specialist salience against workspace content
+    4. Active specialists generate proposals (filtered by threshold + inhibition)
+    5. Softmax-select winning specialist (stochastic, not deterministic)
+    6. Top-7 workspace items become broadcast
+    7. Update CST + specialist inhibition
+    8. Trigger reactive tasks for subscribed agents
     """
     logger.info("GWT competition cycle started (interval=%.1fs)", COMPETITION_INTERVAL)
     reaction_counter = 0  # Only check reactions every 10 cycles (10s)
@@ -300,38 +303,50 @@ async def _competition_cycle():
                     broadcast[0].source_agent, broadcast[0].salience,
                 )
 
+            # --- Specialist competition ---
+            winning_specialist = None
+            if broadcast:
+                try:
+                    winning_specialist = await _run_specialist_competition(broadcast)
+                except Exception as e:
+                    logger.debug("Specialist competition failed: %s", e)
+
             # Archive history + publish broadcast via pub/sub
             if broadcast:
                 r = await get_redis()
-                entry = json.dumps({
+                entry_data = {
                     "timestamp": time.time(),
                     "broadcast": [i.to_dict() for i in broadcast],
                     "total_candidates": len(items),
-                })
+                }
+                if winning_specialist:
+                    entry_data["winning_specialist"] = winning_specialist
+                entry = json.dumps(entry_data)
                 await r.lpush(WORKSPACE_HISTORY_KEY, entry)
                 await r.ltrim(WORKSPACE_HISTORY_KEY, 0, 99)
 
                 # Publish to subscribers
                 await r.publish(WORKSPACE_BROADCAST_CHANNEL, entry)
 
-                # Update Continuous State Tensor from broadcast
+                # Update Continuous State Tensor from broadcast + specialist
                 try:
                     from .cst import update_cst_from_broadcast
 
-                    # Build broadcast summary for CST update
                     top = broadcast[0]
                     cst_broadcast = {
-                        "specialist": top.source_agent,
+                        "specialist": winning_specialist or top.source_agent,
                         "content": top.content[:200],
                         "confidence": min(top.salience, 1.0),
                         "urgency": 0.5 if top.priority.value in ("critical", "high") else 0.2,
                         "topics": {top.source_agent: 0.3},
                     }
+                    if winning_specialist:
+                        cst_broadcast["topics"][winning_specialist] = 0.4
                     await update_cst_from_broadcast(cst_broadcast)
                 except Exception as e:
                     logger.debug("CST update failed: %s", e)
 
-            # Phase 3: Trigger reactive tasks every 10 cycles (10s)
+            # Trigger reactive tasks every 10 cycles (10s)
             reaction_counter += 1
             if broadcast and reaction_counter >= 10:
                 reaction_counter = 0
@@ -344,6 +359,72 @@ async def _competition_cycle():
             logger.warning("Competition cycle error: %s", e)
 
         await asyncio.sleep(COMPETITION_INTERVAL)
+
+
+async def _run_specialist_competition(
+    broadcast: list,
+) -> str | None:
+    """Run specialist competition against current broadcast items.
+
+    Evaluates all specialists, generates proposals from active ones,
+    selects winner via softmax. Updates inhibition for all participants.
+
+    Returns winning specialist agent_name, or None if no specialists active.
+    """
+    from .specialist import get_specialists, softmax_select, MIN_SALIENCE
+
+    specialists = get_specialists()
+    if not specialists:
+        return None
+
+    # Build combined text from broadcast items for salience evaluation
+    combined_text = " ".join(
+        f"{item.source_agent}: {item.content[:100]}"
+        for item in broadcast[:3]
+    )
+
+    # Phase 1: Evaluate salience for all specialists
+    active = []
+    salience_scores = []
+    for name, specialist in specialists.items():
+        salience = specialist.evaluate_salience(combined_text)
+        if salience >= MIN_SALIENCE and specialist.inhibition < 0.8:
+            active.append(specialist)
+            salience_scores.append(salience)
+
+    if not active:
+        return None
+
+    # Phase 2: Generate proposals from active specialists
+    proposals = []
+    for specialist, salience in zip(active, salience_scores):
+        proposal = specialist.generate_proposal(
+            text=combined_text,
+            salience=salience,
+        )
+        proposals.append(proposal)
+
+    # Phase 3: Score and select via softmax
+    competition_scores = [
+        specialist.competition_score(proposal.score, salience)
+        for specialist, proposal, salience in zip(active, proposals, salience_scores)
+    ]
+
+    # Temperature: 0.3 for focused selection in background competition
+    winner_idx = softmax_select(competition_scores, temperature=0.3)
+
+    # Phase 4: Update inhibition for all participants
+    for i, specialist in enumerate(active):
+        specialist.apply_competition_result(won=(i == winner_idx))
+
+    winner = active[winner_idx]
+    logger.debug(
+        "Specialist competition: %d active, winner=%s (score=%.3f, inhib=%.3f)",
+        len(active), winner.agent_name,
+        competition_scores[winner_idx], winner.inhibition,
+    )
+
+    return winner.agent_name
 
 
 # --- Phase 3: Subscriptions, Endorsement, Reactions ---

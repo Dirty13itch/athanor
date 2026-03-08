@@ -25,6 +25,14 @@ async def lifespan(app: FastAPI):
 
     _init_agents()
     ensure_collections()
+
+    # Initialize cognitive architecture (Phase 2)
+    from .cst import get_cst
+    from .specialist import get_specialists
+
+    await get_cst()  # Load CST from Redis (or create fresh)
+    get_specialists()  # Initialize specialist registry
+
     await start_competition()
     await start_task_worker()
     await start_scheduler()
@@ -1259,6 +1267,30 @@ async def classify_route(request: Request):
 
     routing = classify_request(prompt, agent_name, conversation_length)
     return routing.to_dict()
+
+
+# --- Cognitive State ---
+
+
+@app.get("/v1/cognitive/cst")
+async def get_cst_state():
+    """Get current Continuous State Tensor state."""
+    from .cst import get_cst
+
+    cst = await get_cst()
+    return cst.to_dict()
+
+
+@app.get("/v1/cognitive/specialists")
+async def get_specialist_state():
+    """Get specialist registry with inhibition and competition stats."""
+    from .specialist import get_specialists
+
+    specialists = get_specialists()
+    return {
+        name: s.to_dict()
+        for name, s in specialists.items()
+    }
 
 
 # --- Memory Consolidation ---
