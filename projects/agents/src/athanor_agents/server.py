@@ -1238,6 +1238,29 @@ async def preview_context(request: Request):
     }
 
 
+# --- Routing ---
+
+
+@app.post("/v1/routing/classify")
+async def classify_route(request: Request):
+    """Classify a prompt without invoking an agent. Diagnostic endpoint.
+
+    Body: {"prompt": "Hello!", "agent": "general-assistant"}
+    """
+    from .router import classify_request
+
+    body = await request.json()
+    prompt = body.get("prompt", "")
+    agent_name = body.get("agent", "")
+    conversation_length = body.get("conversation_length", 0)
+
+    if not prompt:
+        return JSONResponse(status_code=400, content={"error": "prompt is required"})
+
+    routing = classify_request(prompt, agent_name, conversation_length)
+    return routing.to_dict()
+
+
 # --- Chat completions ---
 
 
@@ -1267,6 +1290,15 @@ async def chat_completions(request: Request):
     # Extract user input summary for activity logging
     user_input = messages[-1].get("content", "")[:500] if messages else ""
 
+    # --- Tiered routing classification ---
+    from .router import classify_request
+
+    routing = classify_request(
+        prompt=user_input,
+        agent_name=model_name,
+        conversation_length=len(messages),
+    )
+
     # Context injection — enrich with preferences, activity, knowledge
     if not body.get("skip_context", False):
         from .context import enrich_context
@@ -1278,9 +1310,63 @@ async def chat_completions(request: Request):
         except Exception:
             pass  # Never let context injection block a request
 
+    # --- REACTIVE fast path: bypass agent graph for simple queries ---
+    if not routing.tier_config.use_agent and not stream:
+        from langchain_openai import ChatOpenAI
+
+        fast_llm = ChatOpenAI(
+            base_url=settings.llm_base_url,
+            api_key=settings.llm_api_key,
+            model=routing.tier_config.model,
+            temperature=routing.tier_config.temperature,
+            max_tokens=routing.tier_config.max_tokens,
+            streaming=False,
+            extra_body={
+                "chat_template_kwargs": {"enable_thinking": False},
+            },
+        )
+
+        start_ms = int(time.time() * 1000)
+        result = await fast_llm.ainvoke(lc_messages)
+        content = _strip_think_tags(result.content)
+        duration_ms = int(time.time() * 1000) - start_ms
+
+        from .activity import log_activity, log_conversation
+
+        asyncio.create_task(log_activity(
+            agent=model_name,
+            action_type="chat_reactive",
+            input_summary=user_input,
+            output_summary=content[:500],
+            duration_ms=duration_ms,
+        ))
+        asyncio.create_task(log_conversation(
+            agent=model_name,
+            user_message=user_input,
+            assistant_response=content,
+            duration_ms=duration_ms,
+            thread_id=thread_id,
+        ))
+
+        return {
+            "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": model_name,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": content},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            "routing": routing.to_dict(),
+        }
+
     if stream:
         return StreamingResponse(
-            _stream_response(agent, lc_messages, config, model_name, user_input),
+            _stream_response(agent, lc_messages, config, model_name, user_input, routing),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
         )
@@ -1295,7 +1381,7 @@ async def chat_completions(request: Request):
 
     asyncio.create_task(log_activity(
         agent=model_name,
-        action_type="chat",
+        action_type=f"chat_{routing.tier.value}",
         input_summary=user_input,
         output_summary=content[:500],
         duration_ms=duration_ms,
@@ -1321,6 +1407,7 @@ async def chat_completions(request: Request):
             }
         ],
         "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        "routing": routing.to_dict(),
     }
 
 
@@ -1338,7 +1425,7 @@ def _convert_messages(messages: list[dict]) -> list:
     return lc_messages
 
 
-async def _stream_response(agent, messages, config, model_name, user_input=""):
+async def _stream_response(agent, messages, config, model_name, user_input="", routing=None):
     chat_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
     created = int(time.time())
     start_ms = int(time.time() * 1000)
@@ -1396,9 +1483,10 @@ async def _stream_response(agent, messages, config, model_name, user_input=""):
     full_response = "".join(collected_text)
     from .activity import log_activity, log_conversation
 
+    tier_label = routing.tier.value if routing else "unknown"
     asyncio.create_task(log_activity(
         agent=model_name,
-        action_type="chat",
+        action_type=f"chat_{tier_label}",
         input_summary=user_input,
         output_summary=full_response[:500],
         tools_used=tools_used,

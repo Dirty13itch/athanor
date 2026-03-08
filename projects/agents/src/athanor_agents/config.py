@@ -6,7 +6,16 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://192.168.1.203:4000/v1"
     llm_api_key: str = "sk-athanor-litellm-2026"
     llm_model: str = "reasoning"  # LiteLLM alias → Qwen3-32B-AWQ on Node 1
-    llm_model_fast: str = "fast"  # LiteLLM alias → Qwen3-14B on Node 2
+    llm_model_fast: str = "fast"  # LiteLLM alias → Qwen3.5-35B-A3B on Node 2
+
+    # Tiered router settings (Phase 1: Tiered Processing Router)
+    router_reactive_model: str = "fast"
+    router_reactive_max_tokens: int = 256
+    router_reactive_temperature: float = 0.3
+    router_tactical_model: str = "reasoning"
+    router_tactical_max_tokens: int = 1024
+    router_deliberative_model: str = "reasoning"
+    router_deliberative_max_tokens: int = 4096
 
     # Legacy direct vLLM access (for tools that need to check vLLM status)
     vllm_node1_url: str = "http://192.168.1.244:8000/v1"

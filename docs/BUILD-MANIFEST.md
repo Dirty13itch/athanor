@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-03-07 (Session 36: System Synthesis — doc refresh, cluster audit, Tier 11 defined)
+Last updated: 2026-03-07 (Session 37: Phase 1 router implemented, Tier 11 expanded to 8 phases)
 
 ---
 
@@ -552,51 +552,71 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 
 ---
 
-## Tier 11: Intelligence Layer 3 — Pattern Recognition & Autonomy (P1)
+## Tier 11: Intelligence Layer 3 — Cognitive Synthesis (P1)
 
-*Ported from reference repos (Kaizen GWT architecture, Hydra preference learning). Transforms agents from scheduled workers to pattern-recognizing, self-improving autonomous systems.*
+*Ported from reference repos (Hydra 71K LOC, Kaizen 15K LOC, Local-System 20K LOC). Extracts battle-tested algorithms, adapts to Athanor patterns (async/await, LiteLLM, Redis, Qdrant, LangGraph, Ansible). ~2080 new LOC, ~410 modified LOC across 8 phases.*
 
-### 11.1 — GWT Attention Allocator (port from Kaizen)
-- **Status:** 🔲 todo
-- **Source:** `reference/kaizen/cognitive/orchestrator.py`, `specs/gwt-architecture.md`
-- **Scope:** Multi-factor salience scoring (urgency x relevance x recency decay x tier weight). Replace current simple priority ordering in `workspace.py` with proper attention allocation. 30 specialist slots organized in 6 tiers.
-- **Port strategy:** Extract algorithm (pure math), rewrite glue for async/await + Redis. ~200 lines.
-- **Depends on:** 7.10 (GWT Phase 1+2) done
+### 11.1 — Tiered Processing Router + Task-Type Detection
+- **Status:** ✅ done (Session 37)
+- **Source:** `reference/kaizen/cognitive/workspace/tiered.py`, `reference/hydra/src/hydra_tools/routellm.py`, `reference/hydra/src/hydra_tools/intelligent_router.py`
+- **Scope:** Classifies requests by complexity tier (REACTIVE/TACTICAL/DELIBERATIVE) and task type (9 types). REACTIVE queries bypass agent graph and use `fast` model directly. Logs routing metadata for cost analysis.
+- **Files:** Created `router.py` (~250 LOC). Modified `server.py` (chat endpoint + `/v1/routing/classify`). Modified `config.py` (tier settings).
 - **Priority:** P1
 
-### 11.2 — Preference Learning Engine (port from Hydra)
+### 11.2 — Memory Consolidation Pipeline
 - **Status:** 🔲 todo
-- **Source:** `reference/hydra/src/hydra_tools/preference_learning.py`, `preference_collector.py`
-- **Scope:** Learn user preferences from feedback signals. Currently feedback goes to Qdrant `preferences` collection but nothing learns from it. Port the preference modeling algorithms to create adaptive agent behavior.
-- **Port strategy:** Extract learning algorithms, wire to existing `/v1/feedback` + `/v1/preferences` endpoints. ~500 lines.
-- **Depends on:** 7.8 (preferences collection) done, 9.10 (feedback API) done
+- **Source:** `reference/local-system/services/memory/consolidation.py`
+- **Scope:** Working -> episodic promotion (high-access Redis -> Qdrant), episodic -> archive (>30 days), duplicate detection (cosine >0.95). Daily 3 AM schedule.
+- **Files:** Create `consolidation.py` (~150 LOC). Modify `scheduler.py`.
+- **Depends on:** None
 - **Priority:** P1
 
-### 11.3 — Workspace State Machine (port from Kaizen)
+### 11.3 — Hybrid Search (BM25 + Vector via RRF)
 - **Status:** 🔲 todo
-- **Source:** `reference/kaizen/cognitive/workspace.py`
-- **Scope:** Formal FSM for workspace lifecycle (IDLE -> POLLING -> FOCUSING -> BROADCASTING -> RESOLVING). Current workspace has competition cycle but no enforced state transitions.
-- **Port strategy:** Add state machine to existing `workspace.py`. ~100 lines.
+- **Source:** `reference/hydra/src/hydra_tools/hybrid_memory.py`, `reference/local-system/services/memory/search.py`
+- **Scope:** Add BM25 keyword search alongside vector search. RRF fusion: `rrf_score = 1/(k+rank)` with `k=60`. Catches exact matches vector search misses (e.g., "ADR-017", "Qwen3-32B-AWQ"). Uses Meilisearch on VAULT:7700 or Redis Search.
+- **Files:** Create `hybrid_search.py` (~200 LOC). Modify `context.py`.
+- **Depends on:** None
+- **Priority:** P1
+
+### 11.4 — Continuous State Tensor + Specialist Interface
+- **Status:** 🔲 todo
+- **Source:** `reference/kaizen/cognitive/workspace/cst.py`, `reference/kaizen/cognitive/specialists/base.py`
+- **Scope:** CST in Redis: salience map (topic -> float, 0.95x decay), attention mode, working memory (bounded FIFO, max 20), goal stack. Specialist ABC wraps LangGraph agents with `evaluate_salience()` and `generate_proposal()`.
+- **Files:** Create `cst.py` (~200 LOC), `specialist.py` (~180 LOC). Modify `workspace.py`, `context.py`.
+- **Depends on:** None (but 11.1 enhances it)
 - **Priority:** P2
 
-### 11.4 — Agent Coalition Formation (GWT Phase 3)
+### 11.5 — Preference Learning + Model Selection
 - **Status:** 🔲 todo
-- **Scope:** Agents subscribe to workspace broadcasts, form coalitions for complex tasks, semantic relevance scoring for broadcast filtering. Multi-agent collaboration on single goals.
-- **Depends on:** 11.1, 11.3
+- **Source:** `reference/hydra/src/hydra_tools/preference_learning.py`
+- **Scope:** Track per-model, per-task-type success rates. Score: `success_rate*0.5 + experience*0.2 + speed*0.2 + low_regenerations*0.1`. Router consults preferences for model override.
+- **Files:** Create `preferences.py` (~200 LOC). Modify `goals.py`, `router.py`.
+- **Depends on:** 11.1 (router)
 - **Priority:** P2
 
-### 11.5 — Autonomous Research Loops (port from Hydra)
+### 11.6 — Formal Competition Layer (GWT Phase 3)
 - **Status:** 🔲 todo
-- **Source:** `reference/hydra/src/hydra_tools/autonomous_research.py`, `autonomous_queue.py`
-- **Scope:** Self-directed research: identify knowledge gaps -> search -> analyze -> store. Currently research agent is reactive only. Port the autonomous search/analysis loop.
-- **Port strategy:** Extract search/analysis loop, wire to task engine + scheduler. ~300 lines.
-- **Depends on:** 8.1 (task engine) done, 8.2 (scheduler) done
+- **Source:** `reference/kaizen/cognitive/workspace/competition.py`, `reference/kaizen/cognitive/orchestrator.py`
+- **Scope:** Replace `_competition_cycle()` with proper GWT competition: parallel salience eval, softmax selection (temp 0.3 interactive, 2.0 background), winner broadcasts, inhibition tracking (winners -0.1, losers +0.03).
+- **Files:** Create `competition.py` (~200 LOC). Modify `workspace.py`.
+- **Depends on:** 11.4 (CST + Specialist)
 - **Priority:** P2
 
-### 11.6 — Experience Memory (GWT Phase 4)
+### 11.7 — Agentic RAG / CRAG Pipeline
 - **Status:** 🔲 todo
-- **Scope:** Working memory -> episodic memory consolidation. Hourly sweep of workspace history into long-term Qdrant storage with semantic indexing. Pattern detection across consolidated experiences.
-- **Source pattern:** `reference/kaizen/specs/gwt-architecture.md` (memory tiers section)
+- **Source:** `reference/hydra/src/hydra_tools/agentic_rag.py`
+- **Scope:** Iterative retrieval with quality checking: retrieve -> grade relevance -> rewrite query if bad -> re-retrieve (max 3 iterations) -> generate with citations -> hallucination check.
+- **Files:** Create `crag.py` (~300 LOC). Modify `tools/knowledge.py`.
+- **Depends on:** None (benefits from 11.3)
+- **Priority:** P2
+
+### 11.8 — Autonomous Research Engine
+- **Status:** 🔲 todo
+- **Source:** `reference/hydra/src/hydra_tools/autonomous_research.py`
+- **Scope:** Research job scheduling: topic/sources/schedule/max_duration definitions. Multi-source aggregation (web search, Qdrant, page fetch). Reports stored to Qdrant `knowledge` collection.
+- **Files:** Create `research_jobs.py` (~300 LOC). Modify `scheduler.py`, `server.py`.
+- **Depends on:** None
 - **Priority:** P3
 
 ---

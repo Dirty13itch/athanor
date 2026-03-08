@@ -1,6 +1,6 @@
 # Blocked Tasks
 
-*Updated: 2026-03-07*
+*Updated: 2026-03-07 (Session 37)*
 
 Tasks that cannot proceed without Shaun's physical presence, credentials, or browser access.
 
@@ -45,6 +45,15 @@ Tasks that cannot proceed without Shaun's physical presence, credentials, or bro
 - **What**: Enable DDR5 EXPO profile in BIOS (3600 → 5600 MT/s)
 - **Blocks**: Full memory bandwidth on Node 2
 - **Priority**: Low — functional at 3600, performance improvement only
+
+---
+
+## Network Access
+
+### Enable OpenSSH on DESK (.215)
+- **What**: Enable OpenSSH Server on Windows 11 (`Settings > Apps > Optional Features > Add OpenSSH Server`) or expose WSL SSH
+- **Blocks**: Cross-node session recovery, remote tmux access, claude-squad management from DEV
+- **Priority**: P1 — DEV needs to reach all nodes for full ops center role
 
 ---
 
