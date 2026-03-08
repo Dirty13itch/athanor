@@ -2,7 +2,7 @@
 
 *The complete operational specification. If you could only read one document about how Athanor works, this is it.*
 
-Last updated: 2026-02-26
+Last updated: 2026-03-07
 
 ---
 
@@ -10,7 +10,7 @@ Last updated: 2026-02-26
 
 Athanor is a 4-node homelab that unifies AI inference, media management, home automation, creative tools, and game development under one coherent system. It is owned by Shaun Ulrich and operationally managed by Claude (COO / Meta Orchestrator). Every design decision passes a single filter: **can one person understand, operate, debug, and fix this alone?**
 
-The system runs 7 GPUs (136 GB VRAM), 8 AI agents, 25+ services, and serves a unified Command Center dashboard. All inference routes through a central proxy. All configuration is managed by Ansible. All decisions are documented as ADRs.
+The system runs 8 GPUs (152 GB VRAM) across 4 nodes, 8 AI agents, 55+ services, and serves a unified Command Center dashboard. All inference routes through a central proxy. All configuration is managed by Ansible. All decisions are documented as ADRs.
 
 **What makes it more than a homelab:** The orchestration layer. Claude (cloud AI) operates as COO, directing 8 specialized local AI agents that do real work — managing media, controlling the home, generating images, searching the web, writing code, managing content libraries, answering questions about the system itself. They share a knowledge base (Qdrant vector store + Neo4j graph), route through a unified inference layer (LiteLLM), and are all accessible through a Command Center PWA with chat, monitoring, and task management.
 
@@ -32,17 +32,17 @@ For the full philosophy, see `docs/VISION.md`. For the build history, see `docs/
                        │          │          │          │
               ┌────────┴───┐ ┌───┴────────┐ ┌┴─────────┐ ┌┴────────┐
               │  Foundry   │ │  Workshop  │ │  VAULT   │ │   DEV   │
-              │  Node 1    │ │  Node 2    │ │  NAS     │ │  WSL2   │
-              │  .244      │ │  .225      │ │  .203    │ │  .215   │
+              │  Node 1    │ │  Node 2    │ │  NAS     │ │  Ops    │
+              │  .244      │ │  .225      │ │  .203    │ │  .189   │
               └────────────┘ └────────────┘ └──────────┘ └─────────┘
 ```
 
 | Node | Role | CPU | RAM | GPUs | Key Services |
 |------|------|-----|-----|------|-------------|
-| **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=4, Embedding, Agent Server, Qdrant |
-| **Workshop** (.225) | Light inference, creative, UI | TR 7960X 24C/48T | 128 GB DDR5 | 5090 + 5060 Ti | vLLM (14B), ComfyUI, Dashboard, EoBQ, Open WebUI |
+| **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=2 (Qwen3-32B), GLM-4.7-Flash, Huihui-Qwen3-8B, Agent Server, Qdrant |
+| **Workshop** (.225) | Inference, creative, UI | TR 7960X 24C/48T | 128 GB DDR5 | 5090 + 5060 Ti | vLLM (Qwen3.5-35B-A3B-AWQ), ComfyUI, Dashboard, EoBQ, Open WebUI |
 | **VAULT** (.203) | Storage, routing, media, monitoring | Ryzen 9950X 16C/32T | 128 GB DDR5 | Arc A380 | LiteLLM, Neo4j, Prometheus, Grafana, Plex, *arr, HA |
-| **DEV** (.215) | Development workstation | i7-13700K 16C/24T | 64 GB DDR5 | RTX 3060 12GB | Claude Code (WSL2), Ansible control node |
+| **DEV** (.189) | Development, ops center | Ryzen 9 9900X 12C/24T | 64 GB DDR5 | RTX 5060 Ti 16GB | Claude Code (native Linux), Ansible control, Embedding, Reranker |
 
 ### Data Flows
 
@@ -52,7 +52,7 @@ User (Dashboard/Chat)
   → Dashboard API (Node 2:3001)
     → Agent Server (Node 1:9000)
       → LiteLLM Proxy (VAULT:4000)
-        → vLLM (Node 1:8000 or Node 2:8000)
+        → vLLM (Node 1:8000 or Node 2:8100)
       ← Response streams back through same path
 ```
 
@@ -79,17 +79,21 @@ scripts/index-knowledge.py (DEV cron or manual)
 
 Full inventory in `docs/SERVICES.md`. Summary:
 
-- **Node 1 (7 services):** vLLM (32B), vLLM Embedding, Agent Server, Qdrant, GPU Orchestrator, node_exporter, dcgm-exporter
-- **Node 2 (7 services):** vLLM (14B), Dashboard, ComfyUI, EoBQ, Open WebUI, node_exporter, dcgm-exporter
-- **VAULT (12 services):** LiteLLM, Neo4j, Prometheus, Grafana, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant
+- **Node 1 (11 containers):** vLLM Qwen3-32B (TP=2), vLLM GLM-4.7-Flash, vLLM Huihui-Qwen3-8B, Agent Server, Qdrant, GPU Orchestrator, node_exporter, dcgm-exporter
+- **Node 2 (7 services):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ComfyUI, EoBQ, Open WebUI, node_exporter, dcgm-exporter
+- **VAULT (36 containers):** LiteLLM, LangFuse, Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, and more
+- **DEV (2 services):** Embedding model (:8001), Reranker (:8003)
 
 ### Model Inventory
 
 | Model | Size | Location | GPU(s) | Purpose | LiteLLM Alias |
 |-------|------|----------|--------|---------|---------------|
-| Qwen3-32B-AWQ | 18 GB | Node 1:8000 | GPUs 0-3 (TP=4) | Reasoning, agents | `reasoning` |
-| Qwen3.5-27B-AWQ | ~16 GB | Node 2:8000 | GPU 0 (5090) | Fast inference | `fast` |
-| Qwen3-Embedding-0.6B | 1.2 GB | Node 1:8001 | GPU 4 (5070 Ti) | Embeddings | `embedding` |
+| Qwen3-32B-AWQ | 18 GB | Node 1:8000 | GPUs 0-1 (TP=2) | Reasoning, agents | `reasoning` |
+| GLM-4.7-9B-Flash | ~10 GB | Node 1:8002 | GPU 3 (4090) | Fast/utility | `fast` |
+| Huihui-Qwen3-8B | ~5 GB | Node 1:8003 | GPU 2 (5070 Ti) | Uncensored | — |
+| Qwen3.5-35B-A3B-AWQ | ~22 GB | Node 2:8100 | GPU 0 (5090) | Fast agent inference | `fast-agent` |
+| Qwen3-Embedding-0.6B | 1.2 GB | DEV:8001 | GPU 0 (5060 Ti) | Embeddings | `embedding` |
+| Reranker | — | DEV:8003 | GPU 0 (5060 Ti) | Reranking | `reranker` |
 | Flux dev FP8 | 17 GB | Node 2 ComfyUI | GPU 1 (5060 Ti) | Image generation | — |
 
 All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use model aliases (`reasoning`, `fast`, `embedding`), never direct URLs.
@@ -181,14 +185,14 @@ Thresholds are per-agent and per-action-type:
 | Interface | Operator | Use Case |
 |-----------|----------|----------|
 | **Command Center** (Node 2:3001) | Shaun (primary) | System overview, agent chat, monitoring, task management, goals |
-| **Claude Code** (DEV/WSL2) | Claude (COO) | Architecture, builds, infrastructure, agent coordination |
-| **Claudeman** (DEV:3000) | Claude (COO) | Multi-session autonomous operations, overnight builds |
+| **Claude Code** (DEV) | Claude (COO) | Architecture, builds, infrastructure, agent coordination |
+| **claude-squad** (DEV) | Claude (COO) | Multi-session autonomous operations, overnight builds |
 | **Task API** (Node 1:9000) | Claude → Agents | Automated task routing and execution |
 | **Open WebUI** (Node 2:3000) | Shaun | Direct model chat (no agents, legacy) |
 | **Voice** | Shaun | STT/TTS/wake word via HA Wyoming integration |
 | **Mobile** | Shaun | Command Center PWA (responsive), Claudeman (HTTPS) |
 
-The Command Center is the primary dashboard — a Next.js PWA with dark theme, 5 lens modes, live system metrics, generative UI, and chat to any of the 8 agents. Claude operates through Claude Code / Claudeman, directing the local agent workforce via the task API and MCP bridge.
+The Command Center is the primary dashboard — a Next.js PWA with dark theme, 5 lens modes, live system metrics, generative UI, and chat to any of the 8 agents. Claude operates through Claude Code / claude-squad, directing the local agent workforce via the task API and MCP bridge.
 
 ### Transparency Model
 
@@ -327,7 +331,7 @@ Agents respond to requests. No memory between invocations beyond what's in the c
 
 ### Layer 2: Accumulated Knowledge (deployed)
 
-Knowledge base (922 vectors), preferences collection, activity logging, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (30 nodes, 29 relationships).
+Knowledge base (922 vectors), preferences collection, activity logging, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (43 relationships).
 
 **What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config).
 
@@ -379,15 +383,16 @@ Full details in `docs/design/intelligence-layers.md`.
 
 | GPU | Node | VRAM | Current Workload | Utilization |
 |-----|------|------|-----------------|-------------|
-| GPU 0 (5070 Ti) | Node 1 | 16 GB | vLLM TP=4 shard | ~10-27% |
-| GPU 1 (5070 Ti) | Node 1 | 16 GB | vLLM TP=4 shard | ~10-27% |
-| GPU 2 (5070 Ti) | Node 1 | 16 GB | vLLM TP=4 shard | ~10-27% |
-| GPU 3 (4090) | Node 1 | 24 GB | vLLM TP=4 shard | ~10-27% |
-| GPU 4 (5070 Ti) | Node 1 | 16 GB | Embedding model (1.2 GB used) | <5% |
-| GPU 0 (5090) | Node 2 | 32 GB | vLLM Qwen3.5-27B-AWQ | ~10-15% |
+| GPU 0 (5070 Ti) | Node 1 | 16 GB | vLLM TP=2 shard (Qwen3-32B) | ~10-27% |
+| GPU 1 (5070 Ti) | Node 1 | 16 GB | vLLM TP=2 shard (Qwen3-32B) | ~10-27% |
+| GPU 2 (5070 Ti) | Node 1 | 16 GB | Huihui-Qwen3-8B | ~10% |
+| GPU 3 (4090) | Node 1 | 24 GB | GLM-4.7-9B-Flash | ~10% |
+| GPU 4 (5070 Ti) | Node 1 | 16 GB | Idle | 0% |
+| GPU 0 (5090) | Node 2 | 32 GB | vLLM Qwen3.5-35B-A3B-AWQ | ~10-15% |
 | GPU 1 (5060 Ti) | Node 2 | 16 GB | ComfyUI Flux | <5% (idle unless generating) |
+| GPU 0 (5060 Ti) | DEV | 16 GB | Embedding + Reranker (~2 GB used) | <5% |
 
-**Total:** 136 GB VRAM allocated, ~15% average compute utilization.
+**Total:** 152 GB VRAM across 8 GPUs (4 nodes), ~15% average compute utilization.
 
 **Planned optimization (ADR-018):** Custom GPU orchestrator with vLLM Sleep Mode integration. Priority-based scheduling: Interactive > Agent > Creative > Batch > Training. Sleep-level 1 frees ~80% VRAM (wake <1s), level 2 frees ~100% (wake ~5-10s).
 
@@ -416,7 +421,7 @@ Full details in `docs/design/intelligence-layers.md`.
 |-------|--------|-------|---------|
 | `/mnt/vault/models` | VAULT NFS | Node 1, Node 2 | Shared model files |
 | `/mnt/vault/data` | VAULT NFS | Node 1, Node 2 | Shared data (backups, outputs) |
-| VAULT HDD array | Local | VAULT | 164 TB usable, 89% used |
+| VAULT HDD array | Local | VAULT | 164 TB usable, 88% used (143T) |
 
 **Gotcha:** NFS mounts go stale after VAULT reboots. The Ansible common role auto-recovers, but manual fix is `sudo umount -f /mnt/vault/models && sudo mount -a`.
 
@@ -479,7 +484,7 @@ Claude identifies need
               → Claude updates tracking files
 ```
 
-19 ADRs documented to date. Every technology choice has a rationale and evaluated alternatives.
+21 ADRs documented to date. Every technology choice has a rationale and evaluated alternatives.
 
 ### Incident Process (planned)
 
