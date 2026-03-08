@@ -352,9 +352,13 @@ def _build_context_message(
     pattern_lines: list[str] | None = None,
     convention_lines: list[str] | None = None,
     personal_data_lines: list[str] | None = None,
+    cst_line: str = "",
 ) -> str:
     """Assemble the final context injection string."""
     sections = []
+
+    if cst_line:
+        sections.append(f"## Cognitive State\n{cst_line}")
 
     if goal_lines:
         sections.append(
@@ -482,6 +486,16 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     knowledge = results[2] if not isinstance(results[2], BaseException) else []
     personal_data = results[3] if not isinstance(results[3], BaseException) else []
 
+    # Step 2b: Fetch CST state (Redis, fast)
+    cst_line = ""
+    try:
+        from .cst import get_cst
+        cst = await get_cst()
+        if cst.cycle_count > 0:
+            cst_line = cst.to_context_string()
+    except Exception:
+        pass
+
     # Step 3: Fetch active goals + patterns (Redis, fast)
     goal_lines = []
     try:
@@ -533,4 +547,5 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     return _build_context_message(
         pref_lines, activity_lines, knowledge_lines, agent_name,
         goal_lines, pattern_lines, convention_lines, personal_data_lines,
+        cst_line,
     )

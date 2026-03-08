@@ -314,6 +314,23 @@ async def _competition_cycle():
                 # Publish to subscribers
                 await r.publish(WORKSPACE_BROADCAST_CHANNEL, entry)
 
+                # Update Continuous State Tensor from broadcast
+                try:
+                    from .cst import update_cst_from_broadcast
+
+                    # Build broadcast summary for CST update
+                    top = broadcast[0]
+                    cst_broadcast = {
+                        "specialist": top.source_agent,
+                        "content": top.content[:200],
+                        "confidence": min(top.salience, 1.0),
+                        "urgency": 0.5 if top.priority.value in ("critical", "high") else 0.2,
+                        "topics": {top.source_agent: 0.3},
+                    }
+                    await update_cst_from_broadcast(cst_broadcast)
+                except Exception as e:
+                    logger.debug("CST update failed: %s", e)
+
             # Phase 3: Trigger reactive tasks every 10 cycles (10s)
             reaction_counter += 1
             if broadcast and reaction_counter >= 10:

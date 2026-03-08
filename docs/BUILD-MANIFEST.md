@@ -580,7 +580,7 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Priority:** P1
 
 ### 11.4 — Continuous State Tensor + Specialist Interface
-- **Status:** 🔲 todo
+- **Status:** ✅ done (Session 38)
 - **Source:** `reference/kaizen/cognitive/workspace/cst.py`, `reference/kaizen/cognitive/specialists/base.py`
 - **Scope:** CST in Redis: salience map (topic -> float, 0.95x decay), attention mode, working memory (bounded FIFO, max 20), goal stack. Specialist ABC wraps LangGraph agents with `evaluate_salience()` and `generate_proposal()`.
 - **Files:** Create `cst.py` (~200 LOC), `specialist.py` (~180 LOC). Modify `workspace.py`, `context.py`.

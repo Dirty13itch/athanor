@@ -1,0 +1,247 @@
+"""Specialist Interface — wraps agents for GWT competition.
+
+Each Athanor agent is wrapped as a Specialist with:
+- evaluate_salience(): keyword matching + router task-type scoring
+- inhibition tracking: wins decrease (-0.1), losses increase (+0.03)
+- generate_proposal(): for competition layer (Phase 3)
+
+Ported from: reference/kaizen/cognitive/specialists/base.py
+Adapted for Athanor: uses workspace subscription keywords for salience,
+router task-type for domain matching, no numpy dependency.
+"""
+
+import logging
+import math
+import random
+import time
+from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
+
+# Inhibition bounds
+MAX_INHIBITION = 0.8
+INHIBITION_WIN_DELTA = -0.1
+INHIBITION_LOSS_DELTA = 0.03
+
+# Minimum salience to participate in competition
+MIN_SALIENCE = 0.2
+
+
+@dataclass
+class Proposal:
+    """A specialist's bid for workspace broadcast access."""
+    content: str
+    confidence: float        # 0-1
+    relevance: float         # 0-1
+    urgency: float           # 0-1
+    specialist_id: str
+    reasoning: str = ""
+    tool_calls: list[dict] = field(default_factory=list)
+    topics: dict[str, float] = field(default_factory=dict)
+    metadata: dict = field(default_factory=dict)
+
+    @property
+    def score(self) -> float:
+        """Weighted score: relevance 40%, confidence 30%, urgency 30%."""
+        return self.confidence * 0.3 + self.relevance * 0.4 + self.urgency * 0.3
+
+
+class Specialist:
+    """Wraps an Athanor agent for GWT competition participation.
+
+    Maintains inhibition state and provides salience evaluation
+    based on keyword matching against the agent's subscriptions.
+    """
+
+    def __init__(
+        self,
+        agent_name: str,
+        keywords: list[str] | None = None,
+        task_types: list[str] | None = None,
+    ):
+        self.agent_name = agent_name
+        self.keywords = keywords or []
+        self.task_types = task_types or []
+
+        # Competition state
+        self.inhibition: float = 0.0
+        self.wins: int = 0
+        self.losses: int = 0
+        self.total_proposals: int = 0
+        self.last_win_time: float = 0.0
+
+    def evaluate_salience(self, text: str, task_type: str = "") -> float:
+        """Evaluate how relevant this specialist is to the input.
+
+        Combines keyword matching with task-type affinity.
+
+        Args:
+            text: Input text to evaluate.
+            task_type: Router-determined task type (from router.py).
+
+        Returns:
+            Salience score 0-1.
+        """
+        score = 0.0
+
+        # Keyword matching (up to 0.6)
+        if self.keywords:
+            text_lower = text.lower()
+            matches = sum(1 for kw in self.keywords if kw.lower() in text_lower)
+            keyword_score = min(matches / max(len(self.keywords) * 0.3, 1), 1.0)
+            score += keyword_score * 0.6
+
+        # Task type affinity (up to 0.4)
+        if task_type and self.task_types:
+            if task_type in self.task_types:
+                score += 0.4
+
+        return min(score, 1.0)
+
+    def apply_competition_result(self, won: bool) -> None:
+        """Update inhibition after a competition round.
+
+        Winners: inhibition decreases (more likely to win again).
+        Losers: inhibition increases (less likely next time).
+        Capped at MAX_INHIBITION to prevent permanent suppression.
+        """
+        if won:
+            self.wins += 1
+            self.inhibition = max(0.0, self.inhibition + INHIBITION_WIN_DELTA)
+            self.last_win_time = time.time()
+        else:
+            self.losses += 1
+            self.inhibition = min(MAX_INHIBITION, self.inhibition + INHIBITION_LOSS_DELTA)
+
+    def competition_score(self, proposal_score: float, salience: float) -> float:
+        """Compute final competition score for a proposal.
+
+        score = (proposal_score * 0.7 + salience * 0.3) * (1 - inhibition)
+        """
+        raw = proposal_score * 0.7 + salience * 0.3
+        return raw * (1.0 - self.inhibition)
+
+    def to_dict(self) -> dict:
+        return {
+            "agent_name": self.agent_name,
+            "inhibition": round(self.inhibition, 3),
+            "wins": self.wins,
+            "losses": self.losses,
+            "total_proposals": self.total_proposals,
+            "keywords": self.keywords,
+            "task_types": self.task_types,
+        }
+
+
+def softmax_select(
+    scores: list[float],
+    temperature: float = 1.0,
+) -> int:
+    """Stochastic selection via softmax over scores.
+
+    Args:
+        scores: List of competition scores.
+        temperature: Controls randomness.
+            Low (0.3): sharper, exploitative.
+            High (2.0): flatter, explorative.
+
+    Returns:
+        Index of selected winner.
+    """
+    if not scores:
+        return 0
+    if len(scores) == 1:
+        return 0
+
+    # Scale by temperature
+    scaled = [s / max(temperature, 0.01) for s in scores]
+
+    # Numerical stability: subtract max
+    max_s = max(scaled)
+    exp_scores = [math.exp(s - max_s) for s in scaled]
+    total = sum(exp_scores)
+    probs = [e / total for e in exp_scores]
+
+    # Weighted random selection
+    r = random.random()
+    cumulative = 0.0
+    for i, p in enumerate(probs):
+        cumulative += p
+        if r <= cumulative:
+            return i
+    return len(scores) - 1  # Fallback
+
+
+# --- Default specialist registry ---
+
+# Maps agent names to their specialist configurations.
+# Keywords come from workspace subscription defaults.
+# Task types come from router.py TaskType enum.
+
+DEFAULT_SPECIALISTS: dict[str, dict] = {
+    "general-assistant": {
+        "keywords": ["system", "health", "status", "cluster", "infrastructure", "help"],
+        "task_types": ["conversation", "quick_query", "system"],
+    },
+    "media-agent": {
+        "keywords": ["movie", "show", "series", "plex", "sonarr", "radarr", "download", "watch"],
+        "task_types": ["media"],
+    },
+    "home-agent": {
+        "keywords": ["light", "temperature", "climate", "automation", "home", "sensor"],
+        "task_types": ["system"],
+    },
+    "research-agent": {
+        "keywords": ["research", "investigate", "find", "search", "latest", "compare"],
+        "task_types": ["research", "analysis"],
+    },
+    "creative-agent": {
+        "keywords": ["image", "generate", "creative", "art", "draw", "style", "design"],
+        "task_types": ["creative"],
+    },
+    "knowledge-agent": {
+        "keywords": ["knowledge", "document", "adr", "architecture", "graph", "entity"],
+        "task_types": ["research", "summarization"],
+    },
+    "coding-agent": {
+        "keywords": ["code", "bug", "fix", "implement", "test", "refactor", "python", "api"],
+        "task_types": ["coding"],
+    },
+    "stash-agent": {
+        "keywords": ["stash", "content", "nsfw", "collection", "tag"],
+        "task_types": ["media"],
+    },
+    "data-curator": {
+        "keywords": ["index", "scan", "file", "data", "document", "ingest", "personal"],
+        "task_types": ["analysis"],
+    },
+}
+
+
+def build_specialists() -> dict[str, Specialist]:
+    """Build the specialist registry from defaults."""
+    specialists = {}
+    for name, config in DEFAULT_SPECIALISTS.items():
+        specialists[name] = Specialist(
+            agent_name=name,
+            keywords=config["keywords"],
+            task_types=config["task_types"],
+        )
+    return specialists
+
+
+# Module-level singleton
+_specialists: dict[str, Specialist] | None = None
+
+
+def get_specialists() -> dict[str, Specialist]:
+    """Get or create the specialist registry."""
+    global _specialists
+    if _specialists is None:
+        _specialists = build_specialists()
+    return _specialists
+
+
+def get_specialist(agent_name: str) -> Specialist | None:
+    """Get a single specialist by agent name."""
+    return get_specialists().get(agent_name)
