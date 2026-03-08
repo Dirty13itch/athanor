@@ -327,6 +327,18 @@ async def _check_alerts():
         logger.warning("Alert check failed: %s", e)
 
 
+async def _check_research_jobs():
+    """Check for autonomous research jobs that need to run."""
+    try:
+        from .research_jobs import check_scheduled_jobs
+
+        triggered = await check_scheduled_jobs()
+        if triggered > 0:
+            logger.info("Scheduler: triggered %d research job(s)", triggered)
+    except Exception as e:
+        logger.warning("Scheduler: research job check failed: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -351,6 +363,9 @@ async def _scheduler_loop():
 
             # Check work plan refill (every 2 hours)
             await _check_workplan_refill()
+
+            # Check autonomous research jobs
+            await _check_research_jobs()
 
             for agent, schedule in AGENT_SCHEDULES.items():
                 if not schedule.get("enabled", True):

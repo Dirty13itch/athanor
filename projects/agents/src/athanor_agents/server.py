@@ -1314,6 +1314,63 @@ async def get_preferences():
     return await get_all_preferences()
 
 
+# --- Research Jobs ---
+
+
+@app.post("/v1/research/jobs")
+async def create_research_job(request: Request):
+    """Create a new autonomous research job.
+
+    Body: {"topic": "latest vLLM optimizations", "description": "...",
+           "sources": ["web_search", "knowledge_base"],
+           "schedule_hours": 0, "max_duration_minutes": 60}
+    """
+    from .research_jobs import create_job
+
+    body = await request.json()
+    topic = body.get("topic", "")
+    if not topic:
+        return JSONResponse(status_code=400, content={"error": "topic is required"})
+
+    job = await create_job(
+        topic=topic,
+        description=body.get("description", ""),
+        sources=body.get("sources"),
+        schedule_hours=body.get("schedule_hours", 0),
+        max_duration_minutes=body.get("max_duration_minutes", 60),
+    )
+    return job.to_dict()
+
+
+@app.get("/v1/research/jobs")
+async def list_research_jobs(status: str = ""):
+    """List all research jobs, optionally filtered by status."""
+    from .research_jobs import list_jobs
+
+    return await list_jobs(status=status)
+
+
+@app.post("/v1/research/jobs/{job_id}/execute")
+async def execute_research_job(job_id: str):
+    """Execute a research job immediately."""
+    from .research_jobs import execute_job
+
+    result = await execute_job(job_id)
+    if "error" in result:
+        return JSONResponse(status_code=404, content=result)
+    return result
+
+
+@app.delete("/v1/research/jobs/{job_id}")
+async def delete_research_job(job_id: str):
+    """Delete a research job."""
+    from .research_jobs import delete_job
+
+    if await delete_job(job_id):
+        return {"status": "deleted", "job_id": job_id}
+    return JSONResponse(status_code=404, content={"error": f"Job {job_id} not found"})
+
+
 # --- Memory Consolidation ---
 
 
