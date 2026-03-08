@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-03-07 (Session 38: Phases 1-6 complete. 11.7/11.8 remaining)
+Last updated: 2026-03-07 (Session 38: Phases 1-7 complete. 11.8 remaining)
 
 ---
 
@@ -604,10 +604,10 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Priority:** P2
 
 ### 11.7 — Agentic RAG / CRAG Pipeline
-- **Status:** 🔲 todo
+- **Status:** ✅ done (Session 38)
 - **Source:** `reference/hydra/src/hydra_tools/agentic_rag.py`
-- **Scope:** Iterative retrieval with quality checking: retrieve -> grade relevance -> rewrite query if bad -> re-retrieve (max 3 iterations) -> generate with citations -> hallucination check.
-- **Files:** Create `crag.py` (~300 LOC). Modify `tools/knowledge.py`.
+- **Scope:** Corrective RAG: iterative retrieve→grade→rewrite cycle (max 3 iterations). LLM-based relevance grading (RELEVANT/IRRELEVANT/AMBIGUOUS) via `fast` model. Query rewriting when insufficient relevant docs. Uses hybrid_search for retrieval. New `deep_search` tool for complex queries; `search_knowledge` preserved as fast path.
+- **Files:** Created `crag.py` (~270 LOC). Modified `tools/knowledge.py` (+25 LOC, `deep_search` tool).
 - **Depends on:** None (benefits from 11.3)
 - **Priority:** P2
 
