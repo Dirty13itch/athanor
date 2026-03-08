@@ -156,6 +156,125 @@ async def get_redis() -> aioredis.Redis:
     return _redis
 
 
+# --- Node heartbeat / cluster capacity ---
+
+HEARTBEAT_KEY_PREFIX = "athanor:heartbeat:"
+HEARTBEAT_NODES = ("foundry", "workshop", "dev")
+HEARTBEAT_STALE_SECONDS = 30.0
+
+# Model-alias → preferred node
+_MODEL_ALIAS_MAP: dict[str, str] = {
+    "reasoning": "foundry",
+    "coordinator": "foundry",
+    "utility": "foundry",
+    "fast": "foundry",
+    "worker": "workshop",
+    "embedding": "dev",
+    "reranker": "dev",
+}
+
+# Agent name → node where its backing model runs
+_AGENT_NODE_MAP: dict[str, str] = {
+    "media-agent": "foundry",
+    "home-agent": "foundry",
+    "research-agent": "foundry",
+    "coding-agent": "foundry",
+    "creative-agent": "workshop",
+    "knowledge-agent": "dev",
+}
+
+
+async def get_cluster_capacity() -> dict[str, dict]:
+    """Read heartbeat data from Redis for all cluster nodes.
+
+    Returns a dict keyed by node name::
+
+        {
+          "foundry": {
+            "alive": True,
+            "stale": False,
+            "timestamp": 1773012824.4,
+            "gpus": [ {index, name, vram_used_mib, vram_total_mib, util_pct, ...} ],
+            "system": {load_1m, ram_available_mb, ...},
+            "models": {"coordinator": {"healthy": True, "model": "..."}},
+          },
+          ...
+        }
+
+    If a heartbeat key is missing the node entry has ``alive: False``.
+    """
+    r = await get_redis()
+    now = time.time()
+    capacity: dict[str, dict] = {}
+
+    for node in HEARTBEAT_NODES:
+        key = f"{HEARTBEAT_KEY_PREFIX}{node}"
+        try:
+            raw = await r.get(key)
+            if raw is None:
+                capacity[node] = {"alive": False, "stale": True, "models": {}}
+                continue
+            data = json.loads(raw)
+            ts = data.get("timestamp", 0)
+            capacity[node] = {
+                "alive": True,
+                "stale": (now - ts) > HEARTBEAT_STALE_SECONDS,
+                "timestamp": ts,
+                "gpus": data.get("gpus", []),
+                "system": data.get("system", {}),
+                "models": data.get("models", {}),
+            }
+        except Exception as e:
+            logger.warning("Failed to read heartbeat for %s: %s", node, e)
+            capacity[node] = {"alive": False, "stale": True, "models": {}}
+
+    return capacity
+
+
+async def get_best_node_for_model(model_alias: str) -> tuple[str, bool]:
+    """Resolve a model alias to the preferred node and its health status.
+
+    Args:
+        model_alias: One of reasoning, coordinator, utility, fast, worker,
+                     embedding, reranker.
+
+    Returns:
+        (node_name, healthy) — *healthy* is ``True`` when the heartbeat is
+        present, not stale, and the matching model slot reports healthy.
+    """
+    node = _MODEL_ALIAS_MAP.get(model_alias.lower())
+    if node is None:
+        logger.warning("Unknown model alias '%s', defaulting to foundry", model_alias)
+        node = "foundry"
+
+    try:
+        capacity = await get_cluster_capacity()
+        info = capacity.get(node, {})
+        if not info.get("alive") or info.get("stale"):
+            return node, False
+
+        # Check the specific model slot that matches the alias
+        models = info.get("models", {})
+        # Map alias → model slot name in heartbeat
+        # Heartbeat slot names: foundry={coordinator,utility}, workshop={worker}, dev={embedding,reranker}
+        slot_map = {
+            "reasoning": "coordinator",
+            "coordinator": "coordinator",
+            "utility": "utility",
+            "fast": "utility",
+            "worker": "worker",
+            "embedding": "embedding",
+            "reranker": "reranker",
+        }
+        slot = slot_map.get(model_alias.lower(), "coordinator")
+        model_info = models.get(slot, {})
+        healthy = model_info.get("healthy", False)
+        return node, healthy
+    except Exception as e:
+        logger.warning("Heartbeat check failed for alias '%s': %s", model_alias, e)
+        return node, False
+
+
 async def post_item(
     source_agent: str,
     content: str,
@@ -613,6 +732,32 @@ async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
             # Check cooldown
             if await _check_reaction_cooldown(item.id, agent_name):
                 continue
+
+            # Check node health before queuing work that will fail
+            target_node = _AGENT_NODE_MAP.get(agent_name)
+            if target_node:
+                try:
+                    capacity = await get_cluster_capacity()
+                    node_info = capacity.get(target_node, {})
+                    if not node_info.get("alive") or node_info.get("stale"):
+                        logger.warning(
+                            "Skipping reactive task for %s: node '%s' heartbeat missing/stale",
+                            agent_name, target_node,
+                        )
+                        continue
+                    node_models = node_info.get("models", {})
+                    unhealthy = [
+                        slot for slot, m in node_models.items()
+                        if not m.get("healthy", False)
+                    ]
+                    if unhealthy:
+                        logger.warning(
+                            "Skipping reactive task for %s: node '%s' has unhealthy models %s",
+                            agent_name, target_node, unhealthy,
+                        )
+                        continue
+                except Exception as e:
+                    logger.debug("Heartbeat check failed for %s, proceeding anyway: %s", agent_name, e)
 
             # Build reactive task prompt
             prompt = sub.react_prompt_template.format(

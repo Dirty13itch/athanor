@@ -46,6 +46,7 @@ AGENT_CONTEXT_CONFIG = {
         "activity_limit": 3,
         "knowledge_limit": 2,
         "personal_limit": 3,
+        "conversations_limit": 3,
         "pref_boost": "system monitoring detail level verbosity",
     },
     "media-agent": {
@@ -53,6 +54,7 @@ AGENT_CONTEXT_CONFIG = {
         "activity_limit": 5,
         "knowledge_limit": 0,  # media agent doesn't need doc knowledge
         "personal_limit": 0,
+        "conversations_limit": 2,
         "pref_boost": "media content quality viewing genre preferences",
     },
     "home-agent": {
@@ -60,6 +62,7 @@ AGENT_CONTEXT_CONFIG = {
         "activity_limit": 5,
         "knowledge_limit": 0,
         "personal_limit": 2,
+        "conversations_limit": 2,
         "pref_boost": "home comfort temperature lighting schedule preferences",
     },
     "research-agent": {
@@ -67,6 +70,7 @@ AGENT_CONTEXT_CONFIG = {
         "activity_limit": 3,
         "knowledge_limit": 3,  # research benefits from prior docs
         "personal_limit": 3,
+        "conversations_limit": 3,
         "pref_boost": "research depth format citation preferences",
     },
     "creative-agent": {
@@ -74,6 +78,7 @@ AGENT_CONTEXT_CONFIG = {
         "activity_limit": 3,
         "knowledge_limit": 0,
         "personal_limit": 0,
+        "conversations_limit": 2,
         "pref_boost": "image style creative visual artistic preferences",
     },
     "knowledge-agent": {
@@ -81,6 +86,7 @@ AGENT_CONTEXT_CONFIG = {
         "activity_limit": 3,
         "knowledge_limit": 0,  # knowledge agent has its own search tools
         "personal_limit": 5,
+        "conversations_limit": 2,
         "pref_boost": "knowledge format detail preferences",
     },
     "coding-agent": {
@@ -88,6 +94,7 @@ AGENT_CONTEXT_CONFIG = {
         "activity_limit": 3,
         "knowledge_limit": 2,
         "personal_limit": 2,
+        "conversations_limit": 3,
         "pref_boost": "coding conventions style technology stack preferences",
     },
     "data-curator": {
@@ -95,6 +102,7 @@ AGENT_CONTEXT_CONFIG = {
         "activity_limit": 5,  # needs history to avoid re-indexing
         "knowledge_limit": 0,  # has its own search tools
         "personal_limit": 5,
+        "conversations_limit": 2,
         "pref_boost": "personal data files documents organization indexing preferences",
     },
 }
@@ -105,6 +113,7 @@ _DEFAULT_CONFIG = {
     "activity_limit": 3,
     "knowledge_limit": 2,
     "personal_limit": 0,
+    "conversations_limit": 2,
     "pref_boost": "",
 }
 
@@ -318,6 +327,21 @@ def _format_personal_data(results: list[dict]) -> list[str]:
     return lines
 
 
+def _format_conversations(results: list[dict]) -> list[str]:
+    """Format conversation history results into context text."""
+    lines = []
+    for r in results:
+        payload = r.get("payload", {})
+        ts = payload.get("timestamp", "")[:16]
+        user_msg = payload.get("user_message", "")[:150]
+        assistant_msg = payload.get("assistant_response", "")[:150]
+        if user_msg:
+            lines.append(f"- [{ts}] User: {user_msg}")
+            if assistant_msg:
+                lines.append(f"  Response: {assistant_msg}")
+    return lines
+
+
 def _format_patterns(patterns: list[dict]) -> list[str]:
     """Format detected patterns into context text."""
     lines = []
@@ -352,6 +376,7 @@ def _build_context_message(
     pattern_lines: list[str] | None = None,
     convention_lines: list[str] | None = None,
     personal_data_lines: list[str] | None = None,
+    conversation_lines: list[str] | None = None,
     cst_line: str = "",
 ) -> str:
     """Assemble the final context injection string."""
@@ -409,6 +434,13 @@ def _build_context_message(
             + "\n".join(personal_data_lines)
         )
 
+    if conversation_lines:
+        sections.append(
+            f"## Previous Conversations ({agent_name})\n"
+            "Relevant past conversations with this agent:\n"
+            + "\n".join(conversation_lines)
+        )
+
     if not sections:
         return ""
 
@@ -461,6 +493,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     activity_limit = config.get("activity_limit", 3)
     knowledge_limit = config.get("knowledge_limit", 2)
     personal_limit = config.get("personal_limit", 0)
+    conversations_limit = config.get("conversations_limit", 2)
 
     # Build preference filter (agent-specific OR global)
     pref_filter = None
@@ -472,11 +505,19 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
             ]
         }
 
+    # Build conversation filter (agent-specific)
+    conv_filter = None
+    if agent_name and conversations_limit > 0:
+        conv_filter = {
+            "must": [{"key": "agent", "match": {"value": agent_name}}]
+        }
+
     tasks = [
         _search_preferences_with_decay(vector, prefs_limit, pref_filter),
         _scroll_activity(agent_name, activity_limit),
         _hybrid_search_collection("knowledge", vector, user_message, knowledge_limit),
         _hybrid_search_collection("personal_data", vector, user_message, personal_limit),
+        _search_collection("conversations", vector, conversations_limit, conv_filter),
     ]
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -485,6 +526,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     activity = results[1] if not isinstance(results[1], BaseException) else []
     knowledge = results[2] if not isinstance(results[2], BaseException) else []
     personal_data = results[3] if not isinstance(results[3], BaseException) else []
+    conversations = results[4] if not isinstance(results[4], BaseException) else []
 
     # Step 2b: Fetch CST state (Redis, fast)
     cst_line = ""
@@ -526,18 +568,20 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     activity_lines = _format_activity(activity, agent_name)
     knowledge_lines = _format_knowledge(knowledge)
     personal_data_lines = _format_personal_data(personal_data)
+    conversation_lines = _format_conversations(conversations)
 
     elapsed_ms = int((time.monotonic() - start) * 1000)
-    total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines) + len(personal_data_lines)
+    total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines) + len(personal_data_lines) + len(conversation_lines) // 2
 
     if total_hits > 0 or goal_lines or pattern_lines or convention_lines:
         logger.info(
-            "Context enrichment for %s: %d prefs, %d activity, %d knowledge, %d personal, %d goals, %d patterns, %d conventions (%dms)",
+            "Context enrichment for %s: %d prefs, %d activity, %d knowledge, %d personal, %d convos, %d goals, %d patterns, %d conventions (%dms)",
             agent_name,
             len(pref_lines),
             len(activity_lines) // 2,  # 2 lines per activity item
             len(knowledge_lines),
             len(personal_data_lines),
+            len(conversation_lines) // 2,
             len(goal_lines),
             len(pattern_lines),
             len(convention_lines),
@@ -547,5 +591,5 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     return _build_context_message(
         pref_lines, activity_lines, knowledge_lines, agent_name,
         goal_lines, pattern_lines, convention_lines, personal_data_lines,
-        cst_line,
+        conversation_lines, cst_line,
     )
