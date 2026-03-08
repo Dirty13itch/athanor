@@ -1,0 +1,12 @@
+---
+# Miniflux RSS reader — intelligence signal ingestion
+miniflux_image: "miniflux/miniflux:2.2.6"
+miniflux_port: 8070
+miniflux_postgres_image: "postgres:16-alpine"
+miniflux_db_name: miniflux
+miniflux_db_user: miniflux
+miniflux_db_password: "miniflux-athanor-2026"
+miniflux_admin_user: admin
+miniflux_admin_password: "athanor2026"
+miniflux_config_path: "/mnt/appdatacache/miniflux"
+miniflux_postgres_data: "/mnt/appdatacache/miniflux-postgres"

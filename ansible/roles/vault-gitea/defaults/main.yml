@@ -1,0 +1,6 @@
+---
+# Gitea self-hosted git server — CI/CD and repo mirroring
+gitea_image: "gitea/gitea:1.23-rootless"
+gitea_port: 3033
+gitea_ssh_port: 2222
+gitea_data_path: "/mnt/appdatacache/gitea"

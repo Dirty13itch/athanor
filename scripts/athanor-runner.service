@@ -1,0 +1,15 @@
+[Unit]
+Description=Gitea Actions Runner (Athanor)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shaun
+WorkingDirectory=/home/shaun/.config/act_runner
+ExecStart=/usr/local/bin/act_runner daemon
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

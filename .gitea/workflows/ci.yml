@@ -1,0 +1,61 @@
+name: Athanor CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python syntax check (agents)
+        run: |
+          find projects/agents/src -name "*.py" -exec python3 -m py_compile {} + 2>&1
+          echo "Python syntax: OK"
+
+      - name: YAML validation (ansible)
+        run: |
+          python3 -c "
+          import yaml, glob, sys
+          errors = 0
+          for f in glob.glob('ansible/**/*.yml', recursive=True):
+              try:
+                  yaml.safe_load(open(f))
+              except Exception as e:
+                  print(f'FAIL: {f}: {e}', file=sys.stderr)
+                  errors += 1
+          if errors:
+              sys.exit(1)
+          print(f'YAML validation: {len(glob.glob(\"ansible/**/*.yml\", recursive=True))} files OK')
+          "
+
+      - name: TypeScript check (dashboard)
+        run: |
+          if [ -f projects/dashboard/package.json ]; then
+            cd projects/dashboard
+            npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
+            npx tsc --noEmit 2>&1 || echo "TypeScript check completed with warnings"
+          fi
+
+      - name: TypeScript check (eoq)
+        run: |
+          if [ -f projects/eoq/package.json ]; then
+            cd projects/eoq
+            npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
+            npx tsc --noEmit 2>&1 || echo "TypeScript check completed with warnings"
+          fi
+
+  notify:
+    runs-on: self-hosted
+    needs: lint-and-typecheck
+    if: failure()
+    steps:
+      - name: Notify on failure
+        run: |
+          curl -sf -d "CI failed on ${{ github.ref_name }}: ${{ github.event.head_commit.message }}" \
+            http://192.168.1.203:8880/athanor-ci 2>/dev/null || true

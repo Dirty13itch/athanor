@@ -1,0 +1,13 @@
+[Unit]
+Description=Athanor Overnight Operations
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=shaun
+WorkingDirectory=/home/shaun/repos/athanor
+ExecStart=/home/shaun/repos/athanor/scripts/overnight-ops.sh
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=21600

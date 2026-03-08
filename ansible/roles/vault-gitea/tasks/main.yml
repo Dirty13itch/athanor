@@ -1,0 +1,46 @@
+---
+# VAULT Gitea: Self-hosted git + CI/CD
+# SQLite backend (lightweight, no extra DB needed)
+
+- name: Create Gitea data directory
+  ansible.builtin.file:
+    path: "{{ gitea_data_path }}"
+    state: directory
+    mode: "0755"
+    owner: "1000"
+    group: "1000"
+
+- name: Run Gitea container
+  community.docker.docker_container:
+    name: gitea
+    image: "{{ gitea_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ gitea_port }}:3000"
+      - "{{ gitea_ssh_port }}:2222"
+    volumes:
+      - "{{ gitea_data_path }}:/data"
+    env:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__server__DOMAIN: "192.168.1.203"
+      GITEA__server__SSH_PORT: "{{ gitea_ssh_port | string }}"
+      GITEA__server__ROOT_URL: "http://192.168.1.203:{{ gitea_port }}"
+      GITEA__actions__ENABLED: "true"
+      TZ: "America/Chicago"
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+  when: not ansible_check_mode
+
+- name: Wait for Gitea to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ gitea_port }}"
+    status_code: 200
+  register: gitea_ready
+  retries: 10
+  delay: 5
+  when: not ansible_check_mode

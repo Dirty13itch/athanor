@@ -1,0 +1,6 @@
+---
+# n8n workflow automation — intelligence signal processing
+n8n_image: "n8nio/n8n:latest"
+n8n_port: 5678
+n8n_data_path: "/mnt/appdatacache/n8n"
+n8n_webhook_url: "http://192.168.1.203:5678"

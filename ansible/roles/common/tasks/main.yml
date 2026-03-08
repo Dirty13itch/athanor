@@ -66,6 +66,14 @@
     comment: "{{ item.comment }}"
   loop: "{{ firewall_allow + (extra_firewall | default([])) }}"
 
+- name: Ensure cluster hostnames in /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '.*\b{{ item.name }}\b'
+    line: "{{ item.ip }} {{ item.name }}"
+    state: present
+  loop: "{{ cluster_hosts }}"
+
 - name: Apply kernel tuning for 10GbE and inference workloads
   ansible.posix.sysctl:
     name: "{{ item.key }}"
