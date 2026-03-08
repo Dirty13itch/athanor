@@ -18,14 +18,13 @@ import asyncio
 import json
 import sys
 import time
-from typing import Any
 
 import httpx
 
 LITELLM_URL = "http://192.168.1.203:4000/v1/chat/completions"
 LITELLM_KEY = "sk-athanor-litellm-2026"
-MODEL = "reasoning"
-MAX_CONCURRENT = 5
+DEFAULT_MODEL = "reasoning"
+DEFAULT_MAX_CONCURRENT = 5
 
 SCORING_PROMPT = """You are a quality evaluator for an AI assistant system called Athanor.
 
@@ -36,7 +35,7 @@ Score this interaction on each dimension using integers 1-5:
 - tool_usage: If tools were used or should have been, were they used well? (1=misused/missed, 5=optimal). Set to null if no tools were relevant.
 
 Respond with ONLY valid JSON, no markdown fences:
-{"helpfulness": N, "accuracy": N, "conciseness": N, "tool_usage": N_or_null, "rationale": "1-2 sentence explanation"}
+{{"helpfulness": N, "accuracy": N, "conciseness": N, "tool_usage": N_or_null, "rationale": "1-2 sentence explanation"}}
 
 ## Interaction
 
@@ -54,6 +53,7 @@ async def score_one(
     semaphore: asyncio.Semaphore,
     index: int,
     total: int,
+    model: str,
 ) -> dict:
     """Score a single interaction via LLM."""
     async with semaphore:
@@ -69,7 +69,7 @@ async def score_one(
                 LITELLM_URL,
                 headers={"Authorization": f"Bearer {LITELLM_KEY}"},
                 json={
-                    "model": MODEL,
+                    "model": model,
                     "messages": [{"role": "user", "content": prompt}],
                     "max_tokens": 300,
                     "temperature": 0.1,
@@ -91,7 +91,7 @@ async def score_one(
             scores = json.loads(content)
             rationale = scores.pop("rationale", "")
 
-            print(f"  [{index+1}/{total}] {interaction.get('trace_id', '?')[:8]} → "
+            print(f"  [{index+1}/{total}] {interaction.get('trace_id', '?')[:8]} -> "
                   f"h={scores.get('helpfulness')} a={scores.get('accuracy')} "
                   f"c={scores.get('conciseness')} t={scores.get('tool_usage')}",
                   file=sys.stderr)
@@ -115,22 +115,20 @@ async def score_one(
             return {**interaction, "scores": None, "scoring_error": str(e)}
 
 
-async def score_all(interactions: list[dict]) -> list[dict]:
+async def score_all(interactions: list[dict], model: str, max_concurrent: int) -> list[dict]:
     """Score all interactions with bounded concurrency."""
-    semaphore = asyncio.Semaphore(MAX_CONCURRENT)
+    semaphore = asyncio.Semaphore(max_concurrent)
     total = len(interactions)
 
     async with httpx.AsyncClient() as client:
         tasks = [
-            score_one(client, interaction, semaphore, i, total)
+            score_one(client, interaction, semaphore, i, total, model)
             for i, interaction in enumerate(interactions)
         ]
         return await asyncio.gather(*tasks)
 
 
 def main():
-    global MODEL, MAX_CONCURRENT
-
     parser = argparse.ArgumentParser(
         description="Score LangFuse interactions using local reasoning model",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -141,12 +139,11 @@ def main():
     )
     parser.add_argument("--input", default="-", help="Input JSON file (- for stdin)")
     parser.add_argument("--output", default="-", help="Output JSON file (- for stdout)")
-    parser.add_argument("--model", default=MODEL, help=f"LiteLLM model alias (default: {MODEL})")
-    parser.add_argument("--max-concurrent", type=int, default=MAX_CONCURRENT, help="Max parallel scoring requests")
+    parser.add_argument("--model", default=DEFAULT_MODEL,
+                        help=f"LiteLLM model alias (default: {DEFAULT_MODEL})")
+    parser.add_argument("--max-concurrent", type=int, default=DEFAULT_MAX_CONCURRENT,
+                        help=f"Max parallel scoring requests (default: {DEFAULT_MAX_CONCURRENT})")
     args = parser.parse_args()
-
-    MODEL = args.model
-    MAX_CONCURRENT = args.max_concurrent
 
     # Read input
     if args.input == "-":
@@ -165,10 +162,11 @@ def main():
         print("ERROR: Input must be a JSON array of interactions", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Scoring {len(interactions)} interactions (max {MAX_CONCURRENT} concurrent)...", file=sys.stderr)
+    print(f"Scoring {len(interactions)} interactions (model={args.model}, "
+          f"max_concurrent={args.max_concurrent})...", file=sys.stderr)
     start = time.time()
 
-    scored = asyncio.run(score_all(interactions))
+    scored = asyncio.run(score_all(interactions, args.model, args.max_concurrent))
 
     elapsed = time.time() - start
     scored_ok = sum(1 for s in scored if s.get("scores") is not None)
