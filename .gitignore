@@ -42,6 +42,9 @@ tmp/
 *.log
 *.bak
 
+# Test logs
+logs/endpoint-tests/
+
 # Claude Code
 .claude/settings.local.json
 .claude/worktrees/
