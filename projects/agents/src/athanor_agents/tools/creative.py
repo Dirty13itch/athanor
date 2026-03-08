@@ -399,4 +399,66 @@ def get_comfyui_status() -> str:
         return f"ComfyUI unreachable: {e}"
 
 
-CREATIVE_TOOLS = [generate_image, generate_video, check_queue, get_generation_history, get_comfyui_status]
+# --- EoBQ Character Portrait Generation ---
+
+# Character visual descriptions for consistent portrait generation
+EOQB_CHARACTERS = {
+    "isolde": "Regal woman in her 30s, sharp angular features, dark auburn hair in elaborate braids threaded with thin gold chains, pale porcelain skin, ice-blue eyes. Wears a fitted black and gold gown with high structured collar. A thin scar runs from her left ear to her jaw.",
+    "seraphine": "Young woman with an ethereal, fragile beauty. Silver-white hair falling past her shoulders, violet eyes with an otherworldly glow. Wears tattered white and lavender robes. Faint magical sigils trace patterns on her skin. Dark circles under her eyes from sleepless visions.",
+    "valeria": "Muscular woman in her late 20s, sun-bronzed skin, close-cropped dark hair with a streak of premature grey. Strong jaw, hawkish nose, amber eyes. Wears battered steel plate armor over chainmail. Multiple battle scars on her arms and face.",
+    "lilith": "Strikingly beautiful woman with an unsettling edge. Long black hair, blood-red lips, dark eyes with flecks of gold. Wears a deep crimson dress that seems to shift between liquid and fabric. Pale skin with a faint luminescence.",
+    "mireille": "Petite woman with sharp, fox-like features. Copper-red curls, freckled skin, bright green eyes that miss nothing. Wears practical dark leather with hidden pockets. Multiple rings and a thin dagger at her belt.",
+}
+
+
+@tool
+def generate_character_portrait(character_name: str, scene_context: str = "", style: str = "cinematic") -> str:
+    """Generate an EoBQ character portrait using Flux on ComfyUI.
+
+    Args:
+        character_name: Character name (isolde, seraphine, valeria, lilith, mireille)
+        scene_context: Optional scene or mood context (e.g., "throne room at night", "after battle")
+        style: Visual style — 'cinematic', 'painting', 'illustration' (default: cinematic)
+
+    Uses stored visual descriptions for character consistency.
+    """
+    name = character_name.lower().strip()
+    base_desc = EOQB_CHARACTERS.get(name)
+    if not base_desc:
+        available = ", ".join(EOQB_CHARACTERS.keys())
+        return f"Unknown character '{character_name}'. Available: {available}"
+
+    style_suffix = {
+        "cinematic": "Cinematic portrait, dramatic side lighting, dark fantasy, 8k, photorealistic, shallow depth of field, film grain.",
+        "painting": "Oil painting style, dramatic chiaroscuro lighting, dark fantasy, rich textures, museum quality, painterly strokes.",
+        "illustration": "High detail fantasy illustration, dark atmospheric, concept art, detailed linework, rich colors.",
+    }.get(style, "Cinematic portrait, dramatic side lighting, dark fantasy, 8k, photorealistic.")
+
+    prompt = f"{base_desc} {scene_context + '. ' if scene_context else ''}{style_suffix}"
+
+    # Use portrait aspect ratio (832x1216)
+    try:
+        workflow = _flux_workflow(prompt, width=832, height=1216, steps=25)
+        client_id = str(uuid.uuid4())
+
+        resp = httpx.post(
+            f"{COMFYUI_URL}/prompt",
+            json={"prompt": workflow, "client_id": client_id},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        prompt_id = data.get("prompt_id", "unknown")
+        return (
+            f"Portrait of {character_name.title()} queued.\n"
+            f"Prompt ID: {prompt_id}\n"
+            f"Style: {style}, 832x1216, 25 steps\n"
+            f"Prompt: {prompt[:120]}...\n"
+            f"Use check_queue to monitor."
+        )
+    except Exception as e:
+        return f"Failed to queue portrait: {e}"
+
+
+CREATIVE_TOOLS = [generate_image, generate_video, generate_character_portrait, check_queue, get_generation_history, get_comfyui_status]

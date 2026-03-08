@@ -585,12 +585,27 @@ async def _task_worker_loop():
             if _running_count < MAX_CONCURRENT_TASKS:
                 task = await _get_next_pending()
                 if task:
-                    # Launch task execution as a background coroutine
-                    asyncio.create_task(_execute_task(task))
-                    logger.info(
-                        "Task %s picked up by worker (agent=%s, running=%d)",
-                        task.id, task.agent, _running_count + 1,
-                    )
+                    # Inference-aware scheduling check
+                    should_run = True
+                    try:
+                        from .scheduling import get_inference_load, should_execute_task
+                        load = await get_inference_load()
+                        allowed, reason = should_execute_task(task.agent, load)
+                        if not allowed:
+                            logger.info(
+                                "Task %s deferred (agent=%s): %s",
+                                task.id, task.agent, reason,
+                            )
+                            should_run = False
+                    except Exception as e:
+                        logger.debug("Scheduling check failed, allowing task: %s", e)
+
+                    if should_run:
+                        asyncio.create_task(_execute_task(task))
+                        logger.info(
+                            "Task %s picked up by worker (agent=%s, running=%d)",
+                            task.id, task.agent, _running_count + 1,
+                        )
 
             # Periodic cleanup of expired tasks
             if time.time() - last_cleanup > CLEANUP_INTERVAL:

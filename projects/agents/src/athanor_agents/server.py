@@ -1303,6 +1303,17 @@ async def get_specialist_state():
     }
 
 
+# --- Inference-Aware Scheduling ---
+
+
+@app.get("/v1/scheduling/status")
+async def scheduling_status():
+    """Get current inference load and agent scheduling state."""
+    from .scheduling import get_scheduling_status
+
+    return await get_scheduling_status()
+
+
 # --- Preference Learning ---
 
 

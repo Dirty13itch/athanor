@@ -182,6 +182,76 @@ def trigger_automation(entity_id: str) -> str:
         return f"Error triggering automation: {e}"
 
 
+# --- Scene and History Tools ---
+
+
+@tool
+def activate_scene(entity_id: str) -> str:
+    """Activate a Home Assistant scene by its entity_id (e.g., 'scene.movie_night')."""
+    try:
+        _ha_post("/services/scene/turn_on", {"entity_id": entity_id})
+        return f"Activated scene: {entity_id}"
+    except Exception as e:
+        return f"Error activating scene: {e}"
+
+
+@tool
+def get_entity_history(entity_id: str, hours: int = 24) -> str:
+    """Get recent state history for an entity over the last N hours. Useful for trend analysis."""
+    from datetime import datetime, timedelta, timezone
+
+    try:
+        start = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        resp = httpx.get(
+            f"{HA_URL}/history/period/{start}",
+            headers=_ha_headers(),
+            params={"filter_entity_id": entity_id, "minimal_response": "true"},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if not data or not data[0]:
+            return f"No history for {entity_id} in last {hours}h."
+
+        entries = data[0]
+        lines = [f"History for {entity_id} (last {hours}h, {len(entries)} entries):"]
+        # Show up to 20 most recent entries
+        for entry in entries[-20:]:
+            ts = entry.get("last_changed", "?")
+            state = entry.get("state", "?")
+            lines.append(f"  {ts}: {state}")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error fetching history: {e}"
+
+
+@tool
+def get_network_devices() -> str:
+    """List devices on the network via Home Assistant device tracker. Shows which devices are home/away."""
+    try:
+        states = _ha_get("/states")
+        trackers = [s for s in states if s["entity_id"].startswith("device_tracker.")]
+        if not trackers:
+            return "No device trackers configured."
+
+        home = [t for t in trackers if t.get("state") == "home"]
+        away = [t for t in trackers if t.get("state") != "home"]
+
+        lines = [f"Network Devices ({len(trackers)} total, {len(home)} home):"]
+        if home:
+            lines.append("  Home:")
+            for t in home:
+                name = t.get("attributes", {}).get("friendly_name", t["entity_id"])
+                ip = t.get("attributes", {}).get("ip", "")
+                lines.append(f"    {name}" + (f" ({ip})" if ip else ""))
+        if away:
+            lines.append(f"  Away/Offline: {len(away)} devices")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error fetching device trackers: {e}"
+
+
 HOME_TOOLS = [
     get_ha_states,
     get_entity_state,
@@ -191,4 +261,7 @@ HOME_TOOLS = [
     set_climate_temperature,
     list_automations,
     trigger_automation,
+    activate_scene,
+    get_entity_history,
+    get_network_devices,
 ]

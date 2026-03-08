@@ -288,7 +288,7 @@ def get_knowledge_stats() -> str:
     lines = ["# Knowledge Base Statistics\n"]
 
     # Qdrant collection info
-    for coll_name in ["knowledge", "conversations"]:
+    for coll_name in ["knowledge", "conversations", "signals"]:
         try:
             resp = httpx.get(f"{_QDRANT_URL}/collections/{coll_name}", timeout=5)
             resp.raise_for_status()
@@ -350,8 +350,69 @@ async def deep_search(query: str, collection: str = "knowledge") -> str:
         return f"Deep search error: {e}"
 
 
+@tool
+def search_signals(query: str, category: str = "", min_relevance: float = 0.0, limit: int = 10) -> str:
+    """Search the intelligence signal pipeline for classified RSS articles.
+
+    The signals collection contains articles from 17 RSS feeds (AI Models, Inference,
+    Dev Tools, Infrastructure, AI News, Security) that have been LLM-classified with
+    relevance scores, categories, summaries, and tags.
+
+    Args:
+        query: Natural language search query
+        category: Filter by classification category (model-release, inference-optimization,
+                  hardware, security, tooling, research, industry-news). Empty = all.
+        min_relevance: Minimum relevance score (0.0-1.0) to filter results
+        limit: Number of results to return
+    """
+    try:
+        vector = _get_embedding(query)
+
+        body: dict = {
+            "vector": vector,
+            "limit": limit,
+            "with_payload": True,
+        }
+        filters = []
+        if category:
+            filters.append({"key": "classification.category", "match": {"value": category}})
+        if min_relevance > 0:
+            filters.append({"key": "classification.relevance", "range": {"gte": min_relevance}})
+        if filters:
+            body["filter"] = {"must": filters}
+
+        resp = httpx.post(
+            f"{_QDRANT_URL}/collections/signals/points/search",
+            json=body,
+            timeout=10,
+        )
+        resp.raise_for_status()
+        results = resp.json().get("result", [])
+
+        if not results:
+            return f"No signals found for: {query}" + (f" (category={category})" if category else "")
+
+        lines = [f"Intelligence signals ({len(results)} results):\n"]
+        for i, r in enumerate(results, 1):
+            p = r.get("payload", {})
+            clf = p.get("classification", {})
+            lines.append(f"[{i}] {p.get('title', 'Untitled')} (similarity: {r['score']:.3f})")
+            lines.append(f"    Source: {p.get('feed_title', '?')} | Published: {p.get('published_at', '?')}")
+            if isinstance(clf, dict):
+                lines.append(f"    Relevance: {clf.get('relevance', '?')} | Category: {clf.get('category', '?')}")
+                lines.append(f"    Summary: {clf.get('summary', 'N/A')}")
+                if clf.get("tags"):
+                    lines.append(f"    Tags: {', '.join(clf['tags'])}")
+            lines.append(f"    URL: {p.get('url', 'N/A')}")
+            lines.append("")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Signal search error: {e}"
+
+
 KNOWLEDGE_TOOLS = [
     search_knowledge,
+    search_signals,
     deep_search,
     list_documents,
     query_knowledge_graph,

@@ -146,6 +146,9 @@ async def run_pattern_detection() -> dict:
                 f"Investigate failing agents."
             )
 
+    # --- Per-agent behavioral patterns ---
+    await _detect_agent_behavioral_patterns(report, activity, events)
+
     # --- Autonomy auto-graduation ---
     await _apply_autonomy_adjustments(report, events, failures, feedback_events)
 
@@ -271,6 +274,96 @@ async def _apply_autonomy_adjustments(
     if adjustments_made:
         report["autonomy_adjustments"] = adjustments_made
         logger.info("Autonomy adjustments applied: %d agents", len(adjustments_made))
+
+
+async def _detect_agent_behavioral_patterns(
+    report: dict,
+    activity: list[dict],
+    events: list[dict],
+):
+    """Detect per-agent behavioral patterns from accumulated activity data.
+
+    Domain-specific pattern recognition:
+    - Media Agent: content preferences from activity logs (genres, request frequency)
+    - Home Agent: routine detection (time-of-day patterns for common actions)
+    - Creative Agent: style preferences from kept vs regenerated outputs
+    - Research Agent: topic clusters from research queries
+    """
+    # Group activity by agent
+    activity_by_agent: dict[str, list] = defaultdict(list)
+    for a in activity:
+        agent = a.get("agent", "")
+        if agent:
+            activity_by_agent[agent].append(a)
+
+    # --- Media Agent: content preference vectors ---
+    media_activity = activity_by_agent.get("media-agent", [])
+    if len(media_activity) >= 3:
+        # Extract action types and content references
+        action_types = Counter(a.get("action_type", "unknown") for a in media_activity)
+        report["patterns"].append({
+            "type": "media_preference",
+            "agent": "media-agent",
+            "activity_count": len(media_activity),
+            "action_distribution": dict(action_types.most_common(5)),
+            "severity": "info",
+        })
+
+    # --- Home Agent: time-of-day routine detection ---
+    home_activity = activity_by_agent.get("home-agent", [])
+    if len(home_activity) >= 5:
+        hour_distribution = Counter()
+        for a in home_activity:
+            ts = a.get("timestamp", 0)
+            if ts:
+                try:
+                    hour = datetime.fromtimestamp(ts).hour
+                    hour_distribution[hour] += 1
+                except (ValueError, OSError):
+                    pass
+        if hour_distribution:
+            peak_hours = [h for h, c in hour_distribution.most_common(3)]
+            report["patterns"].append({
+                "type": "home_routine",
+                "agent": "home-agent",
+                "activity_count": len(home_activity),
+                "peak_hours": peak_hours,
+                "hour_distribution": dict(hour_distribution),
+                "severity": "info",
+            })
+
+    # --- Research Agent: topic clusters ---
+    research_activity = activity_by_agent.get("research-agent", [])
+    if len(research_activity) >= 3:
+        # Extract topics from descriptions
+        topics = Counter()
+        for a in research_activity:
+            desc = a.get("description", "").lower()
+            # Simple keyword extraction
+            for keyword in ["model", "gpu", "vllm", "agent", "rag", "embedding",
+                           "performance", "memory", "inference", "training"]:
+                if keyword in desc:
+                    topics[keyword] += 1
+        if topics:
+            report["patterns"].append({
+                "type": "research_topic_cluster",
+                "agent": "research-agent",
+                "activity_count": len(research_activity),
+                "top_topics": dict(topics.most_common(5)),
+                "severity": "info",
+            })
+
+    # --- Creative Agent: output patterns ---
+    creative_activity = activity_by_agent.get("creative-agent", [])
+    if len(creative_activity) >= 3:
+        action_types = Counter(a.get("action_type", "unknown") for a in creative_activity)
+        report["patterns"].append({
+            "type": "creative_output",
+            "agent": "creative-agent",
+            "activity_count": len(creative_activity),
+            "action_distribution": dict(action_types.most_common(5)),
+            "severity": "info",
+        })
 
 
 async def get_latest_report() -> dict | None:
