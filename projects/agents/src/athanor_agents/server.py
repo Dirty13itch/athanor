@@ -1066,6 +1066,16 @@ async def post_feedback(request: Request):
         response_content=response_content,
     )
 
+    # Record preference learning outcome
+    from .preferences import record_outcome as record_pref_outcome
+    from .router import classify_request
+    pref_feedback = "positive" if feedback_type == "thumbs_up" else "negative"
+    task_type = classify_request(message_content, agent).task_type.value
+    model = body.get("model", "reasoning")  # Default to reasoning if not specified
+    asyncio.create_task(record_pref_outcome(
+        model=model, task_type=task_type, feedback=pref_feedback,
+    ))
+
     # Log feedback event for pattern detection
     from .activity import log_event
     asyncio.create_task(log_event(
@@ -1293,6 +1303,17 @@ async def get_specialist_state():
     }
 
 
+# --- Preference Learning ---
+
+
+@app.get("/v1/preferences")
+async def get_preferences():
+    """Get all learned model preferences, grouped by task type."""
+    from .preferences import get_all_preferences
+
+    return await get_all_preferences()
+
+
 # --- Memory Consolidation ---
 
 
@@ -1347,13 +1368,16 @@ async def chat_completions(request: Request):
     user_input = messages[-1].get("content", "")[:500] if messages else ""
 
     # --- Tiered routing classification ---
-    from .router import classify_request
+    from .router import classify_request, apply_preference_override
 
     routing = classify_request(
         prompt=user_input,
         agent_name=model_name,
         conversation_length=len(messages),
     )
+
+    # Apply learned preference override (may change model)
+    routing = await apply_preference_override(routing)
 
     # Context injection — enrich with preferences, activity, knowledge
     if not body.get("skip_context", False):
@@ -1404,6 +1428,14 @@ async def chat_completions(request: Request):
             thread_id=thread_id,
         ))
 
+        # Record preference outcome (fire-and-forget)
+        from .preferences import record_outcome as record_pref_outcome
+        asyncio.create_task(record_pref_outcome(
+            model=routing.tier_config.model,
+            task_type=routing.task_type.value,
+            latency_ms=float(duration_ms),
+        ))
+
         return {
             "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
             "object": "chat.completion",
@@ -1448,6 +1480,14 @@ async def chat_completions(request: Request):
         assistant_response=content,
         duration_ms=duration_ms,
         thread_id=thread_id,
+    ))
+
+    # Record preference outcome (fire-and-forget)
+    from .preferences import record_outcome as record_pref_outcome
+    asyncio.create_task(record_pref_outcome(
+        model=routing.tier_config.model,
+        task_type=routing.task_type.value,
+        latency_ms=float(duration_ms),
     ))
 
     return {

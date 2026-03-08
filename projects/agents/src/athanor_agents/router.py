@@ -462,3 +462,31 @@ def classify_request(
 ) -> RoutingDecision:
     """Convenience function for classifying a request."""
     return get_router().classify(prompt, agent_name, conversation_length)
+
+
+async def apply_preference_override(decision: RoutingDecision) -> RoutingDecision:
+    """Consult preference learning to potentially override the model.
+
+    If preference data shows a different model performs better for this
+    task type (with enough samples), override the tier config's model.
+    Returns the same decision object (mutated in place).
+    """
+    from .preferences import get_preferred_model
+
+    try:
+        preferred = await get_preferred_model(
+            task_type=decision.task_type.value,
+            available_models=["reasoning", "fast"],
+        )
+        if preferred and preferred != decision.tier_config.model:
+            old_model = decision.tier_config.model
+            decision.tier_config.model = preferred
+            decision.reason += f" (pref override: {old_model}→{preferred})"
+            logger.info(
+                "Preference override: %s→%s for task_type=%s",
+                old_model, preferred, decision.task_type.value,
+            )
+    except Exception as e:
+        logger.debug("Preference lookup failed (using default): %s", e)
+
+    return decision
