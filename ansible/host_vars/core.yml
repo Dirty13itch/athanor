@@ -23,6 +23,11 @@ vllm_extra_args:
   - --enable-auto-tool-choice
   - --tool-call-parser
   - qwen3_xml
+  # REQUIRED: DeltaNet/Mamba Triton kernels OOM during CUDA graph replay on 16GB GPUs
+  - --enforce-eager
+  - --enable-prefix-caching
+  - --kv-cache-dtype
+  - auto
   # NFS optimization: eager loading converts random page faults to sequential reads (2-5x faster model load)
   - --safetensors-load-strategy
   - eager

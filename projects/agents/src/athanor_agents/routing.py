@@ -2,18 +2,17 @@
 Quality Cascade — Intelligent model routing for Athanor.
 
 Routes requests to optimal LOCAL model based on:
-- Prompt complexity (simple → fast/coding, complex → reasoning)
-- Task type (code → coding, creative → creative, etc.)
+- Prompt complexity (simple → fast, complex → reasoning)
+- Task type (code/research → reasoning, simple → fast, etc.)
 - Current GPU load (via scheduling.py Prometheus queries)
 - Queue depth awareness (fallback when busy)
 
 Ported from Hydra's routellm.py, adapted for Athanor's model stack.
 
 Athanor Model Tiers (via LiteLLM at VAULT:4000):
-- FAST: Qwen3.5-35B-A3B-AWQ (Workshop 5090)
-- REASONING: Qwen3-32B-AWQ TP=2 (Foundry GPUs 0-1)
-- CODING: Huihui-Qwen3-8B-abliterated-v2 (Foundry GPU 3)
-- CREATIVE: GLM-4.7-Flash-GPTQ (Foundry GPU 2, 4090)
+- REASONING: Qwen3.5-27B-FP8 TP=4 (Foundry GPUs 0,1,3,4)
+- FAST: Huihui-Qwen3-8B-abliterated-v2 (Foundry GPU 2, 4090)
+- WORKER: Qwen3.5-35B-A3B-AWQ (Workshop 5090)
 """
 
 import re
@@ -25,8 +24,7 @@ from enum import Enum
 class ModelTier(Enum):
     FAST = "fast"
     REASONING = "reasoning"
-    CODING = "coding"
-    CREATIVE = "creative"
+    WORKER = "worker"
 
 
 class TaskType(Enum):
@@ -52,18 +50,16 @@ class RoutingDecision:
 
 # LiteLLM route names → Athanor models
 TIER_MODELS = {
-    ModelTier.FAST: "fast",          # Qwen3.5-35B-A3B-AWQ on Workshop
-    ModelTier.REASONING: "reasoning",  # Qwen3-32B-AWQ on Foundry TP=2
-    ModelTier.CODING: "coding",      # Qwen3-8B-abliterated on Foundry
-    ModelTier.CREATIVE: "creative",  # GLM-4.7-Flash on Foundry 4090
+    ModelTier.FAST: "fast",          # Qwen3-8B-abliterated on Foundry 4090
+    ModelTier.REASONING: "reasoning",  # Qwen3.5-27B-FP8 on Foundry TP=4
+    ModelTier.WORKER: "worker",      # Qwen3.5-35B-A3B-AWQ on Workshop
 }
 
 # Fallback chains: if preferred model is busy, try these
 FALLBACK_CHAINS = {
-    "reasoning": ["fast", "coding"],
-    "fast": ["reasoning", "coding"],
-    "coding": ["fast", "reasoning"],
-    "creative": ["fast", "reasoning"],
+    "reasoning": ["worker", "fast"],
+    "fast": ["worker", "reasoning"],
+    "worker": ["reasoning", "fast"],
 }
 
 
@@ -200,10 +196,10 @@ def classify_task(prompt: str, system_prompt: str | None = None) -> TaskType:
 TASK_ROUTING = {
     TaskType.SIMPLE: ModelTier.FAST,
     TaskType.CHAT: ModelTier.FAST,
-    TaskType.CODE: ModelTier.CODING,
+    TaskType.CODE: ModelTier.REASONING,
     TaskType.REASONING: ModelTier.REASONING,
     TaskType.RESEARCH: ModelTier.REASONING,
-    TaskType.CREATIVE: ModelTier.CREATIVE,
+    TaskType.CREATIVE: ModelTier.REASONING,
     TaskType.SYSTEM: ModelTier.FAST,
     TaskType.HOME: ModelTier.FAST,
     TaskType.MEDIA: ModelTier.FAST,
@@ -284,10 +280,9 @@ class CostTracker:
 
     # Estimated power-cost per 1K tokens (local inference, electricity only)
     LOCAL_COSTS = {
-        "fast": 0.002,      # MoE, efficient
-        "reasoning": 0.005,  # 32B dense, TP=2
-        "coding": 0.001,    # 8B, fast
-        "creative": 0.003,  # GPTQ on 4090
+        "fast": 0.001,      # 8B on 4090, efficient
+        "reasoning": 0.006,  # 27B FP8, TP=4
+        "worker": 0.003,    # 35B MoE on 5090
     }
 
     def __init__(self):

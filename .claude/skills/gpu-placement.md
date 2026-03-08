@@ -31,11 +31,15 @@ GPU3  NODE  NODE  PHB    X
 - GPU2 and GPU3 share a PCIe host bridge (PHB)
 - RTX 4090 topology relative to 5070 Ti GPUs unknown until re-audit
 
+### Current Deployment (Phase 2, 2026-03-08)
+- **Coordinator (TP=4)**: GPUs 0,1,3,4 (4x5070Ti) — Qwen3.5-27B-FP8 at :8000
+- **Utility**: GPU 2 (4090) — Huihui-Qwen3-8B-abliterated-v2 at :8002
+
 ### Optimal Placement
-- **4-GPU tensor parallelism (vLLM)**: Use 4x RTX 5070 Ti (`CUDA_VISIBLE_DEVICES=0,1,2,3`). Same architecture required for TP.
-- **RTX 4090**: Independent workloads only — cannot TP with 5070 Ti (different architecture). Good for second vLLM instance, agent inference, or batch jobs.
+- **4-GPU tensor parallelism (vLLM)**: Use 4x RTX 5070 Ti (`CUDA_VISIBLE_DEVICES=0,1,3,4`). Same architecture required for TP. GPU 2 (4090) excluded.
+- **RTX 4090**: Independent workloads only — cannot TP with 5070 Ti (different architecture). Runs utility/fast model.
 - **Single GPU jobs**: Prefer GPU 0 or GPU 1 (no display attached, separate host bridges)
-- **Power limits configured**: RTX 4090 @ 320W, RTX 5070 Ti @ 240W each
+- **Power limits configured**: RTX 4090 @ 320W, RTX 5070 Ti @ 250W each
 
 ## Node 2 — interface (192.168.1.225)
 

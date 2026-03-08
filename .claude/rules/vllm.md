@@ -23,6 +23,15 @@ paths:
 ## Qwen3.5 Specifics
 - **`--language-model-only` REQUIRED** — Without it, VLM encoder profiling allocates 229K tokens → exceeds 131K max → crash. Only exists in nightly (not v0.16.0 stable).
 - **`--tool-call-parser qwen3_xml`** — Qwen3.5 uses XML tool format, not hermes JSON. `hermes` silently fails.
+- **`--enforce-eager` REQUIRED on 16GB GPUs** — CUDA graph replay of DeltaNet/Mamba Triton kernels causes "Triton Error [CUDA]: out of memory" even at 0.85 utilization. Eager mode avoids this. First inference is slow (~90s compile), subsequent are fast.
 - FP8 (28 GiB) OOMs on single 5090 (32 GiB) — insufficient headroom for KV cache after model load. Use AWQ (~21 GiB) for single-GPU, FP8 for TP=4.
+- Qwen3.5-9B-abliterated (Qwen3NextForCausalLM) OOMs on 4090 24GB — MoE expert weights expand to ~25 GB during init. Does NOT fit single 4090.
 - `awq_marlin` auto-detected as faster; `--quantization awq` forces standard AWQ.
 - `fix-vllm-qwen35.py` in `ansible/roles/vllm/files/` — idempotent patches (both present in nightly, needed for future stable releases).
+
+## Phase 2 Deployment (2026-03-08)
+- Coordinator: Qwen3.5-27B-FP8 TP=4 on GPUs 0,1,3,4 (4x5070Ti) at foundry:8000
+- Utility: Huihui-Qwen3-8B-abliterated-v2 on GPU 2 (4090) at foundry:8002
+- Image: `athanor/vllm:qwen35` (nightly 0.16.1rc1.dev32, transferred from WORKSHOP)
+- Docker compose: `/opt/athanor/vllm-phase2/docker-compose.yml`
+- Model weights: 6.99 GiB/GPU (coordinator), load time ~50s from NFS

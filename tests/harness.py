@@ -20,9 +20,8 @@ from urllib.request import urlopen, Request
 from urllib.error import URLError
 
 ENDPOINTS = {
-    "foundry:8000": {"name": "vllm-reasoning", "model": "Qwen3-32B-AWQ", "type": "vllm"},
-    "foundry:8002": {"name": "vllm-coding", "model": "GLM-4.7-Flash-GPTQ-4bit", "type": "vllm"},
-    "foundry:8004": {"name": "vllm-creative", "model": "Huihui-Qwen3-8B", "type": "vllm"},
+    "foundry:8000": {"name": "vllm-coordinator", "model": "Qwen3.5-27B-FP8", "type": "vllm"},
+    "foundry:8002": {"name": "vllm-utility", "model": "Huihui-Qwen3-8B-abliterated-v2", "type": "vllm"},
     "foundry:9000": {"name": "agent-server", "type": "agents"},
     "workshop:8000": {"name": "vllm-worker", "model": "Qwen3.5-35B-A3B-AWQ-4bit", "type": "vllm"},
     "workshop:8188": {"name": "comfyui", "type": "comfyui"},

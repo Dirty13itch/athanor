@@ -1,45 +1,96 @@
 # Athanor LiteLLM Proxy Configuration
-# Managed by Ansible — do not edit manually
+# Managed by Ansible — canonical source of truth for model routing
 #
-# Model aliases:
-#   "reasoning"  → Qwen3-32B-AWQ on Node 1 (TP=4, 88 GB VRAM) — upgrading to Qwen3.5-27B-FP8
-#   "fast"       → Qwen3.5-35B-A3B-AWQ on Node 2 (RTX 5090, 32 GB VRAM)
-#   "embedding"  → Qwen3-Embedding-0.6B on Node 1 GPU 4
+# Phase 2 (2026-03-08):
+#   FOUNDRY (.244): coordinator TP=4 (Qwen3.5-27B-FP8) :8000, utility (Qwen3-8B) :8002
+#   WORKSHOP (.225): worker (Qwen3.5-35B-A3B-AWQ) :8000
+#   DEV (.189): embedding :8001, reranker :8003
 
 model_list:
-  # Primary reasoning model — 32B AWQ, 4-GPU tensor parallel
+  # === LOCAL MODELS ===
+
   - model_name: "reasoning"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node1_model }}"
-      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
+      model: "hosted_vllm//models/Qwen3.5-27B-FP8"
+      api_base: "http://{{ vllm_node1_host }}:8000/v1"
       api_key: "not-needed"
 
-  # Fast model — 27B AWQ, single GPU, lower latency
+  - model_name: "utility"
+    litellm_params:
+      model: "hosted_vllm//models/Huihui-Qwen3-8B-abliterated-v2"
+      api_base: "http://{{ vllm_node1_host }}:8002/v1"
+      api_key: "not-needed"
+
   - model_name: "fast"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node2_model }}"
-      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
+      model: "hosted_vllm//models/Huihui-Qwen3-8B-abliterated-v2"
+      api_base: "http://{{ vllm_node1_host }}:8002/v1"
       api_key: "not-needed"
 
-  # Embedding model — 1024-dim vectors
+  - model_name: "creative"
+    litellm_params:
+      model: "hosted_vllm//models/Huihui-Qwen3-8B-abliterated-v2"
+      api_base: "http://{{ vllm_node1_host }}:8002/v1"
+      api_key: "not-needed"
+
+  - model_name: "coding"
+    litellm_params:
+      model: "hosted_vllm//models/Qwen3.5-27B-FP8"
+      api_base: "http://{{ vllm_node1_host }}:8000/v1"
+      api_key: "not-needed"
+
   - model_name: "embedding"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_embedding_model }}"
-      api_base: "http://{{ vllm_embedding_host }}:{{ vllm_embedding_port }}/v1"
+      model: "hosted_vllm//models/Qwen3-Embedding-0.6B"
+      api_base: "http://{{ vllm_embedding_host }}:8001/v1"
       api_key: "not-needed"
     model_info:
       mode: embedding
 
-  # Cloud fallback (uncomment when ANTHROPIC_API_KEY is set)
-  # - model_name: "reasoning"
-  #   litellm_params:
-  #     model: "anthropic/claude-sonnet-4-20250514"
-  #     api_key: "os.environ/ANTHROPIC_API_KEY"
+  - model_name: "reranker"
+    litellm_params:
+      model: "hosted_vllm//models/Qwen3-Reranker-0.6B"
+      api_base: "http://{{ vllm_embedding_host }}:8003/v1"
+      api_key: "not-needed"
+
+  - model_name: "worker"
+    litellm_params:
+      model: "hosted_vllm//models/Qwen3.5-35B-A3B-AWQ-4bit"
+      api_base: "http://{{ vllm_node2_host }}:8000/v1"
+      api_key: "not-needed"
+
+  # === CLOUD APIS ===
+
+  - model_name: "claude"
+    litellm_params:
+      model: "anthropic/claude-sonnet-4-20250514"
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  - model_name: "gpt"
+    litellm_params:
+      model: "openai/gpt-4.1"
+      api_key: "os.environ/OPENAI_API_KEY"
+
+  - model_name: "deepseek"
+    litellm_params:
+      model: "deepseek/deepseek-chat"
+      api_key: "os.environ/DEEPSEEK_API_KEY"
+
+  - model_name: "gemini"
+    litellm_params:
+      model: "gemini/gemini-2.5-pro"
+      api_key: "os.environ/GOOGLE_API_KEY"
 
 router_settings:
   routing_strategy: simple-shuffle
   num_retries: 2
   timeout: 120
+  fallbacks:
+    - reasoning: ["worker", "deepseek", "claude"]
+    - utility: ["worker", "deepseek"]
+    - fast: ["worker", "deepseek"]
+    - coding: ["worker", "deepseek", "claude"]
+    - worker: ["reasoning", "deepseek"]
   model_group_alias:
     "gpt-4": { model: "reasoning", hidden: false }
     "gpt-3.5-turbo": { model: "fast", hidden: false }
@@ -48,10 +99,12 @@ router_settings:
 litellm_settings:
   drop_params: true
   set_verbose: false
-  success_callback: ["langfuse"]
+  success_callback: ["prometheus", "langfuse"]
+  service_callback: ["prometheus_system"]
   failure_callback: ["langfuse"]
 
 general_settings:
   master_key: "os.environ/LITELLM_MASTER_KEY"
+  database_url: "os.environ/DATABASE_URL"
   background_health_checks: true
   health_check_interval: 300
