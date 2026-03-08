@@ -111,7 +111,7 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 
 | Issue | Impact | Resolution |
 |-------|--------|------------|
-| **Ansible vault-password missing** | Cannot run Ansible against VAULT | Shaun needs to provide the encryption password (not the SSH password Hockey1298) |
+| **Ansible vault-password** | Resolved | Vault recreated 2026-03-08, `ansible vault -m ping` verified |
 | **MSI 5070 Ti RGB still ON** (×2) | Cosmetic | I2C port 1 not exposed on Blackwell. Fix: one-time MSI Center from Windows |
 | **FOUNDRY GPU 4 idle** | 16 GB VRAM unused | Could serve embedding, reranker, or another model |
 | **NordVPN credentials** | qBittorrent blocked | Shaun needs to provide |
