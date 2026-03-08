@@ -1306,8 +1306,8 @@ async def get_specialist_state():
 # --- Preference Learning ---
 
 
-@app.get("/v1/preferences")
-async def get_preferences():
+@app.get("/v1/preferences/models")
+async def get_model_preferences():
     """Get all learned model preferences, grouped by task type."""
     from .preferences import get_all_preferences
 
