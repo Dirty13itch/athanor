@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-03-07 (Session 38: Phases 1-7 complete. 11.8 remaining)
+Last updated: 2026-03-07 (Session 38: ALL 8 PHASES COMPLETE — Tier 11 done)
 
 ---
 
@@ -612,10 +612,10 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Priority:** P2
 
 ### 11.8 — Autonomous Research Engine
-- **Status:** 🔲 todo
+- **Status:** ✅ done (Session 38)
 - **Source:** `reference/hydra/src/hydra_tools/autonomous_research.py`
-- **Scope:** Research job scheduling: topic/sources/schedule/max_duration definitions. Multi-source aggregation (web search, Qdrant, page fetch). Reports stored to Qdrant `knowledge` collection.
-- **Files:** Create `research_jobs.py` (~300 LOC). Modify `scheduler.py`, `server.py`.
+- **Scope:** Research job CRUD (create/list/get/cancel/delete). Execution via research-agent through task engine. Reports auto-stored to Qdrant knowledge collection with embeddings. Scheduler integration for recurring jobs. API: POST/GET `/v1/research/jobs`, POST `execute`, DELETE.
+- **Files:** Created `research_jobs.py` (~310 LOC). Modified `scheduler.py` (+12 LOC). Modified `server.py` (+55 LOC, 4 endpoints).
 - **Depends on:** None
 - **Priority:** P3
 
