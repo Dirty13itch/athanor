@@ -36,7 +36,9 @@ OpenRGB saves settings to `~/.config/OpenRGB/`. A systemd service or cron `@rebo
 
 ### Root Cause
 
-MSI RTX 5070 Ti (Blackwell GB205, subsystem 1462:5310) does NOT expose I2C adapter port 1 via the NVIDIA driver. OpenRGB's MSIGPUv2 controller requires I2C port 1 at address 0x68 — this bus simply doesn't exist on these cards.
+MSI RTX 5070 Ti (Blackwell GB205, subsystem 1462:5310) does NOT expose I2C adapter port 1 via the NVIDIA open kernel modules (580.126.09). OpenRGB's MSIGPUv2 controller requires I2C port 1 at address 0x68 — this bus doesn't exist on these cards, and 0x68 doesn't respond on any of the available adapters (ports 3-6).
+
+The USB HID device (0db0:c9eb at /dev/hidraw0) is NOT the RGB controller — it's a separate MCU (likely fan/thermal). All RGB control is supposed to go through I2C, which is simply not exposed.
 
 ### What Was Tried
 
@@ -60,10 +62,10 @@ The MSI 5070 Ti routes RGB control exclusively through USB HID device `0db0:c9eb
 
 ### Options
 
-1. **Wait for OpenRGB support** — The subsystem ID (5310) and USB HID protocol need to be added by the OpenRGB team. File a feature request with the hardware details in this doc.
-2. **Physical disconnect** — Open the cards and disconnect the LED power ribbon cable (if accessible). Irreversible without disassembly.
-3. **Electrical tape** — Cover the LED area. Non-invasive.
-4. **Use MSI Center on Windows** — Boot FOUNDRY from a Windows USB to set LEDs off, then reboot to Linux. MSI Dragon Center/Center can persist LED settings in the GPU's EEPROM.
+1. **Use MSI Center on Windows** — Boot FOUNDRY from a Windows USB to set LEDs off via MSI Center, which writes the setting to the GPU's onboard EEPROM. Persists regardless of OS. One-time operation.
+2. **Wait for NVIDIA driver fix** — The I2C adapter 1 not being exposed may be a bug in the open kernel modules for GB205. File issue at github.com/NVIDIA/open-gpu-kernel-modules. If fixed, OpenRGB would work after adding subsystem ID 0x5310.
+3. **File OpenRGB feature request** — Even without I2C adapter 1, the OpenRGB team may know alternative access methods for Blackwell. Include this research doc.
+4. **Physical disconnect** — Open the cards and disconnect the LED power ribbon cable.
 
 ### Recommendation
 
