@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-03-07 (Session 38: Phases 1-4,6 complete. 11.5/11.7/11.8 remaining)
+Last updated: 2026-03-07 (Session 38: Phases 1-6 complete. 11.7/11.8 remaining)
 
 ---
 
@@ -588,10 +588,10 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Priority:** P2
 
 ### 11.5 — Preference Learning + Model Selection
-- **Status:** 🔲 todo
+- **Status:** ✅ done (Session 38)
 - **Source:** `reference/hydra/src/hydra_tools/preference_learning.py`
-- **Scope:** Track per-model, per-task-type success rates. Score: `success_rate*0.5 + experience*0.2 + speed*0.2 + low_regenerations*0.1`. Router consults preferences for model override.
-- **Files:** Create `preferences.py` (~200 LOC). Modify `goals.py`, `router.py`.
+- **Scope:** Per-model, per-task-type stats with composite scoring (`success_rate*0.5 + experience*0.2 + speed*0.2 + low_regenerations*0.1`). Records outcomes on every chat response. Router consults preferences after classification for model override (min 5 samples). Redis persistence at `athanor:preferences`.
+- **Files:** Created `preferences.py` (~190 LOC). Modified `router.py` (+25 LOC, `apply_preference_override()`). Modified `server.py` (+30 LOC, outcome recording, feedback integration, `/v1/preferences` endpoint).
 - **Depends on:** 11.1 (router)
 - **Priority:** P2
 
