@@ -891,16 +891,16 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Priority:** Done
 
 ### 16.8 — Arize Phoenix Deployment
-- **Status:** 🔲 todo
+- **Status:** 🚫 deferred — LangFuse already covers tracing; Phoenix adds marginal value at single-operator scale. Revisit if multi-user or complex graph debugging needed.
 - **Scope:** Deploy Phoenix on VAULT for agent graph debugging alongside LangFuse. Single container, agent span visualization.
 - **Source:** DEEP-RESEARCH-LIST §6.2
-- **Priority:** P2
+- **Priority:** P3
 
 ### 16.9 — Benchmark Suite (vLLM + GuideLLM)
-- **Status:** 🔲 todo
-- **Scope:** Run vLLM `bench serve` for baseline throughput. GuideLLM for production-realistic load testing through LiteLLM. Record baseline numbers for all model slots.
+- **Status:** ✅ done (Session 41)
+- **Scope:** Baseline throughput benchmarks. FOUNDRY Qwen3-32B-AWQ: 659ms TTFT, 26.2 t/s (stable across 5 runs). WORKSHOP Qwen3.5-35B-A3B-AWQ: failed — Triton autotuner OOM (needs cache mount + reduced utilization). Documented root cause and fix plan.
+- **Files:** `docs/research/2026-03-08-vllm-baseline-benchmarks.md`
 - **Source:** DEEP-RESEARCH-LIST §6.4
-- **Priority:** P2
 
 ### 16.10 — Prompt Injection Defenses
 - **Status:** ✅ done (Session 41)
