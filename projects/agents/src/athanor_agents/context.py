@@ -202,6 +202,36 @@ async def _search_preferences_with_decay(
     return raw_results[:limit]
 
 
+async def _hybrid_search_collection(
+    collection: str,
+    vector: list[float],
+    query_text: str,
+    limit: int,
+    filter_dict: dict | None = None,
+) -> list[dict]:
+    """Search a Qdrant collection using hybrid search (vector + keyword + RRF).
+
+    Falls back to vector-only search if hybrid module fails.
+    """
+    if limit <= 0:
+        return []
+    try:
+        from .hybrid_search import hybrid_search
+
+        return await hybrid_search(
+            client=_async_client,
+            collection=collection,
+            vector=vector,
+            query_text=query_text,
+            limit=limit,
+            score_threshold=SCORE_THRESHOLD,
+            filter_dict=filter_dict,
+        )
+    except Exception as e:
+        logger.debug("Hybrid search failed for %s, falling back to vector: %s", collection, e)
+        return await _search_collection(collection, vector, limit, filter_dict)
+
+
 async def _scroll_activity(agent: str, limit: int) -> list[dict]:
     """Get recent activity for an agent via scroll (no embedding needed)."""
     if limit <= 0:
@@ -441,8 +471,8 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     tasks = [
         _search_preferences_with_decay(vector, prefs_limit, pref_filter),
         _scroll_activity(agent_name, activity_limit),
-        _search_collection("knowledge", vector, knowledge_limit),
-        _search_collection("personal_data", vector, personal_limit),
+        _hybrid_search_collection("knowledge", vector, user_message, knowledge_limit),
+        _hybrid_search_collection("personal_data", vector, user_message, personal_limit),
     ]
 
     results = await asyncio.gather(*tasks, return_exceptions=True)

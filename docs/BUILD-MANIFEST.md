@@ -572,10 +572,10 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Priority:** P1
 
 ### 11.3 — Hybrid Search (BM25 + Vector via RRF)
-- **Status:** 🔲 todo
+- **Status:** ✅ done (Session 38)
 - **Source:** `reference/hydra/src/hydra_tools/hybrid_memory.py`, `reference/local-system/services/memory/search.py`
-- **Scope:** Add BM25 keyword search alongside vector search. RRF fusion: `rrf_score = 1/(k+rank)` with `k=60`. Catches exact matches vector search misses (e.g., "ADR-017", "Qwen3-32B-AWQ"). Uses Meilisearch on VAULT:7700 or Redis Search.
-- **Files:** Create `hybrid_search.py` (~200 LOC). Modify `context.py`.
+- **Scope:** Hybrid search combining Qdrant vector search with payload text matching, fused via RRF (`k=60`, weights: vector=0.7, keyword=0.3). Catches exact keyword matches that vector search misses. Falls back to vector-only on failure. Applied to knowledge and personal_data collections in context injection.
+- **Files:** Created `hybrid_search.py` (~210 LOC). Modified `context.py` (+30 LOC, `_hybrid_search_collection` wrapper).
 - **Depends on:** None
 - **Priority:** P1
 
