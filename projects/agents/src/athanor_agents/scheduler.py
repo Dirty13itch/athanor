@@ -45,6 +45,10 @@ WORKPLAN_HOUR = 7  # 7:00 AM local time
 WORKPLAN_MINUTE = 0
 ALERT_CHECK_INTERVAL = 300  # 5 minutes
 WORKPLAN_REFILL_INTERVAL = 7200  # 2 hours
+BENCHMARK_KEY = "athanor:scheduler:benchmark"
+BENCHMARK_INTERVAL = 21600  # 6 hours
+CACHE_CLEANUP_KEY = "athanor:scheduler:cache_cleanup"
+CACHE_CLEANUP_INTERVAL = 3600  # 1 hour
 
 AGENT_SCHEDULES = {
     "general-assistant": {
@@ -339,6 +343,70 @@ async def _check_research_jobs():
         logger.warning("Scheduler: research job check failed: %s", e)
 
 
+async def _check_benchmarks():
+    """Run self-improvement benchmarks every 6 hours."""
+    try:
+        r = await _get_redis()
+        last = await r.get(BENCHMARK_KEY)
+        if last:
+            ts = float(last.decode() if isinstance(last, bytes) else last)
+            if time.time() - ts < BENCHMARK_INTERVAL:
+                return
+    except Exception:
+        pass
+
+    try:
+        from .self_improvement import get_improvement_engine
+
+        engine = get_improvement_engine()
+        await engine.load()
+        result = await engine.run_benchmark_suite()
+        r = await _get_redis()
+        await r.set(BENCHMARK_KEY, str(time.time()))
+
+        passed = result.get("passed", 0)
+        total = result.get("total", 0)
+        logger.info(
+            "Self-improvement benchmarks: %d/%d passed (%.0f%%)",
+            passed, total, result.get("pass_rate", 0) * 100,
+        )
+
+        # Check for regressions
+        for bid, comp in result.get("comparison", {}).items():
+            if comp.get("regressed"):
+                logger.warning(
+                    "REGRESSION detected: %s (%.1f → %.1f)",
+                    bid, comp.get("baseline", 0), comp.get("new", 0),
+                )
+    except Exception as e:
+        logger.warning("Benchmark run failed: %s", e)
+
+
+async def _check_cache_cleanup():
+    """Clean expired semantic cache entries every hour."""
+    try:
+        r = await _get_redis()
+        last = await r.get(CACHE_CLEANUP_KEY)
+        if last:
+            ts = float(last.decode() if isinstance(last, bytes) else last)
+            if time.time() - ts < CACHE_CLEANUP_INTERVAL:
+                return
+    except Exception:
+        pass
+
+    try:
+        from .semantic_cache import get_semantic_cache
+
+        cache = get_semantic_cache()
+        deleted = await cache.cleanup_expired()
+        r = await _get_redis()
+        await r.set(CACHE_CLEANUP_KEY, str(time.time()))
+        if deleted > 0:
+            logger.info("Semantic cache cleanup: %d expired entries removed", deleted)
+    except Exception as e:
+        logger.warning("Cache cleanup failed: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -366,6 +434,12 @@ async def _scheduler_loop():
 
             # Check autonomous research jobs
             await _check_research_jobs()
+
+            # Self-improvement benchmarks (every 6h)
+            await _check_benchmarks()
+
+            # Semantic cache cleanup (every 1h)
+            await _check_cache_cleanup()
 
             for agent, schedule in AGENT_SCHEDULES.items():
                 if not schedule.get("enabled", True):

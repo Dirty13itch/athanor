@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-03-07 (Session 39: Tiers 12-14 defined, SYSTEM-SPEC fixed, docs reconciled)
+Last updated: 2026-03-08 (Session 40: Tier 15 — Autonomous Self-Improvement pipeline complete)
 
 ---
 
@@ -777,6 +777,71 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Deliverables:** Requirements doc. Data model. Matching algorithm prototype. Basic UI.
 - **Depends on:** None (Phase 5+ project per concept doc)
 - **Priority:** P3 — Shaun decides when to start
+
+---
+
+## Tier 15: Autonomous Self-Improvement (P1)
+
+*DGM-inspired continuous improvement pipeline. System monitors itself, identifies failures, proposes fixes, validates, and deploys. Sources: docs/research/2026-03-07-autonomous-self-improvement.md*
+
+### 15.1 — Quality Cascade / Model Routing
+- **Status:** ✅ done (Session 40)
+- **Scope:** Heuristic prompt classifier → model tier routing. Pattern-based task classification (SIMPLE, CHAT, CODE, REASONING, RESEARCH, CREATIVE, SYSTEM, HOME, MEDIA). Queue-depth-aware fallback chains. Cost tracking. LiteLLM route names map to local model tiers.
+- **Files:** Created `routing.py` (~377 LOC). Router endpoints at `/v1/routing/`.
+- **Depends on:** 1.2 (LiteLLM) ✅
+
+### 15.2 — Self-Diagnosis Engine
+- **Status:** ✅ done (Session 40)
+- **Scope:** Failure tracking, pattern detection, auto-remediation with safety gates. Athanor-specific rules (vLLM endpoints, NFS stale handles, KV cache corruption, tool call parser). Redis persistence (7-day events, 30-day patterns). Auto-remediation executor for safe fixes (retry, cache clear, reindex). FastAPI router at `/v1/diagnosis/`.
+- **Files:** Created `diagnosis.py` (~795 LOC).
+- **Depends on:** 7.3 (Redis) ✅
+
+### 15.3 — Semantic Cache
+- **Status:** ✅ done (Session 40)
+- **Scope:** Qdrant-backed LLM response caching with vector similarity (threshold 0.93, 48h TTL). Embedding via LiteLLM (Qwen3-Embedding, 1024-dim). `cached_completion()` wrapper. Wired into reactive chat path — cache lookup before LLM call, fire-and-forget store after. Cleanup every 1h via scheduler.
+- **Files:** Created `semantic_cache.py` (~300 LOC). Modified `server.py` (cache integration in reactive path). Modified `scheduler.py` (+cache cleanup job).
+- **Depends on:** 1.2 (LiteLLM) ✅, 7.4 (Qdrant) ✅
+
+### 15.4 — Circuit Breakers
+- **Status:** ✅ done (Session 40)
+- **Scope:** CLOSED → OPEN → HALF_OPEN state machine. Per-service configs (vLLM: 3 failures/60s, LiteLLM: 5/15s, Qdrant/Redis: 5/10s). Fallback support. Wired into both reactive and agent chat paths. 503 response when all fallbacks exhausted. FastAPI router at `/v1/circuits/`.
+- **Files:** Created `circuit_breaker.py` (~240 LOC). Modified `server.py` (breaker integration in both chat paths).
+- **Depends on:** None
+
+### 15.5 — Self-Improvement Engine
+- **Status:** ✅ done (Session 40)
+- **Scope:** DGM-inspired benchmark → analyze → propose → validate → deploy loop. 5 benchmarks: inference_health, inference_latency, memory_recall, agent_reliability, routing_accuracy. Proposal creation with py_compile + YAML validation. Auto-deploy for prompt/config changes. Redis persistence (30-day proposals, 90-day archive). Runs every 6h via scheduler.
+- **Files:** Created `self_improvement.py` (~430 LOC). Modified `scheduler.py` (+benchmark job every 6h).
+- **Depends on:** 7.3 (Redis) ✅
+
+### 15.6 — Preference Learning
+- **Status:** ✅ done (Session 40)
+- **Scope:** Per-model, per-task-type interaction recording with composite scoring. Ported from Hydra's preference_learning.py. Redis + Qdrant storage, LiteLLM inference. PreferenceCategory enum: model, agent, creative_style, response_style, routing. FastAPI router at `/v1/preferences/learning/`.
+- **Files:** Created `preference_learning.py` (~803 LOC).
+- **Depends on:** 7.3 (Redis) ✅, 7.4 (Qdrant) ✅
+
+### 15.7 — Eval Suite & Baseline
+- **Status:** ✅ done (Session 40)
+- **Scope:** Promptfoo eval config with 20 test cases across all agent types. LLM-as-judge grading via local reasoning model. Abliterated model safety rubrics (uncensored behavior is expected, not penalized). Baseline recorded: 71% pass rate.
+- **Files:** Modified `evals/promptfooconfig.yaml`. Created `evals/results/baseline-2026-03-07-v2.json`.
+- **Depends on:** 1.2 (LiteLLM) ✅
+
+### 15.8 — Nightly Improvement Pipeline
+- **Status:** ✅ done (Session 40)
+- **Scope:** 4-script OODA loop + orchestrator: export traces → score interactions → identify failures → deploy improvements. LangFuse data pipeline feeding autonomous improvement cycle. Orchestrator script with --apply/--since flags, cron-ready.
+- **Files:** Created `scripts/export-langfuse-traces.py`, `scripts/score-interactions.py`, `scripts/identify-failures.py`, `scripts/deploy-improvements.py`, `scripts/nightly-improvement.sh`.
+- **Depends on:** 15.5 (self-improvement engine) ✅, 15.7 (eval suite) ✅
+
+### 15.9 — Wire Integration (Cache + Breakers into Chat Path)
+- **Status:** ✅ done (Session 40)
+- **Scope:** Semantic cache lookup/store in reactive fast path. Circuit breakers wrapping both reactive LLM calls and agent graph invocations. Diagnosis engine recording failures from agent path. Fallback chain on CircuitOpenError. `cache_hit` field in response. `skip_cache` body param.
+- **Files:** Modified `server.py` (~80 LOC changes in chat_completions handler).
+- **Depends on:** 15.3 (cache) ✅, 15.4 (breakers) ✅, 15.2 (diagnosis) ✅
+
+### 15.10 — Deploy to FOUNDRY
+- **Status:** 🔲 todo
+- **Scope:** rsync all new modules + server.py changes to FOUNDRY:9000. Docker compose rebuild. Verify all new endpoints respond.
+- **Depends on:** 15.9 ✅
 
 ---
 

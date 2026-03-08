@@ -12,7 +12,7 @@ Last updated: 2026-03-07 (Session 36 — Full cluster audit and doc refresh)
 | vLLM Creative (GLM-4.7-Flash-GPTQ-4bit) | 8002 | GPU 2 (RTX 4090), `--quantization gptq_marlin`, `--enable-sleep-mode` |
 | vLLM Coding (Huihui-Qwen3-8B-abliterated-v2) | 8004 | GPU 3 (RTX 5070 Ti), `--quantization fp8`, `--enable-sleep-mode` |
 | GPU 4 (RTX 5070 Ti) | — | **IDLE** — previously ran embedding model, not currently loaded |
-| Agent Server | 9000 | 9 agents + GWT workspace + escalation + activity/preference APIs |
+| Agent Server | 9000 | 9 agents + GWT workspace + escalation + activity/preferences + routing + diagnosis + semantic cache + circuit breakers + self-improvement + preference learning APIs |
 | Qdrant | 6333/6334 | Vector DB: knowledge (2484), personal_data (2304), conversations, activity, preferences (55), implicit_feedback, events |
 | GPU Orchestrator | 9200 | 4 zones, DCGM metrics, vLLM sleep/wake, TTL auto-sleep, Prometheus export |
 | wyoming-whisper | 10300 | STT for HA — faster-distil-whisper-large-v3 (float16), GPU 4 |

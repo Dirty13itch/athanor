@@ -1325,6 +1325,43 @@ async def get_model_preferences():
     return await get_all_preferences()
 
 
+# --- Quality Cascade / Model Routing ---
+
+from .routing import create_routing_router
+
+app.include_router(create_routing_router())
+
+# --- Self-Diagnosis Engine ---
+
+from .diagnosis import create_diagnosis_router
+
+app.include_router(create_diagnosis_router())
+
+# --- Semantic Cache ---
+
+from .semantic_cache import create_cache_router
+
+app.include_router(create_cache_router())
+
+# --- Self-Improvement Engine ---
+
+from .self_improvement import create_improvement_router
+
+app.include_router(create_improvement_router())
+
+# --- Circuit Breakers ---
+
+from .circuit_breaker import create_circuit_breaker_router
+
+app.include_router(create_circuit_breaker_router())
+
+# --- Preference Learning ---
+
+from .preference_learning import create_preference_router
+
+app.include_router(create_preference_router())
+
+
 # --- Research Jobs ---
 
 
@@ -1460,30 +1497,103 @@ async def chat_completions(request: Request):
 
     # --- REACTIVE fast path: bypass agent graph for simple queries ---
     if not routing.tier_config.use_agent and not stream:
-        from langchain_openai import ChatOpenAI
+        from .semantic_cache import get_semantic_cache
+        from .circuit_breaker import get_circuit_breakers, CircuitOpenError
 
-        fast_llm = ChatOpenAI(
-            base_url=settings.llm_base_url,
-            api_key=settings.llm_api_key,
-            model=routing.tier_config.model,
-            temperature=routing.tier_config.temperature,
-            max_tokens=routing.tier_config.max_tokens,
-            streaming=False,
-            extra_body={
-                "chat_template_kwargs": {"enable_thinking": False},
-            },
-        )
+        # Semantic cache check (reactive queries only — agent graph is too stateful)
+        cache_hit = False
+        cached_response = None
+        if not body.get("skip_cache", False):
+            try:
+                cache = get_semantic_cache()
+                cached = await cache.lookup(user_input, routing.tier_config.model)
+                if cached:
+                    cached_response, _score = cached
+                    cache_hit = True
+            except Exception:
+                pass  # Cache failures never block requests
 
         start_ms = int(time.time() * 1000)
-        result = await fast_llm.ainvoke(lc_messages)
-        content = _strip_think_tags(result.content)
+
+        if cache_hit:
+            content = cached_response
+        else:
+            # Circuit-breaker-protected LLM call
+            from langchain_openai import ChatOpenAI
+
+            breakers = get_circuit_breakers()
+
+            async def _invoke_llm():
+                fast_llm = ChatOpenAI(
+                    base_url=settings.llm_base_url,
+                    api_key=settings.llm_api_key,
+                    model=routing.tier_config.model,
+                    temperature=routing.tier_config.temperature,
+                    max_tokens=routing.tier_config.max_tokens,
+                    streaming=False,
+                    extra_body={
+                        "chat_template_kwargs": {"enable_thinking": False},
+                    },
+                )
+                return await fast_llm.ainvoke(lc_messages)
+
+            try:
+                result = await breakers.execute_with_breaker(
+                    routing.tier_config.model,
+                    _invoke_llm,
+                )
+                content = _strip_think_tags(result.content)
+            except CircuitOpenError:
+                # All models in this tier are down — try fallback chain
+                from .routing import FALLBACK_CHAINS
+                fallback_content = None
+                for fallback_model in FALLBACK_CHAINS.get(routing.tier_config.model, []):
+                    try:
+                        async def _invoke_fallback(m=fallback_model):
+                            fb_llm = ChatOpenAI(
+                                base_url=settings.llm_base_url,
+                                api_key=settings.llm_api_key,
+                                model=m,
+                                temperature=routing.tier_config.temperature,
+                                max_tokens=routing.tier_config.max_tokens,
+                                streaming=False,
+                                extra_body={
+                                    "chat_template_kwargs": {"enable_thinking": False},
+                                },
+                            )
+                            return await fb_llm.ainvoke(lc_messages)
+                        fb_result = await breakers.execute_with_breaker(
+                            fallback_model, _invoke_fallback,
+                        )
+                        fallback_content = _strip_think_tags(fb_result.content)
+                        break
+                    except (CircuitOpenError, Exception):
+                        continue
+
+                if fallback_content is None:
+                    return JSONResponse(
+                        status_code=503,
+                        content={"error": {"message": "All inference services unavailable", "type": "service_unavailable"}},
+                    )
+                content = fallback_content
+
+            # Store in semantic cache (fire-and-forget)
+            try:
+                cache = get_semantic_cache()
+                tokens_est = len(user_input) // 4 + len(content) // 4
+                asyncio.create_task(cache.store(
+                    user_input, content, routing.tier_config.model, tokens_est,
+                ))
+            except Exception:
+                pass
+
         duration_ms = int(time.time() * 1000) - start_ms
 
         from .activity import log_activity, log_conversation
 
         asyncio.create_task(log_activity(
             agent=model_name,
-            action_type="chat_reactive",
+            action_type="chat_reactive" + ("_cached" if cache_hit else ""),
             input_summary=user_input,
             output_summary=content[:500],
             duration_ms=duration_ms,
@@ -1518,6 +1628,7 @@ async def chat_completions(request: Request):
             ],
             "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
             "routing": routing.to_dict(),
+            "cache_hit": cache_hit,
         }
 
     if stream:
@@ -1528,8 +1639,36 @@ async def chat_completions(request: Request):
         )
 
     start_ms = int(time.time() * 1000)
-    result = await agent.ainvoke({"messages": lc_messages}, config=config)
-    content = _strip_think_tags(result["messages"][-1].content)
+
+    # Circuit-breaker-protected agent invocation
+    from .circuit_breaker import get_circuit_breakers, CircuitOpenError
+    from .diagnosis import get_diagnosis_engine
+
+    breakers = get_circuit_breakers()
+    try:
+        result = await breakers.execute_with_breaker(
+            routing.tier_config.model,
+            lambda: agent.ainvoke({"messages": lc_messages}, config=config),
+        )
+        content = _strip_think_tags(result["messages"][-1].content)
+    except CircuitOpenError:
+        return JSONResponse(
+            status_code=503,
+            content={"error": {"message": f"Inference service '{routing.tier_config.model}' unavailable", "type": "service_unavailable"}},
+        )
+    except Exception as exc:
+        # Record failure in diagnosis engine (fire-and-forget)
+        try:
+            diag = get_diagnosis_engine()
+            asyncio.create_task(diag.record_failure(
+                service=routing.tier_config.model,
+                error_message=f"{type(exc).__name__}: {str(exc)[:500]}",
+                context={"agent": model_name, "user_input": user_input[:200]},
+            ))
+        except Exception:
+            pass
+        raise
+
     duration_ms = int(time.time() * 1000) - start_ms
 
     # Log activity + conversation (fire-and-forget)
