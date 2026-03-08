@@ -23,6 +23,12 @@
       "env": {
         "ATHANOR_AGENT_URL": "http://192.168.1.244:9000"
       }
+    },
+    "smart-reader": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["scripts/mcp-smart-reader.py"],
+      "env": {}
     }
   }
 }

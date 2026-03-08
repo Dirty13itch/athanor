@@ -1,0 +1,91 @@
+# Grafana provisioned alert rules for backup age monitoring
+# Deployed by Ansible: vault-grafana-alerts role
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: backup-monitoring
+    folder: Athanor Alerts
+    interval: 5m
+    rules:
+      - uid: backup-age-qdrant
+        title: Qdrant Backup Age Critical
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: athanor_backup_age_seconds{target="qdrant"}
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - {{ backup_age_critical_seconds }}
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              refId: C
+        for: 10m
+        labels:
+          severity: critical
+          source: athanor
+        annotations:
+          summary: >-
+            Qdrant backup is older than 36 hours.
+            Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}s.
+            Check cron on FOUNDRY and NFS mount status.
+
+      - uid: backup-age-appdata
+        title: Appdata Backup Age Critical
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: athanor_backup_age_seconds{target="appdata"}
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - {{ backup_age_critical_seconds }}
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              refId: C
+        for: 10m
+        labels:
+          severity: critical
+          source: athanor
+        annotations:
+          summary: >-
+            VAULT appdata backup is older than 36 hours.
+            Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}s.
+            Check cron on VAULT and backup-appdata.sh script.

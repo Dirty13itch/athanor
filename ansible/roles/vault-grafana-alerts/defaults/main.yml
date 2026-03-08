@@ -1,0 +1,16 @@
+---
+# Grafana alerting provisioning
+grafana_provisioning_path: /mnt/appdatacache/grafana/provisioning
+grafana_alerting_path: "{{ grafana_provisioning_path }}/alerting"
+
+# Backup age thresholds (seconds)
+backup_age_critical_seconds: 129600  # 36 hours
+
+# Textfile collector paths
+# FOUNDRY writes metrics locally, VAULT writes metrics locally
+# Each node's node_exporter reads from its own textfile directory
+textfile_collector_dir: /var/lib/node_exporter/textfile_collector
+
+# Backup locations
+qdrant_backup_dir: /mnt/vault/data/backups/athanor/qdrant
+appdata_backup_dir: /mnt/appdatacache/backups

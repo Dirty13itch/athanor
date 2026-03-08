@@ -1,0 +1,92 @@
+---
+# Deploy Grafana alert rules for backup age monitoring.
+# Also deploys the textfile collector script that feeds metrics
+# to node_exporter on each node.
+
+# --- Grafana alerting provisioning ---
+
+- name: Create Grafana alerting provisioning directory
+  ansible.builtin.file:
+    path: "{{ grafana_alerting_path }}"
+    state: directory
+    mode: "0755"
+    owner: "472"
+    group: "472"
+
+- name: Deploy backup alert rules
+  ansible.builtin.template:
+    src: backup-alerts.yml.j2
+    dest: "{{ grafana_alerting_path }}/backup-alerts.yml"
+    mode: "0644"
+    owner: "472"
+    group: "472"
+  register: backup_alerts_config
+
+# --- Textfile collector directory for node_exporter ---
+
+- name: Create textfile collector directory
+  ansible.builtin.file:
+    path: "{{ textfile_collector_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy backup age metrics script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../scripts/backup-age-metrics.sh"
+    dest: /opt/athanor/scripts/backup-age-metrics.sh
+    mode: "0755"
+
+- name: Schedule backup age metrics cron (every 15 minutes)
+  ansible.builtin.cron:
+    name: "athanor-backup-age-metrics"
+    minute: "*/15"
+    job: "/opt/athanor/scripts/backup-age-metrics.sh > {{ textfile_collector_dir }}/backup_age.prom 2>/dev/null"
+
+# --- Ensure node_exporter has textfile collector enabled ---
+# Note: This updates the existing node-exporter container to mount
+# the textfile collector directory and enable the collector.
+
+- name: Update node-exporter with textfile collector
+  community.docker.docker_container:
+    name: node-exporter
+    image: prom/node-exporter:latest
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    pid_mode: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - "{{ textfile_collector_dir }}:/var/lib/node_exporter/textfile_collector:ro"
+    command:
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+      - --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
+    published_ports: []
+  when: not ansible_check_mode
+
+# --- Ensure Grafana has provisioning volume mounted ---
+# The vault-monitoring role creates the Grafana container without provisioning.
+# This task updates it to mount the provisioning directory so alert rules load.
+
+- name: Ensure Grafana container has provisioning volume
+  community.docker.docker_container:
+    name: grafana
+    image: "{{ grafana_image | default('grafana/grafana:latest') }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ grafana_port | default('3000') }}:3000"
+    volumes:
+      - "{{ grafana_data_path | default('/mnt/user/appdata/grafana') }}:/var/lib/grafana"
+      - "{{ grafana_provisioning_path }}:/etc/grafana/provisioning:ro"
+    env:
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password | default('newpass123') }}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_ALERTING_ENABLED: "false"
+    restart: "{{ backup_alerts_config.changed | default(false) }}"
+  when: not ansible_check_mode

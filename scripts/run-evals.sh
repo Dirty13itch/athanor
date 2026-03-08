@@ -26,6 +26,9 @@ if ! curl -sf -H "Authorization: Bearer sk-athanor-litellm-2026" http://192.168.
     exit 1
 fi
 
+export OPENAI_API_KEY="sk-athanor-litellm-2026"
+export OPENAI_BASE_URL="http://192.168.1.203:4000/v1"
+
 mkdir -p "$OUTPUT_DIR"
 
 echo "Running evaluations..." >&2

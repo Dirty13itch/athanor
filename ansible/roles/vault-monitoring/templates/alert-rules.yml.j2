@@ -52,6 +52,25 @@ groups:
         annotations:
           summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} VRAM above 95% on {{ "{{" }} $labels.instance {{ "}}" }}"
 
+  - name: backups
+    rules:
+      - alert: BackupAgeCritical
+        expr: athanor_backup_age_seconds > 129600
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ "{{" }} $labels.target {{ "}}" }} backup is older than 36 hours (age: {{ "{{" }} $value | humanizeDuration {{ "}}" }})"
+          description: "Check cron jobs and backup scripts. Target: {{ "{{" }} $labels.target {{ "}}" }}"
+
+      - alert: BackupAgeWarning
+        expr: athanor_backup_age_seconds > 100800
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ "{{" }} $labels.target {{ "}}" }} backup is older than 28 hours (age: {{ "{{" }} $value | humanizeDuration {{ "}}" }})"
+
   - name: services
     rules:
       - alert: NodeDown
