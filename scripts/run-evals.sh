@@ -21,7 +21,7 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
 fi
 
 # Check LiteLLM is reachable
-if ! curl -sf http://192.168.1.203:4000/health > /dev/null 2>&1; then
+if ! curl -sf -H "Authorization: Bearer sk-athanor-litellm-2026" http://192.168.1.203:4000/health > /dev/null 2>&1; then
     echo "ERROR: LiteLLM not reachable at 192.168.1.203:4000" >&2
     exit 1
 fi

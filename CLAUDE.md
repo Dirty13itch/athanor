@@ -117,6 +117,32 @@ See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agen
 
 ---
 
+## Local Model Delegation
+
+Offload mechanical tasks to local models (free tokens). Keep architecture, novel reasoning, and multi-file refactoring in Claude Code.
+
+**Delegate to Local Coder subagent** (Qwen3-32B via MCP tools):
+- Boilerplate generation (new files from templates, CRUD endpoints, data models)
+- Adding type hints, docstrings, or comments to existing code
+- Writing unit tests for existing functions
+- Format conversion (JS→TS, class→functional, sync→async)
+- Generating Ansible tasks/roles from specifications
+- Code review as second opinion (`coding_review`)
+
+**Delegate to `deep_research`** (local Research Agent):
+- Any research needing 3+ web searches
+- Technology comparisons, benchmarks, pricing research
+- Investigating error messages or obscure configurations
+
+**Keep in Claude Code:**
+- Architecture decisions, system design, tradeoff analysis
+- Novel problem-solving where the approach is uncertain
+- Complex multi-file refactoring requiring holistic understanding
+- Security-critical code review
+- Final review of locally-generated code
+
+---
+
 ## Verification
 
 After modifying code, verify with the relevant checker:

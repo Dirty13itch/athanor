@@ -4,48 +4,37 @@
 
 ---
 
-## Last Session: 2026-03-07 (Session 36: System Synthesis — Doc Refresh + Cluster Audit)
+## Last Session: 2026-03-08 (Session 40: Tiers 12-14 Execution Sprint)
 
 ### What happened
-- **Full cluster audit:** SSH into all 3 nodes, captured live state vs documented state.
-- **FOUNDRY model lineup changed significantly:** Now runs 3 vLLM instances — Qwen3-32B-AWQ (reasoning, TP=2, GPUs 0+1), GLM-4.7-Flash-GPTQ-4bit (creative, GPU 2/4090), Huihui-Qwen3-8B-abliterated-v2 (coding, GPU 3). GPU 4 is idle (no embedding model).
-- **WORKSHOP already upgraded:** Qwen3.5-35B-A3B-AWQ-4bit running on 5090 with correct safety flags. 5060Ti running ComfyUI (5.1 GB used).
-- **VAULT expanded:** 36 containers (was 14 in docs). LangFuse v3.155.1 healthy on :3030. Open WebUI on :3090. New undocumented services: Spiderfoot, Tdarr, Meilisearch, ntfy, cadvisor, field-inspect-app, Qdrant (VAULT-side), Postgres.
-- **LiteLLM routes expanded:** 14 models (reasoning, coding, fast, creative, embedding, reranker, worker, claude, gpt, deepseek, gemini + aliases). Cloud cascade models added.
-- **Ansible committed:** vault-langfuse + vault-open-webui roles, Workshop Qwen3.5-35B-A3B upgrade, DEV node in inventory, ops tooling (model-inventory.sh, test-endpoints.py).
-- **Doc refresh:** Updated MEMORY.md, SERVICES.md, BLOCKED.md, BUILD-MANIFEST.md (Tier 11 added). All docs brought to current reality.
-
-### Key findings from audit
-- FOUNDRY reasoning model uses `--kv-cache-dtype fp8_e5m2` — should be `auto` per safety rules (OK for Qwen3, NOT for Qwen3.5)
-- FOUNDRY reasoning model uses `--tool-call-parser hermes` — correct for Qwen3 (not Qwen3.5)
-- Workshop missing `--max-num-batched-tokens 2096` in running process (in Ansible but not yet applied)
-- VAULT disk at 88% (143TB/164TB) — not critical but worth monitoring
-- GPU 4 on FOUNDRY completely idle — embedding model not running
-- DNS resolution between nodes uses IPs only, hostnames don't resolve
+- **Tier 12 COMPLETE (all 8 items):** Gitea CI (first green run), n8n deployed (VAULT:5678, signal pipeline workflow), Miniflux + feeds, overnight ops timer, promptfoo evals, backup fix, DNS resolution, LangFuse wiring verified.
+- **Tier 13 COMPLETE (all 5 items):** GA delegation rewrite, inference-aware scheduling (GPU util + queue depth checks), behavioral pattern detection, A/B eval suite (36 total cases), embedding location decision (stay on DEV).
+- **Tier 14 progress:** EoBQ portraits (14.1✅), dialogue verified (14.2✅), HA tools expanded (14.3 — needs Shaun for Lutron/UniFi), Ulrich requirements (14.4✅), Kindred (14.5 — awaiting Shaun).
+- **Agent deploy:** All 8 modified files rsync'd to FOUNDRY, container rebuilt, 9 agents healthy. New: scheduling endpoint, search_signals tool, character portraits, home scene/history/network tools.
+- **Qdrant `signals` collection:** Created on FOUNDRY:6333 (1024-dim, Cosine). Knowledge Agent can query via search_signals tool.
+- **n8n signal pipeline:** 7-node workflow (Miniflux poll → LLM classify → embed → Qdrant store → mark read). Needs manual UI activation at http://192.168.1.203:5678.
+- **3 commits pushed** to both origin (GitHub) and gitea remotes. CI green on first run.
+- **Token offloading research:** Comprehensive analysis in progress — strategies for reducing Anthropic API costs via local model routing.
 
 ### Current blockers
 - NordVPN credentials needed for qBittorrent + Gluetun (6.5)
 - Anthropic API key needed for Quality Cascade cloud escalation (8.5)
-- Google Drive rclone OAuth needed (`~/.local/bin/rclone config`) for Personal Data ~40% (10.8)
+- Google Drive rclone OAuth needed for Personal Data ~40% (10.8)
 - Photo Analysis blocked on Qwen3.5 multimodal + vLLM 0.17+ (10.10)
+- n8n workflow activation requires Shaun to click Activate in UI (v2.10 API limitation)
+- HA integrations (14.3) require Shaun to configure Lutron + UniFi in HA
 
-### What's next (Tier 11 priorities)
-- 11.1: Port GWT Attention Allocator from Kaizen (salience scoring upgrade)
-- 11.2: Port Preference Learning Engine from Hydra
-- 11.3: Workspace State Machine from Kaizen
-- 11.4: Agent Coalition Formation (GWT Phase 3)
-- 11.5: Autonomous Research Loops from Hydra
-- 11.6: Experience Memory (GWT Phase 4)
-
-### Quick wins still open
-- Restart embedding model on FOUNDRY GPU 4
-- Full Ansible convergence (dry run → apply)
-- Fix DNS resolution between nodes (add /etc/hosts entries via Ansible common role)
+### What's next (priority order)
+1. **Token offloading analysis** — deliver comprehensive strategies doc (research agent running)
+2. **n8n workflow activation** — Shaun: visit http://192.168.1.203:5678, activate "Intelligence Signal Pipeline"
+3. **14.3 — HA depth** — blocked on Shaun (Lutron/UniFi config, ESP32-S3 order)
+4. **14.5 — Kindred** — awaiting Shaun's decision to start
+5. **Eval baseline run** — execute promptfoo against live LiteLLM to record first scores
+6. **FOUNDRY GPU4** — still idle, candidate for Qwen3.5-9B utility model
 
 ### Git state
-- Branch: main, 1 commit ahead of origin
-- Latest: `ad68cba` feat: add vault-langfuse + vault-open-webui roles, upgrade Workshop to Qwen3.5-35B-A3B
-- DEV node: AMD 9900X + RTX 5060Ti (updated from i7-13700K + 3060)
+- Branch: main
+- Latest: `fe9d670` docs: Tiers 12-14 tracking, evals, Ulrich requirements, research
 
 ---
 
@@ -71,3 +60,5 @@
 | 20 | 2026-02-26 | Command Center (Tier 9) | PWA, Cmd+K, Agent Crew Bar, SSE streaming, Furnace Home, Lens Modes, Goals/Feedback, Push Notifications, Generative UI. All 9.1-9.10 complete. |
 | 33-35 | 2026-02-26 | Personal Data System (Tier 10) | Bookmarks (727), GitHub repos (82), entity extraction (3095 nodes), file indexer (2304 pts), Data Curator agent, Terminal page, Claudeman. 8/10 complete. |
 | 36 | 2026-03-07 | System Synthesis | Full cluster audit, doc refresh, Tier 11 defined, Ansible work committed. |
+| 37-39 | 2026-03-07 | Tiers 11-14 Sprint | All Tier 11 (8 cognitive synthesis), Tier 12 (8 ops autonomy), Tier 13 (5 agent intelligence). |
+| 40 | 2026-03-08 | Tiers 12-14 Completion | n8n deployed, signal pipeline, agent deploy, CI green, 3 commits pushed. |

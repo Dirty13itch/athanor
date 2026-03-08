@@ -572,39 +572,404 @@ These categories should never be offloaded:
 
 ---
 
-## Open Questions
+## Strategy 8: Prompt Caching Deep-Dive — Maximizing Cache Hits
 
-1. **Token counting accuracy:** Claude Code does not expose per-request token counts in hooks. The statusline shows cumulative context usage but not per-operation costs. Better visibility would help measure the impact of these strategies.
+### How Claude Code Uses Prompt Caching
 
-2. **Hook-based routing reliability:** How often does Claude follow advisory context injected via hooks vs. ignoring it? Needs empirical testing.
+Claude Code automatically uses Anthropic's prompt caching. The system prompt, CLAUDE.md, rules, MCP tool definitions, and conversation history are all cached. The cache breakpoint automatically moves forward as conversations grow — each new request caches everything up to the last cacheable block, and previous content is read from cache.
 
-3. **Aider + Qwen3-32B diff quality:** The Aider polyglot benchmark shows ~40-55% for 30B-class models. Is this good enough for the mechanical tasks we want to offload? Needs testing on Athanor's actual codebase.
+**Source:** [Anthropic Prompt Caching Docs](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
 
-4. **Goose + vLLM tool calling stability:** The autonomous agent research flagged potential issues. Needs testing before relying on it for overnight automation.
+### Cache Mechanics
 
-5. **Max subscription quota mechanics:** Does Anthropic throttle based on total tokens or request count? This affects which optimization strategies have the most impact on quota longevity.
+| Parameter | Value |
+|-----------|-------|
+| Default TTL | 5 minutes (refreshes on each hit) |
+| Extended TTL | 1 hour (2x base input price for writes) |
+| Cache read cost | 0.1x base input price |
+| 5-min cache write cost | 1.25x base input price |
+| 1-hour cache write cost | 2.0x base input price |
+| Min cacheable tokens (Opus 4.6) | 4,096 |
+| Min cacheable tokens (Sonnet 4.6) | 2,048 |
+| Min cacheable tokens (Haiku 4.5) | 4,096 |
 
-6. **Claude Code Router (CCR) effectiveness:** CCR can route background tasks to non-Anthropic providers (GLM, OpenRouter). How does this interact with the local model strategies? Could CCR route to local vLLM directly?
+**Critical fact:** Cached input tokens do NOT count toward rate limits (ITPM). This effectively multiplies throughput capacity for sessions with stable prefixes.
+
+### What Invalidates the Cache
+
+Cache entries follow a hierarchy: `tools → system → messages`. Changes at any level invalidate that level and all subsequent levels.
+
+| Change | Tools Cache | System Cache | Messages Cache |
+|--------|------------|-------------|----------------|
+| Tool definitions change | Invalid | Invalid | Invalid |
+| Web search toggle | Valid | Invalid | Invalid |
+| Citations toggle | Valid | Invalid | Invalid |
+| Speed setting change | Valid | Invalid | Invalid |
+| Thinking parameters change | Valid | Valid | Invalid |
+| Adding/removing images | Valid | Valid | Invalid |
+
+**Athanor-specific risks:**
+- Adding/removing MCP servers mid-session invalidates the entire cache (tool definitions change)
+- Timestamp injection in system prompts would invalidate the system cache on every request
+- Switching models mid-session creates a completely new cache
+
+### Maximizing Cache Hits in Athanor
+
+1. **Keep MCP server list stable within sessions.** Don't connect/disconnect servers mid-conversation. The 5 MCP servers + deferred tools already add ~10-25K tokens to context. Every time this list changes, the full prefix is re-processed.
+
+2. **Keep CLAUDE.md stable.** Every edit to CLAUDE.md during a session invalidates the system cache. Make edits between sessions, not during.
+
+3. **Maintain conversation cadence.** The 5-minute TTL means pausing for >5 minutes between messages forces a full re-cache of the prefix. During active coding sessions, this is rarely a problem. During review/think/type sessions, it can be significant.
+
+4. **Use 1-hour TTL for agent workflows.** Athanor agents that take >5 minutes between API calls should use the 1-hour cache option. The 2x write cost is recovered after just 2 cache reads vs. the ~5 re-caches that would happen in a 1-hour session with the 5-minute TTL.
+
+### Estimated Savings from Cache Optimization
+
+Anthropic's official docs state prompt caching can reduce input costs by up to 90% for long conversations. For Athanor specifically:
+
+| Scenario | Without Caching | With Caching | Savings |
+|----------|----------------|--------------|---------|
+| 100-turn Opus session (15K system prompt) | $50-100 input | $10-19 input | 60-80% |
+| Stable system prompt (8K tokens) | $0.04/msg | $0.004/msg | 90% |
+| 5 MCP servers (20K tool defs) | $0.10/msg | $0.01/msg | 90% |
+
+Caching is already active by default, but the key insight is: **avoid actions that invalidate it.** The biggest cache-busting culprits in Athanor are MCP server changes and model switches mid-session.
 
 ---
 
-## Comparison: Local Model Quality vs. Claude Code
+## Strategy 9: Speculative Decoding for Local Inference Speedup
 
-Based on available benchmarks and the existing model stack:
+### What It Does
 
-| Task Type | Claude (Opus 4.6) | Qwen3-32B-AWQ | Quality Gap | Offload? |
-|-----------|-------------------|---------------|-------------|----------|
-| Architecture reasoning | 80.8% SWE-bench | ~50-55% (est.) | Large | No |
-| Standard coding | 79.6% (Sonnet) | ~50-55% (est.) | Moderate | Selective |
-| Test writing | High | Moderate | Moderate | Yes (verifiable) |
-| Boilerplate | High | Good | Small | Yes |
-| Code review | Excellent | Good (catches different bugs) | Moderate | Yes (complementary) |
-| Refactoring | Excellent | Adequate for mechanical | Moderate | Yes (single-file) |
-| Research/synthesis | Excellent | Good (with web tools) | Moderate | Yes (first pass) |
-| Documentation | Excellent | Good | Small | Yes |
-| Log analysis | Excellent | Good (pattern matching) | Small | Yes |
+Speculative decoding uses a small "draft" model to predict multiple tokens, which the larger "verifier" model then validates in parallel. This reduces latency (tokens/sec) without changing output quality. It doesn't offload tokens from Claude, but it makes local models fast enough that developers prefer them for more tasks.
 
-Note: Qwen3-32B benchmark scores on Aider are not directly available. The ~50-55% estimate is based on similar-class models (DeepSeek V3 at 70-74% is a much larger model; 32B models typically score 40-55%). This needs empirical validation on Athanor's workloads.
+### Available Methods in vLLM (as of 2026-03)
+
+| Method | Status | Description | Best For |
+|--------|--------|-------------|----------|
+| **Eagle3** | Production | Draft model uses hidden states from 3 verifier layers. SOTA accuracy. | General speedup, 2-2.5x typical |
+| **MTP** | Production (Qwen3.5) | Multi-token prediction built into model architecture | Qwen3.5-35B-A3B specifically |
+| **N-gram** | Production | No draft model needed, uses prompt n-grams for speculation | Code completion, repetitive text |
+| **Draft Model** | Not yet supported | Traditional small→large verification | Blocked in vLLM |
+
+**Source:** [vLLM Speculative Decoding Docs](https://docs.vllm.ai/en/latest/features/spec_decode/), [Eagle3 Blog Post](https://developers.redhat.com/articles/2025/07/01/fly-eagle3-fly-faster-inference-vllm-speculative-decoding)
+
+### Applicability to Athanor's Models
+
+**Qwen3.5-35B-A3B-AWQ on Workshop 5090:**
+- MTP-1 is natively supported by Qwen3.5's architecture
+- For latency-sensitive workloads at low concurrency, MTP-1 reduces TPOT with high acceptance rate
+- Trade-off: lower throughput under concurrent load (fine for single-user homelab)
+- Enable with: `--speculative-config '{"method": "mtp", "num_speculative_tokens": 1}'`
+
+**Qwen3-32B-AWQ on Foundry (TP=2):**
+- Eagle3 is available but requires a compatible Eagle3 draft model trained for Qwen3-32B (check HuggingFace for `eagle3-qwen3-32b` variants)
+- N-gram speculation works out of the box with no additional model needed
+- Enable n-gram with: `--speculative-config '{"method": "ngram", "num_speculative_tokens": 3, "prompt_lookup_num_tokens": 5}'`
+
+**Qwen3-8B on Foundry GPU 3:**
+- N-gram speculation is the pragmatic choice — the model is small enough that draft model overhead would negate the benefit
+- Eagle3 draft models for 8B verifiers may not exist
+
+### Expected Speedup
+
+| Method | Typical Speedup | VRAM Overhead | Quality Impact |
+|--------|----------------|---------------|----------------|
+| Eagle3 | 2.0-2.5x | 10-15% additional | None (mathematically identical output) |
+| MTP-1 | 1.3-1.8x | Minimal (built-in) | None |
+| N-gram | 1.2-1.5x (code), 1.0-1.1x (prose) | None | None |
+
+### Why This Matters for Offloading
+
+Local model latency is the #1 reason developers reach for Claude instead. If Qwen3-32B generates at 15 tok/s baseline and Eagle3 pushes it to 30-35 tok/s, the UX gap narrows significantly. Faster local inference makes the offloading strategies in Strategies 2-3 more practical because developers won't lose patience waiting for local results.
+
+### Implementation Effort
+
+- N-gram: Trivial (add flag to existing vLLM serve command)
+- MTP for Qwen3.5: Low (add speculative-config, test stability)
+- Eagle3: Medium (find/verify compatible draft model, additional VRAM)
+
+---
+
+## Strategy 10: Context Window Management
+
+### Where Claude Code Spends Tokens
+
+According to [Anthropic's official cost management docs](https://code.claude.com/docs/en/costs), Claude Code's context window is divided as follows:
+
+| Segment | Tokens | Notes |
+|---------|--------|-------|
+| System prompt + CLAUDE.md + rules + memory | 8-15K | Loaded every session |
+| MCP tool definitions (5 servers) | 10-25K | Present even when idle |
+| Skill descriptions | 2-5K | Loaded at session start |
+| Compaction buffer | ~33K | Reserved, not configurable |
+| **Usable conversation space** | **120-150K** | 60-75% of 200K |
+
+**Key stat from Anthropic:** Average Claude Code cost is $6/developer/day, with 90th percentile at $12/day. Monthly average with Sonnet 4.6: ~$100-200/developer.
+
+### Token Waste Patterns in Athanor
+
+1. **Re-reading files across sessions.** Claude Code has no file cache across sessions. Every `/resume` that references the same files re-reads them from scratch. Athanor's `CLAUDE.md` alone is 130+ lines; `MEMORY.md` is 142 lines; rules total 206 lines across 9 files.
+
+2. **MCP server overhead.** 5 MCP servers + deferred tools contribute 10-25K tokens to every message's prefix. Per the official docs: "Each MCP server adds tool definitions to your context, even when idle." The `ENABLE_TOOL_SEARCH=auto:<N>` setting can defer tools that exceed N% of context, but currently defaults to 10%.
+
+3. **Thinking token burn.** Default extended thinking budget is 31,999 tokens per response. At Opus output rates ($25/MTok), a single max-thinking response costs $0.80 in thinking tokens alone. Most routine tasks (file reads, simple edits, status checks) don't need this.
+
+4. **Agent team multiplication.** Agent teams use ~7x more tokens than standard sessions because each teammate maintains its own context window. Each teammate loads CLAUDE.md, MCP servers, and skills independently.
+
+5. **Compaction quality degradation.** Quality degrades with cumulative compactions. Structured prompts survive at 92% fidelity vs. 71% for narrative. Critical numbers (IPs, ports, container names) often get lost.
+
+### Actionable Optimizations
+
+**A. Move specialized instructions from CLAUDE.md to skills.**
+
+Official recommendation: "Keep CLAUDE.md under ~500 lines." Athanor's CLAUDE.md is already 130 lines (reasonable), but there's an opportunity to move the hardware table, GPU assignments, and gotchas into on-demand skills that load only when relevant.
+
+**B. Lower tool search threshold.**
+
+Set `ENABLE_TOOL_SEARCH=auto:5` in settings. This defers MCP tool descriptions when they exceed 5% of context (default is 10%). With 5 MCP servers contributing 10-25K tokens, a lower threshold keeps more context available for actual work.
+
+**C. Use `/clear` aggressively between tasks.**
+
+Each `/clear` resets conversation context while preserving session identity. Between unrelated tasks, this prevents stale context from inflating prefix costs on every subsequent message.
+
+**D. Use `/compact` with custom focus.**
+
+```
+/compact Focus on: current file paths, IP addresses, port numbers, uncommitted git changes, active task state
+```
+
+This tells the compactor to preserve the high-value structured data that tends to get lost in default compaction.
+
+**E. Delegate verbose operations to subagents.**
+
+Running tests, fetching docs, or processing logs should go to subagents. The verbose output stays in the subagent's context; only a summary returns to the main conversation.
+
+**F. Write specific prompts.**
+
+"Improve this codebase" triggers broad scanning. "Add input validation to the login function in auth.ts" targets precisely. Anthropic's docs specifically call this out as a cost optimization.
+
+---
+
+## Strategy 11: Hybrid Routing via LiteLLM
+
+### Current State
+
+LiteLLM on VAULT:4000 routes all agent inference. ADR-012 established the architecture: all consumers go through LiteLLM, engine swap = config change. Currently configured with contract-driven slots (reasoning, fast, coding, creative, embedding).
+
+### Adding Cloud Fallback Chains
+
+LiteLLM supports fallback configuration natively. The architecture is:
+
+```yaml
+model_list:
+  # Primary: local model (free)
+  - model_name: "reasoning"
+    litellm_params:
+      model: "openai/Qwen3-32B-AWQ"
+      api_base: "http://192.168.1.244:8000/v1"
+      api_key: "not-needed"
+    model_info:
+      order: 1  # Highest priority
+
+  # Fallback: cloud model (paid)
+  - model_name: "reasoning"
+    litellm_params:
+      model: "anthropic/claude-sonnet-4-6-20260217"
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+    model_info:
+      order: 2  # Lower priority
+
+router_settings:
+  routing_strategy: "usage-based-routing"
+  enable_pre_call_checks: true
+  # Fallback to cloud when local fails
+  default_fallbacks: ["anthropic/claude-sonnet-4-6-20260217"]
+```
+
+This gives automatic cloud escalation when local models are unavailable (GPU maintenance, OOM, vLLM crash) without any consumer-side code changes.
+
+### Intelligent Routing Beyond Fallback
+
+LiteLLM's `usage-based-routing` strategy distributes load, but doesn't understand task complexity. For true hybrid routing:
+
+**Option A: Custom Router Plugin**
+
+LiteLLM supports custom routing functions. A plugin could inspect the request's system prompt or message content and route:
+- Simple tasks (< 500 input tokens, no tool calls) → local fast model
+- Complex tasks (architecture keywords, multi-file references) → cloud
+- Cost-aware: if daily cloud spend exceeds threshold, force local
+
+**Option B: Slot-Based Routing (Current Pattern)**
+
+The existing slot system (reasoning, fast, coding, creative) already enables routing. Extend it:
+- `reasoning-local` → Qwen3-32B (free)
+- `reasoning-cloud` → Claude Sonnet (paid)
+- Let the consumer (agent code) decide which slot based on task complexity
+- This is simpler than automatic routing and gives agents explicit control
+
+**Option C: Quality Cascade**
+
+Route to local first, evaluate the response quality (using a judge model or heuristic), and re-route to cloud if quality is insufficient. This is the most sophisticated but adds latency and complexity.
+
+### Recommendation
+
+Option B (slot-based routing) is the right starting point. The agent code already understands task complexity — let it choose the slot. Add Option A's cost threshold as a guardrail so cloud usage can't spiral.
+
+---
+
+## Strategy 12: Qwen3-Coder-Next — A Potential Game-Changer
+
+### What It Is
+
+Released February 2026, Qwen3-Coder-Next is an 80B-total / 3B-active MoE model specifically designed for coding agents. It uses hybrid attention (Gated DeltaNet + MoE with 512 experts, 10 active per token) and supports 256K context.
+
+**Source:** [Qwen3-Coder-Next Blog](https://qwen.ai/blog?id=qwen3-coder-next), [HuggingFace AWQ-4bit](https://huggingface.co/cyankiwi/Qwen3-Coder-Next-AWQ-4bit)
+
+### Benchmarks
+
+| Benchmark | Qwen3-Coder-Next | Claude Sonnet 4.5 | Claude Opus 4.6 | Qwen3-32B |
+|-----------|-------------------|-------------------|-----------------|-----------|
+| SWE-Bench Pro | 44.3% | 46.1% | — | — |
+| Aider Polyglot | 66.2% | — | 72.0% | 40.0% |
+| SWE-Bench Verified | — | 79.6% (Sonnet 4.6) | 80.8% | — |
+
+The 66.2% Aider score is a massive jump from Qwen3-32B's 40.0%. For the mechanical coding tasks targeted by offloading, this narrows the gap to Claude significantly.
+
+### VRAM Requirements
+
+| Quantization | Size | Fits On |
+|-------------|------|---------|
+| AWQ-4bit | 45.9 GB | FOUNDRY TP=4 (4x 5070Ti = 64GB), Workshop TP=2 (5090+5060Ti = 48GB) |
+| FP8 | ~80 GB | FOUNDRY TP=4 + 4090 (88GB) |
+
+### Deployment Options in Athanor
+
+**Option A: Workshop TP=2 (5090 + 5060Ti)**
+
+Replace Qwen3.5-35B-A3B + ComfyUI with Qwen3-Coder-Next AWQ-4bit on both GPUs. Requires `--tensor-parallel-size 2`. This sacrifices the fast agent slot and ComfyUI.
+
+- Pros: Highest coding quality available locally
+- Cons: Loses fast inference and image generation
+
+**Option B: FOUNDRY TP=4 (4x 5070Ti)**
+
+Replace the current Qwen3-32B (TP=2) + GLM-4.7 + Qwen3-8B with Qwen3-Coder-Next across all 4x 5070Ti. 45.9GB fits in 64GB.
+
+- Pros: Best coding model on the most powerful inference node
+- Cons: Loses all three current models. Single model for all tasks.
+
+**Option C: Wait for Smaller Variant**
+
+Qwen3-Coder (not Next) may have smaller variants coming. The MoE architecture (3B active) means a potential AWQ-4bit that fits in 16-24GB may be feasible for future releases.
+
+### Recommendation
+
+Don't deploy Qwen3-Coder-Next yet. The 45.9GB AWQ-4bit requires sacrificing too many existing models. The 40.0% → 66.2% Aider jump is compelling, but Athanor needs the multi-model diversity (reasoning + creative + coding + fast) more than a single excellent coding model. Monitor for a smaller variant or quantization that fits alongside existing models.
+
+---
+
+## Updated Benchmarks: Local Model Quality vs. Claude Code
+
+Verified data from [Aider Leaderboard](https://aider.chat/docs/leaderboards/) (accessed 2026-03-07) and [16x Engineer Eval](https://eval.16x.engineer/blog/qwen3-coder-evaluation-results):
+
+| Model | Aider Polyglot | SWE-bench Verified | Cost/Aider Run | Notes |
+|-------|---------------|-------------------|----------------|-------|
+| GPT-5 (high) | 88.0% | — | $29.08 | Top of leaderboard |
+| Claude Opus 4.6 | 72.0% | 80.8% | $65.75 | Current CC model |
+| Qwen3-Coder-Next | 66.2% | — | $0.00 (local) | Best open-source coding |
+| Qwen3 235B A22B | 59.6% | — | $0.00 (local) | Too large for Athanor |
+| Qwen3-32B | 40.0% | — | $0.76 | Current local model |
+| Qwen3-32B (est. real coding) | ~6.8/10 avg | — | $0.00 (local) | 16x eval: struggles on uncommon patterns |
+
+**Key insight:** Qwen3-32B at 40.0% Aider is adequate for boilerplate, test writing, and mechanical refactoring. It falls apart on uncommon patterns (scored 1/10 on TypeScript narrowing in 16x eval). The quality gap to Claude is real but task-dependent — for the ~40-50% of work that is mechanical, 40% Aider is "good enough" because the output is verifiable.
+
+| Task Category | Offload to Local? | Quality Risk | Mitigation |
+|--------------|-------------------|-------------|------------|
+| Architecture reasoning | No | High | Claude's 80.8% SWE-bench matters here |
+| Novel problem-solving | No | High | Local models fail on uncommon patterns |
+| Multi-file refactoring | No | Medium-High | Requires holistic codebase understanding |
+| Complex debugging | No | High | Deep reasoning required |
+| Boilerplate generation | Yes | Low | Output is verifiable, spec is clear |
+| Test writing | Yes | Low | Tests are self-verifying (pass/fail) |
+| Single-file refactoring | Yes | Low-Medium | Mechanical, diffs are reviewable |
+| Format conversion | Yes | Low | Mechanical transformation |
+| Documentation | Yes | Low | Template-driven, reviewable |
+| Code review (second pass) | Yes | Medium | Catches different bugs than Claude |
+| Research (first pass) | Yes | Medium | Local deep_research + web tools |
+| Log analysis | Yes | Low | Pattern matching, structured output |
+
+---
+
+## Cost Quantification
+
+### Current Claude Code Costs (Estimated)
+
+Based on Anthropic's published average of $6/dev/day with Sonnet ($100-200/month) and Athanor running Opus:
+
+| Usage Level | Daily Tokens | Monthly Cost (Opus API) | Monthly Cost (Max $200 sub) |
+|-------------|-------------|------------------------|----------------------------|
+| Light (2-3 hrs/day) | 200-300K | $25-50 | Included, no throttling |
+| Medium (4-6 hrs/day) | 400-600K | $50-100 | Included, occasional throttling |
+| Heavy (8+ hrs/day) | 800K-1.5M | $100-250 | Frequent throttling |
+| Intensive (multi-agent) | 2-5M | $250-750 | Severe throttling |
+
+**Max subscription economics:** At $200/month for Max 20x, Anthropic provides roughly 20x Pro quota. Claude Code tokens are included in the subscription. The constraint is quota throttling, not direct cost. Every token saved extends the quota, reducing throttling events.
+
+### Savings by Strategy
+
+| Strategy | Token Reduction | Monthly Value (vs. API) | Implementation Effort |
+|----------|----------------|------------------------|----------------------|
+| S1: Context summarization (MCP Smart Reader) | 10-20% on file reads | $10-40 | Medium (1 day) |
+| S2: Task delegation to local models | 25-40% on delegated tasks | $25-80 | Low-Medium (half day) |
+| S3: Aider for test-fix loops | 15-25% on iterative tasks | $15-50 | Low (1 hour) |
+| S4: Caching (Redis + file content) | 5-15% on repeated queries | $5-25 | Low-Medium (3 hours) |
+| S5: Effort level optimization | 30-50% on thinking tokens | $15-60 | Trivial (1 minute) |
+| S6: Goose overnight automation | 50-60K tokens/day | $10-45 | Medium (2 days) |
+| S7: Claude Code hooks (advisory) | Enables S2/S3/S6 usage | Indirect | Low (2 hours) |
+| S8: Prompt caching optimization | Already active, avoid invalidation | $5-15 | Zero (behavior change) |
+| S9: Speculative decoding for local | 0 (speed, not tokens) | UX improvement | Low-Medium |
+| S10: Context window management | 10-20% on context overhead | $10-30 | Low (behavior change) |
+| S11: LiteLLM hybrid routing | Enables automatic local-first | Infrastructure | Medium (half day) |
+| S12: Qwen3-Coder-Next (future) | Could replace 50-60% of CC work | $50-120 | High (GPU reallocation) |
+
+### Combined Savings Scenarios
+
+**Conservative (S2 + S3 + S5 + S8 + S10):**
+- Strategies that require minimal implementation
+- Token reduction: 35-45%
+- Monthly savings: $35-100 (API) or significant throttle reduction (Max sub)
+- Implementation time: 2-4 hours
+
+**Moderate (Conservative + S1 + S4 + S7 + S11):**
+- Adds infrastructure for automated routing
+- Token reduction: 50-60%
+- Monthly savings: $50-150 or rare throttling events
+- Implementation time: 2-3 days
+
+**Aggressive (Moderate + S6 + S9 + S12):**
+- Full local-first with cloud escalation
+- Token reduction: 65-75%
+- Monthly savings: $80-200+ or essentially no throttling
+- Implementation time: 1-2 weeks
+
+---
+
+## Open Questions
+
+1. **Token counting accuracy:** Claude Code does not expose per-request token counts in hooks. The statusline shows cumulative context usage but not per-operation costs. Use `/cost` to track session totals. Better per-operation visibility would help measure strategy impact.
+
+2. **Hook-based routing reliability:** How often does Claude follow advisory context injected via hooks vs. ignoring it? Needs empirical testing. Strong CLAUDE.md guidance is more reliable than hooks alone.
+
+3. **Aider + Qwen3-32B diff quality:** Aider polyglot benchmark shows 40.0% for Qwen3-32B. This is adequate for single-file mechanical tasks but unreliable for complex edits. The test-fix loop mitigates this (deterministic pass/fail feedback). Needs testing on Athanor's actual codebase.
+
+4. **Goose + vLLM tool calling stability:** The autonomous agent research flagged potential issues. Qwen3-32B-AWQ with `--tool-call-parser qwen3_coder` should work but needs testing before overnight automation.
+
+5. **Max subscription quota mechanics:** Throttling is based on a rolling 5-hour window + weekly quota. Both Pro and Max quotas are shared between Claude web and Claude Code. Max 20x gives ~900 messages per 5-hour window. Token consumption (not just message count) determines quota usage — reducing tokens per message directly extends quota.
+
+6. **Eagle3 draft model availability for Qwen3-32B:** Check HuggingFace for compatible Eagle3 draft models. If none exist, n-gram speculation is the practical alternative.
+
+7. **Qwen3-Coder-Next smaller variants:** Monitor Qwen releases for a model with similar coding quality that fits in 16-24GB VRAM, enabling deployment alongside existing models.
 
 ---
 
@@ -619,16 +984,34 @@ Note: Qwen3-32B benchmark scores on Aider are not directly available. The ~50-55
 - `docs/research/2026-02-26-claude-code-plugin-mcp-ecosystem.md` — Plugin/MCP landscape, LSP plugins
 - `docs/dev-environment.md` — Current tool stack, fallback chain, subscriptions
 
-### Claude Code Documentation
+### Anthropic Official Documentation
+- [Prompt Caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) — Cache mechanics, TTL, pricing, invalidation rules
+- [Manage Costs Effectively](https://code.claude.com/docs/en/costs) — Token optimization, $6/dev/day average, MCP overhead
+- [Sub-agents](https://code.claude.com/docs/en/sub-agents) — Model selection (haiku/sonnet/opus), cost control
+- [Model Configuration](https://code.claude.com/docs/en/model-config) — Effort levels, thinking token budgets
 - [Hooks Reference](https://code.claude.com/docs/en/hooks) — Hook events, handler types, JSON schemas
-- [Sub-agents](https://code.claude.com/docs/en/sub-agents) — Subagent configuration, isolation, memory
-- [Model Configuration](https://code.claude.com/docs/en/model-config) — Effort levels, model aliases, environment variables
-- [Manage Costs Effectively](https://code.claude.com/docs/en/costs) — Token optimization, MCP overhead
+- [Pricing](https://platform.claude.com/docs/en/about-claude/pricing) — Per-model token rates, cache pricing tiers
+- [Rate Limits](https://platform.claude.com/docs/en/api/rate-limits) — Tier structure, cached tokens exemption
 
-### External
-- [Aider Leaderboard](https://aider.chat/docs/leaderboards/) — Model coding benchmarks
-- [LiteLLM Provider Docs](https://docs.litellm.ai/docs/providers) — Routing configuration
-- [Goose Documentation](https://block.github.io/goose/) — Recipes, headless mode, provider setup
+### Benchmark Sources
+- [Aider Leaderboard](https://aider.chat/docs/leaderboards/) — Qwen3-32B: 40.0%, Qwen3-Coder-Next: 66.2%, Opus 4.6: 72.0%, GPT-5: 88.0%
+- [16x Engineer Qwen3 Coder Eval](https://eval.16x.engineer/blog/qwen3-coder-evaluation-results) — 5-task coding eval, Qwen3 Coder 6.8/10 avg vs Claude Opus 4 9.05/10
+- [SWE-bench](https://www.swebench.com/) — Opus 4.6: 80.8%, Sonnet 4.6: 79.6%
+
+### vLLM / Inference
+- [vLLM Speculative Decoding](https://docs.vllm.ai/en/latest/features/spec_decode/) — Eagle3, MTP, n-gram methods
+- [Qwen3.5 vLLM Recipe](https://docs.vllm.ai/projects/recipes/en/latest/Qwen/Qwen3.5.html) — MTP-1 configuration
+- [Eagle3 Speculative Decoding](https://developers.redhat.com/articles/2025/07/01/fly-eagle3-fly-faster-inference-vllm-speculative-decoding) — 2-2.5x speedup benchmarks
+- [Speculators v0.3.0](https://blog.vllm.ai/2025/12/13/speculators-v030.html) — Eagle3 training, draft model standardization
+
+### LiteLLM
+- [Routing & Load Balancing](https://docs.litellm.ai/docs/routing-load-balancing) — Strategies, order-based priority
+- [Fallbacks](https://docs.litellm.ai/docs/proxy/reliability) — Default fallback chains, error handling
+- [Auto Routing](https://docs.litellm.ai/docs/proxy/auto_routing) — Usage-based, latency-based routing
+
+### Model Sources
+- [Qwen3-Coder-Next AWQ-4bit](https://huggingface.co/cyankiwi/Qwen3-Coder-Next-AWQ-4bit) — 45.9GB, vLLM >=0.15.0 required
+- [Qwen3-Coder-Next Guide](https://dev.to/sienna/qwen3-coder-next-the-complete-2026-guide-to-running-powerful-ai-coding-agents-locally-1k95) — VRAM tables, deployment examples
 
 ---
 
