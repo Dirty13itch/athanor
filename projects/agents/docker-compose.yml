@@ -27,7 +27,7 @@ services:
       # Qdrant vector database
       - ATHANOR_QDRANT_URL=http://192.168.1.244:6333
       # Redis (GWT workspace + GPU orchestrator state)
-      - ATHANOR_REDIS_URL=redis://192.168.1.203:6379/0
+      - ATHANOR_REDIS_URL=redis://:Jv1Vg9HAML2jHGWjFnTCcIsqSzqZfIQz@192.168.1.203:6379/0
       # Monitoring
       - ATHANOR_PROMETHEUS_URL=http://192.168.1.203:9090
       - ATHANOR_PORT=9000
