@@ -15,18 +15,22 @@
 
 | Server | Purpose | Status |
 |--------|---------|--------|
-| **sequential-thinking** | Multi-step structured reasoning | Active |
-| **context7** | Live library/framework documentation | Active |
 | **grafana** | Query Grafana dashboards at VAULT:3000 | Active |
-| **filesystem** | File operations within project directory | Active |
+| **docker** | Docker container management across nodes | Active |
 | **athanor-agents** | MCP bridge to 8 local agents (14 tools) | Active |
+| **smart-reader** | Enhanced file reading | Disabled (redundant with native Read) |
 
-### Planned
+### Cloud Connectors (claude.ai)
 
-| Server | When | Prerequisite |
-|--------|------|-------------|
-| **memory** | When persistent cross-session knowledge graph needed | Node.js |
-| **home-assistant-mcp** | After HA onboarding | HA running at VAULT:8123 |
+| Server | Purpose | Status |
+|--------|---------|--------|
+| **Context7** | Library documentation lookup | Active |
+| **Gmail** | Email integration | Active |
+| **Google Calendar** | Calendar management | Active |
+
+### Removed
+
+Previously used, removed from `.mcp.json`: sequential-thinking, context7 (local duplicate), filesystem, playwright.
 
 ---
 
@@ -49,7 +53,7 @@ The LangGraph agent framework runs on Node 1:9000. Source code lives in `project
 
 - **Runtime**: LangGraph 1.0.8 + FastAPI
 - **API**: OpenAI-compatible (`/v1/chat/completions`, `/v1/models`)
-- **Backend LLM**: vLLM at localhost:8000 (Qwen3-32B-AWQ, TP=4)
+- **Backend LLM**: vLLM at localhost:8000 (Qwen3-32B-AWQ, TP=2)
 - **Tool calling**: `--enable-auto-tool-choice --tool-call-parser hermes`
 
 ### Agents (8 live)
@@ -93,7 +97,7 @@ Specialist slots are defined by interface contracts, not model names. Any model 
 
 | Slot | Contract | Current Model | Node |
 |------|----------|---------------|------|
-| **Reasoning** | Tool calling, 32K+ context, structured output | Qwen3-32B-AWQ (TP=4) | Node 1 |
+| **Reasoning** | Tool calling, 32K+ context, structured output | Qwen3-32B-AWQ (TP=2) | Node 1 |
 | **Fast Agent** | Tool calling, low latency | Qwen3-14B FP16 (5090) | Node 2 |
 | **Embedding** | Dense embeddings, 1024-dim, 8K input | Qwen3-Embedding-0.6B | Node 1 (GPU 4) |
 | **Reranker** | Cross-encoder reranking | Planned: Qwen3-Reranker-0.6B | Node 1 (CPU) |

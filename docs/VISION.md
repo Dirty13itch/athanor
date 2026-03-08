@@ -118,7 +118,7 @@ These exist to serve the AI core and Shaun's daily life:
 
 **Storage** — Unraid is the backbone. Bulk storage, media, backups. Non-negotiable — it stays.
 
-**Networking** — UniFi stack already in place. 1GbE currently, 10GbE switch available for future upgrade.
+**Networking** — UniFi stack with 10GbE backbone deployed (USW Pro XG 10 PoE). All server nodes on SFP+ data plane.
 
 **Development Environment** — Claude Code, Kimi Code, and other cloud coding tools stay in the workflow. Local dev environments as needed for Athanor development, game development, app development, and other projects.
 
@@ -233,48 +233,18 @@ Athanor is not a fixed-scope project. It is designed to grow. New workloads, new
 
 ## Current State
 
-*Updated 2026-02-15. Full hardware details in `docs/hardware/inventory.md`.*
-
-### Hardware (audited)
-- **Node 1** — Silverstone RM52 Upper. EPYC 7663 56C/112T, 224 GB DDR4 ECC, 4x RTX 5070 Ti (64 GB VRAM), 2x Intel X550 10GbE. BMC at 192.168.1.216. OS IP pending (fresh Ubuntu install).
-- **Node 2** — Silverstone RM52 Middle. Ryzen 9 9950X 16C/32T, 128 GB DDR5, RTX 5090 + RTX 4090 (56 GB VRAM), Aquantia 10GbE. OS IP pending (fresh Ubuntu install). JetKVM on 192.168.1.165.
-- **VAULT** — Unraid. Threadripper 7960X 24C/48T, 128 GB DDR5 ECC, Arc A380, 164 TB HDD array. IP: 192.168.1.203. JetKVM on 192.168.1.80.
-- **DEV** — Windows 11 workstation (Shaun's daily driver). i7-13700K, 64 GB DDR5, RTX 3060 12 GB. IP: 192.168.1.215. Not a server node.
-- **Loose hardware** — i7-12700K, i5-12600K, i7-9700K, RX 5700 XT, 192 GB loose RAM, 10 TB loose NVMe, 3x Hyper M.2 adapters, 3x 10GbE NICs, 2x HBAs, 4 PSUs, 3 motherboards. Full list in `docs/hardware/loose-inventory.md`.
-
-### Network
-- UniFi Dream Machine Pro (gateway, 192.168.1.1)
-- USW Pro 24 PoE (1GbE management — APs, IoT, DEV)
-- USW Pro XG 10 PoE (10GbE data plane — servers need to be moved here)
-- USW Flex (garage), 6x U6 APs, Lutron controller (.158), USP PDU Pro
-- 3 electrical circuits powering the rack
-
-### Software
-- Node 1 and Node 2: Ubuntu Server 24.04.4 LTS (fresh install, no services yet)
-- VAULT: Unraid (running, media services operational)
-- DEV: Windows 11 with Claude Code
-
-### Architecture Decisions (complete)
-All 11 ADRs documented in `docs/decisions/`. Key decisions:
-- **ADR-001:** Ubuntu 24.04 + Docker Compose + Ansible
-- **ADR-005:** vLLM inference engine with NVFP4 on Blackwell
-- **ADR-006:** ComfyUI creative pipeline on Node 2
-- **ADR-007:** Open WebUI + custom Next.js dashboard
-- Full list in `docs/research/2026-02-15-research-roadmap.md`
+For live operational state, see:
+- `docs/SYSTEM-SPEC.md` — Complete operational specification
+- `docs/SERVICES.md` — Service inventory with ports
+- `STATUS.md` — Ground-truth cluster state (verified and updated regularly)
+- `docs/hardware/inventory.md` — Hardware inventory
+- `docs/decisions/` — 21 Architecture Decision Records
+- `docs/BUILD-MANIFEST.md` — Build queue and roadmap
 
 ---
 
 ## What Comes Next
 
-1. ~~**Hardware audit**~~ — Complete. Full inventory in `docs/hardware/`.
-2. ~~**Research phase**~~ — Complete. 11 research docs and 11 ADRs in `docs/`.
-3. **Build** — Incremental. Get something running, use it, refine it. Layer by layer:
-   - Get node IPs, SSH in, install NVIDIA drivers (validation spike)
-   - Docker + NVIDIA CTK on both nodes
-   - 10GbE connections, NFS mounts from VAULT
-   - First services: vLLM on Node 1, ComfyUI on Node 2, Open WebUI
-   - Monitoring stack on VAULT (Prometheus + Grafana)
-   - Dashboard, agents, home automation, media stack
-4. **Refine** — The athanor is never finished. Continuous improvement.
+The athanor is never finished. Continuous improvement.
 
 The name tells you how: slow fire, self-feeding, continuous transformation.

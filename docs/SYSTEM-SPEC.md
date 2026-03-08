@@ -80,7 +80,7 @@ scripts/index-knowledge.py (DEV cron or manual)
 Full inventory in `docs/SERVICES.md`. Summary:
 
 - **Node 1 (11 containers):** vLLM Qwen3-32B (TP=2), vLLM GLM-4.7-Flash, vLLM Huihui-Qwen3-8B, Agent Server, Qdrant, GPU Orchestrator, node_exporter, dcgm-exporter
-- **Node 2 (7 services):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ComfyUI, EoBQ, Open WebUI, node_exporter, dcgm-exporter
+- **Node 2 (9 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Open WebUI, Alloy, node_exporter, dcgm-exporter
 - **VAULT (36 containers):** LiteLLM, LangFuse, Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, and more
 - **DEV (2 services):** Embedding model (:8001), Reranker (:8003)
 
@@ -513,9 +513,7 @@ Agent acts
 | File | Purpose |
 |------|---------|
 | `CLAUDE.md` | Claude COO role, principles, project structure |
-| `memory/MEMORY.md` | Session continuity between Claude Code sessions |
-| `memory/TODO.md` | Comprehensive prioritized to-do list |
-| `memory/profile.md` | User profile (identity, interests, work patterns) |
+| `MEMORY.md` | Session continuity between Claude Code sessions |
 | `docs/VISION.md` | Philosophy, identity, non-negotiables |
 | `docs/BUILD-MANIFEST.md` | Build plan with priorities and status |
 | `docs/SERVICES.md` | Live service inventory |
@@ -525,7 +523,7 @@ Agent acts
 | `docs/design/intelligence-layers.md` | Intelligence progression details |
 | `docs/design/command-center.md` | Command Center design |
 | `docs/hardware/inventory.md` | Complete hardware inventory |
-| `docs/decisions/ADR-*.md` | Architecture Decision Records (19 total) |
+| `docs/decisions/ADR-*.md` | Architecture Decision Records (21 total) |
 | `docs/research/*.md` | Research notes (20+ from Session 19 sweep) |
 | `projects/agents/` | Agent server source |
 | `projects/dashboard/` | Dashboard / Command Center source |

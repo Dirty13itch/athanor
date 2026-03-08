@@ -56,10 +56,12 @@ Check health, identify stale/broken/idle, assign work to agents, update drifted 
 
 ```
 CLAUDE.md, MEMORY.md        ← Role + session continuity
+CONSTITUTION.yaml            ← Immutable safety constraints
 docs/VISION.md              ← Source of truth
 docs/SYSTEM-SPEC.md         ← Operational specification
 docs/BUILD-MANIFEST.md      ← Build queue
 docs/SERVICES.md            ← Service inventory
+docs/REFERENCE-INDEX.md     ← Predecessor repo catalog
 docs/{decisions,research,design,hardware,projects}/
 ansible/                    ← IaC
 projects/{agents,dashboard,eoq,kindred,ulrich-energy}/
