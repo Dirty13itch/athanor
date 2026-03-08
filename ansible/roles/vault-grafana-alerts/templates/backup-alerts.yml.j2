@@ -16,7 +16,7 @@ groups:
             relativeTimeRange:
               from: 600
               to: 0
-            datasourceUid: prometheus
+            datasourceUid: {{ prometheus_datasource_uid }}
             model:
               expr: athanor_backup_age_seconds{type="qdrant"}
               instant: true
@@ -57,7 +57,7 @@ groups:
             relativeTimeRange:
               from: 600
               to: 0
-            datasourceUid: prometheus
+            datasourceUid: {{ prometheus_datasource_uid }}
             model:
               expr: athanor_backup_age_seconds{type="neo4j"}
               instant: true
@@ -98,7 +98,7 @@ groups:
             relativeTimeRange:
               from: 600
               to: 0
-            datasourceUid: prometheus
+            datasourceUid: {{ prometheus_datasource_uid }}
             model:
               expr: athanor_backup_age_seconds{type="appdata"}
               instant: true

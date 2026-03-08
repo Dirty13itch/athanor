@@ -2,6 +2,10 @@
 # Grafana alerting provisioning
 grafana_provisioning_path: /mnt/appdatacache/grafana/provisioning
 grafana_alerting_path: "{{ grafana_provisioning_path }}/alerting"
+grafana_data_path: /mnt/appdatacache/appdata/grafana  # Direct btrfs, not FUSE /mnt/user
+
+# Prometheus datasource UID (from Grafana API)
+prometheus_datasource_uid: cfe4ltbkb8ge8a
 
 # Backup age thresholds (seconds)
 backup_age_critical_seconds: 129600  # 36 hours

@@ -78,30 +78,22 @@
     mode: "0755"
   register: backup_exporter_script
 
-- name: Deploy backup age exporter systemd service
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../../scripts/athanor-backup-exporter.service"
-    dest: /etc/systemd/system/athanor-backup-exporter.service
-    mode: "0644"
-  register: backup_exporter_service
+# Note: VAULT runs Unraid (no systemd). The backup-age-exporter runs as a
+# Docker container (deployed manually or via community.docker.docker_container).
+# The systemd tasks below are skipped on VAULT.
 
-- name: Reload systemd daemon
-  ansible.builtin.systemd:
-    daemon_reload: true
-  when: backup_exporter_service.changed
-
-- name: Enable and start backup age exporter
-  ansible.builtin.systemd:
-    name: athanor-backup-exporter
+- name: Deploy backup age exporter as Docker container
+  community.docker.docker_container:
+    name: backup-exporter
+    image: python:3.12-slim
     state: started
-    enabled: true
+    restart_policy: unless-stopped
+    network_mode: host
+    volumes:
+      - /opt/athanor/scripts/backup-age-exporter.py:/app/exporter.py:ro
+      - /mnt/appdatacache/backups:/mnt/appdatacache/backups:ro
+    command: python3 /app/exporter.py
   when: not ansible_check_mode
-
-- name: Restart backup age exporter if script changed
-  ansible.builtin.systemd:
-    name: athanor-backup-exporter
-    state: restarted
-  when: backup_exporter_script.changed and not ansible_check_mode
 
 # --- Ensure Grafana has provisioning volume mounted ---
 # The vault-monitoring role creates the Grafana container without provisioning.
@@ -116,7 +108,7 @@
     ports:
       - "{{ grafana_port | default('3000') }}:3000"
     volumes:
-      - "{{ grafana_data_path | default('/mnt/user/appdata/grafana') }}:/var/lib/grafana"
+      - "{{ grafana_data_path }}:/var/lib/grafana"
       - "{{ grafana_provisioning_path }}:/etc/grafana/provisioning:ro"
     env:
       GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password | default('newpass123') }}"

@@ -18,9 +18,13 @@ services:
 {% endif %}
     volumes:
       - /mnt/vault/models:/models:ro
+{% for vol in vllm_extra_volumes %}
+      - {{ vol }}
+{% endfor %}
     environment:
       - HF_HUB_OFFLINE=1
       - VLLM_NO_USAGE_STATS=1
+      - VLLM_DO_NOT_TRACK=1
       - DO_NOT_TRACK=1
 {% if '--enable-sleep-mode' not in vllm_extra_args %}
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
