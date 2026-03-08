@@ -839,8 +839,8 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Depends on:** 15.3 (cache) ✅, 15.4 (breakers) ✅, 15.2 (diagnosis) ✅
 
 ### 15.10 — Deploy to FOUNDRY
-- **Status:** 🔲 todo
-- **Scope:** rsync all new modules + server.py changes to FOUNDRY:9000. Docker compose rebuild. Verify all new endpoints respond.
+- **Status:** ✅ done (Session 40)
+- **Scope:** rsync 8 files → FOUNDRY, docker compose build --no-cache, up -d. All new endpoints verified: /v1/circuits/ (empty), /v1/cache/stats (0 entries), /v1/routing/matrix (full routing table). Health check: 9 agents online.
 - **Depends on:** 15.9 ✅
 
 ---
