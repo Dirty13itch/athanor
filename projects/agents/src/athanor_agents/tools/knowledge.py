@@ -323,8 +323,36 @@ def get_knowledge_stats() -> str:
     return "\n".join(lines)
 
 
+@tool
+async def deep_search(query: str, collection: str = "knowledge") -> str:
+    """Deep search using Corrective RAG — iterative retrieval with quality grading.
+
+    Use this instead of search_knowledge when:
+    - The query is complex or ambiguous
+    - Initial search might miss relevant documents
+    - You need high-confidence, verified results
+    - The topic spans multiple knowledge areas
+
+    This is slower than search_knowledge (uses LLM grading) but significantly
+    more accurate. It will rewrite the query and retry up to 3 times if initial
+    results aren't relevant enough.
+
+    Args:
+        query: Natural language question or topic
+        collection: Qdrant collection to search ("knowledge" or "conversations")
+    """
+    try:
+        from ..crag import corrective_search
+
+        result = await corrective_search(query=query, collection=collection)
+        return result.to_search_output()
+    except Exception as e:
+        return f"Deep search error: {e}"
+
+
 KNOWLEDGE_TOOLS = [
     search_knowledge,
+    deep_search,
     list_documents,
     query_knowledge_graph,
     find_related_docs,
