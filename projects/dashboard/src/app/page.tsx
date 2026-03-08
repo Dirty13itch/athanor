@@ -10,6 +10,7 @@ import { SystemPulse } from "@/components/system-pulse";
 import { AgentCrewBar } from "@/components/agent-crew-bar";
 import { HomeSections } from "@/components/home-sections";
 import { DailyDigest } from "@/components/gen-ui/daily-digest";
+import { DailyBriefing } from "@/components/daily-briefing";
 import { SmartStack } from "@/components/smart-stack";
 import { WorkPlan } from "@/components/work-plan";
 import type { SectionId } from "@/lib/lens";
@@ -392,6 +393,7 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
     ),
+    briefing: <DailyBriefing />,
     digest: <DailyDigest />,
     smartstack: <SmartStack />,
     workplan: <WorkPlan />,

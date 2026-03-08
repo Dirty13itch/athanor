@@ -1,0 +1,25 @@
+[Unit]
+Description=Athanor Backup Age Prometheus Exporter
+Documentation=https://github.com/athanor
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/athanor/scripts/backup-age-exporter.py --port 9199
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=athanor-backup-exporter
+
+# Minimal privileges — read-only access to backup dirs
+User=nobody
+Group=nogroup
+ReadOnlyPaths=/mnt/vault/data/backups/athanor
+ReadOnlyPaths=/mnt/user/backups/athanor
+ProtectSystem=strict
+ProtectHome=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

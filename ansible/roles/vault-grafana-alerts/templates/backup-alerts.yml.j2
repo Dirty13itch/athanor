@@ -18,7 +18,7 @@ groups:
               to: 0
             datasourceUid: prometheus
             model:
-              expr: athanor_backup_age_seconds{target="qdrant"}
+              expr: athanor_backup_age_seconds{type="qdrant"}
               instant: true
               refId: A
           - refId: C
@@ -49,6 +49,47 @@ groups:
             Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}s.
             Check cron on FOUNDRY and NFS mount status.
 
+      - uid: backup-age-neo4j
+        title: Neo4j Backup Age Critical
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: athanor_backup_age_seconds{type="neo4j"}
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - {{ backup_age_critical_seconds }}
+                  operator:
+                    type: and
+                  reducer:
+                    type: last
+              refId: C
+        for: 10m
+        labels:
+          severity: critical
+          source: athanor
+        annotations:
+          summary: >-
+            Neo4j backup is older than 36 hours.
+            Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}s.
+            Check cron on VAULT and backup-neo4j.sh script.
+
       - uid: backup-age-appdata
         title: Appdata Backup Age Critical
         condition: C
@@ -59,7 +100,7 @@ groups:
               to: 0
             datasourceUid: prometheus
             model:
-              expr: athanor_backup_age_seconds{target="appdata"}
+              expr: athanor_backup_age_seconds{type="appdata"}
               instant: true
               refId: A
           - refId: C

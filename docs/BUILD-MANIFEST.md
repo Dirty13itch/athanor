@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-03-08 (Session 40: Tier 15 — Autonomous Self-Improvement pipeline complete)
+Last updated: 2026-03-08 (Session 41: Tier 16 — Remaining build items, DEEP-RESEARCH-LIST reconciliation)
 
 ---
 
@@ -842,6 +842,83 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Status:** ✅ done (Session 40)
 - **Scope:** rsync 8 files → FOUNDRY, docker compose build --no-cache, up -d. All new endpoints verified: /v1/circuits/ (empty), /v1/cache/stats (0 entries), /v1/routing/matrix (full routing table). Health check: 9 agents online.
 - **Depends on:** 15.9 ✅
+
+---
+
+## Tier 16: Remaining Build Items & Polish (P2)
+
+*Completes remaining items from Tiers 12-15, addresses open DEEP-RESEARCH-LIST items, and adds new capabilities identified during build.*
+
+### 16.1 — Knowledge Agent Signals Search Tool
+- **Status:** ✅ done (Session 41)
+- **Scope:** `search_signals` tool already existed in knowledge.py (lines 353-410). Updated knowledge agent system prompt to reference it with category filters.
+- **Depends on:** 12.1 (signal ingestion) ✅
+
+### 16.2 — Dashboard Daily Briefing Component
+- **Status:** ✅ done (Session 41)
+- **Scope:** `daily-briefing.tsx` — fetches most recent digest task, displays in Card with sunrise icon, auto-refresh 5min. Integrated into home page and lens system. TypeScript clean.
+- **Files:** `projects/dashboard/src/components/daily-briefing.tsx`, modified `page.tsx`, `lens.ts`
+- **Depends on:** 12.2 (morning briefing) ✅
+
+### 16.3 — Backup Freshness Monitoring
+- **Status:** ✅ done (Session 41)
+- **Scope:** `backup-age-exporter.py` (Prometheus exporter :9199, stdlib only), systemd service, Grafana alert rules for all 3 backup types (>36h threshold). Ansible tasks for deployment.
+- **Files:** `scripts/backup-age-exporter.py`, `scripts/athanor-backup-exporter.service`, `ansible/roles/vault-grafana-alerts/`
+- **Depends on:** 12.7 (backup fix) ✅
+
+### 16.4 — EoBQ Character Graph (Neo4j)
+- **Status:** ✅ done (Session 41)
+- **Scope:** `seed-eoq-graph.py` — 5 Character nodes with full personality vectors, 10 RELATIONSHIP edges (bidirectional dramatic tensions), 3 Scene nodes, 10 APPEARS_IN edges. Seeded live to VAULT Neo4j. Idempotent (MERGE), supports --dry-run.
+- **Files:** `scripts/seed-eoq-graph.py`
+- **Depends on:** 14.2 (dialogue system) ✅
+
+### 16.5 — LangFuse Prompt Versioning
+- **Status:** ✅ done (Session 41)
+- **Scope:** `sync-prompts-to-langfuse.py` — syncs 9 agent system prompts to LangFuse prompt management API with versioning and content hash comparison. Script created, needs running against live LangFuse.
+- **Files:** `scripts/sync-prompts-to-langfuse.py`
+- **Depends on:** 12.4 (LangFuse wiring) ✅
+
+### 16.6 — Ulrich Energy Next.js Scaffold
+- **Status:** ✅ done (Session 41)
+- **Scope:** Full Next.js 16 scaffold: types (inspection, project, report), API route stubs (inspections CRUD, reports CRUD, projects CRUD), page stubs (dashboard, inspections, reports, projects), Dockerfile, PWA manifest, mobile layout with bottom nav. Needs `npm install` + verification.
+- **Files:** `projects/ulrich-energy/` (types/, API routes, pages, Dockerfile, manifest.ts)
+- **Depends on:** 14.4 (requirements) ✅
+
+### 16.7 — DEEP-RESEARCH-LIST Reconciliation
+- **Status:** ✅ done (Session 41)
+- **Scope:** Cross-referenced all 66 items. 28 resolved (annotated with ✅ and build tier references). 5 blocked on Shaun. 33 remain open. Priority order updated. Novel enhancement ideas mapped (6/10 implemented).
+- **Files:** Modified `~/repos/DEEP-RESEARCH-LIST.md`
+- **Priority:** Done
+
+### 16.8 — Arize Phoenix Deployment
+- **Status:** 🔲 todo
+- **Scope:** Deploy Phoenix on VAULT for agent graph debugging alongside LangFuse. Single container, agent span visualization.
+- **Source:** DEEP-RESEARCH-LIST §6.2
+- **Priority:** P2
+
+### 16.9 — Benchmark Suite (vLLM + GuideLLM)
+- **Status:** 🔲 todo
+- **Scope:** Run vLLM `bench serve` for baseline throughput. GuideLLM for production-realistic load testing through LiteLLM. Record baseline numbers for all model slots.
+- **Source:** DEEP-RESEARCH-LIST §6.4
+- **Priority:** P2
+
+### 16.10 — Prompt Injection Defenses
+- **Status:** ✅ done (Session 41)
+- **Scope:** `input_guard.py` (~300 LOC) — regex-based input/output scanning for invisible Unicode, homoglyphs, prompt injection patterns, data exfiltration, command injection. Risk scoring 0.0-1.0, threshold 0.7 for blocking. Tested: clean=0.00, instruction override=0.60 (warn), chat template injection=0.90 (block), shell injection=1.00 (block).
+- **Files:** `projects/agents/src/athanor_agents/input_guard.py`, modified `server.py`
+- **Source:** DEEP-RESEARCH-LIST §13.1
+
+### 16.11 — Data Sovereignty Verification
+- **Status:** ✅ done (Session 41)
+- **Scope:** Full audit of all 4 nodes. Zero unauthorized outbound found. Fixed: vLLM `VLLM_NO_USAGE_STATS=1` + `DO_NOT_TRACK=1` (was missing), LiteLLM `LITELLM_TELEMETRY=False` (was missing), Claude Code `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` added to DEV .bashrc. Documented allowed connections. Firewall recommendations.
+- **Files:** `docs/research/2026-03-08-data-sovereignty-audit.md`, modified `ansible/roles/vllm/templates/docker-compose.yml.j2`, `ansible/roles/vault-litellm/tasks/main.yml`
+- **Source:** DEEP-RESEARCH-LIST §13.2
+
+### 16.12 — Compound Learning Loop Metrics
+- **Status:** ✅ done (Session 41)
+- **Scope:** `/v1/learning/metrics` endpoint (~120 LOC) aggregating from 7 subsystems (cache, circuits, preferences, trust, diagnosis, memory, tasks). Compound health score 0.0-1.0 with assessment labels. Dashboard page `learning/page.tsx` with HealthGauge, 7 MetricCards, auto-refresh 30s. Nav items added to sidebar and mobile.
+- **Files:** Modified `server.py`, new `projects/dashboard/src/app/learning/page.tsx`, modified `sidebar-nav.tsx`, `more/page.tsx`
+- **Source:** DEEP-RESEARCH-LIST §12.4
 
 ---
 

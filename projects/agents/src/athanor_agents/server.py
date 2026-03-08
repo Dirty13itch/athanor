@@ -13,6 +13,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from .agents import get_agent, list_agents
 from .config import settings
+from .input_guard import sanitize_input, check_output, REFUSAL_RESPONSE, OUTPUT_REDACTED_RESPONSE
 
 
 @asynccontextmanager
@@ -1472,6 +1473,36 @@ async def chat_completions(request: Request):
     # Extract user input summary for activity logging
     user_input = messages[-1].get("content", "")[:500] if messages else ""
 
+    # --- Input guard: scan for prompt injection / exfiltration ---
+    cleaned_input, input_risk_score, input_warnings = sanitize_input(user_input)
+    if input_risk_score > 0.7:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": model_name,
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": REFUSAL_RESPONSE},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+                "blocked": True,
+            },
+            headers={"X-Input-Guard-Score": f"{input_risk_score:.2f}"},
+        )
+    # Use cleaned input (invisible chars stripped) for downstream processing
+    if cleaned_input != user_input:
+        user_input = cleaned_input
+        if messages:
+            messages[-1]["content"] = cleaned_input
+            # Rebuild langchain messages with cleaned content
+            lc_messages = _convert_messages(messages)
+
     # --- Tiered routing classification ---
     from .router import classify_request, apply_preference_override
 
@@ -1614,28 +1645,42 @@ async def chat_completions(request: Request):
             latency_ms=float(duration_ms),
         ))
 
-        return {
-            "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
-            "object": "chat.completion",
-            "created": int(time.time()),
-            "model": model_name,
-            "choices": [
-                {
-                    "index": 0,
-                    "message": {"role": "assistant", "content": content},
-                    "finish_reason": "stop",
-                }
-            ],
-            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-            "routing": routing.to_dict(),
-            "cache_hit": cache_hit,
-        }
+        # Output guard: scan for data leakage
+        _, output_risk_score, output_warnings = check_output(content)
+        if output_risk_score > 0.7:
+            content = OUTPUT_REDACTED_RESPONSE
+
+        guard_score = max(input_risk_score, output_risk_score)
+
+        return JSONResponse(
+            content={
+                "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": model_name,
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": content},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+                "routing": routing.to_dict(),
+                "cache_hit": cache_hit,
+            },
+            headers={"X-Input-Guard-Score": f"{guard_score:.2f}"},
+        )
 
     if stream:
         return StreamingResponse(
             _stream_response(agent, lc_messages, config, model_name, user_input, routing),
             media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Input-Guard-Score": f"{input_risk_score:.2f}",
+            },
         )
 
     start_ms = int(time.time() * 1000)
@@ -1697,21 +1742,31 @@ async def chat_completions(request: Request):
         latency_ms=float(duration_ms),
     ))
 
-    return {
-        "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
-        "object": "chat.completion",
-        "created": int(time.time()),
-        "model": model_name,
-        "choices": [
-            {
-                "index": 0,
-                "message": {"role": "assistant", "content": content},
-                "finish_reason": "stop",
-            }
-        ],
-        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-        "routing": routing.to_dict(),
-    }
+    # Output guard: scan for data leakage
+    _, output_risk_score, output_warnings = check_output(content)
+    if output_risk_score > 0.7:
+        content = OUTPUT_REDACTED_RESPONSE
+
+    guard_score = max(input_risk_score, output_risk_score)
+
+    return JSONResponse(
+        content={
+            "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": model_name,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": content},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            "routing": routing.to_dict(),
+        },
+        headers={"X-Input-Guard-Score": f"{guard_score:.2f}"},
+    )
 
 
 def _convert_messages(messages: list[dict]) -> list:
@@ -1843,6 +1898,183 @@ def _filter_think_streaming(text: str, in_think: bool) -> tuple[str, bool]:
             in_think = True
             i = start + len("<think>")
     return "".join(result), in_think
+
+
+# --- Learning Metrics (compound learning loop) ---
+
+
+@app.get("/v1/learning/metrics")
+async def learning_metrics():
+    """Aggregated metrics showing whether the system is actually learning.
+
+    Collects from: semantic cache, circuit breakers, preference learning,
+    trust scores, routing stats, diagnosis patterns, consolidation stats.
+    """
+    metrics = {}
+
+    # 1. Semantic cache performance
+    try:
+        from .semantic_cache import get_semantic_cache
+        cache = get_semantic_cache()
+        stats = cache.get_stats()
+        metrics["cache"] = {
+            "total_entries": stats.get("total_entries", 0),
+            "hit_rate": stats.get("hit_rate", 0.0),
+            "tokens_saved": stats.get("tokens_saved", 0),
+            "avg_similarity": stats.get("avg_similarity", 0.0),
+        }
+    except Exception:
+        metrics["cache"] = None
+
+    # 2. Circuit breaker health
+    try:
+        from .circuit_breaker import get_circuit_breakers
+        breakers = get_circuit_breakers()
+        states = breakers.get_all_states()
+        metrics["circuits"] = {
+            "services": len(states),
+            "open": sum(1 for s in states.values() if s.get("state") == "OPEN"),
+            "half_open": sum(1 for s in states.values() if s.get("state") == "HALF_OPEN"),
+            "closed": sum(1 for s in states.values() if s.get("state") == "CLOSED"),
+            "total_failures": sum(s.get("failure_count", 0) for s in states.values()),
+        }
+    except Exception:
+        metrics["circuits"] = None
+
+    # 3. Preference learning convergence
+    try:
+        from .preferences import get_all_preferences
+        prefs = await get_all_preferences()
+        if prefs:
+            total_samples = sum(p.get("total_interactions", 0) for p in prefs.values())
+            avg_score = sum(p.get("composite_score", 0) for p in prefs.values()) / max(len(prefs), 1)
+            metrics["preferences"] = {
+                "model_task_pairs": len(prefs),
+                "total_samples": total_samples,
+                "avg_composite_score": round(avg_score, 3),
+                "converged": sum(1 for p in prefs.values() if p.get("total_interactions", 0) >= 5),
+            }
+        else:
+            metrics["preferences"] = {"model_task_pairs": 0, "total_samples": 0}
+    except Exception:
+        metrics["preferences"] = None
+
+    # 4. Trust scores
+    try:
+        from .goals import compute_trust_scores
+        trust = await compute_trust_scores()
+        if trust:
+            avg_trust = sum(t.get("trust_score", 0) for t in trust.values()) / max(len(trust), 1)
+            metrics["trust"] = {
+                "agents_tracked": len(trust),
+                "avg_trust_score": round(avg_trust, 3),
+                "high_trust": sum(1 for t in trust.values() if t.get("trust_score", 0) > 0.7),
+                "low_trust": sum(1 for t in trust.values() if t.get("trust_score", 0) < 0.3),
+            }
+        else:
+            metrics["trust"] = {"agents_tracked": 0}
+    except Exception:
+        metrics["trust"] = None
+
+    # 5. Routing accuracy (from diagnosis patterns)
+    try:
+        from .diagnosis import get_diagnosis_engine
+        diag = get_diagnosis_engine()
+        report = await diag.get_health_report()
+        metrics["diagnosis"] = {
+            "recent_failures": report.get("recent_failure_count", 0),
+            "patterns_detected": len(report.get("patterns", [])),
+            "auto_remediations": report.get("auto_remediations_applied", 0),
+        }
+    except Exception:
+        metrics["diagnosis"] = None
+
+    # 6. Consolidation (memory hygiene)
+    try:
+        from .consolidation import get_collection_stats
+        cstats = await get_collection_stats()
+        total_points = sum(c.get("point_count", 0) for c in cstats.values()) if isinstance(cstats, dict) else 0
+        metrics["memory"] = {
+            "collections": len(cstats) if isinstance(cstats, dict) else 0,
+            "total_points": total_points,
+        }
+    except Exception:
+        metrics["memory"] = None
+
+    # 7. Task execution stats
+    try:
+        from .tasks import get_stats
+        tstats = await get_stats()
+        metrics["tasks"] = {
+            "total": tstats.get("total", 0),
+            "completed": tstats.get("by_status", {}).get("completed", 0),
+            "failed": tstats.get("by_status", {}).get("failed", 0),
+            "success_rate": round(
+                tstats.get("by_status", {}).get("completed", 0) /
+                max(tstats.get("total", 1), 1), 3
+            ),
+        }
+    except Exception:
+        metrics["tasks"] = None
+
+    return {
+        "timestamp": datetime.utcnow().isoformat(),
+        "metrics": metrics,
+        "summary": _compute_learning_summary(metrics),
+    }
+
+
+def _compute_learning_summary(metrics: dict) -> dict:
+    """Compute a high-level learning health score from aggregated metrics."""
+    scores = []
+    signals = []
+
+    # Cache: higher hit rate = more learning
+    if metrics.get("cache") and metrics["cache"].get("total_entries", 0) > 0:
+        hit_rate = metrics["cache"].get("hit_rate", 0)
+        scores.append(min(hit_rate * 2, 1.0))  # 50% hit rate = perfect score
+        if hit_rate > 0.1:
+            signals.append(f"Cache hit rate {hit_rate:.0%}")
+
+    # Preferences: more converged pairs = more learning
+    if metrics.get("preferences") and metrics["preferences"].get("model_task_pairs", 0) > 0:
+        convergence = metrics["preferences"]["converged"] / max(metrics["preferences"]["model_task_pairs"], 1)
+        scores.append(convergence)
+        if convergence > 0.5:
+            signals.append(f"{metrics['preferences']['converged']} preference pairs converged")
+
+    # Trust: high average = system is reliable
+    if metrics.get("trust") and metrics["trust"].get("agents_tracked", 0) > 0:
+        avg_trust = metrics["trust"].get("avg_trust_score", 0)
+        scores.append(avg_trust)
+        if avg_trust > 0.6:
+            signals.append(f"Avg trust score {avg_trust:.2f}")
+
+    # Tasks: success rate
+    if metrics.get("tasks") and metrics["tasks"].get("total", 0) > 0:
+        sr = metrics["tasks"].get("success_rate", 0)
+        scores.append(sr)
+        if sr > 0.8:
+            signals.append(f"Task success rate {sr:.0%}")
+
+    # Diagnosis: fewer failures = healthier
+    if metrics.get("diagnosis"):
+        failures = metrics["diagnosis"].get("recent_failures", 0)
+        failure_score = max(1.0 - (failures / 50), 0)  # 50+ failures = 0
+        scores.append(failure_score)
+
+    overall = round(sum(scores) / max(len(scores), 1), 3) if scores else 0.0
+    return {
+        "overall_health": overall,
+        "data_points": len(scores),
+        "positive_signals": signals,
+        "assessment": (
+            "thriving" if overall > 0.8 else
+            "healthy" if overall > 0.6 else
+            "developing" if overall > 0.3 else
+            "cold_start"
+        ),
+    }
 
 
 def main():

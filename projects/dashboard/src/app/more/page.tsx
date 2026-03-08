@@ -26,6 +26,7 @@ const allPages = [
   { href: "/review", label: "Code Review", icon: DiffIcon },
   { href: "/terminal", label: "Terminal", icon: TerminalIcon },
   { href: "/personal-data", label: "Personal Data", icon: DatabaseIcon },
+  { href: "/learning", label: "Learning", icon: BrainIcon },
 ];
 
 export default function MorePage() {
@@ -243,6 +244,16 @@ function DatabaseIcon({ className }: { className?: string }) {
       <ellipse cx="12" cy="5" rx="9" ry="3" />
       <path d="M3 5v14a9 3 0 0 0 18 0V5" />
       <path d="M3 12a9 3 0 0 0 18 0" />
+    </svg>
+  );
+}
+
+function BrainIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+      <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+      <path d="M12 5v13" />
     </svg>
   );
 }

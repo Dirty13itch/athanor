@@ -1,7 +1,8 @@
 ---
 # Deploy Grafana alert rules for backup age monitoring.
-# Also deploys the textfile collector script that feeds metrics
-# to node_exporter on each node.
+# Deploys two metric sources:
+#   1. textfile collector script (bash, cron → node_exporter)
+#   2. backup-age-exporter.py (Python HTTP server on :9199, scraped directly)
 
 # --- Grafana alerting provisioning ---
 
@@ -67,6 +68,40 @@
       - --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
     published_ports: []
   when: not ansible_check_mode
+
+# --- Standalone backup age exporter (Python HTTP on :9199) ---
+
+- name: Deploy backup age exporter script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../scripts/backup-age-exporter.py"
+    dest: /opt/athanor/scripts/backup-age-exporter.py
+    mode: "0755"
+  register: backup_exporter_script
+
+- name: Deploy backup age exporter systemd service
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../scripts/athanor-backup-exporter.service"
+    dest: /etc/systemd/system/athanor-backup-exporter.service
+    mode: "0644"
+  register: backup_exporter_service
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: backup_exporter_service.changed
+
+- name: Enable and start backup age exporter
+  ansible.builtin.systemd:
+    name: athanor-backup-exporter
+    state: started
+    enabled: true
+  when: not ansible_check_mode
+
+- name: Restart backup age exporter if script changed
+  ansible.builtin.systemd:
+    name: athanor-backup-exporter
+    state: restarted
+  when: backup_exporter_script.changed and not ansible_check_mode
 
 # --- Ensure Grafana has provisioning volume mounted ---
 # The vault-monitoring role creates the Grafana container without provisioning.

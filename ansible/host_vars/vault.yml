@@ -30,6 +30,8 @@ prometheus_scrape_targets:
     targets: ["{{ node1_ip }}:9400"]
   - job_name: node2-gpu
     targets: ["{{ node2_ip }}:9400"]
+  - job_name: backup-exporter
+    targets: ["localhost:9199"]
 
 # Media services
 plex_port: 32400
