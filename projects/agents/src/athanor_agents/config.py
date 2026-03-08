@@ -5,8 +5,8 @@ class Settings(BaseSettings):
     # LiteLLM proxy is the single entry point for all inference
     llm_base_url: str = "http://192.168.1.203:4000/v1"
     llm_api_key: str = "sk-athanor-litellm-2026"
-    llm_model: str = "reasoning"  # LiteLLM alias → Qwen3-32B-AWQ on Node 1
-    llm_model_fast: str = "fast"  # LiteLLM alias → Qwen3.5-35B-A3B on Node 2
+    llm_model: str = "reasoning"  # LiteLLM alias → Qwen3.5-27B-FP8 TP=4 on FOUNDRY
+    llm_model_fast: str = "fast"  # LiteLLM alias → Qwen3-8B on FOUNDRY GPU 2
 
     # Tiered router settings (Phase 1: Tiered Processing Router)
     router_reactive_model: str = "fast"
@@ -20,13 +20,13 @@ class Settings(BaseSettings):
     # Legacy direct vLLM access (for tools that need to check vLLM status)
     vllm_node1_url: str = "http://192.168.1.244:8000/v1"
     vllm_node2_url: str = "http://192.168.1.225:8000/v1"
-    vllm_embedding_url: str = "http://192.168.1.244:8001/v1"
+    vllm_embedding_url: str = "http://192.168.1.189:8001/v1"
 
     # Qdrant vector database
     qdrant_url: str = "http://192.168.1.244:6333"
 
     # Redis (GWT workspace + GPU orchestrator state)
-    redis_url: str = "redis://192.168.1.203:6379/0"
+    redis_url: str = "redis://:Jv1Vg9HAML2jHGWjFnTCcIsqSzqZfIQz@192.168.1.203:6379/0"
 
     prometheus_url: str = "http://192.168.1.203:9090"
     dashboard_url: str = "http://192.168.1.225:3001"
