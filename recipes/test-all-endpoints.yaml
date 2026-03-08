@@ -1,0 +1,9 @@
+---
+name: test-all-endpoints
+description: Validate all inference endpoints across the cluster
+version: "1.0"
+---
+Test every endpoint: foundry:8000, foundry:8002, foundry:8004, workshop:8000, vault:4000.
+For each: health check, simple completion, tool call test, latency measurement.
+For LiteLLM: test tag-based routing (reasoning, coding, fast, creative, worker tags).
+Write results to ~/repos/athanor/logs/endpoint-tests/$(date +%Y%m%d-%H%M).json

@@ -10,20 +10,16 @@
       "TodoRead(*)",
       "TodoWrite(*)",
       "WebFetch(*)",
-      "mcp__sequential-thinking__sequentialthinking(*)",
-      "mcp__context7__resolve-library-id(*)",
-      "mcp__context7__get-library-docs(*)",
-      "mcp__filesystem__*(*)",
-      "mcp__grafana__*(*)"
+      "mcp__grafana__*(*)",
+      "mcp__docker__*(*)",
+      "mcp__athanor-agents__*(*)"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "sequential-thinking",
-    "context7",
-    "playwright",
-    "filesystem",
-    "grafana"
+    "grafana",
+    "docker",
+    "athanor-agents"
   ],
   "sandbox": {
     "enabled": false,

@@ -54,9 +54,16 @@
       "mcp__docker__*"
     ],
     "deny": [
-      "Bash(sudo rm -rf /*:*)",
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(sudo rm -rf /:*)",
+      "Bash(sudo rm -rf ~:*)",
       "Bash(sudo mkfs:*)",
-      "Bash(sudo dd:*)"
+      "Bash(sudo dd if=*of=/dev/:*)",
+      "Bash(shutdown:*)",
+      "Bash(sudo shutdown:*)",
+      "Bash(reboot:*)",
+      "Bash(sudo reboot:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
