@@ -564,10 +564,10 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Priority:** P1
 
 ### 11.2 — Memory Consolidation Pipeline
-- **Status:** 🔲 todo
+- **Status:** ✅ done (Session 38)
 - **Source:** `reference/local-system/services/memory/consolidation.py`
-- **Scope:** Working -> episodic promotion (high-access Redis -> Qdrant), episodic -> archive (>30 days), duplicate detection (cosine >0.95). Daily 3 AM schedule.
-- **Files:** Create `consolidation.py` (~150 LOC). Modify `scheduler.py`.
+- **Scope:** Purges old entries from activity (>30d), conversations (>30d), implicit_feedback (>7d), events (>14d). Daily 3 AM schedule via scheduler. On-demand via `/v1/consolidate`. Safety cap of 500 deletions per collection per run.
+- **Files:** Created `consolidation.py` (~170 LOC). Modified `scheduler.py` (+35 LOC). Modified `server.py` (`/v1/consolidate`, `/v1/consolidate/stats`).
 - **Depends on:** None
 - **Priority:** P1
 

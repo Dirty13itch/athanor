@@ -31,9 +31,12 @@ _scheduler_task: asyncio.Task | None = None
 
 DAILY_DIGEST_KEY = "athanor:scheduler:daily_digest"
 PATTERN_DETECTION_KEY = "athanor:scheduler:pattern_detection"
+CONSOLIDATION_KEY = "athanor:scheduler:consolidation"
 ALERT_CHECK_KEY = "athanor:alerts:last_check"
 WORKPLAN_MORNING_KEY = "athanor:scheduler:morning_plan"
 WORKPLAN_REFILL_KEY = "athanor:workplan:last_refill_check"
+CONSOLIDATION_HOUR = 3  # 3:00 AM local time
+CONSOLIDATION_MINUTE = 0
 DIGEST_HOUR = 6   # 6:55 AM local time
 DIGEST_MINUTE = 55
 PATTERN_HOUR = 5   # 5:00 AM local time
@@ -159,6 +162,39 @@ async def _check_daily_digest():
         logger.info("Daily digest submitted for %s", now.strftime("%Y-%m-%d"))
     except Exception as e:
         logger.warning("Scheduler: failed to submit daily digest: %s", e)
+
+
+async def _check_consolidation():
+    """Check if it's time to run memory consolidation (3:00 AM local)."""
+    from .consolidation import run_consolidation
+
+    now = datetime.now()
+    if now.hour != CONSOLIDATION_HOUR or now.minute != CONSOLIDATION_MINUTE:
+        return
+
+    # Check if already run today
+    try:
+        r = await _get_redis()
+        last_date = await r.get(CONSOLIDATION_KEY)
+        if last_date:
+            last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
+            if last_str == now.strftime("%Y-%m-%d"):
+                return  # Already ran today
+    except Exception:
+        pass
+
+    logger.info("Scheduler: running memory consolidation")
+    try:
+        results = await run_consolidation()
+        r = await _get_redis()
+        await r.set(CONSOLIDATION_KEY, now.strftime("%Y-%m-%d"))
+        logger.info(
+            "Memory consolidation completed: %d points deleted, %d errors",
+            results.get("total_deleted", 0),
+            len(results.get("errors", [])),
+        )
+    except Exception as e:
+        logger.warning("Scheduler: memory consolidation failed: %s", e)
 
 
 async def _check_pattern_detection():
@@ -308,6 +344,7 @@ async def _scheduler_loop():
             await _check_alerts()
 
             # Check time-of-day tasks
+            await _check_consolidation()
             await _check_pattern_detection()
             await _check_daily_digest()
             await _check_morning_plan()

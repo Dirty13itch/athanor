@@ -1261,6 +1261,30 @@ async def classify_route(request: Request):
     return routing.to_dict()
 
 
+# --- Memory Consolidation ---
+
+
+@app.post("/v1/consolidate")
+async def run_consolidation_endpoint():
+    """Run memory consolidation pipeline on demand.
+
+    Purges old entries from activity, conversations, implicit_feedback,
+    and events collections based on retention policies.
+    """
+    from .consolidation import run_consolidation
+
+    results = await run_consolidation()
+    return results
+
+
+@app.get("/v1/consolidate/stats")
+async def consolidation_stats():
+    """Get current point counts for all consolidation-tracked collections."""
+    from .consolidation import get_collection_stats
+
+    return await get_collection_stats()
+
+
 # --- Chat completions ---
 
 
