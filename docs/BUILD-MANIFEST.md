@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-03-07 (Session 38: ALL 8 PHASES COMPLETE — Tier 11 done)
+Last updated: 2026-03-07 (Session 39: Tiers 12-14 defined, SYSTEM-SPEC fixed, docs reconciled)
 
 ---
 
@@ -618,6 +618,165 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Files:** Created `research_jobs.py` (~310 LOC). Modified `scheduler.py` (+12 LOC). Modified `server.py` (+55 LOC, 4 endpoints).
 - **Depends on:** None
 - **Priority:** P3
+
+---
+
+## Tier 12: Intelligence Pipeline & Operational Autonomy (P1)
+
+*Signal ingestion, overnight operations, evaluation, and the transition from reactive to proactive system. Sources: DEEP-RESEARCH-LIST §4, §6, §8; ATHANOR-MAP §20-21.*
+
+### 12.1 — Intelligence Signal Ingestion (Miniflux + n8n)
+- **Status:** ✅ done (Session 39-40)
+- **Miniflux deployed:** VAULT:8070 (miniflux/miniflux:2.2.6 + dedicated PostgreSQL 16). 17 feeds seeded across 6 categories (AI Models, Inference Engines, Dev Tools, Infrastructure, AI News, Security). Polling every 60 min, 5 workers. Admin: admin/athanor2026.
+- **n8n deployed:** VAULT:5678 (n8nio/n8n:latest, v2.10.4). Ansible role `vault-n8n/` (tasks + defaults). Owner: shaun@athanor.local / Athanor2026.
+- **Signal Pipeline workflow:** 7-node n8n workflow: Schedule (30 min) → Fetch Miniflux unread → Split → LLM Classify (via LiteLLM reasoning) + Embed (via DEV embedding) → Store in Qdrant `signals` collection → Mark read in Miniflux. Workflow created, needs manual UI activation (n8n v2.10 requirement).
+- **Qdrant `signals` collection:** Created on FOUNDRY:6333 (1024-dim, Cosine).
+- **Ansible role:** `ansible/roles/vault-miniflux/` + `ansible/roles/vault-n8n/`.
+- **Feed seeder:** `scripts/seed-miniflux-feeds.py` — adds feeds via Miniflux API with category management.
+- **Remaining:** Shaun: activate workflow in n8n UI (http://192.168.1.203:5678). Knowledge Agent query integration for `signals` collection (search_signals tool). Daily signal digest generation.
+- **Depends on:** None
+- **Priority:** Done (remaining items P2)
+
+### 12.2 — Morning Briefing Agent Job
+- **Status:** ✅ done (Session 39 verified — infrastructure already exists)
+- **Scope:** Daily digest at 6:55 AM + morning work plan at 7:00 AM already in scheduler.py. Pattern detection at 5:00 AM. Memory consolidation at 3:00 AM. Alert checks every 5 min. Work plan refill every 2h. All via task engine with Redis state tracking.
+- **Verified:** `scheduler.py` has `_check_daily_digest()` (6:55 AM via `goals.generate_digest_prompt()`), `_check_morning_plan()` (7:00 AM via `workplanner.generate_work_plan()`), `_check_pattern_detection()` (5:00 AM), `_check_consolidation()` (3:00 AM), `_check_alerts()` (5 min intervals).
+- **Remaining:** Dashboard `DailyBriefing` component to display the briefing. Integration with Miniflux signal data once 12.1 n8n workflows are ready.
+- **Priority:** Done (dashboard component is P2)
+
+### 12.3 — Overnight Autonomous Operations
+- **Status:** ✅ done (Session 39)
+- **Scope:** Automated overnight operations: Qdrant optimization, Neo4j stale node detection, research job execution, Ansible drift detection (check mode), Gitea mirror push.
+- **Deliverables:** `scripts/overnight-ops.sh` (5 phases, dry-run support). `scripts/athanor-overnight.service` + `.timer` (systemd, 11 PM daily). Log dir `/var/log/athanor/`. Dry-run verified — all 5 phases working (7 Qdrant collections, Neo4j query, research jobs, Ansible check, Gitea push).
+- **Depends on:** claude-squad installed on DEV ✅
+- **Priority:** Done
+
+### 12.4 — LangFuse Observability Wiring
+- **Status:** ✅ done (verified Session 39)
+- **Scope:** LangFuse was already wired — LiteLLM config has `success_callback: ["prometheus", "langfuse"]`, LANGFUSE_HOST/keys set in container env. Traces flowing (verified: embedding + completion traces at 2026-03-08T05:57).
+- **Remaining:** Add prompt versioning for agent system prompts. Dashboard deep-link to LangFuse trace viewer.
+- **Depends on:** None
+- **Priority:** P2 (remaining items)
+
+### 12.5 — Promptfoo Eval Suite
+- **Status:** ✅ done (Session 39)
+- **Scope:** 20 eval cases across all agent domains: general (3), knowledge (2), coding (2), research (2), creative (2), home (2), media (2), reasoning (2), safety (2). LLM-as-judge assertions via llm-rubric. Python assertions for structural checks. Routes through LiteLLM (reasoning + fast models).
+- **Deliverables:** `evals/promptfooconfig.yaml` (20 test cases, 2 providers). `scripts/run-evals.sh` (LiteLLM health check, dated output).
+- **Remaining:** Run baseline evaluation, record scores. Add CI integration to Gitea workflow.
+- **Depends on:** None
+- **Priority:** Done (baseline run is follow-up)
+
+### 12.6 — Gitea Self-Hosted CI/CD
+- **Status:** ✅ done (Session 39)
+- **Scope:** Gitea 1.23 on VAULT:3033 (SQLite, rootless). Admin user `athanor`. Athanor repo mirrored. Actions enabled. act_runner v0.2.11 on DEV as systemd service (`athanor-runner.service`). CI workflow: Python syntax check, YAML validation (65 files), TypeScript checks (dashboard + EoBQ), ntfy failure notification.
+- **Deliverables:** Ansible role `vault-gitea/` (tasks + defaults, Actions enabled, correct rootless port mapping). `.gitea/workflows/ci.yml`. `scripts/athanor-runner.service`. Git remote `gitea` configured. Runner registered with labels `ubuntu-latest:host,self-hosted:host`.
+- **Depends on:** 12.5 (evals for CI) ✅
+- **Priority:** Done
+
+### 12.7 — Backup Scheduling Audit & Fix
+- **Status:** ✅ done (Session 39)
+- **Findings:** FOUNDRY root crontab had no backup cron (only vllm-health-restart). VAULT had Neo4j + Qdrant crons but no appdata cron. Backups were stale (2 days FOUNDRY, 6 days VAULT appdata).
+- **Fixed:** Deployed Qdrant backup cron to FOUNDRY root (`0 3 * * *`), ran manual backup (7 collections, 468M). Deployed appdata backup script to VAULT cache drive (`/mnt/appdatacache/backup-appdata.sh`), added cron (`30 3 * * *`). VAULT user share has FUSE write issue (writes to /mnt/user/appdata fail with ENOSPC despite 348G free on cache drive) — scripts deployed to /mnt/appdatacache/ as workaround.
+- **Remaining:** Grafana alert for backup age > 36h. Investigate VAULT FUSE ENOSPC issue.
+- **Depends on:** None
+- **Priority:** Done (alert is P2)
+
+### 12.8 — DNS Resolution Between Nodes
+- **Status:** ✅ done (Session 39)
+- **Scope:** All 4 nodes had zero inter-node hostname resolution. Added cluster hostnames to `/etc/hosts` on all 4 nodes (foundry/.244, workshop/.225, vault/.203, dev/.189). Also added `cluster_hosts` variable to `ansible/group_vars/all/main.yml` and `lineinfile` task to `ansible/roles/common/tasks/main.yml` for future Ansible convergence.
+- **Verified:** `ping workshop` from FOUNDRY succeeds (0.384ms). All nodes can resolve all other nodes by hostname.
+- **Files:** `ansible/group_vars/all/main.yml`, `ansible/roles/common/tasks/main.yml`, `/etc/hosts` on all 4 nodes.
+- **Depends on:** None
+- **Priority:** Done
+
+---
+
+## Tier 13: Agent Intelligence Upgrade (P2)
+
+*From reactive to pattern-recognizing. Layer 3 intelligence progression. Sources: DEEP-RESEARCH-LIST §3, §5; SYSTEM-SPEC §6.*
+
+### 13.1 — General Assistant Delegation Upgrade
+- **Status:** ✅ done (Session 39)
+- **Scope:** Rewrote GA system prompt with: correct architecture (TP=2, current model names, all 4 nodes), explicit delegation rules mapping request types to specialist agents, multi-part decomposition guidance. GA now acts as first-contact router that delegates to specialists rather than attempting everything itself.
+- **Files:** Modified `agents/general.py` — updated SYSTEM_PROMPT with delegation rules, correct architecture info, tool usage guidance.
+- **Remaining:** A/B comparison (agents-as-tools vs task delegation) deferred to 13.4 eval sprint.
+- **Depends on:** 11.1 (router) ✅, 11.6 (competition) ✅
+- **Priority:** Done
+
+### 13.2 — Inference-Aware Agent Scheduling
+- **Status:** ✅ done (Session 39)
+- **Scope:** Created `scheduling.py` — queries Prometheus for GPU utilization and vLLM queue depth. Agent classes: latency-sensitive (general, home, media — always run), batch (research, data-curator, knowledge, coding — throttled under load), creative (allowed under high but not critical load). Thresholds: GPU 80% (high), 95% (critical); queue depth 5 (high), 15 (critical). Integrated into `tasks.py` task worker loop — checks load before executing each task. New endpoint: GET `/v1/scheduling/status`.
+- **Files:** Created `scheduling.py` (~120 LOC). Modified `tasks.py` (~15 LOC, scheduling check in worker loop). Modified `server.py` (+10 LOC, status endpoint).
+- **Depends on:** 7.11 (GPU orchestrator) ✅
+- **Priority:** Done
+
+### 13.3 — Pattern Detection Jobs
+- **Status:** ✅ done (Session 39)
+- **Scope:** Core pattern detection already existed (failure clusters, feedback trends, escalation frequency, schedule reliability, task throughput, autonomy auto-graduation, convention extraction). Added per-agent behavioral patterns: Media Agent content preferences (action distribution), Home Agent routine detection (time-of-day patterns), Research Agent topic clusters (keyword extraction), Creative Agent output patterns. All stored in Redis, injected into agent context via `get_agent_patterns()`. Runs daily at 5:00 AM via scheduler.
+- **Files:** Modified `patterns.py` (+90 LOC, `_detect_agent_behavioral_patterns()`).
+- **Depends on:** 7.8 (activity/preferences) ✅, 11.2 (consolidation) ✅
+- **Priority:** Done
+
+### 13.4 — Accelerated Evaluation Sprint
+- **Status:** ✅ done (Session 39)
+- **Scope:** A/B comparison YAML with 16 test cases across reasoning, coding, analysis, creative, instruction-following, knowledge, practical tasks, and edge cases. Tests Qwen3-32B-AWQ (reasoning) vs Qwen3.5-35B-A3B (fast) head-to-head with LLM-rubric assertions and structural checks. Combined with the 20-case baseline eval (12.5), provides 36 total eval cases.
+- **Files:** Created `evals/ab-comparison.yaml` (16 test cases, 2 providers).
+- **Remaining:** Run both evals and record baseline scores. Feed results through preference learning endpoint.
+- **Depends on:** 12.5 (eval suite) ✅, 11.5 (preference learning) ✅
+- **Priority:** Done
+
+### 13.5 — Embedding Model Location Decision
+- **Status:** ✅ done (Session 39 — decision made)
+- **Decision:** Keep embedding + reranker on DEV (4.8GB / 16GB VRAM, 0% GPU utilization). FOUNDRY GPU4 stays free for: future utility model (Qwen3.5-9B), speculative decoding draft model, or overflow inference. LiteLLM already routes `embedding` → DEV:8001 and `reranker` → DEV:8003. No changes needed.
+- **Rationale:** DEV has unused GPU capacity, 10GbE latency is negligible for embeddings, and keeping FOUNDRY GPU4 free preserves flex capacity for inference scaling.
+- **Depends on:** None
+- **Priority:** Done
+
+---
+
+## Tier 14: Creative & Project Depth (P3)
+
+*EoBQ, Kindred, Ulrich Energy, and creative pipeline maturation. Sources: DEEP-RESEARCH-LIST §7, §9, §11.*
+
+### 14.1 — EoBQ Character Portrait Pipeline
+- **Status:** ✅ done (Session 39 — core pipeline complete)
+- **Scope:** Added `generate_character_portrait` tool to Creative Agent. 5 characters (Isolde, Seraphine, Valeria, Lilith, Mireille) with stored visual descriptions for prompt consistency. Portrait aspect ratio (832x1216), 3 style presets (cinematic, painting, illustration), scene context injection. Uses existing Flux dev FP8 workflow on ComfyUI.
+- **Files:** Modified `tools/creative.py` (+50 LOC, EOQB_CHARACTERS dict, generate_character_portrait tool). Existing: `comfyui/flux-character-portrait.json`.
+- **Remaining:** LoRA training for character-specific models (needs reference images). IP-Adapter + ControlNet for pose variation. FLUX Kontext evaluation. Gallery component in EoBQ app.
+- **Research:** `docs/research/2026-02-24-flux-kontext-portraits.md` (exists)
+- **Depends on:** 6.1 (video pipeline) ✅
+- **Priority:** P3
+
+### 14.2 — EoBQ Procedural Dialogue System
+- **Status:** ✅ done (already built — verified Session 39)
+- **Verified:** 5 API routes (701 LOC total): `chat/` (dialogue with character personality, breaking stages, emotional profiles, Qdrant memory retrieval, SSE streaming), `choices/` (LLM-generated player choices with relationship/breaking effects), `narrate/` (narrator perspective), `memory/` (character memory persistence to Qdrant), `generate/` (ComfyUI scene generation). Full type system in `types/game.ts` (244 LOC): BreakingStage, EmotionalProfile, PersonalityVector, RelationshipState, WorldState, PlayerChoice, ChoiceEffects.
+- **Remaining:** Neo4j character graph (character→character edges). 3 playable scenes with authored beat hooks. Integration testing with live LLM.
+- **Depends on:** 4.1 (EoBQ scaffold) ✅
+- **Priority:** Done (remaining items are P3+)
+
+### 14.3 — Home Assistant Integration Depth
+- **Status:** 🔄 in-progress (Session 39 — tools expanded, HA config needs Shaun)
+- **Scope:** Expanded Home Agent with 3 new tools: `activate_scene` (scene control), `get_entity_history` (trend analysis over N hours), `get_network_devices` (device tracker/presence detection). Lutron and UniFi integrations require Shaun to configure in HA UI. Wyoming voice satellite needs ESP32-S3 hardware.
+- **Files:** Modified `tools/home.py` (+3 tools, ~70 LOC).
+- **Remaining:** Shaun: configure Lutron + UniFi integrations in HA. Create 3 automation blueprints in HA. Order ESP32-S3 for Wyoming satellite.
+- **Depends on:** 2.4 (Home Agent) ✅
+- **Priority:** P3 (remaining items need Shaun)
+
+### 14.4 — Ulrich Energy Requirements & Scaffold
+- **Status:** ✅ done (Session 39 — requirements complete, scaffold pending)
+- **Scope:** Full requirements document: 4 workflows (field inspection, report generation, client communication, analytics), PostgreSQL schema (9 tables), API routes (9 endpoints), LiteLLM integration (cloud models for client-facing reports), mobile-first PWA design. MVP scope and Phase 2 defined.
+- **Files:** Created `docs/projects/ulrich-energy/REQUIREMENTS.md` (~180 lines). Existing: `WORKFLOWS.md`.
+- **Remaining:** Next.js scaffold in `projects/ulrich-energy/`, API route stubs, database migrations. These are mechanical — good candidate for Local Coder or Aider.
+- **Depends on:** None
+- **Priority:** Done (scaffold is follow-up)
+
+### 14.5 — Kindred Prototype
+- **Status:** 🔲 todo (concept complete, awaiting build decision)
+- **Scope:** MVP of passion-based matching system. Dual-embedding architecture (interest vectors + drive-state intensity). Privacy-first design. Integration with Qdrant for similarity search.
+- **Concept:** `docs/projects/kindred/CONCEPT.md` covers: passion taxonomy (hierarchical, decay, intensity signals), matching algorithm (depth > breadth weighting, anti-pattern detection, cold start via NLP), Athanor integration (embedding model, PostgreSQL + pgvector, cloud content moderation).
+- **Deliverables:** Requirements doc. Data model. Matching algorithm prototype. Basic UI.
+- **Depends on:** None (Phase 5+ project per concept doc)
+- **Priority:** P3 — Shaun decides when to start
 
 ---
 

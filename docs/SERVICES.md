@@ -59,7 +59,7 @@ Last updated: 2026-03-07 (Session 36 — Full cluster audit and doc refresh)
 | LangFuse Redis | — | LangFuse cache |
 | LangFuse MinIO | — | LangFuse blob storage |
 | Prometheus | 9090 | Metrics aggregation |
-| Grafana | 3000 | admin/newpass123, dashboards |
+| Grafana | 3000 | admin/admin (default — container lacks GF_SECURITY_ADMIN_PASSWORD env) |
 | Grafana Alloy | — | Log collection agent |
 | Loki | — | Log aggregation |
 | cadvisor | 9880 | Container metrics |
@@ -90,6 +90,9 @@ Last updated: 2026-03-07 (Session 36 — Full cluster audit and doc refresh)
 
 | Service | Port | Details |
 |---------|------|---------|
+| Gitea | 3033 | Self-hosted git + CI/CD (SQLite, Actions enabled, admin: athanor/athanor2026) |
+| Miniflux | 8070 | RSS reader (17 feeds, 6 categories, dedicated PostgreSQL, admin/athanor2026) |
+| n8n | 5678 | Workflow automation — Miniflux RSS → LLM classification → Qdrant signals pipeline |
 | Open WebUI (VAULT) | 3090 | Chat interface (routes through LiteLLM) |
 | Spiderfoot | 5001 | OSINT tool |
 | ntfy | 8880 | Push notification server |
@@ -99,8 +102,11 @@ Last updated: 2026-03-07 (Session 36 — Full cluster audit and doc refresh)
 
 | Service | Port | Details |
 |---------|------|---------|
-| Claude Code | — | Primary development tool |
-| Claudeman | 3000 | Multi-session Claude Code web UI (HTTPS, systemd user service) |
+| Claude Code | — | Primary development tool (native install, auto-updates) |
+| claude-squad | — | Multi-session Claude Code manager (git worktrees, parallel sessions) |
+| Embedding (Qwen3-Embedding-0.6B) | 8001 | vLLM embedding model on RTX 5060 Ti |
+| Reranker | 8003 | Reranker model on RTX 5060 Ti |
+| Gitea Actions Runner | — | act_runner v0.2.11 (systemd service, self-hosted label) |
 
 ## LiteLLM Model Routes
 
@@ -110,9 +116,9 @@ Last updated: 2026-03-07 (Session 36 — Full cluster audit and doc refresh)
 | `coding` | vLLM | Huihui-Qwen3-8B-abliterated-v2 | Foundry :8004 |
 | `fast` / `gpt-3.5-turbo` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `creative` | vLLM | GLM-4.7-Flash-GPTQ-4bit | Foundry :8002 |
-| `embedding` / `text-embedding-ada-002` | vLLM | (GPU 4 idle — needs restart) | Foundry |
-| `reranker` | — | TBD | — |
-| `worker` | — | TBD | — |
+| `embedding` / `text-embedding-ada-002` | vLLM | Qwen3-Embedding-0.6B | DEV :8001 |
+| `reranker` | vLLM | Reranker model | DEV :8003 |
+| `worker` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `claude` | Anthropic API | Claude | Cloud |
 | `gpt` | OpenAI API | GPT | Cloud |
 | `deepseek` | DeepSeek API | DeepSeek | Cloud |

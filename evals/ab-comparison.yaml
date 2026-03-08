@@ -1,0 +1,131 @@
+# A/B Model Comparison: Qwen3-32B-AWQ (reasoning) vs Qwen3.5-35B-A3B (fast)
+# Tests the same prompts against both models for quality comparison.
+# Run: npx promptfoo eval -c evals/ab-comparison.yaml
+
+description: "Qwen3-32B vs Qwen3.5-35B-A3B quality comparison"
+
+providers:
+  - id: openai:chat:reasoning
+    label: "Qwen3-32B-AWQ (reasoning)"
+    config:
+      apiBaseUrl: http://192.168.1.203:4000/v1
+      apiKey: sk-athanor-litellm-2026
+
+  - id: openai:chat:fast
+    label: "Qwen3.5-35B-A3B (fast)"
+    config:
+      apiBaseUrl: http://192.168.1.203:4000/v1
+      apiKey: sk-athanor-litellm-2026
+
+prompts:
+  - "{{prompt}}"
+
+tests:
+  # --- Reasoning ---
+  - vars:
+      prompt: "A farmer has 15 animals — some chickens, some cows. Total legs = 44. How many of each?"
+    assert:
+      - type: llm-rubric
+        value: "Correct answer: 7 chickens and 8 cows. Solution should show the algebra or logical steps."
+
+  - vars:
+      prompt: "If it takes 5 machines 5 minutes to make 5 widgets, how long would it take 100 machines to make 100 widgets?"
+    assert:
+      - type: llm-rubric
+        value: "Correct answer: 5 minutes. Each machine makes 1 widget in 5 minutes. Common wrong answer is 100 minutes."
+
+  - vars:
+      prompt: "Explain the key differences between TCP and UDP. When would you choose each?"
+    assert:
+      - type: llm-rubric
+        value: "Covers reliability (TCP) vs speed (UDP), connection state, ordering, use cases. Technically accurate."
+
+  # --- Coding ---
+  - vars:
+      prompt: "Write a Python function to find the longest common subsequence of two strings."
+    assert:
+      - type: llm-rubric
+        value: "Provides a correct dynamic programming solution. O(mn) time. Handles edge cases. Clean code."
+
+  - vars:
+      prompt: "What's the time complexity of Python dict lookups and why?"
+    assert:
+      - type: llm-rubric
+        value: "O(1) average case (hash table). Mentions hash collisions → O(n) worst case. Explains hash-based implementation."
+
+  # --- Analysis ---
+  - vars:
+      prompt: "Compare microservices vs monolith architecture for a small team (1-3 engineers)."
+    assert:
+      - type: llm-rubric
+        value: "Recommends monolith for small teams with clear reasoning. Discusses operational overhead of microservices. Balanced but opinionated."
+
+  - vars:
+      prompt: "What are the tradeoffs of using SQLite vs PostgreSQL for a self-hosted application?"
+    assert:
+      - type: llm-rubric
+        value: "Covers concurrency, deployment simplicity, features, backup. Balanced assessment with clear use cases for each."
+
+  # --- Creative ---
+  - vars:
+      prompt: "Write a haiku about debugging at 3 AM."
+    assert:
+      - type: llm-rubric
+        value: "Valid haiku format (5-7-5 syllables). Captures the experience of late-night debugging. Creative and evocative."
+
+  - vars:
+      prompt: "Describe a sunset on Mars in one paragraph."
+    assert:
+      - type: llm-rubric
+        value: "Scientifically plausible (Mars sunsets are blue). Atmospheric and well-written. Shows creative skill."
+
+  # --- Instruction following ---
+  - vars:
+      prompt: "List 3 pros and 3 cons of self-hosting AI inference. Use bullet points."
+    assert:
+      - type: llm-rubric
+        value: "Exactly 3 pros and 3 cons. Uses bullet points. Each point is distinct and relevant."
+      - type: python
+        value: |
+          import re
+          bullets = re.findall(r'^[\s]*[-*•]', output, re.MULTILINE)
+          return len(bullets) >= 6
+
+  # --- Knowledge ---
+  - vars:
+      prompt: "Explain how transformer attention works in 3 sentences."
+    assert:
+      - type: llm-rubric
+        value: "Covers Q/K/V, attention scores, softmax weighting. Concise — exactly or approximately 3 sentences. Technically accurate."
+
+  - vars:
+      prompt: "What is RLHF and why is it used in modern language models?"
+    assert:
+      - type: llm-rubric
+        value: "Explains Reinforcement Learning from Human Feedback. Covers reward model, PPO training, alignment goals. Accurate."
+
+  # --- Practical tasks ---
+  - vars:
+      prompt: "Write a bash one-liner to find all files larger than 100MB in /home and sort by size."
+    assert:
+      - type: llm-rubric
+        value: "Provides a working find command with size filter and sort. Correct syntax."
+
+  - vars:
+      prompt: "Convert this JSON to a markdown table: {\"name\": \"Alice\", \"age\": 30, \"city\": \"Austin\"}"
+    assert:
+      - type: llm-rubric
+        value: "Produces a valid markdown table with headers and one data row. Contains all three fields."
+
+  # --- Edge cases ---
+  - vars:
+      prompt: "I don't know what to ask. Suggest something interesting."
+    assert:
+      - type: llm-rubric
+        value: "Provides an engaging suggestion or interesting topic. Not a generic response. Shows personality."
+
+  - vars:
+      prompt: ""
+    assert:
+      - type: llm-rubric
+        value: "Handles empty input gracefully without crashing or producing nonsense."
