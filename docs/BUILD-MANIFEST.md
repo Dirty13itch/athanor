@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-03-07 (Session 37: Phase 1 router implemented, Tier 11 expanded to 8 phases)
+Last updated: 2026-03-07 (Session 38: Phases 1-4,6 complete. 11.5/11.7/11.8 remaining)
 
 ---
 
@@ -583,7 +583,7 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Status:** ✅ done (Session 38)
 - **Source:** `reference/kaizen/cognitive/workspace/cst.py`, `reference/kaizen/cognitive/specialists/base.py`
 - **Scope:** CST in Redis: salience map (topic -> float, 0.95x decay), attention mode, working memory (bounded FIFO, max 20), goal stack. Specialist ABC wraps LangGraph agents with `evaluate_salience()` and `generate_proposal()`.
-- **Files:** Create `cst.py` (~200 LOC), `specialist.py` (~180 LOC). Modify `workspace.py`, `context.py`.
+- **Files:** Created `cst.py` (~200 LOC), `specialist.py` (~220 LOC). Modified `workspace.py`, `context.py` (CST injection).
 - **Depends on:** None (but 11.1 enhances it)
 - **Priority:** P2
 
@@ -596,10 +596,10 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Priority:** P2
 
 ### 11.6 — Formal Competition Layer (GWT Phase 3)
-- **Status:** 🔲 todo
+- **Status:** ✅ done (Session 38)
 - **Source:** `reference/kaizen/cognitive/workspace/competition.py`, `reference/kaizen/cognitive/orchestrator.py`
-- **Scope:** Replace `_competition_cycle()` with proper GWT competition: parallel salience eval, softmax selection (temp 0.3 interactive, 2.0 background), winner broadcasts, inhibition tracking (winners -0.1, losers +0.03).
-- **Files:** Create `competition.py` (~200 LOC). Modify `workspace.py`.
+- **Scope:** Refactored `_competition_cycle()` to use specialist interface: parallel salience eval across all 9 specialists, proposal generation, softmax selection (temp 0.3), inhibition tracking (winners -0.1, losers +0.03, capped 0.8). CST updated from winning specialist. Observable via `/v1/cognitive/cst` and `/v1/cognitive/specialists`.
+- **Files:** Modified `workspace.py` (+100 LOC, `_run_specialist_competition()`). Modified `specialist.py` (+50 LOC, `generate_proposal()`, `win_rate`). Modified `server.py` (+32 LOC, cognitive endpoints + lifespan init).
 - **Depends on:** 11.4 (CST + Specialist)
 - **Priority:** P2
 
