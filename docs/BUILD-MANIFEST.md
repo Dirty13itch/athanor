@@ -1000,6 +1000,17 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Depends on:** None
 - **Priority:** P2
 
+### 18.4 — HippoRAG Entity Extraction (Full GraphRAG)
+- **Status:** 🔲 todo
+- **Scope:** Upgrade 18.2 category-based graph expansion to entity-based multi-hop traversal. At index time: run NER (Qwen3.5-27B-FP8 via LiteLLM) to extract entities (services, people, concepts, models) from each doc chunk. Create Neo4j entity nodes + MENTIONS edges. In retrieval: Qdrant source → Neo4j Document → MENTIONS → Topic/Service/etc → other Documents mentioning same entities. Expected: +10-20% multi-hop accuracy over category-based expansion.
+- **Implementation sketch:**
+  - `index-knowledge.py`: add NER pass (LLM extract_entities → MERGE entity nodes → CREATE MENTIONS edges)
+  - `graph_context.py`: upgrade Cypher from category-property filter to 2-hop entity traversal: `(found:Document)-[:MENTIONS]->(e)<-[:MENTIONS]-(related:Document)`
+  - Entity types: `:Service`, `:Model`, `:Concept`, `:Person` with name + type properties
+- **Research:** `docs/research/2026-03-09-knowledge-architecture-memory.md` §1 (HippoRAG v2)
+- **Depends on:** 18.2 ✅ (Neo4j Document nodes already created)
+- **Priority:** P2
+
 ---
 
 ## Blocked on Shaun

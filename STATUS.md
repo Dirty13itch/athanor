@@ -148,10 +148,13 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
   - Agents rebuilt + deployed: all 9 healthy at foundry:9000
   - **Verified working:** `+3 graph` in context log, graph section renders in context output
 
+### LangFuse Audit Finding
+All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` — no agent-level metadata. LangChain callbacks don't thread `agent_name` to LiteLLM. Can't distinguish which agent made which call. Fix: add `metadata={"agent": agent_name}` to LangChain chain config in `tasks.py`.
+
 ### Next Actions
-1. Wire `QdrantNeo4jRetriever` full entity-based expansion (18.4) — NER at index time → Topic/Entity nodes → multi-hop entity traversal (HippoRAG v2 pattern)
-2. Install VS Code + Continue.dev on DEV → FOUNDRY:8000 (18.3) — highest daily-use ROI
-3. Audit LangFuse for per-agent invocation frequency
+1. Install VS Code + Continue.dev on DEV → FOUNDRY:8000 (18.3) — highest daily-use ROI
+2. HippoRAG entity extraction (18.4) — NER at index time, upgrade category-based to entity-based graph expansion
+3. LangFuse per-agent metadata: thread `agent_name` through LangChain callbacks to LiteLLM → LangFuse
 4. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
 5. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
 
