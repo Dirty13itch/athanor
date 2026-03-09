@@ -1,13 +1,8 @@
-import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
+import type { Metadata } from "next";
 import { Inter, Cormorant_Garamond } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
-import { SidebarNav } from "@/components/sidebar-nav";
-import { BottomNav } from "@/components/bottom-nav";
-import { CommandPalette } from "@/components/command-palette";
-import { RegisterSW } from "@/components/register-sw";
-import { ImplicitFeedbackTracker } from "@/components/implicit-feedback-tracker";
-import { LensProvider } from "@/hooks/use-lens";
+import { AppProviders } from "@/components/app-providers";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,25 +22,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Athanor",
-  description: "Homelab command center — agents, GPUs, media, home automation",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Athanor",
+  title: {
+    default: "Athanor",
+    template: "%s | Athanor",
   },
-  formatDetection: {
-    telephone: false,
-  },
-};
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover",
-  themeColor: "#c8963c",
+  description: "Homelab command center for services, GPU telemetry, models, and agents.",
 };
 
 export default function RootLayout({
@@ -55,24 +36,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-      </head>
       <body
         className={`${inter.variable} ${cormorant.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <Suspense>
-          <LensProvider>
-            <ImplicitFeedbackTracker />
-            <SidebarNav />
-            <main className="min-h-screen p-4 pb-20 md:ml-56 md:p-6 md:pb-6">
-              {children}
-            </main>
-            <BottomNav />
-            <CommandPalette />
-          </LensProvider>
-        </Suspense>
-        <RegisterSW />
+        <AppProviders>
+          <AppShell>{children}</AppShell>
+        </AppProviders>
       </body>
     </html>
   );

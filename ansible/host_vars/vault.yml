@@ -16,6 +16,7 @@ vault_pgid: "100"  # Unraid 'users' group
 # Monitoring
 prometheus_port: 9090
 grafana_port: 3000
+blackbox_exporter_port: 9115
 grafana_admin_password: "{{ vault_grafana_admin_password | default('newpass123') }}"
 
 # Prometheus scrape targets
@@ -32,6 +33,83 @@ prometheus_scrape_targets:
     targets: ["{{ node2_ip }}:9400"]
   - job_name: backup-exporter
     targets: ["localhost:9199"]
+
+prometheus_probe_targets:
+  - id: node1-vllm
+    name: "vLLM (Node 1)"
+    url: "http://{{ node1_ip }}:8000/v1/models"
+    category: inference
+    node_id: node1
+  - id: node2-vllm
+    name: "vLLM (Node 2)"
+    url: "http://{{ node2_ip }}:8000/v1/models"
+    category: inference
+    node_id: node2
+  - id: agent-server
+    name: "Agent Server"
+    url: "http://{{ node1_ip }}:9000/health"
+    category: platform
+    node_id: node1
+  - id: prometheus
+    name: "Prometheus"
+    url: "http://localhost:9090/-/healthy"
+    category: observability
+    node_id: vault
+  - id: grafana
+    name: "Grafana"
+    url: "http://localhost:3000/api/health"
+    category: observability
+    node_id: vault
+  - id: node1-node-exporter
+    name: "Node Exporter (Node 1)"
+    url: "http://{{ node1_ip }}:9100/metrics"
+    category: observability
+    node_id: node1
+  - id: node2-node-exporter
+    name: "Node Exporter (Node 2)"
+    url: "http://{{ node2_ip }}:9100/metrics"
+    category: observability
+    node_id: node2
+  - id: node1-dcgm-exporter
+    name: "DCGM Exporter (Node 1)"
+    url: "http://{{ node1_ip }}:9400/metrics"
+    category: observability
+    node_id: node1
+  - id: node2-dcgm-exporter
+    name: "DCGM Exporter (Node 2)"
+    url: "http://{{ node2_ip }}:9400/metrics"
+    category: observability
+    node_id: node2
+  - id: comfyui
+    name: "ComfyUI"
+    url: "http://{{ node2_ip }}:8188/system_stats"
+    category: experience
+    node_id: node2
+  - id: open-webui
+    name: "Open WebUI"
+    url: "http://{{ node2_ip }}:3000"
+    category: experience
+    node_id: node2
+  - id: sonarr
+    name: "Sonarr"
+    url: "http://{{ vault_ip }}:8989/ping"
+    category: media
+    node_id: vault
+  - id: radarr
+    name: "Radarr"
+    url: "http://{{ vault_ip }}:7878/ping"
+    category: media
+    node_id: vault
+  - id: tautulli
+    name: "Tautulli"
+    url: "http://{{ vault_ip }}:8181"
+    category: media
+    node_id: vault
+  - id: plex
+    name: "Plex"
+    url: "http://{{ vault_ip }}:32400/identity"
+    category: media
+    node_id: vault
 
 # Media services
 plex_port: 32400

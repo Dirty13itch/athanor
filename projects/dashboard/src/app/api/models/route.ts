@@ -1,41 +1,7 @@
-import { config } from "@/lib/config";
 import { NextResponse } from "next/server";
-
-interface ModelEntry {
-  id: string;
-  backend: string;
-  backendUrl: string;
-}
+import { getModelsSnapshot } from "@/lib/dashboard-data";
 
 export async function GET() {
-  const results: ModelEntry[] = [];
-
-  await Promise.all(
-    config.inferenceBackends.map(async (backend) => {
-      try {
-        const headers: Record<string, string> = {};
-        if (config.litellm && backend.url.startsWith(config.litellm.url)) {
-          headers["Authorization"] = `Bearer ${config.litellm.apiKey}`;
-        }
-        const res = await fetch(`${backend.url}/v1/models`, {
-          signal: AbortSignal.timeout(5000),
-          headers,
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        const models = data.data ?? [];
-        for (const m of models) {
-          results.push({
-            id: m.id,
-            backend: backend.name,
-            backendUrl: backend.url,
-          });
-        }
-      } catch {
-        // Backend unreachable — skip
-      }
-    })
-  );
-
-  return NextResponse.json({ models: results });
+  const snapshot = await getModelsSnapshot();
+  return NextResponse.json(snapshot);
 }

@@ -1,13 +1,28 @@
-import { config } from "./config";
-
-// --- Prometheus ---
+import {
+  agentsSnapshotSchema,
+  gpuHistoryResponseSchema,
+  gpuSnapshotResponseSchema,
+  modelsSnapshotSchema,
+  overviewSnapshotSchema,
+  servicesHistorySnapshotSchema,
+  servicesSnapshotSchema,
+  type AgentsSnapshot,
+  type GpuHistoryResponse,
+  type GpuSnapshotResponse,
+  type ModelsSnapshot,
+  type OverviewSnapshot,
+  type ServicesHistorySnapshot,
+  type ServicesSnapshot,
+} from "@/lib/contracts";
+import { config } from "@/lib/config";
+import { fetchJson } from "@/lib/http";
 
 export interface PrometheusResult {
   metric: Record<string, string>;
   value: [number, string];
 }
 
-export interface PrometheusResponse {
+interface PrometheusResponse {
   status: string;
   data: {
     resultType: string;
@@ -18,8 +33,11 @@ export interface PrometheusResponse {
 export async function queryPrometheus(query: string): Promise<PrometheusResult[]> {
   const url = `${config.prometheus.url}/api/v1/query?query=${encodeURIComponent(query)}`;
   const res = await fetch(url, { next: { revalidate: 15 } });
-  if (!res.ok) throw new Error(`Prometheus query failed: ${res.status}`);
-  const data: PrometheusResponse = await res.json();
+  if (!res.ok) {
+    throw new Error(`Prometheus query failed: ${res.status}`);
+  }
+
+  const data = (await res.json()) as PrometheusResponse;
   return data.data.result;
 }
 
@@ -35,59 +53,51 @@ export async function queryPrometheusRange(
     end: end.toString(),
     step: step.toString(),
   });
+
   const url = `${config.prometheus.url}/api/v1/query_range?${params}`;
   const res = await fetch(url, { next: { revalidate: 15 } });
-  if (!res.ok) throw new Error(`Prometheus range query failed: ${res.status}`);
-  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(`Prometheus range query failed: ${res.status}`);
+  }
+
+  const data = (await res.json()) as {
+    data: { result: { metric: Record<string, string>; values: [number, string][] }[] };
+  };
   return data.data.result;
 }
 
-// --- Chat ---
-// Chat completion and model listing are now handled by API routes:
-//   /api/chat    — proxies to selected backend with streaming
-//   /api/models  — aggregates models from all inference backends
-
-export interface ChatMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
+export async function getOverview(): Promise<OverviewSnapshot> {
+  return fetchJson("/api/overview", { cache: "no-store" }, overviewSnapshotSchema);
 }
 
-// --- Service Health ---
-
-export interface ServiceStatus {
-  name: string;
-  node: string;
-  url: string;
-  healthy: boolean;
-  latencyMs: number | null;
+export async function getServices(): Promise<ServicesSnapshot> {
+  return fetchJson("/api/services", { cache: "no-store" }, servicesSnapshotSchema);
 }
 
-export async function checkServiceHealth(
-  service: { name: string; url: string; node: string }
-): Promise<ServiceStatus> {
-  const start = Date.now();
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(service.url, {
-      signal: controller.signal,
-      next: { revalidate: 0 },
-    });
-    clearTimeout(timeout);
-    return {
-      ...service,
-      healthy: res.ok,
-      latencyMs: Date.now() - start,
-    };
-  } catch {
-    return {
-      ...service,
-      healthy: false,
-      latencyMs: null,
-    };
-  }
+export async function getServicesHistory(window: string): Promise<ServicesHistorySnapshot> {
+  return fetchJson(
+    `/api/services/history?window=${encodeURIComponent(window)}`,
+    { cache: "no-store" },
+    servicesHistorySnapshotSchema
+  );
 }
 
-export async function checkAllServices(): Promise<ServiceStatus[]> {
-  return Promise.all(config.services.map(checkServiceHealth));
+export async function getGpuSnapshot(): Promise<GpuSnapshotResponse> {
+  return fetchJson("/api/gpu", { cache: "no-store" }, gpuSnapshotResponseSchema);
+}
+
+export async function getGpuHistory(window: string): Promise<GpuHistoryResponse> {
+  return fetchJson(
+    `/api/gpu/history?window=${encodeURIComponent(window)}`,
+    { cache: "no-store" },
+    gpuHistoryResponseSchema
+  );
+}
+
+export async function getModels(): Promise<ModelsSnapshot> {
+  return fetchJson("/api/models", { cache: "no-store" }, modelsSnapshotSchema);
+}
+
+export async function getAgents(): Promise<AgentsSnapshot> {
+  return fetchJson("/api/agents", { cache: "no-store" }, agentsSnapshotSchema);
 }

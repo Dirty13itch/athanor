@@ -8,6 +8,12 @@
     state: directory
     mode: "0755"
 
+- name: Create Blackbox config directory
+  ansible.builtin.file:
+    path: "{{ blackbox_config_path }}"
+    state: directory
+    mode: "0755"
+
 - name: Create Grafana data directory
   ansible.builtin.file:
     path: "{{ grafana_data_path }}"
@@ -30,6 +36,13 @@
     mode: "0644"
   register: alert_rules
 
+- name: Deploy Blackbox exporter config
+  ansible.builtin.template:
+    src: blackbox.yml.j2
+    dest: "{{ blackbox_config_path }}/blackbox.yml"
+    mode: "0644"
+  register: blackbox_config
+
 - name: Run Prometheus container
   community.docker.docker_container:
     name: prometheus
@@ -47,7 +60,22 @@
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=90d
       - --web.enable-lifecycle
-    restart: "{{ (prometheus_config.changed | default(false)) or (alert_rules.changed | default(false)) }}"
+    restart: "{{ (prometheus_config.changed | default(false)) or (alert_rules.changed | default(false)) or (blackbox_config.changed | default(false)) }}"
+  when: not ansible_check_mode
+
+- name: Run Blackbox exporter container
+  community.docker.docker_container:
+    name: blackbox-exporter
+    image: "{{ blackbox_exporter_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ blackbox_exporter_port }}:9115"
+    volumes:
+      - "{{ blackbox_config_path }}/blackbox.yml:/config/blackbox.yml:ro"
+    command:
+      - --config.file=/config/blackbox.yml
+    restart: "{{ blackbox_config.changed | default(false) }}"
   when: not ansible_check_mode
 
 - name: Run Grafana container
@@ -70,6 +98,15 @@
     url: "http://localhost:{{ prometheus_port }}/-/ready"
     status_code: 200
   register: prom_ready
+  retries: 5
+  delay: 5
+  when: not ansible_check_mode
+
+- name: Wait for Blackbox exporter to be ready
+  ansible.builtin.uri:
+    url: "http://localhost:{{ blackbox_exporter_port }}/-/healthy"
+    status_code: 200
+  register: blackbox_ready
   retries: 5
   delay: 5
   when: not ansible_check_mode

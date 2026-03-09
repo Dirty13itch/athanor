@@ -11,3 +11,31 @@ scrape_configs:
     static_configs:
       - targets: {{ target.targets | to_json }}
 {% endfor %}
+{% if prometheus_probe_targets | default([]) | length > 0 %}
+  - job_name: "blackbox-http"
+    metrics_path: /probe
+    params:
+      module: ["http_2xx"]
+    static_configs:
+{% for target in prometheus_probe_targets %}
+      - targets: ["{{ target.url }}"]
+        labels:
+          service_id: "{{ target.id }}"
+          service_name: "{{ target.name }}"
+          service_category: "{{ target.category }}"
+          node_id: "{{ target.node_id }}"
+{% endfor %}
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [service_name]
+        target_label: service_name
+      - source_labels: [service_id]
+        target_label: service_id
+      - source_labels: [service_category]
+        target_label: service_category
+      - source_labels: [node_id]
+        target_label: node_id
+      - target_label: __address__
+        replacement: "127.0.0.1:{{ blackbox_exporter_port }}"
+{% endif %}

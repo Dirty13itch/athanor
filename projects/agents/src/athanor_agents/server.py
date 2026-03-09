@@ -1851,7 +1851,7 @@ async def _stream_response(agent, messages, config, model_name, user_input="", r
             run_id = event.get("run_id", "")
             args = event.get("data", {}).get("input", {})
             tools_used.append(name)
-            yield f'event: tool_start\ndata: {json.dumps({"name": name, "run_id": run_id, "args": args})}\n\n'
+            yield f'event: tool_start\ndata: {json.dumps({"name": name, "run_id": run_id, "toolCallId": run_id or f"tool-{uuid.uuid4().hex[:8]}", "args": args})}\n\n'
             continue
 
         # Tool call end — emit named SSE event
@@ -1859,7 +1859,7 @@ async def _stream_response(agent, messages, config, model_name, user_input="", r
             name = event.get("name", "unknown")
             run_id = event.get("run_id", "")
             output = str(event.get("data", {}).get("output", ""))[:2000]
-            yield f'event: tool_end\ndata: {json.dumps({"name": name, "run_id": run_id, "result": output})}\n\n'
+            yield f'event: tool_end\ndata: {json.dumps({"name": name, "run_id": run_id, "toolCallId": run_id or f"tool-{uuid.uuid4().hex[:8]}", "result": output, "output": output})}\n\n'
             continue
 
         if kind != "on_chat_model_stream":

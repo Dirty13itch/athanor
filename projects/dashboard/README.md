@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Athanor Dashboard
 
-## Getting Started
+Desktop-first operator console for the Athanor homelab. The dashboard now includes:
 
-First, run the development server:
+- a full command center shell with global status, quick actions, and command palette
+- typed dashboard-owned APIs for overview, services, GPU telemetry, models, and agents
+- Prometheus-backed service history and GPU history views
+- browser-persisted direct-chat sessions and agent threads
+- Storybook, Vitest, Playwright, and Lighthouse CI scaffolding for frontend quality
+
+## Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Command center with cluster posture, alerts, trends, hotspots, and launch paths |
+| `/services` | Service operations surface with URL-persisted filters, probe history, and detail drawer |
+| `/gpu` | Fleet telemetry with node trends, hotspot triage, drill-down charts, and comparison |
+| `/chat` | Persisted direct-model chat sessions with export/copy/abort controls |
+| `/agents` | Persisted agent threads with tool timeline rendering and normalized streaming |
+
+## API Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/api/overview` | Typed command center snapshot |
+| `/api/services` | Current service snapshot |
+| `/api/services/history` | Service probe history from Prometheus |
+| `/api/gpu` | Current GPU snapshot |
+| `/api/gpu/history` | GPU range history from Prometheus |
+| `/api/models` | Normalized model inventory |
+| `/api/agents` | Normalized agent roster |
+| `/api/chat` | Normalized chat stream proxy for inference backends and agent server |
+
+## Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Local QA commands:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test
+npm run lint
+npm run build
+npm run test:e2e
+npm run storybook:build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Optional local tools:
 
-## Learn More
+```bash
+npm run storybook
+npm run lighthouse
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Configuration
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Copy `.env.example` to `.env.local` and adjust only the endpoints that differ from the default homelab layout.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Primary variables:
 
-## Deploy on Vercel
+- `ATHANOR_NODE1_HOST`
+- `ATHANOR_NODE2_HOST`
+- `ATHANOR_VAULT_HOST`
+- `ATHANOR_AGENT_SERVER_URL`
+- `ATHANOR_PROMETHEUS_URL`
+- `ATHANOR_GRAFANA_URL`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The per-service URLs and inference endpoints fall back to sensible defaults derived from those values.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notes
+
+- `/api/chat` emits a normalized SSE event stream for both direct model chat and agent chat.
+- Agent tool timeline correlation now uses a stable `toolCallId` propagated from the agent server.
+- Service history depends on Prometheus blackbox probe metrics added through the `vault-monitoring` Ansible role.
+- Storybook currently builds successfully; Vite logs benign Radix `"use client"` bundling warnings during the build.

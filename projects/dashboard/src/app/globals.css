@@ -136,9 +136,41 @@
   }
   body {
     @apply bg-background text-foreground;
+    color-scheme: dark;
+    background-image:
+      radial-gradient(circle at top, color-mix(in oklab, var(--amber) 18%, transparent) 0%, transparent 38%),
+      linear-gradient(180deg, color-mix(in oklab, var(--background) 92%, black) 0%, var(--background) 100%);
+    background-attachment: fixed;
   }
   h1, h2, h3, h4 {
     font-family: var(--font-heading), serif;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--amber) 35%, transparent);
+    color: var(--foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
