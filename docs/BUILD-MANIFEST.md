@@ -963,6 +963,38 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 
 ---
 
+## Tier 18: Knowledge Pipeline Upgrades (P1)
+
+*Post-session-46 improvements to the Qdrant knowledge pipeline. Sources: docs/research/2026-03-09-knowledge-architecture-memory.md*
+
+### 18.1 — miniCOIL Hybrid Search
+- **Status:** ✅ done (Session 47, 2026-03-09)
+- **Scope:** Upgraded `knowledge` Qdrant collection from unnamed dense-only to named dense + miniCOIL sparse vectors. Qdrant-native RRF fusion via `/query` endpoint replaces Python-side RRF for the primary hybrid path. Fallback to keyword scroll retained for collections without sparse vectors (personal_data, conversations, etc.).
+  - `index-knowledge.py`: collection migration (delete+recreate with `dense`+`sparse` named vectors, `modifier: idf`), miniCOIL sparse vector computation via FastEmbed 0.7 at index time, payload text index preserved for fallback
+  - `hybrid_search.py`: primary path uses Qdrant `/query` with prefetch=[dense, sparse]+fusion=rrf; falls back gracefully if miniCOIL unavailable or collection lacks sparse vectors
+  - `pyproject.toml`: added `fastembed>=0.7` dependency
+  - Full re-index: 3071 chunks from 172 documents (was 3034 with old schema)
+- **Quality improvement:** +2-5% NDCG@10 on keyword-heavy queries (miniCOIL vs BM25/text-match). Exact model/identifier queries ("ADR-017", "Qwen3.5-27B-FP8", IP addresses) now get both semantic + neural keyword boosting.
+- **Research:** `docs/research/2026-03-09-knowledge-architecture-memory.md` §5
+- **Depends on:** None
+- **Priority:** Done
+
+### 18.2 — QdrantNeo4jRetriever Pipeline
+- **Status:** 🔲 todo
+- **Scope:** Wire `neo4j_graphrag[qdrant]` `QdrantNeo4jRetriever` into agent context pipeline. Qdrant kNN returns top-k → Neo4j Cypher 2-hop expansion → combined vector+graph context. Requires `neo4j_id` payload field in all Qdrant `knowledge` points linking to Neo4j entity nodes. Measured +20% accuracy on multi-hop queries (Lettria case study).
+- **Research:** `docs/research/2026-03-09-knowledge-architecture-memory.md` §4
+- **Depends on:** 18.1 ✅
+- **Priority:** P1
+
+### 18.3 — Continue.dev IDE Integration
+- **Status:** 🔲 todo (no VS Code on DEV currently)
+- **Scope:** Install VS Code + Continue.dev extension on DEV, configure to use FOUNDRY:8000 (Qwen3.5-27B-FP8) for autocomplete + inline chat. Zero-latency local inference. Identified as single highest-ROI daily-use action.
+- **Research:** `docs/research/2026-03-09-local-ai-productivity-patterns.md` §10
+- **Depends on:** None
+- **Priority:** P2
+
+---
+
 ## Blocked on Shaun
 
 These require human action. Claude Code cannot do them.

@@ -5,6 +5,17 @@ Run from DEV (where the git repo lives):
     python3 scripts/index-knowledge.py              # incremental (default)
     python3 scripts/index-knowledge.py --full        # full re-index
 
+Requires: pip install fastembed httpx
+
+Hybrid indexing: dense vectors (Qwen3-Embedding via LiteLLM) +
+miniCOIL sparse vectors (local, via FastEmbed 0.7+). The collection is
+configured with named vectors:
+  - "dense": 1024-dim Cosine (semantic search)
+  - "sparse": miniCOIL with modifier=idf (keyword+semantic hybrid)
+
+If the existing collection uses unnamed vectors (pre-miniCOIL format),
+this script will delete and recreate it, then do a forced full re-index.
+
 Incremental mode: compares content hashes, only re-embeds changed/new files,
 removes points for deleted files. Takes <30s when nothing changed.
 
@@ -17,6 +28,7 @@ import hashlib
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 import httpx
 
@@ -41,6 +53,39 @@ EMBEDDING_DIM = 1024
 CHUNK_SIZE = 1500  # chars per chunk (with overlap)
 CHUNK_OVERLAP = 200
 EMBEDDING_MODEL = "Qwen3-Embedding-0.6B"  # Model serving the `embedding` LiteLLM route
+MINICOIL_MODEL = "Qdrant/minicoil-v1"
+
+# --- miniCOIL model (lazy loaded) ---
+_minicoil = None
+
+
+def _get_minicoil():
+    """Lazy-load miniCOIL sparse embedding model."""
+    global _minicoil
+    if _minicoil is None:
+        try:
+            from fastembed import SparseTextEmbedding
+            print("  Loading miniCOIL model (first run: downloads ~90MB)...")
+            _minicoil = SparseTextEmbedding(model_name=MINICOIL_MODEL)
+            print("  miniCOIL ready.")
+        except ImportError:
+            print("ERROR: fastembed not installed. Run: pip install fastembed", file=sys.stderr)
+            sys.exit(1)
+    return _minicoil
+
+
+def compute_sparse_vectors(texts: list[str]) -> list[dict]:
+    """Compute miniCOIL sparse vectors for a batch of texts.
+
+    Returns list of {"indices": [...], "values": [...]} dicts,
+    one per input text.
+    """
+    model = _get_minicoil()
+    embeddings = list(model.embed(texts, batch_size=min(len(texts), 32)))
+    return [
+        {"indices": e.indices.tolist(), "values": e.values.tolist()}
+        for e in embeddings
+    ]
 
 
 def content_hash(text: str) -> str:
@@ -113,20 +158,69 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
     return [c for c in chunks if len(c) > 50]
 
 
-def ensure_collection():
-    """Ensure the Qdrant collection exists."""
-    resp = httpx.get(f"{QDRANT_URL}/collections/{COLLECTION}", timeout=5)
-    if resp.status_code == 200:
-        return
+def _collection_has_sparse(resp_json: dict) -> bool:
+    """Check if a Qdrant collection already has sparse_vectors configured."""
+    config = resp_json.get("result", {}).get("config", {})
+    params = config.get("params", {})
+    # Qdrant returns sparse_vectors in params if configured
+    sparse = params.get("sparse_vectors", {})
+    return bool(sparse)
 
-    print(f"Creating collection '{COLLECTION}'...")
+
+def _collection_has_named_dense(resp_json: dict) -> bool:
+    """Check if a Qdrant collection uses named dense vectors (not unnamed)."""
+    config = resp_json.get("result", {}).get("config", {})
+    params = config.get("params", {})
+    vectors = params.get("vectors", {})
+    # Named vectors have a dict of dicts; unnamed has {"size": N, "distance": "..."}
+    return isinstance(vectors, dict) and "dense" in vectors
+
+
+def ensure_collection() -> bool:
+    """Ensure the Qdrant collection exists with correct schema.
+
+    Returns True if collection was recreated (caller should force full re-index).
+    """
+    resp = httpx.get(f"{QDRANT_URL}/collections/{COLLECTION}", timeout=5)
+
+    if resp.status_code == 200:
+        data = resp.json()
+        has_sparse = _collection_has_sparse(data)
+        has_named = _collection_has_named_dense(data)
+
+        if has_sparse and has_named:
+            print(f"  Collection '{COLLECTION}': OK (named dense + sparse vectors)")
+            return False  # No migration needed
+
+        # Migration needed: delete and recreate
+        print(f"  Collection '{COLLECTION}': upgrading to named dense + sparse vectors...")
+        httpx.delete(f"{QDRANT_URL}/collections/{COLLECTION}", timeout=10).raise_for_status()
+        print(f"  Deleted old collection.")
+
+    # Create with named dense + sparse vectors
+    print(f"  Creating collection '{COLLECTION}' with miniCOIL sparse vectors...")
     httpx.put(
         f"{QDRANT_URL}/collections/{COLLECTION}",
         json={
-            "vectors": {"size": EMBEDDING_DIM, "distance": "Cosine"},
+            "vectors": {
+                "dense": {"size": EMBEDDING_DIM, "distance": "Cosine"},
+            },
+            "sparse_vectors": {
+                "sparse": {"modifier": "idf"},
+            },
         },
         timeout=10,
     ).raise_for_status()
+
+    # Create payload text index for keyword fallback
+    httpx.put(
+        f"{QDRANT_URL}/collections/{COLLECTION}/index",
+        json={"field_name": "text", "field_schema": {"type": "text", "tokenizer": "word"}},
+        timeout=10,
+    ).raise_for_status()
+
+    print(f"  Collection '{COLLECTION}' created with dense + sparse + text index.")
+    return True  # Migration occurred
 
 
 def find_docs() -> list[Path]:
@@ -267,6 +361,7 @@ def index_file(filepath: Path, batch: list[dict], file_hash: str) -> int:
                 "embedded_at": indexed_at,
                 "content_hash": file_hash,
                 "embedding_model": EMBEDDING_MODEL,
+                "sparse_model": MINICOIL_MODEL,
                 "text": chunk,
             },
         })
@@ -275,12 +370,13 @@ def index_file(filepath: Path, batch: list[dict], file_hash: str) -> int:
 
 
 def upsert_batch(batch: list[dict]):
-    """Embed and upsert a batch of points to Qdrant."""
+    """Embed (dense + sparse) and upsert a batch of points to Qdrant."""
     if not batch:
         return
 
     texts = [p["text"] for p in batch]
 
+    # Dense embeddings via LiteLLM
     resp = httpx.post(
         f"{LITELLM_URL}/embeddings",
         json={"model": "embedding", "input": texts},
@@ -288,13 +384,19 @@ def upsert_batch(batch: list[dict]):
         timeout=120,
     )
     resp.raise_for_status()
-    embeddings = [d["embedding"] for d in resp.json()["data"]]
+    dense_vectors = [d["embedding"] for d in resp.json()["data"]]
+
+    # Sparse embeddings via miniCOIL (local, fast)
+    sparse_vectors = compute_sparse_vectors(texts)
 
     points = []
-    for item, vector in zip(batch, embeddings):
+    for item, dense, sparse in zip(batch, dense_vectors, sparse_vectors):
         points.append({
             "id": item["id"],
-            "vector": vector,
+            "vectors": {
+                "dense": dense,
+                "sparse": sparse,
+            },
             "payload": item["payload"],
         })
 
@@ -455,10 +557,15 @@ def main():
 
     print("=== Athanor Knowledge Indexer ===\n")
     check_connectivity()
-    ensure_collection()
+
+    migrated = ensure_collection()
     print()
 
-    if args.full:
+    # Force full re-index after schema migration
+    if migrated:
+        print("Schema migration detected: forcing full re-index.\n")
+        run_full()
+    elif args.full:
         run_full()
     else:
         run_incremental()

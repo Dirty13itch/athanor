@@ -137,6 +137,28 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 47 (2026-03-09) Summary
+
+### Completed This Session
+- **miniCOIL hybrid search** (18.1):
+  - `knowledge` Qdrant collection migrated: unnamed dense → named `dense` + `sparse` (miniCOIL) vectors
+  - `index-knowledge.py`: adds miniCOIL sparse vectors at index time (FastEmbed 0.7, `Qdrant/minicoil-v1`, 90MB)
+  - `hybrid_search.py`: primary path uses Qdrant `/query` endpoint with native RRF fusion; graceful fallback to keyword scroll for collections without sparse vectors
+  - `pyproject.toml`: added `fastembed>=0.7`
+  - Full re-index: 3071 chunks from 172 documents (was 3034)
+  - Agents rebuilt + deployed: all 9 healthy at foundry:9000
+  - miniCOIL model loads on first query (~5s one-time), cached thereafter
+  - **Quality improvement:** +2-5% NDCG@10 on keyword-heavy queries
+
+### Next Actions
+1. Wire `QdrantNeo4jRetriever` into agent context pipeline (18.2) — +20% multi-hop accuracy
+2. Add miniCOIL sparse vectors to `personal_data` collection (when that collection gets data)
+3. Install VS Code + Continue.dev on DEV → FOUNDRY:8000 (18.3) — highest daily-use ROI
+4. Replace `knowledge` payload text index with miniCOIL hybrid search in `index-knowledge.py` ← DONE
+5. Audit LangFuse for per-agent invocation frequency
+6. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+7. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
+
 ## Session 46 (2026-03-09) Summary
 
 ### Completed This Session

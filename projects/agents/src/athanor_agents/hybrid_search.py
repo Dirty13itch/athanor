@@ -1,23 +1,36 @@
-"""Hybrid Search — Vector + Keyword with Reciprocal Rank Fusion.
+"""Hybrid Search — Dense + miniCOIL Sparse with Qdrant-native RRF.
 
-Combines Qdrant vector search with Qdrant payload text matching
-for ~18.5% retrieval accuracy improvement over vector-only search.
+Uses Qdrant's /query endpoint to combine:
+  1. Dense vector search (1024-dim Qwen3-Embedding via LiteLLM)
+  2. miniCOIL sparse search (neural keyword matching, FastEmbed 0.7+)
+  3. Reciprocal Rank Fusion (RRF) — performed by Qdrant server
 
-Catches exact matches that vector search misses (e.g., "ADR-017",
-"Qwen3.5-27B-FP8", specific IP addresses, model names).
+Falls back to vector + payload keyword search (the previous approach)
+when:
+  - fastembed is not installed
+  - The collection doesn't have sparse vectors (e.g. personal_data)
+  - miniCOIL model fails to load or compute
 
-Algorithm: Reciprocal Rank Fusion (RRF)
+Collections that support hybrid search:
+  - knowledge: named "dense" + "sparse" vectors (post-miniCOIL migration)
+
+Collections using fallback (keyword scroll):
+  - personal_data, conversations, preferences — unnamed dense vectors only
+
+Algorithm (primary):
+  Qdrant /query with prefetch=[dense(top20), sparse(top20)], fusion=rrf, limit=5
+
+Algorithm (fallback):
+  Python RRF over /search (vector) + /scroll (text match)
   rrf_score = sum(weight_i / (k + rank_i + 1))
-  k=60 (standard constant, higher = less top-result bias)
-  Weights: vector=0.7, keyword=0.3
+  k=60, weights: vector=0.7, keyword=0.3
 
 Ported from: reference/hydra/src/hydra_tools/hybrid_memory.py
-Adapted for Athanor: uses Qdrant-only (payload text index),
-no Meilisearch dependency. Can be extended to add Meilisearch later.
 """
 
 import asyncio
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 
@@ -29,10 +42,51 @@ logger = logging.getLogger(__name__)
 
 _QDRANT_URL = settings.qdrant_url
 
-# RRF parameters
+# RRF parameters (fallback path)
 RRF_K = 60
 VECTOR_WEIGHT = 0.7
 KEYWORD_WEIGHT = 0.3
+
+# miniCOIL model singleton — lazy loaded, thread-safe
+_minicoil = None
+_minicoil_lock = threading.Lock()
+_minicoil_load_attempted = False
+
+
+def _load_minicoil():
+    """Load miniCOIL model. Thread-safe, called once."""
+    global _minicoil, _minicoil_load_attempted
+    with _minicoil_lock:
+        if _minicoil_load_attempted:
+            return _minicoil
+        _minicoil_load_attempted = True
+        try:
+            from fastembed import SparseTextEmbedding
+            _minicoil = SparseTextEmbedding(model_name="Qdrant/minicoil-v1")
+            logger.info("miniCOIL loaded for hybrid search")
+        except Exception as e:
+            logger.info("miniCOIL not available (fallback to keyword): %s", e)
+            _minicoil = None
+    return _minicoil
+
+
+async def _get_minicoil():
+    """Async wrapper: loads miniCOIL in a thread pool to avoid blocking."""
+    if _minicoil_load_attempted:
+        return _minicoil
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _load_minicoil)
+
+
+def _compute_query_sparse(query_text: str, model) -> dict | None:
+    """Compute miniCOIL sparse vector for a query string."""
+    try:
+        embeddings = list(model.query_embed([query_text], batch_size=1))
+        e = embeddings[0]
+        return {"indices": e.indices.tolist(), "values": e.values.tolist()}
+    except Exception as e:
+        logger.debug("miniCOIL query encode failed: %s", e)
+        return None
 
 
 @dataclass
@@ -54,20 +108,14 @@ def reciprocal_rank_fusion(
     vector_weight: float = VECTOR_WEIGHT,
     keyword_weight: float = KEYWORD_WEIGHT,
 ) -> list[SearchResult]:
-    """Combine vector and keyword results using RRF.
-
-    Results are keyed by point ID. When the same document appears in both
-    lists, scores are summed and source becomes "hybrid".
-    """
+    """Combine vector and keyword results using RRF (fallback path)."""
     if not vector_results and not keyword_results:
         return []
 
-    # Normalize weights
     total_w = vector_weight + keyword_weight
     vw = vector_weight / total_w
     kw = keyword_weight / total_w
 
-    # Build ID → result map
     merged: dict[str, SearchResult] = {}
     scores: dict[str, float] = {}
 
@@ -78,7 +126,6 @@ def reciprocal_rank_fusion(
 
     for rank, r in enumerate(keyword_results):
         if r.id in merged:
-            # Same doc in both — mark hybrid, keep richer payload
             existing = merged[r.id]
             existing.keyword_rank = rank
             existing.source = "hybrid"
@@ -88,12 +135,67 @@ def reciprocal_rank_fusion(
             merged[r.id] = r
             scores[r.id] = kw / (k + rank + 1)
 
-    # Apply scores and sort
     for doc_id, result in merged.items():
         result.rrf_score = scores[doc_id]
         result.score = result.rrf_score
 
     return sorted(merged.values(), key=lambda x: x.rrf_score, reverse=True)
+
+
+async def _qdrant_hybrid_query(
+    client: httpx.AsyncClient,
+    collection: str,
+    dense_vector: list[float],
+    sparse_vector: dict,
+    limit: int,
+    score_threshold: float,
+    filter_dict: dict | None,
+) -> list[dict] | None:
+    """Qdrant-native hybrid query using named dense + sparse vectors + RRF.
+
+    Returns None on failure (caller should fall back to keyword approach).
+    """
+    body: dict = {
+        "prefetch": [
+            {
+                "query": dense_vector,
+                "using": "dense",
+                "limit": limit * 3,
+            },
+            {
+                "query": sparse_vector,
+                "using": "sparse",
+                "limit": limit * 3,
+            },
+        ],
+        "query": {"fusion": "rrf"},
+        "limit": limit,
+        "with_payload": True,
+    }
+    if filter_dict:
+        body["filter"] = filter_dict
+
+    try:
+        resp = await client.post(
+            f"{_QDRANT_URL}/collections/{collection}/points/query",
+            json=body,
+        )
+        resp.raise_for_status()
+        points = resp.json().get("result", {}).get("points", [])
+        # Normalize to expected format
+        return [
+            {
+                "id": r["id"],
+                "payload": r.get("payload", {}),
+                "score": r.get("score", 0.0),
+                "_source": "hybrid",
+            }
+            for r in points
+            if r.get("score", 0.0) >= score_threshold
+        ]
+    except Exception as e:
+        logger.debug("Qdrant hybrid query failed for '%s': %s", collection, e)
+        return None
 
 
 async def hybrid_search(
@@ -106,27 +208,51 @@ async def hybrid_search(
     score_threshold: float = 0.0,
     filter_dict: dict | None = None,
 ) -> list[dict]:
-    """Perform hybrid search: vector + keyword, fused with RRF.
+    """Perform hybrid search: dense + sparse (miniCOIL) or dense + keyword.
+
+    Primary path (when miniCOIL available + collection has sparse vectors):
+      Qdrant /query with prefetch=[dense, sparse] + server-side RRF fusion.
+
+    Fallback path (all other cases):
+      Dense /search + keyword /scroll, fused with Python RRF.
 
     Args:
         client: Async HTTP client for Qdrant.
         collection: Qdrant collection name.
-        vector: Pre-computed embedding vector.
-        query_text: Raw query text for keyword matching.
+        vector: Pre-computed dense embedding vector.
+        query_text: Raw query text for sparse/keyword matching.
         limit: Max results to return.
-        text_fields: Payload fields to search for keywords.
-            Defaults to ["text", "content", "title"].
-        score_threshold: Minimum vector score for inclusion.
-        filter_dict: Additional Qdrant filter to apply to both searches.
+        text_fields: Payload fields to search (fallback only).
+        score_threshold: Minimum score for inclusion.
+        filter_dict: Additional Qdrant filter applied to both searches.
 
     Returns:
-        List of Qdrant-style result dicts (id, payload, score) ordered
-        by RRF score. Compatible with existing _search_collection output.
+        List of Qdrant-style result dicts (id, payload, score) ordered by
+        hybrid relevance. Compatible with existing _search_collection output.
     """
     if text_fields is None:
         text_fields = ["text", "content", "title"]
 
-    # Run vector and keyword searches in parallel
+    # --- Primary path: miniCOIL + Qdrant-native RRF ---
+    model = await _get_minicoil()
+    if model is not None:
+        loop = asyncio.get_event_loop()
+        sparse_vector = await loop.run_in_executor(
+            None, _compute_query_sparse, query_text, model
+        )
+        if sparse_vector is not None:
+            results = await _qdrant_hybrid_query(
+                client, collection, vector, sparse_vector,
+                limit, score_threshold, filter_dict,
+            )
+            if results is not None:
+                logger.debug(
+                    "Hybrid search '%s': %d results via miniCOIL+RRF", collection, len(results)
+                )
+                return results
+
+    # --- Fallback path: vector + keyword text match ---
+    logger.debug("Hybrid search '%s': using keyword fallback", collection)
     vector_task = _vector_search(
         client, collection, vector, limit * 2, score_threshold, filter_dict
     )
@@ -138,15 +264,13 @@ async def hybrid_search(
         vector_task, keyword_task, return_exceptions=True
     )
 
-    # Handle failures gracefully — fall back to whichever succeeded
     if isinstance(vector_raw, BaseException):
-        logger.debug("Hybrid: vector search failed: %s", vector_raw)
+        logger.debug("Hybrid fallback: vector search failed: %s", vector_raw)
         vector_raw = []
     if isinstance(keyword_raw, BaseException):
-        logger.debug("Hybrid: keyword search failed: %s", keyword_raw)
+        logger.debug("Hybrid fallback: keyword search failed: %s", keyword_raw)
         keyword_raw = []
 
-    # Convert to SearchResult objects
     vector_results = [
         SearchResult(
             id=str(r.get("id", "")),
@@ -156,18 +280,16 @@ async def hybrid_search(
         )
         for r in vector_raw
     ]
-
     keyword_results = [
         SearchResult(
             id=str(r.get("id", "")),
             payload=r.get("payload", {}),
-            score=1.0 / (i + 1),  # Assign reciprocal rank as score
+            score=1.0 / (i + 1),
             source="keyword",
         )
         for i, r in enumerate(keyword_raw)
     ]
 
-    # Only fuse if both have results, otherwise return whichever worked
     if vector_results and keyword_results:
         fused = reciprocal_rank_fusion(vector_results, keyword_results)
     elif vector_results:
@@ -177,7 +299,6 @@ async def hybrid_search(
     else:
         return []
 
-    # Convert back to Qdrant-compatible format for context.py compatibility
     return [
         {
             "id": r.id,
@@ -199,7 +320,7 @@ async def _vector_search(
     score_threshold: float,
     filter_dict: dict | None,
 ) -> list[dict]:
-    """Standard Qdrant vector search."""
+    """Standard Qdrant vector search (unnamed vector, fallback path)."""
     body: dict = {
         "vector": vector,
         "limit": limit,
@@ -226,20 +347,17 @@ async def _keyword_search(
     text_fields: list[str],
     filter_dict: dict | None,
 ) -> list[dict]:
-    """Keyword search via Qdrant payload text matching.
+    """Keyword search via Qdrant payload text matching (fallback path).
 
     Splits query into tokens and searches for any token match
-    in the specified payload fields. Uses Qdrant's scroll endpoint
-    with text match filters.
+    in the specified payload fields.
     """
-    # Extract meaningful tokens (skip very short words)
     tokens = [t for t in query_text.split() if len(t) >= 3]
     if not tokens:
         return []
 
-    # Build text match conditions — any token in any field
     should_conditions = []
-    for token in tokens[:5]:  # Cap at 5 tokens to keep query reasonable
+    for token in tokens[:5]:
         for field_name in text_fields:
             should_conditions.append({
                 "key": field_name,
@@ -248,7 +366,6 @@ async def _keyword_search(
 
     scroll_filter: dict = {"should": should_conditions}
 
-    # Combine with any additional filter
     if filter_dict:
         scroll_filter = {
             "must": [
