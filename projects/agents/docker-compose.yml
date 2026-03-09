@@ -37,3 +37,6 @@ services:
       - ATHANOR_TAUTULLI_API_KEY=${ATHANOR_TAUTULLI_API_KEY}
       # Home Assistant (long-lived access token)
       - ATHANOR_HA_TOKEN=${ATHANOR_HA_TOKEN}
+      # Miniflux RSS (morning briefing)
+      - MINIFLUX_USER=admin
+      - MINIFLUX_PASS=athanor2026
