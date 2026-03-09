@@ -1674,7 +1674,7 @@ async def chat_completions(request: Request):
 
     if stream:
         return StreamingResponse(
-            _stream_response(agent, lc_messages, config, model_name, user_input, routing),
+            _stream_response(agent, lc_messages, config, model_name, user_input, routing, thread_id),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -1783,7 +1783,7 @@ def _convert_messages(messages: list[dict]) -> list:
     return lc_messages
 
 
-async def _stream_response(agent, messages, config, model_name, user_input="", routing=None):
+async def _stream_response(agent, messages, config, model_name, user_input="", routing=None, thread_id=""):
     chat_id = f"chatcmpl-{uuid.uuid4().hex[:12]}"
     created = int(time.time())
     start_ms = int(time.time() * 1000)
@@ -1856,6 +1856,7 @@ async def _stream_response(agent, messages, config, model_name, user_input="", r
         assistant_response=full_response,
         tools_used=tools_used,
         duration_ms=duration_ms,
+        thread_id=thread_id,
     ))
 
 
