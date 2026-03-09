@@ -137,35 +137,33 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
-## Session 44 (2026-03-09) Summary
+## Session 45 (2026-03-09) Summary
 
 ### Completed This Session
-- **Tier A holes (all done):** ntfy wired to agent escalations, conversation history wiring attempted (server.py), knowledge indexing cron on DEV
-- **Circuit breaker wired** to `_execute_task()` in `tasks.py` — per-agent breakers, 3 failures → 30s cooldown
-- **`pending_approval` dashboard UI** — amber badge, Approve button, filter option, approval banner count
-- **Learning page** — added Autonomy Adjustments + Self-Improvement Cycle sections
-- **Qdrant `knowledge` text index** — BM25-style keyword search on `text` field (3,034 points total)
-- **Research synthesis complete** — Sections 4 (Knowledge Architecture) and 5 (Local AI Productivity) written to synthesis doc
-- **Research docs indexed** — `2026-03-09-knowledge-architecture-memory.md` + `2026-03-09-local-ai-productivity-patterns.md` + updated synthesis in Qdrant
+- **Dashboard deep audit** — all 24 pages, 20+ API routes, agent server endpoints reviewed. 3 bugs found + fixed:
+  - Gallery generate button sent string template name; API now supports built-in Flux workflows (character/scene)
+  - Mobile nav missing `/workplanner` entry — added with CalendarIcon
+  - `config.ts` stale model names in inferenceBackends + gpuWorkloads — corrected
+- **FOUNDRY huge pages** — `vm.nr_hugepages=16384` (32GB), persisted to `/etc/sysctl.d/99-hugepages.conf`
+- **Model copy to local NVMe** — Qwen3.5-27B-FP8 (29GB) + Huihui-Qwen3-8B (16GB) → FOUNDRY `/mnt/local-fast/models/`. Cold start 6× faster (40s vs ~4min from NFS)
+- **FOUNDRY compose updated** — volume mount now `/mnt/local-fast/models:/models:ro`. Both coordinator + utility loading from local NVMe
+- **VAULT share configs** — 4 shares (models, data, appdata, ai-models) set to 500GB min free space (`shareFloor="524288000"`)
+- **cpu-offload-gb REVERTED** — attempted on both nodes; incompatible with `--enable-prefix-caching` + MTP speculation in vLLM v0.16.1rc1 nightly (PR #18298 assertion). Removed cleanly. MTP speculation preserved on coordinator.
+- **All 4 vLLM containers healthy** — coordinator:8000 ✅, utility:8002 ✅, workshop:8000 ✅
 
-### Key Research Findings
-- **BM42 is dead** — use miniCOIL (`Qdrant/minicoil-v1` via FastEmbed v0.7+) for sparse hybrid search
-- **HippoRAG v2** is the right GraphRAG approach for homelab — 12× cheaper indexing than MS GraphRAG, vLLM-native
-- **Mastra observational memory** (94.87% LongMemEval) — Observer/Reflector pattern beats all vector retrieval approaches
-- **`neo4j-graphrag-python`** package provides `QdrantNeo4jRetriever` — ready to wire
-- **Continue.dev IDE autocomplete** is highest-ROI single local AI action
-- **MCPMark vs BFCL** — 2-3× reliability drop in real workflows vs single-call benchmarks
-- **Goose vLLM tool calling** still broken (Discussion #5914) — don't deploy as primary agent yet
-- **Agent count assessment** — 9 agents is 4 more than produce regular value; audit LangFuse for usage
+### Key Findings
+- `docker compose restart` ≠ `docker compose up -d` — restart reuses stored container config, doesn't re-read compose file. Always use `up -d` for config changes.
+- vLLM nightly v0.16.1rc1 `--cpu-offload-gb` incompatible with `--enable-prefix-caching` (and MTP). Watch for fix in future nightly. Track vLLM/18298.
+- FOUNDRY `/mnt/local-fast` (1TB Gen4 NVMe) now has both models. 930GB → 885GB free. NFS load time eliminated.
 
 ### Next Actions
-1. Set up Continue.dev on DEV → FOUNDRY:8000 (highest-ROI action)
-2. Replace payload text index with miniCOIL hybrid search in `index-knowledge.py`
+1. Set up Continue.dev on DEV → FOUNDRY:8000 (highest-ROI action from Session 44 research)
+2. Replace `knowledge` payload text index with miniCOIL hybrid search in `index-knowledge.py`
 3. Wire `QdrantNeo4jRetriever` into agent context pipeline
 4. Add freshness metadata (`content_hash`, `embedded_at`) to Qdrant ingestion pipeline
 5. Audit LangFuse for per-agent invocation frequency
-6. Benchmark Qwen3.5-27B-FP8 on Aider polyglot (community gap)
-7. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+6. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+7. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
 
 ---
 
