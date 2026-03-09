@@ -2,7 +2,7 @@
 
 *The complete operational specification. If you could only read one document about how Athanor works, this is it.*
 
-Last updated: 2026-03-07
+Last updated: 2026-03-08
 
 ---
 
@@ -52,7 +52,7 @@ User (Dashboard/Chat)
   → Dashboard API (Node 2:3001)
     → Agent Server (Node 1:9000)
       → LiteLLM Proxy (VAULT:4000)
-        → vLLM (Node 1:8000 or Node 2:8100)
+        → vLLM (Node 1:8000 or Node 2:8000)
       ← Response streams back through same path
 ```
 
@@ -71,8 +71,8 @@ Agent Server receives request
 scripts/index-knowledge.py (DEV cron or manual)
   → Scans docs/ directory (81 files)
   → Chunks into segments
-  → Embeds via LiteLLM → Qwen3-Embedding-0.6B (Node 1:8001)
-  → Upserts to Qdrant (Node 1:6333) — 922 vectors
+  → Embeds via LiteLLM → Qwen3-Embedding-0.6B (DEV:8001)
+  → Upserts to Qdrant (Node 1:6333) — 2547 vectors
 ```
 
 ### Service Inventory
@@ -81,7 +81,7 @@ Full inventory in `docs/SERVICES.md`. Summary:
 
 - **Node 1 (11 containers):** vLLM Qwen3-32B (TP=2), vLLM GLM-4.7-Flash, vLLM Huihui-Qwen3-8B, Agent Server, Qdrant, GPU Orchestrator, node_exporter, dcgm-exporter
 - **Node 2 (9 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Open WebUI, Alloy, node_exporter, dcgm-exporter
-- **VAULT (36 containers):** LiteLLM, LangFuse, Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, and more
+- **VAULT (42 containers):** LiteLLM, LangFuse (6 services), Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, n8n, Gitea, Miniflux, ntfy, Meilisearch, and more
 - **DEV (2 services):** Embedding model (:8001), Reranker (:8003)
 
 ### Model Inventory
@@ -89,11 +89,11 @@ Full inventory in `docs/SERVICES.md`. Summary:
 | Model | Size | Location | GPU(s) | Purpose | LiteLLM Alias |
 |-------|------|----------|--------|---------|---------------|
 | Qwen3-32B-AWQ | 18 GB | Node 1:8000 | GPUs 0-1 (TP=2) | Reasoning, agents | `reasoning` |
-| GLM-4.7-9B-Flash | ~10 GB | Node 1:8002 | GPU 3 (4090) | Fast/utility | `fast` |
-| Huihui-Qwen3-8B | ~5 GB | Node 1:8003 | GPU 2 (5070 Ti) | Uncensored | — |
-| Qwen3.5-35B-A3B-AWQ | ~22 GB | Node 2:8100 | GPU 0 (5090) | Fast agent inference | `fast-agent` |
+| GLM-4.7-Flash-GPTQ-4bit | ~23 GB | Node 1:8002 | GPU 2 (4090) | Coding/utility | `coding` |
+| Huihui-Qwen3-8B | ~15 GB | Node 1:8004 | GPU 3 (5070 Ti) | Creative/uncensored | `creative` |
+| Qwen3.5-35B-A3B-AWQ | ~22 GB | Node 2:8000 | GPU 0 (5090) | Worker inference | `worker` |
 | Qwen3-Embedding-0.6B | 1.2 GB | DEV:8001 | GPU 0 (5060 Ti) | Embeddings | `embedding` |
-| Reranker | — | DEV:8003 | GPU 0 (5060 Ti) | Reranking | `reranker` |
+| Qwen3-Reranker-0.6B | — | DEV:8003 | GPU 0 (5060 Ti) | Reranking | `reranker` |
 | Flux dev FP8 | 17 GB | Node 2 ComfyUI | GPU 1 (5060 Ti) | Image generation | — |
 
 All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use model aliases (`reasoning`, `fast`, `embedding`), never direct URLs.
@@ -104,7 +104,7 @@ All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use mod
 
 ### Agent Roster
 
-All 8 agents report to Claude (COO) and are coordinated via the task API and MCP bridge.
+All 9 agents report to Claude (COO) and are coordinated via the task API and MCP bridge.
 
 | Agent | Model | Temperature | Mode | Tools | Status |
 |-------|-------|-------------|------|-------|--------|
@@ -116,6 +116,7 @@ All 8 agents report to Claude (COO) and are coordinated via the task API and MCP
 | Knowledge Agent | reasoning (32B) | 0.3 | Reactive | 5 (Qdrant + Neo4j) | Live |
 | Coding Agent | reasoning (32B) | 0.3 | Reactive | 9 (4 coding + 5 execution) | Live |
 | Stash Agent | reasoning (32B) | 0.7 | Reactive | 12 (Stash GraphQL) | Live |
+| Data Curator | reasoning (32B) | 0.5 | Reactive | 7 (data processing) | Live |
 
 All agents are LangGraph `create_react_agent` instances with tool-calling and in-memory conversation checkpointing. They expose an OpenAI-compatible chat completions API at Node 1:9000. Claude coordinates them via the MCP bridge (`scripts/mcp-athanor-agents.py`) and task API (`POST /v1/tasks`).
 
@@ -129,7 +130,7 @@ Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`
 - Home Agent detects Shaun left → broadcasts → Media Agent pauses Plex
 
 **Phase 2 additions (Session 18):**
-- **Agent registry:** All 8 agents register capabilities in Redis on startup. Discovery via `GET /v1/agents/registry`.
+- **Agent registry:** All 9 agents register capabilities in Redis on startup. Discovery via `GET /v1/agents/registry`.
 - **Event ingestion:** External events (HA state changes, cron, webhooks) converted to workspace items via `POST /v1/events` with priority mapping.
 - **Redis pub/sub:** Competition cycle publishes broadcast to `athanor:workspace:broadcast` channel.
 - **Conversation logging:** Every chat completion logged to Qdrant `conversations` collection (embedded for semantic search). Queryable via `GET /v1/conversations`.
@@ -331,7 +332,7 @@ Agents respond to requests. No memory between invocations beyond what's in the c
 
 ### Layer 2: Accumulated Knowledge (deployed)
 
-Knowledge base (922 vectors), preferences collection, activity logging, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (43 relationships).
+Knowledge base (2547 vectors), 8 Qdrant collections, preferences, activity logging, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (4447 relationships).
 
 **What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config).
 
@@ -383,11 +384,11 @@ Full details in `docs/design/intelligence-layers.md`.
 
 | GPU | Node | VRAM | Current Workload | Utilization |
 |-----|------|------|-----------------|-------------|
-| GPU 0 (5070 Ti) | Node 1 | 16 GB | vLLM TP=2 shard (Qwen3-32B) | ~10-27% |
-| GPU 1 (5070 Ti) | Node 1 | 16 GB | vLLM TP=2 shard (Qwen3-32B) | ~10-27% |
-| GPU 2 (5070 Ti) | Node 1 | 16 GB | Huihui-Qwen3-8B | ~10% |
-| GPU 3 (4090) | Node 1 | 24 GB | GLM-4.7-9B-Flash | ~10% |
-| GPU 4 (5070 Ti) | Node 1 | 16 GB | Idle | 0% |
+| GPU 0 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=2 shard (Qwen3-32B) | ~10-27% |
+| GPU 1 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=2 shard (Qwen3-32B) | ~10-27% |
+| GPU 2 (4090 ASUS) | Node 1 | 24 GB | GLM-4.7-Flash-GPTQ-4bit | ~10% |
+| GPU 3 (5070 Ti Gigabyte) | Node 1 | 16 GB | Huihui-Qwen3-8B | ~10% |
+| GPU 4 (5070 Ti MSI) | Node 1 | 16 GB | Idle | 0% |
 | GPU 0 (5090) | Node 2 | 32 GB | vLLM Qwen3.5-35B-A3B-AWQ | ~10-15% |
 | GPU 1 (5060 Ti) | Node 2 | 16 GB | ComfyUI Flux | <5% (idle unless generating) |
 | GPU 0 (5060 Ti) | DEV | 16 GB | Embedding + Reranker (~2 GB used) | <5% |

@@ -952,14 +952,13 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Files:** `.claude/commands/trace.md`
 
 ### 17.6 — Clean settings.local.json
-- **Status:** 🔲 todo
-- **Scope:** Remove ~30 one-off happy-coder debug permission entries from `.claude/settings.local.json`. Keep only the intentional MCP and Bash permissions.
-- **Done when:** settings.local.json has <20 entries in the allow list.
+- **Status:** ✅ done (Session 42, 2026-03-08)
+- **Scope:** Already clean — the happy-coder debug cruft was in the planning-era archive (`docs/planning/claude-config-planning-era/settings.local.json`), not in the current file. Current file has 16 allow entries, 6 MCP servers, clean structure. The earlier reconciliation commit (66cd7fa) already fixed MCP permission format and added missing servers.
 
 ### 17.7 — Update SYSTEM-SPEC.md stale sections
-- **Status:** 🔲 todo
-- **Scope:** Fix container count (36→42 for VAULT), model inventory table (add Data Curator agent, fix port numbers), TP=2 not TP=4, update Qdrant collection count to 8.
-- **Done when:** SYSTEM-SPEC.md matches STATUS.md ground truth.
+- **Status:** ✅ done (Session 42, 2026-03-08)
+- **Scope:** Fixed: VAULT container count 36→42, model inventory ports (8003→8004, 8100→8000), GPU assignments (GPU 2=4090, GPU 3=5070Ti swapped), model names/aliases, agent count 8→9 (added Data Curator), Qdrant vectors 922→2547, Neo4j relationships 43→4447, data flow Node 1:8001→DEV:8001, Node 2:8100→Node 2:8000, added n8n/Gitea/Miniflux to VAULT services list.
+- **Files:** `docs/SYSTEM-SPEC.md`
 
 ---
 
