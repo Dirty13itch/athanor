@@ -932,8 +932,8 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Files:** `~/.config/goose/recipes/port-hydra-module.yaml`, `~/.config/goose/recipes/test-all-endpoints.yaml`
 
 ### 17.2 — Port morning briefing from Hydra
-- **Status:** 🔲 todo
-- **Scope:** Read `~/repos/reference/hydra/src/hydra_tools/morning_briefing.py`. Adapt to Athanor patterns (async, LiteLLM, Redis). Wire into agent scheduler as a 7 AM task. Should pull overnight activity from Qdrant `activity` collection, alerts from Redis, and produce a markdown digest.
+- **Status:** 🔄 in-progress
+- **Scope:** Read `~/repos/reference/hydra/src/hydra_tools/morning_briefing.py` (749 LOC). Hydra version has 6 parallel data fetchers (calendar, email, weather, system health, research, news) → BriefingSection dataclass → voice summary → FastAPI router. Athanor adaptation needs: Qdrant `activity` collection for overnight agent actions, Redis alerts, Prometheus health via Grafana MCP or direct, Miniflux RSS at VAULT:8070, agent server health. Calendar/email available via claude.ai MCP connectors (not local API). Best approach: standalone script `scripts/morning-briefing.py` or enhancement to `/morning` command.
 - **Done when:** `/morning` command or scheduler produces a real overnight digest, not just health checks.
 
 ### 17.3 — Import Hydra n8n workflow JSONs
