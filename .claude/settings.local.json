@@ -10,16 +10,22 @@
       "TodoRead(*)",
       "TodoWrite(*)",
       "WebFetch(*)",
-      "mcp__grafana__*(*)",
-      "mcp__docker__*(*)",
-      "mcp__athanor-agents__*(*)"
+      "mcp__grafana__*",
+      "mcp__docker__*",
+      "mcp__athanor-agents__*",
+      "mcp__redis__*",
+      "mcp__qdrant__*",
+      "mcp__smart-reader__*"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "grafana",
     "docker",
-    "athanor-agents"
+    "athanor-agents",
+    "redis",
+    "qdrant",
+    "smart-reader"
   ],
   "sandbox": {
     "enabled": false,

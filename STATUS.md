@@ -24,7 +24,9 @@
 | grafana | .mcp.json (local) | Active | Query Grafana dashboards, alerts, datasources |
 | docker | .mcp.json (local) | Active | Docker container management |
 | athanor-agents | .mcp.json (local) | Active | Agent server at foundry:9000 |
-| smart-reader | .mcp.json (local) | **Disabled** | Redundant with native Read tool |
+| redis | .mcp.json (local) | Active | Redis state, heartbeats, workspace, scheduler |
+| qdrant | .mcp.json (local) | Active | Vector DB collections, search, scroll |
+| smart-reader | .mcp.json (local) | Active | Smart file reading, grep, diff, log |
 | Context7 | claude.ai connector | Active | Library documentation lookup |
 | Gmail | claude.ai connector | Active | Email integration |
 | Google Calendar | claude.ai connector | Active | Calendar management |
@@ -42,23 +44,27 @@
 ### Skills (13)
 `architecture-decision` `athanor-conventions` `comfyui-deploy` `deploy-agent` `deploy-docker-service` `gpu-placement` `local-coding` `network-diagnostics` `node-ssh` `state-update` `troubleshoot` `verify-inventory` `vllm-deploy`
 
-### Agents (4)
-`coder` `doc-writer` `infra-auditor` `researcher`
+### Agents (6)
+`coder` `debugger` `doc-writer` `infra-auditor` `node-inspector` `researcher`
 
 ### Rules (10)
 `agents` `ansible` `dashboard` `docker` `docs` `eoq` `knowledge` `scripts` `session-continuity` `vllm`
 
-### Hooks (8)
+### Hooks (12 scripts, 14 registrations)
 | Hook | Event | Purpose |
 |------|-------|---------|
-| pre-tool-use-protect-paths | Edit/Write | Protects critical files from accidental overwrites |
-| pre-tool-use-bash-firewall | Bash | Blocks dangerous commands |
-| post-tool-use-typecheck | Edit/Write | Runs TypeScript/Python checks after edits |
+| pre-tool-use-protect-paths | PreToolUse (Edit/Write) | Protects critical files from accidental overwrites |
+| pre-tool-use-bash-firewall | PreToolUse (Bash) | Blocks dangerous commands |
+| post-tool-use-typecheck | PostToolUse (Edit/Write) | Runs TypeScript/Python checks after edits |
+| post-tool-use-failure | PostToolUseFailure | Injects diagnostic context on tool failures |
 | pre-compact-save | PreCompact | Saves session state before context compression |
 | session-start | SessionStart | Loads context at session start |
 | session-start-health | SessionStart | Quick cluster health check |
-| stop-autocommit | Stop | Auto-commits on session end |
-| user-prompt-context | UserPromptSubmit | Injects timestamp context |
+| session-end | SessionEnd | Updates STATUS.md timestamp |
+| stop-autocommit | Stop | Auto-commits state files on session end |
+| task-completed-notify | TaskCompleted | Desktop notification for background tasks |
+| user-prompt-context | UserPromptSubmit | Injects timestamp + git context |
+| statusline | StatusLine | Node health from Redis heartbeats |
 
 ## Cluster State
 
@@ -130,4 +136,4 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 
 ---
 
-*Last updated: 2026-03-08*
+*Last updated: 2026-03-08 21:10 PDT
