@@ -28,6 +28,7 @@ const navItems = [
   { href: "/terminal", label: "Terminal", icon: TerminalIcon },
   { href: "/personal-data", label: "Personal Data", icon: DatabaseIcon },
   { href: "/learning", label: "Learning", icon: BrainIcon },
+  { href: "/insights", label: "Insights", icon: InsightsIcon },
   { href: "/goals", label: "Goals", icon: TargetIcon },
 ];
 
@@ -290,6 +291,16 @@ function CalendarIcon({ className }: { className?: string }) {
       <line x1="16" x2="16" y1="2" y2="6" />
       <line x1="8" x2="8" y1="2" y2="6" />
       <line x1="3" x2="21" y1="10" y2="10" />
+    </svg>
+  );
+}
+
+function InsightsIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+      <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
     </svg>
   );
 }

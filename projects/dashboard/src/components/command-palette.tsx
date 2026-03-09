@@ -32,6 +32,7 @@ const pages = [
   { href: "/activity", label: "Activity", keywords: "log timeline recent" },
   { href: "/notifications", label: "Notifications", keywords: "alert bell push" },
   { href: "/preferences", label: "Preferences", keywords: "settings config" },
+  { href: "/insights", label: "Insights", keywords: "patterns detection anomaly failure feedback" },
 ];
 
 const agents = [

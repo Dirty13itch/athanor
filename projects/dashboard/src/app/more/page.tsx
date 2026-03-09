@@ -27,6 +27,7 @@ const allPages = [
   { href: "/terminal", label: "Terminal", icon: TerminalIcon },
   { href: "/personal-data", label: "Personal Data", icon: DatabaseIcon },
   { href: "/learning", label: "Learning", icon: BrainIcon },
+  { href: "/insights", label: "Insights", icon: InsightsIcon },
   { href: "/goals", label: "Goals", icon: TargetIcon },
 ];
 
@@ -265,6 +266,16 @@ function BrainIcon({ className }: { className?: string }) {
       <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
       <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
       <path d="M12 5v13" />
+    </svg>
+  );
+}
+
+function InsightsIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M9 18h6" />
+      <path d="M10 22h4" />
+      <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
     </svg>
   );
 }
