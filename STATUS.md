@@ -139,12 +139,47 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 52 (2026-03-09) Summary — Open Work List Execution
+
+### Completed This Session
+- **Comprehensive plan audit** — cross-referenced plan against live system. Key finding: most P1/P2 items were already done in sessions 46-51.
+  - GWT Phase 3 ✅ (workspace.py fully implements subscriptions, reactions, coalition)
+  - Conversation history indexing ✅ (124 points live, `log_conversation()` wired since session ~40)
+  - Prompt versioning in LangFuse ✅ (all 9 agents synced since 2026-03-08)
+  - Dashboard PWA ✅ (sw.js, manifest.ts, register-sw.tsx, icons all done)
+- **Skill Learning Library** (ported from reference/hydra/skill_learning.py):
+  - `skill_learning.py`: async Redis-backed skill library (`athanor:skills:library`)
+  - `Skill` dataclass with trigger_conditions, steps, success_rate, execution_count, avg_duration_ms, examples
+  - `_compute_relevance()`: keyword matching across trigger_conditions + name/description/tags
+  - `search_skills_for_context()`: top-3 relevant skills formatted for context injection
+  - `record_execution()`: running average success rate and duration (empirical learning)
+  - 8 initial skills seeded: research, media, creative, knowledge, infrastructure, coding, home, stash
+  - `context.py`: skill section injected after Active Goals (Step 2d, Redis-only, fast)
+  - `server.py`: full CRUD API at `/v1/skills` + execution recording
+  - Deployed to FOUNDRY, rebuilt, verified: 8 skills seeded, stats endpoint live
+- **Promptfoo A/B comparison** — `evals/ab-comparison.yaml` run complete:
+  - reasoning (Qwen3.5-27B-FP8): 15/16 = **93.8%**
+  - creative (Qwen3.5-35B-A3B-AWQ): 15/16 = **93.8%**
+  - Both fail chicken/cow math. Otherwise identical quality. Routing decision: load balance freely.
+
+### Key Findings
+- Both local models are quality-equivalent — route on load, not quality
+- All "can build now" items from the 29-item open work list are now done
+- 9 items remain Shaun-gated (credentials, clicks, decisions)
+
+### Next Actions
+1. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+2. Shaun: push go/no-go on Kindred prototype (14.5)
+3. EoBQ character LoRAs — Shaun to provide reference images for characters
+4. SDXL/Pony anime art path — research when time allows (not urgent)
+5. Push 10 commits to origin when ready
+
 ## Session 51 (2026-03-09) Summary
 
 ### Completed This Session
 - **MEMORY.md refresh** — was stale at session 40 (10 sessions out of date). Full rewrite documenting sessions 41-51: Tier 18 complete (miniCOIL, Neo4j 2-hop, Continue.dev, HippoRAG), EoBQ uncensored stack, LiteLLM routing table, all 9 agent states, MCP server inventory.
 - **EoBQ plan audit** — confirmed peaceful-gathering-sundae.md plan fully implemented in session 46. All steps verified: LoRA in 3 workflow JSONs, `uncensored` LiteLLM alias confirmed at `/mnt/user/appdata/litellm/config.yaml`, intensity routing live in chat + narrate routes, abliterated model system prompt in creative agent. Plan file deleted.
-- **Promptfoo eval baseline** — first run of `evals/promptfooconfig.yaml` against live LiteLLM (in progress). Results → `evals/results/baseline-2026-03-09.json`
+- **Promptfoo eval baseline** — first run of `evals/promptfooconfig.yaml` against live LiteLLM. Results → `evals/results/baseline-2026-03-09.json`. 81.6% (31/38).
 - **LiteLLM config path corrected** — was wrong in docs (`/opt/athanor/litellm/`) actual path: `/mnt/user/appdata/litellm/config.yaml` (Unraid appdata)
 
 ### Key Verifications
@@ -152,7 +187,7 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - LoRA (`flux-uncensored.safetensors`, strength 0.85) in all 3 Flux workflows ✅
 - Deployed EoBQ at workshop:3002 running current code ✅
 
-### Next Actions
+### Next Actions (carried forward)
 1. Review promptfoo eval results when complete — record baseline scores
 2. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
 3. Shaun: push go/no-go on Kindred prototype (14.5)
@@ -294,4 +329,4 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` — no a
 
 ---
 
-*Last updated: 2026-03-09 07:30 PDT
+*Last updated: 2026-03-09 06:50 PDT
