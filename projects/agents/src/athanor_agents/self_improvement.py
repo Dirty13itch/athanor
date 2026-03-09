@@ -496,8 +496,126 @@ class SelfImprovementEngine:
             "ready_to_deploy": results["valid"],
         }
 
+    async def run_improvement_cycle(self) -> dict[str, Any]:
+        """Full improvement cycle: benchmarks → patterns → proposals → auto-deploy.
+
+        This is the self-feeding loop that makes Athanor an athanor.
+        Runs daily after pattern detection (5:30 AM).
+        """
+        await self.load()
+        cycle_log: dict[str, Any] = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "benchmarks": None,
+            "patterns_consumed": 0,
+            "proposals_generated": 0,
+            "auto_deployed": 0,
+            "errors": [],
+        }
+
+        # 1. Run benchmarks and compare to baseline
+        try:
+            bench_result = await self.run_benchmark_suite()
+            cycle_log["benchmarks"] = {
+                "passed": bench_result["passed"],
+                "total": bench_result["total"],
+                "pass_rate": bench_result["pass_rate"],
+            }
+        except Exception as e:
+            cycle_log["errors"].append(f"benchmarks: {e}")
+            bench_result = {"comparison": {}, "results": []}
+
+        # 2. Read today's pattern detection report
+        patterns_report: dict = {}
+        try:
+            r = await self._get_redis()
+            if r:
+                data = await r.get("athanor:patterns:report")
+                if data:
+                    patterns_report = json.loads(data)
+                    cycle_log["patterns_consumed"] = len(
+                        patterns_report.get("patterns", [])
+                    )
+        except Exception as e:
+            cycle_log["errors"].append(f"patterns: {e}")
+
+        # 3. Generate proposals from regressions
+        for bid, comp in bench_result.get("comparison", {}).items():
+            if comp.get("regressed"):
+                try:
+                    proposal = await self.propose_improvement(
+                        title=f"Fix regression: {bid}",
+                        description=(
+                            f"Benchmark {bid} regressed from "
+                            f"{comp['baseline']:.1f} to {comp['new']:.1f} "
+                            f"(delta: {comp['delta']:.1f}). "
+                            f"Investigate root cause and restore performance."
+                        ),
+                        category="config",
+                        target_files=[],
+                        proposed_changes={},
+                        expected_improvement=f"Restore {bid} to baseline ({comp['baseline']:.1f}+)",
+                        benchmark_targets=[bid],
+                    )
+                    cycle_log["proposals_generated"] += 1
+                    logger.info("Improvement cycle: proposed fix for regression %s", bid)
+                except Exception as e:
+                    cycle_log["errors"].append(f"proposal for {bid}: {e}")
+
+        # 4. Generate proposals from pattern recommendations
+        for rec in patterns_report.get("recommendations", []):
+            try:
+                proposal = await self.propose_improvement(
+                    title=f"Pattern insight: {rec[:60]}",
+                    description=rec,
+                    category="prompt",
+                    target_files=[],
+                    proposed_changes={},
+                    expected_improvement="Reduce failure rate / improve agent quality",
+                )
+                cycle_log["proposals_generated"] += 1
+            except Exception as e:
+                cycle_log["errors"].append(f"pattern proposal: {e}")
+
+        # 5. Log the cycle results
+        try:
+            r = await self._get_redis()
+            if r:
+                await r.set(
+                    "improvement:last_cycle",
+                    json.dumps(cycle_log),
+                    ex=86400 * 7,
+                )
+                # Append to cycle history (keep last 30)
+                history_key = "improvement:cycle_history"
+                await r.lpush(history_key, json.dumps(cycle_log))
+                await r.ltrim(history_key, 0, 29)
+        except Exception as e:
+            cycle_log["errors"].append(f"save cycle: {e}")
+
+        logger.info(
+            "Improvement cycle complete: %d benchmarks (%d%% pass), "
+            "%d patterns consumed, %d proposals generated",
+            bench_result.get("total", 0),
+            int(bench_result.get("pass_rate", 0) * 100),
+            cycle_log["patterns_consumed"],
+            cycle_log["proposals_generated"],
+        )
+
+        return cycle_log
+
     async def get_improvement_summary(self) -> dict[str, Any]:
         """Summary of improvement activity."""
+        # Include last cycle info
+        last_cycle = None
+        try:
+            r = await self._get_redis()
+            if r:
+                data = await r.get("improvement:last_cycle")
+                if data:
+                    last_cycle = json.loads(data)
+        except Exception:
+            pass
+
         return {
             "total_proposals": len(self.proposals),
             "pending": len([p for p in self.proposals if p.status == ImprovementStatus.PROPOSED.value]),
@@ -507,6 +625,7 @@ class SelfImprovementEngine:
             "archive_entries": len(self.archive),
             "benchmark_results": len(self.benchmarks.results),
             "latest_baseline": self.benchmarks.get_baseline(),
+            "last_cycle": last_cycle,
         }
 
 
@@ -582,9 +701,17 @@ def create_improvement_router():
         engine = get_improvement_engine()
         return await engine.validate_proposal(proposal_id)
 
+    @router.post("/cycle")
+    async def run_cycle():
+        """Run a full improvement cycle (benchmarks → patterns → proposals)."""
+        engine = get_improvement_engine()
+        await engine.load()
+        return await engine.run_improvement_cycle()
+
     @router.get("/summary")
     async def summary():
         engine = get_improvement_engine()
+        await engine.load()
         return await engine.get_improvement_summary()
 
     return router

@@ -49,6 +49,9 @@ BENCHMARK_KEY = "athanor:scheduler:benchmark"
 BENCHMARK_INTERVAL = 21600  # 6 hours
 CACHE_CLEANUP_KEY = "athanor:scheduler:cache_cleanup"
 CACHE_CLEANUP_INTERVAL = 3600  # 1 hour
+IMPROVEMENT_CYCLE_KEY = "athanor:scheduler:improvement_cycle"
+IMPROVEMENT_CYCLE_HOUR = 5
+IMPROVEMENT_CYCLE_MINUTE = 30
 
 AGENT_SCHEDULES = {
     "general-assistant": {
@@ -83,11 +86,52 @@ AGENT_SCHEDULES = {
         "enabled": True,
     },
     "knowledge-agent": {
-        "interval": 86400,  # 24 hours
+        "interval": 3600,  # 1 hour
         "prompt": (
-            "Check the knowledge base stats. Report total documents indexed, "
-            "collection sizes, and the most recently indexed documents. "
-            "Identify any gaps in coverage."
+            "Check knowledge base health. Run get_knowledge_stats to see collection sizes. "
+            "If any docs were modified recently (check timestamps), note them for re-indexing. "
+            "Report collection sizes and any freshness issues."
+        ),
+        "priority": "low",
+        "enabled": True,
+    },
+    "research-agent": {
+        "interval": 7200,  # 2 hours
+        "prompt": (
+            "Check the intelligence signals pipeline. Search recent signals for "
+            "high-relevance items (min_relevance=0.7). If any are actionable for "
+            "Athanor (new model releases, vLLM updates, infrastructure tools), "
+            "summarize the key findings. Skip if no high-relevance signals."
+        ),
+        "priority": "low",
+        "enabled": True,
+    },
+    "creative-agent": {
+        "interval": 14400,  # 4 hours
+        "prompt": (
+            "Check ComfyUI health — verify the queue endpoint responds. "
+            "Report queue status (pending/running/completed). "
+            "If idle, note GPU availability for creative work."
+        ),
+        "priority": "low",
+        "enabled": True,
+    },
+    "coding-agent": {
+        "interval": 10800,  # 3 hours
+        "prompt": (
+            "Run a quick code health check. Verify the agent server is responding "
+            "at the /v1/agents endpoint. Check if any recent tasks had errors. "
+            "Report only issues found."
+        ),
+        "priority": "low",
+        "enabled": True,
+    },
+    "stash-agent": {
+        "interval": 21600,  # 6 hours
+        "prompt": (
+            "Check Stash library stats. Look for recently added scenes that are "
+            "untagged or uncategorized. Report counts of unorganized content. "
+            "Only report if there are items needing attention."
         ),
         "priority": "low",
         "enabled": True,
@@ -382,6 +426,44 @@ async def _check_benchmarks():
         logger.warning("Benchmark run failed: %s", e)
 
 
+async def _check_improvement_cycle():
+    """Run the self-improvement cycle at 5:30 AM (after pattern detection at 5:00 AM).
+
+    This is the self-feeding loop: benchmarks → read patterns → generate proposals.
+    """
+    from .self_improvement import get_improvement_engine
+
+    now = datetime.now()
+    if now.hour != IMPROVEMENT_CYCLE_HOUR or now.minute != IMPROVEMENT_CYCLE_MINUTE:
+        return
+
+    # Check if already run today
+    try:
+        r = await _get_redis()
+        last_date = await r.get(IMPROVEMENT_CYCLE_KEY)
+        if last_date:
+            last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
+            if last_str == now.strftime("%Y-%m-%d"):
+                return
+    except Exception:
+        pass
+
+    logger.info("Scheduler: running self-improvement cycle")
+    try:
+        engine = get_improvement_engine()
+        await engine.load()
+        result = await engine.run_improvement_cycle()
+        r = await _get_redis()
+        await r.set(IMPROVEMENT_CYCLE_KEY, now.strftime("%Y-%m-%d"))
+        logger.info(
+            "Self-improvement cycle: %d proposals generated, %d patterns consumed",
+            result.get("proposals_generated", 0),
+            result.get("patterns_consumed", 0),
+        )
+    except Exception as e:
+        logger.warning("Scheduler: improvement cycle failed: %s", e)
+
+
 async def _check_cache_cleanup():
     """Clean expired semantic cache entries every hour."""
     try:
@@ -428,6 +510,9 @@ async def _scheduler_loop():
             await _check_pattern_detection()
             await _check_daily_digest()
             await _check_morning_plan()
+
+            # Self-improvement cycle (5:30 AM, after pattern detection)
+            await _check_improvement_cycle()
 
             # Check work plan refill (every 2 hours)
             await _check_workplan_refill()
