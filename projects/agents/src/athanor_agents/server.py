@@ -1983,13 +1983,17 @@ async def learning_metrics():
         from .preferences import get_all_preferences
         prefs = await get_all_preferences()
         if prefs:
-            total_samples = sum(p.get("total_interactions", 0) for p in prefs.values())
-            avg_score = sum(p.get("composite_score", 0) for p in prefs.values()) / max(len(prefs), 1)
+            total_entries = prefs.get("total_entries", 0)
+            task_types = prefs.get("task_types", {})
+            all_models = [m for models in task_types.values() for m in models]
+            total_samples = sum(m.get("interactions", 0) for m in all_models)
+            avg_score = sum(m.get("score", 0) for m in all_models) / max(len(all_models), 1) if all_models else 0
             metrics["preferences"] = {
-                "model_task_pairs": len(prefs),
+                "model_task_pairs": total_entries,
+                "task_types": len(task_types),
                 "total_samples": total_samples,
-                "avg_composite_score": round(avg_score, 3),
-                "converged": sum(1 for p in prefs.values() if p.get("total_interactions", 0) >= 5),
+                "avg_score": round(avg_score, 3),
+                "converged": sum(1 for m in all_models if m.get("interactions", 0) >= prefs.get("min_samples", 3)),
             }
         else:
             metrics["preferences"] = {"model_task_pairs": 0, "total_samples": 0}
@@ -2013,15 +2017,17 @@ async def learning_metrics():
     except Exception:
         metrics["trust"] = None
 
-    # 5. Routing accuracy (from diagnosis patterns)
+    # 5. Diagnosis patterns
     try:
         from .diagnosis import get_diagnosis_engine
         diag = get_diagnosis_engine()
-        report = await diag.get_health_report()
+        report = diag.analyze(hours=24)
         metrics["diagnosis"] = {
-            "recent_failures": report.get("recent_failure_count", 0),
-            "patterns_detected": len(report.get("patterns", [])),
-            "auto_remediations": report.get("auto_remediations_applied", 0),
+            "recent_failures": report.total_failures,
+            "patterns_detected": len(report.top_patterns),
+            "recommendations": len(report.recommendations),
+            "health_score": report.health_score,
+            "trend": report.trend,
         }
     except Exception:
         metrics["diagnosis"] = None
@@ -2030,7 +2036,7 @@ async def learning_metrics():
     try:
         from .consolidation import get_collection_stats
         cstats = await get_collection_stats()
-        total_points = sum(c.get("point_count", 0) for c in cstats.values()) if isinstance(cstats, dict) else 0
+        total_points = sum(c.get("count", 0) for c in cstats.values()) if isinstance(cstats, dict) else 0
         metrics["memory"] = {
             "collections": len(cstats) if isinstance(cstats, dict) else 0,
             "total_points": total_points,
