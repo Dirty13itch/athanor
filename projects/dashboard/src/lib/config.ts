@@ -27,11 +27,11 @@ export const config = {
       url: "http://192.168.1.203:4000",
     },
     {
-      name: "Node 1 — Qwen3-32B",
+      name: "Node 1 — Qwen3.5-27B-FP8",
       url: "http://192.168.1.244:8000",
     },
     {
-      name: "Node 2 — Qwen3.5-27B-AWQ",
+      name: "Node 2 — Qwen3.5-35B-A3B-AWQ",
       url: "http://192.168.1.225:8000",
     },
     {
@@ -75,15 +75,15 @@ export const config = {
   // Known GPU → workload mapping (static, will be made dynamic later)
   gpuWorkloads: {
     "192.168.1.244": {
-      0: "vLLM TP0 (Qwen3-32B-AWQ)",
-      1: "vLLM TP1",
-      2: "vLLM TP2 (RTX 4090)",
-      3: "vLLM TP3",
-      4: "Embedding + Whisper + Speaches",
+      0: "Qwen3.5-27B-FP8 TP=4",
+      1: "Qwen3.5-27B-FP8 TP=4",
+      2: "Huihui-Qwen3-8B utility (4090)",
+      3: "Qwen3.5-27B-FP8 TP=4",
+      4: "Qwen3.5-27B-FP8 TP=4",
     },
     "192.168.1.225": {
-      0: "vLLM (Qwen3.5-27B-AWQ, RTX 5090)",
-      1: "ComfyUI (Flux, RTX 5060 Ti)",
+      0: "Qwen3.5-35B-A3B-AWQ (5090)",
+      1: "ComfyUI / Flux (5060 Ti)",
     },
   } as Record<string, Record<number, string>>,
   // Power limits per GPU (watts) — matches Ansible config
