@@ -137,6 +137,36 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 44 (2026-03-09) Summary
+
+### Completed This Session
+- **Tier A holes (all done):** ntfy wired to agent escalations, conversation history wiring attempted (server.py), knowledge indexing cron on DEV
+- **Circuit breaker wired** to `_execute_task()` in `tasks.py` — per-agent breakers, 3 failures → 30s cooldown
+- **`pending_approval` dashboard UI** — amber badge, Approve button, filter option, approval banner count
+- **Learning page** — added Autonomy Adjustments + Self-Improvement Cycle sections
+- **Qdrant `knowledge` text index** — BM25-style keyword search on `text` field (3,034 points total)
+- **Research synthesis complete** — Sections 4 (Knowledge Architecture) and 5 (Local AI Productivity) written to synthesis doc
+- **Research docs indexed** — `2026-03-09-knowledge-architecture-memory.md` + `2026-03-09-local-ai-productivity-patterns.md` + updated synthesis in Qdrant
+
+### Key Research Findings
+- **BM42 is dead** — use miniCOIL (`Qdrant/minicoil-v1` via FastEmbed v0.7+) for sparse hybrid search
+- **HippoRAG v2** is the right GraphRAG approach for homelab — 12× cheaper indexing than MS GraphRAG, vLLM-native
+- **Mastra observational memory** (94.87% LongMemEval) — Observer/Reflector pattern beats all vector retrieval approaches
+- **`neo4j-graphrag-python`** package provides `QdrantNeo4jRetriever` — ready to wire
+- **Continue.dev IDE autocomplete** is highest-ROI single local AI action
+- **MCPMark vs BFCL** — 2-3× reliability drop in real workflows vs single-call benchmarks
+- **Goose vLLM tool calling** still broken (Discussion #5914) — don't deploy as primary agent yet
+- **Agent count assessment** — 9 agents is 4 more than produce regular value; audit LangFuse for usage
+
+### Next Actions
+1. Set up Continue.dev on DEV → FOUNDRY:8000 (highest-ROI action)
+2. Replace payload text index with miniCOIL hybrid search in `index-knowledge.py`
+3. Wire `QdrantNeo4jRetriever` into agent context pipeline
+4. Add freshness metadata (`content_hash`, `embedded_at`) to Qdrant ingestion pipeline
+5. Audit LangFuse for per-agent invocation frequency
+6. Benchmark Qwen3.5-27B-FP8 on Aider polyglot (community gap)
+7. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+
 ---
 
-*Last updated: 2026-03-08 23:53 PDT
+*Last updated: 2026-03-09 PDT
