@@ -2,16 +2,14 @@
 
 *Live service inventory. Updated when services change.*
 
-Last updated: 2026-03-07 (Session 36 — Full cluster audit and doc refresh)
+Last updated: 2026-03-08 (Session 42 — Phase 2 model correction: Qwen3.5-27B-FP8 TP=4 live on FOUNDRY)
 
 ## Node 1 — Foundry (192.168.1.244)
 
 | Service | Port | Details |
 |---------|------|---------|
-| vLLM Reasoning (Qwen3-32B-AWQ) | 8000 | TP=2 across GPUs 0+1 (2x RTX 5070 Ti), `--quantization awq`, `--tool-call-parser hermes` |
-| vLLM Creative (GLM-4.7-Flash-GPTQ-4bit) | 8002 | GPU 2 (RTX 4090), `--quantization gptq_marlin`, `--enable-sleep-mode` |
-| vLLM Coding (Huihui-Qwen3-8B-abliterated-v2) | 8004 | GPU 3 (RTX 5070 Ti), `--quantization fp8`, `--enable-sleep-mode` |
-| GPU 4 (RTX 5070 Ti) | — | **IDLE** — previously ran embedding model, not currently loaded |
+| vLLM Coordinator (Qwen3.5-27B-FP8) | 8000 | TP=4 across GPUs 0,1,3,4 (4x RTX 5070 Ti), `--tool-call-parser qwen3_xml`, `--enforce-eager`, `--language-model-only` |
+| vLLM Utility (Huihui-Qwen3-8B-abliterated-v2) | 8002 | GPU 2 (RTX 4090) |
 | Agent Server | 9000 | 9 agents + GWT workspace + escalation + activity/preferences + routing + diagnosis + semantic cache + circuit breakers + self-improvement + preference learning APIs |
 | Qdrant | 6333/6334 | Vector DB: knowledge (2484), personal_data (2304), conversations, activity, preferences (55), implicit_feedback, events |
 | GPU Orchestrator | 9200 | 4 zones, DCGM metrics, vLLM sleep/wake, TTL auto-sleep, Prometheus export |
@@ -112,13 +110,12 @@ Last updated: 2026-03-07 (Session 36 — Full cluster audit and doc refresh)
 
 | Route | Backend | Model | Node |
 |-------|---------|-------|------|
-| `reasoning` / `gpt-4` | vLLM | Qwen3-32B-AWQ | Foundry :8000 |
-| `coding` | vLLM | Huihui-Qwen3-8B-abliterated-v2 | Foundry :8004 |
+| `reasoning` / `gpt-4` | vLLM | Qwen3.5-27B-FP8 | Foundry :8000 (TP=4) |
+| `creative` | vLLM | Huihui-Qwen3-8B-abliterated-v2 | Foundry :8002 |
 | `fast` / `gpt-3.5-turbo` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
-| `creative` | vLLM | GLM-4.7-Flash-GPTQ-4bit | Foundry :8002 |
+| `worker` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `embedding` / `text-embedding-ada-002` | vLLM | Qwen3-Embedding-0.6B | DEV :8001 |
 | `reranker` | vLLM | Reranker model | DEV :8003 |
-| `worker` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `claude` | Anthropic API | Claude | Cloud |
 | `gpt` | OpenAI API | GPT | Cloud |
 | `deepseek` | DeepSeek API | DeepSeek | Cloud |
@@ -128,12 +125,12 @@ Last updated: 2026-03-07 (Session 36 — Full cluster audit and doc refresh)
 
 | Model | Size | Purpose |
 |-------|------|---------|
-| Qwen3-32B-AWQ | 19G | Reasoning (LiteLLM: `reasoning`) — Foundry TP=2 |
-| Qwen3.5-35B-A3B-AWQ-4bit | — | Fast inference (LiteLLM: `fast`) — Workshop |
-| Qwen3.5-27B-AWQ | 21G | Previous fast model (replaced by 35B-A3B) |
+| Qwen3.5-27B-FP8 | ~28G | Coordinator (LiteLLM: `reasoning`) — Foundry TP=4 |
+| Qwen3.5-35B-A3B-AWQ-4bit | ~22G | Worker (LiteLLM: `fast`, `worker`) — Workshop |
+| Huihui-Qwen3-8B-abliterated-v2 | ~16G | Utility (LiteLLM: `creative`) — Foundry GPU 2 (4090) |
+| Qwen3-32B-AWQ | 19G | Previous reasoning model (replaced by Qwen3.5-27B-FP8) |
+| GLM-4.7-Flash-GPTQ-4bit | 16G | Previous creative model (not currently loaded) |
 | Huihui-Qwen3.5-27B-abliterated | 52G | Abliterated 27B (available, not loaded) |
-| Huihui-Qwen3-8B-abliterated-v2 | 16G | Coding model — Foundry GPU 3 |
-| GLM-4.7-Flash-GPTQ-4bit | 16G | Creative model — Foundry GPU 2 (4090) |
 | Qwen3-0.6B | 1.5G | Draft/speculative decoding |
 | gte-Qwen2-7B-instruct | 29G | Legacy embedding (unused) |
 | comfyui models | 99G | Flux dev FP8, Wan2.x T2V, text encoders, VAE |

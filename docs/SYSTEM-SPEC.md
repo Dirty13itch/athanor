@@ -79,7 +79,7 @@ scripts/index-knowledge.py (DEV cron or manual)
 
 Full inventory in `docs/SERVICES.md`. Summary:
 
-- **Node 1 (11 containers):** vLLM Qwen3-32B (TP=2), vLLM GLM-4.7-Flash, vLLM Huihui-Qwen3-8B, Agent Server, Qdrant, GPU Orchestrator, node_exporter, dcgm-exporter
+- **Node 1 (11 containers):** vLLM Qwen3.5-27B-FP8 (TP=4), vLLM Huihui-Qwen3-8B, Agent Server, Qdrant, GPU Orchestrator, Speaches, wyoming-whisper, node_exporter, dcgm-exporter
 - **Node 2 (9 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Open WebUI, Alloy, node_exporter, dcgm-exporter
 - **VAULT (42 containers):** LiteLLM, LangFuse (6 services), Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, n8n, Gitea, Miniflux, ntfy, Meilisearch, and more
 - **DEV (2 services):** Embedding model (:8001), Reranker (:8003)
@@ -280,14 +280,14 @@ This is not "Shaun codes with AI assistance." It's "Claude runs the system, agen
 - Agent workforce management and task routing
 - Documentation and roadmap maintenance
 
-**Local AI (Qwen3-32B, Qwen3.5-27B — Agent workforce):**
+**Local AI (Qwen3.5-27B-FP8, Qwen3.5-35B-A3B-AWQ — Agent workforce):**
 - Domain-specific autonomous operations
 - Boilerplate generation and code transformation
 - Background task execution (proactive scheduler)
 - Real-time system monitoring and response
 - Uncensored inference and private data handling
 
-**MCP bridge** (`scripts/mcp-athanor-agents.py`) connects Claude to the local agent workforce — 14 tools including task submission, status monitoring, knowledge search, and `deep_research` (offloads heavy research to local Qwen3-32B).
+**MCP bridge** (`scripts/mcp-athanor-agents.py`) connects Claude to the local agent workforce — 14 tools including task submission, status monitoring, knowledge search, and `deep_research` (offloads heavy research to local Qwen3.5-27B-FP8).
 
 The full hybrid development architecture is specified in `docs/design/hybrid-development.md`.
 
