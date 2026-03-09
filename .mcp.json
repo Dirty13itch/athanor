@@ -4,7 +4,8 @@
       "type": "stdio",
       "command": "bash",
       "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y @leval/mcp-grafana"],
-      "env": {}
+      "env": {},
+      "disabled": true
     },
     "docker": {
       "type": "stdio",
@@ -60,25 +61,29 @@
       "type": "stdio",
       "command": "bash",
       "args": ["-c", "source ~/.claude/mcp-vars.sh && exec uvx langfuse-mcp"],
-      "env": {}
+      "env": {},
+      "disabled": true
     },
     "miniflux": {
       "type": "stdio",
       "command": "bash",
       "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y miniflux-mcp"],
-      "env": {}
+      "env": {},
+      "disabled": true
     },
     "n8n": {
       "type": "stdio",
       "command": "bash",
       "args": ["-c", "source ~/.claude/mcp-vars.sh && exec node ~/.local/node_modules/@illuminaresolutions/n8n-mcp-server/build/index.js"],
-      "env": {}
+      "env": {},
+      "disabled": true
     },
     "gitea": {
       "type": "stdio",
       "command": "bash",
       "args": ["-c", "source ~/.claude/mcp-vars.sh && exec $HOME/go/bin/gitea-mcp -t stdio --host http://192.168.1.203:3033 --token \"$GITEA_TOKEN\""],
-      "env": {}
+      "env": {},
+      "disabled": true
     }
   }
 }
