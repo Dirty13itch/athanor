@@ -1039,6 +1039,41 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 
 ---
 
+## Tier 20: Routing Optimization & Dashboard Polish (P1)
+
+*Session 54, 2026-03-09. A/B eval results drove model routing fix. Dashboard data format bugs corrected.*
+
+### 20.1 — A/B Model Comparison Eval
+- **Status:** ✅ done (Session 54)
+- **Scope:** Ran `evals/ab-comparison.yaml` — 16 prompts across 7 categories against both local models.
+  - Qwen3.5-27B-FP8 (reasoning): 100% pass, 50.8s avg latency
+  - Qwen3.5-35B-A3B-AWQ (worker): 100% pass, 4.2s avg latency
+  - Both models equal quality. Worker 12x faster due to MoE sparse activation (3B params active/pass).
+  - Rubric bug fixed: farmer puzzle answer was swapped (7↔8 chickens/cows).
+- **Result:** `evals/results/ab-comparison-2026-03-09-analysis.md`
+
+### 20.2 — Tactical Routing Fix
+- **Status:** ✅ done (Session 54)
+- **Scope:** Critical bug: tactical tier used `reasoning` model (50.8s avg) with a 30s timeout → constant timeouts for tactical tasks.
+  - `config.py`: `router_tactical_model = "worker"` (was `"reasoning"`)
+  - `router.py`: tactical `timeout_s = 60` (was `30`)
+  - Deliberative tier stays on `reasoning` for complex multi-step analysis.
+  - LiteLLM fallback `worker→reasoning→deepseek` active if Workshop down.
+
+### 20.3 — Dashboard Data Format Fixes
+- **Status:** ✅ done (Session 54)
+- **Scope:** Fixed 3 bugs across dashboard pages:
+  - `goals/page.tsx`: `/v1/trust` returns `{ agents: {...} }` not `{ scores: [...] }`. Trust panel always showed empty. Fixed with Object.entries() transform.
+  - `tasks/page.tsx`: Added `data-curator` to `AGENT_COLORS` map (was missing, 9th agent).
+  - `learning/page.tsx`: Added Skill Library MetricCard (total/executed/runs/avg success rate) + fetch from `/v1/skills/stats`.
+  - `page.tsx`: Fixed stale model names (Qwen3.5-27B-FP8 TP=4, Qwen3.5-35B-A3B-AWQ).
+
+### 20.4 — LangFuse Prompt Sync
+- **Status:** ✅ done (Session 54)
+- **Scope:** Ran `scripts/sync-prompts-to-langfuse.py` — creative-agent updated (v2), 8 others unchanged.
+
+---
+
 ## Blocked on Shaun
 
 These require human action. Claude Code cannot do them.

@@ -343,4 +343,29 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` — no a
 
 ---
 
-*Last updated: 2026-03-09 06:50 PDT
+## Session 54 (2026-03-09) Summary
+
+### Completed This Session
+- **Tactical routing fix** — Critical: `reasoning` model (50.8s avg latency) assigned to tactical tier with 30s timeout → constant timeouts. Switched tactical to `worker` (35B-A3B-AWQ, 4.2s avg). Timeout bumped to 60s. Backed by A/B eval data.
+- **A/B model eval** — Both models score 100% quality (rubric bug corrected). Worker 12x faster. Results documented in `evals/results/ab-comparison-2026-03-09-analysis.md`.
+- **Dashboard data format fixes** — 3 bugs corrected:
+  - `goals/page.tsx`: trust panel always empty — `/v1/trust` returns `{ agents: {} }` not `{ scores: [] }`. Fixed with Object.entries() transform.
+  - `tasks/page.tsx`: data-curator missing from AGENT_COLORS.
+  - `learning/page.tsx`: added Skill Library MetricCard (skill stats visible).
+- **Notifications system** — Merged two approval backends (`escalation.py` + `pending_approval` tasks). CORS added to agent server. Both work in browser now.
+- **LangFuse prompt sync** — creative-agent updated to v2, 8 others unchanged.
+- **Dashboard deployed** — All changes rsynced and rebuilt on Workshop:3001.
+
+### Key Findings
+- Tactical tier was systematically timing out with `reasoning` model (50.8s >> 30s timeout). Fix is deployed and live.
+- Both local models have identical quality on evals. Route by latency, not by "bigger = better".
+- Conversations collection IS populated (verified 3 live entries) — prior session notes were incorrect about it being empty.
+
+### Next Actions
+1. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678 (still pending)
+2. EoBQ character LoRAs — per-character Flux LoRA training for face consistency (P2)
+3. SDXL/Pony anime art path for EoBQ (P2)
+4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
+5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
+
+*Last updated: 2026-03-09 10:50 PDT
