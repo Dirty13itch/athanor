@@ -109,21 +109,31 @@ async def fetch_node_health() -> BriefingSection:
             data = json.loads(raw)
             age = time.time() - data.get("timestamp", 0)
             gpus = data.get("gpus", [])
-            containers = data.get("containers", 0)
-            load = data.get("load_1m", 0)
+            system = data.get("system", {})
+            models = data.get("models", {})
+            load = system.get("load_1m", 0)
             gpu_summary = ", ".join(
-                f"{g.get('name','?')} {g.get('temp',0)}C {g.get('util',0)}%"
+                f"{g.get('name','?').replace('NVIDIA GeForce ','')} "
+                f"{int(g.get('temp_c',0) * 9/5 + 32)}F {g.get('util_pct',0)}% "
+                f"{g.get('vram_used_mib',0)}/{g.get('vram_total_mib',0)}MB"
                 for g in gpus
             ) if gpus else "no GPUs"
+            model_summary = ", ".join(
+                f"{name}={'ok' if info.get('healthy') else 'DOWN'}"
+                for name, info in models.items()
+            ) if models else ""
             status = "healthy" if age < 60 else f"stale ({int(age)}s)"
             if age > 60:
                 issues.append(f"{node}: heartbeat stale ({int(age)}s)")
+            for name, info in models.items():
+                if not info.get("healthy"):
+                    issues.append(f"{node}: {name} unhealthy")
             items.append({
                 "node": node,
                 "status": status,
-                "gpus": gpu_summary,
-                "containers": containers,
                 "load": f"{load:.1f}",
+                "models": model_summary,
+                "gpus": gpu_summary,
             })
 
         if issues:
