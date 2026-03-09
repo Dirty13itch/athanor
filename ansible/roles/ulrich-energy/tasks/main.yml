@@ -1,0 +1,56 @@
+---
+- name: Create Ulrich Energy deploy directory
+  ansible.builtin.file:
+    path: "{{ ulrich_deploy_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Sync Ulrich Energy source code
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../projects/ulrich-energy/"
+    dest: "{{ ulrich_deploy_dir }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=.next"
+      - "--exclude=.git"
+  register: ulrich_src
+
+- name: Deploy Ulrich Energy docker-compose.yml
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ ulrich_deploy_dir }}/docker-compose.yml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: ulrich_compose
+
+- name: Check if Ulrich Energy image exists
+  community.docker.docker_image_info:
+    name: "{{ ulrich_image }}"
+  register: ulrich_image_info
+
+- name: Stop Ulrich Energy before rebuild
+  community.docker.docker_compose_v2:
+    project_src: "{{ ulrich_deploy_dir }}"
+    state: absent
+  when: ulrich_src.changed and ulrich_image_info.images | length > 0
+
+- name: Build and deploy Ulrich Energy
+  community.docker.docker_compose_v2:
+    project_src: "{{ ulrich_deploy_dir }}"
+    state: present
+    build: "{{ 'always' if (ulrich_src.changed or ulrich_image_info.images | length == 0) else 'never' }}"
+    recreate: "{{ 'always' if (ulrich_compose.changed or ulrich_src.changed) else 'never' }}"
+
+- name: Wait for Ulrich Energy health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ ulrich_port }}"
+    status_code: 200
+  register: ulrich_health
+  retries: 15
+  delay: 10
+  until: ulrich_health.status == 200
+  when: not ansible_check_mode

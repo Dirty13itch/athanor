@@ -1,0 +1,11 @@
+---
+ulrich_deploy_dir: /opt/athanor/ulrich-energy
+ulrich_port: 3003
+ulrich_image: "athanor/ulrich-energy:latest"
+
+# PostgreSQL on VAULT
+ulrich_database_url: "postgresql://ulrich:athanor2026@192.168.1.203:5432/ulrich_energy"
+
+# LiteLLM for AI report generation
+ulrich_litellm_url: "http://192.168.1.203:4000/v1"
+ulrich_litellm_key: "sk-athanor-litellm-2026"

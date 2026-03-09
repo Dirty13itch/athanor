@@ -1,0 +1,20 @@
+services:
+  ulrich-energy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: {{ ulrich_image }}
+    container_name: athanor-ulrich-energy
+    restart: unless-stopped
+    ports:
+      - "{{ ulrich_port }}:3002"
+    environment:
+      - DATABASE_URL={{ ulrich_database_url }}
+      - LITELLM_BASE_URL={{ ulrich_litellm_url }}
+      - LITELLM_API_KEY={{ ulrich_litellm_key }}
+      - TZ=America/Chicago
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

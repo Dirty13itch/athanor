@@ -13,4 +13,7 @@
     - comfyui
     - open-webui
     - dashboard
-    - eoq
+    - role: eoq
+      tags: [eoq]
+    - role: ulrich-energy
+      tags: [ulrich-energy]
