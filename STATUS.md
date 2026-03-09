@@ -21,12 +21,16 @@
 
 | Server | Source | Status | Purpose |
 |--------|--------|--------|---------|
-| grafana | .mcp.json (local) | Active | Query Grafana dashboards, alerts, datasources |
+| grafana | .mcp.json (local) | Active | Query Grafana dashboards, alerts, Prometheus, Loki |
 | docker | .mcp.json (local) | Active | Docker container management |
 | athanor-agents | .mcp.json (local) | Active | Agent server at foundry:9000 |
 | redis | .mcp.json (local) | Active | Redis state, heartbeats, workspace, scheduler |
 | qdrant | .mcp.json (local) | Active | Vector DB collections, search, scroll |
 | smart-reader | .mcp.json (local) | Active | Smart file reading, grep, diff, log |
+| sequential-thinking | .mcp.json (local) | Active | Structured reasoning meta-tool |
+| neo4j | .mcp.json (local) | Active | Direct Cypher queries to knowledge graph |
+| postgres | .mcp.json (local) | Active | SQL access to VAULT databases (Zed fork) |
+| gitea | .mcp.json (local) | Active | Repo/issue/PR management on VAULT:3033 |
 | Context7 | claude.ai connector | Active | Library documentation lookup |
 | Gmail | claude.ai connector | Active | Email integration |
 | Google Calendar | claude.ai connector | Active | Calendar management |
@@ -34,7 +38,7 @@
 | Hugging Face | claude.ai connector | Active | Model/dataset search — low value for ops |
 | Vercel | claude.ai connector | Active | Deployment platform — not currently used |
 
-**Removed from local config:** sequential-thinking, context7 (plugin duplicate), filesystem, playwright.
+**Removed from local config:** context7 (plugin duplicate), filesystem, playwright.
 
 ## Configuration Inventory
 
@@ -135,4 +139,4 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 
 ---
 
-*Last updated: 2026-03-08 22:50 PDT
+*Last updated: 2026-03-08 23:15 PDT — Session 43: Config audit (13 items), 4 new MCP servers (neo4j, postgres, gitea, sequential-thinking), self-improvement loop closed, 5 new proactive agent schedules (9/9 agents now scheduled), Goals dashboard page added.
