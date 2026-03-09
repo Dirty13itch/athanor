@@ -61,7 +61,7 @@
     "postgres": {
       "type": "stdio",
       "command": "bash",
-      "args": ["-c", "npx -y @modelcontextprotocol/server-postgres \"$POSTGRES_URL\""],
+      "args": ["-c", "npx -y @zeddotdev/postgres-context-server \"$POSTGRES_URL\""],
       "env": {
         "POSTGRES_URL": "${POSTGRES_URL}"
       }
