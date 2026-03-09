@@ -28,6 +28,31 @@ interface LearningMetrics {
   };
 }
 
+interface PatternReport {
+  timestamp: string;
+  period_hours: number;
+  event_count: number;
+  activity_count: number;
+  patterns: Array<{ type: string; severity: string; [key: string]: unknown }>;
+  recommendations: string[];
+  autonomy_adjustments: Array<{
+    agent: string;
+    category: string;
+    previous: number;
+    delta: number;
+    new: number;
+  }>;
+}
+
+interface ImprovementSummary {
+  total_proposals: number;
+  pending: number;
+  validated: number;
+  deployed: number;
+  failed: number;
+  benchmark_results: number;
+}
+
 function HealthGauge({ score, assessment }: { score: number; assessment: string }) {
   const pct = Math.round(score * 100);
   const color = score > 0.8 ? "text-green-400" : score > 0.6 ? "text-emerald-400" : score > 0.3 ? "text-yellow-400" : "text-zinc-500";
@@ -69,8 +94,20 @@ function StatRow({ label, value, unit }: { label: string; value: string | number
 
 export default function LearningPage() {
   const [data, setData] = useState<LearningMetrics | null>(null);
+  const [patterns, setPatterns] = useState<PatternReport | null>(null);
+  const [improvement, setImprovement] = useState<ImprovementSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [runningBenchmark, setRunningBenchmark] = useState(false);
+
+  const fetchAll = useCallback(async () => {
+    const [pRes, iRes] = await Promise.allSettled([
+      fetch("/api/agents/proxy?path=/v1/patterns"),
+      fetch("/api/agents/proxy?path=/v1/improvement/summary"),
+    ]);
+    if (pRes.status === "fulfilled" && pRes.value.ok) setPatterns(await pRes.value.json());
+    if (iRes.status === "fulfilled" && iRes.value.ok) setImprovement(await iRes.value.json());
+  }, []);
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -88,9 +125,10 @@ export default function LearningPage() {
 
   useEffect(() => {
     fetchMetrics();
-    const iv = setInterval(fetchMetrics, 30000); // Refresh every 30s
+    fetchAll();
+    const iv = setInterval(() => { fetchMetrics(); fetchAll(); }, 30000);
     return () => clearInterval(iv);
-  }, [fetchMetrics]);
+  }, [fetchMetrics, fetchAll]);
 
   if (loading) {
     return (
@@ -134,7 +172,7 @@ export default function LearningPage() {
           </p>
         </div>
         <button
-          onClick={fetchMetrics}
+          onClick={() => { fetchMetrics(); fetchAll(); }}
           className="px-3 py-1.5 text-sm border rounded-md hover:bg-muted transition-colors"
         >
           Refresh
@@ -244,6 +282,90 @@ export default function LearningPage() {
           )}
         </MetricCard>
       </div>
+
+      {/* Autonomy Adjustments */}
+      {patterns && patterns.autonomy_adjustments.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Autonomy Adjustments</CardTitle>
+            <CardDescription>
+              Dynamic threshold changes from pattern detection · last run {new Date(patterns.timestamp).toLocaleTimeString()}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {patterns.autonomy_adjustments.map((adj, i) => {
+                const isMore = adj.delta > 0;
+                const isLess = adj.delta < 0;
+                return (
+                  <div key={i} className="flex items-center justify-between py-1.5 border-b last:border-0 border-border/50">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium">{adj.agent}</span>
+                      <span className="text-xs text-muted-foreground">{adj.category}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs font-mono">
+                      <span className="text-muted-foreground">{adj.previous.toFixed(3)}</span>
+                      <span className={isMore ? "text-green-400" : isLess ? "text-red-400" : "text-zinc-500"}>
+                        {isMore ? "+" : ""}{adj.delta.toFixed(3)}
+                      </span>
+                      <span className="font-medium">{adj.new.toFixed(3)}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${isMore ? "bg-green-500/10 text-green-400" : isLess ? "bg-red-500/10 text-red-400" : "bg-zinc-500/10 text-zinc-400"}`}>
+                        {isMore ? "more autonomous" : isLess ? "more cautious" : "unchanged"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Improvement Cycle */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Self-Improvement Cycle</CardTitle>
+              <CardDescription>5 AM daily: benchmark → patterns → proposals</CardDescription>
+            </div>
+            <button
+              onClick={async () => {
+                setRunningBenchmark(true);
+                try {
+                  await fetch("/api/agents/proxy?path=/v1/improvement/benchmarks/run", { method: "POST" });
+                  await fetchAll();
+                } finally {
+                  setRunningBenchmark(false);
+                }
+              }}
+              disabled={runningBenchmark}
+              className="px-3 py-1.5 text-xs border rounded-md hover:bg-muted disabled:opacity-50"
+            >
+              {runningBenchmark ? "Running..." : "Run Benchmarks"}
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {improvement ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Proposals", value: improvement.total_proposals, color: "text-blue-400" },
+                { label: "Pending Review", value: improvement.pending, color: "text-yellow-400" },
+                { label: "Deployed", value: improvement.deployed, color: "text-green-400" },
+                { label: "Benchmarks Run", value: improvement.benchmark_results, color: "text-cyan-400" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="text-center p-3 rounded-lg bg-muted/30">
+                  <div className={`text-2xl font-bold ${color}`}>{value}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{label}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No improvement data yet. Runs at 5:00 AM daily.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <p className="text-xs text-muted-foreground text-center">
         Last updated: {new Date(data.timestamp).toLocaleString()} · Auto-refreshes every 30s
