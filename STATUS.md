@@ -142,6 +142,12 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 ## Session 49 (2026-03-09) Summary
 
 ### Completed This Session
+- **LangFuse per-agent metadata:**
+  - Added `extra_body` metadata to all 9 agent ChatOpenAI constructors: `trace_name`, `tags`, `trace_metadata`
+  - KEY: LiteLLM uses `trace_name` (sets trace name), `tags` (array → LangFuse tags), `trace_metadata` (dict → LangFuse metadata). Plain `metadata.agent` is ignored.
+  - Also added `metadata`+`tags` to LangChain run configs in `server.py` and `tasks.py` for future LangChain-native LangFuse integration
+  - Verified: `knowledge-agent` trace shows `name='knowledge-agent', tags=['knowledge-agent'], meta={'agent': 'knowledge-agent'}`
+
 - **Continue.dev IDE Integration** (18.3):
   - VS Code v1.110.1 installed via Microsoft apt repo (Ubuntu 24.04)
   - Continue.dev v1.2.16 extension installed headlessly
@@ -151,9 +157,8 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 
 ### Next Actions
 1. HippoRAG entity extraction (18.4) — NER at index time, upgrade category-based to entity-based graph expansion
-2. LangFuse per-agent metadata: thread `agent_name` through LangChain callbacks to LiteLLM → LangFuse
-3. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
-4. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
+2. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+3. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
 
 ## Session 48 (2026-03-09) Summary
 
