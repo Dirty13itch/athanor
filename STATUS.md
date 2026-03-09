@@ -368,4 +368,4 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` — no a
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-09 10:50 PDT
+*Last updated: 2026-03-09 10:52 PDT
