@@ -1,0 +1,33 @@
+# ~/.aider.conf.yml — Aider config for Athanor local inference
+# Aider uses litellm internally, so it speaks to LiteLLM natively
+
+# Point at LiteLLM on VAULT
+openai-api-base: http://vault:4000/v1
+openai-api-key: sk-athanor-key
+
+# Default model: Qwen3.5-35B-A3B on WORKSHOP 5090 (via LiteLLM "worker" slot)
+model: openai/worker
+
+# For harder tasks, switch to Anthropic:
+#   aider --model anthropic/claude-sonnet-4-6-20250514
+
+# Git integration
+auto-commits: true
+attribute-author: false
+attribute-committer: true
+commit-prompt: |
+  Write a conventional commit message for these changes.
+  Use format: type(scope): description
+  Types: feat, fix, refactor, test, docs, chore, port
+
+# Code style
+lint-cmd: ruff check --fix
+auto-lint: true
+
+# Context
+map-tokens: 2048
+map-refresh: auto
+
+# Suppress chat noise
+no-suggest-shell-commands: true
+no-show-model-warnings: true

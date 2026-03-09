@@ -1,0 +1,41 @@
+---
+name: port-hydra-module
+description: Port a Python module from Hydra reference repo into the Athanor codebase
+version: "1.0"
+parameters:
+  module_name:
+    description: "Name of the module to port (e.g., routellm, preference_learning)"
+    required: true
+---
+
+# Port Hydra Module: {{ module_name }}
+
+You are porting `{{ module_name }}` from the Hydra reference repo into Athanor.
+
+## Steps
+
+1. **Read the source**: Find and read `~/repos/reference/hydra/src/hydra_tools/{{ module_name }}.py` completely.
+
+2. **Understand dependencies**: Identify all imports. Map Hydra dependencies to Athanor equivalents:
+   - Hydra uses TabbyAPI/ExLlamaV2 → Athanor uses vLLM via LiteLLM
+   - Hydra uses NixOS/Docker Compose → Athanor uses Ansible
+   - Hydra uses CrewAI → Athanor uses LangGraph
+
+3. **Read the target**: Check `~/repos/athanor/` for where this module belongs. Look at existing patterns in similar files.
+
+4. **Write the adapted module**: Create the new file in Athanor. Adapt all interfaces to match Athanor's async-first, LiteLLM-based patterns.
+
+5. **Write tests**: Create `tests/test_{{ module_name }}.py` with pytest.
+
+6. **Lint and format**: Run `ruff check --fix` and `ruff format` on all new files.
+
+7. **Run tests**: Execute `python -m pytest tests/test_{{ module_name }}.py -v`. Fix any failures.
+
+8. **Commit**: `git add -A && git commit -m "port({{ module_name }}): adapt from hydra reference"`
+
+## Critical
+
+- Do NOT copy code verbatim. Adapt to Athanor's architecture.
+- Async functions everywhere inference is called.
+- Use `litellm.acompletion()` for LLM calls, not direct HTTP.
+- Redis for state, Qdrant for vectors.

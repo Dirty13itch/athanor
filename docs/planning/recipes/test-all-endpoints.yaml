@@ -1,0 +1,42 @@
+---
+name: test-all-endpoints
+description: Validate all inference endpoints across the Athanor cluster
+version: "1.0"
+schedule: "0 */2 * * *"  # Every 2 hours
+---
+
+# Test All Cluster Endpoints
+
+Run health checks and inference tests against every endpoint in the cluster.
+
+## Endpoints to test
+
+| Name | URL | Expected Model |
+|------|-----|----------------|
+| FOUNDRY Coordinator | http://foundry:8000 | Qwen3-32B (or Qwen3.5-27B after upgrade) |
+| FOUNDRY Utility | http://foundry:8001 | Qwen3.5-9B |
+| WORKSHOP Worker | http://workshop:8100 | Qwen3.5-35B-A3B |
+| WORKSHOP Fallback | http://workshop:8101 | Qwen3-14B |
+| LiteLLM Gateway | http://vault:4000 | Routes to above |
+
+## For each endpoint
+
+1. `curl -s {url}/health` — should return 200
+2. `curl -s {url}/v1/models` — should list the expected model
+3. Send a completion: "What is 2+2?" — should get coherent response
+4. Send a tool call: weather function — should get structured output
+5. Time the request, record TTFT and total latency
+
+## For LiteLLM specifically
+
+Test tag-based routing:
+- `{"tags": ["coordinator"]}` → should route to FOUNDRY :8000
+- `{"tags": ["worker"]}` → should route to WORKSHOP :8100
+- `{"tags": ["utility"]}` → should route to FOUNDRY :8001
+
+## Output
+
+Write results to `~/repos/athanor/logs/endpoint-tests/$(date +%Y%m%d-%H%M).json`
+Include: timestamp, endpoint, status, latency_ms, model_reported, pass/fail
+
+If any endpoint fails, write an alert to `~/repos/athanor/logs/alerts/$(date +%Y%m%d-%H%M)-endpoint-failure.md`
