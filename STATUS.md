@@ -137,6 +137,27 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 46 (2026-03-09) Summary
+
+### Completed This Session
+- **EoBQ uncensored content wiring** (plan fully executed):
+  - `flux-uncensored.safetensors` LoRA (0.85 strength) wired into all Flux workflows via `LoraLoaderModelOnly` node "11" — both EoBQ portrait/scene JSON files + dashboard comfyui templates
+  - `uncensored` LiteLLM alias added → `Huihui-Qwen3-8B-abliterated-v2` at foundry:8002. Confirmed in `/v1/models` list.
+  - EoBQ chat + narrate routes: intensity ≥ 3 routes to abliterated model; intensity 3/4/5 each get progressive explicit system prompt directives
+  - Creative agent system prompt: replaced single-line NSFW note with full content policy including LoRA awareness
+  - Deployed: EoBQ, dashboard, and agents all rebuilt/restarted on WORKSHOP/FOUNDRY
+- **LiteLLM routes now 15** (was 14): added `uncensored`
+
+### Next Actions
+1. Set up Continue.dev on DEV → FOUNDRY:8000 (highest-ROI action from Session 44 research)
+2. Replace `knowledge` payload text index with miniCOIL hybrid search in `index-knowledge.py`
+3. Wire `QdrantNeo4jRetriever` into agent context pipeline
+4. Add freshness metadata (`content_hash`, `embedded_at`) to Qdrant ingestion pipeline
+5. Audit LangFuse for per-agent invocation frequency
+6. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+7. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
+8. EoBQ: adult performer digital replicas (PuLID + reference photos, deferred from this plan)
+
 ## Session 45 (2026-03-09) Summary
 
 ### Completed This Session
@@ -167,4 +188,4 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 
 ---
 
-*Last updated: 2026-03-09 PDT
+*Last updated: 2026-03-09 02:10 PDT
