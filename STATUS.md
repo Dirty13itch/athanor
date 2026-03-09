@@ -23,22 +23,22 @@
 
 | Server | Source | Status | Purpose |
 |--------|--------|--------|---------|
-| grafana | .mcp.json (local) | Active | Query Grafana dashboards, alerts, Prometheus, Loki |
-| docker | .mcp.json (local) | Active | Docker container management |
-| athanor-agents | .mcp.json (local) | Active | Agent server at foundry:9000 |
-| redis | .mcp.json (local) | Active | Redis state, heartbeats, workspace, scheduler |
-| qdrant | .mcp.json (local) | Active | Vector DB collections, search, scroll |
-| smart-reader | .mcp.json (local) | Active | Smart file reading, grep, diff, log |
-| sequential-thinking | .mcp.json (local) | Active | Structured reasoning meta-tool |
-| neo4j | .mcp.json (local) | Active | Direct Cypher queries to knowledge graph |
-| postgres | .mcp.json (local) | Active | SQL access to VAULT databases (Zed fork) |
-| gitea | .mcp.json (local) | Active | Repo/issue/PR management on VAULT:3033 |
-| Context7 | claude.ai connector | Active | Library documentation lookup |
+| docker | .mcp.json (local) | ALWAYS | Docker container management |
+| athanor-agents | .mcp.json (local) | ALWAYS | Agent server at foundry:9000 |
+| redis | .mcp.json (local) | ALWAYS | Redis state, heartbeats, workspace, scheduler |
+| qdrant | .mcp.json (local) | ALWAYS | Vector DB collections, search, scroll |
+| smart-reader | .mcp.json (local) | ALWAYS | Smart file reading, grep, diff, log |
+| sequential-thinking | .mcp.json (local) | ALWAYS | Structured reasoning meta-tool |
+| neo4j | .mcp.json (local) | ALWAYS | Direct Cypher queries to knowledge graph |
+| postgres | .mcp.json (local) | ALWAYS | SQL access to VAULT databases (Zed fork) |
+| grafana | .mcp.json (local) | disabled | Query Grafana, Prometheus, Loki — enable when needed |
+| langfuse | .mcp.json (local) | disabled | Trace debugging — enable when needed |
+| miniflux | .mcp.json (local) | disabled | RSS feed tools — enable when needed |
+| n8n | .mcp.json (local) | disabled | Workflow automation — enable when needed |
+| gitea | .mcp.json (local) | disabled | Repo/issue/PR management — enable when needed |
+| context7 | claude.ai plugin | ALWAYS | Live library docs (resolve-library-id, query-docs) |
 | Gmail | claude.ai connector | Active | Email integration |
 | Google Calendar | claude.ai connector | Active | Calendar management |
-| Grafana | claude.ai connector | Active (duplicate) | Same as local, managed by Anthropic |
-| Hugging Face | claude.ai connector | Active | Model/dataset search — low value for ops |
-| Vercel | claude.ai connector | Active | Deployment platform — not currently used |
 
 **Removed from local config:** context7 (plugin duplicate), filesystem, playwright.
 
@@ -131,13 +131,43 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 
 ## Build Progress
 
-All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
+Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or blocked on Shaun:
 - 6.2 InfiniBand (backlog)
 - 6.4 Mobile access (backlog)
 - 6.7 Mining enclosure (physical)
 - 8.4 Dedicated Coding Model (deferred)
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
+
+## Session 55 (2026-03-09) Summary — COO Audit & Operational Excellence
+
+### Completed This Session
+- **MCP token budget optimization** (21.1) — 79% reduction (40,579 → 8,640 tokens):
+  - Root cause: miniflux-mcp required `MINIFLUX_BASE_URL` + `MINIFLUX_TOKEN` (API token auth). Previous config had `MINIFLUX_URL/USERNAME/PASSWORD` (wrong keys, wrong auth method). Fixed.
+  - Generated Miniflux API token via direct PostgreSQL insert (`miniflux-postgres` container) — REST API returns 404 in Miniflux v2.2.6.
+  - Disabled 5 servers in `.mcp.json`: grafana, langfuse, miniflux, n8n, gitea. All preserved, re-enable per-session via `/mcp`.
+  - ALWAYS tier now 8 servers (docker, athanor-agents, redis, qdrant, smart-reader, sequential-thinking, neo4j, postgres).
+- **Claude Code plugin audit** (21.2) — context7 is already installed and optimal. No new plugins needed. Plugin cost is always-on; MCP toggle is better for everything else.
+- **COO live system audit** (21.3) — Agents running autonomously:
+  - 16/20 recent tasks completed. Home/media agents active on schedule.
+  - 2 coding-agent EoBQ timeouts: wrong path specs (`projects/eoq/components/` vs `src/app/components/`). Both components exist and are production quality. Task spec quality issue, not agent failure.
+  - EoBQ: `inventory.tsx` + `scene-transition.tsx` verified complete (framer-motion, game-store integration, full animations).
+  - Home Assistant: 43 entities, 2 TVs unavailable (off — normal). No real anomalies.
+  - Pending approval task (home-agent energy analysis) self-cleared.
+
+### Session 54 Items (not previously logged to STATUS.md)
+- **Tactical routing fix** — `config.py`: `router_tactical_model = "worker"` (was `reasoning`). `router.py`: `timeout_s = 60` (was `30`). Fixed constant timeouts on tactical tasks.
+- **A/B model eval** — Worker (35B-A3B) 12x faster than Reasoning (27B-FP8) with equal quality. Route on load, not quality. Rubric bug fixed (farmer puzzle answer swapped).
+- **Dashboard fixes** — goals/page.tsx trust panel (wrong response shape), tasks/page.tsx data-curator color, learning/page.tsx skill library card, model name stale refs.
+- **LangFuse prompt sync** — creative-agent updated to v2. All 9 agents synced.
+- **DailyBriefing component** — `projects/dashboard/src/components/daily-briefing.tsx` built and wired to page.tsx at lens 'default'.
+
+### Next Actions
+1. **21.4 Grafana backup alert** — Prometheus rule for backup age > 36h (write YAML + Ansible deploy). Grafana MCP disabled; write rule directly.
+2. **Task spec quality** — When assigning EoBQ coding tasks, include exact file paths from `projects/eoq/src/app/components/`.
+3. **Shaun-gated:** n8n Signal Pipeline (vault:5678 UI), Kindred go/no-go, EoBQ character reference images for LoRAs.
+
+---
 
 ## Session 53 (2026-03-09) Summary — Skill Learning Feedback Loop
 

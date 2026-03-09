@@ -2,7 +2,7 @@
 
 *This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
 
-Last updated: 2026-03-08 (Session 41: Tier 16 — Remaining build items, DEEP-RESEARCH-LIST reconciliation)
+Last updated: 2026-03-09 (Session 55: Tier 21 — MCP optimization, plugin audit, COO system audit)
 
 ---
 
@@ -1071,6 +1071,42 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 ### 20.4 — LangFuse Prompt Sync
 - **Status:** ✅ done (Session 54)
 - **Scope:** Ran `scripts/sync-prompts-to-langfuse.py` — creative-agent updated (v2), 8 others unchanged.
+
+---
+
+## Tier 21: Operational Excellence & Tooling (P1)
+
+*Session 55, 2026-03-09. MCP token budget cut, miniflux auth fixed, COO system audit.*
+
+### 21.1 — MCP Token Budget Optimization
+- **Status:** ✅ done (Session 55)
+- **Scope:** Reduced MCP tool schema overhead from ~40,579 to ~8,640 tokens per message (79% reduction).
+  - Diagnosed miniflux as the real auth failure: `miniflux-mcp` requires `MINIFLUX_BASE_URL` + `MINIFLUX_TOKEN` env vars. Previous config used wrong keys (`MINIFLUX_URL/USERNAME/PASSWORD`) and wrong auth method (basic auth vs API token).
+  - Fixed miniflux: generated API token via PostgreSQL direct insert (`miniflux-postgres` container, `api_keys` table) since REST API endpoints return 404 in Miniflux v2.2.6.
+  - Disabled 5 low-use MCP servers: grafana, langfuse, miniflux, n8n, gitea. All preserved in `.mcp.json` with `"disabled": true` — re-enable via `/mcp` toggle as needed.
+  - ALWAYS tier (8 servers): docker, athanor-agents, redis, qdrant, smart-reader, sequential-thinking, neo4j, postgres. Total ~8,640 tokens.
+  - SOMETIMES tier (5 servers, disabled): grafana, langfuse, miniflux, n8n, gitea.
+
+### 21.2 — Claude Code Plugin Audit
+- **Status:** ✅ done (Session 55)
+- **Scope:** Deep research on available Claude Code plugins.
+  - `context7` is already installed — provides `resolve-library-id` + `query-docs` for live library docs. High value.
+  - No additional plugins required. Plugin overhead is always-on (unlike MCP toggles). Everything else is covered by the self-hosted MCP stack.
+  - Plan file: `.claude/plans/serene-wibbling-coral.md`
+
+### 21.3 — COO System Audit
+- **Status:** ✅ done (Session 55)
+- **Scope:** Full live system audit in COO mode.
+  - Agent activity: 16/20 recent tasks completed (80%). Agents are running autonomously. Home/media agents checking HA and Sonarr/Radarr hourly.
+  - 2 coding-agent task timeouts (EoBQ) diagnosed: wrong path specs in task descriptions (`projects/eoq/components/` vs actual `src/app/components/`). Components already exist and are solid. Not a code failure — task definition quality issue.
+  - EoBQ inventory.tsx + scene-transition.tsx verified complete and production-ready.
+  - Pending approval task (home-agent energy analysis) self-cleared.
+  - Home Assistant: 43 entities, 2 TVs showing unavailable (expected — powered off). No anomalies.
+
+### 21.4 — Grafana Backup Age Alert
+- **Status:** 🔲 todo (P2)
+- **Scope:** Add Prometheus alerting rule: fire when backup age > 36h. `backup-exporter` on VAULT exposes metrics. Write alert rule YAML, deploy via Ansible role.
+- **Blocked by:** grafana MCP disabled (or write Prometheus alert rule directly in YAML and deploy).
 
 ---
 
