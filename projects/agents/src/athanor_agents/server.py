@@ -1770,17 +1770,19 @@ async def chat_completions(request: Request):
 
 
 def _convert_messages(messages: list[dict]) -> list:
-    lc_messages = []
+    # Ensure system messages come first (vLLM rejects mid-conversation system msgs)
+    system_msgs = []
+    other_msgs = []
     for msg in messages:
         role = msg.get("role", "user")
         content = msg.get("content", "")
-        if role == "user":
-            lc_messages.append(HumanMessage(content=content))
+        if role == "system":
+            system_msgs.append(SystemMessage(content=content))
+        elif role == "user":
+            other_msgs.append(HumanMessage(content=content))
         elif role == "assistant":
-            lc_messages.append(AIMessage(content=content))
-        elif role == "system":
-            lc_messages.append(SystemMessage(content=content))
-    return lc_messages
+            other_msgs.append(AIMessage(content=content))
+    return system_msgs + other_msgs
 
 
 async def _stream_response(agent, messages, config, model_name, user_input="", routing=None, thread_id=""):

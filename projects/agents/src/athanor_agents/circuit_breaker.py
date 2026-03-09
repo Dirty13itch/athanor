@@ -224,7 +224,9 @@ class InferenceCircuitBreakers:
             raise CircuitOpenError(f"Circuit breaker open for {service}")
 
         try:
-            result = await operation() if asyncio.iscoroutinefunction(operation) else operation()
+            result = operation()
+            if asyncio.iscoroutine(result):
+                result = await result
             await breaker.record_success()
             return result
         except Exception:
