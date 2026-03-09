@@ -123,7 +123,7 @@ See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agen
 
 Offload mechanical tasks to local models (free tokens). Keep architecture, novel reasoning, and multi-file refactoring in Claude Code.
 
-**Delegate to Local Coder subagent** (Qwen3-32B-AWQ on FOUNDRY / Qwen3.5-35B-A3B-AWQ on WORKSHOP via MCP tools):
+**Delegate to Local Coder subagent** (Qwen3.5-27B-FP8 on FOUNDRY TP=4 / Qwen3.5-35B-A3B-AWQ on WORKSHOP via MCP tools):
 - Boilerplate generation (new files from templates, CRUD endpoints, data models)
 - Adding type hints, docstrings, or comments to existing code
 - Writing unit tests for existing functions

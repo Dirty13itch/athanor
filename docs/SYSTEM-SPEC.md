@@ -39,7 +39,7 @@ For the full philosophy, see `docs/VISION.md`. For the build history, see `docs/
 
 | Node | Role | CPU | RAM | GPUs | Key Services |
 |------|------|-----|-----|------|-------------|
-| **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=2 (Qwen3-32B), GLM-4.7-Flash, Huihui-Qwen3-8B, Agent Server, Qdrant |
+| **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=4 (Qwen3.5-27B-FP8), Huihui-Qwen3-8B, Agent Server, Qdrant |
 | **Workshop** (.225) | Inference, creative, UI | TR 7960X 24C/48T | 128 GB DDR5 | 5090 + 5060 Ti | vLLM (Qwen3.5-35B-A3B-AWQ), ComfyUI, Dashboard, EoBQ, Open WebUI |
 | **VAULT** (.203) | Storage, routing, media, monitoring | Ryzen 9950X 16C/32T | 128 GB DDR5 | Arc A380 | LiteLLM, Neo4j, Prometheus, Grafana, Plex, *arr, HA |
 | **DEV** (.189) | Development, ops center | Ryzen 9 9900X 12C/24T | 64 GB DDR5 | RTX 5060 Ti 16GB | Claude Code (native Linux), Ansible control, Embedding, Reranker |
@@ -88,9 +88,8 @@ Full inventory in `docs/SERVICES.md`. Summary:
 
 | Model | Size | Location | GPU(s) | Purpose | LiteLLM Alias |
 |-------|------|----------|--------|---------|---------------|
-| Qwen3-32B-AWQ | 18 GB | Node 1:8000 | GPUs 0-1 (TP=2) | Reasoning, agents | `reasoning` |
-| GLM-4.7-Flash-GPTQ-4bit | ~23 GB | Node 1:8002 | GPU 2 (4090) | Coding/utility | `coding` |
-| Huihui-Qwen3-8B | ~15 GB | Node 1:8004 | GPU 3 (5070 Ti) | Creative/uncensored | `creative` |
+| Qwen3.5-27B-FP8 | ~15.6 GB/GPU | Node 1:8000 | GPUs 0,1,3,4 (TP=4) | Reasoning, agents | `reasoning` |
+| Huihui-Qwen3-8B-abliterated-v2 | ~21 GB | Node 1:8002 | GPU 2 (4090) | Utility/uncensored | `creative` |
 | Qwen3.5-35B-A3B-AWQ | ~22 GB | Node 2:8000 | GPU 0 (5090) | Worker inference | `worker` |
 | Qwen3-Embedding-0.6B | 1.2 GB | DEV:8001 | GPU 0 (5060 Ti) | Embeddings | `embedding` |
 | Qwen3-Reranker-0.6B | — | DEV:8003 | GPU 0 (5060 Ti) | Reranking | `reranker` |
@@ -384,11 +383,11 @@ Full details in `docs/design/intelligence-layers.md`.
 
 | GPU | Node | VRAM | Current Workload | Utilization |
 |-----|------|------|-----------------|-------------|
-| GPU 0 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=2 shard (Qwen3-32B) | ~10-27% |
-| GPU 1 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=2 shard (Qwen3-32B) | ~10-27% |
-| GPU 2 (4090 ASUS) | Node 1 | 24 GB | GLM-4.7-Flash-GPTQ-4bit | ~10% |
-| GPU 3 (5070 Ti Gigabyte) | Node 1 | 16 GB | Huihui-Qwen3-8B | ~10% |
-| GPU 4 (5070 Ti MSI) | Node 1 | 16 GB | Idle | 0% |
+| GPU 0 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10-27% |
+| GPU 1 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10-27% |
+| GPU 2 (4090 ASUS) | Node 1 | 24 GB | Huihui-Qwen3-8B-abliterated-v2 | ~10% |
+| GPU 3 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10% |
+| GPU 4 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10% |
 | GPU 0 (5090) | Node 2 | 32 GB | vLLM Qwen3.5-35B-A3B-AWQ | ~10-15% |
 | GPU 1 (5060 Ti) | Node 2 | 16 GB | ComfyUI Flux | <5% (idle unless generating) |
 | GPU 0 (5060 Ti) | DEV | 16 GB | Embedding + Reranker (~2 GB used) | <5% |

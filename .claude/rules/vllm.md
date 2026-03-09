@@ -30,11 +30,10 @@ paths:
 - `fix-vllm-qwen35.py` in `ansible/roles/vllm/files/` — idempotent patches (both present in nightly, needed for future stable releases).
 
 ## Current FOUNDRY Deployment
-- Reasoning: Qwen3-32B-AWQ TP=2 on GPUs 0,1 (2x5070Ti) at foundry:8000 — `--tool-call-parser hermes`
-- Coding: GLM-4.7-Flash-GPTQ-4bit on GPU 2 (4090) at foundry:8002 — `--tool-call-parser hermes`
-- Creative: Huihui-Qwen3-8B-abliterated-v2 on GPU 3 (5070Ti) at foundry:8004 — `--quantization fp8`
-- GPU 4 (5070Ti): IDLE
-- Note: Qwen3.5-27B-FP8 TP=4 upgrade BLOCKED (needs `--language-model-only` or text-only variant)
+- Coordinator: Qwen3.5-27B-FP8 TP=4 on GPUs 0,1,3,4 (4x5070Ti) at foundry:8000 — `--tool-call-parser qwen3_xml --enforce-eager --language-model-only`
+- Utility: Huihui-Qwen3-8B-abliterated-v2 on GPU 2 (4090) at foundry:8002
+- Container names: `vllm-coordinator`, `vllm-utility`
+- Image: `athanor/vllm:qwen35` (nightly 0.16.1rc1.dev32)
 
 ## Current WORKSHOP Deployment
 - Worker: Qwen3.5-35B-A3B-AWQ on GPU 0 (5090) at workshop:8000 — `--tool-call-parser qwen3_xml --kv-cache-dtype auto`

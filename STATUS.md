@@ -70,13 +70,13 @@
 
 ### FOUNDRY (.244) — 11 containers
 
-| GPU | Model | VRAM | Temp | Container | Port | Flags |
-|-----|-------|------|------|-----------|------|-------|
-| 0: RTX 5070 Ti (MSI) | Qwen3-32B-AWQ (TP=2) | 14.9/16.3 GB | 37°C | vllm-reasoning | 8000 | `--tool-call-parser hermes --kv-cache-dtype fp8_e5m2 --enforce-eager` |
-| 1: RTX 5070 Ti (Gigabyte) | Qwen3-32B-AWQ (TP=2) | 14.9/16.3 GB | 47°C | (shared with GPU 0) | — | — |
-| 2: RTX 4090 (ASUS) | GLM-4.7-Flash-GPTQ-4bit | 23.0/24.6 GB | 45°C | vllm-coding | 8002 | `--tool-call-parser hermes --quantization gptq_marlin --enable-sleep-mode` |
-| 3: RTX 5070 Ti (Gigabyte) | Huihui-Qwen3-8B | 15.0/16.3 GB | 30°C | vllm-creative | 8004 | `--quantization fp8 --enable-sleep-mode` |
-| 4: RTX 5070 Ti (MSI) | **IDLE** | 0.0/16.3 GB | 34°C | — | — | Available for new workload |
+| GPU | Model | VRAM | Container | Port |
+|-----|-------|------|-----------|------|
+| 0: RTX 5070 Ti (MSI) | Qwen3.5-27B-FP8 (TP=4) | 15.6/16.3 GB | vllm-coordinator | 8000 |
+| 1: RTX 5070 Ti (Gigabyte) | Qwen3.5-27B-FP8 (TP=4) | 15.6/16.3 GB | (shared) | — |
+| 2: RTX 4090 (ASUS) | Huihui-Qwen3-8B-abliterated-v2 | 21.3/24.6 GB | vllm-utility | 8002 |
+| 3: RTX 5070 Ti (Gigabyte) | Qwen3.5-27B-FP8 (TP=4) | 15.6/16.3 GB | (shared) | — |
+| 4: RTX 5070 Ti (MSI) | Qwen3.5-27B-FP8 (TP=4) | 15.6/16.3 GB | (shared) | — |
 
 Other containers: `athanor-agents` (9000), `athanor-gpu-orchestrator`, `alloy`, `wyoming-whisper` (10300), `qdrant` (6333-6334), `speaches` (8200), `dcgm-exporter` (9400), `node-exporter`
 
@@ -103,9 +103,8 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 
 | Endpoint | Model/Service | Status |
 |----------|---------------|--------|
-| foundry:8000 | Qwen3-32B-AWQ | ✅ Healthy |
-| foundry:8002 | GLM-4.7-Flash-GPTQ-4bit | ✅ Healthy |
-| foundry:8004 | Huihui-Qwen3-8B | ✅ Healthy |
+| foundry:8000 | Qwen3.5-27B-FP8 (TP=4) | ✅ Healthy |
+| foundry:8002 | Huihui-Qwen3-8B-abliterated-v2 | ✅ Healthy |
 | foundry:9000 | Agent Server (9 agents) | ✅ Healthy |
 | workshop:8000 | Qwen3.5-35B-A3B-AWQ-4bit | ✅ Healthy |
 | vault:4000 | LiteLLM (14 model routes) | ✅ Healthy |
@@ -119,7 +118,7 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 |-------|--------|------------|
 | **Ansible vault-password** | Resolved | Vault recreated 2026-03-08, `ansible vault -m ping` verified |
 | **MSI 5070 Ti RGB still ON** (×2) | Cosmetic | I2C port 1 not exposed on Blackwell. Fix: one-time MSI Center from Windows |
-| **FOUNDRY GPU 4 idle** | 16 GB VRAM unused | Could serve embedding, reranker, or another model |
+| **FOUNDRY GPU 4 in TP=4** | Part of Qwen3.5-27B-FP8 TP=4 | All 4x 5070 Ti now in use |
 | **NordVPN credentials** | qBittorrent blocked | Shaun needs to provide |
 | **Anthropic API key** | Quality Cascade cloud escalation blocked | Shaun needs to provide |
 | **Google Drive OAuth** | ~40% personal data inaccessible | Shaun needs to run rclone config |
