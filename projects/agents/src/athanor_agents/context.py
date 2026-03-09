@@ -463,7 +463,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
 
     Computes one embedding from the user message, then queries preferences,
     activity, and knowledge collections in parallel. Returns a formatted
-    context string ready for injection as a SystemMessage.
+    context string ready for injection into the conversation.
 
     Returns empty string if no relevant context found or on any error.
 
