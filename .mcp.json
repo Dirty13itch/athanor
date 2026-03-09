@@ -66,6 +66,26 @@
         "POSTGRES_URL": "${POSTGRES_URL}"
       }
     },
+    "langfuse": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["langfuse-mcp"],
+      "env": {
+        "LANGFUSE_PUBLIC_KEY": "${LANGFUSE_PUBLIC_KEY}",
+        "LANGFUSE_SECRET_KEY": "${LANGFUSE_SECRET_KEY}",
+        "LANGFUSE_HOST": "${LANGFUSE_HOST}"
+      }
+    },
+    "miniflux": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "miniflux-mcp"],
+      "env": {
+        "MINIFLUX_URL": "${MINIFLUX_URL}",
+        "MINIFLUX_USERNAME": "${MINIFLUX_USERNAME}",
+        "MINIFLUX_PASSWORD": "${MINIFLUX_PASSWORD}"
+      }
+    },
     "gitea": {
       "type": "stdio",
       "command": "bash",
