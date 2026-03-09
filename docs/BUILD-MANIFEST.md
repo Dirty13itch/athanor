@@ -1009,12 +1009,13 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Priority:** Done
 
 ### 18.4 — HippoRAG Entity Extraction (Full GraphRAG)
-- **Status:** 🔲 todo
-- **Scope:** Upgrade 18.2 category-based graph expansion to entity-based multi-hop traversal. At index time: run NER (Qwen3.5-27B-FP8 via LiteLLM) to extract entities (services, people, concepts, models) from each doc chunk. Create Neo4j entity nodes + MENTIONS edges. In retrieval: Qdrant source → Neo4j Document → MENTIONS → Topic/Service/etc → other Documents mentioning same entities. Expected: +10-20% multi-hop accuracy over category-based expansion.
-- **Implementation sketch:**
-  - `index-knowledge.py`: add NER pass (LLM extract_entities → MERGE entity nodes → CREATE MENTIONS edges)
-  - `graph_context.py`: upgrade Cypher from category-property filter to 2-hop entity traversal: `(found:Document)-[:MENTIONS]->(e)<-[:MENTIONS]-(related:Document)`
-  - Entity types: `:Service`, `:Model`, `:Concept`, `:Person` with name + type properties
+- **Status:** ✅ done (Session 50, 2026-03-09)
+- **Scope:** Upgraded 18.2 category-based graph expansion to entity-based multi-hop traversal.
+  - `index-knowledge.py`: added `extract_entities_llm(text, title)` — NER via Qwen3.5-27B-FP8 (reasoning alias), extracts up to 15 entities per doc (types: Service, Model, Concept, Technology, Person). Added `upsert_neo4j_entities(source, entities)` — MERGE Entity nodes keyed by `(name_lower, type)`, MERGE MENTIONS edges from Document. Entity extraction runs after all Qdrant + Document upserts (2-phase: embed first, then NER).
+  - `graph_context.py`: replaced category-based Cypher with entity 2-hop: `(found:Document)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(related:Document)`, ranked by `count(DISTINCT e) DESC`. Falls back gracefully to [] if no entities (same as before). Updated docstring to document entity traversal.
+  - Neo4j index created: `entity_name_lower_type` composite on `(name_lower, type)` for fast MERGE dedup.
+  - Full re-index run: 172 docs → 3076 chunks (Qdrant) → 879 Entity nodes → 5455 MENTIONS edges (Neo4j).
+- **Verified:** Entity traversal Cypher returns semantically correct results — ADR-005 (inference engine) expands to inference research doc (5 shared: vLLM, SGLang, llama.cpp, Ollama, PagedAttention), CPU optimization, architecture synthesis. Top entities: Athanor (84 docs), vLLM (76), Shaun (40), LiteLLM (32), ComfyUI (29). Agents restarted on FOUNDRY and confirmed healthy.
 - **Research:** `docs/research/2026-03-09-knowledge-architecture-memory.md` §1 (HippoRAG v2)
 - **Depends on:** 18.2 ✅ (Neo4j Document nodes already created)
 - **Priority:** P2

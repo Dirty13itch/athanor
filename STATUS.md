@@ -139,6 +139,21 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 50 (2026-03-09) Summary
+
+### Completed This Session
+- **HippoRAG Entity Extraction** (18.4) — entity-based graph traversal fully wired:
+  - `index-knowledge.py`: `extract_entities_llm(text, title)` — NER via Qwen3.5-27B-FP8, extracts ≤15 entities/doc (types: Service, Model, Concept, Technology, Person). `upsert_neo4j_entities(source, entities)` — MERGE Entity nodes by `(name_lower, type)`, MERGE MENTIONS edges. 2-phase: all Qdrant/Document upserts first, then NER pass.
+  - `graph_context.py`: category-based Cypher → entity 2-hop: `(found:Document)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(related:Document)`, ranked by `count(DISTINCT e) DESC`.
+  - Neo4j index: `entity_name_lower_type` composite on `(name_lower, type)`.
+  - Full re-index: 172 docs → 3076 Qdrant chunks → 879 Entity nodes → 5455 MENTIONS edges.
+  - Deployed: `graph_context.py` synced to FOUNDRY, agents restarted, all 9 healthy.
+  - **Verified:** Entity traversal semantically correct — ADR-005 (inference engine) → inference research doc (5 shared entities: vLLM, SGLang, llama.cpp, Ollama, PagedAttention), CPU optimization, architecture synthesis.
+
+### Next Actions
+1. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+2. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
+
 ## Session 49 (2026-03-09) Summary
 
 ### Completed This Session
@@ -260,4 +275,4 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` — no a
 
 ---
 
-*Last updated: 2026-03-09 02:10 PDT
+*Last updated: 2026-03-09 07:30 PDT

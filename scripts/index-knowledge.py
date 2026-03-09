@@ -25,6 +25,7 @@ and upserts into the Qdrant 'knowledge' collection.
 
 import argparse
 import hashlib
+import json
 import sys
 import time
 from pathlib import Path
@@ -56,6 +57,7 @@ CHUNK_SIZE = 1500  # chars per chunk (with overlap)
 CHUNK_OVERLAP = 200
 EMBEDDING_MODEL = "Qwen3-Embedding-0.6B"  # Model serving the `embedding` LiteLLM route
 MINICOIL_MODEL = "Qdrant/minicoil-v1"
+NER_MODEL = "reasoning"  # Qwen3.5-27B-FP8 — best NER quality for entity extraction
 
 # --- miniCOIL model (lazy loaded) ---
 _minicoil = None
@@ -447,6 +449,122 @@ def upsert_neo4j_docs(docs: list[dict]):
         print(f"  Warning: Neo4j write failed (graph expansion won't work): {e}", file=sys.stderr)
 
 
+def extract_entities_llm(text: str, title: str) -> list[dict]:
+    """Extract named entities from document text via LLM NER (HippoRAG step).
+
+    Calls Qwen3.5-27B-FP8 to identify specific named entities: services,
+    models, concepts, technologies, and people. Returns structured list
+    suitable for Neo4j MENTIONS edge creation.
+
+    Non-fatal: returns [] on any LLM or parse error.
+    """
+    prompt = f"""Extract named entities from this technical document. Return only a JSON array.
+
+Entity types:
+- Service: deployed applications or APIs (e.g. "Qdrant", "LangFuse", "Sonarr", "Neo4j")
+- Model: AI/ML models (e.g. "Qwen3.5-27B-FP8", "Qwen3-Embedding-0.6B", "flux-uncensored")
+- Concept: abstract ideas or methods (e.g. "HippoRAG", "tensor parallelism", "context injection", "PPR traversal")
+- Technology: frameworks, libraries, or protocols (e.g. "LangGraph", "vLLM", "FastAPI", "LiteLLM", "Ansible")
+- Person: named people (e.g. "Shaun")
+
+Rules:
+- Only extract specific named entities, not generic terms like "agent" or "system"
+- Normalize names (canonical spelling, no plurals, no trailing punctuation)
+- Max 15 entities per document
+- Return empty array [] if no clear named entities found
+
+Document title: {title}
+Content:
+{text[:2500]}
+
+Return format (JSON array only, no explanation, no markdown fences):
+[{{"name": "...", "type": "Service|Model|Concept|Technology|Person"}}, ...]"""
+
+    try:
+        resp = httpx.post(
+            f"{LITELLM_URL}/chat/completions",
+            json={
+                "model": NER_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.0,
+                "max_tokens": 512,
+                "chat_template_kwargs": {"enable_thinking": False},
+            },
+            headers={"Authorization": f"Bearer {LITELLM_KEY}"},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"].strip()
+
+        # Strip markdown code fences if model wraps in ```json ... ```
+        if content.startswith("```"):
+            parts = content.split("```")
+            content = parts[1] if len(parts) > 1 else content
+            if content.startswith("json"):
+                content = content[4:]
+        content = content.strip()
+
+        entities = json.loads(content)
+        if not isinstance(entities, list):
+            return []
+
+        valid_types = {"Service", "Model", "Concept", "Technology", "Person"}
+        valid = []
+        for e in entities:
+            if (
+                isinstance(e, dict)
+                and "name" in e
+                and "type" in e
+                and e["type"] in valid_types
+                and str(e["name"]).strip()
+            ):
+                valid.append({"name": str(e["name"]).strip(), "type": e["type"]})
+        return valid[:15]
+
+    except Exception as err:
+        print(f"  Warning: Entity extraction failed: {err}", file=sys.stderr)
+        return []
+
+
+def upsert_neo4j_entities(source: str, entities: list[dict]):
+    """Create Entity nodes and MENTIONS edges in Neo4j.
+
+    Requires the Document node for `source` to already exist (call after
+    upsert_neo4j_docs). Uses name_lower for deduplication so "Qdrant" and
+    "qdrant" collapse to the same entity node.
+
+    Non-fatal: failures are logged but don't stop indexing.
+    """
+    if not entities:
+        return
+
+    cypher = """
+    MATCH (d:Document {source: $source, doc_type: 'athanor'})
+    UNWIND $entities AS ent
+    MERGE (e:Entity {name_lower: toLower(ent.name), type: ent.type})
+    ON CREATE SET e.name = ent.name, e.created_at = timestamp()
+    MERGE (d)-[:MENTIONS]->(e)
+    """
+    try:
+        resp = httpx.post(
+            f"{NEO4J_URL}/db/neo4j/tx/commit",
+            json={
+                "statements": [{
+                    "statement": cypher,
+                    "parameters": {"source": source, "entities": entities},
+                }]
+            },
+            auth=NEO4J_AUTH,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        errors = resp.json().get("errors", [])
+        if errors:
+            print(f"  Warning: Neo4j entity write errors: {errors[:1]}", file=sys.stderr)
+    except Exception as e:
+        print(f"  Warning: Neo4j entity write failed: {e}", file=sys.stderr)
+
+
 def check_connectivity():
     """Verify Qdrant and LiteLLM are reachable."""
     try:
@@ -477,6 +595,7 @@ def run_full():
 
     batch: list[dict] = []
     neo4j_docs: list[dict] = []
+    neo4j_entities: list[tuple] = []  # (source, title, file_content) — extracted after docs upserted
     total_chunks = 0
     batch_size = 20
 
@@ -498,6 +617,7 @@ def run_full():
                 "category": category,
                 "qdrant_point_id": text_to_uuid(f"{source}:chunk:0"),
             })
+            neo4j_entities.append((source, title, file_content))
 
         if len(batch) >= batch_size:
             print(f"    Embedding + upserting batch ({len(batch)} chunks)...")
@@ -510,6 +630,18 @@ def run_full():
 
     print(f"\n=== Done: {total_chunks} chunks from {len(docs)} documents indexed ===")
     upsert_neo4j_docs(neo4j_docs)
+
+    # Entity extraction (NER at index time) — must run after docs are upserted
+    if neo4j_entities:
+        print(f"\nExtracting entities for {len(neo4j_entities)} documents...")
+        for j, (source, title, file_content) in enumerate(neo4j_entities):
+            print(f"  [{j+1}/{len(neo4j_entities)}] {source}")
+            entities = extract_entities_llm(file_content, title)
+            if entities:
+                entity_names = ", ".join(e["name"] for e in entities[:5])
+                print(f"    → {len(entities)} entities: {entity_names}{'...' if len(entities) > 5 else ''}")
+                upsert_neo4j_entities(source, entities)
+        print("Entity extraction complete.")
 
 
 def run_incremental():
@@ -573,6 +705,7 @@ def run_incremental():
     to_index = new_files + changed_files
     batch: list[dict] = []
     neo4j_docs: list[dict] = []
+    neo4j_entities: list[tuple] = []  # (source, title, file_content) — extracted after docs upserted
     total_chunks = 0
     batch_size = 20
 
@@ -594,6 +727,7 @@ def run_incremental():
                 "category": category,
                 "qdrant_point_id": text_to_uuid(f"{source}:chunk:0"),
             })
+            neo4j_entities.append((source, title, file_content))
 
         if len(batch) >= batch_size:
             print(f"    Embedding + upserting batch ({len(batch)} chunks)...")
@@ -607,6 +741,18 @@ def run_incremental():
     deleted_count = len(deleted_sources)
     print(f"\n=== Done: {total_chunks} chunks indexed, {deleted_count} sources removed ===")
     upsert_neo4j_docs(neo4j_docs)
+
+    # Entity extraction (NER at index time) — must run after docs are upserted
+    if neo4j_entities:
+        print(f"\nExtracting entities for {len(neo4j_entities)} documents...")
+        for j, (source, title, file_content) in enumerate(neo4j_entities):
+            print(f"  [{j+1}/{len(neo4j_entities)}] {source}")
+            entities = extract_entities_llm(file_content, title)
+            if entities:
+                entity_names = ", ".join(e["name"] for e in entities[:5])
+                print(f"    → {len(entities)} entities: {entity_names}{'...' if len(entities) > 5 else ''}")
+                upsert_neo4j_entities(source, entities)
+        print("Entity extraction complete.")
 
 
 def main():

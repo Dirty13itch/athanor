@@ -1,21 +1,21 @@
 """Graph context expansion — Neo4j enrichment for Qdrant knowledge retrieval.
 
 After Qdrant kNN returns top-k knowledge chunks, expands the result set by
-finding related documents via Neo4j graph traversal.
+finding related documents via Neo4j entity traversal (HippoRAG-style).
 
 Linking key: `source` (file path) — already present in Qdrant payloads.
 Athanor Document nodes in Neo4j carry `doc_type='athanor'` to distinguish them
 from bookmark/GitHub Document nodes created by other indexers.
 
-2-hop expansion:
-  Qdrant sources → Neo4j Document nodes (by source)
-    → same category set
-      → related AthanorDoc Documents not yet retrieved
+Entity-based 2-hop expansion (primary):
+  Qdrant sources → Document -[:MENTIONS]-> Entity <-[:MENTIONS]- related Document
+  Ranked by number of shared entities (semantic overlap).
 
 Falls back gracefully (returns []) if:
   - Neo4j is unavailable
   - No AthanorDoc Document nodes exist yet (run index-knowledge.py first)
-  - No related docs found in the category expansion
+  - Entities haven't been extracted yet (run index-knowledge.py --full)
+  - No related docs share entities with the retrieved sources
 """
 
 import logging
@@ -34,13 +34,18 @@ async def expand_knowledge_graph(
     sources: list[str],
     limit: int = 3,
 ) -> list[dict]:
-    """Find related AthanorDoc Document nodes via Neo4j category traversal.
+    """Find related AthanorDoc Document nodes via Neo4j entity traversal.
 
     Given Qdrant knowledge result source paths, finds other AthanorDoc
-    Documents in the same categories that weren't retrieved by vector search.
+    Documents that share named entities (services, models, concepts, etc.)
+    with the retrieved docs. Ranked by number of shared entities so the
+    most semantically related docs surface first.
+
+    Entity nodes are created by index-knowledge.py at index time (NER via
+    Qwen3.5-27B-FP8). MENTIONS edges link Document → Entity.
 
     This is a 2-hop expansion:
-      source → {categories from matched docs} → related docs in those categories
+      source → Document -[:MENTIONS]-> Entity <-[:MENTIONS]- related Document
 
     Args:
         client: Shared async HTTP client.
@@ -54,17 +59,14 @@ async def expand_knowledge_graph(
         return []
 
     cypher = """
-    MATCH (found:Document)
+    MATCH (found:Document)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(related:Document)
     WHERE found.doc_type = 'athanor' AND found.source IN $sources
-    WITH collect(DISTINCT found.category) AS cats
-    MATCH (related:Document)
-    WHERE related.doc_type = 'athanor'
-      AND related.category IN cats
-      AND NOT related.source IN $sources
+      AND related.doc_type = 'athanor' AND NOT related.source IN $sources
+    WITH related, count(DISTINCT e) AS shared_entities
     RETURN related.source AS source,
            related.title AS title,
            related.category AS category
-    ORDER BY related.source
+    ORDER BY shared_entities DESC
     LIMIT $limit
     """
 
