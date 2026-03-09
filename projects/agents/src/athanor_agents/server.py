@@ -1650,13 +1650,19 @@ async def chat_completions(request: Request):
             thread_id=thread_id,
         ))
 
-        # Record preference outcome (fire-and-forget)
+        # Record preference outcome + cost (fire-and-forget)
         from .preferences import record_outcome as record_pref_outcome
+        from .routing import get_cost_tracker
+        input_tokens_est = len(user_input) // 4
+        output_tokens_est = len(content) // 4
         asyncio.create_task(record_pref_outcome(
             model=routing.tier_config.model,
             task_type=routing.task_type.value,
             latency_ms=float(duration_ms),
         ))
+        get_cost_tracker().record(
+            routing.tier_config.model, input_tokens_est, output_tokens_est, float(duration_ms),
+        )
 
         # Output guard: scan for data leakage
         _, output_risk_score, output_warnings = check_output(content)
@@ -1678,7 +1684,7 @@ async def chat_completions(request: Request):
                         "finish_reason": "stop",
                     }
                 ],
-                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+                "usage": {"prompt_tokens": input_tokens_est, "completion_tokens": output_tokens_est, "total_tokens": input_tokens_est + output_tokens_est},
                 "routing": routing.to_dict(),
                 "cache_hit": cache_hit,
             },
@@ -1747,13 +1753,19 @@ async def chat_completions(request: Request):
         thread_id=thread_id,
     ))
 
-    # Record preference outcome (fire-and-forget)
+    # Record preference outcome + cost (fire-and-forget)
     from .preferences import record_outcome as record_pref_outcome
+    from .routing import get_cost_tracker
+    input_tokens_est = len(user_input) // 4
+    output_tokens_est = len(content) // 4
     asyncio.create_task(record_pref_outcome(
         model=routing.tier_config.model,
         task_type=routing.task_type.value,
         latency_ms=float(duration_ms),
     ))
+    get_cost_tracker().record(
+        routing.tier_config.model, input_tokens_est, output_tokens_est, float(duration_ms),
+    )
 
     # Output guard: scan for data leakage
     _, output_risk_score, output_warnings = check_output(content)
@@ -1775,7 +1787,7 @@ async def chat_completions(request: Request):
                     "finish_reason": "stop",
                 }
             ],
-            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+            "usage": {"prompt_tokens": input_tokens_est, "completion_tokens": output_tokens_est, "total_tokens": input_tokens_est + output_tokens_est},
             "routing": routing.to_dict(),
         },
         headers={"X-Input-Guard-Score": f"{guard_score:.2f}"},
@@ -1873,6 +1885,16 @@ async def _stream_response(agent, messages, config, model_name, user_input="", r
         duration_ms=duration_ms,
         thread_id=thread_id,
     ))
+
+    # Record cost (fire-and-forget)
+    if routing:
+        from .routing import get_cost_tracker
+        get_cost_tracker().record(
+            routing.tier_config.model,
+            len(user_input) // 4,
+            len(full_response) // 4,
+            float(duration_ms),
+        )
 
 
 def _sse_chunk(chat_id, created, model, delta, finish_reason=None):
@@ -2091,6 +2113,105 @@ def _compute_learning_summary(metrics: dict) -> dict:
             "cold_start"
         ),
     }
+
+
+@app.get("/v1/metrics/agents")
+async def agent_metrics():
+    """Per-agent performance metrics for dashboard display."""
+    from .agents import get_agent_info
+    from .routing import get_cost_tracker
+
+    agents_info = get_agent_info()
+    cost = get_cost_tracker().summary()
+    agent_ids = [a["id"] for a in agents_info]
+
+    # Get activity counts per agent (uses agent ID, e.g., "general-assistant")
+    activity_by_agent = {}
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            for aid in agent_ids:
+                resp = await client.post(
+                    f"{settings.qdrant_url}/collections/activity/points/count",
+                    json={"filter": {"must": [{"key": "agent", "match": {"value": aid}}]}},
+                )
+                if resp.status_code == 200:
+                    activity_by_agent[aid] = resp.json().get("result", {}).get("count", 0)
+    except Exception:
+        pass
+
+    # Get trust scores
+    trust_by_agent = {}
+    try:
+        from .goals import compute_trust_scores
+        trust = await compute_trust_scores()
+        if trust:
+            trust_by_agent = {k: v.get("trust_score", 0) for k, v in trust.items()}
+    except Exception:
+        pass
+
+    # Get task stats per agent
+    task_by_agent = {}
+    try:
+        from .tasks import get_stats
+        tstats = await get_stats()
+        task_by_agent = tstats.get("by_agent", {})
+    except Exception:
+        pass
+
+    result = []
+    for info in agents_info:
+        aid = info["id"]
+        result.append({
+            "id": aid,
+            "name": info["name"],
+            "type": info.get("type", "reactive"),
+            "status": info.get("status", "unknown"),
+            "tools_count": len(info.get("tools", [])),
+            "interactions": activity_by_agent.get(aid, 0),
+            "trust_score": trust_by_agent.get(aid, None),
+            "tasks": task_by_agent.get(aid, {}),
+        })
+
+    return {
+        "agents": result,
+        "cost": cost,
+    }
+
+
+@app.get("/v1/metrics/inference")
+async def inference_metrics():
+    """Inference layer metrics — prefix cache, KV cache, throughput."""
+    metrics = {}
+
+    # Query vLLM Prometheus metrics via Prometheus
+    queries = {
+        "prefix_cache_hit_rate": 'rate(vllm:prefix_cache_hits_total[5m]) / rate(vllm:prefix_cache_queries_total[5m])',
+        "kv_cache_usage": 'vllm:kv_cache_usage_perc',
+        "requests_running": 'vllm:num_requests_running',
+        "requests_waiting": 'vllm:num_requests_waiting',
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            for key, query in queries.items():
+                resp = await client.get(
+                    f"{settings.prometheus_url}/api/v1/query",
+                    params={"query": query},
+                )
+                if resp.status_code == 200:
+                    results = resp.json().get("data", {}).get("result", [])
+                    metrics[key] = [
+                        {
+                            "model": r["metric"].get("model_name", "?"),
+                            "instance": r["metric"].get("instance", "?"),
+                            "value": float(r["value"][1]) if r["value"][1] != "NaN" else None,
+                        }
+                        for r in results
+                    ]
+    except Exception as e:
+        metrics["error"] = str(e)
+
+    return metrics
 
 
 def main():
