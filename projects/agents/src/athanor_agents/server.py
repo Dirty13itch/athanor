@@ -1954,12 +1954,11 @@ async def learning_metrics():
     try:
         from .semantic_cache import get_semantic_cache
         cache = get_semantic_cache()
-        stats = cache.get_stats()
+        stats = await cache.get_stats()
         metrics["cache"] = {
-            "total_entries": stats.get("total_entries", 0),
-            "hit_rate": stats.get("hit_rate", 0.0),
-            "tokens_saved": stats.get("tokens_saved", 0),
-            "avg_similarity": stats.get("avg_similarity", 0.0),
+            "total_entries": stats.get("entries", 0),
+            "collection": stats.get("collection", "llm_cache"),
+            "similarity_threshold": stats.get("similarity_threshold", 0.93),
         }
     except Exception:
         metrics["cache"] = None
@@ -1968,13 +1967,13 @@ async def learning_metrics():
     try:
         from .circuit_breaker import get_circuit_breakers
         breakers = get_circuit_breakers()
-        states = breakers.get_all_states()
+        states = breakers.get_all_stats()
         metrics["circuits"] = {
             "services": len(states),
-            "open": sum(1 for s in states.values() if s.get("state") == "OPEN"),
-            "half_open": sum(1 for s in states.values() if s.get("state") == "HALF_OPEN"),
-            "closed": sum(1 for s in states.values() if s.get("state") == "CLOSED"),
-            "total_failures": sum(s.get("failure_count", 0) for s in states.values()),
+            "open": sum(1 for s in states.values() if s.get("state") == "open"),
+            "half_open": sum(1 for s in states.values() if s.get("state") == "half_open"),
+            "closed": sum(1 for s in states.values() if s.get("state") == "closed"),
+            "total_failures": sum(s.get("failures", 0) for s in states.values()),
         }
     except Exception:
         metrics["circuits"] = None
@@ -2041,8 +2040,8 @@ async def learning_metrics():
 
     # 7. Task execution stats
     try:
-        from .tasks import get_stats
-        tstats = await get_stats()
+        from .tasks import get_task_stats
+        tstats = await get_task_stats()
         metrics["tasks"] = {
             "total": tstats.get("total", 0),
             "completed": tstats.get("by_status", {}).get("completed", 0),
