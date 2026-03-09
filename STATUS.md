@@ -139,6 +139,20 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 53 (2026-03-09) Summary — Skill Learning Feedback Loop
+
+### Completed This Session
+- **Skill learning feedback loop (Tier 19.1)** — closed the loop on Session 52's skill library.
+  - `skill_learning.py`: `find_matching_skill(prompt, threshold=0.3)` — scores all skills via `_compute_relevance()`, returns `(skill_id, relevance)` for best match above threshold.
+  - `tasks.py`: `_record_skill_execution_for_task(task, success)` — fire-and-forget from both success and failure paths in `_execute_task()`. Silent on no match.
+  - **Verified live:** research task "Research HippoRAG..." → matched "Search then Synthesize" (relevance=0.8) → `execution_count=1, success_rate=100%, avg_duration_ms=143114`. Skill library now learns from real usage.
+  - Deployed to FOUNDRY, rebuilt image, confirmed functional via `/v1/skills/stats` and `/v1/skills/top`.
+
+### Next Actions
+- Continue building Tier 19 items from the backlog
+- Watch skill success rates accumulate over agent activity
+- Consider adding duckduckgo_search → ddgs package rename fix (pre-existing warning in research tools)
+
 ## Session 52 (2026-03-09) Summary — Open Work List Execution
 
 ### Completed This Session
