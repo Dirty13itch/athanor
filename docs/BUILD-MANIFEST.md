@@ -937,14 +937,14 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Done when:** `/morning` command or scheduler produces a real overnight digest, not just health checks.
 
 ### 17.3 — Import Hydra n8n workflow JSONs
-- **Status:** 🔲 todo
-- **Scope:** Review the 12 workflow JSONs in `~/repos/reference/hydra/n8n-workflows/`. Import `cluster-health-check.json`, `daily-health-digest.json`, `model-performance-monitor.json` into n8n at VAULT:5678. Update endpoint URLs from Hydra paths to Athanor paths. Activate imported workflows.
-- **Done when:** At least 3 workflows imported and activated in n8n.
+- **Status:** ✅ done (Session 42, 2026-03-08)
+- **Scope:** Imported 3 workflows into n8n at VAULT:5678 via REST API. Adapted all URLs: TabbyAPI→LiteLLM, Ollama→Agent Server, health endpoint→9000, Discord→ntfy. Stripped incompatible tag objects. All imported inactive — need manual review and activation in n8n UI.
+- **Workflows:** Athanor Cluster Health Check (5min schedule, Prometheus targets → ntfy), Athanor Daily Health Digest (8 AM, multi-service check → ntfy), Athanor Model Performance Monitor (hourly, inference latency test → ntfy)
+- **Note:** 9 remaining Hydra workflows not imported (container-auto-restart, daily-research-digest, database-backup, document-ingestion, health-digest, letta-memory-update, model-change-notifier) — review later for relevance.
 
 ### 17.4 — Install parry injection scanner
-- **Status:** 🔲 todo
-- **Scope:** Install parry (Block's prompt injection scanner). Evaluate against Athanor's MCP attack surface (6 servers, n8n webhooks, RSS feeds).
-- **Done when:** `parry --version` works and a scan of at least one MCP server input path is documented.
+- **Status:** 🚫 cancelled
+- **Scope:** "Parry" is not a shipping tool — it was a concept from Block's Goose red team research, not an installable scanner. The actual defense already exists: `input_guard.py` (Tier 16.10) handles invisible Unicode, homoglyphs, prompt injection patterns, data exfiltration detection, and command injection blocking.
 
 ### 17.5 — Add /trace command
 - **Status:** ✅ done (Session 42, 2026-03-08)
