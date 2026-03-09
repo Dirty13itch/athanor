@@ -1942,6 +1942,19 @@ def _filter_think_streaming(text: str, in_think: bool) -> tuple[str, bool]:
     return "".join(result), in_think
 
 
+# --- Morning Briefing ---
+
+
+@app.get("/v1/briefing")
+async def get_briefing():
+    """Structured morning briefing aggregating cluster health, overnight
+    activity, task stats, alerts, and RSS news. Returns JSON with
+    prioritized sections and a markdown digest."""
+    from .briefing import generate_briefing
+    briefing = await generate_briefing()
+    return briefing.to_dict()
+
+
 # --- Learning Metrics (compound learning loop) ---
 
 

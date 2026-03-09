@@ -932,9 +932,10 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Files:** `~/.config/goose/recipes/port-hydra-module.yaml`, `~/.config/goose/recipes/test-all-endpoints.yaml`
 
 ### 17.2 — Port morning briefing from Hydra
-- **Status:** 🔄 in-progress
-- **Scope:** Read `~/repos/reference/hydra/src/hydra_tools/morning_briefing.py` (749 LOC). Hydra version has 6 parallel data fetchers (calendar, email, weather, system health, research, news) → BriefingSection dataclass → voice summary → FastAPI router. Athanor adaptation needs: Qdrant `activity` collection for overnight agent actions, Redis alerts, Prometheus health via Grafana MCP or direct, Miniflux RSS at VAULT:8070, agent server health. Calendar/email available via claude.ai MCP connectors (not local API). Best approach: standalone script `scripts/morning-briefing.py` or enhancement to `/morning` command.
-- **Done when:** `/morning` command or scheduler produces a real overnight digest, not just health checks.
+- **Status:** ✅ done (Session 42, 2026-03-08)
+- **Scope:** Adapted Hydra's 749 LOC morning_briefing.py into `briefing.py` (~250 LOC). 5 parallel async data fetchers: node health (Redis heartbeats), overnight activity (Qdrant `activity`, last 12h), task stats (local task engine), Prometheus alerts, Miniflux RSS (category breakdown). Returns structured JSON with BriefingSection dataclass + markdown digest. Wired as `GET /v1/briefing` endpoint in server.py. Updated `/morning` command to call the endpoint first, with manual fallback.
+- **Files:** `projects/agents/src/athanor_agents/briefing.py` (new), modified `server.py`, `.claude/commands/morning.md`
+- **Note:** Dropped Hydra's calendar/email/weather fetchers (no local API). Miniflux fetcher requires `MINIFLUX_API_KEY` env var in the agent container. Voice delivery (Kokoro TTS) deferred — available via Speaches at foundry:8200 when needed.
 
 ### 17.3 — Import Hydra n8n workflow JSONs
 - **Status:** ✅ done (Session 42, 2026-03-08)

@@ -4,23 +4,30 @@ description: Daily standup — overnight alerts, system health, task review, pla
 user-invocable: true
 ---
 
-Morning standup for Athanor. Run through this checklist:
+Morning standup for Athanor. Run through this sequence:
 
-1. **System Health** — Check all nodes, GPUs, and key services:
-   - SSH to node1, node2 for quick `nvidia-smi` and `docker ps` checks
+1. **Briefing API** — Fetch the structured morning briefing:
+   ```
+   curl -s http://192.168.1.244:9000/v1/briefing | python3 -m json.tool
+   ```
+   This aggregates: node health (Redis heartbeats), overnight agent activity (Qdrant), task stats, Prometheus alerts, and RSS news (Miniflux). Display the markdown digest from the response.
+
+   If the briefing endpoint is unreachable, fall back to manual checks:
+   - SSH to foundry, workshop for `nvidia-smi --query-gpu=name,temperature.gpu,utilization.gpu,memory.used --format=csv,noheader`
    - VAULT via `python3 scripts/vault-ssh.py "uptime && df -h /mnt/user"`
-   - Agent server health: `curl -s http://192.168.1.244:9000/health`
-   - Dashboard health: `curl -s http://192.168.1.225:3001`
-   - LiteLLM health: `curl -s http://192.168.1.203:4000/health`
+   - Agent server: `curl -s http://192.168.1.244:9000/health`
+   - LiteLLM: `curl -s http://192.168.1.203:4000/health`
 
-2. **Overnight Activity** — What happened while Shaun was away:
-   - Check task stats: `curl -s http://192.168.1.244:9000/v1/tasks/stats`
-   - Check recent tasks: `curl -s http://192.168.1.244:9000/v1/tasks?limit=10`
-   - Check Prometheus alerts: `curl -s 'http://192.168.1.203:9090/api/v1/alerts' | jq '.data.alerts[] | {labels: .labels.alertname, state: .state}'`
+2. **Task Review** — Check overnight task results:
+   - `curl -s http://192.168.1.244:9000/v1/tasks?limit=10`
+   - `curl -s http://192.168.1.244:9000/v1/tasks/stats`
 
-3. **State Review** — Read MEMORY.md and BUILD-MANIFEST.md for context
+3. **Prometheus Alerts**:
+   - `curl -s 'http://192.168.1.203:9090/api/v1/alerts' | python3 -c "import json,sys; [print(f'  {a[\"labels\"][\"alertname\"]}: {a[\"state\"]}') for a in json.load(sys.stdin).get('data',{}).get('alerts',[])]"`
 
-4. **Report** — Summarize in a compact table:
+4. **State Review** — Read MEMORY.md and BUILD-MANIFEST.md for context
+
+5. **Report** — Summarize in a compact table:
    - Infrastructure status (up/down/degraded)
    - GPU utilization summary
    - Overnight task results (completed/failed)
