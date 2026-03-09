@@ -6,7 +6,7 @@ export function RouteSkeleton({
   tall?: boolean;
 }) {
   return (
-    <div className="space-y-8">
+    <div aria-hidden="true" className="space-y-8">
       <div className="space-y-4">
         <div className="h-3 w-28 animate-pulse rounded-full bg-muted/70" />
         <div className="h-10 w-80 animate-pulse rounded-full bg-muted/70" />

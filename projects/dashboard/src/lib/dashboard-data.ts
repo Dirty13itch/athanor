@@ -13,6 +13,16 @@ import {
   type ServicesHistorySnapshot,
   type ServicesSnapshot,
 } from "@/lib/contracts";
+import {
+  getFixtureAgentsSnapshot,
+  getFixtureGpuHistory,
+  getFixtureGpuSnapshot,
+  getFixtureModelsSnapshot,
+  getFixtureOverviewSnapshot,
+  getFixtureServicesHistory,
+  getFixtureServicesSnapshot,
+  isDashboardFixtureMode,
+} from "@/lib/dashboard-fixtures";
 import { average } from "@/lib/format";
 import { config, getNodeNameFromInstance, joinUrl, type MonitoredService } from "@/lib/config";
 import { getRangeStepSeconds, getTimeWindow, type TimeWindowId } from "@/lib/ranges";
@@ -294,6 +304,10 @@ function mergeGpuMetric(
 }
 
 export async function getServicesSnapshot(): Promise<ServicesSnapshot> {
+  if (isDashboardFixtureMode()) {
+    return getFixtureServicesSnapshot();
+  }
+
   const services = await Promise.all(config.services.map(checkService));
   const healthy = services.filter((service) => service.healthy).length;
   const slowestService = services
@@ -318,6 +332,10 @@ export async function getServicesSnapshot(): Promise<ServicesSnapshot> {
 }
 
 export async function getServicesHistory(window: TimeWindowId): Promise<ServicesHistorySnapshot> {
+  if (isDashboardFixtureMode()) {
+    return getFixtureServicesHistory(window);
+  }
+
   try {
     const [availabilitySeries, latencySeries] = await Promise.all([
       queryPrometheusRange('avg_over_time(probe_success{job="blackbox-http"}[5m])', window),
@@ -410,6 +428,10 @@ export async function getServicesHistory(window: TimeWindowId): Promise<Services
 }
 
 export async function getGpuSnapshot(): Promise<GpuSnapshotResponse> {
+  if (isDashboardFixtureMode()) {
+    return getFixtureGpuSnapshot();
+  }
+
   const [utilization, memoryUsed, memoryTotal, temperature, power] = await Promise.all([
     queryPrometheus("DCGM_FI_DEV_GPU_UTIL").catch(() => [] as PrometheusInstantResult[]),
     queryPrometheus("DCGM_FI_DEV_FB_USED").catch(() => [] as PrometheusInstantResult[]),
@@ -515,6 +537,10 @@ function groupGpuRangeSeries(results: PrometheusRangeResult[]) {
 }
 
 export async function getGpuHistory(window: TimeWindowId): Promise<GpuHistoryResponse> {
+  if (isDashboardFixtureMode()) {
+    return getFixtureGpuHistory(window);
+  }
+
   const [nodeUtilization, gpuUtilization, gpuTemperature, gpuPower, gpuMemoryRatio] = await Promise.all([
     queryPrometheusRange("avg by (instance) (DCGM_FI_DEV_GPU_UTIL)", window).catch(
       () => [] as PrometheusRangeResult[]
@@ -655,6 +681,10 @@ export async function getGpuHistory(window: TimeWindowId): Promise<GpuHistoryRes
 }
 
 export async function getModelsSnapshot(): Promise<ModelsSnapshot> {
+  if (isDashboardFixtureMode()) {
+    return getFixtureModelsSnapshot();
+  }
+
   const backends = await getBackendSnapshots();
   const models: ModelInventoryEntry[] = backends.flatMap((backend) =>
     backend.models.map((modelId) => ({
@@ -675,6 +705,10 @@ export async function getModelsSnapshot(): Promise<ModelsSnapshot> {
 }
 
 export async function getAgentsSnapshot() {
+  if (isDashboardFixtureMode()) {
+    return getFixtureAgentsSnapshot();
+  }
+
   return {
     generatedAt: nowIso(),
     agents: await getAgentInfos(),
@@ -744,6 +778,10 @@ function buildAlerts(
 }
 
 export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<OverviewSnapshot> {
+  if (isDashboardFixtureMode()) {
+    return getFixtureOverviewSnapshot();
+  }
+
   const [servicesSnapshot, servicesHistory, gpuSnapshot, gpuHistory, backends, agents] = await Promise.all([
     getServicesSnapshot(),
     getServicesHistory(window),

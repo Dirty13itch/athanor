@@ -101,6 +101,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [pendingThreadId, setPendingThreadId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -116,7 +117,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [threadId, threads]);
+  }, [threadId, threads, pendingThreadId]);
 
   const agentsSnapshot = agentsQuery.data ?? initialAgents;
   const activeAgent =
@@ -124,11 +125,25 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
     agentsSnapshot.agents.find((agent) => agent.id === preferences.lastSelectedAgentId) ??
     agentsSnapshot.agents.find((agent) => agent.status === "ready") ??
     null;
-  const activeThread = threads.find((thread) => thread.id === threadId) ?? null;
+  const resolvedThreadId = threadId || pendingThreadId || "";
+  const activeThread = threads.find((thread) => thread.id === resolvedThreadId) ?? null;
 
   function persistThread(nextThread: AgentThread) {
     setThreads((current) => {
       const existing = current.filter((thread) => thread.id !== nextThread.id);
+      return [nextThread, ...existing].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+    });
+  }
+
+  function mutateThread(targetThreadId: string, mutator: (thread: AgentThread) => AgentThread) {
+    setThreads((current) => {
+      const thread = current.find((entry) => entry.id === targetThreadId);
+      if (!thread) {
+        return current;
+      }
+
+      const nextThread = mutator(thread);
+      const existing = current.filter((entry) => entry.id !== targetThreadId);
       return [nextThread, ...existing].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
     });
   }
@@ -147,20 +162,11 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
       messages: [],
     };
     persistThread(thread);
+    setPendingThreadId(thread.id);
     setSearchValue("thread", thread.id);
     setSearchValue("agent", agent.id);
     setPreferences((current) => ({ ...current, lastSelectedAgentId: agent.id }));
     return thread;
-  }
-
-  function updateThread(mutator: (thread: AgentThread) => AgentThread) {
-    const base = activeThread ?? createThread();
-    if (!base) {
-      return null;
-    }
-    const next = mutator(base);
-    persistThread(next);
-    return next;
   }
 
   function applyStreamEvent(thread: AgentThread, assistantId: string, event: ChatStreamEvent) {
@@ -246,16 +252,21 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
       toolCalls: [],
     };
 
-    const thread = updateThread((current) => ({
-      ...current,
-      agentId: activeAgent.id,
-      title: current.messages.length === 0 ? content.slice(0, 48) : current.title,
-      updatedAt: new Date().toISOString(),
-      messages: [...current.messages, userMessage, assistantMessage],
-    }));
-    if (!thread) {
+    const baseThread = activeThread ?? createThread();
+    if (!baseThread) {
       return;
     }
+
+    const nextThread: AgentThread = {
+      ...baseThread,
+      agentId: activeAgent.id,
+      title: baseThread.messages.length === 0 ? content.slice(0, 48) : baseThread.title,
+      updatedAt: new Date().toISOString(),
+      messages: [...baseThread.messages, userMessage, assistantMessage],
+    };
+    persistThread(nextThread);
+    setPendingThreadId(nextThread.id);
+    setSearchValue("thread", nextThread.id);
 
     setInput("");
     setError(null);
@@ -270,8 +281,8 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
         body: JSON.stringify({
           target: AGENT_CHAT_TARGET,
           model: activeAgent.id,
-          threadId: thread.id,
-          messages: thread.messages
+          threadId: nextThread.id,
+          messages: nextThread.messages
             .filter((message) => message.id !== assistantMessage.id)
             .map((message) => ({ role: message.role, content: message.content })),
         }),
@@ -283,7 +294,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
       }
 
       await readChatEventStream(response.body, (event) => {
-        updateThread((current) => applyStreamEvent(current, assistantMessage.id, event));
+        mutateThread(nextThread.id, (current) => applyStreamEvent(current, assistantMessage.id, event));
         if (event.type === "error") {
           setError(event.message);
         }
@@ -306,6 +317,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
   function selectAgent(agent: AgentInfo) {
     setSearchValue("agent", agent.id);
     setPreferences((current) => ({ ...current, lastSelectedAgentId: agent.id }));
+    setPendingThreadId(null);
     if (!threads.some((thread) => thread.agentId === agent.id)) {
       createThread(agent);
     }
@@ -413,11 +425,12 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                     key={thread.id}
                     type="button"
                     onClick={() => {
+                      setPendingThreadId(thread.id);
                       setSearchValue("thread", thread.id);
                       setSearchValue("agent", thread.agentId);
                     }}
                     className={`w-full rounded-2xl border p-4 text-left transition ${
-                      activeThread?.id === thread.id
+                      resolvedThreadId === thread.id
                         ? "border-primary/50 bg-primary/10"
                         : "border-border/70 bg-background/20 hover:bg-accent/40"
                     }`}
@@ -426,7 +439,9 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                     <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
                       {thread.messages.length} messages
                     </p>
-                    <p className="mt-2 text-xs text-muted-foreground">{formatRelativeTime(thread.updatedAt)}</p>
+                    <p className="mt-2 text-xs text-muted-foreground" data-volatile="true">
+                      {formatRelativeTime(thread.updatedAt)}
+                    </p>
                   </button>
                 ))
             ) : (
@@ -444,7 +459,11 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                   {activeAgent ? `Threaded run with ${activeAgent.name}` : "Choose an agent to begin."}
                 </CardDescription>
               </div>
-              {activeThread ? <Badge variant="outline">{formatTimestamp(activeThread.updatedAt)}</Badge> : null}
+              {activeThread ? (
+                <Badge variant="outline" data-volatile="true">
+                  {formatTimestamp(activeThread.updatedAt)}
+                </Badge>
+              ) : null}
             </div>
           </CardHeader>
 
@@ -464,7 +483,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                           <div className="max-w-[88%] rounded-2xl bg-primary px-4 py-3 text-primary-foreground sm:max-w-[78%]">
                             <div className="mb-2 flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.2em] opacity-70">
                               <span>Operator</span>
-                              <span>{formatRelativeTime(message.createdAt)}</span>
+                              <span data-volatile="true">{formatRelativeTime(message.createdAt)}</span>
                             </div>
                             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                           </div>
@@ -500,7 +519,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                           <div className="rounded-2xl bg-muted px-4 py-3 text-foreground">
                             <div className="mb-2 flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
                               <span>{activeAgent?.name ?? "Agent"}</span>
-                              <span>{formatRelativeTime(message.createdAt)}</span>
+                              <span data-volatile="true">{formatRelativeTime(message.createdAt)}</span>
                             </div>
                             <RichText content={message.content || (isStreaming ? "Streaming..." : "")} />
                           </div>
@@ -582,11 +601,13 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={() =>
+                      onClick={() => {
+                        setPendingThreadId(null);
+                        setSearchValue("thread", null);
                         setThreads((current) =>
                           current.filter((thread) => thread.id !== activeThread.id)
-                        )
-                      }
+                        );
+                      }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Remove

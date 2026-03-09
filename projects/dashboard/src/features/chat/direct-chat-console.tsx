@@ -73,6 +73,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
   const [error, setError] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -88,11 +89,12 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [sessions, sessionId]);
+  }, [sessions, sessionId, pendingSessionId]);
 
   const snapshot = modelsQuery.data ?? initialModels;
   const modelKey = urlModelKey || preferences.lastSelectedModelKey || "";
-  const activeSession = sessions.find((session) => session.id === sessionId) ?? null;
+  const resolvedSessionId = sessionId || pendingSessionId || "";
+  const activeSession = sessions.find((session) => session.id === resolvedSessionId) ?? null;
   const currentModelKey =
     activeSession ? getModelKey(activeSession.target, activeSession.modelId) : modelKey;
   const selectedModel =
@@ -103,6 +105,22 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
   function persistSession(nextSession: DirectChatSession) {
     setSessions((current) => {
       const existing = current.filter((session) => session.id !== nextSession.id);
+      return [nextSession, ...existing].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+    });
+  }
+
+  function mutateSession(
+    targetSessionId: string,
+    mutator: (session: DirectChatSession) => DirectChatSession
+  ) {
+    setSessions((current) => {
+      const session = current.find((entry) => entry.id === targetSessionId);
+      if (!session) {
+        return current;
+      }
+
+      const nextSession = mutator(session);
+      const existing = current.filter((entry) => entry.id !== targetSessionId);
       return [nextSession, ...existing].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
     });
   }
@@ -122,6 +140,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
       messages: [],
     };
     persistSession(session);
+    setPendingSessionId(session.id);
     setSearchValue("session", session.id);
     setSearchValue("model", getModelKey(model.target, model.id));
     setPreferences((current) => ({
@@ -129,16 +148,6 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
       lastSelectedModelKey: getModelKey(model.target, model.id),
     }));
     return session;
-  }
-
-  function updateActiveSession(mutator: (session: DirectChatSession) => DirectChatSession) {
-    const nextBase = activeSession ?? createSession();
-    if (!nextBase) {
-      return null;
-    }
-    const nextSession = mutator(nextBase);
-    persistSession(nextSession);
-    return nextSession;
   }
 
   async function sendMessage(promptOverride?: string) {
@@ -164,20 +173,25 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
       createdAt: new Date().toISOString(),
     };
 
-    const session = updateActiveSession((current) => ({
-      ...current,
+    const baseSession = activeSession ?? createSession();
+    if (!baseSession) {
+      return;
+    }
+
+    const nextSession: DirectChatSession = {
+      ...baseSession,
       title:
-        current.messages.length === 0
+        baseSession.messages.length === 0
           ? content.slice(0, 48)
-          : current.title,
+          : baseSession.title,
       modelId: selectedModel.id,
       target: selectedModel.target,
       updatedAt: new Date().toISOString(),
-      messages: [...current.messages, userMessage, assistantMessage],
-    }));
-    if (!session) {
-      return;
-    }
+      messages: [...baseSession.messages, userMessage, assistantMessage],
+    };
+    persistSession(nextSession);
+    setPendingSessionId(nextSession.id);
+    setSearchValue("session", nextSession.id);
 
     setInput("");
     setIsStreaming(true);
@@ -191,7 +205,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
         body: JSON.stringify({
           target: selectedModel.target,
           model: selectedModel.id,
-          messages: session.messages
+          messages: nextSession.messages
             .filter((message) => message.id !== assistantMessage.id)
             .map((message) => ({ role: message.role, content: message.content })),
         }),
@@ -206,7 +220,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
       await readChatEventStream(response.body, (event) => {
         if (event.type === "assistant_delta") {
           assistantContent += event.content;
-          updateActiveSession((current) => ({
+          mutateSession(nextSession.id, (current) => ({
             ...current,
             updatedAt: new Date().toISOString(),
             messages: current.messages.map((message) =>
@@ -241,6 +255,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
     setSearchValue("model", nextKey);
     setPreferences((current) => ({ ...current, lastSelectedModelKey: nextKey }));
     setIsCreatingSession(true);
+    setPendingSessionId(null);
   }
 
   if (modelsQuery.isError) {
@@ -305,9 +320,12 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                 <button
                   key={session.id}
                   type="button"
-                  onClick={() => setSearchValue("session", session.id)}
+                  onClick={() => {
+                    setPendingSessionId(session.id);
+                    setSearchValue("session", session.id);
+                  }}
                   className={`w-full rounded-2xl border p-4 text-left transition ${
-                    sessionId === session.id
+                    resolvedSessionId === session.id
                       ? "border-primary/50 bg-primary/10"
                       : "border-border/70 bg-background/20 hover:bg-accent/40"
                   }`}
@@ -316,7 +334,9 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                   <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
                     {session.messages.length} messages
                   </p>
-                  <p className="mt-2 text-xs text-muted-foreground">{formatRelativeTime(session.updatedAt)}</p>
+                  <p className="mt-2 text-xs text-muted-foreground" data-volatile="true">
+                    {formatRelativeTime(session.updatedAt)}
+                  </p>
                 </button>
               ))
             ) : (
@@ -375,7 +395,9 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
               <div className="flex flex-wrap items-center gap-2">
                 {activeSession ? (
                   <>
-                    <Badge variant="outline">{formatTimestamp(activeSession.updatedAt)}</Badge>
+                    <Badge variant="outline" data-volatile="true">
+                      {formatTimestamp(activeSession.updatedAt)}
+                    </Badge>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -387,11 +409,13 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() =>
+                      onClick={() => {
+                        setPendingSessionId(null);
+                        setSearchValue("session", null);
                         setSessions((current) =>
                           current.filter((session) => session.id !== activeSession.id)
-                        )
-                      }
+                        );
+                      }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Remove
@@ -429,7 +453,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                       >
                         <div className="mb-2 flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.2em] opacity-70">
                           <span>{message.role === "user" ? "Operator" : "Model"}</span>
-                          <span>{formatRelativeTime(message.createdAt)}</span>
+                          <span data-volatile="true">{formatRelativeTime(message.createdAt)}</span>
                         </div>
                         {message.role === "assistant" ? (
                           <RichText content={message.content || (isStreaming ? "Streaming..." : "")} />

@@ -19,6 +19,7 @@ interface StatusDotProps {
 export function StatusDot({ tone, pulse = false, className }: StatusDotProps) {
   return (
     <span
+      aria-hidden="true"
       className={cn(
         "inline-flex h-2.5 w-2.5 rounded-full",
         toneClasses[tone],

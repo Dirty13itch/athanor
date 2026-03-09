@@ -11,7 +11,10 @@ export function ErrorPanel({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-2xl border border-red-500/20 bg-red-500/5 p-4", className)}>
+    <div
+      role="alert"
+      className={cn("rounded-2xl border border-red-500/20 bg-red-500/5 p-4", className)}
+    >
       <div className="flex items-start gap-3">
         <div className="mt-0.5 rounded-full bg-red-500/10 p-2 text-red-300">
           <AlertTriangle className="h-4 w-4" />

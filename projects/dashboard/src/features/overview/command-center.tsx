@@ -155,6 +155,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             label="Average latency"
             value={formatLatency(snapshot.summary.averageLatencyMs)}
             detail={`Overview refreshed ${formatRelativeTime(snapshot.generatedAt)}.`}
+            detailVolatile
             tone={
               snapshot.summary.averageLatencyMs !== null &&
               snapshot.summary.averageLatencyMs > 900
@@ -245,7 +246,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                         {item.type}
                       </p>
                     </div>
-                    <Badge variant="outline">{formatRelativeTime(item.updatedAt)}</Badge>
+                    <Badge variant="outline" data-volatile="true">
+                      {formatRelativeTime(item.updatedAt)}
+                    </Badge>
                   </div>
                 </Link>
               ))
@@ -447,8 +450,10 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <div className="rounded-2xl border border-border/70 bg-background/20 p-4">
               <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Snapshot time</p>
-              <p className="mt-2 font-medium">{formatTimestamp(snapshot.generatedAt)}</p>
-              <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
+              <p className="mt-2 font-medium" data-volatile="true">
+                {formatTimestamp(snapshot.generatedAt)}
+              </p>
+              <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground" data-volatile="true">
                 <Clock3 className="h-4 w-4" />
                 <span>{formatRelativeTime(snapshot.generatedAt)}</span>
               </div>

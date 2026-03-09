@@ -171,6 +171,7 @@ export function ServicesConsole({
             label="Average latency"
             value={formatLatency(snapshot.summary.averageLatencyMs)}
             detail={`Last probe ${formatRelativeTime(snapshot.generatedAt)}.`}
+            detailVolatile
           />
           <StatCard
             label="Visible services"
@@ -369,7 +370,12 @@ export function ServicesConsole({
 
               <div className="space-y-6 p-6">
                 <div className="grid gap-4 md:grid-cols-2">
-                  <StatCard label="Latency" value={formatLatency(activeService.latencyMs)} detail={`Checked ${formatRelativeTime(activeService.checkedAt)}`} />
+                  <StatCard
+                    label="Latency"
+                    value={formatLatency(activeService.latencyMs)}
+                    detail={`Checked ${formatRelativeTime(activeService.checkedAt)}`}
+                    detailVolatile
+                  />
                   <StatCard label="Category" value={formatCategoryLabel(activeService.category)} detail={activeService.node} />
                 </div>
 

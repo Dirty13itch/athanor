@@ -7,6 +7,7 @@ Desktop-first operator console for the Athanor homelab. The dashboard now includ
 - Prometheus-backed service history and GPU history views
 - browser-persisted direct-chat sessions and agent threads
 - Storybook, Vitest, Playwright, and Lighthouse CI scaffolding for frontend quality
+- a documented route-by-route audit baseline in `docs/UI_AUDIT.md`
 
 ## Routes
 
@@ -54,6 +55,8 @@ Optional local tools:
 npm run storybook
 npm run lighthouse
 ```
+
+Deterministic QA runs use `DASHBOARD_FIXTURE_MODE=1` so the dashboard renders stable snapshots instead of depending on live homelab telemetry during test execution.
 
 ## Configuration
 

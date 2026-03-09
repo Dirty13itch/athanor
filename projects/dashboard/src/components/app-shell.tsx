@@ -144,6 +144,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               value={overview ? formatLatency(overview.summary.averageLatencyMs) : "--"}
               tone="muted"
               detail={overview ? formatRelativeTime(overview.generatedAt) : "Loading"}
+              detailVolatile
             />
             <StatusChip
               label="GPU"
@@ -262,11 +263,13 @@ function StatusChip({
   value,
   detail,
   tone,
+  detailVolatile = false,
 }: {
   label: string;
   value: string;
   detail: string;
   tone: "healthy" | "warning" | "muted";
+  detailVolatile?: boolean;
 }) {
   return (
     <div className="min-w-[8rem] rounded-2xl border border-border/70 bg-background/30 px-3 py-2">
@@ -275,7 +278,9 @@ function StatusChip({
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
       </div>
       <p className="mt-1 text-sm font-semibold">{value}</p>
-      <p className="text-xs text-muted-foreground">{detail}</p>
+      <p className="text-xs text-muted-foreground" data-volatile={detailVolatile ? "true" : undefined}>
+        {detail}
+      </p>
     </div>
   );
 }
