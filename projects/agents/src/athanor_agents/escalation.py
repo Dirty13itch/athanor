@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 _DASHBOARD_PUSH_URL = settings.dashboard_url + "/api/push/send"
 _push_client = httpx.AsyncClient(timeout=5.0)
 
+# ntfy push notification (phone/desktop via VAULT:8880)
+_NTFY_URL = "http://192.168.1.203:8880"
+_NTFY_TOPIC = "athanor"
+
 
 class EscalationTier(str, Enum):
     ACT = "act"
@@ -125,6 +129,31 @@ async def _send_push_notification(
         return False
 
 
+async def _send_ntfy_notification(
+    title: str,
+    body: str,
+    priority: str = "default",
+    tags: list[str] | None = None,
+) -> bool:
+    """Send a notification to ntfy at VAULT:8880 (phone/desktop push)."""
+    try:
+        headers: dict[str, str] = {
+            "Title": title,
+            "Priority": priority,
+        }
+        if tags:
+            headers["Tags"] = ",".join(tags)
+        resp = await _push_client.post(
+            f"{_NTFY_URL}/{_NTFY_TOPIC}",
+            content=body.encode(),
+            headers=headers,
+        )
+        return resp.status_code in (200, 204)
+    except Exception as e:
+        logger.debug("ntfy notification failed: %s", e)
+        return False
+
+
 def _fire_push(pending: "PendingAction") -> None:
     """Fire-and-forget push notification for an escalation event.
 
@@ -158,6 +187,12 @@ def _fire_push(pending: "PendingAction") -> None:
                 ],
                 data={"taskId": pending.id, "agent": pending.agent},
             )
+            await _send_ntfy_notification(
+                title=f"[APPROVAL] {pending.agent}",
+                body=f"{pending.action}\n{pending.description[:200]}\n\nApprove: workshop:3001/tasks",
+                priority="high",
+                tags=["bell", "rotating_light"],
+            )
         else:
             # Notification only — show feedback buttons
             await _send_push_notification(
@@ -170,6 +205,12 @@ def _fire_push(pending: "PendingAction") -> None:
                     {"action": "feedback_down", "title": "👎"},
                 ],
                 data={"agent": pending.agent, "content": pending.description[:200]},
+            )
+            await _send_ntfy_notification(
+                title=f"{pending.agent}: {pending.action[:60]}",
+                body=pending.description[:200],
+                priority="default",
+                tags=["robot"],
             )
 
         # Increment budget counter

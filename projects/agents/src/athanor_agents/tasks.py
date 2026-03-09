@@ -46,7 +46,7 @@ class Task:
     agent: str = ""
     prompt: str = ""
     priority: str = "normal"  # critical, high, normal, low
-    status: str = "pending"   # pending, running, completed, failed, cancelled
+    status: str = "pending"   # pending, pending_approval, running, completed, failed, cancelled
     result: str = ""
     error: str = ""
     steps: list[dict] = field(default_factory=list)
@@ -253,6 +253,10 @@ async def submit_task(
         parent_task_id=parent_task_id,
     )
 
+    # Work-planner tasks for high-impact agents require morning approval
+    if (metadata or {}).get("requires_approval"):
+        task.status = "pending_approval"
+
     r = await _get_redis()
     await r.hset(TASKS_KEY, task.id, json.dumps(task.to_dict()))
 
@@ -365,6 +369,19 @@ async def _get_next_pending() -> Task | None:
     except Exception as e:
         logger.warning("Failed to get next pending task: %s", e)
         return None
+
+
+async def approve_task(task_id: str) -> bool:
+    """Approve a pending_approval task, moving it to pending for execution."""
+    task = await get_task(task_id)
+    if not task:
+        return False
+    if task.status != "pending_approval":
+        return False
+    task.status = "pending"
+    await _update_task(task)
+    logger.info("Task %s approved for execution (agent=%s)", task_id, task.agent)
+    return True
 
 
 async def _execute_task(task: Task):
@@ -483,7 +500,7 @@ async def _execute_task(task: Task):
             task.id, task.agent, len(task.steps), task.duration_ms or 0,
         )
 
-        # Log activity + event
+        # Log activity + conversation + event
         asyncio.create_task(log_activity(
             agent=task.agent,
             action_type="task",
@@ -491,6 +508,15 @@ async def _execute_task(task: Task):
             output_summary=result_text[:500],
             tools_used=tools_used,
             duration_ms=task.duration_ms,
+        ))
+        from .activity import log_conversation
+        asyncio.create_task(log_conversation(
+            agent=task.agent,
+            user_message=task.prompt,
+            assistant_response=result_text,
+            tools_used=tools_used,
+            duration_ms=task.duration_ms,
+            thread_id=task.id,
         ))
         from .activity import log_event
         asyncio.create_task(log_event(

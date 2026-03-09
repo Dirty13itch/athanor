@@ -233,6 +233,10 @@ AGENT_CAPABILITIES = {
 }
 
 
+# Agents requiring morning approval before autonomous execution (ADR-021 hybrid autonomy)
+HIGH_IMPACT_AGENTS = {"home-agent", "coding-agent"}
+
+
 async def _gather_knowledge_context(focus: str = "") -> dict:
     """Query Qdrant for relevant TODO items, project docs, and preferences.
 
@@ -606,6 +610,7 @@ async def generate_work_plan(focus: str = "") -> dict:
                     "plan_id": plan_id,
                     "project": project,
                     "rationale": rationale,
+                    "requires_approval": agent in HIGH_IMPACT_AGENTS,
                 },
             )
             submitted.append({

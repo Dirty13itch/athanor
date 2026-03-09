@@ -867,6 +867,19 @@ async def cancel_task_endpoint(task_id: str):
     )
 
 
+@app.post("/v1/tasks/{task_id}/approve")
+async def approve_task_endpoint(task_id: str):
+    """Approve a pending_approval task (high-impact agents require morning approval)."""
+    from .tasks import approve_task
+
+    if await approve_task(task_id):
+        return {"approved": True, "task_id": task_id}
+    return JSONResponse(
+        status_code=404,
+        content={"error": f"Task '{task_id}' not found or not pending approval"},
+    )
+
+
 # --- Work Planner ---
 
 
