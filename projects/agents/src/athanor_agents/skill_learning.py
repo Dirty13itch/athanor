@@ -304,6 +304,33 @@ async def search_skills_for_context(
         return ""
 
 
+async def find_matching_skill(
+    prompt: str,
+    threshold: float = 0.3,
+) -> tuple[str, float] | None:
+    """Find the best matching skill for a task prompt.
+
+    Returns (skill_id, relevance) if the best match exceeds threshold, else None.
+    Used by the task engine to auto-record skill executions.
+    """
+    skills = await get_all_skills()
+    if not skills:
+        return None
+
+    best_skill = None
+    best_relevance = 0.0
+
+    for skill in skills:
+        relevance = _compute_relevance(skill, prompt)
+        if relevance > best_relevance:
+            best_relevance = relevance
+            best_skill = skill
+
+    if best_skill and best_relevance >= threshold:
+        return best_skill.skill_id, best_relevance
+    return None
+
+
 async def get_top_skills(limit: int = 10) -> list[Skill]:
     """Get top-performing skills ranked by proven effectiveness."""
     skills = await get_all_skills()

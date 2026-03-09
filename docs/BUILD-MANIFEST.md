@@ -1022,6 +1022,23 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 
 ---
 
+## Tier 19: Learning Feedback Loop (P1)
+
+*Session 53. Closes the loop on the skill learning library built in Session 52.*
+
+### 19.1 — Skill Execution Auto-Recording
+- **Status:** ✅ done (Session 53, 2026-03-09)
+- **Scope:** Wired the skill learning library into the task completion path so skills learn from real agent usage. The skill library existed (Session 52) but all 8 skills had `execution_count: 0` — nothing was calling `record_execution()`.
+  - `skill_learning.py`: added `find_matching_skill(prompt, threshold=0.3)` — scores all skills against a task prompt via `_compute_relevance()`, returns `(skill_id, relevance)` for best match above threshold.
+  - `tasks.py`: added `_record_skill_execution_for_task(task, success)` fire-and-forget coroutine. Wired into `_execute_task()` success path (before GWT broadcast) and failure path (before `_maybe_retry`). Silent on no match or error.
+  - Threshold 0.3 rationale: catches partial trigger-condition word matches (0.3 from `_compute_relevance`) but avoids false positives (minimum for "at least some keyword relevance").
+- **Learning loop complete:** Task completes → prompt matched against skill trigger conditions → `record_execution(skill_id, success, duration_ms)` → running-average `success_rate` and `avg_duration_ms` updated → surfaced in `/v1/skills/top` and context injection reliability notes.
+- **Verified:** Python compile clean. Deploy in progress.
+- **Depends on:** Skill library (Session 52 ✅)
+- **Priority:** Done
+
+---
+
 ## Blocked on Shaun
 
 These require human action. Claude Code cannot do them.
