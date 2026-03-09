@@ -147,6 +147,12 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
   - Creative agent system prompt: replaced single-line NSFW note with full content policy including LoRA awareness
   - Deployed: EoBQ, dashboard, and agents all rebuilt/restarted on WORKSHOP/FOUNDRY
 - **LiteLLM routes now 15** (was 14): added `uncensored`
+- **PuLID Reference Library** — full face-injection pipeline:
+  - `/references` page in EoBQ: add personas (queens/custom), upload photos, generate with likeness
+  - Storage: VAULT `/mnt/vault/appdata/eoq-references/` (NFS-backed, survives node reboots)
+  - ComfyUI: `flux-pulid-portrait.json` workflow with all PuLID nodes + uncensored LoRA
+  - Creative agent: `list_personas` + `generate_with_likeness` tools — say "use the likeness of X" in chat
+  - LTX Desktop: confirmed real (released 2026-03-06), but requires 32GB VRAM hard gate — 5090 barely hits minimum, not worth it yet. Watch for NSFW LoRA maturity.
 
 ### Next Actions
 1. Set up Continue.dev on DEV → FOUNDRY:8000 (highest-ROI action from Session 44 research)
