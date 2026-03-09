@@ -4,61 +4,130 @@
 
 ---
 
-## Last Session: 2026-03-08 (Session 40: Tiers 12-14 Execution Sprint)
+## Last Session: 2026-03-09 (Session 51: Plan audit + MEMORY.md refresh)
 
 ### What happened
-- **Tier 12 COMPLETE (all 8 items):** Gitea CI (first green run), n8n deployed (VAULT:5678, signal pipeline workflow), Miniflux + feeds, overnight ops timer, promptfoo evals, backup fix, DNS resolution, LangFuse wiring verified.
-- **Tier 13 COMPLETE (all 5 items):** GA delegation rewrite, inference-aware scheduling (GPU util + queue depth checks), behavioral pattern detection, A/B eval suite (36 total cases), embedding location decision (stay on DEV).
-- **Tier 14 progress:** EoBQ portraits (14.1✅), dialogue verified (14.2✅), HA tools expanded (14.3 — needs Shaun for Lutron/UniFi), Ulrich requirements (14.4✅), Kindred (14.5 — awaiting Shaun).
-- **Agent deploy:** All 8 modified files rsync'd to FOUNDRY, container rebuilt, 9 agents healthy. New: scheduling endpoint, search_signals tool, character portraits, home scene/history/network tools.
-- **Qdrant `signals` collection:** Created on FOUNDRY:6333 (1024-dim, Cosine). Knowledge Agent can query via search_signals tool.
-- **n8n signal pipeline:** 7-node workflow (Miniflux poll → LLM classify → embed → Qdrant store → mark read). Needs manual UI activation at http://192.168.1.203:5678.
-- **3 commits pushed** to both origin (GitHub) and gitea remotes. CI green on first run.
-- **Token offloading research:** Comprehensive analysis in progress — strategies for reducing Anthropic API costs via local model routing.
+- Verified EoBQ uncensored content plan (peaceful-gathering-sundae.md) is **fully implemented** — all steps done in session 46-47
+- Confirmed: LoRA in all 3 workflow JSONs, "uncensored" LiteLLM alias live, intensity routing in chat + narrate, abliterated model system prompt in creative agent
+- LiteLLM `uncensored` → Huihui-Qwen3-8B-abliterated-v2 at foundry:8002 verified via curl
+- Updated MEMORY.md (was stale at session 40, now current through session 51)
 
 ### Current blockers
-- NordVPN credentials needed for qBittorrent + Gluetun (6.5)
-- Anthropic API key needed for Quality Cascade cloud escalation (8.5)
-- Google Drive rclone OAuth needed for Personal Data ~40% (10.8)
-- Photo Analysis blocked on Qwen3.5 multimodal + vLLM 0.17+ (10.10)
-- n8n workflow activation requires Shaun to click Activate in UI (v2.10 API limitation)
-- HA integrations (14.3) require Shaun to configure Lutron + UniFi in HA
+- NordVPN credentials → qBittorrent
+- Anthropic API key → Quality Cascade cloud escalation
+- Google Drive rclone OAuth → Personal data ~40% (10.8)
+- Photo Analysis → Qwen3.5 multimodal + vLLM 0.17+ (10.10)
+- n8n workflow activation → Shaun must click Activate at vault:5678
+- 14.3 HA depth → Shaun must configure Lutron + UniFi in HA
+- 14.5 Kindred → awaiting Shaun's go decision
 
 ### What's next (priority order)
-1. **Token offloading analysis** — deliver comprehensive strategies doc (research agent running)
-2. **n8n workflow activation** — Shaun: visit http://192.168.1.203:5678, activate "Intelligence Signal Pipeline"
-3. **14.3 — HA depth** — blocked on Shaun (Lutron/UniFi config, ESP32-S3 order)
-4. **14.5 — Kindred** — awaiting Shaun's decision to start
-5. **Eval baseline run** — execute promptfoo against live LiteLLM to record first scores
-6. **FOUNDRY GPU4** — still idle, candidate for Qwen3.5-9B utility model
+1. **Run promptfoo eval baseline** — evals/ dir exists with promptfooconfig.yaml, never executed; run against live LiteLLM
+2. **Tier 19 planning** — system has grown significantly, time to define next capability tier
+3. **Push 8 commits** — branch is 8 ahead of origin (knowledge pipeline, HippoRAG, LangFuse metadata, Continue.dev)
+4. **Kindred** (14.5) — blocked on Shaun's go decision
+5. **n8n signal pipeline activation** — Shaun: visit vault:5678, activate "Intelligence Signal Pipeline"
 
 ### Git state
 - Branch: main
-- Latest: `fe9d670` docs: Tiers 12-14 tracking, evals, Ulrich requirements, research
+- 8 commits ahead of origin (not pushed)
+- Latest: `e5e9017` ops: insights-driven CLAUDE.md improvements + doc-ref checker
 
 ---
 
-## Session History
+## Sessions 41-51: What Happened (2026-03-08 to 2026-03-09)
 
-| Session | Date | Focus | Key Outcomes |
-|---------|------|-------|-------------|
-| 1-2 | 2026-02-15 | Research + ADRs | 20 research docs, 11 ADRs, hardware audit |
-| 3 | 2026-02-16 | Physical rack work | Motherboard swap, 10GbE, JetKVM, DHCP |
-| 4 | 2026-02-17 | Node deployment | NVIDIA drivers, Docker, NFS, vLLM, ComfyUI, Open WebUI |
-| 5 | 2026-02-23 | Full convergence | Ansible site.yml, Qwen3-32B-AWQ, embeddings, dashboard, agents |
-| 6 | 2026-02-23 | Refinement | Embedding model, speculative decoding, UFW, NFS hardening |
-| 7 | 2026-02-24 | VAULT + Autonomy | 10 VAULT containers, Claude Code autonomy, BUILD-MANIFEST |
-| 8 | 2026-02-24 | Post-deploy hardening | Git push, monitoring verified, NFS verified, restart policies confirmed |
-| 9 | 2026-02-24 | SSH + LiteLLM + Qdrant | Fixed WSL SSH keys, LiteLLM on VAULT:4000, Qdrant on Node 1:6333 |
-| 10 | 2026-02-24 | Context reconciliation + Agent routing | 15 docs extracted, agents wired to LiteLLM, 16/16 services verified |
-| 11 | 2026-02-24 | Neo4j + Design + Agents + Monitoring | Neo4j, design system, Research + Creative agents, monitoring page, Flux model |
-| 12-14 | 2026-02-24 | Hardening + EoBQ + Remote access | 10GbE verified, backups deployed, EoBQ wired + deployed, ADR-016 (superseded) |
-| 15 | 2026-02-25 | System design + full Tier 7 | SYSTEM-SPEC, agent contracts, hybrid-dev docs. All 14/14 Tier 7 items complete. |
-| 16-17 | 2026-02-25 | Tier 6 + Voice + Context | Wan2.x T2V, Creative Agent video tools, Stash agent, voice pipeline, Layer 2 context injection. |
-| 18 | 2026-02-25 | Maintenance + GWT Phase 2 | Knowledge re-index, HA auth fix, GWT Phase 2 (conversation logging, agent registry, pub/sub). |
-| 19 | 2026-02-25 | Autonomous Workforce + Research Sweep | Task Engine (8.1), Scheduler (8.2), Exec Tools (8.3). 26-agent research sweep. |
-| 20 | 2026-02-26 | Command Center (Tier 9) | PWA, Cmd+K, Agent Crew Bar, SSE streaming, Furnace Home, Lens Modes, Goals/Feedback, Push Notifications, Generative UI. All 9.1-9.10 complete. |
-| 33-35 | 2026-02-26 | Personal Data System (Tier 10) | Bookmarks (727), GitHub repos (82), entity extraction (3095 nodes), file indexer (2304 pts), Data Curator agent, Terminal page, Claudeman. 8/10 complete. |
-| 36 | 2026-03-07 | System Synthesis | Full cluster audit, doc refresh, Tier 11 defined, Ansible work committed. |
-| 37-39 | 2026-03-07 | Tiers 11-14 Sprint | All Tier 11 (8 cognitive synthesis), Tier 12 (8 ops autonomy), Tier 13 (5 agent intelligence). |
-| 40 | 2026-03-08 | Tiers 12-14 Completion | n8n deployed, signal pipeline, agent deploy, CI green, 3 commits pushed. |
+| Session | Focus | Key Outcomes |
+|---------|-------|-------------|
+| 41 | Tier 16 — remaining items, DEEP-RESEARCH-LIST reconciliation | All Tier 16 complete |
+| 42 | Stale doc sweep, session health hook, FOUNDRY heartbeat fixes | Briefing API corrected |
+| 43 | MCP expansion (4 new: neo4j, postgres, gitea, sequential-thinking), self-improvement loop closed | 10→13 MCP servers |
+| 43b | Goals & Feedback page, circuit breakers, hybrid autonomy, ntfy notifications | 9 agents with autonomy |
+| 44 | Session 44 research synthesis, trust loop, creative model routing | Work Planner dashboard page |
+| 45 | Dashboard audit (3 bugs fixed), Insights page (pattern detection UI), hardware optimization | 24 dashboard pages |
+| 46 | EoBQ uncensored content wiring: LoRA + abliterated model routing + intensity directives | EoBQ fully uncensored |
+| 46b | PuLID reference library: face injection for custom personas at workshop:3002/references | EoBQ PuLID complete |
+| 47 | miniCOIL hybrid search: neural sparse vectors + Qdrant RRF (18.1) | Hybrid retrieval live |
+| 48 | Neo4j 2-hop graph context expansion for knowledge agent (18.2) | Category-based traversal |
+| 49 | Continue.dev IDE integration (18.3), per-agent LangFuse metadata on all 9 agents | Local autocomplete |
+| 50 | HippoRAG entity extraction (18.4): 879 entities, 5455 MENTIONS edges, entity 2-hop traversal | Knowledge graph complete |
+| 50b | Insights-driven CLAUDE.md improvements, doc-ref checker script | Anti-patterns expanded |
+| 51 | Plan audit, MEMORY.md refresh | (this session) |
+
+---
+
+## Current System State (verified 2026-03-09)
+
+### Cluster (nodes healthy, all services up)
+- **FOUNDRY .244**: vllm-coordinator (Qwen3.5-27B-FP8 TP=4 on GPUs 0,1,3,4 :8000), vllm-utility (Huihui-Qwen3-8B on GPU2/4090 :8002). 11 containers.
+- **WORKSHOP .225**: Qwen3.5-35B-A3B-AWQ on 5090 (GPU0) :8000. ComfyUI on 5060Ti. Dashboard:3001, EoBQ:3002, Open WebUI:3000, Ulrich Energy:3003.
+- **VAULT .203**: 42+ containers. LiteLLM:4000, LangFuse:3030, Open WebUI:3090, Redis:6379, Qdrant:6333, Neo4j:7474. Storage 86% (141T/164T).
+- **DEV .189**: Embedding:8001 + Reranker:8003. Claude Code native install.
+
+### LiteLLM Routing (at VAULT:4000)
+- `reasoning` → Qwen3.5-27B-FP8 at foundry:8000
+- `fast` → Huihui-Qwen3-8B-abliterated-v2 at foundry:8002
+- `uncensored` → Huihui-Qwen3-8B-abliterated-v2 at foundry:8002 (EoBQ adult content)
+- `utility` → Huihui-Qwen3-8B-abliterated-v2 at foundry:8002
+- `creative` → Qwen3.5-35B-A3B-AWQ at workshop:8000
+- `coding` → Qwen3.5-27B-FP8 at foundry:8000
+- `worker` → Qwen3.5-35B-A3B-AWQ at workshop:8000
+- `embedding` → Qwen3-Embedding-0.6B at dev:8001
+- `reranker` → Qwen3-Reranker-0.6B at dev:8003
+
+### Knowledge System (Tier 18 complete)
+- **18.1 miniCOIL hybrid search**: Neural sparse vectors via FastEmbed, Qdrant RRF fusion, SPLADE-style retrieval
+- **18.2 Neo4j 2-hop graph context**: Category-based traversal in graph_context.py — finds related docs via shared category
+- **18.3 Continue.dev**: IDE local inference autocomplete via vLLM OpenAI-compat API
+- **18.4 HippoRAG entity extraction**: LLM NER at index time → 879 Entity nodes in Neo4j, 5455 MENTIONS edges, entity 2-hop traversal in retrieval (replaces category-based)
+- **Neo4j schema**: Document nodes, Entity nodes (Service/Model/Concept/Technology/Person), MENTIONS edges, `entity_name_lower_type` composite index
+- **Qdrant collections**: knowledge, conversations, signals, activity, preferences, implicit_feedback, events, llm_cache, eoq_characters (9 total)
+
+### EoBQ (Empire of Broken Queens) — Fully Deployed
+- URL: workshop:3002. Dark fantasy interactive fiction.
+- 5 characters with emotional profiles, breaking mechanics, content_intensity 1-5
+- **LoRA**: `flux-uncensored.safetensors` (strength 0.85) in all 3 Flux workflows (portrait, scene, PuLID)
+- **Model routing**: intensity >= 3 → `uncensored` (Huihui abliterated), intensity 1-2 → `reasoning`
+- **PuLID reference library**: face injection for custom personas at /references page
+- Intensity directives: 5 tiers (suggestive → absolute) in both chat and narrate routes
+
+### MCP Servers (13 total)
+- **Original (6):** grafana, docker, athanor-agents, redis, qdrant, smart-reader
+- **Tier 1 (4):** sequential-thinking, neo4j (mcp-neo4j-cypher), postgres (Zed fork), gitea (Go binary)
+- **Tier 2 (3):** langfuse, miniflux, n8n
+
+### Dashboard (24 pages)
+Furnace Home, System, Agents, Command Center, Media, Data, Signals, Knowledge, Goals, Insights, Work Planner, Learning, Reasoning, EoBQ hub + game + gallery + portraits + references, Kindred, Ulrich Energy
+
+### Agents (9, all deployed on FOUNDRY:9000)
+All 9 have: per-agent LangFuse metadata tags, proactive schedules (5:30AM cycle), circuit breakers, hybrid autonomy.
+- General, Research, Media, Home, Creative, Knowledge, Coding, Stash, Data Curator
+- Self-improvement loop: 5:30AM benchmarks → pattern detection → proposals → Goals page
+
+---
+
+## Build State (as of 2026-03-09)
+
+- **Tiers 1-18: COMPLETE** (Tier 16 done session 41, Tier 18 done session 50)
+- **Open items**: 6.2/6.4/6.7 (physical backlog), 8.4 (deferred), 14.3 (blocked Shaun), 14.5 (awaiting decision)
+- **Blocked on Shaun**: NordVPN, Anthropic API key, Google Drive OAuth, n8n activation, HA config
+- **No Tier 19 defined yet** — natural next candidates: promptfoo eval baseline, Kindred prototype, video NSFW pipeline, SDXL/Pony path for anime art
+
+## Key Corrections Since Session 40
+
+- MEMORY.md was 10 sessions stale — corrected in session 51
+- LiteLLM config at `/mnt/user/appdata/litellm/config.yaml` (not `/opt/athanor/litellm/`)
+- EoBQ uncensored plan (peaceful-gathering-sundae.md) completed in session 46, plan file now archived
+- Tier 18 knowledge pipeline (18.1-18.4) all complete as of session 50
+- HippoRAG entity traversal replaces category-based graph expansion (18.2 → 18.4 upgrade path)
+
+## Patterns Learned
+
+- Don't re-audit the cluster every session. Trust dated audits.
+- MEMORY.md in repo has session state. ~/.claude/projects/.../memory/MEMORY.md has patterns.
+- The MAP and DEEP-RESEARCH-LIST at ~/repos/ root are strategic docs from a 10hr planning session.
+- Reference repos are READ-ONLY parts warehouses. Port algorithms, rewrite glue.
+- LiteLLM config path on VAULT: `/mnt/user/appdata/litellm/config.yaml` (Unraid appdata, not /opt/)
+- vault-ssh.py works for all VAULT commands. Direct ssh hangs on Unraid.
+- GRAFANA_PASSWORD is "admin" (default, set in ~/.bashrc for MCP).
+- git push origin main — branch 8 ahead. Push when Shaun says to.

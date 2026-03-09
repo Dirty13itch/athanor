@@ -139,6 +139,25 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 51 (2026-03-09) Summary
+
+### Completed This Session
+- **MEMORY.md refresh** — was stale at session 40 (10 sessions out of date). Full rewrite documenting sessions 41-51: Tier 18 complete (miniCOIL, Neo4j 2-hop, Continue.dev, HippoRAG), EoBQ uncensored stack, LiteLLM routing table, all 9 agent states, MCP server inventory.
+- **EoBQ plan audit** — confirmed peaceful-gathering-sundae.md plan fully implemented in session 46. All steps verified: LoRA in 3 workflow JSONs, `uncensored` LiteLLM alias confirmed at `/mnt/user/appdata/litellm/config.yaml`, intensity routing live in chat + narrate routes, abliterated model system prompt in creative agent. Plan file deleted.
+- **Promptfoo eval baseline** — first run of `evals/promptfooconfig.yaml` against live LiteLLM (in progress). Results → `evals/results/baseline-2026-03-09.json`
+- **LiteLLM config path corrected** — was wrong in docs (`/opt/athanor/litellm/`) actual path: `/mnt/user/appdata/litellm/config.yaml` (Unraid appdata)
+
+### Key Verifications
+- `uncensored` model in LiteLLM → `Huihui-Qwen3-8B-abliterated-v2` at foundry:8002 ✅
+- LoRA (`flux-uncensored.safetensors`, strength 0.85) in all 3 Flux workflows ✅
+- Deployed EoBQ at workshop:3002 running current code ✅
+
+### Next Actions
+1. Review promptfoo eval results when complete — record baseline scores
+2. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+3. Shaun: push go/no-go on Kindred prototype (14.5)
+4. Push 8 commits to origin when ready
+
 ## Session 50 (2026-03-09) Summary
 
 ### Completed This Session
