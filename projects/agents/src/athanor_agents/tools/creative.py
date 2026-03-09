@@ -461,4 +461,120 @@ def generate_character_portrait(character_name: str, scene_context: str = "", st
         return f"Failed to queue portrait: {e}"
 
 
-CREATIVE_TOOLS = [generate_image, generate_video, generate_character_portrait, check_queue, get_generation_history, get_comfyui_status]
+EOQ_URL = "http://192.168.1.225:3002"
+
+
+@tool
+def list_personas() -> str:
+    """List all reference personas available for face-injection (PuLID) generation.
+
+    Returns personas in two categories:
+    - queens: adult performer likenesses for EoBQ characters
+    - custom: personal reference photos (Shaun's own creations)
+
+    Use a persona's name with generate_with_likeness to create images with that face.
+    """
+    try:
+        resp = httpx.get(f"{EOQ_URL}/api/references", timeout=10)
+        resp.raise_for_status()
+        personas = resp.json()
+
+        if not personas:
+            return "No personas yet. Upload reference photos at http://192.168.1.225:3002/references"
+
+        queens = [p for p in personas if p.get("category") == "queens"]
+        custom = [p for p in personas if p.get("category") == "custom"]
+
+        lines = [f"Reference personas ({len(personas)} total):"]
+        if queens:
+            lines.append("\nQueens:")
+            for p in queens:
+                n = len(p.get("photos", []))
+                lines.append(f"  {p['name']} — {n} photo{'s' if n != 1 else ''}")
+        if custom:
+            lines.append("\nCustom:")
+            for p in custom:
+                n = len(p.get("photos", []))
+                lines.append(f"  {p['name']} — {n} photo{'s' if n != 1 else ''}")
+
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Failed to list personas: {e}"
+
+
+@tool
+def generate_with_likeness(prompt: str, persona_name: str, width: int = 832, height: int = 1216, steps: int = 25) -> str:
+    """Generate an image using a reference persona's face (PuLID face injection + flux-uncensored LoRA).
+
+    The face from the persona's reference photo is injected into the generated image via PuLID.
+    All generations use the flux-uncensored LoRA — no content restrictions.
+
+    Args:
+        prompt: Detailed image description. Be specific about pose, setting, lighting, style.
+        persona_name: Name of the persona to use (from list_personas). Case-insensitive fuzzy match.
+        width: Image width in pixels (default 832, portrait-friendly). Divisible by 8.
+        height: Image height in pixels (default 1216, portrait). Divisible by 8.
+        steps: Sampling steps (default 25 for quality).
+
+    Example:
+        generate_with_likeness("cinematic portrait, dark throne room, ornate gold armor, dramatic lighting, photorealistic 8k", "Isolde Reference")
+    """
+    try:
+        # Fetch persona list
+        resp = httpx.get(f"{EOQ_URL}/api/references", timeout=10)
+        resp.raise_for_status()
+        personas = resp.json()
+
+        # Fuzzy-match by name
+        name_lower = persona_name.lower().strip()
+        persona = next(
+            (p for p in personas if p["name"].lower() == name_lower),
+            next((p for p in personas if name_lower in p["name"].lower()), None)
+        )
+
+        if not persona:
+            available = ", ".join(p["name"] for p in personas) or "none"
+            return f"Persona '{persona_name}' not found. Available: {available}"
+
+        if not persona.get("photos"):
+            return f"Persona '{persona['name']}' has no reference photos. Upload some at http://192.168.1.225:3002/references"
+
+        # Reference path inside EoBQ container's /references volume
+        reference_path = f"/references/{persona['folder']}/{persona['photos'][0]}"
+
+        # Call EoBQ generate API — handles ComfyUI upload + PuLID workflow
+        gen_resp = httpx.post(
+            f"{EOQ_URL}/api/generate",
+            json={
+                "type": "pulid",
+                "prompt": prompt,
+                "referencePath": reference_path,
+            },
+            timeout=180,  # PuLID loads heavy models, allow generous time
+        )
+        gen_resp.raise_for_status()
+        data = gen_resp.json()
+
+        image_url = data.get("imageUrl")
+        prompt_id = data.get("promptId", "?")
+
+        if image_url:
+            return (
+                f"Generated with likeness of {persona['name']}.\n"
+                f"Prompt ID: {prompt_id}\n"
+                f"Image URL: {image_url}\n"
+                f"View at: http://192.168.1.225:3002/gallery"
+            )
+        return f"Generation queued (prompt_id={prompt_id}) but polling timed out. Check ComfyUI at http://192.168.1.225:8188"
+
+    except httpx.TimeoutException:
+        return "Generation timed out. PuLID models may still be loading — check http://192.168.1.225:8188"
+    except Exception as e:
+        return f"Failed to generate with likeness: {e}"
+
+
+CREATIVE_TOOLS = [
+    generate_image, generate_video, generate_character_portrait,
+    check_queue, get_generation_history, get_comfyui_status,
+    list_personas, generate_with_likeness,
+]

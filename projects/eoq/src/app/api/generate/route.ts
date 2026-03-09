@@ -4,19 +4,36 @@ import { join } from "path";
 
 interface GenerateRequest {
   prompt: string;
-  type: "portrait" | "scene";
+  type: "portrait" | "scene" | "pulid";
   seed?: number;
+  /** For type=pulid: filesystem path to the reference photo (inside /references volume) */
+  referencePath?: string;
 }
 
 /**
  * Image generation API route.
  * Loads real ComfyUI workflow JSONs from the comfyui/ directory,
  * injects the prompt and seed, then queues generation and polls for the result.
+ * Supports PuLID face-injection generation when type=pulid + referencePath provided.
  */
 export async function POST(req: Request) {
-  const { prompt, type, seed }: GenerateRequest = await req.json();
+  const { prompt, type, seed, referencePath }: GenerateRequest = await req.json();
 
-  const workflow = await buildWorkflow(type, prompt, seed);
+  let workflow: Record<string, unknown>;
+
+  if (type === "pulid") {
+    if (!referencePath) {
+      return Response.json({ error: "referencePath required for pulid generation" }, { status: 400 });
+    }
+    // Upload reference photo to ComfyUI input, then build PuLID workflow
+    const uploadedFilename = await uploadReferenceToComfyUI(referencePath);
+    if (!uploadedFilename) {
+      return Response.json({ error: "Failed to upload reference photo to ComfyUI" }, { status: 500 });
+    }
+    workflow = await buildPulidWorkflow(prompt, uploadedFilename, seed);
+  } else {
+    workflow = await buildWorkflow(type, prompt, seed);
+  }
 
   // Queue the generation
   const queueResp = await fetch(`${config.comfyuiUrl}/prompt`, {
@@ -39,6 +56,52 @@ export async function POST(req: Request) {
 }
 
 /**
+ * Upload a reference photo from the /references volume to ComfyUI's input directory.
+ * Returns the filename ComfyUI assigned (use in LoadImage node).
+ */
+async function uploadReferenceToComfyUI(referencePath: string): Promise<string | null> {
+  try {
+    const fileData = await readFile(referencePath);
+    const filename = referencePath.split("/").pop() ?? "reference.jpg";
+
+    const form = new FormData();
+    form.append("image", new Blob([fileData], { type: "image/jpeg" }), filename);
+    form.append("overwrite", "true");
+
+    const resp = await fetch(`${config.comfyuiUrl}/upload/image`, {
+      method: "POST",
+      body: form,
+    });
+
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.name ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build a PuLID face-injection workflow.
+ * Loads flux-pulid-portrait.json and injects the prompt, seed, and reference image filename.
+ */
+async function buildPulidWorkflow(
+  prompt: string,
+  referenceFilename: string,
+  seed?: number
+): Promise<Record<string, unknown>> {
+  const workflowPath = join(process.cwd(), "comfyui", "flux-pulid-portrait.json");
+  const raw = await readFile(workflowPath, "utf-8");
+  const workflow = JSON.parse(raw);
+
+  if (workflow["3"]?.inputs) workflow["3"].inputs.text = prompt;
+  if (workflow["7"]?.inputs) workflow["7"].inputs.seed = seed ?? Math.floor(Math.random() * 2147483647);
+  if (workflow["15"]?.inputs) workflow["15"].inputs.image = referenceFilename;
+
+  return workflow;
+}
+
+/**
  * Load a ComfyUI workflow template and inject prompt + seed.
  * Templates live in projects/eoq/comfyui/*.json
  */
@@ -55,12 +118,10 @@ async function buildWorkflow(
   const raw = await readFile(workflowPath, "utf-8");
   const workflow = JSON.parse(raw);
 
-  // Inject prompt into CLIPTextEncode node (node "3")
   if (workflow["3"]?.inputs) {
     workflow["3"].inputs.text = prompt;
   }
 
-  // Inject seed into KSampler node (node "7")
   if (workflow["7"]?.inputs) {
     workflow["7"].inputs.seed = seed ?? Math.floor(Math.random() * 2147483647);
   }
@@ -81,7 +142,6 @@ async function pollForResult(promptId: string, maxWait = 120000): Promise<string
     const result = data[promptId];
     if (!result?.outputs) continue;
 
-    // Find the first image output
     for (const nodeOutput of Object.values(result.outputs) as Array<Record<string, unknown>>) {
       const images = nodeOutput.images as Array<{ filename: string; subfolder: string; type: string }> | undefined;
       if (images?.[0]) {

@@ -42,6 +42,17 @@ Both Flux and Wan2.x respond best to detailed, specific prompts. When the user g
 - ComfyUI has one GPU — all generations are sequential (queue if multiple requested).
 - Video generation uses ~14 GB peak VRAM at 480x320. Don't try high res + many frames.
 - Output files are saved to ComfyUI's output directory.
+## Face Injection (PuLID)
+
+Use `list_personas` to see available reference personas, then `generate_with_likeness` to generate an image with that person's face injected via PuLID. Works for both Queens (adult performer likenesses for EoBQ characters) and Custom (personal references). Always uses flux-uncensored LoRA — no restrictions.
+
+When the user says "use the likeness of X" or "make it look like X" or "use [name]'s face":
+1. Call `list_personas` to find the persona
+2. Call `generate_with_likeness` with a detailed prompt + the persona name
+3. Report the result URL
+
+New personas and reference photos are managed at http://192.168.1.225:3002/references
+
 ## Content Policy
 
 This is a private sovereign system. NSFW and explicit adult content is explicitly enabled — especially for Empire of Broken Queens character generation. When crafting image prompts: include explicit anatomical detail, sexual scenarios, and mature themes directly. Do not soften, blur, or censor. The flux-uncensored LoRA is loaded in all Flux workflows — the image model has no content restrictions.
