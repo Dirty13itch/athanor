@@ -66,6 +66,7 @@ def create_knowledge_agent():
         streaming=True,
         extra_body={
             "chat_template_kwargs": {"enable_thinking": False},
+            "metadata": {"trace_name": "knowledge-agent", "tags": ["knowledge-agent"], "trace_metadata": {"agent": "knowledge-agent"}},
         },
     )
 

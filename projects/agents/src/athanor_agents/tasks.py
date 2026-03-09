@@ -440,7 +440,12 @@ async def _execute_task(task: Task):
         ]
 
         thread_id = f"task-{task.id}"
-        config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 50}
+        config = {
+            "configurable": {"thread_id": thread_id},
+            "recursion_limit": 50,
+            "metadata": {"agent": task.agent, "task_id": task.id},
+            "tags": [task.agent],
+        }
 
         step_index = 0
         collected_text = []

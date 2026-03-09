@@ -1485,7 +1485,12 @@ async def chat_completions(request: Request):
 
     lc_messages = _convert_messages(messages)
     thread_id = body.get("thread_id", str(uuid.uuid4()))
-    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 50}
+    config = {
+        "configurable": {"thread_id": thread_id},
+        "recursion_limit": 50,
+        "metadata": {"agent": model_name, "session_id": thread_id},
+        "tags": [model_name],
+    }
 
     # Extract user input summary for activity logging
     user_input = messages[-1].get("content", "")[:500] if messages else ""

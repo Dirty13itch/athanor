@@ -43,6 +43,7 @@ def create_general_assistant():
         streaming=True,
         extra_body={
             "chat_template_kwargs": {"enable_thinking": False},
+            "metadata": {"trace_name": "general-assistant", "tags": ["general-assistant"], "trace_metadata": {"agent": "general-assistant"}},
         },
     )
 

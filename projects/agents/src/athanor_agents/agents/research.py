@@ -54,6 +54,7 @@ def create_research_agent():
         streaming=True,
         extra_body={
             "chat_template_kwargs": {"enable_thinking": False},
+            "metadata": {"trace_name": "research-agent", "tags": ["research-agent"], "trace_metadata": {"agent": "research-agent"}},
         },
     )
 
