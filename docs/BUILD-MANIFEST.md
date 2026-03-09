@@ -947,9 +947,9 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Done when:** `parry --version` works and a scan of at least one MCP server input path is documented.
 
 ### 17.5 — Add /trace command
-- **Status:** 🔲 todo
-- **Scope:** Port `docs/planning/claude-config-planning-era/commands/trace-feature.md` to `.claude/commands/trace.md`. Cross-repo feature tracing across reference repos.
-- **Done when:** `/trace` command exists and works against a test feature.
+- **Status:** ✅ done (Session 42, 2026-03-08)
+- **Scope:** Created `.claude/commands/trace.md` from planning-era `trace-feature.md`. Updated with current repo paths and added metadata header (description, allowed-tools). Total commands now 11.
+- **Files:** `.claude/commands/trace.md`
 
 ### 17.6 — Clean settings.local.json
 - **Status:** 🔲 todo
