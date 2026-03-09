@@ -137,6 +137,24 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 48 (2026-03-09) Summary
+
+### Completed This Session
+- **Neo4j Graph Context Expansion** (18.2):
+  - `graph_context.py`: 2-hop Neo4j expansion after Qdrant knowledge search — source → category → related docs in same category
+  - `context.py`: wired graph expansion into enrichment pipeline; new "## Related Documentation (graph)" context section; log shows `3 knowledge (+3 graph)`
+  - `index-knowledge.py`: added `upsert_neo4j_docs()` — MERGE Document nodes with `doc_type='athanor'` in Neo4j; 172 nodes created across 8 categories
+  - Full re-index run to populate all Neo4j Document nodes
+  - Agents rebuilt + deployed: all 9 healthy at foundry:9000
+  - **Verified working:** `+3 graph` in context log, graph section renders in context output
+
+### Next Actions
+1. Wire `QdrantNeo4jRetriever` full entity-based expansion (18.4) — NER at index time → Topic/Entity nodes → multi-hop entity traversal (HippoRAG v2 pattern)
+2. Install VS Code + Continue.dev on DEV → FOUNDRY:8000 (18.3) — highest daily-use ROI
+3. Audit LangFuse for per-agent invocation frequency
+4. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+5. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
+
 ## Session 47 (2026-03-09) Summary
 
 ### Completed This Session

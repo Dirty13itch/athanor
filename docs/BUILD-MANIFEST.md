@@ -979,12 +979,19 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Depends on:** None
 - **Priority:** Done
 
-### 18.2 — QdrantNeo4jRetriever Pipeline
-- **Status:** 🔲 todo
-- **Scope:** Wire `neo4j_graphrag[qdrant]` `QdrantNeo4jRetriever` into agent context pipeline. Qdrant kNN returns top-k → Neo4j Cypher 2-hop expansion → combined vector+graph context. Requires `neo4j_id` payload field in all Qdrant `knowledge` points linking to Neo4j entity nodes. Measured +20% accuracy on multi-hop queries (Lettria case study).
+### 18.2 — Neo4j Graph Context Expansion
+- **Status:** ✅ done (Session 48, 2026-03-09)
+- **Scope:** Wired Neo4j graph traversal into agent context injection pipeline. Qdrant kNN returns top-k chunks → extract source paths → Neo4j 2-hop expansion (source → category → related docs in same category) → appended to context as "## Related Documentation (graph)".
+  - `graph_context.py`: new module with `expand_knowledge_graph(client, sources, limit)` — async Neo4j HTTP query, graceful fallback on error. Uses `source` path as linking key (no `neo4j_id` in Qdrant needed).
+  - `context.py`: added `_format_graph_related()`, graph expansion call after Qdrant knowledge search completes, `graph_related_lines` in `_build_context_message`. Log format: `3 knowledge (+3 graph)`.
+  - `index-knowledge.py`: added `upsert_neo4j_docs()` — MERGE `Document` nodes with `doc_type='athanor'` in Neo4j after each Qdrant upsert batch. 172 Document nodes created across 8 categories (research/hardware/adr/design/general/project/build/vision).
+  - Full re-index run to populate Neo4j Document nodes.
+- **Actual schema used:** `source` path as key (not `neo4j_id`). No Qdrant payload changes. No `neo4j_graphrag` package (uses existing httpx + Neo4j HTTP API from tools/knowledge.py pattern).
+- **Verified:** `+3 graph` docs in context enrichment log. `## Related Documentation (graph)` section rendered in context output. 2-hop: ADR-005 → adr category → 5 other ADRs.
+- **Notes:** Category-based expansion is the first hop. Full entity-based expansion (HippoRAG NER → Topic/Entity nodes) is deferred to 18.4. The `doc_type='athanor'` label prevents collision with existing bookmark/GitHub Document nodes.
 - **Research:** `docs/research/2026-03-09-knowledge-architecture-memory.md` §4
 - **Depends on:** 18.1 ✅
-- **Priority:** P1
+- **Priority:** Done
 
 ### 18.3 — Continue.dev IDE Integration
 - **Status:** 🔲 todo (no VS Code on DEV currently)

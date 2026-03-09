@@ -48,6 +48,8 @@ EXTRA_FILES = [
 QDRANT_URL = "http://192.168.1.244:6333"
 LITELLM_URL = "http://192.168.1.203:4000/v1"
 LITELLM_KEY = "sk-athanor-litellm-2026"
+NEO4J_URL = "http://192.168.1.203:7474"
+NEO4J_AUTH = ("neo4j", "athanor2026")
 COLLECTION = "knowledge"
 EMBEDDING_DIM = 1024
 CHUNK_SIZE = 1500  # chars per chunk (with overlap)
@@ -408,6 +410,43 @@ def upsert_batch(batch: list[dict]):
     resp.raise_for_status()
 
 
+def upsert_neo4j_docs(docs: list[dict]):
+    """Create or update AthanorDoc Document nodes in Neo4j.
+
+    Each doc requires: {source, title, category, qdrant_point_id}
+
+    Uses doc_type='athanor' to distinguish these from bookmark/GitHub Document
+    nodes in the same graph. MERGE on (source, doc_type) is idempotent.
+    Failures are non-fatal — Qdrant is the source of truth.
+    """
+    if not docs:
+        return
+
+    cypher = """
+    UNWIND $docs AS doc
+    MERGE (d:Document {source: doc.source, doc_type: 'athanor'})
+    SET d.title = doc.title,
+        d.category = doc.category,
+        d.qdrant_point_id = doc.qdrant_point_id,
+        d.doc_id = doc.source
+    """
+    try:
+        resp = httpx.post(
+            f"{NEO4J_URL}/db/neo4j/tx/commit",
+            json={"statements": [{"statement": cypher, "parameters": {"docs": docs}}]},
+            auth=NEO4J_AUTH,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        errors = resp.json().get("errors", [])
+        if errors:
+            print(f"  Warning: Neo4j write errors: {errors[:2]}", file=sys.stderr)
+        else:
+            print(f"  Neo4j: {len(docs)} Document nodes upserted")
+    except Exception as e:
+        print(f"  Warning: Neo4j write failed (graph expansion won't work): {e}", file=sys.stderr)
+
+
 def check_connectivity():
     """Verify Qdrant and LiteLLM are reachable."""
     try:
@@ -437,6 +476,7 @@ def run_full():
     print(f"Found {len(docs)} documents to index\n")
 
     batch: list[dict] = []
+    neo4j_docs: list[dict] = []
     total_chunks = 0
     batch_size = 20
 
@@ -448,6 +488,17 @@ def run_full():
         total_chunks += n
         print(f"  [{i+1}/{len(docs)}] {rel} -> {n} chunks")
 
+        if n > 0:
+            source = str(filepath.relative_to(REPO_ROOT))
+            title = extract_title(file_content, filepath)
+            category = categorize_file(filepath)
+            neo4j_docs.append({
+                "source": source,
+                "title": title,
+                "category": category,
+                "qdrant_point_id": text_to_uuid(f"{source}:chunk:0"),
+            })
+
         if len(batch) >= batch_size:
             print(f"    Embedding + upserting batch ({len(batch)} chunks)...")
             upsert_batch(batch)
@@ -458,6 +509,7 @@ def run_full():
         upsert_batch(batch)
 
     print(f"\n=== Done: {total_chunks} chunks from {len(docs)} documents indexed ===")
+    upsert_neo4j_docs(neo4j_docs)
 
 
 def run_incremental():
@@ -520,6 +572,7 @@ def run_incremental():
     # Step 5: Re-index new + changed files
     to_index = new_files + changed_files
     batch: list[dict] = []
+    neo4j_docs: list[dict] = []
     total_chunks = 0
     batch_size = 20
 
@@ -530,6 +583,17 @@ def run_incremental():
         n = index_file(filepath, batch, current_hashes[source])
         total_chunks += n
         print(f"  [{i+1}/{len(to_index)}] [{tag}] {rel} -> {n} chunks")
+
+        if n > 0:
+            file_content = filepath.read_text(encoding="utf-8", errors="replace")
+            title = extract_title(file_content, filepath)
+            category = categorize_file(filepath)
+            neo4j_docs.append({
+                "source": source,
+                "title": title,
+                "category": category,
+                "qdrant_point_id": text_to_uuid(f"{source}:chunk:0"),
+            })
 
         if len(batch) >= batch_size:
             print(f"    Embedding + upserting batch ({len(batch)} chunks)...")
@@ -542,6 +606,7 @@ def run_incremental():
 
     deleted_count = len(deleted_sources)
     print(f"\n=== Done: {total_chunks} chunks indexed, {deleted_count} sources removed ===")
+    upsert_neo4j_docs(neo4j_docs)
 
 
 def main():
