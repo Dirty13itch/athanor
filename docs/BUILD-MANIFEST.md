@@ -922,6 +922,47 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 
 ---
 
+## Tier 17: Post-Reconciliation (P1)
+
+Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.6). Full reconciliation report in session history.
+
+### 17.1 — Deploy Goose recipes
+- **Status:** ✅ done (Session 42, 2026-03-08)
+- **Scope:** Adapted planning-era recipes to Goose v1.27.2 format (pure YAML, `input_type: string`, `requirement: required`, `instructions:` block instead of frontmatter+markdown). Updated endpoint URLs to match current cluster (ports, model names). Both validate and list correctly.
+- **Files:** `~/.config/goose/recipes/port-hydra-module.yaml`, `~/.config/goose/recipes/test-all-endpoints.yaml`
+
+### 17.2 — Port morning briefing from Hydra
+- **Status:** 🔲 todo
+- **Scope:** Read `~/repos/reference/hydra/src/hydra_tools/morning_briefing.py`. Adapt to Athanor patterns (async, LiteLLM, Redis). Wire into agent scheduler as a 7 AM task. Should pull overnight activity from Qdrant `activity` collection, alerts from Redis, and produce a markdown digest.
+- **Done when:** `/morning` command or scheduler produces a real overnight digest, not just health checks.
+
+### 17.3 — Import Hydra n8n workflow JSONs
+- **Status:** 🔲 todo
+- **Scope:** Review the 12 workflow JSONs in `~/repos/reference/hydra/n8n-workflows/`. Import `cluster-health-check.json`, `daily-health-digest.json`, `model-performance-monitor.json` into n8n at VAULT:5678. Update endpoint URLs from Hydra paths to Athanor paths. Activate imported workflows.
+- **Done when:** At least 3 workflows imported and activated in n8n.
+
+### 17.4 — Install parry injection scanner
+- **Status:** 🔲 todo
+- **Scope:** Install parry (Block's prompt injection scanner). Evaluate against Athanor's MCP attack surface (6 servers, n8n webhooks, RSS feeds).
+- **Done when:** `parry --version` works and a scan of at least one MCP server input path is documented.
+
+### 17.5 — Add /trace command
+- **Status:** 🔲 todo
+- **Scope:** Port `docs/planning/claude-config-planning-era/commands/trace-feature.md` to `.claude/commands/trace.md`. Cross-repo feature tracing across reference repos.
+- **Done when:** `/trace` command exists and works against a test feature.
+
+### 17.6 — Clean settings.local.json
+- **Status:** 🔲 todo
+- **Scope:** Remove ~30 one-off happy-coder debug permission entries from `.claude/settings.local.json`. Keep only the intentional MCP and Bash permissions.
+- **Done when:** settings.local.json has <20 entries in the allow list.
+
+### 17.7 — Update SYSTEM-SPEC.md stale sections
+- **Status:** 🔲 todo
+- **Scope:** Fix container count (36→42 for VAULT), model inventory table (add Data Curator agent, fix port numbers), TP=2 not TP=4, update Qdrant collection count to 8.
+- **Done when:** SYSTEM-SPEC.md matches STATUS.md ground truth.
+
+---
+
 ## Blocked on Shaun
 
 These require human action. Claude Code cannot do them.
