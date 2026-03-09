@@ -1516,15 +1516,28 @@ async def chat_completions(request: Request):
     routing = await apply_preference_override(routing)
 
     # Context injection — enrich with preferences, activity, knowledge
+    context_str = ""
     if not body.get("skip_context", False):
         from .context import enrich_context
 
         try:
-            context_str = await enrich_context(model_name, user_input)
-            if context_str:
-                lc_messages.insert(0, SystemMessage(content=context_str))
+            context_str = await enrich_context(model_name, user_input) or ""
         except Exception:
             pass  # Never let context injection block a request
+
+    if context_str:
+        if routing.tier_config.use_agent:
+            # Agent graph has its own system prompt — inject context into the
+            # last HumanMessage to avoid multiple system messages (vLLM rejects them)
+            for i in range(len(lc_messages) - 1, -1, -1):
+                if isinstance(lc_messages[i], HumanMessage):
+                    lc_messages[i] = HumanMessage(
+                        content=f"[Context]\n{context_str}\n[/Context]\n\n{lc_messages[i].content}"
+                    )
+                    break
+        else:
+            # Reactive path — direct LLM call, system message is safe
+            lc_messages.insert(0, SystemMessage(content=context_str))
 
     # --- REACTIVE fast path: bypass agent graph for simple queries ---
     if not routing.tier_config.use_agent and not stream:

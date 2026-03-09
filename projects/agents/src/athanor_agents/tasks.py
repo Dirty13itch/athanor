@@ -19,7 +19,7 @@ import time
 import uuid
 from dataclasses import asdict, dataclass, field
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage
 
 from .config import settings
 
@@ -390,19 +390,24 @@ async def _execute_task(task: Task):
             await _update_task(task)
             return
 
-        # Build messages with context injection
-        messages = []
+        # Build messages — inject context and task prompt into HumanMessage
+        # to avoid multiple SystemMessages (vLLM rejects mid-conversation system msgs,
+        # and create_react_agent already has its own system prompt)
+        context_str = ""
         try:
-            context_str = await enrich_context(task.agent, task.prompt)
-            if context_str:
-                messages.append(SystemMessage(content=context_str))
+            context_str = await enrich_context(task.agent, task.prompt) or ""
         except Exception:
             pass
 
-        # Build task-mode system prompt (agent-specific)
         task_prompt = _build_task_prompt(task)
-        messages.append(SystemMessage(content=task_prompt))
-        messages.append(HumanMessage(content=task.prompt))
+        preamble_parts = []
+        if context_str:
+            preamble_parts.append(f"[Context]\n{context_str}\n[/Context]")
+        preamble_parts.append(f"[Task Instructions]\n{task_prompt}\n[/Task Instructions]")
+
+        messages = [
+            HumanMessage(content="\n\n".join(preamble_parts) + "\n\n" + task.prompt),
+        ]
 
         thread_id = f"task-{task.id}"
         config = {"configurable": {"thread_id": thread_id}}
