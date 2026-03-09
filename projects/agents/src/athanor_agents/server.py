@@ -34,7 +34,11 @@ async def lifespan(app: FastAPI):
     await get_cst()  # Load CST from Redis (or create fresh)
     get_specialists()  # Initialize specialist registry
 
-    await start_competition()
+    try:
+        await start_competition()
+        print("[lifespan] GWT competition started", flush=True)
+    except Exception as e:
+        print(f"[lifespan] GWT competition FAILED: {e}", flush=True)
     await start_task_worker()
     await start_scheduler()
 
@@ -1468,7 +1472,7 @@ async def chat_completions(request: Request):
 
     lc_messages = _convert_messages(messages)
     thread_id = body.get("thread_id", str(uuid.uuid4()))
-    config = {"configurable": {"thread_id": thread_id}}
+    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 50}
 
     # Extract user input summary for activity logging
     user_input = messages[-1].get("content", "")[:500] if messages else ""

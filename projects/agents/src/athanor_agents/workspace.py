@@ -456,7 +456,7 @@ async def _competition_cycle():
                         "specialist": winning_specialist or top.source_agent,
                         "content": top.content[:200],
                         "confidence": min(top.salience, 1.0),
-                        "urgency": 0.5 if top.priority.value in ("critical", "high") else 0.2,
+                        "urgency": 0.5 if top.priority in ("critical", "high") else 0.2,
                         "topics": {top.source_agent: 0.3},
                     }
                     if winning_specialist:
