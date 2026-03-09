@@ -364,6 +364,64 @@ async def compute_trust_scores() -> dict:
     return result
 
 
+# --- Trust → Autonomy Graduation ---
+
+
+async def apply_trust_adjustments() -> dict:
+    """Translate trust scores into escalation threshold adjustments.
+
+    Called by the pattern detection scheduler (5:00 AM daily).
+
+    Algorithm:
+    - deviation = trust_score - 0.5  (range: -0.5 to +0.5)
+    - ROUTINE adjustment = -deviation * 0.2  (max ±0.10)
+    - CONTENT adjustment = -deviation * 0.10 (max ±0.05)
+    - Negative adjustment → lower threshold → more autonomy (for high-trust agents)
+    - Positive adjustment → higher threshold → more oversight (for low-trust agents)
+    - Requires ≥10 samples to act. Below 10, adjustments are reset to 0.
+
+    Returns summary dict with per-agent adjustments made.
+    """
+    from .escalation import set_autonomy_adjustment, ActionCategory
+
+    trust_data = await compute_trust_scores()
+    agents = trust_data.get("agents", {})
+    applied: dict[str, dict] = {}
+
+    for agent_name, info in agents.items():
+        trust_score = info["score"]
+        samples = info["samples"]
+
+        if samples < 10:
+            # Insufficient data — clear any existing adjustments to neutral
+            await set_autonomy_adjustment(agent_name, ActionCategory.ROUTINE.value, 0.0)
+            await set_autonomy_adjustment(agent_name, ActionCategory.CONTENT.value, 0.0)
+            applied[agent_name] = {"routine": 0.0, "content": 0.0, "samples": samples, "cleared": True}
+            continue
+
+        deviation = trust_score - 0.5  # Positive = trust above neutral
+
+        # Scale adjustments: high trust → negative (lower threshold = more autonomy)
+        routine_adj = max(-0.10, min(0.10, -deviation * 0.2))
+        content_adj = max(-0.05, min(0.05, -deviation * 0.10))
+
+        await set_autonomy_adjustment(agent_name, ActionCategory.ROUTINE.value, routine_adj)
+        await set_autonomy_adjustment(agent_name, ActionCategory.CONTENT.value, content_adj)
+
+        applied[agent_name] = {
+            "trust_score": trust_score,
+            "samples": samples,
+            "routine_adj": round(routine_adj, 3),
+            "content_adj": round(content_adj, 3),
+        }
+        logger.info(
+            "Trust adjustment applied: %s score=%.3f routine=%.3f content=%.3f (n=%d)",
+            agent_name, trust_score, routine_adj, content_adj, samples,
+        )
+
+    return {"adjustments": applied, "agent_count": len(applied)}
+
+
 # --- Daily Digest ---
 
 

@@ -29,8 +29,8 @@ model_list:
 
   - model_name: "creative"
     litellm_params:
-      model: "hosted_vllm//models/Huihui-Qwen3-8B-abliterated-v2"
-      api_base: "http://{{ vllm_node1_host }}:8002/v1"
+      model: "hosted_vllm//models/Qwen3.5-35B-A3B-AWQ-4bit"
+      api_base: "http://{{ vllm_node2_host }}:8000/v1"
       api_key: "not-needed"
 
   - model_name: "coding"
@@ -90,6 +90,7 @@ router_settings:
     - utility: ["worker", "deepseek"]
     - fast: ["worker", "deepseek"]
     - coding: ["worker", "deepseek", "claude"]
+    - creative: ["reasoning", "deepseek"]
     - worker: ["reasoning", "deepseek"]
   model_group_alias:
     "gpt-4": { model: "reasoning", hidden: false }

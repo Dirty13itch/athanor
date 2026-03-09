@@ -279,6 +279,17 @@ async def _check_pattern_detection():
     except Exception as e:
         logger.warning("Scheduler: pattern detection failed: %s", e)
 
+    # Apply trust → autonomy threshold adjustments after pattern detection
+    try:
+        from .goals import apply_trust_adjustments
+        adj_result = await apply_trust_adjustments()
+        logger.info(
+            "Trust adjustments applied: %d agents updated",
+            adj_result.get("agent_count", 0),
+        )
+    except Exception as e:
+        logger.warning("Scheduler: trust adjustment failed: %s", e)
+
 
 async def _check_morning_plan():
     """Check if it's time to run the morning work plan (7:00 AM local)."""

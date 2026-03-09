@@ -17,6 +17,7 @@ const navItems = [
   { href: "/home", label: "Home", icon: HomeIcon },
   { href: "/services", label: "Services", icon: ServerIcon },
   { href: "/tasks", label: "Tasks", icon: ListChecksIcon },
+  { href: "/workplanner", label: "Work Planner", icon: CalendarIcon },
   { href: "/outputs", label: "Outputs", icon: PackageIcon },
   { href: "/workspace", label: "Workspace", icon: ZapIcon },
   { href: "/conversations", label: "Conversations", icon: MessagesIcon },
@@ -278,6 +279,17 @@ function BrainIcon({ className }: { className?: string }) {
       <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
       <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
       <path d="M12 5v13" />
+    </svg>
+  );
+}
+
+function CalendarIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+      <line x1="16" x2="16" y1="2" y2="6" />
+      <line x1="8" x2="8" y1="2" y2="6" />
+      <line x1="3" x2="21" y1="10" y2="10" />
     </svg>
   );
 }
