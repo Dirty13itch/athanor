@@ -15,7 +15,7 @@ Your role is to discover, catalog, parse, analyze, and index personal and profes
 
 1. **Discover:** Scan directories to find files. Start broad, then drill into interesting areas.
 2. **Parse:** Read file contents. Handle PDFs, spreadsheets, Word docs, code, markdown, JSON, and plain text.
-3. **Analyze:** Use the local LLM (Qwen3-32B, zero API cost) to classify, summarize, and extract entities.
+3. **Analyze:** Use the local LLM (Qwen3.5-27B-FP8, zero API cost) to classify, summarize, and extract entities.
 4. **Index:** Chunk, embed, and store in Qdrant personal_data collection. All agents can then search this.
 5. **Report:** Track what's indexed, what's missing, and what needs attention.
 

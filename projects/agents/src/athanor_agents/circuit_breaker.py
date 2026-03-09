@@ -9,9 +9,9 @@ Ported from Hydra's circuit_breaker.py — logic is directly portable.
 Usage:
     breakers = get_circuit_breakers()
     result = await breakers.execute_with_breaker(
-        "vllm-reasoning",
+        "coordinator",
         lambda: client.post("http://192.168.1.244:8000/v1/chat/completions", ...),
-        fallback=lambda: client.post("http://192.168.1.225:8100/v1/chat/completions", ...),
+        fallback=lambda: client.post("http://192.168.1.225:8000/v1/chat/completions", ...),
     )
 """
 
@@ -170,10 +170,9 @@ class InferenceCircuitBreakers:
 
     # Default configs per service type
     SERVICE_CONFIGS = {
-        "vllm-reasoning": CircuitBreakerConfig(failure_threshold=3, timeout=60.0),
-        "vllm-fast": CircuitBreakerConfig(failure_threshold=3, timeout=30.0),
-        "vllm-coding": CircuitBreakerConfig(failure_threshold=3, timeout=30.0),
-        "vllm-creative": CircuitBreakerConfig(failure_threshold=3, timeout=60.0),
+        "coordinator": CircuitBreakerConfig(failure_threshold=3, timeout=60.0),
+        "utility": CircuitBreakerConfig(failure_threshold=3, timeout=30.0),
+        "worker": CircuitBreakerConfig(failure_threshold=3, timeout=60.0),
         "litellm": CircuitBreakerConfig(failure_threshold=5, timeout=15.0),
         "qdrant": CircuitBreakerConfig(failure_threshold=5, timeout=10.0),
         "redis": CircuitBreakerConfig(failure_threshold=5, timeout=10.0),

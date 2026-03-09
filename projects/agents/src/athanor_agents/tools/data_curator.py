@@ -332,7 +332,7 @@ def parse_document(filepath: str, root: str = "personal") -> str:
 def analyze_content(text: str, instruction: str = "classify and summarize") -> str:
     """Use the local LLM to analyze text content.
 
-    Sends the text to Qwen3-32B for analysis — classification, summarization,
+    Sends the text to the local LLM for analysis — classification, summarization,
     entity extraction, or any other analysis task. Zero API cost.
 
     Args:

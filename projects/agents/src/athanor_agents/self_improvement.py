@@ -198,10 +198,9 @@ class CapabilityBenchmarks:
     async def _benchmark_inference_health(self) -> tuple[float, float, dict]:
         """Check all vLLM and LiteLLM endpoints."""
         endpoints = {
-            "vllm-reasoning": "http://192.168.1.244:8000/health",
-            "vllm-creative": "http://192.168.1.244:8002/health",
-            "vllm-coding": "http://192.168.1.244:8004/health",
-            "vllm-fast": "http://192.168.1.225:8100/health",
+            "coordinator": "http://192.168.1.244:8000/health",
+            "utility": "http://192.168.1.244:8002/health",
+            "worker": "http://192.168.1.225:8000/health",
             "litellm": "http://192.168.1.203:4000/health",
             "embedding": "http://192.168.1.189:8001/health",
         }

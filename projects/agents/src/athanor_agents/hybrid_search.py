@@ -4,7 +4,7 @@ Combines Qdrant vector search with Qdrant payload text matching
 for ~18.5% retrieval accuracy improvement over vector-only search.
 
 Catches exact matches that vector search misses (e.g., "ADR-017",
-"Qwen3-32B-AWQ", specific IP addresses, model names).
+"Qwen3.5-27B-FP8", specific IP addresses, model names).
 
 Algorithm: Reciprocal Rank Fusion (RRF)
   rrf_score = sum(weight_i / (k + rank_i + 1))

@@ -153,9 +153,9 @@ REMEDIATION_SUGGESTIONS = {
             "Unload unused models via LiteLLM config",
         ],
         "vLLM endpoint down": [
-            "Check systemd: ssh node1 'sudo systemctl status vllm-*'",
-            "Check logs: ssh node1 'journalctl -u vllm-reasoning -n 50'",
-            "Restart: ansible-playbook playbooks/foundry.yml --tags vllm",
+            "Check container: ssh foundry 'docker ps | grep vllm'",
+            "Check logs: ssh foundry 'docker logs vllm-coordinator --tail 50'",
+            "Restart: ssh foundry 'cd /opt/athanor/vllm-phase2 && docker compose up -d'",
         ],
         "LiteLLM proxy down": [
             "Check container: python3 scripts/vault-ssh.py 'docker ps | grep litellm'",
@@ -220,7 +220,7 @@ REMEDIATION_SUGGESTIONS = {
 
 # Athanor critical services
 CRITICAL_SERVICES = [
-    "vllm-reasoning", "vllm-fast", "litellm", "qdrant",
+    "coordinator", "utility", "worker", "litellm", "qdrant",
     "redis", "neo4j", "athanor-agents", "grafana",
 ]
 
@@ -744,12 +744,11 @@ def create_diagnosis_router():
         import httpx
 
         endpoints = {
-            "vllm-reasoning": "http://192.168.1.244:8000/health",
-            "vllm-coding": "http://192.168.1.244:8004/health",
-            "vllm-creative": "http://192.168.1.244:8002/health",
-            "vllm-fast": "http://192.168.1.225:8100/health",
+            "coordinator": "http://192.168.1.244:8000/health",
+            "utility": "http://192.168.1.244:8002/health",
+            "worker": "http://192.168.1.225:8000/health",
             "litellm": "http://192.168.1.203:4000/health",
-            "embedding": "http://192.168.1.244:8001/health",
+            "embedding": "http://192.168.1.189:8001/health",
         }
 
         results = {}

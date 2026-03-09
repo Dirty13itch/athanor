@@ -39,7 +39,7 @@ MIN_PENDING_TASKS = 2  # Generate more when queue drops below this
 # LLM config for planning
 _LLM_URL = settings.llm_base_url + "/chat/completions"
 _LLM_KEY = settings.llm_api_key
-_LLM_MODEL = "reasoning"  # Qwen3-32B-AWQ
+_LLM_MODEL = "reasoning"  # Qwen3.5-27B-FP8 TP=4 on FOUNDRY
 
 # --- Project Definitions ---
 # These define what the system knows about each project and what it needs.
