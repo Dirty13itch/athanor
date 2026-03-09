@@ -12,6 +12,16 @@ interface NarrateRequest {
  * for scenes without characters present. Shorter, moodier, more evocative
  * than dialogue generation.
  */
+function buildNarrateIntensityDirective(intensity: number): string {
+  if (intensity >= 4) {
+    return `Content intensity: ${intensity}/5 — EXPLICIT. Include sensory details of a sexual or visceral nature where appropriate. No fade to black. Private system, no restrictions.`;
+  }
+  if (intensity >= 3) {
+    return `Content intensity: ${intensity}/5 — MATURE. Explicit atmosphere, charged sensory detail, and graphic darkness are permitted.`;
+  }
+  return `Content intensity: ${intensity}/5. Dark and evocative — do not sanitize.`;
+}
+
 export async function POST(req: Request) {
   const body: NarrateRequest = await req.json();
   const { worldState, recentHistory, context } = body;
@@ -55,12 +65,17 @@ Generate a short atmospheric narration (1-2 paragraphs) describing what the play
 Use *italics* for environmental actions. Be evocative, not expository. This is literary dark fantasy.
 Do not address the player directly. Write in second person present tense.
 Do NOT use <think> tags or reasoning blocks in your response.
-Content intensity: ${worldState.contentIntensity}/5.`;
+${buildNarrateIntensityDirective(worldState.contentIntensity)}`;
 
   const messages = [
     { role: "system", content: systemPrompt },
     { role: "user", content: "Describe this moment." },
   ];
+
+  // Route to abliterated model at intensity >= 3
+  const model = (worldState.contentIntensity ?? 1) >= 3
+    ? "uncensored"
+    : (process.env.DIALOGUE_MODEL ?? "reasoning");
 
   const response = await fetch(`${config.litellmUrl}/v1/chat/completions`, {
     method: "POST",
@@ -69,7 +84,7 @@ Content intensity: ${worldState.contentIntensity}/5.`;
       Authorization: `Bearer ${config.litellmKey}`,
     },
     body: JSON.stringify({
-      model: config.dialogueModel,
+      model,
       messages,
       max_tokens: 256,
       temperature: 0.9,

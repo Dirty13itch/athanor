@@ -45,10 +45,19 @@
       "batch_size": 1
     }
   },
+  "11": {
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": { "title": "Uncensored LoRA" },
+    "inputs": {
+      "model": ["1", 0],
+      "lora_name": "flux-uncensored.safetensors",
+      "strength_model": 0.85
+    }
+  },
   "7": {
     "class_type": "KSampler",
     "inputs": {
-      "model": ["1", 0],
+      "model": ["11", 0],
       "seed": 123,
       "steps": 25,
       "cfg": 1.0,
