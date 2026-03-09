@@ -107,15 +107,15 @@ All 9 agents report to Claude (COO) and are coordinated via the task API and MCP
 
 | Agent | Model | Temperature | Mode | Tools | Status |
 |-------|-------|-------------|------|-------|--------|
-| General Assistant | reasoning (32B) | 0.7 | Reactive + Proactive (30min) | 9 (4 system + 2 delegation + 3 filesystem) | Live |
-| Media Agent | reasoning (32B) | 0.7 | Reactive + Proactive (15min) | 13 (Sonarr + Radarr + Plex) | Live |
-| Home Agent | reasoning (32B) | 0.7 | Reactive + Proactive (5min) | 8 (HA control) | Live |
-| Research Agent | reasoning (32B) | 0.7 | Reactive | 4 (web search + knowledge) | Live |
-| Creative Agent | reasoning (32B) | 0.8 | Reactive | 5 (ComfyUI image + video) | Live |
-| Knowledge Agent | reasoning (32B) | 0.3 | Reactive | 5 (Qdrant + Neo4j) | Live |
-| Coding Agent | reasoning (32B) | 0.3 | Reactive | 9 (4 coding + 5 execution) | Live |
-| Stash Agent | reasoning (32B) | 0.7 | Reactive | 12 (Stash GraphQL) | Live |
-| Data Curator | reasoning (32B) | 0.5 | Reactive | 7 (data processing) | Live |
+| General Assistant | reasoning | 0.7 | Reactive + Proactive (30min) | 9 (4 system + 2 delegation + 3 filesystem) | Live |
+| Media Agent | reasoning | 0.7 | Reactive + Proactive (15min) | 13 (Sonarr + Radarr + Plex) | Live |
+| Home Agent | reasoning | 0.7 | Reactive + Proactive (5min) | 8 (HA control) | Live |
+| Research Agent | reasoning | 0.7 | Reactive | 4 (web search + knowledge) | Live |
+| Creative Agent | reasoning | 0.8 | Reactive | 5 (ComfyUI image + video) | Live |
+| Knowledge Agent | reasoning | 0.3 | Reactive | 5 (Qdrant + Neo4j) | Live |
+| Coding Agent | reasoning | 0.3 | Reactive | 9 (4 coding + 5 execution) | Live |
+| Stash Agent | reasoning | 0.7 | Reactive | 12 (Stash GraphQL) | Live |
+| Data Curator | reasoning | 0.5 | Reactive | 7 (data processing) | Live |
 
 All agents are LangGraph `create_react_agent` instances with tool-calling and in-memory conversation checkpointing. They expose an OpenAI-compatible chat completions API at Node 1:9000. Claude coordinates them via the MCP bridge (`scripts/mcp-athanor-agents.py`) and task API (`POST /v1/tasks`).
 
@@ -192,7 +192,7 @@ Thresholds are per-agent and per-action-type:
 | **Voice** | Shaun | STT/TTS/wake word via HA Wyoming integration |
 | **Mobile** | Shaun | Command Center PWA (responsive), Claudeman (HTTPS) |
 
-The Command Center is the primary dashboard — a Next.js PWA with dark theme, 5 lens modes, live system metrics, generative UI, and chat to any of the 8 agents. Claude operates through Claude Code / claude-squad, directing the local agent workforce via the task API and MCP bridge.
+The Command Center is the primary dashboard — a Next.js PWA with dark theme, 5 lens modes, live system metrics, generative UI, and chat to any of the 9 agents. Claude operates through Claude Code / claude-squad, directing the local agent workforce via the task API and MCP bridge.
 
 ### Transparency Model
 
