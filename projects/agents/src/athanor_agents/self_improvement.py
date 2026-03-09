@@ -251,9 +251,10 @@ class CapabilityBenchmarks:
 
     async def _benchmark_memory_recall(self) -> tuple[float, float, dict]:
         """Check Qdrant collections are healthy and searchable."""
+        from .config import settings
         async with httpx.AsyncClient(timeout=5.0) as client:
             try:
-                resp = await client.get("http://192.168.1.203:6333/collections")
+                resp = await client.get(f"{settings.qdrant_url}/collections")
                 if resp.status_code == 200:
                     collections = resp.json().get("result", {}).get("collections", [])
                     count = len(collections)
@@ -271,8 +272,9 @@ class CapabilityBenchmarks:
             try:
                 resp = await client.get("http://192.168.1.244:9000/v1/agents")
                 if resp.status_code == 200:
-                    agents = resp.json()
-                    count = len(agents) if isinstance(agents, list) else agents.get("count", 0)
+                    data = resp.json()
+                    agents = data.get("agents", data) if isinstance(data, dict) else data
+                    count = len(agents) if isinstance(agents, list) else 0
                     return min(count * 12, 100), 100, {"agents": count}
                 return 0, 100, {"error": f"status_{resp.status_code}"}
             except Exception as e:
