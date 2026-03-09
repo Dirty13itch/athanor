@@ -994,11 +994,19 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Priority:** Done
 
 ### 18.3 — Continue.dev IDE Integration
-- **Status:** 🔲 todo (no VS Code on DEV currently)
-- **Scope:** Install VS Code + Continue.dev extension on DEV, configure to use FOUNDRY:8000 (Qwen3.5-27B-FP8) for autocomplete + inline chat. Zero-latency local inference. Identified as single highest-ROI daily-use action.
+- **Status:** ✅ done (Session 49, 2026-03-09)
+- **Scope:** Installed VS Code 1.110.1 via Microsoft apt repo, Continue.dev v1.2.16 extension. Configured `~/.continue/config.json` pointing at LiteLLM on VAULT:4000.
+  - Chat: `reasoning` (Qwen3.5-27B-FP8 TP=4) — best quality for code discussion
+  - Worker: `worker` (Qwen3.5-35B-A3B-AWQ on WORKSHOP) — alternative MoE model
+  - Autocomplete: `fast` (Qwen3-8B on FOUNDRY GPU2) — speed-optimized, `enable_thinking: false` to suppress Qwen3 think tags
+  - Embeddings: `embedding` (Qwen3-Embedding-0.6B on DEV) — local, low latency
+  - Context providers: code, docs, diff, terminal, problems, folder, codebase
+  - Slash commands: edit, comment, share, cmd, commit
+  - Telemetry: disabled
+- **Verified:** LiteLLM returns 200 for both models. `fast` model with `enable_thinking: false` produces clean output (tested before/after).
 - **Research:** `docs/research/2026-03-09-local-ai-productivity-patterns.md` §10
 - **Depends on:** None
-- **Priority:** P2
+- **Priority:** Done
 
 ### 18.4 — HippoRAG Entity Extraction (Full GraphRAG)
 - **Status:** 🔲 todo

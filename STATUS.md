@@ -16,6 +16,8 @@
 | Aider | Installed | `~/.local/bin/aider`, config at `.aider.conf.yml` |
 | Goose | Installed | v1.27.2 at `/usr/local/bin/goose`, config at `~/.config/goose/profiles.yaml` |
 | claude-squad | Installed | v1.0.16 at `/usr/local/bin/cs` |
+| VS Code | v1.110.1 | Installed via Microsoft apt repo |
+| Continue.dev | v1.2.16 | `~/.continue/config.json` → LiteLLM:4000. Chat: reasoning/worker. Autocomplete: fast (8B, thinking disabled). Embeddings: embedding. |
 
 ## MCP Servers
 
@@ -136,6 +138,22 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 - 8.4 Dedicated Coding Model (deferred)
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
+
+## Session 49 (2026-03-09) Summary
+
+### Completed This Session
+- **Continue.dev IDE Integration** (18.3):
+  - VS Code v1.110.1 installed via Microsoft apt repo (Ubuntu 24.04)
+  - Continue.dev v1.2.16 extension installed headlessly
+  - `~/.continue/config.json`: Chat → `reasoning` (Qwen3.5-27B-FP8) + `worker` (35B-A3B on WORKSHOP); Autocomplete → `fast` (Qwen3-8B, `enable_thinking: false`); Embeddings → `embedding` (Qwen3-Embedding-0.6B)
+  - **Verified:** LiteLLM 200, `reasoning` model chat works, `fast` model with thinking disabled produces clean output
+  - `drop_params: true` in LiteLLM does NOT strip `chat_template_kwargs` — verified by test
+
+### Next Actions
+1. HippoRAG entity extraction (18.4) — NER at index time, upgrade category-based to entity-based graph expansion
+2. LangFuse per-agent metadata: thread `agent_name` through LangChain callbacks to LiteLLM → LangFuse
+3. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+4. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
 
 ## Session 48 (2026-03-09) Summary
 
