@@ -68,6 +68,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Athanor Agent Server", version="0.3.0", lifespan=lifespan)
 
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # --- Agent metadata (single source of truth) ---
 
@@ -363,28 +371,70 @@ async def add_preference(request: Request):
 
 @app.get("/v1/notifications")
 async def get_notifications(include_resolved: bool = False):
-    """Get pending agent actions and notifications."""
+    """Get pending agent actions and notifications.
+
+    Merges two sources:
+    - escalation.py confidence-gated actions (tier=notify/ask)
+    - tasks.py pending_approval tasks (require explicit human approval)
+    """
     from .escalation import get_pending, get_unread_count
+    from .tasks import list_tasks
 
     items = get_pending(include_resolved=include_resolved)
+
+    # Merge pending_approval tasks as notifications
+    pending_tasks = await list_tasks(status="pending_approval", limit=50)
+    for t in pending_tasks:
+        meta = t.get("metadata", {})
+        category = meta.get("category", "routine")
+        prompt = t.get("prompt", "")
+        items.append({
+            "id": f"task-{t['id']}",
+            "tier": "ask",
+            "agent": t["agent"],
+            "action": prompt[:120],
+            "category": category,
+            "confidence": 0.0,
+            "description": f"Auto-generated task (priority: {t.get('priority', 'normal')}). Approve to queue for execution.",
+            "created_at": t.get("created_at", 0),
+            "resolved": False,
+            "resolution": "",
+        })
+
     return {
         "notifications": items,
         "count": len(items),
-        "unread": get_unread_count(),
+        "unread": get_unread_count() + len(pending_tasks),
     }
 
 
 @app.post("/v1/notifications/{action_id}/resolve")
 async def resolve_notification(action_id: str, request: Request):
-    """Approve or reject a pending agent action.
+    """Approve or reject a pending agent action or task.
 
     Body: {"approved": true} or {"approved": false}
-    """
-    from .escalation import resolve_action
 
+    IDs prefixed with "task-" route to the task approval system.
+    All other IDs route to the escalation system.
+    """
     body = await request.json()
     approved = body.get("approved", False)
 
+    if action_id.startswith("task-"):
+        from .tasks import approve_task, cancel_task
+        task_id = action_id[len("task-"):]
+        if approved:
+            ok = await approve_task(task_id)
+        else:
+            ok = await cancel_task(task_id)
+        if ok:
+            return {"status": "resolved", "id": action_id, "approved": approved}
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task '{task_id}' not found or not awaiting approval"},
+        )
+
+    from .escalation import resolve_action
     if resolve_action(action_id, approved):
         return {"status": "resolved", "id": action_id, "approved": approved}
     return JSONResponse(
