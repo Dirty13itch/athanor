@@ -1,45 +1,50 @@
 #!/usr/bin/env bash
-# Deploy agent changes from local repo to Node 1 and rebuild
-# Usage: ./scripts/deploy-agents.sh
+# Deploy agent server to FOUNDRY — sync, build, restart
+# Usage: ./scripts/deploy-agents.sh [--no-build]
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SSH_KEY="${HOME}/.ssh/athanor_mgmt"
-NODE1="athanor@192.168.1.244"
+FOUNDRY="foundry"
 REMOTE_DIR="/opt/athanor/agents"
-SRC_DIR="${REPO_DIR}/services/node1/agents"
+SRC_DIR="${REPO_DIR}/projects/agents"
 
-echo "=== Deploying agents to Node 1 ==="
+echo "=== Deploying Athanor Agent Server to FOUNDRY ==="
 
 # Sync source code
-echo "Syncing source..."
+echo "[1/3] Syncing source..."
 rsync -avz --delete \
     --exclude='__pycache__' \
-    --exclude='.pyc' \
-    -e "ssh -i ${SSH_KEY}" \
-    "${SRC_DIR}/src/" "${NODE1}:${REMOTE_DIR}/src/"
+    --exclude='*.pyc' \
+    "${SRC_DIR}/src/" "${FOUNDRY}:${REMOTE_DIR}/src/"
 
 # Sync build files
-echo "Syncing build files..."
-for f in Dockerfile pyproject.toml; do
-    scp -i "${SSH_KEY}" "${SRC_DIR}/${f}" "${NODE1}:${REMOTE_DIR}/${f}"
-done
+rsync -avz \
+    "${SRC_DIR}/Dockerfile" \
+    "${SRC_DIR}/pyproject.toml" \
+    "${SRC_DIR}/docker-compose.yml" \
+    "${FOUNDRY}:${REMOTE_DIR}/"
+
+if [[ "${1:-}" == "--no-build" ]]; then
+    echo "[2/3] Skipped (--no-build)"
+    echo "[3/3] Code synced — container not rebuilt"
+    exit 0
+fi
 
 # Rebuild and restart
-echo "Rebuilding container..."
-ssh -i "${SSH_KEY}" "${NODE1}" "cd ${REMOTE_DIR} && docker compose up -d --build"
+echo "[2/3] Building and restarting..."
+ssh "${FOUNDRY}" "cd ${REMOTE_DIR} && docker compose build -q && docker compose up -d"
 
 # Wait for health
-echo "Waiting for agent server..."
-for i in $(seq 1 30); do
-    if ssh -i "${SSH_KEY}" "${NODE1}" "curl -sf http://localhost:9000/v1/models" > /dev/null 2>&1; then
-        echo "Agent server healthy!"
-        ssh -i "${SSH_KEY}" "${NODE1}" "curl -s http://localhost:9000/v1/models" | python3 -m json.tool
+echo "[3/3] Verifying health..."
+for i in $(seq 1 20); do
+    if curl -sf http://192.168.1.244:9000/health > /dev/null 2>&1; then
+        AGENTS=$(curl -s http://192.168.1.244:9000/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'{len(d[\"agents\"])} agents healthy')")
+        echo "=== Deploy complete — ${AGENTS} ==="
         exit 0
     fi
     sleep 2
 done
 
-echo "ERROR: Agent server did not become healthy within 60s"
-ssh -i "${SSH_KEY}" "${NODE1}" "docker logs athanor-agents --tail 20"
+echo "ERROR: Agent server did not become healthy within 40s"
+ssh "${FOUNDRY}" "docker logs athanor-agents --tail 20"
 exit 1
