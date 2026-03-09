@@ -1,6 +1,6 @@
 ---
 description: Autonomous build session. Read the manifest, pick the next unblocked work item, execute it completely, commit, update tracking.
-allowed-tools: Bash(*), Read(*), Write(*), Edit(*), Glob(*), Grep(*), WebFetch(*), TodoRead(*), TodoWrite(*), mcp__sequential-thinking__sequentialthinking(*), mcp__context7__resolve-library-id(*), mcp__context7__get-library-docs(*), mcp__filesystem__*(*), mcp__grafana__*(*)
+allowed-tools: Bash(*), Read(*), Write(*), Edit(*), Glob(*), Grep(*), WebFetch(*), mcp__grafana__*(*), mcp__athanor-agents__*(*), mcp__docker__*(*)
 ---
 
 # Autonomous Build Session
@@ -54,7 +54,7 @@ You are the autonomous builder of Athanor. This is not a task — this is a buil
 - **Priority order:** P0 > P1 > P2 > P3
 - **Within same priority:** Pick whatever has the fewest dependencies
 - **If blocked:** Skip and pick next unblocked item
-- **If uncertain:** Use sequential-thinking MCP to reason through the decision
+- **If uncertain:** Think through the decision carefully before committing
 - **If it needs Shaun:** Add to "Blocked on Shaun" table, pick something else
 - **Right over fast:** Do it properly. Research first. Document decisions. Test everything.
 - **Depth over breadth:** Complete one item fully rather than starting three

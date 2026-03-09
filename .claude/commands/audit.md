@@ -1,11 +1,9 @@
 ---
 description: Audit a node's hardware by connecting to it and discovering what's installed. Produces a complete hardware inventory.
-allowed-tools: Bash(ssh:*), Bash(curl:*), Bash(ping:*), Bash(nmap:*), Bash(cat:*), Bash(powershell:*), Read, Write, Edit, mcp__desktop-commander__*
+allowed-tools: Bash(ssh:*), Bash(curl:*), Bash(ping:*), Bash(nmap:*), Bash(cat:*), Bash(powershell:*), Read, Write, Edit
 ---
 
 Audit the hardware on: $ARGUMENTS
-
-Use Desktop Commander for persistent SSH sessions when possible — it maintains state between commands unlike basic bash.
 
 If the target is "vault":
 - SSH via `python3 scripts/vault-ssh.py` (paramiko — credentials in vault-password file)
@@ -23,8 +21,8 @@ If the target is "node2":
 - Same commands as node1
 
 If the target is "dev":
-- This is the local Windows machine — use powershell commands
-- Get-ComputerInfo, Get-CimInstance Win32_Processor, GPU info via nvidia-smi or Get-CimInstance Win32_VideoController
+- This is the local Linux machine (Ryzen 9 9900X, RTX 5060 Ti)
+- Run locally: lscpu, free -h, lspci -nn, lsblk, ip addr, nvidia-smi, docker ps
 
 If the target is "network":
 - Scan the subnet: nmap -sn 192.168.1.0/24

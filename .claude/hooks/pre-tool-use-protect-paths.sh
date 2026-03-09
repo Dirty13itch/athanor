@@ -1,13 +1,17 @@
 #!/bin/bash
 # PreToolUse hook: Block writes to protected paths
-# Matcher: Write|Edit
+# Matcher: Edit|Write|MultiEdit
 # Protects: VAULT Unraid configs, SSH keys, parity assignments
 
-# Read the tool input from stdin
 INPUT=$(cat)
 
-# Extract file path from the input
-FILE_PATH=$(echo "$INPUT" | grep -oP '"file_path"\s*:\s*"([^"]*)"' | head -1 | sed 's/.*"file_path"\s*:\s*"//;s/"$//')
+# Extract file path using jq
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+
+# Fallback to grep if jq fails
+if [ -z "$FILE_PATH" ]; then
+  FILE_PATH=$(echo "$INPUT" | grep -oP '"file_path"\s*:\s*"([^"]*)"' | head -1 | sed 's/.*"file_path"\s*:\s*"//;s/"$//')
+fi
 
 # Protected patterns
 PROTECTED_PATTERNS=(

@@ -51,7 +51,10 @@
       "Bash(chmod:*)",
       "mcp__grafana__*",
       "mcp__athanor-agents__*",
-      "mcp__docker__*"
+      "mcp__docker__*",
+      "mcp__redis__*",
+      "mcp__qdrant__*",
+      "mcp__smart-reader__*"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
@@ -63,15 +66,25 @@
       "Bash(shutdown:*)",
       "Bash(sudo shutdown:*)",
       "Bash(reboot:*)",
-      "Bash(sudo reboot:*)"
+      "Bash(sudo reboot:*)",
+      "Read(./.env)",
+      "Read(./.env.*)"
     ]
   },
   "enableAllProjectMcpServers": true,
+  "alwaysThinkingEnabled": true,
+  "statusLine": {
+    "type": "command",
+    "command": "bash .claude/hooks/statusline.sh 2>/dev/null || echo 'status unavailable'"
+  },
+  "plansDirectory": ".claude/plans",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80",
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0",
-    "ENABLE_TOOL_SEARCH": "auto:5"
+    "BASH_DEFAULT_TIMEOUT_MS": "120000",
+    "BASH_MAX_TIMEOUT_MS": "600000",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000"
   },
   "hooks": {
     "PreToolUse": [
@@ -136,6 +149,28 @@
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/post-tool-use-failure.sh"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/task-completed-notify.sh"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
@@ -143,6 +178,17 @@
           {
             "type": "command",
             "command": "bash .claude/hooks/stop-autocommit.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-end.sh"
           }
         ]
       }

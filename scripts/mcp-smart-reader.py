@@ -34,7 +34,7 @@ LITELLM_MODEL = os.environ.get("LITELLM_MODEL", "reasoning")
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "192.168.1.203")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
-REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "athanor2026")
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "Jv1Vg9HAML2jHGWjFnTCcIsqSzqZfIQz")
 CACHE_TTL = int(os.environ.get("CACHE_TTL", "3600"))  # 1 hour
 
 CHARS_PER_TOKEN = 4  # rough estimate

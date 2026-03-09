@@ -24,8 +24,19 @@
         "ATHANOR_AGENT_URL": "http://192.168.1.244:9000"
       }
     },
+    "redis": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["scripts/mcp-redis.py"],
+      "env": {}
+    },
+    "qdrant": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["scripts/mcp-qdrant.py"],
+      "env": {}
+    },
     "smart-reader": {
-      "disabled": true,
       "type": "stdio",
       "command": "python3",
       "args": ["scripts/mcp-smart-reader.py"],

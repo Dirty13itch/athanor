@@ -4,6 +4,9 @@ description: Audits hardware inventory, network topology, node configurations, a
 model: opus
 isolation: worktree
 memory: project
+skills:
+  - network-diagnostics
+  - verify-inventory
 allowed-tools:
   - Read
   - Bash(cat *)

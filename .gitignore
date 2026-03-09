@@ -47,4 +47,7 @@ logs/endpoint-tests/
 
 # Claude Code
 .claude/settings.local.json
+.claude/CLAUDE.local.md
 .claude/worktrees/
+.claude/plans/
+.claude/agent-memory/

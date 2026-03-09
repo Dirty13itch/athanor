@@ -5,8 +5,13 @@
 
 INPUT=$(cat)
 
-# Extract the command from tool input
-COMMAND=$(echo "$INPUT" | grep -oP '"command"\s*:\s*"([^"]*)"' | head -1 | sed 's/.*"command"\s*:\s*"//;s/"$//')
+# Extract the command from tool input using jq
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+
+# Fallback to grep if jq fails
+if [ -z "$COMMAND" ]; then
+  COMMAND=$(echo "$INPUT" | grep -oP '"command"\s*:\s*"([^"]*)"' | head -1 | sed 's/.*"command"\s*:\s*"//;s/"$//')
+fi
 
 # Dangerous patterns to block
 BLOCKED_PATTERNS=(

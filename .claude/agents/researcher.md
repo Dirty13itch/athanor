@@ -7,6 +7,10 @@ isolation: worktree
 memory: project
 allowed-tools:
   - Read
+  - Grep
+  - Glob
+  - WebFetch
+  - WebSearch
   - Bash(cat *)
   - Bash(grep *)
   - Bash(curl *)
@@ -32,10 +36,10 @@ Check `docs/research/` first — there are 20+ existing research docs with dates
 Check `docs/decisions/` — 12 ADRs already made. Understand current architectural choices before proposing alternatives.
 
 ## Domain Knowledge
-- Inference: SGLang/vLLM (ADR-005), Qwen3-32B-AWQ current model
+- Inference: vLLM (ADR-005), Qwen3.5-27B-FP8 coordinator + Qwen3.5-35B-A3B-AWQ worker
 - Memory/RAG: Qdrant + Neo4j
 - Orchestration: LiteLLM routing (ADR-012), LangGraph agents
-- Hardware: EPYC 7663, Ryzen 9950X, TR 7960X, i7-13700K
+- Hardware: EPYC 7663, Ryzen 9950X, TR 7960X, Ryzen 9900X
 - Networking: 10GbE current, InfiniBand EDR target
 - Media: Plex + Sonarr + Radarr + Tautulli (ADR-011)
 

@@ -1,13 +1,13 @@
 ---
 description: Research a topic for Athanor. Search current information, document findings with citations, flag contradictions with existing decisions.
-allowed-tools: WebFetch, Task, Bash(curl:*), Bash(cat:*), Read, Write, Edit, Grep, Glob, mcp__context7__*, mcp__brave-search__*, mcp__sequential-thinking__*, mcp__desktop-commander__*
+allowed-tools: WebFetch, WebSearch, Agent, Bash(curl:*), Bash(cat:*), Read, Write, Edit, Grep, Glob
 ---
 
 Research the topic: $ARGUMENTS
 
-1. Use sequential thinking to break down what needs to be researched
+1. Break down what needs to be researched
 2. Search for current information — prioritize official docs, benchmarks, GitHub repos, real user experiences
-3. Cross-reference with Context7 for library/framework docs
+3. Use WebSearch and WebFetch for current information
 4. Check docs/research/ for prior notes on this topic
 5. Check docs/decisions/ for any existing ADRs this might affect
 6. Document findings in docs/research/YYYY-MM-DD-{topic-slug}.md with:
