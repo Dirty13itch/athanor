@@ -9,10 +9,12 @@ class Settings(BaseSettings):
     llm_model_fast: str = "fast"  # LiteLLM alias → Qwen3.5-35B-A3B-AWQ on WORKSHOP
 
     # Tiered router settings (Phase 1: Tiered Processing Router)
+    # Tactical uses worker (35B-A3B-AWQ, 4.2s avg) — equal quality to reasoning but 12x faster.
+    # A/B eval 2026-03-09: both 100%, reasoning avg 50.8s exceeds 30s tactical timeout.
     router_reactive_model: str = "fast"
     router_reactive_max_tokens: int = 256
     router_reactive_temperature: float = 0.3
-    router_tactical_model: str = "reasoning"
+    router_tactical_model: str = "worker"
     router_tactical_max_tokens: int = 1024
     router_deliberative_model: str = "reasoning"
     router_deliberative_max_tokens: int = 4096
