@@ -21,7 +21,8 @@
       "mcp__postgres__*",
       "mcp__gitea__*",
       "mcp__langfuse__*",
-      "mcp__miniflux__*"
+      "mcp__miniflux__*",
+      "mcp__n8n__*"
     ]
   },
   "enableAllProjectMcpServers": true,
@@ -37,7 +38,8 @@
     "postgres",
     "gitea",
     "langfuse",
-    "miniflux"
+    "miniflux",
+    "n8n"
   ],
   "sandbox": {
     "enabled": false,

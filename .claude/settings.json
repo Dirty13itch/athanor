@@ -24,7 +24,8 @@
       "mcp__postgres__*",
       "mcp__gitea__*",
       "mcp__langfuse__*",
-      "mcp__miniflux__*"
+      "mcp__miniflux__*",
+      "mcp__n8n__*"
     ],
     "deny": [
       "Bash(rm -rf /:*)",

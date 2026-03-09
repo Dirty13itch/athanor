@@ -86,6 +86,15 @@
         "MINIFLUX_PASSWORD": "${MINIFLUX_PASSWORD}"
       }
     },
+    "n8n": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@illuminaresolutions/n8n-mcp-server"],
+      "env": {
+        "N8N_BASE_URL": "http://192.168.1.203:5678",
+        "N8N_API_KEY": "${N8N_API_KEY}"
+      }
+    },
     "gitea": {
       "type": "stdio",
       "command": "bash",
