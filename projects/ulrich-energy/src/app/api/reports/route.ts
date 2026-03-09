@@ -1,38 +1,76 @@
 import { NextResponse } from "next/server";
+import { query, queryOne } from "@/lib/db";
 import type { ReportListItem, GenerateReportRequest } from "@/types/report";
 
-const mockReports: ReportListItem[] = [
-  {
-    id: "rpt-001",
-    inspectionId: "insp-002",
-    address: "5678 Elm Ave, Plymouth, MN 55447",
-    hersIndex: 52,
-    status: "generated",
-    generatedAt: "2026-03-05T16:00:00Z",
-  },
-  {
-    id: "rpt-002",
-    inspectionId: "insp-003",
-    address: "910 Birch Lane, Eden Prairie, MN 55344",
-    hersIndex: 48,
-    status: "delivered",
-    generatedAt: "2026-03-01T12:00:00Z",
-  },
-];
+type DbRow = {
+  id: string;
+  inspection_id: string;
+  address: string;
+  hers_index: number | null;
+  status: string;
+  generated_at: string | null;
+};
 
 export async function GET() {
-  return NextResponse.json({ reports: mockReports });
+  try {
+    const rows = await query<DbRow>(`
+      SELECT r.id, r.inspection_id, i.address, r.hers_index, r.status, r.generated_at
+      FROM reports r
+      JOIN inspections i ON r.inspection_id = i.id
+      ORDER BY r.created_at DESC
+      LIMIT 100
+    `);
+    const reports: ReportListItem[] = rows.map((r) => ({
+      id: r.id,
+      inspectionId: r.inspection_id,
+      address: r.address,
+      hersIndex: r.hers_index,
+      status: r.status as ReportListItem["status"],
+      generatedAt: r.generated_at,
+    }));
+    return NextResponse.json({ reports });
+  } catch (err) {
+    console.error("GET /api/reports error:", err);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   const body = (await request.json()) as GenerateReportRequest;
-  const newReport: ReportListItem = {
-    id: `rpt-${Date.now()}`,
-    inspectionId: body.inspectionId,
-    address: "Pending address lookup",
-    hersIndex: null,
-    status: "draft",
-    generatedAt: null,
-  };
-  return NextResponse.json({ report: newReport }, { status: 201 });
+
+  if (!body.inspectionId) {
+    return NextResponse.json(
+      { error: "inspectionId is required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const row = await queryOne<DbRow>(`
+      INSERT INTO reports (inspection_id, compliance_standard, template_id, status)
+      VALUES ($1, $2, $3, 'draft')
+      RETURNING id, inspection_id, status, hers_index, generated_at,
+                (SELECT address FROM inspections WHERE id = $1) AS address
+    `, [
+      body.inspectionId,
+      body.complianceStandard ?? "minnesota_energy_code",
+      body.templateId ?? "standard",
+    ]);
+
+    if (!row) throw new Error("Insert returned no row");
+
+    const report: ReportListItem = {
+      id: row.id,
+      inspectionId: row.inspection_id,
+      address: row.address,
+      hersIndex: row.hers_index,
+      status: row.status as ReportListItem["status"],
+      generatedAt: row.generated_at,
+    };
+
+    return NextResponse.json({ report }, { status: 201 });
+  } catch (err) {
+    console.error("POST /api/reports error:", err);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
 }

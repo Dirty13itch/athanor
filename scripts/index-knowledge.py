@@ -40,6 +40,7 @@ COLLECTION = "knowledge"
 EMBEDDING_DIM = 1024
 CHUNK_SIZE = 1500  # chars per chunk (with overlap)
 CHUNK_OVERLAP = 200
+EMBEDDING_MODEL = "Qwen3-Embedding-0.6B"  # Model serving the `embedding` LiteLLM route
 
 
 def content_hash(text: str) -> str:
@@ -263,7 +264,9 @@ def index_file(filepath: Path, batch: list[dict], file_hash: str) -> int:
                 "chunk_index": i,
                 "total_chunks": len(chunks),
                 "indexed_at": indexed_at,
+                "embedded_at": indexed_at,
                 "content_hash": file_hash,
+                "embedding_model": EMBEDDING_MODEL,
                 "text": chunk,
             },
         })

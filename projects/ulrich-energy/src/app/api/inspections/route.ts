@@ -1,48 +1,89 @@
 import { NextResponse } from "next/server";
+import { query, queryOne } from "@/lib/db";
 import type { InspectionListItem, CreateInspectionRequest } from "@/types/inspection";
 
-const mockInspections: InspectionListItem[] = [
-  {
-    id: "insp-001",
-    address: "1234 Oak Street, Maple Grove, MN 55369",
-    builder: "Lennar Homes",
-    inspector: "Shaun",
-    status: "draft",
-    createdAt: "2026-03-07T09:00:00Z",
-  },
-  {
-    id: "insp-002",
-    address: "5678 Elm Ave, Plymouth, MN 55447",
-    builder: "Pulte Homes",
-    inspector: "Shaun",
-    status: "reported",
-    createdAt: "2026-03-05T14:30:00Z",
-    hersIndex: 52,
-  },
-  {
-    id: "insp-003",
-    address: "910 Birch Lane, Eden Prairie, MN 55344",
-    builder: "David Weekley",
-    inspector: "Shaun",
-    status: "delivered",
-    createdAt: "2026-03-01T10:00:00Z",
-    hersIndex: 48,
-  },
-];
+type DbRow = {
+  id: string;
+  address: string;
+  builder: string;
+  inspector: string;
+  status: string;
+  created_at: string;
+  hers_index: number | null;
+};
 
-export async function GET() {
-  return NextResponse.json({ inspections: mockInspections });
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get("status");
+  const builder = searchParams.get("builder");
+
+  let sql = `SELECT id, address, builder, inspector, status, created_at, hers_index
+             FROM inspections`;
+  const params: string[] = [];
+  const conditions: string[] = [];
+
+  if (status) {
+    params.push(status);
+    conditions.push(`status = $${params.length}`);
+  }
+  if (builder) {
+    params.push(`%${builder}%`);
+    conditions.push(`builder ILIKE $${params.length}`);
+  }
+  if (conditions.length > 0) {
+    sql += ` WHERE ${conditions.join(" AND ")}`;
+  }
+  sql += ` ORDER BY created_at DESC LIMIT 100`;
+
+  try {
+    const rows = await query<DbRow>(sql, params);
+    const inspections: InspectionListItem[] = rows.map((r) => ({
+      id: r.id,
+      address: r.address,
+      builder: r.builder,
+      inspector: r.inspector,
+      status: r.status as InspectionListItem["status"],
+      createdAt: r.created_at,
+      ...(r.hers_index !== null ? { hersIndex: r.hers_index } : {}),
+    }));
+    return NextResponse.json({ inspections });
+  } catch (err) {
+    console.error("GET /api/inspections error:", err);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   const body = (await request.json()) as CreateInspectionRequest;
-  const newInspection: InspectionListItem = {
-    id: `insp-${Date.now()}`,
-    address: body.address,
-    builder: body.builder,
-    inspector: body.inspector ?? "Shaun",
-    status: "draft",
-    createdAt: new Date().toISOString(),
-  };
-  return NextResponse.json({ inspection: newInspection }, { status: 201 });
+
+  if (!body.address || !body.builder) {
+    return NextResponse.json(
+      { error: "address and builder are required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const row = await queryOne<DbRow>(
+      `INSERT INTO inspections (project_id, address, builder, inspector)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, address, builder, inspector, status, created_at, hers_index`,
+      [body.projectId ?? null, body.address, body.builder, body.inspector ?? "Shaun"],
+    );
+
+    if (!row) throw new Error("Insert returned no row");
+
+    const inspection: InspectionListItem = {
+      id: row.id,
+      address: row.address,
+      builder: row.builder,
+      inspector: row.inspector,
+      status: "draft",
+      createdAt: row.created_at,
+    };
+    return NextResponse.json({ inspection }, { status: 201 });
+  } catch (err) {
+    console.error("POST /api/inspections error:", err);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
 }

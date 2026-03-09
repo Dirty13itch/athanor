@@ -1,75 +1,131 @@
 import { NextResponse } from "next/server";
+import { query, queryOne } from "@/lib/db";
 import type { Project, CreateProjectRequest } from "@/types/project";
 
-const mockProjects: Project[] = [
-  {
-    id: "proj-001",
-    name: "Oak Street New Construction",
-    clientId: "client-001",
-    client: {
-      id: "client-001",
-      name: "John Builder",
-      company: "Lennar Homes",
-      email: "john@lennarhomes.example.com",
-      phone: "612-555-0100",
-      createdAt: "2026-01-15T10:00:00Z",
-    },
+type DbRow = {
+  id: string;
+  name: string;
+  client_id: string;
+  client_name: string | null;
+  client_company: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  client_created_at: string | null;
+  address_street: string;
+  address_city: string;
+  address_state: string;
+  address_zip: string;
+  property_type: string;
+  builder_name: string;
+  status: string;
+  inspection_count: string;
+  created_at: string;
+  updated_at: string;
+};
+
+function rowToProject(r: DbRow): Project {
+  return {
+    id: r.id,
+    name: r.name,
+    clientId: r.client_id,
+    client: r.client_name
+      ? {
+          id: r.client_id,
+          name: r.client_name,
+          company: r.client_company ?? undefined,
+          email: r.client_email ?? "",
+          phone: r.client_phone ?? undefined,
+          createdAt: r.client_created_at ?? "",
+        }
+      : undefined,
     address: {
-      street: "1234 Oak Street",
-      city: "Maple Grove",
-      state: "MN",
-      zip: "55369",
+      street: r.address_street,
+      city: r.address_city,
+      state: r.address_state,
+      zip: r.address_zip,
     },
-    propertyType: "single_family",
-    builderName: "Lennar Homes",
-    status: "active",
-    inspectionCount: 1,
-    createdAt: "2026-02-20T10:00:00Z",
-    updatedAt: "2026-03-07T09:00:00Z",
-  },
-  {
-    id: "proj-002",
-    name: "Elm Ave Townhome Phase 2",
-    clientId: "client-002",
-    client: {
-      id: "client-002",
-      name: "Sarah Manager",
-      company: "Pulte Homes",
-      email: "sarah@pultehomes.example.com",
-      createdAt: "2026-01-10T08:00:00Z",
-    },
-    address: {
-      street: "5678 Elm Ave",
-      city: "Plymouth",
-      state: "MN",
-      zip: "55447",
-    },
-    propertyType: "townhome",
-    builderName: "Pulte Homes",
-    status: "active",
-    inspectionCount: 3,
-    createdAt: "2026-01-20T10:00:00Z",
-    updatedAt: "2026-03-05T14:30:00Z",
-  },
-];
+    propertyType: r.property_type as Project["propertyType"],
+    builderName: r.builder_name,
+    status: r.status as Project["status"],
+    inspectionCount: parseInt(r.inspection_count, 10),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
 
 export async function GET() {
-  return NextResponse.json({ projects: mockProjects });
+  try {
+    const rows = await query<DbRow>(`
+      SELECT p.*,
+             c.name AS client_name, c.company AS client_company,
+             c.email AS client_email, c.phone AS client_phone,
+             c.created_at AS client_created_at,
+             COUNT(i.id)::text AS inspection_count
+      FROM projects p
+      LEFT JOIN clients c ON p.client_id = c.id
+      LEFT JOIN inspections i ON i.project_id = p.id
+      GROUP BY p.id, c.id
+      ORDER BY p.updated_at DESC
+    `);
+    return NextResponse.json({ projects: rows.map(rowToProject) });
+  } catch (err) {
+    console.error("GET /api/projects error:", err);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
   const body = (await request.json()) as CreateProjectRequest;
-  const newProject: Project = {
-    id: `proj-${Date.now()}`,
-    name: body.name,
-    clientId: body.clientId ?? `client-${Date.now()}`,
-    address: body.address,
-    propertyType: body.propertyType,
-    builderName: body.builderName,
-    status: "active",
-    inspectionCount: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  return NextResponse.json({ project: newProject }, { status: 201 });
+
+  if (!body.name || !body.address || !body.propertyType || !body.builderName) {
+    return NextResponse.json(
+      { error: "name, address, propertyType, and builderName are required" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    let clientId = body.clientId;
+
+    // Create client inline if clientId not provided
+    if (!clientId && body.clientName) {
+      const clientRow = await queryOne<{ id: string }>(
+        `INSERT INTO clients (name, email) VALUES ($1, $2) RETURNING id`,
+        [body.clientName, body.clientEmail ?? null],
+      );
+      clientId = clientRow?.id;
+    }
+
+    if (!clientId) {
+      return NextResponse.json(
+        { error: "clientId or clientName is required" },
+        { status: 400 },
+      );
+    }
+
+    const row = await queryOne<DbRow>(`
+      INSERT INTO projects
+        (name, client_id, address_street, address_city, address_state, address_zip,
+         property_type, builder_name)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *,
+        0::text AS inspection_count,
+        NULL::text AS client_name,
+        NULL::text AS client_company,
+        NULL::text AS client_email,
+        NULL::text AS client_phone,
+        NULL::text AS client_created_at
+    `, [
+      body.name, clientId,
+      body.address.street, body.address.city, body.address.state, body.address.zip,
+      body.propertyType, body.builderName,
+    ]);
+
+    if (!row) throw new Error("Insert returned no row");
+
+    return NextResponse.json({ project: rowToProject(row) }, { status: 201 });
+  } catch (err) {
+    console.error("POST /api/projects error:", err);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
 }
