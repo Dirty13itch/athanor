@@ -65,6 +65,7 @@ interface ScheduleStatus {
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "bg-yellow-500/20 text-yellow-400",
+  pending_approval: "bg-amber-500/20 text-amber-400",
   running: "bg-blue-500/20 text-blue-400",
   completed: "bg-green-500/20 text-green-400",
   failed: "bg-red-500/20 text-red-400",
@@ -193,6 +194,17 @@ export default function TasksPage() {
       fetchData();
     } catch (e) {
       console.error("Failed to cancel task:", e);
+    }
+  };
+
+  const approveTask = async (taskId: string) => {
+    try {
+      await fetch(`${config.agentServer.url}/v1/tasks/${taskId}/approve`, {
+        method: "POST",
+      });
+      fetchData();
+    } catch (e) {
+      console.error("Failed to approve task:", e);
     }
   };
 
@@ -394,6 +406,7 @@ export default function TasksPage() {
           className="px-3 py-1.5 bg-background border rounded-md text-sm"
         >
           <option value="">All Statuses</option>
+          <option value="pending_approval">Needs Approval</option>
           <option value="pending">Pending</option>
           <option value="running">Running</option>
           <option value="completed">Completed</option>
@@ -413,6 +426,16 @@ export default function TasksPage() {
         </select>
       </div>
 
+      {/* Approval Banner */}
+      {stats && (stats.by_status?.pending_approval || 0) > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-400">
+          <span className="font-medium">
+            {stats.by_status.pending_approval} task{stats.by_status.pending_approval > 1 ? "s" : ""} waiting for your approval
+          </span>
+          <span className="text-amber-400/60 text-xs">— from work planner (high-impact agents)</span>
+        </div>
+      )}
+
       {/* Task List */}
       <div className="space-y-3">
         {tasks.length === 0 && (
@@ -424,7 +447,8 @@ export default function TasksPage() {
         )}
 
         {tasks.map((task) => {
-          const canCancel = task.status === "pending" || task.status === "running";
+          const canApprove = task.status === "pending_approval";
+          const canCancel = task.status === "pending" || task.status === "running" || task.status === "pending_approval";
           const canRerun = task.status === "completed" || task.status === "failed";
           return (
           <SwipeCard
@@ -475,15 +499,25 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Cancel button for running/pending (desktop fallback) */}
-              {canCancel && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); cancelTask(task.id); }}
-                  className="mt-2 px-2 py-1 text-xs border border-red-500/30 text-red-400 rounded hover:bg-red-500/10"
-                >
-                  Cancel
-                </button>
-              )}
+              {/* Action buttons */}
+              <div className="flex gap-2 mt-2">
+                {canApprove && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); approveTask(task.id); }}
+                    className="px-3 py-1 text-xs border border-amber-500/30 text-amber-400 rounded hover:bg-amber-500/10 font-medium"
+                  >
+                    ✓ Approve
+                  </button>
+                )}
+                {canCancel && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); cancelTask(task.id); }}
+                    className="px-2 py-1 text-xs border border-red-500/30 text-red-400 rounded hover:bg-red-500/10"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
 
               {/* Expanded Details */}
               {expandedTask === task.id && (

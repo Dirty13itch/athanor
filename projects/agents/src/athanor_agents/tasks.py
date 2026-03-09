@@ -390,9 +390,13 @@ async def _execute_task(task: Task):
     from .context import enrich_context
     from .activity import log_activity
     from .workspace import post_item
+    from .circuit_breaker import get_circuit_breakers
 
     global _running_count
     _running_count += 1
+
+    _breakers = get_circuit_breakers()
+    _agent_breaker = _breakers.get_or_create(task.agent)
 
     try:
         task.status = "running"
@@ -405,6 +409,15 @@ async def _execute_task(task: Task):
             task.error = f"Agent '{task.agent}' not available"
             task.completed_at = time.time()
             await _update_task(task)
+            return
+
+        # Circuit breaker check — if this agent has failed too many times recently, skip
+        if not await _agent_breaker.can_execute():
+            task.status = "failed"
+            task.error = f"Circuit breaker open for {task.agent} — cooling down after repeated failures"
+            task.completed_at = time.time()
+            await _update_task(task)
+            logger.warning("Task %s skipped — circuit open for %s", task.id, task.agent)
             return
 
         # Build messages — inject context and task prompt into HumanMessage
@@ -494,6 +507,7 @@ async def _execute_task(task: Task):
         task.result = result_text
         task.completed_at = time.time()
         await _update_task(task)
+        await _agent_breaker.record_success()
 
         logger.info(
             "Task %s completed: agent=%s steps=%d duration=%dms",
@@ -545,6 +559,7 @@ async def _execute_task(task: Task):
         task.error = str(e)
         task.completed_at = time.time()
         await _update_task(task)
+        await _agent_breaker.record_failure()
         logger.error("Task %s failed: %s", task.id, e, exc_info=True)
 
         # Log failure event
