@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import Link from "next/link";
 import { useGameStore } from "@/stores/game-store";
 import { KeyboardHelp } from "./keyboard-help";
 import type { ContentIntensity } from "@/types/game";
@@ -182,6 +183,13 @@ export function GameMenu({ open, onClose, onNewGame, onOpenInventory }: GameMenu
               >
                 Controls
               </button>
+              <Link
+                href="/gallery"
+                onClick={onClose}
+                className="rounded border border-white/10 bg-white/5 px-4 py-2 text-center text-sm text-white/40 transition-colors hover:border-amber-400/30 hover:text-amber-400/60"
+              >
+                Portrait Gallery
+              </Link>
               <button
                 onClick={onClose}
                 className="rounded px-4 py-2 text-sm text-white/30 transition-colors hover:text-white/50"
