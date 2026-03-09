@@ -16,9 +16,9 @@ paths:
 - `implicit_feedback` — Dashboard interaction signals (page_view, dwell, tap)
 
 ## Embedding Model
-- Qwen3-Embedding-0.6B at Node 1:8001 via vLLM
-- 1024 dimensions, 8K context (reduced from 32K to share GPU 4)
-- GPU 4 shared with wyoming-whisper + Speaches (8.8/16.3 GB used)
+- Qwen3-Embedding-0.6B at DEV:8001 via vLLM
+- 1024 dimensions, 8K context
+- Runs on DEV GPU 0 (RTX 5060 Ti 16 GB)
 
 ## Indexing
 - Full scan: `python3 scripts/index-knowledge.py`

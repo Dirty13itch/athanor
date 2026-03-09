@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://192.168.1.203:4000/v1"
     llm_api_key: str = "sk-athanor-litellm-2026"
     llm_model: str = "reasoning"  # LiteLLM alias → Qwen3.5-27B-FP8 TP=4 on FOUNDRY
-    llm_model_fast: str = "fast"  # LiteLLM alias → Qwen3-8B on FOUNDRY GPU 2
+    llm_model_fast: str = "fast"  # LiteLLM alias → Qwen3.5-35B-A3B-AWQ on WORKSHOP
 
     # Tiered router settings (Phase 1: Tiered Processing Router)
     router_reactive_model: str = "fast"
