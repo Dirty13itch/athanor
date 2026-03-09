@@ -88,6 +88,7 @@ const AGENT_COLORS: Record<string, string> = {
   "home-agent": "bg-teal-500/20 text-teal-400",
   "coding-agent": "bg-indigo-500/20 text-indigo-400",
   "stash-agent": "bg-rose-500/20 text-rose-400",
+  "data-curator": "bg-orange-500/20 text-orange-400",
 };
 
 function formatTime(unix: number): string {

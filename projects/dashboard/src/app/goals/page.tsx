@@ -95,7 +95,21 @@ export default function GoalsPage() {
       }
       if (trustRes.ok) {
         const t = await trustRes.json();
-        setTrust(t.scores || []);
+        // API returns { agents: { [name]: { score, grade, feedback, escalation } } }
+        const scores: TrustScore[] = Object.entries(t.agents ?? {}).map(
+          ([agent, d]: [string, unknown]) => {
+            const data = d as { score: number; feedback: { up: number; down: number; total: number }; escalation?: { total: number } };
+            return {
+              agent,
+              trust_score: data.score,
+              positive_feedback: data.feedback.up,
+              negative_feedback: data.feedback.down,
+              total_feedback: data.feedback.total,
+              escalation_count: data.escalation?.total ?? 0,
+            };
+          }
+        );
+        setTrust(scores);
       }
       if (improvRes.ok) {
         setImprovement(await improvRes.json());
