@@ -234,7 +234,7 @@ AGENT_CAPABILITIES = {
 
 
 # Agents requiring morning approval before autonomous execution (ADR-021 hybrid autonomy)
-HIGH_IMPACT_AGENTS = {"home-agent", "coding-agent"}
+HIGH_IMPACT_AGENTS = {"home-agent"}  # coding-agent writes to /agent-output/, not production
 
 
 async def _gather_knowledge_context(focus: str = "") -> dict:
