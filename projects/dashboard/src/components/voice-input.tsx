@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 
 interface VoiceInputProps {
@@ -10,14 +10,14 @@ interface VoiceInputProps {
 
 export function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-
-  useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    setIsSupported(!!SpeechRecognition);
-  }, []);
+  const isSupported = useSyncExternalStore(
+    () => () => {},
+    () =>
+      typeof window !== "undefined" &&
+      Boolean(window.SpeechRecognition || window.webkitSpeechRecognition),
+    () => false
+  );
 
   const startListening = useCallback(() => {
     const SpeechRecognition =

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
@@ -17,19 +17,33 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 
 export function PushManager() {
   const [subscribed, setSubscribed] = useState(false);
-  const [supported, setSupported] = useState(false);
+  const supported = useSyncExternalStore(
+    () => () => {},
+    () =>
+      typeof window !== "undefined" &&
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      Boolean(VAPID_PUBLIC_KEY),
+    () => false
+  );
 
   useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window && VAPID_PUBLIC_KEY) {
-      setSupported(true);
-      // Check existing subscription
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.pushManager.getSubscription().then((sub) => {
-          if (sub) setSubscribed(true);
-        });
-      });
-    }
-  }, []);
+    if (!supported) return;
+
+    let active = true;
+    navigator.serviceWorker.ready
+      .then((reg) => reg.pushManager.getSubscription())
+      .then((sub) => {
+        if (active && sub) {
+          setSubscribed(true);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [supported]);
 
   async function subscribe() {
     try {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +20,53 @@ interface BriefingState {
   content: string | null;
   timestamp: string | null;
   loading: boolean;
+}
+
+async function fetchLatestBriefing(
+  setState: Dispatch<SetStateAction<BriefingState>>
+) {
+  try {
+    const res = await fetch("/api/agents/proxy?path=/v1/tasks&limit=50", {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      setState((prev) => ({ ...prev, loading: false }));
+      return;
+    }
+
+    const data = await res.json();
+    const tasks: BriefingTask[] = data.tasks ?? data ?? [];
+    if (!Array.isArray(tasks)) {
+      setState((prev) => ({ ...prev, loading: false }));
+      return;
+    }
+
+    const briefingTask = tasks
+      .filter((t) => {
+        if (t.status !== "completed") return false;
+        const text = [t.description, t.title, t.prompt].filter(Boolean).join(" ").toLowerCase();
+        return text.includes("digest") || text.includes("briefing") || text.includes("morning");
+      })
+      .sort((a, b) => {
+        const aTime = parseTimestamp(a.updated_at ?? a.created_at);
+        const bTime = parseTimestamp(b.updated_at ?? b.created_at);
+        if (!aTime || !bTime) return 0;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      })[0];
+
+    if (briefingTask?.result) {
+      const ts = parseTimestamp(briefingTask.updated_at ?? briefingTask.created_at);
+      setState({
+        content: briefingTask.result,
+        timestamp: ts,
+        loading: false,
+      });
+    } else {
+      setState({ content: null, timestamp: null, loading: false });
+    }
+  } catch {
+    setState((prev) => ({ ...prev, loading: false }));
+  }
 }
 
 function parseTimestamp(raw: string | number | undefined): string | null {
@@ -50,58 +97,13 @@ export function DailyBriefing() {
     loading: true,
   });
 
-  const fetchBriefing = useCallback(async () => {
-    try {
-      const res = await fetch(
-        "/api/agents/proxy?path=/v1/tasks&limit=50",
-        { signal: AbortSignal.timeout(8000) }
-      );
-      if (!res.ok) {
-        setState((prev) => ({ ...prev, loading: false }));
-        return;
-      }
-
-      const data = await res.json();
-      const tasks: BriefingTask[] = data.tasks ?? data ?? [];
-      if (!Array.isArray(tasks)) {
-        setState((prev) => ({ ...prev, loading: false }));
-        return;
-      }
-
-      // Find the most recent completed task that looks like a daily digest/briefing
-      const briefingTask = tasks
-        .filter((t) => {
-          if (t.status !== "completed") return false;
-          const text = [t.description, t.title, t.prompt].filter(Boolean).join(" ").toLowerCase();
-          return text.includes("digest") || text.includes("briefing") || text.includes("morning");
-        })
-        .sort((a, b) => {
-          const aTime = parseTimestamp(a.updated_at ?? a.created_at);
-          const bTime = parseTimestamp(b.updated_at ?? b.created_at);
-          if (!aTime || !bTime) return 0;
-          return new Date(bTime).getTime() - new Date(aTime).getTime();
-        })[0];
-
-      if (briefingTask?.result) {
-        const ts = parseTimestamp(briefingTask.updated_at ?? briefingTask.created_at);
-        setState({
-          content: briefingTask.result,
-          timestamp: ts,
-          loading: false,
-        });
-      } else {
-        setState({ content: null, timestamp: null, loading: false });
-      }
-    } catch {
-      setState((prev) => ({ ...prev, loading: false }));
-    }
-  }, []);
-
   useEffect(() => {
-    fetchBriefing();
-    const interval = setInterval(fetchBriefing, 5 * 60 * 1000);
+    void fetchLatestBriefing(setState);
+    const interval = setInterval(() => {
+      void fetchLatestBriefing(setState);
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [fetchBriefing]);
+  }, []);
 
   return (
     <Card>
@@ -122,7 +124,7 @@ export function DailyBriefing() {
             className="h-6 px-2 text-xs"
             onClick={() => {
               setState((prev) => ({ ...prev, loading: true }));
-              fetchBriefing();
+              void fetchLatestBriefing(setState);
             }}
           >
             <RefreshIcon className="h-3 w-3 mr-1" />

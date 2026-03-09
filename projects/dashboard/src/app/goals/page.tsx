@@ -79,7 +79,7 @@ export default function GoalsPage() {
   const [improvement, setImprovement] = useState<ImprovementSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [newGoalText, setNewGoalText] = useState("");
-  const [newGoalAgent, setNewGoalAgent] = useState("global");
+  const [newGoalAgent] = useState("global");
   const [newGoalPriority, setNewGoalPriority] = useState("normal");
 
   const fetchData = useCallback(async () => {

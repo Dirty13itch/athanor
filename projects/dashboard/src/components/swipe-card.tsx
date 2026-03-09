@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface SwipeCardProps {
   children: React.ReactNode;
@@ -29,6 +29,21 @@ export function SwipeCard({
   const [offset, setOffset] = useState(0);
   const [startX, setStartX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(300);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateWidth = () => {
+      setContainerWidth(containerRef.current?.offsetWidth ?? 300);
+    };
+
+    updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(containerRef.current);
+
+    return () => observer.disconnect();
+  }, []);
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {
@@ -43,24 +58,20 @@ export function SwipeCard({
     (e: React.TouchEvent) => {
       if (!isDragging) return;
       const diff = e.touches[0].clientX - startX;
-      // Limit how far the card can slide
-      const maxOffset = containerRef.current
-        ? containerRef.current.offsetWidth * 0.5
-        : 200;
+      const maxOffset = containerWidth * 0.5;
       setOffset(Math.max(-maxOffset, Math.min(maxOffset, diff)));
     },
-    [isDragging, startX]
+    [containerWidth, isDragging, startX]
   );
 
   const handleTouchEnd = useCallback(() => {
-    if (!isDragging || !containerRef.current) {
+    if (!isDragging) {
       setIsDragging(false);
       setOffset(0);
       return;
     }
 
-    const width = containerRef.current.offsetWidth;
-    const ratio = Math.abs(offset) / width;
+    const ratio = Math.abs(offset) / containerWidth;
 
     if (ratio >= threshold) {
       if (offset > 0 && onSwipeRight) {
@@ -72,10 +83,9 @@ export function SwipeCard({
 
     setIsDragging(false);
     setOffset(0);
-  }, [isDragging, offset, threshold, onSwipeRight, onSwipeLeft]);
+  }, [containerWidth, isDragging, offset, threshold, onSwipeRight, onSwipeLeft]);
 
-  const width = containerRef.current?.offsetWidth ?? 300;
-  const ratio = Math.abs(offset) / width;
+  const ratio = Math.abs(offset) / containerWidth;
   const isRight = offset > 0;
   const showAction = ratio > 0.1;
 

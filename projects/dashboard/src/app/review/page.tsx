@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import {
   Card,
   CardContent,
@@ -203,7 +203,7 @@ export default function ReviewPage() {
   const [expandedTask, setExpandedTask] = useState<string | null>(null);
   const [agentFilter, setAgentFilter] = useState("coding-agent");
 
-  const fetchTasks = useCallback(async () => {
+  const fetchTasks = useEffectEvent(async () => {
     try {
       const params = new URLSearchParams({ limit: "30" });
       if (agentFilter) params.set("agent", agentFilter);
@@ -223,13 +223,15 @@ export default function ReviewPage() {
     } catch (e) {
       console.error("Failed to fetch tasks:", e);
     }
-  }, [agentFilter]);
+  });
 
   useEffect(() => {
-    fetchTasks();
-    const id = setInterval(fetchTasks, 10000);
+    void fetchTasks();
+    const id = setInterval(() => {
+      void fetchTasks();
+    }, 10000);
     return () => clearInterval(id);
-  }, [fetchTasks]);
+  }, [agentFilter]);
 
   const hasFileSteps = (task: Task) =>
     task.steps.some((s) => FILE_TOOLS.has(s.tool_name || ""));

@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -224,11 +225,14 @@ export default function GalleryPage() {
               className="group rounded-lg border border-border bg-card overflow-hidden text-left hover:ring-2 hover:ring-primary transition-all"
             >
               <div className="aspect-[3/4] relative bg-muted">
-                <img
+                <Image
                   src={imageUrl(image)}
                   alt={item.prompt.slice(0, 60)}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                  className="absolute inset-0 h-full w-full object-cover"
                   loading="lazy"
+                  unoptimized
                 />
               </div>
               <div className="p-2 space-y-0.5">
@@ -262,10 +266,13 @@ export default function GalleryPage() {
             <div className="flex flex-col lg:flex-row">
               {/* Image */}
               <div className="lg:flex-1 bg-muted">
-                <img
+                <Image
                   src={imageUrl(selectedItem.image)}
                   alt={selectedItem.item.prompt.slice(0, 100)}
+                  width={1200}
+                  height={1600}
                   className="w-full h-auto"
+                  unoptimized
                 />
               </div>
 

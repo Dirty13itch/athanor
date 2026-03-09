@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sheet,
@@ -38,10 +38,6 @@ interface TaskItem {
   created_at: number;
 }
 
-interface TrustData {
-  scores: Record<string, { score: number; level: string; feedback_count: number }>;
-}
-
 interface PatternItem {
   type: string;
   severity: string;
@@ -70,8 +66,7 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
   const [autonomy, setAutonomy] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!agentName) return;
+  const loadAgentDetails = useEffectEvent(async (currentAgentName: string) => {
     setLoading(true);
 
     const proxy = (path: string) =>
@@ -79,39 +74,44 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null);
 
-    Promise.all([
+    const [agentsData, activityData, tasksData, trustData, patternsData, autonomyData] = await Promise.all([
       proxy("/v1/agents"),
-      proxy(`/v1/activity?agent=${agentName}&limit=5`),
-      proxy(`/v1/tasks?agent=${agentName}&limit=5`),
+      proxy(`/v1/activity?agent=${currentAgentName}&limit=5`),
+      proxy(`/v1/tasks?agent=${currentAgentName}&limit=5`),
       proxy("/v1/trust"),
-      proxy(`/v1/patterns?agent=${agentName}`),
+      proxy(`/v1/patterns?agent=${currentAgentName}`),
       proxy("/v1/autonomy"),
-    ]).then(([agentsData, activityData, tasksData, trustData, patternsData, autonomyData]) => {
-      if (agentsData?.agents) {
-        const found = agentsData.agents.find((a: AgentMeta) => a.name === agentName);
-        setAgent(found ?? null);
-      }
-      setActivity(activityData?.activity ?? []);
-      setTasks(tasksData?.tasks ?? []);
-      if (trustData?.scores?.[agentName]) {
-        setTrust(trustData.scores[agentName]);
-      } else {
-        setTrust(null);
-      }
-      setPatterns(patternsData?.patterns ?? []);
-      // Filter autonomy adjustments for this agent
-      const adj: Record<string, number> = {};
-      if (autonomyData?.adjustments) {
-        for (const [key, val] of Object.entries(autonomyData.adjustments)) {
-          if (key.startsWith(`${agentName}:`)) {
-            const category = key.split(":")[1];
-            adj[category] = val as number;
-          }
+    ]);
+
+    if (agentsData?.agents) {
+      const found = agentsData.agents.find((a: AgentMeta) => a.name === currentAgentName);
+      setAgent(found ?? null);
+    }
+    setActivity(activityData?.activity ?? []);
+    setTasks(tasksData?.tasks ?? []);
+    if (trustData?.scores?.[currentAgentName]) {
+      setTrust(trustData.scores[currentAgentName]);
+    } else {
+      setTrust(null);
+    }
+    setPatterns(patternsData?.patterns ?? []);
+
+    const adj: Record<string, number> = {};
+    if (autonomyData?.adjustments) {
+      for (const [key, val] of Object.entries(autonomyData.adjustments)) {
+        if (key.startsWith(`${currentAgentName}:`)) {
+          const category = key.split(":")[1];
+          adj[category] = val as number;
         }
       }
-      setAutonomy(adj);
-      setLoading(false);
-    });
+    }
+    setAutonomy(adj);
+    setLoading(false);
+  });
+
+  useEffect(() => {
+    if (!agentName) return;
+    void loadAgentDetails(agentName);
   }, [agentName]);
 
   function formatTime(ts: number): string {

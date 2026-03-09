@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { LENS_CONFIG, type LensId, type LensConfig } from "@/lib/lens";
 
@@ -23,15 +23,8 @@ export function useLens() {
 export function LensProvider({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [lens, setLensState] = useState<LensId>("default");
-
-  // Read lens from URL on mount
-  useEffect(() => {
-    const param = searchParams.get("lens");
-    if (param && param in LENS_CONFIG) {
-      setLensState(param as LensId);
-    }
-  }, [searchParams]);
+  const lensParam = searchParams.get("lens");
+  const lens = lensParam && lensParam in LENS_CONFIG ? (lensParam as LensId) : "default";
 
   // Apply CSS custom properties when lens changes
   useEffect(() => {
@@ -65,7 +58,6 @@ export function LensProvider({ children }: { children: ReactNode }) {
 
   const setLens = useCallback(
     (id: LensId) => {
-      setLensState(id);
       const params = new URLSearchParams(searchParams.toString());
       if (id === "default") {
         params.delete("lens");

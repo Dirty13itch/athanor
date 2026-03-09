@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -23,7 +23,7 @@ export default function TerminalView({
   const fitRef = useRef<FitAddon | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const connect = useCallback(() => {
+  const connect = useEffectEvent(() => {
     if (!containerRef.current) return;
 
     // Clean up previous
@@ -126,7 +126,7 @@ export default function TerminalView({
     }
 
     return term;
-  }, [nodeId, host, onConnectionChange]);
+  });
 
   useEffect(() => {
     const term = connect();
@@ -151,7 +151,7 @@ export default function TerminalView({
       wsRef.current?.close();
       term?.dispose();
     };
-  }, [connect]);
+  }, [host, nodeId]);
 
   return (
     <div className="relative h-full">

@@ -58,7 +58,7 @@ function pushEvent(event: ImplicitEvent) {
 
 export function useImplicitFeedback() {
   const pathname = usePathname();
-  const pageEntryRef = useRef<number>(Date.now());
+  const pageEntryRef = useRef<number>(0);
   const lastPathRef = useRef<string>(pathname);
 
   // Track page views and dwell time
