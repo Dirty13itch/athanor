@@ -30,7 +30,8 @@ from .config import settings
 logger = logging.getLogger(__name__)
 
 MINIFLUX_URL = os.getenv("MINIFLUX_URL", "http://192.168.1.203:8070")
-MINIFLUX_API_KEY = os.getenv("MINIFLUX_API_KEY", "")
+MINIFLUX_USER = os.getenv("MINIFLUX_USER", "admin")
+MINIFLUX_PASS = os.getenv("MINIFLUX_PASS", "")
 
 
 @dataclass
@@ -251,15 +252,12 @@ async def fetch_alerts() -> BriefingSection:
 
 async def fetch_rss_news() -> BriefingSection | None:
     """Unread articles from Miniflux RSS reader."""
-    if not MINIFLUX_API_KEY:
+    if not MINIFLUX_PASS:
         return None
     try:
-        headers = {"X-Auth-Token": MINIFLUX_API_KEY}
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(
-                f"{MINIFLUX_URL}/v1/feeds/counters",
-                headers=headers,
-            )
+        auth = httpx.BasicAuth(MINIFLUX_USER, MINIFLUX_PASS)
+        async with httpx.AsyncClient(timeout=10, auth=auth) as client:
+            resp = await client.get(f"{MINIFLUX_URL}/v1/feeds/counters")
             resp.raise_for_status()
             counters = resp.json()
             unreads = counters.get("unreads", {})
@@ -272,18 +270,14 @@ async def fetch_rss_news() -> BriefingSection | None:
                 )
 
             # Get category breakdown
-            resp2 = await client.get(
-                f"{MINIFLUX_URL}/v1/categories", headers=headers,
-            )
+            resp2 = await client.get(f"{MINIFLUX_URL}/v1/categories")
             categories = {
                 str(c["id"]): c["title"]
                 for c in resp2.json()
             } if resp2.status_code == 200 else {}
 
             # Get feed → category mapping
-            resp3 = await client.get(
-                f"{MINIFLUX_URL}/v1/feeds", headers=headers,
-            )
+            resp3 = await client.get(f"{MINIFLUX_URL}/v1/feeds")
             feed_cat = {}
             if resp3.status_code == 200:
                 for feed in resp3.json():
