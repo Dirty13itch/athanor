@@ -57,7 +57,7 @@ Total: ~48 GB VRAM
 
 ### Optimal Placement
 - **RTX 5090 (GPU 0)**: 32 GB. ComfyUI (Flux), creative inference, large single-GPU models.
-- **RTX 5060 Ti (GPU 1)**: 16 GB. vLLM (Qwen3.5-27B-AWQ via --language-model-only), fast chat, lightweight workloads.
+- **RTX 5060 Ti (GPU 1)**: 16 GB. vLLM (Qwen3.5-35B-A3B-AWQ via --language-model-only), fast chat, lightweight workloads.
 - Use `--gpu-memory-utilization 0.85` and `--max-num-seqs 64` on 16 GB GPUs to avoid OOM.
 
 ## VAULT — no NVIDIA GPUs
@@ -65,15 +65,16 @@ Total: ~48 GB VRAM
 - Intel Arc A380 (6 GB GDDR6) — Quick Sync transcoding for Plex only
 - Not usable for CUDA/inference workloads
 
-## DEV — not a server
+## DEV — ops center (192.168.1.189)
 
-- NVIDIA RTX 3060 12 GB — desktop display, light CUDA capability
-- Not usable for inference
+- NVIDIA RTX 5060 Ti 16 GB — embedding + reranker inference
+- Embedding (Qwen3-Embedding-0.6B) at :8001, Reranker at :8003
 
 ## VRAM Budget Summary
 
 | Node | Total VRAM | GPUs | Primary Use |
 |------|-----------|------|-------------|
-| Node 1 | 88 GB | 4x 5070 Ti + 4090 | TP=4 inference (Qwen3-32B-AWQ) + independent 4090 |
+| Node 1 | 88 GB | 4x 5070 Ti + 4090 | TP=4 inference (Qwen3.5-27B-FP8) + independent 4090 |
 | Node 2 | 48 GB | 5090 + 5060 Ti | ComfyUI (5090) + fast chat vLLM (5060 Ti) |
-| Combined | 136 GB | 7 GPUs | Multi-node via Ray+InfiniBand (future) |
+| DEV | 16 GB | 5060 Ti | Embedding + reranker |
+| Combined | 152 GB | 8 GPUs | Multi-node via Ray+InfiniBand (future) |

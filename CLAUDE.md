@@ -47,6 +47,12 @@ Preserve: IP addresses (.244, .225, .203, .215), port numbers, container names, 
 1. Read `MEMORY.md` → `docs/BUILD-MANIFEST.md` → execute next unblocked item
 2. Update tracking files after each item. Continue if context allows.
 
+### Continuous Mode ("continue", "keep going", "continue in full")
+1. Check BUILD-MANIFEST.md for next unblocked item
+2. Execute completely (research → build → test → document → commit)
+3. If context allows, pick next item and keep going
+4. Only stop for: blockers requiring Shaun, context window limits, vision uncertainty
+
 ### Operational Mode (always)
 Check health, identify stale/broken/idle, assign work to agents, update drifted docs.
 

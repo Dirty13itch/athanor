@@ -12,9 +12,10 @@ Deploy vLLM inference services on Athanor. Uses custom Docker image (NGC 26.01-p
 
 | Instance | Node | Port | GPUs | Model | Purpose |
 |----------|------|------|------|-------|---------|
-| vllm (primary) | Foundry | 8000 | 0-3 (5070Ti) + 4090, TP=4 | Qwen3-32B-AWQ | Reasoning, agents |
-| vllm-embedding | Foundry | 8001 | 4 (4090), 0.40 mem | Qwen3-Embedding-0.6B | Embeddings (1024-dim) |
-| vllm (secondary) | Workshop | 8000 | 0 (5090) | Qwen3.5-27B-AWQ | Fast inference |
+| vllm-coordinator | Foundry | 8000 | 0,1,3,4 (4x 5070Ti) TP=4 | Qwen3.5-27B-FP8 | Reasoning, agents |
+| vllm-utility | Foundry | 8002 | 2 (4090) | Huihui-Qwen3-8B | Utility/fast |
+| vllm-embedding | DEV | 8001 | 0 (5060Ti), 0.40 mem | Qwen3-Embedding-0.6B | Embeddings (1024-dim) |
+| vllm (secondary) | Workshop | 8000 | 0 (5090) | Qwen3.5-35B-A3B-AWQ | Fast inference |
 
 ## Custom Image Build
 
@@ -61,7 +62,7 @@ command:
 4x RTX 5070 Ti (sm_120) + RTX 4090 (sm_89) work together with:
 - `--quantization awq` (not Marlin — Marlin kernel crashes on mixed architectures)
 - `CUDA_DEVICE_ORDER=PCI_BUS_ID`
-- `--tensor-parallel-size 4` (uses GPUs 0-3, the 4x 5070 Ti)
+- `--tensor-parallel-size 4` (uses GPUs 0,1,3,4, the 4x 5070 Ti)
 
 ## Sleep Mode
 
@@ -69,12 +70,12 @@ command:
 
 ## Available Models (VAULT NFS)
 
-| Model | Size | Quant | Fits Where |
-|-------|------|-------|------------|
-| Qwen3-32B-AWQ | ~20 GB | AWQ | Foundry TP=4 (current) |
-| Qwen3.5-27B-AWQ | ~16 GB | AWQ | Workshop single GPU (--language-model-only) |
-| Qwen3-Embedding-0.6B | ~1.2 GB | None | Foundry GPU 4 |
-| Qwen3.5-27B-FP8 | ~27 GB | FP8 | Foundry TP=4 (download needed) |
+| Model | Size | Quant | Deployed Where |
+|-------|------|-------|----------------|
+| Qwen3.5-27B-FP8 | ~27 GB | FP8 | Foundry TP=4 at :8000 (current) |
+| Qwen3.5-35B-A3B-AWQ | ~22 GB | AWQ | Workshop single GPU at :8000 (--language-model-only) |
+| Huihui-Qwen3-8B | ~8 GB | None | Foundry GPU 2 (4090) at :8002 |
+| Qwen3-Embedding-0.6B | ~1.2 GB | None | DEV GPU 0 at :8001 |
 
 ## Validation
 
@@ -82,16 +83,16 @@ command:
 # Check model serving
 curl http://192.168.1.244:8000/v1/models
 
-# Test inference
+# Test inference (Foundry coordinator)
 curl http://192.168.1.244:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"/models/Qwen3-32B-AWQ","messages":[{"role":"user","content":"Hello"}],"max_tokens":50}'
+  -d '{"model":"/models/Qwen3.5-27B-FP8","messages":[{"role":"user","content":"Hello"}],"max_tokens":50}'
 
-# Check embeddings
-curl http://192.168.1.244:8001/v1/embeddings \
+# Check embeddings (DEV)
+curl http://192.168.1.189:8001/v1/embeddings \
   -H "Content-Type: application/json" \
   -d '{"model":"/models/Qwen3-Embedding-0.6B","input":"test"}'
 
-# Check sleep mode
-curl http://192.168.1.244:8000/is_sleeping
+# Check utility (Foundry GPU 2)
+curl http://192.168.1.244:8002/v1/models
 ```

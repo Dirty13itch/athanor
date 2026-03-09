@@ -60,7 +60,7 @@ athanor/
 - **Research docs**: `YYYY-MM-DD-slug.md` (date of research, not publication)
 - **ADRs**: `ADR-NNN-slug.md` (sequential, never delete, never renumber)
 - **Scripts**: descriptive, hyphen-separated: `vault-ssh.py`, `build-profile.sh`
-- **Nodes**: Foundry (Node 1, .244), Workshop (Node 2, .225), VAULT (.203), DEV (.215)
+- **Nodes**: Foundry (Node 1, .244), Workshop (Node 2, .225), VAULT (.203), DEV (.189)
 - **Agents**: lowercase, hyphen-separated: `general-assistant`, `media-agent`, `stash-agent`
 
 ## Docker Compose Standards

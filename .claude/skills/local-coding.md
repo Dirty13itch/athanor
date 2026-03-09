@@ -5,7 +5,7 @@ description: When to use local Qwen3 vs cloud Claude for coding tasks
 
 # Local Coding Dispatch
 
-The Athanor agent server at Node 1:9000 runs a coding agent powered by Qwen3-32B-AWQ. Use the MCP bridge tools (`mcp__athanor-agents__*`) to dispatch work locally when appropriate.
+The Athanor agent server at Node 1:9000 runs a coding agent powered by Qwen3.5-27B-FP8. Use the MCP bridge tools (`mcp__athanor-agents__*`) to dispatch work locally when appropriate.
 
 ## Use Local Qwen3 When
 

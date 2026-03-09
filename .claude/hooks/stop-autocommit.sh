@@ -13,6 +13,7 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || exit 0
 
 # All files that track system state
 STATE_PATHS=(
+  "STATUS.md"
   "CLAUDE.md"
   "docs/BUILD-MANIFEST.md"
   "docs/VISION.md"
