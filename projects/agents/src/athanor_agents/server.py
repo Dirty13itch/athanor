@@ -51,6 +51,15 @@ async def lifespan(app: FastAPI):
             subscriptions=meta.get("subscriptions", []),
         )
 
+    # Seed skill library with initial skills if empty
+    try:
+        from .skill_learning import ensure_initial_skills
+        seeded = await ensure_initial_skills()
+        if seeded:
+            print(f"[lifespan] Skill library seeded with {seeded} initial skills", flush=True)
+    except Exception as e:
+        print(f"[lifespan] Skill seeding failed: {e}", flush=True)
+
     yield
     await stop_scheduler()
     await stop_task_worker()
@@ -1366,6 +1375,91 @@ app.include_router(create_cache_router())
 from .self_improvement import create_improvement_router
 
 app.include_router(create_improvement_router())
+
+# --- Skill Learning ---
+
+from .skill_learning import (
+    add_skill, get_skill, get_all_skills, delete_skill,
+    record_execution, search_skills, get_top_skills, get_stats as get_skill_stats,
+)
+
+
+@app.get("/v1/skills")
+async def list_skills(
+    query: str = "",
+    category: str | None = None,
+    min_success_rate: float = 0.0,
+    limit: int = 20,
+):
+    """Search the skill library."""
+    skills = await search_skills(query=query, category=category, min_success_rate=min_success_rate, limit=limit)
+    return {"skills": [s.to_dict() for s in skills], "count": len(skills)}
+
+
+@app.get("/v1/skills/top")
+async def top_skills(limit: int = 10):
+    """Get top-performing skills by proven effectiveness."""
+    skills = await get_top_skills(limit)
+    return {"skills": [s.to_dict() for s in skills]}
+
+
+@app.get("/v1/skills/stats")
+async def skill_stats():
+    """Get skill library statistics."""
+    return await get_skill_stats()
+
+
+@app.get("/v1/skills/{skill_id}")
+async def get_skill_by_id(skill_id: str):
+    """Get a specific skill by ID."""
+    from fastapi import HTTPException
+    skill = await get_skill(skill_id)
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return skill.to_dict()
+
+
+@app.post("/v1/skills")
+async def create_skill(body: dict):
+    """Add a new skill to the library."""
+    from fastapi import HTTPException
+    required = {"name", "description", "trigger_conditions", "steps"}
+    if not required.issubset(body):
+        raise HTTPException(status_code=422, detail=f"Required fields: {required}")
+    skill_id = await add_skill(
+        name=body["name"],
+        description=body["description"],
+        trigger_conditions=body["trigger_conditions"],
+        steps=body["steps"],
+        category=body.get("category", "general"),
+        tags=body.get("tags"),
+        created_by=body.get("created_by", "api"),
+    )
+    return {"skill_id": skill_id, "status": "created"}
+
+
+@app.post("/v1/skills/{skill_id}/execution")
+async def record_skill_execution(skill_id: str, body: dict):
+    """Record a skill execution outcome (updates success rate)."""
+    from fastapi import HTTPException
+    success = body.get("success", True)
+    duration_ms = body.get("duration_ms", 0.0)
+    context = body.get("context")
+    ok = await record_execution(skill_id, success, float(duration_ms), context)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return {"status": "recorded"}
+
+
+@app.delete("/v1/skills/{skill_id}")
+async def remove_skill(skill_id: str):
+    """Delete a skill from the library."""
+    from fastapi import HTTPException
+    ok = await delete_skill(skill_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return {"status": "deleted"}
+
 
 # --- Circuit Breakers ---
 

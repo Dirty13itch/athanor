@@ -392,6 +392,7 @@ def _build_context_message(
     conversation_lines: list[str] | None = None,
     cst_line: str = "",
     graph_related_lines: list[str] | None = None,
+    skill_context: str = "",
 ) -> str:
     """Assemble the final context injection string."""
     sections = []
@@ -405,6 +406,9 @@ def _build_context_message(
             "The user has set these steering goals. Align your actions accordingly:\n"
             + "\n".join(goal_lines)
         )
+
+    if skill_context:
+        sections.append(skill_context)
 
     if convention_lines:
         sections.append(
@@ -599,6 +603,13 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     except Exception:
         pass
 
+    skill_context = ""
+    try:
+        from .skill_learning import search_skills_for_context
+        skill_context = await search_skills_for_context(agent_name, user_message, limit=3)
+    except Exception:
+        pass
+
     # Step 3: Format
     pref_lines = _format_preferences(prefs)
     activity_lines = _format_activity(activity, agent_name)
@@ -609,10 +620,11 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
 
     elapsed_ms = int((time.monotonic() - start) * 1000)
     total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines) + len(personal_data_lines) + len(conversation_lines) // 2
+    skill_count = skill_context.count("###")
 
-    if total_hits > 0 or goal_lines or pattern_lines or convention_lines:
+    if total_hits > 0 or goal_lines or pattern_lines or convention_lines or skill_count:
         logger.info(
-            "Context enrichment for %s: %d prefs, %d activity, %d knowledge (+%d graph), %d personal, %d convos, %d goals, %d patterns, %d conventions (%dms)",
+            "Context enrichment for %s: %d prefs, %d activity, %d knowledge (+%d graph), %d personal, %d convos, %d goals, %d patterns, %d conventions, %d skills (%dms)",
             agent_name,
             len(pref_lines),
             len(activity_lines) // 2,
@@ -623,11 +635,12 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
             len(goal_lines),
             len(pattern_lines),
             len(convention_lines),
+            skill_count,
             elapsed_ms,
         )
 
     return _build_context_message(
         pref_lines, activity_lines, knowledge_lines, agent_name,
         goal_lines, pattern_lines, convention_lines, personal_data_lines,
-        conversation_lines, cst_line, graph_related_lines,
+        conversation_lines, cst_line, graph_related_lines, skill_context,
     )
