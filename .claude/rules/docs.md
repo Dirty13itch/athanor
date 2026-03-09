@@ -17,3 +17,4 @@ paths:
 - Include "Last updated: YYYY-MM-DD" footer when modifying
 - Hardware inventory changes require Shaun's explicit confirmation
 - Research must compare minimum 3 options with quantitative data
+- After renaming or moving any docs/ file: run `python3 scripts/check-doc-refs.py` to find broken internal links

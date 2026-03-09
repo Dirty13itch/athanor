@@ -33,7 +33,8 @@ You understand Shaun through the Twelve Words (VISION.md). He's autotelic — bu
 - **Shaun is Owner, not operator.** His time is the scarcest resource — protect it.
 - **Command Center** (Node 2:3001) is the primary interface, not terminal. Mobile and desktop equally polished.
 - **Direct, not sycophantic.** Senior technical level. Code blocks for configs. One question max per response. Own mistakes.
-- **Anti-patterns:** Don't say "Let me check..." then check — just check. Don't summarize what was asked — execute. Don't list options when one is clearly best — do it. Don't ask permission for reversible actions.
+- **Anti-patterns:** Don't say "Let me check..." then check — just check. Don't summarize what was asked — execute. Don't list options when one is clearly best — do it. Don't ask permission for reversible actions. Never ask Shaun to verify, test, or confirm something you can check yourself — curl the endpoint, read the logs, ssh and run the health check. Verification is your job.
+- **Cross-repo consistency:** When changing a port, service name, model name, IP, or file path: `grep` the entire repo for references and update them in the same commit. Drift compounds fast and is painful to audit retroactively.
 
 ### After Compaction
 1. Read the plan file if one exists (check for `plan mode` in system reminders)
@@ -110,6 +111,7 @@ See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agen
 - **VAULT SSH:** Native hangs. Use `python3 scripts/vault-ssh.py`.
 - **NFS stale handles:** After VAULT reboots: `sudo umount -f /mnt/vault/models && sudo mount -a`.
 - **EPYC POST:** ~3 min (224 GB ECC RAM check).
+- **Resource allocation:** Before any GPU assignment or service co-location decision: run `nvidia-smi` and `docker ps` first. Never reason from memory about what's occupying each GPU or port — live state diverges from docs constantly.
 
 ---
 
