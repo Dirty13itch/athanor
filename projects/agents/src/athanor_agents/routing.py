@@ -200,7 +200,7 @@ TASK_ROUTING = {
     TaskType.REASONING: ModelTier.REASONING,
     TaskType.RESEARCH: ModelTier.REASONING,
     TaskType.CREATIVE: ModelTier.REASONING,
-    TaskType.SYSTEM: ModelTier.FAST,
+    TaskType.SYSTEM: ModelTier.REASONING,
     TaskType.HOME: ModelTier.FAST,
     TaskType.MEDIA: ModelTier.FAST,
 }
@@ -238,9 +238,14 @@ def route(
     if queue_depths and queue_depths.get(model, 0) >= high_queue_threshold:
         for fallback in FALLBACK_CHAINS.get(model, []):
             if queue_depths.get(fallback, 0) < high_queue_threshold:
+                # Resolve the tier of the fallback model
+                fallback_tier = next(
+                    (t for t, m in TIER_MODELS.items() if m == fallback),
+                    preferred_tier,
+                )
                 return RoutingDecision(
                     model=fallback,
-                    tier=ModelTier.FAST,
+                    tier=fallback_tier,
                     confidence=0.7,
                     reason=f"{model} busy (depth={queue_depths[model]}), fallback to {fallback}",
                     task_type=task_type,

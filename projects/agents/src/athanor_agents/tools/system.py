@@ -6,13 +6,13 @@ from athanor_agents.config import settings
 SERVICES = {
     "LiteLLM": {"url": "http://192.168.1.203:4000/v1/models", "node": "VAULT",
                  "headers": {"Authorization": f"Bearer {settings.llm_api_key}"}},
-    "vLLM (Node 1)": {"url": "http://192.168.1.244:8000/health", "node": "Node 1"},
-    "vLLM Embedding": {"url": "http://192.168.1.244:8001/health", "node": "Node 1"},
-    "vLLM (Node 2)": {"url": "http://192.168.1.225:8000/health", "node": "Node 2"},
-    "Qdrant": {"url": "http://192.168.1.244:6333/collections", "node": "Node 1"},
-    "ComfyUI": {"url": "http://192.168.1.225:8188/system_stats", "node": "Node 2"},
-    "Open WebUI": {"url": "http://192.168.1.225:3000", "node": "Node 2"},
-    "Dashboard": {"url": "http://192.168.1.225:3001", "node": "Node 2"},
+    "Coordinator": {"url": "http://192.168.1.244:8000/health", "node": "FOUNDRY"},
+    "Utility": {"url": "http://192.168.1.244:8002/health", "node": "FOUNDRY"},
+    "Worker": {"url": "http://192.168.1.225:8000/health", "node": "WORKSHOP"},
+    "Embedding": {"url": "http://192.168.1.189:8001/health", "node": "DEV"},
+    "Qdrant": {"url": "http://192.168.1.244:6333/collections", "node": "FOUNDRY"},
+    "ComfyUI": {"url": "http://192.168.1.225:8188/system_stats", "node": "WORKSHOP"},
+    "Dashboard": {"url": "http://192.168.1.225:3001", "node": "WORKSHOP"},
     "Prometheus": {"url": "http://192.168.1.203:9090/-/healthy", "node": "VAULT"},
     "Grafana": {"url": "http://192.168.1.203:3000/api/health", "node": "VAULT"},
     "Sonarr": {"url": "http://192.168.1.203:8989/ping", "node": "VAULT"},
@@ -24,7 +24,9 @@ SERVICES = {
     "Home Assistant": {"url": "http://192.168.1.203:8123/api/", "node": "VAULT",
                         "headers": {"Authorization": f"Bearer {settings.ha_token}"}},
     "Neo4j": {"url": "http://192.168.1.203:7474", "node": "VAULT"},
-    "GPU Orchestrator": {"url": "http://192.168.1.244:9200/health", "node": "Node 1"},
+    "Open WebUI": {"url": "http://192.168.1.225:3000", "node": "WORKSHOP"},
+    "GPU Orchestrator": {"url": "http://192.168.1.244:9200/health", "node": "FOUNDRY"},
+    "LangFuse": {"url": "http://192.168.1.203:3030", "node": "VAULT"},
 }
 
 
@@ -98,9 +100,9 @@ def get_vllm_models() -> str:
 
     # Query direct vLLM instances (for operational visibility)
     for label, url in [
-        ("Node 1 (TP=4)", settings.vllm_node1_url),
-        ("Node 2 (5090)", settings.vllm_node2_url),
-        ("Embedding (GPU 4)", settings.vllm_embedding_url),
+        ("FOUNDRY coordinator", settings.vllm_node1_url),
+        ("WORKSHOP worker", settings.vllm_node2_url),
+        ("DEV embedding", settings.vllm_embedding_url),
     ]:
         try:
             resp = httpx.get(f"{url}/models", timeout=5)
