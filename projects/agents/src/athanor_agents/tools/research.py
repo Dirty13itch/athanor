@@ -32,7 +32,7 @@ def web_search(query: str, max_results: int = 8) -> str:
     - News and announcements
     - Comparisons and benchmarks
     """
-    from duckduckgo_search import DDGS
+    from ddgs import DDGS
 
     try:
         results = DDGS().text(query, max_results=max_results)
