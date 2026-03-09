@@ -10,3 +10,23 @@ services:
       - "{{ dashboard_port }}:3001"
     environment:
       - NEXT_PUBLIC_PROMETHEUS_URL={{ dashboard_prometheus_url }}
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY={{ dashboard_vapid_public_key }}
+      - VAPID_PRIVATE_KEY={{ dashboard_vapid_private_key }}
+      - ATHANOR_NODE1_HOST={{ dashboard_node1_host }}
+      - ATHANOR_NODE2_HOST={{ dashboard_node2_host }}
+      - ATHANOR_VAULT_HOST={{ dashboard_vault_host }}
+      - ATHANOR_AGENT_SERVER_URL={{ dashboard_agent_server_url }}
+      - ATHANOR_PROMETHEUS_URL={{ dashboard_prometheus_url }}
+      - ATHANOR_GRAFANA_URL={{ dashboard_grafana_url }}
+      - ATHANOR_NODE1_VLLM_URL={{ dashboard_node1_vllm_url }}
+      - ATHANOR_NODE2_VLLM_URL={{ dashboard_node2_vllm_url }}
+      - ATHANOR_LITELLM_URL={{ dashboard_litellm_url }}
+      - ATHANOR_COMFYUI_URL={{ dashboard_comfyui_url }}
+      - ATHANOR_OPEN_WEBUI_URL={{ dashboard_open_webui_url }}
+      - ATHANOR_SONARR_URL={{ dashboard_sonarr_url }}
+      - ATHANOR_RADARR_URL={{ dashboard_radarr_url }}
+      - ATHANOR_TAUTULLI_URL={{ dashboard_tautulli_url }}
+      - ATHANOR_PLEX_URL={{ dashboard_plex_url }}
+      - ATHANOR_STASH_URL={{ dashboard_stash_url }}
+      - ATHANOR_SPEACHES_URL={{ dashboard_speaches_url }}
+      - ATHANOR_LITELLM_API_KEY={{ dashboard_litellm_api_key }}
