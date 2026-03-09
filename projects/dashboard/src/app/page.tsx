@@ -248,11 +248,11 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span>Qwen3-32B TP=4</span>
+              <span>Qwen3.5-27B-FP8 TP=4</span>
               <Badge variant="outline" className="text-xs">Foundry</Badge>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span>Qwen3-14B</span>
+              <span>Qwen3.5-35B-A3B-AWQ</span>
               <Badge variant="outline" className="text-xs">Workshop</Badge>
             </div>
           </CardContent>

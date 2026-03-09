@@ -53,6 +53,14 @@ interface ImprovementSummary {
   benchmark_results: number;
 }
 
+interface SkillStats {
+  total: number;
+  executed: number;
+  categories: string[];
+  avg_success_rate: number;
+  total_executions: number;
+}
+
 function HealthGauge({ score, assessment }: { score: number; assessment: string }) {
   const pct = Math.round(score * 100);
   const color = score > 0.8 ? "text-green-400" : score > 0.6 ? "text-emerald-400" : score > 0.3 ? "text-yellow-400" : "text-zinc-500";
@@ -96,17 +104,20 @@ export default function LearningPage() {
   const [data, setData] = useState<LearningMetrics | null>(null);
   const [patterns, setPatterns] = useState<PatternReport | null>(null);
   const [improvement, setImprovement] = useState<ImprovementSummary | null>(null);
+  const [skillStats, setSkillStats] = useState<SkillStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [runningBenchmark, setRunningBenchmark] = useState(false);
 
   const fetchAll = useCallback(async () => {
-    const [pRes, iRes] = await Promise.allSettled([
+    const [pRes, iRes, sRes] = await Promise.allSettled([
       fetch("/api/agents/proxy?path=/v1/patterns"),
       fetch("/api/agents/proxy?path=/v1/improvement/summary"),
+      fetch("/api/agents/proxy?path=/v1/skills/stats"),
     ]);
     if (pRes.status === "fulfilled" && pRes.value.ok) setPatterns(await pRes.value.json());
     if (iRes.status === "fulfilled" && iRes.value.ok) setImprovement(await iRes.value.json());
+    if (sRes.status === "fulfilled" && sRes.value.ok) setSkillStats(await sRes.value.json());
   }, []);
 
   const fetchMetrics = useCallback(async () => {
@@ -278,6 +289,17 @@ export default function LearningPage() {
               <StatRow label="Completed" value={metrics.tasks.completed} />
               <StatRow label="Failed" value={metrics.tasks.failed} />
               <StatRow label="Success Rate" value={`${(metrics.tasks.success_rate * 100).toFixed(1)}`} unit="%" />
+            </div>
+          )}
+        </MetricCard>
+
+        <MetricCard title="Skill Library" available={!!skillStats && skillStats.total > 0}>
+          {skillStats && (
+            <div className="space-y-0.5">
+              <StatRow label="Skills" value={skillStats.total} />
+              <StatRow label="Executed" value={skillStats.executed} />
+              <StatRow label="Total Runs" value={skillStats.total_executions} />
+              <StatRow label="Avg Success" value={`${(skillStats.avg_success_rate * 100).toFixed(1)}`} unit="%" />
             </div>
           )}
         </MetricCard>
