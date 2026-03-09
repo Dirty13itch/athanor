@@ -41,6 +41,38 @@
       "command": "python3",
       "args": ["scripts/mcp-smart-reader.py"],
       "env": {}
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "env": {}
+    },
+    "neo4j": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["mcp-neo4j-cypher"],
+      "env": {
+        "NEO4J_URI": "${NEO4J_URI}",
+        "NEO4J_USERNAME": "${NEO4J_USERNAME}",
+        "NEO4J_PASSWORD": "${NEO4J_PASSWORD}"
+      }
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["-c", "npx -y @modelcontextprotocol/server-postgres \"$POSTGRES_URL\""],
+      "env": {
+        "POSTGRES_URL": "${POSTGRES_URL}"
+      }
+    },
+    "gitea": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["-c", "$HOME/go/bin/gitea-mcp -t stdio --host http://192.168.1.203:3033 --token $GITEA_TOKEN"],
+      "env": {
+        "GITEA_TOKEN": "${GITEA_TOKEN}"
+      }
     }
   }
 }

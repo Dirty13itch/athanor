@@ -18,7 +18,11 @@
       "mcp__docker__*",
       "mcp__redis__*",
       "mcp__qdrant__*",
-      "mcp__smart-reader__*"
+      "mcp__smart-reader__*",
+      "mcp__sequential-thinking__*",
+      "mcp__neo4j__*",
+      "mcp__postgres__*",
+      "mcp__gitea__*"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
