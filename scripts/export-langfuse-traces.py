@@ -8,20 +8,35 @@ Usage:
     python3 scripts/export-langfuse-traces.py --since 24h --output /tmp/traces.json
     python3 scripts/export-langfuse-traces.py --since 7d --limit 500
 
-Requires: LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY env vars or defaults below.
+Requires: ATHANOR_LANGFUSE_PUBLIC_KEY / ATHANOR_LANGFUSE_SECRET_KEY
+or LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY.
 """
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timedelta, timezone
 
 import httpx
 
 # Defaults — LangFuse on VAULT
-LANGFUSE_HOST = "http://192.168.1.203:3030"
-LANGFUSE_PUBLIC_KEY = "pk-lf-athanor"
-LANGFUSE_SECRET_KEY = "sk-lf-athanor"
+def env_value(*names: str) -> str:
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    return ""
+
+
+def default_langfuse_host() -> str:
+    vault_host = os.environ.get("ATHANOR_VAULT_HOST", "192.168.1.203").strip()
+    return f"http://{vault_host}:3030"
+
+
+LANGFUSE_HOST = env_value("ATHANOR_LANGFUSE_URL", "LANGFUSE_HOST") or default_langfuse_host()
+LANGFUSE_PUBLIC_KEY = env_value("ATHANOR_LANGFUSE_PUBLIC_KEY", "LANGFUSE_PUBLIC_KEY")
+LANGFUSE_SECRET_KEY = env_value("ATHANOR_LANGFUSE_SECRET_KEY", "LANGFUSE_SECRET_KEY")
 
 
 def parse_duration(s: str) -> timedelta:
@@ -146,6 +161,14 @@ def main():
     parser.add_argument("--host", default=LANGFUSE_HOST)
     parser.add_argument("--raw", action="store_true", help="Output raw traces (not extracted)")
     args = parser.parse_args()
+
+    if not LANGFUSE_PUBLIC_KEY or not LANGFUSE_SECRET_KEY:
+        print(
+            "ERROR: set ATHANOR_LANGFUSE_PUBLIC_KEY / ATHANOR_LANGFUSE_SECRET_KEY "
+            "or LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY before exporting traces",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     since = datetime.now(timezone.utc) - parse_duration(args.since)
 

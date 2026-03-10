@@ -18,13 +18,23 @@ import time
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 
-LITELLM_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/")
+def _host_env(name: str, default: str) -> str:
+    return os.environ.get(name, default).strip()
+
+
+LITELLM_URL = (
+    os.environ.get("ATHANOR_LITELLM_URL")
+    or f"http://{_host_env('ATHANOR_VAULT_HOST', '192.168.1.203')}:4000"
+).rstrip("/")
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
     or os.environ.get("LITELLM_API_KEY")
     or os.environ.get("OPENAI_API_KEY", "")
 )
-LANGFUSE_URL = (os.environ.get("ATHANOR_LANGFUSE_URL") or "http://192.168.1.203:3030").rstrip("/")
+LANGFUSE_URL = (
+    os.environ.get("ATHANOR_LANGFUSE_URL")
+    or f"http://{_host_env('ATHANOR_VAULT_HOST', '192.168.1.203')}:3030"
+).rstrip("/")
 
 # Test categories with representative prompts
 CATEGORIES = {

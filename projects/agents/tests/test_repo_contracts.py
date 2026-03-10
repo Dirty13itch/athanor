@@ -23,10 +23,13 @@ MCP_REDIS_SCRIPT = REPO_ROOT / "scripts" / "mcp-redis.py"
 MCP_SMART_READER_SCRIPT = REPO_ROOT / "scripts" / "mcp-smart-reader.py"
 MCP_ATHANOR_AGENTS_SCRIPT = REPO_ROOT / "scripts" / "mcp-athanor-agents.py"
 MCP_QDRANT_SCRIPT = REPO_ROOT / "scripts" / "mcp-qdrant.py"
+DEPLOY_AGENTS_SCRIPT = REPO_ROOT / "scripts" / "deploy-agents.sh"
 NODE_HEARTBEAT_SCRIPT = REPO_ROOT / "scripts" / "node-heartbeat.py"
+EXPORT_LANGFUSE_TRACES_SCRIPT = REPO_ROOT / "scripts" / "export-langfuse-traces.py"
 PARSE_BOOKMARKS_SCRIPT = REPO_ROOT / "scripts" / "parse-bookmarks.py"
 LANGFUSE_SYNC_SCRIPT = REPO_ROOT / "scripts" / "sync-prompts-to-langfuse.py"
 MODEL_INVENTORY_SCRIPT = REPO_ROOT / "scripts" / "model-inventory.sh"
+ENDPOINT_TEST_SCRIPT = REPO_ROOT / "scripts" / "tests" / "test-endpoints.py"
 VAULT_SSH_SCRIPT = REPO_ROOT / "scripts" / "vault-ssh.py"
 VAULT_SSH_POWERSHELL = REPO_ROOT / "scripts" / "ssh-vault.ps1"
 SESSION_START_HOOK = REPO_ROOT / ".claude" / "hooks" / "session-start-health.sh"
@@ -36,6 +39,8 @@ PROJECTS_MODULE = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" /
 DASHBOARD_SW = REPO_ROOT / "projects" / "dashboard" / "public" / "sw.js"
 EOQ_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "eoq" / "templates" / "docker-compose.yml.j2"
 ULRICH_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "ulrich-energy" / "templates" / "docker-compose.yml.j2"
+EOQ_CONFIG = REPO_ROOT / "projects" / "eoq" / "src" / "lib" / "config.ts"
+ULRICH_CONFIG = REPO_ROOT / "projects" / "ulrich-energy" / "src" / "lib" / "config.ts"
 
 RAW_IP_PATTERN = re.compile(r"192\.168\.1\.\d+")
 ALLOWED_DASHBOARD_IP_FILES = {
@@ -297,6 +302,7 @@ class RepoContractsTest(unittest.TestCase):
 
         smart_reader_text = MCP_SMART_READER_SCRIPT.read_text(encoding="utf-8")
         self.assertIn("ATHANOR_REDIS_PASSWORD", smart_reader_text)
+        self.assertIn("ATHANOR_LITELLM_URL", smart_reader_text)
 
         heartbeat_text = NODE_HEARTBEAT_SCRIPT.read_text(encoding="utf-8")
         self.assertIn("ATHANOR_REDIS_URL", heartbeat_text)
@@ -333,6 +339,18 @@ class RepoContractsTest(unittest.TestCase):
         session_start_text = SESSION_START_HOOK.read_text(encoding="utf-8")
         self.assertIn("ATHANOR_AGENT_SERVER_URL", session_start_text)
 
+        deploy_agents_text = DEPLOY_AGENTS_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_AGENT_SERVER_URL", deploy_agents_text)
+
+        export_langfuse_text = EXPORT_LANGFUSE_TRACES_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_LANGFUSE_URL", export_langfuse_text)
+        self.assertNotIn("pk-lf-athanor", export_langfuse_text)
+        self.assertNotIn("sk-lf-athanor", export_langfuse_text)
+
+        endpoint_test_text = ENDPOINT_TEST_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_LITELLM_URL", endpoint_test_text)
+        self.assertIn("ATHANOR_LANGFUSE_URL", endpoint_test_text)
+
     def test_secondary_app_compose_templates_export_canonical_envs(self) -> None:
         eoq_template_text = EOQ_TEMPLATE.read_text(encoding="utf-8")
         self.assertIn("ATHANOR_LITELLM_URL", eoq_template_text)
@@ -344,6 +362,14 @@ class RepoContractsTest(unittest.TestCase):
         self.assertIn("ATHANOR_ULRICH_DATABASE_URL", ulrich_template_text)
         self.assertIn("ATHANOR_LITELLM_URL", ulrich_template_text)
         self.assertIn("ATHANOR_LITELLM_API_KEY", ulrich_template_text)
+
+        eoq_config_text = EOQ_CONFIG.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_VAULT_HOST", eoq_config_text)
+        self.assertIn("ATHANOR_NODE1_HOST", eoq_config_text)
+        self.assertIn("ATHANOR_NODE2_HOST", eoq_config_text)
+
+        ulrich_config_text = ULRICH_CONFIG.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_VAULT_HOST", ulrich_config_text)
 
     def test_repo_no_longer_tracks_known_secret_literals(self) -> None:
         violations: list[str] = []

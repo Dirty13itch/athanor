@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy agent server to FOUNDRY — sync, build, restart
+# Deploy agent server to FOUNDRY - sync, build, restart
 # Usage: ./scripts/deploy-agents.sh [--no-build]
 set -euo pipefail
 
@@ -7,6 +7,7 @@ REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FOUNDRY="foundry"
 REMOTE_DIR="/opt/athanor/agents"
 SRC_DIR="${REPO_DIR}/projects/agents"
+AGENT_URL="${ATHANOR_AGENT_SERVER_URL:-http://${ATHANOR_NODE1_HOST:-192.168.1.244}:9000}"
 
 echo "=== Deploying Athanor Agent Server to FOUNDRY ==="
 
@@ -26,7 +27,7 @@ rsync -avz \
 
 if [[ "${1:-}" == "--no-build" ]]; then
     echo "[2/3] Skipped (--no-build)"
-    echo "[3/3] Code synced — container not rebuilt"
+    echo "[3/3] Code synced - container not rebuilt"
     exit 0
 fi
 
@@ -37,9 +38,9 @@ ssh "${FOUNDRY}" "cd ${REMOTE_DIR} && docker compose build -q && docker compose 
 # Wait for health
 echo "[3/3] Verifying health..."
 for i in $(seq 1 20); do
-    if curl -sf http://192.168.1.244:9000/health > /dev/null 2>&1; then
-        AGENTS=$(curl -s http://192.168.1.244:9000/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'{len(d[\"agents\"])} agents healthy')")
-        echo "=== Deploy complete — ${AGENTS} ==="
+    if curl -sf "${AGENT_URL%/}/health" > /dev/null 2>&1; then
+        AGENTS=$(curl -s "${AGENT_URL%/}/health" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'{len(d[\"agents\"])} agents healthy')")
+        echo "=== Deploy complete - ${AGENTS} ==="
         exit 0
     fi
     sleep 2

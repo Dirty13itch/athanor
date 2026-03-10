@@ -28,10 +28,16 @@ from mcp.server.fastmcp import FastMCP
 
 # --- Configuration ---
 
-LITELLM_BASE = (
+
+def _ensure_openai_base(url: str) -> str:
+    normalized = url.rstrip("/")
+    return normalized if normalized.endswith("/v1") else f"{normalized}/v1"
+
+
+LITELLM_BASE = _ensure_openai_base(
     os.environ.get("ATHANOR_LITELLM_URL")
     or os.environ.get("LITELLM_BASE_URL")
-    or "http://192.168.1.203:4000/v1"
+    or f"http://{os.environ.get('ATHANOR_VAULT_HOST', '192.168.1.203')}:4000"
 )
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
