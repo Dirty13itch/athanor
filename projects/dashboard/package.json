@@ -12,7 +12,7 @@
     "test:e2e": "playwright test",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
-    "lighthouse": "lhci autorun"
+    "lighthouse": "npm run build && lhci autorun"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.21",

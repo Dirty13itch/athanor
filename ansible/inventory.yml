@@ -16,7 +16,6 @@ all:
               gpu_type: "4x RTX 5070 Ti + RTX 4090"
               vram_total_gb: 88
               extra_firewall:
-                - { port: 8001, proto: tcp, comment: "vLLM Embedding API" }
                 - { port: 9000, proto: tcp, comment: "Agent Server" }
                 - { port: 6333, proto: tcp, comment: "Qdrant REST API" }
                 - { port: 6334, proto: tcp, comment: "Qdrant gRPC" }
@@ -43,6 +42,9 @@ all:
           gpu_count: 1
           gpu_type: "RTX 5060 Ti"
           vram_total_gb: 16
+          extra_firewall:
+            - { port: 8001, proto: tcp, comment: "vLLM Embedding API" }
+            - { port: 8003, proto: tcp, comment: "vLLM Reranker API" }
 
     # VAULT is managed via scripts/vault-ssh.py or Ansible with vault-encrypted vars
     # Do NOT run ad-hoc commands against VAULT — write playbooks for review

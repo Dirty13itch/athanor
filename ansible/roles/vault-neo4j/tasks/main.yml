@@ -112,14 +112,20 @@
                 n.role = 'workstation'
         # Services
         - statement: >
-            MERGE (s:Service {name: 'vllm-reasoning'})
-            SET s.port = 8000, s.model = 'Qwen3-32B-AWQ', s.type = 'inference'
+            MERGE (s:Service {name: 'foundry-coordinator'})
+            SET s.port = 8000, s.model = 'Qwen3.5-27B-FP8', s.type = 'inference'
         - statement: >
-            MERGE (s:Service {name: 'vllm-fast'})
-            SET s.port = 8000, s.model = 'Qwen3-14B', s.type = 'inference'
+            MERGE (s:Service {name: 'foundry-utility'})
+            SET s.port = 8002, s.model = 'Huihui-Qwen3-8B-abliterated-v2', s.type = 'inference'
         - statement: >
-            MERGE (s:Service {name: 'vllm-embedding'})
+            MERGE (s:Service {name: 'workshop-worker'})
+            SET s.port = 8000, s.model = 'Qwen3.5-35B-A3B-AWQ-4bit', s.type = 'inference'
+        - statement: >
+            MERGE (s:Service {name: 'dev-embedding'})
             SET s.port = 8001, s.model = 'Qwen3-Embedding-0.6B', s.type = 'embedding'
+        - statement: >
+            MERGE (s:Service {name: 'dev-reranker'})
+            SET s.port = 8003, s.model = 'Qwen3-Reranker-0.6B', s.type = 'reranker'
         - statement: >
             MERGE (s:Service {name: 'litellm'})
             SET s.port = 4000, s.type = 'proxy'
@@ -139,8 +145,11 @@
             MERGE (s:Service {name: 'dashboard'})
             SET s.port = 3001, s.type = 'ui'
         - statement: >
-            MERGE (s:Service {name: 'open-webui'})
+            MERGE (s:Service {name: 'workshop-open-webui'})
             SET s.port = 3000, s.type = 'ui'
+        - statement: >
+            MERGE (s:Service {name: 'vault-open-webui'})
+            SET s.port = 3090, s.type = 'ui'
         - statement: >
             MERGE (s:Service {name: 'prometheus'})
             SET s.port = 9090, s.type = 'monitoring'
@@ -241,10 +250,10 @@
       statements:
         # RUNS_ON relationships
         - statement: >
-            MATCH (s:Service {name: 'vllm-reasoning'}), (n:Node {name: 'Foundry'})
+            MATCH (s:Service {name: 'foundry-coordinator'}), (n:Node {name: 'Foundry'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'vllm-embedding'}), (n:Node {name: 'Foundry'})
+            MATCH (s:Service {name: 'foundry-utility'}), (n:Node {name: 'Foundry'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
             MATCH (s:Service {name: 'qdrant'}), (n:Node {name: 'Foundry'})
@@ -253,7 +262,7 @@
             MATCH (s:Service {name: 'agent-server'}), (n:Node {name: 'Foundry'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'vllm-fast'}), (n:Node {name: 'Workshop'})
+            MATCH (s:Service {name: 'workshop-worker'}), (n:Node {name: 'Workshop'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
             MATCH (s:Service {name: 'comfyui'}), (n:Node {name: 'Workshop'})
@@ -262,7 +271,7 @@
             MATCH (s:Service {name: 'dashboard'}), (n:Node {name: 'Workshop'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'open-webui'}), (n:Node {name: 'Workshop'})
+            MATCH (s:Service {name: 'workshop-open-webui'}), (n:Node {name: 'Workshop'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
             MATCH (s:Service {name: 'litellm'}), (n:Node {name: 'VAULT'})
@@ -295,6 +304,9 @@
             MATCH (s:Service {name: 'stash'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
+            MATCH (s:Service {name: 'vault-open-webui'}), (n:Node {name: 'VAULT'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
             MATCH (s:Service {name: 'wyoming-piper'}), (n:Node {name: 'VAULT'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
@@ -312,15 +324,27 @@
         - statement: >
             MATCH (s:Service {name: 'eoq'}), (n:Node {name: 'Workshop'})
             MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'dev-embedding'}), (n:Node {name: 'DEV'})
+            MERGE (s)-[:RUNS_ON]->(n)
+        - statement: >
+            MATCH (s:Service {name: 'dev-reranker'}), (n:Node {name: 'DEV'})
+            MERGE (s)-[:RUNS_ON]->(n)
         # DEPENDS_ON relationships
         - statement: >
-            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'vllm-reasoning'})
+            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'foundry-coordinator'})
             MERGE (s)-[:ROUTES_TO]->(t)
         - statement: >
-            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'vllm-fast'})
+            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'foundry-utility'})
             MERGE (s)-[:ROUTES_TO]->(t)
         - statement: >
-            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'vllm-embedding'})
+            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'workshop-worker'})
+            MERGE (s)-[:ROUTES_TO]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'dev-embedding'})
+            MERGE (s)-[:ROUTES_TO]->(t)
+        - statement: >
+            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'dev-reranker'})
             MERGE (s)-[:ROUTES_TO]->(t)
         - statement: >
             MATCH (s:Service {name: 'agent-server'}), (t:Service {name: 'litellm'})
@@ -368,7 +392,7 @@
             MATCH (p:Project {name: 'eoq'}), (s:Service {name: 'comfyui'})
             MERGE (p)-[:USES]->(s)
         - statement: >
-            MATCH (p:Project {name: 'eoq'}), (s:Service {name: 'vllm-reasoning'})
+            MATCH (p:Project {name: 'eoq'}), (s:Service {name: 'foundry-coordinator'})
             MERGE (p)-[:USES]->(s)
     status_code: [200]
   when:

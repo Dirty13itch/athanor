@@ -10,7 +10,6 @@
     - docker
     - monitoring
     - vllm
-    - vllm-embedding
     - qdrant
     - agents
     - backup

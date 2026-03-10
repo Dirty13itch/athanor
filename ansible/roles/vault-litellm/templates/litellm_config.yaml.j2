@@ -8,35 +8,40 @@
 
 model_list:
   # === LOCAL MODELS ===
+  # Frozen slot map:
+  #   reasoning / coding -> Foundry coordinator (:8000)
+  #   creative / utility -> Foundry utility (:8002)
+  #   fast / worker -> Workshop worker (:8000)
+  #   embedding / reranker -> DEV retrieval runtimes
 
   - model_name: "reasoning"
     litellm_params:
-      model: "hosted_vllm//models/Qwen3.5-27B-FP8"
-      api_base: "http://{{ vllm_node1_host }}:8000/v1"
+      model: "hosted_vllm//{{ vllm_node1_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "utility"
     litellm_params:
-      model: "hosted_vllm//models/Huihui-Qwen3-8B-abliterated-v2"
-      api_base: "http://{{ vllm_node1_host }}:8002/v1"
+      model: "hosted_vllm//{{ vllm_node1_utility_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_utility_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "fast"
     litellm_params:
-      model: "hosted_vllm//models/Huihui-Qwen3-8B-abliterated-v2"
-      api_base: "http://{{ vllm_node1_host }}:8002/v1"
+      model: "hosted_vllm//{{ vllm_node2_model }}"
+      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "creative"
     litellm_params:
-      model: "hosted_vllm//models/Qwen3.5-35B-A3B-AWQ-4bit"
-      api_base: "http://{{ vllm_node2_host }}:8000/v1"
+      model: "hosted_vllm//{{ vllm_node1_utility_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_utility_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "coding"
     litellm_params:
-      model: "hosted_vllm//models/Qwen3.5-27B-FP8"
-      api_base: "http://{{ vllm_node1_host }}:8000/v1"
+      model: "hosted_vllm//{{ vllm_node1_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "embedding"
@@ -55,8 +60,8 @@ model_list:
 
   - model_name: "worker"
     litellm_params:
-      model: "hosted_vllm//models/Qwen3.5-35B-A3B-AWQ-4bit"
-      api_base: "http://{{ vllm_node2_host }}:8000/v1"
+      model: "hosted_vllm//{{ vllm_node2_model }}"
+      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
 
   # === CLOUD APIS ===
