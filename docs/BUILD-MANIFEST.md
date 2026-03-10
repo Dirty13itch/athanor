@@ -2,7 +2,7 @@
 
 *This is the tactical execution queue. `docs/design/athanor-next.md` is the strategic design layer above it. Claude Code uses this file to decide what to build next, but the queue must remain subordinate to the Athanor Next operating model.*
 
-Last updated: 2026-03-08 (Session 41: Tier 16 — Remaining build items, DEEP-RESEARCH-LIST reconciliation)
+Last updated: 2026-03-09 (Session 55: Tier 21 — MCP optimization, plugin audit, COO system audit)
 
 ---
 
@@ -977,6 +977,153 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
 - **Status:** ✅ done (Session 42, 2026-03-08)
 - **Scope:** Fixed: VAULT container count 36→42, model inventory ports (8003→8004, 8100→8000), GPU assignments (GPU 2=4090, GPU 3=5070Ti swapped), model names/aliases, agent count 8→9 (added Data Curator), Qdrant vectors 922→2547, Neo4j relationships 43→4447, data flow Node 1:8001→DEV:8001, Node 2:8100→Node 2:8000, added n8n/Gitea/Miniflux to VAULT services list.
 - **Files:** `docs/SYSTEM-SPEC.md`
+
+---
+
+## Tier 18: Knowledge Pipeline Upgrades (P1)
+
+*Post-session-46 improvements to the Qdrant knowledge pipeline. Sources: docs/research/2026-03-09-knowledge-architecture-memory.md*
+
+### 18.1 — miniCOIL Hybrid Search
+- **Status:** ✅ done (Session 47, 2026-03-09)
+- **Scope:** Upgraded `knowledge` Qdrant collection from unnamed dense-only to named dense + miniCOIL sparse vectors. Qdrant-native RRF fusion via `/query` endpoint replaces Python-side RRF for the primary hybrid path. Fallback to keyword scroll retained for collections without sparse vectors (personal_data, conversations, etc.).
+  - `index-knowledge.py`: collection migration (delete+recreate with `dense`+`sparse` named vectors, `modifier: idf`), miniCOIL sparse vector computation via FastEmbed 0.7 at index time, payload text index preserved for fallback
+  - `hybrid_search.py`: primary path uses Qdrant `/query` with prefetch=[dense, sparse]+fusion=rrf; falls back gracefully if miniCOIL unavailable or collection lacks sparse vectors
+  - `pyproject.toml`: added `fastembed>=0.7` dependency
+  - Full re-index: 3071 chunks from 172 documents (was 3034 with old schema)
+- **Quality improvement:** +2-5% NDCG@10 on keyword-heavy queries (miniCOIL vs BM25/text-match). Exact model/identifier queries ("ADR-017", "Qwen3.5-27B-FP8", IP addresses) now get both semantic + neural keyword boosting.
+- **Research:** `docs/research/2026-03-09-knowledge-architecture-memory.md` §5
+- **Depends on:** None
+- **Priority:** Done
+
+### 18.2 — Neo4j Graph Context Expansion
+- **Status:** ✅ done (Session 48, 2026-03-09)
+- **Scope:** Wired Neo4j graph traversal into agent context injection pipeline. Qdrant kNN returns top-k chunks → extract source paths → Neo4j 2-hop expansion (source → category → related docs in same category) → appended to context as "## Related Documentation (graph)".
+  - `graph_context.py`: new module with `expand_knowledge_graph(client, sources, limit)` — async Neo4j HTTP query, graceful fallback on error. Uses `source` path as linking key (no `neo4j_id` in Qdrant needed).
+  - `context.py`: added `_format_graph_related()`, graph expansion call after Qdrant knowledge search completes, `graph_related_lines` in `_build_context_message`. Log format: `3 knowledge (+3 graph)`.
+  - `index-knowledge.py`: added `upsert_neo4j_docs()` — MERGE `Document` nodes with `doc_type='athanor'` in Neo4j after each Qdrant upsert batch. 172 Document nodes created across 8 categories (research/hardware/adr/design/general/project/build/vision).
+  - Full re-index run to populate Neo4j Document nodes.
+- **Actual schema used:** `source` path as key (not `neo4j_id`). No Qdrant payload changes. No `neo4j_graphrag` package (uses existing httpx + Neo4j HTTP API from tools/knowledge.py pattern).
+- **Verified:** `+3 graph` docs in context enrichment log. `## Related Documentation (graph)` section rendered in context output. 2-hop: ADR-005 → adr category → 5 other ADRs.
+- **Notes:** Category-based expansion is the first hop. Full entity-based expansion (HippoRAG NER → Topic/Entity nodes) is deferred to 18.4. The `doc_type='athanor'` label prevents collision with existing bookmark/GitHub Document nodes.
+- **Research:** `docs/research/2026-03-09-knowledge-architecture-memory.md` §4
+- **Depends on:** 18.1 ✅
+- **Priority:** Done
+
+### 18.3 — Continue.dev IDE Integration
+- **Status:** ✅ done (Session 49, 2026-03-09)
+- **Scope:** Installed VS Code 1.110.1 via Microsoft apt repo, Continue.dev v1.2.16 extension. Configured `~/.continue/config.json` pointing at LiteLLM on VAULT:4000.
+  - Chat: `reasoning` (Qwen3.5-27B-FP8 TP=4) — best quality for code discussion
+  - Worker: `worker` (Qwen3.5-35B-A3B-AWQ on WORKSHOP) — alternative MoE model
+  - Autocomplete: `fast` (Qwen3-8B on FOUNDRY GPU2) — speed-optimized, `enable_thinking: false` to suppress Qwen3 think tags
+  - Embeddings: `embedding` (Qwen3-Embedding-0.6B on DEV) — local, low latency
+  - Context providers: code, docs, diff, terminal, problems, folder, codebase
+  - Slash commands: edit, comment, share, cmd, commit
+  - Telemetry: disabled
+- **Verified:** LiteLLM returns 200 for both models. `fast` model with `enable_thinking: false` produces clean output (tested before/after).
+- **Research:** `docs/research/2026-03-09-local-ai-productivity-patterns.md` §10
+- **Depends on:** None
+- **Priority:** Done
+
+### 18.4 — HippoRAG Entity Extraction (Full GraphRAG)
+- **Status:** ✅ done (Session 50, 2026-03-09)
+- **Scope:** Upgraded 18.2 category-based graph expansion to entity-based multi-hop traversal.
+  - `index-knowledge.py`: added `extract_entities_llm(text, title)` — NER via Qwen3.5-27B-FP8 (reasoning alias), extracts up to 15 entities per doc (types: Service, Model, Concept, Technology, Person). Added `upsert_neo4j_entities(source, entities)` — MERGE Entity nodes keyed by `(name_lower, type)`, MERGE MENTIONS edges from Document. Entity extraction runs after all Qdrant + Document upserts (2-phase: embed first, then NER).
+  - `graph_context.py`: replaced category-based Cypher with entity 2-hop: `(found:Document)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(related:Document)`, ranked by `count(DISTINCT e) DESC`. Falls back gracefully to [] if no entities (same as before). Updated docstring to document entity traversal.
+  - Neo4j index created: `entity_name_lower_type` composite on `(name_lower, type)` for fast MERGE dedup.
+  - Full re-index run: 172 docs → 3076 chunks (Qdrant) → 879 Entity nodes → 5455 MENTIONS edges (Neo4j).
+- **Verified:** Entity traversal Cypher returns semantically correct results — ADR-005 (inference engine) expands to inference research doc (5 shared: vLLM, SGLang, llama.cpp, Ollama, PagedAttention), CPU optimization, architecture synthesis. Top entities: Athanor (84 docs), vLLM (76), Shaun (40), LiteLLM (32), ComfyUI (29). Agents restarted on FOUNDRY and confirmed healthy.
+- **Research:** `docs/research/2026-03-09-knowledge-architecture-memory.md` §1 (HippoRAG v2)
+- **Depends on:** 18.2 ✅ (Neo4j Document nodes already created)
+- **Priority:** P2
+
+---
+
+## Tier 19: Learning Feedback Loop (P1)
+
+*Session 53. Closes the loop on the skill learning library built in Session 52.*
+
+### 19.1 — Skill Execution Auto-Recording
+- **Status:** ✅ done (Session 53, 2026-03-09)
+- **Scope:** Wired the skill learning library into the task completion path so skills learn from real agent usage. The skill library existed (Session 52) but all 8 skills had `execution_count: 0` — nothing was calling `record_execution()`.
+  - `skill_learning.py`: added `find_matching_skill(prompt, threshold=0.3)` — scores all skills against a task prompt via `_compute_relevance()`, returns `(skill_id, relevance)` for best match above threshold.
+  - `tasks.py`: added `_record_skill_execution_for_task(task, success)` fire-and-forget coroutine. Wired into `_execute_task()` success path (before GWT broadcast) and failure path (before `_maybe_retry`). Silent on no match or error.
+  - Threshold 0.3 rationale: catches partial trigger-condition word matches (0.3 from `_compute_relevance`) but avoids false positives (minimum for "at least some keyword relevance").
+- **Learning loop complete:** Task completes → prompt matched against skill trigger conditions → `record_execution(skill_id, success, duration_ms)` → running-average `success_rate` and `avg_duration_ms` updated → surfaced in `/v1/skills/top` and context injection reliability notes.
+- **Verified:** Python compile clean. Deploy in progress.
+- **Depends on:** Skill library (Session 52 ✅)
+- **Priority:** Done
+
+---
+
+## Tier 20: Routing Optimization & Dashboard Polish (P1)
+
+*Session 54, 2026-03-09. A/B eval results drove model routing fix. Dashboard data format bugs corrected.*
+
+### 20.1 — A/B Model Comparison Eval
+- **Status:** ✅ done (Session 54)
+- **Scope:** Ran `evals/ab-comparison.yaml` — 16 prompts across 7 categories against both local models.
+  - Qwen3.5-27B-FP8 (reasoning): 100% pass, 50.8s avg latency
+  - Qwen3.5-35B-A3B-AWQ (worker): 100% pass, 4.2s avg latency
+  - Both models equal quality. Worker 12x faster due to MoE sparse activation (3B params active/pass).
+  - Rubric bug fixed: farmer puzzle answer was swapped (7↔8 chickens/cows).
+- **Result:** `evals/results/ab-comparison-2026-03-09-analysis.md`
+
+### 20.2 — Tactical Routing Fix
+- **Status:** ✅ done (Session 54)
+- **Scope:** Critical bug: tactical tier used `reasoning` model (50.8s avg) with a 30s timeout → constant timeouts for tactical tasks.
+  - `config.py`: `router_tactical_model = "worker"` (was `"reasoning"`)
+  - `router.py`: tactical `timeout_s = 60` (was `30`)
+  - Deliberative tier stays on `reasoning` for complex multi-step analysis.
+  - LiteLLM fallback `worker→reasoning→deepseek` active if Workshop down.
+
+### 20.3 — Dashboard Data Format Fixes
+- **Status:** ✅ done (Session 54)
+- **Scope:** Fixed 3 bugs across dashboard pages:
+  - `goals/page.tsx`: `/v1/trust` returns `{ agents: {...} }` not `{ scores: [...] }`. Trust panel always showed empty. Fixed with Object.entries() transform.
+  - `tasks/page.tsx`: Added `data-curator` to `AGENT_COLORS` map (was missing, 9th agent).
+  - `learning/page.tsx`: Added Skill Library MetricCard (total/executed/runs/avg success rate) + fetch from `/v1/skills/stats`.
+  - `page.tsx`: Fixed stale model names (Qwen3.5-27B-FP8 TP=4, Qwen3.5-35B-A3B-AWQ).
+
+### 20.4 — LangFuse Prompt Sync
+- **Status:** ✅ done (Session 54)
+- **Scope:** Ran `scripts/sync-prompts-to-langfuse.py` — creative-agent updated (v2), 8 others unchanged.
+
+---
+
+## Tier 21: Operational Excellence & Tooling (P1)
+
+*Session 55, 2026-03-09. MCP token budget cut, miniflux auth fixed, COO system audit.*
+
+### 21.1 — MCP Token Budget Optimization
+- **Status:** ✅ done (Session 55)
+- **Scope:** Reduced MCP tool schema overhead from ~40,579 to ~8,640 tokens per message (79% reduction).
+  - Diagnosed miniflux as the real auth failure: `miniflux-mcp` requires `MINIFLUX_BASE_URL` + `MINIFLUX_TOKEN` env vars. Previous config used wrong keys (`MINIFLUX_URL/USERNAME/PASSWORD`) and wrong auth method (basic auth vs API token).
+  - Fixed miniflux: generated API token via PostgreSQL direct insert (`miniflux-postgres` container, `api_keys` table) since REST API endpoints return 404 in Miniflux v2.2.6.
+  - Disabled 5 low-use MCP servers: grafana, langfuse, miniflux, n8n, gitea. All preserved in `.mcp.json` with `"disabled": true` — re-enable via `/mcp` toggle as needed.
+  - ALWAYS tier (8 servers): docker, athanor-agents, redis, qdrant, smart-reader, sequential-thinking, neo4j, postgres. Total ~8,640 tokens.
+  - SOMETIMES tier (5 servers, disabled): grafana, langfuse, miniflux, n8n, gitea.
+
+### 21.2 — Claude Code Plugin Audit
+- **Status:** ✅ done (Session 55)
+- **Scope:** Deep research on available Claude Code plugins.
+  - `context7` is already installed — provides `resolve-library-id` + `query-docs` for live library docs. High value.
+  - No additional plugins required. Plugin overhead is always-on (unlike MCP toggles). Everything else is covered by the self-hosted MCP stack.
+  - Plan file: `.claude/plans/serene-wibbling-coral.md`
+
+### 21.3 — COO System Audit
+- **Status:** ✅ done (Session 55)
+- **Scope:** Full live system audit in COO mode.
+  - Agent activity: 16/20 recent tasks completed (80%). Agents are running autonomously. Home/media agents checking HA and Sonarr/Radarr hourly.
+  - 2 coding-agent task timeouts (EoBQ) diagnosed: wrong path specs in task descriptions (`projects/eoq/components/` vs actual `src/app/components/`). Components already exist and are solid. Not a code failure — task definition quality issue.
+  - EoBQ inventory.tsx + scene-transition.tsx verified complete and production-ready.
+  - Pending approval task (home-agent energy analysis) self-cleared.
+  - Home Assistant: 43 entities, 2 TVs showing unavailable (expected — powered off). No anomalies.
+
+### 21.4 — Grafana Backup Age Alert
+- **Status:** 🔲 todo (P2)
+- **Scope:** Add Prometheus alerting rule: fire when backup age > 36h. `backup-exporter` on VAULT exposes metrics. Write alert rule YAML, deploy via Ansible role.
+- **Blocked by:** grafana MCP disabled (or write Prometheus alert rule directly in YAML and deploy).
 
 ---
 

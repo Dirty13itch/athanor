@@ -61,7 +61,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("ATHANOR_ROUTER_REACTIVE_TEMPERATURE"),
     )
     router_tactical_model: str = Field(
-        default="reasoning",
+        default="worker",
         validation_alias=AliasChoices("ATHANOR_ROUTER_TACTICAL_MODEL"),
     )
     router_tactical_max_tokens: int = Field(

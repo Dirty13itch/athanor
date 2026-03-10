@@ -51,6 +51,15 @@ async def lifespan(app: FastAPI):
             subscriptions=meta.get("subscriptions", []),
         )
 
+    # Seed skill library with initial skills if empty
+    try:
+        from .skill_learning import ensure_initial_skills
+        seeded = await ensure_initial_skills()
+        if seeded:
+            print(f"[lifespan] Skill library seeded with {seeded} initial skills", flush=True)
+    except Exception as e:
+        print(f"[lifespan] Skill seeding failed: {e}", flush=True)
+
     yield
     await stop_scheduler()
     await stop_task_worker()
@@ -58,6 +67,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Athanor Agent Server", version="0.3.0", lifespan=lifespan)
+
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # --- Agent metadata (single source of truth) ---
@@ -354,28 +371,70 @@ async def add_preference(request: Request):
 
 @app.get("/v1/notifications")
 async def get_notifications(include_resolved: bool = False):
-    """Get pending agent actions and notifications."""
+    """Get pending agent actions and notifications.
+
+    Merges two sources:
+    - escalation.py confidence-gated actions (tier=notify/ask)
+    - tasks.py pending_approval tasks (require explicit human approval)
+    """
     from .escalation import get_pending, get_unread_count
+    from .tasks import list_tasks
 
     items = get_pending(include_resolved=include_resolved)
+
+    # Merge pending_approval tasks as notifications
+    pending_tasks = await list_tasks(status="pending_approval", limit=50)
+    for t in pending_tasks:
+        meta = t.get("metadata", {})
+        category = meta.get("category", "routine")
+        prompt = t.get("prompt", "")
+        items.append({
+            "id": f"task-{t['id']}",
+            "tier": "ask",
+            "agent": t["agent"],
+            "action": prompt[:120],
+            "category": category,
+            "confidence": 0.0,
+            "description": f"Auto-generated task (priority: {t.get('priority', 'normal')}). Approve to queue for execution.",
+            "created_at": t.get("created_at", 0),
+            "resolved": False,
+            "resolution": "",
+        })
+
     return {
         "notifications": items,
         "count": len(items),
-        "unread": get_unread_count(),
+        "unread": get_unread_count() + len(pending_tasks),
     }
 
 
 @app.post("/v1/notifications/{action_id}/resolve")
 async def resolve_notification(action_id: str, request: Request):
-    """Approve or reject a pending agent action.
+    """Approve or reject a pending agent action or task.
 
     Body: {"approved": true} or {"approved": false}
-    """
-    from .escalation import resolve_action
 
+    IDs prefixed with "task-" route to the task approval system.
+    All other IDs route to the escalation system.
+    """
     body = await request.json()
     approved = body.get("approved", False)
 
+    if action_id.startswith("task-"):
+        from .tasks import approve_task, cancel_task
+        task_id = action_id[len("task-"):]
+        if approved:
+            ok = await approve_task(task_id)
+        else:
+            ok = await cancel_task(task_id)
+        if ok:
+            return {"status": "resolved", "id": action_id, "approved": approved}
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Task '{task_id}' not found or not awaiting approval"},
+        )
+
+    from .escalation import resolve_action
     if resolve_action(action_id, approved):
         return {"status": "resolved", "id": action_id, "approved": approved}
     return JSONResponse(
@@ -1354,6 +1413,91 @@ from .self_improvement import create_improvement_router
 
 app.include_router(create_improvement_router())
 
+# --- Skill Learning ---
+
+from .skill_learning import (
+    add_skill, get_skill, get_all_skills, delete_skill,
+    record_execution, search_skills, get_top_skills, get_stats as get_skill_stats,
+)
+
+
+@app.get("/v1/skills")
+async def list_skills(
+    query: str = "",
+    category: str | None = None,
+    min_success_rate: float = 0.0,
+    limit: int = 20,
+):
+    """Search the skill library."""
+    skills = await search_skills(query=query, category=category, min_success_rate=min_success_rate, limit=limit)
+    return {"skills": [s.to_dict() for s in skills], "count": len(skills)}
+
+
+@app.get("/v1/skills/top")
+async def top_skills(limit: int = 10):
+    """Get top-performing skills by proven effectiveness."""
+    skills = await get_top_skills(limit)
+    return {"skills": [s.to_dict() for s in skills]}
+
+
+@app.get("/v1/skills/stats")
+async def skill_stats():
+    """Get skill library statistics."""
+    return await get_skill_stats()
+
+
+@app.get("/v1/skills/{skill_id}")
+async def get_skill_by_id(skill_id: str):
+    """Get a specific skill by ID."""
+    from fastapi import HTTPException
+    skill = await get_skill(skill_id)
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return skill.to_dict()
+
+
+@app.post("/v1/skills")
+async def create_skill(body: dict):
+    """Add a new skill to the library."""
+    from fastapi import HTTPException
+    required = {"name", "description", "trigger_conditions", "steps"}
+    if not required.issubset(body):
+        raise HTTPException(status_code=422, detail=f"Required fields: {required}")
+    skill_id = await add_skill(
+        name=body["name"],
+        description=body["description"],
+        trigger_conditions=body["trigger_conditions"],
+        steps=body["steps"],
+        category=body.get("category", "general"),
+        tags=body.get("tags"),
+        created_by=body.get("created_by", "api"),
+    )
+    return {"skill_id": skill_id, "status": "created"}
+
+
+@app.post("/v1/skills/{skill_id}/execution")
+async def record_skill_execution(skill_id: str, body: dict):
+    """Record a skill execution outcome (updates success rate)."""
+    from fastapi import HTTPException
+    success = body.get("success", True)
+    duration_ms = body.get("duration_ms", 0.0)
+    context = body.get("context")
+    ok = await record_execution(skill_id, success, float(duration_ms), context)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return {"status": "recorded"}
+
+
+@app.delete("/v1/skills/{skill_id}")
+async def remove_skill(skill_id: str):
+    """Delete a skill from the library."""
+    from fastapi import HTTPException
+    ok = await delete_skill(skill_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Skill not found")
+    return {"status": "deleted"}
+
+
 # --- Circuit Breakers ---
 
 from .circuit_breaker import create_circuit_breaker_router
@@ -1472,7 +1616,12 @@ async def chat_completions(request: Request):
 
     lc_messages = _convert_messages(messages)
     thread_id = body.get("thread_id", str(uuid.uuid4()))
-    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 50}
+    config = {
+        "configurable": {"thread_id": thread_id},
+        "recursion_limit": 50,
+        "metadata": {"agent": model_name, "session_id": thread_id},
+        "tags": [model_name],
+    }
 
     # Extract user input summary for activity logging
     user_input = messages[-1].get("content", "")[:500] if messages else ""

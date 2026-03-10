@@ -21,6 +21,7 @@ paths:
 - All `vllm_extra_args` must be quoted as `"{{ arg }}"` in compose template (YAML renders numbers as int)
 
 ## Qwen3.5 Specifics
+- **`--cpu-offload-gb` INCOMPATIBLE** with `--enable-prefix-caching` (Python assertion error at startup) and MTP speculative decoding. Do NOT use either flag together with cpu-offload. Track vLLM/PR#18298 for fix.
 - **`--language-model-only` REQUIRED** — Without it, VLM encoder profiling allocates 229K tokens → exceeds 131K max → crash. Only exists in nightly (not v0.16.0 stable).
 - **`--tool-call-parser qwen3_xml`** — Qwen3.5 uses XML tool format, not hermes JSON. `hermes` silently fails.
 - **`--enforce-eager` REQUIRED on 16GB GPUs** — CUDA graph replay of DeltaNet/Mamba Triton kernels causes "Triton Error [CUDA]: out of memory" even at 0.85 utilization. Eager mode avoids this. First inference is slow (~90s compile), subsequent are fast.

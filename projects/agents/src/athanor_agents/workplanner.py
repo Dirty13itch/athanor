@@ -43,7 +43,7 @@ MIN_PENDING_TASKS = 2  # Generate more when queue drops below this
 # LLM config for planning
 _LLM_URL = settings.llm_base_url + "/chat/completions"
 _LLM_KEY = settings.llm_api_key
-_LLM_MODEL = "reasoning"  # Qwen3.5-27B-FP8 TP=4 on FOUNDRY
+_LLM_MODEL = "worker"  # Qwen3.5-35B-A3B-AWQ on WORKSHOP — avoids competing with FOUNDRY agent tasks
 
 # --- Project Definitions ---
 # The canonical project registry now lives in athanor_agents.projects.
@@ -90,7 +90,7 @@ AGENT_CAPABILITIES = {
 
 
 # Agents requiring morning approval before autonomous execution (ADR-021 hybrid autonomy)
-HIGH_IMPACT_AGENTS = {"home-agent", "coding-agent"}
+HIGH_IMPACT_AGENTS = {"home-agent"}  # coding-agent writes to /agent-output/, not production
 
 
 async def _gather_knowledge_context(focus: str = "") -> dict:

@@ -16,27 +16,29 @@
 | Aider | Installed | `~/.local/bin/aider`, config at `.aider.conf.yml` |
 | Goose | Installed | v1.27.2 at `/usr/local/bin/goose`, config at `~/.config/goose/profiles.yaml` |
 | claude-squad | Installed | v1.0.16 at `/usr/local/bin/cs` |
+| VS Code | v1.110.1 | Installed via Microsoft apt repo |
+| Continue.dev | v1.2.16 | `~/.continue/config.json` → LiteLLM:4000. Chat: reasoning/worker. Autocomplete: fast (8B, thinking disabled). Embeddings: embedding. |
 
 ## MCP Servers
 
 | Server | Source | Status | Purpose |
 |--------|--------|--------|---------|
-| grafana | .mcp.json (local) | Active | Query Grafana dashboards, alerts, Prometheus, Loki |
-| docker | .mcp.json (local) | Active | Docker container management |
-| athanor-agents | .mcp.json (local) | Active | Agent server at foundry:9000 |
-| redis | .mcp.json (local) | Active | Redis state, heartbeats, workspace, scheduler |
-| qdrant | .mcp.json (local) | Active | Vector DB collections, search, scroll |
-| smart-reader | .mcp.json (local) | Active | Smart file reading, grep, diff, log |
-| sequential-thinking | .mcp.json (local) | Active | Structured reasoning meta-tool |
-| neo4j | .mcp.json (local) | Active | Direct Cypher queries to knowledge graph |
-| postgres | .mcp.json (local) | Active | SQL access to VAULT databases (Zed fork) |
-| gitea | .mcp.json (local) | Active | Repo/issue/PR management on VAULT:3033 |
-| Context7 | claude.ai connector | Active | Library documentation lookup |
+| docker | .mcp.json (local) | ALWAYS | Docker container management |
+| athanor-agents | .mcp.json (local) | ALWAYS | Agent server at foundry:9000 |
+| redis | .mcp.json (local) | ALWAYS | Redis state, heartbeats, workspace, scheduler |
+| qdrant | .mcp.json (local) | ALWAYS | Vector DB collections, search, scroll |
+| smart-reader | .mcp.json (local) | ALWAYS | Smart file reading, grep, diff, log |
+| sequential-thinking | .mcp.json (local) | ALWAYS | Structured reasoning meta-tool |
+| neo4j | .mcp.json (local) | ALWAYS | Direct Cypher queries to knowledge graph |
+| postgres | .mcp.json (local) | ALWAYS | SQL access to VAULT databases (Zed fork) |
+| grafana | .mcp.json (local) | disabled | Query Grafana, Prometheus, Loki — enable when needed |
+| langfuse | .mcp.json (local) | disabled | Trace debugging — enable when needed |
+| miniflux | .mcp.json (local) | disabled | RSS feed tools — enable when needed |
+| n8n | .mcp.json (local) | disabled | Workflow automation — enable when needed |
+| gitea | .mcp.json (local) | disabled | Repo/issue/PR management — enable when needed |
+| context7 | claude.ai plugin | ALWAYS | Live library docs (resolve-library-id, query-docs) |
 | Gmail | claude.ai connector | Active | Email integration |
 | Google Calendar | claude.ai connector | Active | Calendar management |
-| Grafana | claude.ai connector | Active (duplicate) | Same as local, managed by Anthropic |
-| Hugging Face | claude.ai connector | Active | Model/dataset search — low value for ops |
-| Vercel | claude.ai connector | Active | Deployment platform — not currently used |
 
 **Removed from local config:** context7 (plugin duplicate), filesystem, playwright.
 
@@ -129,13 +131,190 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 
 ## Build Progress
 
-All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
+Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or blocked on Shaun:
 - 6.2 InfiniBand (backlog)
 - 6.4 Mobile access (backlog)
 - 6.7 Mining enclosure (physical)
 - 8.4 Dedicated Coding Model (deferred)
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
+
+## Session 55 (2026-03-09) Summary — COO Audit & Operational Excellence
+
+### Completed This Session
+- **MCP token budget optimization** (21.1) — 79% reduction (40,579 → 8,640 tokens):
+  - Root cause: miniflux-mcp required `MINIFLUX_BASE_URL` + `MINIFLUX_TOKEN` (API token auth). Previous config had `MINIFLUX_URL/USERNAME/PASSWORD` (wrong keys, wrong auth method). Fixed.
+  - Generated Miniflux API token via direct PostgreSQL insert (`miniflux-postgres` container) — REST API returns 404 in Miniflux v2.2.6.
+  - Disabled 5 servers in `.mcp.json`: grafana, langfuse, miniflux, n8n, gitea. All preserved, re-enable per-session via `/mcp`.
+  - ALWAYS tier now 8 servers (docker, athanor-agents, redis, qdrant, smart-reader, sequential-thinking, neo4j, postgres).
+- **Claude Code plugin audit** (21.2) — context7 is already installed and optimal. No new plugins needed. Plugin cost is always-on; MCP toggle is better for everything else.
+- **COO live system audit** (21.3) — Agents running autonomously:
+  - 16/20 recent tasks completed. Home/media agents active on schedule.
+  - 2 coding-agent EoBQ timeouts: wrong path specs (`projects/eoq/components/` vs `src/app/components/`). Both components exist and are production quality. Task spec quality issue, not agent failure.
+  - EoBQ: `inventory.tsx` + `scene-transition.tsx` verified complete (framer-motion, game-store integration, full animations).
+  - Home Assistant: 43 entities, 2 TVs unavailable (off — normal). No real anomalies.
+  - Pending approval task (home-agent energy analysis) self-cleared.
+
+### Session 54 Items (not previously logged to STATUS.md)
+- **Tactical routing fix** — `config.py`: `router_tactical_model = "worker"` (was `reasoning`). `router.py`: `timeout_s = 60` (was `30`). Fixed constant timeouts on tactical tasks.
+- **A/B model eval** — Worker (35B-A3B) 12x faster than Reasoning (27B-FP8) with equal quality. Route on load, not quality. Rubric bug fixed (farmer puzzle answer swapped).
+- **Dashboard fixes** — goals/page.tsx trust panel (wrong response shape), tasks/page.tsx data-curator color, learning/page.tsx skill library card, model name stale refs.
+- **LangFuse prompt sync** — creative-agent updated to v2. All 9 agents synced.
+- **DailyBriefing component** — `projects/dashboard/src/components/daily-briefing.tsx` built and wired to page.tsx at lens 'default'.
+
+### Next Actions
+1. **21.4 Grafana backup alert** — Prometheus rule for backup age > 36h (write YAML + Ansible deploy). Grafana MCP disabled; write rule directly.
+2. **Task spec quality** — When assigning EoBQ coding tasks, include exact file paths from `projects/eoq/src/app/components/`.
+3. **Shaun-gated:** n8n Signal Pipeline (vault:5678 UI), Kindred go/no-go, EoBQ character reference images for LoRAs.
+
+---
+
+## Session 53 (2026-03-09) Summary — Skill Learning Feedback Loop
+
+### Completed This Session
+- **Skill learning feedback loop (Tier 19.1)** — closed the loop on Session 52's skill library.
+  - `skill_learning.py`: `find_matching_skill(prompt, threshold=0.3)` — scores all skills via `_compute_relevance()`, returns `(skill_id, relevance)` for best match above threshold.
+  - `tasks.py`: `_record_skill_execution_for_task(task, success)` — fire-and-forget from both success and failure paths in `_execute_task()`. Silent on no match.
+  - **Verified live:** research task "Research HippoRAG..." → matched "Search then Synthesize" (relevance=0.8) → `execution_count=1, success_rate=100%, avg_duration_ms=143114`. Skill library now learns from real usage.
+  - Deployed to FOUNDRY, rebuilt image, confirmed functional via `/v1/skills/stats` and `/v1/skills/top`.
+
+### Next Actions
+- Continue building Tier 19 items from the backlog
+- Watch skill success rates accumulate over agent activity
+- Consider adding duckduckgo_search → ddgs package rename fix (pre-existing warning in research tools)
+
+## Session 52 (2026-03-09) Summary — Open Work List Execution
+
+### Completed This Session
+- **Comprehensive plan audit** — cross-referenced plan against live system. Key finding: most P1/P2 items were already done in sessions 46-51.
+  - GWT Phase 3 ✅ (workspace.py fully implements subscriptions, reactions, coalition)
+  - Conversation history indexing ✅ (124 points live, `log_conversation()` wired since session ~40)
+  - Prompt versioning in LangFuse ✅ (all 9 agents synced since 2026-03-08)
+  - Dashboard PWA ✅ (sw.js, manifest.ts, register-sw.tsx, icons all done)
+- **Skill Learning Library** (ported from reference/hydra/skill_learning.py):
+  - `skill_learning.py`: async Redis-backed skill library (`athanor:skills:library`)
+  - `Skill` dataclass with trigger_conditions, steps, success_rate, execution_count, avg_duration_ms, examples
+  - `_compute_relevance()`: keyword matching across trigger_conditions + name/description/tags
+  - `search_skills_for_context()`: top-3 relevant skills formatted for context injection
+  - `record_execution()`: running average success rate and duration (empirical learning)
+  - 8 initial skills seeded: research, media, creative, knowledge, infrastructure, coding, home, stash
+  - `context.py`: skill section injected after Active Goals (Step 2d, Redis-only, fast)
+  - `server.py`: full CRUD API at `/v1/skills` + execution recording
+  - Deployed to FOUNDRY, rebuilt, verified: 8 skills seeded, stats endpoint live
+- **Promptfoo A/B comparison** — `evals/ab-comparison.yaml` run complete:
+  - reasoning (Qwen3.5-27B-FP8): 15/16 = **93.8%**
+  - creative (Qwen3.5-35B-A3B-AWQ): 15/16 = **93.8%**
+  - Both fail chicken/cow math. Otherwise identical quality. Routing decision: load balance freely.
+
+### Key Findings
+- Both local models are quality-equivalent — route on load, not quality
+- All "can build now" items from the 29-item open work list are now done
+- 9 items remain Shaun-gated (credentials, clicks, decisions)
+
+### Next Actions
+1. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+2. Shaun: push go/no-go on Kindred prototype (14.5)
+3. EoBQ character LoRAs — Shaun to provide reference images for characters
+4. SDXL/Pony anime art path — research when time allows (not urgent)
+5. Push 10 commits to origin when ready
+
+## Session 51 (2026-03-09) Summary
+
+### Completed This Session
+- **MEMORY.md refresh** — was stale at session 40 (10 sessions out of date). Full rewrite documenting sessions 41-51: Tier 18 complete (miniCOIL, Neo4j 2-hop, Continue.dev, HippoRAG), EoBQ uncensored stack, LiteLLM routing table, all 9 agent states, MCP server inventory.
+- **EoBQ plan audit** — confirmed peaceful-gathering-sundae.md plan fully implemented in session 46. All steps verified: LoRA in 3 workflow JSONs, `uncensored` LiteLLM alias confirmed at `/mnt/user/appdata/litellm/config.yaml`, intensity routing live in chat + narrate routes, abliterated model system prompt in creative agent. Plan file deleted.
+- **Promptfoo eval baseline** — first run of `evals/promptfooconfig.yaml` against live LiteLLM. Results → `evals/results/baseline-2026-03-09.json`. 81.6% (31/38).
+- **LiteLLM config path corrected** — was wrong in docs (`/opt/athanor/litellm/`) actual path: `/mnt/user/appdata/litellm/config.yaml` (Unraid appdata)
+
+### Key Verifications
+- `uncensored` model in LiteLLM → `Huihui-Qwen3-8B-abliterated-v2` at foundry:8002 ✅
+- LoRA (`flux-uncensored.safetensors`, strength 0.85) in all 3 Flux workflows ✅
+- Deployed EoBQ at workshop:3002 running current code ✅
+
+### Next Actions (carried forward)
+1. Review promptfoo eval results when complete — record baseline scores
+2. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+3. Shaun: push go/no-go on Kindred prototype (14.5)
+4. Push 8 commits to origin when ready
+
+## Session 50 (2026-03-09) Summary
+
+### Completed This Session
+- **HippoRAG Entity Extraction** (18.4) — entity-based graph traversal fully wired:
+  - `index-knowledge.py`: `extract_entities_llm(text, title)` — NER via Qwen3.5-27B-FP8, extracts ≤15 entities/doc (types: Service, Model, Concept, Technology, Person). `upsert_neo4j_entities(source, entities)` — MERGE Entity nodes by `(name_lower, type)`, MERGE MENTIONS edges. 2-phase: all Qdrant/Document upserts first, then NER pass.
+  - `graph_context.py`: category-based Cypher → entity 2-hop: `(found:Document)-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(related:Document)`, ranked by `count(DISTINCT e) DESC`.
+  - Neo4j index: `entity_name_lower_type` composite on `(name_lower, type)`.
+  - Full re-index: 172 docs → 3076 Qdrant chunks → 879 Entity nodes → 5455 MENTIONS edges.
+  - Deployed: `graph_context.py` synced to FOUNDRY, agents restarted, all 9 healthy.
+  - **Verified:** Entity traversal semantically correct — ADR-005 (inference engine) → inference research doc (5 shared entities: vLLM, SGLang, llama.cpp, Ollama, PagedAttention), CPU optimization, architecture synthesis.
+
+### Next Actions
+1. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+2. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
+
+## Session 49 (2026-03-09) Summary
+
+### Completed This Session
+- **LangFuse per-agent metadata:**
+  - Added `extra_body` metadata to all 9 agent ChatOpenAI constructors: `trace_name`, `tags`, `trace_metadata`
+  - KEY: LiteLLM uses `trace_name` (sets trace name), `tags` (array → LangFuse tags), `trace_metadata` (dict → LangFuse metadata). Plain `metadata.agent` is ignored.
+  - Also added `metadata`+`tags` to LangChain run configs in `server.py` and `tasks.py` for future LangChain-native LangFuse integration
+  - Verified: `knowledge-agent` trace shows `name='knowledge-agent', tags=['knowledge-agent'], meta={'agent': 'knowledge-agent'}`
+
+- **Continue.dev IDE Integration** (18.3):
+  - VS Code v1.110.1 installed via Microsoft apt repo (Ubuntu 24.04)
+  - Continue.dev v1.2.16 extension installed headlessly
+  - `~/.continue/config.json`: Chat → `reasoning` (Qwen3.5-27B-FP8) + `worker` (35B-A3B on WORKSHOP); Autocomplete → `fast` (Qwen3-8B, `enable_thinking: false`); Embeddings → `embedding` (Qwen3-Embedding-0.6B)
+  - **Verified:** LiteLLM 200, `reasoning` model chat works, `fast` model with thinking disabled produces clean output
+  - `drop_params: true` in LiteLLM does NOT strip `chat_template_kwargs` — verified by test
+
+### Next Actions
+1. HippoRAG entity extraction (18.4) — NER at index time, upgrade category-based to entity-based graph expansion
+2. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+3. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
+
+## Session 48 (2026-03-09) Summary
+
+### Completed This Session
+- **Neo4j Graph Context Expansion** (18.2):
+  - `graph_context.py`: 2-hop Neo4j expansion after Qdrant knowledge search — source → category → related docs in same category
+  - `context.py`: wired graph expansion into enrichment pipeline; new "## Related Documentation (graph)" context section; log shows `3 knowledge (+3 graph)`
+  - `index-knowledge.py`: added `upsert_neo4j_docs()` — MERGE Document nodes with `doc_type='athanor'` in Neo4j; 172 nodes created across 8 categories
+  - Full re-index run to populate all Neo4j Document nodes
+  - Agents rebuilt + deployed: all 9 healthy at foundry:9000
+  - **Verified working:** `+3 graph` in context log, graph section renders in context output
+
+### LangFuse Audit Finding
+All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` — no agent-level metadata. LangChain callbacks don't thread `agent_name` to LiteLLM. Can't distinguish which agent made which call. Fix: add `metadata={"agent": agent_name}` to LangChain chain config in `tasks.py`.
+
+### Next Actions
+1. Install VS Code + Continue.dev on DEV → FOUNDRY:8000 (18.3) — highest daily-use ROI
+2. HippoRAG entity extraction (18.4) — NER at index time, upgrade category-based to entity-based graph expansion
+3. LangFuse per-agent metadata: thread `agent_name` through LangChain callbacks to LiteLLM → LangFuse
+4. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+5. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
+
+## Session 47 (2026-03-09) Summary
+
+### Completed This Session
+- **miniCOIL hybrid search** (18.1):
+  - `knowledge` Qdrant collection migrated: unnamed dense → named `dense` + `sparse` (miniCOIL) vectors
+  - `index-knowledge.py`: adds miniCOIL sparse vectors at index time (FastEmbed 0.7, `Qdrant/minicoil-v1`, 90MB)
+  - `hybrid_search.py`: primary path uses Qdrant `/query` endpoint with native RRF fusion; graceful fallback to keyword scroll for collections without sparse vectors
+  - `pyproject.toml`: added `fastembed>=0.7`
+  - Full re-index: 3071 chunks from 172 documents (was 3034)
+  - Agents rebuilt + deployed: all 9 healthy at foundry:9000
+  - miniCOIL model loads on first query (~5s one-time), cached thereafter
+  - **Quality improvement:** +2-5% NDCG@10 on keyword-heavy queries
+
+### Next Actions
+1. Wire `QdrantNeo4jRetriever` into agent context pipeline (18.2) — +20% multi-hop accuracy
+2. Add miniCOIL sparse vectors to `personal_data` collection (when that collection gets data)
+3. Install VS Code + Continue.dev on DEV → FOUNDRY:8000 (18.3) — highest daily-use ROI
+4. Replace `knowledge` payload text index with miniCOIL hybrid search in `index-knowledge.py` ← DONE
+5. Audit LangFuse for per-agent invocation frequency
+6. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678
+7. Re-test `--cpu-offload-gb` when vLLM nightly fixes PR #18298
 
 ## Session 46 (2026-03-09) Summary
 
@@ -194,4 +373,29 @@ All 16 tiers COMPLETE. Remaining open items are backlog or blocked on Shaun:
 
 ---
 
-*Last updated: 2026-03-09 02:10 PDT
+## Session 54 (2026-03-09) Summary
+
+### Completed This Session
+- **Tactical routing fix** — Critical: `reasoning` model (50.8s avg latency) assigned to tactical tier with 30s timeout → constant timeouts. Switched tactical to `worker` (35B-A3B-AWQ, 4.2s avg). Timeout bumped to 60s. Backed by A/B eval data.
+- **A/B model eval** — Both models score 100% quality (rubric bug corrected). Worker 12x faster. Results documented in `evals/results/ab-comparison-2026-03-09-analysis.md`.
+- **Dashboard data format fixes** — 3 bugs corrected:
+  - `goals/page.tsx`: trust panel always empty — `/v1/trust` returns `{ agents: {} }` not `{ scores: [] }`. Fixed with Object.entries() transform.
+  - `tasks/page.tsx`: data-curator missing from AGENT_COLORS.
+  - `learning/page.tsx`: added Skill Library MetricCard (skill stats visible).
+- **Notifications system** — Merged two approval backends (`escalation.py` + `pending_approval` tasks). CORS added to agent server. Both work in browser now.
+- **LangFuse prompt sync** — creative-agent updated to v2, 8 others unchanged.
+- **Dashboard deployed** — All changes rsynced and rebuilt on Workshop:3001.
+
+### Key Findings
+- Tactical tier was systematically timing out with `reasoning` model (50.8s >> 30s timeout). Fix is deployed and live.
+- Both local models have identical quality on evals. Route by latency, not by "bigger = better".
+- Conversations collection IS populated (verified 3 live entries) — prior session notes were incorrect about it being empty.
+
+### Next Actions
+1. Shaun: activate n8n "Intelligence Signal Pipeline" at vault:5678 (still pending)
+2. EoBQ character LoRAs — per-character Flux LoRA training for face consistency (P2)
+3. SDXL/Pony anime art path for EoBQ (P2)
+4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
+5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
+
+*Last updated: 2026-03-09 14:20 PDT

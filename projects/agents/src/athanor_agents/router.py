@@ -74,7 +74,7 @@ def _build_tier_configs() -> dict[ProcessingTier, TierConfig]:
             model=settings.router_tactical_model,
             max_tokens=settings.router_tactical_max_tokens,
             temperature=0.7,
-            timeout_s=30,
+            timeout_s=60,
             use_agent=True,
         ),
         ProcessingTier.DELIBERATIVE: TierConfig(

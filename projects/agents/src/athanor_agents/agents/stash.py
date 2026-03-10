@@ -42,6 +42,7 @@ def create_stash_agent():
         streaming=True,
         extra_body={
             "chat_template_kwargs": {"enable_thinking": False},
+            "metadata": {"trace_name": "stash-agent", "tags": ["stash-agent"], "trace_metadata": {"agent": "stash-agent"}},
         },
     )
 

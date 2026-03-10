@@ -5,6 +5,17 @@ Run from DEV (where the git repo lives):
     python3 scripts/index-knowledge.py              # incremental (default)
     python3 scripts/index-knowledge.py --full        # full re-index
 
+Requires: pip install fastembed httpx
+
+Hybrid indexing: dense vectors (Qwen3-Embedding via LiteLLM) +
+miniCOIL sparse vectors (local, via FastEmbed 0.7+). The collection is
+configured with named vectors:
+  - "dense": 1024-dim Cosine (semantic search)
+  - "sparse": miniCOIL with modifier=idf (keyword+semantic hybrid)
+
+If the existing collection uses unnamed vectors (pre-miniCOIL format),
+this script will delete and recreate it, then do a forced full re-index.
+
 Incremental mode: compares content hashes, only re-embeds changed/new files,
 removes points for deleted files. Takes <30s when nothing changed.
 
@@ -14,9 +25,11 @@ and upserts into the Qdrant 'knowledge' collection.
 
 import argparse
 import hashlib
+import json
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 import httpx
 
@@ -36,11 +49,47 @@ EXTRA_FILES = [
 QDRANT_URL = "http://192.168.1.244:6333"
 LITELLM_URL = "http://192.168.1.203:4000/v1"
 LITELLM_KEY = "sk-athanor-litellm-2026"
+NEO4J_URL = "http://192.168.1.203:7474"
+NEO4J_AUTH = ("neo4j", "athanor2026")
 COLLECTION = "knowledge"
 EMBEDDING_DIM = 1024
 CHUNK_SIZE = 1500  # chars per chunk (with overlap)
 CHUNK_OVERLAP = 200
 EMBEDDING_MODEL = "Qwen3-Embedding-0.6B"  # Model serving the `embedding` LiteLLM route
+MINICOIL_MODEL = "Qdrant/minicoil-v1"
+NER_MODEL = "reasoning"  # Qwen3.5-27B-FP8 — best NER quality for entity extraction
+
+# --- miniCOIL model (lazy loaded) ---
+_minicoil = None
+
+
+def _get_minicoil():
+    """Lazy-load miniCOIL sparse embedding model."""
+    global _minicoil
+    if _minicoil is None:
+        try:
+            from fastembed import SparseTextEmbedding
+            print("  Loading miniCOIL model (first run: downloads ~90MB)...")
+            _minicoil = SparseTextEmbedding(model_name=MINICOIL_MODEL)
+            print("  miniCOIL ready.")
+        except ImportError:
+            print("ERROR: fastembed not installed. Run: pip install fastembed", file=sys.stderr)
+            sys.exit(1)
+    return _minicoil
+
+
+def compute_sparse_vectors(texts: list[str]) -> list[dict]:
+    """Compute miniCOIL sparse vectors for a batch of texts.
+
+    Returns list of {"indices": [...], "values": [...]} dicts,
+    one per input text.
+    """
+    model = _get_minicoil()
+    embeddings = list(model.embed(texts, batch_size=min(len(texts), 32)))
+    return [
+        {"indices": e.indices.tolist(), "values": e.values.tolist()}
+        for e in embeddings
+    ]
 
 
 def content_hash(text: str) -> str:
@@ -113,20 +162,69 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
     return [c for c in chunks if len(c) > 50]
 
 
-def ensure_collection():
-    """Ensure the Qdrant collection exists."""
-    resp = httpx.get(f"{QDRANT_URL}/collections/{COLLECTION}", timeout=5)
-    if resp.status_code == 200:
-        return
+def _collection_has_sparse(resp_json: dict) -> bool:
+    """Check if a Qdrant collection already has sparse_vectors configured."""
+    config = resp_json.get("result", {}).get("config", {})
+    params = config.get("params", {})
+    # Qdrant returns sparse_vectors in params if configured
+    sparse = params.get("sparse_vectors", {})
+    return bool(sparse)
 
-    print(f"Creating collection '{COLLECTION}'...")
+
+def _collection_has_named_dense(resp_json: dict) -> bool:
+    """Check if a Qdrant collection uses named dense vectors (not unnamed)."""
+    config = resp_json.get("result", {}).get("config", {})
+    params = config.get("params", {})
+    vectors = params.get("vectors", {})
+    # Named vectors have a dict of dicts; unnamed has {"size": N, "distance": "..."}
+    return isinstance(vectors, dict) and "dense" in vectors
+
+
+def ensure_collection() -> bool:
+    """Ensure the Qdrant collection exists with correct schema.
+
+    Returns True if collection was recreated (caller should force full re-index).
+    """
+    resp = httpx.get(f"{QDRANT_URL}/collections/{COLLECTION}", timeout=5)
+
+    if resp.status_code == 200:
+        data = resp.json()
+        has_sparse = _collection_has_sparse(data)
+        has_named = _collection_has_named_dense(data)
+
+        if has_sparse and has_named:
+            print(f"  Collection '{COLLECTION}': OK (named dense + sparse vectors)")
+            return False  # No migration needed
+
+        # Migration needed: delete and recreate
+        print(f"  Collection '{COLLECTION}': upgrading to named dense + sparse vectors...")
+        httpx.delete(f"{QDRANT_URL}/collections/{COLLECTION}", timeout=10).raise_for_status()
+        print(f"  Deleted old collection.")
+
+    # Create with named dense + sparse vectors
+    print(f"  Creating collection '{COLLECTION}' with miniCOIL sparse vectors...")
     httpx.put(
         f"{QDRANT_URL}/collections/{COLLECTION}",
         json={
-            "vectors": {"size": EMBEDDING_DIM, "distance": "Cosine"},
+            "vectors": {
+                "dense": {"size": EMBEDDING_DIM, "distance": "Cosine"},
+            },
+            "sparse_vectors": {
+                "sparse": {"modifier": "idf"},
+            },
         },
         timeout=10,
     ).raise_for_status()
+
+    # Create payload text index for keyword fallback
+    httpx.put(
+        f"{QDRANT_URL}/collections/{COLLECTION}/index",
+        json={"field_name": "text", "field_schema": {"type": "text", "tokenizer": "word"}},
+        timeout=10,
+    ).raise_for_status()
+
+    print(f"  Collection '{COLLECTION}' created with dense + sparse + text index.")
+    return True  # Migration occurred
 
 
 def find_docs() -> list[Path]:
@@ -267,6 +365,7 @@ def index_file(filepath: Path, batch: list[dict], file_hash: str) -> int:
                 "embedded_at": indexed_at,
                 "content_hash": file_hash,
                 "embedding_model": EMBEDDING_MODEL,
+                "sparse_model": MINICOIL_MODEL,
                 "text": chunk,
             },
         })
@@ -275,12 +374,13 @@ def index_file(filepath: Path, batch: list[dict], file_hash: str) -> int:
 
 
 def upsert_batch(batch: list[dict]):
-    """Embed and upsert a batch of points to Qdrant."""
+    """Embed (dense + sparse) and upsert a batch of points to Qdrant."""
     if not batch:
         return
 
     texts = [p["text"] for p in batch]
 
+    # Dense embeddings via LiteLLM
     resp = httpx.post(
         f"{LITELLM_URL}/embeddings",
         json={"model": "embedding", "input": texts},
@@ -288,13 +388,19 @@ def upsert_batch(batch: list[dict]):
         timeout=120,
     )
     resp.raise_for_status()
-    embeddings = [d["embedding"] for d in resp.json()["data"]]
+    dense_vectors = [d["embedding"] for d in resp.json()["data"]]
+
+    # Sparse embeddings via miniCOIL (local, fast)
+    sparse_vectors = compute_sparse_vectors(texts)
 
     points = []
-    for item, vector in zip(batch, embeddings):
+    for item, dense, sparse in zip(batch, dense_vectors, sparse_vectors):
         points.append({
             "id": item["id"],
-            "vector": vector,
+            "vectors": {
+                "dense": dense,
+                "sparse": sparse,
+            },
             "payload": item["payload"],
         })
 
@@ -304,6 +410,159 @@ def upsert_batch(batch: list[dict]):
         timeout=30,
     )
     resp.raise_for_status()
+
+
+def upsert_neo4j_docs(docs: list[dict]):
+    """Create or update AthanorDoc Document nodes in Neo4j.
+
+    Each doc requires: {source, title, category, qdrant_point_id}
+
+    Uses doc_type='athanor' to distinguish these from bookmark/GitHub Document
+    nodes in the same graph. MERGE on (source, doc_type) is idempotent.
+    Failures are non-fatal — Qdrant is the source of truth.
+    """
+    if not docs:
+        return
+
+    cypher = """
+    UNWIND $docs AS doc
+    MERGE (d:Document {source: doc.source, doc_type: 'athanor'})
+    SET d.title = doc.title,
+        d.category = doc.category,
+        d.qdrant_point_id = doc.qdrant_point_id,
+        d.doc_id = doc.source
+    """
+    try:
+        resp = httpx.post(
+            f"{NEO4J_URL}/db/neo4j/tx/commit",
+            json={"statements": [{"statement": cypher, "parameters": {"docs": docs}}]},
+            auth=NEO4J_AUTH,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        errors = resp.json().get("errors", [])
+        if errors:
+            print(f"  Warning: Neo4j write errors: {errors[:2]}", file=sys.stderr)
+        else:
+            print(f"  Neo4j: {len(docs)} Document nodes upserted")
+    except Exception as e:
+        print(f"  Warning: Neo4j write failed (graph expansion won't work): {e}", file=sys.stderr)
+
+
+def extract_entities_llm(text: str, title: str) -> list[dict]:
+    """Extract named entities from document text via LLM NER (HippoRAG step).
+
+    Calls Qwen3.5-27B-FP8 to identify specific named entities: services,
+    models, concepts, technologies, and people. Returns structured list
+    suitable for Neo4j MENTIONS edge creation.
+
+    Non-fatal: returns [] on any LLM or parse error.
+    """
+    prompt = f"""Extract named entities from this technical document. Return only a JSON array.
+
+Entity types:
+- Service: deployed applications or APIs (e.g. "Qdrant", "LangFuse", "Sonarr", "Neo4j")
+- Model: AI/ML models (e.g. "Qwen3.5-27B-FP8", "Qwen3-Embedding-0.6B", "flux-uncensored")
+- Concept: abstract ideas or methods (e.g. "HippoRAG", "tensor parallelism", "context injection", "PPR traversal")
+- Technology: frameworks, libraries, or protocols (e.g. "LangGraph", "vLLM", "FastAPI", "LiteLLM", "Ansible")
+- Person: named people (e.g. "Shaun")
+
+Rules:
+- Only extract specific named entities, not generic terms like "agent" or "system"
+- Normalize names (canonical spelling, no plurals, no trailing punctuation)
+- Max 15 entities per document
+- Return empty array [] if no clear named entities found
+
+Document title: {title}
+Content:
+{text[:2500]}
+
+Return format (JSON array only, no explanation, no markdown fences):
+[{{"name": "...", "type": "Service|Model|Concept|Technology|Person"}}, ...]"""
+
+    try:
+        resp = httpx.post(
+            f"{LITELLM_URL}/chat/completions",
+            json={
+                "model": NER_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.0,
+                "max_tokens": 512,
+                "chat_template_kwargs": {"enable_thinking": False},
+            },
+            headers={"Authorization": f"Bearer {LITELLM_KEY}"},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"].strip()
+
+        # Strip markdown code fences if model wraps in ```json ... ```
+        if content.startswith("```"):
+            parts = content.split("```")
+            content = parts[1] if len(parts) > 1 else content
+            if content.startswith("json"):
+                content = content[4:]
+        content = content.strip()
+
+        entities = json.loads(content)
+        if not isinstance(entities, list):
+            return []
+
+        valid_types = {"Service", "Model", "Concept", "Technology", "Person"}
+        valid = []
+        for e in entities:
+            if (
+                isinstance(e, dict)
+                and "name" in e
+                and "type" in e
+                and e["type"] in valid_types
+                and str(e["name"]).strip()
+            ):
+                valid.append({"name": str(e["name"]).strip(), "type": e["type"]})
+        return valid[:15]
+
+    except Exception as err:
+        print(f"  Warning: Entity extraction failed: {err}", file=sys.stderr)
+        return []
+
+
+def upsert_neo4j_entities(source: str, entities: list[dict]):
+    """Create Entity nodes and MENTIONS edges in Neo4j.
+
+    Requires the Document node for `source` to already exist (call after
+    upsert_neo4j_docs). Uses name_lower for deduplication so "Qdrant" and
+    "qdrant" collapse to the same entity node.
+
+    Non-fatal: failures are logged but don't stop indexing.
+    """
+    if not entities:
+        return
+
+    cypher = """
+    MATCH (d:Document {source: $source, doc_type: 'athanor'})
+    UNWIND $entities AS ent
+    MERGE (e:Entity {name_lower: toLower(ent.name), type: ent.type})
+    ON CREATE SET e.name = ent.name, e.created_at = timestamp()
+    MERGE (d)-[:MENTIONS]->(e)
+    """
+    try:
+        resp = httpx.post(
+            f"{NEO4J_URL}/db/neo4j/tx/commit",
+            json={
+                "statements": [{
+                    "statement": cypher,
+                    "parameters": {"source": source, "entities": entities},
+                }]
+            },
+            auth=NEO4J_AUTH,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        errors = resp.json().get("errors", [])
+        if errors:
+            print(f"  Warning: Neo4j entity write errors: {errors[:1]}", file=sys.stderr)
+    except Exception as e:
+        print(f"  Warning: Neo4j entity write failed: {e}", file=sys.stderr)
 
 
 def check_connectivity():
@@ -335,6 +594,8 @@ def run_full():
     print(f"Found {len(docs)} documents to index\n")
 
     batch: list[dict] = []
+    neo4j_docs: list[dict] = []
+    neo4j_entities: list[tuple] = []  # (source, title, file_content) — extracted after docs upserted
     total_chunks = 0
     batch_size = 20
 
@@ -346,6 +607,18 @@ def run_full():
         total_chunks += n
         print(f"  [{i+1}/{len(docs)}] {rel} -> {n} chunks")
 
+        if n > 0:
+            source = str(filepath.relative_to(REPO_ROOT))
+            title = extract_title(file_content, filepath)
+            category = categorize_file(filepath)
+            neo4j_docs.append({
+                "source": source,
+                "title": title,
+                "category": category,
+                "qdrant_point_id": text_to_uuid(f"{source}:chunk:0"),
+            })
+            neo4j_entities.append((source, title, file_content))
+
         if len(batch) >= batch_size:
             print(f"    Embedding + upserting batch ({len(batch)} chunks)...")
             upsert_batch(batch)
@@ -356,6 +629,19 @@ def run_full():
         upsert_batch(batch)
 
     print(f"\n=== Done: {total_chunks} chunks from {len(docs)} documents indexed ===")
+    upsert_neo4j_docs(neo4j_docs)
+
+    # Entity extraction (NER at index time) — must run after docs are upserted
+    if neo4j_entities:
+        print(f"\nExtracting entities for {len(neo4j_entities)} documents...")
+        for j, (source, title, file_content) in enumerate(neo4j_entities):
+            print(f"  [{j+1}/{len(neo4j_entities)}] {source}")
+            entities = extract_entities_llm(file_content, title)
+            if entities:
+                entity_names = ", ".join(e["name"] for e in entities[:5])
+                print(f"    → {len(entities)} entities: {entity_names}{'...' if len(entities) > 5 else ''}")
+                upsert_neo4j_entities(source, entities)
+        print("Entity extraction complete.")
 
 
 def run_incremental():
@@ -418,6 +704,8 @@ def run_incremental():
     # Step 5: Re-index new + changed files
     to_index = new_files + changed_files
     batch: list[dict] = []
+    neo4j_docs: list[dict] = []
+    neo4j_entities: list[tuple] = []  # (source, title, file_content) — extracted after docs upserted
     total_chunks = 0
     batch_size = 20
 
@@ -428,6 +716,18 @@ def run_incremental():
         n = index_file(filepath, batch, current_hashes[source])
         total_chunks += n
         print(f"  [{i+1}/{len(to_index)}] [{tag}] {rel} -> {n} chunks")
+
+        if n > 0:
+            file_content = filepath.read_text(encoding="utf-8", errors="replace")
+            title = extract_title(file_content, filepath)
+            category = categorize_file(filepath)
+            neo4j_docs.append({
+                "source": source,
+                "title": title,
+                "category": category,
+                "qdrant_point_id": text_to_uuid(f"{source}:chunk:0"),
+            })
+            neo4j_entities.append((source, title, file_content))
 
         if len(batch) >= batch_size:
             print(f"    Embedding + upserting batch ({len(batch)} chunks)...")
@@ -440,6 +740,19 @@ def run_incremental():
 
     deleted_count = len(deleted_sources)
     print(f"\n=== Done: {total_chunks} chunks indexed, {deleted_count} sources removed ===")
+    upsert_neo4j_docs(neo4j_docs)
+
+    # Entity extraction (NER at index time) — must run after docs are upserted
+    if neo4j_entities:
+        print(f"\nExtracting entities for {len(neo4j_entities)} documents...")
+        for j, (source, title, file_content) in enumerate(neo4j_entities):
+            print(f"  [{j+1}/{len(neo4j_entities)}] {source}")
+            entities = extract_entities_llm(file_content, title)
+            if entities:
+                entity_names = ", ".join(e["name"] for e in entities[:5])
+                print(f"    → {len(entities)} entities: {entity_names}{'...' if len(entities) > 5 else ''}")
+                upsert_neo4j_entities(source, entities)
+        print("Entity extraction complete.")
 
 
 def main():
@@ -455,10 +768,15 @@ def main():
 
     print("=== Athanor Knowledge Indexer ===\n")
     check_connectivity()
-    ensure_collection()
+
+    migrated = ensure_collection()
     print()
 
-    if args.full:
+    # Force full re-index after schema migration
+    if migrated:
+        print("Schema migration detected: forcing full re-index.\n")
+        run_full()
+    elif args.full:
         run_full()
     else:
         run_incremental()

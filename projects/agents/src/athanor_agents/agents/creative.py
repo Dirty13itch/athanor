@@ -69,6 +69,7 @@ def create_creative_agent():
         streaming=True,
         extra_body={
             "chat_template_kwargs": {"enable_thinking": False},
+            "metadata": {"trace_name": "creative-agent", "tags": ["creative-agent"], "trace_metadata": {"agent": "creative-agent"}},
         },
     )
 

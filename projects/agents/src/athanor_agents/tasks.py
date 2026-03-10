@@ -384,6 +384,31 @@ async def approve_task(task_id: str) -> bool:
     return True
 
 
+async def _record_skill_execution_for_task(task: Task, success: bool):
+    """Fire-and-forget: record task outcome against the best matching skill.
+
+    Only records if the task prompt matches a skill above the 0.3 relevance
+    threshold. Silently skips if no match or skill library is unavailable.
+    """
+    try:
+        from .skill_learning import find_matching_skill, record_execution
+        match = await find_matching_skill(task.prompt, threshold=0.3)
+        if match:
+            skill_id, relevance = match
+            await record_execution(
+                skill_id=skill_id,
+                success=success,
+                duration_ms=float(task.duration_ms or 0),
+                context={"task_id": task.id, "agent": task.agent, "relevance": round(relevance, 2)},
+            )
+            logger.debug(
+                "Skill execution recorded: skill=%s success=%s relevance=%.2f task=%s",
+                skill_id, success, relevance, task.id,
+            )
+    except Exception as e:
+        logger.debug("Skill recording skipped for task %s: %s", task.id, e)
+
+
 async def _execute_task(task: Task):
     """Execute a task through its agent, capturing tool call steps."""
     from .agents import get_agent
@@ -440,7 +465,12 @@ async def _execute_task(task: Task):
         ]
 
         thread_id = f"task-{task.id}"
-        config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 50}
+        config = {
+            "configurable": {"thread_id": thread_id},
+            "recursion_limit": 50,
+            "metadata": {"agent": task.agent, "task_id": task.id},
+            "tags": [task.agent],
+        }
 
         step_index = 0
         collected_text = []
@@ -540,6 +570,9 @@ async def _execute_task(task: Task):
             data={"task_id": task.id, "steps": len(task.steps), "duration_ms": task.duration_ms, "tools": tools_used},
         ))
 
+        # Record skill execution outcome (learning feedback loop)
+        asyncio.create_task(_record_skill_execution_for_task(task, success=True))
+
         # Broadcast completion to GWT workspace
         asyncio.create_task(post_item(
             source_agent=task.agent,
@@ -580,6 +613,9 @@ async def _execute_task(task: Task):
             ttl=600,
             metadata={"task_id": task.id, "status": "failed", "error": str(e)},
         ))
+
+        # Record skill execution failure (learning feedback loop)
+        asyncio.create_task(_record_skill_execution_for_task(task, success=False))
 
         # Auto-retry if under retry limit
         await _maybe_retry(task)

@@ -312,6 +312,19 @@ def _format_knowledge(results: list[dict]) -> list[str]:
     return lines
 
 
+def _format_graph_related(results: list[dict]) -> list[str]:
+    """Format graph-expanded related documents into context text."""
+    lines = []
+    for r in results:
+        title = r.get("title", r.get("source", "unknown"))
+        category = r.get("category", "")
+        source = r.get("source", "")
+        if title and source:
+            cat_tag = f"[{category}] " if category else ""
+            lines.append(f"- {cat_tag}**{title}** (`{source}`)")
+    return lines
+
+
 def _format_personal_data(results: list[dict]) -> list[str]:
     """Format personal data results into context text."""
     lines = []
@@ -378,6 +391,8 @@ def _build_context_message(
     personal_data_lines: list[str] | None = None,
     conversation_lines: list[str] | None = None,
     cst_line: str = "",
+    graph_related_lines: list[str] | None = None,
+    skill_context: str = "",
 ) -> str:
     """Assemble the final context injection string."""
     sections = []
@@ -391,6 +406,9 @@ def _build_context_message(
             "The user has set these steering goals. Align your actions accordingly:\n"
             + "\n".join(goal_lines)
         )
+
+    if skill_context:
+        sections.append(skill_context)
 
     if convention_lines:
         sections.append(
@@ -425,6 +443,13 @@ def _build_context_message(
             "## Relevant Documentation\n"
             "Potentially relevant knowledge base entries:\n"
             + "\n".join(knowledge_lines)
+        )
+
+    if graph_related_lines:
+        sections.append(
+            "## Related Documentation (graph)\n"
+            "Other documents in the same categories, found via knowledge graph traversal:\n"
+            + "\n".join(graph_related_lines)
         )
 
     if personal_data_lines:
@@ -528,7 +553,22 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     personal_data = results[3] if not isinstance(results[3], BaseException) else []
     conversations = results[4] if not isinstance(results[4], BaseException) else []
 
-    # Step 2b: Fetch CST state (Redis, fast)
+    # Step 2b: Graph expansion — find related docs via Neo4j (fast, ~10ms)
+    graph_related: list[dict] = []
+    if knowledge and knowledge_limit > 0:
+        try:
+            from .graph_context import expand_knowledge_graph
+            sources = [
+                r.get("payload", {}).get("source", "")
+                for r in knowledge
+                if r.get("payload", {}).get("source")
+            ]
+            if sources:
+                graph_related = await expand_knowledge_graph(_async_client, sources, limit=3)
+        except Exception:
+            pass
+
+    # Step 2c: Fetch CST state (Redis, fast)
     cst_line = ""
     try:
         from .cst import get_cst
@@ -538,7 +578,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     except Exception:
         pass
 
-    # Step 3: Fetch active goals + patterns (Redis, fast)
+    # Step 2d: Fetch active goals + patterns (Redis, fast)
     goal_lines = []
     try:
         from .goals import get_goals_for_agent
@@ -563,33 +603,44 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     except Exception:
         pass
 
-    # Step 4: Format
+    skill_context = ""
+    try:
+        from .skill_learning import search_skills_for_context
+        skill_context = await search_skills_for_context(agent_name, user_message, limit=3)
+    except Exception:
+        pass
+
+    # Step 3: Format
     pref_lines = _format_preferences(prefs)
     activity_lines = _format_activity(activity, agent_name)
     knowledge_lines = _format_knowledge(knowledge)
     personal_data_lines = _format_personal_data(personal_data)
     conversation_lines = _format_conversations(conversations)
+    graph_related_lines = _format_graph_related(graph_related)
 
     elapsed_ms = int((time.monotonic() - start) * 1000)
     total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines) + len(personal_data_lines) + len(conversation_lines) // 2
+    skill_count = skill_context.count("###")
 
-    if total_hits > 0 or goal_lines or pattern_lines or convention_lines:
+    if total_hits > 0 or goal_lines or pattern_lines or convention_lines or skill_count:
         logger.info(
-            "Context enrichment for %s: %d prefs, %d activity, %d knowledge, %d personal, %d convos, %d goals, %d patterns, %d conventions (%dms)",
+            "Context enrichment for %s: %d prefs, %d activity, %d knowledge (+%d graph), %d personal, %d convos, %d goals, %d patterns, %d conventions, %d skills (%dms)",
             agent_name,
             len(pref_lines),
-            len(activity_lines) // 2,  # 2 lines per activity item
+            len(activity_lines) // 2,
             len(knowledge_lines),
+            len(graph_related_lines),
             len(personal_data_lines),
             len(conversation_lines) // 2,
             len(goal_lines),
             len(pattern_lines),
             len(convention_lines),
+            skill_count,
             elapsed_ms,
         )
 
     return _build_context_message(
         pref_lines, activity_lines, knowledge_lines, agent_name,
         goal_lines, pattern_lines, convention_lines, personal_data_lines,
-        conversation_lines, cst_line,
+        conversation_lines, cst_line, graph_related_lines, skill_context,
     )

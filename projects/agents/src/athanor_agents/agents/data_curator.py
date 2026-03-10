@@ -69,6 +69,7 @@ def create_data_curator():
         streaming=True,
         extra_body={
             "chat_template_kwargs": {"enable_thinking": False},
+            "metadata": {"trace_name": "data-curator", "tags": ["data-curator"], "trace_metadata": {"agent": "data-curator"}},
         },
     )
 
