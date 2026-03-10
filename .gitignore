@@ -31,6 +31,8 @@ __pycache__/
 venv/
 .venv/
 /projects/agents/uv.lock
+/projects/gpu-orchestrator/uv.lock
+/projects/gpu-orchestrator/src/gpu_orchestrator.egg-info/
 
 # Node
 node_modules/

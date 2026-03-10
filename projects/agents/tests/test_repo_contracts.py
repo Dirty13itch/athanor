@@ -13,6 +13,9 @@ DASHBOARD_CONFIG = REPO_ROOT / "projects" / "dashboard" / "src" / "lib" / "confi
 DASHBOARD_SERVER_CONFIG = REPO_ROOT / "projects" / "dashboard" / "src" / "lib" / "server-config.ts"
 DASHBOARD_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "dashboard" / "templates" / "docker-compose.yml.j2"
 LITELLM_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "templates" / "litellm_config.yaml.j2"
+GPU_ORCH_DEFAULTS = REPO_ROOT / "ansible" / "roles" / "gpu-orchestrator" / "defaults" / "main.yml"
+GPU_ORCH_CONFIG = REPO_ROOT / "projects" / "gpu-orchestrator" / "src" / "gpu_orchestrator" / "config.py"
+GPU_ORCH_COMPOSE = REPO_ROOT / "projects" / "gpu-orchestrator" / "docker-compose.yml"
 NODE1_PLAYBOOK = REPO_ROOT / "ansible" / "playbooks" / "node1.yml"
 NEO4J_TASKS = REPO_ROOT / "ansible" / "roles" / "vault-neo4j" / "tasks" / "main.yml"
 PROJECTS_MODULE = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "projects.py"
@@ -230,6 +233,21 @@ class RepoContractsTest(unittest.TestCase):
     def test_agent_uv_lock_is_ignored(self) -> None:
         gitignore = ROOT_GITIGNORE.read_text(encoding="utf-8")
         self.assertIn("/projects/agents/uv.lock", gitignore)
+        self.assertIn("/projects/gpu-orchestrator/uv.lock", gitignore)
+        self.assertIn("/projects/gpu-orchestrator/src/gpu_orchestrator.egg-info/", gitignore)
+
+    def test_gpu_orchestrator_uses_dev_embedding_contract(self) -> None:
+        defaults_text = GPU_ORCH_DEFAULTS.read_text(encoding="utf-8")
+        self.assertIn("gpu_orch_vllm_node1_embed_url: \"http://{{ dev_ip | default('192.168.1.189') }}:8001\"", defaults_text)
+        self.assertNotIn("gpu_orch_vllm_node1_embed_url: \"http://192.168.1.244:8001\"", defaults_text)
+
+        config_text = GPU_ORCH_CONFIG.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_VLLM_EMBEDDING_URL", config_text)
+        self.assertIn("default=\"http://192.168.1.189:8001\"", config_text)
+
+        compose_text = GPU_ORCH_COMPOSE.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_VLLM_EMBEDDING_URL", compose_text)
+        self.assertNotIn("GPU_ORCH_VLLM_NODE1_EMBED_URL=http://192.168.1.244:8001", compose_text)
 
 
 if __name__ == "__main__":
