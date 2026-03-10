@@ -1,17 +1,30 @@
 """SSH to VAULT and run commands via paramiko."""
+import os
 import sys
 import paramiko
 
-HOST = "192.168.1.203"
-USER = "root"
-PASS = "Hockey1298"
+HOST = os.environ.get("ATHANOR_VAULT_HOST", "192.168.1.203")
+USER = os.environ.get("ATHANOR_VAULT_USER", "root")
+PASSWORD = os.environ.get("ATHANOR_VAULT_PASSWORD") or os.environ.get("VAULT_SSH_PASSWORD", "")
+KEY_PATH = os.environ.get("ATHANOR_VAULT_KEY_PATH") or os.environ.get("VAULT_SSH_KEY_PATH", "")
 
 def run(command):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        client.connect(HOST, username=USER, password=PASS, timeout=10,
-                       look_for_keys=False, allow_agent=False)
+        connect_kwargs = {
+            "hostname": HOST,
+            "username": USER,
+            "timeout": 10,
+            "look_for_keys": not PASSWORD,
+            "allow_agent": not PASSWORD,
+        }
+        if PASSWORD:
+            connect_kwargs["password"] = PASSWORD
+        if KEY_PATH:
+            connect_kwargs["key_filename"] = KEY_PATH
+
+        client.connect(**connect_kwargs)
         stdin, stdout, stderr = client.exec_command(command, timeout=30)
         out = stdout.read().decode("utf-8", errors="replace")
         err = stderr.read().decode("utf-8", errors="replace")

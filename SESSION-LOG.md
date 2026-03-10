@@ -77,7 +77,7 @@ Vault file was encrypted with an unknown password. Recovered all secrets from:
 - Running containers: Grafana admin password
 - User-provided: VAULT SSH password
 
-Recreated `secrets.vault.yml` encrypted with `Hockey1298`. Installed paramiko into ansible-core venv. Verified: `ansible vault -m ping` returns SUCCESS.
+Recreated `secrets.vault.yml` encrypted with the vault password provided by Shaun. Installed paramiko into ansible-core venv. Verified: `ansible vault -m ping` returns SUCCESS.
 
 ## Remaining Blockers (require Shaun)
 

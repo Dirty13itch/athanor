@@ -35,7 +35,7 @@ import time
 import urllib.request
 
 # --- Config ---
-QDRANT_URL = "http://192.168.1.244:6333"
+QDRANT_URL = os.environ.get("ATHANOR_QDRANT_URL") or os.environ.get("QDRANT_URL", "http://192.168.1.244:6333")
 COLLECTION = "personal_data"
 
 LITELLM_BASE_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/")
@@ -47,9 +47,14 @@ LITELLM_KEY = (
 )
 LLM_MODEL = "fast"
 
-NEO4J_URL = "http://192.168.1.203:7474/db/neo4j/tx/commit"
-NEO4J_USER = "neo4j"
-NEO4J_PASS = "athanor2026"
+NEO4J_BASE_URL = (
+    os.environ.get("ATHANOR_NEO4J_URL")
+    or os.environ.get("NEO4J_URL")
+    or "http://192.168.1.203:7474"
+).rstrip("/")
+NEO4J_URL = f"{NEO4J_BASE_URL}/db/neo4j/tx/commit"
+NEO4J_USER = os.environ.get("ATHANOR_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")
+NEO4J_PASS = os.environ.get("ATHANOR_NEO4J_PASSWORD") or os.environ.get("NEO4J_PASSWORD", "")
 
 MIN_TEXT_LENGTH = 50
 LLM_BATCH_SIZE = 10
@@ -237,6 +242,9 @@ def neo4j_query(statements, dry_run=False):
             display = stmt[:120] + "..." if len(stmt) > 120 else stmt
             print(f"  CYPHER: {display}")
         return {"results": [], "errors": []}
+
+    if not NEO4J_PASS:
+        raise RuntimeError("Set ATHANOR_NEO4J_PASSWORD or NEO4J_PASSWORD before writing to Neo4j.")
 
     payload = json.dumps({"statements": statements}).encode()
     auth = base64.b64encode(f"{NEO4J_USER}:{NEO4J_PASS}".encode()).decode()

@@ -9,13 +9,14 @@ autoinstall:
   identity:
     hostname: interface
     username: athanor
-    password: "$6$KRIMOcQT9WedvHiI$QRu9IVvOW5/K/aQn0u11dJ4zSZVGQMrVJopJIYFbFQBJWpvQU7tk/9pYrEIe8/QIil5zX55UTdQSy7x/.YUsX1"
+    # Placeholder hash for "replace-me-now". Replace with a vaulted hash before use.
+    password: "$6$rounds=656000$qA8Kb3Nu7YzFwjB/$Sn4S5CAhoMfI7O35KzV867iqktTkbXRH98FyGt0iQDA.aor4pEhEBS40L4RniYrbv.PE0ZYgdbh0ccCscjoOu0"
 
   ssh:
     install-server: true
     authorized-keys:
       - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOhDZzvlXhHZ8Ar3GlIPFanLCgk+ojNX8DQAyOTyHqy/ athanor-management"
-    allow-pw: true
+    allow-pw: false
 
   # Use DHCP during install for reliability — static IP configured post-install
   network:

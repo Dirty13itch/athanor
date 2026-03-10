@@ -22,7 +22,11 @@ import time
 
 # Node identity from hostname or env
 NODE_NAME = os.environ.get("ATHANOR_NODE", socket.gethostname())
-REDIS_URL = os.environ.get("REDIS_URL", "redis://:Jv1Vg9HAML2jHGWjFnTCcIsqSzqZfIQz@192.168.1.203:6379/0")
+REDIS_URL = (
+    os.environ.get("ATHANOR_REDIS_URL")
+    or os.environ.get("REDIS_URL")
+    or f"redis://{os.environ.get('ATHANOR_VAULT_HOST', '192.168.1.203')}:6379/0"
+)
 INTERVAL = int(os.environ.get("HEARTBEAT_INTERVAL", "10"))
 
 # vLLM endpoints to check on this node

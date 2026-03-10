@@ -18,7 +18,7 @@ CLUSTER RESOURCES:
 SSH ACCESS:
   Node 1:  ssh -i ~/.ssh/athanor_mgmt athanor@192.168.1.244
   Node 2:  ssh -i ~/.ssh/athanor_mgmt athanor@192.168.1.225
-  VAULT:   python scripts/vault-ssh.py "<command>"  (root/Hockey1298)
+  VAULT:   python scripts/vault-ssh.py "<command>"  (vault-managed root credential or SSH key)
 
 CRITICAL SERVICES:
   vLLM (TP=4):     http://192.168.1.244:8000  (Node 1 - Qwen3-32B-AWQ)

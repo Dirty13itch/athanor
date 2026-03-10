@@ -3,12 +3,30 @@
 # Called by Claude Code status line configuration
 
 # Quick Redis check for heartbeats (with 2s timeout)
-REDIS_HOST="192.168.1.203"
-REDIS_PASS="Jv1Vg9HAML2jHGWjFnTCcIsqSzqZfIQz"
+REDIS_URL="${ATHANOR_REDIS_URL:-${REDIS_URL:-}}"
+REDIS_HOST="${ATHANOR_REDIS_HOST:-${ATHANOR_VAULT_HOST:-192.168.1.203}}"
+REDIS_PORT="${ATHANOR_REDIS_PORT:-${REDIS_PORT:-6379}}"
+REDIS_PASS="${ATHANOR_REDIS_PASSWORD:-${REDIS_PASSWORD:-}}"
+
+redis_ttl() {
+  local key="$1"
+  local cmd=(redis-cli --no-auth-warning)
+
+  if [ -n "$REDIS_URL" ]; then
+    cmd+=(-u "$REDIS_URL")
+  else
+    cmd+=(-h "$REDIS_HOST" -p "$REDIS_PORT")
+    if [ -n "$REDIS_PASS" ]; then
+      cmd+=(-a "$REDIS_PASS")
+    fi
+  fi
+
+  "${cmd[@]}" TTL "$key" 2>/dev/null || echo "-2"
+}
 
 nodes=""
 for node in foundry workshop dev; do
-  ttl=$(redis-cli -h "$REDIS_HOST" -a "$REDIS_PASS" --no-auth-warning TTL "athanor:heartbeat:$node" 2>/dev/null)
+  ttl=$(redis_ttl "athanor:heartbeat:$node")
   if [ "$ttl" -gt 0 ] 2>/dev/null; then
     nodes="$nodes ${node:0:1}:UP"
   else

@@ -161,7 +161,7 @@ eth1 (Intel X550): 10GbE RJ45                    [ACTIVE - 192.168.1.246]
                    Target: USW Pro XG 10 PoE (10GbE switch)
 
 IPMI/BMC:          AMI MegaRAC @ 192.168.1.216   [CONFIGURED]
-                   admin/Will2live!
+                   admin credential managed outside the repo
                    IPMI-over-LAN needs enabling
 ```
 
@@ -525,7 +525,7 @@ Priority: RTX 3060 in Slot 3 (maximizes GPU compute, plenty of PSU headroom)
 ## Physical Information
 - **Location:** Rack position 3 (lower), 4U unknown case
 - **IP Address:** 192.168.1.203 (Aquantia 10GbE eth0)
-- **SSH Access:** `python scripts/vault-ssh.py "<command>"` (root/Hockey1298, Dropbear SSH)
+- **SSH Access:** `python scripts/vault-ssh.py "<command>"` (vault-managed root credential or SSH key, Dropbear SSH)
 - **Peripherals:** JetKVM @ 192.168.1.80 (working)
 - **Role:** NFS storage, media services, monitoring stack, Home Assistant
 

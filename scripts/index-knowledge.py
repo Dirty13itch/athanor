@@ -47,15 +47,20 @@ EXTRA_FILES = [
     REPO_ROOT / "docs" / "SERVICES.md",
 ]
 
-QDRANT_URL = "http://192.168.1.244:6333"
+QDRANT_URL = os.environ.get("ATHANOR_QDRANT_URL") or os.environ.get("QDRANT_URL", "http://192.168.1.244:6333")
 LITELLM_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/") + "/v1"
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
     or os.environ.get("LITELLM_API_KEY")
     or os.environ.get("OPENAI_API_KEY", "")
 )
-NEO4J_URL = "http://192.168.1.203:7474"
-NEO4J_AUTH = ("neo4j", "athanor2026")
+NEO4J_URL = (
+    os.environ.get("ATHANOR_NEO4J_URL")
+    or os.environ.get("NEO4J_URL")
+    or "http://192.168.1.203:7474"
+).rstrip("/")
+NEO4J_USER = os.environ.get("ATHANOR_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")
+NEO4J_PASSWORD = os.environ.get("ATHANOR_NEO4J_PASSWORD") or os.environ.get("NEO4J_PASSWORD", "")
 COLLECTION = "knowledge"
 EMBEDDING_DIM = 1024
 CHUNK_SIZE = 1500  # chars per chunk (with overlap)
@@ -428,6 +433,9 @@ def upsert_neo4j_docs(docs: list[dict]):
     """
     if not docs:
         return
+    if not NEO4J_PASSWORD:
+        print("  Warning: Neo4j credentials not configured, skipping document graph sync.", file=sys.stderr)
+        return
 
     cypher = """
     UNWIND $docs AS doc
@@ -441,7 +449,7 @@ def upsert_neo4j_docs(docs: list[dict]):
         resp = httpx.post(
             f"{NEO4J_URL}/db/neo4j/tx/commit",
             json={"statements": [{"statement": cypher, "parameters": {"docs": docs}}]},
-            auth=NEO4J_AUTH,
+            auth=(NEO4J_USER, NEO4J_PASSWORD),
             timeout=30,
         )
         resp.raise_for_status()
@@ -542,6 +550,9 @@ def upsert_neo4j_entities(source: str, entities: list[dict]):
     """
     if not entities:
         return
+    if not NEO4J_PASSWORD:
+        print("  Warning: Neo4j credentials not configured, skipping entity graph sync.", file=sys.stderr)
+        return
 
     cypher = """
     MATCH (d:Document {source: $source, doc_type: 'athanor'})
@@ -559,7 +570,7 @@ def upsert_neo4j_entities(source: str, entities: list[dict]):
                     "parameters": {"source": source, "entities": entities},
                 }]
             },
-            auth=NEO4J_AUTH,
+            auth=(NEO4J_USER, NEO4J_PASSWORD),
             timeout=15,
         )
         resp.raise_for_status()

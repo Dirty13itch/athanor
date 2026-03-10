@@ -1,16 +1,27 @@
 import { Pool, type PoolClient } from "pg";
 
-const DATABASE_URL =
-  process.env.DATABASE_URL ||
-  "postgresql://ulrich:athanor2026@192.168.1.203:5432/ulrich_energy";
+function getDatabaseUrl(): string {
+  const databaseUrl =
+    process.env.DATABASE_URL ||
+    process.env.ATHANOR_ULRICH_DATABASE_URL ||
+    process.env.ULRICH_DATABASE_URL;
 
-// Module-level pool — reused across requests (Next.js keeps module in memory)
+  if (!databaseUrl) {
+    throw new Error(
+      "DATABASE_URL or ATHANOR_ULRICH_DATABASE_URL is required for Ulrich Energy.",
+    );
+  }
+
+  return databaseUrl;
+}
+
+// Module-level pool reused across requests.
 let pool: Pool | null = null;
 
 function getPool(): Pool {
   if (!pool) {
     pool = new Pool({
-      connectionString: DATABASE_URL,
+      connectionString: getDatabaseUrl(),
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,

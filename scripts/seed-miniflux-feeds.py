@@ -5,6 +5,7 @@ Usage: python3 scripts/seed-miniflux-feeds.py [--miniflux-url URL] [--username U
 """
 
 import argparse
+import os
 import sys
 
 try:
@@ -55,13 +56,32 @@ FEEDS = {
 
 def main():
     parser = argparse.ArgumentParser(description="Seed Miniflux with intelligence feeds")
-    parser.add_argument("--miniflux-url", default="http://192.168.1.203:8070", help="Miniflux URL")
-    parser.add_argument("--username", default="admin", help="Miniflux admin username")
-    parser.add_argument("--password", default="athanor2026", help="Miniflux admin password")
+    parser.add_argument(
+        "--miniflux-url",
+        default=os.environ.get("ATHANOR_MINIFLUX_URL") or os.environ.get("MINIFLUX_URL") or "http://192.168.1.203:8070",
+        help="Miniflux URL",
+    )
+    parser.add_argument(
+        "--username",
+        default=os.environ.get("ATHANOR_MINIFLUX_USER") or os.environ.get("MINIFLUX_USER") or "admin",
+        help="Miniflux admin username",
+    )
+    parser.add_argument(
+        "--password",
+        default=os.environ.get("ATHANOR_MINIFLUX_PASSWORD") or os.environ.get("MINIFLUX_PASSWORD") or "",
+        help="Miniflux admin password",
+    )
     args = parser.parse_args()
 
     base = args.miniflux_url.rstrip("/")
     auth = (args.username, args.password)
+
+    if not args.password:
+        print(
+            "ERROR: Set ATHANOR_MINIFLUX_PASSWORD or MINIFLUX_PASSWORD before seeding feeds.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # Verify connection
     try:

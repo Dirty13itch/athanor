@@ -18,6 +18,12 @@ GPU_ORCH_CONFIG = REPO_ROOT / "projects" / "gpu-orchestrator" / "src" / "gpu_orc
 GPU_ORCH_COMPOSE = REPO_ROOT / "projects" / "gpu-orchestrator" / "docker-compose.yml"
 BUILD_PROFILE_SCRIPT = REPO_ROOT / "scripts" / "build-profile.sh"
 ENDPOINT_HARNESS = REPO_ROOT / "tests" / "harness.py"
+STATUSLINE_HOOK = REPO_ROOT / ".claude" / "hooks" / "statusline.sh"
+MCP_REDIS_SCRIPT = REPO_ROOT / "scripts" / "mcp-redis.py"
+MCP_SMART_READER_SCRIPT = REPO_ROOT / "scripts" / "mcp-smart-reader.py"
+NODE_HEARTBEAT_SCRIPT = REPO_ROOT / "scripts" / "node-heartbeat.py"
+VAULT_SSH_SCRIPT = REPO_ROOT / "scripts" / "vault-ssh.py"
+VAULT_SSH_POWERSHELL = REPO_ROOT / "scripts" / "ssh-vault.ps1"
 NODE1_PLAYBOOK = REPO_ROOT / "ansible" / "playbooks" / "node1.yml"
 NEO4J_TASKS = REPO_ROOT / "ansible" / "roles" / "vault-neo4j" / "tasks" / "main.yml"
 PROJECTS_MODULE = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "projects.py"
@@ -91,6 +97,10 @@ BANNED_LITERAL_SECRETS = {
     "miniflux-" + "athanor-2026",
     "athanor-" + "miniflux-2026",
     "n8n-" + "athanor-2026",
+    "athanor" + "2026",
+    "Hockey" + "1298",
+    "Will2" + "live!",
+    "Jv1Vg9HAML2j" + "HGWjFnTCcIsqSzqZfIQz",
 }
 
 
@@ -269,6 +279,27 @@ class RepoContractsTest(unittest.TestCase):
         self.assertIn("ATHANOR_LITELLM_API_KEY", endpoint_harness_text)
         self.assertIn("ATHANOR_VLLM_EMBEDDING_URL", endpoint_harness_text)
         self.assertNotIn("sk-" + "athanor-litellm-2026", endpoint_harness_text)
+
+        statusline_text = STATUSLINE_HOOK.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_REDIS_URL", statusline_text)
+        self.assertIn("ATHANOR_REDIS_PASSWORD", statusline_text)
+
+        redis_tool_text = MCP_REDIS_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_REDIS_PASSWORD", redis_tool_text)
+
+        smart_reader_text = MCP_SMART_READER_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_REDIS_PASSWORD", smart_reader_text)
+
+        heartbeat_text = NODE_HEARTBEAT_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_REDIS_URL", heartbeat_text)
+
+        vault_ssh_text = VAULT_SSH_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_VAULT_PASSWORD", vault_ssh_text)
+        self.assertIn("ATHANOR_VAULT_KEY_PATH", vault_ssh_text)
+
+        vault_ssh_ps_text = VAULT_SSH_POWERSHELL.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_VAULT_PASSWORD", vault_ssh_ps_text)
+        self.assertIn("ATHANOR_VAULT_KEY_PATH", vault_ssh_ps_text)
 
     def test_repo_no_longer_tracks_known_secret_literals(self) -> None:
         violations: list[str] = []

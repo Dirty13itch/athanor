@@ -7,8 +7,11 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 AGENT_SRC_ROOT = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents"
 
 SECRET_PATTERNS = [
-    re.compile(r"sk-athanor", re.IGNORECASE),
-    re.compile(r"athanor2026", re.IGNORECASE),
+    re.compile("sk-" + "athanor", re.IGNORECASE),
+    re.compile("athanor" + "2026", re.IGNORECASE),
+    re.compile("Hockey" + "1298", re.IGNORECASE),
+    re.compile("Will2" + "live!", re.IGNORECASE),
+    re.compile("Jv1Vg9HAML2j" + "HGWjFnTCcIsqSzqZfIQz", re.IGNORECASE),
 ]
 RAW_IP_PATTERN = re.compile(r"192\.168\.1\.\d+")
 

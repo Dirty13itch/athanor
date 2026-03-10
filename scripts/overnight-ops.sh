@@ -17,9 +17,11 @@ set -euo pipefail
 DRY_RUN="${1:-}"
 LOG_DIR="/var/log/athanor"
 LOG_FILE="$LOG_DIR/overnight-$(date +%Y-%m-%d).log"
-AGENT_URL="http://192.168.1.244:9000"
-QDRANT_URL="http://192.168.1.244:6333"
-NEO4J_URL="http://192.168.1.203:7474"
+AGENT_URL="${ATHANOR_AGENT_SERVER_URL:-${AGENT_URL:-http://192.168.1.244:9000}}"
+QDRANT_URL="${ATHANOR_QDRANT_URL:-${QDRANT_URL:-http://192.168.1.244:6333}}"
+NEO4J_URL="${ATHANOR_NEO4J_URL:-${NEO4J_URL:-http://192.168.1.203:7474}}"
+NEO4J_USER="${ATHANOR_NEO4J_USER:-${NEO4J_USER:-neo4j}}"
+NEO4J_PASS="${ATHANOR_NEO4J_PASSWORD:-${NEO4J_PASSWORD:-}}"
 REPO_DIR="$HOME/repos/athanor"
 
 mkdir -p "$LOG_DIR"
@@ -65,17 +67,22 @@ fi
 # --- 2. Neo4j graph maintenance ---
 log "Phase 2: Neo4j graph maintenance"
 # Count stale nodes (no activity in 30 days) — read-only query
-STALE_COUNT=$(curl -sf -X POST "$NEO4J_URL/db/neo4j/tx/commit" \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Basic $(echo -n 'neo4j:athanor2026' | base64)" \
-    -d '{"statements":[{"statement":"MATCH (n) WHERE n.last_accessed < datetime() - duration({days: 30}) RETURN count(n) as stale"}]}' \
-    2>/dev/null | python3 -c "
+if [ -n "$NEO4J_PASS" ]; then
+    NEO4J_AUTH=$(printf '%s' "${NEO4J_USER}:${NEO4J_PASS}" | base64 | tr -d '\n')
+    STALE_COUNT=$(curl -sf -X POST "$NEO4J_URL/db/neo4j/tx/commit" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Basic $NEO4J_AUTH" \
+        -d '{"statements":[{"statement":"MATCH (n) WHERE n.last_accessed < datetime() - duration({days: 30}) RETURN count(n) as stale"}]}' \
+        2>/dev/null | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 rows = data.get('results', [{}])[0].get('data', [])
 print(rows[0]['row'][0] if rows else '0')
 " 2>/dev/null || echo "?")
-log "  Stale nodes (>30d): $STALE_COUNT"
+    log "  Stale nodes (>30d): $STALE_COUNT"
+else
+    log "  SKIP: Neo4j credentials not configured"
+fi
 
 # --- 3. Research job execution ---
 log "Phase 3: Research job execution"

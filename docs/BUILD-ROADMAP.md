@@ -9,7 +9,7 @@ Last updated: 2026-02-24 (Session 8: Post-deployment hardening, monitoring verif
 ## Phase 0: Foundation
 
 - [x] Get DHCP IPs for Node 1 and Node 2 — Node 1: .244/.246, Node 2: .225
-- [x] SSH into both nodes with athanor/athanor2026
+- [x] SSH into both nodes with the staged Athanor credentials from vault/env
 - [x] Verify Samsung 990 PRO 4TB physical seat on Node 1 — reseated during rack session (verify detection in BIOS)
 - [x] Reconnect JetKVM ATX power cable on Node 2 — Done (Session 3)
 - [x] Move Node 1 + Node 2 ethernet to USW Pro XG 10 PoE (10GbE data plane) — Done (Session 3)
@@ -124,7 +124,7 @@ Last updated: 2026-02-24 (Session 8: Post-deployment hardening, monitoring verif
 - [x] Synced all remote service configs to git (services/node1/, services/node2/)
 - [x] UFW firewall enabled on Node 1 + Node 2 — service ports + LAN allowed, verified all services accessible
 - [x] Full Ansible convergence — both nodes at 0 real drift (Session 5, 2026-02-23)
-- [ ] Configure BMC at .216 — AMI MegaRAC, admin/Will2live!, web UI works, IPMI-over-LAN needs enabling *(browser)*
+- [ ] Configure BMC at .216 — AMI MegaRAC, admin credential now vault-managed, web UI works, IPMI-over-LAN needs enabling *(browser)*
 - [x] Run VAULT playbook — all 10 containers deployed (Session 7, 2026-02-24)
 
 ## Phase 8: Hardware Reconfiguration (Hybrid Architecture)

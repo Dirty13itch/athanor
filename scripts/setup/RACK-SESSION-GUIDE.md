@@ -66,7 +66,7 @@ The ROMED8-2T has a real BMC (ASPEED AST2500). Find the IPMI settings:
 - Set **Subnet Mask:** 255.255.255.0
 - Set **Default Gateway:** 192.168.1.1
 - Set **BMC User:** athanor
-- Set **BMC Password:** athanor2026
+- Set **BMC Password:** use the vault-managed BMC credential
 - **Save and Exit BIOS**
 
 **Step 5: Boot from USB**
@@ -137,10 +137,10 @@ I'll take over from there:
 | Item | Value |
 |------|-------|
 | SSH user | `athanor` |
-| SSH password | `athanor2026` |
+| SSH password | vault-managed install credential |
 | SSH key | `~/.ssh/athanor_mgmt` |
 | Node 1 IPMI user | `athanor` |
-| Node 1 IPMI password | `athanor2026` |
+| Node 1 IPMI password | vault-managed BMC credential |
 | IPMI IP | `192.168.1.45` |
 
 ---
@@ -159,7 +159,7 @@ I'll take over from there:
   - Keyboard: US
   - Network: Use DHCP (default)
   - Storage: Use entire disk (pick the first NVMe drive)
-  - Username: `athanor`, password: `athanor2026`
+  - Username: `athanor`, password: use the temporary install credential from vault
   - Install OpenSSH server: **YES**
   - Import SSH key: Skip (I'll add it post-install)
 

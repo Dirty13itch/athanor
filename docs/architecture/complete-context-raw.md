@@ -811,7 +811,7 @@ Host node1  → 192.168.1.244, user athanor
 Host node2  → 192.168.1.225, user athanor
 Host vault  → 192.168.1.203, user root
 ```
-Password for compute nodes: `athanor2026`. SSH keys deployed via `ssh-copy-id`.
+Compute-node password moved to vault-managed secret storage. SSH keys deployed via `ssh-copy-id`.
 
 ### API Keys and Provider Configuration
 

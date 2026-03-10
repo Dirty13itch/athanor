@@ -13,10 +13,16 @@ export const config = {
     "",
 
   /** ComfyUI URL (server-side only) */
-  comfyuiUrl: process.env.COMFYUI_URL || "http://192.168.1.225:8188",
+  comfyuiUrl:
+    process.env.ATHANOR_COMFYUI_URL ||
+    process.env.COMFYUI_URL ||
+    "http://192.168.1.225:8188",
 
   /** Qdrant URL (server-side only, for character memory retrieval) */
-  qdrantUrl: process.env.QDRANT_URL || "http://192.168.1.244:6333",
+  qdrantUrl:
+    process.env.ATHANOR_QDRANT_URL ||
+    process.env.QDRANT_URL ||
+    "http://192.168.1.244:6333",
 
   /** Model to use for dialogue generation */
   dialogueModel: process.env.DIALOGUE_MODEL || "reasoning",

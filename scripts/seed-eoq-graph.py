@@ -15,12 +15,18 @@ Options:
 import argparse
 import base64
 import json
+import os
 import sys
 import urllib.request
 
-NEO4J_URL = "http://192.168.1.203:7474/db/neo4j/tx/commit"
-NEO4J_USER = "neo4j"
-NEO4J_PASS = "athanor2026"
+NEO4J_BASE_URL = (
+    os.environ.get("ATHANOR_NEO4J_URL")
+    or os.environ.get("NEO4J_URL")
+    or "http://192.168.1.203:7474"
+).rstrip("/")
+NEO4J_URL = f"{NEO4J_BASE_URL}/db/neo4j/tx/commit"
+NEO4J_USER = os.environ.get("ATHANOR_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")
+NEO4J_PASS = os.environ.get("ATHANOR_NEO4J_PASSWORD") or os.environ.get("NEO4J_PASSWORD", "")
 
 # ---------------------------------------------------------------------------
 # Character definitions
@@ -263,6 +269,9 @@ def neo4j_query(statements: list[dict], dry_run: bool = False) -> dict:
             stmt = s["statement"]
             print(f"  CYPHER: {stmt[:140]}...", file=sys.stderr)
         return {"results": [], "errors": []}
+
+    if not NEO4J_PASS:
+        raise RuntimeError("Set ATHANOR_NEO4J_PASSWORD or NEO4J_PASSWORD before writing to Neo4j.")
 
     payload = json.dumps({"statements": statements}).encode()
     auth = base64.b64encode(f"{NEO4J_USER}:{NEO4J_PASS}".encode()).decode()

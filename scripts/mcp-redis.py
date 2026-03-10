@@ -19,9 +19,13 @@ import os
 import redis
 from mcp.server.fastmcp import FastMCP
 
-REDIS_HOST = os.environ.get("REDIS_HOST", "192.168.1.203")
-REDIS_PORT = int(os.environ.get("REDIS_PORT", "6379"))
-REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD", "Jv1Vg9HAML2jHGWjFnTCcIsqSzqZfIQz")
+REDIS_HOST = os.environ.get("ATHANOR_REDIS_HOST") or os.environ.get("ATHANOR_VAULT_HOST", "192.168.1.203")
+REDIS_PORT = int(os.environ.get("ATHANOR_REDIS_PORT") or os.environ.get("REDIS_PORT", "6379"))
+REDIS_PASSWORD = (
+    os.environ.get("ATHANOR_REDIS_PASSWORD")
+    or os.environ.get("REDIS_PASSWORD")
+    or ""
+)
 
 _redis = redis.Redis(
     host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD,

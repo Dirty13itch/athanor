@@ -16,13 +16,19 @@ Options:
 import argparse
 import hashlib
 import json
+import os
 import sys
 import urllib.request
 from pathlib import Path
 
-NEO4J_URL = "http://192.168.1.203:7474/db/neo4j/tx/commit"
-NEO4J_USER = "neo4j"
-NEO4J_PASS = "athanor2026"
+NEO4J_BASE_URL = (
+    os.environ.get("ATHANOR_NEO4J_URL")
+    or os.environ.get("NEO4J_URL")
+    or "http://192.168.1.203:7474"
+).rstrip("/")
+NEO4J_URL = f"{NEO4J_BASE_URL}/db/neo4j/tx/commit"
+NEO4J_USER = os.environ.get("ATHANOR_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")
+NEO4J_PASS = os.environ.get("ATHANOR_NEO4J_PASSWORD") or os.environ.get("NEO4J_PASSWORD", "")
 BOOKMARKS_JSON = Path("docs/data/bookmarks.json")
 
 
@@ -32,6 +38,9 @@ def neo4j_query(statements, dry_run=False):
         for s in statements:
             print(f"  CYPHER: {s['statement'][:120]}...")
         return {"results": [], "errors": []}
+
+    if not NEO4J_PASS:
+        raise RuntimeError("Set ATHANOR_NEO4J_PASSWORD or NEO4J_PASSWORD before writing to Neo4j.")
 
     import base64
     payload = json.dumps({"statements": statements}).encode()
