@@ -386,7 +386,10 @@ function nowIso() {
 
 async function fetchJsonSafe<T>(url: string, schema: z.ZodSchema<T>, fallback: T, init?: RequestInit) {
   try {
-    const response = await fetch(url, init);
+    const response = await fetch(url, {
+      ...init,
+      signal: init?.signal ?? AbortSignal.timeout(8000),
+    });
     if (!response.ok) {
       return fallback;
     }

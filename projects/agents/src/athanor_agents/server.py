@@ -1846,7 +1846,7 @@ async def chat_completions(request: Request):
 
     if stream:
         return StreamingResponse(
-            _stream_response(agent, lc_messages, config, model_name, user_input, routing, thread_id),
+            _safe_stream_response(agent, lc_messages, config, model_name, user_input, routing, thread_id),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -2048,6 +2048,16 @@ async def _stream_response(agent, messages, config, model_name, user_input="", r
             len(full_response) // 4,
             float(duration_ms),
         )
+
+
+async def _safe_stream_response(agent, messages, config, model_name, user_input="", routing=None, thread_id=""):
+    try:
+        async for chunk in _stream_response(
+            agent, messages, config, model_name, user_input, routing, thread_id
+        ):
+            yield chunk
+    except Exception as exc:
+        yield f'event: error\ndata: {json.dumps({"type": "error", "message": str(exc)[:500]})}\n\n'
 
 
 def _sse_chunk(chat_id, created, model, delta, finish_reason=None):

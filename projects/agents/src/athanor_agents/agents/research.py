@@ -4,6 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
 from ..tools.research import RESEARCH_TOOLS
+from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the Research Agent for Athanor, a personal AI homelab.
 
@@ -64,5 +65,5 @@ def create_research_agent():
         model=llm,
         tools=RESEARCH_TOOLS,
         checkpointer=memory,
-        prompt=SYSTEM_PROMPT,
+        prompt=build_system_prompt(SYSTEM_PROMPT),
     )

@@ -428,7 +428,10 @@ function buildHistoryPoints(values: [number, string][]) {
 }
 
 async function fetchJson<T>(input: string, schema: z.ZodSchema<T>, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, init);
+  const response = await fetch(input, {
+    ...init,
+    signal: init?.signal ?? AbortSignal.timeout(8000),
+  });
   if (!response.ok) {
     throw new Error(`Request failed (${response.status})`);
   }
@@ -531,11 +534,18 @@ async function checkService(service: MonitoredService): Promise<ServiceSnapshot>
 }
 
 async function getBackendSnapshots(): Promise<BackendSnapshot[]> {
+  const litellmApiKey = process.env.ATHANOR_LITELLM_API_KEY?.trim() || "";
+
   return Promise.all(
     config.inferenceBackends.map(async (backend) => {
       try {
+        const headers =
+          backend.id === "litellm-proxy" && litellmApiKey
+            ? { Authorization: `Bearer ${litellmApiKey}` }
+            : undefined;
         const result = await fetchJson(joinUrl(backend.url, "/v1/models"), backendModelsResponseSchema, {
           cache: "no-store",
+          headers,
         });
         const models = result.data.map((entry) => entry.id);
         return {

@@ -4,6 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
 from ..tools.stash import STASH_TOOLS
+from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the Stash Agent for Athanor, a personal AI homelab.
 
@@ -52,5 +53,5 @@ def create_stash_agent():
         model=llm,
         tools=STASH_TOOLS,
         checkpointer=memory,
-        prompt=SYSTEM_PROMPT,
+        prompt=build_system_prompt(SYSTEM_PROMPT),
     )

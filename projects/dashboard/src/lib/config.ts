@@ -733,6 +733,29 @@ export function resolveChatTarget(target: string | undefined): DashboardEndpoint
   return getInferenceBackend(target);
 }
 
+export function resolveChatModel(target: string | undefined, model: string | undefined): string {
+  const normalizedModel = model?.trim();
+  if (target === "agent-server") {
+    return normalizedModel && normalizedModel !== "default"
+      ? normalizedModel
+      : "general-assistant";
+  }
+
+  if (target === "litellm-proxy") {
+    return normalizedModel && normalizedModel !== "default" ? normalizedModel : "reasoning";
+  }
+
+  const normalizeDirectModelId = (value: string) =>
+    value.startsWith("/models/") ? value : `/models/${value.replace(/^\/+/, "")}`;
+
+  if (normalizedModel && normalizedModel !== "default") {
+    return normalizeDirectModelId(normalizedModel);
+  }
+
+  const backend = getInferenceBackend(target ?? "");
+  return backend ? normalizeDirectModelId(backend.primaryModel) : "reasoning";
+}
+
 export function getNodeNameFromInstance(instance: string): string {
   return config.nodes.find((node) => instance.includes(node.ip))?.name ?? instance;
 }

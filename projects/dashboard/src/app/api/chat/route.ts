@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { joinUrl, resolveChatTarget } from "@/lib/config";
+import { joinUrl, resolveChatModel, resolveChatTarget } from "@/lib/config";
+import { buildChatUpstreamHeaders } from "@/lib/chat-proxy";
+import { serverConfig } from "@/lib/server-config";
 import { toSseEvent } from "@/lib/sse";
 
 const chatRequestSchema = z.object({
@@ -95,6 +97,21 @@ function normalizePayload(payload: unknown, eventName?: string | null) {
     ];
   }
 
+  if (eventType === "error") {
+    return [
+      toSseEvent({
+        type: "error",
+        timestamp,
+        message:
+          typeof record.message === "string"
+            ? record.message
+            : typeof record.error === "string"
+              ? record.error
+              : "Upstream stream error",
+      }),
+    ];
+  }
+
   const choices = Array.isArray(record.choices) ? record.choices : [];
   const firstChoice =
     choices[0] && typeof choices[0] === "object" ? (choices[0] as Record<string, unknown>) : null;
@@ -139,15 +156,21 @@ export async function POST(req: NextRequest) {
   if (!resolvedTarget) {
     return new Response("Unknown chat target", { status: 400 });
   }
+  const resolvedModel = resolveChatModel(target, model);
+
+  const { headers, error } = buildChatUpstreamHeaders(target, serverConfig.litellmApiKey);
+  if (error) {
+    return new Response(error, { status: 503 });
+  }
 
   let upstream: Response;
   try {
     upstream = await fetch(joinUrl(resolvedTarget.url, "/v1/chat/completions"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       cache: "no-store",
       body: JSON.stringify({
-        model: model ?? "default",
+        model: resolvedModel,
         messages,
         max_tokens: 2048,
         temperature: 0.7,

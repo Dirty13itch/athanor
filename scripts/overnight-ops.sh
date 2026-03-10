@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Overnight autonomous operations for Athanor.
-# Runs scheduled maintenance tasks that don't require human oversight.
+# Runs scheduled maintenance tasks that do not require human oversight.
 #
 # Usage: ./overnight-ops.sh [--dry-run]
 # Systemd timer triggers at 11 PM, tasks complete by ~6 AM.
@@ -51,7 +51,6 @@ for c in data.get('result', {}).get('collections', []):
 
 if [ -n "$COLLECTIONS" ]; then
     for coll in $COLLECTIONS; do
-        # Trigger optimizer (vacuum/compact)
         RESP=$(curl -sf -X POST "$QDRANT_URL/collections/$coll/index" 2>/dev/null || echo "failed")
         POINT_COUNT=$(curl -sf "$QDRANT_URL/collections/$coll" 2>/dev/null | python3 -c "
 import sys, json
@@ -59,6 +58,9 @@ data = json.load(sys.stdin)
 print(data.get('result', {}).get('points_count', '?'))
 " 2>/dev/null || echo "?")
         log "  $coll: $POINT_COUNT points"
+        if [ "$RESP" = "failed" ]; then
+            log "  WARN: optimizer trigger failed for $coll"
+        fi
     done
 else
     log "  WARN: Could not reach Qdrant at $QDRANT_URL"
@@ -66,7 +68,6 @@ fi
 
 # --- 2. Neo4j graph maintenance ---
 log "Phase 2: Neo4j graph maintenance"
-# Count stale nodes (no activity in 30 days) — read-only query
 if [ -n "$NEO4J_PASS" ]; then
     NEO4J_AUTH=$(printf '%s' "${NEO4J_USER}:${NEO4J_PASS}" | base64 | tr -d '\n')
     STALE_COUNT=$(curl -sf -X POST "$NEO4J_URL/db/neo4j/tx/commit" \
@@ -95,7 +96,6 @@ print(len(pending))
 log "  Pending research jobs: $PENDING"
 
 if [ "$PENDING" != "?" ] && [ "$PENDING" -gt 0 ] 2>/dev/null; then
-    # Execute up to 3 pending research jobs
     JOBS=$(curl -sf "$AGENT_URL/v1/research/jobs" 2>/dev/null | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
@@ -111,9 +111,8 @@ fi
 
 # --- 4. Ansible convergence dry-run ---
 log "Phase 4: Ansible drift detection"
-if command -v ansible-playbook &> /dev/null && [ -f "$REPO_DIR/ansible/playbooks/site.yml" ]; then
+if command -v ansible-playbook >/dev/null 2>&1 && [ -f "$REPO_DIR/ansible/playbooks/site.yml" ]; then
     cd "$REPO_DIR/ansible"
-    # Check mode only — no changes
     DRIFT_OUTPUT=$(ansible-playbook playbooks/site.yml --check --diff \
         -i inventory.yml \
         --limit "core,interface,dev" \
@@ -128,7 +127,7 @@ fi
 # --- 5. Git mirror to Gitea ---
 log "Phase 5: Gitea mirror push"
 cd "$REPO_DIR"
-if git remote get-url gitea &>/dev/null; then
+if git remote get-url gitea >/dev/null 2>&1; then
     run_or_skip git push gitea main 2>&1 | tee -a "$LOG_FILE" || log "  WARN: Gitea push failed"
     log "  Pushed to Gitea"
 else

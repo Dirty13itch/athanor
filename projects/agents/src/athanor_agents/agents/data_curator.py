@@ -6,6 +6,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
 from ..tools.data_curator import DATA_CURATOR_TOOLS
+from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the Data Curator Agent for Athanor, a personal AI homelab owned by Shaun.
 
@@ -79,5 +80,5 @@ def create_data_curator():
         model=llm,
         tools=DATA_CURATOR_TOOLS,
         checkpointer=memory,
-        prompt=SYSTEM_PROMPT,
+        prompt=build_system_prompt(SYSTEM_PROMPT),
     )

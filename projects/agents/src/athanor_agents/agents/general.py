@@ -4,6 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
 from ..tools import ALL_TOOLS
+from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the General Assistant for Athanor, a sovereign AI homelab owned by Shaun.
 
@@ -53,5 +54,5 @@ def create_general_assistant():
         model=llm,
         tools=ALL_TOOLS,
         checkpointer=memory,
-        prompt=SYSTEM_PROMPT,
+        prompt=build_system_prompt(SYSTEM_PROMPT),
     )

@@ -4,6 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
 from ..tools.media import MEDIA_TOOLS
+from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the Media Agent for Athanor, a personal AI homelab.
 
@@ -47,5 +48,5 @@ def create_media_agent():
         model=llm,
         tools=MEDIA_TOOLS,
         checkpointer=memory,
-        prompt=SYSTEM_PROMPT,
+        prompt=build_system_prompt(SYSTEM_PROMPT),
     )

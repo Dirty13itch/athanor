@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { getNodeNameFromInstance, getProjectById, joinUrl, resolveChatTarget } from "./config";
+import {
+  getNodeNameFromInstance,
+  getProjectById,
+  joinUrl,
+  resolveChatModel,
+  resolveChatTarget,
+} from "./config";
 
 describe("config helpers", () => {
   it("joins base urls and paths safely", () => {
@@ -17,6 +23,15 @@ describe("config helpers", () => {
     expect(getNodeNameFromInstance("http://192.168.1.244:9400")).toBe("Foundry");
     expect(getNodeNameFromInstance("http://192.168.1.225:9400")).toBe("Workshop");
     expect(getNodeNameFromInstance("http://192.168.1.189:9400")).toBe("DEV");
+  });
+
+  it("provides backend-aware chat model fallbacks", () => {
+    expect(resolveChatModel("agent-server", undefined)).toBe("general-assistant");
+    expect(resolveChatModel("litellm-proxy", "default")).toBe("reasoning");
+    expect(resolveChatModel("workshop-worker", undefined)).toBe(
+      "/models/Qwen3.5-35B-A3B-AWQ-4bit"
+    );
+    expect(resolveChatModel("foundry-coordinator", "custom-model")).toBe("/models/custom-model");
   });
 
   it("keeps the fallback project registry aligned with active and scaffolded tenants", () => {

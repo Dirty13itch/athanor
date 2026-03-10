@@ -5,6 +5,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from ..config import settings
 from ..tools.coding import CODING_TOOLS
 from ..tools.execution import FILESYSTEM_TOOLS, SHELL_TOOLS
+from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the Coding Agent for Athanor, a personal AI homelab.
 
@@ -87,5 +88,5 @@ def create_coding_agent():
         model=llm,
         tools=tools,
         checkpointer=memory,
-        prompt=SYSTEM_PROMPT,
+        prompt=build_system_prompt(SYSTEM_PROMPT),
     )
