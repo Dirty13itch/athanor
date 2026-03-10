@@ -16,9 +16,10 @@ The audit truth lives in:
 ## Current Baseline
 - Two consecutive full audit runs are green with no actionable findings.
 - The registry currently tracks 99 surfaces with 0 uncovered surfaces.
-- One surface remains intentionally manual-only:
-  - `dashboard.workflow.clipboard-and-export-actions`
-  - Reason: reliable browser clipboard and file-export assertions remain environment-sensitive across the shipped operator flows, so this surface stays on an explicit exploratory checklist.
+- All tracked surfaces are now covered by automated or live checks.
+- Coverage split:
+  - `covered-automated`: 29
+  - `covered-live`: 70
 
 ## Loop
 1. Regenerate the surface registry and uncovered list.

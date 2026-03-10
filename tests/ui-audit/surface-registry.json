@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-10T21:40:31.071026+00:00",
+  "generatedAt": "2026-03-10T22:14:19.902915+00:00",
   "coverageStates": [
     "covered-automated",
     "covered-live",
@@ -2349,12 +2349,12 @@
         "copy endpoints",
         "export session payloads"
       ],
-      "localChecks": [],
-      "liveChecks": [],
-      "manualChecklist": [
-        "Perform a manual exploratory pass on copy/export affordances across chat, agents, services, and outputs."
+      "localChecks": [
+        "projects/dashboard/tests/e2e/clipboard-exports.spec.ts"
       ],
-      "coverageStatus": "covered-manual",
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
       "notes": null
     }
   ]
