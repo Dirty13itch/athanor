@@ -21,13 +21,21 @@ ENDPOINT_HARNESS = REPO_ROOT / "tests" / "harness.py"
 STATUSLINE_HOOK = REPO_ROOT / ".claude" / "hooks" / "statusline.sh"
 MCP_REDIS_SCRIPT = REPO_ROOT / "scripts" / "mcp-redis.py"
 MCP_SMART_READER_SCRIPT = REPO_ROOT / "scripts" / "mcp-smart-reader.py"
+MCP_ATHANOR_AGENTS_SCRIPT = REPO_ROOT / "scripts" / "mcp-athanor-agents.py"
+MCP_QDRANT_SCRIPT = REPO_ROOT / "scripts" / "mcp-qdrant.py"
 NODE_HEARTBEAT_SCRIPT = REPO_ROOT / "scripts" / "node-heartbeat.py"
+PARSE_BOOKMARKS_SCRIPT = REPO_ROOT / "scripts" / "parse-bookmarks.py"
+LANGFUSE_SYNC_SCRIPT = REPO_ROOT / "scripts" / "sync-prompts-to-langfuse.py"
+MODEL_INVENTORY_SCRIPT = REPO_ROOT / "scripts" / "model-inventory.sh"
 VAULT_SSH_SCRIPT = REPO_ROOT / "scripts" / "vault-ssh.py"
 VAULT_SSH_POWERSHELL = REPO_ROOT / "scripts" / "ssh-vault.ps1"
+SESSION_START_HOOK = REPO_ROOT / ".claude" / "hooks" / "session-start-health.sh"
 NODE1_PLAYBOOK = REPO_ROOT / "ansible" / "playbooks" / "node1.yml"
 NEO4J_TASKS = REPO_ROOT / "ansible" / "roles" / "vault-neo4j" / "tasks" / "main.yml"
 PROJECTS_MODULE = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "projects.py"
 DASHBOARD_SW = REPO_ROOT / "projects" / "dashboard" / "public" / "sw.js"
+EOQ_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "eoq" / "templates" / "docker-compose.yml.j2"
+ULRICH_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "ulrich-energy" / "templates" / "docker-compose.yml.j2"
 
 RAW_IP_PATTERN = re.compile(r"192\.168\.1\.\d+")
 ALLOWED_DASHBOARD_IP_FILES = {
@@ -300,6 +308,42 @@ class RepoContractsTest(unittest.TestCase):
         vault_ssh_ps_text = VAULT_SSH_POWERSHELL.read_text(encoding="utf-8")
         self.assertIn("ATHANOR_VAULT_PASSWORD", vault_ssh_ps_text)
         self.assertIn("ATHANOR_VAULT_KEY_PATH", vault_ssh_ps_text)
+
+        mcp_agents_text = MCP_ATHANOR_AGENTS_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_AGENT_SERVER_URL", mcp_agents_text)
+
+        qdrant_text = MCP_QDRANT_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_QDRANT_URL", qdrant_text)
+        self.assertIn("ATHANOR_LITELLM_URL", qdrant_text)
+
+        bookmarks_text = PARSE_BOOKMARKS_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_QDRANT_URL", bookmarks_text)
+        self.assertIn("ATHANOR_LITELLM_URL", bookmarks_text)
+
+        langfuse_sync_text = LANGFUSE_SYNC_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_LANGFUSE_URL", langfuse_sync_text)
+        self.assertNotIn("pk-lf-athanor", langfuse_sync_text)
+        self.assertNotIn("sk-lf-athanor", langfuse_sync_text)
+
+        model_inventory_text = MODEL_INVENTORY_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_VAULT_HOST", model_inventory_text)
+        self.assertIn("ATHANOR_VLLM_COORDINATOR_URL", model_inventory_text)
+        self.assertIn("ATHANOR_VLLM_RERANKER_URL", model_inventory_text)
+
+        session_start_text = SESSION_START_HOOK.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_AGENT_SERVER_URL", session_start_text)
+
+    def test_secondary_app_compose_templates_export_canonical_envs(self) -> None:
+        eoq_template_text = EOQ_TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_LITELLM_URL", eoq_template_text)
+        self.assertIn("ATHANOR_LITELLM_API_KEY", eoq_template_text)
+        self.assertIn("ATHANOR_COMFYUI_URL", eoq_template_text)
+        self.assertIn("ATHANOR_QDRANT_URL", eoq_template_text)
+
+        ulrich_template_text = ULRICH_TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_ULRICH_DATABASE_URL", ulrich_template_text)
+        self.assertIn("ATHANOR_LITELLM_URL", ulrich_template_text)
+        self.assertIn("ATHANOR_LITELLM_API_KEY", ulrich_template_text)
 
     def test_repo_no_longer_tracks_known_secret_literals(self) -> None:
         violations: list[str] = []

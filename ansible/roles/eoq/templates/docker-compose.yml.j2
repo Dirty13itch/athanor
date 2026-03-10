@@ -7,10 +7,14 @@ services:
     container_name: athanor-eoq
     restart: unless-stopped
     ports:
-      - "{{ eoq_port }}:3002"
+      - "{{ eoq_port }}:{{ eoq_container_port }}"
     environment:
+      - ATHANOR_LITELLM_URL={{ eoq_litellm_url }}
+      - ATHANOR_LITELLM_API_KEY={{ eoq_litellm_api_key }}
+      - ATHANOR_COMFYUI_URL={{ eoq_comfyui_url }}
+      - ATHANOR_QDRANT_URL={{ eoq_qdrant_url }}
       - LITELLM_URL={{ eoq_litellm_url }}
-      - LITELLM_KEY={{ eoq_litellm_key }}
+      - LITELLM_KEY={{ eoq_litellm_api_key }}
       - COMFYUI_URL={{ eoq_comfyui_url }}
       - QDRANT_URL={{ eoq_qdrant_url }}
       - DIALOGUE_MODEL={{ eoq_dialogue_model }}

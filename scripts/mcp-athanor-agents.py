@@ -9,7 +9,7 @@ Usage in .mcp.json:
     "type": "stdio",
     "command": "python3",
     "args": ["scripts/mcp-athanor-agents.py"],
-    "env": {"ATHANOR_AGENT_URL": "http://192.168.1.244:9000"}
+    "env": {"ATHANOR_AGENT_SERVER_URL": "http://192.168.1.244:9000"}
   }
 """
 
@@ -19,7 +19,17 @@ import os
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-AGENT_URL = os.environ.get("ATHANOR_AGENT_URL", "http://192.168.1.244:9000")
+
+def _default_agent_url() -> str:
+    node1_host = os.environ.get("ATHANOR_NODE1_HOST", "192.168.1.244").strip()
+    return f"http://{node1_host}:9000"
+
+
+AGENT_URL = (
+    os.environ.get("ATHANOR_AGENT_SERVER_URL")
+    or os.environ.get("ATHANOR_AGENT_URL")
+    or _default_agent_url()
+)
 _client = httpx.Client(timeout=120)
 _client_long = httpx.Client(timeout=600)  # 10 min for deep research
 

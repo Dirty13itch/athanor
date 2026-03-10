@@ -23,6 +23,8 @@ SECRET_SCAN_ROOTS = [
     REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents",
     REPO_ROOT / "projects" / "agents" / "docker-compose.yml",
     REPO_ROOT / "projects" / "agents" / ".env.example",
+    REPO_ROOT / "scripts",
+    REPO_ROOT / ".claude" / "hooks",
     REPO_ROOT / "ansible" / "roles" / "agents",
     REPO_ROOT / "ansible" / "roles" / "dashboard",
     REPO_ROOT / "ansible" / "roles" / "eoq",

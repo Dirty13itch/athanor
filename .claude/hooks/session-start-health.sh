@@ -1,12 +1,13 @@
 #!/bin/bash
-# SessionStart hook: Quick cluster health check
-# Tries briefing API first (instant, from Redis heartbeats)
-# Falls back to parallel SSH checks if agent server is down
+# SessionStart hook: quick cluster health check
+# Tries the briefing API first (instant, from Redis heartbeats)
+# Falls back to parallel SSH checks if the agent server is down
 
 echo "=== Athanor Health Check ==="
 
-# Fast path: briefing endpoint (agent server → Redis heartbeats)
-BRIEFING=$(curl -sf --connect-timeout 2 --max-time 5 http://192.168.1.244:9000/v1/briefing 2>/dev/null)
+# Fast path: briefing endpoint (agent server to Redis heartbeats)
+AGENT_SERVER_URL="${ATHANOR_AGENT_SERVER_URL:-http://${ATHANOR_NODE1_HOST:-192.168.1.244}:9000}"
+BRIEFING=$(curl -sf --connect-timeout 2 --max-time 5 "${AGENT_SERVER_URL%/}/v1/briefing" 2>/dev/null)
 if [ $? -eq 0 ] && [ -n "$BRIEFING" ]; then
   echo "$BRIEFING" | python3 -c "
 import json, sys
@@ -15,11 +16,11 @@ for s in d.get('sections', []):
     t = s['title']
     if t == 'Node Health':
         for item in s['items']:
-            print(f\"{item['node']}: {item['status']}, load={item['load']}, {item.get('models','')}\")
+            print(f\"{item['node']}: {item['status']}, load={item['load']}, {item.get('models', '')}\")
     elif t == 'Alerts' and s['priority'] < 5:
         print(f\"ALERTS: {s['summary']}\")
     elif t == 'RSS News' and s['items']:
-        total = sum(i.get('unread',0) for i in s['items'])
+        total = sum(i.get('unread', 0) for i in s['items'])
         print(f\"RSS: {total} unread\")
 " 2>/dev/null
   echo "==========================="

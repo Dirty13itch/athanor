@@ -19,7 +19,18 @@ import os
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-QDRANT_URL = os.environ.get("QDRANT_URL", "http://192.168.1.244:6333")
+
+def _default_qdrant_url() -> str:
+    node1_host = os.environ.get("ATHANOR_NODE1_HOST", "192.168.1.244").strip()
+    return f"http://{node1_host}:6333"
+
+
+def _default_litellm_url() -> str:
+    vault_host = os.environ.get("ATHANOR_VAULT_HOST", "192.168.1.203").strip()
+    return f"http://{vault_host}:4000/v1"
+
+
+QDRANT_URL = os.environ.get("ATHANOR_QDRANT_URL") or os.environ.get("QDRANT_URL") or _default_qdrant_url()
 
 _http = httpx.Client(timeout=30, base_url=QDRANT_URL)
 mcp = FastMCP("qdrant")
@@ -78,7 +89,10 @@ def qdrant_search(
         limit: Number of results to return (default 5)
     """
     # Get embedding from LiteLLM
-    litellm_url = os.environ.get("ATHANOR_LITELLM_URL") or os.environ.get("LITELLM_URL", "http://192.168.1.203:4000/v1")
+    litellm_url = os.environ.get("ATHANOR_LITELLM_URL") or os.environ.get("LITELLM_URL") or _default_litellm_url()
+    litellm_url = litellm_url.rstrip("/")
+    if not litellm_url.endswith("/v1"):
+        litellm_url = f"{litellm_url}/v1"
     litellm_key = (
         os.environ.get("ATHANOR_LITELLM_API_KEY")
         or os.environ.get("LITELLM_KEY")

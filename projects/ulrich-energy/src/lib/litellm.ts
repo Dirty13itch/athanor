@@ -1,10 +1,16 @@
 // LiteLLM client for report generation
 // Routes through VAULT LiteLLM proxy — cloud models for client-facing quality
 
-const LITELLM_BASE_URL =
+function ensureOpenAiBaseUrl(url: string): string {
+  const normalized = url.replace(/\/+$/, "");
+  return normalized.endsWith("/v1") ? normalized : `${normalized}/v1`;
+}
+
+const LITELLM_BASE_URL = ensureOpenAiBaseUrl(
   process.env.ATHANOR_LITELLM_URL ||
-  process.env.LITELLM_BASE_URL ||
-  "http://192.168.1.203:4000/v1";
+    process.env.LITELLM_BASE_URL ||
+    "http://192.168.1.203:4000"
+);
 const LITELLM_API_KEY =
   process.env.ATHANOR_LITELLM_API_KEY ||
   process.env.LITELLM_API_KEY ||

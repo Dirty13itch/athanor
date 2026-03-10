@@ -8,12 +8,12 @@ content has changed.  Fully idempotent — safe to run on every deploy.
 Usage:
     python3 scripts/sync-prompts-to-langfuse.py
     python3 scripts/sync-prompts-to-langfuse.py --dry-run
-    python3 scripts/sync-prompts-to-langfuse.py --host http://192.168.1.203:3030
+    python3 scripts/sync-prompts-to-langfuse.py --host http://vault:3030
 
 Env overrides:
-    LANGFUSE_PUBLIC_KEY  (default: pk-lf-athanor)
-    LANGFUSE_SECRET_KEY  (default: sk-lf-athanor)
-    LANGFUSE_HOST        (default: http://192.168.1.203:3030)
+    ATHANOR_LANGFUSE_URL or LANGFUSE_HOST
+    ATHANOR_LANGFUSE_PUBLIC_KEY or LANGFUSE_PUBLIC_KEY
+    ATHANOR_LANGFUSE_SECRET_KEY or LANGFUSE_SECRET_KEY
 """
 
 from __future__ import annotations
@@ -29,10 +29,22 @@ from pathlib import Path
 
 import httpx
 
-# --- Defaults (match ansible/roles/vault-langfuse) ---
-LANGFUSE_HOST = os.getenv("LANGFUSE_HOST", "http://192.168.1.203:3030")
-LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", "pk-lf-athanor")
-LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", "sk-lf-athanor")
+def _env_value(*names: str) -> str:
+    for name in names:
+        value = os.getenv(name)
+        if value:
+            return value
+    return ""
+
+
+def _default_langfuse_host() -> str:
+    vault_host = os.getenv("ATHANOR_VAULT_HOST", "192.168.1.203").strip()
+    return f"http://{vault_host}:3030"
+
+
+LANGFUSE_HOST = _env_value("ATHANOR_LANGFUSE_URL", "LANGFUSE_HOST") or _default_langfuse_host()
+LANGFUSE_PUBLIC_KEY = _env_value("ATHANOR_LANGFUSE_PUBLIC_KEY", "LANGFUSE_PUBLIC_KEY")
+LANGFUSE_SECRET_KEY = _env_value("ATHANOR_LANGFUSE_SECRET_KEY", "LANGFUSE_SECRET_KEY")
 
 # --- Agent definitions ---
 # Maps agent_id -> (source file relative to AGENTS_DIR, tools list name(s))
@@ -205,6 +217,14 @@ def sync_all(host: str, dry_run: bool = False) -> tuple[int, int, int]:
     synced = 0
     unchanged = 0
     errors = 0
+
+    if not LANGFUSE_PUBLIC_KEY or not LANGFUSE_SECRET_KEY:
+        print(
+            "ERROR: set ATHANOR_LANGFUSE_PUBLIC_KEY / ATHANOR_LANGFUSE_SECRET_KEY "
+            "or LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY before syncing prompts",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     auth = (LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY)
     client = httpx.Client(auth=auth, timeout=30.0)

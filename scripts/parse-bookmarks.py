@@ -29,8 +29,15 @@ DEFAULT_PATHS = [
     Path("/mnt/c/Users/Shaun/Documents/ChromeBackup/Bookmarks"),  # JSON format
 ]
 
-QDRANT_URL = "http://192.168.1.244:6333"
-EMBEDDING_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/") + "/v1"
+def _host_env(name: str, default: str) -> str:
+    return os.environ.get(name, default).strip()
+
+
+QDRANT_URL = os.environ.get("ATHANOR_QDRANT_URL", f"http://{_host_env('ATHANOR_NODE1_HOST', '192.168.1.244')}:6333")
+EMBEDDING_URL = (
+    os.environ.get("ATHANOR_LITELLM_URL", f"http://{_host_env('ATHANOR_VAULT_HOST', '192.168.1.203')}:4000").rstrip("/")
+    + "/v1"
+)
 EMBEDDING_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
     or os.environ.get("LITELLM_API_KEY")
