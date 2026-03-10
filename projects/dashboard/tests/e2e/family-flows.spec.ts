@@ -19,7 +19,11 @@ test("history family preserves filters, drawer state, and review back-links", as
 
   await expect(page).toHaveURL(/status=pending_approval/);
 
-  await page.getByRole("button", { name: /Reworked the EoBQ scene renderer/i }).click();
+  await page
+    .locator("button")
+    .filter({ hasText: /Reworked the EoBQ scene renderer/i })
+    .first()
+    .click();
 
   await expect(page).toHaveURL(/selection=activity-1/);
   await expect(page.getByRole("dialog", { name: /write_scene_renderer/i })).toBeVisible();
@@ -224,7 +228,7 @@ test("gallery drawer keeps source filters and output back-links intact", async (
 
   await page.getByRole("link", { name: "Open outputs" }).click();
   await expect(page).toHaveURL(/\/outputs\?project=eoq$/);
-  await expect(page.getByRole("heading", { name: /Outputs/i })).toBeVisible();
+  await expect(page.locator("main h1")).toContainText(/Outputs/i);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/gallery\?/);

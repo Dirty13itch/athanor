@@ -43,12 +43,16 @@ function parseTimeframeMinutes(value: TimeframeFilter) {
   }
 }
 
-function withinTimeframe(timestamp: string, timeframe: TimeframeFilter) {
+function withinTimeframe(timestamp: string, timeframe: TimeframeFilter, referenceTimestamp: string) {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) {
     return true;
   }
-  return Date.now() - date.getTime() <= parseTimeframeMinutes(timeframe) * 60_000;
+
+  const referenceDate = new Date(referenceTimestamp);
+  const referenceTime = Number.isNaN(referenceDate.getTime()) ? Date.now() : referenceDate.getTime();
+
+  return referenceTime - date.getTime() <= parseTimeframeMinutes(timeframe) * 60_000;
 }
 
 function exportSnapshot(name: string, data: unknown) {
@@ -231,7 +235,7 @@ export function HistoryConsole({
     (item) =>
       (project === "all" || itemProjectId(item) === project) &&
       (agent === "all" || item.agentId === agent) &&
-      withinTimeframe(item.timestamp, timeframe) &&
+      withinTimeframe(item.timestamp, timeframe, snapshot.generatedAt) &&
       itemMatchesStatus(item, status, snapshot) &&
       (!deferredSearch ||
         item.inputSummary.toLowerCase().includes(deferredSearch) ||
@@ -241,7 +245,7 @@ export function HistoryConsole({
     (item) =>
       (project === "all" || itemProjectId(item) === project) &&
       (agent === "all" || item.agentId === agent) &&
-      withinTimeframe(item.timestamp, timeframe) &&
+      withinTimeframe(item.timestamp, timeframe, snapshot.generatedAt) &&
       itemMatchesStatus(item, status, snapshot) &&
       (!deferredSearch ||
         item.userMessage.toLowerCase().includes(deferredSearch) ||
@@ -250,7 +254,7 @@ export function HistoryConsole({
   const outputs = snapshot.outputs.filter(
     (item) =>
       (project === "all" || itemProjectId(item) === project) &&
-      withinTimeframe(item.modifiedAt, timeframe) &&
+      withinTimeframe(item.modifiedAt, timeframe, snapshot.generatedAt) &&
       itemMatchesStatus(item, status, snapshot) &&
       (!deferredSearch ||
         item.fileName.toLowerCase().includes(deferredSearch) ||

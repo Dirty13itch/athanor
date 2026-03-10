@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+ROOT_GITIGNORE = REPO_ROOT / ".gitignore"
 AGENTS_DOC = REPO_ROOT / "AGENTS.md"
 AGENTS_INIT = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "agents" / "__init__.py"
 SERVER_PY = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "server.py"
@@ -225,6 +226,10 @@ class RepoContractsTest(unittest.TestCase):
                     violations.append(str(file_path.relative_to(REPO_ROOT)))
 
         self.assertEqual([], violations, f"Legacy agent proxy references remain in dashboard code: {violations}")
+
+    def test_agent_uv_lock_is_ignored(self) -> None:
+        gitignore = ROOT_GITIGNORE.read_text(encoding="utf-8")
+        self.assertIn("/projects/agents/uv.lock", gitignore)
 
 
 if __name__ == "__main__":

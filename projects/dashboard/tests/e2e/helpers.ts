@@ -26,7 +26,7 @@ export async function gotoRoute(page: Page, path: string, heading: RegExp | stri
   }
 
   await page.waitForLoadState("networkidle", { timeout: 3_000 }).catch(() => undefined);
-  await expect(page.getByRole("heading", { name: heading })).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("main h1")).toContainText(heading, { timeout: 15_000 });
   await page.evaluate(async () => {
     await document.fonts.ready;
   });

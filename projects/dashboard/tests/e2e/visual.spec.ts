@@ -42,7 +42,11 @@ test.beforeEach(async ({ page }) => {
 
 for (const route of ROUTES) {
   test(`matches ${route.snapshot}`, async ({ page }) => {
-    await gotoRoute(page, route.path, route.readyHeading ?? route.heading);
+    await gotoRoute(page, route.path, route.heading);
+
+    if (route.readyHeading) {
+      await expect(page.locator("main")).toContainText(route.readyHeading);
+    }
 
     await expect(page).toHaveScreenshot(route.snapshot, {
       fullPage: true,

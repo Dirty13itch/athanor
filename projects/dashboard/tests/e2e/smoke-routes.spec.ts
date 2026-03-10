@@ -68,7 +68,7 @@ test("smoke: /more links navigate and browser back returns to route index", asyn
   for (const link of MORE_LINKS) {
     await page.locator("main").getByRole("link", { name: link.label }).click();
     await expect(page).toHaveURL(link.path);
-    await expect(page.getByRole("heading", { name: link.heading })).toBeVisible();
+    await expect(page.locator("main h1")).toContainText(link.heading);
     await page.goBack();
     await expect(page).toHaveURL(/\/more$/);
     await expect(page.getByRole("heading", { name: "All Pages" })).toBeVisible();
