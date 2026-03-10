@@ -7,4 +7,11 @@ export const queryKeys = {
   gpuHistory: (window: string) => ["gpu-history", window] as const,
   models: ["models"] as const,
   agents: ["agents"] as const,
+  history: ["history"] as const,
+  intelligence: ["intelligence"] as const,
+  memory: ["memory"] as const,
+  monitoring: ["monitoring"] as const,
+  mediaOverview: ["media-overview"] as const,
+  galleryOverview: ["gallery-overview"] as const,
+  homeOverview: ["home-overview"] as const,
 };

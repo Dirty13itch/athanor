@@ -1,16 +1,30 @@
 import {
   agentsSnapshotSchema,
+  gallerySnapshotSchema,
   gpuHistoryResponseSchema,
   gpuSnapshotResponseSchema,
+  historySnapshotSchema,
+  homeSnapshotSchema,
+  intelligenceSnapshotSchema,
+  mediaSnapshotSchema,
+  memorySnapshotSchema,
   modelsSnapshotSchema,
+  monitoringSnapshotSchema,
   overviewSnapshotSchema,
   servicesHistorySnapshotSchema,
   servicesSnapshotSchema,
   workforceSnapshotResponseSchema,
   type AgentsSnapshot,
+  type GallerySnapshot,
   type GpuHistoryResponse,
   type GpuSnapshotResponse,
+  type HistorySnapshot,
+  type HomeSnapshot,
+  type IntelligenceSnapshot,
+  type MediaSnapshot,
+  type MemorySnapshot,
   type ModelsSnapshot,
+  type MonitoringSnapshot,
   type OverviewSnapshot,
   type ServicesHistorySnapshot,
   type ServicesSnapshot,
@@ -106,4 +120,32 @@ export async function getAgents(): Promise<AgentsSnapshot> {
 
 export async function getWorkforce(): Promise<WorkforceSnapshot> {
   return fetchJson("/api/workforce", { cache: "no-store" }, workforceSnapshotResponseSchema);
+}
+
+export async function getHistory(): Promise<HistorySnapshot> {
+  return fetchJson("/api/history", { cache: "no-store" }, historySnapshotSchema);
+}
+
+export async function getIntelligence(): Promise<IntelligenceSnapshot> {
+  return fetchJson("/api/intelligence", { cache: "no-store" }, intelligenceSnapshotSchema);
+}
+
+export async function getMemory(): Promise<MemorySnapshot> {
+  return fetchJson("/api/memory", { cache: "no-store" }, memorySnapshotSchema);
+}
+
+export async function getMonitoring(): Promise<MonitoringSnapshot> {
+  return fetchJson("/api/monitoring", { cache: "no-store" }, monitoringSnapshotSchema);
+}
+
+export async function getMediaOverview(): Promise<MediaSnapshot> {
+  return fetchJson("/api/media/overview", { cache: "no-store" }, mediaSnapshotSchema);
+}
+
+export async function getGalleryOverview(): Promise<GallerySnapshot> {
+  return fetchJson("/api/gallery/overview", { cache: "no-store" }, gallerySnapshotSchema);
+}
+
+export async function getHomeOverview(): Promise<HomeSnapshot> {
+  return fetchJson("/api/home/overview", { cache: "no-store" }, homeSnapshotSchema);
 }

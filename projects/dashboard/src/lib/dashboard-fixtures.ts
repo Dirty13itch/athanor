@@ -1,8 +1,15 @@
 import type {
   AgentsSnapshot,
+  GallerySnapshot,
   GpuHistoryResponse,
   GpuSnapshotResponse,
+  HistorySnapshot,
+  HomeSnapshot,
+  IntelligenceSnapshot,
+  MediaSnapshot,
+  MemorySnapshot,
   ModelsSnapshot,
+  MonitoringSnapshot,
   OverviewSnapshot,
   ServicesHistorySnapshot,
   ServicesSnapshot,
@@ -1515,6 +1522,726 @@ const fixtureServicesHistory: ServicesHistorySnapshot = {
   series: fixtureServiceSeries,
 };
 
+const fixtureHistorySnapshot: HistorySnapshot = {
+  generatedAt: FIXTURE_BASE_TIME,
+  summary: {
+    activityCount: 4,
+    conversationCount: 4,
+    outputCount: 5,
+    reviewCount: fixtureWorkforce.tasks.filter((task) =>
+      ["pending_approval", "failed", "completed"].includes(task.status)
+    ).length,
+  },
+  projects: fixtureOverview.projects,
+  agents: fixtureWorkforce.agents,
+  tasks: fixtureWorkforce.tasks,
+  activity: [
+    {
+      id: "activity-1",
+      agentId: "coding-agent",
+      projectId: "eoq",
+      actionType: "write_scene_renderer",
+      inputSummary: "Reworked the EoBQ scene renderer to support branching transitions.",
+      outputSummary: "Renderer state machine updated and preview assets refreshed.",
+      toolsUsed: ["read_file", "write_file", "run_command"],
+      durationMs: 142000,
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 12),
+      relatedTaskId: "task-eoq-1",
+      relatedThreadId: "thread-eoq-1",
+      reviewTaskId: "task-eoq-1",
+      status: "pending_approval",
+      href: "/review?selection=task-eoq-1",
+    },
+    {
+      id: "activity-2",
+      agentId: "creative-agent",
+      projectId: "eoq",
+      actionType: "generate_portrait_pack",
+      inputSummary: "Queued fresh character portraits for the current cast.",
+      outputSummary: "Three candidate portrait generations are ready for review.",
+      toolsUsed: ["generate_image", "queue_status"],
+      durationMs: 78000,
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 24),
+      relatedTaskId: "task-eoq-2",
+      relatedThreadId: "thread-eoq-2",
+      reviewTaskId: null,
+      status: "completed",
+      href: "/gallery?selection=EoBQ%2Fcharacter",
+    },
+    {
+      id: "activity-3",
+      agentId: "research-agent",
+      projectId: "athanor",
+      actionType: "audit_runtime_contracts",
+      inputSummary: "Compared live routing against the Athanor Next contract map.",
+      outputSummary: "LiteLLM alias map is aligned, but one dashboard route still needed migration.",
+      toolsUsed: ["web_search", "cluster_health", "search_knowledge"],
+      durationMs: 91000,
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 37),
+      relatedTaskId: "task-ath-1",
+      relatedThreadId: "thread-ath-1",
+      reviewTaskId: null,
+      status: "running",
+      href: "/activity?selection=activity-3",
+    },
+    {
+      id: "activity-4",
+      agentId: "knowledge-agent",
+      projectId: "athanor",
+      actionType: "document_delta",
+      inputSummary: "Compiled stale command-center docs and missing runbook notes.",
+      outputSummary: "Draft operator delta list stored for review.",
+      toolsUsed: ["search_knowledge", "write_file"],
+      durationMs: 54000,
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 51),
+      relatedTaskId: "task-ath-2",
+      relatedThreadId: "thread-ath-2",
+      reviewTaskId: "task-ath-2",
+      status: "completed",
+      href: "/outputs?selection=output-2",
+    },
+  ],
+  conversations: [
+    {
+      id: "conversation-1",
+      threadId: "thread-eoq-1",
+      agentId: "coding-agent",
+      projectId: "eoq",
+      userMessage: "Finish the branching scene renderer and keep the UI transitions deterministic.",
+      assistantResponse: "I split the renderer into explicit state edges and generated a review-ready diff.",
+      toolsUsed: ["read_file", "write_file", "run_command"],
+      durationMs: 142000,
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 12),
+      relatedTaskId: "task-eoq-1",
+      href: "/conversations?selection=thread-eoq-1",
+    },
+    {
+      id: "conversation-2",
+      threadId: "thread-eoq-2",
+      agentId: "creative-agent",
+      projectId: "eoq",
+      userMessage: "Generate the next portrait lane using the approved dark-fantasy style.",
+      assistantResponse: "Queued three portrait variants and attached the generation prompts for review.",
+      toolsUsed: ["generate_image", "queue_status"],
+      durationMs: 78000,
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 24),
+      relatedTaskId: "task-eoq-2",
+      href: "/gallery?selection=EoBQ%2Fcharacter",
+    },
+    {
+      id: "conversation-3",
+      threadId: "thread-ath-1",
+      agentId: "research-agent",
+      projectId: "athanor",
+      userMessage: "Audit the live alias map and highlight any drift against docs.",
+      assistantResponse: "The runtime map is aligned after the DEV retrieval move. One legacy dashboard lane still bypassed the family snapshot model.",
+      toolsUsed: ["cluster_health", "search_knowledge"],
+      durationMs: 91000,
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 37),
+      relatedTaskId: "task-ath-1",
+      href: "/insights?selection=pattern-contract-drift",
+    },
+    {
+      id: "conversation-4",
+      threadId: "thread-ath-2",
+      agentId: "knowledge-agent",
+      projectId: "athanor",
+      userMessage: "Find stale docs and prepare the delta summary.",
+      assistantResponse: "I mapped the stale references and linked them to the new Athanor Next roadmap layers.",
+      toolsUsed: ["search_knowledge", "write_file"],
+      durationMs: 54000,
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 51),
+      relatedTaskId: "task-ath-2",
+      href: "/review?selection=task-ath-2",
+    },
+  ],
+  outputs: [
+    {
+      id: "output-1",
+      path: "output/eoq/scene-renderer-state-machine.diff",
+      fileName: "scene-renderer-state-machine.diff",
+      category: "scene",
+      sizeBytes: 18942,
+      modifiedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 11),
+      projectId: "eoq",
+      relatedTaskId: "task-eoq-1",
+      previewAvailable: true,
+      href: "/outputs?selection=output-1",
+    },
+    {
+      id: "output-2",
+      path: "output/athanor/operator-doc-delta.md",
+      fileName: "operator-doc-delta.md",
+      category: "research",
+      sizeBytes: 8234,
+      modifiedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 49),
+      projectId: "athanor",
+      relatedTaskId: "task-ath-2",
+      previewAvailable: true,
+      href: "/outputs?selection=output-2",
+    },
+    {
+      id: "output-3",
+      path: "output/eoq/portraits/queen-portrait-a.webp",
+      fileName: "queen-portrait-a.webp",
+      category: "character",
+      sizeBytes: 2483942,
+      modifiedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 23),
+      projectId: "eoq",
+      relatedTaskId: "task-eoq-2",
+      previewAvailable: false,
+      href: "/gallery?selection=EoBQ%2Fcharacter",
+    },
+    {
+      id: "output-4",
+      path: "output/athanor/runtime-audit.md",
+      fileName: "runtime-audit.md",
+      category: "research",
+      sizeBytes: 12490,
+      modifiedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 34),
+      projectId: "athanor",
+      relatedTaskId: "task-ath-1",
+      previewAvailable: true,
+      href: "/outputs?selection=output-4",
+    },
+    {
+      id: "output-5",
+      path: "output/eoq/scene-cast-prompts.json",
+      fileName: "scene-cast-prompts.json",
+      category: "scene",
+      sizeBytes: 4912,
+      modifiedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 21),
+      projectId: "eoq",
+      relatedTaskId: "task-eoq-2",
+      previewAvailable: true,
+      href: "/outputs?selection=output-5",
+    },
+  ],
+};
+
+const fixtureIntelligenceSnapshot: IntelligenceSnapshot = {
+  generatedAt: FIXTURE_BASE_TIME,
+  projects: fixtureOverview.projects,
+  agents: fixtureWorkforce.agents,
+  report: {
+    timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 18),
+    periodHours: 24,
+    eventCount: 117,
+    activityCount: 84,
+    patterns: [
+      {
+        type: "contract_drift",
+        severity: "high",
+        agentId: "research-agent",
+        count: 2,
+        sampleErrors: ["Legacy route bypassed the family snapshot loader."],
+        topics: { dashboard: 4, config: 3 },
+        actions: { migrate: 1 },
+      },
+      {
+        type: "creative_backlog",
+        severity: "medium",
+        agentId: "creative-agent",
+        count: 3,
+        sampleErrors: [],
+        topics: { eoq: 5, portraits: 3 },
+        actions: { queue: 2 },
+      },
+      {
+        type: "doc_alignment",
+        severity: "low",
+        agentId: "knowledge-agent",
+        count: 4,
+        sampleErrors: [],
+        topics: { roadmap: 2, manifest: 2 },
+        actions: { update: 2 },
+      },
+    ],
+    recommendations: [
+      "Finish migrating the remaining legacy dashboard routes onto family snapshots.",
+      "Review the pending EoBQ renderer diff before promoting the next creative cycle.",
+      "Keep DEV retrieval endpoints in the service-history and monitoring views.",
+    ],
+    autonomyAdjustments: [
+      {
+        agentId: "coding-agent",
+        category: "code_write",
+        previous: 0.64,
+        delta: -0.04,
+        next: 0.6,
+      },
+      {
+        agentId: "creative-agent",
+        category: "image_generation",
+        previous: 0.7,
+        delta: 0.05,
+        next: 0.75,
+      },
+    ],
+    agentBehavior: [
+      {
+        agentId: "research-agent",
+        dominantTopic: "runtime contracts",
+        dominantType: "audit",
+        entityCount: 14,
+        actions: { audit: 4, summarize: 2 },
+      },
+      {
+        agentId: "creative-agent",
+        dominantTopic: "portraits",
+        dominantType: "generation",
+        entityCount: 9,
+        actions: { queue: 3, preview: 2 },
+      },
+    ],
+  },
+  learning: {
+    timestamp: FIXTURE_BASE_TIME,
+    metrics: {
+      cache: {
+        totalEntries: 184,
+        hitRate: 0.42,
+        tokensSaved: 128432,
+        avgSimilarity: 0.86,
+      },
+      circuits: {
+        services: 19,
+        open: 1,
+        halfOpen: 1,
+        closed: 17,
+        totalFailures: 8,
+      },
+      preferences: {
+        modelTaskPairs: 12,
+        totalSamples: 87,
+        avgCompositeScore: 0.74,
+        converged: 6,
+      },
+      trust: {
+        agentsTracked: 7,
+        avgTrustScore: 0.69,
+        highTrust: 2,
+        lowTrust: 1,
+      },
+      diagnosis: {
+        recentFailures: 3,
+        patternsDetected: 5,
+        autoRemediations: 2,
+      },
+      memory: {
+        collections: 3,
+        totalPoints: 1824,
+      },
+      tasks: {
+        total: 48,
+        completed: 33,
+        failed: 4,
+        successRate: 0.6875,
+      },
+    },
+    summary: {
+      overallHealth: 0.72,
+      dataPoints: 7,
+      positiveSignals: [
+        "Semantic cache hit rate is improving.",
+        "Trust is stabilizing for the high-autonomy lanes.",
+        "Improvement benchmarks are passing consistently.",
+      ],
+      assessment: "Compounding",
+    },
+  },
+  improvement: fixtureWorkforce.improvement,
+  reviewTasks: fixtureWorkforce.tasks.filter((task) =>
+    ["pending_approval", "failed", "completed"].includes(task.status)
+  ),
+};
+
+const fixtureMemorySnapshot: MemorySnapshot = {
+  generatedAt: FIXTURE_BASE_TIME,
+  projects: fixtureOverview.projects,
+  summary: {
+    qdrantOnline: true,
+    neo4jOnline: true,
+    points: 1824,
+    vectors: 1824,
+    graphNodes: 612,
+    graphRelationships: 2841,
+  },
+  preferences: [
+    {
+      score: 0.95,
+      content: "Keep Athanor desktop-first and optimized for a single operator.",
+      signalType: "remember_this",
+      agentId: "global",
+      category: "ux",
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 180),
+    },
+    {
+      score: 0.91,
+      content: "EoBQ is the first active first-class tenant after Athanor core.",
+      signalType: "config_choice",
+      agentId: "knowledge-agent",
+      category: "project",
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 300),
+    },
+    {
+      score: 0.84,
+      content: "Prefer visible focus states and reduced-motion-safe interactions in the dashboard.",
+      signalType: "thumbs_up",
+      agentId: "coding-agent",
+      category: "accessibility",
+      timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 420),
+    },
+  ],
+  recentItems: [
+    {
+      id: "recent-1",
+      title: "Athanor Next Master Roadmap",
+      url: null,
+      source: "docs",
+      category: "roadmap",
+      subcategory: "design",
+      description: "North-star design layer for Athanor Next.",
+      indexedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 40),
+    },
+    {
+      id: "recent-2",
+      title: "EoBQ portrait direction pack",
+      url: "http://192.168.1.225:3002",
+      source: "eoq",
+      category: "creative",
+      subcategory: "reference",
+      description: "Character portrait references and style constraints.",
+      indexedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 90),
+    },
+    {
+      id: "recent-3",
+      title: "LiteLLM alias contract notes",
+      url: null,
+      source: "ops",
+      category: "system",
+      subcategory: "routing",
+      description: "Alias mapping and fallback semantics.",
+      indexedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 150),
+    },
+    {
+      id: "recent-4",
+      title: "Dark fantasy onboarding comparisons",
+      url: null,
+      source: "research",
+      category: "kindred",
+      subcategory: "market",
+      description: "Adjacent products and passion-first onboarding analysis.",
+      indexedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 230),
+    },
+  ],
+  categories: [
+    { name: "roadmap", count: 112 },
+    { name: "creative", count: 388 },
+    { name: "system", count: 247 },
+    { name: "research", count: 194 },
+  ],
+  topTopics: [
+    { name: "Athanor Next", connections: 61 },
+    { name: "EoBQ", connections: 54 },
+    { name: "LiteLLM", connections: 37 },
+    { name: "ComfyUI", connections: 28 },
+  ],
+  graphLabels: ["Project", "Topic", "Preference", "Task", "Tenant", "Service"],
+};
+
+const fixtureMonitoringSnapshot: MonitoringSnapshot = {
+  generatedAt: FIXTURE_BASE_TIME,
+  summary: {
+    reachableNodes: 4,
+    totalNodes: 4,
+    averageCpu: 47.5,
+    totalMemUsed: 111239652352,
+    totalMemTotal: 266287972352,
+    networkRxRate: 9437184,
+    networkTxRate: 4194304,
+  },
+  nodes: [
+    {
+      id: "node1",
+      name: "Foundry",
+      ip: "192.168.1.244",
+      role: "Coordinator inference and agent execution",
+      cpuUsage: 68,
+      memUsed: 73873436672,
+      memTotal: 137438953472,
+      diskUsed: 731637227520,
+      diskTotal: 1099511627776,
+      networkRxRate: 5242880,
+      networkTxRate: 2621440,
+      uptime: 604800,
+      load1: 4.2,
+      cpuHistory: [44, 48, 52, 56, 61, 65, 68],
+      memHistory: [49, 50, 51, 52, 53, 53, 54],
+    },
+    {
+      id: "node2",
+      name: "Workshop",
+      ip: "192.168.1.225",
+      role: "Worker inference, creative runtimes, and UI",
+      cpuUsage: 41,
+      memUsed: 25769803776,
+      memTotal: 68719476736,
+      diskUsed: 362387865600,
+      diskTotal: 549755813888,
+      networkRxRate: 3145728,
+      networkTxRate: 1048576,
+      uptime: 518400,
+      load1: 2.3,
+      cpuHistory: [25, 28, 33, 36, 39, 40, 41],
+      memHistory: [31, 33, 34, 36, 37, 37, 38],
+    },
+    {
+      id: "vault",
+      name: "VAULT",
+      ip: "192.168.1.203",
+      role: "Routing, memory, media, home, and observability",
+      cpuUsage: 17,
+      memUsed: 11811160064,
+      memTotal: 34359738368,
+      diskUsed: 2336462209024,
+      diskTotal: 4398046511104,
+      networkRxRate: 1572864,
+      networkTxRate: 786432,
+      uptime: 950400,
+      load1: 1.1,
+      cpuHistory: [11, 12, 14, 15, 17, 16, 17],
+      memHistory: [30, 31, 31, 32, 33, 34, 34],
+    },
+    {
+      id: "dev",
+      name: "DEV",
+      ip: "192.168.1.189",
+      role: "Ops workstation and retrieval runtimes",
+      cpuUsage: 64,
+      memUsed: 0,
+      memTotal: 25769803776,
+      diskUsed: 171798691840,
+      diskTotal: 549755813888,
+      networkRxRate: 1310720,
+      networkTxRate: 524288,
+      uptime: 259200,
+      load1: 3.6,
+      cpuHistory: [29, 36, 44, 51, 57, 61, 64],
+      memHistory: [21, 22, 23, 24, 24, 25, 26],
+    },
+  ],
+  dashboards: fixtureOverview.externalTools
+    .filter((tool) => ["grafana", "prometheus"].includes(tool.id))
+    .map((tool) => ({
+      id: tool.id,
+      label: tool.label,
+      description: tool.description,
+      url: tool.url,
+    })),
+};
+
+const fixtureMediaSnapshot: MediaSnapshot = {
+  generatedAt: FIXTURE_BASE_TIME,
+  streamCount: 2,
+  sessions: [
+    {
+      friendlyName: "Living Room Shield",
+      title: "Dune: Part Two",
+      state: "playing",
+      progressPercent: 46,
+      transcodeDecision: "direct play",
+      mediaType: "movie",
+      year: "2024",
+      thumb: null,
+    },
+    {
+      friendlyName: "Bedroom Apple TV",
+      title: "Shogun S01E05",
+      state: "paused",
+      progressPercent: 71,
+      transcodeDecision: "transcode",
+      mediaType: "episode",
+      year: "2024",
+      thumb: null,
+    },
+  ],
+  downloads: [
+    {
+      id: "download-1",
+      title: "The Last of Us S02E01",
+      source: "Sonarr",
+      progressPercent: 68,
+      status: "downloading",
+      timeLeft: "12m",
+    },
+    {
+      id: "download-2",
+      title: "Civil War (2024)",
+      source: "Radarr",
+      progressPercent: 24,
+      status: "queued",
+      timeLeft: "41m",
+    },
+  ],
+  tvUpcoming: [
+    {
+      id: "tv-1",
+      title: "The Last of Us",
+      seriesTitle: "The Last of Us",
+      seasonNumber: 2,
+      episodeNumber: 1,
+      airDateUtc: isoMinutesAfter(FIXTURE_BASE_TIME, 60 * 20),
+      hasFile: false,
+    },
+  ],
+  movieUpcoming: [
+    {
+      id: "movie-1",
+      title: "Nosferatu",
+      seriesTitle: null,
+      seasonNumber: null,
+      episodeNumber: null,
+      airDateUtc: isoMinutesAfter(FIXTURE_BASE_TIME, 60 * 24 * 4),
+      hasFile: false,
+    },
+  ],
+  watchHistory: [
+    {
+      id: "watch-1",
+      friendlyName: "Living Room Shield",
+      title: "Blue Eye Samurai",
+      date: isoMinutesBefore(FIXTURE_BASE_TIME, 210),
+      duration: "54m",
+      watchedStatus: 1,
+    },
+    {
+      id: "watch-2",
+      friendlyName: "Bedroom Apple TV",
+      title: "Arcane",
+      date: isoMinutesBefore(FIXTURE_BASE_TIME, 420),
+      duration: "47m",
+      watchedStatus: 1,
+    },
+  ],
+  tvLibrary: {
+    total: 412,
+    monitored: 401,
+    episodes: 17428,
+    sizeGb: 28493,
+  },
+  movieLibrary: {
+    total: 1386,
+    monitored: 1362,
+    episodes: null,
+    sizeGb: 18241,
+    hasFile: 1317,
+  },
+  stash: {
+    sceneCount: 18492,
+    imageCount: 23011,
+    performerCount: 781,
+    studioCount: 128,
+    tagCount: 2987,
+    scenesSize: 1149239298048,
+    scenesDuration: 4893200,
+  },
+  launchLinks: [
+    { id: "plex", label: "Plex", url: "http://192.168.1.203:32400/web" },
+    { id: "sonarr", label: "Sonarr", url: "http://192.168.1.203:8989" },
+    { id: "radarr", label: "Radarr", url: "http://192.168.1.203:7878" },
+    { id: "stash", label: "Stash", url: "http://192.168.1.203:9999" },
+  ],
+};
+
+const fixtureGallerySnapshot: GallerySnapshot = {
+  generatedAt: FIXTURE_BASE_TIME,
+  queueRunning: 1,
+  queuePending: 2,
+  deviceName: "RTX 5090",
+  vramUsedGiB: 18.4,
+  vramTotalGiB: 32,
+  items: [
+    {
+      id: "gallery-1",
+      prompt:
+        "Cinematic portrait of a regal queen in dark armor, candlelit throne room, photorealistic, 8k.",
+      outputPrefix: "EoBQ/character",
+      timestamp: Math.floor(new Date(isoMinutesBefore(FIXTURE_BASE_TIME, 23)).getTime() / 1000),
+      outputImages: [{ filename: "queen-portrait-a.webp", subfolder: "EoBQ/character", type: "output" }],
+    },
+    {
+      id: "gallery-2",
+      prompt:
+        "Wide establishing shot of a black-iron throne room with long shadows and drifting ash.",
+      outputPrefix: "EoBQ/scene",
+      timestamp: Math.floor(new Date(isoMinutesBefore(FIXTURE_BASE_TIME, 42)).getTime() / 1000),
+      outputImages: [{ filename: "throne-room-wide.webp", subfolder: "EoBQ/scene", type: "output" }],
+    },
+    {
+      id: "gallery-3",
+      prompt: "Painterly portrait exploration for a future Kindred onboarding card.",
+      outputPrefix: "kindred/concepts",
+      timestamp: Math.floor(new Date(isoMinutesBefore(FIXTURE_BASE_TIME, 85)).getTime() / 1000),
+      outputImages: [{ filename: "kindred-concept-a.webp", subfolder: "kindred/concepts", type: "output" }],
+    },
+  ],
+};
+
+const fixtureHomeSnapshot: HomeSnapshot = {
+  generatedAt: FIXTURE_BASE_TIME,
+  online: false,
+  configured: false,
+  title: "Home Assistant",
+  summary: "Home Assistant is reachable only after onboarding and credential wiring are complete.",
+  setupSteps: [
+    {
+      id: "ha-runtime",
+      label: "Home Assistant runtime reachable",
+      status: "pending",
+      note: "Dashboard probe has not confirmed a healthy API response yet.",
+    },
+    {
+      id: "ha-onboarding",
+      label: "Complete Home Assistant onboarding",
+      status: "blocked",
+      note: "Requires an authenticated browser session on the Home Assistant surface.",
+    },
+    {
+      id: "home-agent",
+      label: "Enable home-agent operational lane",
+      status: "blocked",
+      note: "Wait until onboarding and credential wiring are complete.",
+    },
+    {
+      id: "ha-mcp",
+      label: "Expose focused home-control panels in Athanor",
+      status: "pending",
+      note: "Follow after the base integration is verified.",
+    },
+  ],
+  panels: [
+    {
+      id: "lights",
+      label: "Lights",
+      description: "Room-by-room brightness, scenes, and lighting state.",
+      href: "/home?panel=lights",
+    },
+    {
+      id: "climate",
+      label: "Climate",
+      description: "Thermostat, humidity, and HVAC state.",
+      href: "/home?panel=climate",
+    },
+    {
+      id: "presence",
+      label: "Presence",
+      description: "Who is home, presence rules, and automations.",
+      href: "/home?panel=presence",
+    },
+  ],
+};
+
 export function isDashboardFixtureMode() {
   return process.env.DASHBOARD_FIXTURE_MODE === "1";
 }
@@ -1553,4 +2280,32 @@ export function getFixtureModelsSnapshot(): ModelsSnapshot {
 
 export function getFixtureAgentsSnapshot(): AgentsSnapshot {
   return cloneFixture(fixtureAgents);
+}
+
+export function getFixtureHistorySnapshot(): HistorySnapshot {
+  return cloneFixture(fixtureHistorySnapshot);
+}
+
+export function getFixtureIntelligenceSnapshot(): IntelligenceSnapshot {
+  return cloneFixture(fixtureIntelligenceSnapshot);
+}
+
+export function getFixtureMemorySnapshot(): MemorySnapshot {
+  return cloneFixture(fixtureMemorySnapshot);
+}
+
+export function getFixtureMonitoringSnapshot(): MonitoringSnapshot {
+  return cloneFixture(fixtureMonitoringSnapshot);
+}
+
+export function getFixtureMediaSnapshot(): MediaSnapshot {
+  return cloneFixture(fixtureMediaSnapshot);
+}
+
+export function getFixtureGallerySnapshot(): GallerySnapshot {
+  return cloneFixture(fixtureGallerySnapshot);
+}
+
+export function getFixtureHomeSnapshot(): HomeSnapshot {
+  return cloneFixture(fixtureHomeSnapshot);
 }

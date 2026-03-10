@@ -2,20 +2,15 @@
 
 import { useEffect } from "react";
 import { Command } from "cmdk";
-import { ArrowUpRight, Bot, Command as CommandIcon, Cpu, FolderKanban, LayoutDashboard, MessageSquare, MonitorPlay, Search, Activity } from "lucide-react";
+import { ArrowUpRight, Command as CommandIcon, FolderKanban, MonitorPlay, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { RouteIcon } from "@/components/route-icon";
 import type { OverviewSnapshot } from "@/lib/contracts";
 import { Kbd } from "@/components/kbd";
+import { getRouteFamiliesWithRoutes } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/services", label: "Services", icon: Activity },
-  { href: "/gpu", label: "GPU Metrics", icon: Cpu },
-  { href: "/workplanner", label: "Work Planner", icon: FolderKanban },
-  { href: "/chat", label: "Direct Chat", icon: MessageSquare },
-  { href: "/agents", label: "Agent Console", icon: Bot },
-];
+const ROUTE_FAMILIES = getRouteFamiliesWithRoutes();
 
 export function CommandPalette({
   open,
@@ -72,24 +67,30 @@ export function CommandPalette({
             No matching commands.
           </Command.Empty>
 
-          <Command.Group heading="Routes" className="px-2 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground">
-            {NAV_ITEMS.map((item) => (
-              <Command.Item
-                key={item.href}
-                value={item.label}
-                onSelect={() => navigate(item.href)}
-                className={cn(
-                  "flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm outline-none data-[selected=true]:bg-accent"
-                )}
-              >
-                <span className="flex items-center gap-3">
-                  <item.icon className="h-4 w-4 text-primary" />
-                  {item.label}
-                </span>
-                <Kbd>Go</Kbd>
-              </Command.Item>
-            ))}
-          </Command.Group>
+          {ROUTE_FAMILIES.map((family) => (
+            <Command.Group
+              key={family.id}
+              heading={family.label}
+              className="px-2 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground"
+            >
+              {family.routes.map((item) => (
+                <Command.Item
+                  key={item.href}
+                  value={`${family.label} ${item.label} ${item.description}`}
+                  onSelect={() => navigate(item.href)}
+                  className={cn(
+                    "flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm outline-none data-[selected=true]:bg-accent"
+                  )}
+                >
+                  <span className="flex items-center gap-3">
+                    <RouteIcon icon={item.icon} className="h-4 w-4 text-primary" />
+                    {item.label}
+                  </span>
+                  <Kbd>Go</Kbd>
+                </Command.Item>
+              ))}
+            </Command.Group>
+          ))}
 
           {overview?.alerts?.length ? (
             <Command.Group heading="Priority" className="px-2 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground">

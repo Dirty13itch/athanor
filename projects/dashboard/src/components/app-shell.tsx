@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Bot, Cpu, FolderKanban, LayoutDashboard, Menu, MessageSquare, Search, Sparkles } from "lucide-react";
+import { Menu, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,25 +17,18 @@ import {
 import { CommandPalette } from "@/components/command-palette";
 import { Kbd } from "@/components/kbd";
 import { MiniTrend } from "@/components/mini-trend";
+import { RouteIcon } from "@/components/route-icon";
 import { StatusDot } from "@/components/status-dot";
 import { getOverview } from "@/lib/api";
+import { getRouteFamiliesWithRoutes, getRouteLabel, getPrimaryRoutes } from "@/lib/navigation";
 import { queryKeys } from "@/lib/query-client";
 import { usePersistentState, STORAGE_KEYS, DEFAULT_UI_PREFERENCES } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { formatLatency, formatPercent, formatRelativeTime } from "@/lib/format";
 
-const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/services", label: "Services", icon: Activity },
-  { href: "/gpu", label: "GPU Metrics", icon: Cpu },
-  { href: "/workplanner", label: "Work Planner", icon: FolderKanban },
-  { href: "/chat", label: "Direct Chat", icon: MessageSquare },
-  { href: "/agents", label: "Agent Console", icon: Bot },
-] as const;
-
-const ROUTE_LABELS: Record<string, string> = Object.fromEntries(
-  NAV_ITEMS.map((item) => [item.href, item.label])
-);
+const PRIMARY_ROUTES = getPrimaryRoutes();
+const ROUTE_FAMILIES = getRouteFamiliesWithRoutes();
+const DESKTOP_ROUTE_FAMILIES = ROUTE_FAMILIES.filter((family) => family.id !== "core");
 
 function NavLinks({
   pathname,
@@ -45,28 +38,37 @@ function NavLinks({
   compact?: boolean;
 }) {
   return (
-    <nav className={cn("space-y-1", compact && "space-y-2")}>
-      {NAV_ITEMS.map((item) => {
-        const active = pathname === item.href;
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center justify-between rounded-xl px-3 py-3 text-sm transition-colors",
-              active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-            )}
-          >
-            <span className="flex items-center gap-3">
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </span>
-            {active ? <StatusDot tone="healthy" /> : null}
-          </Link>
-        );
-      })}
+    <nav className={cn("space-y-4", compact && "space-y-3")}>
+      {ROUTE_FAMILIES.map((family) => (
+        <div key={family.id} className="space-y-1.5">
+          <p className="px-3 text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+            {family.label}
+          </p>
+          <div className="space-y-1">
+            {family.routes.map((item) => {
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors",
+                    active
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                >
+                  <span className="flex items-center gap-3">
+                    <RouteIcon icon={item.icon} className="h-4 w-4" />
+                    {item.shortLabel ?? item.label}
+                  </span>
+                  {active ? <StatusDot tone="healthy" /> : null}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </nav>
   );
 }
@@ -83,9 +85,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   });
 
   const overview = overviewQuery.data;
-  const routeLabel = ROUTE_LABELS[pathname] ?? "Command Center";
-  const degradedCount =
-    overview?.summary.degradedServices ?? 0;
+  const routeLabel = getRouteLabel(pathname);
+  const degradedCount = overview?.summary.degradedServices ?? 0;
   const shellStateTone = degradedCount > 0 ? "warning" : "healthy";
 
   return (
@@ -197,7 +198,68 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <div className="mt-6">
-          <NavLinks pathname={pathname} />
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="px-3 text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                Quick Access
+              </p>
+              <div className="space-y-1">
+                {PRIMARY_ROUTES.map((item) => {
+                  const active = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl px-3 py-3 text-sm transition-colors",
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      )}
+                    >
+                      <span className="flex items-center gap-3">
+                        <RouteIcon icon={item.icon} className="h-4 w-4" />
+                        {item.shortLabel ?? item.label}
+                      </span>
+                      {active ? <StatusDot tone="healthy" /> : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+            <nav className="space-y-4">
+              {DESKTOP_ROUTE_FAMILIES.map((family) => (
+                <div key={family.id} className="space-y-1.5">
+                  <p className="px-3 text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+                    {family.label}
+                  </p>
+                  <div className="space-y-1">
+                    {family.routes.map((item) => {
+                      const active = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors",
+                            active
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                          )}
+                        >
+                          <span className="flex items-center gap-3">
+                            <RouteIcon icon={item.icon} className="h-4 w-4" />
+                            {item.shortLabel ?? item.label}
+                          </span>
+                          {active ? <StatusDot tone="healthy" /> : null}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          </div>
         </div>
 
         <div className="mt-6 space-y-3 rounded-2xl border border-border/70 bg-background/20 p-4">
@@ -236,6 +298,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
           <Button asChild className="w-full justify-between" variant="ghost">
             <Link href="/workplanner">Project work planner</Link>
+          </Button>
+          <Button asChild className="w-full justify-between" variant="ghost">
+            <Link href="/more">Browse all families</Link>
           </Button>
         </div>
 

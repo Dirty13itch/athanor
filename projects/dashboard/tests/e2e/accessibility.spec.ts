@@ -8,6 +8,11 @@ const ROUTES = [
   { path: "/gpu", heading: "GPU Metrics" },
   { path: "/chat", heading: "Direct Chat" },
   { path: "/agents", heading: "Agent Console" },
+  { path: "/activity", heading: "Activity Feed" },
+  { path: "/review", heading: "Code Review" },
+  { path: "/preferences", heading: "Preferences" },
+  { path: "/monitoring", heading: "Monitoring" },
+  { path: "/home", heading: "Home" },
 ] as const;
 
 test.beforeEach(async ({ page }) => {

@@ -7,6 +7,18 @@ const ROUTES = [
   { path: "/gpu", heading: "GPU Metrics", snapshot: "gpu-console.png" },
   { path: "/chat", heading: "Direct Chat", snapshot: "direct-chat.png" },
   { path: "/agents", heading: "Agent Console", snapshot: "agent-console.png" },
+  { path: "/activity?status=pending_approval", heading: "Activity Feed", snapshot: "history-activity.png" },
+  { path: "/review?selection=task-eoq-1", heading: "Code Review", snapshot: "intelligence-review.png" },
+  { path: "/preferences", heading: "Preferences", snapshot: "memory-preferences.png" },
+  { path: "/monitoring?panel=grafana", heading: "Monitoring", snapshot: "monitoring-console.png" },
+  { path: "/gallery?selection=gallery-1", heading: "Gallery", snapshot: "gallery-console.png" },
+  {
+    path: "/home?panel=lights",
+    heading: "Home",
+    readyHeading: "Lights",
+    snapshot: "home-console.png",
+  },
+  { path: "/more", heading: "All Pages", snapshot: "route-index.png" },
 ] as const;
 
 test.beforeEach(async ({ page }) => {
@@ -15,7 +27,7 @@ test.beforeEach(async ({ page }) => {
 
 for (const route of ROUTES) {
   test(`matches ${route.snapshot}`, async ({ page }) => {
-    await gotoRoute(page, route.path, route.heading);
+    await gotoRoute(page, route.path, route.readyHeading ?? route.heading);
 
     await expect(page).toHaveScreenshot(route.snapshot, {
       fullPage: true,

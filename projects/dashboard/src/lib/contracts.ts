@@ -577,6 +577,397 @@ export const uiPreferencesSchema = z.object({
   dismissedHints: z.array(z.string()).default([]),
 });
 
+export const historyActivityItemSchema = z.object({
+  id: z.string(),
+  agentId: z.string(),
+  projectId: z.string().nullable(),
+  actionType: z.string(),
+  inputSummary: z.string(),
+  outputSummary: z.string().nullable(),
+  toolsUsed: z.array(z.string()),
+  durationMs: z.number().nullable(),
+  timestamp: z.string(),
+  relatedTaskId: z.string().nullable(),
+  relatedThreadId: z.string().nullable(),
+  reviewTaskId: z.string().nullable(),
+  status: taskStatusSchema.nullable(),
+  href: z.string(),
+});
+
+export const historyConversationItemSchema = z.object({
+  id: z.string(),
+  threadId: z.string(),
+  agentId: z.string(),
+  projectId: z.string().nullable(),
+  userMessage: z.string(),
+  assistantResponse: z.string().nullable(),
+  toolsUsed: z.array(z.string()),
+  durationMs: z.number().nullable(),
+  timestamp: z.string(),
+  relatedTaskId: z.string().nullable(),
+  href: z.string(),
+});
+
+export const historyOutputItemSchema = z.object({
+  id: z.string(),
+  path: z.string(),
+  fileName: z.string(),
+  category: z.string(),
+  sizeBytes: z.number().int().nonnegative(),
+  modifiedAt: z.string(),
+  projectId: z.string().nullable(),
+  relatedTaskId: z.string().nullable(),
+  previewAvailable: z.boolean(),
+  href: z.string(),
+});
+
+export const historySnapshotSchema = z.object({
+  generatedAt: z.string(),
+  summary: z.object({
+    activityCount: z.number().int().nonnegative(),
+    conversationCount: z.number().int().nonnegative(),
+    outputCount: z.number().int().nonnegative(),
+    reviewCount: z.number().int().nonnegative(),
+  }),
+  projects: z.array(projectSnapshotSchema),
+  agents: z.array(workforceAgentSnapshotSchema),
+  tasks: z.array(workforceTaskSchema),
+  activity: z.array(historyActivityItemSchema),
+  conversations: z.array(historyConversationItemSchema),
+  outputs: z.array(historyOutputItemSchema),
+});
+
+export const intelligencePatternSchema = z.object({
+  type: z.string(),
+  severity: z.enum(["high", "medium", "low"]).catch("low"),
+  agentId: z.string().nullable().optional(),
+  count: z.number().nullable().optional(),
+  sampleErrors: z.array(z.string()).default([]),
+  thumbsUp: z.number().nullable().optional(),
+  thumbsDown: z.number().nullable().optional(),
+  topics: z.record(z.string(), z.number()).default({}),
+  dominantType: z.string().nullable().optional(),
+  actions: z.record(z.string(), z.number()).default({}),
+});
+
+export const intelligenceAutonomyAdjustmentSchema = z.object({
+  agentId: z.string(),
+  category: z.string(),
+  previous: z.number(),
+  delta: z.number(),
+  next: z.number(),
+});
+
+export const intelligenceAgentBehaviorSchema = z.object({
+  agentId: z.string(),
+  dominantTopic: z.string().nullable(),
+  dominantType: z.string().nullable(),
+  entityCount: z.number().nullable(),
+  actions: z.record(z.string(), z.number()).default({}),
+});
+
+export const intelligenceReportSchema = z.object({
+  timestamp: z.string(),
+  periodHours: z.number().int().nonnegative(),
+  eventCount: z.number().int().nonnegative(),
+  activityCount: z.number().int().nonnegative(),
+  patterns: z.array(intelligencePatternSchema),
+  recommendations: z.array(z.string()),
+  autonomyAdjustments: z.array(intelligenceAutonomyAdjustmentSchema),
+  agentBehavior: z.array(intelligenceAgentBehaviorSchema),
+});
+
+export const learningSectionSchema = z.object({
+  cache: z
+    .object({
+      totalEntries: z.number().nullable().optional(),
+      hitRate: z.number().nullable().optional(),
+      tokensSaved: z.number().nullable().optional(),
+      avgSimilarity: z.number().nullable().optional(),
+    })
+    .nullable(),
+  circuits: z
+    .object({
+      services: z.number().nullable().optional(),
+      open: z.number().nullable().optional(),
+      halfOpen: z.number().nullable().optional(),
+      closed: z.number().nullable().optional(),
+      totalFailures: z.number().nullable().optional(),
+    })
+    .nullable(),
+  preferences: z
+    .object({
+      modelTaskPairs: z.number().nullable().optional(),
+      totalSamples: z.number().nullable().optional(),
+      avgCompositeScore: z.number().nullable().optional(),
+      converged: z.number().nullable().optional(),
+    })
+    .nullable(),
+  trust: z
+    .object({
+      agentsTracked: z.number().nullable().optional(),
+      avgTrustScore: z.number().nullable().optional(),
+      highTrust: z.number().nullable().optional(),
+      lowTrust: z.number().nullable().optional(),
+    })
+    .nullable(),
+  diagnosis: z
+    .object({
+      recentFailures: z.number().nullable().optional(),
+      patternsDetected: z.number().nullable().optional(),
+      autoRemediations: z.number().nullable().optional(),
+    })
+    .nullable(),
+  memory: z
+    .object({
+      collections: z.number().nullable().optional(),
+      totalPoints: z.number().nullable().optional(),
+    })
+    .nullable(),
+  tasks: z
+    .object({
+      total: z.number().nullable().optional(),
+      completed: z.number().nullable().optional(),
+      failed: z.number().nullable().optional(),
+      successRate: z.number().nullable().optional(),
+    })
+    .nullable(),
+});
+
+export const learningSnapshotSchema = z.object({
+  timestamp: z.string(),
+  metrics: learningSectionSchema,
+  summary: z.object({
+    overallHealth: z.number().nullable().optional(),
+    dataPoints: z.number().nullable().optional(),
+    positiveSignals: z.array(z.string()).default([]),
+    assessment: z.string().nullable().optional(),
+  }),
+});
+
+export const intelligenceSnapshotSchema = z.object({
+  generatedAt: z.string(),
+  projects: z.array(projectSnapshotSchema),
+  agents: z.array(workforceAgentSnapshotSchema),
+  report: intelligenceReportSchema.nullable(),
+  learning: learningSnapshotSchema.nullable(),
+  improvement: workforceImprovementSummarySchema.nullable(),
+  reviewTasks: z.array(workforceTaskSchema),
+});
+
+export const memoryPreferenceSchema = z.object({
+  score: z.number(),
+  content: z.string(),
+  signalType: z.string(),
+  agentId: z.string(),
+  category: z.string().nullable(),
+  timestamp: z.string(),
+});
+
+export const memoryRecentItemSchema = z.object({
+  id: z.union([z.string(), z.number()]),
+  title: z.string(),
+  url: z.string().nullable(),
+  source: z.string().nullable(),
+  category: z.string().nullable(),
+  subcategory: z.string().nullable(),
+  description: z.string().nullable(),
+  indexedAt: z.string().nullable(),
+});
+
+export const memoryCategorySchema = z.object({
+  name: z.string(),
+  count: z.number().int().nonnegative(),
+});
+
+export const memoryTopicSchema = z.object({
+  name: z.string(),
+  connections: z.number().int().nonnegative(),
+});
+
+export const memorySnapshotSchema = z.object({
+  generatedAt: z.string(),
+  projects: z.array(projectSnapshotSchema),
+  summary: z.object({
+    qdrantOnline: z.boolean(),
+    neo4jOnline: z.boolean(),
+    points: z.number().int().nonnegative(),
+    vectors: z.number().int().nonnegative(),
+    graphNodes: z.number().int().nonnegative(),
+    graphRelationships: z.number().int().nonnegative(),
+  }),
+  preferences: z.array(memoryPreferenceSchema),
+  recentItems: z.array(memoryRecentItemSchema),
+  categories: z.array(memoryCategorySchema),
+  topTopics: z.array(memoryTopicSchema),
+  graphLabels: z.array(z.string()),
+});
+
+export const monitoringNodeSnapshotSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  ip: z.string(),
+  role: z.string(),
+  cpuUsage: z.number().nullable(),
+  memUsed: z.number().nullable(),
+  memTotal: z.number().nullable(),
+  diskUsed: z.number().nullable(),
+  diskTotal: z.number().nullable(),
+  networkRxRate: z.number().nullable(),
+  networkTxRate: z.number().nullable(),
+  uptime: z.number().nullable(),
+  load1: z.number().nullable(),
+  cpuHistory: z.array(z.number()),
+  memHistory: z.array(z.number()),
+});
+
+export const monitoringSnapshotSchema = z.object({
+  generatedAt: z.string(),
+  summary: z.object({
+    reachableNodes: z.number().int().nonnegative(),
+    totalNodes: z.number().int().nonnegative(),
+    averageCpu: z.number().nullable(),
+    totalMemUsed: z.number().nullable(),
+    totalMemTotal: z.number().nullable(),
+    networkRxRate: z.number().nullable(),
+    networkTxRate: z.number().nullable(),
+  }),
+  nodes: z.array(monitoringNodeSnapshotSchema),
+  dashboards: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      description: z.string(),
+      url: z.string().url(),
+    })
+  ),
+});
+
+export const mediaSessionSchema = z.object({
+  friendlyName: z.string().nullable(),
+  title: z.string().nullable(),
+  state: z.string().nullable(),
+  progressPercent: z.number().nullable(),
+  transcodeDecision: z.string().nullable(),
+  mediaType: z.string().nullable(),
+  year: z.string().nullable(),
+  thumb: z.string().nullable(),
+});
+
+export const mediaQueueItemSchema = z.object({
+  id: z.string(),
+  title: z.string().nullable(),
+  source: z.string(),
+  progressPercent: z.number().nullable(),
+  status: z.string().nullable(),
+  timeLeft: z.string().nullable(),
+});
+
+export const mediaCalendarItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  seriesTitle: z.string().nullable(),
+  seasonNumber: z.number().nullable(),
+  episodeNumber: z.number().nullable(),
+  airDateUtc: z.string().nullable(),
+  hasFile: z.boolean().nullable(),
+});
+
+export const mediaWatchItemSchema = z.object({
+  id: z.string(),
+  friendlyName: z.string().nullable(),
+  title: z.string().nullable(),
+  date: z.string().nullable(),
+  duration: z.string().nullable(),
+  watchedStatus: z.number().nullable(),
+});
+
+export const mediaLibrarySchema = z.object({
+  total: z.number().nullable(),
+  monitored: z.number().nullable(),
+  episodes: z.number().nullable(),
+  sizeGb: z.number().nullable(),
+  hasFile: z.number().nullable().optional(),
+});
+
+export const mediaSnapshotSchema = z.object({
+  generatedAt: z.string(),
+  streamCount: z.number().int().nonnegative(),
+  sessions: z.array(mediaSessionSchema),
+  downloads: z.array(mediaQueueItemSchema),
+  tvUpcoming: z.array(mediaCalendarItemSchema),
+  movieUpcoming: z.array(mediaCalendarItemSchema),
+  watchHistory: z.array(mediaWatchItemSchema),
+  tvLibrary: mediaLibrarySchema.nullable(),
+  movieLibrary: mediaLibrarySchema.nullable(),
+  stash: z
+    .object({
+      sceneCount: z.number().nullable(),
+      imageCount: z.number().nullable(),
+      performerCount: z.number().nullable(),
+      studioCount: z.number().nullable(),
+      tagCount: z.number().nullable(),
+      scenesSize: z.number().nullable(),
+      scenesDuration: z.number().nullable(),
+    })
+    .nullable(),
+  launchLinks: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      url: z.string().url(),
+    })
+  ),
+});
+
+export const galleryImageSchema = z.object({
+  filename: z.string(),
+  subfolder: z.string(),
+  type: z.string(),
+});
+
+export const galleryHistoryItemSchema = z.object({
+  id: z.string(),
+  prompt: z.string(),
+  outputPrefix: z.string(),
+  timestamp: z.number(),
+  outputImages: z.array(galleryImageSchema),
+});
+
+export const gallerySnapshotSchema = z.object({
+  generatedAt: z.string(),
+  queueRunning: z.number().int().nonnegative(),
+  queuePending: z.number().int().nonnegative(),
+  deviceName: z.string().nullable(),
+  vramUsedGiB: z.number().nullable(),
+  vramTotalGiB: z.number().nullable(),
+  items: z.array(galleryHistoryItemSchema),
+});
+
+export const homeSetupStepSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  status: z.enum(["complete", "pending", "blocked"]),
+  note: z.string().nullable(),
+});
+
+export const homeSnapshotSchema = z.object({
+  generatedAt: z.string(),
+  online: z.boolean(),
+  configured: z.boolean(),
+  title: z.string(),
+  summary: z.string(),
+  setupSteps: z.array(homeSetupStepSchema),
+  panels: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      description: z.string(),
+      href: z.string(),
+    })
+  ),
+});
+
 export type ServiceSnapshot = z.infer<typeof serviceSnapshotSchema>;
 export type ServiceHistorySeries = z.infer<typeof serviceHistorySeriesSchema>;
 export type ChartPoint = z.infer<typeof chartPointSchema>;
@@ -614,3 +1005,19 @@ export type TranscriptMessage = z.infer<typeof transcriptMessageSchema>;
 export type DirectChatSession = z.infer<typeof directChatSessionSchema>;
 export type AgentThread = z.infer<typeof agentThreadSchema>;
 export type UiPreferences = z.infer<typeof uiPreferencesSchema>;
+export type HistoryActivityItem = z.infer<typeof historyActivityItemSchema>;
+export type HistoryConversationItem = z.infer<typeof historyConversationItemSchema>;
+export type HistoryOutputItem = z.infer<typeof historyOutputItemSchema>;
+export type HistorySnapshot = z.infer<typeof historySnapshotSchema>;
+export type IntelligencePattern = z.infer<typeof intelligencePatternSchema>;
+export type IntelligenceReport = z.infer<typeof intelligenceReportSchema>;
+export type LearningSnapshot = z.infer<typeof learningSnapshotSchema>;
+export type IntelligenceSnapshot = z.infer<typeof intelligenceSnapshotSchema>;
+export type MemoryPreference = z.infer<typeof memoryPreferenceSchema>;
+export type MemoryRecentItem = z.infer<typeof memoryRecentItemSchema>;
+export type MemorySnapshot = z.infer<typeof memorySnapshotSchema>;
+export type MonitoringNodeSnapshot = z.infer<typeof monitoringNodeSnapshotSchema>;
+export type MonitoringSnapshot = z.infer<typeof monitoringSnapshotSchema>;
+export type MediaSnapshot = z.infer<typeof mediaSnapshotSchema>;
+export type GallerySnapshot = z.infer<typeof gallerySnapshotSchema>;
+export type HomeSnapshot = z.infer<typeof homeSnapshotSchema>;
