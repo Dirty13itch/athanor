@@ -1,4 +1,6 @@
 import { config } from "@/lib/config";
+import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { getFixtureGalleryImages } from "@/lib/fixtures";
 import { NextResponse } from "next/server";
 
 // Known EoBQ characters for name detection from prompts
@@ -37,6 +39,21 @@ export async function GET(request: Request) {
   const character = searchParams.get("character");
   const type = searchParams.get("type");
   const limit = parseInt(searchParams.get("limit") ?? "50", 10);
+
+  if (EOQ_FIXTURE_MODE) {
+    let images = getFixtureGalleryImages();
+    if (character) {
+      images = images.filter((image) => image.character === character);
+    }
+    if (type) {
+      images = images.filter((image) => image.type === type);
+    }
+    return NextResponse.json({
+      images: images.slice(0, limit),
+      total: images.length,
+      characters: CHARACTER_NAMES,
+    });
+  }
 
   try {
     const resp = await fetch(`${config.comfyuiUrl}/history?max_items=200`, {

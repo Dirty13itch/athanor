@@ -237,8 +237,7 @@ export function useGameEngine() {
       const updatedSession = useGameStore.getState().session;
       if (updatedSession) {
         const relFlags = checkRelationshipFlags(
-          updatedSession.characters,
-          updatedSession.worldState.plotFlags
+          updatedSession.characters
         );
         if (Object.keys(relFlags).length > 0) {
           store.setPlotFlags(relFlags);

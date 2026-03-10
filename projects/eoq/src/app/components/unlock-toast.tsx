@@ -38,7 +38,7 @@ export function UnlockToast() {
     }
 
     knownFlagsRef.current = new Set(currentFlags);
-  }, [session?.worldState.plotFlags]);
+  }, [session]);
 
   return (
     <AnimatePresence>

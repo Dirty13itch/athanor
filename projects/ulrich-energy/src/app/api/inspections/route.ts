@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
+import { ULRICH_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { createFixtureInspection, listFixtureInspections } from "@/lib/fixtures";
 import type { InspectionListItem, CreateInspectionRequest } from "@/types/inspection";
 
 type DbRow = {
@@ -16,6 +18,13 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
   const builder = searchParams.get("builder");
+  const projectId = searchParams.get("projectId");
+
+  if (ULRICH_FIXTURE_MODE) {
+    return NextResponse.json({
+      inspections: listFixtureInspections({ status, builder, projectId }),
+    });
+  }
 
   let sql = `SELECT id, address, builder, inspector, status, created_at, hers_index
              FROM inspections`;
@@ -60,6 +69,13 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "address and builder are required" },
       { status: 400 },
+    );
+  }
+
+  if (ULRICH_FIXTURE_MODE) {
+    return NextResponse.json(
+      { inspection: createFixtureInspection(body) },
+      { status: 201 },
     );
   }
 

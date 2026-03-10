@@ -1,3 +1,9 @@
+"use client";
+
+import Link from "next/link";
+import { useApiData } from "@/hooks/use-api-data";
+import type { ReportListItem } from "@/types/report";
+
 const statusColors: Record<string, string> = {
   draft: "bg-muted-foreground/20 text-muted-foreground",
   generated: "bg-success/20 text-success",
@@ -5,12 +11,11 @@ const statusColors: Record<string, string> = {
   delivered: "bg-primary/20 text-primary",
 };
 
-const mockReports = [
-  { id: "rpt-001", address: "5678 Elm Ave, Plymouth", hers: 52, status: "generated", date: "Mar 5" },
-  { id: "rpt-002", address: "910 Birch Lane, Eden Prairie", hers: 48, status: "delivered", date: "Mar 1" },
-];
-
 export default function ReportsPage() {
+  const { data, loading, error } = useApiData<{ reports: ReportListItem[] }>("/api/reports", {
+    reports: [],
+  });
+
   return (
     <div className="space-y-4">
       <div>
@@ -18,24 +23,37 @@ export default function ReportsPage() {
         <p className="text-muted-foreground">Generated HERS rating reports</p>
       </div>
 
-      <div className="space-y-2">
-        {mockReports.map((report) => (
-          <div
-            key={report.id}
-            className="flex items-center justify-between rounded-lg border border-border bg-card p-4"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{report.address}</p>
-              <p className="text-sm text-muted-foreground">
-                HERS Index: {report.hers} &middot; {report.date}
-              </p>
-            </div>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[report.status]}`}>
-              {report.status}
-            </span>
-          </div>
-        ))}
-      </div>
+      {error && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+          Loading reports...
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {data.reports.map((report) => (
+            <Link
+              key={report.id}
+              href={`/reports/${report.id}`}
+              className="flex items-center justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{report.address}</p>
+                <p className="text-sm text-muted-foreground">
+                  HERS Index: {report.hersIndex ?? "--"} · {report.generatedAt ? new Date(report.generatedAt).toLocaleDateString() : "Pending"}
+                </p>
+              </div>
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[report.status]}`}>
+                {report.status}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

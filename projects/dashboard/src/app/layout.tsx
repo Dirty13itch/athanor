@@ -3,6 +3,7 @@ import { Inter, Cormorant_Garamond } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import { AppProviders } from "@/components/app-providers";
 import { AppShell } from "@/components/app-shell";
+import { RegisterSW } from "@/components/register-sw";
 import "./globals.css";
 
 const inter = Inter({
@@ -40,6 +41,7 @@ export default function RootLayout({
         className={`${inter.variable} ${cormorant.variable} ${geistMono.variable} font-sans antialiased`}
       >
         <AppProviders>
+          <RegisterSW />
           <AppShell>{children}</AppShell>
         </AppProviders>
       </body>

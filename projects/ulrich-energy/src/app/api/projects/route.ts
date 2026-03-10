@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
+import { ULRICH_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { createFixtureProject, listFixtureProjects } from "@/lib/fixtures";
 import type { Project, CreateProjectRequest } from "@/types/project";
 
 type DbRow = {
@@ -54,6 +56,9 @@ function rowToProject(r: DbRow): Project {
 }
 
 export async function GET() {
+  if (ULRICH_FIXTURE_MODE) {
+    return NextResponse.json({ projects: listFixtureProjects() });
+  }
   try {
     const rows = await query<DbRow>(`
       SELECT p.*,
@@ -82,6 +87,10 @@ export async function POST(request: Request) {
       { error: "name, address, propertyType, and builderName are required" },
       { status: 400 },
     );
+  }
+
+  if (ULRICH_FIXTURE_MODE) {
+    return NextResponse.json({ project: createFixtureProject(body) }, { status: 201 });
   }
 
   try {

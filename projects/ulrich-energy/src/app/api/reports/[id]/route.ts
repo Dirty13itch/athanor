@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { queryOne } from "@/lib/db";
+import { ULRICH_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { getFixtureReport, updateFixtureReport } from "@/lib/fixtures";
 import type { Report } from "@/types/report";
 
 type DbRow = {
@@ -39,6 +41,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  if (ULRICH_FIXTURE_MODE) {
+    const report = getFixtureReport(id);
+    if (!report) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ report });
+  }
   try {
     const row = await queryOne<DbRow>(
       `SELECT * FROM reports WHERE id = $1`,
@@ -60,6 +69,14 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
+
+  if (ULRICH_FIXTURE_MODE) {
+    const report = updateFixtureReport(id, body as Partial<Report>);
+    if (!report) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ report });
+  }
 
   const fieldMap: Record<string, string> = {
     status: "status",

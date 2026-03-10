@@ -25,6 +25,7 @@ export function QuickActions({ onAction, disabled, sceneName }: QuickActionsProp
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="fixed bottom-36 left-0 right-0 z-40 flex justify-center p-4"
+      aria-label={`Quick actions for ${sceneName}`}
     >
       <div className="flex flex-wrap justify-center gap-2">
         {actions.map((a, i) => (

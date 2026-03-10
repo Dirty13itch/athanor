@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryOne } from "@/lib/db";
 import { generateReportNarrative } from "@/lib/litellm";
-import type { Report } from "@/types/report";
+import { ULRICH_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { generateFixtureReport } from "@/lib/fixtures";
+import type { ComplianceStandard, Report } from "@/types/report";
 
 type InspectionRow = {
   id: string;
@@ -66,6 +68,19 @@ export async function POST(request: NextRequest) {
         { error: "inspectionId is required" },
         { status: 400 },
       );
+    }
+
+    if (ULRICH_FIXTURE_MODE) {
+      const report = generateFixtureReport({
+        inspectionId,
+        reportId,
+        complianceStandard: complianceStandard as ComplianceStandard | undefined,
+        templateId,
+      });
+      if (!report) {
+        return NextResponse.json({ error: "Inspection not found" }, { status: 404 });
+      }
+      return NextResponse.json({ report }, { status: 201 });
     }
 
     const inspection = await queryOne<InspectionRow>(

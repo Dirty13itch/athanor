@@ -1,4 +1,6 @@
 import { config } from "@/lib/config";
+import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { getFixtureGeneratedImage } from "@/lib/fixtures";
 import { readFile } from "fs/promises";
 import { join } from "path";
 
@@ -17,7 +19,24 @@ interface GenerateRequest {
  * Supports PuLID face-injection generation when type=pulid + referencePath provided.
  */
 export async function POST(req: Request) {
-  const { prompt, type, seed, referencePath }: GenerateRequest = await req.json();
+  const rawBody = await req.text();
+  const parsedBody = (rawBody ? JSON.parse(rawBody) : {}) as Partial<GenerateRequest>;
+  const { prompt = "", type = "portrait", seed, referencePath } = parsedBody;
+
+  if (EOQ_FIXTURE_MODE) {
+    const label =
+      type === "scene"
+        ? "Fixture Scene"
+        : type === "pulid"
+          ? "Fixture PuLID Portrait"
+          : "Fixture Portrait";
+    return Response.json({
+      imageUrl: getFixtureGeneratedImage(label, type === "scene" ? "#2563eb" : "#ec4899"),
+      promptId: `fixture-${type}-${seed ?? "seedless"}`,
+      referencePath,
+      prompt,
+    });
+  }
 
   let workflow: Record<string, unknown>;
 

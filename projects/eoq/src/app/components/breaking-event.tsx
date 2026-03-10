@@ -57,7 +57,7 @@ export function BreakingEvent() {
 
       stagesRef.current[charId] = stage;
     }
-  }, [session?.characters]);
+  }, [session]);
 
   const msg = event ? STAGE_MESSAGES[event.stage] : null;
 

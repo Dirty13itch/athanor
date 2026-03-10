@@ -48,7 +48,7 @@ export function SceneParticles() {
 
   const particles = useMemo(
     () => (config ? generateParticles(config.count) : []),
-    [config?.count, sceneId]
+    [config]
   );
 
   if (!config || particles.length === 0) return null;

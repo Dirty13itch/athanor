@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { queryOne, query } from "@/lib/db";
+import { ULRICH_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { getFixtureAnalytics } from "@/lib/fixtures";
 
 type StatusRow = {
   status: string;
@@ -28,6 +30,10 @@ type HersRow = {
 };
 
 export async function GET() {
+  if (ULRICH_FIXTURE_MODE) {
+    return NextResponse.json({ data: getFixtureAnalytics() });
+  }
+
   try {
     const [statusRows, hersRow, hersByBuilder, blowerRow, ductRow] = await Promise.all([
       query<StatusRow>(

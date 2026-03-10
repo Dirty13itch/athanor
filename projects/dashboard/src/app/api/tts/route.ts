@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/lib/config";
+import { isDashboardFixtureMode } from "@/lib/dashboard-fixtures";
 
 // Proxy to Speaches TTS endpoint — avoids CORS for client components
 // POST /api/tts with { input, voice?, speed? }
@@ -14,6 +15,19 @@ export async function POST(request: NextRequest) {
 
     // Truncate to 4096 chars to prevent abuse
     const text = input.slice(0, 4096);
+
+    if (isDashboardFixtureMode()) {
+      return new NextResponse(Uint8Array.from([0x49, 0x44, 0x33]), {
+        headers: {
+          "Content-Type": "audio/mpeg",
+          "Cache-Control": "private, max-age=3600",
+          "X-Athanor-Fixture": "1",
+          "X-Athanor-Voice": String(voice),
+          "X-Athanor-Speed": String(speed),
+          "X-Athanor-Text-Length": String(text.length),
+        },
+      });
+    }
 
     const res = await fetch(`${config.speaches.url}/v1/audio/speech`, {
       method: "POST",

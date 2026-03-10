@@ -1,4 +1,6 @@
 import { config } from "@/lib/config";
+import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { addFixtureMemory, getFixtureMemories } from "@/lib/fixtures";
 
 /**
  * Character memory API — stores and retrieves interaction memories from Qdrant.
@@ -14,6 +16,17 @@ const VECTOR_SIZE = 1024;
 /** Store a memory about a character interaction */
 export async function POST(req: Request) {
   const { characterId, sessionId, text, metadata } = await req.json();
+
+  if (EOQ_FIXTURE_MODE) {
+    const id = crypto.randomUUID();
+    addFixtureMemory({
+      characterId,
+      text,
+      timestamp: Date.now(),
+      metadata: { sessionId, ...metadata },
+    });
+    return Response.json({ id });
+  }
 
   // Generate embedding
   const embedding = await getEmbedding(text);
@@ -63,6 +76,16 @@ export async function GET(req: Request) {
 
   if (!characterId || !query) {
     return Response.json({ error: "characterId and query required" }, { status: 400 });
+  }
+
+  if (EOQ_FIXTURE_MODE) {
+    const memories = getFixtureMemories(characterId).slice(0, limit).map((memory, index) => ({
+      text: memory.text,
+      timestamp: memory.timestamp,
+      score: 0.92 - index * 0.08,
+      metadata: memory.metadata ?? {},
+    }));
+    return Response.json({ memories });
   }
 
   // Generate embedding for the query

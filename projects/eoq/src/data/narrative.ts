@@ -916,8 +916,7 @@ export const FLAG_DESCRIPTIONS: Record<string, string> = {
  * Checked after every choice to unlock new paths.
  */
 export function checkRelationshipFlags(
-  characters: Record<string, { relationship: { trust: number; respect: number; affection: number } }>,
-  flags: Record<string, boolean>
+  characters: Record<string, { relationship: { trust: number; respect: number; affection: number } }>
 ): Record<string, boolean> {
   const newFlags: Record<string, boolean> = {};
 

@@ -38,6 +38,10 @@ venv/
 node_modules/
 .next/
 tsconfig.tsbuildinfo
+test-results/
+playwright-report/
+.lighthouseci/
+storybook-static/
 
 # Temp
 tmp/

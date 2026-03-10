@@ -171,7 +171,6 @@ export default function GalleryPage() {
                 } bg-zinc-900 transition-all`}
                 onClick={() => setLightbox(img)}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={img.imageUrl}
                   alt={img.character ?? "Generated image"}
@@ -204,7 +203,6 @@ export default function GalleryPage() {
             className="relative max-h-[90vh] max-w-[90vw]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={lightbox.imageUrl}
               alt={lightbox.character ?? "Generated image"}

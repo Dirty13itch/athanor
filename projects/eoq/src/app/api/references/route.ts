@@ -1,6 +1,7 @@
-import { readFile, writeFile, mkdir, rm } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
-import { existsSync } from "fs";
+import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { createFixturePersona, getFixturePersonas } from "@/lib/fixtures";
 
 const REFERENCES_DIR = process.env.REFERENCES_DIR ?? "/references";
 const METADATA_FILE = join(REFERENCES_DIR, "personas.json");
@@ -30,6 +31,9 @@ async function savePersonas(personas: Persona[]): Promise<void> {
 
 /** GET /api/references — list all personas */
 export async function GET() {
+  if (EOQ_FIXTURE_MODE) {
+    return Response.json(getFixturePersonas());
+  }
   const personas = await loadPersonas();
   return Response.json(personas);
 }
@@ -40,6 +44,10 @@ export async function POST(req: Request) {
 
   if (!name || !category) {
     return Response.json({ error: "name and category required" }, { status: 400 });
+  }
+
+  if (EOQ_FIXTURE_MODE) {
+    return Response.json(createFixturePersona(name, category), { status: 201 });
   }
 
   const id = `${category}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;

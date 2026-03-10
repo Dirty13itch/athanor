@@ -1,11 +1,7 @@
 import { config } from "@/lib/config";
-import type { WorldState, DialogueTurn } from "@/types/game";
-
-interface NarrateRequest {
-  worldState: WorldState;
-  recentHistory: DialogueTurn[];
-  context?: string;
-}
+import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { buildFixtureOpenAiStream } from "@/lib/fixtures";
+import { parseNarrateRequest } from "@/lib/request-normalizers";
 
 /**
  * Atmospheric narration API — generates environmental descriptions
@@ -23,8 +19,24 @@ function buildNarrateIntensityDirective(intensity: number): string {
 }
 
 export async function POST(req: Request) {
-  const body: NarrateRequest = await req.json();
-  const { worldState, recentHistory, context } = body;
+  const rawBody = await req.json().catch(() => null);
+  const parsed = parseNarrateRequest(rawBody);
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const { worldState, recentHistory, context } = parsed.data;
+
+  if (EOQ_FIXTURE_MODE) {
+    const text = `*Cold light drifts across ${worldState.currentScene.name} while the court holds its breath.* The air feels charged with intent, and every small sound suggests a choice waiting to harden into consequence.`;
+    return new Response(buildFixtureOpenAiStream(text), {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  }
 
   const scene = worldState.currentScene;
   const recentText = recentHistory

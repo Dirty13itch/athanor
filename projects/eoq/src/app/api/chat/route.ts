@@ -1,13 +1,9 @@
 import { config } from "@/lib/config";
+import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { buildFixtureDialogueReply, buildFixtureOpenAiStream } from "@/lib/fixtures";
+import { parseChatRequest } from "@/lib/request-normalizers";
 import { getBreakingStage } from "@/types/game";
 import type { Character, WorldState, DialogueTurn } from "@/types/game";
-
-interface ChatRequest {
-  character: Character;
-  worldState: WorldState;
-  recentHistory: DialogueTurn[];
-  playerInput: string;
-}
 
 /**
  * Dialogue generation API route.
@@ -15,8 +11,26 @@ interface ChatRequest {
  * Enhanced with breaking system, emotional profile, and archetype context.
  */
 export async function POST(req: Request) {
-  const body: ChatRequest = await req.json();
-  const { character, worldState, recentHistory, playerInput } = body;
+  const rawBody = await req.json().catch(() => null);
+  const parsed = parseChatRequest(rawBody);
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const { character, worldState, recentHistory, playerInput } = parsed.data;
+
+  if (EOQ_FIXTURE_MODE) {
+    const stream = buildFixtureOpenAiStream(
+      buildFixtureDialogueReply(character, [...recentHistory, { speaker: "player", text: playerInput }]),
+    );
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      },
+    });
+  }
 
   // Retrieve relevant memories from Qdrant (best-effort)
   const memories = await fetchMemories(character.id, playerInput);

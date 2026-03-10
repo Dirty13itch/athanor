@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { queryOne, withTransaction } from "@/lib/db";
+import { ULRICH_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { deleteFixtureInspection, getFixtureInspection, updateFixtureInspection } from "@/lib/fixtures";
 import type { Inspection, FoundationType, DuctTestMethod } from "@/types/inspection";
 
 type DbRow = {
@@ -82,6 +84,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  if (ULRICH_FIXTURE_MODE) {
+    const inspection = getFixtureInspection(id);
+    if (!inspection) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ inspection });
+  }
   try {
     const row = await queryOne<DbRow>(
       `SELECT * FROM inspections WHERE id = $1`,
@@ -103,6 +112,14 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
+
+  if (ULRICH_FIXTURE_MODE) {
+    const inspection = updateFixtureInspection(id, body as Partial<Inspection>);
+    if (!inspection) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ inspection });
+  }
 
   // Map TypeScript field names to DB column names for the fields we support updating
   const fieldMap: Record<string, string> = {
@@ -176,6 +193,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  if (ULRICH_FIXTURE_MODE) {
+    if (!deleteFixtureInspection(id)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ deleted: id });
+  }
   try {
     await withTransaction(async (client) => {
       await client.query(`DELETE FROM reports WHERE inspection_id = $1`, [id]);

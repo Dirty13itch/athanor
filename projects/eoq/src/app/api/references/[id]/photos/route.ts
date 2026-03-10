@@ -1,6 +1,8 @@
 import { readFile, writeFile, mkdir, unlink } from "fs/promises";
 import { join } from "path";
 import { config } from "@/lib/config";
+import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { addFixturePersonaPhoto, removeFixturePersonaPhoto } from "@/lib/fixtures";
 
 const REFERENCES_DIR = process.env.REFERENCES_DIR ?? "/references";
 const METADATA_FILE = join(REFERENCES_DIR, "personas.json");
@@ -25,6 +27,20 @@ async function savePersonas(personas: unknown[]) {
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  if (EOQ_FIXTURE_MODE) {
+    const form = await req.formData();
+    const file = form.get("image") as File | null;
+    if (!file) {
+      return Response.json({ error: "image field required" }, { status: 400 });
+    }
+    const safeName = addFixturePersonaPhoto(id, file.name);
+    if (!safeName) {
+      return Response.json({ error: "Persona not found" }, { status: 404 });
+    }
+    return Response.json({ filename: safeName, path: `/fixtures/${id}/${safeName}` }, { status: 201 });
+  }
+
   const personas = await loadPersonas();
   const personaIdx = personas.findIndex((p) => p.id === id);
   if (personaIdx === -1) return Response.json({ error: "Persona not found" }, { status: 404 });
@@ -69,6 +85,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const url = new URL(req.url);
   const filename = url.searchParams.get("filename");
   if (!filename) return Response.json({ error: "filename required" }, { status: 400 });
+
+  if (EOQ_FIXTURE_MODE) {
+    if (!removeFixturePersonaPhoto(id, filename)) {
+      return Response.json({ error: "Persona not found" }, { status: 404 });
+    }
+    return Response.json({ ok: true });
+  }
 
   const personas = await loadPersonas();
   const personaIdx = personas.findIndex((p) => p.id === id);

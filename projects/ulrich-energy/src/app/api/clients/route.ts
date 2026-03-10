@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
+import { ULRICH_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { createFixtureClient, listFixtureClients } from "@/lib/fixtures";
 import type { Client, ClientCreateInput, ApiResult } from "@/types";
 
 type DbRow = {
@@ -11,7 +13,11 @@ type DbRow = {
   created_at: string;
 };
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
+  if (ULRICH_FIXTURE_MODE) {
+    return NextResponse.json({ data: listFixtureClients() } satisfies ApiResult<Client[]>);
+  }
+
   try {
     const rows = await query<DbRow>(
       `SELECT id, name, company, email, phone, created_at FROM clients ORDER BY created_at DESC`,
@@ -39,6 +45,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Client name is required" },
         { status: 400 },
+      );
+    }
+
+    if (ULRICH_FIXTURE_MODE) {
+      return NextResponse.json(
+        { data: createFixtureClient(body) } satisfies ApiResult<Client>,
+        { status: 201 },
       );
     }
 

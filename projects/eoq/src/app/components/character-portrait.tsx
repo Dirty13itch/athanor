@@ -17,7 +17,6 @@ export function CharacterPortrait() {
           transition={{ duration: 0.5 }}
           className="fixed bottom-48 right-8 z-10 h-[60vh] w-auto"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={portraitUrl}
             alt="Character"

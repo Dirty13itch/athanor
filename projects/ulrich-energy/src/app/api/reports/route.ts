@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { query, queryOne } from "@/lib/db";
+import { ULRICH_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { createFixtureReportDraft, listFixtureReports } from "@/lib/fixtures";
 import type { ReportListItem, GenerateReportRequest } from "@/types/report";
 
 type DbRow = {
@@ -12,6 +14,9 @@ type DbRow = {
 };
 
 export async function GET() {
+  if (ULRICH_FIXTURE_MODE) {
+    return NextResponse.json({ reports: listFixtureReports() });
+  }
   try {
     const rows = await query<DbRow>(`
       SELECT r.id, r.inspection_id, i.address, r.hers_index, r.status, r.generated_at
@@ -42,6 +47,26 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "inspectionId is required" },
       { status: 400 },
+    );
+  }
+
+  if (ULRICH_FIXTURE_MODE) {
+    const report = createFixtureReportDraft(body);
+    if (!report) {
+      return NextResponse.json({ error: "Inspection not found" }, { status: 404 });
+    }
+    return NextResponse.json(
+      {
+        report: {
+          id: report.id,
+          inspectionId: report.inspectionId,
+          address: listFixtureReports().find((entry) => entry.id === report.id)?.address ?? "Unknown address",
+          hersIndex: report.hersIndex,
+          status: report.status,
+          generatedAt: report.generatedAt,
+        },
+      },
+      { status: 201 },
     );
   }
 

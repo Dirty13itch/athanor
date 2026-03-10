@@ -10,7 +10,7 @@ export function AmbientMood() {
   const session = useGameStore((s) => s.session);
   if (!session) return null;
 
-  const { timeOfDay, day } = session.worldState;
+  const { timeOfDay } = session.worldState;
   const sceneId = session.worldState.currentScene.id;
   const mood = getMoodText(sceneId, timeOfDay);
 

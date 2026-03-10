@@ -1,4 +1,5 @@
 import { config } from "@/lib/config";
+import { isDashboardFixtureMode } from "@/lib/dashboard-fixtures";
 
 // Built-in Flux workflow templates (node "3" = positive prompt, "7" = KSampler)
 const WORKFLOW_TEMPLATES: Record<string, Record<string, unknown>> = {
@@ -37,6 +38,16 @@ export async function POST(req: Request) {
 
     if (!workflow) {
       return Response.json({ error: "Missing workflow" }, { status: 400 });
+    }
+
+    if (isDashboardFixtureMode()) {
+      return Response.json({
+        prompt_id: "fixture-comfyui-prompt",
+        queued: true,
+        workflowType: typeof workflow === "string" ? workflow : "custom",
+        prompt: promptText ?? null,
+        seed: seed ?? 42,
+      });
     }
 
     // If workflow is a string, treat it as a template name and load the built-in template

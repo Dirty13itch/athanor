@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
+import { isDashboardFixtureMode } from "@/lib/dashboard-fixtures";
 import { getSubscriptions } from "../subscribe/route";
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
@@ -10,6 +11,16 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 }
 
 export async function POST(request: NextRequest) {
+  if (isDashboardFixtureMode()) {
+    const subs = getSubscriptions();
+    return NextResponse.json({
+      sent: subs.length,
+      failed: 0,
+      total: subs.length,
+      fixture: true,
+    });
+  }
+
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return NextResponse.json({ error: "VAPID keys not configured" }, { status: 500 });
   }

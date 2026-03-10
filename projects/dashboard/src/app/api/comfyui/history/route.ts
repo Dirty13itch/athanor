@@ -1,4 +1,5 @@
 import { config } from "@/lib/config";
+import { isDashboardFixtureMode } from "@/lib/dashboard-fixtures";
 
 export interface ComfyUIHistoryItem {
   promptId: string;
@@ -11,6 +12,20 @@ export interface ComfyUIHistoryItem {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const maxItems = parseInt(searchParams.get("max_items") ?? "20");
+
+  if (isDashboardFixtureMode()) {
+    return Response.json({
+      items: [
+        {
+          promptId: "fixture-history-1",
+          prompt: "Cinematic portrait of a queen in a ruined throne room.",
+          outputImages: [{ filename: "fixture-queen.png", subfolder: "EoBQ", type: "output" }],
+          timestamp: Date.now(),
+          outputPrefix: "EoBQ/character",
+        },
+      ].slice(0, maxItems),
+    });
+  }
 
   try {
     const res = await fetch(`${config.comfyui.url}/history`, {

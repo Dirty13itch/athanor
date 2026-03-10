@@ -1,20 +1,26 @@
 import { config } from "@/lib/config";
+import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
+import { getFixtureChoices } from "@/lib/fixtures";
+import { parseChoicesRequest } from "@/lib/request-normalizers";
 import { getBreakingStage } from "@/types/game";
-import type { Character, WorldState, DialogueTurn, PlayerChoice, BreakingMethod } from "@/types/game";
-
-interface ChoicesRequest {
-  character: Character;
-  worldState: WorldState;
-  recentHistory: DialogueTurn[];
-}
+import type { Character, PlayerChoice, BreakingMethod } from "@/types/game";
 
 /**
  * Generates contextual player choices based on the current game state.
  * Uses a non-streaming call to the LLM with structured output instructions.
  */
 export async function POST(req: Request) {
-  const body: ChoicesRequest = await req.json();
-  const { character, worldState, recentHistory } = body;
+  const rawBody = await req.json().catch(() => null);
+  const parsed = parseChoicesRequest(rawBody);
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error }, { status: 400 });
+  }
+
+  const { character, worldState, recentHistory } = parsed.data;
+
+  if (EOQ_FIXTURE_MODE) {
+    return Response.json({ choices: getFixtureChoices(character) });
+  }
 
   const stage = getBreakingStage(character.resistance);
   const rel = character.relationship;
@@ -75,6 +81,7 @@ Example format:
   try {
     const response = await fetch(`${config.litellmUrl}/v1/chat/completions`, {
       method: "POST",
+      signal: AbortSignal.timeout(25_000),
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.litellmKey}`,
@@ -82,14 +89,14 @@ Example format:
       body: JSON.stringify({
         model: config.dialogueModel,
         messages,
-        max_tokens: 600,
+        max_tokens: 300,
         temperature: 0.9,
         stream: false,
       }),
     });
 
     if (!response.ok) {
-      return Response.json({ choices: [] }, { status: 200 });
+      return Response.json({ choices: getFixtureChoices(character) }, { status: 200 });
     }
 
     const data = await response.json();
@@ -101,7 +108,7 @@ Example format:
     // Find JSON array in the response
     const jsonMatch = content.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      return Response.json({ choices: [] });
+      return Response.json({ choices: getFixtureChoices(character) });
     }
 
     const rawChoices = JSON.parse(jsonMatch[0]);
@@ -135,7 +142,7 @@ Example format:
     return Response.json({ choices });
   } catch (err) {
     console.error("Choice generation failed:", err);
-    return Response.json({ choices: [] });
+    return Response.json({ choices: getFixtureChoices(character) });
   }
 }
 
