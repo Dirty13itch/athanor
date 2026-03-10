@@ -16,24 +16,79 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.request import urlopen, Request
 from urllib.error import URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+
+
+def env(name: str, default: str) -> str:
+    return os.environ.get(name, default)
+
+
+def host_port_from_url(value: str) -> str:
+    parsed = urlparse(value if "://" in value else f"http://{value}")
+    return parsed.netloc or parsed.path
+
+
+NODE1_HOST = env("ATHANOR_NODE1_HOST", "foundry")
+NODE2_HOST = env("ATHANOR_NODE2_HOST", "workshop")
+VAULT_HOST = env("ATHANOR_VAULT_HOST", "vault")
+DEFAULT_EMBEDDING_URL = env("ATHANOR_VLLM_EMBEDDING_URL", "http://localhost:8001")
+DEFAULT_RERANKER_URL = env("ATHANOR_VLLM_RERANKER_URL", "http://localhost:8003")
 
 ENDPOINTS = {
-    "foundry:8000": {"name": "vllm-coordinator", "model": "Qwen3.5-27B-FP8", "type": "vllm"},
-    "foundry:8002": {"name": "vllm-utility", "model": "Huihui-Qwen3-8B-abliterated-v2", "type": "vllm"},
-    "foundry:9000": {"name": "agent-server", "type": "agents"},
-    "workshop:8000": {"name": "vllm-worker", "model": "Qwen3.5-35B-A3B-AWQ-4bit", "type": "vllm"},
-    "workshop:8188": {"name": "comfyui", "type": "comfyui"},
-    "workshop:3001": {"name": "dashboard", "type": "http"},
-    "vault:4000": {"name": "litellm", "type": "litellm"},
-    "vault:3000": {"name": "grafana", "type": "http"},
-    "vault:3030": {"name": "langfuse", "type": "http"},
-    "localhost:8001": {"name": "vllm-embedding", "model": "Qwen3-Embedding-0.6B", "type": "vllm"},
-    "localhost:8003": {"name": "vllm-reranker", "model": "Qwen3-Reranker-0.6B", "type": "vllm"},
+    host_port_from_url(env("ATHANOR_VLLM_COORDINATOR_URL", f"http://{NODE1_HOST}:8000")): {
+        "name": "vllm-coordinator",
+        "model": "Qwen3.5-27B-FP8",
+        "type": "vllm",
+    },
+    host_port_from_url(env("ATHANOR_VLLM_UTILITY_URL", f"http://{NODE1_HOST}:8002")): {
+        "name": "vllm-utility",
+        "model": "Huihui-Qwen3-8B-abliterated-v2",
+        "type": "vllm",
+    },
+    host_port_from_url(env("ATHANOR_AGENT_SERVER_URL", f"http://{NODE1_HOST}:9000")): {
+        "name": "agent-server",
+        "type": "agents",
+    },
+    host_port_from_url(env("ATHANOR_VLLM_WORKER_URL", f"http://{NODE2_HOST}:8000")): {
+        "name": "vllm-worker",
+        "model": "Qwen3.5-35B-A3B-AWQ-4bit",
+        "type": "vllm",
+    },
+    host_port_from_url(env("ATHANOR_COMFYUI_URL", f"http://{NODE2_HOST}:8188")): {
+        "name": "comfyui",
+        "type": "comfyui",
+    },
+    host_port_from_url(env("ATHANOR_DASHBOARD_URL", f"http://{NODE2_HOST}:3001")): {
+        "name": "dashboard",
+        "type": "http",
+    },
+    host_port_from_url(env("ATHANOR_LITELLM_URL", f"http://{VAULT_HOST}:4000")): {
+        "name": "litellm",
+        "type": "litellm",
+    },
+    host_port_from_url(env("ATHANOR_GRAFANA_URL", f"http://{VAULT_HOST}:3000")): {
+        "name": "grafana",
+        "type": "http",
+    },
+    host_port_from_url(env("ATHANOR_LANGFUSE_URL", f"http://{VAULT_HOST}:3030")): {
+        "name": "langfuse",
+        "type": "http",
+    },
+    host_port_from_url(DEFAULT_EMBEDDING_URL): {
+        "name": "vllm-embedding",
+        "model": "Qwen3-Embedding-0.6B",
+        "type": "vllm",
+    },
+    host_port_from_url(DEFAULT_RERANKER_URL): {
+        "name": "vllm-reranker",
+        "model": "Qwen3-Reranker-0.6B",
+        "type": "vllm",
+    },
 }
 
-LITELLM_KEY = os.environ.get("OPENAI_API_KEY", "sk-athanor-litellm-2026")
+LITELLM_KEY = os.environ.get("ATHANOR_LITELLM_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
 
 
 def timed_request(url, timeout=5, headers=None):
@@ -89,9 +144,18 @@ def test_litellm(host_port, info):
     """Test LiteLLM proxy: health + model routes."""
     result = {"endpoint": host_port, **info, "checks": {}}
 
-    headers = {"Authorization": f"Bearer {LITELLM_KEY}"}
+    headers = {"Authorization": f"Bearer {LITELLM_KEY}"} if LITELLM_KEY else {}
     body, lat, err = timed_request(f"http://{host_port}/health", headers=headers)
     result["checks"]["health"] = {"ok": err is None, "latency_ms": round(lat, 1), "error": err}
+
+    if not LITELLM_KEY:
+        result["checks"]["models"] = {
+            "ok": False,
+            "error": "missing ATHANOR_LITELLM_API_KEY or OPENAI_API_KEY",
+            "latency_ms": 0.0,
+        }
+        result["healthy"] = False
+        return result
 
     body, lat, err = timed_request(f"http://{host_port}/v1/models", headers=headers)
     if body:

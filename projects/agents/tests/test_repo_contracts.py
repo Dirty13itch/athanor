@@ -16,6 +16,8 @@ LITELLM_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "template
 GPU_ORCH_DEFAULTS = REPO_ROOT / "ansible" / "roles" / "gpu-orchestrator" / "defaults" / "main.yml"
 GPU_ORCH_CONFIG = REPO_ROOT / "projects" / "gpu-orchestrator" / "src" / "gpu_orchestrator" / "config.py"
 GPU_ORCH_COMPOSE = REPO_ROOT / "projects" / "gpu-orchestrator" / "docker-compose.yml"
+BUILD_PROFILE_SCRIPT = REPO_ROOT / "scripts" / "build-profile.sh"
+ENDPOINT_HARNESS = REPO_ROOT / "tests" / "harness.py"
 NODE1_PLAYBOOK = REPO_ROOT / "ansible" / "playbooks" / "node1.yml"
 NEO4J_TASKS = REPO_ROOT / "ansible" / "roles" / "vault-neo4j" / "tasks" / "main.yml"
 PROJECTS_MODULE = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "projects.py"
@@ -248,6 +250,17 @@ class RepoContractsTest(unittest.TestCase):
         compose_text = GPU_ORCH_COMPOSE.read_text(encoding="utf-8")
         self.assertIn("ATHANOR_VLLM_EMBEDDING_URL", compose_text)
         self.assertNotIn("GPU_ORCH_VLLM_NODE1_EMBED_URL=http://192.168.1.244:8001", compose_text)
+
+    def test_operator_scripts_use_canonical_runtime_envs(self) -> None:
+        build_profile_text = BUILD_PROFILE_SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_QDRANT_URL", build_profile_text)
+        self.assertIn("ATHANOR_VLLM_EMBEDDING_URL", build_profile_text)
+        self.assertNotIn("ssh node1", build_profile_text)
+
+        endpoint_harness_text = ENDPOINT_HARNESS.read_text(encoding="utf-8")
+        self.assertIn("ATHANOR_LITELLM_API_KEY", endpoint_harness_text)
+        self.assertIn("ATHANOR_VLLM_EMBEDDING_URL", endpoint_harness_text)
+        self.assertNotIn("sk-athanor-litellm-2026", endpoint_harness_text)
 
 
 if __name__ == "__main__":
