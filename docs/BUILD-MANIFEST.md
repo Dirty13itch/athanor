@@ -482,7 +482,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 ### 9.7 — Push Notifications
 - **Status:** ✅ (Session 20, 2026-02-26)
 - **Scope:** VAPID key generation, `web-push` npm, push subscription API (`/api/push/subscribe`, `/api/push/send`), PushManager component in preferences page, service worker push handler (already in sw.js from 9.1). VAPID keys in docker-compose env.
-- **Done:** Push subscription + send infrastructure deployed. Subscribe/unsubscribe from Preferences page. SW handles push display + notification click routing + approve/reject actions. Remaining: wire agent escalation events to trigger sends (needs agent server integration).
+- **Done:** Push subscription + send infrastructure deployed. Subscribe/unsubscribe from Preferences page. Escalation and alert events now trigger push delivery end-to-end. Service worker actions route through dashboard-owned workforce/feedback APIs instead of the removed legacy proxy path.
 
 ### 9.8 — Generative UI (Chat)
 - **Status:** ✅ (Session 20 continued, 2026-02-26)

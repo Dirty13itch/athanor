@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { title, body, tag, url, actions } = await request.json();
+    const { title, body, tag, url, actions, data } = await request.json();
 
     const payload = JSON.stringify({
       title: title ?? "Athanor",
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       tag: tag ?? "default",
       url: url ?? "/",
       actions: actions ?? [],
+      data: data ?? {},
     });
 
     const subs = getSubscriptions();

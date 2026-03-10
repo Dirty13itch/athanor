@@ -180,16 +180,16 @@ def _fire_push(pending: "PendingAction") -> None:
                 title=f"🔔 {pending.agent}: Needs approval",
                 body=f"{pending.action}\n{pending.description[:100]}",
                 tag=f"escalation-{pending.id}",
-                url="/tasks",
+                url="/notifications",
                 actions=[
                     {"action": "approve", "title": "Approve"},
                     {"action": "reject", "title": "Reject"},
                 ],
-                data={"taskId": pending.id, "agent": pending.agent},
+                data={"notificationId": pending.id, "agent": pending.agent, "tier": pending.tier},
             )
             await _send_ntfy_notification(
                 title=f"[APPROVAL] {pending.agent}",
-                body=f"{pending.action}\n{pending.description[:200]}\n\nApprove: workshop:3001/tasks",
+                body=f"{pending.action}\n{pending.description[:200]}\n\nReview: workshop:3001/notifications",
                 priority="high",
                 tags=["bell", "rotating_light"],
             )
@@ -204,7 +204,12 @@ def _fire_push(pending: "PendingAction") -> None:
                     {"action": "feedback_up", "title": "👍"},
                     {"action": "feedback_down", "title": "👎"},
                 ],
-                data={"agent": pending.agent, "content": pending.description[:200]},
+                data={
+                    "notificationId": pending.id,
+                    "agent": pending.agent,
+                    "content": pending.description[:200],
+                    "tier": pending.tier,
+                },
             )
             await _send_ntfy_notification(
                 title=f"{pending.agent}: {pending.action[:60]}",

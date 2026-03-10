@@ -1,9 +1,5 @@
 import { queryPrometheus, type PrometheusResult } from "@/lib/api";
 import { config, getNodeNameFromInstance } from "@/lib/config";
-import { startNotificationBridge, getNotificationSummary } from "@/lib/notification-bridge";
-
-// Start the notification → push bridge (module-level singleton, runs once)
-startNotificationBridge();
 
 export const dynamic = "force-dynamic";
 
@@ -109,15 +105,27 @@ async function fetchSnapshot(): Promise<StreamPayload> {
     }
   } catch { /* task stats unavailable */ }
 
-  // Notification summary (from bridge polling, no extra fetch)
-  const notifSummary = getNotificationSummary();
+  // Workforce notification summary
+  let notifications: StreamPayload["notifications"] = { pending: 0, total: 0 };
+  try {
+    const res = await fetch(`${config.agentServer.url}/v1/notifications?include_resolved=true`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      notifications = {
+        pending: typeof data.unread === "number" ? data.unread : 0,
+        total: typeof data.count === "number" ? data.count : 0,
+      };
+    }
+  } catch { /* notification summary unavailable */ }
 
   return {
     gpus: Array.from(gpuMap.values()),
     agents,
     services,
     tasks,
-    notifications: { pending: notifSummary.pending, total: notifSummary.total },
+    notifications,
     timestamp: new Date().toISOString(),
   };
 }

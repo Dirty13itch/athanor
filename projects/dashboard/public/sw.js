@@ -44,6 +44,7 @@ self.addEventListener("push", (event) => {
     data: {
       url: data.url ?? "/",
       actions: data.actions ?? [],
+      ...(data.data ?? {}),
     },
     actions: (data.actions ?? []).map((a) => ({
       action: a.action,
@@ -53,49 +54,57 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+function focusOrOpen(url) {
+  return self.clients
+    .matchAll({ type: "window", includeUncontrolled: true })
+    .then((clients) => {
+      const client = clients.find((c) => c.url.includes(url));
+      if (client) return client.focus();
+      return self.clients.openWindow(url);
+    });
+}
+
 // Notification click: open the relevant page
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url ?? "/";
 
   if (event.action === "approve" || event.action === "reject") {
-    const taskId = event.notification.data?.taskId;
-    if (taskId) {
-      const action = event.action === "approve" ? "approve" : "cancel";
+    const notificationId = event.notification.data?.notificationId;
+    if (notificationId) {
       event.waitUntil(
-        fetch(`/api/agents/proxy?path=/v1/tasks/${taskId}/${action}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        })
+        Promise.all([
+          fetch(`/api/workforce/notifications/${notificationId}/resolve`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ approved: event.action === "approve" }),
+          }),
+          focusOrOpen(url),
+        ])
       );
+      return;
     }
-    return;
   }
 
   if (event.action === "feedback_up" || event.action === "feedback_down") {
     const agent = event.notification.data?.agent ?? "unknown";
     const content = event.notification.data?.content ?? event.notification.body ?? "";
     event.waitUntil(
-      fetch("/api/agents/proxy?path=/v1/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          feedback_type: event.action === "feedback_up" ? "thumbs_up" : "thumbs_down",
-          message_content: content.substring(0, 500),
-          agent: agent,
+      Promise.all([
+        fetch("/api/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            feedback_type: event.action === "feedback_up" ? "thumbs_up" : "thumbs_down",
+            message_content: content.substring(0, 500),
+            agent: agent,
+          }),
         }),
-      })
+        focusOrOpen(url),
+      ])
     );
     return;
   }
 
-  event.waitUntil(
-    self.clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clients) => {
-        const client = clients.find((c) => c.url.includes(url));
-        if (client) return client.focus();
-        return self.clients.openWindow(url);
-      })
-  );
+  event.waitUntil(focusOrOpen(url));
 });

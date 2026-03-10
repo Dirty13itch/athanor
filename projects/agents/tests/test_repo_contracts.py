@@ -15,6 +15,7 @@ LITELLM_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "template
 NODE1_PLAYBOOK = REPO_ROOT / "ansible" / "playbooks" / "node1.yml"
 NEO4J_TASKS = REPO_ROOT / "ansible" / "roles" / "vault-neo4j" / "tasks" / "main.yml"
 PROJECTS_MODULE = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "projects.py"
+DASHBOARD_SW = REPO_ROOT / "projects" / "dashboard" / "public" / "sw.js"
 
 RAW_IP_PATTERN = re.compile(r"192\.168\.1\.\d+")
 ALLOWED_DASHBOARD_IP_FILES = {
@@ -207,6 +208,23 @@ class RepoContractsTest(unittest.TestCase):
     def test_project_registry_fallback_matches_agent_platform_contract(self) -> None:
         self.assertEqual(CANONICAL_PROJECT_IDS, parse_agent_project_registry_ids())
         self.assertEqual(CANONICAL_PROJECT_IDS, parse_dashboard_project_registry_ids())
+
+    def test_dashboard_code_no_longer_uses_legacy_agent_proxy_route(self) -> None:
+        dashboard_paths = [REPO_ROOT / "projects" / "dashboard" / "src", DASHBOARD_SW]
+        violations: list[str] = []
+        for path in dashboard_paths:
+            if path.is_dir():
+                files = [candidate for candidate in path.rglob("*") if candidate.is_file()]
+            else:
+                files = [path]
+            for file_path in files:
+                if file_path.suffix not in {".ts", ".tsx", ".js"}:
+                    continue
+                text = file_path.read_text(encoding="utf-8", errors="ignore")
+                if "/api/agents/proxy" in text:
+                    violations.append(str(file_path.relative_to(REPO_ROOT)))
+
+        self.assertEqual([], violations, f"Legacy agent proxy references remain in dashboard code: {violations}")
 
 
 if __name__ == "__main__":
