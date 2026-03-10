@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
+import { config } from "@/lib/config";
+import { getNeo4jAuthHeader } from "@/lib/server-config";
 
-const QDRANT_URL = "http://192.168.1.244:6333";
 const COLLECTION = "personal_data";
-const NEO4J_URL = "http://192.168.1.203:7474";
-const NEO4J_USER = "neo4j";
-const NEO4J_PASS = "athanor2026";
 
 interface QdrantCollectionInfo {
   result: {
@@ -27,7 +25,7 @@ interface Neo4jResponse {
 
 async function getQdrantStats() {
   try {
-    const res = await fetch(`${QDRANT_URL}/collections/${COLLECTION}`, {
+    const res = await fetch(`${config.qdrant.url}/collections/${COLLECTION}`, {
       signal: AbortSignal.timeout(5000),
       next: { revalidate: 30 },
     });
@@ -48,11 +46,16 @@ async function getQdrantStats() {
 
 async function neo4jQuery(statement: string): Promise<Neo4jResponse | null> {
   try {
-    const res = await fetch(`${NEO4J_URL}/db/neo4j/tx/commit`, {
+    const authHeader = getNeo4jAuthHeader();
+    if (!authHeader) {
+      return null;
+    }
+
+    const res = await fetch(`${config.neo4j.url}/db/neo4j/tx/commit`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${Buffer.from(`${NEO4J_USER}:${NEO4J_PASS}`).toString("base64")}`,
+        Authorization: authHeader,
       },
       body: JSON.stringify({ statements: [{ statement }] }),
       signal: AbortSignal.timeout(5000),

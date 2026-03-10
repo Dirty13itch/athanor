@@ -1,16 +1,16 @@
+import type { LensId } from "@/lib/lens";
+
 export type ServiceCategory =
   | "inference"
   | "observability"
   | "media"
   | "experience"
-  | "platform";
+  | "platform"
+  | "knowledge"
+  | "home";
 
 export interface DashboardEndpoint {
   url: string;
-}
-
-export interface LitellmEndpoint extends DashboardEndpoint {
-  apiKey: string;
 }
 
 export interface InferenceBackend extends DashboardEndpoint {
@@ -49,19 +49,52 @@ export interface ClusterNode {
   role: string;
 }
 
+export interface GrafanaDashboard extends DashboardEndpoint {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export interface ProjectRegistryEntry {
+  id: string;
+  name: string;
+  headline: string;
+  status: string;
+  kind: "core" | "tenant" | "domain" | "scaffold";
+  firstClass: boolean;
+  lens: LensId;
+  primaryRoute: string;
+  externalUrl: string | null;
+  operators: string[];
+}
+
 export interface DashboardConfig {
   prometheus: DashboardEndpoint;
   grafana: DashboardEndpoint;
   agentServer: DashboardEndpoint;
+  litellm: DashboardEndpoint;
   comfyui: DashboardEndpoint;
+  openWebUi: DashboardEndpoint;
+  vaultOpenWebUi: DashboardEndpoint;
+  eoq: DashboardEndpoint;
   stash: DashboardEndpoint;
   speaches: DashboardEndpoint;
-  litellm: LitellmEndpoint;
+  qdrant: DashboardEndpoint;
+  neo4j: DashboardEndpoint;
+  homeAssistant: DashboardEndpoint;
+  sonarr: DashboardEndpoint;
+  radarr: DashboardEndpoint;
+  tautulli: DashboardEndpoint;
+  plex: DashboardEndpoint;
+  prowlarr: DashboardEndpoint;
+  sabnzbd: DashboardEndpoint;
   inferenceBackends: InferenceBackend[];
   services: MonitoredService[];
   nodes: ClusterNode[];
   externalTools: ExternalTool[];
   quickLinks: QuickLink[];
+  projectRegistry: ProjectRegistryEntry[];
+  grafanaDashboards: GrafanaDashboard[];
   gpuWorkloads: Record<string, Record<number, string>>;
 }
 
@@ -80,29 +113,50 @@ export function joinUrl(base: string, path: string): string {
   return `${normalizedBase}${normalizedPath}`;
 }
 
-const node1Host = hostEnv("ATHANOR_NODE1_HOST", "192.168.1.244");
-const node2Host = hostEnv("ATHANOR_NODE2_HOST", "192.168.1.225");
+const foundryHost = hostEnv("ATHANOR_NODE1_HOST", "192.168.1.244");
+const workshopHost = hostEnv("ATHANOR_NODE2_HOST", "192.168.1.225");
 const vaultHost = hostEnv("ATHANOR_VAULT_HOST", "192.168.1.203");
+const devHost = hostEnv("ATHANOR_DEV_HOST", "192.168.1.189");
 
 const prometheusUrl = env(
   "ATHANOR_PROMETHEUS_URL",
   process.env.NEXT_PUBLIC_PROMETHEUS_URL?.trim() || `http://${vaultHost}:9090`
 );
 const grafanaUrl = env("ATHANOR_GRAFANA_URL", `http://${vaultHost}:3000`);
-const agentServerUrl = env("ATHANOR_AGENT_SERVER_URL", `http://${node1Host}:9000`);
-const node1VllmUrl = env("ATHANOR_NODE1_VLLM_URL", `http://${node1Host}:8000`);
-const node2VllmUrl = env("ATHANOR_NODE2_VLLM_URL", `http://${node2Host}:8000`);
-const comfyUiUrl = env("ATHANOR_COMFYUI_URL", `http://${node2Host}:8188`);
-const openWebUiUrl = env("ATHANOR_OPEN_WEBUI_URL", `http://${node2Host}:3000`);
+const agentServerUrl = env("ATHANOR_AGENT_SERVER_URL", `http://${foundryHost}:9000`);
 const litellmUrl = env("ATHANOR_LITELLM_URL", `http://${vaultHost}:4000`);
+const foundryCoordinatorUrl = env(
+  "ATHANOR_VLLM_COORDINATOR_URL",
+  process.env.ATHANOR_NODE1_VLLM_URL?.trim() || `http://${foundryHost}:8000`
+);
+const foundryUtilityUrl = env("ATHANOR_VLLM_UTILITY_URL", `http://${foundryHost}:8002`);
+const workshopWorkerUrl = env(
+  "ATHANOR_VLLM_WORKER_URL",
+  process.env.ATHANOR_NODE2_VLLM_URL?.trim() || `http://${workshopHost}:8000`
+);
+const devEmbeddingUrl = env("ATHANOR_VLLM_EMBEDDING_URL", `http://${devHost}:8001`);
+const devRerankerUrl = env("ATHANOR_VLLM_RERANKER_URL", `http://${devHost}:8003`);
+const comfyUiUrl = env("ATHANOR_COMFYUI_URL", `http://${workshopHost}:8188`);
+const openWebUiUrl = env("ATHANOR_OPEN_WEBUI_URL", `http://${workshopHost}:3000`);
+const vaultOpenWebUiUrl = env("ATHANOR_VAULT_OPEN_WEBUI_URL", `http://${vaultHost}:3090`);
+const eoqUrl = env("ATHANOR_EOQ_URL", `http://${workshopHost}:3002`);
 const sonarrUrl = env("ATHANOR_SONARR_URL", `http://${vaultHost}:8989`);
 const radarrUrl = env("ATHANOR_RADARR_URL", `http://${vaultHost}:7878`);
 const tautulliUrl = env("ATHANOR_TAUTULLI_URL", `http://${vaultHost}:8181`);
 const plexUrl = env("ATHANOR_PLEX_URL", `http://${vaultHost}:32400`);
 const stashUrl = env("ATHANOR_STASH_URL", `http://${vaultHost}:9999`);
-const speachesUrl = env("ATHANOR_SPEACHES_URL", `http://${node1Host}:8200`);
-const litellmApiKey =
-  process.env.ATHANOR_LITELLM_API_KEY?.trim() || "sk-athanor-litellm-2026";
+const prowlarrUrl = env("ATHANOR_PROWLARR_URL", `http://${vaultHost}:9696`);
+const sabnzbdUrl = env("ATHANOR_SABNZBD_URL", `http://${vaultHost}:8080`);
+const homeAssistantUrl = env("ATHANOR_HOME_ASSISTANT_URL", `http://${vaultHost}:8123`);
+const qdrantUrl = env("ATHANOR_QDRANT_URL", `http://${foundryHost}:6333`);
+const neo4jUrl = env("ATHANOR_NEO4J_URL", `http://${vaultHost}:7474`);
+const speachesUrl = env("ATHANOR_SPEACHES_URL", `http://${foundryHost}:8200`);
+
+const legacyChatTargetAliases: Record<string, string> = {
+  "node1-vllm": "foundry-coordinator",
+  "node2-vllm": "workshop-worker",
+  "node1-vllm-embedding": "dev-embedding",
+};
 
 export const config = {
   prometheus: {
@@ -114,8 +168,20 @@ export const config = {
   agentServer: {
     url: agentServerUrl,
   },
+  litellm: {
+    url: litellmUrl,
+  },
   comfyui: {
     url: comfyUiUrl,
+  },
+  openWebUi: {
+    url: openWebUiUrl,
+  },
+  vaultOpenWebUi: {
+    url: vaultOpenWebUiUrl,
+  },
+  eoq: {
+    url: eoqUrl,
   },
   stash: {
     url: stashUrl,
@@ -123,34 +189,81 @@ export const config = {
   speaches: {
     url: speachesUrl,
   },
-  litellm: {
-    url: litellmUrl,
-    apiKey: litellmApiKey,
+  qdrant: {
+    url: qdrantUrl,
+  },
+  neo4j: {
+    url: neo4jUrl,
+  },
+  homeAssistant: {
+    url: homeAssistantUrl,
+  },
+  sonarr: {
+    url: sonarrUrl,
+  },
+  radarr: {
+    url: radarrUrl,
+  },
+  tautulli: {
+    url: tautulliUrl,
+  },
+  plex: {
+    url: plexUrl,
+  },
+  prowlarr: {
+    url: prowlarrUrl,
+  },
+  sabnzbd: {
+    url: sabnzbdUrl,
   },
   inferenceBackends: [
     {
       id: "litellm-proxy",
       name: "LiteLLM Proxy",
       nodeId: "vault",
-      description: "Unified routing layer for direct inference and embeddings.",
+      description: "Canonical routing layer for aliases, embeddings, and shared reasoning access.",
       primaryModel: "Router",
       url: litellmUrl,
     },
     {
-      id: "node1-vllm",
-      name: "Foundry / Qwen3-32B",
+      id: "foundry-coordinator",
+      name: "Foundry Coordinator",
       nodeId: "node1",
-      description: "Primary large-model inference runtime.",
-      primaryModel: "Qwen3-32B",
-      url: node1VllmUrl,
+      description: "Primary reasoning runtime for large-model and coding-heavy work.",
+      primaryModel: "Qwen3.5-27B-FP8",
+      url: foundryCoordinatorUrl,
     },
     {
-      id: "node2-vllm",
-      name: "Workshop / Qwen3-14B",
+      id: "foundry-utility",
+      name: "Foundry Utility",
+      nodeId: "node1",
+      description: "Utility and uncensored runtime for specialist overflow and creative tasks.",
+      primaryModel: "Huihui-Qwen3-8B-abliterated-v2",
+      url: foundryUtilityUrl,
+    },
+    {
+      id: "workshop-worker",
+      name: "Workshop Worker",
       nodeId: "node2",
-      description: "Secondary inference host for interactive workloads.",
-      primaryModel: "Qwen3-14B",
-      url: node2VllmUrl,
+      description: "Interactive worker runtime for fast direct-chat and UI-adjacent inference.",
+      primaryModel: "Qwen3.5-35B-A3B-AWQ-4bit",
+      url: workshopWorkerUrl,
+    },
+    {
+      id: "dev-embedding",
+      name: "DEV Embedding",
+      nodeId: "dev",
+      description: "Canonical embedding runtime for retrieval and knowledge indexing.",
+      primaryModel: "Qwen3-Embedding-0.6B",
+      url: devEmbeddingUrl,
+    },
+    {
+      id: "dev-reranker",
+      name: "DEV Reranker",
+      nodeId: "dev",
+      description: "Retrieval reranker runtime for higher-precision memory and search results.",
+      primaryModel: "Qwen3-Reranker-0.6B",
+      url: devRerankerUrl,
     },
   ],
   services: [
@@ -161,34 +274,52 @@ export const config = {
       nodeId: "vault",
       node: "VAULT",
       category: "inference",
-      description: "Central routing and model proxy.",
+      description: "Central alias routing and model auth edge.",
     },
     {
-      id: "node1-vllm",
-      name: "vLLM (Node 1)",
-      url: joinUrl(node1VllmUrl, "/v1/models"),
+      id: "foundry-coordinator",
+      name: "Foundry Coordinator",
+      url: joinUrl(foundryCoordinatorUrl, "/v1/models"),
       nodeId: "node1",
       node: "Foundry",
       category: "inference",
-      description: "Primary vLLM model runtime.",
+      description: "Primary reasoning and coding runtime.",
     },
     {
-      id: "node2-vllm",
-      name: "vLLM (Node 2)",
-      url: joinUrl(node2VllmUrl, "/v1/models"),
+      id: "foundry-utility",
+      name: "Foundry Utility",
+      url: joinUrl(foundryUtilityUrl, "/v1/models"),
+      nodeId: "node1",
+      node: "Foundry",
+      category: "inference",
+      description: "Utility and uncensored runtime on the 4090 lane.",
+    },
+    {
+      id: "workshop-worker",
+      name: "Workshop Worker",
+      url: joinUrl(workshopWorkerUrl, "/v1/models"),
       nodeId: "node2",
       node: "Workshop",
       category: "inference",
-      description: "Secondary vLLM model runtime.",
+      description: "Interactive worker runtime for direct operator requests.",
     },
     {
-      id: "node1-vllm-embedding",
-      name: "vLLM Embedding",
-      url: `http://${node1Host}:8001/health`,
-      nodeId: "node1",
-      node: "Foundry",
-      category: "inference",
-      description: "Embedding runtime for semantic search and retrieval.",
+      id: "dev-embedding",
+      name: "DEV Embedding",
+      url: joinUrl(devEmbeddingUrl, "/health"),
+      nodeId: "dev",
+      node: "DEV",
+      category: "knowledge",
+      description: "Embedding runtime for retrieval, indexing, and semantic search.",
+    },
+    {
+      id: "dev-reranker",
+      name: "DEV Reranker",
+      url: joinUrl(devRerankerUrl, "/health"),
+      nodeId: "dev",
+      node: "DEV",
+      category: "knowledge",
+      description: "Reranker runtime for retrieval precision.",
     },
     {
       id: "agent-server",
@@ -197,7 +328,25 @@ export const config = {
       nodeId: "node1",
       node: "Foundry",
       category: "platform",
-      description: "FastAPI runtime for Athanor agents.",
+      description: "FastAPI runtime for the Athanor workforce and task APIs.",
+    },
+    {
+      id: "qdrant",
+      name: "Qdrant",
+      url: joinUrl(qdrantUrl, "/collections"),
+      nodeId: "node1",
+      node: "Foundry",
+      category: "knowledge",
+      description: "Vector memory and retrieval store.",
+    },
+    {
+      id: "neo4j",
+      name: "Neo4j",
+      url: neo4jUrl,
+      nodeId: "vault",
+      node: "VAULT",
+      category: "knowledge",
+      description: "Graph memory and relationship store.",
     },
     {
       id: "prometheus",
@@ -218,40 +367,49 @@ export const config = {
       description: "Dashboards, exploration, and alert views.",
     },
     {
-      id: "node1-node-exporter",
-      name: "Node Exporter (Node 1)",
-      url: `http://${node1Host}:9100/metrics`,
+      id: "foundry-node-exporter",
+      name: "Node Exporter (Foundry)",
+      url: `http://${foundryHost}:9100/metrics`,
       nodeId: "node1",
       node: "Foundry",
       category: "observability",
-      description: "Host metrics for Node 1.",
+      description: "Host metrics for Foundry.",
     },
     {
-      id: "node2-node-exporter",
-      name: "Node Exporter (Node 2)",
-      url: `http://${node2Host}:9100/metrics`,
+      id: "workshop-node-exporter",
+      name: "Node Exporter (Workshop)",
+      url: `http://${workshopHost}:9100/metrics`,
       nodeId: "node2",
       node: "Workshop",
       category: "observability",
-      description: "Host metrics for Node 2.",
+      description: "Host metrics for Workshop.",
     },
     {
-      id: "node1-dcgm-exporter",
-      name: "DCGM Exporter (Node 1)",
-      url: `http://${node1Host}:9400/metrics`,
+      id: "vault-node-exporter",
+      name: "Node Exporter (VAULT)",
+      url: `http://${vaultHost}:9100/metrics`,
+      nodeId: "vault",
+      node: "VAULT",
+      category: "observability",
+      description: "Host metrics for VAULT.",
+    },
+    {
+      id: "foundry-dcgm-exporter",
+      name: "DCGM Exporter (Foundry)",
+      url: `http://${foundryHost}:9400/metrics`,
       nodeId: "node1",
       node: "Foundry",
       category: "observability",
-      description: "GPU telemetry exporter for Node 1.",
+      description: "GPU telemetry exporter for Foundry.",
     },
     {
-      id: "node2-dcgm-exporter",
-      name: "DCGM Exporter (Node 2)",
-      url: `http://${node2Host}:9400/metrics`,
+      id: "workshop-dcgm-exporter",
+      name: "DCGM Exporter (Workshop)",
+      url: `http://${workshopHost}:9400/metrics`,
       nodeId: "node2",
       node: "Workshop",
       category: "observability",
-      description: "GPU telemetry exporter for Node 2.",
+      description: "GPU telemetry exporter for Workshop.",
     },
     {
       id: "comfyui",
@@ -263,13 +421,40 @@ export const config = {
       description: "Creative workflow runtime.",
     },
     {
-      id: "open-webui",
-      name: "Open WebUI",
+      id: "workshop-open-webui",
+      name: "Workshop Open WebUI",
       url: openWebUiUrl,
       nodeId: "node2",
       node: "Workshop",
       category: "experience",
-      description: "Secondary model interface and experimentation surface.",
+      description: "Direct local chat surface for raw model access.",
+    },
+    {
+      id: "vault-open-webui",
+      name: "VAULT Open WebUI",
+      url: vaultOpenWebUiUrl,
+      nodeId: "vault",
+      node: "VAULT",
+      category: "experience",
+      description: "LiteLLM-routed chat surface for alias-based access.",
+    },
+    {
+      id: "eoq",
+      name: "Empire of Broken Queens",
+      url: eoqUrl,
+      nodeId: "node2",
+      node: "Workshop",
+      category: "experience",
+      description: "First-class tenant app proving the Athanor project platform.",
+    },
+    {
+      id: "home-assistant",
+      name: "Home Assistant",
+      url: joinUrl(homeAssistantUrl, "/api/"),
+      nodeId: "vault",
+      node: "VAULT",
+      category: "home",
+      description: "Smart-home control plane and automation state.",
     },
     {
       id: "speaches",
@@ -281,13 +466,13 @@ export const config = {
       description: "Speech synthesis service.",
     },
     {
-      id: "stash",
-      name: "Stash",
-      url: stashUrl,
+      id: "plex",
+      name: "Plex",
+      url: joinUrl(plexUrl, "/identity"),
       nodeId: "vault",
       node: "VAULT",
       category: "media",
-      description: "Media catalog and organization runtime.",
+      description: "Primary media serving platform.",
     },
     {
       id: "sonarr",
@@ -317,19 +502,38 @@ export const config = {
       description: "Plex usage analytics.",
     },
     {
-      id: "plex",
-      name: "Plex",
-      url: joinUrl(plexUrl, "/identity"),
+      id: "prowlarr",
+      name: "Prowlarr",
+      url: prowlarrUrl,
       nodeId: "vault",
       node: "VAULT",
       category: "media",
-      description: "Primary media serving platform.",
+      description: "Indexer and feed aggregation surface.",
+    },
+    {
+      id: "sabnzbd",
+      name: "SABnzbd",
+      url: sabnzbdUrl,
+      nodeId: "vault",
+      node: "VAULT",
+      category: "media",
+      description: "Downloader and queue management surface.",
+    },
+    {
+      id: "stash",
+      name: "Stash",
+      url: stashUrl,
+      nodeId: "vault",
+      node: "VAULT",
+      category: "media",
+      description: "Media catalog and organization runtime.",
     },
   ],
   nodes: [
-    { id: "node1", name: "Foundry", ip: node1Host, role: "AI inference + agents" },
-    { id: "node2", name: "Workshop", ip: node2Host, role: "Creative + interface" },
-    { id: "vault", name: "VAULT", ip: vaultHost, role: "Storage + media + monitoring" },
+    { id: "node1", name: "Foundry", ip: foundryHost, role: "Coordinator inference and agent execution" },
+    { id: "node2", name: "Workshop", ip: workshopHost, role: "Worker inference, creative runtimes, and UI" },
+    { id: "vault", name: "VAULT", ip: vaultHost, role: "Routing, memory, media, home, and observability" },
+    { id: "dev", name: "DEV", ip: devHost, role: "Ops workstation and retrieval runtimes" },
   ],
   externalTools: [
     {
@@ -347,7 +551,7 @@ export const config = {
     {
       id: "agent-server",
       label: "Agent Server",
-      description: "Live agent metadata and health endpoint.",
+      description: "Live agent metadata, task APIs, and workforce health.",
       url: agentServerUrl,
     },
     {
@@ -357,10 +561,22 @@ export const config = {
       url: comfyUiUrl,
     },
     {
-      id: "open-webui",
-      label: "Open WebUI",
-      description: "Interactive multi-model chat surface.",
+      id: "workshop-open-webui",
+      label: "Open WebUI (Workshop)",
+      description: "Direct raw chat against the workshop surface.",
       url: openWebUiUrl,
+    },
+    {
+      id: "vault-open-webui",
+      label: "Open WebUI (VAULT)",
+      description: "LiteLLM-routed chat surface on the storage plane.",
+      url: vaultOpenWebUiUrl,
+    },
+    {
+      id: "home-assistant",
+      label: "Home Assistant",
+      description: "Home state, devices, and automation control.",
+      url: homeAssistantUrl,
     },
     {
       id: "plex",
@@ -368,34 +584,113 @@ export const config = {
       description: "Media library and playback control.",
       url: joinUrl(plexUrl, "/web"),
     },
+    {
+      id: "eoq",
+      label: "EoBQ",
+      description: "First-class tenant proving the project platform.",
+      url: eoqUrl,
+    },
   ],
   quickLinks: [
     { name: "Grafana", url: grafanaUrl, node: "VAULT", category: "monitoring" },
     { name: "Prometheus", url: prometheusUrl, node: "VAULT", category: "monitoring" },
     { name: "ComfyUI", url: comfyUiUrl, node: "Workshop", category: "creative" },
     { name: "Open WebUI", url: openWebUiUrl, node: "Workshop", category: "ai" },
+    { name: "VAULT Open WebUI", url: vaultOpenWebUiUrl, node: "VAULT", category: "ai" },
+    { name: "Home Assistant", url: homeAssistantUrl, node: "VAULT", category: "home" },
     { name: "Plex", url: joinUrl(plexUrl, "/web"), node: "VAULT", category: "media" },
     { name: "Sonarr", url: sonarrUrl, node: "VAULT", category: "media" },
     { name: "Radarr", url: radarrUrl, node: "VAULT", category: "media" },
+    { name: "Prowlarr", url: prowlarrUrl, node: "VAULT", category: "media" },
+    { name: "SABnzbd", url: sabnzbdUrl, node: "VAULT", category: "media" },
     { name: "Stash", url: stashUrl, node: "VAULT", category: "media" },
+    { name: "EoBQ", url: eoqUrl, node: "Workshop", category: "project" },
+  ],
+  projectRegistry: [
+    {
+      id: "athanor",
+      name: "Athanor",
+      headline: "Core operating environment for system state, workforce orchestration, and operator judgment.",
+      status: "active",
+      kind: "core",
+      firstClass: true,
+      lens: "system",
+      primaryRoute: "/",
+      externalUrl: null,
+      operators: ["Shaun", "Claude"],
+    },
+    {
+      id: "eoq",
+      name: "Empire of Broken Queens",
+      headline: "First first-class tenant for creative generation, dialogue, and cinematic interaction.",
+      status: "active",
+      kind: "tenant",
+      firstClass: true,
+      lens: "eoq",
+      primaryRoute: "/workplanner?project=eoq",
+      externalUrl: eoqUrl,
+      operators: ["Claude", "creative-agent", "coding-agent"],
+    },
+    {
+      id: "kindred",
+      name: "Kindred",
+      headline: "Scaffolded future tenant in concept and research mode.",
+      status: "scaffolded",
+      kind: "scaffold",
+      firstClass: false,
+      lens: "default",
+      primaryRoute: "/workplanner?project=kindred",
+      externalUrl: null,
+      operators: ["Claude", "research-agent"],
+    },
+    {
+      id: "media",
+      name: "Media Library",
+      headline: "Operational domain project spanning curation, acquisition, and catalog quality.",
+      status: "operational",
+      kind: "domain",
+      firstClass: false,
+      lens: "media",
+      primaryRoute: "/media",
+      externalUrl: joinUrl(plexUrl, "/web"),
+      operators: ["media-agent"],
+    },
+  ],
+  grafanaDashboards: [
+    {
+      id: "node-exporter-full",
+      label: "Node Exporter Full",
+      description: "Host-level CPU, memory, disk, and network dashboards.",
+      url: joinUrl(grafanaUrl, "/d/rYdddlPWk/node-exporter-full"),
+    },
+    {
+      id: "dcgm-exporter",
+      label: "NVIDIA DCGM Exporter",
+      description: "GPU fleet telemetry and thermal pressure dashboard.",
+      url: joinUrl(grafanaUrl, "/d/Oxed_c6Wz/nvidia-dcgm-exporter-dashboard"),
+    },
   ],
   gpuWorkloads: {
-    [node1Host]: {
-      0: "Qwen3-32B",
-      1: "Qwen3-32B",
-      2: "Utility / overflow",
-      3: "Qwen3-32B",
-      4: "Qwen3-32B",
+    [foundryHost]: {
+      0: "Reasoning / coding coordinator",
+      1: "Reasoning / coding coordinator",
+      2: "Utility / uncensored runtime",
+      3: "Reasoning / coding coordinator",
+      4: "Reasoning / coding coordinator",
     },
-    [node2Host]: {
-      0: "Qwen3-14B",
-      1: "ComfyUI / Flux",
+    [workshopHost]: {
+      0: "Worker inference",
+      1: "ComfyUI / Flux / video",
+    },
+    [devHost]: {
+      0: "Embeddings + reranker",
     },
   } as Record<string, Record<number, string>>,
 } as const satisfies DashboardConfig;
 
 export function getInferenceBackend(target: string): InferenceBackend | null {
-  return config.inferenceBackends.find((backend) => backend.id === target) ?? null;
+  const normalizedTarget = legacyChatTargetAliases[target] ?? target;
+  return config.inferenceBackends.find((backend) => backend.id === normalizedTarget) ?? null;
 }
 
 export function getNodeById(nodeId: string): ClusterNode | null {
@@ -404,6 +699,14 @@ export function getNodeById(nodeId: string): ClusterNode | null {
 
 export function getServiceById(serviceId: string): MonitoredService | null {
   return config.services.find((service) => service.id === serviceId) ?? null;
+}
+
+export function getProjectById(projectId: string): ProjectRegistryEntry | null {
+  return config.projectRegistry.find((project) => project.id === projectId) ?? null;
+}
+
+export function getGrafanaDashboardById(dashboardId: string): GrafanaDashboard | null {
+  return config.grafanaDashboards.find((dashboard) => dashboard.id === dashboardId) ?? null;
 }
 
 export function resolveChatTarget(target: string | undefined): DashboardEndpoint | null {

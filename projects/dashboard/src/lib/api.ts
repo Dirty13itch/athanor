@@ -6,6 +6,7 @@ import {
   overviewSnapshotSchema,
   servicesHistorySnapshotSchema,
   servicesSnapshotSchema,
+  workforceSnapshotResponseSchema,
   type AgentsSnapshot,
   type GpuHistoryResponse,
   type GpuSnapshotResponse,
@@ -13,6 +14,7 @@ import {
   type OverviewSnapshot,
   type ServicesHistorySnapshot,
   type ServicesSnapshot,
+  type WorkforceSnapshot,
 } from "@/lib/contracts";
 import { config } from "@/lib/config";
 import { fetchJson } from "@/lib/http";
@@ -100,4 +102,8 @@ export async function getModels(): Promise<ModelsSnapshot> {
 
 export async function getAgents(): Promise<AgentsSnapshot> {
   return fetchJson("/api/agents", { cache: "no-store" }, agentsSnapshotSchema);
+}
+
+export async function getWorkforce(): Promise<WorkforceSnapshot> {
+  return fetchJson("/api/workforce", { cache: "no-store" }, workforceSnapshotResponseSchema);
 }

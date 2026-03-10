@@ -95,7 +95,6 @@ async function getNodeMetrics(): Promise<NodeMetrics[]> {
   ]);
 
   return config.nodes
-    .filter((n) => n.ip !== "192.168.1.203") // Skip VAULT (no node_exporter)
     .map((node) => {
       const mem_avail = findByInstance(memAvail, node.ip);
       const mem_total = findByInstance(memTotal, node.ip);
@@ -202,7 +201,7 @@ export default async function MonitoringPage() {
           </p>
         </div>
         <a
-          href="http://192.168.1.203:3000"
+          href={config.grafana.url}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent transition-colors"
@@ -412,22 +411,17 @@ export default async function MonitoringPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
-            <a
-              href="http://192.168.1.203:3000/d/rYdddlPWk/node-exporter-full"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent transition-colors"
-            >
-              Node Exporter Full
-            </a>
-            <a
-              href="http://192.168.1.203:3000/d/Oxed_c6Wz/nvidia-dcgm-exporter-dashboard"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent transition-colors"
-            >
-              NVIDIA DCGM Exporter
-            </a>
+            {config.grafanaDashboards.map((dashboard) => (
+              <a
+                key={dashboard.id}
+                href={dashboard.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent transition-colors"
+              >
+                {dashboard.label}
+              </a>
+            ))}
           </div>
         </CardContent>
       </Card>

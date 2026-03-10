@@ -1,0 +1,17 @@
+---
+# DEV playbook - retrieval runtimes and observability for the dev workstation
+#
+# Usage:
+#   ansible-playbook playbooks/dev.yml
+#   ansible-playbook playbooks/dev.yml --tags retrieval
+
+- name: Configure DEV (Retrieval)
+  hosts: dev
+  become: true
+  roles:
+    - role: docker
+      tags: [docker]
+    - role: monitoring
+      tags: [monitoring]
+    - role: vllm-embedding
+      tags: [retrieval, vllm-embedding, reranker]

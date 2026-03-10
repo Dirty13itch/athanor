@@ -61,19 +61,27 @@ export function SmartStack() {
 
     async function fetchData() {
       try {
-        const [statsRes, patternsRes, approvalsRes] = await Promise.all([
-          fetch("/api/agents/proxy?path=/v1/tasks/stats", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-          fetch("/api/agents/proxy?path=/v1/patterns", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-          fetch("/api/agents/proxy?path=/v1/escalation/pending", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+        const [workforceRes, patternsRes] = await Promise.all([
+          fetch("/api/workforce", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+          fetch("/api/insights", { signal: AbortSignal.timeout(5000) }).catch(() => null),
         ]);
 
-        const taskStats = statsRes?.ok ? await statsRes.json() : null;
-        const patterns = patternsRes?.ok ? await patternsRes.json() : null;
+        let taskStats: TaskStats | null = null;
         let pendingApprovals = 0;
-        if (approvalsRes?.ok) {
-          const d = await approvalsRes.json();
-          pendingApprovals = d.unread ?? d.count ?? 0;
+        if (workforceRes?.ok) {
+          const workforce = await workforceRes.json();
+          taskStats = workforce?.summary
+            ? {
+                completed: workforce.summary.completedTasks ?? 0,
+                failed: workforce.summary.failedTasks ?? 0,
+                running: workforce.summary.runningTasks ?? 0,
+                pending: workforce.summary.pendingTasks ?? 0,
+                total: workforce.summary.totalTasks ?? 0,
+              }
+            : null;
+          pendingApprovals = workforce?.summary?.pendingApprovals ?? 0;
         }
+        const patterns = patternsRes?.ok ? await patternsRes.json() : null;
 
         if (mounted) {
           setData({ taskStats, patterns, pendingApprovals });
@@ -127,7 +135,7 @@ export function SmartStack() {
         {/* Pending approvals — always show if any */}
         {approvals > 0 && (
           <a
-            href="/tasks?status=pending"
+            href="/tasks?status=approval"
             className="flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs hover:bg-amber-500/15 transition-colors"
           >
             <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />

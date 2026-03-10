@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Activity, Bot, Cpu, LayoutDashboard, Menu, MessageSquare, Search, Sparkles } from "lucide-react";
+import { Activity, Bot, Cpu, FolderKanban, LayoutDashboard, Menu, MessageSquare, Search, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/services", label: "Services", icon: Activity },
   { href: "/gpu", label: "GPU Metrics", icon: Cpu },
+  { href: "/workplanner", label: "Work Planner", icon: FolderKanban },
   { href: "/chat", label: "Direct Chat", icon: MessageSquare },
   { href: "/agents", label: "Agent Console", icon: Bot },
 ] as const;
@@ -232,6 +233,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
           <Button asChild className="w-full justify-between" variant="ghost">
             <Link href="/agents">Open agent console</Link>
+          </Button>
+          <Button asChild className="w-full justify-between" variant="ghost">
+            <Link href="/workplanner">Project work planner</Link>
           </Button>
         </div>
 

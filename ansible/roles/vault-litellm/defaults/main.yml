@@ -4,7 +4,7 @@ litellm_port: 4000
 litellm_config_path: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/litellm"
 
 # Model routing
-litellm_master_key: "sk-athanor-litellm-2026"
+litellm_master_key: "{{ athanor_litellm_api_key | default('') }}"
 
 # vLLM backends
 vllm_node1_host: 192.168.1.244
@@ -15,6 +15,9 @@ vllm_node2_host: 192.168.1.225
 vllm_node2_port: 8000
 vllm_node2_model: "/models/Qwen3.5-35B-A3B-AWQ-4bit"
 
-vllm_embedding_host: 192.168.1.189
+vllm_embedding_host: "{{ dev_ip | default('192.168.1.189') }}"
 vllm_embedding_port: 8001
 vllm_embedding_model: "/models/Qwen3-Embedding-0.6B"
+vllm_reranker_host: "{{ dev_ip | default('192.168.1.189') }}"
+vllm_reranker_port: 8003
+vllm_reranker_model: "/models/Qwen3-Reranker-0.6B"

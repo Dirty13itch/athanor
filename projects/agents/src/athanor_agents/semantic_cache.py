@@ -23,6 +23,9 @@ from typing import Any, Optional
 
 import httpx
 
+from .config import settings
+from .services import ensure_openai_base_url, normalize_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,18 +51,18 @@ class SemanticCache:
 
     def __init__(
         self,
-        qdrant_url: str = "http://192.168.1.203:6333",
-        embedding_url: str = "http://192.168.1.203:4000/v1",
-        embedding_api_key: str = "sk-athanor-litellm-2026",
+        qdrant_url: str | None = None,
+        embedding_url: str | None = None,
+        embedding_api_key: str | None = None,
         embedding_model: str = "embedding",
         collection_name: str = "llm_cache",
         similarity_threshold: float = 0.93,
         ttl_hours: int = 48,
         embedding_dim: int = 1024,
     ):
-        self.qdrant_url = qdrant_url
-        self.embedding_url = embedding_url
-        self.embedding_api_key = embedding_api_key
+        self.qdrant_url = normalize_url(qdrant_url or settings.qdrant_url)
+        self.embedding_url = ensure_openai_base_url(embedding_url or settings.litellm_url)
+        self.embedding_api_key = embedding_api_key if embedding_api_key is not None else settings.litellm_api_key
         self.embedding_model = embedding_model
         self.collection_name = collection_name
         self.similarity_threshold = similarity_threshold

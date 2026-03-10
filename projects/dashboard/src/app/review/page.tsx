@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { config } from "@/lib/config";
 import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
 
 interface TaskStep {
@@ -207,7 +206,7 @@ export default function ReviewPage() {
     try {
       const params = new URLSearchParams({ limit: "30" });
       if (agentFilter) params.set("agent", agentFilter);
-      const res = await fetch(`${config.agentServer.url}/v1/tasks?${params}`);
+      const res = await fetch(`/api/workforce/tasks?${params}`);
       if (res.ok) {
         const data = await res.json();
         // Sort by most recent first, prefer completed tasks with steps

@@ -15,7 +15,7 @@ export function FeedbackButtons({ messageContent, agent }: FeedbackButtonsProps)
     // Optimistic UI
     setFeedback(value);
     try {
-      const res = await fetch("/api/agents/proxy?path=/v1/feedback", {
+      const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

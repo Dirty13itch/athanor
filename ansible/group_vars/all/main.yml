@@ -2,6 +2,8 @@
 # Node IPs (needed by VAULT Prometheus config)
 node1_ip: "192.168.1.244"
 node2_ip: "192.168.1.225"
+vault_ip: "192.168.1.203"
+dev_ip: "192.168.1.189"
 
 # Cluster hostname resolution (managed by common role)
 cluster_hosts:

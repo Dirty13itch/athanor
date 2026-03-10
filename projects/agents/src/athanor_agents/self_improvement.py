@@ -30,6 +30,9 @@ from typing import Any, Optional
 
 import httpx
 
+from .config import settings
+from .services import registry
+
 logger = logging.getLogger(__name__)
 
 
@@ -197,23 +200,13 @@ class CapabilityBenchmarks:
 
     async def _benchmark_inference_health(self) -> tuple[float, float, dict]:
         """Check all vLLM and LiteLLM endpoints."""
-        endpoints = {
-            "coordinator": "http://192.168.1.244:8000/health",
-            "utility": "http://192.168.1.244:8002/health",
-            "worker": "http://192.168.1.225:8000/health",
-            "litellm": "http://192.168.1.203:4000/health",
-            "embedding": "http://192.168.1.189:8001/health",
-        }
-
         ok = 0
         details = {}
         async with httpx.AsyncClient(timeout=5.0) as client:
-            for name, url in endpoints.items():
+            for name, service in registry.inference_health_checks.items():
                 try:
-                    headers = {}
-                    if "4000" in url:
-                        headers["Authorization"] = "Bearer sk-athanor-litellm-2026"
-                    resp = await client.get(url, headers=headers)
+                    target = service.health_url or service.url()
+                    resp = await client.get(target, headers=dict(service.headers))
                     if resp.status_code == 200:
                         ok += 1
                         details[name] = "healthy"
@@ -222,7 +215,7 @@ class CapabilityBenchmarks:
                 except Exception as e:
                     details[name] = f"error: {str(e)[:50]}"
 
-        return ok, len(endpoints), details
+        return ok, len(registry.inference_health_checks), details
 
     async def _benchmark_inference_latency(self) -> tuple[float, float, dict]:
         """Measure LLM inference latency via LiteLLM."""
@@ -231,8 +224,8 @@ class CapabilityBenchmarks:
             try:
                 start = time.time()
                 resp = await client.post(
-                    "http://192.168.1.203:4000/v1/chat/completions",
-                    headers={"Authorization": "Bearer sk-athanor-litellm-2026"},
+                    f"{settings.llm_base_url}/chat/completions",
+                    headers=dict(registry.litellm_headers),
                     json={
                         "model": "fast",
                         "messages": [{"role": "user", "content": "Say hello in 5 words."}],
@@ -270,7 +263,7 @@ class CapabilityBenchmarks:
         """Check agent server health."""
         async with httpx.AsyncClient(timeout=5.0) as client:
             try:
-                resp = await client.get("http://192.168.1.244:9000/v1/agents")
+                resp = await client.get(registry.agent_server.url("/v1/agents"))
                 if resp.status_code == 200:
                     data = resp.json()
                     agents = data.get("agents", data) if isinstance(data, dict) else data

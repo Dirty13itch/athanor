@@ -10,8 +10,8 @@ Usage:
     breakers = get_circuit_breakers()
     result = await breakers.execute_with_breaker(
         "coordinator",
-        lambda: client.post("http://192.168.1.244:8000/v1/chat/completions", ...),
-        fallback=lambda: client.post("http://192.168.1.225:8000/v1/chat/completions", ...),
+        lambda: client.post(settings.vllm_node1_url + "/chat/completions", ...),
+        fallback=lambda: client.post(settings.vllm_node2_url + "/chat/completions", ...),
     )
 """
 

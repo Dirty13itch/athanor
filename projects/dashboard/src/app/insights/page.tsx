@@ -123,7 +123,7 @@ export default function InsightsPage() {
 
   const fetchPatterns = useCallback(async () => {
     try {
-      const resp = await fetch("/api/agents/proxy?path=/v1/patterns");
+      const resp = await fetch("/api/insights");
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
       if (data.patterns !== undefined) {
@@ -146,7 +146,7 @@ export default function InsightsPage() {
   async function triggerRun() {
     setTriggering(true);
     try {
-      await fetch("/api/agents/proxy?path=/v1/patterns/run", { method: "POST" });
+      await fetch("/api/insights/run", { method: "POST" });
       await fetchPatterns();
     } finally {
       setTriggering(false);

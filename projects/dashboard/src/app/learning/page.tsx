@@ -102,8 +102,8 @@ export default function LearningPage() {
 
   const fetchAll = useCallback(async () => {
     const [pRes, iRes] = await Promise.allSettled([
-      fetch("/api/agents/proxy?path=/v1/patterns"),
-      fetch("/api/agents/proxy?path=/v1/improvement/summary"),
+      fetch("/api/insights"),
+      fetch("/api/learning/improvement"),
     ]);
     if (pRes.status === "fulfilled" && pRes.value.ok) setPatterns(await pRes.value.json());
     if (iRes.status === "fulfilled" && iRes.value.ok) setImprovement(await iRes.value.json());
@@ -111,7 +111,7 @@ export default function LearningPage() {
 
   const fetchMetrics = useCallback(async () => {
     try {
-      const res = await fetch("/api/agents/proxy?path=/v1/learning/metrics");
+      const res = await fetch("/api/learning/metrics");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setData(json);
@@ -333,7 +333,7 @@ export default function LearningPage() {
               onClick={async () => {
                 setRunningBenchmark(true);
                 try {
-                  await fetch("/api/agents/proxy?path=/v1/improvement/benchmarks/run", { method: "POST" });
+                  await fetch("/api/learning/benchmarks", { method: "POST" });
                   await fetchAll();
                 } finally {
                   setRunningBenchmark(false);

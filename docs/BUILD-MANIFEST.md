@@ -1,10 +1,27 @@
 # Athanor Build Manifest
 
-*This is the executable build plan. Every item has clear scope, dependencies, definition of done, and priority. Claude Code reads this to decide what to build next.*
+*This is the tactical execution queue. `docs/design/athanor-next.md` is the strategic design layer above it. Claude Code uses this file to decide what to build next, but the queue must remain subordinate to the Athanor Next operating model.*
 
 Last updated: 2026-03-08 (Session 41: Tier 16 — Remaining build items, DEEP-RESEARCH-LIST reconciliation)
 
 ---
+
+## Strategic Context
+
+- `docs/design/athanor-next.md` is the program north star
+- this manifest is the tactical queue, not the source of truth for topology or secrets
+- `ansible/` is the deployment truth
+- `docs/SYSTEM-SPEC.md` is the operational truth
+- historical tier entries below are retained as execution history and backlog context
+
+## Program Tracks
+
+- **Command Center** — dashboard, operator UX, project-aware control surface
+- **COO / Agent Operations** — tasking, escalation, workspace, trust, proactive behavior
+- **Knowledge / Memory** — retrieval, graph, freshness, project-aware context
+- **Project Platform** — Athanor core + EoBQ first-class, future tenant scaffolding
+- **Infrastructure Convergence** — runtime map, centralized config, deployment alignment, secret cleanup
+- **Continuous Refinement** — hardening, observability, tests, docs, drift prevention
 
 ## How This Works
 
@@ -35,15 +52,15 @@ These are missing pieces that other work depends on.
 - **Status:** ✅ (Session 8, 2026-02-24)
 - **Deployed:** VAULT:4000 via Ansible (`ansible-playbook playbooks/vault.yml --tags litellm`)
 - **Image:** `ghcr.io/berriai/litellm:main-v1.81.9-stable` (stateless, no DB)
-- **Routes:** `reasoning` → Node 1 Qwen3-32B-AWQ, `fast` → Node 2 Qwen3.5-27B-AWQ, `embedding` → Node 1 Qwen3-Embedding-0.6B
+- **Routes (historical deployment note):** the current canonical alias map lives in `docs/design/athanor-next.md` and `docs/SYSTEM-SPEC.md`
 - **Aliases:** `gpt-4` → reasoning, `gpt-3.5-turbo` → fast, `text-embedding-ada-002` → embedding
-- **Auth:** Bearer `sk-athanor-litellm-2026`
+- **Auth:** env-backed bearer token via vault or host env
 - **Role:** `ansible/roles/vault-litellm/`
 - **Remaining:** Wire agents and dashboard to use LiteLLM instead of direct vLLM (item 2.6)
 
 ### 1.3 — Embedding model service
 - **Status:** ✅ (Verified Session 8, deployed Session 6)
-- **Running:** Qwen3-Embedding-0.6B on Node 1 GPU 4 (RTX 5070 Ti), port 8001
+- **Running (historical note):** retrieval originally lived on Node 1; the canonical target topology now places embedding and reranker on DEV
 - **Model name:** `/models/Qwen3-Embedding-0.6B` (not HuggingFace path)
 - **Dimensions:** 1024, max sequence length 32768
 - **Also routed via:** LiteLLM at VAULT:4000 as `embedding`
@@ -61,7 +78,7 @@ These are missing pieces that other work depends on.
 ### 1.5 — Graph knowledge store (Neo4j)
 - **Status:** ✅ (Session 11, 2026-02-24)
 - **Deployed:** VAULT:7474 (HTTP), VAULT:7687 (Bolt). Image: `neo4j:5-community` (v5.26.21)
-- **Auth:** neo4j/athanor2026
+- **Auth:** env-backed Neo4j credentials managed outside tracked docs
 - **Memory:** 512m heap initial, 2g max, 1g pagecache
 - **Schema:** 4 constraints (Node, Service, Agent, Project uniqueness)
 - **Seeded graph:** 4 Nodes, 16 Services, 3 Agents, 3 Projects, 29 relationships (RUNS_ON, DEPENDS_ON, ROUTES_TO, MANAGES, USES)
@@ -346,7 +363,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Endpoints:** `GET /v1/workspace` (broadcast), `POST /v1/workspace` (post item), `DELETE /v1/workspace/{id}`, `DELETE /v1/workspace`, `GET /v1/workspace/stats`.
 - **Verified:** Items post with computed salience, priority ordering correct (high > normal), recency decay working, competition cycle running.
 - **Phase 2 delivered (Session 18):**
-  - **Agent registration:** All 8 agents register capabilities in Redis on startup. `GET /v1/agents/registry` for discovery.
+  - **Agent registration:** The current system registers all live agents in Redis on startup. `GET /v1/agents/registry` for discovery.
   - **Redis pub/sub:** Competition cycle publishes broadcast to `athanor:workspace:broadcast` channel.
   - **Event ingestion:** `POST /v1/events` converts external events (HA, cron, webhooks) into workspace items with priority mapping.
   - **Conversation logging:** Every chat completion logs to `conversations` Qdrant collection (both user message + agent response, embedded for semantic search).
@@ -439,7 +456,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 
 ### 9.2 — Command Palette (Cmd+K)
 - **Status:** ✅ (Session 20, 2026-02-26)
-- **Scope:** shadcn/ui `CommandDialog` + cmdk. Fuzzy search over 15 pages, 8 agents, quick actions. Cmd+K keyboard shortcut. Mobile FAB trigger button.
+- **Scope:** shadcn/ui `CommandDialog` + cmdk. Fuzzy search over the dashboard routes, agent roster, and quick actions. Cmd+K keyboard shortcut. Mobile FAB trigger button.
 - **Done:** Cmd+K opens palette. Searching finds pages/agents/actions. Mobile: floating search button above bottom nav.
 
 ### 9.3 — Agent Portrait Bar + Calm Visual Foundation
@@ -450,7 +467,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 ### 9.4 — SSE Real-Time Endpoint
 - **Status:** ✅ (Session 20, 2026-02-26)
 - **Scope:** `/api/stream` SSE endpoint — fetches GPU metrics (Prometheus), agent status, service health, task stats every 5s. `useSystemStream` hook with exponential backoff reconnection. Connection status indicator. `SystemPulse` replaces static polling on home page.
-- **Done:** All 7 GPUs, 8 agents, 19 services streaming live. Auto-reconnect on disconnect. 5-minute TTL prevents resource leaks.
+- **Done:** Fleet telemetry, workforce presence, and service state stream live with auto-reconnect and a 5-minute TTL.
 
 ### 9.5 — Furnace Home Surface + Glanceable Widgets
 - **Status:** ✅ (Session 20, 2026-02-26)
@@ -627,8 +644,8 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 
 ### 12.1 — Intelligence Signal Ingestion (Miniflux + n8n)
 - **Status:** ✅ done (Session 39-40)
-- **Miniflux deployed:** VAULT:8070 (miniflux/miniflux:2.2.6 + dedicated PostgreSQL 16). 17 feeds seeded across 6 categories (AI Models, Inference Engines, Dev Tools, Infrastructure, AI News, Security). Polling every 60 min, 5 workers. Admin: admin/athanor2026.
-- **n8n deployed:** VAULT:5678 (n8nio/n8n:latest, v2.10.4). Ansible role `vault-n8n/` (tasks + defaults). Owner: shaun@athanor.local / Athanor2026.
+- **Miniflux deployed:** VAULT:8070 (miniflux/miniflux:2.2.6 + dedicated PostgreSQL 16). 17 feeds seeded across 6 categories (AI Models, Inference Engines, Dev Tools, Infrastructure, AI News, Security). Polling every 60 min, 5 workers. Admin credentials are managed outside tracked docs.
+- **n8n deployed:** VAULT:5678 (n8nio/n8n:latest, v2.10.4). Ansible role `vault-n8n/` (tasks + defaults). Owner credentials are managed outside tracked docs.
 - **Signal Pipeline workflow:** 7-node n8n workflow: Schedule (30 min) → Fetch Miniflux unread → Split → LLM Classify (via LiteLLM reasoning) + Embed (via DEV embedding) → Store in Qdrant `signals` collection → Mark read in Miniflux. Workflow created, needs manual UI activation (n8n v2.10 requirement).
 - **Qdrant `signals` collection:** Created on FOUNDRY:6333 (1024-dim, Cosine).
 - **Ansible role:** `ansible/roles/vault-miniflux/` + `ansible/roles/vault-n8n/`.

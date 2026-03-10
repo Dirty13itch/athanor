@@ -92,23 +92,23 @@
         # Hardware nodes
         - statement: >
             MERGE (n:Node {name: 'Foundry'})
-            SET n.hostname = 'core', n.ip = '192.168.1.244',
+            SET n.hostname = 'core', n.ip = '{{ node1_ip | default("192.168.1.244") }}',
                 n.cpu = 'EPYC 7663 56C/112T', n.ram_gb = 224,
                 n.gpu_count = 5, n.vram_gb = 88, n.role = 'inference'
         - statement: >
             MERGE (n:Node {name: 'Workshop'})
-            SET n.hostname = 'interface', n.ip = '192.168.1.225',
+            SET n.hostname = 'interface', n.ip = '{{ node2_ip | default("192.168.1.225") }}',
                 n.cpu = 'TR 7960X 24C/48T', n.ram_gb = 128,
                 n.gpu_count = 2, n.vram_gb = 48, n.role = 'interface'
         - statement: >
             MERGE (n:Node {name: 'VAULT'})
-            SET n.hostname = 'vault', n.ip = '192.168.1.203',
+            SET n.hostname = 'vault', n.ip = '{{ vault_ip | default("192.168.1.203") }}',
                 n.cpu = 'Ryzen 9950X 16C/32T', n.ram_gb = 128,
                 n.role = 'storage'
         - statement: >
             MERGE (n:Node {name: 'DEV'})
-            SET n.hostname = 'dev', n.ip = '192.168.1.215',
-                n.cpu = 'i7-13700K 16C/24T', n.ram_gb = 64,
+            SET n.hostname = 'dev', n.ip = '{{ dev_ip | default("192.168.1.189") }}',
+                n.cpu = 'Ryzen 9 9900X 12C/24T', n.ram_gb = 64,
                 n.role = 'workstation'
         # Services
         - statement: >
@@ -208,16 +208,22 @@
         - statement: >
             MERGE (a:Agent {name: 'stash-agent'})
             SET a.model = 'reasoning', a.status = 'active'
+        - statement: >
+            MERGE (a:Agent {name: 'data-curator'})
+            SET a.model = 'reasoning', a.status = 'active'
         # Projects
         - statement: >
             MERGE (p:Project {name: 'eoq'})
-            SET p.title = 'Empire of Broken Queens', p.status = 'scaffold'
+            SET p.title = 'Empire of Broken Queens', p.status = 'active'
         - statement: >
             MERGE (p:Project {name: 'kindred'})
             SET p.title = 'Kindred', p.status = 'concept'
         - statement: >
             MERGE (p:Project {name: 'ulrich-energy'})
             SET p.title = 'Ulrich Energy', p.status = 'placeholder'
+        - statement: >
+            MERGE (p:Project {name: 'athanor'})
+            SET p.title = 'Athanor', p.status = 'active'
     status_code: [200]
   when:
     - neo4j_enable

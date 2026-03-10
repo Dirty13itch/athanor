@@ -26,7 +26,7 @@ async function fetchLatestBriefing(
   setState: Dispatch<SetStateAction<BriefingState>>
 ) {
   try {
-    const res = await fetch("/api/agents/proxy?path=/v1/tasks&limit=50", {
+    const res = await fetch("/api/workforce/tasks?limit=50", {
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) {

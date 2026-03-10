@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { config } from "@/lib/config";
 
-const QDRANT_URL = "http://192.168.1.244:6333";
 const COLLECTION = "personal_data";
 
 interface QdrantPoint {
@@ -30,7 +30,7 @@ async function getRecentItems(limit: number = 10): Promise<QdrantPoint[]> {
   try {
     // Qdrant scroll with ordering by payload field requires a specific approach.
     // We'll scroll a batch and sort client-side since personal_data is <1000 points.
-    const res = await fetch(`${QDRANT_URL}/collections/${COLLECTION}/points/scroll`, {
+    const res = await fetch(`${config.qdrant.url}/collections/${COLLECTION}/points/scroll`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

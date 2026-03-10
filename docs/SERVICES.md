@@ -39,8 +39,8 @@ Last updated: 2026-03-08 (Session 42 — Phase 2 model correction: Qwen3.5-27B-F
 
 | Service | Port | Details |
 |---------|------|---------|
-| LiteLLM Proxy | 4000 | 14 routes: reasoning, coding, fast, creative, embedding, reranker, worker, claude, gpt, deepseek, gemini + aliases. LangFuse callbacks. Auth: `sk-athanor-litellm-2026` |
-| Neo4j | 7474/7687 | Graph DB (3095 nodes, 4447 rels), auth: neo4j/athanor2026 |
+| LiteLLM Proxy | 4000 | 14 routes: reasoning, coding, fast, creative, embedding, reranker, worker, claude, gpt, deepseek, gemini + aliases. LangFuse callbacks. Auth is env-backed. |
+| Neo4j | 7474/7687 | Graph DB (3095 nodes, 4447 rels), auth is env-backed. |
 | Redis | 6379 | GWT workspace + GPU orchestrator state + scheduler |
 | Qdrant | 6333/6334 | VAULT-side vector DB instance |
 | Postgres | 5432 | Shared PostgreSQL |
@@ -57,7 +57,7 @@ Last updated: 2026-03-08 (Session 42 — Phase 2 model correction: Qwen3.5-27B-F
 | LangFuse Redis | — | LangFuse cache |
 | LangFuse MinIO | — | LangFuse blob storage |
 | Prometheus | 9090 | Metrics aggregation |
-| Grafana | 3000 | admin/admin (default — container lacks GF_SECURITY_ADMIN_PASSWORD env) |
+| Grafana | 3000 | Admin credentials are managed outside tracked docs. |
 | Grafana Alloy | — | Log collection agent |
 | Loki | — | Log aggregation |
 | cadvisor | 9880 | Container metrics |
@@ -88,8 +88,8 @@ Last updated: 2026-03-08 (Session 42 — Phase 2 model correction: Qwen3.5-27B-F
 
 | Service | Port | Details |
 |---------|------|---------|
-| Gitea | 3033 | Self-hosted git + CI/CD (SQLite, Actions enabled, admin: athanor/athanor2026) |
-| Miniflux | 8070 | RSS reader (17 feeds, 6 categories, dedicated PostgreSQL, admin/athanor2026) |
+| Gitea | 3033 | Self-hosted git + CI/CD (SQLite, Actions enabled, admin credentials managed outside tracked docs) |
+| Miniflux | 8070 | RSS reader (17 feeds, 6 categories, dedicated PostgreSQL, admin credentials managed outside tracked docs) |
 | n8n | 5678 | Workflow automation — Miniflux RSS → LLM classification → Qdrant signals pipeline |
 | Open WebUI (VAULT) | 3090 | Chat interface (routes through LiteLLM) |
 | Spiderfoot | 5001 | OSINT tool |

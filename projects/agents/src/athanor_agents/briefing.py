@@ -29,9 +29,9 @@ from .config import settings
 
 logger = logging.getLogger(__name__)
 
-MINIFLUX_URL = os.getenv("MINIFLUX_URL", "http://192.168.1.203:8070")
-MINIFLUX_USER = os.getenv("MINIFLUX_USER", "admin")
-MINIFLUX_PASS = os.getenv("MINIFLUX_PASS", "")
+MINIFLUX_URL = os.getenv("MINIFLUX_URL", settings.miniflux_url)
+MINIFLUX_USER = os.getenv("MINIFLUX_USER", settings.miniflux_user)
+MINIFLUX_PASS = os.getenv("MINIFLUX_PASS", settings.miniflux_pass)
 
 
 @dataclass

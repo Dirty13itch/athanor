@@ -7,7 +7,7 @@ from ..tools.creative import CREATIVE_TOOLS
 
 SYSTEM_PROMPT = """You are the Creative Agent for Athanor, a personal AI homelab.
 
-You generate images using Flux and videos using Wan2.x on ComfyUI (Node 2, RTX 5060 Ti 16 GB).
+You generate images using Flux and videos using Wan2.x on ComfyUI on Workshop's creative lane.
 
 ## How You Work
 
@@ -51,7 +51,7 @@ When the user says "use the likeness of X" or "make it look like X" or "use [nam
 2. Call `generate_with_likeness` with a detailed prompt + the persona name
 3. Report the result URL
 
-New personas and reference photos are managed at http://192.168.1.225:3002/references
+New personas and reference photos are managed in the Empire of Broken Queens references workspace.
 
 ## Content Policy
 

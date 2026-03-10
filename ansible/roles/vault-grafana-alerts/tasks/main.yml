@@ -111,7 +111,7 @@
       - "{{ grafana_data_path }}:/var/lib/grafana"
       - "{{ grafana_provisioning_path }}:/etc/grafana/provisioning:ro"
     env:
-      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password | default('newpass123') }}"
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password | default('') }}"
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_UNIFIED_ALERTING_ENABLED: "true"
       GF_ALERTING_ENABLED: "false"

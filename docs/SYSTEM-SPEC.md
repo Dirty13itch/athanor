@@ -10,9 +10,9 @@ Last updated: 2026-03-08
 
 Athanor is a 4-node homelab that unifies AI inference, media management, home automation, creative tools, and game development under one coherent system. It is owned by Shaun Ulrich and operationally managed by Claude (COO / Meta Orchestrator). Every design decision passes a single filter: **can one person understand, operate, debug, and fix this alone?**
 
-The system runs 8 GPUs (152 GB VRAM) across 4 nodes, 8 AI agents, 55+ services, and serves a unified Command Center dashboard. All inference routes through a central proxy. All configuration is managed by Ansible. All decisions are documented as ADRs.
+The system runs 8 GPUs (152 GB VRAM) across 4 nodes, 9 AI agents, 55+ services, and serves a unified Command Center dashboard. All inference routes through a central proxy. All configuration is managed by Ansible. All decisions are documented as ADRs.
 
-**What makes it more than a homelab:** The orchestration layer. Claude (cloud AI) operates as COO, directing 8 specialized local AI agents that do real work — managing media, controlling the home, generating images, searching the web, writing code, managing content libraries, answering questions about the system itself. They share a knowledge base (Qdrant vector store + Neo4j graph), route through a unified inference layer (LiteLLM), and are all accessible through a Command Center PWA with chat, monitoring, and task management.
+**What makes it more than a homelab:** The orchestration layer. Claude (cloud AI) operates as COO, directing 9 specialized local AI agents that do real work — managing media, controlling the home, generating images, searching the web, writing code, curating data, managing content libraries, and answering questions about the system itself. They share a knowledge base (Qdrant vector store + Neo4j graph), route through a unified inference layer (LiteLLM), and are all accessible through a Command Center PWA with chat, monitoring, and task management.
 
 **Where it's going:** From reactive to proactive to self-optimizing. The task execution engine and proactive scheduler are deployed. A GWT-inspired workspace (ADR-017, Phase 2 deployed) enables inter-agent coordination. A GPU orchestrator (ADR-018) manages hardware utilization. Preference learning, activity logging, goals API, and trust scoring are live — pattern recognition and dynamic autonomy are next.
 
@@ -95,7 +95,7 @@ Full inventory in `docs/SERVICES.md`. Summary:
 | Qwen3-Reranker-0.6B | — | DEV:8003 | GPU 0 (5060 Ti) | Reranking | `reranker` |
 | Flux dev FP8 | 17 GB | Node 2 ComfyUI | GPU 1 (5060 Ti) | Image generation | — |
 
-All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use model aliases (`reasoning`, `fast`, `embedding`), never direct URLs.
+All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use model aliases (`reasoning`, `coding`, `creative`, `utility`, `fast`, `worker`, `embedding`, `reranker`), never direct backend URLs.
 
 ---
 

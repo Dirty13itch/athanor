@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProgressBar } from "@/components/progress-bar";
+import { config } from "@/lib/config";
 
 interface PlexSession {
   friendly_name?: string;
@@ -68,6 +69,8 @@ interface StashStats {
     scenes_duration?: number;
   } | null;
 }
+
+const MEDIA_LINKS = new Set(["Plex", "Sonarr", "Radarr", "Prowlarr", "SABnzbd", "Stash"]);
 
 export default function MediaPage() {
   const [media, setMedia] = useState<MediaData | null>(null);
@@ -411,13 +414,10 @@ export default function MediaPage() {
         <CardContent className="py-3">
           <div className="flex flex-wrap gap-2">
             {[
-              { name: "Plex", url: "http://192.168.1.203:32400/web" },
-              { name: "Sonarr", url: "http://192.168.1.203:8989" },
-              { name: "Radarr", url: "http://192.168.1.203:7878" },
-              { name: "Tautulli", url: "http://192.168.1.203:8181" },
-              { name: "Prowlarr", url: "http://192.168.1.203:9696" },
-              { name: "SABnzbd", url: "http://192.168.1.203:8080" },
-              { name: "Stash", url: "http://192.168.1.203:9999" },
+              ...config.quickLinks
+                .filter((link) => MEDIA_LINKS.has(link.name))
+                .map((link) => ({ name: link.name, url: link.url })),
+              { name: "Tautulli", url: config.tautulli.url },
             ].map((link) => (
               <a
                 key={link.name}

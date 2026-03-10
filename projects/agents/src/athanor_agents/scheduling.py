@@ -17,6 +17,7 @@ import time
 import httpx
 
 from .config import settings
+from .services import registry
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,13 @@ async def get_inference_load() -> dict:
             # GPU utilization (inference GPUs only — Foundry + Workshop)
             resp = await client.get(
                 f"{settings.prometheus_url}/api/v1/query",
-                params={"query": 'avg(DCGM_FI_DEV_GPU_UTIL{instance=~"192.168.1.(244|225).*"})'},
+                params={
+                    "query": (
+                        "avg(DCGM_FI_DEV_GPU_UTIL{instance=~\"("
+                        f"{registry.inference_instance_regex}"
+                        ").*\"})"
+                    ),
+                },
             )
             data = resp.json()
             results = data.get("data", {}).get("result", [])

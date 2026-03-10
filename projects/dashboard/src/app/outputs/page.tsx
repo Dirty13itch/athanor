@@ -70,7 +70,7 @@ export default function OutputsPage() {
 
   const fetchFiles = useCallback(async () => {
     try {
-      const res = await fetch("/api/agents/proxy?path=/v1/outputs", {
+      const res = await fetch("/api/outputs", {
         signal: AbortSignal.timeout(5000),
       });
       if (res.ok) {
@@ -93,10 +93,8 @@ export default function OutputsPage() {
   async function loadFile(path: string) {
     setLoadingContent(true);
     try {
-      const res = await fetch(
-        `/api/agents/proxy?path=/v1/outputs/${encodeURIComponent(path)}`,
-        { signal: AbortSignal.timeout(5000) }
-      );
+      const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+      const res = await fetch(`/api/outputs/${encodedPath}`, { signal: AbortSignal.timeout(5000) });
       if (res.ok) {
         setSelectedFile(await res.json());
       }
@@ -109,7 +107,7 @@ export default function OutputsPage() {
 
   async function sendFeedback(path: string, type: "positive" | "negative") {
     try {
-      await fetch("/api/agents/proxy?path=/v1/feedback", {
+      await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

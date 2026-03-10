@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { config } from "@/lib/config";
 
 export const revalidate = 60;
 
 async function checkHA(): Promise<boolean> {
   try {
-    const res = await fetch("http://192.168.1.203:8123/api/", {
+    const res = await fetch(`${config.homeAssistant.url}/api/`, {
       signal: AbortSignal.timeout(3000),
       next: { revalidate: 60 },
     });
@@ -44,7 +45,7 @@ export default async function HomePage() {
                 Complete the setup to enable smart home controls.
               </p>
               <a
-                href="http://192.168.1.203:8123"
+                href={config.homeAssistant.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
@@ -55,7 +56,7 @@ export default async function HomePage() {
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Home Assistant at VAULT:8123 is not reachable.
+                Home Assistant is not reachable from the dashboard probe.
                 Once it&apos;s running and onboarded, this page will show:
               </p>
               <div className="grid gap-3 md:grid-cols-2">

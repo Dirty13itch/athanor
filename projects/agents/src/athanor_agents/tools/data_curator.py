@@ -10,12 +10,13 @@ import httpx
 from langchain_core.tools import tool
 
 from ..config import settings
+from ..services import registry
 
-_QDRANT_URL = "http://192.168.1.244:6333"
-_EMBEDDING_URL = settings.llm_base_url.replace("/v1", "") + "/v1"
-_EMBEDDING_KEY = settings.llm_api_key
+_QDRANT_URL = settings.qdrant_url
+_EMBEDDING_URL = registry.litellm_openai_url
+_EMBEDDING_KEY = settings.litellm_api_key
 _LLM_URL = settings.llm_base_url
-_LLM_KEY = settings.llm_api_key
+_LLM_KEY = settings.litellm_api_key
 
 # Scannable root directories (inside the container, mapped via docker volumes)
 # /data/personal maps to VAULT NFS personal data sync target

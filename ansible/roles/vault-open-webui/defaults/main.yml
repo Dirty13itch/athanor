@@ -4,8 +4,8 @@ vault_open_webui_port: 3090
 vault_open_webui_image: "ghcr.io/open-webui/open-webui:main"
 
 # Connect to LiteLLM proxy (same node) for model routing
-vault_open_webui_api_base: "http://192.168.1.203:4000/v1"
-vault_open_webui_api_key: "sk-athanor-litellm-2026"
+vault_open_webui_api_base: "http://{{ vault_ip | default('192.168.1.203') }}:4000/v1"
+vault_open_webui_api_key: "{{ athanor_litellm_api_key | default('') }}"
 
-# Qdrant RAG integration (VAULT-local instance)
-vault_open_webui_rag_url: "http://192.168.1.203:6333"
+# Qdrant RAG integration
+vault_open_webui_rag_url: "http://{{ node1_ip | default('192.168.1.244') }}:6333"

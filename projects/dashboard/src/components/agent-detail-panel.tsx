@@ -69,31 +69,58 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
   const loadAgentDetails = useEffectEvent(async (currentAgentName: string) => {
     setLoading(true);
 
-    const proxy = (path: string) =>
-      fetch(`/api/agents/proxy?path=${encodeURIComponent(path)}`)
-        .then((r) => (r.ok ? r.json() : null))
+    const fetchJson = (path: string) =>
+      fetch(path)
+        .then((response) => (response.ok ? response.json() : null))
         .catch(() => null);
 
-    const [agentsData, activityData, tasksData, trustData, patternsData, autonomyData] = await Promise.all([
-      proxy("/v1/agents"),
-      proxy(`/v1/activity?agent=${currentAgentName}&limit=5`),
-      proxy(`/v1/tasks?agent=${currentAgentName}&limit=5`),
-      proxy("/v1/trust"),
-      proxy(`/v1/patterns?agent=${currentAgentName}`),
-      proxy("/v1/autonomy"),
+    const [agentsData, activityData, tasksData, workforceData, patternsData, autonomyData] = await Promise.all([
+      fetchJson("/api/agents"),
+      fetchJson(`/api/activity?agent=${currentAgentName}&limit=5`),
+      fetchJson(`/api/workforce/tasks?agent=${currentAgentName}&limit=5`),
+      fetchJson("/api/workforce"),
+      fetchJson(`/api/insights?agent=${currentAgentName}`),
+      fetchJson("/api/autonomy"),
     ]);
 
     if (agentsData?.agents) {
-      const found = agentsData.agents.find((a: AgentMeta) => a.name === currentAgentName);
-      setAgent(found ?? null);
+      const found = agentsData.agents.find((entry: {
+        id: string;
+        name: string;
+        description: string;
+        tools: string[];
+        type?: string;
+        status: string;
+      }) => entry.id === currentAgentName);
+      setAgent(
+        found
+          ? {
+              name: found.id,
+              description: found.description,
+              tools: found.tools,
+              type: found.type ?? "reactive",
+              status: found.status,
+            }
+          : null
+      );
     }
     setActivity(activityData?.activity ?? []);
     setTasks(tasksData?.tasks ?? []);
-    if (trustData?.scores?.[currentAgentName]) {
-      setTrust(trustData.scores[currentAgentName]);
-    } else {
-      setTrust(null);
-    }
+    const trustEntry = workforceData?.trust?.find((entry: {
+      agentId: string;
+      trustScore: number;
+      trustGrade: string | null;
+      totalFeedback: number;
+    }) => entry.agentId === currentAgentName);
+    setTrust(
+      trustEntry
+        ? {
+            score: trustEntry.trustScore,
+            level: trustEntry.trustGrade ?? "NA",
+            feedback_count: trustEntry.totalFeedback,
+          }
+        : null
+    );
     setPatterns(patternsData?.patterns ?? []);
 
     const adj: Record<string, number> = {};

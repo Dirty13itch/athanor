@@ -19,7 +19,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://{{ langfuse_pg_user }}:{{ langfuse_pg_password }}@langfuse-postgres:5432/{{ langfuse_pg_db }}
-      - NEXTAUTH_URL=http://192.168.1.203:{{ langfuse_port }}
+      - NEXTAUTH_URL={{ langfuse_public_url }}
       - NEXTAUTH_SECRET={{ langfuse_nextauth_secret }}
       - SALT={{ langfuse_salt }}
       - ENCRYPTION_KEY={{ langfuse_encryption_key }}
@@ -44,10 +44,10 @@ services:
       - LANGFUSE_INIT_ORG_NAME=Athanor
       - LANGFUSE_INIT_PROJECT_ID=athanor-main
       - LANGFUSE_INIT_PROJECT_NAME=Athanor
-      - LANGFUSE_INIT_PROJECT_PUBLIC_KEY=pk-lf-athanor
-      - LANGFUSE_INIT_PROJECT_SECRET_KEY=sk-lf-athanor
-      - LANGFUSE_INIT_USER_EMAIL=shaun@athanor.local
-      - LANGFUSE_INIT_USER_PASSWORD=athanor2026
+      - LANGFUSE_INIT_PROJECT_PUBLIC_KEY={{ langfuse_init_project_public_key }}
+      - LANGFUSE_INIT_PROJECT_SECRET_KEY={{ langfuse_init_project_secret_key }}
+      - LANGFUSE_INIT_USER_EMAIL={{ langfuse_init_user_email }}
+      - LANGFUSE_INIT_USER_PASSWORD={{ langfuse_init_user_password }}
       - TELEMETRY_ENABLED=false
       - TZ=America/Chicago
     networks:

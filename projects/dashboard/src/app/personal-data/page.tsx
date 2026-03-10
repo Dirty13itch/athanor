@@ -5,10 +5,10 @@ import { SearchBar } from "@/components/personal-data/search-bar";
 import { CategoryOverview } from "@/components/personal-data/category-overview";
 import { GraphSummary } from "@/components/personal-data/graph-summary";
 import { RecentItems } from "@/components/personal-data/recent-items";
+import { config } from "@/lib/config";
 
 export const revalidate = 60;
 
-const QDRANT_URL = "http://192.168.1.244:6333";
 const COLLECTION = "personal_data";
 
 interface QdrantCollectionInfo {
@@ -22,7 +22,7 @@ interface QdrantCollectionInfo {
 
 async function getCollectionStats() {
   try {
-    const res = await fetch(`${QDRANT_URL}/collections/${COLLECTION}`, {
+    const res = await fetch(`${config.qdrant.url}/collections/${COLLECTION}`, {
       signal: AbortSignal.timeout(5000),
       next: { revalidate: 60 },
     });

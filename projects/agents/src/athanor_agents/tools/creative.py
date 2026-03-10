@@ -6,7 +6,9 @@ import uuid
 import httpx
 from langchain_core.tools import tool
 
-COMFYUI_URL = "http://192.168.1.225:8188"
+from ..services import registry
+
+COMFYUI_URL = registry.comfyui.base_url
 
 # Wan2.x model files (on NFS via extra_model_paths.yaml)
 WAN_UNET_HIGH = "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors"
@@ -461,7 +463,7 @@ def generate_character_portrait(character_name: str, scene_context: str = "", st
         return f"Failed to queue portrait: {e}"
 
 
-EOQ_URL = "http://192.168.1.225:3002"
+EOQ_URL = registry.eoq.base_url
 
 
 @tool
@@ -480,7 +482,7 @@ def list_personas() -> str:
         personas = resp.json()
 
         if not personas:
-            return "No personas yet. Upload reference photos at http://192.168.1.225:3002/references"
+            return f"No personas yet. Upload reference photos at {EOQ_URL}/references"
 
         queens = [p for p in personas if p.get("category") == "queens"]
         custom = [p for p in personas if p.get("category") == "custom"]
@@ -537,7 +539,7 @@ def generate_with_likeness(prompt: str, persona_name: str, width: int = 832, hei
             return f"Persona '{persona_name}' not found. Available: {available}"
 
         if not persona.get("photos"):
-            return f"Persona '{persona['name']}' has no reference photos. Upload some at http://192.168.1.225:3002/references"
+            return f"Persona '{persona['name']}' has no reference photos. Upload some at {EOQ_URL}/references"
 
         # Reference path inside EoBQ container's /references volume
         reference_path = f"/references/{persona['folder']}/{persona['photos'][0]}"
@@ -563,12 +565,12 @@ def generate_with_likeness(prompt: str, persona_name: str, width: int = 832, hei
                 f"Generated with likeness of {persona['name']}.\n"
                 f"Prompt ID: {prompt_id}\n"
                 f"Image URL: {image_url}\n"
-                f"View at: http://192.168.1.225:3002/gallery"
+                f"View at: {EOQ_URL}/gallery"
             )
-        return f"Generation queued (prompt_id={prompt_id}) but polling timed out. Check ComfyUI at http://192.168.1.225:8188"
+        return f"Generation queued (prompt_id={prompt_id}) but polling timed out. Check ComfyUI at {COMFYUI_URL}"
 
     except httpx.TimeoutException:
-        return "Generation timed out. PuLID models may still be loading — check http://192.168.1.225:8188"
+        return f"Generation timed out. PuLID models may still be loading - check {COMFYUI_URL}"
     except Exception as e:
         return f"Failed to generate with likeness: {e}"
 

@@ -21,9 +21,9 @@ When asked to add content:
 3. Add it using the TVDB ID (TV) or TMDB ID (movies)
 
 Infrastructure:
-- All services on VAULT (192.168.1.203)
-- Sonarr: port 8989, Radarr: port 7878, Tautulli: port 8181
-- Inference via LiteLLM proxy at VAULT:4000
+- All media services live on VAULT
+- Sonarr handles TV, Radarr handles movies, Tautulli provides Plex analytics
+- Inference routes through the LiteLLM proxy on VAULT
 
 Be direct and concise. Use tables or lists for results."""
 

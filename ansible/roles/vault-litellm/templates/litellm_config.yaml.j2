@@ -49,8 +49,8 @@ model_list:
 
   - model_name: "reranker"
     litellm_params:
-      model: "hosted_vllm//models/Qwen3-Reranker-0.6B"
-      api_base: "http://{{ vllm_embedding_host }}:8003/v1"
+      model: "hosted_vllm//{{ vllm_reranker_model }}"
+      api_base: "http://{{ vllm_reranker_host }}:{{ vllm_reranker_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "worker"

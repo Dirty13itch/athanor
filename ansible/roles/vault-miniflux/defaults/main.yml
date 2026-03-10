@@ -5,8 +5,8 @@ miniflux_port: 8070
 miniflux_postgres_image: "postgres:16-alpine"
 miniflux_db_name: miniflux
 miniflux_db_user: miniflux
-miniflux_db_password: "miniflux-athanor-2026"
+miniflux_db_password: "{{ athanor_miniflux_db_password | default('') }}"
 miniflux_admin_user: admin
-miniflux_admin_password: "athanor2026"
+miniflux_admin_password: "{{ athanor_miniflux_pass | default('') }}"
 miniflux_config_path: "/mnt/appdatacache/miniflux"
 miniflux_postgres_data: "/mnt/appdatacache/miniflux-postgres"

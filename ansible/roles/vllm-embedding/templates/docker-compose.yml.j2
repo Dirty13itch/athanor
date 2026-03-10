@@ -38,3 +38,42 @@ services:
       - "{{ vllm_embedding_max_num_seqs }}"
       - --dtype
       - {{ vllm_embedding_dtype }}
+  vllm-reranker:
+    image: {{ vllm_embedding_image }}
+    container_name: {{ vllm_reranker_container_name }}
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /mnt/vault/models:/models:ro
+    environment:
+      - HF_HUB_OFFLINE=1
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["{{ vllm_reranker_gpu_device }}"]
+              capabilities: [gpu]
+    entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+    command:
+      - --model
+      - {{ vllm_reranker_model }}
+      - --task
+      - score
+      - --host
+      - 0.0.0.0
+      - --port
+      - "{{ vllm_reranker_port }}"
+      - --max-model-len
+      - "{{ vllm_reranker_max_model_len }}"
+      - --gpu-memory-utilization
+      - "{{ vllm_reranker_gpu_memory_util }}"
+      - --max-num-seqs
+      - "{{ vllm_reranker_max_num_seqs }}"
+      - --dtype
+      - {{ vllm_reranker_dtype }}

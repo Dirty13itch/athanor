@@ -6,7 +6,6 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { config } from "@/lib/config";
 
 interface Conversation {
   agent: string;
@@ -42,9 +41,7 @@ export default function ConversationsPage() {
     try {
       const params = new URLSearchParams({ limit: limit.toString() });
       if (filterAgent) params.set("agent", filterAgent);
-      const res = await fetch(
-        `${config.agentServer.url}/v1/conversations?${params}`
-      );
+      const res = await fetch(`/api/conversations?${params}`);
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       const data = await res.json();
       setConversations(data.conversations || []);

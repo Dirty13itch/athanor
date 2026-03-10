@@ -17,6 +17,8 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Optional
 
+from .services import registry
+
 
 class FailureCategory(Enum):
     INFERENCE = "inference"
@@ -743,22 +745,12 @@ def create_diagnosis_router():
         """Check all inference endpoints."""
         import httpx
 
-        endpoints = {
-            "coordinator": "http://192.168.1.244:8000/health",
-            "utility": "http://192.168.1.244:8002/health",
-            "worker": "http://192.168.1.225:8000/health",
-            "litellm": "http://192.168.1.203:4000/health",
-            "embedding": "http://192.168.1.189:8001/health",
-        }
-
         results = {}
         async with httpx.AsyncClient(timeout=5.0) as client:
-            for name, url in endpoints.items():
+            for name, service in registry.inference_health_checks.items():
                 try:
-                    headers = {}
-                    if "4000" in url:
-                        headers["Authorization"] = "Bearer sk-athanor-litellm-2026"
-                    resp = await client.get(url, headers=headers)
+                    target = service.health_url or service.url()
+                    resp = await client.get(target, headers=dict(service.headers))
                     results[name] = {
                         "status": "healthy" if resp.status_code == 200 else "degraded",
                         "status_code": resp.status_code,
@@ -767,7 +759,7 @@ def create_diagnosis_router():
                     results[name] = {"status": "down", "error": str(e)[:200]}
 
         healthy = sum(1 for r in results.values() if r["status"] == "healthy")
-        total = len(results)
+        total = len(registry.inference_health_checks)
         pct = (healthy / total) * 100 if total else 0
 
         return {

@@ -10,18 +10,23 @@ langfuse_redis_image: "redis:7-alpine"
 langfuse_minio_image: "minio/minio:latest"
 
 # Auth — generate with: openssl rand -hex 32
-langfuse_nextauth_secret: "{{ vault_langfuse_nextauth_secret | default('changeme-generate-with-openssl-rand-hex-32') }}"
-langfuse_salt: "{{ vault_langfuse_salt | default('changeme-generate-with-openssl-rand-hex-32') }}"
-langfuse_encryption_key: "{{ vault_langfuse_encryption_key | default('0000000000000000000000000000000000000000000000000000000000000000') }}"
+langfuse_nextauth_secret: "{{ vault_langfuse_nextauth_secret | default('') }}"
+langfuse_salt: "{{ vault_langfuse_salt | default('') }}"
+langfuse_encryption_key: "{{ vault_langfuse_encryption_key | default('') }}"
 
 # PostgreSQL (dedicated, internal network only)
 langfuse_pg_user: langfuse
-langfuse_pg_password: "{{ vault_langfuse_pg_password | default('langfuse-athanor-2026') }}"
+langfuse_pg_password: "{{ vault_langfuse_pg_password | default('') }}"
 langfuse_pg_db: langfuse
 
 # MinIO (internal S3-compatible blob store)
 langfuse_minio_user: minioadmin
-langfuse_minio_password: "{{ vault_langfuse_minio_password | default('minioadmin-athanor-2026') }}"
+langfuse_minio_password: "{{ vault_langfuse_minio_password | default('') }}"
 
 # LiteLLM integration
-litellm_host: "http://192.168.1.203:4000"
+litellm_host: "http://{{ vault_ip | default('192.168.1.203') }}:4000"
+langfuse_public_url: "http://{{ vault_ip | default('192.168.1.203') }}:{{ langfuse_port }}"
+langfuse_init_project_public_key: "{{ vault_langfuse_init_project_public_key | default('') }}"
+langfuse_init_project_secret_key: "{{ vault_langfuse_init_project_secret_key | default('') }}"
+langfuse_init_user_email: "{{ vault_langfuse_init_user_email | default('shaun@athanor.local') }}"
+langfuse_init_user_password: "{{ vault_langfuse_init_user_password | default('') }}"

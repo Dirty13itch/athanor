@@ -4,8 +4,8 @@ ulrich_port: 3003
 ulrich_image: "athanor/ulrich-energy:latest"
 
 # PostgreSQL on VAULT
-ulrich_database_url: "postgresql://ulrich:athanor2026@192.168.1.203:5432/ulrich_energy"
+ulrich_database_url: "{{ athanor_ulrich_database_url | default('') }}"
 
 # LiteLLM for AI report generation
-ulrich_litellm_url: "http://192.168.1.203:4000/v1"
-ulrich_litellm_key: "sk-athanor-litellm-2026"
+ulrich_litellm_url: "http://{{ vault_ip | default('192.168.1.203') }}:4000/v1"
+ulrich_litellm_key: "{{ athanor_litellm_api_key | default('') }}"

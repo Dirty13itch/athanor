@@ -10,9 +10,11 @@ import {
   Clock3,
   Cpu,
   ExternalLink,
+  FolderKanban,
   Gauge,
   History,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,7 @@ import {
   directChatSessionSchema,
   type OverviewSnapshot,
 } from "@/lib/contracts";
-import { formatLatency, formatPercent, formatRelativeTime, formatTimestamp } from "@/lib/format";
+import { compactText, formatLatency, formatPercent, formatRelativeTime, formatTimestamp } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
 import { readJsonStorage, STORAGE_KEYS } from "@/lib/state";
 
@@ -55,6 +57,14 @@ function buildTrendData(snapshot: OverviewSnapshot) {
   }
 
   return Array.from(map.values()).sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+}
+
+function formatProjectStatus(status: string) {
+  return status.replace(/_/g, " ");
+}
+
+function isActiveProject(status: string) {
+  return ["active", "active_development", "operational", "planning"].includes(status);
 }
 
 export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSnapshot }) {
@@ -127,11 +137,14 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       <PageHeader
         eyebrow="Operations"
         title="Command Center"
-        description="Athanor cluster posture, incidents, trends, and launch points for the core operator workflows."
+        description="Athanor cluster posture, workforce state, first-class projects, and launch points for the operator workflow."
         actions={
           <>
             <Button asChild variant="outline">
               <Link href="/services?status=degraded">Open incidents</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/workplanner">Open work planner</Link>
             </Button>
             <Button asChild>
               <Link href="/agents">Resume agents</Link>
@@ -139,7 +152,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           </>
         }
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <StatCard
             label="Cluster health"
             value={`${snapshot.summary.healthyServices}/${snapshot.summary.totalServices}`}
@@ -182,6 +195,13 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             detail={`${snapshot.summary.reachableBackends}/${snapshot.summary.totalBackends} inference backends reachable.`}
             tone={snapshot.summary.readyAgents > 0 ? "success" : "warning"}
             icon={<Bot className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Project platform"
+            value={`${snapshot.summary.activeProjects}/${snapshot.projects.length}`}
+            detail={`${snapshot.summary.firstClassProjects} first-class projects in the registry.`}
+            tone={snapshot.summary.firstClassProjects > 0 ? "success" : "warning"}
+            icon={<FolderKanban className="h-5 w-5" />}
           />
         </div>
       </PageHeader>
@@ -258,6 +278,210 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                 description="Recent direct-chat sessions and agent threads will appear here once you start working through the console."
               />
             )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_1fr]">
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Bot className="h-5 w-5 text-primary" />
+              Workforce pulse
+            </CardTitle>
+            <CardDescription>Queue pressure, approvals, and active work across the org.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Metric label="Queued" value={`${snapshot.workforce.summary.pendingTasks + snapshot.workforce.summary.runningTasks}`} />
+              <Metric label="Approvals" value={`${snapshot.workforce.summary.pendingApprovals}`} />
+              <Metric label="Goals" value={`${snapshot.workforce.summary.activeGoals}`} />
+              <Metric
+                label="Trust"
+                value={
+                  snapshot.workforce.summary.avgTrustScore === null
+                    ? "--"
+                    : `${Math.round(snapshot.workforce.summary.avgTrustScore * 100)}%`
+                }
+              />
+            </div>
+            {snapshot.workforce.tasks.slice(0, 3).map((task) => (
+              <Link
+                key={task.id}
+                href="/workplanner"
+                className="block rounded-2xl border border-border/70 bg-background/20 p-4 transition hover:bg-accent/50"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={task.status === "pending_approval" ? "destructive" : "outline"}>
+                    {task.status.replace(/_/g, " ")}
+                  </Badge>
+                  <Badge variant="secondary">{task.agentId}</Badge>
+                  {task.projectId ? <Badge variant="outline">{task.projectId}</Badge> : null}
+                </div>
+                <p className="mt-2 text-sm">{compactText(task.prompt, 140)}</p>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FolderKanban className="h-5 w-5 text-primary" />
+              Active goals
+            </CardTitle>
+            <CardDescription>Steering constraints currently shaping the work planner.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {snapshot.workforce.goals.slice(0, 3).map((goal) => (
+              <div key={goal.id} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{goal.priority}</Badge>
+                  <Badge variant="secondary">{goal.agentId === "global" ? "All agents" : goal.agentId}</Badge>
+                </div>
+                <p className="mt-2 text-sm">{goal.text}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Clock3 className="h-5 w-5 text-primary" />
+              Workspace broadcast
+            </CardTitle>
+            <CardDescription>Top salience items moving through the shared workspace.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {snapshot.workforce.workspace.broadcast.slice(0, 3).map((item) => (
+              <div key={item.id} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium">{item.sourceAgent}</p>
+                  <Badge variant="outline">{item.priority}</Badge>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">{compactText(item.content, 128)}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  salience {item.salience.toFixed(2)}
+                  {item.projectId ? ` · ${item.projectId}` : ""}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FolderKanban className="h-5 w-5 text-primary" />
+              Project platform
+            </CardTitle>
+            <CardDescription>
+              Athanor core, first-class tenants, and scaffolded future projects surfaced in one place.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {snapshot.projects.map((project) => (
+              <div
+                key={project.id}
+                className="rounded-2xl border border-border/70 bg-background/20 p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">{project.name}</p>
+                      {project.firstClass ? <Badge>First-class</Badge> : null}
+                      <Badge variant="outline">{project.kind}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{project.headline}</p>
+                  </div>
+                  <Badge variant={isActiveProject(project.status) ? "outline" : "secondary"}>
+                    {formatProjectStatus(project.status)}
+                  </Badge>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge variant="secondary">{project.needsCount} open needs</Badge>
+                  <Badge variant="secondary">{project.agents.length} mapped agents</Badge>
+                  <Badge variant="secondary">lens: {project.lens}</Badge>
+                </div>
+
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  {project.operatorChain.map((operator) => (
+                    <span
+                      key={operator}
+                      className="rounded-full border border-border/60 px-2 py-1"
+                    >
+                      {operator}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={project.primaryRoute}>Open workspace</Link>
+                  </Button>
+                  {project.externalUrl ? (
+                    <Button asChild size="sm" variant="ghost">
+                      <a href={project.externalUrl} target="_blank" rel="noopener noreferrer">
+                        Open app
+                      </a>
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Users className="h-5 w-5 text-primary" />
+              Operating model
+            </CardTitle>
+            <CardDescription>
+              The one-person-maintainable org chart: Shaun sets intent, Claude coordinates, the workforce executes.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="rounded-2xl border border-border/70 bg-background/20 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Owner</p>
+              <p className="mt-2 font-medium">Shaun</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Vision, judgment, priorities, and approvals for the whole system.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-background/20 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">COO</p>
+              <p className="mt-2 font-medium">Claude</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Meta-orchestrator for infrastructure, workforce coordination, and roadmap execution.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-background/20 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Workforce</p>
+              <p className="mt-2 font-medium">
+                {snapshot.summary.readyAgents}/{snapshot.summary.totalAgents} agents ready
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Projects and domains currently wired through the agent server and task APIs.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {snapshot.agents.slice(0, 5).map((agent) => (
+                  <Badge key={agent.id} variant="secondary">
+                    {agent.name}
+                  </Badge>
+                ))}
+                {snapshot.agents.length > 5 ? (
+                  <Badge variant="secondary">+{snapshot.agents.length - 5} more</Badge>
+                ) : null}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

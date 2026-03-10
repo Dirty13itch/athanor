@@ -2,30 +2,63 @@
 agent_deploy_dir: /opt/athanor/agents
 agent_port: 9000
 
+agent_node1_host: "{{ node1_ip | default('192.168.1.244') }}"
+agent_node2_host: "{{ node2_ip | default('192.168.1.225') }}"
+agent_vault_host: "{{ vault_ip | default('192.168.1.203') }}"
+agent_dev_host: "{{ dev_ip | default('192.168.1.189') }}"
+
 # LiteLLM proxy — single entry point for all inference
-agent_llm_base_url: "http://192.168.1.203:4000/v1"
-agent_llm_api_key: "sk-athanor-litellm-2026"
+agent_litellm_url: "http://{{ agent_vault_host }}:4000"
+agent_litellm_api_key: "{{ athanor_litellm_api_key | default('') }}"
 agent_llm_model: "reasoning"
 agent_llm_model_fast: "fast"
 
-# Direct vLLM endpoints (for status tools only)
-agent_vllm_node1_url: "http://192.168.1.244:8000/v1"
-agent_vllm_node2_url: "http://192.168.1.225:8000/v1"
-agent_vllm_embedding_url: "http://192.168.1.244:8001/v1"
+# Direct runtime endpoints
+agent_vllm_coordinator_url: "http://{{ agent_node1_host }}:8000"
+agent_vllm_utility_url: "http://{{ agent_node1_host }}:8002"
+agent_vllm_worker_url: "http://{{ agent_node2_host }}:8000"
+agent_vllm_embedding_url: "http://{{ agent_dev_host }}:8001"
+agent_vllm_reranker_url: "http://{{ agent_dev_host }}:8003"
+agent_agent_server_url: "http://{{ agent_node1_host }}:9000"
+agent_dashboard_url: "http://{{ agent_node2_host }}:3001"
 
-# Qdrant vector database (on Node 1, same host as agents)
-agent_qdrant_url: "http://192.168.1.244:6333"
+# Knowledge and state
+agent_qdrant_url: "http://{{ agent_node1_host }}:6333"
+agent_redis_url: "{{ athanor_redis_url | default('redis://' ~ agent_vault_host ~ ':6379/0') }}"
+agent_neo4j_url: "http://{{ agent_vault_host }}:7474"
+agent_neo4j_user: "{{ athanor_neo4j_user | default('neo4j') }}"
+agent_neo4j_password: "{{ athanor_neo4j_password | default('') }}"
 
-# Redis (on VAULT, for GWT workspace + GPU orchestrator state)
-agent_redis_url: "redis://192.168.1.203:6379/0"
+# Monitoring and platform services
+agent_prometheus_url: "{{ prometheus_url | default('http://' ~ agent_vault_host ~ ':9090') }}"
+agent_grafana_url: "{{ grafana_url | default('http://' ~ agent_vault_host ~ ':3000') }}"
+agent_langfuse_url: "{{ langfuse_url | default('http://' ~ agent_vault_host ~ ':3030') }}"
+agent_gpu_orchestrator_url: "http://{{ agent_node1_host }}:9200"
+agent_speaches_url: "http://{{ agent_node1_host }}:8200"
 
-# Monitoring
-agent_prometheus_url: "{{ prometheus_url | default('http://192.168.1.203:9090') }}"
+# Home and media
+agent_home_assistant_url: "http://{{ agent_vault_host }}:8123"
+agent_ha_token: "{{ athanor_ha_token | default('') }}"
+agent_sonarr_url: "http://{{ agent_vault_host }}:8989"
+agent_sonarr_api_key: "{{ athanor_sonarr_api_key | default('') }}"
+agent_radarr_url: "http://{{ agent_vault_host }}:7878"
+agent_radarr_api_key: "{{ athanor_radarr_api_key | default('') }}"
+agent_tautulli_url: "http://{{ agent_vault_host }}:8181"
+agent_tautulli_api_key: "{{ athanor_tautulli_api_key | default('') }}"
+agent_plex_url: "http://{{ agent_vault_host }}:32400"
+agent_prowlarr_url: "http://{{ agent_vault_host }}:9696"
+agent_sabnzbd_url: "http://{{ agent_vault_host }}:8080"
+agent_stash_url: "http://{{ agent_vault_host }}:9999"
 
-# Media stack API keys (from deployed Sonarr/Radarr/Tautulli on VAULT)
-agent_sonarr_api_key: "86be972e19674a00844e722e43e29d07"
-agent_radarr_api_key: "628ed6a9560a40a0b2d54e05be435b0b"
-agent_tautulli_api_key: "efd937b752a74e42b62ce32b7e3b5bd5"
+# Experience and tenant surfaces
+agent_comfyui_url: "http://{{ agent_node2_host }}:8188"
+agent_open_webui_url: "http://{{ agent_node2_host }}:3000"
+agent_vault_open_webui_url: "http://{{ agent_vault_host }}:3090"
+agent_eoq_url: "http://{{ agent_node2_host }}:3002"
 
-# Home Assistant long-lived access token
-agent_ha_token: "eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJpc3MiOiAiYTQ2ZTRlNTJhZDFjNjgwNzg0ZDQ2NDc2N2NiNmJiZWEiLCAiaWF0IjogMTc3MTk4MzcxNCwgImV4cCI6IDIwODczNDM3MTR9.rvM9WSMEZucl9XTV-zRs1ts21vFAKeQFQRedIY2bVAs"
+# Briefing and notifications
+agent_miniflux_url: "http://{{ agent_vault_host }}:8070"
+agent_miniflux_user: "{{ athanor_miniflux_user | default('admin') }}"
+agent_miniflux_pass: "{{ athanor_miniflux_pass | default('') }}"
+agent_ntfy_url: "http://{{ agent_vault_host }}:8880"
+agent_ntfy_topic: "{{ athanor_ntfy_topic | default('athanor') }}"

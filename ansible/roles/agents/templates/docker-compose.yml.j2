@@ -15,26 +15,50 @@ services:
       # Data curator: personal data synced from DEV (read-only)
       - /opt/athanor/personal-data:/data/personal:ro
     environment:
-      # LiteLLM proxy — single entry point for all inference
-      - ATHANOR_LLM_BASE_URL={{ agent_llm_base_url }}
-      - ATHANOR_LLM_API_KEY={{ agent_llm_api_key }}
+      - ATHANOR_NODE1_HOST={{ agent_node1_host }}
+      - ATHANOR_NODE2_HOST={{ agent_node2_host }}
+      - ATHANOR_VAULT_HOST={{ agent_vault_host }}
+      - ATHANOR_DEV_HOST={{ agent_dev_host }}
+      - ATHANOR_LITELLM_URL={{ agent_litellm_url }}
+      - ATHANOR_LITELLM_API_KEY={{ agent_litellm_api_key }}
       - ATHANOR_LLM_MODEL={{ agent_llm_model }}
       - ATHANOR_LLM_MODEL_FAST={{ agent_llm_model_fast }}
-      # Direct vLLM endpoints (for status tools only)
-      - ATHANOR_VLLM_NODE1_URL={{ agent_vllm_node1_url }}
-      - ATHANOR_VLLM_NODE2_URL={{ agent_vllm_node2_url }}
+      - ATHANOR_VLLM_COORDINATOR_URL={{ agent_vllm_coordinator_url }}
+      - ATHANOR_VLLM_UTILITY_URL={{ agent_vllm_utility_url }}
+      - ATHANOR_VLLM_WORKER_URL={{ agent_vllm_worker_url }}
       - ATHANOR_VLLM_EMBEDDING_URL={{ agent_vllm_embedding_url }}
-      # Qdrant vector database
+      - ATHANOR_VLLM_RERANKER_URL={{ agent_vllm_reranker_url }}
+      - ATHANOR_AGENT_SERVER_URL={{ agent_agent_server_url }}
+      - ATHANOR_DASHBOARD_URL={{ agent_dashboard_url }}
       - ATHANOR_QDRANT_URL={{ agent_qdrant_url }}
-      # Redis (GWT workspace + GPU orchestrator state)
       - ATHANOR_REDIS_URL={{ agent_redis_url }}
-      # Monitoring
+      - ATHANOR_NEO4J_URL={{ agent_neo4j_url }}
+      - ATHANOR_NEO4J_USER={{ agent_neo4j_user }}
+      - ATHANOR_NEO4J_PASSWORD={{ agent_neo4j_password }}
       - ATHANOR_PROMETHEUS_URL={{ agent_prometheus_url }}
-      - ATHANOR_PORT={{ agent_port }}
-      # Media stack API keys
-      - ATHANOR_SONARR_API_KEY={{ agent_sonarr_api_key }}
-      - ATHANOR_RADARR_API_KEY={{ agent_radarr_api_key }}
-      - ATHANOR_TAUTULLI_API_KEY={{ agent_tautulli_api_key }}
-{% if agent_ha_token is defined and agent_ha_token %}
+      - ATHANOR_GRAFANA_URL={{ agent_grafana_url }}
+      - ATHANOR_LANGFUSE_URL={{ agent_langfuse_url }}
+      - ATHANOR_GPU_ORCHESTRATOR_URL={{ agent_gpu_orchestrator_url }}
+      - ATHANOR_SPEACHES_URL={{ agent_speaches_url }}
+      - ATHANOR_HOME_ASSISTANT_URL={{ agent_home_assistant_url }}
       - ATHANOR_HA_TOKEN={{ agent_ha_token }}
-{% endif %}
+      - ATHANOR_SONARR_URL={{ agent_sonarr_url }}
+      - ATHANOR_PORT={{ agent_port }}
+      - ATHANOR_SONARR_API_KEY={{ agent_sonarr_api_key }}
+      - ATHANOR_RADARR_URL={{ agent_radarr_url }}
+      - ATHANOR_RADARR_API_KEY={{ agent_radarr_api_key }}
+      - ATHANOR_TAUTULLI_URL={{ agent_tautulli_url }}
+      - ATHANOR_TAUTULLI_API_KEY={{ agent_tautulli_api_key }}
+      - ATHANOR_PLEX_URL={{ agent_plex_url }}
+      - ATHANOR_PROWLARR_URL={{ agent_prowlarr_url }}
+      - ATHANOR_SABNZBD_URL={{ agent_sabnzbd_url }}
+      - ATHANOR_STASH_URL={{ agent_stash_url }}
+      - ATHANOR_COMFYUI_URL={{ agent_comfyui_url }}
+      - ATHANOR_OPEN_WEBUI_URL={{ agent_open_webui_url }}
+      - ATHANOR_VAULT_OPEN_WEBUI_URL={{ agent_vault_open_webui_url }}
+      - ATHANOR_EOQ_URL={{ agent_eoq_url }}
+      - ATHANOR_MINIFLUX_URL={{ agent_miniflux_url }}
+      - ATHANOR_MINIFLUX_USER={{ agent_miniflux_user }}
+      - ATHANOR_MINIFLUX_PASS={{ agent_miniflux_pass }}
+      - ATHANOR_NTFY_URL={{ agent_ntfy_url }}
+      - ATHANOR_NTFY_TOPIC={{ agent_ntfy_topic }}

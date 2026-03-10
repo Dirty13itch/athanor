@@ -84,13 +84,46 @@ export function WorkPlan() {
 
     async function fetchData() {
       try {
-        const [planRes, outputsRes] = await Promise.all([
-          fetch("/api/agents/proxy?path=/v1/workplan", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-          fetch("/api/agents/proxy?path=/v1/outputs", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+        const [workforceRes, outputsRes] = await Promise.all([
+          fetch("/api/workforce", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+          fetch("/api/outputs", { signal: AbortSignal.timeout(5000) }).catch(() => null),
         ]);
 
         if (mounted) {
-          if (planRes?.ok) setData(await planRes.json());
+          if (workforceRes?.ok) {
+            const workforce = await workforceRes.json();
+            const taskStatusById = new Map<string, string>(
+              (workforce?.tasks ?? []).map((task: { id: string; status: string }) => [task.id, task.status])
+            );
+            setData({
+              current_plan: workforce?.workplan?.current
+                ? {
+                    plan_id: workforce.workplan.current.planId,
+                    generated_at: Math.floor(new Date(workforce.workplan.current.generatedAt).getTime() / 1000),
+                    focus: workforce.workplan.current.focus,
+                    tasks: (workforce.workplan.current.tasks ?? []).map((task: {
+                      agentId: string;
+                      prompt: string;
+                      priority: string;
+                      projectId?: string | null;
+                      rationale?: string | null;
+                      taskId?: string | null;
+                    }) => ({
+                      agent: task.agentId,
+                      prompt: task.prompt,
+                      priority: task.priority,
+                      project: task.projectId ?? undefined,
+                      rationale: task.rationale ?? undefined,
+                      status: task.taskId ? taskStatusById.get(task.taskId) : undefined,
+                      task_id: task.taskId ?? undefined,
+                    })),
+                    task_count: workforce.workplan.current.taskCount,
+                  }
+                : null,
+              needs_refill: workforce?.workplan?.needsRefill ?? false,
+              history: [],
+            });
+          }
           if (outputsRes?.ok) {
             const d = await outputsRes.json();
             setOutputs(d.outputs ?? []);
@@ -118,7 +151,7 @@ export function WorkPlan() {
     setRedirectSent(false);
 
     try {
-      await fetch("/api/agents/proxy?path=/v1/workplan/redirect", {
+      await fetch("/api/workforce/redirect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ direction }),

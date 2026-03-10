@@ -2,10 +2,11 @@ import httpx
 from langchain_core.tools import tool
 
 from ..config import settings
+from ..services import registry
 
-SONARR = f"http://192.168.1.203:8989/api/v3"
-RADARR = f"http://192.168.1.203:7878/api/v3"
-TAUTULLI = f"http://192.168.1.203:8181/api/v2"
+SONARR = registry.sonarr_api_url
+RADARR = registry.radarr_api_url
+TAUTULLI = registry.tautulli_api_url
 
 
 def _sonarr_get(path: str, params: dict | None = None) -> dict:

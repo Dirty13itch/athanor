@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const AGENT_SERVER = process.env.AGENT_SERVER_URL || "http://192.168.1.244:9000";
+import { config } from "@/lib/config";
 
 interface ImplicitEvent {
   type: string;
@@ -27,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Forward to agent server's implicit feedback endpoint
     // If it doesn't exist yet, store locally and return success
     try {
-      const res = await fetch(`${AGENT_SERVER}/v1/feedback/implicit`, {
+      const res = await fetch(`${config.agentServer.url}/v1/feedback/implicit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

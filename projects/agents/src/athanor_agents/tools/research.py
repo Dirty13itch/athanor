@@ -4,10 +4,11 @@ import httpx
 from langchain_core.tools import tool
 
 from ..config import settings
+from ..services import registry
 
-_QDRANT_URL = "http://192.168.1.244:6333"
-_EMBEDDING_URL = settings.llm_base_url.replace("/v1", "") + "/v1"
-_EMBEDDING_KEY = settings.llm_api_key
+_QDRANT_URL = settings.qdrant_url
+_EMBEDDING_URL = registry.litellm_openai_url
+_EMBEDDING_KEY = settings.litellm_api_key
 
 
 def _get_embedding(text: str) -> list[float]:
@@ -156,9 +157,9 @@ def query_infrastructure(cypher_query: str) -> str:
     """
     try:
         resp = httpx.post(
-            "http://192.168.1.203:7474/db/neo4j/tx/commit",
+            registry.neo4j_commit_url,
             json={"statements": [{"statement": cypher_query}]},
-            auth=("neo4j", "athanor2026"),
+            auth=registry.neo4j_auth,
             timeout=10,
         )
         resp.raise_for_status()

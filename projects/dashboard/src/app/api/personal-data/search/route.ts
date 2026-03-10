@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/lib/config";
+import { hasLitellmApiKey, serverConfig } from "@/lib/server-config";
 
-const QDRANT_URL = "http://192.168.1.244:6333";
 const COLLECTION = "personal_data";
 
 export async function POST(request: NextRequest) {
@@ -14,12 +14,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "query is required" }, { status: 400 });
     }
 
+    if (!hasLitellmApiKey()) {
+      return NextResponse.json(
+        { error: "ATHANOR_LITELLM_API_KEY is required for semantic search." },
+        { status: 503 }
+      );
+    }
+
     // Get embedding from LiteLLM
     const embeddingRes = await fetch(`${config.litellm.url}/v1/embeddings`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${config.litellm.apiKey}`,
+        Authorization: `Bearer ${serverConfig.litellmApiKey}`,
       },
       body: JSON.stringify({
         model: "embedding",
@@ -47,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Search Qdrant
-    const searchRes = await fetch(`${QDRANT_URL}/collections/${COLLECTION}/points/search`, {
+    const searchRes = await fetch(`${config.qdrant.url}/collections/${COLLECTION}/points/search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

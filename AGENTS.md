@@ -4,10 +4,10 @@
 
 | Agent | Model | Purpose | Isolation |
 |-------|-------|---------|-----------|
-| **infra-auditor** | Opus | Audit hardware/network against documented state | Worktree |
+| **infra-auditor** | Opus | Audit hardware, topology, and runtime drift | Worktree |
 | **researcher** | Opus | Deep technical research with sources | Worktree, background |
 | **doc-writer** | Sonnet | Documentation creation and maintenance | Worktree |
-| **Local Coder** | — | Dispatch coding to local Qwen3-32B via MCP bridge | — |
+| **Local Coder** | Local | Dispatch coding to Athanor's local inference stack via MCP | MCP bridge |
 
 ## MCP Servers
 
@@ -15,93 +15,98 @@
 
 | Server | Purpose | Status |
 |--------|---------|--------|
-| **grafana** | Query Grafana dashboards at VAULT:3000 | Active |
-| **docker** | Docker container management across nodes | Active |
-| **athanor-agents** | MCP bridge to 8 local agents (14 tools) | Active |
-| **smart-reader** | Enhanced file reading | Disabled (redundant with native Read) |
+| **grafana** | Query Grafana dashboards and Prometheus-backed observability | Active |
+| **docker** | Docker container management across Athanor nodes | Active |
+| **athanor-agents** | MCP bridge to 9 local agents and the task API | Active |
+| **smart-reader** | Enhanced file reading | Disabled |
 
 ### Cloud Connectors (claude.ai)
 
 | Server | Purpose | Status |
 |--------|---------|--------|
-| **Context7** | Library documentation lookup | Active |
+| **Context7** | Library and framework documentation lookup | Active |
 | **Gmail** | Email integration | Active |
 | **Google Calendar** | Calendar management | Active |
 
 ### Removed
 
-Previously used, removed from `.mcp.json`: sequential-thinking, context7 (local duplicate), filesystem, playwright.
+Previously used, removed from `.mcp.json`: sequential-thinking, local Context7 duplicate, filesystem, playwright.
 
 ---
 
 ## Agent Teams
 
 Native multi-agent orchestration is available via:
-```
+
+```bash
 CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
 ```
 
-**When to use teams**: Parallel research, auditing multiple nodes simultaneously, multi-component builds, debugging with competing hypotheses. Each teammate is a full independent Claude Code session.
+Use teams for parallel research, topology audits, multi-surface dashboard work, or competing debugging hypotheses.
 
 ---
 
 ## Athanor Agent Framework
 
-The LangGraph agent framework runs on Node 1:9000. Source code lives in `projects/agents/`.
+The LangGraph agent framework runs on Foundry (`:9000`). Source code lives in `projects/agents/`.
 
 ### Architecture
 
-- **Runtime**: LangGraph 1.0.8 + FastAPI
-- **API**: OpenAI-compatible (`/v1/chat/completions`, `/v1/models`)
-- **Backend LLM**: vLLM at localhost:8000 (Qwen3-32B-AWQ, TP=2)
-- **Tool calling**: `--enable-auto-tool-choice --tool-call-parser hermes`
+- **Runtime:** LangGraph + FastAPI
+- **API:** OpenAI-compatible (`/v1/chat/completions`, `/v1/models`, `/v1/agents`, `/v1/tasks`)
+- **Inference contract:** LiteLLM on VAULT is the canonical model router
+- **Knowledge fabric:** Qdrant + Neo4j + Redis
+- **Coordination substrate:** GWT workspace, task engine, work planner, activity and preference signals
 
-### Agents (8 live)
+### Agents (9 live)
 
-| Agent | Type | Schedule | Tools | Status |
-|-------|------|----------|-------|--------|
-| **General Assistant** | Reactive + Delegation | 30 min | 9 + delegation | Running |
-| **Research Agent** | Reactive | On-demand | 5 | Running |
-| **Media Agent** | Proactive | 15 min | 6 (Sonarr/Radarr/Tautulli) | Running |
-| **Home Agent** | Proactive | 5 min | 5 (HA) | Running |
-| **Creative Agent** | Reactive | On-demand | 5 | Running |
-| **Knowledge Agent** | Proactive | 24h (disabled) | 5 | Running |
-| **Coding Agent** | Reactive | On-demand | 9 (autonomous loop) | Running |
-| **Stash Agent** | Reactive | On-demand | 12 (GraphQL) | Running |
+| Agent | Mode | Schedule | Status |
+|-------|------|----------|--------|
+| **General Assistant** | Reactive + proactive | 30 min | Live |
+| **Media Agent** | Reactive + proactive | 15 min | Live |
+| **Home Agent** | Reactive + proactive | 5 min | Live |
+| **Research Agent** | Reactive | On-demand | Live |
+| **Creative Agent** | Reactive | On-demand | Live |
+| **Knowledge Agent** | Reactive | On-demand | Live |
+| **Coding Agent** | Reactive | On-demand | Live |
+| **Stash Agent** | Reactive | On-demand | Live |
+| **Data Curator** | Reactive | On-demand | Live |
 
-### Tool Groups
+Formal behavior contracts live in `docs/design/agent-contracts.md`.
 
-**System tools** (General Assistant):
-- `check_services` — Docker container health across nodes
-- `get_gpu_metrics` — DCGM exporter GPU utilization
-- `get_vllm_models` — Currently loaded models
-- `get_storage_info` — NFS mount usage
+### Runtime Slots
 
-**Media tools** (Media Agent):
-- `search_series` / `add_series` — Sonarr integration
-- `search_movies` / `add_movie` — Radarr integration
-- `get_plex_activity` / `get_plex_history` — Tautulli integration
+Specialist slots are defined by contracts, not model names.
 
-**Home tools** (Home Agent):
-- Planned: Home Assistant entity control, scene activation, sensor queries
+| Slot | Role | Current Runtime | Node |
+|------|------|-----------------|------|
+| **reasoning** | Large-model reasoning and coding | Foundry coordinator (`:8000`) | Foundry |
+| **coding** | Same reasoning lane, coding-oriented alias | Foundry coordinator (`:8000`) | Foundry |
+| **creative** | Utility and uncensored specialist work | Foundry utility (`:8002`) | Foundry |
+| **utility** | Utility alias for local specialist work | Foundry utility (`:8002`) | Foundry |
+| **fast** | Interactive worker lane | Workshop worker (`:8000`) | Workshop |
+| **worker** | Worker alias | Workshop worker (`:8000`) | Workshop |
+| **embedding** | Retrieval embeddings | DEV embedding (`:8001`) | DEV |
+| **reranker** | Retrieval reranking | DEV reranker (`:8003`) | DEV |
+
+### Tool Domains
+
+- **System and ops:** services, GPU metrics, storage, task delegation, workspace state
+- **Media:** Sonarr, Radarr, Tautulli, Plex, Stash
+- **Home:** Home Assistant state, automations, and device control
+- **Creative:** ComfyUI image/video generation and queue inspection
+- **Knowledge:** Qdrant search, Neo4j queries, retrieval stats
+- **Coding and execution:** repository reads, controlled writes, command execution, test loops
 
 ### Deployment
 
-Agents are deployed via Ansible role `ansible/roles/agents/` which sources from `projects/agents/` and deploys to `/opt/athanor/agents/` on Node 1. Docker Compose with `network_mode: host`.
+Agents are deployed via `ansible/roles/agents/`, sourced from `projects/agents/`, and deployed to `/opt/athanor/agents/` on Foundry. Runtime topology and env wiring should be treated as Ansible-owned, not inferred from checked-in compose snapshots.
 
 ---
 
-## Contract-Driven Architecture
+## Contract-Driven Operating Rules
 
-Specialist slots are defined by interface contracts, not model names. Any model that satisfies the contract can fill the slot:
-
-| Slot | Contract | Current Model | Node |
-|------|----------|---------------|------|
-| **Reasoning** | Tool calling, 32K+ context, structured output | Qwen3-32B-AWQ (TP=2) | Node 1 |
-| **Fast Agent** | Tool calling, low latency | Qwen3-14B FP16 (5090) | Node 2 |
-| **Embedding** | Dense embeddings, 1024-dim, 8K input | Qwen3-Embedding-0.6B | Node 1 (GPU 4) |
-| **Reranker** | Cross-encoder reranking | Planned: Qwen3-Reranker-0.6B | Node 1 (CPU) |
-| **Image Gen** | Text-to-image, LoRA support | FLUX.1 dev FP8 | Node 2 (5090) |
-| **Video Gen** | Text/image-to-video | Wan2.1 FP8 | Node 2 (5090) |
-| **TTS** | Text-to-speech | Kokoro-82M ONNX (Speaches) | Node 1 (GPU 4) |
-| **STT** | Speech-to-text | wyoming-whisper | Node 1 (GPU 4) |
+- Use LiteLLM aliases, not direct backend URLs, for application and agent inference.
+- Treat DEV as the canonical embedding and reranker host.
+- Treat the dashboard as the primary operator-facing surface and the task/work planner as the project coordination surface.
+- Keep credentials out of tracked docs and defaults; use vaulted or env-backed values instead.

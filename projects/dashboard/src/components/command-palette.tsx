@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Command } from "cmdk";
-import { ArrowUpRight, Bot, Command as CommandIcon, Cpu, LayoutDashboard, MessageSquare, MonitorPlay, Search, Activity } from "lucide-react";
+import { ArrowUpRight, Bot, Command as CommandIcon, Cpu, FolderKanban, LayoutDashboard, MessageSquare, MonitorPlay, Search, Activity } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { OverviewSnapshot } from "@/lib/contracts";
 import { Kbd } from "@/components/kbd";
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/services", label: "Services", icon: Activity },
   { href: "/gpu", label: "GPU Metrics", icon: Cpu },
+  { href: "/workplanner", label: "Work Planner", icon: FolderKanban },
   { href: "/chat", label: "Direct Chat", icon: MessageSquare },
   { href: "/agents", label: "Agent Console", icon: Bot },
 ];
@@ -103,6 +104,25 @@ export function CommandPalette({
                   <div>
                     <p className="text-sm font-medium">{alert.title}</p>
                     <p className="text-xs text-muted-foreground">{alert.description}</p>
+                  </div>
+                </Command.Item>
+              ))}
+            </Command.Group>
+          ) : null}
+
+          {overview?.projects?.length ? (
+            <Command.Group heading="Projects" className="px-2 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground">
+              {overview.projects.map((project) => (
+                <Command.Item
+                  key={project.id}
+                  value={`${project.name} ${project.description} ${project.status}`}
+                  onSelect={() => navigate(project.primaryRoute)}
+                  className="flex cursor-pointer items-start gap-3 rounded-xl px-3 py-3 outline-none data-[selected=true]:bg-accent"
+                >
+                  <FolderKanban className="mt-0.5 h-4 w-4 text-primary" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{project.name}</p>
+                    <p className="text-xs text-muted-foreground">{project.headline}</p>
                   </div>
                 </Command.Item>
               ))}

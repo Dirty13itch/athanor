@@ -25,8 +25,8 @@ _DASHBOARD_PUSH_URL = settings.dashboard_url + "/api/push/send"
 _push_client = httpx.AsyncClient(timeout=5.0)
 
 # ntfy push notification (phone/desktop via VAULT:8880)
-_NTFY_URL = "http://192.168.1.203:8880"
-_NTFY_TOPIC = "athanor"
+_NTFY_URL = settings.ntfy_url
+_NTFY_TOPIC = settings.ntfy_topic
 
 
 class EscalationTier(str, Enum):

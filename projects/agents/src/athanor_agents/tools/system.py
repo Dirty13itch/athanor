@@ -1,51 +1,30 @@
 import httpx
 from langchain_core.tools import tool
 
-from athanor_agents.config import settings
-
-SERVICES = {
-    "LiteLLM": {"url": "http://192.168.1.203:4000/v1/models", "node": "VAULT",
-                 "headers": {"Authorization": f"Bearer {settings.llm_api_key}"}},
-    "Coordinator": {"url": "http://192.168.1.244:8000/health", "node": "FOUNDRY"},
-    "Utility": {"url": "http://192.168.1.244:8002/health", "node": "FOUNDRY"},
-    "Worker": {"url": "http://192.168.1.225:8000/health", "node": "WORKSHOP"},
-    "Embedding": {"url": "http://192.168.1.189:8001/health", "node": "DEV"},
-    "Qdrant": {"url": "http://192.168.1.244:6333/collections", "node": "FOUNDRY"},
-    "ComfyUI": {"url": "http://192.168.1.225:8188/system_stats", "node": "WORKSHOP"},
-    "Dashboard": {"url": "http://192.168.1.225:3001", "node": "WORKSHOP"},
-    "Prometheus": {"url": "http://192.168.1.203:9090/-/healthy", "node": "VAULT"},
-    "Grafana": {"url": "http://192.168.1.203:3000/api/health", "node": "VAULT"},
-    "Sonarr": {"url": "http://192.168.1.203:8989/ping", "node": "VAULT"},
-    "Radarr": {"url": "http://192.168.1.203:7878/ping", "node": "VAULT"},
-    "SABnzbd": {"url": "http://192.168.1.203:8080", "node": "VAULT"},
-    "Tautulli": {"url": "http://192.168.1.203:8181", "node": "VAULT"},
-    "Stash": {"url": "http://192.168.1.203:9999", "node": "VAULT"},
-    "Plex": {"url": "http://192.168.1.203:32400/identity", "node": "VAULT"},
-    "Home Assistant": {"url": "http://192.168.1.203:8123/api/", "node": "VAULT",
-                        "headers": {"Authorization": f"Bearer {settings.ha_token}"}},
-    "Neo4j": {"url": "http://192.168.1.203:7474", "node": "VAULT"},
-    "Open WebUI": {"url": "http://192.168.1.225:3000", "node": "WORKSHOP"},
-    "GPU Orchestrator": {"url": "http://192.168.1.244:9200/health", "node": "FOUNDRY"},
-    "LangFuse": {"url": "http://192.168.1.203:3030", "node": "VAULT"},
-}
+from athanor_agents.services import registry
 
 
 @tool
 def check_services() -> str:
-    """Check the health and status of all Athanor homelab services. Returns which services are up or down."""
+    """Check the health and status of Athanor services. Returns which services are up or down."""
     results = []
-    for name, info in SERVICES.items():
+    for service in registry.service_checks:
         try:
-            headers = info.get("headers", {})
-            resp = httpx.get(info["url"], timeout=5, follow_redirects=True, headers=headers)
+            target = service.health_url or service.url()
+            resp = httpx.get(
+                target,
+                timeout=5,
+                follow_redirects=True,
+                headers=dict(service.headers),
+            )
             status = "UP" if resp.status_code < 400 else f"ERROR ({resp.status_code})"
         except httpx.ConnectError:
             status = "DOWN"
         except httpx.TimeoutException:
             status = "TIMEOUT"
-        except Exception as e:
-            status = f"ERROR ({type(e).__name__})"
-        results.append(f"  {name} ({info['node']}): {status}")
+        except Exception as exc:
+            status = f"ERROR ({type(exc).__name__})"
+        results.append(f"  {service.name} ({service.node}): {status}")
     return "Service Health:\n" + "\n".join(results)
 
 
@@ -63,74 +42,71 @@ def get_gpu_metrics() -> str:
     for label, query in metrics:
         try:
             resp = httpx.get(
-                f"{settings.prometheus_url}/api/v1/query",
+                registry.prometheus.url("/api/v1/query"),
                 params={"query": query},
                 timeout=5,
             )
             data = resp.json()
-            for r in data.get("data", {}).get("result", []):
-                gpu = r["metric"].get("gpu", "?")
-                host = r["metric"].get("instance", "?").split(":")[0]
-                val = r["value"][1]
-                lines.append(f"  {host} GPU {gpu}: {label} = {val}")
-        except Exception as e:
-            lines.append(f"  Error fetching {label}: {e}")
+            for result in data.get("data", {}).get("result", []):
+                gpu = result["metric"].get("gpu", "?")
+                host = result["metric"].get("instance", "?").split(":")[0]
+                value = result["value"][1]
+                lines.append(f"  {host} GPU {gpu}: {label} = {value}")
+        except Exception as exc:
+            lines.append(f"  Error fetching {label}: {exc}")
     return "\n".join(lines)
 
 
 @tool
 def get_vllm_models() -> str:
-    """List all AI models available through the LiteLLM routing proxy and directly on vLLM instances."""
+    """List all AI models available through LiteLLM and direct runtime instances."""
     lines = ["Models Available:"]
 
-    # Query LiteLLM proxy (authoritative list of routable models)
-    try:
-        resp = httpx.get(
-            f"{settings.llm_base_url}/models",
-            headers={"Authorization": f"Bearer {settings.llm_api_key}"},
-            timeout=5,
-        )
-        data = resp.json()
-        models = data.get("data", [])
-        lines.append("  LiteLLM Proxy (VAULT:4000):")
-        for m in models:
-            lines.append(f"    - {m['id']} (owned_by: {m.get('owned_by', 'N/A')})")
-    except Exception as e:
-        lines.append(f"  LiteLLM: Error - {e}")
-
-    # Query direct vLLM instances (for operational visibility)
-    for label, url in [
-        ("FOUNDRY coordinator", settings.vllm_node1_url),
-        ("WORKSHOP worker", settings.vllm_node2_url),
-        ("DEV embedding", settings.vllm_embedding_url),
-    ]:
+    for label, service in registry.model_targets:
         try:
-            resp = httpx.get(f"{url}/models", timeout=5)
+            target = service.models_url or service.url("/v1/models")
+            resp = httpx.get(
+                target,
+                headers=dict(service.headers),
+                timeout=5,
+            )
             data = resp.json()
-            for m in data.get("data", []):
-                lines.append(f"  {label}: {m['id']}")
-        except Exception as e:
-            lines.append(f"  {label}: Error - {e}")
+            models = data.get("data", [])
+            if not models:
+                lines.append(f"  {label}: no models reported")
+                continue
+            lines.append(f"  {label}:")
+            for model in models:
+                owned_by = model.get("owned_by")
+                suffix = f" (owned_by: {owned_by})" if owned_by else ""
+                lines.append(f"    - {model['id']}{suffix}")
+        except Exception as exc:
+            lines.append(f"  {label}: Error - {exc}")
 
     return "\n".join(lines)
 
 
 @tool
 def get_storage_info() -> str:
-    """Get storage usage information for the VAULT NFS server."""
+    """Get storage usage information for the VAULT storage plane."""
     try:
-        query = 'node_filesystem_avail_bytes{instance=~"192.168.1.203.*",fstype!~"tmpfs|devtmpfs|overlay"}'
+        query = (
+            "node_filesystem_avail_bytes{"
+            f'instance=~"{registry.vault_instance_regex}.*",'
+            'fstype!~"tmpfs|devtmpfs|overlay"'
+            "}"
+        )
         resp = httpx.get(
-            f"{settings.prometheus_url}/api/v1/query",
+            registry.prometheus.url("/api/v1/query"),
             params={"query": query},
             timeout=5,
         )
         data = resp.json()
         lines = ["Storage (VAULT):"]
-        for r in data.get("data", {}).get("result", []):
-            mount = r["metric"].get("mountpoint", "?")
-            avail_gb = float(r["value"][1]) / (1024**3)
+        for result in data.get("data", {}).get("result", []):
+            mount = result["metric"].get("mountpoint", "?")
+            avail_gb = float(result["value"][1]) / (1024 ** 3)
             lines.append(f"  {mount}: {avail_gb:.1f} GB available")
         return "\n".join(lines) if len(lines) > 1 else "No storage metrics available."
-    except Exception as e:
-        return f"Error querying storage: {e}"
+    except Exception as exc:
+        return f"Error querying storage: {exc}"

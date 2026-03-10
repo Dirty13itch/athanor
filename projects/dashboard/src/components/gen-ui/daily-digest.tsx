@@ -28,22 +28,16 @@ export function DailyDigest() {
       };
 
       try {
-        const [statsRes, notifRes] = await Promise.all([
-          fetch("/api/agents/proxy?path=/v1/tasks/stats", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-          fetch("/api/agents/proxy?path=/v1/notifications&status=pending", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-        ]);
+        const workforceRes = await fetch("/api/workforce", {
+          signal: AbortSignal.timeout(5000),
+        }).catch(() => null);
 
-        if (statsRes?.ok) {
-          const stats = await statsRes.json();
-          digest.tasksCompleted = stats.completed ?? 0;
-          digest.tasksFailed = stats.failed ?? 0;
-          digest.tasksRunning = stats.currently_running ?? stats.running ?? 0;
-        }
-
-        if (notifRes?.ok) {
-          const notifs = await notifRes.json();
-          const items = notifs.notifications ?? notifs ?? [];
-          digest.pendingApprovals = Array.isArray(items) ? items.length : 0;
+        if (workforceRes?.ok) {
+          const workforce = await workforceRes.json();
+          digest.tasksCompleted = workforce?.summary?.completedTasks ?? 0;
+          digest.tasksFailed = workforce?.summary?.failedTasks ?? 0;
+          digest.tasksRunning = workforce?.summary?.runningTasks ?? 0;
+          digest.pendingApprovals = workforce?.summary?.pendingApprovals ?? 0;
         }
       } catch {
         // Best effort

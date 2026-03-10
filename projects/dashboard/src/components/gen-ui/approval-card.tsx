@@ -17,10 +17,10 @@ export function ApprovalCard({ notificationId, agent, action, detail }: Approval
   async function handleResolve(decision: "approved" | "rejected") {
     setLoading(true);
     try {
-      const res = await fetch(`/api/agents/proxy?path=/v1/notifications/${notificationId}/resolve`, {
+      const res = await fetch(`/api/workforce/notifications/${notificationId}/resolve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resolution: decision }),
+        body: JSON.stringify({ approved: decision === "approved" }),
       });
       if (res.ok) {
         setResolved(decision);

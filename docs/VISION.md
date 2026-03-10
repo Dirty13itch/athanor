@@ -4,7 +4,7 @@
 
 An athanor is an alchemist's self-feeding furnace — designed to maintain its own heat indefinitely without constant attention. The alchemist loads it, sets the conditions, and the furnace does the slow, continuous work of transformation. The quality of the vessel determines the quality of the output.
 
-Athanor is a unified local system that ties together AI, media, home automation, creative tools, game development, and infrastructure into one coherent, well-crafted whole. Shaun is the alchemist — he sets the vision and makes judgment calls. Claude is the master craftsman — the COO who tends the furnace, directs the workforce, and keeps the fire burning. The 8 local agents are the specialized workers. Athanor is the furnace itself.
+Athanor is a unified local system that ties together AI, media, home automation, creative tools, game development, and infrastructure into one coherent, well-crafted whole. Shaun is the alchemist — he sets the vision and makes judgment calls. Claude is the master craftsman — the COO who tends the furnace, directs the workforce, and keeps the fire burning. The 9 local agents are the specialized workers. Athanor is the furnace itself.
 
 ---
 
@@ -78,9 +78,9 @@ Some agents are proactive (running in the background, doing things without being
 
 **Chat** — A conversational interface to the whole system. Not just a chatbot — a way to ask questions, trigger actions, and get status from anywhere in Athanor.
 
-**Claude Code as COO** — Claude Code is not just a coding assistant. It is the **operational leader** of Athanor — the meta orchestrator that sits between Shaun and the local agent workforce. Claude makes operational decisions, directs local agents, maintains the infrastructure, keeps documentation accurate, and drives the roadmap forward. Shaun sets the vision and makes judgment calls. Claude runs the system. The 8 local agents are Claude's direct reports, executing specialized work under Claude's coordination.
+**Claude Code as COO** — Claude Code is not just a coding assistant. It is the **operational leader** of Athanor — the meta orchestrator that sits between Shaun and the local agent workforce. Claude makes operational decisions, directs local agents, maintains the infrastructure, keeps documentation accurate, and drives the roadmap forward. Shaun sets the vision and makes judgment calls. Claude runs the system. The 9 local agents are Claude's direct reports, executing specialized work under Claude's coordination.
 
-**Cloud/Local AI Hybrid** — Cloud AI (Claude Code) handles architecture, reasoning, coordination, and novel problem-solving. Local AI (Qwen3-32B, Qwen3-14B, 8 agents) handles always-on operations, uncensored inference, private data, and autonomous task execution. This is not a contradiction — it's the operating model. The cloud brain directs the local workforce.
+**Cloud/Local AI Hybrid** — Cloud AI (Claude Code) handles architecture, reasoning, coordination, and novel problem-solving. Local AI (LiteLLM-routed inference plus 9 agents) handles always-on operations, uncensored inference, private data, and autonomous task execution. This is not a contradiction — it's the operating model. The cloud brain directs the local workforce.
 
 ### Game Development
 
@@ -156,7 +156,7 @@ Athanor runs as a three-tier organization. Shaun sets the vision. Claude runs th
 
 - **Shaun (Owner)** — Sets direction, reviews results, makes judgment calls, handles physical tasks and credentials.
 - **Claude (COO / Meta Orchestrator)** — Makes operational decisions, designs architecture, directs agents, maintains infrastructure, keeps docs accurate, drives the roadmap.
-- **8 Local Agents (Workforce)** — Execute domain-specific work autonomously or on command, within defined boundaries.
+- **9 Local Agents (Workforce)** — Execute domain-specific work autonomously or on command, within defined boundaries.
 
 This means Shaun doesn't need to micromanage. He opens the Command Center, sees the system state, chats with agents when he wants to, and reviews what Claude has built. Claude keeps things running between sessions.
 
@@ -167,7 +167,7 @@ Athanor's face is a unified command center — a PWA at Node 2:3001. 17 pages, 5
 - AI status (loaded models, active agents, recent tasks, trust scores)
 - Media (now playing, recent additions, library stats)
 - Home (lights, climate, presence, automations)
-- Chat panel (talk to any of the 8 agents)
+- Chat panel (talk to any of the 9 agents)
 - Task management (submit, monitor, cancel background work)
 - Goals and feedback (steering goals, daily digest, trust scores)
 
@@ -222,7 +222,7 @@ Athanor is not a fixed-scope project. It is designed to grow. New workloads, new
 
 ## What Athanor Is Not
 
-- **Not a passive tool.** Athanor has operational intelligence — Claude as COO actively manages the system, directing 8 agents that do real autonomous work. But Shaun is always the owner. The system serves his vision.
+- **Not a passive tool.** Athanor has operational intelligence — Claude as COO actively manages the system, directing 9 agents that do real autonomous work. But Shaun is always the owner. The system serves his vision.
 - **Not an enterprise system.** It doesn't need five nines of uptime, HA failover, or distributed consensus. If a node goes down, Claude investigates and Shaun fixes what requires physical presence.
 - **Not locked to any technology.** No OS, no orchestration platform, no inference engine, no framework is assumed. Everything is evaluated fresh.
 - **Not a finished product.** Athanor is always being built, always being refined. That's the point. The day it's "done" is the day it's dead.

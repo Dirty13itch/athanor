@@ -9,7 +9,6 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { config } from "@/lib/config";
 import { PushManager } from "@/components/push-manager";
 
 interface Preference {
@@ -53,9 +52,7 @@ export default function PreferencesPage() {
         limit: "20",
       });
       if (filterAgent) params.set("agent", filterAgent);
-      const res = await fetch(
-        `${config.agentServer.url}/v1/preferences?${params}`
-      );
+      const res = await fetch(`/api/preferences?${params}`);
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       const data = await res.json();
       setPreferences(data.preferences || []);
@@ -73,19 +70,16 @@ export default function PreferencesPage() {
     setStoring(true);
     setStoreSuccess(null);
     try {
-      const res = await fetch(
-        `${config.agentServer.url}/v1/preferences`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            agent: newAgent,
-            signal_type: newSignalType,
-            content: newContent,
-            category: newCategory,
-          }),
-        }
-      );
+      const res = await fetch("/api/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent: newAgent,
+          signal_type: newSignalType,
+          content: newContent,
+          category: newCategory,
+        }),
+      });
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       setStoreSuccess(`Stored: "${newContent}"`);
       setNewContent("");

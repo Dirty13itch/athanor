@@ -55,8 +55,8 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
       try {
         // Fetch tasks and activity in parallel
         const [tasksRes, activityRes] = await Promise.all([
-          fetch("/api/agents/proxy?path=/v1/tasks&limit=20", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-          fetch("/api/agents/proxy?path=/v1/activity&limit=20", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+          fetch("/api/workforce/tasks?limit=20", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+          fetch("/api/activity?limit=20", { signal: AbortSignal.timeout(5000) }).catch(() => null),
         ]);
 
         const merged: StreamEvent[] = [];

@@ -17,7 +17,7 @@ vault_pgid: "100"  # Unraid 'users' group
 prometheus_port: 9090
 grafana_port: 3000
 blackbox_exporter_port: 9115
-grafana_admin_password: "{{ vault_grafana_admin_password | default('newpass123') }}"
+grafana_admin_password: "{{ vault_grafana_admin_password | default('') }}"
 
 # Prometheus scrape targets
 prometheus_scrape_targets:
@@ -27,24 +27,48 @@ prometheus_scrape_targets:
     targets: ["{{ node1_ip }}:9100"]
   - job_name: node2-node
     targets: ["{{ node2_ip }}:9100"]
+  - job_name: dev-node
+    targets: ["{{ dev_ip }}:9100"]
   - job_name: node1-gpu
     targets: ["{{ node1_ip }}:9400"]
   - job_name: node2-gpu
     targets: ["{{ node2_ip }}:9400"]
+  - job_name: dev-gpu
+    targets: ["{{ dev_ip }}:9400"]
   - job_name: backup-exporter
     targets: ["localhost:9199"]
 
 prometheus_probe_targets:
-  - id: node1-vllm
-    name: "vLLM (Node 1)"
+  - id: foundry-coordinator
+    name: "Foundry Coordinator"
     url: "http://{{ node1_ip }}:8000/v1/models"
     category: inference
     node_id: node1
-  - id: node2-vllm
-    name: "vLLM (Node 2)"
+  - id: foundry-utility
+    name: "Foundry Utility"
+    url: "http://{{ node1_ip }}:8002/health"
+    category: inference
+    node_id: node1
+  - id: workshop-worker
+    name: "Workshop Worker"
     url: "http://{{ node2_ip }}:8000/v1/models"
     category: inference
     node_id: node2
+  - id: dev-embedding
+    name: "DEV Embedding"
+    url: "http://{{ dev_ip }}:8001/health"
+    category: knowledge
+    node_id: dev
+  - id: dev-reranker
+    name: "DEV Reranker"
+    url: "http://{{ dev_ip }}:8003/health"
+    category: knowledge
+    node_id: dev
+  - id: litellm
+    name: "LiteLLM Proxy"
+    url: "http://{{ vault_ip }}:4000/health/readiness"
+    category: inference
+    node_id: vault
   - id: agent-server
     name: "Agent Server"
     url: "http://{{ node1_ip }}:9000/health"
@@ -80,16 +104,46 @@ prometheus_probe_targets:
     url: "http://{{ node2_ip }}:9400/metrics"
     category: observability
     node_id: node2
+  - id: dev-node-exporter
+    name: "Node Exporter (DEV)"
+    url: "http://{{ dev_ip }}:9100/metrics"
+    category: observability
+    node_id: dev
+  - id: dev-dcgm-exporter
+    name: "DCGM Exporter (DEV)"
+    url: "http://{{ dev_ip }}:9400/metrics"
+    category: observability
+    node_id: dev
   - id: comfyui
     name: "ComfyUI"
     url: "http://{{ node2_ip }}:8188/system_stats"
     category: experience
     node_id: node2
-  - id: open-webui
-    name: "Open WebUI"
+  - id: dashboard
+    name: "Dashboard"
+    url: "http://{{ node2_ip }}:3001"
+    category: experience
+    node_id: node2
+  - id: workshop-open-webui
+    name: "Open WebUI (Workshop)"
     url: "http://{{ node2_ip }}:3000"
     category: experience
     node_id: node2
+  - id: vault-open-webui
+    name: "Open WebUI (VAULT)"
+    url: "http://{{ vault_ip }}:3090"
+    category: experience
+    node_id: vault
+  - id: qdrant
+    name: "Qdrant"
+    url: "http://{{ node1_ip }}:6333/collections"
+    category: knowledge
+    node_id: node1
+  - id: neo4j
+    name: "Neo4j"
+    url: "http://{{ vault_ip }}:7474"
+    category: knowledge
+    node_id: vault
   - id: sonarr
     name: "Sonarr"
     url: "http://{{ vault_ip }}:8989/ping"
@@ -109,6 +163,11 @@ prometheus_probe_targets:
     name: "Plex"
     url: "http://{{ vault_ip }}:32400/identity"
     category: media
+    node_id: vault
+  - id: home-assistant
+    name: "Home Assistant"
+    url: "http://{{ vault_ip }}:8123/api/"
+    category: home
     node_id: vault
 
 # Media services

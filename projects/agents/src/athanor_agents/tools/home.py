@@ -1,16 +1,13 @@
 import httpx
 from langchain_core.tools import tool
 
-from ..config import settings
+from ..services import registry
 
-HA_URL = "http://192.168.1.203:8123/api"
+HA_URL = registry.home_assistant_api_url
 
 
 def _ha_headers() -> dict:
-    return {
-        "Authorization": f"Bearer {settings.ha_token}",
-        "Content-Type": "application/json",
-    }
+    return dict(registry.home_assistant_headers)
 
 
 def _ha_get(path: str) -> dict | list:

@@ -26,9 +26,9 @@ Important:
 For destructive actions (deleting scenes, bulk operations), always confirm with the user first.
 
 Infrastructure:
-- Stash runs on VAULT at 192.168.1.203:9999
+- Stash runs on VAULT
 - GraphQL API for all operations
-- Inference via LiteLLM proxy at VAULT:4000
+- Inference routes through the LiteLLM proxy on VAULT
 
 Be concise. Show relevant details, skip noise."""
 

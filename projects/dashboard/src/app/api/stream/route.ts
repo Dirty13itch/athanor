@@ -1,5 +1,5 @@
 import { queryPrometheus, type PrometheusResult } from "@/lib/api";
-import { config } from "@/lib/config";
+import { config, getNodeNameFromInstance } from "@/lib/config";
 import { startNotificationBridge, getNotificationSummary } from "@/lib/notification-bridge";
 
 // Start the notification → push bridge (module-level singleton, runs once)
@@ -26,12 +26,6 @@ interface StreamPayload {
   timestamp: string;
 }
 
-function nodeFromInstance(instance: string): string {
-  if (instance.includes("192.168.1.244")) return "Foundry";
-  if (instance.includes("192.168.1.225")) return "Workshop";
-  return instance;
-}
-
 async function fetchSnapshot(): Promise<StreamPayload> {
   // GPU metrics
   const [utilization, memUsed, memTotal, temperature, power] = await Promise.all([
@@ -51,7 +45,7 @@ async function fetchSnapshot(): Promise<StreamPayload> {
     gpuMap.set(key, {
       index: gpuIdx,
       name: r.metric.modelName ?? r.metric.gpu_name ?? "GPU",
-      node: nodeFromInstance(instance),
+      node: getNodeNameFromInstance(instance),
       utilization: parseFloat(r.value[1]),
       temperature: 0,
       memUsedGB: 0,

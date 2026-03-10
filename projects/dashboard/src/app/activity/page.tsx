@@ -6,7 +6,6 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { config } from "@/lib/config";
 import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
 
 interface ActivityItem {
@@ -41,9 +40,7 @@ export default function ActivityPage() {
     try {
       const params = new URLSearchParams({ limit: limit.toString() });
       if (filterAgent) params.set("agent", filterAgent);
-      const res = await fetch(
-        `${config.agentServer.url}/v1/activity?${params}`
-      );
+      const res = await fetch(`/api/activity?${params}`);
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       const data = await res.json();
       setItems(data.activity || []);

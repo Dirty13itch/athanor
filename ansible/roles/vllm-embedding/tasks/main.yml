@@ -38,3 +38,13 @@
   delay: 5
   until: vllm_embedding_health.status == 200
   when: not ansible_check_mode
+
+- name: Wait for vLLM reranker health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ vllm_reranker_port }}/health"
+    status_code: 200
+  register: vllm_reranker_health
+  retries: 20
+  delay: 5
+  until: vllm_reranker_health.status == 200
+  when: not ansible_check_mode

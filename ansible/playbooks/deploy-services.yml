@@ -24,3 +24,10 @@
     - comfyui
     - dashboard
     - open-webui
+
+- name: Deploy DEV retrieval services
+  hosts: dev
+  become: true
+  roles:
+    - monitoring
+    - vllm-embedding

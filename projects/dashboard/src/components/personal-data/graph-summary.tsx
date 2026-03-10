@@ -1,8 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const NEO4J_URL = "http://192.168.1.203:7474";
-const NEO4J_AUTH = Buffer.from("neo4j:athanor2026").toString("base64");
+import { config } from "@/lib/config";
+import { getNeo4jAuthHeader } from "@/lib/server-config";
 
 interface Neo4jResponse {
   results: { data: { row: (string | number)[] }[] }[];
@@ -11,11 +10,16 @@ interface Neo4jResponse {
 
 async function cypher(statement: string): Promise<Neo4jResponse | null> {
   try {
-    const res = await fetch(`${NEO4J_URL}/db/neo4j/tx/commit`, {
+    const authHeader = getNeo4jAuthHeader();
+    if (!authHeader) {
+      return null;
+    }
+
+    const res = await fetch(`${config.neo4j.url}/db/neo4j/tx/commit`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${NEO4J_AUTH}`,
+        Authorization: authHeader,
       },
       body: JSON.stringify({ statements: [{ statement }] }),
       signal: AbortSignal.timeout(5000),

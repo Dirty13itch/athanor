@@ -3,7 +3,9 @@
 import httpx
 from langchain_core.tools import tool
 
-STASH_URL = "http://192.168.1.203:9999/graphql"
+from ..services import registry
+
+STASH_URL = registry.stash_graphql_url
 
 
 def _stash_query(query: str, variables: dict | None = None) -> dict:
