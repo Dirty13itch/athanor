@@ -12,14 +12,19 @@ Usage:
 
 import argparse
 import json
+import os
 import sys
 import time
 from urllib.request import Request, urlopen
 from urllib.error import URLError
 
-LITELLM_URL = "http://192.168.1.203:4000"
-LITELLM_KEY = "sk-athanor-litellm-2026"
-LANGFUSE_URL = "http://192.168.1.203:3030"
+LITELLM_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/")
+LITELLM_KEY = (
+    os.environ.get("ATHANOR_LITELLM_API_KEY")
+    or os.environ.get("LITELLM_API_KEY")
+    or os.environ.get("OPENAI_API_KEY", "")
+)
+LANGFUSE_URL = (os.environ.get("ATHANOR_LANGFUSE_URL") or "http://192.168.1.203:3030").rstrip("/")
 
 # Test categories with representative prompts
 CATEGORIES = {

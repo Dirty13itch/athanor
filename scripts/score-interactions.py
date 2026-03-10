@@ -16,13 +16,19 @@ Scores each interaction on:
 import argparse
 import asyncio
 import json
+import os
 import sys
 import time
 
 import httpx
 
-LITELLM_URL = "http://192.168.1.203:4000/v1/chat/completions"
-LITELLM_KEY = "sk-athanor-litellm-2026"
+LITELLM_BASE_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/")
+LITELLM_URL = f"{LITELLM_BASE_URL}/v1/chat/completions"
+LITELLM_KEY = (
+    os.environ.get("ATHANOR_LITELLM_API_KEY")
+    or os.environ.get("LITELLM_API_KEY")
+    or os.environ.get("OPENAI_API_KEY", "")
+)
 DEFAULT_MODEL = "reasoning"
 DEFAULT_MAX_CONCURRENT = 5
 

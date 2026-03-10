@@ -78,8 +78,13 @@ def qdrant_search(
         limit: Number of results to return (default 5)
     """
     # Get embedding from LiteLLM
-    litellm_url = os.environ.get("LITELLM_URL", "http://192.168.1.203:4000/v1")
-    litellm_key = os.environ.get("LITELLM_KEY", "sk-athanor-litellm-2026")
+    litellm_url = os.environ.get("ATHANOR_LITELLM_URL") or os.environ.get("LITELLM_URL", "http://192.168.1.203:4000/v1")
+    litellm_key = (
+        os.environ.get("ATHANOR_LITELLM_API_KEY")
+        or os.environ.get("LITELLM_KEY")
+        or os.environ.get("LITELLM_API_KEY")
+        or os.environ.get("OPENAI_API_KEY", "")
+    )
 
     embed_resp = httpx.post(
         f"{litellm_url}/embeddings",

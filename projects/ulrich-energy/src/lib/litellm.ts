@@ -1,8 +1,15 @@
 // LiteLLM client for report generation
 // Routes through VAULT LiteLLM proxy — cloud models for client-facing quality
 
-const LITELLM_BASE_URL = process.env.LITELLM_BASE_URL || "http://192.168.1.203:4000/v1";
-const LITELLM_API_KEY = process.env.LITELLM_API_KEY || "sk-athanor-litellm-2026";
+const LITELLM_BASE_URL =
+  process.env.ATHANOR_LITELLM_URL ||
+  process.env.LITELLM_BASE_URL ||
+  "http://192.168.1.203:4000/v1";
+const LITELLM_API_KEY =
+  process.env.ATHANOR_LITELLM_API_KEY ||
+  process.env.LITELLM_API_KEY ||
+  process.env.OPENAI_API_KEY ||
+  "";
 
 interface ChatMessage {
   role: "system" | "user" | "assistant";

@@ -3,7 +3,7 @@
 
 # Point at LiteLLM on VAULT
 openai-api-base: http://vault:4000/v1
-openai-api-key: sk-athanor-key
+openai-api-key: <ATHANOR_LITELLM_API_KEY>
 
 # Default model: Qwen3.5-35B-A3B on WORKSHOP 5090 (via LiteLLM "worker" slot)
 model: openai/worker

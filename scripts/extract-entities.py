@@ -28,6 +28,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -37,8 +38,13 @@ import urllib.request
 QDRANT_URL = "http://192.168.1.244:6333"
 COLLECTION = "personal_data"
 
-LITELLM_URL = "http://192.168.1.203:4000/v1/chat/completions"
-LITELLM_KEY = "sk-athanor-litellm-2026"
+LITELLM_BASE_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/")
+LITELLM_URL = f"{LITELLM_BASE_URL}/v1/chat/completions"
+LITELLM_KEY = (
+    os.environ.get("ATHANOR_LITELLM_API_KEY")
+    or os.environ.get("LITELLM_API_KEY")
+    or os.environ.get("OPENAI_API_KEY", "")
+)
 LLM_MODEL = "fast"
 
 NEO4J_URL = "http://192.168.1.203:7474/db/neo4j/tx/commit"
@@ -412,7 +418,7 @@ def check_litellm():
     """Verify LiteLLM is reachable."""
     try:
         req = urllib.request.Request(
-            "http://192.168.1.203:4000/v1/models",
+            f"{LITELLM_BASE_URL}/v1/models",
             headers={"Authorization": f"Bearer {LITELLM_KEY}"},
         )
         with urllib.request.urlopen(req, timeout=5) as resp:

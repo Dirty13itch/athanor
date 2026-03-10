@@ -1,4 +1,4 @@
-# Session Log — 2026-03-08
+# Session Log â€” 2026-03-08
 
 ## Environment Setup Verification
 
@@ -14,9 +14,9 @@ Verified all items from the 11-part deployment checklist. Found that commit `d11
 
 ### Issues Found and Fixed
 
-1. **Goose profiles.yaml invalid YAML** — had `[providers]` TOML syntax. Rewrote as valid YAML.
-2. **Goose env vars missing** — `OPENAI_BASE_URL` and `OPENAI_API_KEY` not set anywhere. Added to `~/.bashrc`.
-3. **Goose had wrong API key** — was `sk-athanor-key`, actual LiteLLM master key is `sk-athanor-litellm-2026`.
+1. **Goose profiles.yaml invalid YAML** â€” had `[providers]` TOML syntax. Rewrote as valid YAML.
+2. **Goose env vars missing** â€” `OPENAI_BASE_URL` and `OPENAI_API_KEY` not set anywhere. Added to `~/.bashrc`.
+3. **Goose had wrong API key** â€” was `<ATHANOR_LITELLM_API_KEY>`, actual LiteLLM master key is `<ATHANOR_LITELLM_API_KEY>`.
 
 ### Verified Working
 
@@ -26,40 +26,40 @@ Verified all items from the 11-part deployment checklist. Found that commit `d11
 
 ## Outstanding Items Executed
 
-### 1. Goose env vars → `.bashrc` — DONE
-Added `OPENAI_BASE_URL=http://vault:4000/v1` and `OPENAI_API_KEY=sk-athanor-litellm-2026`.
+### 1. Goose env vars â†’ `.bashrc` â€” DONE
+Added `OPENAI_BASE_URL=http://vault:4000/v1` and `OPENAI_API_KEY=<ATHANOR_LITELLM_API_KEY>`.
 
-### 2. Ansible vault-password — BLOCKED
+### 2. Ansible vault-password â€” BLOCKED
 `ansible.cfg` expects `vault-password` file. File does not exist. `secrets.vault.yml` is encrypted. Shaun needs to provide the encryption password.
 
-### 3. FOUNDRY GPU 4 — NOTED
-16 GB VRAM idle. No action taken — production node, requires explicit approval for new deployments.
+### 3. FOUNDRY GPU 4 â€” NOTED
+16 GB VRAM idle. No action taken â€” production node, requires explicit approval for new deployments.
 
-### 4. Test harness — DONE
-Created `tests/harness.py` — validates all 12 endpoints across the cluster. Supports `--quick` (health only) and `--json` output. Logs to `logs/endpoint-tests/<timestamp>.json`. First run: 12/12 healthy.
+### 4. Test harness â€” DONE
+Created `tests/harness.py` â€” validates all 12 endpoints across the cluster. Supports `--quick` (health only) and `--json` output. Logs to `logs/endpoint-tests/<timestamp>.json`. First run: 12/12 healthy.
 
-### 5. Cloud connectors — NOTED
+### 5. Cloud connectors â€” NOTED
 Hugging Face and Vercel connectors on claude.ai are low value. Can only be disabled from claude.ai UI, not local config.
 
-### 6. Loose scripts consolidated — DONE
+### 6. Loose scripts consolidated â€” DONE
 Moved 4 scripts from `~/dev/` to `~/repos/athanor/scripts/`:
-- `gen-switch.sh` — switch between ComfyUI and Wan2GP
-- `prepare-dataset.py` — automated LoRA dataset prep (face detection + cropping)
-- `prepare-dataset.sh` — shell wrapper for dataset prep
-- `train-lora.sh` — LoRA training launcher
+- `gen-switch.sh` â€” switch between ComfyUI and Wan2GP
+- `prepare-dataset.py` â€” automated LoRA dataset prep (face detection + cropping)
+- `prepare-dataset.sh` â€” shell wrapper for dataset prep
+- `train-lora.sh` â€” LoRA training launcher
 
-### 7. EoBQ master doc consolidated — DONE
+### 7. EoBQ master doc consolidated â€” DONE
 Moved 81KB EoBQ master document from `~/dev/docs/` to `athanor/projects/eoq/docs/eoq-master-document.md`.
 
-### 8. Obsolete repos deleted — DONE
-- `~/Local-System/` — non-git fragment, all files already in `~/repos/reference/local-system/`
-- `~/dev/local-system-v4-old/` — abandoned 3-commit fork, no remote
+### 8. Obsolete repos deleted â€” DONE
+- `~/Local-System/` â€” non-git fragment, all files already in `~/repos/reference/local-system/`
+- `~/dev/local-system-v4-old/` â€” abandoned 3-commit fork, no remote
 
-### 9. local-system-v4 CLAUDE.md fixed — DONE
+### 9. local-system-v4 CLAUDE.md fixed â€” DONE
 Replaced `/opt/reference/` paths with correct `~/repos/reference/` paths. Added athanor as successor reference.
 
-### 10. Local-System deduplication — DEFERRED
-`~/dev/local-system-v4` (commit 19e3c2e) is ahead of `~/repos/reference/local-system/` (commit 8a19946). Not true duplicates — dev copy is active, reference copy is snapshot. Left as-is.
+### 10. Local-System deduplication â€” DEFERRED
+`~/dev/local-system-v4` (commit 19e3c2e) is ahead of `~/repos/reference/local-system/` (commit 8a19946). Not true duplicates â€” dev copy is active, reference copy is snapshot. Left as-is.
 
 ## Cluster State (verified live)
 
@@ -70,7 +70,7 @@ Replaced `/opt/reference/` paths with correct `~/repos/reference/` paths. Added 
 | VAULT (.203) | 41 | 0 (storage) | All OK |
 | DEV (.189) | 2 | 1/1 | All OK |
 
-### 11. Ansible vault-password — DONE
+### 11. Ansible vault-password â€” DONE
 Vault file was encrypted with an unknown password. Recovered all secrets from:
 - Git history (commit f5ff2c4): Sonarr, Radarr, Tautulli API keys
 - Running containers: LangFuse secrets (pg password, encryption key, salt, nextauth secret, minio password)

@@ -11,7 +11,6 @@ defaultTest:
       id: openai:chat:fast
       config:
         apiBaseUrl: http://192.168.1.203:4000/v1
-        apiKey: sk-athanor-litellm-2026
     transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
 
 providers:
@@ -19,13 +18,11 @@ providers:
     label: "Qwen3.5-27B-FP8 (reasoning)"
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
-      apiKey: sk-athanor-litellm-2026
 
   - id: openai:chat:creative
     label: "Qwen3.5-35B-A3B-AWQ (creative)"
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
-      apiKey: sk-athanor-litellm-2026
 
 prompts:
   - "{{prompt}}"

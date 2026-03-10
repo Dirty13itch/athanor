@@ -26,6 +26,7 @@ and upserts into the Qdrant 'knowledge' collection.
 import argparse
 import hashlib
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -47,8 +48,12 @@ EXTRA_FILES = [
 ]
 
 QDRANT_URL = "http://192.168.1.244:6333"
-LITELLM_URL = "http://192.168.1.203:4000/v1"
-LITELLM_KEY = "sk-athanor-litellm-2026"
+LITELLM_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/") + "/v1"
+LITELLM_KEY = (
+    os.environ.get("ATHANOR_LITELLM_API_KEY")
+    or os.environ.get("LITELLM_API_KEY")
+    or os.environ.get("OPENAI_API_KEY", "")
+)
 NEO4J_URL = "http://192.168.1.203:7474"
 NEO4J_AUTH = ("neo4j", "athanor2026")
 COLLECTION = "knowledge"

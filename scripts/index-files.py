@@ -34,8 +34,12 @@ from pathlib import Path
 
 # --- Config ---
 QDRANT_URL = "http://192.168.1.244:6333"
-LITELLM_URL = "http://192.168.1.203:4000/v1"
-LITELLM_KEY = "sk-athanor-litellm-2026"
+LITELLM_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/") + "/v1"
+LITELLM_KEY = (
+    os.environ.get("ATHANOR_LITELLM_API_KEY")
+    or os.environ.get("LITELLM_API_KEY")
+    or os.environ.get("OPENAI_API_KEY", "")
+)
 COLLECTION = "personal_data"
 
 # Auto-detect: Node 1 container path or DEV via SSH

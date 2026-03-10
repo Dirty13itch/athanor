@@ -130,7 +130,7 @@ providers:
   - id: openai:chat:reasoning
     config:
       apiBaseUrl: http://vault.lan:4000/v1
-      apiKey: sk-athanor-litellm-2026
+      apiKey: <ATHANOR_LITELLM_API_KEY>
 
 prompts:
   - file://agents/general-assistant/system.md

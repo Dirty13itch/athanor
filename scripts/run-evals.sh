@@ -10,6 +10,8 @@ REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 EVAL_CONFIG="$REPO_DIR/evals/promptfooconfig.yaml"
 OUTPUT_DIR="$REPO_DIR/evals/results"
 OUTPUT_FILE="${1:-$OUTPUT_DIR/baseline-$(date +%Y-%m-%d).json}"
+LITELLM_BASE_URL="${ATHANOR_LITELLM_URL:-http://192.168.1.203:4000}"
+LITELLM_API_KEY="${ATHANOR_LITELLM_API_KEY:-${OPENAI_API_KEY:-}}"
 
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
     echo "Usage: $0 [--output FILE]" >&2
@@ -21,13 +23,18 @@ if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
 fi
 
 # Check LiteLLM is reachable
-if ! curl -sf -H "Authorization: Bearer sk-athanor-litellm-2026" http://192.168.1.203:4000/health > /dev/null 2>&1; then
-    echo "ERROR: LiteLLM not reachable at 192.168.1.203:4000" >&2
+if [ -z "${LITELLM_API_KEY}" ]; then
+    echo "ERROR: set ATHANOR_LITELLM_API_KEY or OPENAI_API_KEY before running evals" >&2
     exit 1
 fi
 
-export OPENAI_API_KEY="sk-athanor-litellm-2026"
-export OPENAI_BASE_URL="http://192.168.1.203:4000/v1"
+if ! curl -sf -H "Authorization: Bearer ${LITELLM_API_KEY}" "${LITELLM_BASE_URL}/health" > /dev/null 2>&1; then
+    echo "ERROR: LiteLLM not reachable at ${LITELLM_BASE_URL}" >&2
+    exit 1
+fi
+
+export OPENAI_API_KEY="${LITELLM_API_KEY}"
+export OPENAI_BASE_URL="${LITELLM_BASE_URL%/}/v1"
 
 mkdir -p "$OUTPUT_DIR"
 

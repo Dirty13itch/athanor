@@ -16,6 +16,7 @@ Options:
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 import time
@@ -29,8 +30,12 @@ DEFAULT_PATHS = [
 ]
 
 QDRANT_URL = "http://192.168.1.244:6333"
-EMBEDDING_URL = "http://192.168.1.203:4000/v1"
-EMBEDDING_KEY = "sk-athanor-litellm-2026"
+EMBEDDING_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/") + "/v1"
+EMBEDDING_KEY = (
+    os.environ.get("ATHANOR_LITELLM_API_KEY")
+    or os.environ.get("LITELLM_API_KEY")
+    or os.environ.get("OPENAI_API_KEY", "")
+)
 COLLECTION = "personal_data"
 
 

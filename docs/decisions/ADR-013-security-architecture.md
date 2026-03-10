@@ -61,7 +61,7 @@ AllowedIPs = 10.10.50.3/32
 - vLLM instances bind to 10GbE data plane only — not accessible from 1GbE home network
 - Dashboard requires authentication (session-based or basic auth)
 - API endpoints require API keys for service-to-service calls
-- LiteLLM proxy (VAULT:4000) authenticates with `sk-athanor-litellm-2026`
+- LiteLLM proxy (VAULT:4000) authenticates with the vaulted `ATHANOR_LITELLM_API_KEY`
 - Unraid web UI restricted to management VLAN only
 
 #### Layer 3: Secrets Management

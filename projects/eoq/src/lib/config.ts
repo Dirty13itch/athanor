@@ -2,8 +2,15 @@
 
 export const config = {
   /** LiteLLM proxy URL (server-side only, proxied via API routes) */
-  litellmUrl: process.env.LITELLM_URL || "http://192.168.1.203:4000",
-  litellmKey: process.env.LITELLM_KEY || "sk-athanor-litellm-2026",
+  litellmUrl:
+    process.env.ATHANOR_LITELLM_URL ||
+    process.env.LITELLM_URL ||
+    "http://192.168.1.203:4000",
+  litellmKey:
+    process.env.ATHANOR_LITELLM_API_KEY ||
+    process.env.LITELLM_KEY ||
+    process.env.OPENAI_API_KEY ||
+    "",
 
   /** ComfyUI URL (server-side only) */
   comfyuiUrl: process.env.COMFYUI_URL || "http://192.168.1.225:8188",

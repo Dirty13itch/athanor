@@ -612,11 +612,11 @@ miniflux_image: "miniflux/miniflux:2.2"
 miniflux_postgres_image: "postgres:16-alpine"
 
 miniflux_pg_user: miniflux
-miniflux_pg_password: "{{ vault_miniflux_pg_password | default('miniflux-athanor-2026') }}"
+miniflux_pg_password: "{{ vault_miniflux_pg_password | default('<vault_miniflux_pg_password>') }}"
 miniflux_pg_db: miniflux
 
 miniflux_admin_user: athanor
-miniflux_admin_password: "{{ vault_miniflux_admin_password | default('athanor-miniflux-2026') }}"
+miniflux_admin_password: "{{ vault_miniflux_admin_password | default('<vault_miniflux_admin_password>') }}"
 miniflux_create_admin: "1"
 
 miniflux_polling_frequency: 30
@@ -633,7 +633,7 @@ n8n_image: "n8nio/n8n:1.100"
 n8n_postgres_image: "postgres:16-alpine"
 
 n8n_pg_user: n8n
-n8n_pg_password: "{{ vault_n8n_pg_password | default('n8n-athanor-2026') }}"
+n8n_pg_password: "{{ vault_n8n_pg_password | default('<vault_n8n_pg_password>') }}"
 n8n_pg_db: n8n
 ```
 

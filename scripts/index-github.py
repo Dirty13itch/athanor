@@ -20,6 +20,7 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import time
@@ -27,8 +28,12 @@ import urllib.request
 import urllib.error
 
 QDRANT_URL = "http://192.168.1.244:6333"
-EMBEDDING_URL = "http://192.168.1.203:4000/v1"
-EMBEDDING_KEY = "sk-athanor-litellm-2026"
+EMBEDDING_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/") + "/v1"
+EMBEDDING_KEY = (
+    os.environ.get("ATHANOR_LITELLM_API_KEY")
+    or os.environ.get("LITELLM_API_KEY")
+    or os.environ.get("OPENAI_API_KEY", "")
+)
 COLLECTION = "personal_data"
 BATCH_SIZE = 20
 
@@ -418,7 +423,6 @@ def main():
         # Save fetched data as JSON for --input reuse
         cache_path = "docs/data/github-repos.json"
         try:
-            import os
             os.makedirs(os.path.dirname(cache_path), exist_ok=True)
             with open(cache_path, "w") as f:
                 json.dump({"owned": owned, "starred": starred}, f, indent=2)

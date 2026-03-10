@@ -74,7 +74,7 @@ Configuration is simple:
 export ANTHROPIC_BASE_URL=http://localhost:11434  # Ollama
 # or
 export ANTHROPIC_BASE_URL=http://vault.lan:4000   # LiteLLM
-export ANTHROPIC_AUTH_TOKEN=sk-athanor-litellm-2026
+export ANTHROPIC_AUTH_TOKEN=<ATHANOR_LITELLM_API_KEY>
 ```
 
 ### What Works
@@ -241,7 +241,7 @@ Goose natively supports LiteLLM as a provider [25]:
 ```bash
 export GOOSE_PROVIDER=litellm
 export LITELLM_HOST=http://vault.lan:4000
-export LITELLM_API_KEY=sk-athanor-litellm-2026
+export LITELLM_API_KEY=<ATHANOR_LITELLM_API_KEY>
 ```
 
 Automatic prompt caching is enabled when using Claude via LiteLLM. Custom headers and timeouts are configurable.

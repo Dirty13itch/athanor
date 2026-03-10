@@ -13,7 +13,6 @@ defaultTest:
       id: openai:chat:fast
       config:
         apiBaseUrl: http://192.168.1.203:4000/v1
-        apiKey: sk-athanor-litellm-2026
     # Strip think tags from model outputs before grading
     transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
 
@@ -21,12 +20,10 @@ providers:
   - id: openai:chat:reasoning
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
-      apiKey: sk-athanor-litellm-2026
 
   - id: openai:chat:fast
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
-      apiKey: sk-athanor-litellm-2026
 
 prompts:
   - "{{prompt}}"

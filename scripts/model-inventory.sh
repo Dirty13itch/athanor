@@ -6,9 +6,14 @@ set -euo pipefail
 
 VAULT_HOST="192.168.1.203"
 LITELLM_URL="http://${VAULT_HOST}:4000"
-LITELLM_KEY="sk-athanor-litellm-2026"
+LITELLM_KEY="${ATHANOR_LITELLM_API_KEY:-${LITELLM_API_KEY:-${OPENAI_API_KEY:-}}}"
 FOUNDRY_HOST="192.168.1.244"
 WORKSHOP_HOST="192.168.1.225"
+
+if [ -z "${LITELLM_KEY}" ]; then
+    echo "ERROR: set ATHANOR_LITELLM_API_KEY, LITELLM_API_KEY, or OPENAI_API_KEY before running model-inventory.sh" >&2
+    exit 1
+fi
 
 echo "============================================"
 echo "ATHANOR MODEL INVENTORY"

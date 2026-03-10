@@ -142,7 +142,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -215,7 +215,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -310,7 +310,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -383,7 +383,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -478,7 +478,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -551,7 +551,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -646,7 +646,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -719,7 +719,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -814,7 +814,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -887,7 +887,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -982,7 +982,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -1055,7 +1055,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -1151,7 +1151,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -1224,7 +1224,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -1320,7 +1320,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -1393,7 +1393,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -1489,7 +1489,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -1562,7 +1562,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -1658,7 +1658,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -1731,7 +1731,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -1824,7 +1824,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -1901,7 +1901,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -1994,7 +1994,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -2071,7 +2071,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -2166,7 +2166,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -2239,7 +2239,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -2334,7 +2334,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -2407,7 +2407,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -2502,7 +2502,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -2575,7 +2575,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -2670,7 +2670,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -2743,7 +2743,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -2839,7 +2839,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -2912,7 +2912,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -3007,7 +3007,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -3080,7 +3080,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -3175,7 +3175,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -3248,7 +3248,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -3343,7 +3343,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -3416,7 +3416,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -3511,7 +3511,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -3584,7 +3584,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -3679,7 +3679,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -3752,7 +3752,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -3847,7 +3847,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -3920,7 +3920,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -4015,7 +4015,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -4088,7 +4088,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -4183,7 +4183,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -4256,7 +4256,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -4351,7 +4351,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -4424,7 +4424,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -4519,7 +4519,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -4592,7 +4592,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -4687,7 +4687,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -4760,7 +4760,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -4856,7 +4856,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -4929,7 +4929,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -5024,7 +5024,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -5097,7 +5097,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -5201,7 +5201,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -5278,7 +5278,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -5382,7 +5382,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -5459,7 +5459,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -5554,7 +5554,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -5627,7 +5627,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -5722,7 +5722,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -5795,7 +5795,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -5891,7 +5891,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -5964,7 +5964,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -6059,7 +6059,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -6132,7 +6132,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -6228,7 +6228,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -6301,7 +6301,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },
@@ -6397,7 +6397,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           }
@@ -6470,7 +6470,7 @@
               "id": "openai:chat:reasoning",
               "config": {
                 "apiBaseUrl": "http://192.168.1.203:4000/v1",
-                "apiKey": "sk-athanor-litellm-2026"
+                "apiKey": "<ATHANOR_LITELLM_API_KEY>"
               }
             }
           },

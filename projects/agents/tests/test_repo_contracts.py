@@ -85,6 +85,14 @@ CANONICAL_PROJECT_IDS = {
     "media",
 }
 
+BANNED_LITERAL_SECRETS = {
+    "sk-" + "athanor-litellm-2026",
+    "sk-" + "athanor-key",
+    "miniflux-" + "athanor-2026",
+    "athanor-" + "miniflux-2026",
+    "n8n-" + "athanor-2026",
+}
+
 
 def normalize_agent_name(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
@@ -260,7 +268,26 @@ class RepoContractsTest(unittest.TestCase):
         endpoint_harness_text = ENDPOINT_HARNESS.read_text(encoding="utf-8")
         self.assertIn("ATHANOR_LITELLM_API_KEY", endpoint_harness_text)
         self.assertIn("ATHANOR_VLLM_EMBEDDING_URL", endpoint_harness_text)
-        self.assertNotIn("sk-athanor-litellm-2026", endpoint_harness_text)
+        self.assertNotIn("sk-" + "athanor-litellm-2026", endpoint_harness_text)
+
+    def test_repo_no_longer_tracks_known_secret_literals(self) -> None:
+        violations: list[str] = []
+        allowed_suffixes = {".md", ".yml", ".yaml", ".json", ".py", ".ts", ".tsx", ".js", ".sh", ".toml", ".env"}
+
+        for path in REPO_ROOT.rglob("*"):
+            if not path.is_file():
+                continue
+            if path.suffix not in allowed_suffixes:
+                continue
+            if any(part in {".git", "node_modules", ".next", ".venv", "__pycache__"} for part in path.parts):
+                continue
+
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            for literal in BANNED_LITERAL_SECRETS:
+                if literal in text:
+                    violations.append(f"{path.relative_to(REPO_ROOT)}::{literal}")
+
+        self.assertEqual([], violations, f"Tracked secret-like literals remain in repo: {violations}")
 
 
 if __name__ == "__main__":

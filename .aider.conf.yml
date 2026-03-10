@@ -1,5 +1,5 @@
 openai-api-base: http://vault:4000/v1
-openai-api-key: sk-athanor-litellm-2026
+# Export ATHANOR_LITELLM_API_KEY or OPENAI_API_KEY before running Aider.
 model: openai/worker
 auto-commits: true
 attribute-author: false

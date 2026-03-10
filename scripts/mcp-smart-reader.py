@@ -28,8 +28,16 @@ from mcp.server.fastmcp import FastMCP
 
 # --- Configuration ---
 
-LITELLM_BASE = os.environ.get("LITELLM_BASE_URL", "http://192.168.1.203:4000/v1")
-LITELLM_KEY = os.environ.get("LITELLM_API_KEY", "sk-athanor-litellm-2026")
+LITELLM_BASE = (
+    os.environ.get("ATHANOR_LITELLM_URL")
+    or os.environ.get("LITELLM_BASE_URL")
+    or "http://192.168.1.203:4000/v1"
+)
+LITELLM_KEY = (
+    os.environ.get("ATHANOR_LITELLM_API_KEY")
+    or os.environ.get("LITELLM_API_KEY")
+    or os.environ.get("OPENAI_API_KEY", "")
+)
 LITELLM_MODEL = os.environ.get("LITELLM_MODEL", "reasoning")
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "192.168.1.203")
