@@ -644,6 +644,18 @@ export const config = {
       operators: ["Claude", "research-agent"],
     },
     {
+      id: "ulrich-energy",
+      name: "Ulrich Energy",
+      headline: "Scaffolded operational tenant for field workflows, reporting, and client-facing energy work.",
+      status: "scaffolded",
+      kind: "scaffold",
+      firstClass: false,
+      lens: "default",
+      primaryRoute: "/workplanner?project=ulrich-energy",
+      externalUrl: null,
+      operators: ["Claude", "coding-agent", "research-agent"],
+    },
+    {
       id: "media",
       name: "Media Library",
       headline: "Operational domain project spanning curation, acquisition, and catalog quality.",

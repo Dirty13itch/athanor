@@ -22,6 +22,10 @@ from datetime import datetime
 import httpx
 
 from .config import settings
+from .projects import (
+    get_project as get_registered_project,
+    get_project_definitions as get_registered_project_definitions,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,159 +46,11 @@ _LLM_KEY = settings.llm_api_key
 _LLM_MODEL = "reasoning"  # Qwen3.5-27B-FP8 TP=4 on FOUNDRY
 
 # --- Project Definitions ---
-# These define what the system knows about each project and what it needs.
-# Source of truth for what agents should proactively work on.
+# The canonical project registry now lives in athanor_agents.projects.
+# The planner consumes a compatibility projection of that registry so the
+# prompt structure stays stable while project identity becomes first-class.
 
-PROJECTS = {
-    "eoq": {
-        "name": "Empire of Broken Queens",
-        "description": (
-            "AI-driven interactive cinematic adult game. Dark fantasy setting. "
-            "Player choices affect story progression. Adult content is central "
-            "and expected — mature themes, explicit content, no censorship. "
-            "ALL OUTPUT MUST BE IN ENGLISH. Do not use Chinese or any other language."
-        ),
-        "status": "active_development",
-        "location": "projects/eoq/ (Node 2:3002)",
-        "tech": "Next.js + React 19 + Tailwind, dark theme",
-        "agents": ["creative-agent", "coding-agent", "research-agent"],
-        "needs": [
-            {
-                "type": "content",
-                "description": "Character profiles with backstories, personalities, desires, relationships",
-                "agent": "coding-agent",
-                "priority": "high",
-                "output_format": "JSON files with character data",
-            },
-            {
-                "type": "assets",
-                "description": "Character portraits — dark fantasy aesthetic, cinematic quality",
-                "agent": "creative-agent",
-                "priority": "high",
-                "output_format": "Images via ComfyUI (Flux dev + uncensored LoRA)",
-            },
-            {
-                "type": "content",
-                "description": "Scene scripts — branching narrative with player choices",
-                "agent": "coding-agent",
-                "priority": "medium",
-                "output_format": "Markdown or JSON scene definitions",
-            },
-            {
-                "type": "code",
-                "description": "Scene rendering engine — display scenes, handle choices, manage state",
-                "agent": "coding-agent",
-                "priority": "high",
-                "output_format": "React components in projects/eoq/",
-            },
-            {
-                "type": "research",
-                "description": "Visual novel UX patterns, AI-driven narrative techniques, similar games",
-                "agent": "research-agent",
-                "priority": "low",
-                "output_format": "Structured research summary",
-            },
-        ],
-        "constraints": [
-            "Adult content is intentional and required — never filter or censor",
-            "Use Flux + uncensored LoRA for NSFW visual generation",
-            "Character data stored as JSON/TypeScript in /data/ directory",
-            "Dark fantasy aesthetic throughout",
-        ],
-    },
-    "athanor": {
-        "name": "Athanor Infrastructure",
-        "description": (
-            "The system itself — agents, dashboard, monitoring, infrastructure. "
-            "Always running, always improving. The furnace that never stops."
-        ),
-        "status": "operational",
-        "location": "projects/{agents,dashboard}/, ansible/, scripts/",
-        "tech": "Python FastAPI (agents), Next.js (dashboard), Ansible (IaC)",
-        "agents": ["general-assistant", "coding-agent", "knowledge-agent"],
-        "needs": [
-            {
-                "type": "monitoring",
-                "description": "Check infrastructure health, identify degraded services, report issues",
-                "agent": "general-assistant",
-                "priority": "normal",
-                "output_format": "Status report",
-            },
-            {
-                "type": "knowledge",
-                "description": "Identify stale or missing documentation, suggest updates",
-                "agent": "knowledge-agent",
-                "priority": "low",
-                "output_format": "Gap analysis report",
-            },
-            {
-                "type": "research",
-                "description": "Track updates to key dependencies (vLLM, Qwen, ComfyUI, LangGraph)",
-                "agent": "research-agent",
-                "priority": "low",
-                "output_format": "Update report with version changes and new features",
-            },
-        ],
-        "constraints": [
-            "Infrastructure tasks lower priority than creative/project work",
-            "Don't generate busywork — only tasks with real value",
-        ],
-    },
-    "kindred": {
-        "name": "Kindred",
-        "description": (
-            "Passion-based social matching app. Concept/research phase. "
-            "Matches people by what they care about, not demographics."
-        ),
-        "status": "concept",
-        "location": "projects/kindred/",
-        "tech": "TBD",
-        "agents": ["research-agent"],
-        "needs": [
-            {
-                "type": "research",
-                "description": "Market research — passion-based matching apps, competitor analysis, user needs",
-                "agent": "research-agent",
-                "priority": "low",
-                "output_format": "Research document",
-            },
-        ],
-        "constraints": [
-            "Concept phase only — no code yet, research and ideation",
-        ],
-    },
-    "media": {
-        "name": "Media Library",
-        "description": (
-            "Plex + Sonarr + Radarr media stack. Curate and grow the library "
-            "based on Shaun's viewing patterns and interests."
-        ),
-        "status": "operational",
-        "location": "VAULT (Unraid)",
-        "tech": "Plex, Sonarr, Radarr, Tautulli",
-        "agents": ["media-agent"],
-        "needs": [
-            {
-                "type": "curation",
-                "description": "Find trending/highly-rated shows and movies matching Shaun's taste",
-                "agent": "media-agent",
-                "priority": "normal",
-                "output_format": "Suggestions with reasoning, add if confidence > 0.8",
-            },
-            {
-                "type": "monitoring",
-                "description": "Check download queue health, flag stuck items, verify library additions",
-                "agent": "media-agent",
-                "priority": "low",
-                "output_format": "Queue status report",
-            },
-        ],
-        "constraints": [
-            "Don't add content without reasoning — quality over quantity",
-            "Respect disk space constraints (VAULT at 90% capacity)",
-        ],
-    },
-}
+PROJECTS = get_registered_project_definitions()
 
 # Agent capabilities reference for the planner prompt
 AGENT_CAPABILITIES = {
@@ -802,9 +658,9 @@ async def should_refill() -> bool:
 
 def get_project_definitions() -> dict:
     """Return all project definitions."""
-    return PROJECTS
+    return get_registered_project_definitions()
 
 
 def get_project(project_id: str) -> dict | None:
     """Return a specific project definition."""
-    return PROJECTS.get(project_id)
+    return get_registered_project(project_id)

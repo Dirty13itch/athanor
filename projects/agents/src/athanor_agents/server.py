@@ -916,30 +916,17 @@ async def trigger_workplan(request: Request):
 
 @app.get("/v1/projects")
 async def get_projects():
-    """Get all project definitions used by the work planner."""
-    from .workplanner import get_project_definitions
+    """Get canonical project registry summaries for the project platform."""
+    from .projects import get_project_summaries
 
-    projects = get_project_definitions()
-    return {
-        "projects": {
-            pid: {
-                "name": p["name"],
-                "description": p["description"],
-                "status": p["status"],
-                "agents": p["agents"],
-                "needs_count": len(p["needs"]),
-                "constraints": p["constraints"],
-            }
-            for pid, p in projects.items()
-        },
-        "count": len(projects),
-    }
+    projects = get_project_summaries()
+    return {"projects": projects, "count": len(projects)}
 
 
 @app.get("/v1/projects/{project_id}")
 async def get_project_detail(project_id: str):
-    """Get detailed project definition including all needs."""
-    from .workplanner import get_project
+    """Get a detailed canonical project definition including needs and operators."""
+    from .projects import get_project
 
     project = get_project(project_id)
     if not project:

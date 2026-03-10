@@ -8,10 +8,25 @@ const ROUTES = [
   { path: "/chat", heading: "Direct Chat", snapshot: "direct-chat.png" },
   { path: "/agents", heading: "Agent Console", snapshot: "agent-console.png" },
   { path: "/activity?status=pending_approval", heading: "Activity Feed", snapshot: "history-activity.png" },
-  { path: "/review?selection=task-eoq-1", heading: "Code Review", snapshot: "intelligence-review.png" },
+  {
+    path: "/review?selection=task-eoq-1",
+    heading: "Code Review",
+    readyHeading: /Implement the next EoBQ scene renderer state machine/i,
+    snapshot: "intelligence-review.png",
+  },
   { path: "/preferences", heading: "Preferences", snapshot: "memory-preferences.png" },
-  { path: "/monitoring?panel=grafana", heading: "Monitoring", snapshot: "monitoring-console.png" },
-  { path: "/gallery?selection=gallery-1", heading: "Gallery", snapshot: "gallery-console.png" },
+  {
+    path: "/monitoring?panel=grafana",
+    heading: "Monitoring",
+    readyHeading: /Grafana/i,
+    snapshot: "monitoring-console.png",
+  },
+  {
+    path: "/gallery?selection=gallery-1",
+    heading: "Gallery",
+    readyHeading: /EoBQ\/character/i,
+    snapshot: "gallery-console.png",
+  },
   {
     path: "/home?panel=lights",
     heading: "Home",

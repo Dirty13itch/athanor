@@ -14,6 +14,7 @@ DASHBOARD_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "dashboard" / "templates"
 LITELLM_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "templates" / "litellm_config.yaml.j2"
 NODE1_PLAYBOOK = REPO_ROOT / "ansible" / "playbooks" / "node1.yml"
 NEO4J_TASKS = REPO_ROOT / "ansible" / "roles" / "vault-neo4j" / "tasks" / "main.yml"
+PROJECTS_MODULE = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "projects.py"
 
 RAW_IP_PATTERN = re.compile(r"192\.168\.1\.\d+")
 ALLOWED_DASHBOARD_IP_FILES = {
@@ -69,6 +70,14 @@ FROZEN_LITELLM_ALIASES = {
     "reranker": "http://{{ vllm_reranker_host }}:{{ vllm_reranker_port }}/v1",
 }
 
+CANONICAL_PROJECT_IDS = {
+    "athanor",
+    "eoq",
+    "kindred",
+    "ulrich-energy",
+    "media",
+}
+
 
 def normalize_agent_name(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.strip().lower()).strip("-")
@@ -110,6 +119,19 @@ def parse_litellm_alias_targets() -> dict[str, str]:
         re.MULTILINE,
     )
     return {name: api_base for name, api_base in pattern.findall(text)}
+
+
+def parse_dashboard_project_registry_ids() -> set[str]:
+    text = DASHBOARD_CONFIG.read_text(encoding="utf-8")
+    block = re.search(r"projectRegistry:\s*\[(.*?)\],\s*grafanaDashboards:", text, re.DOTALL)
+    if not block:
+        raise AssertionError("dashboard projectRegistry block not found")
+    return set(re.findall(r'id:\s*"([^"]+)"', block.group(1)))
+
+
+def parse_agent_project_registry_ids() -> set[str]:
+    text = PROJECTS_MODULE.read_text(encoding="utf-8")
+    return set(re.findall(r'"([^"]+)":\s*ProjectDefinition\(', text))
 
 
 class RepoContractsTest(unittest.TestCase):
@@ -181,6 +203,10 @@ class RepoContractsTest(unittest.TestCase):
         server_envs = set(re.findall(r"process\.env\.([A-Z0-9_]+)", DASHBOARD_SERVER_CONFIG.read_text(encoding="utf-8")))
         exported_envs = parse_compose_envs()
         self.assertEqual(set(), server_envs - exported_envs, "Server-side dashboard envs are not exported by Ansible")
+
+    def test_project_registry_fallback_matches_agent_platform_contract(self) -> None:
+        self.assertEqual(CANONICAL_PROJECT_IDS, parse_agent_project_registry_ids())
+        self.assertEqual(CANONICAL_PROJECT_IDS, parse_dashboard_project_registry_ids())
 
 
 if __name__ == "__main__":

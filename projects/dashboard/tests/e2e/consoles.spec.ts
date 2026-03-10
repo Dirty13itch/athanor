@@ -26,7 +26,7 @@ test("runs a direct chat session with streamed assistant output", async ({ page 
 
   await gotoRoute(page, "/chat", "Direct Chat");
 
-  await page.getByPlaceholder(/Message qwen3-32b/i).fill("Summarize the cluster posture.");
+  await page.getByPlaceholder(/Message /i).fill("Summarize the cluster posture.");
   await page.getByRole("button", { name: "Send" }).click();
 
   await expect(

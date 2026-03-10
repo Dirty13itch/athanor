@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getNodeNameFromInstance, joinUrl, resolveChatTarget } from "./config";
+import { getNodeNameFromInstance, getProjectById, joinUrl, resolveChatTarget } from "./config";
 
 describe("config helpers", () => {
   it("joins base urls and paths safely", () => {
@@ -17,5 +17,11 @@ describe("config helpers", () => {
     expect(getNodeNameFromInstance("http://192.168.1.244:9400")).toBe("Foundry");
     expect(getNodeNameFromInstance("http://192.168.1.225:9400")).toBe("Workshop");
     expect(getNodeNameFromInstance("http://192.168.1.189:9400")).toBe("DEV");
+  });
+
+  it("keeps the fallback project registry aligned with active and scaffolded tenants", () => {
+    expect(getProjectById("athanor")?.firstClass).toBe(true);
+    expect(getProjectById("eoq")?.firstClass).toBe(true);
+    expect(getProjectById("ulrich-energy")?.kind).toBe("scaffold");
   });
 });

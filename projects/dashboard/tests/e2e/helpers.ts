@@ -25,7 +25,8 @@ export async function gotoRoute(page: Page, path: string, heading: RegExp | stri
     throw lastError;
   }
 
-  await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+  await page.waitForLoadState("networkidle", { timeout: 3_000 }).catch(() => undefined);
+  await expect(page.getByRole("heading", { name: heading })).toBeVisible({ timeout: 15_000 });
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
