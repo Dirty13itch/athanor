@@ -46,7 +46,7 @@ groups:
         annotations:
           summary: >-
             Qdrant backup is older than 36 hours.
-            Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}s.
+            Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}.
             Check cron on FOUNDRY and NFS mount status.
 
       - uid: backup-age-neo4j
@@ -87,7 +87,7 @@ groups:
         annotations:
           summary: >-
             Neo4j backup is older than 36 hours.
-            Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}s.
+            Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}.
             Check cron on VAULT and backup-neo4j.sh script.
 
       - uid: backup-age-appdata
@@ -128,5 +128,5 @@ groups:
         annotations:
           summary: >-
             VAULT appdata backup is older than 36 hours.
-            Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}s.
+            Last backup age: {{ '{{' }} humanizeDuration $value {{ '}}' }}.
             Check cron on VAULT and backup-appdata.sh script.

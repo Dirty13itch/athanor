@@ -54,6 +54,15 @@ groups:
 
   - name: backups
     rules:
+      - alert: BackupExporterDown
+        expr: up{job="backup-exporter"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup exporter scrape target is down"
+          description: "Prometheus cannot scrape the backup freshness exporter on VAULT :9199."
+
       - alert: BackupAgeCritical
         expr: athanor_backup_age_seconds > 129600
         for: 10m

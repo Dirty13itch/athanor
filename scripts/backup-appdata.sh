@@ -3,12 +3,12 @@
 # Runs on VAULT. Creates compressed tarballs of service configs.
 #
 # Usage: ./backup-appdata.sh
-# Cron:  0 3 * * * /opt/athanor/scripts/backup-appdata.sh >> /var/log/athanor-backup.log 2>&1
+# Cron: configured by VAULT deployment; backup path can be overridden with BACKUP_DIR
 
 set -euo pipefail
 
 APPDATA_DIR="/mnt/user/appdata"
-BACKUP_DIR="/mnt/user/backups/athanor/appdata"
+BACKUP_DIR="${BACKUP_DIR:-/mnt/appdatacache/backups}"
 RETENTION_COUNT=3
 DATE=$(date +%Y-%m-%d)
 

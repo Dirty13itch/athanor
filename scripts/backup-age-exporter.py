@@ -6,11 +6,11 @@ in Prometheus text format. Designed to run on VAULT where all backup
 directories are accessible (Qdrant via NFS, Neo4j and appdata locally).
 
 Metrics:
-    athanor_backup_age_seconds{type="...",node="..."}
-    athanor_backup_last_success_timestamp{type="...",node="..."}
+    athanor_backup_age_seconds{type="...",target="...",node="..."}
+    athanor_backup_last_success_timestamp{type="...",target="...",node="..."}
 
 Usage:
-    ./backup-age-exporter.py [-h] [-p PORT] [-i INTERVAL]
+    ./backup-age-exporter.py [-h] [-p PORT]
 
 Port: 9199 (default)
 """
@@ -22,30 +22,45 @@ import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # ── Backup targets ──────────────────────────────────────────────────
-# Each entry: (type, node, directory, file_glob_pattern)
-# All paths are as seen from VAULT (where this exporter runs).
-BACKUP_TARGETS = [
-    {
-        "type": "qdrant",
-        "node": "foundry",
-        # FOUNDRY writes via NFS. On VAULT, visible at either path.
-        "directory": "/mnt/user/data/backups/athanor/qdrant",
-        "fallback_directory": "/mnt/vault/data/backups/athanor/qdrant",
-        "pattern": "*.snapshot",
-    },
-    {
-        "type": "neo4j",
-        "node": "vault",
-        "directory": "/mnt/user/backups/athanor/neo4j",
-        "pattern": "graph_*.cypher",
-    },
-    {
-        "type": "appdata",
-        "node": "vault",
-        "directory": "/mnt/user/backups/athanor/appdata",
-        "pattern": "*.tar.gz",
-    },
-]
+def _backup_targets():
+    """Return backup targets using env overrides for containerized deploys."""
+    return [
+        {
+            "type": "qdrant",
+            "node": "foundry",
+            "directory": os.environ.get(
+                "ATHANOR_QDRANT_BACKUP_DIR",
+                "/mnt/user/data/backups/athanor/qdrant",
+            ),
+            "fallback_directory": os.environ.get(
+                "ATHANOR_QDRANT_BACKUP_FALLBACK_DIR",
+                "/mnt/vault/data/backups/athanor/qdrant",
+            ),
+            "pattern": "*.snapshot",
+        },
+        {
+            "type": "neo4j",
+            "node": "vault",
+            "directory": os.environ.get(
+                "ATHANOR_NEO4J_BACKUP_DIR",
+                "/mnt/user/backups/athanor/neo4j",
+            ),
+            "pattern": "graph_*.cypher",
+        },
+        {
+            "type": "appdata",
+            "node": "vault",
+            "directory": os.environ.get(
+                "ATHANOR_APPDATA_BACKUP_DIR",
+                "/mnt/appdatacache/backups",
+            ),
+            "fallback_directory": os.environ.get(
+                "ATHANOR_APPDATA_BACKUP_FALLBACK_DIR",
+                "/mnt/user/backups/athanor/appdata",
+            ),
+            "pattern": "*.tar.gz",
+        },
+    ]
 
 
 def find_newest_mtime(target):
@@ -75,8 +90,11 @@ def collect_metrics():
     lines.append("# HELP athanor_backup_age_seconds Age of the most recent backup in seconds.")
     lines.append("# TYPE athanor_backup_age_seconds gauge")
 
-    for target in BACKUP_TARGETS:
-        label = f'type="{target["type"]}",node="{target["node"]}"'
+    for target in _backup_targets():
+        label = (
+            f'type="{target["type"]}",target="{target["type"]}",'
+            f'node="{target["node"]}"'
+        )
         mtime = find_newest_mtime(target)
         if mtime is not None:
             age = int(now - mtime)
@@ -89,8 +107,11 @@ def collect_metrics():
     lines.append("# HELP athanor_backup_last_success_timestamp Unix timestamp of the most recent backup.")
     lines.append("# TYPE athanor_backup_last_success_timestamp gauge")
 
-    for target in BACKUP_TARGETS:
-        label = f'type="{target["type"]}",node="{target["node"]}"'
+    for target in _backup_targets():
+        label = (
+            f'type="{target["type"]}",target="{target["type"]}",'
+            f'node="{target["node"]}"'
+        )
         mtime = find_newest_mtime(target)
         if mtime is not None:
             lines.append(f"athanor_backup_last_success_timestamp{{{label}}} {int(mtime)}")

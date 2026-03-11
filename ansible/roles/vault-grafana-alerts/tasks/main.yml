@@ -1,8 +1,5 @@
 ---
-# Deploy Grafana alert rules for backup age monitoring.
-# Deploys two metric sources:
-#   1. textfile collector script (bash, cron → node_exporter)
-#   2. backup-age-exporter.py (Python HTTP server on :9199, scraped directly)
+# Deploy Grafana alert rules and the backup age exporter used by Prometheus.
 
 # --- Grafana alerting provisioning ---
 
@@ -22,52 +19,6 @@
     owner: "472"
     group: "472"
   register: backup_alerts_config
-
-# --- Textfile collector directory for node_exporter ---
-
-- name: Create textfile collector directory
-  ansible.builtin.file:
-    path: "{{ textfile_collector_dir }}"
-    state: directory
-    mode: "0755"
-
-- name: Deploy backup age metrics script
-  ansible.builtin.copy:
-    src: "{{ playbook_dir }}/../../scripts/backup-age-metrics.sh"
-    dest: /opt/athanor/scripts/backup-age-metrics.sh
-    mode: "0755"
-
-- name: Schedule backup age metrics cron (every 15 minutes)
-  ansible.builtin.cron:
-    name: "athanor-backup-age-metrics"
-    minute: "*/15"
-    job: "/opt/athanor/scripts/backup-age-metrics.sh > {{ textfile_collector_dir }}/backup_age.prom 2>/dev/null"
-
-# --- Ensure node_exporter has textfile collector enabled ---
-# Note: This updates the existing node-exporter container to mount
-# the textfile collector directory and enable the collector.
-
-- name: Update node-exporter with textfile collector
-  community.docker.docker_container:
-    name: node-exporter
-    image: prom/node-exporter:latest
-    state: started
-    restart_policy: unless-stopped
-    network_mode: host
-    pid_mode: host
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-      - "{{ textfile_collector_dir }}:/var/lib/node_exporter/textfile_collector:ro"
-    command:
-      - --path.procfs=/host/proc
-      - --path.rootfs=/rootfs
-      - --path.sysfs=/host/sys
-      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
-      - --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
-    published_ports: []
-  when: not ansible_check_mode
 
 # --- Standalone backup age exporter (Python HTTP on :9199) ---
 
@@ -91,7 +42,15 @@
     network_mode: host
     volumes:
       - /opt/athanor/scripts/backup-age-exporter.py:/app/exporter.py:ro
-      - /mnt/appdatacache/backups:/mnt/appdatacache/backups:ro
+      - "{{ qdrant_backup_dir }}:/backups/qdrant:ro"
+      - "{{ neo4j_backup_dir }}:/backups/neo4j:ro"
+      - "{{ appdata_backup_dir }}:/backups/appdata:ro"
+    env:
+      ATHANOR_QDRANT_BACKUP_DIR: /backups/qdrant
+      ATHANOR_QDRANT_BACKUP_FALLBACK_DIR: ""
+      ATHANOR_NEO4J_BACKUP_DIR: /backups/neo4j
+      ATHANOR_APPDATA_BACKUP_DIR: /backups/appdata
+      ATHANOR_APPDATA_BACKUP_FALLBACK_DIR: ""
     command: python3 /app/exporter.py
   when: not ansible_check_mode
 

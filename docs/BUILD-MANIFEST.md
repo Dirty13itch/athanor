@@ -2,7 +2,7 @@
 
 *This is the tactical execution queue. `docs/design/athanor-next.md` is the strategic design layer above it. Claude Code uses this file to decide what to build next, but the queue must remain subordinate to the Athanor Next operating model.*
 
-Last updated: 2026-03-09 (Session 55: Tier 21 — MCP optimization, plugin audit, COO system audit)
+Last updated: 2026-03-11 (Session 56: backup alerting drift reconciliation)
 
 ---
 
@@ -694,7 +694,7 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Status:** ✅ done (Session 39)
 - **Findings:** FOUNDRY root crontab had no backup cron (only vllm-health-restart). VAULT had Neo4j + Qdrant crons but no appdata cron. Backups were stale (2 days FOUNDRY, 6 days VAULT appdata).
 - **Fixed:** Deployed Qdrant backup cron to FOUNDRY root (`0 3 * * *`), ran manual backup (7 collections, 468M). Deployed appdata backup script to VAULT cache drive (`/mnt/appdatacache/backup-appdata.sh`), added cron (`30 3 * * *`). VAULT user share has FUSE write issue (writes to /mnt/user/appdata fail with ENOSPC despite 348G free on cache drive) — scripts deployed to /mnt/appdatacache/ as workaround.
-- **Remaining:** Grafana alert for backup age > 36h. Investigate VAULT FUSE ENOSPC issue.
+- **Remaining:** Investigate VAULT FUSE ENOSPC issue. Backup alerting drift was reconciled in Session 56; live deploy is pending a matching Ansible vault password source.
 - **Depends on:** None
 - **Priority:** Done (alert is P2)
 
@@ -1121,9 +1121,10 @@ Findings from the 2026-03-08 planning-vs-reality reconciliation session (Opus 4.
   - Home Assistant: 43 entities, 2 TVs showing unavailable (expected — powered off). No anomalies.
 
 ### 21.4 — Grafana Backup Age Alert
-- **Status:** 🔲 todo (P2)
-- **Scope:** Add Prometheus alerting rule: fire when backup age > 36h. `backup-exporter` on VAULT exposes metrics. Write alert rule YAML, deploy via Ansible role.
-- **Blocked by:** grafana MCP disabled (or write Prometheus alert rule directly in YAML and deploy).
+- **Status:** 🔄 in-progress (Session 56, 2026-03-11)
+- **Scope:** Reconciled the repo-side backup alerting path instead of adding a third implementation. `backup-age-exporter.py` now emits both `type` and `target` labels, supports env-configured backup directories, and defaults appdata to `/mnt/appdatacache/backups` with legacy fallback. The `vault-grafana-alerts` role now mounts qdrant, neo4j, and appdata backup directories into the exporter container directly and removes the dead VAULT textfile-collector path. Prometheus alert rules now include `BackupExporterDown` so missing freshness metrics alert explicitly.
+- **Verified:** `python -m py_compile scripts/backup-age-exporter.py`; fixture run shows expected ages for qdrant/neo4j/appdata metrics; WSL `ansible-playbook -i inventory.yml playbooks/vault.yml --syntax-check` passes when `ANSIBLE_ROLES_PATH=/mnt/c/Athanor/ansible/roles` is set.
+- **Remaining:** Live deploy from this environment is blocked because the available vault password file does not decrypt `ansible/group_vars/all/secrets.vault.yml`. Once the matching vault secret source is restored, run `playbooks/vault.yml --tags monitoring,alerts --limit vault`.
 
 ---
 

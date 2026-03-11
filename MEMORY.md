@@ -4,15 +4,19 @@
 
 ---
 
-## Last Session: 2026-03-09 (Session 51: Plan audit + MEMORY.md refresh)
+## Last Session: 2026-03-11 (Session 56: Backup alerting drift reconciliation)
 
 ### What happened
-- Verified EoBQ uncensored content plan (peaceful-gathering-sundae.md) is **fully implemented** — all steps done in session 46-47
-- Confirmed: LoRA in all 3 workflow JSONs, "uncensored" LiteLLM alias live, intensity routing in chat + narrate, abliterated model system prompt in creative agent
-- LiteLLM `uncensored` → Huihui-Qwen3-8B-abliterated-v2 at foundry:8002 verified via curl
-- Updated MEMORY.md (was stale at session 40, now current through session 51)
+- Reconciled backup freshness monitoring drift across scripts, Ansible, and the tactical backlog.
+- Fixed `scripts/backup-age-exporter.py`: emits both `type` and `target` labels, supports env-configured backup paths, defaults appdata to `/mnt/appdatacache/backups`, keeps legacy fallback paths for direct host runs.
+- Fixed `ansible/roles/vault-grafana-alerts/`: exporter container now mounts qdrant, neo4j, and appdata backup directories explicitly. Removed dead VAULT textfile-collector deployment path.
+- Fixed `scripts/backup-appdata.sh` default backup dir to `/mnt/appdatacache/backups` so source matches the Session 39 FUSE workaround.
+- Added Prometheus `BackupExporterDown` rule to `ansible/roles/vault-monitoring/templates/alert-rules.yml.j2`.
+- Verified locally: `python -m py_compile scripts/backup-age-exporter.py`; fixture run returned expected backup ages; WSL Ansible syntax check passed with explicit `ANSIBLE_ROLES_PATH`.
 
 ### Current blockers
+- Live deploy of `playbooks/vault.yml --tags monitoring,alerts --limit vault` is blocked in this environment because `/home/shaun/athanor/ansible/vault-password` does not decrypt `ansible/group_vars/all/secrets.vault.yml`.
+- Promptfoo baseline run from this workspace is blocked because neither `ATHANOR_LITELLM_API_KEY` nor `OPENAI_API_KEY` is exported in the active WSL shell context, and no local `.env` file provides one.
 - NordVPN credentials → qBittorrent
 - Anthropic API key → Quality Cascade cloud escalation
 - Google Drive rclone OAuth → Personal data ~40% (10.8)
@@ -22,11 +26,11 @@
 - 14.5 Kindred → awaiting Shaun's go decision
 
 ### What's next (priority order)
-1. **Run promptfoo eval baseline** — evals/ dir exists with promptfooconfig.yaml, never executed; run against live LiteLLM
-2. **Tier 19 planning** — system has grown significantly, time to define next capability tier
-3. **Push 8 commits** — branch is 8 ahead of origin (knowledge pipeline, HippoRAG, LangFuse metadata, Continue.dev)
-4. **Kindred** (14.5) — blocked on Shaun's go decision
-5. **n8n signal pipeline activation** — Shaun: visit vault:5678, activate "Intelligence Signal Pipeline"
+1. **Restore matching Ansible vault secret source** — then deploy `playbooks/vault.yml --tags monitoring,alerts --limit vault` and verify `backup-exporter` + Prometheus alerts live on VAULT.
+2. **Investigate VAULT FUSE ENOSPC** — repo and manifest still point to the cache-drive workaround; underlying Unraid user-share issue remains unresolved.
+3. **Run promptfoo eval baseline** — after exporting `ATHANOR_LITELLM_API_KEY` or `OPENAI_API_KEY` into WSL, run `scripts/run-evals.sh` and record the fresh baseline.
+4. **Kindred** (14.5) — blocked on Shaun's go decision.
+5. **n8n signal pipeline activation** — Shaun: visit vault:5678, activate "Intelligence Signal Pipeline".
 
 ### Git state
 - Branch: main

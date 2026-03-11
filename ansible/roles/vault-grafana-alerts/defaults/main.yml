@@ -10,11 +10,7 @@ prometheus_datasource_uid: cfe4ltbkb8ge8a
 # Backup age thresholds (seconds)
 backup_age_critical_seconds: 129600  # 36 hours
 
-# Textfile collector paths
-# FOUNDRY writes metrics locally, VAULT writes metrics locally
-# Each node's node_exporter reads from its own textfile directory
-textfile_collector_dir: /var/lib/node_exporter/textfile_collector
-
 # Backup locations
-qdrant_backup_dir: /mnt/vault/data/backups/athanor/qdrant
+qdrant_backup_dir: /mnt/user/data/backups/athanor/qdrant
+neo4j_backup_dir: /mnt/user/backups/athanor/neo4j
 appdata_backup_dir: /mnt/appdatacache/backups
