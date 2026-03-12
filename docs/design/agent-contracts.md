@@ -8,25 +8,21 @@ Last updated: 2026-02-26
 
 ## Orchestration Hierarchy
 
+This section is superseded by the governed hierarchy in [command-hierarchy-governance.md](./command-hierarchy-governance.md) and [ADR-023](../decisions/ADR-023-command-hierarchy-and-governance.md). It remains here as the per-agent summary entrypoint.
+
 ```
-Shaun (Owner / Alchemist)
-  └── Claude (COO / Meta Orchestrator / Lead Engineer)
-        ├── Directs all agents via task API and chat
-        ├── Makes operational decisions without escalation
-        ├── Monitors agent output quality and trust scores
-        ├── Adjusts agent configurations and schedules
-        └── 8 Local Agents (below)
+Shaun (owner)
+  -> Constitution + policy registry
+  -> Athanor governor
+      -> Frontier cloud meta lane (Claude as default lead)
+      -> Sovereign local meta lane
+      -> Specialist agents
+      -> Worker and judge lanes
 ```
 
-**Claude as Meta Orchestrator** sits above all local agents. Claude:
-- Submits tasks to agents via `POST /v1/tasks`
-- Routes work to the right agent based on domain expertise
-- Reviews agent output quality (trust scores, feedback signals)
-- Adjusts agent schedules and escalation thresholds
-- Maintains agent contracts (this document)
-- Escalates to Shaun only for vision-level decisions, credentials, or physical tasks
+**Claude as frontier meta lead** remains the default cloud strategic lane for allowed workloads, but it no longer directly commands the runtime. The command path is governor-mediated, and a sovereign local meta lane is co-equal for protected work.
 
-Local agents report to Claude, not directly to Shaun. Shaun interacts with agents through the Command Center, but the operational direction comes from Claude.
+Local agents still do not report directly to Shaun. Shaun interacts through the Command Center, while Athanor governs tasks, schedules, leases, approvals, and fallback policy.
 
 ---
 

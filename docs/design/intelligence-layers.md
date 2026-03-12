@@ -8,7 +8,9 @@ Last updated: 2026-02-26
 
 ## Layer 0 — Meta Orchestration (deployed)
 
-Above the agent layer sits Claude as COO and Meta Orchestrator. Claude provides the strategic intelligence that local agents lack: cross-domain reasoning, long-term planning, architectural decisions, and workforce coordination.
+This hierarchy is now governed rather than Claude-only. The authoritative command model lives in [command-hierarchy-governance.md](./command-hierarchy-governance.md) and [ADR-023](../decisions/ADR-023-command-hierarchy-and-governance.md).
+
+Above the agent layer sits a governed strategy layer. Claude remains the frontier strategic lead for allowed cloud workloads, but Athanor now acts as the runtime governor and a sovereign local meta lane is the co-equal strategic path for refusal-sensitive, uncensored, private, or sovereign-only work.
 
 ```
 Claude (COO) — cloud intelligence, operational decisions
@@ -198,7 +200,7 @@ This is where Athanor genuinely starts managing itself. The recursive nature of 
 
 | Layer | Requires | Status |
 |-------|----------|--------|
-| 0 (Meta Orchestration) | Claude as COO, MCP bridge, task API | **Deployed** — Claude directs all agents |
+| 0 (Meta Orchestration) | Claude as frontier lead, sovereign local meta lane, governor control path | **Deployed** — runtime command is now governor-mediated rather than Claude-only |
 | 1 (Reactive) | vLLM, LangGraph, LiteLLM, tool APIs | **Deployed** |
 | 2 (Knowledge) | Qdrant, Neo4j, embedding model, preferences, activity logging, context injection, goals | **Deployed** — context injection + goals live, conversation history not yet populated |
 | 3 (Patterns) | Conversation history, pattern detection jobs, context refinement | **Not started** |
