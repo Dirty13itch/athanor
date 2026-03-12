@@ -261,6 +261,13 @@ async def subscription_quota_summary():
     return await get_quota_summary()
 
 
+@app.get("/v1/subscriptions/summary")
+async def subscription_backbone_summary(limit: int = 10):
+    from .backbone import build_quota_lease_summary
+
+    return await build_quota_lease_summary(limit=limit)
+
+
 # --- Agent metadata endpoint ---
 
 
@@ -395,6 +402,14 @@ async def get_activity(
         agent=agent, action_type=action_type, limit=limit, since_unix=since
     )
     return {"activity": results, "count": len(results)}
+
+
+@app.get("/v1/activity/operator-stream")
+async def operator_stream(limit: int = 30):
+    from .backbone import build_operator_stream
+
+    events = await build_operator_stream(limit=limit)
+    return {"events": events, "count": len(events)}
 
 
 @app.get("/v1/conversations")
@@ -979,12 +994,28 @@ async def task_stats():
     return await get_task_stats()
 
 
+@app.get("/v1/tasks/runs")
+async def task_execution_runs(agent: str = "", limit: int = 50):
+    from .backbone import build_execution_run_records
+
+    runs = await build_execution_run_records(agent=agent, limit=limit)
+    return {"runs": runs, "count": len(runs)}
+
+
 @app.get("/v1/tasks/schedules")
 async def task_schedules():
     """Get proactive agent schedule status."""
     from .scheduler import get_schedule_status
 
     return await get_schedule_status()
+
+
+@app.get("/v1/tasks/scheduled")
+async def scheduled_jobs(limit: int = 50):
+    from .backbone import build_scheduled_job_records
+
+    jobs = await build_scheduled_job_records(limit=limit)
+    return {"jobs": jobs, "count": len(jobs)}
 
 
 @app.get("/v1/tasks/{task_id}")

@@ -30,6 +30,7 @@ export function ResearchJobsCard() {
     queryKey: ["operator-panel", "research-jobs"],
     queryFn: async () => ({
       jobs: await fetchJson<unknown>("/api/research/jobs"),
+      scheduled: await fetchJson<JsonObject>("/api/workforce/scheduled"),
       scheduling: await fetchJson<JsonObject>("/api/scheduling/status"),
     }),
     refetchInterval: 30_000,
@@ -92,6 +93,7 @@ export function ResearchJobsCard() {
   const jobs = Array.isArray(jobsValue)
     ? (jobsValue as JsonObject[])
     : asArray<JsonObject>(asObject(jobsValue)?.jobs);
+  const scheduled = asArray<JsonObject>(asObject(jobsQuery.data?.scheduled)?.jobs);
   const scheduling = asObject(jobsQuery.data?.scheduling);
   const load = asObject(scheduling?.load);
   const thresholds = asObject(scheduling?.thresholds);
@@ -134,14 +136,14 @@ export function ResearchJobsCard() {
 
         <div className="grid gap-3 md:grid-cols-3">
           <Metric label="Jobs" value={`${jobs.length}`} />
+          <Metric label="Scheduled lanes" value={`${scheduled.length}`} />
           <Metric
             label="Inference pressure"
             value={load ? `${Math.round(getNumber(load.current_ratio, 0) * 100)}%` : "--"}
           />
-          <Metric label="Agent classes" value={`${Object.keys(agentClasses ?? {}).length}`} />
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Jobs</p>
             {jobs.length > 0 ? (
@@ -211,18 +213,38 @@ export function ResearchJobsCard() {
                 label="Critical threshold"
                 value={thresholds ? `${Math.round(getNumber(thresholds.critical, 0) * 100)}%` : "--"}
               />
+              <MetricRow
+                label="Agent classes"
+                value={`${Object.keys(agentClasses ?? {}).length}`}
+              />
               <div className="mt-3 space-y-2">
-                {Object.entries(agentClasses ?? {}).slice(0, 3).map(([name, value]) => {
-                  const meta = asObject(value);
-                  return (
-                    <div key={name} className="rounded-lg border border-border/50 px-2 py-2">
-                      <p className="font-medium">{formatKey(name)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        max concurrency {getNumber(meta?.max_concurrency, 0)}
-                      </p>
+                {scheduled.slice(0, 4).map((job) => (
+                  <div key={getString(job.id)} className="rounded-lg border border-border/50 px-2 py-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium">{getString(job.title)}</p>
+                      <Badge variant="outline">{getString(job.current_state, "scheduled")}</Badge>
                     </div>
-                  );
-                })}
+                    <p className="text-xs text-muted-foreground">
+                      {getString(job.cadence, "manual")}
+                      {getOptionalString(job.next_run)
+                        ? ` · next ${formatRelativeTime(getString(job.next_run))}`
+                        : ""}
+                    </p>
+                  </div>
+                ))}
+                {scheduled.length === 0
+                  ? Object.entries(agentClasses ?? {}).slice(0, 3).map(([name, value]) => {
+                      const meta = asObject(value);
+                      return (
+                        <div key={name} className="rounded-lg border border-border/50 px-2 py-2">
+                          <p className="font-medium">{formatKey(name)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            max concurrency {getNumber(meta?.max_concurrency, 0)}
+                          </p>
+                        </div>
+                      );
+                    })
+                  : null}
               </div>
             </div>
           </div>

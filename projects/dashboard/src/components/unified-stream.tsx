@@ -5,25 +5,15 @@ import { cn } from "@/lib/utils";
 import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
 
 interface StreamEvent {
-  type: "task" | "agent" | "media" | "system";
-  source: string;
-  title: string;
-  detail?: string;
+  id: string;
   timestamp: string;
-  status?: "completed" | "running" | "failed" | "pending";
-  link?: string;
-}
-
-function normalizeTimestamp(value: string | number | null | undefined): string {
-  if (typeof value === "number") {
-    return new Date(value * 1000).toISOString();
-  }
-
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value;
-  }
-
-  return new Date().toISOString();
+  severity: "info" | "success" | "warning" | "error";
+  subsystem: string;
+  event_type: string;
+  subject: string;
+  summary: string;
+  deep_link?: string | null;
+  related_run_id?: string | null;
 }
 
 function timeAgo(ts: string): string {
@@ -37,26 +27,33 @@ function timeAgo(ts: string): string {
   return `${days}d`;
 }
 
-function statusDot(status?: string) {
-  switch (status) {
-    case "completed": return "bg-green-500";
-    case "running": return "bg-amber animate-pulse";
-    case "failed": return "bg-red-500";
-    case "pending": return "bg-muted-foreground/50";
-    default: return "bg-muted-foreground/30";
+function severityDot(severity: StreamEvent["severity"]) {
+  switch (severity) {
+    case "success":
+      return "bg-green-500";
+    case "warning":
+      return "bg-amber-500";
+    case "error":
+      return "bg-red-500";
+    default:
+      return "bg-sky-500";
   }
 }
 
-function typeIcon(type: StreamEvent["type"]) {
-  switch (type) {
-    case "task": return TaskIcon;
-    case "agent": return AgentIcon;
-    case "media": return MediaIcon;
-    case "system": return SystemIcon;
+function subsystemIcon(subsystem: string) {
+  switch (subsystem) {
+    case "alerts":
+      return AlertIcon;
+    case "provider-plane":
+      return AgentIcon;
+    case "tasks":
+      return TaskIcon;
+    default:
+      return SystemIcon;
   }
 }
 
-export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; filterTypes?: string[] }) {
+export function UnifiedStream({ limit = 12 }: { limit?: number; filterTypes?: string[] }) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,75 +62,29 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
 
     async function fetchEvents() {
       try {
-        // Fetch tasks and activity in parallel
-        const [tasksRes, activityRes] = await Promise.all([
-          fetch("/api/workforce/tasks?limit=20", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-          fetch("/api/activity?limit=20", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-        ]);
-
-        const merged: StreamEvent[] = [];
-
-        // Parse tasks
-        if (tasksRes?.ok) {
-          const data = await tasksRes.json();
-          const tasks = data.tasks ?? data ?? [];
-          for (const t of Array.isArray(tasks) ? tasks : []) {
-            // Handle epoch float timestamps (e.g. 1740000000.123)
-            const rawTs = t.updated_at ?? t.created_at;
-            const timestamp = typeof rawTs === "number"
-              ? new Date(rawTs * 1000).toISOString()
-              : rawTs ?? new Date().toISOString();
-            merged.push({
-              type: "task",
-              source: t.agent ?? "system",
-              title: t.description ?? t.title ?? t.prompt?.substring(0, 60) ?? "Task",
-              detail: t.result?.substring(0, 80),
-              timestamp,
-              status: t.status,
-              link: `/tasks`,
-            });
-          }
-        }
-
-        // Parse activity
-        if (activityRes?.ok) {
-          const data = await activityRes.json();
-          const items = data.activity ?? data.items ?? data ?? [];
-          for (const a of Array.isArray(items) ? items : []) {
-            merged.push({
-              type: "agent",
-              source: a.agent ?? a.source ?? "system",
-              title: a.input_summary ?? a.summary ?? a.action ?? "Activity",
-              detail: a.output_summary ?? a.detail,
-              timestamp: normalizeTimestamp(a.timestamp),
-            });
-          }
-        }
-
-        // Sort by timestamp descending
-        merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-        // Apply type filter if provided
-        const filtered = filterTypes && filterTypes.length > 0
-          ? merged.filter((e) => filterTypes.includes(e.type))
-          : merged;
-
+        const response = await fetch(`/api/activity/operator-stream?limit=${limit}`, {
+          signal: AbortSignal.timeout(5000),
+        }).catch(() => null);
+        const data = response?.ok ? await response.json() : null;
+        const nextEvents = Array.isArray(data?.events) ? (data.events as StreamEvent[]) : [];
         if (mounted) {
-          setEvents(filtered.slice(0, limit));
+          setEvents(nextEvents);
           setLoading(false);
         }
       } catch {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
 
-    fetchEvents();
-    const interval = setInterval(fetchEvents, 15000);
+    void fetchEvents();
+    const interval = setInterval(() => void fetchEvents(), 15000);
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, [limit, filterTypes]);
+  }, [limit]);
 
   if (loading) {
     return (
@@ -149,42 +100,37 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
   }
 
   if (events.length === 0) {
-    return (
-      <p className="py-2 text-xs text-muted-foreground">No recent activity.</p>
-    );
+    return <p className="py-2 text-xs text-muted-foreground">No recent operator events.</p>;
   }
 
   return (
     <div className="space-y-1">
-      {events.map((event, i) => {
-        const Icon = typeIcon(event.type);
+      {events.map((event) => {
+        const Icon = subsystemIcon(event.subsystem);
         return (
-          <div key={i} className="group/stream flex items-start gap-2 py-1 text-xs">
+          <div key={event.id} className="group/stream flex items-start gap-2 py-1 text-xs">
             <div className="relative mt-0.5 shrink-0">
               <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-              {event.status && (
-                <span className={cn("absolute -right-0.5 -bottom-0.5 h-1.5 w-1.5 rounded-full", statusDot(event.status))} />
-              )}
+              <span
+                className={cn("absolute -right-0.5 -bottom-0.5 h-1.5 w-1.5 rounded-full", severityDot(event.severity))}
+              />
             </div>
-            <span className="shrink-0 w-8 font-mono text-muted-foreground">{timeAgo(event.timestamp)}</span>
+            <span className="w-8 shrink-0 font-mono text-muted-foreground">{timeAgo(event.timestamp)}</span>
             <div className="min-w-0 flex-1">
-              <span className="font-medium text-foreground/80">{event.source}</span>
-              {" "}
-              {event.link ? (
-                <a href={event.link} className="text-foreground hover:text-primary transition-colors">
-                  {event.title}
+              <span className="font-medium text-foreground/80">{event.subject}</span>{" "}
+              {event.deep_link ? (
+                <a href={event.deep_link} className="text-foreground hover:text-primary transition-colors">
+                  {event.summary}
                 </a>
               ) : (
-                <span className="text-foreground/70">{event.title}</span>
+                <span className="text-foreground/70">{event.summary}</span>
               )}
-              {event.detail && (
-                <span className="text-muted-foreground"> — {event.detail}</span>
-              )}
+              <span className="text-muted-foreground"> · {event.subsystem}</span>
             </div>
-            <div className="shrink-0 opacity-0 group-hover/stream:opacity-100 transition-opacity">
+            <div className="shrink-0 opacity-0 transition-opacity group-hover/stream:opacity-100">
               <FeedbackButtons
-                messageContent={`${event.source}: ${event.title}${event.detail ? ` — ${event.detail}` : ""}`}
-                agent={event.source}
+                messageContent={`${event.subject}: ${event.summary}`}
+                agent={event.subject}
               />
             </div>
           </div>
@@ -194,7 +140,6 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
   );
 }
 
-// Inline icons
 function TaskIcon({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -207,18 +152,17 @@ function TaskIcon({ className }: { className?: string }) {
 function AgentIcon({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+      <path d="M12 3v4" /><path d="M8 5h8" /><rect x="5" y="9" width="14" height="10" rx="2" />
+      <path d="M9 13h.01" /><path d="M15 13h.01" /><path d="M9 17h6" />
     </svg>
   );
 }
 
-function MediaIcon({ className }: { className?: string }) {
+function AlertIcon({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <rect width="18" height="18" x="3" y="3" rx="2" />
-      <path d="M7 3v18" /><path d="M17 3v18" />
-      <path d="M3 7.5h4" /><path d="M17 7.5h4" /><path d="M3 12h18" />
-      <path d="M3 16.5h4" /><path d="M17 16.5h4" />
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <path d="M12 9v4" /><path d="M12 17h.01" />
     </svg>
   );
 }

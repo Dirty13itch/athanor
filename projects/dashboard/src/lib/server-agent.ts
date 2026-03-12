@@ -146,6 +146,75 @@ function buildFixtureAgentResponse(path: string, init: RequestInit | undefined) 
     };
   }
 
+  if (method === "GET" && basePath === "/v1/subscriptions/summary") {
+    return {
+      policy_source: "fixture-policy",
+      provider_summaries: [
+        {
+          provider: "anthropic_claude",
+          lane: "lead_interactive_coder",
+          availability: "available",
+          reserve_state: "premium_interactive",
+          limit: 25,
+          remaining: 18,
+          throttle_events: 0,
+          recent_outcomes: [{ outcome: "success", count: 8 }],
+          last_issued_at: timestamp,
+          last_outcome_at: timestamp,
+        },
+        {
+          provider: "google_gemini",
+          lane: "large_context_auditor",
+          availability: "available",
+          reserve_state: "burn_early",
+          limit: 30,
+          remaining: 23,
+          throttle_events: 1,
+          recent_outcomes: [{ outcome: "success", count: 6 }, { outcome: "throttled", count: 1 }],
+          last_issued_at: timestamp,
+          last_outcome_at: timestamp,
+        },
+      ],
+      recent_leases: [
+        {
+          id: "lease-fixture-coding",
+          source_lane: "claude_code",
+          run_type: "lease",
+          task_id: null,
+          job_id: null,
+          agent: "coding-agent",
+          provider: "anthropic_claude",
+          lease_id: "lease-fixture-coding",
+          status: "issued",
+          created_at: timestamp,
+          started_at: timestamp,
+          completed_at: null,
+          artifact_refs: [{ label: "agents", href: "/agents" }],
+          failure_reason: null,
+          summary: "coding-agent -> multi_file_implementation",
+        },
+        {
+          id: "lease-fixture-research",
+          source_lane: "gemini_cli",
+          run_type: "lease",
+          task_id: null,
+          job_id: null,
+          agent: "research-agent",
+          provider: "google_gemini",
+          lease_id: "lease-fixture-research",
+          status: "success",
+          created_at: timestamp,
+          started_at: timestamp,
+          completed_at: timestamp,
+          artifact_refs: [{ label: "agents", href: "/agents" }],
+          failure_reason: null,
+          summary: "research-agent -> repo_wide_audit",
+        },
+      ],
+      count: 2,
+    };
+  }
+
   if (method === "GET" && basePath === "/v1/skills") {
     return {
       skills: [
@@ -337,6 +406,139 @@ function buildFixtureAgentResponse(path: string, init: RequestInit | undefined) 
         research: { max_concurrency: 2 },
         background: { max_concurrency: 1 },
       },
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/tasks/runs") {
+    return {
+      runs: [
+        {
+          id: "run-fixture-coding",
+          source_lane: "claude_code",
+          run_type: "task",
+          task_id: "task-fixture-coding",
+          job_id: null,
+          agent: "coding-agent",
+          provider: "anthropic_claude",
+          lease_id: "lease-fixture-coding",
+          status: "running",
+          created_at: timestamp,
+          started_at: timestamp,
+          completed_at: null,
+          artifact_refs: [{ label: "task", href: "/tasks?task=task-fixture-coding" }],
+          failure_reason: null,
+          summary: "Finish the automation backbone provider-plane slice",
+        },
+        {
+          id: "run-fixture-research",
+          source_lane: "gemini_cli",
+          run_type: "research_job",
+          task_id: "task-fixture-research",
+          job_id: "research-fixture-models",
+          agent: "research-agent",
+          provider: "google_gemini",
+          lease_id: "lease-fixture-research",
+          status: "completed",
+          created_at: timestamp,
+          started_at: timestamp,
+          completed_at: timestamp,
+          artifact_refs: [
+            { label: "task", href: "/tasks?task=task-fixture-research" },
+            { label: "research-job", href: "/workplanner" },
+          ],
+          failure_reason: null,
+          summary: "Subscription provider utilization audit",
+        },
+      ],
+      count: 2,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/tasks/scheduled") {
+    return {
+      jobs: [
+        {
+          id: "agent-schedule:coding-agent",
+          job_family: "agent_schedule",
+          title: "coding-agent proactive loop",
+          cadence: "3h",
+          trigger_mode: "interval",
+          last_run: timestamp,
+          next_run: "2026-03-11T21:00:00Z",
+          current_state: "running",
+          last_outcome: "scheduled",
+          owner_agent: "coding-agent",
+          deep_link: "/agents?agent=coding-agent",
+        },
+        {
+          id: "daily-digest",
+          job_family: "daily_digest",
+          title: "Daily briefing",
+          cadence: "daily 6:55",
+          trigger_mode: "daily",
+          last_run: "2026-03-11T06:55:00Z",
+          next_run: "2026-03-12T06:55:00Z",
+          current_state: "scheduled",
+          last_outcome: "scheduled",
+          owner_agent: "system",
+          deep_link: "/",
+        },
+        {
+          id: "research:research-fixture-models",
+          job_family: "research_job",
+          title: "Subscription provider utilization",
+          cadence: "every 24h",
+          trigger_mode: "interval",
+          last_run: timestamp,
+          next_run: "2026-03-12T18:00:00Z",
+          current_state: "ready",
+          last_outcome: "ready",
+          owner_agent: "research-agent",
+          deep_link: "/workplanner",
+        },
+      ],
+      count: 3,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/activity/operator-stream") {
+    return {
+      events: [
+        {
+          id: "event-fixture-alert",
+          timestamp,
+          severity: "warning",
+          subsystem: "alerts",
+          event_type: "alert_active",
+          subject: "monitoring drift",
+          summary: "Prometheus targets still need repo-side reconciliation on VAULT.",
+          deep_link: "/notifications",
+          related_run_id: null,
+        },
+        {
+          id: "event-fixture-run",
+          timestamp,
+          severity: "info",
+          subsystem: "provider-plane",
+          event_type: "run_running",
+          subject: "coding-agent",
+          summary: "Finish the automation backbone provider-plane slice via anthropic_claude",
+          deep_link: "/tasks",
+          related_run_id: "run-fixture-coding",
+        },
+        {
+          id: "event-fixture-activity",
+          timestamp,
+          severity: "success",
+          subsystem: "agents",
+          event_type: "task_complete",
+          subject: "research-agent",
+          summary: "Completed subscription provider utilization audit",
+          deep_link: "/agents?agent=research-agent",
+          related_run_id: "run-fixture-research",
+        },
+      ],
+      count: 3,
     };
   }
 

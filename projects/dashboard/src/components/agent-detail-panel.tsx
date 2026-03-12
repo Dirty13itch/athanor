@@ -38,6 +38,17 @@ interface TaskItem {
   created_at: number | string;
 }
 
+interface RunItem {
+  id: string;
+  provider: string;
+  status: string;
+  summary: string;
+  created_at?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  failure_reason?: string | null;
+}
+
 interface PatternItem {
   type: string;
   severity: string;
@@ -64,6 +75,7 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
   const [trust, setTrust] = useState<{ score: number; level: string; feedback_count: number } | null>(null);
   const [patterns, setPatterns] = useState<PatternItem[]>([]);
   const [autonomy, setAutonomy] = useState<Record<string, number>>({});
+  const [runs, setRuns] = useState<RunItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadAgentDetails = useEffectEvent(async (currentAgentName: string) => {
@@ -74,13 +86,14 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
         .then((response) => (response.ok ? response.json() : null))
         .catch(() => null);
 
-    const [agentsData, activityData, tasksData, workforceData, patternsData, autonomyData] = await Promise.all([
+    const [agentsData, activityData, tasksData, workforceData, patternsData, autonomyData, runsData] = await Promise.all([
       fetchJson("/api/agents"),
       fetchJson(`/api/activity?agent=${currentAgentName}&limit=5`),
       fetchJson(`/api/workforce/tasks?agent=${currentAgentName}&limit=5`),
       fetchJson("/api/workforce"),
       fetchJson(`/api/insights?agent=${currentAgentName}`),
       fetchJson("/api/autonomy"),
+      fetchJson(`/api/workforce/runs?agent=${currentAgentName}&limit=5`),
     ]);
 
     if (agentsData?.agents) {
@@ -122,6 +135,7 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
         : null
     );
     setPatterns(patternsData?.patterns ?? []);
+    setRuns(runsData?.runs ?? []);
 
     const adj: Record<string, number> = {};
     if (autonomyData?.adjustments) {
@@ -281,6 +295,32 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
                         </span>
                         <span className="min-w-0 flex-1 truncate">{task.prompt}</span>
                         <span className="shrink-0 text-muted-foreground/60">{formatTime(task.created_at)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+
+              <Section title="Execution lanes">
+                {runs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No recent execution runs</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {runs.map((run) => (
+                      <div key={run.id} className="rounded-lg border border-border/50 px-2 py-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px]">{run.provider}</Badge>
+                          <Badge variant={run.status === "failed" ? "destructive" : "outline"} className="text-[10px]">
+                            {run.status}
+                          </Badge>
+                          <span className="ml-auto text-muted-foreground/60">
+                            {formatTime(run.completed_at ?? run.started_at ?? run.created_at ?? "")}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-muted-foreground">{run.summary}</p>
+                        {run.failure_reason ? (
+                          <p className="mt-1 text-destructive">{run.failure_reason}</p>
+                        ) : null}
                       </div>
                     ))}
                   </div>

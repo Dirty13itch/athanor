@@ -38,12 +38,7 @@ export function SubscriptionControlCard({
 
   const controlQuery = useQuery({
     queryKey: ["operator-panel", "subscriptions", requester, taskClass],
-    queryFn: async () => ({
-      providers: await fetchJson<JsonObject>("/api/subscriptions/providers"),
-      policy: await fetchJson<JsonObject>("/api/subscriptions/policy"),
-      quotas: await fetchJson<JsonObject>("/api/subscriptions/quotas"),
-      leases: await fetchJson<JsonObject>("/api/subscriptions/leases"),
-    }),
+    queryFn: async () => fetchJson<JsonObject>("/api/subscriptions/summary"),
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
@@ -92,16 +87,9 @@ export function SubscriptionControlCard({
     );
   }
 
-  const providersPayload = asObject(controlQuery.data?.providers);
-  const policyPayload = asObject(controlQuery.data?.policy);
-  const quotasPayload = asObject(controlQuery.data?.quotas);
-  const leasesPayload = asObject(controlQuery.data?.leases);
-
-  const providers = asArray<JsonObject>(providersPayload?.providers);
-  const providerQuotaMap = asObject(quotasPayload?.providers) ?? {};
-  const leases = asArray<JsonObject>(leasesPayload?.leases);
-  const taskClasses = Object.keys(asObject(policyPayload?.task_classes) ?? {});
-  const recentEvents = asArray<JsonObject>(quotasPayload?.recent_events);
+  const summaryPayload = asObject(controlQuery.data);
+  const providers = asArray<JsonObject>(summaryPayload?.provider_summaries);
+  const leases = asArray<JsonObject>(summaryPayload?.recent_leases);
 
   return (
     <Card className="border-border/70 bg-card/70">
@@ -121,7 +109,12 @@ export function SubscriptionControlCard({
 
         <div className="grid gap-3 sm:grid-cols-3">
           <PanelMetric label="Providers" value={`${providers.length}`} />
-          <PanelMetric label="Task classes" value={`${taskClasses.length}`} />
+          <PanelMetric
+            label="Constrained lanes"
+            value={`${
+              providers.filter((provider) => getString(provider.availability, "available") === "constrained").length
+            }`}
+          />
           <PanelMetric label="Recent leases" value={`${leases.length}`} />
         </div>
 
@@ -132,27 +125,33 @@ export function SubscriptionControlCard({
             </p>
             {providers.length > 0 ? (
               providers.slice(0, compact ? 3 : 4).map((provider) => {
-                const providerId = getString(provider.id ?? provider.name);
-                const quota = asObject(providerQuotaMap[providerId]);
+                const outcomes = asArray<JsonObject>(provider.recent_outcomes);
                 return (
                   <div
-                    key={providerId}
+                    key={getString(provider.provider)}
                     className="rounded-xl border border-border/60 bg-background/30 px-3 py-2 text-sm"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="font-medium break-words">{getString(provider.name ?? providerId)}</p>
+                        <p className="font-medium break-words">{formatKey(getString(provider.provider))}</p>
                         <p className="text-xs text-muted-foreground break-all">
-                          {getString(provider.default_task_class ?? provider.description, "policy-backed")}
+                          {formatKey(getString(provider.lane, "policy-backed"))}
                         </p>
                       </div>
                       <Badge variant="outline">
-                        {quota ? getString(quota.status, "tracked") : "tracked"}
+                        {getString(provider.availability, "tracked")}
                       </Badge>
                     </div>
-                    {quota ? (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Remaining {getNumber(provider.remaining, 0)} / limit {getNumber(provider.limit, 0)}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                      <span>reserve {formatKey(getString(provider.reserve_state, "standard"))}</span>
+                      <span>throttles {getNumber(provider.throttle_events, 0)}</span>
+                    </div>
+                    {outcomes.length > 0 ? (
                       <p className="mt-2 text-xs text-muted-foreground">
-                        Remaining {getNumber(quota.remaining, 0)} / limit {getNumber(quota.limit, 0)}
+                        outcomes {outcomes.map((entry) => `${getString(entry.outcome)}:${getNumber(entry.count, 0)}`).join(" · ")}
                       </p>
                     ) : null}
                   </div>
@@ -174,22 +173,25 @@ export function SubscriptionControlCard({
             {leases.length > 0 ? (
               leases.slice(0, compact ? 2 : 3).map((lease) => (
                 <div
-                  key={getString(lease.id ?? lease.lease_id)}
+                  key={getString(lease.id)}
                   className="rounded-xl border border-border/60 bg-background/30 px-3 py-2 text-sm"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                        <p className="font-medium break-words">{getString(lease.provider)}</p>
-                        <p className="text-xs text-muted-foreground break-all">
-                          {formatKey(getString(lease.task_class, "unspecified"))}
-                        </p>
+                      <p className="font-medium break-words">{getString(lease.provider)}</p>
+                      <p className="text-xs text-muted-foreground break-all">
+                        {getString(lease.summary, formatKey(getString(lease.run_type, "unspecified")))}
+                      </p>
                     </div>
-                    <Badge variant="secondary">{getString(lease.requester, requester)}</Badge>
+                    <Badge variant="secondary">{getString(lease.agent, requester)}</Badge>
                   </div>
-                  {getOptionalString(lease.expires_at) ? (
+                  {getOptionalString(lease.created_at) ? (
                     <p className="mt-2 text-xs text-muted-foreground" data-volatile="true">
-                      expires {formatRelativeTime(getString(lease.expires_at))}
+                      {getString(lease.status, "issued")} {formatRelativeTime(getString(lease.created_at))}
                     </p>
+                  ) : null}
+                  {getOptionalString(lease.failure_reason) ? (
+                    <p className="mt-1 text-xs text-destructive">{getString(lease.failure_reason)}</p>
                   ) : null}
                 </div>
               ))
@@ -200,12 +202,9 @@ export function SubscriptionControlCard({
                 className="py-6"
               />
             )}
-            {recentEvents.length > 0 ? (
-              <p className="text-xs text-muted-foreground">
-                {recentEvents.length} recent quota events observed from{" "}
-                {getString(quotasPayload?.policy_source, "broker state")}.
-              </p>
-            ) : null}
+            <p className="text-xs text-muted-foreground">
+              Policy source {getString(summaryPayload?.policy_source, "broker state")}.
+            </p>
           </div>
         </div>
 
@@ -218,7 +217,7 @@ export function SubscriptionControlCard({
             <Rocket className="mr-2 h-4 w-4" />
             {busy ? "Requesting..." : "Request lease"}
           </Button>
-          <Badge variant="outline">{getString(policyPayload?.policy_source, "policy")}</Badge>
+          <Badge variant="outline">{getString(summaryPayload?.policy_source, "policy")}</Badge>
         </div>
       </CardContent>
     </Card>

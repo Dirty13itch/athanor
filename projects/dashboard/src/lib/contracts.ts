@@ -968,6 +968,95 @@ export const homeSnapshotSchema = z.object({
   ),
 });
 
+export const executionRunArtifactSchema = z.object({
+  label: z.string(),
+  href: z.string(),
+});
+
+export const executionRunRecordSchema = z.object({
+  id: z.string(),
+  source_lane: z.string(),
+  run_type: z.string(),
+  task_id: z.string().nullable(),
+  job_id: z.string().nullable(),
+  agent: z.string().nullable(),
+  provider: z.string(),
+  lease_id: z.string().nullable(),
+  status: z.string(),
+  created_at: z.string().nullable(),
+  started_at: z.string().nullable(),
+  completed_at: z.string().nullable(),
+  artifact_refs: z.array(executionRunArtifactSchema),
+  failure_reason: z.string().nullable(),
+  summary: z.string(),
+});
+
+export const executionRunsResponseSchema = z.object({
+  runs: z.array(executionRunRecordSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const scheduledJobRecordSchema = z.object({
+  id: z.string(),
+  job_family: z.string(),
+  title: z.string(),
+  cadence: z.string(),
+  trigger_mode: z.string(),
+  last_run: z.string().nullable(),
+  next_run: z.string().nullable(),
+  current_state: z.string(),
+  last_outcome: z.string().nullable(),
+  owner_agent: z.string().nullable(),
+  deep_link: z.string().nullable(),
+});
+
+export const scheduledJobsResponseSchema = z.object({
+  jobs: z.array(scheduledJobRecordSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const operatorStreamEventSchema = z.object({
+  id: z.string(),
+  timestamp: z.string(),
+  severity: z.enum(["info", "success", "warning", "error"]),
+  subsystem: z.string(),
+  event_type: z.string(),
+  subject: z.string(),
+  summary: z.string(),
+  deep_link: z.string().nullable(),
+  related_run_id: z.string().nullable(),
+});
+
+export const operatorStreamResponseSchema = z.object({
+  events: z.array(operatorStreamEventSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const quotaOutcomeSummarySchema = z.object({
+  outcome: z.string(),
+  count: z.number().int().nonnegative(),
+});
+
+export const quotaLeaseSummarySchema = z.object({
+  provider: z.string(),
+  lane: z.string(),
+  availability: z.string(),
+  reserve_state: z.string(),
+  limit: z.number().int().nonnegative(),
+  remaining: z.number().int(),
+  throttle_events: z.number().int().nonnegative(),
+  recent_outcomes: z.array(quotaOutcomeSummarySchema),
+  last_issued_at: z.string().nullable(),
+  last_outcome_at: z.string().nullable(),
+});
+
+export const subscriptionSummaryResponseSchema = z.object({
+  policy_source: z.string(),
+  provider_summaries: z.array(quotaLeaseSummarySchema),
+  recent_leases: z.array(executionRunRecordSchema),
+  count: z.number().int().nonnegative(),
+});
+
 export type ServiceSnapshot = z.infer<typeof serviceSnapshotSchema>;
 export type ServiceHistorySeries = z.infer<typeof serviceHistorySeriesSchema>;
 export type ChartPoint = z.infer<typeof chartPointSchema>;
@@ -1021,3 +1110,11 @@ export type MonitoringSnapshot = z.infer<typeof monitoringSnapshotSchema>;
 export type MediaSnapshot = z.infer<typeof mediaSnapshotSchema>;
 export type GallerySnapshot = z.infer<typeof gallerySnapshotSchema>;
 export type HomeSnapshot = z.infer<typeof homeSnapshotSchema>;
+export type ExecutionRunRecord = z.infer<typeof executionRunRecordSchema>;
+export type ExecutionRunsResponse = z.infer<typeof executionRunsResponseSchema>;
+export type ScheduledJobRecord = z.infer<typeof scheduledJobRecordSchema>;
+export type ScheduledJobsResponse = z.infer<typeof scheduledJobsResponseSchema>;
+export type OperatorStreamEvent = z.infer<typeof operatorStreamEventSchema>;
+export type OperatorStreamResponse = z.infer<typeof operatorStreamResponseSchema>;
+export type QuotaLeaseSummary = z.infer<typeof quotaLeaseSummarySchema>;
+export type SubscriptionSummaryResponse = z.infer<typeof subscriptionSummaryResponseSchema>;
