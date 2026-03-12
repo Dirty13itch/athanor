@@ -5,34 +5,12 @@ import {
   resetBrowserState,
   trackRuntimeIssues,
 } from "./helpers";
+import { loadRouteAuditRecords } from "./census";
 
-const ROUTES: Array<{ heading: RegExp | string; path: string }> = [
-  { path: "/", heading: "Command Center" },
-  { path: "/services", heading: "Services" },
-  { path: "/gpu", heading: "GPU Metrics" },
-  { path: "/chat", heading: "Direct Chat" },
-  { path: "/agents", heading: "Agent Console" },
-  { path: "/tasks", heading: "Task Board" },
-  { path: "/goals", heading: "Goals" },
-  { path: "/notifications", heading: "Notifications" },
-  { path: "/workplanner", heading: "Work Planner" },
-  { path: "/workspace", heading: "Workspace" },
-  { path: "/activity", heading: "Activity Feed" },
-  { path: "/conversations", heading: "Conversations" },
-  { path: "/gallery", heading: "Gallery" },
-  { path: "/home", heading: "Home" },
-  { path: "/insights", heading: "Insights" },
-  { path: "/learning", heading: "Learning Metrics" },
-  { path: "/media", heading: "Media" },
-  { path: "/monitoring", heading: "Monitoring" },
-  { path: "/more", heading: "All Pages" },
-  { path: "/outputs", heading: /Outputs/i },
-  { path: "/personal-data", heading: "Personal Data" },
-  { path: "/preferences", heading: "Preferences" },
-  { path: "/review", heading: "Code Review" },
-  { path: "/terminal", heading: "Terminal" },
-  { path: "/offline", heading: /offline/i },
-];
+const ROUTES = loadRouteAuditRecords().map((route) => ({
+  path: route.routePath,
+  heading: route.title,
+}));
 
 const MORE_LINKS: Array<{ label: string; path: RegExp; heading: RegExp | string }> = [
   { label: "Dashboard", path: /\/$/, heading: "Command Center" },

@@ -30,9 +30,9 @@ ENDPOINTS = {
         "url": "http://192.168.1.244:8000/v1/completions",
         "model": "/models/Qwen3.5-27B-FP8",
     },
-    "utility (Qwen3-8B)": {
-        "url": "http://192.168.1.244:8002/v1/completions",
-        "model": "/models/Huihui-Qwen3-8B-abliterated-v2",
+    "coder (Qwen3-Coder-30B-A3B-AWQ)": {
+        "url": "http://192.168.1.244:8006/v1/completions",
+        "model": "qwen3-coder",
     },
     "worker (Qwen3.5-35B-A3B-AWQ)": {
         "url": "http://192.168.1.225:8000/v1/completions",

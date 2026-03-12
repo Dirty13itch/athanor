@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Runtime Subsystem Audit Record",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "dashboardTouchpoints",
+    "endpointCount",
+    "endpoints",
+    "statusTag",
+    "completionStatus",
+    "notes"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "dashboardTouchpoints": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "endpointCount": { "type": "integer" },
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["method", "path", "handler"],
+        "properties": {
+          "method": { "type": "string" },
+          "path": { "type": "string" },
+          "handler": { "type": "string" }
+        }
+      }
+    },
+    "statusTag": { "type": ["string", "null"] },
+    "completionStatus": {
+      "$ref": "./completion-status.schema.json"
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

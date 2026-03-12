@@ -51,6 +51,8 @@ tmp/
 
 # Test logs
 logs/endpoint-tests/
+/reports/
+/projects/reports/
 
 # Claude Code
 .claude/settings.local.json

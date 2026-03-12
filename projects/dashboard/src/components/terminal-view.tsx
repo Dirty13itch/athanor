@@ -47,7 +47,7 @@ export default function TerminalView({
         magenta: "#a855f7",
         cyan: "#06b6d4",
         white: "#fafafa",
-        brightBlack: "#52525b",
+        brightBlack: "#a1a1aa",
         brightRed: "#f87171",
         brightGreen: "#4ade80",
         brightYellow: "#facc15",

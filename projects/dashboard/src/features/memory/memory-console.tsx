@@ -5,6 +5,7 @@ import { useDeferredValue, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bell, Database, RefreshCcw, Search } from "lucide-react";
 import { FamilyTabs } from "@/components/family-tabs";
+import { ConsolidationCard } from "@/components/consolidation-card";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { PageHeader } from "@/components/page-header";
@@ -328,6 +329,8 @@ export function MemoryConsole({
               <SearchBar />
             </CardContent>
           </Card>
+
+          <ConsolidationCard />
 
           <div className="grid gap-4 xl:grid-cols-[1.25fr_0.9fr]">
             <Card className="border-border/70 bg-card/70">

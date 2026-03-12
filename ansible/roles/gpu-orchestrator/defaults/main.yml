@@ -3,7 +3,7 @@ gpu_orch_deploy_dir: /opt/athanor/gpu-orchestrator
 gpu_orch_port: 9200
 
 # Redis (on VAULT, shared with agent workspace)
-gpu_orch_redis_url: "redis://{{ vault_ip | default('192.168.1.203') }}:6379/0"
+gpu_orch_redis_url: "{{ athanor_redis_url | default('redis://' ~ (vault_ip | default('192.168.1.203')) ~ ':6379/0') }}"
 
 # Node IPs
 gpu_orch_node1_ip: "{{ node1_ip | default('192.168.1.244') }}"

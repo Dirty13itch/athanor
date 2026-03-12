@@ -115,8 +115,8 @@
             MERGE (s:Service {name: 'foundry-coordinator'})
             SET s.port = 8000, s.model = 'Qwen3.5-27B-FP8', s.type = 'inference'
         - statement: >
-            MERGE (s:Service {name: 'foundry-utility'})
-            SET s.port = 8002, s.model = 'Huihui-Qwen3-8B-abliterated-v2', s.type = 'inference'
+            MERGE (s:Service {name: 'foundry-coder'})
+            SET s.port = 8006, s.model = 'Qwen3-Coder-30B-A3B-Instruct-AWQ', s.type = 'inference'
         - statement: >
             MERGE (s:Service {name: 'workshop-worker'})
             SET s.port = 8000, s.model = 'Qwen3.5-35B-A3B-AWQ-4bit', s.type = 'inference'
@@ -253,7 +253,7 @@
             MATCH (s:Service {name: 'foundry-coordinator'}), (n:Node {name: 'Foundry'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'foundry-utility'}), (n:Node {name: 'Foundry'})
+            MATCH (s:Service {name: 'foundry-coder'}), (n:Node {name: 'Foundry'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
             MATCH (s:Service {name: 'qdrant'}), (n:Node {name: 'Foundry'})
@@ -335,7 +335,7 @@
             MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'foundry-coordinator'})
             MERGE (s)-[:ROUTES_TO]->(t)
         - statement: >
-            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'foundry-utility'})
+            MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'foundry-coder'})
             MERGE (s)-[:ROUTES_TO]->(t)
         - statement: >
             MATCH (s:Service {name: 'litellm'}), (t:Service {name: 'workshop-worker'})

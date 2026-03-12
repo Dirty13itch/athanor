@@ -15,7 +15,7 @@ dashboard_agent_server_url: "http://{{ node1_ip | default('192.168.1.244') }}:90
 dashboard_grafana_url: "{{ grafana_url }}"
 dashboard_litellm_url: "http://{{ vault_ip | default('192.168.1.203') }}:4000"
 dashboard_vllm_coordinator_url: "http://{{ node1_ip | default('192.168.1.244') }}:8000"
-dashboard_vllm_utility_url: "http://{{ node1_ip | default('192.168.1.244') }}:8002"
+dashboard_vllm_coder_url: "http://{{ node1_ip | default('192.168.1.244') }}:8006"
 dashboard_vllm_worker_url: "http://{{ node2_ip | default('192.168.1.225') }}:8000"
 dashboard_vllm_embedding_url: "http://{{ dev_ip | default('192.168.1.189') }}:8001"
 dashboard_vllm_reranker_url: "http://{{ dev_ip | default('192.168.1.189') }}:8003"

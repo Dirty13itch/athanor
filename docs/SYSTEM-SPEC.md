@@ -39,7 +39,7 @@ For the full philosophy, see `docs/VISION.md`. For the build history, see `docs/
 
 | Node | Role | CPU | RAM | GPUs | Key Services |
 |------|------|-----|-----|------|-------------|
-| **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=4 (Qwen3.5-27B-FP8), Huihui-Qwen3-8B, Agent Server, Qdrant |
+| **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=4 (Qwen3.5-27B-FP8), vLLM coder (Qwen3-Coder-30B-A3B-Instruct-AWQ), Agent Server, Qdrant |
 | **Workshop** (.225) | Inference, creative, UI | TR 7960X 24C/48T | 128 GB DDR5 | 5090 + 5060 Ti | vLLM (Qwen3.5-35B-A3B-AWQ), ComfyUI, Dashboard, EoBQ, Open WebUI |
 | **VAULT** (.203) | Storage, routing, media, monitoring | Ryzen 9950X 16C/32T | 128 GB DDR5 | Arc A380 | LiteLLM, Neo4j, Prometheus, Grafana, Plex, *arr, HA |
 | **DEV** (.189) | Development, ops center | Ryzen 9 9900X 12C/24T | 64 GB DDR5 | RTX 5060 Ti 16GB | Claude Code (native Linux), Ansible control, Embedding, Reranker |
@@ -79,7 +79,7 @@ scripts/index-knowledge.py (DEV cron or manual)
 
 Full inventory in `docs/SERVICES.md`. Summary:
 
-- **Node 1 (11 containers):** vLLM Qwen3.5-27B-FP8 (TP=4), vLLM Huihui-Qwen3-8B, Agent Server, Qdrant, GPU Orchestrator, Speaches, wyoming-whisper, node_exporter, dcgm-exporter
+- **Node 1 (11 containers):** vLLM Qwen3.5-27B-FP8 (TP=4), vLLM Qwen3-Coder-30B-A3B-Instruct-AWQ, Agent Server, Qdrant, GPU Orchestrator, Speaches, wyoming-whisper, node_exporter, dcgm-exporter
 - **Node 2 (9 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Open WebUI, Alloy, node_exporter, dcgm-exporter
 - **VAULT (42 containers):** LiteLLM, LangFuse (6 services), Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, n8n, Gitea, Miniflux, ntfy, Meilisearch, and more
 - **DEV (2 services):** Embedding model (:8001), Reranker (:8003)
@@ -88,14 +88,14 @@ Full inventory in `docs/SERVICES.md`. Summary:
 
 | Model | Size | Location | GPU(s) | Purpose | LiteLLM Alias |
 |-------|------|----------|--------|---------|---------------|
-| Qwen3.5-27B-FP8 | ~15.6 GB/GPU | Node 1:8000 | GPUs 0,1,3,4 (TP=4) | Reasoning, agents | `reasoning` |
-| Huihui-Qwen3-8B-abliterated-v2 | ~21 GB | Node 1:8002 | GPU 2 (4090) | Utility/uncensored | `creative` |
-| Qwen3.5-35B-A3B-AWQ | ~22 GB | Node 2:8000 | GPU 0 (5090) | Worker inference | `worker` |
+| Qwen3.5-27B-FP8 | ~15.6 GB/GPU | Node 1:8000 | GPUs 0,1,3,4 (TP=4) | Reasoning, agents, coding alias | `reasoning`, `coding` |
+| Qwen3-Coder-30B-A3B-Instruct-AWQ | ~16 GB | Node 1:8006 | GPU 2 (4090) | Dedicated coding and tool-use lane | `coder` |
+| Qwen3.5-35B-A3B-AWQ | ~22 GB | Node 2:8000 | GPU 0 (5090) | Worker, utility, fast, creative local alias lane | `worker`, `fast`, `creative`, `utility`, `uncensored` |
 | Qwen3-Embedding-0.6B | 1.2 GB | DEV:8001 | GPU 0 (5060 Ti) | Embeddings | `embedding` |
 | Qwen3-Reranker-0.6B | — | DEV:8003 | GPU 0 (5060 Ti) | Reranking | `reranker` |
 | Flux dev FP8 | 17 GB | Node 2 ComfyUI | GPU 1 (5060 Ti) | Image generation | — |
 
-All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use model aliases (`reasoning`, `coding`, `creative`, `utility`, `fast`, `worker`, `embedding`, `reranker`), never direct backend URLs.
+All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use model aliases (`reasoning`, `coding`, `coder`, `creative`, `utility`, `fast`, `worker`, `uncensored`, `embedding`, `reranker`), never direct backend URLs.
 
 ---
 
@@ -385,7 +385,7 @@ Full details in `docs/design/intelligence-layers.md`.
 |-----|------|------|-----------------|-------------|
 | GPU 0 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10-27% |
 | GPU 1 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10-27% |
-| GPU 2 (4090 ASUS) | Node 1 | 24 GB | Huihui-Qwen3-8B-abliterated-v2 | ~10% |
+| GPU 2 (4090 ASUS) | Node 1 | 24 GB | Qwen3-Coder-30B-A3B-Instruct-AWQ | ~10% |
 | GPU 3 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10% |
 | GPU 4 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10% |
 | GPU 0 (5090) | Node 2 | 32 GB | vLLM Qwen3.5-35B-A3B-AWQ | ~10-15% |

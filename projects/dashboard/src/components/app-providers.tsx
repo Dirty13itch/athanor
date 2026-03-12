@@ -1,7 +1,8 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { LensProvider } from "@/hooks/use-lens";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -18,5 +19,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       })
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Suspense fallback={<>{children}</>}>
+        <LensProvider>{children}</LensProvider>
+      </Suspense>
+    </QueryClientProvider>
+  );
 }

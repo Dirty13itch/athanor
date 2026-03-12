@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { PageHeader } from "@/components/page-header";
+import { ResearchJobsCard } from "@/components/research-jobs-card";
 import { StatCard } from "@/components/stat-card";
 import { getWorkforce } from "@/lib/api";
 import { type WorkforceSnapshot, type WorkforceTask } from "@/lib/contracts";
@@ -192,6 +193,8 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
       </PageHeader>
 
       {feedback ? <ErrorPanel title="Planner feedback" description={feedback} /> : null}
+
+      <ResearchJobsCard />
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card className="border-border/70 bg-card/70">

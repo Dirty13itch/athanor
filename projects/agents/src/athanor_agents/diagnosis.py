@@ -92,7 +92,7 @@ PATTERN_RULES = {
         (r"CUDA out of memory", "GPU memory exhaustion"),
         (r"model.*not found", "Missing model"),
         (r"timeout.*inference|inference.*timeout", "Inference timeout"),
-        (r"connection refused.*(8000|8001|8002|8004|8100|8101)", "vLLM endpoint down"),
+        (r"connection refused.*(8000|8001|8002|8003|8004|8006|8100|8101)", "vLLM endpoint down"),
         (r"connection refused.*4000", "LiteLLM proxy down"),
         (r"rate limit", "Rate limiting"),
         (r"kv.?cache.*corrupt|nan|inf", "KV cache corruption"),

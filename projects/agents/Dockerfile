@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /
 WORKDIR /app
 
 COPY pyproject.toml ./
+COPY config/ ./config/
 COPY src/ ./src/
 
 RUN pip install --no-cache-dir . && pip install --no-cache-dir pytest

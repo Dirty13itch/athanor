@@ -1,0 +1,547 @@
+[
+  {
+    "id": "topology.node.foundry",
+    "layer": "topology",
+    "title": "FOUNDRY node",
+    "kind": "node",
+    "owner": "infrastructure",
+    "source_of_truth": "services.md plus live deployment manifests",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "docs/SYSTEM-SPEC.md",
+      "services/node1",
+      "ansible"
+    ],
+    "runtime_source": [
+      "Foundry runtime services and manifests"
+    ],
+    "depends_on": [
+      "topology.service.litellm",
+      "topology.store.qdrant",
+      "topology.store.redis"
+    ],
+    "backed_by": [
+      "vLLM coordinator",
+      "coder vLLM",
+      "agent server",
+      "GPU orchestrator"
+    ],
+    "entrypoints": [
+      "192.168.1.244:8000",
+      "192.168.1.244:8006",
+      "192.168.1.244:9000",
+      "192.168.1.244:6333"
+    ],
+    "notes": [
+      "Primary heavy inference and orchestration plane.",
+      "Carries the canonical runtime Qdrant collections."
+    ]
+  },
+  {
+    "id": "topology.node.workshop",
+    "layer": "topology",
+    "title": "WORKSHOP node",
+    "kind": "node",
+    "owner": "infrastructure",
+    "source_of_truth": "services.md plus project-local manifests",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "projects/dashboard",
+      "projects/eoq",
+      "services/node2",
+      "ansible"
+    ],
+    "runtime_source": [
+      "Workshop runtime services and manifests"
+    ],
+    "depends_on": [
+      "topology.service.agent-server",
+      "topology.service.litellm"
+    ],
+    "backed_by": [
+      "dashboard pwa",
+      "ws-pty bridge",
+      "ComfyUI",
+      "worker vLLM"
+    ],
+    "entrypoints": [
+      "192.168.1.225:3001",
+      "192.168.1.225:3100",
+      "192.168.1.225:8188",
+      "192.168.1.225:8000"
+    ],
+    "notes": [
+      "Primary UI and creative plane.",
+      "Several live app-layer manifests align more closely with project or services folders than current Ansible templates."
+    ]
+  },
+  {
+    "id": "topology.node.vault",
+    "layer": "topology",
+    "title": "VAULT node",
+    "kind": "node",
+    "owner": "infrastructure",
+    "source_of_truth": "services.md plus vault roles and live configs",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "docs/SYSTEM-SPEC.md",
+      "ansible/roles/vault-*"
+    ],
+    "runtime_source": [
+      "Vault runtime services and configs"
+    ],
+    "depends_on": [
+      "topology.store.redis",
+      "topology.store.neo4j",
+      "topology.service.prometheus-grafana"
+    ],
+    "backed_by": [
+      "LiteLLM",
+      "Neo4j",
+      "Redis",
+      "Prometheus",
+      "Grafana",
+      "media stack",
+      "Home Assistant"
+    ],
+    "entrypoints": [
+      "192.168.1.203:4000",
+      "192.168.1.203:7474",
+      "192.168.1.203:7687",
+      "192.168.1.203:9090",
+      "192.168.1.203:3000"
+    ],
+    "notes": [
+      "Routing, observability, and domain-service plane.",
+      "Highest current configuration drift zone."
+    ]
+  },
+  {
+    "id": "topology.node.dev",
+    "layer": "topology",
+    "title": "DEV node",
+    "kind": "node",
+    "owner": "infrastructure",
+    "source_of_truth": "services.md and build-manifest",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "docs/BUILD-MANIFEST.md"
+    ],
+    "runtime_source": [
+      "DEV runtime services"
+    ],
+    "depends_on": [
+      "topology.service.litellm"
+    ],
+    "backed_by": [
+      "embedding model",
+      "reranker model",
+      "Claude Code",
+      "claude-squad"
+    ],
+    "entrypoints": [
+      "192.168.1.189:8001",
+      "192.168.1.189:8003"
+    ],
+    "notes": [
+      "Development and operations plane.",
+      "Carries embedding and reranking, not the main dashboard."
+    ]
+  },
+  {
+    "id": "topology.service.dashboard",
+    "layer": "topology",
+    "title": "Command Center dashboard",
+    "kind": "service",
+    "owner": "dashboard",
+    "source_of_truth": "dashboard project and workshop manifests",
+    "status_tag": "live",
+    "repo_source": [
+      "projects/dashboard",
+      "projects/dashboard/README.md"
+    ],
+    "runtime_source": [
+      "Workshop dashboard deployment"
+    ],
+    "depends_on": [
+      "topology.service.agent-server",
+      "topology.service.prometheus-grafana",
+      "topology.service.litellm"
+    ],
+    "backed_by": [
+      "Next.js 16 app",
+      "dashboard API routes",
+      "typed contracts"
+    ],
+    "entrypoints": [
+      "192.168.1.225:3001"
+    ],
+    "notes": [
+      "Primary operator shell.",
+      "Owns normalization between browser and raw cluster services."
+    ]
+  },
+  {
+    "id": "topology.service.agent-server",
+    "layer": "topology",
+    "title": "Athanor agent server",
+    "kind": "service",
+    "owner": "agents",
+    "source_of_truth": "agent server code",
+    "status_tag": "live",
+    "repo_source": [
+      "projects/agents/src/athanor_agents/server.py",
+      "projects/agents/src/athanor_agents"
+    ],
+    "runtime_source": [
+      "Foundry agent server runtime"
+    ],
+    "depends_on": [
+      "topology.service.litellm",
+      "topology.store.qdrant",
+      "topology.store.redis",
+      "topology.store.neo4j"
+    ],
+    "backed_by": [
+      "task engine",
+      "workspace",
+      "agent roster",
+      "workplan"
+    ],
+    "entrypoints": [
+      "192.168.1.244:9000",
+      "/v1/chat/completions",
+      "/v1/tasks",
+      "/v1/workspace"
+    ],
+    "notes": [
+      "Main runtime API for workforce orchestration."
+    ]
+  },
+  {
+    "id": "topology.service.litellm",
+    "layer": "topology",
+    "title": "LiteLLM routing layer",
+    "kind": "service",
+    "owner": "infrastructure",
+    "source_of_truth": "services.md plus vault runtime config",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "ansible/roles/vault-litellm"
+    ],
+    "runtime_source": [
+      "Vault LiteLLM config"
+    ],
+    "depends_on": [
+      "topology.node.foundry",
+      "topology.node.workshop",
+      "topology.node.dev"
+    ],
+    "backed_by": [
+      "local reasoning routes",
+      "cloud provider routes"
+    ],
+    "entrypoints": [
+      "192.168.1.203:4000"
+    ],
+    "notes": [
+      "Single inference routing layer for local and cloud providers.",
+      "Live routing is ahead of some repo-side templates."
+    ]
+  },
+  {
+    "id": "topology.store.qdrant",
+    "layer": "topology",
+    "title": "Qdrant store",
+    "kind": "datastore",
+    "owner": "knowledge",
+    "source_of_truth": "services.md plus runtime collections",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "docs/SYSTEM-SPEC.md"
+    ],
+    "runtime_source": [
+      "Foundry Qdrant runtime"
+    ],
+    "depends_on": [
+      "topology.node.foundry",
+      "topology.model.embedding"
+    ],
+    "backed_by": [
+      "knowledge",
+      "personal_data",
+      "activity",
+      "conversations",
+      "preferences",
+      "events"
+    ],
+    "entrypoints": [
+      "192.168.1.244:6333",
+      "192.168.1.244:6334"
+    ],
+    "notes": [
+      "Canonical vector store in the current live cluster."
+    ]
+  },
+  {
+    "id": "topology.store.neo4j",
+    "layer": "topology",
+    "title": "Neo4j graph store",
+    "kind": "datastore",
+    "owner": "knowledge",
+    "source_of_truth": "services.md and vault neo4j role",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "ansible/roles/vault-neo4j"
+    ],
+    "runtime_source": [
+      "Vault Neo4j runtime"
+    ],
+    "depends_on": [
+      "topology.node.vault"
+    ],
+    "backed_by": [
+      "graph context",
+      "infrastructure graph",
+      "semantic relationships"
+    ],
+    "entrypoints": [
+      "192.168.1.203:7474",
+      "192.168.1.203:7687"
+    ],
+    "notes": [
+      "Graph layer for knowledge and infrastructure context."
+    ]
+  },
+  {
+    "id": "topology.store.redis",
+    "layer": "topology",
+    "title": "Redis shared state",
+    "kind": "datastore",
+    "owner": "runtime",
+    "source_of_truth": "services.md and agent runtime",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "projects/agents/src/athanor_agents"
+    ],
+    "runtime_source": [
+      "Vault Redis runtime"
+    ],
+    "depends_on": [
+      "topology.node.vault"
+    ],
+    "backed_by": [
+      "workspace competition",
+      "task queue",
+      "scheduler",
+      "ephemeral control state"
+    ],
+    "entrypoints": [
+      "192.168.1.203:6379"
+    ],
+    "notes": [
+      "Shared ephemeral runtime backbone."
+    ]
+  },
+  {
+    "id": "topology.service.prometheus-grafana",
+    "layer": "topology",
+    "title": "Observability stack",
+    "kind": "service_plane",
+    "owner": "observability",
+    "source_of_truth": "services.md plus monitoring routes",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "projects/dashboard/src/app/api/monitoring/route.ts"
+    ],
+    "runtime_source": [
+      "Vault observability runtime"
+    ],
+    "depends_on": [
+      "topology.node.vault",
+      "topology.node.foundry",
+      "topology.node.workshop"
+    ],
+    "backed_by": [
+      "Prometheus",
+      "Grafana",
+      "Loki",
+      "Alloy",
+      "node exporters",
+      "dcgm-exporter"
+    ],
+    "entrypoints": [
+      "192.168.1.203:9090",
+      "192.168.1.203:3000"
+    ],
+    "notes": [
+      "Backs service history, GPU telemetry, and monitoring drill-downs."
+    ]
+  },
+  {
+    "id": "topology.model.reasoning",
+    "layer": "topology",
+    "title": "Reasoning route",
+    "kind": "model_route",
+    "owner": "inference",
+    "source_of_truth": "services.md route map",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md"
+    ],
+    "runtime_source": [
+      "Vault LiteLLM route reasoning"
+    ],
+    "depends_on": [
+      "topology.service.litellm",
+      "topology.node.foundry"
+    ],
+    "backed_by": [
+      "Qwen3.5-27B-FP8"
+    ],
+    "entrypoints": [
+      "reasoning",
+      "gpt-4"
+    ],
+    "notes": [
+      "Primary reasoning lane for the local workforce."
+    ]
+  },
+  {
+    "id": "topology.model.worker",
+    "layer": "topology",
+    "title": "Worker and fast routes",
+    "kind": "model_route",
+    "owner": "inference",
+    "source_of_truth": "services.md route map",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md"
+    ],
+    "runtime_source": [
+      "Vault LiteLLM routes fast and worker"
+    ],
+    "depends_on": [
+      "topology.service.litellm",
+      "topology.node.workshop"
+    ],
+    "backed_by": [
+      "Qwen3.5-35B-A3B-AWQ"
+    ],
+    "entrypoints": [
+      "fast",
+      "worker",
+      "gpt-3.5-turbo"
+    ],
+    "notes": [
+      "Shared worker lane for fast interaction and delegated workloads."
+    ]
+  },
+  {
+    "id": "topology.model.embedding",
+    "layer": "topology",
+    "title": "Embedding and reranking routes",
+    "kind": "model_route",
+    "owner": "inference",
+    "source_of_truth": "services.md route map",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md"
+    ],
+    "runtime_source": [
+      "DEV embedding and reranker services"
+    ],
+    "depends_on": [
+      "topology.node.dev",
+      "topology.service.litellm"
+    ],
+    "backed_by": [
+      "Qwen3-Embedding-0.6B",
+      "Qwen3-Reranker-0.6B"
+    ],
+    "entrypoints": [
+      "embedding",
+      "reranker",
+      "text-embedding-ada-002"
+    ],
+    "notes": [
+      "Retrieval backbone for Qdrant and dashboard/agent search."
+    ]
+  },
+  {
+    "id": "topology.model.cloud",
+    "layer": "topology",
+    "title": "Cloud provider routes",
+    "kind": "model_route",
+    "owner": "inference",
+    "source_of_truth": "services.md plus subscription policy",
+    "status_tag": "live",
+    "repo_source": [
+      "docs/SERVICES.md",
+      "docs/decisions/ADR-022-subscription-control-layer.md"
+    ],
+    "runtime_source": [
+      "Vault LiteLLM cloud routes"
+    ],
+    "depends_on": [
+      "topology.service.litellm"
+    ],
+    "backed_by": [
+      "Anthropic",
+      "OpenAI",
+      "Google",
+      "DeepSeek"
+    ],
+    "entrypoints": [
+      "claude",
+      "gpt",
+      "gemini",
+      "deepseek"
+    ],
+    "notes": [
+      "Premium overflow and provider-specific execution lanes."
+    ]
+  },
+  {
+    "id": "topology.deployment.sources",
+    "layer": "topology",
+    "title": "Deployment truth stack",
+    "kind": "reconciliation_rule",
+    "owner": "infrastructure",
+    "source_of_truth": "reconciled deployment evidence",
+    "status_tag": "live",
+    "repo_source": [
+      "ansible",
+      "services",
+      "projects"
+    ],
+    "runtime_source": [
+      "live node manifests"
+    ],
+    "depends_on": [],
+    "backed_by": [
+      "ansible",
+      "services",
+      "projects",
+      "live runtime"
+    ],
+    "entrypoints": [
+      "ansible/",
+      "services/",
+      "projects/"
+    ],
+    "notes": [
+      "Ansible is the desired baseline, but parts of Workshop and Foundry are better represented by project-local or service-local manifests.",
+      "Live node manifests remain evidence, not the long-term canonical source."
+    ]
+  }
+]

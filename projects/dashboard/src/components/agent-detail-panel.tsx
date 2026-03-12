@@ -27,7 +27,7 @@ interface ActivityItem {
   action_type: string;
   input_summary: string;
   output_summary?: string;
-  timestamp: number;
+  timestamp: number | string;
 }
 
 interface TaskItem {
@@ -35,7 +35,7 @@ interface TaskItem {
   prompt: string;
   status: string;
   agent: string;
-  created_at: number;
+  created_at: number | string;
 }
 
 interface PatternItem {
@@ -141,9 +141,9 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
     void loadAgentDetails(agentName);
   }, [agentName]);
 
-  function formatTime(ts: number): string {
+  function formatTime(ts: number | string): string {
     if (!ts) return "";
-    const d = new Date(ts * 1000);
+    const d = new Date(typeof ts === "number" ? ts * 1000 : ts);
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
     const diffMin = Math.floor(diffMs / 60000);

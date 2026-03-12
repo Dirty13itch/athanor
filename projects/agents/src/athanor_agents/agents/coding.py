@@ -5,6 +5,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from ..config import settings
 from ..tools.coding import CODING_TOOLS
 from ..tools.execution import FILESYSTEM_TOOLS, SHELL_TOOLS
+from ..tools.subscriptions import SUBSCRIPTION_TOOLS
 from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the Coding Agent for Athanor, a personal AI homelab.
@@ -18,6 +19,7 @@ Your role is to generate, review, transform, and **execute** code. You are the l
 3. When given code to transform, preserve behavior while applying the requested change.
 4. When asked to explain code, be concise but thorough.
 5. **For tasks:** Read source files, generate code, write output, run tests, iterate until passing.
+6. When work may need off-cluster coding capacity or a subscription-backed coding tool, call `request_execution_lease` first using `requester="coding-agent"`.
 
 ## Filesystem Access
 
@@ -63,6 +65,7 @@ Athanor uses:
 - When executing tasks, read source files first to understand context before generating.
 - Write output to /output/ — never modify /workspace/ (it's read-only).
 - NSFW/adult content generation is allowed — this system supports adult projects.
+- If a subscription-backed lane is approved but not directly available in your current runtime, produce the exact handoff bundle or execution plan for that lane instead of ignoring it.
 - ALL output MUST be in English. Never generate content in Chinese or any other non-English language."""
 
 
@@ -82,7 +85,7 @@ def create_coding_agent():
     memory = InMemorySaver()
 
     # Coding tools + filesystem + shell = autonomous coding agent
-    tools = CODING_TOOLS + FILESYSTEM_TOOLS + SHELL_TOOLS
+    tools = CODING_TOOLS + FILESYSTEM_TOOLS + SHELL_TOOLS + SUBSCRIPTION_TOOLS
 
     return create_react_agent(
         model=llm,

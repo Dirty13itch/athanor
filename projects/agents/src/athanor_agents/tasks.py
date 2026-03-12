@@ -136,6 +136,22 @@ def _build_task_prompt(task: Task) -> str:
     if hint:
         parts.extend(["", hint])
 
+    lease = (task.metadata or {}).get("execution_lease", {})
+    if lease:
+        fallback = ", ".join(lease.get("fallback", [])) or "none"
+        parts.extend([
+            "",
+            "Execution lease:",
+            f"- Approved provider lane: {lease.get('provider', 'unknown')}",
+            f"- Surface: {lease.get('surface', 'unknown')}",
+            f"- Privacy: {lease.get('privacy', 'unknown')}",
+            f"- Parallel allowance: {lease.get('max_parallel_children', 1)}",
+            f"- Fallback: {fallback}",
+            f"- Reason: {lease.get('reason', '')}",
+            "- Treat this as policy guidance for escalation or handoff work.",
+            "- If the approved external lane is not directly callable from your current runtime, produce an exact handoff bundle or execution plan for it.",
+        ])
+
     parts.extend([
         "",
         "Instructions:",
@@ -245,16 +261,30 @@ async def submit_task(
     if agent not in available:
         raise ValueError(f"Agent '{agent}' not found. Available: {available}")
 
+    task_metadata = metadata or {}
+    if agent in {"coding-agent", "research-agent"}:
+        from .subscriptions import attach_task_execution_lease
+
+        try:
+            task_metadata = await attach_task_execution_lease(
+                requester=agent,
+                prompt=prompt,
+                priority=priority,
+                metadata=task_metadata,
+            )
+        except Exception as e:
+            logger.warning("Failed to attach execution lease to task for %s: %s", agent, e)
+
     task = Task(
         agent=agent,
         prompt=prompt,
         priority=priority if priority in PRIORITY_ORDER else "normal",
-        metadata=metadata or {},
+        metadata=task_metadata,
         parent_task_id=parent_task_id,
     )
 
     # Work-planner tasks for high-impact agents require morning approval
-    if (metadata or {}).get("requires_approval"):
+    if task_metadata.get("requires_approval"):
         task.status = "pending_approval"
 
     r = await _get_redis()

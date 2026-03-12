@@ -13,7 +13,7 @@ describe("dashboard fixtures", () => {
     const fixtureIds = getFixtureServicesSnapshot().services.map((service) => service.id);
     expect(fixtureIds).toEqual(config.services.map((service) => service.id));
     expect(fixtureIds).toContain("foundry-coordinator");
-    expect(fixtureIds).toContain("foundry-utility");
+    expect(fixtureIds).toContain("foundry-coder");
     expect(fixtureIds).toContain("workshop-worker");
     expect(fixtureIds).toContain("dev-embedding");
     expect(fixtureIds).toContain("dev-reranker");

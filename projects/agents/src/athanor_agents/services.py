@@ -89,8 +89,8 @@ class ServiceRegistry:
         return ensure_openai_base_url(self.config.coordinator_url)
 
     @cached_property
-    def utility_openai_url(self) -> str:
-        return ensure_openai_base_url(self.config.utility_url)
+    def coder_openai_url(self) -> str:
+        return ensure_openai_base_url(self.config.coder_url)
 
     @cached_property
     def worker_openai_url(self) -> str:
@@ -154,13 +154,13 @@ class ServiceRegistry:
         )
 
     @cached_property
-    def utility(self) -> ServiceEndpoint:
+    def coder(self) -> ServiceEndpoint:
         return ServiceEndpoint(
-            id="foundry-utility",
-            name="Foundry Utility",
+            id="foundry-coder",
+            name="Foundry Coder",
             node="Foundry",
-            base_url=self.config.utility_url,
-            description="Utility and uncensored runtime.",
+            base_url=self.config.coder_url,
+            description="Dedicated autonomous coding runtime.",
             health_path="/health",
             models_path="/v1/models",
         )
@@ -406,7 +406,7 @@ class ServiceRegistry:
         return [
             self.litellm,
             self.coordinator,
-            self.utility,
+            self.coder,
             self.worker,
             self.embedding,
             self.reranker,
@@ -436,7 +436,7 @@ class ServiceRegistry:
         return [
             ("LiteLLM proxy", self.litellm),
             ("Foundry coordinator", self.coordinator),
-            ("Foundry utility", self.utility),
+            ("Foundry coder", self.coder),
             ("Workshop worker", self.worker),
             ("DEV embedding", self.embedding),
         ]
@@ -445,7 +445,7 @@ class ServiceRegistry:
     def inference_health_checks(self) -> dict[str, ServiceEndpoint]:
         return {
             "coordinator": self.coordinator,
-            "utility": self.utility,
+            "coder": self.coder,
             "worker": self.worker,
             "litellm": self.litellm,
             "embedding": self.embedding,

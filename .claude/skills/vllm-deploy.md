@@ -12,8 +12,8 @@ Deploy vLLM inference services on Athanor. Uses custom Docker image (NGC 26.01-p
 
 | Instance | Node | Port | GPUs | Model | Purpose |
 |----------|------|------|------|-------|---------|
-| vllm-coordinator | Foundry | 8000 | 0,1,3,4 (4x 5070Ti) TP=4 | Qwen3.5-27B-FP8 | Reasoning, agents |
-| vllm-utility | Foundry | 8002 | 2 (4090) | Huihui-Qwen3-8B | Utility/fast |
+| vllm-coordinator | Foundry | 8000 | 0,1,3,4 (4x 5070Ti) TP=4 | Qwen3.5-27B-FP8 | Reasoning, agents, coding alias |
+| vllm-coder | Foundry | 8006 | 2 (4090) | Qwen3-Coder-30B-A3B-Instruct-AWQ | Dedicated coding and tool-use |
 | vllm-embedding | DEV | 8001 | 0 (5060Ti), 0.40 mem | Qwen3-Embedding-0.6B | Embeddings (1024-dim) |
 | vllm (secondary) | Workshop | 8000 | 0 (5090) | Qwen3.5-35B-A3B-AWQ | Fast inference |
 
@@ -74,7 +74,7 @@ command:
 |-------|------|-------|----------------|
 | Qwen3.5-27B-FP8 | ~27 GB | FP8 | Foundry TP=4 at :8000 (current) |
 | Qwen3.5-35B-A3B-AWQ | ~22 GB | AWQ | Workshop single GPU at :8000 (--language-model-only) |
-| Huihui-Qwen3-8B | ~8 GB | None | Foundry GPU 2 (4090) at :8002 |
+| Qwen3-Coder-30B-A3B-Instruct-AWQ | ~16 GB | AWQ | Foundry GPU 2 (4090) at :8006 |
 | Qwen3-Embedding-0.6B | ~1.2 GB | None | DEV GPU 0 at :8001 |
 
 ## Validation
@@ -93,6 +93,6 @@ curl http://192.168.1.189:8001/v1/embeddings \
   -H "Content-Type: application/json" \
   -d '{"model":"/models/Qwen3-Embedding-0.6B","input":"test"}'
 
-# Check utility (Foundry GPU 2)
-curl http://192.168.1.244:8002/v1/models
+# Check coder lane (Foundry GPU 2)
+curl http://192.168.1.244:8006/v1/models
 ```

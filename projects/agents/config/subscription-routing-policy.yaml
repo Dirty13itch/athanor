@@ -1,0 +1,183 @@
+version: 1
+updated: 2026-03-11
+
+providers:
+  athanor_local:
+    enabled: true
+    category: local
+    role: default_machine_lane
+    strengths:
+      - privacy_sensitive
+      - low_latency
+      - background_automation
+      - repetitive_transforms
+    privacy: lan_only
+    reserve: keep_available
+
+  anthropic_claude_code:
+    enabled: true
+    category: subscription
+    role: lead_interactive_coder
+    strengths:
+      - architecture
+      - multi_file_editing
+      - repo_surgery
+      - final_review
+    privacy: cloud
+    reserve: premium_interactive
+
+  openai_codex:
+    enabled: true
+    category: subscription
+    role: async_cloud_executor
+    strengths:
+      - backlog_execution
+      - parallel_tasks
+      - pr_sized_work
+      - secondary_validation
+    privacy: cloud
+    reserve: premium_async
+
+  google_gemini:
+    enabled: true
+    category: subscription
+    role: large_context_auditor
+    strengths:
+      - repo_wide_analysis
+      - broad_review
+      - quota_harvest
+    privacy: cloud
+    reserve: burn_early
+
+  moonshot_kimi:
+    enabled: true
+    category: subscription
+    role: planning_alternative
+    strengths:
+      - architecture_alternatives
+      - search_heavy_reasoning
+      - second_pass_design
+    privacy: cloud
+    reserve: targeted
+
+  zai_glm_coding:
+    enabled: true
+    category: subscription
+    role: high_throughput_overflow
+    strengths:
+      - bulk_implementation
+      - repeated_fix_loops
+      - scaffold_generation
+      - overflow_capacity
+    privacy: cloud
+    reserve: burn_for_bulk
+
+task_classes:
+  interactive_architecture:
+    primary:
+      - anthropic_claude_code
+    fallback:
+      - moonshot_kimi
+      - openai_codex
+      - athanor_local
+
+  multi_file_implementation:
+    primary:
+      - anthropic_claude_code
+    fallback:
+      - openai_codex
+      - zai_glm_coding
+      - athanor_local
+
+  async_backlog_execution:
+    primary:
+      - openai_codex
+    fallback:
+      - zai_glm_coding
+      - athanor_local
+
+  repo_wide_audit:
+    primary:
+      - google_gemini
+    fallback:
+      - anthropic_claude_code
+      - athanor_local
+
+  cheap_bulk_transform:
+    primary:
+      - zai_glm_coding
+    fallback:
+      - google_gemini
+      - athanor_local
+
+  search_heavy_planning:
+    primary:
+      - moonshot_kimi
+    fallback:
+      - anthropic_claude_code
+      - google_gemini
+
+  private_internal_automation:
+    primary:
+      - athanor_local
+    fallback: []
+
+agents:
+  coding-agent:
+    default_task_class: multi_file_implementation
+    sensitivity_default: repo_internal
+    allowed_providers:
+      - athanor_local
+      - anthropic_claude_code
+      - openai_codex
+      - google_gemini
+      - moonshot_kimi
+      - zai_glm_coding
+
+  research-agent:
+    default_task_class: search_heavy_planning
+    sensitivity_default: mixed
+    allowed_providers:
+      - athanor_local
+      - anthropic_claude_code
+      - google_gemini
+      - moonshot_kimi
+      - openai_codex
+
+  general-assistant:
+    default_task_class: private_internal_automation
+    sensitivity_default: private
+    allowed_providers:
+      - athanor_local
+
+  knowledge-agent:
+    default_task_class: private_internal_automation
+    sensitivity_default: private
+    allowed_providers:
+      - athanor_local
+
+  home-agent:
+    default_task_class: private_internal_automation
+    sensitivity_default: private
+    allowed_providers:
+      - athanor_local
+
+  media-agent:
+    default_task_class: private_internal_automation
+    sensitivity_default: private
+    allowed_providers:
+      - athanor_local
+
+quota_strategy:
+  observe_reset_windows: true
+  record_throttling_events: true
+  preserve_premium_interactive_capacity: true
+  use_free_or_cheap_lanes_first_for_bulk: true
+  schedule_overnight_quota_harvest: true
+
+telemetry:
+  log_provider_choice: true
+  log_reason: true
+  log_latency: true
+  log_estimated_cost: true
+  log_quota_errors: true

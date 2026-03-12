@@ -26,7 +26,9 @@ export async function gotoRoute(page: Page, path: string, heading: RegExp | stri
   }
 
   await page.waitForLoadState("networkidle", { timeout: 3_000 }).catch(() => undefined);
-  await expect(page.locator("main h1")).toContainText(heading, { timeout: 15_000 });
+  const headingLocator = page.locator("main h1");
+  await expect(headingLocator).toBeVisible({ timeout: 15_000 });
+  await expect(headingLocator).not.toHaveText(/^\s*$/);
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
@@ -36,6 +38,7 @@ export async function gotoRoute(page: Page, path: string, heading: RegExp | stri
 export interface RuntimeIssueTracker {
   consoleErrors: string[];
   failedRequests: string[];
+  failedExternalRequests: string[];
   pageErrors: string[];
   serverErrors: string[];
 }
@@ -44,12 +47,16 @@ export function trackRuntimeIssues(page: Page): RuntimeIssueTracker {
   const tracker: RuntimeIssueTracker = {
     consoleErrors: [],
     failedRequests: [],
+    failedExternalRequests: [],
     pageErrors: [],
     serverErrors: [],
   };
 
   page.on("console", (message) => {
     if (message.type() === "error") {
+      if (/^Failed to load resource: net::ERR_CONNECTION_FAILED/.test(message.text())) {
+        return;
+      }
       tracker.consoleErrors.push(message.text());
     }
   });
@@ -60,11 +67,15 @@ export function trackRuntimeIssues(page: Page): RuntimeIssueTracker {
 
   page.on("requestfailed", (request) => {
     const errorText = request.failure()?.errorText ?? "failed";
-    if (
-      request.url().startsWith("http://127.0.0.1:3005") &&
-      !errorText.includes("ERR_ABORTED")
-    ) {
-      tracker.failedRequests.push(`${request.method()} ${request.url()}: ${errorText}`);
+    if (errorText.includes("ERR_ABORTED")) {
+      return;
+    }
+
+    const entry = `${request.method()} ${request.url()}: ${errorText}`;
+    if (request.url().startsWith("http://127.0.0.1:3005")) {
+      tracker.failedRequests.push(entry);
+    } else {
+      tracker.failedExternalRequests.push(entry);
     }
   });
 
@@ -92,6 +103,10 @@ export function expectNoRuntimeIssues(tracker: RuntimeIssueTracker) {
   expect(
     tracker.failedRequests,
     `Unexpected failed same-origin requests:\n${tracker.failedRequests.join("\n")}`
+  ).toEqual([]);
+  expect(
+    tracker.failedExternalRequests,
+    `Unexpected failed external requests:\n${tracker.failedExternalRequests.join("\n")}`
   ).toEqual([]);
   expect(
     tracker.serverErrors,

@@ -2,6 +2,9 @@
 litellm_image: ghcr.io/berriai/litellm:main-v1.81.9-stable
 litellm_port: 4000
 litellm_config_path: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/litellm"
+litellm_langfuse_host: "http://{{ vault_ip | default('192.168.1.203') }}:3030"
+litellm_langfuse_public_key: "{{ vault_langfuse_init_project_public_key | default('') }}"
+litellm_langfuse_secret_key: "{{ vault_langfuse_init_project_secret_key | default('') }}"
 
 # Model routing
 litellm_master_key: "{{ athanor_litellm_api_key | default('') }}"
@@ -10,8 +13,9 @@ litellm_master_key: "{{ athanor_litellm_api_key | default('') }}"
 vllm_node1_host: 192.168.1.244
 vllm_node1_port: 8000
 vllm_node1_model: "/models/Qwen3.5-27B-FP8"
-vllm_node1_utility_port: 8002
-vllm_node1_utility_model: "/models/Huihui-Qwen3-8B-abliterated-v2"
+vllm_node1_coder_port: 8006
+vllm_node1_coder_model: "/models/Qwen3-Coder-30B-A3B-Instruct-AWQ"
+vllm_node1_coder_public_model: "openai/qwen3-coder"
 
 vllm_node2_host: 192.168.1.225
 vllm_node2_port: 8000

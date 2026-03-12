@@ -41,7 +41,12 @@ export function TerminalConsole() {
               </div>
               <div className="flex items-center gap-3">
                 <Badge variant={connected ? "secondary" : "outline"}>{connected ? "Connected" : "Disconnected"}</Badge>
+                <label htmlFor="terminal-node-selector" className="sr-only">
+                  Active node
+                </label>
                 <select
+                  id="terminal-node-selector"
+                  aria-label="Active node"
                   value={selectedNode.id}
                   onChange={(event) => {
                     const nextNode = NODES.find((node) => node.id === event.target.value);

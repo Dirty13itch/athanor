@@ -19,12 +19,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DailyBriefing } from "@/components/daily-briefing";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { MetricChart } from "@/components/metric-chart";
 import { PageHeader } from "@/components/page-header";
+import { SmartStack } from "@/components/smart-stack";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
+import { UnifiedStream } from "@/components/unified-stream";
+import { WorkPlan } from "@/components/work-plan";
 import { getOverview } from "@/lib/api";
 import {
   agentThreadSchema,
@@ -205,6 +209,26 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           />
         </div>
       </PageHeader>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <DailyBriefing />
+        <SmartStack />
+        <Card className="border-border/70 bg-card/70">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Clock3 className="h-5 w-5 text-primary" />
+              Unified stream
+            </CardTitle>
+            <CardDescription>
+              Cross-route activity across tasks, agents, and operator feedback.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <UnifiedStream limit={8} />
+          </CardContent>
+        </Card>
+        <WorkPlan />
+      </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card className="border-border/70 bg-card/70">

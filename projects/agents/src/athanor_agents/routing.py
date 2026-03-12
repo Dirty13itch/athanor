@@ -11,7 +11,7 @@ Ported from Hydra's routellm.py, adapted for Athanor's model stack.
 
 Athanor Model Tiers (via LiteLLM at VAULT:4000):
 - REASONING: Qwen3.5-27B-FP8 TP=4 (Foundry GPUs 0,1,3,4)
-- FAST: Huihui-Qwen3-8B-abliterated-v2 (Foundry GPU 2, 4090)
+- FAST: Qwen3.5-35B-A3B-AWQ (Workshop 5090)
 - WORKER: Qwen3.5-35B-A3B-AWQ (Workshop 5090)
 """
 
@@ -50,7 +50,7 @@ class RoutingDecision:
 
 # LiteLLM route names → Athanor models
 TIER_MODELS = {
-    ModelTier.FAST: "fast",          # Qwen3-8B-abliterated on Foundry 4090
+    ModelTier.FAST: "fast",          # Workshop worker lane optimized for fast interactive use
     ModelTier.REASONING: "reasoning",  # Qwen3.5-27B-FP8 on Foundry TP=4
     ModelTier.WORKER: "worker",      # Qwen3.5-35B-A3B-AWQ on Workshop
 }

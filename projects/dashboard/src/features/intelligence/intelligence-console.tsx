@@ -8,6 +8,7 @@ import { FamilyTabs } from "@/components/family-tabs";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { PageHeader } from "@/components/page-header";
+import { SkillsLane } from "@/components/skills-lane";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -333,6 +334,8 @@ export function IntelligenceConsole({
             <StatCard label="Trust average" value={`${((snapshot.learning?.metrics.trust?.avgTrustScore ?? 0) * 100).toFixed(0)}%`} detail={`${snapshot.learning?.metrics.trust?.agentsTracked ?? 0} agents tracked`} />
             <StatCard label="Success rate" value={`${Math.round((snapshot.learning?.metrics.tasks?.successRate ?? 0) * 100)}%`} detail={`${snapshot.learning?.metrics.tasks?.completed ?? 0} completed tasks`} />
           </div>
+
+          <SkillsLane />
 
           <Card className="border-border/70 bg-card/70">
             <CardHeader>

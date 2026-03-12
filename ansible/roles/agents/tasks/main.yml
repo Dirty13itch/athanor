@@ -42,6 +42,23 @@
     mode: "0644"
   register: agent_pyproject
 
+- name: Create agent config directory
+  ansible.builtin.file:
+    path: "{{ agent_deploy_dir }}/config"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Deploy agent subscription policy config
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../projects/agents/config/subscription-routing-policy.yaml"
+    dest: "{{ agent_deploy_dir }}/config/subscription-routing-policy.yaml"
+    owner: athanor
+    group: athanor
+    mode: "0644"
+  register: agent_config
+
 - name: Deploy agent docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -55,13 +72,13 @@
   community.docker.docker_compose_v2:
     project_src: "{{ agent_deploy_dir }}"
     state: absent
-  when: agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed
+  when: agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed or agent_config.changed
 
 - name: Build and deploy agents
   community.docker.docker_compose_v2:
     project_src: "{{ agent_deploy_dir }}"
     state: present
-    build: "{{ 'always' if (agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed) else 'never' }}"
+    build: "{{ 'always' if (agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed or agent_config.changed) else 'never' }}"
     recreate: "{{ 'always' if (agent_compose.changed or agent_src.changed) else 'never' }}"
 
 - name: Wait for agent server health

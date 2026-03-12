@@ -1,5 +1,7 @@
 # Athanor System Map - Complete Hardware Overview
 
+> Atlas note: [`docs/atlas/README.md`](../atlas/README.md) is now the canonical cross-layer system map. This file remains a hardware-focused reference and historical input.
+
 **Last Updated:** 2026-02-21
 **Status:** Current (after Node 1 5-GPU installation)
 

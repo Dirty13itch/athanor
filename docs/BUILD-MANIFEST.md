@@ -9,6 +9,7 @@ Last updated: 2026-03-11 (Session 56: backup alerting drift reconciliation)
 ## Strategic Context
 
 - `docs/design/athanor-next.md` is the program north star
+- `docs/atlas/README.md` is the canonical cross-layer system map
 - this manifest is the tactical queue, not the source of truth for topology or secrets
 - `ansible/` is the deployment truth
 - `docs/SYSTEM-SPEC.md` is the operational truth

@@ -17,7 +17,7 @@ import type {
 } from "@/lib/contracts";
 import { config } from "@/lib/config";
 
-const FIXTURE_BASE_TIME = "2026-03-09T15:00:00.000Z";
+export const FIXTURE_BASE_TIME = "2026-03-09T15:00:00.000Z";
 const ACTIVE_PROJECT_STATUSES = new Set(["active", "operational", "planning", "active_development"]);
 
 function cloneFixture<T>(value: T): T {
@@ -80,7 +80,7 @@ const fixtureServiceHealth: Record<
 > = {
   "litellm-proxy": { healthy: true, latencyMs: 82, state: "healthy" },
   "foundry-coordinator": { healthy: true, latencyMs: 364, state: "healthy" },
-  "foundry-utility": { healthy: true, latencyMs: 1186, state: "warning" },
+  "foundry-coder": { healthy: true, latencyMs: 642, state: "healthy" },
   "workshop-worker": { healthy: true, latencyMs: 218, state: "healthy" },
   "dev-embedding": { healthy: true, latencyMs: 134, state: "healthy" },
   "dev-reranker": { healthy: true, latencyMs: 147, state: "healthy" },
@@ -333,9 +333,20 @@ const fixtureGpuHistory: GpuHistoryResponse = {
 };
 
 const fixtureBackendModels: Record<string, string[]> = {
-  "litellm-proxy": ["reasoning", "coding", "creative", "utility", "embedding", "reranker"],
+  "litellm-proxy": [
+    "reasoning",
+    "coding",
+    "creative",
+    "utility",
+    "fast",
+    "worker",
+    "uncensored",
+    "coder",
+    "embedding",
+    "reranker",
+  ],
   "foundry-coordinator": ["qwen3-32b", "deepseek-r1-distill-qwen-32b"],
-  "foundry-utility": ["huihui-qwen3-8b-abliterated-v2"],
+  "foundry-coder": ["qwen3-coder"],
   "workshop-worker": ["qwen3-35b-a3b-awq", "phi-4-mini"],
   "dev-embedding": ["qwen3-embedding-0.6b"],
   "dev-reranker": ["qwen3-reranker-0.6b"],
@@ -344,13 +355,17 @@ const fixtureBackendModels: Record<string, string[]> = {
 const fixtureModelDescriptions: Record<string, string> = {
   reasoning: "LiteLLM alias for primary reasoning work on the Foundry coordinator lane.",
   coding: "LiteLLM alias for code-heavy work on the Foundry coordinator lane.",
-  creative: "LiteLLM alias for creative text work routed through the utility lane.",
-  utility: "LiteLLM alias for fast utility and uncensored responses.",
+  creative: "LiteLLM alias for creative text work routed through the workshop worker lane.",
+  utility: "LiteLLM alias for fast utility work routed through the workshop worker lane.",
+  fast: "LiteLLM alias for fast interactive work routed through the workshop worker lane.",
+  worker: "LiteLLM alias for delegated worker inference on Workshop.",
+  uncensored: "Legacy uncensored alias retained on the workshop worker lane.",
+  coder: "LiteLLM alias for the dedicated Foundry coding runtime.",
   embedding: "LiteLLM alias for DEV-hosted embeddings.",
   reranker: "LiteLLM alias for DEV-hosted reranking.",
   "qwen3-32b": "Primary large-model runtime on Foundry.",
   "deepseek-r1-distill-qwen-32b": "Reasoning-heavy local coordinator model.",
-  "huihui-qwen3-8b-abliterated-v2": "Utility and uncensored runtime on Foundry.",
+  "qwen3-coder": "Dedicated coding runtime on Foundry GPU 2.",
   "qwen3-35b-a3b-awq": "Interactive worker runtime on Workshop.",
   "phi-4-mini": "Smaller interactive model for lightweight tasks.",
   "qwen3-embedding-0.6b": "Canonical embedding runtime on DEV.",
@@ -2199,4 +2214,107 @@ export function getFixtureGallerySnapshot(): GallerySnapshot {
 
 export function getFixtureHomeSnapshot(): HomeSnapshot {
   return cloneFixture(fixtureHomeSnapshot);
+}
+
+function isoToUnixSeconds(iso: string | null) {
+  if (!iso) {
+    return 0;
+  }
+
+  return Math.floor(new Date(iso).getTime() / 1000);
+}
+
+export function getFixtureAgentTasks(options?: { agent?: string | null; limit?: number | null }) {
+  const agent = options?.agent?.trim() || null;
+  const limit = options?.limit ?? null;
+  const tasks = fixtureWorkforce.tasks
+    .filter((task) => (agent ? task.agentId === agent : true))
+    .map((task) => ({
+      id: task.id,
+      agent: task.agentId,
+      prompt: task.prompt,
+      priority: task.priority,
+      status: task.status,
+      result: task.result ?? "",
+      error: task.error ?? "",
+      created_at: isoToUnixSeconds(task.createdAt),
+      started_at: isoToUnixSeconds(task.startedAt),
+      completed_at: isoToUnixSeconds(task.completedAt),
+      metadata: {
+        project_id: task.projectId,
+        plan_id: task.planId,
+        requires_approval: task.requiresApproval,
+        rationale: task.rationale,
+      },
+      parent_task_id: task.parentTaskId ?? "",
+      description: task.prompt,
+      title: task.prompt,
+    }));
+
+  return cloneFixture(limit ? tasks.slice(0, limit) : tasks);
+}
+
+export function getFixtureAgentActivity(options?: { agent?: string | null; limit?: number | null }) {
+  const agent = options?.agent?.trim() || null;
+  const limit = options?.limit ?? null;
+  const activity = fixtureHistorySnapshot.activity
+    .filter((item) => (agent ? item.agentId === agent : true))
+    .map((item) => ({
+      id: item.id,
+      agent: item.agentId,
+      source: item.agentId,
+      action_type: item.actionType,
+      action: item.actionType,
+      input_summary: item.inputSummary,
+      summary: item.inputSummary,
+      output_summary: item.outputSummary,
+      detail: item.outputSummary,
+      timestamp: isoToUnixSeconds(item.timestamp),
+      status: item.status,
+      href: item.href,
+      related_task_id: item.relatedTaskId,
+      related_thread_id: item.relatedThreadId,
+    }));
+
+  return cloneFixture(limit ? activity.slice(0, limit) : activity);
+}
+
+export function getFixtureAgentOutputs() {
+  return cloneFixture(
+    fixtureHistorySnapshot.outputs.map((output) => ({
+      id: output.id,
+      path: output.path,
+      file_name: output.fileName,
+      category: output.category,
+      size_bytes: output.sizeBytes,
+      modified: isoToUnixSeconds(output.modifiedAt),
+      project_id: output.projectId,
+      related_task_id: output.relatedTaskId,
+      preview_available: output.previewAvailable,
+      href: output.href,
+    }))
+  );
+}
+
+export function getFixtureAgentPatterns(options?: { agent?: string | null }) {
+  const agent = options?.agent?.trim() || null;
+  const report = fixtureIntelligenceSnapshot.report;
+  const patterns = (report?.patterns ?? [])
+    .filter((pattern) => (agent ? pattern.agentId === agent : true))
+    .map((pattern) => ({
+      type: pattern.type,
+      severity: pattern.severity,
+      agent: pattern.agentId,
+      count: pattern.count,
+      success_rate: undefined,
+      thumbs_up: undefined,
+      thumbs_down: undefined,
+      runs: undefined,
+    }));
+
+  return cloneFixture({
+    patterns,
+    recommendations: report?.recommendations ?? [],
+    generated_at: fixtureIntelligenceSnapshot.generatedAt,
+  });
 }

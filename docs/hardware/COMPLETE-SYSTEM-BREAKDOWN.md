@@ -1,5 +1,7 @@
 # Athanor Complete System Breakdown
 
+> Atlas note: [`docs/atlas/README.md`](../atlas/README.md) is now the canonical cross-layer system map. This file remains an exhaustive hardware reference, not the primary system map.
+
 **Last Updated:** 2026-02-21
 **Purpose:** Exhaustive hardware documentation for all 4 systems
 

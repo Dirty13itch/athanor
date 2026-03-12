@@ -1,19 +1,12 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { loadRouteAuditRecords } from "./census";
 import { gotoRoute, resetBrowserState } from "./helpers";
 
-const ROUTES = [
-  { path: "/", heading: "Command Center" },
-  { path: "/services", heading: "Services" },
-  { path: "/gpu", heading: "GPU Metrics" },
-  { path: "/chat", heading: "Direct Chat" },
-  { path: "/agents", heading: "Agent Console" },
-  { path: "/activity", heading: "Activity Feed" },
-  { path: "/review", heading: "Code Review" },
-  { path: "/preferences", heading: "Preferences" },
-  { path: "/monitoring", heading: "Monitoring" },
-  { path: "/home", heading: "Home" },
-] as const;
+const ROUTES = loadRouteAuditRecords().map((route) => ({
+  path: route.routePath,
+  heading: route.title,
+}));
 
 test.beforeEach(async ({ page }) => {
   await resetBrowserState(page);

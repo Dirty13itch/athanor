@@ -44,9 +44,9 @@ prometheus_probe_targets:
     url: "http://{{ node1_ip }}:8000/v1/models"
     category: inference
     node_id: node1
-  - id: foundry-utility
-    name: "Foundry Utility"
-    url: "http://{{ node1_ip }}:8002/health"
+  - id: foundry-coder
+    name: "Foundry Coder"
+    url: "http://{{ node1_ip }}:8006/health"
     category: inference
     node_id: node1
   - id: workshop-worker

@@ -1,52 +1,70 @@
 # Athanor LiteLLM Proxy Configuration
 # Managed by Ansible — canonical source of truth for model routing
 #
-# Phase 2 (2026-03-08):
-#   FOUNDRY (.244): coordinator TP=4 (Qwen3.5-27B-FP8) :8000, utility (Qwen3-8B) :8002
-#   WORKSHOP (.225): worker (Qwen3.5-35B-A3B-AWQ) :8000
+# Coder-era local layout:
+#   FOUNDRY (.244): coordinator TP=4 (Qwen3.5-27B-FP8) :8000, coder (Qwen3-Coder-30B-A3B-AWQ) :8006
+#   WORKSHOP (.225): worker (Qwen3.5-35B-A3B-AWQ) :8000, utility/creative/fast lane
 #   DEV (.189): embedding :8001, reranker :8003
 
 model_list:
   # === LOCAL MODELS ===
   # Frozen slot map:
   #   reasoning / coding -> Foundry coordinator (:8000)
-  #   creative / utility -> Foundry utility (:8002)
-  #   fast / worker -> Workshop worker (:8000)
+  #   creative / utility / fast / worker / uncensored -> Workshop worker (:8000)
+  #   coder -> Foundry coder (:8006)
   #   embedding / reranker -> DEV retrieval runtimes
 
   - model_name: "reasoning"
     litellm_params:
-      model: "hosted_vllm//{{ vllm_node1_model }}"
+      model: "hosted_vllm/{{ vllm_node1_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
+      api_key: "not-needed"
+
+  - model_name: "coding"
+    litellm_params:
+      model: "hosted_vllm/{{ vllm_node1_model }}"
       api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "utility"
     litellm_params:
-      model: "hosted_vllm//{{ vllm_node1_utility_model }}"
-      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_utility_port }}/v1"
+      model: "hosted_vllm/{{ vllm_node2_model }}"
+      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "fast"
     litellm_params:
-      model: "hosted_vllm//{{ vllm_node2_model }}"
+      model: "hosted_vllm/{{ vllm_node2_model }}"
       api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "creative"
     litellm_params:
-      model: "hosted_vllm//{{ vllm_node1_utility_model }}"
-      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_utility_port }}/v1"
+      model: "hosted_vllm/{{ vllm_node2_model }}"
+      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
 
-  - model_name: "coding"
+  - model_name: "worker"
     litellm_params:
-      model: "hosted_vllm//{{ vllm_node1_model }}"
-      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
+      model: "hosted_vllm/{{ vllm_node2_model }}"
+      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
+      api_key: "not-needed"
+
+  - model_name: "uncensored"
+    litellm_params:
+      model: "hosted_vllm/{{ vllm_node2_model }}"
+      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
+      api_key: "not-needed"
+
+  - model_name: "coder"
+    litellm_params:
+      model: "{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "embedding"
     litellm_params:
-      model: "hosted_vllm//models/Qwen3-Embedding-0.6B"
+      model: "hosted_vllm/{{ vllm_embedding_model }}"
       api_base: "http://{{ vllm_embedding_host }}:8001/v1"
       api_key: "not-needed"
     model_info:
@@ -54,37 +72,118 @@ model_list:
 
   - model_name: "reranker"
     litellm_params:
-      model: "hosted_vllm//{{ vllm_reranker_model }}"
+      model: "hosted_vllm/{{ vllm_reranker_model }}"
       api_base: "http://{{ vllm_reranker_host }}:{{ vllm_reranker_port }}/v1"
-      api_key: "not-needed"
-
-  - model_name: "worker"
-    litellm_params:
-      model: "hosted_vllm//{{ vllm_node2_model }}"
-      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
 
   # === CLOUD APIS ===
 
+  - model_name: "claude-opus-4-6"
+    litellm_params:
+      model: "anthropic/claude-opus-4-6"
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  - model_name: "claude-haiku-4-5"
+    litellm_params:
+      model: "anthropic/claude-haiku-4-5-20251001"
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  - model_name: "claude-sonnet-4-6"
+    litellm_params:
+      model: "anthropic/claude-sonnet-4-6"
+      api_key: "os.environ/ANTHROPIC_API_KEY"
+
   - model_name: "claude"
     litellm_params:
-      model: "anthropic/claude-sonnet-4-20250514"
+      model: "anthropic/claude-sonnet-4-6"
       api_key: "os.environ/ANTHROPIC_API_KEY"
+
+  - model_name: "gpt-5.4"
+    litellm_params:
+      model: "openai/gpt-5.4-2026-03-05"
+      api_key: "os.environ/OPENAI_API_KEY"
+
+  - model_name: "gpt-5-mini"
+    litellm_params:
+      model: "openai/gpt-5-mini"
+      api_key: "os.environ/OPENAI_API_KEY"
+
+  - model_name: "o4-mini"
+    litellm_params:
+      model: "openai/o4-mini-2025-04-16"
+      api_key: "os.environ/OPENAI_API_KEY"
 
   - model_name: "gpt"
     litellm_params:
-      model: "openai/gpt-4.1"
+      model: "openai/gpt-5.4-2026-03-05"
       api_key: "os.environ/OPENAI_API_KEY"
+
+  - model_name: "mistral-large"
+    litellm_params:
+      model: "mistral/mistral-large-latest"
+      api_key: "os.environ/MISTRAL_API_KEY"
+
+  - model_name: "codestral"
+    litellm_params:
+      model: "codestral/codestral-latest"
+      api_key: "os.environ/CODESTRAL_API_KEY"
+
+  - model_name: "gemini"
+    litellm_params:
+      model: "gemini/gemini-2.5-pro"
+      api_key: "os.environ/GOOGLE_API_KEY"
+
+  - model_name: "deepseek-reasoner"
+    litellm_params:
+      model: "deepseek/deepseek-reasoner"
+      api_key: "os.environ/DEEPSEEK_API_KEY"
+
+  - model_name: "deepseek-chat"
+    litellm_params:
+      model: "deepseek/deepseek-chat"
+      api_key: "os.environ/DEEPSEEK_API_KEY"
 
   - model_name: "deepseek"
     litellm_params:
       model: "deepseek/deepseek-chat"
       api_key: "os.environ/DEEPSEEK_API_KEY"
 
-  - model_name: "gemini"
+  - model_name: "kimi-k2.5"
     litellm_params:
-      model: "gemini/gemini-2.5-pro"
-      api_key: "os.environ/GOOGLE_API_KEY"
+      model: "moonshot/kimi-k2.5"
+      api_key: "os.environ/MOONSHOT_API_KEY"
+
+  - model_name: "qwen-max"
+    litellm_params:
+      model: "dashscope/qwen-max-latest"
+      api_key: "os.environ/DASHSCOPE_API_KEY"
+
+  - model_name: "qwen-plus"
+    litellm_params:
+      model: "dashscope/qwen-plus-latest"
+      api_key: "os.environ/DASHSCOPE_API_KEY"
+
+  - model_name: "venice-uncensored"
+    litellm_params:
+      model: "openai/venice-uncensored"
+      api_base: "https://api.venice.ai/api/v1"
+      api_key: "os.environ/VENICE_API_KEY"
+
+  - model_name: "venice-qwen3-235b"
+    litellm_params:
+      model: "openai/qwen3-235b-a22b-instruct-2507"
+      api_base: "https://api.venice.ai/api/v1"
+      api_key: "os.environ/VENICE_API_KEY"
+
+  - model_name: "glm-4.7"
+    litellm_params:
+      model: "zai/glm-4.7"
+      api_key: "os.environ/ZAI_API_KEY"
+
+  - model_name: "openrouter"
+    litellm_params:
+      model: "openrouter/auto"
+      api_key: "os.environ/OPENROUTER_API_KEY"
 
 router_settings:
   routing_strategy: simple-shuffle
@@ -92,11 +191,13 @@ router_settings:
   timeout: 120
   fallbacks:
     - reasoning: ["worker", "deepseek", "claude"]
+    - coding: ["coder", "reasoning", "deepseek", "claude"]
+    - creative: ["worker", "reasoning", "deepseek"]
     - utility: ["worker", "deepseek"]
     - fast: ["worker", "deepseek"]
-    - coding: ["worker", "deepseek", "claude"]
-    - creative: ["reasoning", "deepseek"]
     - worker: ["reasoning", "deepseek"]
+    - uncensored: ["worker", "deepseek"]
+    - coder: ["reasoning", "claude", "deepseek"]
   model_group_alias:
     "gpt-4": { model: "reasoning", hidden: false }
     "gpt-3.5-turbo": { model: "fast", hidden: false }
@@ -111,6 +212,5 @@ litellm_settings:
 
 general_settings:
   master_key: "os.environ/LITELLM_MASTER_KEY"
-  database_url: "os.environ/DATABASE_URL"
   background_health_checks: true
   health_check_interval: 300

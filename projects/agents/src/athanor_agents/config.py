@@ -84,9 +84,9 @@ class Settings(BaseSettings):
             "ATHANOR_VLLM_NODE1_URL",
         ),
     )
-    utility_url: str = Field(
-        default="http://192.168.1.244:8002",
-        validation_alias=AliasChoices("ATHANOR_VLLM_UTILITY_URL"),
+    coder_url: str = Field(
+        default="http://192.168.1.244:8006",
+        validation_alias=AliasChoices("ATHANOR_VLLM_CODER_URL", "ATHANOR_VLLM_UTILITY_URL"),
     )
     worker_url: str = Field(
         default="http://192.168.1.225:8000",
@@ -127,6 +127,10 @@ class Settings(BaseSettings):
     redis_url: str = Field(
         default="redis://192.168.1.203:6379/0",
         validation_alias=AliasChoices("ATHANOR_REDIS_URL"),
+    )
+    subscription_policy_path: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_SUBSCRIPTION_POLICY_PATH"),
     )
     neo4j_url: str = Field(
         default="http://192.168.1.203:7474",

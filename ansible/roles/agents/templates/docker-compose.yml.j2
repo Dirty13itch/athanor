@@ -24,7 +24,7 @@ services:
       - ATHANOR_LLM_MODEL={{ agent_llm_model }}
       - ATHANOR_LLM_MODEL_FAST={{ agent_llm_model_fast }}
       - ATHANOR_VLLM_COORDINATOR_URL={{ agent_vllm_coordinator_url }}
-      - ATHANOR_VLLM_UTILITY_URL={{ agent_vllm_utility_url }}
+      - ATHANOR_VLLM_CODER_URL={{ agent_vllm_coder_url }}
       - ATHANOR_VLLM_WORKER_URL={{ agent_vllm_worker_url }}
       - ATHANOR_VLLM_EMBEDDING_URL={{ agent_vllm_embedding_url }}
       - ATHANOR_VLLM_RERANKER_URL={{ agent_vllm_reranker_url }}
@@ -32,6 +32,7 @@ services:
       - ATHANOR_DASHBOARD_URL={{ agent_dashboard_url }}
       - ATHANOR_QDRANT_URL={{ agent_qdrant_url }}
       - ATHANOR_REDIS_URL={{ agent_redis_url }}
+      - ATHANOR_SUBSCRIPTION_POLICY_PATH={{ agent_subscription_policy_path }}
       - ATHANOR_NEO4J_URL={{ agent_neo4j_url }}
       - ATHANOR_NEO4J_USER={{ agent_neo4j_user }}
       - ATHANOR_NEO4J_PASSWORD={{ agent_neo4j_password }}

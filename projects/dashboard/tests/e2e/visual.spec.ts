@@ -48,6 +48,12 @@ for (const route of ROUTES) {
       await expect(page.locator("main")).toContainText(route.readyHeading);
     }
 
+    if (route.path === "/") {
+      await expect(page.locator("main")).toContainText("Unified stream");
+      await expect(page.locator("main")).toContainText("Work Plan");
+      await page.waitForTimeout(1000);
+    }
+
     await expect(page).toHaveScreenshot(route.snapshot, {
       fullPage: true,
       mask: [page.locator("[data-volatile]")],

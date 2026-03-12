@@ -92,14 +92,14 @@ Measure, audit, harden, and keep the system understandable at one-person scale.
 ### Runtime Map
 
 - `reasoning`, `coding` -> Foundry coordinator
-- `creative`, `utility`, `uncensored` -> Foundry utility
-- `fast`, `worker` -> Workshop worker
+- `coder` -> Foundry coder
+- `creative`, `utility`, `uncensored`, `fast`, `worker` -> Workshop worker
 - `embedding`, `reranker` -> DEV retrieval runtimes
 
 ### Deployment Truth
 
-- `ansible/` is authoritative
-- `services/` is snapshot material, not authoritative deployment state
+- `ansible/` remains the primary desired-state baseline
+- `services/` or `projects/*/docker-compose*` may be authoritative when they match live better than stale Ansible roles
 - the dashboard and agents must consume centralized runtime config, not scattered literals
 
 ### Product Truth

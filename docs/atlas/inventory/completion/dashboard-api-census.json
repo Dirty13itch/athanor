@@ -1,0 +1,2035 @@
+[
+  {
+    "id": "dashboard.api.api-activity",
+    "title": "Activity",
+    "apiPath": "/api/activity",
+    "family": "activity",
+    "sourceFile": "dashboard/src/app/api/activity/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.activity",
+      "dashboard/src/components/agent-detail-panel.tsx",
+      "dashboard/src/components/unified-stream.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-agents",
+    "title": "Agents",
+    "apiPath": "/api/agents",
+    "family": "agents",
+    "sourceFile": "dashboard/src/app/api/agents/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.agents",
+      "dashboard/src/components/agent-detail-panel.tsx",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::chat:agent-server",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-alerts",
+    "title": "Alerts",
+    "apiPath": "/api/alerts",
+    "family": "alerts",
+    "sourceFile": "dashboard/src/app/api/alerts/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/notifications-posture-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-autonomy",
+    "title": "Autonomy",
+    "apiPath": "/api/autonomy",
+    "family": "autonomy",
+    "sourceFile": "dashboard/src/app/api/autonomy/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/agent-detail-panel.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-chat",
+    "title": "Chat",
+    "apiPath": "/api/chat",
+    "family": "chat",
+    "sourceFile": "dashboard/src/app/api/chat/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "sse",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.agents",
+      "dashboard.route.chat",
+      "dashboard/src/features/agents/agent-console.tsx",
+      "dashboard/src/features/chat/direct-chat-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::chat:agent-server",
+        "scripts/tests/live-dashboard-smoke.py::chat:litellm-proxy",
+        "scripts/tests/live-dashboard-smoke.py::chat:workshop-worker",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-comfyui-generate",
+    "title": "Comfyui Generate",
+    "apiPath": "/api/comfyui/generate",
+    "family": "comfyui",
+    "sourceFile": "dashboard/src/app/api/comfyui/generate/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "support-only",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "Support-only, test-harness, or ambient API surface."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-comfyui-history",
+    "title": "Comfyui History",
+    "apiPath": "/api/comfyui/history",
+    "family": "comfyui",
+    "sourceFile": "dashboard/src/app/api/comfyui/history/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.gallery"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-comfyui-image-path",
+    "title": "Comfyui Image Path Wildcard",
+    "apiPath": "/api/comfyui/image/:path*",
+    "family": "comfyui",
+    "sourceFile": "dashboard/src/app/api/comfyui/image/[...path]/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.gallery"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-comfyui-queue",
+    "title": "Comfyui Queue",
+    "apiPath": "/api/comfyui/queue",
+    "family": "comfyui",
+    "sourceFile": "dashboard/src/app/api/comfyui/queue/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "support-only",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "Support-only, test-harness, or ambient API surface."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-comfyui-stats",
+    "title": "Comfyui Stats",
+    "apiPath": "/api/comfyui/stats",
+    "family": "comfyui",
+    "sourceFile": "dashboard/src/app/api/comfyui/stats/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "support-only",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "Support-only, test-harness, or ambient API surface."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-consolidation",
+    "title": "Consolidation",
+    "apiPath": "/api/consolidation",
+    "family": "consolidation",
+    "sourceFile": "dashboard/src/app/api/consolidation/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/consolidation-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-consolidation-stats",
+    "title": "Consolidation Stats",
+    "apiPath": "/api/consolidation/stats",
+    "family": "consolidation",
+    "sourceFile": "dashboard/src/app/api/consolidation/stats/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/consolidation-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-context-preview",
+    "title": "Context Preview",
+    "apiPath": "/api/context/preview",
+    "family": "context",
+    "sourceFile": "dashboard/src/app/api/context/preview/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/routing-context-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-conversations",
+    "title": "Conversations",
+    "apiPath": "/api/conversations",
+    "family": "conversations",
+    "sourceFile": "dashboard/src/app/api/conversations/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.conversations"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-feedback-implicit",
+    "title": "Feedback Implicit",
+    "apiPath": "/api/feedback/implicit",
+    "family": "feedback",
+    "sourceFile": "dashboard/src/app/api/feedback/implicit/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/hooks/use-implicit-feedback.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-feedback",
+    "title": "Feedback",
+    "apiPath": "/api/feedback",
+    "family": "feedback",
+    "sourceFile": "dashboard/src/app/api/feedback/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/gen-ui/feedback-buttons.tsx",
+      "dashboard/src/hooks/use-implicit-feedback.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-gallery-overview",
+    "title": "Gallery Overview",
+    "apiPath": "/api/gallery/overview",
+    "family": "gallery",
+    "sourceFile": "dashboard/src/app/api/gallery/overview/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.gallery",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-gpu-history",
+    "title": "Gpu History",
+    "apiPath": "/api/gpu/history",
+    "family": "gpu",
+    "sourceFile": "dashboard/src/app/api/gpu/history/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.gpu",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/operations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-gpu",
+    "title": "Gpu",
+    "apiPath": "/api/gpu",
+    "family": "gpu",
+    "sourceFile": "dashboard/src/app/api/gpu/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.gpu",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/operations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-history",
+    "title": "History",
+    "apiPath": "/api/history",
+    "family": "history",
+    "sourceFile": "dashboard/src/app/api/history/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.activity",
+      "dashboard.route.conversations",
+      "dashboard.route.outputs",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-home-overview",
+    "title": "Home Overview",
+    "apiPath": "/api/home/overview",
+    "family": "home",
+    "sourceFile": "dashboard/src/app/api/home/overview/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.home",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::drawer-launches",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-insights",
+    "title": "Insights",
+    "apiPath": "/api/insights",
+    "family": "insights",
+    "sourceFile": "dashboard/src/app/api/insights/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.insights",
+      "dashboard/src/components/agent-detail-panel.tsx",
+      "dashboard/src/components/smart-stack.tsx",
+      "dashboard/src/features/intelligence/intelligence-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-insights-run",
+    "title": "Insights Run",
+    "apiPath": "/api/insights/run",
+    "family": "insights",
+    "sourceFile": "dashboard/src/app/api/insights/run/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.insights",
+      "dashboard/src/features/intelligence/intelligence-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-intelligence",
+    "title": "Intelligence",
+    "apiPath": "/api/intelligence",
+    "family": "intelligence",
+    "sourceFile": "dashboard/src/app/api/intelligence/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.insights",
+      "dashboard.route.learning",
+      "dashboard.route.review",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::project-navigation",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-learning-benchmarks",
+    "title": "Learning Benchmarks",
+    "apiPath": "/api/learning/benchmarks",
+    "family": "learning",
+    "sourceFile": "dashboard/src/app/api/learning/benchmarks/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.learning",
+      "dashboard/src/features/intelligence/intelligence-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-learning-improvement",
+    "title": "Learning Improvement",
+    "apiPath": "/api/learning/improvement",
+    "family": "learning",
+    "sourceFile": "dashboard/src/app/api/learning/improvement/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.learning"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-learning-metrics",
+    "title": "Learning Metrics",
+    "apiPath": "/api/learning/metrics",
+    "family": "learning",
+    "sourceFile": "dashboard/src/app/api/learning/metrics/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.learning"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-media-overview",
+    "title": "Media Overview",
+    "apiPath": "/api/media/overview",
+    "family": "media",
+    "sourceFile": "dashboard/src/app/api/media/overview/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.media",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::drawer-launches",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-media",
+    "title": "Media",
+    "apiPath": "/api/media",
+    "family": "media",
+    "sourceFile": "dashboard/src/app/api/media/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-memory",
+    "title": "Memory",
+    "apiPath": "/api/memory",
+    "family": "memory",
+    "sourceFile": "dashboard/src/app/api/memory/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.personal-data",
+      "dashboard.route.preferences",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/browser-integrations.spec.ts",
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models",
+    "title": "Models",
+    "apiPath": "/api/models",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.chat",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::chat:litellm-proxy",
+        "scripts/tests/live-dashboard-smoke.py::chat:workshop-worker",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-monitoring",
+    "title": "Monitoring",
+    "apiPath": "/api/monitoring",
+    "family": "monitoring",
+    "sourceFile": "dashboard/src/app/api/monitoring/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.monitoring",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::drawer-launches",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-notification-budget",
+    "title": "Notification-Budget",
+    "apiPath": "/api/notification-budget",
+    "family": "notification-budget",
+    "sourceFile": "dashboard/src/app/api/notification-budget/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/notifications-posture-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-outputs-path",
+    "title": "Outputs Path Wildcard",
+    "apiPath": "/api/outputs/:path*",
+    "family": "outputs",
+    "sourceFile": "dashboard/src/app/api/outputs/[...path]/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.outputs"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-outputs",
+    "title": "Outputs",
+    "apiPath": "/api/outputs",
+    "family": "outputs",
+    "sourceFile": "dashboard/src/app/api/outputs/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.outputs",
+      "dashboard/src/components/work-plan.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-overview",
+    "title": "Overview",
+    "apiPath": "/api/overview",
+    "family": "overview",
+    "sourceFile": "dashboard/src/app/api/overview/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.command-center",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/navigation.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::project-navigation",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-personal-data-search",
+    "title": "Personal-Data Search",
+    "apiPath": "/api/personal-data/search",
+    "family": "personal-data",
+    "sourceFile": "dashboard/src/app/api/personal-data/search/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.personal-data",
+      "dashboard/src/components/personal-data/search-bar.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-personal-data-stats",
+    "title": "Personal-Data Stats",
+    "apiPath": "/api/personal-data/stats",
+    "family": "personal-data",
+    "sourceFile": "dashboard/src/app/api/personal-data/stats/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.personal-data"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-preferences",
+    "title": "Preferences",
+    "apiPath": "/api/preferences",
+    "family": "preferences",
+    "sourceFile": "dashboard/src/app/api/preferences/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.preferences",
+      "dashboard/src/features/memory/memory-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/browser-integrations.spec.ts",
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-projects",
+    "title": "Projects",
+    "apiPath": "/api/projects",
+    "family": "projects",
+    "sourceFile": "dashboard/src/app/api/projects/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "ulrich.route.projects"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/ulrich-energy/tests/e2e/smoke.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-ulrich-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-push-send",
+    "title": "Push Send",
+    "apiPath": "/api/push/send",
+    "family": "push",
+    "sourceFile": "dashboard/src/app/api/push/send/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.preferences"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/browser-integrations.spec.ts",
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-push-subscribe",
+    "title": "Push Subscribe",
+    "apiPath": "/api/push/subscribe",
+    "family": "push",
+    "sourceFile": "dashboard/src/app/api/push/subscribe/route.ts",
+    "methods": [
+      "DELETE",
+      "POST"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.preferences",
+      "dashboard/src/components/push-manager.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/browser-integrations.spec.ts",
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-research-jobs-jobid-execute",
+    "title": "Research Jobs Jobid Execute",
+    "apiPath": "/api/research/jobs/:jobId/execute",
+    "family": "research",
+    "sourceFile": "dashboard/src/app/api/research/jobs/[jobId]/execute/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/research-jobs-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-research-jobs",
+    "title": "Research Jobs",
+    "apiPath": "/api/research/jobs",
+    "family": "research",
+    "sourceFile": "dashboard/src/app/api/research/jobs/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/research-jobs-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-routing-classify",
+    "title": "Routing Classify",
+    "apiPath": "/api/routing/classify",
+    "family": "routing",
+    "sourceFile": "dashboard/src/app/api/routing/classify/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/routing-context-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-scheduling-status",
+    "title": "Scheduling Status",
+    "apiPath": "/api/scheduling/status",
+    "family": "scheduling",
+    "sourceFile": "dashboard/src/app/api/scheduling/status/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/research-jobs-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-services-history",
+    "title": "Services History",
+    "apiPath": "/api/services/history",
+    "family": "services",
+    "sourceFile": "dashboard/src/app/api/services/history/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.services",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/operations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-services",
+    "title": "Services",
+    "apiPath": "/api/services",
+    "family": "services",
+    "sourceFile": "dashboard/src/app/api/services/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.services",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/operations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-skills-skillid-execution",
+    "title": "Skills Skillid Execution",
+    "apiPath": "/api/skills/:skillId/execution",
+    "family": "skills",
+    "sourceFile": "dashboard/src/app/api/skills/[skillId]/execution/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/skills-lane.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-skills-skillid",
+    "title": "Skills Skillid",
+    "apiPath": "/api/skills/:skillId",
+    "family": "skills",
+    "sourceFile": "dashboard/src/app/api/skills/[skillId]/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/skills-lane.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-skills",
+    "title": "Skills",
+    "apiPath": "/api/skills",
+    "family": "skills",
+    "sourceFile": "dashboard/src/app/api/skills/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/skills-lane.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-skills-stats",
+    "title": "Skills Stats",
+    "apiPath": "/api/skills/stats",
+    "family": "skills",
+    "sourceFile": "dashboard/src/app/api/skills/stats/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/skills-lane.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-skills-top",
+    "title": "Skills Top",
+    "apiPath": "/api/skills/top",
+    "family": "skills",
+    "sourceFile": "dashboard/src/app/api/skills/top/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/skills-lane.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-stash-stats",
+    "title": "Stash Stats",
+    "apiPath": "/api/stash/stats",
+    "family": "stash",
+    "sourceFile": "dashboard/src/app/api/stash/stats/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "support-only",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "Support-only, test-harness, or ambient API surface."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-stream",
+    "title": "Stream",
+    "apiPath": "/api/stream",
+    "family": "stream",
+    "sourceFile": "dashboard/src/app/api/stream/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "sse",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/hooks/use-system-stream.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-subscriptions-leases",
+    "title": "Subscriptions Leases",
+    "apiPath": "/api/subscriptions/leases",
+    "family": "subscriptions",
+    "sourceFile": "dashboard/src/app/api/subscriptions/leases/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/subscription-control-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-subscriptions-policy",
+    "title": "Subscriptions Policy",
+    "apiPath": "/api/subscriptions/policy",
+    "family": "subscriptions",
+    "sourceFile": "dashboard/src/app/api/subscriptions/policy/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/subscription-control-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-subscriptions-providers",
+    "title": "Subscriptions Providers",
+    "apiPath": "/api/subscriptions/providers",
+    "family": "subscriptions",
+    "sourceFile": "dashboard/src/app/api/subscriptions/providers/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/subscription-control-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-subscriptions-quotas",
+    "title": "Subscriptions Quotas",
+    "apiPath": "/api/subscriptions/quotas",
+    "family": "subscriptions",
+    "sourceFile": "dashboard/src/app/api/subscriptions/quotas/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/subscription-control-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-tts",
+    "title": "Tts",
+    "apiPath": "/api/tts",
+    "family": "tts",
+    "sourceFile": "dashboard/src/app/api/tts/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "binary",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.chat",
+      "dashboard/src/components/voice-output.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::chat:litellm-proxy",
+        "scripts/tests/live-dashboard-smoke.py::chat:workshop-worker",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-conventions-conventionid-confirm",
+    "title": "Workforce Conventions Conventionid Confirm",
+    "apiPath": "/api/workforce/conventions/:conventionId/confirm",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/conventions/[conventionId]/confirm/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/features/workforce/workspace-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-conventions-conventionid-reject",
+    "title": "Workforce Conventions Conventionid Reject",
+    "apiPath": "/api/workforce/conventions/:conventionId/reject",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/conventions/[conventionId]/reject/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/features/workforce/workspace-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-goals-goalid",
+    "title": "Workforce Goals Goalid",
+    "apiPath": "/api/workforce/goals/:goalId",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/goals/[goalId]/route.ts",
+    "methods": [
+      "DELETE"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/features/workforce/goals-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-goals",
+    "title": "Workforce Goals",
+    "apiPath": "/api/workforce/goals",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/goals/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.goals",
+      "dashboard/src/features/workforce/goals-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-notifications-notificationid-resolve",
+    "title": "Workforce Notifications Notificationid Resolve",
+    "apiPath": "/api/workforce/notifications/:notificationId/resolve",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/notifications/[notificationId]/resolve/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.notifications",
+      "dashboard/src/components/gen-ui/approval-card.tsx",
+      "dashboard/src/features/workforce/notifications-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-plan",
+    "title": "Workforce Plan",
+    "apiPath": "/api/workforce/plan",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/plan/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.workplanner",
+      "dashboard/src/features/workforce/work-planner-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::project-navigation",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-redirect",
+    "title": "Workforce Redirect",
+    "apiPath": "/api/workforce/redirect",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/redirect/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.workplanner",
+      "dashboard/src/components/work-plan.tsx",
+      "dashboard/src/features/workforce/work-planner-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::project-navigation",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce",
+    "title": "Workforce",
+    "apiPath": "/api/workforce",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "json",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.goals",
+      "dashboard.route.notifications",
+      "dashboard.route.tasks",
+      "dashboard.route.workplanner",
+      "dashboard.route.workspace",
+      "dashboard/src/components/agent-detail-panel.tsx",
+      "dashboard/src/components/daily-briefing.tsx",
+      "dashboard/src/components/gen-ui/approval-card.tsx",
+      "dashboard/src/components/gen-ui/daily-digest.tsx",
+      "dashboard/src/components/smart-stack.tsx",
+      "dashboard/src/components/unified-stream.tsx",
+      "dashboard/src/components/work-plan.tsx",
+      "dashboard/src/features/intelligence/intelligence-console.tsx",
+      "dashboard/src/features/workforce/goals-console.tsx",
+      "dashboard/src/features/workforce/notifications-console.tsx",
+      "dashboard/src/features/workforce/tasks-console.tsx",
+      "dashboard/src/features/workforce/work-planner-console.tsx",
+      "dashboard/src/features/workforce/workspace-console.tsx",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-live",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/consoles.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::project-navigation",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-tasks-taskid-approve",
+    "title": "Workforce Tasks Taskid Approve",
+    "apiPath": "/api/workforce/tasks/:taskId/approve",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/tasks/[taskId]/approve/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.review",
+      "dashboard/src/features/intelligence/intelligence-console.tsx",
+      "dashboard/src/features/workforce/tasks-console.tsx",
+      "dashboard/src/features/workforce/work-planner-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [
+        "projects/dashboard/tests/e2e/family-flows.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::project-navigation",
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-tasks-taskid-cancel",
+    "title": "Workforce Tasks Taskid Cancel",
+    "apiPath": "/api/workforce/tasks/:taskId/cancel",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/tasks/[taskId]/cancel/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/features/workforce/tasks-console.tsx",
+      "dashboard/src/features/workforce/work-planner-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-tasks",
+    "title": "Workforce Tasks",
+    "apiPath": "/api/workforce/tasks",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/tasks/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard.route.tasks",
+      "dashboard/src/components/agent-detail-panel.tsx",
+      "dashboard/src/components/daily-briefing.tsx",
+      "dashboard/src/components/unified-stream.tsx",
+      "dashboard/src/features/intelligence/intelligence-console.tsx",
+      "dashboard/src/features/workforce/tasks-console.tsx",
+      "dashboard/src/features/workforce/work-planner-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": "covered-automated",
+      "localChecks": [
+        "projects/dashboard/tests/e2e/mutations.spec.ts",
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ]
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-workspace-itemid-endorse",
+    "title": "Workforce Workspace Itemid Endorse",
+    "apiPath": "/api/workforce/workspace/:itemId/endorse",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/workspace/[itemId]/endorse/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/features/workforce/workspace-console.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  }
+]

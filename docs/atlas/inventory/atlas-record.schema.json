@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Athanor Atlas Record",
+  "type": "object",
+  "required": [
+    "id",
+    "layer",
+    "title",
+    "kind",
+    "owner",
+    "source_of_truth",
+    "status_tag",
+    "repo_source",
+    "runtime_source",
+    "depends_on",
+    "backed_by",
+    "entrypoints",
+    "notes"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "layer": {
+      "type": "string",
+      "enum": [
+        "topology",
+        "runtime",
+        "ui",
+        "api"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "source_of_truth": {
+      "type": "string"
+    },
+    "status_tag": {
+      "type": "string",
+      "enum": [
+        "live",
+        "implemented_not_live",
+        "planned",
+        "deprecated",
+        "legacy"
+      ]
+    },
+    "repo_source": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "runtime_source": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "backed_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "entrypoints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

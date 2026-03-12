@@ -1,4 +1,4 @@
-# Phase 2 FOUNDRY vLLM: Coordinator (TP=4) + Utility
+# Phase 2 FOUNDRY vLLM: Coordinator (TP=4) + Coder
 # Live config: /opt/athanor/vllm-phase2/docker-compose.yml on FOUNDRY
 # Deploy: scp to FOUNDRY, docker compose up -d
 
@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - /mnt/vault/models:/models:ro
+      - /mnt/local-fast/models:/models:ro
     environment:
       - HF_HUB_OFFLINE=1
       - VLLM_NO_USAGE_STATS=1
@@ -60,13 +60,14 @@ services:
       - --swap-space
       - "16"
 
-  utility:
+  coder:
     image: athanor/vllm:qwen35
-    container_name: vllm-utility
+    container_name: vllm-coder
     restart: unless-stopped
-    network_mode: host
+    ports:
+      - "8006:8000"
     volumes:
-      - /mnt/vault/models:/models:ro
+      - /mnt/local-fast/models:/models
     environment:
       - HF_HUB_OFFLINE=1
       - VLLM_NO_USAGE_STATS=1
@@ -75,10 +76,7 @@ services:
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
       - CUDA_DEVICE_ORDER=PCI_BUS_ID
       - FLASHINFER_DISABLE_VERSION_CHECK=1
-    ipc: host
-    ulimits:
-      memlock: -1
-      stack: 67108864
+    shm_size: "8g"
     deploy:
       resources:
         reservations:
@@ -89,24 +87,24 @@ services:
     entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
     command:
       - --model
-      - /models/Huihui-Qwen3-8B-abliterated-v2
-      - --tensor-parallel-size
-      - "1"
+      - /models/Qwen3-Coder-30B-A3B-Instruct-AWQ
+      - --served-model-name
+      - qwen3-coder
       - --host
       - 0.0.0.0
       - --port
-      - "8002"
+      - "8000"
       - --max-model-len
       - "32768"
       - --gpu-memory-utilization
-      - "0.90"
+      - "0.92"
       - --max-num-seqs
-      - "32"
-      - --dtype
-      - auto
+      - "16"
       - --enable-auto-tool-choice
       - --tool-call-parser
       - hermes
       - --enable-prefix-caching
+      - --dtype
+      - auto
       - --safetensors-load-strategy
       - eager

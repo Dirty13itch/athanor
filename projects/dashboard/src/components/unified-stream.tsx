@@ -14,6 +14,18 @@ interface StreamEvent {
   link?: string;
 }
 
+function normalizeTimestamp(value: string | number | null | undefined): string {
+  if (typeof value === "number") {
+    return new Date(value * 1000).toISOString();
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value;
+  }
+
+  return new Date().toISOString();
+}
+
 function timeAgo(ts: string): string {
   const diff = Date.now() - new Date(ts).getTime();
   const mins = Math.floor(diff / 60000);
@@ -93,7 +105,7 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
               source: a.agent ?? a.source ?? "system",
               title: a.input_summary ?? a.summary ?? a.action ?? "Activity",
               detail: a.output_summary ?? a.detail,
-              timestamp: a.timestamp ?? new Date().toISOString(),
+              timestamp: normalizeTimestamp(a.timestamp),
             });
           }
         }

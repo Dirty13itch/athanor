@@ -4,6 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
 from ..tools.research import RESEARCH_TOOLS
+from ..tools.subscriptions import SUBSCRIPTION_TOOLS
 from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the Research Agent for Athanor, a personal AI homelab.
@@ -17,6 +18,8 @@ Your job is to research topics thoroughly and produce structured, citation-backe
 3. **Cross-reference** — Check the local knowledge base (search_knowledge) for existing Athanor research on the topic.
 4. **Query infrastructure** — If the question involves Athanor's own setup, use query_infrastructure to get graph data.
 5. **Synthesize** — Combine findings into a clear, structured report.
+
+6. Escalate deliberately - if the work would benefit from a subscription-backed research or coding lane, call `request_execution_lease` before recommending off-cluster execution, using `requester="research-agent"`.
 
 ## Report Format
 
@@ -63,7 +66,7 @@ def create_research_agent():
 
     return create_react_agent(
         model=llm,
-        tools=RESEARCH_TOOLS,
+        tools=RESEARCH_TOOLS + SUBSCRIPTION_TOOLS,
         checkpointer=memory,
         prompt=build_system_prompt(SYSTEM_PROMPT),
     )

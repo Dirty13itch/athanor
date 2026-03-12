@@ -1,0 +1,210 @@
+[
+  {
+    "serviceId": "dashboard",
+    "title": "Command Center dashboard",
+    "node": "WORKSHOP",
+    "ownerLayer": "project",
+    "repoSources": [
+      "projects/dashboard/docker-compose.yml",
+      "projects/dashboard",
+      "ansible/roles/dashboard/templates/docker-compose.yml.j2"
+    ],
+    "liveEndpoint": "http://192.168.1.225:3001",
+    "driftStatus": "aligned",
+    "notes": [
+      "Project-local dashboard manifests are the strongest source for the UI layer."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "terminal-bridge",
+    "title": "Workshop terminal bridge",
+    "node": "WORKSHOP",
+    "ownerLayer": "project",
+    "repoSources": [
+      "projects/dashboard",
+      "ansible/roles/dashboard/templates/docker-compose.yml.j2"
+    ],
+    "liveEndpoint": "http://192.168.1.225:3100",
+    "driftStatus": "aligned",
+    "notes": [
+      "Owned by the dashboard deployment surface on Workshop."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "agent-server",
+    "title": "Athanor agent server",
+    "node": "FOUNDRY",
+    "ownerLayer": "project",
+    "repoSources": [
+      "projects/agents/docker-compose.yml",
+      "projects/agents/src/athanor_agents",
+      "ansible/roles/agents/templates/docker-compose.yml.j2"
+    ],
+    "liveEndpoint": "http://192.168.1.244:9000/health",
+    "driftStatus": "aligned",
+    "notes": [
+      "Project-local agent manifests and code own runtime behavior, and the live Foundry deployment now matches the repo-backed coder-era compose."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "litellm",
+    "title": "LiteLLM routing layer",
+    "node": "VAULT",
+    "ownerLayer": "ansible",
+    "repoSources": [
+      "ansible/roles/vault-litellm/templates/litellm_config.yaml.j2",
+      "ansible/roles/vault-litellm"
+    ],
+    "liveEndpoint": "http://192.168.1.203:4000/health",
+    "driftStatus": "aligned",
+    "notes": [
+      "VAULT LiteLLM was reloaded from the repo-backed coder-era routing template and now exposes the subscription provider portfolio through the managed config."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "monitoring",
+    "title": "Prometheus and Grafana",
+    "node": "VAULT",
+    "ownerLayer": "ansible",
+    "repoSources": [
+      "ansible/roles/vault-monitoring",
+      "ansible/roles/prometheus",
+      "ansible/roles/grafana"
+    ],
+    "liveEndpoint": "http://192.168.1.203:3000",
+    "driftStatus": "aligned",
+    "notes": [
+      "VAULT Prometheus, alert rules, and blackbox exporter were converged onto the Athanor monitoring model under /mnt/appdatacache/appdata."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "qdrant",
+    "title": "Canonical Qdrant store",
+    "node": "FOUNDRY",
+    "ownerLayer": "ansible",
+    "repoSources": [
+      "ansible/roles/qdrant",
+      "docs/SERVICES.md"
+    ],
+    "liveEndpoint": "http://192.168.1.244:6333/collections",
+    "driftStatus": "aligned",
+    "notes": [
+      "Canonical vector store for the live runtime."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "neo4j",
+    "title": "Neo4j knowledge graph",
+    "node": "VAULT",
+    "ownerLayer": "ansible",
+    "repoSources": [
+      "ansible/roles/vault-neo4j",
+      "docs/SERVICES.md"
+    ],
+    "liveEndpoint": "http://192.168.1.203:7474",
+    "driftStatus": "aligned",
+    "notes": [
+      "Knowledge graph runtime on VAULT."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "redis",
+    "title": "Redis control plane",
+    "node": "VAULT",
+    "ownerLayer": "ansible",
+    "repoSources": [
+      "ansible/roles/redis",
+      "docs/SERVICES.md"
+    ],
+    "liveEndpoint": "redis://192.168.1.203:6379/0",
+    "driftStatus": "aligned",
+    "notes": [
+      "Backs task queue, workspace, and scheduler state."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "workshop-worker",
+    "title": "Workshop worker vLLM",
+    "node": "WORKSHOP",
+    "ownerLayer": "services",
+    "repoSources": [
+      "services/node2",
+      "ansible/roles/vllm-worker"
+    ],
+    "liveEndpoint": "http://192.168.1.225:8000/v1/models",
+    "driftStatus": "aligned",
+    "notes": [
+      "Service-level manifests currently match live better than some Ansible roles."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "foundry-coordinator",
+    "title": "Foundry reasoning vLLM",
+    "node": "FOUNDRY",
+    "ownerLayer": "services",
+    "repoSources": [
+      "services/node1",
+      "ansible/roles/vllm"
+    ],
+    "liveEndpoint": "http://192.168.1.244:8000/v1/models",
+    "driftStatus": "aligned",
+    "notes": [
+      "Foundry coordinator runtime is represented best by node service manifests."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "comfyui",
+    "title": "Workshop ComfyUI",
+    "node": "WORKSHOP",
+    "ownerLayer": "services",
+    "repoSources": [
+      "services/node2",
+      "docs/SERVICES.md"
+    ],
+    "liveEndpoint": "http://192.168.1.225:8188/system_stats",
+    "driftStatus": "aligned",
+    "notes": [
+      "Creative generation backend consumed by gallery/media surfaces."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  },
+  {
+    "serviceId": "subscription-control",
+    "title": "Subscription control layer",
+    "node": "FOUNDRY",
+    "ownerLayer": "project",
+    "repoSources": [
+      "projects/agents/src/athanor_agents/subscriptions.py",
+      "projects/agents/config/subscription-routing-policy.yaml",
+      "ansible/roles/agents/templates/docker-compose.yml.j2"
+    ],
+    "liveEndpoint": "http://192.168.1.244:9000/v1/subscriptions/policy",
+    "driftStatus": "aligned",
+    "notes": [
+      "Lives inside the agent server deployment boundary."
+    ],
+    "liveStatus": "reachable",
+    "completionStatus": "live_complete"
+  }
+]

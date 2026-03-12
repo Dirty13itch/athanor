@@ -61,7 +61,7 @@ CANONICAL_DASHBOARD_ENVS = {
     "ATHANOR_GRAFANA_URL",
     "ATHANOR_LITELLM_URL",
     "ATHANOR_VLLM_COORDINATOR_URL",
-    "ATHANOR_VLLM_UTILITY_URL",
+    "ATHANOR_VLLM_CODER_URL",
     "ATHANOR_VLLM_WORKER_URL",
     "ATHANOR_VLLM_EMBEDDING_URL",
     "ATHANOR_VLLM_RERANKER_URL",
@@ -88,10 +88,12 @@ CANONICAL_DASHBOARD_ENVS = {
 FROZEN_LITELLM_ALIASES = {
     "reasoning": "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1",
     "coding": "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1",
-    "utility": "http://{{ vllm_node1_host }}:{{ vllm_node1_utility_port }}/v1",
-    "creative": "http://{{ vllm_node1_host }}:{{ vllm_node1_utility_port }}/v1",
+    "utility": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
+    "creative": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
     "fast": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
     "worker": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
+    "uncensored": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
+    "coder": "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1",
     "embedding": "http://{{ vllm_embedding_host }}:8001/v1",
     "reranker": "http://{{ vllm_reranker_host }}:{{ vllm_reranker_port }}/v1",
 }
@@ -202,7 +204,7 @@ class RepoContractsTest(unittest.TestCase):
         text = NEO4J_TASKS.read_text(encoding="utf-8")
         for required in [
             "foundry-coordinator",
-            "foundry-utility",
+            "foundry-coder",
             "workshop-worker",
             "dev-embedding",
             "dev-reranker",

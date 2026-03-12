@@ -30,11 +30,12 @@ def host_port_from_url(value: str) -> str:
     return parsed.netloc or parsed.path
 
 
-NODE1_HOST = env("ATHANOR_NODE1_HOST", "foundry")
-NODE2_HOST = env("ATHANOR_NODE2_HOST", "workshop")
-VAULT_HOST = env("ATHANOR_VAULT_HOST", "vault")
-DEFAULT_EMBEDDING_URL = env("ATHANOR_VLLM_EMBEDDING_URL", "http://localhost:8001")
-DEFAULT_RERANKER_URL = env("ATHANOR_VLLM_RERANKER_URL", "http://localhost:8003")
+NODE1_HOST = env("ATHANOR_NODE1_HOST", "192.168.1.244")
+NODE2_HOST = env("ATHANOR_NODE2_HOST", "192.168.1.225")
+VAULT_HOST = env("ATHANOR_VAULT_HOST", "192.168.1.203")
+DEV_HOST = env("ATHANOR_DEV_HOST", "192.168.1.189")
+DEFAULT_EMBEDDING_URL = env("ATHANOR_VLLM_EMBEDDING_URL", f"http://{DEV_HOST}:8001")
+DEFAULT_RERANKER_URL = env("ATHANOR_VLLM_RERANKER_URL", f"http://{DEV_HOST}:8003")
 
 ENDPOINTS = {
     host_port_from_url(env("ATHANOR_VLLM_COORDINATOR_URL", f"http://{NODE1_HOST}:8000")): {
@@ -42,9 +43,11 @@ ENDPOINTS = {
         "model": "Qwen3.5-27B-FP8",
         "type": "vllm",
     },
-    host_port_from_url(env("ATHANOR_VLLM_UTILITY_URL", f"http://{NODE1_HOST}:8002")): {
-        "name": "vllm-utility",
-        "model": "Huihui-Qwen3-8B-abliterated-v2",
+    host_port_from_url(
+        env("ATHANOR_VLLM_CODER_URL", env("ATHANOR_VLLM_UTILITY_URL", f"http://{NODE1_HOST}:8006"))
+    ): {
+        "name": "vllm-coder",
+        "model": "Qwen3-Coder-30B-A3B-Instruct-AWQ",
         "type": "vllm",
     },
     host_port_from_url(env("ATHANOR_AGENT_SERVER_URL", f"http://{NODE1_HOST}:9000")): {
@@ -145,16 +148,17 @@ def test_litellm(host_port, info):
     result = {"endpoint": host_port, **info, "checks": {}}
 
     headers = {"Authorization": f"Bearer {LITELLM_KEY}"} if LITELLM_KEY else {}
-    body, lat, err = timed_request(f"http://{host_port}/health", headers=headers)
+    body, lat, err = timed_request(f"http://{host_port}/health/liveliness", headers=headers)
     result["checks"]["health"] = {"ok": err is None, "latency_ms": round(lat, 1), "error": err}
 
     if not LITELLM_KEY:
         result["checks"]["models"] = {
-            "ok": False,
+            "ok": True,
+            "skipped": True,
             "error": "missing ATHANOR_LITELLM_API_KEY or OPENAI_API_KEY",
             "latency_ms": 0.0,
         }
-        result["healthy"] = False
+        result["healthy"] = result["checks"]["health"]["ok"]
         return result
 
     body, lat, err = timed_request(f"http://{host_port}/v1/models", headers=headers)

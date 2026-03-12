@@ -113,7 +113,12 @@ export function GoalsConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
                 placeholder="Add a goal for Athanor or EoBQ."
                 className="w-full rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm outline-none transition focus:border-primary"
               />
+              <label htmlFor="goal-agent-selector" className="sr-only">
+                Assign goal to agent
+              </label>
               <select
+                id="goal-agent-selector"
+                aria-label="Assign goal to agent"
                 value={agentId}
                 onChange={(event) => setAgentId(event.target.value)}
                 className="w-full rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm outline-none transition focus:border-primary"
@@ -125,7 +130,12 @@ export function GoalsConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
                   </option>
                 ))}
               </select>
+              <label htmlFor="goal-priority-selector" className="sr-only">
+                Goal priority
+              </label>
               <select
+                id="goal-priority-selector"
+                aria-label="Goal priority"
                 value={priority}
                 onChange={(event) => setPriority(event.target.value as WorkforceGoal["priority"])}
                 className="w-full rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm outline-none transition focus:border-primary"

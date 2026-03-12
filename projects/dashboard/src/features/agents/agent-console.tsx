@@ -17,6 +17,9 @@ import {
   Wrench,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AgentCrewBar } from "@/components/agent-crew-bar";
+import { RoutingContextCard } from "@/components/routing-context-card";
+import { SubscriptionControlCard } from "@/components/subscription-control-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -371,8 +374,39 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
         </div>
       </PageHeader>
 
-      <div className="grid gap-4 xl:grid-cols-[18rem_18rem_1fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="border-border/70 bg-card/70">
+          <CardHeader>
+            <CardTitle className="text-lg">Crew surface</CardTitle>
+            <CardDescription>
+              Live agent presence, lens-aware highlighting, and direct detail access.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AgentCrewBar />
+          </CardContent>
+        </Card>
+
+        <div className="grid gap-4">
+          <SubscriptionControlCard
+            title="Subscription broker"
+            description="Provider availability, policy routing, and recent premium execution leases."
+            requester="coding-agent"
+            taskClass="multi_file_implementation"
+            compact
+          />
+          <RoutingContextCard
+            key={activeAgent?.id ?? "general-assistant"}
+            title="Agent routing preview"
+            description="Preview how the current agent lane will be enriched and routed before execution."
+            defaultAgent={activeAgent?.id ?? "general-assistant"}
+            defaultPrompt="Review the current repo state and identify the next safe implementation batch."
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[18rem_18rem_1fr]">
+        <Card className="order-2 border-border/70 bg-card/70 xl:order-none">
           <CardHeader>
             <CardTitle className="text-lg">Agent roster</CardTitle>
             <CardDescription>Choose an agent capability surface.</CardDescription>
@@ -411,7 +445,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="order-3 border-border/70 bg-card/70 xl:order-none">
           <CardHeader>
             <CardTitle className="text-lg">Threads</CardTitle>
             <CardDescription>Continue a prior run or start fresh.</CardDescription>
@@ -450,7 +484,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
           </CardContent>
         </Card>
 
-        <Card className="flex min-h-[42rem] flex-col overflow-hidden border-border/70 bg-card/70">
+        <Card className="order-1 flex min-h-[32rem] flex-col overflow-hidden border-border/70 bg-card/70 sm:min-h-[42rem] xl:order-none">
           <CardHeader className="border-b border-border/70">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>

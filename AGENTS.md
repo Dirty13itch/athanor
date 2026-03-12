@@ -53,8 +53,9 @@ The LangGraph agent framework runs on Foundry (`:9000`). Source code lives in `p
 ### Architecture
 
 - **Runtime:** LangGraph + FastAPI
-- **API:** OpenAI-compatible (`/v1/chat/completions`, `/v1/models`, `/v1/agents`, `/v1/tasks`)
-- **Inference contract:** LiteLLM on VAULT is the canonical model router
+- **API:** OpenAI-compatible (`/v1/chat/completions`, `/v1/models`, `/v1/agents`, `/v1/tasks`) plus subscription broker endpoints under `/v1/subscriptions`
+- **Inference contract:** LiteLLM on VAULT is the canonical local model router
+- **Subscription control layer:** brokered execution leases route cloud/provider usage through policy instead of direct vendor calls
 - **Knowledge fabric:** Qdrant + Neo4j + Redis
 - **Coordination substrate:** GWT workspace, task engine, work planner, activity and preference signals
 
@@ -82,8 +83,9 @@ Specialist slots are defined by contracts, not model names.
 |------|------|-----------------|------|
 | **reasoning** | Large-model reasoning and coding | Foundry coordinator (`:8000`) | Foundry |
 | **coding** | Same reasoning lane, coding-oriented alias | Foundry coordinator (`:8000`) | Foundry |
-| **creative** | Utility and uncensored specialist work | Foundry utility (`:8002`) | Foundry |
-| **utility** | Utility alias for local specialist work | Foundry utility (`:8002`) | Foundry |
+| **coder** | Dedicated coding and tool-use lane | Foundry coder (`:8006`) | Foundry |
+| **creative** | Creative-adjacent local work | Workshop worker (`:8000`) | Workshop |
+| **utility** | Utility alias for local specialist work | Workshop worker (`:8000`) | Workshop |
 | **fast** | Interactive worker lane | Workshop worker (`:8000`) | Workshop |
 | **worker** | Worker alias | Workshop worker (`:8000`) | Workshop |
 | **embedding** | Retrieval embeddings | DEV embedding (`:8001`) | DEV |
@@ -97,6 +99,7 @@ Specialist slots are defined by contracts, not model names.
 - **Creative:** ComfyUI image/video generation and queue inspection
 - **Knowledge:** Qdrant search, Neo4j queries, retrieval stats
 - **Coding and execution:** repository reads, controlled writes, command execution, test loops
+- **Subscription escalation:** Coding and Research agents can request execution leases before recommending off-cluster work
 
 ### Deployment
 

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { PageHeader } from "@/components/page-header";
+import { SubscriptionControlCard } from "@/components/subscription-control-card";
 import { StatCard } from "@/components/stat-card";
 import { getWorkforce } from "@/lib/api";
 import { type WorkforceSnapshot, type WorkforceTask } from "@/lib/contracts";
@@ -157,6 +158,14 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
       </PageHeader>
 
       {feedback ? <ErrorPanel title="Task feedback" description={feedback} /> : null}
+
+      <SubscriptionControlCard
+        title="Execution leases"
+        description="See which premium lanes are available before handing larger coding or research work to the workforce."
+        requester="coding-agent"
+        taskClass="async_backlog_execution"
+        compact
+      />
 
       {showComposer ? (
         <Card className="border-border/70 bg-card/70">

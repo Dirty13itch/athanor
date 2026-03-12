@@ -8,64 +8,86 @@ import json
 import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 DEFAULT_BASE_URL = "http://192.168.1.225:3001"
+ROOT = Path(__file__).resolve().parents[2]
+COMPLETION_DIR = ROOT / "docs" / "atlas" / "inventory" / "completion"
 
-ROUTES = [
-    "/",
-    "/services",
-    "/gpu",
-    "/chat",
-    "/agents",
-    "/tasks",
-    "/goals",
-    "/notifications",
-    "/workplanner",
-    "/workspace",
-    "/activity",
-    "/conversations",
-    "/gallery",
-    "/home",
-    "/insights",
-    "/learning",
-    "/media",
-    "/monitoring",
-    "/more",
-    "/outputs",
-    "/personal-data",
-    "/preferences",
-    "/review",
-    "/terminal",
-    "/offline",
-]
 
-APIS = [
-    "/api/overview",
-    "/api/services",
-    "/api/gpu",
-    "/api/models",
-    "/api/projects",
-    "/api/workforce",
-    "/api/history",
-    "/api/intelligence",
-    "/api/memory",
-    "/api/monitoring",
-    "/api/media/overview",
-    "/api/gallery/overview",
-    "/api/home/overview",
-    "/api/activity",
-    "/api/conversations",
-    "/api/outputs",
-    "/api/preferences",
-    "/api/personal-data/stats",
-    "/api/insights",
-    "/api/learning/metrics",
-    "/api/learning/improvement",
-    "/api/stash/stats",
-    "/api/services/history",
-    "/api/gpu/history",
-]
+def load_routes() -> list[str]:
+    path = COMPLETION_DIR / "dashboard-route-census.json"
+    if not path.exists():
+        return [
+            "/",
+            "/services",
+            "/gpu",
+            "/chat",
+            "/agents",
+            "/tasks",
+            "/goals",
+            "/notifications",
+            "/workplanner",
+            "/workspace",
+            "/activity",
+            "/conversations",
+            "/gallery",
+            "/home",
+            "/insights",
+            "/learning",
+            "/media",
+            "/monitoring",
+            "/more",
+            "/outputs",
+            "/personal-data",
+            "/preferences",
+            "/review",
+            "/terminal",
+            "/offline",
+        ]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return [record["routePath"] for record in payload if record.get("kind") == "route"]
+
+
+def load_apis() -> list[str]:
+    path = COMPLETION_DIR / "dashboard-api-census.json"
+    if not path.exists():
+        return [
+            "/api/overview",
+            "/api/services",
+            "/api/gpu",
+            "/api/models",
+            "/api/projects",
+            "/api/workforce",
+            "/api/history",
+            "/api/intelligence",
+            "/api/memory",
+            "/api/monitoring",
+            "/api/media/overview",
+            "/api/gallery/overview",
+            "/api/home/overview",
+            "/api/activity",
+            "/api/conversations",
+            "/api/outputs",
+            "/api/preferences",
+            "/api/personal-data/stats",
+            "/api/insights",
+            "/api/learning/metrics",
+            "/api/learning/improvement",
+            "/api/stash/stats",
+            "/api/services/history",
+            "/api/gpu/history",
+        ]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return [
+        record["apiPath"]
+        for record in payload
+        if "GET" in record.get("methods", [])
+        and record.get("consumerStatus") != "orphan-candidate"
+        and ":" not in record.get("apiPath", "")
+        and record.get("responseMode") != "sse"
+    ]
 
 POST_APIS = {
     "/api/personal-data/search": {"query": "EoBQ", "limit": 3},
@@ -158,12 +180,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Dashboard base URL.")
     args = parser.parse_args()
+    routes = load_routes()
+    apis = load_apis()
 
     failures: list[str] = []
     summary: dict[str, Any] = {}
     api_shapes: dict[str, Any] = {}
 
-    for path in ROUTES:
+    for path in routes:
         try:
             status, _, body = fetch(args.base_url, path)
             if status != 200 or "<html" not in body.decode("utf-8", errors="replace").lower():
@@ -173,7 +197,7 @@ def main() -> int:
         except Exception as exc:  # pragma: no cover - live smoke only
             failures.append(f"route {path} failed: {exc}")
 
-    for path in APIS:
+    for path in apis:
         try:
             status, _, body = fetch(args.base_url, path)
             payload = json.loads(body.decode("utf-8"))
@@ -244,8 +268,8 @@ def main() -> int:
         json.dumps(
             {
                 "baseUrl": args.base_url,
-                "routeCount": len(ROUTES),
-                "apiCount": len(APIS) + len(POST_APIS),
+                "routeCount": len(routes),
+                "apiCount": len(apis) + len(POST_APIS),
                 "apiShapesSample": api_shapes,
                 "chatResults": chat_results,
                 "summary": summary,

@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { PageHeader } from "@/components/page-header";
 import { RichText } from "@/components/rich-text";
+import { RoutingContextCard } from "@/components/routing-context-card";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
 import { getModels } from "@/lib/api";
@@ -307,6 +308,13 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
           <StatCard label="Selected model" value={selectedModel ? selectedModel.id.replace(/^\/models\//, "") : "--"} detail={selectedModel ? selectedModel.backend : "Choose a model"} />
         </div>
       </PageHeader>
+
+      <RoutingContextCard
+        title="Routing preview"
+        description="Preview shared routing and context injection before dispatching a direct prompt."
+        defaultAgent="general-assistant"
+        defaultPrompt={SUGGESTED_PROMPTS[0]}
+      />
 
       <div className="grid gap-4 xl:grid-cols-[18rem_18rem_1fr]">
         <Card className="border-border/70 bg-card/70">

@@ -1,9 +1,9 @@
-# GPU Placement Reference
+﻿# GPU Placement Reference
 
-Updated 2026-02-23 (GPU reallocation: RTX 4090 moved Node 2 → Node 1, RTX 5060 Ti added to Node 2).
+Updated 2026-02-23 (GPU reallocation: RTX 4090 moved Node 2 â†’ Node 1, RTX 5060 Ti added to Node 2).
 Original topology audit 2026-02-15. Bus IDs for 5th GPU on Node 1 and RTX 5060 Ti on Node 2 need re-audit.
 
-## Node 1 — core (192.168.1.244)
+## Node 1 â€” core (192.168.1.244)
 
 4x NVIDIA GeForce RTX 5070 Ti (Blackwell, sm_120) + 1x RTX 4090 (Ada Lovelace, sm_89)
 
@@ -13,11 +13,11 @@ Original topology audit 2026-02-15. Bus IDs for 5th GPU on Node 1 and RTX 5060 T
 | 1 | 47:00.0 | 16,303 MiB | RTX 5070 Ti | MSI | NODE to GPU0 |
 | 2 | 81:00.0 | 16,303 MiB | RTX 5070 Ti | Gigabyte | PHB to GPU3 |
 | 3 | 82:00.0 | 16,303 MiB | RTX 5070 Ti | Gigabyte | PHB to GPU2, display attached |
-| 4 | TBD | 24,564 MiB | RTX 4090 | — | Added 2026-02-21, bus ID needs audit |
+| 4 | TBD | 24,564 MiB | RTX 4090 | â€” | Added 2026-02-21, bus ID needs audit |
 
 Total: ~88 GB VRAM (64 GB Blackwell + 24 GB Ada)
 
-### Topology (5070 Ti only — original 4-GPU audit)
+### Topology (5070 Ti only â€” original 4-GPU audit)
 ```
       GPU0  GPU1  GPU2  GPU3
 GPU0   X    NODE  NODE  NODE
@@ -27,21 +27,21 @@ GPU3  NODE  NODE  PHB    X
 ```
 
 - All single NUMA node (NUMA 0), CPU affinity 0-111
-- No NVLink — all communication via PCIe 4.0 (EPYC 7663 is Gen4)
+- No NVLink â€” all communication via PCIe 4.0 (EPYC 7663 is Gen4)
 - GPU2 and GPU3 share a PCIe host bridge (PHB)
 - RTX 4090 topology relative to 5070 Ti GPUs unknown until re-audit
 
-### Current Deployment (Phase 2, 2026-03-08)
-- **Coordinator (TP=4)**: GPUs 0,1,3,4 (4x5070Ti) — Qwen3.5-27B-FP8 at :8000
-- **Utility**: GPU 2 (4090) — Huihui-Qwen3-8B-abliterated-v2 at :8002
+### Current Deployment (Phase 2, 2026-03-11)
+- **Coordinator (TP=4)**: GPUs 0,1,3,4 (4x5070Ti) â€” Qwen3.5-27B-FP8 at :8000
+- **Coder**: GPU 2 (4090) - Qwen3-Coder-30B-A3B-Instruct-AWQ at :8006
 
 ### Optimal Placement
 - **4-GPU tensor parallelism (vLLM)**: Use 4x RTX 5070 Ti (`CUDA_VISIBLE_DEVICES=0,1,3,4`). Same architecture required for TP. GPU 2 (4090) excluded.
-- **RTX 4090**: Independent workloads only — cannot TP with 5070 Ti (different architecture). Runs utility/fast model.
+- **RTX 4090**: Independent workloads only â€” cannot TP with 5070 Ti (different architecture). Runs the dedicated coder model.
 - **Single GPU jobs**: Prefer GPU 0 or GPU 1 (no display attached, separate host bridges)
 - **Power limits configured**: RTX 4090 @ 320W, RTX 5070 Ti @ 250W each
 
-## Node 2 — interface (192.168.1.225)
+## Node 2 â€” interface (192.168.1.225)
 
 | GPU | Bus ID | VRAM | Model | Architecture |
 |-----|--------|------|-------|-------------|
@@ -51,7 +51,7 @@ GPU3  NODE  NODE  PHB    X
 Total: ~48 GB VRAM
 
 ### Notes
-- Both Blackwell architecture — TP theoretically possible but different GPU tiers (32 GB vs 16 GB)
+- Both Blackwell architecture â€” TP theoretically possible but different GPU tiers (32 GB vs 16 GB)
 - RTX 5060 Ti bus ID needs re-audit (installed after original audit)
 - PHB interconnect expected (via CPU PCIe host bridge)
 
@@ -60,14 +60,14 @@ Total: ~48 GB VRAM
 - **RTX 5060 Ti (GPU 1)**: 16 GB. vLLM (Qwen3.5-35B-A3B-AWQ via --language-model-only), fast chat, lightweight workloads.
 - Use `--gpu-memory-utilization 0.85` and `--max-num-seqs 64` on 16 GB GPUs to avoid OOM.
 
-## VAULT — no NVIDIA GPUs
+## VAULT â€” no NVIDIA GPUs
 
-- Intel Arc A380 (6 GB GDDR6) — Quick Sync transcoding for Plex only
+- Intel Arc A380 (6 GB GDDR6) â€” Quick Sync transcoding for Plex only
 - Not usable for CUDA/inference workloads
 
-## DEV — ops center (192.168.1.189)
+## DEV â€” ops center (192.168.1.189)
 
-- NVIDIA RTX 5060 Ti 16 GB — embedding + reranker inference
+- NVIDIA RTX 5060 Ti 16 GB â€” embedding + reranker inference
 - Embedding (Qwen3-Embedding-0.6B) at :8001, Reranker at :8003
 
 ## VRAM Budget Summary
@@ -78,3 +78,4 @@ Total: ~48 GB VRAM
 | Node 2 | 48 GB | 5090 + 5060 Ti | ComfyUI (5090) + fast chat vLLM (5060 Ti) |
 | DEV | 16 GB | 5060 Ti | Embedding + reranker |
 | Combined | 152 GB | 8 GPUs | Multi-node via Ray+InfiniBand (future) |
+

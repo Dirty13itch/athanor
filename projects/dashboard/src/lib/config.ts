@@ -129,7 +129,10 @@ const foundryCoordinatorUrl = env(
   "ATHANOR_VLLM_COORDINATOR_URL",
   process.env.ATHANOR_NODE1_VLLM_URL?.trim() || `http://${foundryHost}:8000`
 );
-const foundryUtilityUrl = env("ATHANOR_VLLM_UTILITY_URL", `http://${foundryHost}:8002`);
+const foundryCoderUrl = env(
+  "ATHANOR_VLLM_CODER_URL",
+  process.env.ATHANOR_VLLM_UTILITY_URL?.trim() || `http://${foundryHost}:8006`
+);
 const workshopWorkerUrl = env(
   "ATHANOR_VLLM_WORKER_URL",
   process.env.ATHANOR_NODE2_VLLM_URL?.trim() || `http://${workshopHost}:8000`
@@ -156,6 +159,7 @@ const legacyChatTargetAliases: Record<string, string> = {
   "node1-vllm": "foundry-coordinator",
   "node2-vllm": "workshop-worker",
   "node1-vllm-embedding": "dev-embedding",
+  "foundry-utility": "foundry-coder",
 };
 
 export const config = {
@@ -234,12 +238,12 @@ export const config = {
       url: foundryCoordinatorUrl,
     },
     {
-      id: "foundry-utility",
-      name: "Foundry Utility",
+      id: "foundry-coder",
+      name: "Foundry Coder",
       nodeId: "node1",
-      description: "Utility and uncensored runtime for specialist overflow and creative tasks.",
-      primaryModel: "Huihui-Qwen3-8B-abliterated-v2",
-      url: foundryUtilityUrl,
+      description: "Dedicated coding runtime for autonomous implementation and code-heavy tasks.",
+      primaryModel: "Qwen3-Coder-30B-A3B-Instruct-AWQ",
+      url: foundryCoderUrl,
     },
     {
       id: "workshop-worker",
@@ -286,13 +290,13 @@ export const config = {
       description: "Primary reasoning and coding runtime.",
     },
     {
-      id: "foundry-utility",
-      name: "Foundry Utility",
-      url: joinUrl(foundryUtilityUrl, "/v1/models"),
+      id: "foundry-coder",
+      name: "Foundry Coder",
+      url: joinUrl(foundryCoderUrl, "/v1/models"),
       nodeId: "node1",
       node: "Foundry",
       category: "inference",
-      description: "Utility and uncensored runtime on the 4090 lane.",
+      description: "Autonomous coding runtime on the 4090 lane.",
     },
     {
       id: "workshop-worker",
@@ -686,7 +690,7 @@ export const config = {
     [foundryHost]: {
       0: "Reasoning / coding coordinator",
       1: "Reasoning / coding coordinator",
-      2: "Utility / uncensored runtime",
+      2: "Coder runtime",
       3: "Reasoning / coding coordinator",
       4: "Reasoning / coding coordinator",
     },

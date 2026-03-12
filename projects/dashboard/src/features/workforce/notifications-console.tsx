@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { NotificationsPostureCard } from "@/components/notifications-posture-card";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { getWorkforce } from "@/lib/api";
@@ -86,6 +87,8 @@ export function NotificationsConsole({ initialSnapshot }: { initialSnapshot: Wor
           <StatCard label="Resolved" value={`${snapshot.notifications.filter((item) => item.resolved).length}`} detail="Closed notifications in the retained history window." />
         </div>
       </PageHeader>
+
+      <NotificationsPostureCard />
 
       <Card className="border-border/70 bg-card/70">
         <CardHeader>
