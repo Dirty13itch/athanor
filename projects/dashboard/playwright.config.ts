@@ -31,7 +31,7 @@ export default defineConfig({
     command:
       "powershell -NoProfile -Command \"$env:DASHBOARD_FIXTURE_MODE='1'; $env:NEXT_PUBLIC_VAPID_PUBLIC_KEY='BEl6dGVzdF92YXBpZF9wdWJsaWNfa2V5X2Zvcl9wbGF5d3JpZ2h0X19fX19fX19fXw'; npx next dev --hostname 127.0.0.1 --port 3005\"",
     url: "http://127.0.0.1:3005",
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     timeout: 120_000,
   },
 });

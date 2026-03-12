@@ -2,16 +2,20 @@ import { render } from "@testing-library/react";
 import { createElement, isValidElement, type ComponentType, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+type ImportMetaWithGlob = ImportMeta & {
+  glob: (pattern: string, options: { eager: true }) => Record<string, unknown>;
+};
+
 vi.mock("next/font/google", () => ({
   Inter: () => ({ variable: "--font-inter", className: "font-inter" }),
   Cormorant_Garamond: () => ({ variable: "--font-cormorant", className: "font-cormorant" }),
   Geist_Mono: () => ({ variable: "--font-geist-mono", className: "font-geist-mono" }),
 }));
 
-const SUPPORT_MODULES = import.meta.glob("./**/{loading,error,global-error,not-found,layout}.tsx", {
+const SUPPORT_MODULES = (import.meta as ImportMetaWithGlob).glob("./**/{loading,error,global-error,not-found,layout}.tsx", {
   eager: true,
 });
-const MANIFEST_MODULES = import.meta.glob("./**/manifest.ts", { eager: true });
+const MANIFEST_MODULES = (import.meta as ImportMetaWithGlob).glob("./**/manifest.ts", { eager: true });
 
 afterEach(() => {
   vi.restoreAllMocks();
