@@ -30,6 +30,34 @@ type HistoryVariant = "activity" | "conversations" | "outputs";
 type StatusFilter = "all" | "pending_approval" | "running" | "completed" | "failed";
 type TimeframeFilter = "4h" | "24h" | "7d" | "30d";
 
+function historyStatusTone(status: string | null | undefined) {
+  switch (status) {
+    case "pending_approval":
+      return "review";
+    case "running":
+      return "info";
+    case "completed":
+      return "success";
+    case "failed":
+      return "danger";
+    default:
+      return "info";
+  }
+}
+
+function historySurfaceClass(status: string | null | undefined) {
+  switch (status) {
+    case "pending_approval":
+      return "surface-hero border";
+    case "failed":
+      return "surface-instrument border";
+    case "running":
+      return "surface-instrument border";
+    default:
+      return "surface-tile border";
+  }
+}
+
 function parseTimeframeMinutes(value: TimeframeFilter) {
   switch (value) {
     case "4h":
@@ -141,7 +169,7 @@ function SelectionDetails({
         <Section label="Output path">{item.path}</Section>
       ) : null}
 
-      <Card className="border-border/70 bg-card/70">
+      <Card className="surface-panel border">
         <CardHeader>
           <CardTitle className="text-lg">Back-links</CardTitle>
           <CardDescription>Follow this item through related task, project, and review surfaces.</CardDescription>
@@ -329,7 +357,7 @@ export function HistoryConsole({
       </PageHeader>
 
       <div className="grid gap-4 xl:grid-cols-[0.95fr_1.35fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel border">
           <CardHeader>
             <CardTitle className="text-lg">Shared filters</CardTitle>
             <CardDescription>URL-backed filters round-trip across the family routes and browser history.</CardDescription>
@@ -341,7 +369,7 @@ export function HistoryConsole({
                 value={search}
                 onChange={(event) => setSearchValue("search", event.target.value || null)}
                 placeholder={`Search ${variant}`}
-                className="pl-9"
+                className="surface-instrument pl-9"
               />
             </div>
             <FilterRow
@@ -382,7 +410,7 @@ export function HistoryConsole({
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-tile border">
           <CardHeader>
             <CardTitle className="text-lg">Cross-links</CardTitle>
             <CardDescription>Use the detail drawer to move from any item into tasks, projects, outputs, or review.</CardDescription>
@@ -395,7 +423,7 @@ export function HistoryConsole({
         </Card>
       </div>
 
-      <Card className="border-border/70 bg-card/70">
+      <Card className="surface-panel border">
         <CardHeader>
           <CardTitle className="text-lg">
             {variant === "activity" ? "Activity feed" : variant === "conversations" ? "Conversations" : "Outputs"}
@@ -410,12 +438,16 @@ export function HistoryConsole({
                   key={item.id}
                   type="button"
                   onClick={() => setSearchValue("selection", item.id)}
-                  className="w-full rounded-2xl border border-border/70 bg-background/20 p-4 text-left transition hover:bg-accent/40"
+                  className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${historySurfaceClass(item.status ?? null)}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{getAgentName(snapshot, item.agentId)}</Badge>
                     {item.projectId ? <Badge variant="outline">{getProjectName(snapshot, item.projectId)}</Badge> : null}
-                    {item.status ? <Badge variant="outline">{item.status}</Badge> : null}
+                    {item.status ? (
+                      <Badge variant="outline" className="status-badge" data-tone={historyStatusTone(item.status)}>
+                        {item.status}
+                      </Badge>
+                    ) : null}
                     <span className="ml-auto text-xs text-muted-foreground">{formatRelativeTime(item.timestamp)}</span>
                   </div>
                   <p className="mt-3 text-sm font-medium">{item.inputSummary}</p>
@@ -443,7 +475,7 @@ export function HistoryConsole({
                   key={item.id}
                   type="button"
                   onClick={() => setSearchValue("selection", item.threadId)}
-                  className="w-full rounded-2xl border border-border/70 bg-background/20 p-4 text-left transition hover:bg-accent/40"
+                  className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${historySurfaceClass(itemMatchesStatus(item, status, snapshot) ? snapshot.tasks.find((task) => task.id === item.relatedTaskId)?.status ?? null : null)}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{getAgentName(snapshot, item.agentId)}</Badge>
@@ -468,7 +500,7 @@ export function HistoryConsole({
                   key={item.id}
                   type="button"
                   onClick={() => setSearchValue("selection", item.id)}
-                  className="w-full rounded-2xl border border-border/70 bg-background/20 p-4 text-left transition hover:bg-accent/40"
+                  className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${historySurfaceClass(snapshot.tasks.find((task) => task.id === item.relatedTaskId)?.status ?? null)}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{item.category}</Badge>
@@ -545,7 +577,7 @@ function FilterRow({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2">
+    <div className="surface-metric rounded-xl border px-3 py-2">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-1 font-medium">{value}</p>
     </div>
@@ -556,7 +588,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <div className="mt-2 rounded-xl border border-border/60 bg-background/30 p-3 text-sm">
+      <div className="surface-instrument mt-2 rounded-xl border p-3 text-sm">
         {children}
       </div>
     </div>

@@ -28,10 +28,15 @@ Use these together:
 | Model role/workload registries | live |
 | Model proving-ground posture and snapshots | live |
 | Continuous model-intelligence cadence | live |
+| Tool-permission governance | live_partial |
 | Operator cockpit integration | live, still expanding |
 | Capacity governor posture | live, operator-facing |
 | Presence-aware autonomy | live_partial |
-| Visual redesign | planned |
+| Shared run provenance and governance lineage | live_partial |
+| Release ladder and promotion ritual | live_partial |
+| Data lifecycle verification posture | live_partial |
+| Deprecation and retirement handling | live_partial |
+| Visual redesign | live_partial |
 | Restore drills | live_partial |
 | Operator runbooks | live_partial |
 
@@ -273,6 +278,8 @@ Core assets:
 - `config/automation-backbone/model-proving-ground.json`
 - `config/automation-backbone/model-intelligence-lane.json`
 
+The current live runtime now exposes governed corpora, experiment evidence, prompt/policy/corpus versions, and artifact provenance directly in model-governance and proving-ground snapshots, with matching lineage fields in execution-run records.
+
 ## Model intelligence lane
 
 The system must continuously look for better models and infrastructure updates.
@@ -314,6 +321,16 @@ Canonical sources:
 - `config/automation-backbone/eval-corpus-registry.json`
 - `config/automation-backbone/experiment-ledger-policy.json`
 - `config/automation-backbone/deprecation-retirement-policy.json`
+
+The current runtime now exposes governed retirement posture through:
+
+- `/v1/models/governance/retirements`
+- `/v1/models/governance/retirements/{retirement_id}/{action}`
+- `/api/models/governance/retirements`
+- `/api/models/governance/retirements/[retirementId]/*`
+
+Retirement handling is now `live_partial`: the governed ladder, runtime snapshots, and operator-facing advance/hold/rollback controls are live, while broader asset-class retirement flows still need deeper automation.
+- `config/automation-backbone/tool-permission-registry.json`
 
 ## Experiment ledger and provenance
 
@@ -482,13 +499,35 @@ The operator must be able to see:
 
 ## Visual system
 
-The visual direction remains:
+The visual-system program is now research-locked and canonical under:
 
-- premium industrial dark
-- warm core
-- quiet power
-- controlled signals
-- stronger depth and hierarchy
+- [visual-system/README.md](./visual-system/README.md)
+- [visual-system/VISUAL_CONSTITUTION.md](./visual-system/VISUAL_CONSTITUTION.md)
+- [visual-system/VISUAL_AUDIT.md](./visual-system/VISUAL_AUDIT.md)
+- [visual-system/TOKEN_SPEC.md](./visual-system/TOKEN_SPEC.md)
+- [visual-system/COMPONENT_APPEARANCE_STANDARD.md](./visual-system/COMPONENT_APPEARANCE_STANDARD.md)
+- [visual-system/ROUTE_DIRECTION_MEMO.md](./visual-system/ROUTE_DIRECTION_MEMO.md)
+- [visual-system/IMPLEMENTATION_SEQUENCE.md](./visual-system/IMPLEMENTATION_SEQUENCE.md)
+
+The direction is now:
+
+- futurist control room
+- multi-signal system
+- premium dark operational shell
+- strong depth and hierarchy
+- no furnace/alchemical visual metaphor
+
+The primary success criterion is operator control, not aesthetics alone:
+
+- faster posture recognition
+- clearer steering of agents and work
+- clearer understanding of why the system chose a lane or escalation path
+- stronger confidence around approvals, failures, retries, and pause/resume actions
+
+Current posture:
+
+- the canonical repo-backed dashboard has now completed the staged visual-system sequence through validation
+- further ad hoc styling changes remain frozen; future UI work must extend the governed visual system instead of inventing route-local treatments
 
 ## Backup, restore, and runbooks
 

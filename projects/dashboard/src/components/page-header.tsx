@@ -23,11 +23,13 @@ export function PageHeader({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
           {eyebrow && (
-            <p className="text-xs uppercase tracking-[0.26em] text-primary/80">{eyebrow}</p>
+            <p className="page-eyebrow">{eyebrow}</p>
           )}
           <div className="space-y-1">
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>
-            <p className="max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
+            <h1 className="font-heading text-3xl font-medium tracking-[-0.03em] text-foreground sm:text-4xl">
+              {title}
+            </h1>
+            <p className="max-w-3xl text-sm leading-6 text-[color:var(--text-secondary)] sm:text-base">
               {description}
             </p>
           </div>

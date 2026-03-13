@@ -18,6 +18,32 @@ import { formatRelativeTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
 import { useUrlState } from "@/lib/url-state";
 
+function homeStepTone(status: string) {
+  switch (status) {
+    case "complete":
+      return "success";
+    case "blocked":
+      return "danger";
+    case "pending":
+      return "warning";
+    default:
+      return "info";
+  }
+}
+
+function homeStepSurface(status: string) {
+  switch (status) {
+    case "complete":
+      return "surface-instrument border";
+    case "blocked":
+      return "surface-hero border";
+    case "pending":
+      return "surface-tile border";
+    default:
+      return "surface-tile border";
+  }
+}
+
 export function HomeConsole({ initialSnapshot }: { initialSnapshot: HomeSnapshot }) {
   const { getSearchValue, setSearchValue } = useUrlState();
   const panel = getSearchValue("panel", "");
@@ -77,16 +103,16 @@ export function HomeConsole({ initialSnapshot }: { initialSnapshot: HomeSnapshot
       </PageHeader>
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_1fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel border">
           <CardHeader>
             <CardTitle className="text-lg">Setup ladder</CardTitle>
             <CardDescription>Keep the home lane honest about what is complete, pending, or blocked.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {snapshot.setupSteps.map((step) => (
-              <div key={step.id} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+              <div key={step.id} className={`rounded-2xl p-4 ${homeStepSurface(step.status)}`}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={step.status === "complete" ? "secondary" : step.status === "blocked" ? "destructive" : "outline"}>
+                  <Badge variant="outline" className="status-badge" data-tone={homeStepTone(step.status)}>
                     {step.status}
                   </Badge>
                   <p className="font-medium">{step.label}</p>
@@ -97,7 +123,7 @@ export function HomeConsole({ initialSnapshot }: { initialSnapshot: HomeSnapshot
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel border">
           <CardHeader>
             <CardTitle className="text-lg">Focused panels</CardTitle>
             <CardDescription>Drawer-based previews keep Home Assistant in the satellite role, not as a cloned in-dashboard app.</CardDescription>
@@ -109,10 +135,13 @@ export function HomeConsole({ initialSnapshot }: { initialSnapshot: HomeSnapshot
                   key={entry.id}
                   type="button"
                   onClick={() => setSearchValue("panel", entry.id)}
-                  className="w-full rounded-2xl border border-border/70 bg-background/20 p-4 text-left transition hover:bg-accent/40"
+                  className="surface-instrument w-full rounded-2xl border p-4 text-left transition hover:bg-accent/40"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="rounded-xl border border-border/70 bg-background/40 p-2 text-primary">
+                    <div
+                      className="surface-metric rounded-xl border p-2"
+                      style={{ color: "var(--domain-home)" }}
+                    >
                       <Home className="h-4 w-4" />
                     </div>
                     <div>
@@ -138,7 +167,7 @@ export function HomeConsole({ initialSnapshot }: { initialSnapshot: HomeSnapshot
                 <SheetDescription>{activePanel.description}</SheetDescription>
               </SheetHeader>
               <div className="space-y-6 p-6">
-                <Card className="border-border/70 bg-card/70">
+                <Card className="surface-instrument border">
                   <CardHeader>
                     <CardTitle className="text-lg">Panel preview</CardTitle>
                     <CardDescription>Preserve route state in Athanor, then jump to Home Assistant for the full workflow.</CardDescription>

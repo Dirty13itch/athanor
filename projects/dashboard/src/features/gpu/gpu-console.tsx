@@ -167,7 +167,7 @@ export function GpuConsole({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-instrument">
           <CardHeader>
             <CardTitle className="text-lg">Node utilization trend</CardTitle>
             <CardDescription>Average GPU load by node across the selected time range.</CardDescription>
@@ -179,7 +179,7 @@ export function GpuConsole({
                 series={history.nodes.map((series, index) => ({
                   dataKey: series.label,
                   label: series.label,
-                  color: ["#f5c86d", "#78d1f2", "#6ee7b7"][index % 3],
+                        color: `var(--chart-cat-${(index % 3) + 1})`,
                 }))}
                 valueSuffix="%"
               />
@@ -192,7 +192,7 @@ export function GpuConsole({
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-lg">Thermal and power hotspot</CardTitle>
             <CardDescription>Highest-pressure GPUs right now.</CardDescription>
@@ -205,8 +205,8 @@ export function GpuConsole({
                 onClick={() => setSearchValue("highlight", gpu.id)}
                 className={`w-full rounded-2xl border p-4 text-left transition ${
                   highlight === gpu.id
-                    ? "border-primary/50 bg-primary/10"
-                    : "border-border/70 bg-background/20 hover:bg-accent/40"
+                    ? "surface-hero border"
+                    : "surface-instrument border hover:bg-accent/40"
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -214,7 +214,9 @@ export function GpuConsole({
                     <p className="font-medium">{gpu.gpuName}</p>
                     <p className="mt-1 text-sm text-muted-foreground">{gpu.node}</p>
                   </div>
-                  <Badge variant="outline">{formatPercent(gpu.utilization, 0)}</Badge>
+                  <Badge variant="outline" className="status-badge">
+                    {formatPercent(gpu.utilization, 0)}
+                  </Badge>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
                   <Metric label="Temp" value={gpu.temperatureC === null ? "--" : `${Math.round(gpu.temperatureC)}C`} icon={<Thermometer className="h-3.5 w-3.5" />} />
@@ -228,7 +230,7 @@ export function GpuConsole({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-hero">
           <CardHeader>
             <CardTitle className="text-lg">Selected GPU drill-down</CardTitle>
             <CardDescription>
@@ -248,10 +250,10 @@ export function GpuConsole({
                   <MetricChart
                     data={highlightedData}
                     series={[
-                      { dataKey: "utilization", label: "Utilization", color: "#f5c86d" },
-                      { dataKey: "temperature", label: "Temperature", color: "#ef4444" },
-                      { dataKey: "power", label: "Power", color: "#78d1f2" },
-                      { dataKey: "memory", label: "Memory ratio", color: "#6ee7b7" },
+                      { dataKey: "utilization", label: "Utilization", color: "var(--chart-cat-1)" },
+                      { dataKey: "temperature", label: "Temperature", color: "var(--signal-danger)" },
+                      { dataKey: "power", label: "Power", color: "var(--chart-cat-2)" },
+                      { dataKey: "memory", label: "Memory ratio", color: "var(--chart-cat-3)" },
                     ]}
                   />
                 ) : (
@@ -267,7 +269,7 @@ export function GpuConsole({
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-instrument">
           <CardHeader>
             <CardTitle className="text-lg">Pinned comparison</CardTitle>
             <CardDescription>Pin up to three GPUs to compare utilization curves.</CardDescription>
@@ -279,7 +281,7 @@ export function GpuConsole({
                 series={comparedGpus.map((gpu, index) => ({
                   dataKey: gpu.gpuName,
                   label: gpu.gpuName,
-                  color: ["#f5c86d", "#78d1f2", "#6ee7b7"][index % 3],
+                        color: `var(--chart-cat-${(index % 3) + 1})`,
                 }))}
                 valueSuffix="%"
               />
@@ -293,7 +295,7 @@ export function GpuConsole({
         </Card>
       </div>
 
-      <Card className="border-border/70 bg-card/70">
+      <Card className="surface-panel">
         <CardHeader>
           <CardTitle className="text-lg">GPU inventory</CardTitle>
           <CardDescription>Pin GPUs for comparison or focus one GPU for detailed history.</CardDescription>
@@ -307,7 +309,7 @@ export function GpuConsole({
                 <div
                   key={gpu.id}
                   className={`rounded-2xl border p-4 ${
-                    isHighlighted ? "border-primary/50 bg-primary/10" : "border-border/70 bg-background/20"
+                    isHighlighted ? "surface-hero border" : "surface-instrument border"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -318,7 +320,9 @@ export function GpuConsole({
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusDot tone={gpu.utilization !== null && gpu.utilization >= 85 ? "warning" : "healthy"} />
-                      <Badge variant="outline">{formatPercent(gpu.utilization, 0)}</Badge>
+                      <Badge variant="outline" className="status-badge">
+                        {formatPercent(gpu.utilization, 0)}
+                      </Badge>
                     </div>
                   </div>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -362,7 +366,7 @@ function Metric({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/40 p-3">
+    <div className="surface-metric rounded-xl border p-3">
       <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
         {icon}
         <span>{label}</span>

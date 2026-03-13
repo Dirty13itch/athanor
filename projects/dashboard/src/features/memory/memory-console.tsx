@@ -180,7 +180,7 @@ export function MemoryConsole({
       {feedback ? <ErrorPanel title="Memory action" description={feedback} /> : null}
 
       <div className="grid gap-4 xl:grid-cols-[0.95fr_1.35fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-lg">Shared filters</CardTitle>
             <CardDescription>Memory routes share project, category, query, and entity state.</CardDescription>
@@ -192,7 +192,7 @@ export function MemoryConsole({
                 value={query}
                 onChange={(event) => setSearchValue("query", event.target.value || null)}
                 placeholder={`Search ${variant === "preferences" ? "preferences" : "memory"}`}
-                className="pl-9"
+                className="surface-instrument pl-9"
               />
             </div>
             <FilterRow
@@ -225,7 +225,7 @@ export function MemoryConsole({
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-hero">
           <CardHeader>
             <CardTitle className="text-lg">Knowledge posture</CardTitle>
             <CardDescription>Recent indexing, graph coverage, and operator preference signals.</CardDescription>
@@ -240,19 +240,24 @@ export function MemoryConsole({
 
       {variant === "preferences" ? (
         <>
-          <Card className="border-border/70 bg-card/70">
+          <Card className="surface-panel">
             <CardHeader>
               <CardTitle className="text-lg">Preference capture</CardTitle>
               <CardDescription>Store operator signals and keep notification preferences close to memory management.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Input value={newPreference} onChange={(event) => setNewPreference(event.target.value)} placeholder="Store a new operator preference or constraint" />
+              <Input
+                value={newPreference}
+                onChange={(event) => setNewPreference(event.target.value)}
+                placeholder="Store a new operator preference or constraint"
+                className="surface-instrument"
+              />
               <div className="grid gap-3 md:grid-cols-3">
                 <select
                   value={newAgent}
                   onChange={(event) => setNewAgent(event.target.value)}
                   aria-label="Preference target agent"
-                  className="rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm"
+                  className="surface-instrument rounded-xl border px-3 py-2 text-sm"
                 >
                   <option value="global">Global</option>
                   <option value="coding-agent">coding-agent</option>
@@ -264,20 +269,25 @@ export function MemoryConsole({
                   value={newSignalType}
                   onChange={(event) => setNewSignalType(event.target.value)}
                   aria-label="Preference signal type"
-                  className="rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm"
+                  className="surface-instrument rounded-xl border px-3 py-2 text-sm"
                 >
                   <option value="remember_this">remember_this</option>
                   <option value="thumbs_up">thumbs_up</option>
                   <option value="thumbs_down">thumbs_down</option>
                   <option value="config_choice">config_choice</option>
                 </select>
-                <Input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="Category" />
+                <Input
+                  value={newCategory}
+                  onChange={(event) => setNewCategory(event.target.value)}
+                  placeholder="Category"
+                  className="surface-instrument"
+                />
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <Button onClick={() => void storePreference()} disabled={saving || !newPreference.trim()}>
                   Store preference
                 </Button>
-                <div className="flex items-center gap-2 rounded-xl border border-border/70 px-3 py-2 text-sm">
+                <div className="surface-instrument flex items-center gap-2 rounded-xl border px-3 py-2 text-sm">
                   <Bell className="h-4 w-4 text-primary" />
                   <PushManager />
                 </div>
@@ -285,7 +295,7 @@ export function MemoryConsole({
             </CardContent>
           </Card>
 
-          <Card className="border-border/70 bg-card/70">
+          <Card className="surface-panel">
             <CardHeader>
               <CardTitle className="text-lg">Stored preferences</CardTitle>
               <CardDescription>{filteredPreferences.length} preference signals match the current filters.</CardDescription>
@@ -293,7 +303,7 @@ export function MemoryConsole({
             <CardContent className="space-y-3">
               {filteredPreferences.length > 0 ? (
                 filteredPreferences.map((preference) => (
-                  <div key={`${preference.timestamp}-${preference.content}`} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                  <div key={`${preference.timestamp}-${preference.content}`} className="surface-instrument rounded-2xl border p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary">{preference.signalType}</Badge>
                       <Badge variant="outline">{preference.agentId}</Badge>
@@ -320,7 +330,7 @@ export function MemoryConsole({
 
       {variant === "personal-data" ? (
         <>
-          <Card className="border-border/70 bg-card/70">
+          <Card className="surface-panel">
             <CardHeader>
               <CardTitle className="text-lg">Semantic search</CardTitle>
               <CardDescription>Use the existing semantic search surface underneath the shared memory model.</CardDescription>
@@ -333,7 +343,7 @@ export function MemoryConsole({
           <ConsolidationCard />
 
           <div className="grid gap-4 xl:grid-cols-[1.25fr_0.9fr]">
-            <Card className="border-border/70 bg-card/70">
+            <Card className="surface-panel">
               <CardHeader>
                 <CardTitle className="text-lg">Recently indexed</CardTitle>
                 <CardDescription>{filteredItems.length} items match the current filters.</CardDescription>
@@ -345,7 +355,7 @@ export function MemoryConsole({
                       key={`${item.id}`}
                       type="button"
                       onClick={() => setSearchValue("entity", `${item.id}`)}
-                      className="w-full rounded-2xl border border-border/70 bg-background/20 p-4 text-left transition hover:bg-accent/40"
+                      className="surface-instrument w-full rounded-2xl border p-4 text-left transition hover:bg-accent/40"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="secondary">{item.category ?? "uncategorized"}</Badge>
@@ -362,14 +372,14 @@ export function MemoryConsole({
               </CardContent>
             </Card>
 
-            <Card className="border-border/70 bg-card/70">
+            <Card className="surface-panel">
               <CardHeader>
                 <CardTitle className="text-lg">Top topics</CardTitle>
                 <CardDescription>Graph-backed topics and category density from the current snapshot.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {snapshot.topTopics.map((topic) => (
-                  <div key={topic.name} className="flex items-center justify-between rounded-xl border border-border/60 bg-background/20 px-3 py-2 text-sm">
+                  <div key={topic.name} className="surface-metric flex items-center justify-between rounded-xl border px-3 py-2 text-sm">
                     <span>{topic.name}</span>
                     <span className="text-muted-foreground">{topic.connections} links</span>
                   </div>
@@ -461,7 +471,7 @@ function FilterRow({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2">
+    <div className="surface-metric rounded-xl border px-3 py-2">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-1 font-medium">{value}</p>
     </div>
@@ -472,7 +482,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <div className="mt-2 rounded-xl border border-border/60 bg-background/30 p-3 text-sm">
+      <div className="surface-instrument mt-2 rounded-xl border p-3 text-sm">
         {children}
       </div>
     </div>

@@ -19,7 +19,7 @@ import { getAgentName, getProjectName, postJson, postWithoutBody } from "@/featu
 const conventionTone: Record<string, string> = {
   behavior: "bg-blue-500/15 text-blue-100 border-blue-500/30",
   preference: "bg-purple-500/15 text-purple-100 border-purple-500/30",
-  quality: "bg-amber-500/15 text-amber-100 border-amber-500/30",
+  quality: "bg-sky-500/15 text-sky-100 border-sky-500/30",
   schedule: "bg-emerald-500/15 text-emerald-100 border-emerald-500/30",
 };
 

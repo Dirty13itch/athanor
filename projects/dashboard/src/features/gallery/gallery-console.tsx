@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue } from "react";
+import { type CSSProperties, useDeferredValue } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, RefreshCcw } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
@@ -34,6 +34,11 @@ function prefixToProject(prefix: string) {
 function prefixToLabel(prefix: string) {
   return prefix || "unlabeled";
 }
+
+const previewSurfaceStyle: CSSProperties = {
+  background:
+    "radial-gradient(circle at top left, color-mix(in oklab, var(--domain-media) 24%, transparent) 0%, transparent 48%), linear-gradient(135deg, color-mix(in oklab, var(--accent-structural) 18%, transparent) 0%, color-mix(in oklab, var(--surface-panel) 84%, black) 100%)",
+};
 
 export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySnapshot }) {
   const { getSearchValue, setSearchValue } = useUrlState();
@@ -93,13 +98,18 @@ export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySn
         </div>
       </PageHeader>
 
-      <Card className="border-border/70 bg-card/70">
+      <Card className="surface-panel border">
         <CardHeader>
           <CardTitle className="text-lg">Source filters</CardTitle>
           <CardDescription>URL-backed filters preserve the exact gallery selection and browser history.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Input value={query} onChange={(event) => setSearchValue("query", event.target.value || null)} placeholder="Search prompt or output prefix" />
+          <Input
+            value={query}
+            onChange={(event) => setSearchValue("query", event.target.value || null)}
+            placeholder="Search prompt or output prefix"
+            className="surface-instrument"
+          />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant={source === "all" ? "default" : "outline"} onClick={() => setSearchValue("source", null)}>
               All
@@ -125,9 +135,9 @@ export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySn
               key={item.id}
               type="button"
               onClick={() => setSearchValue("selection", item.id)}
-              className="rounded-2xl border border-border/70 bg-card/70 p-4 text-left transition hover:bg-accent/40"
+              className="surface-instrument rounded-2xl border p-4 text-left transition hover:bg-accent/40"
             >
-              <div className="aspect-[4/3] rounded-2xl border border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(245,200,109,0.2),_transparent_45%),linear-gradient(135deg,_rgba(120,209,242,0.18),_rgba(25,25,32,0.6))]" />
+              <div className="aspect-[4/3] rounded-2xl border border-border/60" style={previewSurfaceStyle} />
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">{prefixToLabel(item.outputPrefix)}</Badge>
                 <Badge variant="outline">{prefixToProject(item.outputPrefix)}</Badge>
@@ -150,8 +160,8 @@ export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySn
                 <SheetDescription>{activeItem.outputImages.map((image) => image.filename).join(", ")}</SheetDescription>
               </SheetHeader>
               <div className="space-y-6 p-6">
-                <div className="aspect-[4/3] rounded-2xl border border-border/60 bg-[radial-gradient(circle_at_top_left,_rgba(245,200,109,0.2),_transparent_45%),linear-gradient(135deg,_rgba(120,209,242,0.18),_rgba(25,25,32,0.6))]" />
-                <Card className="border-border/70 bg-card/70">
+                <div className="aspect-[4/3] rounded-2xl border border-border/60" style={previewSurfaceStyle} />
+                <Card className="surface-panel border">
                   <CardHeader>
                     <CardTitle className="text-lg">Generation context</CardTitle>
                     <CardDescription>Keep project and prompt context visible before jumping to ComfyUI.</CardDescription>

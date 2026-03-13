@@ -1,6 +1,8 @@
 import {
   agentsSnapshotSchema,
+  executionRunsResponseSchema,
   gallerySnapshotSchema,
+  governorResponseSchema,
   gpuHistoryResponseSchema,
   gpuSnapshotResponseSchema,
   historySnapshotSchema,
@@ -8,14 +10,24 @@ import {
   intelligenceSnapshotSchema,
   mediaSnapshotSchema,
   memorySnapshotSchema,
+  modelGovernanceSnapshotSchema,
   modelsSnapshotSchema,
   monitoringSnapshotSchema,
+  operatorTestsSnapshotSchema,
+  operatorStreamResponseSchema,
+  operationsReadinessSnapshotSchema,
   overviewSnapshotSchema,
+  judgePlaneResponseSchema,
+  scheduledJobsResponseSchema,
   servicesHistorySnapshotSchema,
   servicesSnapshotSchema,
+  subscriptionSummaryResponseSchema,
+  systemMapSnapshotSchema,
   workforceSnapshotResponseSchema,
   type AgentsSnapshot,
+  type ExecutionRunsResponse,
   type GallerySnapshot,
+  type GovernorSnapshot,
   type GpuHistoryResponse,
   type GpuSnapshotResponse,
   type HistorySnapshot,
@@ -23,11 +35,19 @@ import {
   type IntelligenceSnapshot,
   type MediaSnapshot,
   type MemorySnapshot,
+  type ModelGovernanceSnapshot,
   type ModelsSnapshot,
   type MonitoringSnapshot,
+  type OperatorTestsSnapshot,
+  type OperatorStreamResponse,
+  type OperationsReadinessSnapshot,
   type OverviewSnapshot,
+  type JudgePlaneSnapshot,
+  type ScheduledJobsResponse,
   type ServicesHistorySnapshot,
   type ServicesSnapshot,
+  type SubscriptionSummaryResponse,
+  type SystemMapSnapshot,
   type WorkforceSnapshot,
 } from "@/lib/contracts";
 import { config } from "@/lib/config";
@@ -114,12 +134,72 @@ export async function getModels(): Promise<ModelsSnapshot> {
   return fetchJson("/api/models", { cache: "no-store" }, modelsSnapshotSchema);
 }
 
+export async function getModelGovernance(): Promise<ModelGovernanceSnapshot> {
+  return fetchJson("/api/models/governance", { cache: "no-store" }, modelGovernanceSnapshotSchema);
+}
+
 export async function getAgents(): Promise<AgentsSnapshot> {
   return fetchJson("/api/agents", { cache: "no-store" }, agentsSnapshotSchema);
 }
 
+export async function getSystemMap(): Promise<SystemMapSnapshot> {
+  return fetchJson("/api/system-map", { cache: "no-store" }, systemMapSnapshotSchema);
+}
+
+export async function getGovernor(): Promise<GovernorSnapshot> {
+  return fetchJson("/api/governor", { cache: "no-store" }, governorResponseSchema);
+}
+
+export async function getOperationsReadiness(): Promise<OperationsReadinessSnapshot> {
+  return fetchJson(
+    "/api/governor/operations",
+    { cache: "no-store" },
+    operationsReadinessSnapshotSchema
+  );
+}
+
+export async function getOperatorTests(): Promise<OperatorTestsSnapshot> {
+  return fetchJson(
+    "/api/governor/operator-tests",
+    { cache: "no-store" },
+    operatorTestsSnapshotSchema
+  );
+}
+
 export async function getWorkforce(): Promise<WorkforceSnapshot> {
   return fetchJson("/api/workforce", { cache: "no-store" }, workforceSnapshotResponseSchema);
+}
+
+export async function getOperatorStream(limit = 12): Promise<OperatorStreamResponse> {
+  return fetchJson(
+    `/api/activity/operator-stream?limit=${encodeURIComponent(String(limit))}`,
+    { cache: "no-store" },
+    operatorStreamResponseSchema
+  );
+}
+
+export async function getExecutionRuns(limit = 25): Promise<ExecutionRunsResponse> {
+  return fetchJson(
+    `/api/workforce/runs?limit=${encodeURIComponent(String(limit))}`,
+    { cache: "no-store" },
+    executionRunsResponseSchema
+  );
+}
+
+export async function getScheduledJobs(limit = 25): Promise<ScheduledJobsResponse> {
+  return fetchJson(
+    `/api/workforce/scheduled?limit=${encodeURIComponent(String(limit))}`,
+    { cache: "no-store" },
+    scheduledJobsResponseSchema
+  );
+}
+
+export async function getSubscriptionSummary(limit = 10): Promise<SubscriptionSummaryResponse> {
+  return fetchJson(
+    `/api/subscriptions/summary?limit=${encodeURIComponent(String(limit))}`,
+    { cache: "no-store" },
+    subscriptionSummaryResponseSchema
+  );
 }
 
 export async function getHistory(): Promise<HistorySnapshot> {
@@ -128,6 +208,14 @@ export async function getHistory(): Promise<HistorySnapshot> {
 
 export async function getIntelligence(): Promise<IntelligenceSnapshot> {
   return fetchJson("/api/intelligence", { cache: "no-store" }, intelligenceSnapshotSchema);
+}
+
+export async function getJudgePlane(limit = 12): Promise<JudgePlaneSnapshot> {
+  return fetchJson(
+    `/api/review/judges?limit=${encodeURIComponent(String(limit))}`,
+    { cache: "no-store" },
+    judgePlaneResponseSchema
+  );
 }
 
 export async function getMemory(): Promise<MemorySnapshot> {

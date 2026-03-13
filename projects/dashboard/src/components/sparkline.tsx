@@ -11,7 +11,7 @@ export function Sparkline({
   data,
   width = 120,
   height = 32,
-  color = "currentColor",
+  color = "var(--chart-cat-1)",
   fill = false,
   className,
 }: SparklineProps) {
@@ -42,9 +42,9 @@ export function Sparkline({
       aria-hidden
     >
       {fillPath && (
-        <path d={fillPath} fill={color} opacity={0.1} />
+        <path d={fillPath} fill={color} opacity={0.14} />
       )}
-      <path d={linePath} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <path d={linePath} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

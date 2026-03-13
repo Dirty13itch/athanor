@@ -1,21 +1,85 @@
 "use client";
 
 import { useState } from "react";
-import { useSystemStream } from "@/hooks/use-system-stream";
-import { useLens } from "@/hooks/use-lens";
-import { cn } from "@/lib/utils";
 import { AgentDetailPanel } from "@/components/agent-detail-panel";
+import { useLens } from "@/hooks/use-lens";
+import { useSystemStream } from "@/hooks/use-system-stream";
+import { cn } from "@/lib/utils";
 
-const agentMeta: Record<string, { icon: string; color: string; shortName: string }> = {
-  "general-assistant": { icon: "G", color: "oklch(0.75 0.08 65)", shortName: "General" },
-  "media-agent":       { icon: "M", color: "oklch(0.65 0.12 160)", shortName: "Media" },
-  "research-agent":    { icon: "R", color: "oklch(0.65 0.12 230)", shortName: "Research" },
-  "creative-agent":    { icon: "C", color: "oklch(0.7 0.1 330)", shortName: "Creative" },
-  "knowledge-agent":   { icon: "K", color: "oklch(0.6 0.06 90)", shortName: "Knowledge" },
-  "home-agent":        { icon: "H", color: "oklch(0.65 0.18 145)", shortName: "Home" },
-  "coding-agent":      { icon: "D", color: "oklch(0.55 0.1 230)", shortName: "Coding" },
-  "stash-agent":       { icon: "S", color: "oklch(0.7 0.1 330)", shortName: "Stash" },
+type AgentMeta = {
+  icon: string;
+  color: string;
+  foreground: string;
+  shortName: string;
 };
+
+const FALLBACK_AGENT_META: AgentMeta = {
+  icon: "?",
+  color: "oklch(0.44 0.02 255)",
+  foreground: "oklch(0.98 0.01 60)",
+  shortName: "Agent",
+};
+
+const agentMeta: Record<string, AgentMeta> = {
+  "general-assistant": {
+    icon: "G",
+    color: "oklch(0.75 0.08 65)",
+    foreground: "oklch(0.12 0.01 60)",
+    shortName: "General",
+  },
+  "media-agent": {
+    icon: "M",
+    color: "oklch(0.65 0.12 160)",
+    foreground: "oklch(0.12 0.01 60)",
+    shortName: "Media",
+  },
+  "research-agent": {
+    icon: "R",
+    color: "oklch(0.65 0.12 230)",
+    foreground: "oklch(0.12 0.01 60)",
+    shortName: "Research",
+  },
+  "creative-agent": {
+    icon: "C",
+    color: "oklch(0.7 0.1 330)",
+    foreground: "oklch(0.12 0.01 60)",
+    shortName: "Creative",
+  },
+  "knowledge-agent": {
+    icon: "K",
+    color: "oklch(0.54 0.06 90)",
+    foreground: "oklch(0.98 0.01 60)",
+    shortName: "Knowledge",
+  },
+  "home-agent": {
+    icon: "H",
+    color: "oklch(0.65 0.18 145)",
+    foreground: "oklch(0.12 0.01 60)",
+    shortName: "Home",
+  },
+  "coding-agent": {
+    icon: "D",
+    color: "oklch(0.48 0.1 230)",
+    foreground: "oklch(0.98 0.01 60)",
+    shortName: "Coding",
+  },
+  "stash-agent": {
+    icon: "S",
+    color: "oklch(0.7 0.1 330)",
+    foreground: "oklch(0.12 0.01 60)",
+    shortName: "Stash",
+  },
+  "data-curator": {
+    icon: "U",
+    color: "oklch(0.44 0.02 255)",
+    foreground: "oklch(0.98 0.01 60)",
+    shortName: "Curator",
+  },
+};
+
+function resolveAgentMeta(name: string): AgentMeta {
+  return agentMeta[name] ?? { ...FALLBACK_AGENT_META, icon: name[0]?.toUpperCase() ?? "?", shortName: name };
+}
 
 export function AgentCrewBar() {
   const { data } = useSystemStream();
@@ -25,7 +89,6 @@ export function AgentCrewBar() {
   const agents = data?.agents.names ?? [];
   const isOnline = data?.agents.online ?? false;
 
-  // Lens highlights specific agents
   const lensAgents = config.agents;
   const hasLensFilter = lensAgents.length > 0;
 
@@ -34,8 +97,8 @@ export function AgentCrewBar() {
   }
 
   const selectedMeta = selectedAgent
-    ? agentMeta[selectedAgent] ?? { icon: selectedAgent[0].toUpperCase(), color: "oklch(0.5 0 0)", shortName: selectedAgent }
-    : { icon: "", color: "", shortName: "" };
+    ? resolveAgentMeta(selectedAgent)
+    : { ...FALLBACK_AGENT_META, icon: "", color: "", foreground: "", shortName: "" };
 
   return (
     <>
@@ -43,9 +106,10 @@ export function AgentCrewBar() {
         <span className="shrink-0 text-xs font-medium text-muted-foreground">Crew</span>
         <div className="flex items-center gap-1.5">
           {agents.map((name) => {
-            const meta = agentMeta[name] ?? { icon: name[0].toUpperCase(), color: "oklch(0.5 0 0)", shortName: name };
+            const meta = resolveAgentMeta(name);
             const isLensHighlighted = hasLensFilter && lensAgents.includes(name);
             const isDimmed = hasLensFilter && !lensAgents.includes(name);
+
             return (
               <button
                 key={name}
@@ -56,8 +120,8 @@ export function AgentCrewBar() {
                   isOnline && !isDimmed ? "opacity-100" : "opacity-40",
                   isLensHighlighted && "ring-2 ring-primary/60 animate-pulse"
                 )}
-                style={{ backgroundColor: meta.color, color: "#111" }}
-                title={`${meta.shortName} — ${isOnline ? "online" : "offline"}`}
+                style={{ backgroundColor: meta.color, color: meta.foreground }}
+                title={`${meta.shortName} - ${isOnline ? "online" : "offline"}`}
               >
                 {meta.icon}
                 {isOnline && (

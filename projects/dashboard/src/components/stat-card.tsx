@@ -6,9 +6,9 @@ type StatTone = "default" | "success" | "warning" | "danger";
 
 const toneClasses: Record<StatTone, string> = {
   default: "text-foreground",
-  success: "text-emerald-400",
-  warning: "text-amber-300",
-  danger: "text-red-400",
+  success: "text-[color:var(--signal-success)]",
+  warning: "text-[color:var(--signal-warning)]",
+  danger: "text-[color:var(--signal-danger)]",
 };
 
 interface StatCardProps {
@@ -31,10 +31,10 @@ export function StatCard({
   detailVolatile = false,
 }: StatCardProps) {
   return (
-    <Card className="border-border/70 bg-card/70">
+    <Card className="surface-stat">
       <CardContent className="flex items-start justify-between gap-4 p-4">
         <div className="space-y-1">
-          <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">{label}</p>
+          <p className="text-[11px] uppercase tracking-[0.24em] text-[color:var(--text-muted)]">{label}</p>
           <p
             className={cn("text-2xl font-semibold tracking-tight", toneClasses[tone])}
             data-volatile={valueVolatile ? "true" : undefined}
@@ -52,7 +52,7 @@ export function StatCard({
         </div>
 
         {icon && (
-          <div className="rounded-md border border-border/70 bg-background/40 p-2 text-muted-foreground">
+          <div className="surface-metric rounded-xl border p-2.5 text-[color:var(--text-secondary)]">
             {icon}
           </div>
         )}

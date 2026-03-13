@@ -1,7 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { gotoRoute, resetBrowserState } from "./helpers";
 
-const ROUTES = [
+const ROUTES: ReadonlyArray<{
+  path: string;
+  heading: string;
+  snapshot: string;
+  readyHeading?: string | RegExp;
+}> = [
   { path: "/", heading: "Command Center", snapshot: "command-center.png" },
   { path: "/services", heading: "Services", snapshot: "services-console.png" },
   { path: "/gpu", heading: "GPU Metrics", snapshot: "gpu-console.png" },

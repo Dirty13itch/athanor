@@ -1,5 +1,7 @@
 # The Athanor Command Center
 
+> Visual-source note: the structural and operator-workflow decisions in this document remain valid, but its older furnace/alchemical visual metaphor is superseded by the visual-system pack in [`./visual-system/README.md`](./visual-system/README.md). Use the visual-system docs as the canonical source for visual identity, token direction, materials, typography, and signal grammar.
+
 **Status:** Design complete — ready for ADR + implementation
 **Date:** 2026-02-25
 **Synthesizes:** 5 research documents (web dev environments, command center UI, human-in-the-loop, mobile PWA, novel interface patterns)
@@ -26,9 +28,11 @@ It is not:
 
 ## Design Philosophy
 
-### The Furnace Metaphor
+### Historical Metaphor Note
 
-The athanor is an alchemist's furnace — always burning, transforming base materials into something refined. The command center IS the furnace window. When everything works, the surface is calm and warm. When something needs attention, the glow intensifies. The operator doesn't stoke the fire continuously — they check when it matters and adjust the flame.
+The original command-center concept used a furnace/alchemical metaphor to explain constant system activity. That metaphor is now historical context only.
+
+The active visual-system metaphor is a futurist control-room identity focused on operator trust, signal clarity, and control. Keep the structural product ideas from this document, but use the visual-system pack as the source of truth for the current visual direction.
 
 ### Seven Principles
 
@@ -49,7 +53,7 @@ These are synthesized from SpaceX mission control patterns, Waymo fleet operatio
 
 6. **Information density through typography.** Don't reduce density by removing information. Increase it through typographic hierarchy: Cormorant Garamond for headings, Inter for data, tabular mono for metrics, consistent spacing rhythm, color for status only.
 
-7. **Dark and warm.** Not "dark mode applied to a light design." Dark-first: warm grays (not pure black), luminance-based elevation, desaturated status colors, warm amber accent, semi-bold typography.
+7. **Dark and deliberate.** Not "dark mode applied to a light design." Dark-first: graphite and steel neutrals (not pure black), luminance-based elevation, disciplined signal colors, cool ion-blue accent, semi-bold typography.
 
 ---
 
@@ -57,11 +61,11 @@ These are synthesized from SpaceX mission control patterns, Waymo fleet operatio
 
 ### The Home Surface ("The Furnace")
 
-The dashboard home page is a living surface. A dark, warm canvas that breathes with the system's rhythm.
+The dashboard home page is a living surface. A dark graphite canvas that breathes with the system's rhythm.
 
 **Ambient state communication:**
-- Background color temperature reflects overall system activity. Cool/dark when idle. Warmer when busy. The furnace glows when it's working.
-- Subtle ambient glow at screen edges shifts with system health. Healthy = barely visible. Attention needed = warm amber creeping inward.
+- Background tone reflects overall system activity. Dark and restrained when idle. More energized and luminous when busy. The surface gains signal intensity when the system is working.
+- Subtle ambient glow at screen edges shifts with system health. Healthy = barely visible. Attention needed = cool signal light intensifying inward.
 - The central area is nearly empty when everything is fine. Information appears when relevant and fades when resolved.
 
 **Agent constellation:**
@@ -85,8 +89,8 @@ Persistent across all views. A horizontal row of 8 agent circles at the bottom o
 | Idle | Dim, static |
 | Processing | Gentle pulse in agent color |
 | Success | Brief bright flash, settle |
-| Failed | Brief red flash, amber idle |
-| Escalating | Continuous amber pulse, larger |
+| Failed | Brief red flash, cool idle |
+| Escalating | Continuous signal-blue pulse, larger |
 | Disabled | Greyed out, smaller |
 
 Click opens an agent detail panel (slides up from bottom):
@@ -425,7 +429,7 @@ export async function GET() {
 **Goal:** PWA install + mobile layout + command palette + ambient foundation
 
 1. **PWA manifest + service worker**
-   - `app/manifest.ts` with Athanor branding (amber/dark theme)
+   - `app/manifest.ts` with Athanor branding (graphite/steel dark theme)
    - Minimal `public/sw.js` (push handler + notification click + offline fallback)
    - Generate PWA icons (192, 512, 512-maskable, 180 apple-touch)
    - Verify install-to-home-screen on phone

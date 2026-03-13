@@ -317,7 +317,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
       />
 
       <div className="grid gap-4 xl:grid-cols-[18rem_18rem_1fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-lg">Sessions</CardTitle>
             <CardDescription>Start fresh or continue recent work.</CardDescription>
@@ -334,8 +334,8 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                   }}
                   className={`w-full rounded-2xl border p-4 text-left transition ${
                     resolvedSessionId === session.id
-                      ? "border-primary/50 bg-primary/10"
-                      : "border-border/70 bg-background/20 hover:bg-accent/40"
+                      ? "surface-hero border"
+                      : "surface-instrument border hover:bg-accent/40"
                   }`}
                 >
                   <p className="truncate font-medium">{session.title}</p>
@@ -353,7 +353,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-lg">Model inventory</CardTitle>
             <CardDescription>Reachability, model choice, and backend routing.</CardDescription>
@@ -369,8 +369,8 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                   onClick={() => selectModel(model.target, model.id)}
                   className={`w-full rounded-2xl border p-4 text-left transition ${
                     selected
-                      ? "border-primary/50 bg-primary/10"
-                      : "border-border/70 bg-background/20 hover:bg-accent/40"
+                      ? "surface-hero border"
+                      : "surface-instrument border hover:bg-accent/40"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -381,7 +381,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">{model.backend}</p>
                     </div>
-                    {selected ? <Badge>Active</Badge> : null}
+                    {selected ? <Badge className="status-badge" data-tone="info">Active</Badge> : null}
                   </div>
                 </button>
               );
@@ -389,7 +389,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
           </CardContent>
         </Card>
 
-        <Card className="flex min-h-[42rem] flex-col overflow-hidden border-border/70 bg-card/70">
+        <Card className="surface-hero flex min-h-[42rem] flex-col overflow-hidden">
           <CardHeader className="border-b border-border/70">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -403,7 +403,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
               <div className="flex flex-wrap items-center gap-2">
                 {activeSession ? (
                   <>
-                    <Badge variant="outline" data-volatile="true">
+                    <Badge variant="outline" className="status-badge" data-tone="info" data-volatile="true">
                       {formatTimestamp(activeSession.updatedAt)}
                     </Badge>
                     <Button
@@ -456,7 +456,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                         className={`max-w-[88%] rounded-2xl px-4 py-3 sm:max-w-[78%] ${
                           message.role === "user"
                             ? "bg-primary text-primary-foreground"
-                            : "bg-muted text-foreground"
+                            : "surface-instrument border text-foreground"
                         }`}
                       >
                         <div className="mb-2 flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.2em] opacity-70">
@@ -487,7 +487,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                   <button
                     key={prompt}
                     type="button"
-                    className="rounded-full border border-border/70 bg-background/20 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent/40 hover:text-foreground"
+                    className="surface-instrument rounded-full border px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent/40 hover:text-foreground"
                     onClick={() => setInput(prompt)}
                   >
                     {prompt}
@@ -497,7 +497,12 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                   <button
                     key={prompt}
                     type="button"
-                    className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs text-primary transition hover:bg-primary/15"
+                    className="rounded-full border px-3 py-1.5 text-xs transition"
+                    style={{
+                      borderColor: "color-mix(in oklab, var(--accent-structural) 34%, transparent)",
+                      background: "color-mix(in oklab, var(--accent-structural) 12%, transparent)",
+                      color: "var(--accent-structural-strong)",
+                    }}
                     onClick={() => setInput(prompt)}
                   >
                     {prompt}
@@ -523,7 +528,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                   }}
                   placeholder={selectedModel ? `Message ${selectedModel.id.replace(/^\/models\//, "")}...` : "Select a model first"}
                   disabled={!selectedModel || isStreaming}
-                  className="flex-1"
+                  className="surface-instrument flex-1"
                   autoFocus
                 />
                 {isStreaming ? (

@@ -8,9 +8,9 @@ interface ProgressBarProps {
 }
 
 const defaultColorStops = [
-  { threshold: 80, color: "bg-red-500" },
-  { threshold: 50, color: "bg-yellow-500" },
-  { threshold: 0, color: "bg-green-500" },
+  { threshold: 80, color: "var(--signal-danger)" },
+  { threshold: 50, color: "var(--signal-warning)" },
+  { threshold: 0, color: "var(--signal-success)" },
 ];
 
 export function ProgressBar({
@@ -32,8 +32,14 @@ export function ProgressBar({
           {showValue && <span>{pct.toFixed(0)}%</span>}
         </div>
       )}
-      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+      <div
+        className="h-1.5 overflow-hidden rounded-full"
+        style={{ backgroundColor: "color-mix(in oklab, var(--surface-panel-2) 72%, black)" }}
+      >
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: barColor }}
+        />
       </div>
     </div>
   );

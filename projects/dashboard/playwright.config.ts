@@ -1,5 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const playwrightPort = Number.parseInt(process.env.PLAYWRIGHT_PORT ?? "3005", 10);
+const playwrightDistDir =
+  process.env.PLAYWRIGHT_NEXT_DIST_DIR ??
+  `.next-playwright-${Number.isNaN(playwrightPort) ? 3005 : playwrightPort}`;
+const baseUrl = `http://127.0.0.1:${Number.isNaN(playwrightPort) ? 3005 : playwrightPort}`;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 60_000,
@@ -14,7 +20,7 @@ export default defineConfig({
     },
   },
   use: {
-    baseURL: "http://127.0.0.1:3005",
+    baseURL: baseUrl,
     trace: "on-first-retry",
   },
   projects: [
@@ -29,8 +35,8 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "powershell -NoProfile -Command \"$env:DASHBOARD_FIXTURE_MODE='1'; $env:NEXT_PUBLIC_VAPID_PUBLIC_KEY='BEl6dGVzdF92YXBpZF9wdWJsaWNfa2V5X2Zvcl9wbGF5d3JpZ2h0X19fX19fX19fXw'; npx next dev --hostname 127.0.0.1 --port 3005\"",
-    url: "http://127.0.0.1:3005",
+      `powershell -NoProfile -Command "$env:DASHBOARD_FIXTURE_MODE='1'; $env:PLAYWRIGHT_NEXT_DIST_DIR='${playwrightDistDir}'; $env:NEXT_PUBLIC_VAPID_PUBLIC_KEY='BEl6dGVzdF92YXBpZF9wdWJsaWNfa2V5X2Zvcl9wbGF5d3JpZ2h0X19fX19fX19fXw'; npx next dev --hostname 127.0.0.1 --port ${Number.isNaN(playwrightPort) ? 3005 : playwrightPort}"`,
+    url: baseUrl,
     reuseExistingServer: false,
     timeout: 120_000,
   },

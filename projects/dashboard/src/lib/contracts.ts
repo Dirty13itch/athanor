@@ -141,6 +141,1018 @@ export const alertSchema = z.object({
   href: z.string(),
 });
 
+export const commandRightsProfileSchema = z.object({
+  subject: z.string(),
+  can: z.array(z.string()),
+  cannot: z.array(z.string()),
+  approval_mode: z.string(),
+});
+
+export const commandHierarchyLayerSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  role: z.string(),
+  summary: z.string(),
+});
+
+export const metaLaneSelectionRecordSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  lead: z.string(),
+  default_for: z.array(z.string()),
+  cloud_allowed: z.boolean(),
+  status: z.string(),
+  examples: z.array(z.string()),
+});
+
+export const policyClassRecordSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  default_meta_lane: z.string(),
+  cloud_allowed: z.boolean(),
+  sovereign_required: z.boolean(),
+  description: z.string(),
+});
+
+export const modelRoleProfileSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  plane: z.string(),
+  status: z.string(),
+  champion: z.string(),
+  challengers: z.array(z.string()),
+  workload_classes: z.array(z.string()),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  refusal_posture: z.string(),
+  privacy_posture: z.string(),
+});
+
+export const workloadClassProfileSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  policy_default: z.string(),
+  frontier_supervisor: z.string(),
+  sovereign_supervisor: z.string(),
+  primary_worker_lane: z.string(),
+  fallback_worker_lanes: z.array(z.string()),
+  judge_lane: z.string(),
+  default_autonomy: z.string(),
+  parallelism: z.string(),
+});
+
+export const modelCandidateSummarySchema = z.object({
+  role_id: z.string(),
+  label: z.string(),
+  plane: z.string(),
+  status: z.string(),
+  champion: z.string(),
+  challenger_count: z.number().int().nonnegative(),
+  workload_count: z.number().int().nonnegative(),
+});
+
+export const provingGroundCorpusSchema = z.object({
+  id: z.string(),
+  sensitivity: z.string(),
+  allowed_lanes: z.array(z.string()),
+  purpose: z.string(),
+});
+
+export const promotionCandidateQueueSchema = z.object({
+  role_id: z.string(),
+  label: z.string(),
+  champion: z.string(),
+  challengers: z.array(z.string()),
+  plane: z.string(),
+});
+
+export const promotionRecordSchema = z.object({
+  id: z.string(),
+  asset_class: z.string(),
+  role_id: z.string(),
+  role_label: z.string(),
+  plane: z.string(),
+  candidate: z.string(),
+  champion: z.string(),
+  current_tier: z.string(),
+  target_tier: z.string(),
+  status: z.string(),
+  reason: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  updated_by: z.string(),
+  source: z.string(),
+  rollout_steps: z.array(z.string()),
+  next_tier: z.string().nullable().optional(),
+  completed_at: z.string().nullable().optional(),
+  rollback_target: z.string().nullable().optional(),
+  notes: z.array(z.string()),
+});
+
+export const promotionControlsSchema = z.object({
+  generated_at: z.string(),
+  status: z.string(),
+  tiers: z.array(z.string()),
+  ritual: z.array(z.string()),
+  counts: z.record(z.string(), z.number().int().nonnegative()),
+  active_promotions: z.array(promotionRecordSchema),
+  recent_promotions: z.array(promotionRecordSchema),
+  recent_events: z.array(
+    z.object({
+      event: z.string(),
+      promotion_id: z.string(),
+      role_id: z.string().nullable().optional(),
+      candidate: z.string().nullable().optional(),
+      target_tier: z.string().nullable().optional(),
+      tier: z.string().nullable().optional(),
+      status: z.string().nullable().optional(),
+      timestamp: z.string(),
+      actor: z.string(),
+    })
+  ),
+  candidate_queue: z.array(promotionCandidateQueueSchema),
+  next_actions: z.array(z.string()),
+});
+
+export const retirementCandidateQueueSchema = z.object({
+  asset_class: z.string(),
+  asset_id: z.string(),
+  label: z.string(),
+  role_id: z.string().optional(),
+  plane: z.string().optional(),
+  current_stage: z.string(),
+});
+
+export const retirementRecordSchema = z.object({
+  id: z.string(),
+  asset_class: z.string(),
+  asset_id: z.string(),
+  label: z.string(),
+  current_stage: z.string(),
+  target_stage: z.string(),
+  status: z.string(),
+  reason: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  updated_by: z.string(),
+  source: z.string(),
+  next_stage: z.string().nullable().optional(),
+  completed_at: z.string().nullable().optional(),
+  rollback_target: z.string().nullable().optional(),
+  notes: z.array(z.string()).optional(),
+});
+
+export const retirementControlsSchema = z.object({
+  generated_at: z.string(),
+  status: z.string(),
+  asset_classes: z.array(z.string()),
+  stages: z.array(z.string()),
+  rule: z.string(),
+  counts: z.record(z.string(), z.number().int().nonnegative()),
+  active_retirements: z.array(retirementRecordSchema),
+  recent_retirements: z.array(retirementRecordSchema),
+  recent_events: z.array(
+    z.object({
+      event: z.string(),
+      retirement_id: z.string(),
+      asset_class: z.string().nullable().optional(),
+      asset_id: z.string().nullable().optional(),
+      target_stage: z.string().nullable().optional(),
+      stage: z.string().nullable().optional(),
+      status: z.string().nullable().optional(),
+      timestamp: z.string(),
+      actor: z.string(),
+    })
+  ),
+  candidate_queue: z.array(retirementCandidateQueueSchema),
+  next_actions: z.array(z.string()),
+});
+
+export const provingGroundSnapshotSchema = z.object({
+  version: z.string(),
+  updated_at: z.string().optional(),
+  generated_at: z.string().optional(),
+  status: z.string(),
+  purpose: z.string(),
+  evaluation_dimensions: z.array(z.string()),
+  corpora: z.array(provingGroundCorpusSchema),
+  pipeline_phases: z.array(z.string()),
+  promotion_path: z.array(z.string()),
+  rollback_rule: z.string(),
+  latest_run: z
+    .object({
+      timestamp: z.string().nullable().optional(),
+      passed: z.number().int().nonnegative(),
+      total: z.number().int().nonnegative(),
+      pass_rate: z.number(),
+      patterns_consumed: z.number().int().nonnegative().optional(),
+      proposals_generated: z.number().int().nonnegative().optional(),
+      errors: z.array(z.string()).optional(),
+      source: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
+  recent_results: z.array(z.record(z.string(), z.unknown())).optional(),
+  corpus_registry_version: z.string().optional(),
+  governed_corpora: z.array(z.record(z.string(), z.unknown())).optional(),
+  experiment_ledger: z
+    .object({
+      version: z.string(),
+      status: z.string(),
+      required_fields: z.array(z.string()),
+      retention: z.string(),
+      promotion_linkage: z.string(),
+      evidence_count: z.number().int().nonnegative(),
+    })
+    .optional(),
+  recent_experiments: z.array(z.record(z.string(), z.unknown())).optional(),
+  improvement_summary: z.record(z.string(), z.unknown()).optional(),
+  lane_coverage: z.array(modelCandidateSummarySchema).optional(),
+  latest_benchmark_run: z.record(z.string(), z.unknown()).optional(),
+  promotion_controls: promotionControlsSchema.optional(),
+});
+
+export const modelIntelligenceLaneSchema = z.object({
+  version: z.string(),
+  updated_at: z.string(),
+  status: z.string(),
+  generated_at: z.string().optional(),
+  operational_state: z.string().optional(),
+  cadence: z.object({
+    weekly_horizon_scan: z.string(),
+    weekly_candidate_triage: z.string(),
+    monthly_rebaseline: z.string(),
+    urgent_scan: z.string(),
+  }),
+  sources: z.array(z.string()),
+  outputs: z.array(z.string()),
+  guardrails: z.array(z.string()),
+  benchmark_results: z.number().int().nonnegative().optional(),
+  pending_proposals: z.number().int().nonnegative().optional(),
+  validated_proposals: z.number().int().nonnegative().optional(),
+  deployed_proposals: z.number().int().nonnegative().optional(),
+  candidate_queue: z
+    .array(
+      z.object({
+        role_id: z.string(),
+        label: z.string(),
+        plane: z.string(),
+        champion: z.string(),
+        challengers: z.array(z.string()),
+      })
+    )
+    .optional(),
+  last_cycle: z
+    .object({
+      timestamp: z.string(),
+      patterns_consumed: z.number().int().nonnegative(),
+      proposals_generated: z.number().int().nonnegative(),
+      benchmarks: z
+        .object({
+          passed: z.number().int().nonnegative(),
+          total: z.number().int().nonnegative(),
+          pass_rate: z.number(),
+        })
+        .nullable(),
+      errors: z.array(z.string()).optional(),
+    })
+    .nullable()
+    .optional(),
+  cadence_jobs: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        cadence: z.string(),
+        current_state: z.string(),
+        last_run: z.string().nullable(),
+        next_run: z.string().nullable(),
+        last_outcome: z.string(),
+        paused: z.boolean().optional(),
+        governor_reason: z.string().nullable().optional(),
+      })
+    )
+    .optional(),
+  next_actions: z.array(z.string()).optional(),
+});
+
+export const governanceContractSummarySchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  owner: z.string(),
+  purpose: z.string(),
+  status: z.string(),
+});
+
+export const governedEvalCorpusSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  workload_classes: z.array(z.string()),
+  sensitivity: z.string(),
+  allowed_lanes: z.array(z.string()),
+  refresh_cadence: z.string(),
+  baseline_version: z.string(),
+});
+
+export const experimentEvidenceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.string(),
+  passed: z.boolean(),
+  score: z.number(),
+  max_score: z.number(),
+  timestamp: z.string().nullable().optional(),
+});
+
+export const governanceLayersSchema = z.object({
+  contract_registry: z.object({
+    version: z.string(),
+    status: z.string(),
+    count: z.number().int().nonnegative(),
+    contracts: z.array(governanceContractSummarySchema),
+    status_counts: z.record(z.string(), z.number().int().nonnegative()),
+    provenance_contract: governanceContractSummarySchema.nullable(),
+  }),
+  eval_corpora: z.object({
+    version: z.string(),
+    status: z.string(),
+    count: z.number().int().nonnegative(),
+    corpora: z.array(governedEvalCorpusSchema),
+    sensitivity_counts: z.record(z.string(), z.number().int().nonnegative()),
+    runtime_result_count: z.number().int().nonnegative(),
+    latest_result_at: z.string().nullable(),
+  }),
+  release_ritual: z.object({
+    version: z.string(),
+    tier_count: z.number().int().nonnegative(),
+    status: z.string(),
+  }),
+  experiment_ledger: z.object({
+    version: z.string(),
+    status: z.string(),
+    required_field_count: z.number().int().nonnegative(),
+    required_fields: z.array(z.string()),
+    retention: z.string(),
+    promotion_linkage: z.string(),
+    evidence_count: z.number().int().nonnegative(),
+    recent_experiments: z.array(experimentEvidenceSchema),
+    recent_promotion_events: z.array(
+      z.object({
+        event: z.string(),
+        promotion_id: z.string(),
+        role_id: z.string().nullable().optional(),
+        candidate: z.string().nullable().optional(),
+        target_tier: z.string().nullable().optional(),
+        tier: z.string().nullable().optional(),
+        status: z.string().nullable().optional(),
+        timestamp: z.string(),
+        actor: z.string(),
+      })
+    ),
+  }),
+  deprecation_retirement: z.object({
+    version: z.string(),
+    status: z.string(),
+    asset_class_count: z.number().int().nonnegative(),
+    asset_classes: z.array(z.string()),
+    stages: z.array(z.string()),
+    rule: z.string(),
+  }),
+  operator_runbooks: z.object({
+    version: z.string(),
+    runbook_count: z.number().int().nonnegative(),
+    status: z.string(),
+  }),
+});
+
+export const modelGovernanceSnapshotSchema = z.object({
+  generated_at: z.string(),
+  role_registry_version: z.string(),
+  workload_registry_version: z.string(),
+  rights_registry_version: z.string(),
+  policy_registry_version: z.string(),
+  role_count: z.number().int().nonnegative(),
+  workload_count: z.number().int().nonnegative(),
+  champion_summary: z.array(modelCandidateSummarySchema),
+  role_registry: z.array(modelRoleProfileSchema),
+  workload_registry: z.array(workloadClassProfileSchema),
+  proving_ground: provingGroundSnapshotSchema,
+  promotion_controls: promotionControlsSchema.optional(),
+  retirement_controls: retirementControlsSchema.optional(),
+  model_intelligence: modelIntelligenceLaneSchema,
+  governance_layers: governanceLayersSchema,
+});
+
+export const commandDecisionRecordSchema = z.object({
+  id: z.string(),
+  decided_by: z.string(),
+  authority_layer: z.string(),
+  workload_class: z.string(),
+  policy_class: z.string(),
+  meta_lane: z.string(),
+  policy_version: z.string().optional(),
+  rights_version: z.string().optional(),
+  workload_registry_version: z.string().optional(),
+  prompt_version: z.string().optional(),
+  corpus_version: z.string().nullable().optional(),
+  reason: z.string(),
+  approved: z.boolean(),
+  created_at: z.string(),
+});
+
+export const planPacketSchema = z.object({
+  id: z.string(),
+  summary: z.string(),
+  workload_class: z.string(),
+  policy_class: z.string(),
+  meta_lane: z.string(),
+  supervisor_lane: z.string(),
+  worker_lane: z.string(),
+  judge_lane: z.string().optional(),
+  fallback_worker_lanes: z.array(z.string()).optional(),
+  approval_mode: z.string(),
+  policy_version: z.string().optional(),
+  workload_registry_version: z.string().optional(),
+  prompt_version: z.string().optional(),
+  corpus_version: z.string().nullable().optional(),
+  notes: z.array(z.string()),
+});
+
+export const runLineageRecordSchema = z.object({
+  run_id: z.string(),
+  parent_run_id: z.string().nullable(),
+  supervisor_run_id: z.string().nullable(),
+  worker_run_id: z.string().nullable(),
+  judge_run_id: z.string().nullable(),
+  provider: z.string().nullable(),
+  lane: z.string(),
+});
+
+export const artifactProvenanceRecordSchema = z.object({
+  run_id: z.string(),
+  status: z.string(),
+  deciding_layer: z.string(),
+  policy_class: z.string().nullable().optional(),
+  meta_lane: z.string().nullable().optional(),
+  supervisor_lane: z.string().nullable().optional(),
+  worker_lane: z.string().nullable().optional(),
+  judge_lane: z.string().nullable().optional(),
+  provider: z.string(),
+  artifact_ref_count: z.number().int().nonnegative(),
+  prompt_version: z.string().nullable().optional(),
+  policy_version: z.string().nullable().optional(),
+  corpus_version: z.string().nullable().optional(),
+  contract_registry_version: z.string().nullable().optional(),
+  experiment_ledger_version: z.string().nullable().optional(),
+});
+
+export const executionRunRecordSchema = z.object({
+  id: z.string(),
+  source_lane: z.string(),
+  run_type: z.string(),
+  task_id: z.string().nullable(),
+  job_id: z.string().nullable().optional(),
+  agent: z.string(),
+  provider: z.string(),
+  lease_id: z.string().nullable(),
+  status: z.string(),
+  created_at: z.string().nullable(),
+  started_at: z.string().nullable(),
+  completed_at: z.string().nullable(),
+  policy_class: z.string().nullable().optional(),
+  approval_mode: z.string().nullable().optional(),
+  command_decision_id: z.string().nullable().optional(),
+  supervisor_lane: z.string().nullable().optional(),
+  worker_lane: z.string().nullable().optional(),
+  judge_lane: z.string().nullable().optional(),
+  prompt_version: z.string().nullable().optional(),
+  policy_version: z.string().nullable().optional(),
+  corpus_version: z.string().nullable().optional(),
+  lineage: runLineageRecordSchema.optional(),
+  artifact_provenance: artifactProvenanceRecordSchema.optional(),
+  artifact_refs: z.array(
+    z.object({
+      label: z.string(),
+      href: z.string(),
+    })
+  ),
+  failure_reason: z.string().nullable(),
+  summary: z.string(),
+});
+
+export const scheduledJobRecordSchema = z.object({
+  id: z.string(),
+  job_family: z.string(),
+  title: z.string(),
+  cadence: z.string(),
+  trigger_mode: z.string(),
+  last_run: z.string().nullable(),
+  next_run: z.string().nullable(),
+  current_state: z.string(),
+  last_outcome: z.string(),
+  owner_agent: z.string(),
+  deep_link: z.string(),
+  control_scope: z.string().nullable().optional(),
+  paused: z.boolean().optional(),
+  can_run_now: z.boolean().optional(),
+  can_override_now: z.boolean().optional(),
+  governor_reason: z.string().nullable().optional(),
+  presence_state: z.string().nullable().optional(),
+  release_tier: z.string().nullable().optional(),
+  capacity_posture: z.string().nullable().optional(),
+  queue_posture: z.string().nullable().optional(),
+  provider_posture: z.string().nullable().optional(),
+  active_window_ids: z.array(z.string()).optional(),
+  priority_band: z.string().nullable().optional(),
+  deferred_by: z.string().nullable().optional(),
+  next_action: z.string().nullable().optional(),
+  last_summary: z.string().optional(),
+  last_error: z.string().nullable().optional(),
+  last_actor: z.string().nullable().optional(),
+  last_force_override: z.boolean().optional(),
+  last_task_id: z.string().nullable().optional(),
+  last_plan_id: z.string().nullable().optional(),
+});
+
+export const operatorStreamEventSchema = z.object({
+  id: z.string(),
+  timestamp: z.string().nullable(),
+  severity: z.enum(["info", "warning", "error", "success"]),
+  subsystem: z.string(),
+  event_type: z.string(),
+  subject: z.string(),
+  summary: z.string(),
+  deep_link: z.string(),
+  related_run_id: z.string().nullable(),
+});
+
+export const quotaLeaseProviderSchema = z.object({
+  provider: z.string(),
+  lane: z.string(),
+  availability: z.string(),
+  provider_state: z.string().optional(),
+  state_reasons: z.array(z.string()).optional(),
+  reserve_state: z.string(),
+  privacy: z.string().optional(),
+  limit: z.number().int().nonnegative(),
+  remaining: z.number().int().nonnegative(),
+  throttle_events: z.number().int().nonnegative(),
+  recent_outcomes: z.array(
+    z.object({
+      outcome: z.string(),
+      count: z.number().int().nonnegative(),
+    })
+  ),
+  last_issued_at: z.string().nullable(),
+  last_outcome_at: z.string().nullable(),
+  direct_execution_ready: z.boolean().optional(),
+  governed_handoff_ready: z.boolean().optional(),
+  execution_mode: z.string().optional(),
+  bridge_status: z.string().optional(),
+  recent_execution_state: z.string().optional(),
+  recent_execution_detail: z.string().optional(),
+  next_action: z.string().optional(),
+  pending_handoffs: z.number().int().nonnegative().optional(),
+  completed_handoffs: z.number().int().nonnegative().optional(),
+  failed_handoffs: z.number().int().nonnegative().optional(),
+  fallback_handoffs: z.number().int().nonnegative().optional(),
+  direct_execution_count: z.number().int().nonnegative().optional(),
+  handoff_bundle_count: z.number().int().nonnegative().optional(),
+});
+
+export const quotaLeaseSummarySchema = z.object({
+  policy_source: z.string(),
+  provider_summaries: z.array(quotaLeaseProviderSchema),
+  recent_leases: z.array(executionRunRecordSchema),
+  count: z.number().int().nonnegative(),
+});
+
+export const governorLaneSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string(),
+  paused: z.boolean(),
+  status: z.string(),
+});
+
+export const capacityNodeSchema = z.object({
+  id: z.string(),
+  alive: z.boolean(),
+  stale: z.boolean(),
+  max_gpu_util_pct: z.number(),
+  healthy_models: z.number().int().nonnegative(),
+  total_models: z.number().int().nonnegative(),
+  load_1m: z.number(),
+  ram_available_mb: z.number().int().nonnegative(),
+});
+
+export const capacitySnapshotSchema = z.object({
+  generated_at: z.string(),
+  posture: z.string(),
+  queue: z.object({
+    posture: z.string(),
+    pending: z.number().int().nonnegative(),
+    running: z.number().int().nonnegative(),
+    max_concurrent: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+  }),
+  workspace: z.object({
+    broadcast_items: z.number().int().nonnegative(),
+    capacity: z.number().int().nonnegative(),
+    utilization: z.number(),
+  }),
+  scheduler: z.object({
+    running: z.boolean(),
+    enabled_count: z.number().int().nonnegative(),
+  }),
+  provider_reserve: z.object({
+    posture: z.string(),
+    constrained_count: z.number().int().nonnegative(),
+  }),
+  active_time_windows: z.array(
+    z.object({
+      id: z.string(),
+      window: z.string(),
+      protects: z.array(z.string()),
+      status: z.string(),
+    })
+  ),
+  nodes: z.array(capacityNodeSchema),
+  recommendations: z.array(z.string()),
+});
+
+export const governorPresenceSchema = z.object({
+  state: z.string(),
+  label: z.string(),
+  automation_posture: z.string(),
+  notification_posture: z.string(),
+  approval_posture: z.string(),
+  updated_at: z.string().nullable(),
+  updated_by: z.string(),
+  mode: z.enum(["auto", "manual"]),
+  configured_state: z.string(),
+  configured_label: z.string(),
+  signal_state: z.string().nullable(),
+  signal_source: z.string().nullable(),
+  signal_updated_at: z.string().nullable(),
+  signal_updated_by: z.string(),
+  signal_fresh: z.boolean(),
+  signal_age_seconds: z.number().nullable(),
+  effective_reason: z.string(),
+});
+
+export const governorReleaseTierSchema = z.object({
+  state: z.string(),
+  available_tiers: z.array(z.string()),
+  status: z.string(),
+  updated_at: z.string().nullable(),
+  updated_by: z.string(),
+});
+
+export const governorSnapshotSchema = z.object({
+  generated_at: z.string(),
+  status: z.string(),
+  global_mode: z.string(),
+  degraded_mode: z.string(),
+  reason: z.string(),
+  updated_at: z.string().nullable(),
+  updated_by: z.string(),
+  lanes: z.array(governorLaneSchema),
+  capacity: capacitySnapshotSchema,
+  presence: governorPresenceSchema,
+  release_tier: governorReleaseTierSchema,
+  command_rights_version: z.string(),
+  control_stack: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      status: z.string(),
+    })
+  ),
+});
+
+export const judgeVerdictSchema = z.object({
+  run_id: z.string(),
+  agent: z.string().nullable().optional(),
+  provider: z.string(),
+  policy_class: z.string().nullable().optional(),
+  score: z.number(),
+  verdict: z.string(),
+  rationale: z.string(),
+  deep_link: z.string(),
+});
+
+export const judgePlaneSnapshotSchema = z.object({
+  generated_at: z.string(),
+  status: z.string(),
+  role_id: z.string(),
+  label: z.string(),
+  champion: z.string(),
+  challengers: z.array(z.string()),
+  workload_classes: z.array(z.string()),
+  summary: z.object({
+    recent_verdicts: z.number().int().nonnegative(),
+    accept_count: z.number().int().nonnegative(),
+    reject_count: z.number().int().nonnegative(),
+    review_required: z.number().int().nonnegative(),
+    acceptance_rate: z.number(),
+    pending_review_queue: z.number().int().nonnegative(),
+  }),
+  guardrails: z.array(z.string()),
+  recent_verdicts: z.array(judgeVerdictSchema),
+});
+
+export const executionRunsResponseSchema = z.object({
+  runs: z.array(executionRunRecordSchema),
+});
+
+export const scheduledJobsResponseSchema = z.object({
+  jobs: z.array(scheduledJobRecordSchema),
+});
+
+export const operatorStreamResponseSchema = z.object({
+  events: z.array(operatorStreamEventSchema),
+});
+
+export const subscriptionSummaryResponseSchema = quotaLeaseSummarySchema;
+export const governorResponseSchema = governorSnapshotSchema;
+export const judgePlaneResponseSchema = judgePlaneSnapshotSchema;
+
+export const syntheticOperatorTestFlowSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  status: z.string(),
+  last_outcome: z.string().nullable().optional(),
+  last_run_at: z.string().nullable().optional(),
+  last_duration_ms: z.number().int().nonnegative().nullable().optional(),
+  checks_passed: z.number().int().nonnegative().optional(),
+  checks_total: z.number().int().nonnegative().optional(),
+  evidence: z.array(z.string()),
+  notes: z.array(z.string()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const operatorTestsSnapshotSchema = z.object({
+  generated_at: z.string(),
+  status: z.string(),
+  last_outcome: z.string(),
+  last_run_at: z.string().nullable(),
+  flow_count: z.number().int().nonnegative(),
+  flows: z.array(syntheticOperatorTestFlowSchema),
+});
+
+export const operationsRunbookSchema = z
+  .object({
+    id: z.string(),
+    label: z.string(),
+    description: z.string().optional(),
+    cadence: z.string().nullable().optional(),
+    related_surface: z.string().nullable().optional(),
+    support_status: z.string().optional(),
+    evidence_flow_ids: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+export const restoreReadinessStoreSchema = z
+  .object({
+    id: z.string(),
+    label: z.string().optional(),
+    drill_status: z.string().optional(),
+    cadence: z.string().nullable().optional(),
+    restore_order: z.number().nullable().optional(),
+    verified: z.boolean().optional(),
+    probe_status: z.string().nullable().optional(),
+    probe_summary: z.string().nullable().optional(),
+    last_drill_at: z.string().nullable().optional(),
+    last_outcome: z.string().nullable().optional(),
+    artifacts: z.array(z.string()).optional(),
+  })
+  .passthrough();
+
+export const lifecycleClassSchema = z
+  .object({
+    id: z.string(),
+    label: z.string().optional(),
+    sovereign_only: z.boolean().optional(),
+    cloud_allowed: z.boolean().optional(),
+    retention: z.string().nullable().optional(),
+  })
+  .passthrough();
+
+export const toolPermissionSubjectSchema = z
+  .object({
+    subject: z.string(),
+    label: z.string().optional(),
+    mode: z.string().optional(),
+    allow: z.array(z.string()).optional(),
+    deny: z.array(z.string()).optional(),
+    allow_count: z.number().int().nonnegative().optional(),
+    deny_count: z.number().int().nonnegative().optional(),
+    direct_execution: z.boolean().optional(),
+  })
+  .passthrough();
+
+export const operationsReadinessSnapshotSchema = z.object({
+  generated_at: z.string(),
+  status: z.string(),
+  runbooks: z.object({
+    status: z.string(),
+    items: z.array(operationsRunbookSchema),
+  }),
+  backup_restore: z.object({
+    status: z.string(),
+    drill_mode: z.string().optional(),
+    last_drill_at: z.string().nullable().optional(),
+    last_outcome: z.string().nullable().optional(),
+    verified_store_count: z.number().int().nonnegative().optional(),
+    store_count: z.number().int().nonnegative().optional(),
+    critical_stores: z.array(restoreReadinessStoreSchema),
+  }),
+  release_ritual: z.object({
+    status: z.string(),
+    tiers: z.array(z.string()),
+    ritual: z.array(z.string()),
+    last_rehearsal_at: z.string().nullable().optional(),
+    last_outcome: z.string().nullable().optional(),
+    rehearsal_status: z.string().optional(),
+    active_promotion_count: z.number().int().nonnegative().optional(),
+  }),
+  deprecation_retirement: z.object({
+    status: z.string(),
+    asset_classes: z.array(z.string()),
+    stages: z.array(z.string()),
+    rule: z.string(),
+    recent_retirement_count: z.number().int().nonnegative().optional(),
+    active_retirement_count: z.number().int().nonnegative().optional(),
+    last_rehearsal_at: z.string().nullable().optional(),
+    last_outcome: z.string().nullable().optional(),
+    recent_retirements: z.array(retirementRecordSchema).optional(),
+  }),
+  economic_governance: z.object({
+    status: z.string(),
+    premium_reserve_lanes: z.array(z.string()),
+    automatic_spend_lanes: z.array(z.string()),
+    approval_required_lanes: z.array(z.string()),
+    downgrade_order: z.array(z.string()),
+    provider_count: z.number().int().nonnegative().optional(),
+    recent_lease_count: z.number().int().nonnegative().optional(),
+    constrained_count: z.number().int().nonnegative().optional(),
+    last_verified_at: z.string().nullable().optional(),
+    last_outcome: z.string().nullable().optional(),
+  }),
+  data_lifecycle: z.object({
+    status: z.string(),
+    classes: z.array(lifecycleClassSchema),
+    class_count: z.number().int().nonnegative().optional(),
+    run_count: z.number().int().nonnegative().optional(),
+    eval_artifact_count: z.number().int().nonnegative().optional(),
+    last_verified_at: z.string().nullable().optional(),
+    last_outcome: z.string().nullable().optional(),
+  }),
+  tool_permissions: z.object({
+    status: z.string(),
+    default_mode: z.string(),
+    subject_count: z.number().int().nonnegative().optional(),
+    enforced_subject_count: z.number().int().nonnegative().optional(),
+    denied_action_count: z.number().int().nonnegative().optional(),
+    last_verified_at: z.string().nullable().optional(),
+    last_outcome: z.string().nullable().optional(),
+    subjects: z.array(toolPermissionSubjectSchema),
+  }),
+  synthetic_operator_tests: z.object({
+    status: z.string(),
+    last_outcome: z.string(),
+    last_run_at: z.string().nullable(),
+    flow_count: z.number().int().nonnegative(),
+    flows: z.array(syntheticOperatorTestFlowSchema),
+  }),
+});
+
+export const systemMapSnapshotSchema = z.object({
+  generated_at: z.string(),
+  owner: z.object({
+    id: z.string(),
+    label: z.string(),
+    role: z.string(),
+  }),
+  constitution: z.object({
+    label: z.string(),
+    source: z.string(),
+    enforcement: z.string(),
+    version: z.string().optional(),
+    core_rules: z.array(z.string()).optional(),
+    local_only_domains: z.array(z.string()).optional(),
+  }),
+  governor: z.object({
+    label: z.string(),
+    role: z.string(),
+    status: z.string(),
+    rights: z.array(z.string()),
+  }),
+  authority_order: z.array(commandHierarchyLayerSchema),
+  meta_lanes: z.array(metaLaneSelectionRecordSchema),
+  control_stack: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      role: z.string(),
+      entrypoints: z.array(z.string()),
+      status: z.string(),
+    })
+  ),
+  specialists: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      role: z.string(),
+      authority: z.string(),
+      tool_count: z.number().int().nonnegative(),
+      mode: z.string(),
+      status: z.string(),
+    })
+  ),
+  model_planes: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      role: z.string(),
+      status: z.string(),
+    })
+  ),
+  command_rights: z.array(commandRightsProfileSchema),
+  policy_classes: z.array(policyClassRecordSchema),
+  operational_governance: z
+    .object({
+      capacity_governor: z.object({
+        status: z.string(),
+        arbitration_order: z.array(z.string()),
+        time_window_count: z.number().int().nonnegative(),
+      }),
+      economic_governance: z.object({
+        status: z.string(),
+        reserve_lanes: z.array(z.string()),
+        downgrade_order: z.array(z.string()),
+      }),
+      presence_model: z.object({
+        status: z.string(),
+        default_state: z.string(),
+        states: z.array(
+          z.object({
+            id: z.string(),
+            label: z.string(),
+            automation_posture: z.string(),
+            notification_posture: z.string(),
+            approval_posture: z.string(),
+          })
+        ),
+      }),
+      data_lifecycle: z.object({
+        status: z.string(),
+        class_count: z.number().int().nonnegative(),
+        sovereign_only_classes: z.array(z.string()),
+      }),
+      backup_restore: z.object({
+        status: z.string(),
+        critical_store_count: z.number().int().nonnegative(),
+        drill_status: z.string(),
+      }),
+      tool_permissions: z.object({
+        status: z.string(),
+        subject_count: z.number().int().nonnegative(),
+        default_mode: z.string(),
+      }),
+      release_ritual: z.object({
+        status: z.string(),
+        tiers: z.array(z.string()),
+      }),
+    })
+    .optional(),
+  registry_versions: z.object({
+    command_rights: z.string(),
+    policy_classes: z.string(),
+    constitution: z.string().optional(),
+    capacity_governor: z.string().optional(),
+    economic_governance: z.string().optional(),
+    data_lifecycle: z.string().optional(),
+    presence_model: z.string().optional(),
+    tool_permissions: z.string().optional(),
+    backup_restore: z.string().optional(),
+    release_ritual: z.string().optional(),
+  }),
+  workload_guidance: z.array(
+    z.object({
+      id: z.string(),
+      label: z.string(),
+      strategy: z.string(),
+      supervisor_lane: z.string(),
+      worker_lane: z.string(),
+      judge_lane: z.string(),
+    })
+  ),
+  policy_source: z.string(),
+});
+
 export const projectSnapshotSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -982,6 +1994,53 @@ export type BackendSnapshot = z.infer<typeof backendSnapshotSchema>;
 export type ModelInventoryEntry = z.infer<typeof modelInventoryEntrySchema>;
 export type ModelsSnapshot = z.infer<typeof modelsSnapshotSchema>;
 export type AgentInfo = z.infer<typeof agentInfoSchema>;
+export type CommandRightsProfile = z.infer<typeof commandRightsProfileSchema>;
+export type CommandHierarchyLayer = z.infer<typeof commandHierarchyLayerSchema>;
+export type MetaLaneSelectionRecord = z.infer<typeof metaLaneSelectionRecordSchema>;
+export type PolicyClassRecord = z.infer<typeof policyClassRecordSchema>;
+export type ModelRoleProfile = z.infer<typeof modelRoleProfileSchema>;
+export type WorkloadClassProfile = z.infer<typeof workloadClassProfileSchema>;
+export type ModelCandidateSummary = z.infer<typeof modelCandidateSummarySchema>;
+export type PromotionCandidateQueue = z.infer<typeof promotionCandidateQueueSchema>;
+export type PromotionRecord = z.infer<typeof promotionRecordSchema>;
+export type PromotionControls = z.infer<typeof promotionControlsSchema>;
+export type RetirementCandidateQueue = z.infer<typeof retirementCandidateQueueSchema>;
+export type RetirementRecord = z.infer<typeof retirementRecordSchema>;
+export type RetirementControls = z.infer<typeof retirementControlsSchema>;
+export type GovernanceContractSummary = z.infer<typeof governanceContractSummarySchema>;
+export type GovernedEvalCorpus = z.infer<typeof governedEvalCorpusSchema>;
+export type ExperimentEvidence = z.infer<typeof experimentEvidenceSchema>;
+export type GovernanceLayers = z.infer<typeof governanceLayersSchema>;
+export type CommandDecisionRecord = z.infer<typeof commandDecisionRecordSchema>;
+export type PlanPacket = z.infer<typeof planPacketSchema>;
+export type RunLineageRecord = z.infer<typeof runLineageRecordSchema>;
+export type ArtifactProvenanceRecord = z.infer<typeof artifactProvenanceRecordSchema>;
+export type ExecutionRunRecord = z.infer<typeof executionRunRecordSchema>;
+export type ScheduledJobRecord = z.infer<typeof scheduledJobRecordSchema>;
+export type OperatorStreamEvent = z.infer<typeof operatorStreamEventSchema>;
+export type QuotaLeaseProvider = z.infer<typeof quotaLeaseProviderSchema>;
+export type QuotaLeaseSummary = z.infer<typeof quotaLeaseSummarySchema>;
+export type GovernorLane = z.infer<typeof governorLaneSchema>;
+export type CapacityNode = z.infer<typeof capacityNodeSchema>;
+export type CapacitySnapshot = z.infer<typeof capacitySnapshotSchema>;
+export type GovernorSnapshot = z.infer<typeof governorSnapshotSchema>;
+export type SyntheticOperatorTestFlow = z.infer<typeof syntheticOperatorTestFlowSchema>;
+export type OperatorTestsSnapshot = z.infer<typeof operatorTestsSnapshotSchema>;
+export type OperationsRunbook = z.infer<typeof operationsRunbookSchema>;
+export type RestoreReadinessStore = z.infer<typeof restoreReadinessStoreSchema>;
+export type LifecycleClass = z.infer<typeof lifecycleClassSchema>;
+export type ToolPermissionSubject = z.infer<typeof toolPermissionSubjectSchema>;
+export type OperationsReadinessSnapshot = z.infer<typeof operationsReadinessSnapshotSchema>;
+export type JudgeVerdict = z.infer<typeof judgeVerdictSchema>;
+export type JudgePlaneSnapshot = z.infer<typeof judgePlaneSnapshotSchema>;
+export type ExecutionRunsResponse = z.infer<typeof executionRunsResponseSchema>;
+export type ScheduledJobsResponse = z.infer<typeof scheduledJobsResponseSchema>;
+export type OperatorStreamResponse = z.infer<typeof operatorStreamResponseSchema>;
+export type SubscriptionSummaryResponse = z.infer<typeof subscriptionSummaryResponseSchema>;
+export type SystemMapSnapshot = z.infer<typeof systemMapSnapshotSchema>;
+export type ProvingGroundSnapshot = z.infer<typeof provingGroundSnapshotSchema>;
+export type ModelIntelligenceLane = z.infer<typeof modelIntelligenceLaneSchema>;
+export type ModelGovernanceSnapshot = z.infer<typeof modelGovernanceSnapshotSchema>;
 export type AgentsSnapshot = z.infer<typeof agentsSnapshotSchema>;
 export type ProjectSnapshot = z.infer<typeof projectSnapshotSchema>;
 export type ProjectsSnapshot = z.infer<typeof projectsSnapshotSchema>;

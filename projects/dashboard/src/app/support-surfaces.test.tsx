@@ -1,11 +1,13 @@
+/// <reference types="vite/client" />
+
 import { render } from "@testing-library/react";
 import { createElement, isValidElement, type ComponentType, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/font/google", () => ({
-  Inter: () => ({ variable: "--font-inter", className: "font-inter" }),
-  Cormorant_Garamond: () => ({ variable: "--font-cormorant", className: "font-cormorant" }),
-  Geist_Mono: () => ({ variable: "--font-geist-mono", className: "font-geist-mono" }),
+  IBM_Plex_Sans: () => ({ variable: "--font-system", className: "font-system" }),
+  Space_Grotesk: () => ({ variable: "--font-display", className: "font-display" }),
+  IBM_Plex_Mono: () => ({ variable: "--font-data", className: "font-data" }),
 }));
 
 const SUPPORT_MODULES = import.meta.glob("./**/{loading,error,global-error,not-found,layout}.tsx", {

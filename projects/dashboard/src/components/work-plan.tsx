@@ -49,7 +49,7 @@ function statusColor(status?: string): string {
     case "completed":
       return "bg-green-500";
     case "running":
-      return "bg-amber-500 animate-pulse";
+      return "bg-primary animate-pulse";
     case "failed":
       return "bg-red-500";
     default:
@@ -62,7 +62,7 @@ function agentColor(agent: string): string {
     "coding-agent": "text-blue-400",
     "creative-agent": "text-pink-400",
     "media-agent": "text-teal-400",
-    "general-assistant": "text-amber-400",
+    "general-assistant": "text-primary",
     "knowledge-agent": "text-purple-400",
     "research-agent": "text-cyan-400",
     "home-agent": "text-green-400",
@@ -221,7 +221,7 @@ export function WorkPlan() {
                 </span>
                 {running > 0 && (
                   <span className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                     {running} running
                   </span>
                 )}

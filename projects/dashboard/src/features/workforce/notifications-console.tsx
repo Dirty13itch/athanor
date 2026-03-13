@@ -17,11 +17,24 @@ import { queryKeys } from "@/lib/query-client";
 import { useUrlState } from "@/lib/url-state";
 import { getAgentName, postJson } from "@/features/workforce/helpers";
 
-const tierMeta: Record<WorkforceNotification["tier"], { label: string; tone: string }> = {
-  ask: { label: "Needs approval", tone: "bg-red-500/15 text-red-200 border-red-500/30" },
-  notify: { label: "Auto-acted", tone: "bg-amber-500/15 text-amber-100 border-amber-500/30" },
-  act: { label: "Autonomous", tone: "bg-emerald-500/15 text-emerald-100 border-emerald-500/30" },
+const tierMeta: Record<WorkforceNotification["tier"], { label: string; tone: "danger" | "info" | "success" }> = {
+  ask: { label: "Needs approval", tone: "danger" },
+  notify: { label: "Auto-acted", tone: "info" },
+  act: { label: "Autonomous", tone: "success" },
 };
+
+function notificationSurfaceClass(notification: WorkforceNotification) {
+  if (notification.resolved) {
+    return "surface-tile opacity-85";
+  }
+  if (notification.tier === "ask") {
+    return "surface-hero";
+  }
+  if (notification.tier === "notify") {
+    return "surface-panel";
+  }
+  return "surface-instrument";
+}
 
 export function NotificationsConsole({ initialSnapshot }: { initialSnapshot: WorkforceSnapshot }) {
   const { getSearchValue, setSearchValue } = useUrlState();
@@ -90,7 +103,7 @@ export function NotificationsConsole({ initialSnapshot }: { initialSnapshot: Wor
 
       <NotificationsPostureCard />
 
-      <Card className="border-border/70 bg-card/70">
+      <Card className="surface-panel">
         <CardHeader>
           <CardTitle className="text-lg">Notification lane</CardTitle>
           <CardDescription>{notifications.length} items in the current view.</CardDescription>
@@ -101,9 +114,11 @@ export function NotificationsConsole({ initialSnapshot }: { initialSnapshot: Wor
               const meta = tierMeta[notification.tier];
               const pending = notification.tier === "ask" && !notification.resolved;
               return (
-                <div key={notification.id} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                <div key={notification.id} className={`${notificationSurfaceClass(notification)} rounded-2xl border p-4`}>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge className={meta.tone}>{meta.label}</Badge>
+                    <Badge variant="outline" className="status-badge" data-tone={meta.tone}>
+                      {meta.label}
+                    </Badge>
                     <Badge variant="secondary">{getAgentName(snapshot, notification.agentId)}</Badge>
                     <Badge variant="outline">{notification.category}</Badge>
                     <span className="text-xs text-muted-foreground">

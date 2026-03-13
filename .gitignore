@@ -37,6 +37,7 @@ venv/
 # Node
 node_modules/
 .next/
+/projects/dashboard/.next-playwright-*/
 tsconfig.tsbuildinfo
 test-results/
 playwright-report/

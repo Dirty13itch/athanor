@@ -9,8 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { GovernorCard } from "@/components/governor-card";
 import { PageHeader } from "@/components/page-header";
 import { ResearchJobsCard } from "@/components/research-jobs-card";
+import { ScheduledJobsCard } from "@/components/scheduled-jobs-card";
 import { StatCard } from "@/components/stat-card";
 import { getWorkforce } from "@/lib/api";
 import { type WorkforceSnapshot, type WorkforceTask } from "@/lib/contracts";
@@ -196,15 +198,26 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
 
       <ResearchJobsCard />
 
+      <ScheduledJobsCard
+        title="Autonomy schedule"
+        description="Recurring planner, research, consolidation, and briefing jobs exposed as normalized schedule records."
+      />
+
+      <GovernorCard
+        title="Autonomy controls"
+        description="Planner-facing pause or resume controls for scheduler, research, and benchmark lanes."
+        compact
+      />
+
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-hero">
           <CardHeader>
             <CardTitle className="text-lg">Current plan</CardTitle>
             <CardDescription>Latest plan plus quick operator steering.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {snapshot.workplan.current ? (
-              <div className="rounded-2xl border border-border/70 bg-background/20 p-4">
+              <div className="surface-hero rounded-2xl border p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge>{snapshot.workplan.current.planId}</Badge>
                   <Badge variant="outline">{snapshot.workplan.current.taskCount} tasks</Badge>
@@ -213,7 +226,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
                 <p className="mt-3 text-sm text-muted-foreground">{snapshot.workplan.current.focus || "No explicit focus recorded."}</p>
                 <div className="mt-4 space-y-3">
                   {snapshot.workplan.current.tasks.map((task) => (
-                    <div key={`${task.taskId ?? task.prompt}`} className="rounded-xl border border-border/60 bg-background/40 p-3">
+                    <div key={`${task.taskId ?? task.prompt}`} className="surface-instrument rounded-xl border p-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="secondary">{getAgentName(snapshot, task.agentId)}</Badge>
                         {task.projectId ? <Badge variant="outline">{getProjectName(snapshot, task.projectId)}</Badge> : null}
@@ -238,7 +251,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium">Steer future plans</p>
-                <textarea value={direction} onChange={(event) => setDirection(event.target.value)} rows={3} className="w-full rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm outline-none transition focus:border-primary" placeholder="Keep EoBQ momentum ahead of low-value infrastructure churn." />
+                <textarea value={direction} onChange={(event) => setDirection(event.target.value)} rows={3} className="surface-instrument w-full rounded-xl border px-3 py-2 text-sm outline-none transition focus:border-primary" placeholder="Keep EoBQ momentum ahead of low-value infrastructure churn." />
                 <Button
                   variant="outline"
                   onClick={() =>
@@ -256,7 +269,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-lg">Approval lane</CardTitle>
             <CardDescription>High-impact tasks waiting on operator judgment.</CardDescription>
@@ -264,7 +277,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
           <CardContent className="space-y-3">
             {approvalQueue.length > 0 ? (
               approvalQueue.map((task) => (
-                <div key={task.id} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                <div key={task.id} className="surface-hero rounded-2xl border p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">{getAgentName(snapshot, task.agentId)}</Badge>
                     {task.projectId ? <Badge variant="outline">{getProjectName(snapshot, task.projectId)}</Badge> : null}
@@ -284,7 +297,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-lg">Queue</CardTitle>
             <CardDescription>URL-persisted filters for operator review and handoff.</CardDescription>
@@ -303,7 +316,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
             {visibleTasks.length > 0 ? (
               <div className="space-y-3">
                 {visibleTasks.map((task) => (
-                  <div key={task.id} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                  <div key={task.id} className="surface-panel rounded-2xl border p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{getTaskLabel(task.status)}</Badge>
                       <Badge variant="secondary">{getAgentName(snapshot, task.agentId)}</Badge>
@@ -325,14 +338,14 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
         </Card>
 
         <div className="space-y-4">
-          <Card className="border-border/70 bg-card/70">
+          <Card className="surface-panel">
             <CardHeader>
               <CardTitle className="text-lg">Project posture</CardTitle>
               <CardDescription>Queue pressure and mapped agents by project.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {snapshot.projects.map((entry) => (
-                <div key={entry.id} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                <div key={entry.id} className="surface-instrument rounded-2xl border p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium">{entry.name}</p>
@@ -350,7 +363,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
             </CardContent>
           </Card>
 
-          <Card className="border-border/70 bg-card/70">
+          <Card className="surface-panel">
             <CardHeader>
               <CardTitle className="text-lg">Active goals</CardTitle>
               <CardDescription>Steering context shaping the next wave of work.</CardDescription>
@@ -358,7 +371,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
             <CardContent className="space-y-3">
               {snapshot.goals.length > 0 ? (
                 snapshot.goals.map((goal) => (
-                  <div key={goal.id} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                  <div key={goal.id} className="surface-panel rounded-2xl border p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{goal.priority}</Badge>
                       <Badge variant="secondary">{goal.agentId === "global" ? "All agents" : getAgentName(snapshot, goal.agentId)}</Badge>
@@ -379,7 +392,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2">
+    <div className="surface-instrument rounded-xl border px-3 py-2">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-1 font-medium">{value}</p>
     </div>

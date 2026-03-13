@@ -74,7 +74,7 @@ export function DailyDigest() {
           )}
           {data.tasksRunning > 0 && (
             <div className="flex items-center gap-1">
-              <span className="inline-block h-2 w-2 rounded-full bg-amber animate-pulse" />
+              <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
               <span>{data.tasksRunning} running</span>
             </div>
           )}

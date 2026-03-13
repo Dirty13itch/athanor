@@ -136,10 +136,10 @@ export function SmartStack() {
         {approvals > 0 && (
           <a
             href="/tasks?status=approval"
-            className="flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs hover:bg-amber-500/15 transition-colors"
+            className="flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 px-3 py-2 text-xs transition-colors hover:bg-primary/15"
           >
-            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="font-medium text-amber-200">
+            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            <span className="font-medium text-primary">
               {approvals} pending approval{approvals > 1 ? "s" : ""}
             </span>
           </a>
@@ -157,7 +157,7 @@ export function SmartStack() {
             )}
             {stats.running > 0 && (
               <span className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 {stats.running} running
               </span>
             )}

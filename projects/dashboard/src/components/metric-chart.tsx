@@ -10,7 +10,7 @@ const MetricChartClient = dynamic(
   () => import("@/components/metric-chart-client").then((module) => module.MetricChartClient),
   {
     ssr: false,
-    loading: () => <div className="h-64 min-h-64 w-full rounded-2xl border border-border/60 bg-background/20" />,
+    loading: () => <div className="surface-instrument h-64 min-h-64 w-full rounded-2xl border" />,
   }
 );
 

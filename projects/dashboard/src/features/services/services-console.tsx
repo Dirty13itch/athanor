@@ -40,6 +40,12 @@ function exportSnapshot(snapshot: ServicesSnapshot) {
   URL.revokeObjectURL(url);
 }
 
+function serviceSurfaceClass(healthy: boolean) {
+  return healthy
+    ? "surface-instrument border"
+    : "surface-hero border";
+}
+
 export function ServicesConsole({
   initialSnapshot,
   initialHistory,
@@ -187,7 +193,7 @@ export function ServicesConsole({
       </PageHeader>
 
       <div className="grid gap-4 xl:grid-cols-[0.95fr_1.35fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-lg">Filters and controls</CardTitle>
             <CardDescription>All filter state is shareable in the URL for operator handoffs.</CardDescription>
@@ -199,7 +205,7 @@ export function ServicesConsole({
                 value={search}
                 onChange={(event) => setSearchValue("search", event.target.value || null)}
                 placeholder="Search name, URL, or service detail"
-                className="pl-9"
+                className="surface-instrument pl-9"
                 aria-label="Search services"
               />
             </div>
@@ -255,7 +261,7 @@ export function ServicesConsole({
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-instrument">
           <CardHeader>
             <CardTitle className="text-lg">Availability trend</CardTitle>
             <CardDescription>Prometheus blackbox availability over the selected history window.</CardDescription>
@@ -264,7 +270,7 @@ export function ServicesConsole({
             {availabilityData.length > 0 ? (
               <MetricChart
                 data={availabilityData}
-                series={[{ dataKey: "availability", label: "Availability", color: "#f5c86d" }]}
+                series={[{ dataKey: "availability", label: "Availability", color: "var(--chart-cat-1)" }]}
                 mode="area"
                 valueSuffix="%"
               />
@@ -280,7 +286,7 @@ export function ServicesConsole({
 
       <div className="grid gap-4 lg:grid-cols-3">
         {snapshot.nodes.map((clusterNode) => (
-          <Card key={clusterNode.id} className="border-border/70 bg-card/70">
+          <Card key={clusterNode.id} className="surface-instrument">
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -309,7 +315,7 @@ export function ServicesConsole({
         ))}
       </div>
 
-      <Card className="border-border/70 bg-card/70">
+      <Card className="surface-panel">
         <CardHeader>
           <CardTitle className="text-lg">Service inventory</CardTitle>
           <CardDescription>Node and category segmented view with detail drill-down.</CardDescription>
@@ -326,7 +332,7 @@ export function ServicesConsole({
                 key={service.id}
                 type="button"
                 onClick={() => setSearchValue("service", service.id)}
-                className="w-full rounded-2xl border border-border/70 bg-background/20 p-4 text-left transition hover:bg-accent/40"
+                className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${serviceSurfaceClass(service.healthy)}`}
               >
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1">
@@ -340,10 +346,16 @@ export function ServicesConsole({
                     <p className="mt-2 truncate font-mono text-xs text-muted-foreground">{service.url}</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={service.healthy ? "outline" : "destructive"}>
+                    <Badge
+                      variant="outline"
+                      className="status-badge"
+                      data-tone={service.healthy ? "success" : "danger"}
+                    >
                       {service.healthy ? "Healthy" : "Degraded"}
                     </Badge>
-                    <Badge variant="secondary">{formatLatency(service.latencyMs)}</Badge>
+                    <Badge variant="outline" className="status-badge">
+                      {formatLatency(service.latencyMs)}
+                    </Badge>
                   </div>
                 </div>
               </button>
@@ -379,7 +391,7 @@ export function ServicesConsole({
                   <StatCard label="Category" value={formatCategoryLabel(activeService.category)} detail={activeService.node} />
                 </div>
 
-                <Card className="border-border/70 bg-card/70">
+                <Card className="surface-instrument">
                   <CardHeader>
                     <CardTitle className="text-lg">Probe history</CardTitle>
                     <CardDescription>Availability and latency for the selected service.</CardDescription>
@@ -389,8 +401,8 @@ export function ServicesConsole({
                       <MetricChart
                         data={serviceTrendData}
                         series={[
-                          { dataKey: "latency", label: "Latency", color: "#f5c86d" },
-                          { dataKey: "availability", label: "Availability", color: "#78d1f2" },
+                          { dataKey: "latency", label: "Latency", color: "var(--chart-cat-1)" },
+                          { dataKey: "availability", label: "Availability", color: "var(--chart-cat-2)" },
                         ]}
                       />
                     ) : (

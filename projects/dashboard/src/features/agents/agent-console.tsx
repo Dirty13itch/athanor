@@ -18,8 +18,11 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AgentCrewBar } from "@/components/agent-crew-bar";
+import { GovernorCard } from "@/components/governor-card";
+import { ModelGovernanceCard } from "@/components/model-governance-card";
 import { RoutingContextCard } from "@/components/routing-context-card";
 import { SubscriptionControlCard } from "@/components/subscription-control-card";
+import { SystemMapCard } from "@/components/system-map-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -375,7 +378,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
       </PageHeader>
 
       <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-hero">
           <CardHeader>
             <CardTitle className="text-lg">Crew surface</CardTitle>
             <CardDescription>
@@ -405,8 +408,14 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
         </div>
       </div>
 
+      <div className="grid gap-4 xl:grid-cols-3">
+        <SystemMapCard />
+        <GovernorCard compact />
+        <ModelGovernanceCard />
+      </div>
+
       <div className="grid gap-4 xl:grid-cols-[18rem_18rem_1fr]">
-        <Card className="order-2 border-border/70 bg-card/70 xl:order-none">
+        <Card className="surface-panel order-2 xl:order-none">
           <CardHeader>
             <CardTitle className="text-lg">Agent roster</CardTitle>
             <CardDescription>Choose an agent capability surface.</CardDescription>
@@ -422,12 +431,12 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                   disabled={agent.status !== "ready"}
                   className={`w-full rounded-2xl border p-4 text-left transition ${
                     activeAgent?.id === agent.id
-                      ? "border-primary/50 bg-primary/10"
-                      : "border-border/70 bg-background/20 hover:bg-accent/40"
-                  } ${agent.status !== "ready" ? "opacity-60" : ""}`}
+                        ? "surface-hero border-[color:color-mix(in_oklab,var(--accent-structural)_34%,transparent)]"
+                        : "surface-tile hover:bg-accent/40"
+                    } ${agent.status !== "ready" ? "opacity-60" : ""}`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="rounded-xl border border-border/70 bg-background/50 p-2">
+                    <div className="surface-metric rounded-xl border p-2">
                       <Icon className="h-4 w-4 text-primary" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -445,7 +454,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
           </CardContent>
         </Card>
 
-        <Card className="order-3 border-border/70 bg-card/70 xl:order-none">
+        <Card className="surface-panel order-3 xl:order-none">
           <CardHeader>
             <CardTitle className="text-lg">Threads</CardTitle>
             <CardDescription>Continue a prior run or start fresh.</CardDescription>
@@ -465,8 +474,8 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                     }}
                     className={`w-full rounded-2xl border p-4 text-left transition ${
                       resolvedThreadId === thread.id
-                        ? "border-primary/50 bg-primary/10"
-                        : "border-border/70 bg-background/20 hover:bg-accent/40"
+                        ? "surface-hero border-[color:color-mix(in_oklab,var(--accent-structural)_34%,transparent)]"
+                        : "surface-tile hover:bg-accent/40"
                     }`}
                   >
                     <p className="truncate font-medium">{thread.title}</p>
@@ -484,7 +493,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
           </CardContent>
         </Card>
 
-        <Card className="order-1 flex min-h-[32rem] flex-col overflow-hidden border-border/70 bg-card/70 sm:min-h-[42rem] xl:order-none">
+        <Card className="surface-panel order-1 flex min-h-[32rem] flex-col overflow-hidden sm:min-h-[42rem] xl:order-none">
           <CardHeader className="border-b border-border/70">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -525,7 +534,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                       ) : (
                         <div className="flex max-w-[92%] flex-col gap-2 sm:max-w-[84%]">
                           {(message.toolCalls ?? []).map((toolCall) => (
-                            <div key={toolCall.id} className="rounded-2xl border border-border/70 bg-background/30 p-4">
+                            <div key={toolCall.id} className="surface-instrument rounded-2xl border p-4">
                               <div className="flex items-center gap-3">
                                 {toolCall.status === "running" ? (
                                   <LoaderCircle className="h-4 w-4 animate-spin text-primary" />
@@ -577,7 +586,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                   <button
                     key={prompt}
                     type="button"
-                    className="rounded-full border border-border/70 bg-background/20 px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent/40 hover:text-foreground"
+                    className="surface-metric rounded-full border px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-accent/40 hover:text-foreground"
                     onClick={() => setInput(prompt)}
                   >
                     {prompt}
@@ -632,10 +641,10 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                       <Copy className="mr-2 h-4 w-4" />
                       Copy
                     </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => {
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
                         setPendingThreadId(null);
                         setSearchValue("thread", null);
                         setThreads((current) =>
@@ -643,9 +652,9 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                         );
                       }}
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Remove
-                    </Button>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Remove
+                      </Button>
                   </>
                 ) : null}
               </form>

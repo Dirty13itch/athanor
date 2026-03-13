@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { ExecutionRunsCard } from "@/components/execution-runs-card";
+import { GovernorCard } from "@/components/governor-card";
 import { PageHeader } from "@/components/page-header";
 import { SubscriptionControlCard } from "@/components/subscription-control-card";
 import { StatCard } from "@/components/stat-card";
@@ -55,6 +57,21 @@ function formatDuration(durationMs: number | null) {
     return `${(durationMs / 1000).toFixed(1)}s`;
   }
   return `${(durationMs / 60_000).toFixed(1)}m`;
+}
+
+function taskSurfaceClass(status: WorkforceTask["status"]) {
+  switch (status) {
+    case "pending_approval":
+      return "surface-hero";
+    case "running":
+      return "surface-instrument";
+    case "failed":
+      return "border-red-500/30 bg-red-500/10";
+    case "completed":
+      return "surface-tile";
+    default:
+      return "surface-panel";
+  }
 }
 
 export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSnapshot }) {
@@ -167,8 +184,19 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
         compact
       />
 
+      <GovernorCard
+        title="Automation governor"
+        description="Pause or resume workforce-heavy automation lanes when queue pressure, quota pressure, or incidents need manual control."
+        compact
+      />
+
+      <ExecutionRunsCard
+        title="Backbone run ledger"
+        description="Recent supervisor, worker, and judge execution runs flowing through the workforce."
+      />
+
       {showComposer ? (
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-lg">Submit task</CardTitle>
             <CardDescription>Create explicit workforce work outside the current planner cycle.</CardDescription>
@@ -180,7 +208,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
                 <select
                   value={newAgent}
                   onChange={(event) => setNewAgent(event.target.value)}
-                  className="w-full rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm outline-none transition focus:border-primary"
+                  className="surface-instrument w-full rounded-xl border px-3 py-2 text-sm outline-none transition focus:border-primary"
                 >
                   {snapshot.agents.map((entry) => (
                     <option key={entry.id} value={entry.id}>
@@ -194,7 +222,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
                 <select
                   value={newPriority}
                   onChange={(event) => setNewPriority(event.target.value as WorkforceTask["priority"])}
-                  className="w-full rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm outline-none transition focus:border-primary"
+                  className="surface-instrument w-full rounded-xl border px-3 py-2 text-sm outline-none transition focus:border-primary"
                 >
                   {["low", "normal", "high", "critical"].map((value) => (
                     <option key={value} value={value}>
@@ -211,7 +239,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
                 value={newPrompt}
                 onChange={(event) => setNewPrompt(event.target.value)}
                 placeholder="Describe the work to execute."
-                className="w-full rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm outline-none transition focus:border-primary"
+                className="surface-instrument w-full rounded-xl border px-3 py-2 text-sm outline-none transition focus:border-primary"
               />
             </label>
             <div className="flex flex-wrap gap-2">
@@ -239,7 +267,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
         </Card>
       ) : null}
 
-      <Card className="border-border/70 bg-card/70">
+      <Card className="surface-panel">
         <CardHeader>
           <CardTitle className="text-lg">Queue filters</CardTitle>
           <CardDescription>Persisted in the URL for operator handoff and quick review.</CardDescription>
@@ -292,7 +320,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
         </CardContent>
       </Card>
 
-      <Card className="border-border/70 bg-card/70">
+      <Card className="surface-panel">
         <CardHeader>
           <CardTitle className="text-lg">Tasks</CardTitle>
           <CardDescription>{visibleTasks.length} tasks match the current filters.</CardDescription>
@@ -302,7 +330,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
             visibleTasks.map((task) => {
               const expanded = expandedTaskId === task.id;
               return (
-                <div key={task.id} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                <div key={task.id} className={`${taskSurfaceClass(task.status)} rounded-2xl border p-4`}>
                   <button
                     type="button"
                     onClick={() => setExpandedTaskId(expanded ? null : task.id)}
@@ -339,7 +367,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
                       {task.result ? (
                         <div>
                           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Result</p>
-                          <p className="mt-2 whitespace-pre-wrap rounded-xl border border-border/60 bg-background/30 p-3 text-sm">
+                          <p className="surface-instrument mt-2 whitespace-pre-wrap rounded-xl border p-3 text-sm">
                             {task.result}
                           </p>
                         </div>
@@ -417,7 +445,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2">
+    <div className="surface-instrument rounded-xl border px-3 py-2">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-1 font-medium">{value}</p>
     </div>

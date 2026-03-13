@@ -35,25 +35,26 @@ Use it with:
 | Workload class registry | `live` | canonical workload taxonomy exists and is surfaced | expand if new workload families appear |
 | Model proving ground | `live` | proving-ground posture, benchmark history, lane coverage, and trigger surface are live | keep adding richer Athanor-native evaluation packs |
 | Model intelligence lane | `live` | horizon-scan cadence, challenger queues, next actions, and improvement-cycle evidence are live in runtime snapshots | keep enriching candidate intake, canary promotion, and operator review posture |
-| Prompt / policy / contract governance | `live_partial` | command-rights, policy, model-role, workload, proving-ground, constitution, and contract registries are versioned | expand to more prompt, rubric, and contract assets |
-| Eval corpus governance | `configured` | proving-ground corpora classes and canonical eval-corpus registry are declared | turn them into fuller governed corpora with version history and more task packs |
-| Experiment ledger and provenance | `live_partial` | execution records, verdicts, and governance snapshots exist | expand to deeper artifact lineage across more outputs |
+| Prompt / policy / contract governance | `live_partial` | command-rights, policy, model-role, workload, proving-ground, constitution, and contract registries are versioned, surfaced in runtime governance snapshots, and linked into command decisions and plan packets | expand to more prompt, rubric, and contract assets and deepen enforcement beyond the current backbone records |
+| Eval corpus governance | `live_partial` | governed corpora, sensitivity classes, corpus versions, and proving-ground coverage now surface in runtime and cockpit snapshots | turn them into fuller governed corpora with richer version history and more Athanor-native task packs |
+| Experiment ledger and provenance | `live_partial` | execution runs, handoffs, verdicts, command decisions, and proving-ground/governance snapshots now carry richer prompt/policy/corpus lineage and artifact provenance | expand to deeper artifact lineage across more outputs and promotion flows |
 | Orchestrator control stack map | `live` | command hierarchy and runtime atlas map the control stack explicitly | keep runtime docs aligned as new loops are promoted |
-| Scheduler and autonomy loops | `live_partial` | scheduling status, research jobs, consolidation, and workplan loops are surfaced | deepen pause/resume, bounded retry, and idempotent background lanes |
+| Scheduler and autonomy loops | `live_partial` | scheduling status, research jobs, consolidation, and workplan loops are surfaced, and manual scheduled-job execution now routes through governor posture with explicit operator override instead of silently bypassing it | deepen pause/resume, bounded retry, and idempotent background lanes |
 | Research jobs | `live` | queued research jobs and execution surfaces exist | mature evals and operator runbooks around them |
 | Skills lane | `live` | skills library and stats are surfaced | deepen execution, learning, and review flows |
 | Consolidation lane | `live` | consolidation stats and trigger surface exist | mature retention and operator review flows |
 | Backup and restore readiness | `live_partial` | critical stores, cadence, recovery order, and non-destructive live restore-drill evidence are operator-visible | deepen from non-destructive rehearsal into fuller restore drills with persisted evidence artifacts |
 | Presence-aware autonomy | `live_partial` | manual posture plus automatic dashboard-heartbeat posture are now live; effective presence, signal freshness, and auto/manual precedence are surfaced in the governor snapshot and cockpit | broaden presence inputs beyond dashboard activity and apply posture more deeply across notifications and approvals |
-| Sandbox / shadow / canary ladder | `configured` | the canonical release ritual and promotion tiers are now registry-backed | implement runtime promotion tiers and operator controls |
+| Sandbox / shadow / canary ladder | `live_partial` | release ritual, promotion tiers, and live promotion-ladder rehearsal evidence are now surfaced together | deepen from rehearsal into stricter runtime promotion controls and richer canary evidence |
 | Economic governance | `live_partial` | reserves, quotas, and provider posture are visible | deepen policy-backed budgeting and downgrade rules |
-| Data lifecycle and retention | `configured` | canonical lifecycle classes now exist for runtime, memory, sovereign content, and eval artifacts | implement retention posture in runtime and docs |
+| Data lifecycle and retention | `live_partial` | lifecycle classes are declared and now verified against live runtime runs, eval artifacts, and sovereign routing posture | implement deeper retention enforcement and lifecycle-aware cleanup controls |
 | Operator cockpit | `live_partial` | command center, agents, tasks, workplanner, learning/review, and notifications now surface core backbone posture | continue AAA polish, deep-link quality, and richer explanations |
 | Operator system map | `live` | command-center system-map card and `/api/system-map` are live | continue simplifying and refining operator comprehension |
-| Visual redesign | `planned` | direction is fixed: premium industrial dark, warm core, quiet power, controlled signals | implement the actual token and shell and route redesign |
-| Operator runbooks | `live_partial` | canonical runbooks exist, are registry-backed, and surface through operations-readiness snapshots | wire deeper cockpit links and attach live drill evidence |
-| Synthetic operator tests | `live_partial` | operator-test registries, runtime snapshots, trigger surfaces, and live restore-drill evidence are active | expand from governance-focused synthetic flows into broader incident, outage, and fallback rehearsals |
-| Deprecation and retirement policy | `configured` | canonical retirement stages and governed asset classes now exist | implement retirement handling for models, prompts, policies, and experiments |
+| Visual redesign | `live_partial` | the full staged redesign has been implemented and validated in the canonical repo, rebuilt on WORKSHOP, and smoke-verified live: token layer, shell chrome, shared primitives, core routes, telemetry routes, intelligence/memory/chat routes, and domain/history routes now share one governed visual system; desktop/mobile baselines and full Playwright are green | close any residual route-level polish found in optional live screenshot review |
+| Operator runbooks | `live_partial` | canonical runbooks exist, are registry-backed, surface through operations-readiness snapshots, and now link to evidence-backed rehearsal flows including stuck-queue recovery and incident review | wire deeper cockpit links and broaden live drill evidence |
+| Synthetic operator tests | `live_partial` | operator-test registries, runtime snapshots, trigger surfaces, restore-drill evidence, and live stuck-queue/incident-review rehearsals are active | expand into broader outage, fallback, and command-boundary rehearsals |
+| Tool-permission governance | `live_partial` | tool-permission registry is now normalized into runtime decisions, surfaced through governor snapshots, and backed by a live synthetic enforcement flow | deepen from governed evaluation into broader runtime enforcement over more execution paths |
+| Deprecation and retirement policy | `live_partial` | governed retirement registries, runtime retirement snapshots, advance/hold/rollback controls, synthetic retirement rehearsals, and cockpit/API visibility are now live | deepen retirement handling across prompts, policies, corpora, experiments, and richer operator-led retirement flows |
 
 ## Next implementation frontier
 
@@ -61,9 +62,9 @@ The next high-value engineering work is:
 
 1. finish the provider plane beyond visibility by hardening real adapter execution and adapter-owned outcome recording
 2. deepen autonomy loops with richer pause/resume, bounded retries, and stronger background-job lineage
-3. move restore posture, release tiers, and retirement policy from registry-backed readiness into live drills and controls
-4. expand synthetic operator tests from governance posture into restore, outage, and fallback rehearsals
-5. implement the visual redesign and AAA polish pass on the active cockpit routes
+3. move restore posture and release tiers from registry-backed readiness into deeper live drills and controls
+4. expand synthetic operator tests from restore and queue/incident rehearsals into broader outage, fallback, and command-boundary drills
+5. continue the visual redesign with route-by-route polish, chart harmonization, and visual-baseline refinement on the active cockpit routes
 
 ## Canonical invariant
 

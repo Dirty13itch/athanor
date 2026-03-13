@@ -110,7 +110,7 @@ export function DailyBriefing() {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <SunriseIcon className="h-4 w-4 text-amber-400" />
+            <SunriseIcon className="h-4 w-4 text-primary" />
             <CardTitle className="text-sm">Morning Briefing</CardTitle>
             {state.timestamp && (
               <span className="text-xs text-muted-foreground">

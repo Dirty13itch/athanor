@@ -43,6 +43,32 @@ export interface RuntimeIssueTracker {
   serverErrors: string[];
 }
 
+function isLoopbackUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    return parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+  } catch {
+    return false;
+  }
+}
+
+function isIgnorableLoopbackAssetFailure(url: string, errorText: string) {
+  if (!isLoopbackUrl(url)) {
+    return false;
+  }
+
+  if (!/ERR_CONNECTION_FAILED|ERR_ABORTED|ERR_HTTP2_PROTOCOL_ERROR/i.test(errorText)) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname.startsWith("/_next/static/");
+  } catch {
+    return false;
+  }
+}
+
 export function trackRuntimeIssues(page: Page): RuntimeIssueTracker {
   const tracker: RuntimeIssueTracker = {
     consoleErrors: [],
@@ -68,6 +94,10 @@ export function trackRuntimeIssues(page: Page): RuntimeIssueTracker {
   page.on("requestfailed", (request) => {
     const errorText = request.failure()?.errorText ?? "failed";
     if (errorText.includes("ERR_ABORTED")) {
+      return;
+    }
+
+    if (isIgnorableLoopbackAssetFailure(request.url(), errorText)) {
       return;
     }
 

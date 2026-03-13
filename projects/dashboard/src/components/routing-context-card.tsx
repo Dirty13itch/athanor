@@ -69,7 +69,7 @@ export function RoutingContextCard({
   }
 
   return (
-    <Card className="border-border/70 bg-card/70">
+    <Card className="surface-panel">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Network className="h-5 w-5 text-primary" />
@@ -86,7 +86,7 @@ export function RoutingContextCard({
             <select
               value={agent}
               onChange={(event) => setAgent(event.target.value)}
-              className="w-full rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm outline-none transition focus:border-primary"
+              className="surface-instrument w-full rounded-xl border px-3 py-2 text-sm outline-none transition focus:border-primary"
             >
               {AGENT_OPTIONS.map((value) => (
                 <option key={value} value={value}>
@@ -101,7 +101,7 @@ export function RoutingContextCard({
               rows={3}
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              className="w-full rounded-xl border border-border/70 bg-background/30 px-3 py-2 text-sm outline-none transition focus:border-primary"
+              className="surface-instrument w-full rounded-xl border px-3 py-2 text-sm outline-none transition focus:border-primary"
             />
           </label>
         </div>
@@ -115,7 +115,7 @@ export function RoutingContextCard({
 
         {(classification || contextPreview) && (
           <div className="grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="rounded-xl border border-border/60 bg-background/30 p-3 text-sm">
+            <div className="surface-instrument rounded-xl border p-3 text-sm">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Route classification
               </p>
@@ -139,7 +139,7 @@ export function RoutingContextCard({
               ) : null}
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-background/30 p-3 text-sm">
+            <div className="surface-instrument rounded-xl border p-3 text-sm">
               <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                 Context preview
               </p>
@@ -153,7 +153,7 @@ export function RoutingContextCard({
                     />
                     <Metric label="Latency" value={`${getNumber(contextPreview.duration_ms, 0)}ms`} />
                   </div>
-                  <pre className="mt-3 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl border border-border/60 bg-background/60 p-3 text-xs text-muted-foreground">
+                  <pre className="surface-tile mt-3 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl border p-3 text-xs text-muted-foreground">
                     {getString(contextPreview.context, "No context returned.")}
                   </pre>
                 </>
@@ -168,7 +168,7 @@ export function RoutingContextCard({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/40 px-3 py-2">
+    <div className="surface-metric rounded-xl border px-3 py-2">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-semibold">{value}</p>
     </div>

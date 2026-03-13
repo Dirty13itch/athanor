@@ -7,7 +7,10 @@ import { Brain, CheckCircle2, RefreshCcw, Sparkles } from "lucide-react";
 import { FamilyTabs } from "@/components/family-tabs";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { JudgePlaneCard } from "@/components/judge-plane-card";
+import { ModelGovernanceCard } from "@/components/model-governance-card";
 import { PageHeader } from "@/components/page-header";
+import { ProvingGroundCard } from "@/components/proving-ground-card";
 import { SkillsLane } from "@/components/skills-lane";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +57,46 @@ function getProjectName(snapshot: IntelligenceSnapshot, projectId: string | null
     return "Athanor";
   }
   return snapshot.projects.find((project) => project.id === projectId)?.name ?? projectId;
+}
+
+function patternSurfaceClass(severity: string) {
+  if (severity === "high") {
+    return "surface-hero border";
+  }
+  if (severity === "medium") {
+    return "surface-instrument border";
+  }
+  return "surface-tile border";
+}
+
+function patternTone(severity: string) {
+  if (severity === "high") {
+    return "danger";
+  }
+  if (severity === "medium") {
+    return "warning";
+  }
+  return "info";
+}
+
+function reviewSurfaceClass(status: string) {
+  if (status === "pending_approval") {
+    return "surface-hero border";
+  }
+  if (status === "failed") {
+    return "surface-instrument border";
+  }
+  return "surface-tile border";
+}
+
+function reviewTone(status: string) {
+  if (status === "pending_approval") {
+    return "review";
+  }
+  if (status === "failed") {
+    return "danger";
+  }
+  return "success";
 }
 
 export function IntelligenceConsole({
@@ -206,7 +249,7 @@ export function IntelligenceConsole({
       {feedback ? <ErrorPanel title="Intelligence action" description={feedback} /> : null}
 
       <div className="grid gap-4 xl:grid-cols-[0.95fr_1.35fr]">
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="text-lg">Shared filters</CardTitle>
             <CardDescription>Project, agent, and review state all stay URL-backed across the family routes.</CardDescription>
@@ -217,6 +260,7 @@ export function IntelligenceConsole({
                 value={search}
                 onChange={(event) => setSearchValue("search", event.target.value || null)}
                 placeholder={`Search ${variant}`}
+                className="surface-instrument"
               />
             </div>
             <FilterRow
@@ -256,7 +300,7 @@ export function IntelligenceConsole({
           </CardContent>
         </Card>
 
-        <Card className="border-border/70 bg-card/70">
+        <Card className="surface-hero">
           <CardHeader>
             <CardTitle className="text-lg">Operator posture</CardTitle>
             <CardDescription>What needs judgment now, what is improving, and where the next intervention helps most.</CardDescription>
@@ -271,7 +315,7 @@ export function IntelligenceConsole({
 
       {variant === "insights" ? (
         <>
-          <Card className="border-border/70 bg-card/70">
+          <Card className="surface-panel">
             <CardHeader>
               <CardTitle className="text-lg">Detected patterns</CardTitle>
               <CardDescription>{visiblePatterns.length} patterns match the current filters.</CardDescription>
@@ -279,9 +323,14 @@ export function IntelligenceConsole({
             <CardContent className="grid gap-3 lg:grid-cols-2">
               {visiblePatterns.length > 0 ? (
                 visiblePatterns.map((pattern) => (
-                  <div key={`${pattern.type}-${pattern.agentId ?? "global"}`} className="rounded-2xl border border-border/70 bg-background/20 p-4">
+                  <div
+                    key={`${pattern.type}-${pattern.agentId ?? "global"}`}
+                    className={`rounded-2xl p-4 ${patternSurfaceClass(pattern.severity)}`}
+                  >
                     <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={pattern.severity === "high" ? "destructive" : "outline"}>{pattern.severity}</Badge>
+                      <Badge variant="outline" className="status-badge" data-tone={patternTone(pattern.severity)}>
+                        {pattern.severity}
+                      </Badge>
                       <Badge variant="secondary">{pattern.type.replace(/_/g, " ")}</Badge>
                       {pattern.agentId ? <Badge variant="outline">{pattern.agentId}</Badge> : null}
                       <span className="ml-auto text-xs text-muted-foreground">{getProjectName(snapshot, inferPatternProjectId(pattern))}</span>
@@ -307,14 +356,14 @@ export function IntelligenceConsole({
             </CardContent>
           </Card>
 
-          <Card className="border-border/70 bg-card/70">
+          <Card className="surface-panel">
             <CardHeader>
               <CardTitle className="text-lg">Recommendations</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {(snapshot.report?.recommendations ?? []).length > 0 ? (
                 snapshot.report?.recommendations.map((recommendation) => (
-                  <div key={recommendation} className="rounded-2xl border border-border/70 bg-background/20 p-4 text-sm">
+                  <div key={recommendation} className="surface-instrument rounded-2xl border p-4 text-sm">
                     {recommendation}
                   </div>
                 ))
@@ -337,7 +386,13 @@ export function IntelligenceConsole({
 
           <SkillsLane />
 
-          <Card className="border-border/70 bg-card/70">
+          <div className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">
+            <ModelGovernanceCard />
+            <ProvingGroundCard />
+            <JudgePlaneCard />
+          </div>
+
+          <Card className="surface-panel">
             <CardHeader>
               <CardTitle className="text-lg">Learning health</CardTitle>
               <CardDescription>{snapshot.learning?.summary.positiveSignals.length ?? 0} positive signals in the current cycle.</CardDescription>
@@ -365,35 +420,45 @@ export function IntelligenceConsole({
       ) : null}
 
       {variant === "review" ? (
-        <Card className="border-border/70 bg-card/70">
-          <CardHeader>
-            <CardTitle className="text-lg">Review queue</CardTitle>
-            <CardDescription>{visibleReviewTasks.length} review items match the current filters.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {visibleReviewTasks.length > 0 ? (
-              visibleReviewTasks.map((task) => (
-                <button
-                  key={task.id}
-                  type="button"
-                  onClick={() => setSearchValue("selection", task.id)}
-                  className="w-full rounded-2xl border border-border/70 bg-background/20 p-4 text-left transition hover:bg-accent/40"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={task.status === "pending_approval" ? "destructive" : "outline"}>{task.status}</Badge>
-                    <Badge variant="secondary">{task.agentId}</Badge>
-                    {task.projectId ? <Badge variant="outline">{getProjectName(snapshot, task.projectId)}</Badge> : null}
-                    <span className="ml-auto text-xs text-muted-foreground">{formatRelativeTime(task.createdAt)}</span>
-                  </div>
-                  <p className="mt-3 text-sm font-medium">{task.prompt}</p>
-                  {task.result ? <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{task.result}</p> : null}
-                </button>
-              ))
-            ) : (
-              <EmptyState title="No review items match the current filters" description="Clear the review filter or search for a different task." />
-            )}
-          </CardContent>
-        </Card>
+        <>
+          <div className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">
+            <ModelGovernanceCard />
+            <ProvingGroundCard />
+            <JudgePlaneCard />
+          </div>
+
+          <Card className="surface-panel">
+            <CardHeader>
+              <CardTitle className="text-lg">Review queue</CardTitle>
+              <CardDescription>{visibleReviewTasks.length} review items match the current filters.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {visibleReviewTasks.length > 0 ? (
+                visibleReviewTasks.map((task) => (
+                  <button
+                    key={task.id}
+                    type="button"
+                    onClick={() => setSearchValue("selection", task.id)}
+                    className={`w-full rounded-2xl p-4 text-left transition hover:bg-accent/40 ${reviewSurfaceClass(task.status)}`}
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="status-badge" data-tone={reviewTone(task.status)}>
+                        {task.status}
+                      </Badge>
+                      <Badge variant="secondary">{task.agentId}</Badge>
+                      {task.projectId ? <Badge variant="outline">{getProjectName(snapshot, task.projectId)}</Badge> : null}
+                      <span className="ml-auto text-xs text-muted-foreground">{formatRelativeTime(task.createdAt)}</span>
+                    </div>
+                    <p className="mt-3 text-sm font-medium">{task.prompt}</p>
+                    {task.result ? <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{task.result}</p> : null}
+                  </button>
+                ))
+              ) : (
+                <EmptyState title="No review items match the current filters" description="Clear the review filter or search for a different task." />
+              )}
+            </CardContent>
+          </Card>
+        </>
       ) : null}
 
       <Sheet open={Boolean(selectedReviewTask)} onOpenChange={(open) => setSearchValue("selection", open ? selection : null)}>
@@ -413,7 +478,7 @@ export function IntelligenceConsole({
                 </div>
                 {selectedReviewTask.result ? <Section label="Result">{selectedReviewTask.result}</Section> : null}
                 {selectedReviewTask.error ? <Section label="Error">{selectedReviewTask.error}</Section> : null}
-                <Card className="border-border/70 bg-card/70">
+                <Card className="surface-panel">
                   <CardHeader>
                     <CardTitle className="text-lg">Actions</CardTitle>
                     <CardDescription>Approve, reopen, or jump back into the related task and project context.</CardDescription>
@@ -489,7 +554,7 @@ function FilterRow({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2">
+    <div className="surface-metric rounded-xl border px-3 py-2">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-1 font-medium">{value}</p>
     </div>
@@ -504,7 +569,7 @@ function MetricGroup({
   rows: Array<{ label: string; value: string }>;
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-background/20 p-4">
+    <div className="surface-instrument rounded-2xl border p-4">
       <p className="text-sm font-medium">{title}</p>
       <div className="mt-3 space-y-2">
         {rows.map((row) => (
@@ -522,7 +587,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <div className="mt-2 rounded-xl border border-border/60 bg-background/30 p-3 text-sm whitespace-pre-wrap">
+      <div className="surface-instrument mt-2 rounded-xl border p-3 text-sm whitespace-pre-wrap">
         {children}
       </div>
     </div>

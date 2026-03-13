@@ -36,7 +36,7 @@ export function MetricChartClient({
     <div className="h-64 min-h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ChartComponent data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+          <CartesianGrid stroke="var(--line-soft)" strokeOpacity={0.55} vertical={false} />
           <XAxis
             dataKey="timestamp"
             tickFormatter={(value) =>
@@ -45,11 +45,11 @@ export function MetricChartClient({
                 minute: "2-digit",
               })
             }
-            stroke="rgba(255,255,255,0.4)"
+            stroke="var(--text-muted)"
             minTickGap={24}
           />
           <YAxis
-            stroke="rgba(255,255,255,0.4)"
+            stroke="var(--text-muted)"
             tickFormatter={(value: number) => formatNumber(value, 0)}
             width={42}
           />
@@ -115,7 +115,7 @@ function TooltipContent({
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[rgba(11,11,11,0.96)] p-3 shadow-2xl">
+    <div className="surface-chrome rounded-2xl border p-3 shadow-2xl">
       <p className="mb-2 text-xs text-muted-foreground">{formatTimestamp(String(label ?? ""))}</p>
       <div className="space-y-1.5">
         {payload.map((entry) => (
@@ -123,7 +123,7 @@ function TooltipContent({
             <span className="flex items-center gap-2 text-muted-foreground">
               <span
                 className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: entry.color ?? "#f5c86d" }}
+                style={{ backgroundColor: entry.color ?? "var(--chart-cat-1)" }}
               />
               {entry.name ?? "Series"}
             </span>

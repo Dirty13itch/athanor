@@ -104,7 +104,7 @@ export function MonitoringConsole({ initialSnapshot }: { initialSnapshot: Monito
         </div>
       </PageHeader>
 
-      <Card className="border-border/70 bg-card/70">
+      <Card className="surface-panel">
         <CardHeader>
           <CardTitle className="text-lg">Grafana drill-downs</CardTitle>
           <CardDescription>Use drawer previews for focused context, then jump to Grafana for full workflows.</CardDescription>
@@ -139,14 +139,18 @@ export function MonitoringConsole({ initialSnapshot }: { initialSnapshot: Monito
             const diskRatio =
               entry.diskUsed !== null && entry.diskTotal ? (entry.diskUsed / entry.diskTotal) * 100 : 0;
             return (
-              <Card key={entry.id} className="border-border/70 bg-card/70">
+              <Card key={entry.id} className="surface-panel">
                 <CardHeader>
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <CardTitle className="text-lg">{entry.name}</CardTitle>
                       <CardDescription>{entry.role}</CardDescription>
                     </div>
-                    <Badge variant={entry.cpuUsage !== null ? "outline" : "destructive"}>
+                    <Badge
+                      variant="outline"
+                      className="status-badge"
+                      data-tone={entry.cpuUsage !== null ? "success" : "danger"}
+                    >
                       {entry.cpuUsage !== null ? "Reachable" : "Unreachable"}
                     </Badge>
                   </div>
@@ -154,11 +158,11 @@ export function MonitoringConsole({ initialSnapshot }: { initialSnapshot: Monito
                 <CardContent className="space-y-4">
                   <MetricRow label="CPU" value={`${entry.cpuUsage?.toFixed(1) ?? "--"}%`} />
                   <ProgressBar value={entry.cpuUsage ?? 0} />
-                  <Sparkline data={entry.cpuHistory} width={420} height={28} fill className="w-full" />
+                  <Sparkline data={entry.cpuHistory} width={420} height={28} fill className="w-full" color="var(--chart-cat-1)" />
 
                   <MetricRow label="Memory" value={`${formatBytes(entry.memUsed)} / ${formatBytes(entry.memTotal)}`} />
                   <ProgressBar value={memRatio} />
-                  <Sparkline data={entry.memHistory} width={420} height={28} fill className="w-full" />
+                  <Sparkline data={entry.memHistory} width={420} height={28} fill className="w-full" color="var(--chart-cat-2)" />
 
                   <MetricRow label="Disk" value={`${formatBytes(entry.diskUsed)} / ${formatBytes(entry.diskTotal)}`} />
                   <ProgressBar value={diskRatio} />
@@ -187,7 +191,7 @@ export function MonitoringConsole({ initialSnapshot }: { initialSnapshot: Monito
                 <SheetDescription>{activeDashboard.description}</SheetDescription>
               </SheetHeader>
               <div className="space-y-6 p-6">
-                <Card className="border-border/70 bg-card/70">
+                <Card className="surface-instrument">
                   <CardHeader>
                     <CardTitle className="text-lg">Drawer preview</CardTitle>
                     <CardDescription>This drawer preserves route state and keeps the operator in the command center.</CardDescription>

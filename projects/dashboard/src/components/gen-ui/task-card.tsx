@@ -5,7 +5,7 @@ import type { TaskStatusParsed } from "@/lib/generative-ui";
 
 const statusColors: Record<string, string> = {
   completed: "bg-green-500/20 text-green-400",
-  running: "bg-amber/20 text-amber",
+  running: "bg-primary/20 text-primary",
   failed: "bg-red-500/20 text-red-400",
   pending: "bg-muted text-muted-foreground",
   queued: "bg-muted text-muted-foreground",

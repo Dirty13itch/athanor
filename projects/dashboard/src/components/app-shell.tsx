@@ -17,6 +17,7 @@ import {
 import { CommandPalette } from "@/components/command-palette";
 import { Kbd } from "@/components/kbd";
 import { MiniTrend } from "@/components/mini-trend";
+import { OperatorPresenceHeartbeat } from "@/components/operator-presence-heartbeat";
 import { RouteIcon } from "@/components/route-icon";
 import { StatusDot } from "@/components/status-dot";
 import { getOverview } from "@/lib/api";
@@ -52,11 +53,10 @@ function NavLinks({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors",
-                    active
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    "nav-rail-link flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors",
+                    active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
+                  data-active={active ? "true" : "false"}
                 >
                   <span className="flex items-center gap-3">
                     <RouteIcon icon={item.icon} className="h-4 w-4" />
@@ -97,8 +97,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
     >
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} overview={overview} />
+      <OperatorPresenceHeartbeat />
 
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-border/80 bg-background/85 backdrop-blur">
+      <header className="surface-chrome fixed inset-x-0 top-0 z-40 border-b">
         <div className="flex h-[4.5rem] items-center gap-3 px-4 sm:px-6 lg:pl-[18.5rem]">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3">
@@ -108,7 +109,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               <Button
                 variant="outline"
-                className="hidden min-w-[16rem] justify-start gap-3 text-muted-foreground md:inline-flex"
+                className="surface-instrument hidden min-w-[16rem] justify-start gap-3 border text-[color:var(--text-secondary)] hover:bg-accent/70 md:inline-flex"
                 onClick={() => setPaletteOpen(true)}
               >
                 <Search className="h-4 w-4" />
@@ -165,12 +166,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="w-[18rem] border-r border-border/80 bg-sidebar/95 p-0 backdrop-blur"
+                className="surface-sidebar w-[18rem] border-r p-0"
                 showCloseButton={false}
               >
                 <SheetHeader className="border-b border-border/80 px-4 py-4 text-left">
                   <div>
-                    <SheetTitle className="font-heading text-xl tracking-wide">Athanor</SheetTitle>
+                    <SheetTitle className="font-heading text-xl font-medium tracking-[-0.025em]">
+                      Athanor
+                    </SheetTitle>
                     <SheetDescription>Operator command center</SheetDescription>
                   </div>
                 </SheetHeader>
@@ -186,9 +189,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <aside className="fixed inset-y-0 left-0 hidden w-[17rem] flex-col border-r border-border/80 bg-sidebar/88 px-4 pb-6 pt-6 backdrop-blur lg:flex">
-        <Link href="/" className="rounded-2xl border border-border/70 bg-background/30 p-4">
-          <p className="font-heading text-3xl font-semibold tracking-wide">Athanor</p>
+      <aside className="surface-sidebar fixed inset-y-0 left-0 hidden w-[17rem] flex-col border-r px-4 pb-6 pt-6 lg:flex">
+        <Link href="/" className="surface-brand rounded-[1.6rem] border p-4">
+          <p className="font-heading text-3xl font-medium tracking-[-0.03em]">Athanor</p>
           <p className="mt-1 text-xs uppercase tracking-[0.28em] text-muted-foreground">
             Command Center
           </p>
@@ -211,11 +214,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "flex items-center justify-between rounded-xl px-3 py-3 text-sm transition-colors",
+                        "nav-rail-link flex items-center justify-between rounded-xl px-3 py-3 text-sm transition-colors",
                         active
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
+                      data-active={active ? "true" : "false"}
                     >
                       <span className="flex items-center gap-3">
                         <RouteIcon icon={item.icon} className="h-4 w-4" />
@@ -241,11 +245,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           key={item.href}
                           href={item.href}
                           className={cn(
-                            "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors",
+                            "nav-rail-link flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors",
                             active
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                              ? "text-foreground"
+                              : "text-muted-foreground hover:text-foreground"
                           )}
+                          data-active={active ? "true" : "false"}
                         >
                           <span className="flex items-center gap-3">
                             <RouteIcon icon={item.icon} className="h-4 w-4" />
@@ -262,7 +267,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="mt-6 space-y-3 rounded-2xl border border-border/70 bg-background/20 p-4">
+        <div className="surface-instrument mt-6 space-y-3 rounded-2xl border p-4">
           <div className="flex items-center justify-between">
             <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Cluster</p>
             <StatusDot tone={shellStateTone} pulse={degradedCount > 0} />
@@ -278,7 +283,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <MiniTrend points={overview?.serviceTrend ?? []} />
         </div>
 
-        <div className="mt-4 space-y-3 rounded-2xl border border-border/70 bg-background/20 p-4">
+        <div className="surface-panel mt-4 space-y-3 rounded-2xl border p-4">
           <div className="flex items-center justify-between">
             <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Quick Actions</p>
             <Sparkles className="h-4 w-4 text-primary" />
@@ -304,7 +309,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
 
-        <div className="mt-auto rounded-2xl border border-border/70 bg-background/20 p-4">
+        <div className="surface-instrument mt-auto rounded-2xl border p-4">
           <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Shortcuts</p>
           <div className="mt-3 space-y-2 text-sm text-muted-foreground">
             <div className="flex items-center justify-between">
@@ -341,7 +346,7 @@ function StatusChip({
   detailVolatile?: boolean;
 }) {
   return (
-    <div className="min-w-[8rem] rounded-2xl border border-border/70 bg-background/30 px-3 py-2">
+    <div className="chrome-chip min-w-[8rem] rounded-2xl border px-3 py-2">
       <div className="flex items-center gap-2">
         <StatusDot tone={tone} />
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>

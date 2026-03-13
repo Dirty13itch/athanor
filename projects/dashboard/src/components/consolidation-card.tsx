@@ -57,7 +57,7 @@ export function ConsolidationCard() {
   const collections = Object.entries(consolidationQuery.data ?? {});
 
   return (
-    <Card className="border-border/70 bg-card/70">
+    <Card className="surface-panel">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Layers3 className="h-5 w-5 text-primary" />
@@ -69,7 +69,7 @@ export function ConsolidationCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         {feedback ? (
-          <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2 text-sm">
+          <div className="surface-instrument rounded-xl border px-3 py-2 text-sm">
             {feedback}
           </div>
         ) : null}
@@ -94,7 +94,7 @@ export function ConsolidationCard() {
             return (
               <div
                 key={name}
-                className="flex items-center justify-between rounded-xl border border-border/60 bg-background/30 px-3 py-2 text-sm"
+                className="surface-instrument flex items-center justify-between rounded-xl border px-3 py-2 text-sm"
               >
                 <div>
                   <p className="font-medium">{formatKey(name)}</p>
@@ -109,7 +109,7 @@ export function ConsolidationCard() {
         </div>
 
         {lastRun ? (
-          <div className="rounded-xl border border-border/60 bg-background/30 p-3 text-sm">
+          <div className="surface-instrument rounded-xl border p-3 text-sm">
             <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Last run</p>
             <pre className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">
               {JSON.stringify(lastRun, null, 2)}
@@ -141,7 +141,7 @@ function Metric({
   detail?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/40 px-3 py-2">
+    <div className="surface-metric rounded-xl border px-3 py-2">
       <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <p className="mt-1 text-sm font-semibold">{value}</p>
       {detail ? <p className="text-xs text-muted-foreground">{detail}</p> : null}

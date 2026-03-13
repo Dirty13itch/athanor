@@ -80,7 +80,7 @@ export function SidebarNav() {
       <header className="fixed inset-x-0 top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur lg:hidden">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-3 text-foreground">
-            <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_18px_theme(colors.amber)]" />
+            <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_22px_color-mix(in_oklab,var(--accent-structural)_40%,transparent)]" />
             <div>
               <p className="font-heading text-xl font-semibold tracking-wide">Athanor</p>
               <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">
@@ -98,7 +98,7 @@ export function SidebarNav() {
 
             <SheetContent
               side="left"
-              className="w-[18rem] border-r border-border/80 bg-sidebar/95 p-0 backdrop-blur"
+              className="surface-sidebar w-[18rem] border-r p-0 backdrop-blur-xl"
               showCloseButton={false}
             >
               <SheetHeader className="border-b border-border/80 px-4 py-4 text-left">
@@ -126,7 +126,7 @@ export function SidebarNav() {
         </div>
       </header>
 
-      <aside className="fixed inset-y-0 left-0 hidden w-56 flex-col border-r border-border/80 bg-sidebar/85 backdrop-blur lg:flex">
+      <aside className="surface-sidebar fixed inset-y-0 left-0 hidden w-56 flex-col border-r backdrop-blur-xl lg:flex">
         <div className="flex h-16 items-center border-b border-border/80 px-4">
           <Link href="/" className="text-foreground">
             <p className="font-heading text-2xl font-semibold tracking-wide">Athanor</p>

@@ -1,12 +1,15 @@
 import { cn } from "@/lib/utils";
 
-type StatusTone = "success" | "healthy" | "warning" | "danger" | "muted";
+type StatusTone = "success" | "healthy" | "warning" | "danger" | "muted" | "info" | "review" | "paused";
 
 const toneClasses: Record<StatusTone, string> = {
-  success: "bg-emerald-500",
-  healthy: "bg-emerald-500",
-  warning: "bg-amber-400",
-  danger: "bg-red-500",
+  success: "bg-[color:var(--signal-success)]",
+  healthy: "bg-[color:var(--signal-success)]",
+  warning: "bg-[color:var(--signal-warning)]",
+  danger: "bg-[color:var(--signal-danger)]",
+  info: "bg-[color:var(--signal-info)]",
+  review: "bg-[color:var(--signal-review)]",
+  paused: "bg-[color:var(--signal-paused)]",
   muted: "bg-muted-foreground/40",
 };
 
