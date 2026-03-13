@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { LiveBadge } from "@/components/live-badge";
 import { MetricChart } from "@/components/metric-chart";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
@@ -18,6 +19,7 @@ import { getServices, getServicesHistory } from "@/lib/api";
 import { type ServicesHistorySnapshot, type ServicesSnapshot } from "@/lib/contracts";
 import { config } from "@/lib/config";
 import { compactText, formatCategoryLabel, formatLatency, formatRelativeTime } from "@/lib/format";
+import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
 import { queryKeys } from "@/lib/query-client";
 import { getTimeWindow, isTimeWindow, TIME_WINDOWS } from "@/lib/ranges";
 import { useUrlState } from "@/lib/url-state";
@@ -68,13 +70,13 @@ export function ServicesConsole({
     queryKey: queryKeys.services,
     queryFn: getServices,
     initialData: initialSnapshot,
-    refetchInterval: 20_000,
-    refetchIntervalInBackground: false,
+    ...liveQueryOptions(LIVE_REFRESH_INTERVALS.telemetry),
   });
   const historyQuery = useQuery({
     queryKey: queryKeys.servicesHistory(window),
     queryFn: () => getServicesHistory(window),
     initialData: window === initialHistory.window ? initialHistory : undefined,
+    ...liveQueryOptions(LIVE_REFRESH_INTERVALS.telemetry),
   });
 
   if (servicesQuery.isError) {
@@ -155,6 +157,7 @@ export function ServicesConsole({
         description="Operational service surface with persisted filters, history, deep links, and safe export/copy actions."
         actions={
           <>
+            <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.telemetry} />
             <Button variant="outline" onClick={() => exportSnapshot(snapshot)}>
               <Download className="mr-2 h-4 w-4" />
               Export view

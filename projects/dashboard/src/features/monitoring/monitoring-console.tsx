@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, RefreshCcw } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { LiveBadge } from "@/components/live-badge";
 import { PageHeader } from "@/components/page-header";
 import { ProgressBar } from "@/components/progress-bar";
 import { Sparkline } from "@/components/sparkline";
@@ -16,6 +17,7 @@ import { StatCard } from "@/components/stat-card";
 import { getMonitoring } from "@/lib/api";
 import { type MonitoringSnapshot } from "@/lib/contracts";
 import { formatRelativeTime } from "@/lib/format";
+import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
 import { queryKeys } from "@/lib/query-client";
 import { useUrlState } from "@/lib/url-state";
 
@@ -60,8 +62,7 @@ export function MonitoringConsole({ initialSnapshot }: { initialSnapshot: Monito
     queryKey: queryKeys.monitoring,
     queryFn: getMonitoring,
     initialData: initialSnapshot,
-    refetchInterval: 20_000,
-    refetchIntervalInBackground: false,
+    ...liveQueryOptions(LIVE_REFRESH_INTERVALS.telemetry),
   });
 
   if (monitoringQuery.isError) {
@@ -90,10 +91,13 @@ export function MonitoringConsole({ initialSnapshot }: { initialSnapshot: Monito
         title="Monitoring"
         description="Deep cluster monitoring with typed dashboard-owned data and Grafana-linked drawer previews."
         actions={
-          <Button variant="outline" onClick={() => void monitoringQuery.refetch()} disabled={monitoringQuery.isFetching}>
-            <RefreshCcw className={`mr-2 h-4 w-4 ${monitoringQuery.isFetching ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <>
+            <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.telemetry} />
+            <Button variant="outline" onClick={() => void monitoringQuery.refetch()} disabled={monitoringQuery.isFetching}>
+              <RefreshCcw className={`mr-2 h-4 w-4 ${monitoringQuery.isFetching ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </>
         }
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { LiveBadge } from "@/components/live-badge";
 import { MetricChart } from "@/components/metric-chart";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
 import { getGpuHistory, getGpuSnapshot } from "@/lib/api";
 import { type GpuHistoryResponse, type GpuSnapshotResponse } from "@/lib/contracts";
-import { formatMiB, formatPercent, formatWatts } from "@/lib/format";
+import { formatMiB, formatPercent, formatTemperatureF, formatWatts, celsiusToFahrenheit } from "@/lib/format";
+import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
 import { queryKeys } from "@/lib/query-client";
 import { isTimeWindow, TIME_WINDOWS } from "@/lib/ranges";
 import { useUrlState } from "@/lib/url-state";
@@ -54,13 +56,13 @@ export function GpuConsole({
     queryKey: queryKeys.gpuSnapshot,
     queryFn: getGpuSnapshot,
     initialData: initialSnapshot,
-    refetchInterval: 15_000,
-    refetchIntervalInBackground: false,
+    ...liveQueryOptions(LIVE_REFRESH_INTERVALS.telemetry),
   });
   const historyQuery = useQuery({
     queryKey: queryKeys.gpuHistory(window),
     queryFn: () => getGpuHistory(window),
     initialData: window === initialHistory.window ? initialHistory : undefined,
+    ...liveQueryOptions(LIVE_REFRESH_INTERVALS.telemetry),
   });
 
   if (snapshotQuery.isError) {
@@ -105,6 +107,7 @@ export function GpuConsole({
     timestamp: point.timestamp,
     utilization: point.utilization,
     temperature: point.temperatureC,
+    temperatureF: point.temperatureC === null ? null : celsiusToFahrenheit(point.temperatureC),
     power: point.powerW,
     memory: point.memoryRatio,
   }));
@@ -134,6 +137,7 @@ export function GpuConsole({
         description="Prometheus-backed fleet telemetry with time-range selection, hotspot triage, and side-by-side GPU comparison."
         actions={
           <>
+            <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.telemetry} />
             <Button variant="outline" onClick={() => exportSnapshot(snapshot)}>
               <Download className="mr-2 h-4 w-4" />
               Export snapshot
@@ -148,7 +152,7 @@ export function GpuConsole({
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="GPUs" value={`${snapshot.summary.gpuCount}`} detail="Discovered from Prometheus and DCGM exporters." />
           <StatCard label="Average utilization" value={formatPercent(snapshot.summary.averageUtilization, 0)} detail="Fleet-wide utilization average." />
-          <StatCard label="Average temperature" value={snapshot.summary.averageTemperature === null ? "--" : `${Math.round(snapshot.summary.averageTemperature)}C`} detail="Mean GPU core temperature." />
+          <StatCard label="Average temperature" value={formatTemperatureF(snapshot.summary.averageTemperature)} detail="Mean GPU core temperature." />
           <StatCard label="Power draw" value={formatWatts(snapshot.summary.totalPowerW)} detail="Total instantaneous GPU power." />
         </div>
       </PageHeader>
@@ -219,7 +223,7 @@ export function GpuConsole({
                   </Badge>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-                  <Metric label="Temp" value={gpu.temperatureC === null ? "--" : `${Math.round(gpu.temperatureC)}C`} icon={<Thermometer className="h-3.5 w-3.5" />} />
+                  <Metric label="Temp" value={formatTemperatureF(gpu.temperatureC)} icon={<Thermometer className="h-3.5 w-3.5" />} />
                   <Metric label="Power" value={formatWatts(gpu.powerW)} icon={<Zap className="h-3.5 w-3.5" />} />
                   <Metric label="VRAM" value={formatMiB(gpu.memoryUsedMiB)} icon={<Flame className="h-3.5 w-3.5" />} />
                 </div>
@@ -242,7 +246,7 @@ export function GpuConsole({
               <>
                 <div className="grid gap-4 sm:grid-cols-4">
                   <StatCard label="Utilization" value={formatPercent(highlightedGpu.utilization, 0)} />
-                  <StatCard label="Temperature" value={highlightedGpu.temperatureC === null ? "--" : `${Math.round(highlightedGpu.temperatureC)}C`} />
+                  <StatCard label="Temperature" value={formatTemperatureF(highlightedGpu.temperatureC)} />
                   <StatCard label="Power" value={formatWatts(highlightedGpu.powerW)} />
                   <StatCard label="VRAM" value={`${formatMiB(highlightedGpu.memoryUsedMiB)} / ${formatMiB(highlightedGpu.memoryTotalMiB)}`} />
                 </div>
@@ -251,7 +255,7 @@ export function GpuConsole({
                     data={highlightedData}
                     series={[
                       { dataKey: "utilization", label: "Utilization", color: "var(--chart-cat-1)" },
-                      { dataKey: "temperature", label: "Temperature", color: "var(--signal-danger)" },
+                      { dataKey: "temperatureF", label: "Temperature (F)", color: "var(--signal-danger)" },
                       { dataKey: "power", label: "Power", color: "var(--chart-cat-2)" },
                       { dataKey: "memory", label: "Memory ratio", color: "var(--chart-cat-3)" },
                     ]}
@@ -326,7 +330,7 @@ export function GpuConsole({
                     </div>
                   </div>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                    <Metric label="Temperature" value={gpu.temperatureC === null ? "--" : `${Math.round(gpu.temperatureC)}C`} />
+                    <Metric label="Temperature" value={formatTemperatureF(gpu.temperatureC)} />
                     <Metric label="Power" value={formatWatts(gpu.powerW)} />
                     <Metric label="VRAM used" value={formatMiB(gpu.memoryUsedMiB)} />
                     <Metric label="VRAM total" value={formatMiB(gpu.memoryTotalMiB)} />

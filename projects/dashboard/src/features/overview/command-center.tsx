@@ -23,6 +23,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { GovernorCard } from "@/components/governor-card";
 import { JudgePlaneCard } from "@/components/judge-plane-card";
+import { LiveBadge } from "@/components/live-badge";
 import { MetricChart } from "@/components/metric-chart";
 import { ModelGovernanceCard } from "@/components/model-governance-card";
 import { OperationsReadinessCard } from "@/components/operations-readiness-card";
@@ -41,6 +42,8 @@ import {
   type OverviewSnapshot,
 } from "@/lib/contracts";
 import { compactText, formatLatency, formatPercent, formatRelativeTime, formatTimestamp } from "@/lib/format";
+import { formatTemperatureF } from "@/lib/format";
+import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
 import { queryKeys } from "@/lib/query-client";
 import { readJsonStorage, STORAGE_KEYS } from "@/lib/state";
 
@@ -81,8 +84,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
     queryKey: queryKeys.overview,
     queryFn: getOverview,
     initialData: initialSnapshot,
-    refetchInterval: 30_000,
-    refetchIntervalInBackground: false,
+    ...liveQueryOptions(LIVE_REFRESH_INTERVALS.overview),
   });
   const [recentContext] = useState<
     Array<{ id: string; title: string; route: string; updatedAt: string; type: string }>
@@ -149,6 +151,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         description="Athanor cluster posture, workforce state, first-class projects, and launch points for the operator workflow."
         actions={
           <>
+            <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.overview} />
             <Button asChild variant="outline">
               <Link href="/services?status=degraded">Open incidents</Link>
             </Button>
@@ -547,7 +550,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                     <Badge variant="outline">{formatPercent(gpu.utilization, 0)}</Badge>
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-                    <Metric label="Temp" value={gpu.temperatureC === null ? "--" : `${Math.round(gpu.temperatureC)}C`} />
+                  <Metric label="Temp" value={formatTemperatureF(gpu.temperatureC)} />
                     <Metric label="Power" value={gpu.powerW === null ? "--" : `${Math.round(gpu.powerW)}W`} />
                     <Metric
                       label="VRAM"

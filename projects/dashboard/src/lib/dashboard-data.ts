@@ -32,7 +32,7 @@ import {
   getFixtureWorkforceSnapshot,
   isDashboardFixtureMode,
 } from "@/lib/dashboard-fixtures";
-import { average } from "@/lib/format";
+import { average, formatTemperatureF } from "@/lib/format";
 import { config, getNodeNameFromInstance, joinUrl, type MonitoredService } from "@/lib/config";
 import { getRangeStepSeconds, getTimeWindow, type TimeWindowId } from "@/lib/ranges";
 
@@ -1591,7 +1591,7 @@ function buildAlerts(
     alerts.push({
       id: `gpu-${hottest.id}`,
       title: `${hottest.gpuName} is running hot`,
-      description: `${hottest.node} is reporting ${Math.round(hottest.temperatureC ?? 0)}C.`,
+      description: `${hottest.node} is reporting ${formatTemperatureF(hottest.temperatureC)}.`,
       tone: "warning",
       href: `/gpu?highlight=${encodeURIComponent(hottest.id)}`,
     });

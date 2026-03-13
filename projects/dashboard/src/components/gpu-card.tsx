@@ -1,4 +1,5 @@
 import { Sparkline } from "./sparkline";
+import { formatTemperatureF } from "@/lib/format";
 
 interface GpuCardProps {
   name: string;
@@ -59,7 +60,7 @@ export function GpuCard({
           />
         </div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className={tempColor(temperature)}>{temperature.toFixed(0)}C</span>
+          <span className={tempColor(temperature)}>{formatTemperatureF(temperature)}</span>
           <span className="truncate ml-1">{workload}</span>
         </div>
       </div>
@@ -92,7 +93,7 @@ export function GpuCard({
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div>
           <span className="text-muted-foreground">Temp</span>
-          <p className={`font-mono font-medium ${tempColor(temperature)}`}>{temperature.toFixed(0)}C</p>
+          <p className={`font-mono font-medium ${tempColor(temperature)}`}>{formatTemperatureF(temperature)}</p>
         </div>
         <div>
           <span className="text-muted-foreground">Power</span>

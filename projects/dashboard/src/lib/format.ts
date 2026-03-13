@@ -48,6 +48,23 @@ export function formatWatts(value: string | number | null): string {
   return `${parsed.toFixed(0)}W`;
 }
 
+export function celsiusToFahrenheit(value: number): number {
+  return (value * 9) / 5 + 32;
+}
+
+export function formatTemperatureF(value: string | number | null, digits = 0): string {
+  if (value === null || value === undefined) {
+    return "--";
+  }
+
+  const parsed = typeof value === "number" ? value : Number.parseFloat(value);
+  if (Number.isNaN(parsed)) {
+    return "--";
+  }
+
+  return `${celsiusToFahrenheit(parsed).toFixed(digits)}F`;
+}
+
 export function average(values: number[]): number | null {
   if (values.length === 0) {
     return null;
