@@ -486,8 +486,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             <MetricChart
               data={trendData}
               series={[
-                { dataKey: "services", label: "Service availability", color: "#7ea2ff" },
-                { dataKey: "gpu", label: "GPU utilization", color: "#78d1f2" },
+                { dataKey: "services", label: "Service availability", color: "var(--chart-1)" },
+                { dataKey: "gpu", label: "GPU utilization", color: "var(--chart-2)" },
               ]}
               mode="line"
               valueSuffix="%"

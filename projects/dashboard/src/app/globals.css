@@ -134,51 +134,51 @@
 }
 
 .dark {
-  --bg-app: oklch(0.14 0.008 252);
-  --bg-atmosphere: oklch(0.18 0.012 246 / 0.28);
-  --surface-rail: oklch(0.17 0.01 248);
-  --surface-shell: oklch(0.19 0.012 246);
-  --surface-panel: oklch(0.205 0.012 248);
-  --surface-panel-2: oklch(0.235 0.014 246);
-  --surface-overlay: oklch(0.24 0.016 244 / 0.94);
-  --surface-hero: oklch(0.23 0.026 232 / 0.94);
-  --surface-metric: oklch(0.24 0.013 246 / 0.78);
-  --surface-instrument: oklch(0.18 0.012 246 / 0.96);
-  --line-soft: oklch(0.42 0.014 246 / 0.64);
-  --line-strong: oklch(0.58 0.024 232 / 0.82);
-  --line-focus: oklch(0.76 0.075 232 / 0.92);
-  --text-primary: oklch(0.95 0.01 244);
-  --text-secondary: oklch(0.83 0.012 244);
-  --text-muted: oklch(0.69 0.012 238);
-  --text-disabled: oklch(0.56 0.01 238);
-  --accent-structural: oklch(0.74 0.08 232);
-  --accent-structural-soft: oklch(0.74 0.08 232 / 0.18);
-  --accent-structural-strong: oklch(0.79 0.09 228);
-  --signal-success: oklch(0.76 0.14 158);
-  --signal-info: oklch(0.74 0.08 232);
-  --signal-warning: oklch(0.83 0.12 84);
-  --signal-danger: oklch(0.68 0.18 24);
-  --signal-paused: oklch(0.63 0.014 250);
-  --signal-review: oklch(0.72 0.09 302);
-  --domain-core: oklch(0.74 0.08 232);
-  --domain-workforce: oklch(0.76 0.08 196);
-  --domain-intelligence: oklch(0.74 0.09 294);
-  --domain-memory: oklch(0.74 0.09 170);
-  --domain-monitoring: oklch(0.77 0.07 205);
-  --domain-media: oklch(0.76 0.11 332);
-  --domain-home: oklch(0.78 0.1 148);
-  --chart-cat-1: oklch(0.74 0.08 232);
-  --chart-cat-2: oklch(0.77 0.08 205);
-  --chart-cat-3: oklch(0.74 0.09 170);
-  --chart-cat-4: oklch(0.72 0.09 294);
-  --chart-cat-5: oklch(0.75 0.1 332);
-  --chart-cat-6: oklch(0.76 0.12 158);
-  --chart-cat-7: oklch(0.8 0.12 64);
-  --chart-cat-8: oklch(0.66 0.016 248);
-  --state-hover: oklch(0.31 0.016 244 / 0.72);
-  --state-pressed: oklch(0.34 0.018 244 / 0.82);
-  --state-selected: oklch(0.74 0.08 232 / 0.18);
-  --state-focus-ring: oklch(0.79 0.09 228 / 0.92);
+  --bg-app: #161616;
+  --bg-atmosphere: rgb(255 255 255 / 0.03);
+  --surface-rail: #1a1a1a;
+  --surface-shell: #1f1f1f;
+  --surface-panel: #262626;
+  --surface-panel-2: #2d2d2d;
+  --surface-overlay: rgb(38 38 38 / 0.94);
+  --surface-hero: #212121;
+  --surface-metric: rgb(42 42 42 / 0.86);
+  --surface-instrument: #1f1f1f;
+  --line-soft: rgb(244 244 244 / 0.1);
+  --line-strong: #525252;
+  --line-focus: #78a9ff;
+  --text-primary: #f4f4f4;
+  --text-secondary: #dde1e6;
+  --text-muted: #a8a8a8;
+  --text-disabled: #6f6f6f;
+  --accent-structural: #78a9ff;
+  --accent-structural-soft: rgb(120 169 255 / 0.16);
+  --accent-structural-strong: #a6c8ff;
+  --signal-success: #42be65;
+  --signal-info: #78a9ff;
+  --signal-warning: #f1c21b;
+  --signal-danger: #fa4d56;
+  --signal-paused: #8d8d8d;
+  --signal-review: #be95ff;
+  --domain-core: #78a9ff;
+  --domain-workforce: #3ddbd9;
+  --domain-intelligence: #be95ff;
+  --domain-memory: #42be65;
+  --domain-monitoring: #33b1ff;
+  --domain-media: #ff7eb6;
+  --domain-home: #82cfff;
+  --chart-cat-1: #78a9ff;
+  --chart-cat-2: #33b1ff;
+  --chart-cat-3: #42be65;
+  --chart-cat-4: #be95ff;
+  --chart-cat-5: #ff7eb6;
+  --chart-cat-6: #3ddbd9;
+  --chart-cat-7: #f1c21b;
+  --chart-cat-8: #8d8d8d;
+  --state-hover: rgb(255 255 255 / 0.05);
+  --state-pressed: rgb(255 255 255 / 0.08);
+  --state-selected: rgb(120 169 255 / 0.14);
+  --state-focus-ring: rgb(166 200 255 / 0.92);
 
   --background: var(--bg-app);
   --foreground: var(--text-primary);
@@ -213,12 +213,12 @@
   --sidebar-ring: var(--line-focus);
 
   --panel-shadow:
-    0 28px 88px -46px rgb(0 0 0 / 0.96),
-    0 20px 44px -30px rgb(0 0 0 / 0.9),
-    inset 0 1px 0 rgb(226 236 255 / 0.07);
+    0 30px 90px -52px rgb(0 0 0 / 0.95),
+    0 18px 34px -24px rgb(0 0 0 / 0.82),
+    inset 0 1px 0 rgb(255 255 255 / 0.03);
   --chrome-shadow:
-    0 22px 70px -42px rgb(0 0 0 / 0.94),
-    inset 0 1px 0 rgb(226 236 255 / 0.05);
+    0 24px 70px -46px rgb(0 0 0 / 0.94),
+    inset 0 1px 0 rgb(255 255 255 / 0.025);
 }
 
 @layer base {
@@ -230,10 +230,9 @@
     @apply bg-background text-foreground;
     color-scheme: dark;
     background-image:
-      radial-gradient(circle at top left, color-mix(in oklab, var(--accent-structural-soft) 84%, transparent) 0%, transparent 36%),
-      radial-gradient(circle at 82% 10%, color-mix(in oklab, var(--ambient-domain) 32%, transparent) 0%, transparent 26%),
-      linear-gradient(135deg, rgb(226 236 255 / 0.02) 0%, transparent 24%),
-      linear-gradient(180deg, color-mix(in oklab, var(--background) 84%, black) 0%, var(--background) 56%, color-mix(in oklab, var(--background) 90%, black) 100%);
+      radial-gradient(circle at top left, var(--bg-atmosphere) 0%, transparent 28%),
+      radial-gradient(circle at 82% 8%, rgb(255 255 255 / 0.015) 0%, transparent 20%),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 80%, black) 0%, var(--background) 48%, color-mix(in srgb, var(--background) 88%, black) 100%);
     background-attachment: fixed;
     font-family: var(--font-system), sans-serif;
   }
@@ -285,101 +284,101 @@
 @layer components {
   .surface-card {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-panel) 84%, white) 0%, color-mix(in oklab, var(--bg-app) 88%, black) 100%);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-panel) 94%, white) 0%, color-mix(in srgb, var(--surface-shell) 90%, black) 100%);
     border-color: var(--line-soft);
     box-shadow: var(--panel-shadow);
-    backdrop-filter: blur(18px);
+    backdrop-filter: blur(14px);
   }
 
   .surface-panel {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-panel) 82%, white) 0%, color-mix(in oklab, var(--bg-app) 90%, black) 100%);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-panel) 92%, white) 0%, color-mix(in srgb, var(--surface-shell) 92%, black) 100%);
     border-color: var(--line-soft);
     box-shadow: var(--panel-shadow);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(15px);
   }
 
   .surface-instrument {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-instrument) 84%, white) 0%, color-mix(in oklab, var(--surface-rail) 92%, black) 100%);
-    border-color: color-mix(in oklab, var(--line-soft) 88%, transparent);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-instrument) 92%, white) 0%, color-mix(in srgb, var(--surface-rail) 94%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 92%, transparent);
     box-shadow:
-      inset 0 1px 0 rgb(226 236 255 / 0.04),
+      inset 0 1px 0 rgb(255 255 255 / 0.025),
       0 16px 30px -24px rgb(0 0 0 / 0.82);
-    backdrop-filter: blur(18px);
+    backdrop-filter: blur(12px);
   }
 
   .surface-hero {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-hero) 80%, white) 0%, color-mix(in oklab, var(--surface-panel) 88%, black) 100%);
-    border-color: color-mix(in oklab, var(--line-strong) 78%, var(--line-soft));
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-hero) 92%, white) 0%, color-mix(in srgb, var(--surface-panel) 92%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-strong) 80%, var(--line-soft));
     box-shadow:
       0 28px 72px -42px rgb(0 0 0 / 0.96),
-      inset 0 1px 0 rgb(226 236 255 / 0.08),
-      inset 0 0 0 1px color-mix(in oklab, var(--accent-structural) 16%, transparent);
-    backdrop-filter: blur(22px);
+      inset 0 1px 0 rgb(255 255 255 / 0.04),
+      inset 0 0 0 1px color-mix(in srgb, var(--accent-structural) 14%, transparent);
+    backdrop-filter: blur(16px);
   }
 
   .surface-chrome {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-overlay) 82%, white) 0%, color-mix(in oklab, var(--surface-rail) 92%, black) 100%);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-overlay) 90%, white) 0%, color-mix(in srgb, var(--surface-rail) 95%, black) 100%);
     border-color: var(--line-soft);
     box-shadow: var(--chrome-shadow);
-    backdrop-filter: blur(24px);
+    backdrop-filter: blur(18px);
   }
 
   .surface-sidebar {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--sidebar) 84%, white) 0%, color-mix(in oklab, var(--surface-rail) 92%, black) 100%);
+      linear-gradient(180deg, color-mix(in srgb, var(--sidebar) 92%, white) 0%, color-mix(in srgb, var(--surface-rail) 96%, black) 100%);
     border-color: var(--line-soft);
     box-shadow: var(--chrome-shadow);
-    backdrop-filter: blur(24px);
+    backdrop-filter: blur(18px);
   }
 
   .surface-brand {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-hero) 78%, white) 0%, color-mix(in oklab, var(--surface-rail) 88%, black) 100%);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-hero) 90%, white) 0%, color-mix(in srgb, var(--surface-rail) 92%, black) 100%);
     border-color: var(--line-strong);
     box-shadow:
       0 28px 72px -42px rgb(0 0 0 / 0.96),
-      inset 0 1px 0 rgb(226 236 255 / 0.08),
-      inset 0 0 0 1px color-mix(in oklab, var(--accent-structural) 14%, transparent);
+      inset 0 1px 0 rgb(255 255 255 / 0.04),
+      inset 0 0 0 1px color-mix(in srgb, var(--accent-structural) 12%, transparent);
   }
 
   .surface-tile {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-panel-2) 82%, white) 0%, color-mix(in oklab, var(--surface-panel) 92%, black) 100%);
-    border-color: color-mix(in oklab, var(--line-soft) 88%, transparent);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-panel-2) 90%, white) 0%, color-mix(in srgb, var(--surface-panel) 94%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 90%, transparent);
     box-shadow:
       0 18px 40px -34px rgb(0 0 0 / 0.88),
-      inset 0 1px 0 rgb(226 236 255 / 0.04);
+      inset 0 1px 0 rgb(255 255 255 / 0.025);
   }
 
   .surface-metric {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-metric) 76%, white) 0%, color-mix(in oklab, var(--surface-instrument) 94%, black) 100%);
-    border-color: color-mix(in oklab, var(--line-soft) 90%, transparent);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-metric) 88%, white) 0%, color-mix(in srgb, var(--surface-instrument) 96%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 90%, transparent);
     box-shadow:
-      inset 0 1px 0 rgb(226 236 255 / 0.04),
+      inset 0 1px 0 rgb(255 255 255 / 0.02),
       0 12px 24px -24px rgb(0 0 0 / 0.8);
   }
 
   .surface-stat {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-hero) 24%, var(--surface-panel)) 0%, color-mix(in oklab, var(--surface-panel) 88%, black) 100%);
-    border-color: color-mix(in oklab, var(--line-strong) 65%, var(--line-soft));
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-hero) 18%, var(--surface-panel)) 0%, color-mix(in srgb, var(--surface-panel) 92%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-strong) 50%, var(--line-soft));
     box-shadow:
       0 26px 60px -40px rgb(0 0 0 / 0.92),
-      inset 0 1px 0 rgb(226 236 255 / 0.06);
+      inset 0 1px 0 rgb(255 255 255 / 0.03);
   }
 
   .chrome-chip {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-overlay) 76%, white) 0%, color-mix(in oklab, var(--surface-rail) 92%, black) 100%);
-    border-color: color-mix(in oklab, var(--line-soft) 90%, transparent);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-overlay) 90%, white) 0%, color-mix(in srgb, var(--surface-rail) 96%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 90%, transparent);
     box-shadow:
       0 16px 34px -28px rgb(0 0 0 / 0.84),
-      inset 0 1px 0 rgb(226 236 255 / 0.04);
+      inset 0 1px 0 rgb(255 255 255 / 0.025);
   }
 
   .nav-rail-link {
@@ -393,12 +392,12 @@
   }
 
   .nav-rail-link[data-active="true"] {
-    border-color: color-mix(in oklab, var(--primary) 36%, var(--line-soft));
+    border-color: color-mix(in srgb, var(--primary) 38%, var(--line-soft));
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--primary) 14%, var(--surface-panel-2)) 0%, color-mix(in oklab, var(--surface-panel-2) 92%, black) 100%);
+      linear-gradient(180deg, color-mix(in srgb, var(--primary) 8%, var(--surface-panel-2)) 0%, color-mix(in srgb, var(--surface-panel-2) 94%, black) 100%);
     box-shadow:
-      inset 0 1px 0 rgb(226 236 255 / 0.05),
-      0 14px 28px -24px color-mix(in oklab, var(--accent-structural) 32%, transparent);
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 14px 28px -24px color-mix(in srgb, var(--accent-structural) 18%, transparent);
   }
 
   .status-badge {
@@ -452,10 +451,10 @@
 
   .metric-strip {
     background:
-      linear-gradient(180deg, color-mix(in oklab, var(--surface-instrument) 80%, white) 0%, color-mix(in oklab, var(--surface-rail) 94%, black) 100%);
-    border-color: color-mix(in oklab, var(--line-soft) 92%, transparent);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-instrument) 90%, white) 0%, color-mix(in srgb, var(--surface-rail) 96%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 92%, transparent);
     box-shadow:
-      inset 0 1px 0 rgb(226 236 255 / 0.04),
+      inset 0 1px 0 rgb(255 255 255 / 0.02),
       0 14px 28px -26px rgb(0 0 0 / 0.78);
   }
 }

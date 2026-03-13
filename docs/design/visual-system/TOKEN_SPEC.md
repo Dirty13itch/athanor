@@ -27,37 +27,37 @@ Each visual decision must declare which layer it belongs to.
 
 ### Background and shell
 
-Use cool graphite neutrals with faint blue bias.
+Use neutral charcoal and industrial gray neutrals with no page-level color wash.
 
 | Token | Role | Target value |
 | --- | --- | --- |
-| `--bg-app` | overall page background | `oklch(0.14 0.008 252)` |
-| `--bg-atmosphere` | atmospheric top-level glow carrier | `oklch(0.18 0.012 246 / 0.28)` |
-| `--surface-rail` | sidebar / header / chrome rail | `oklch(0.17 0.01 248)` |
-| `--surface-shell` | shell-adjacent elevated background | `oklch(0.19 0.012 246)` |
-| `--surface-panel` | primary content panel | `oklch(0.205 0.012 248)` |
-| `--surface-panel-2` | nested elevated panel | `oklch(0.235 0.014 246)` |
-| `--surface-overlay` | drawers / dialogs / overlays | `oklch(0.24 0.016 244 / 0.94)` |
-| `--surface-hero` | command-center spotlight panel | `oklch(0.23 0.026 232 / 0.94)` |
-| `--surface-metric` | compact metric tile | `oklch(0.24 0.013 246 / 0.78)` |
-| `--surface-instrument` | telemetry/chart well | `oklch(0.18 0.012 246 / 0.96)` |
+| `--bg-app` | overall page background | `#161616` |
+| `--bg-atmosphere` | neutral atmospheric top-level glow carrier | `rgb(255 255 255 / 0.03)` |
+| `--surface-rail` | sidebar / header / chrome rail | `#1a1a1a` |
+| `--surface-shell` | shell-adjacent elevated background | `#1f1f1f` |
+| `--surface-panel` | primary content panel | `#262626` |
+| `--surface-panel-2` | nested elevated panel | `#2d2d2d` |
+| `--surface-overlay` | drawers / dialogs / overlays | `rgb(38 38 38 / 0.94)` |
+| `--surface-hero` | command-center spotlight panel | `#212121` |
+| `--surface-metric` | compact metric tile | `rgb(42 42 42 / 0.86)` |
+| `--surface-instrument` | telemetry/chart well | `#1f1f1f` |
 
 ### Borders and dividers
 
 | Token | Role | Target value |
 | --- | --- | --- |
-| `--line-soft` | low-emphasis border | `oklch(0.42 0.014 246 / 0.64)` |
-| `--line-strong` | strong border or separation | `oklch(0.58 0.024 232 / 0.82)` |
-| `--line-focus` | focus-visible ring | `oklch(0.76 0.075 232 / 0.92)` |
+| `--line-soft` | low-emphasis border | `rgb(244 244 244 / 0.1)` |
+| `--line-strong` | strong border or separation | `#525252` |
+| `--line-focus` | focus-visible ring | `#78a9ff` |
 
 ### Text
 
 | Token | Role | Target value |
 | --- | --- | --- |
-| `--text-primary` | primary body and heading text | `oklch(0.95 0.01 244)` |
-| `--text-secondary` | secondary body and explanations | `oklch(0.83 0.012 244)` |
-| `--text-muted` | labels, metadata, timestamps | `oklch(0.69 0.012 238)` |
-| `--text-disabled` | disabled or inactive | `oklch(0.56 0.01 238)` |
+| `--text-primary` | primary body and heading text | `#f4f4f4` |
+| `--text-secondary` | secondary body and explanations | `#dde1e6` |
+| `--text-muted` | labels, metadata, timestamps | `#a8a8a8` |
+| `--text-disabled` | disabled or inactive | `#6f6f6f` |
 
 ## Structural accent
 
@@ -65,20 +65,20 @@ The structural accent is the system's main action color.
 
 It should read as:
 
-- ion blue
+- bright industrial blue
 - precise
 - operational
 
 Not as:
 
-- brand cobalt everywhere
-- generic SaaS blue
+- page-wide blue atmosphere
+- generic SaaS blue branding everywhere
 
 | Token | Role | Target value |
 | --- | --- | --- |
-| `--accent-structural` | primary action / active selection / positive attention | `oklch(0.74 0.08 232)` |
-| `--accent-structural-soft` | low-emphasis structural tint | `oklch(0.74 0.08 232 / 0.18)` |
-| `--accent-structural-strong` | focused active edge light | `oklch(0.79 0.09 228)` |
+| `--accent-structural` | primary action / active selection / positive attention | `#78a9ff` |
+| `--accent-structural-soft` | low-emphasis structural tint | `rgb(120 169 255 / 0.16)` |
+| `--accent-structural-strong` | focused active edge light | `#a6c8ff` |
 
 ## Severity signals
 
@@ -86,12 +86,12 @@ Severity colors are reserved for operational meaning only.
 
 | Token | Role | Target value |
 | --- | --- | --- |
-| `--signal-success` | success / healthy | `oklch(0.76 0.14 158)` |
-| `--signal-info` | passive info / progress / neutral action | `oklch(0.74 0.08 232)` |
-| `--signal-warning` | warning / caution | `oklch(0.83 0.12 84)` |
-| `--signal-danger` | error / incident / urgent failure | `oklch(0.68 0.18 24)` |
-| `--signal-paused` | paused / held / draft / inert | `oklch(0.63 0.014 250)` |
-| `--signal-review` | waiting for review / undefined | `oklch(0.72 0.09 302)` |
+| `--signal-success` | success / healthy | `#42be65` |
+| `--signal-info` | passive info / progress / neutral action | `#78a9ff` |
+| `--signal-warning` | warning / caution | `#f1c21b` |
+| `--signal-danger` | error / incident / urgent failure | `#fa4d56` |
+| `--signal-paused` | paused / held / draft / inert | `#8d8d8d` |
+| `--signal-review` | waiting for review / undefined | `#be95ff` |
 
 Rules:
 
@@ -107,13 +107,13 @@ Only use them where the category matters and the surface is not already dominate
 
 | Token | Domain | Target value |
 | --- | --- | --- |
-| `--domain-core` | command / system / governor | `oklch(0.74 0.08 232)` |
-| `--domain-workforce` | tasks / agents / queue | `oklch(0.76 0.08 196)` |
-| `--domain-intelligence` | review / learning / model governance | `oklch(0.74 0.09 294)` |
-| `--domain-memory` | personal data / knowledge / retention | `oklch(0.74 0.09 170)` |
-| `--domain-monitoring` | services / gpu / monitoring | `oklch(0.77 0.07 205)` |
-| `--domain-media` | media / gallery / creative | `oklch(0.76 0.11 332)` |
-| `--domain-home` | home / device orchestration | `oklch(0.78 0.10 148)` |
+| `--domain-core` | command / system / governor | `#78a9ff` |
+| `--domain-workforce` | tasks / agents / queue | `#3ddbd9` |
+| `--domain-intelligence` | review / learning / model governance | `#be95ff` |
+| `--domain-memory` | personal data / knowledge / retention | `#42be65` |
+| `--domain-monitoring` | services / gpu / monitoring | `#33b1ff` |
+| `--domain-media` | media / gallery / creative | `#ff7eb6` |
+| `--domain-home` | home / device orchestration | `#82cfff` |
 
 Rules:
 
@@ -138,18 +138,18 @@ Use one fixed order for categorical charts:
 
 Target tokens:
 
-- `--chart-cat-1`: `oklch(0.74 0.08 232)`
-- `--chart-cat-2`: `oklch(0.77 0.08 205)`
-- `--chart-cat-3`: `oklch(0.74 0.09 170)`
-- `--chart-cat-4`: `oklch(0.72 0.09 294)`
-- `--chart-cat-5`: `oklch(0.75 0.10 332)`
-- `--chart-cat-6`: `oklch(0.76 0.12 158)`
-- `--chart-cat-7`: `oklch(0.8 0.12 64)`
-- `--chart-cat-8`: `oklch(0.66 0.016 248)`
+- `--chart-cat-1`: `#78a9ff`
+- `--chart-cat-2`: `#33b1ff`
+- `--chart-cat-3`: `#42be65`
+- `--chart-cat-4`: `#be95ff`
+- `--chart-cat-5`: `#ff7eb6`
+- `--chart-cat-6`: `#3ddbd9`
+- `--chart-cat-7`: `#f1c21b`
+- `--chart-cat-8`: `#8d8d8d`
 
 ### Sequential scales
 
-- Primary sequential: blue-cyan
+- Primary sequential: blue
 - Secondary sequential: teal
 - Review/intelligence sequential: violet
 
@@ -173,10 +173,10 @@ Use only for status-bearing visualizations:
 
 | Token | Role | Target value |
 | --- | --- | --- |
-| `--state-hover` | hover tint on neutral surfaces | `oklch(0.31 0.016 244 / 0.72)` |
-| `--state-pressed` | pressed tint | `oklch(0.34 0.018 244 / 0.82)` |
-| `--state-selected` | selected background | `oklch(0.74 0.08 232 / 0.18)` |
-| `--state-focus-ring` | keyboard focus ring | `oklch(0.79 0.09 228 / 0.92)` |
+| `--state-hover` | hover tint on neutral surfaces | `rgb(255 255 255 / 0.05)` |
+| `--state-pressed` | pressed tint | `rgb(255 255 255 / 0.08)` |
+| `--state-selected` | selected background | `rgb(120 169 255 / 0.14)` |
+| `--state-focus-ring` | keyboard focus ring | `rgb(166 200 255 / 0.92)` |
 
 ## Material behavior
 
@@ -198,9 +198,9 @@ Avoid:
 
 ### Edge-light rules
 
-- Use cool edge lighting for focus and selected states
+- Use bright blue edge lighting for focus and selected states
 - Use domain edge lighting sparingly on hero or spotlight surfaces
-- Do not use warm glows as the base identity
+- Do not use warm glows or page-level colored fog as the base identity
 
 ## Typography specification
 

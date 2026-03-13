@@ -53,7 +53,7 @@ These are synthesized from SpaceX mission control patterns, Waymo fleet operatio
 
 6. **Information density through typography.** Don't reduce density by removing information. Increase it through typographic hierarchy: Cormorant Garamond for headings, Inter for data, tabular mono for metrics, consistent spacing rhythm, color for status only.
 
-7. **Dark and deliberate.** Not "dark mode applied to a light design." Dark-first: graphite and steel neutrals (not pure black), luminance-based elevation, disciplined signal colors, cool ion-blue accent, semi-bold typography.
+7. **Dark and deliberate.** Not "dark mode applied to a light design." Dark-first: charcoal and carbon neutrals (not flat black), luminance-based elevation, disciplined signal colors, bright structural accent, semi-bold typography.
 
 ---
 

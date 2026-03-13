@@ -40,6 +40,19 @@ The visual system passes only if it makes these easier:
 
 This is not a branding exercise detached from control. It is an operator-effectiveness layer.
 
+## Selected family
+
+The locked implementation family is:
+
+`Carbon Ops`
+
+That means:
+
+- deep black, charcoal, and neutral-gray surfaces
+- bright accents only where they carry meaning
+- no page-wide blue wash or atmospheric color fog
+- matte industrial materials over glossy sci-fi styling
+
 ## Image words
 
 Use these as the core visual mood:
@@ -52,7 +65,7 @@ Use these as the core visual mood:
 - premium
 - composed
 - alert
-- cool
+- neutral-charcoal
 - operational
 
 ## Anti-image words
@@ -70,6 +83,7 @@ Avoid these completely:
 - ornamental
 - gamer
 - toy-like
+- blue atmosphere
 
 ## Brand metaphor shift
 
@@ -189,6 +203,7 @@ The shell, cards, charts, and controls must feel intentional on both:
 
 - No core brand reliance on brown, bronze, sepia, ember, or furnace-like glow
 - No warm metallic framing as the primary identity
+- No page-level atmospheric blue haze
 - No route-level accent invention outside the approved multi-signal grammar
 
 ### Surfaces
@@ -219,7 +234,7 @@ If a new screenshot is shown without context, it should immediately read as:
 
 - a serious operator surface
 - premium and modern
-- cool-toned and signal-driven
+- charcoal-neutral and signal-driven
 - one product, not a set of unrelated pages
 
 If it reads as earthy, mystical, rustic, or gamey, it fails.

@@ -16,10 +16,11 @@ It preserves the current route structure and specifies what each route should be
 
 ### Target direction
 
-- cooler, more premium shell chrome
+- carbon-charcoal shell chrome with bright controlled accents
 - stronger separation between shell and content planes
 - clearer active state on navigation
 - no furnace-era metaphor in copy or materials
+- no page-level blue atmospheric wash
 
 ## `/`
 
