@@ -48,7 +48,7 @@ Use neutral charcoal and industrial gray neutrals with no page-level color wash.
 | --- | --- | --- |
 | `--line-soft` | low-emphasis border | `rgb(244 244 244 / 0.1)` |
 | `--line-strong` | strong border or separation | `#525252` |
-| `--line-focus` | focus-visible ring | `#78a9ff` |
+| `--line-focus` | focus-visible ring | `#c6c6c6` |
 
 ### Text
 
@@ -65,20 +65,21 @@ The structural accent is the system's main action color.
 
 It should read as:
 
-- bright industrial blue
+- bright industrial neutral
 - precise
 - operational
 
 Not as:
 
-- page-wide blue atmosphere
+- page-wide color atmosphere
 - generic SaaS blue branding everywhere
+- decorative hue-first branding
 
 | Token | Role | Target value |
 | --- | --- | --- |
-| `--accent-structural` | primary action / active selection / positive attention | `#78a9ff` |
-| `--accent-structural-soft` | low-emphasis structural tint | `rgb(120 169 255 / 0.16)` |
-| `--accent-structural-strong` | focused active edge light | `#a6c8ff` |
+| `--accent-structural` | primary action / active selection / positive attention | `#f4f4f4` |
+| `--accent-structural-soft` | low-emphasis structural tint | `rgb(244 244 244 / 0.12)` |
+| `--accent-structural-strong` | focused active edge light | `#ffffff` |
 
 ## Severity signals
 
@@ -87,7 +88,7 @@ Severity colors are reserved for operational meaning only.
 | Token | Role | Target value |
 | --- | --- | --- |
 | `--signal-success` | success / healthy | `#42be65` |
-| `--signal-info` | passive info / progress / neutral action | `#78a9ff` |
+| `--signal-info` | passive info / progress / neutral action | `#dde1e6` |
 | `--signal-warning` | warning / caution | `#f1c21b` |
 | `--signal-danger` | error / incident / urgent failure | `#fa4d56` |
 | `--signal-paused` | paused / held / draft / inert | `#8d8d8d` |
@@ -96,7 +97,7 @@ Severity colors are reserved for operational meaning only.
 Rules:
 
 - `warning` and `danger` are never used as domain branding
-- `info` may align with the structural accent
+- `info` should stay calmer and less dominant than the structural highlight
 - `paused` and `review` are secondary system states, not primary route accents
 
 ## Domain accents
@@ -107,7 +108,7 @@ Only use them where the category matters and the surface is not already dominate
 
 | Token | Domain | Target value |
 | --- | --- | --- |
-| `--domain-core` | command / system / governor | `#78a9ff` |
+| `--domain-core` | command / system / governor | `#f4f4f4` |
 | `--domain-workforce` | tasks / agents / queue | `#3ddbd9` |
 | `--domain-intelligence` | review / learning / model governance | `#be95ff` |
 | `--domain-memory` | personal data / knowledge / retention | `#42be65` |
@@ -175,8 +176,8 @@ Use only for status-bearing visualizations:
 | --- | --- | --- |
 | `--state-hover` | hover tint on neutral surfaces | `rgb(255 255 255 / 0.05)` |
 | `--state-pressed` | pressed tint | `rgb(255 255 255 / 0.08)` |
-| `--state-selected` | selected background | `rgb(120 169 255 / 0.14)` |
-| `--state-focus-ring` | keyboard focus ring | `rgb(166 200 255 / 0.92)` |
+| `--state-selected` | selected background | `rgb(244 244 244 / 0.12)` |
+| `--state-focus-ring` | keyboard focus ring | `rgb(255 255 255 / 0.78)` |
 
 ## Material behavior
 
@@ -198,7 +199,7 @@ Avoid:
 
 ### Edge-light rules
 
-- Use bright blue edge lighting for focus and selected states
+- Use bright neutral edge lighting for focus and selected states
 - Use domain edge lighting sparingly on hero or spotlight surfaces
 - Do not use warm glows or page-level colored fog as the base identity
 

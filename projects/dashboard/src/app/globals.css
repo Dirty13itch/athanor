@@ -146,21 +146,21 @@
   --surface-instrument: #1f1f1f;
   --line-soft: rgb(244 244 244 / 0.1);
   --line-strong: #525252;
-  --line-focus: #78a9ff;
+  --line-focus: #c6c6c6;
   --text-primary: #f4f4f4;
   --text-secondary: #dde1e6;
   --text-muted: #a8a8a8;
   --text-disabled: #6f6f6f;
-  --accent-structural: #78a9ff;
-  --accent-structural-soft: rgb(120 169 255 / 0.16);
-  --accent-structural-strong: #a6c8ff;
+  --accent-structural: #f4f4f4;
+  --accent-structural-soft: rgb(244 244 244 / 0.12);
+  --accent-structural-strong: #ffffff;
   --signal-success: #42be65;
-  --signal-info: #78a9ff;
+  --signal-info: #dde1e6;
   --signal-warning: #f1c21b;
   --signal-danger: #fa4d56;
   --signal-paused: #8d8d8d;
   --signal-review: #be95ff;
-  --domain-core: #78a9ff;
+  --domain-core: #f4f4f4;
   --domain-workforce: #3ddbd9;
   --domain-intelligence: #be95ff;
   --domain-memory: #42be65;
@@ -177,8 +177,8 @@
   --chart-cat-8: #8d8d8d;
   --state-hover: rgb(255 255 255 / 0.05);
   --state-pressed: rgb(255 255 255 / 0.08);
-  --state-selected: rgb(120 169 255 / 0.14);
-  --state-focus-ring: rgb(166 200 255 / 0.92);
+  --state-selected: rgb(244 244 244 / 0.12);
+  --state-focus-ring: rgb(255 255 255 / 0.78);
 
   --background: var(--bg-app);
   --foreground: var(--text-primary);

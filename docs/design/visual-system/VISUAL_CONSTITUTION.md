@@ -49,7 +49,7 @@ The locked implementation family is:
 That means:
 
 - deep black, charcoal, and neutral-gray surfaces
-- bright accents only where they carry meaning
+- bright neutral highlights and governed signal accents only where they carry meaning
 - no page-wide blue wash or atmospheric color fog
 - matte industrial materials over glossy sci-fi styling
 

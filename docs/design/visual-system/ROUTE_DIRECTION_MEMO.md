@@ -16,7 +16,7 @@ It preserves the current route structure and specifies what each route should be
 
 ### Target direction
 
-- carbon-charcoal shell chrome with bright controlled accents
+- carbon-charcoal shell chrome with bright neutral structural highlights and controlled signal accents
 - stronger separation between shell and content planes
 - clearer active state on navigation
 - no furnace-era metaphor in copy or materials

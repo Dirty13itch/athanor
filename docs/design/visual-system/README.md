@@ -18,7 +18,7 @@ It freezes ad hoc palette churn and replaces it with a research-first, implement
 - Scope: `Full visual system`
 - Brand metaphor: `Replace furnace/alchemical framing`
 - Selected implementation family: `Carbon Ops`
-- Atmosphere rule: `neutral charcoal only; bright accents on controls and signals, not page wash`
+- Atmosphere rule: `neutral charcoal only; bright neutral highlights and governed signal accents, not page wash`
 
 ## Primary product goal
 
