@@ -6,6 +6,7 @@ import { ArrowUpRight } from "lucide-react";
 import { LensSwitcher } from "@/components/lens-switcher";
 import { PageHeader } from "@/components/page-header";
 import { RouteIcon } from "@/components/route-icon";
+import { ThemeSampler } from "@/components/theme-sampler";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useLens } from "@/hooks/use-lens";
@@ -37,6 +38,8 @@ export default function MorePage() {
           <LensSwitcher />
         </CardContent>
       </Card>
+
+      <ThemeSampler />
 
       <div className="space-y-6">
         {ROUTE_FAMILIES.map((family) => (
