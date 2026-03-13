@@ -23,6 +23,18 @@ ENDPOINT_OUTPUT = ATLAS_COMPLETION_DIR / "agent-endpoint-census.json"
 SUBSYSTEM_OUTPUT = ATLAS_COMPLETION_DIR / "runtime-subsystem-census.json"
 
 SUBSYSTEM_RULES = [
+    (
+        "runtime.subsystem.model-governance",
+        "Model governance and proving ground",
+        lambda path: path == "/v1/models/governance"
+        or path.startswith("/v1/models/proving-ground")
+        or path == "/v1/review/judges",
+    ),
+    (
+        "runtime.subsystem.command-hierarchy",
+        "Command hierarchy and system map",
+        lambda path: path == "/v1/system-map" or path.startswith("/v1/governor"),
+    ),
     ("runtime.subsystem.subscriptions", "Subscription control layer", lambda path: path.startswith("/v1/subscriptions")),
     ("runtime.subsystem.task-engine", "Task engine", lambda path: path.startswith("/v1/tasks")),
     ("runtime.subsystem.workspace", "Workspace and CST", lambda path: path.startswith("/v1/workspace") or path.startswith("/v1/events") or path.startswith("/v1/cognitive") or path.startswith("/v1/conventions")),
@@ -39,6 +51,8 @@ SUBSYSTEM_RULES = [
 ]
 
 SUBSYSTEM_TOUCHPOINTS = {
+    "runtime.subsystem.model-governance": ["/", "/learning", "/review", "/agents"],
+    "runtime.subsystem.command-hierarchy": ["/", "/agents", "/tasks", "/workplanner"],
     "runtime.subsystem.subscriptions": ["/agents", "/tasks", "/workspace"],
     "runtime.subsystem.task-engine": ["/tasks", "/review", "/workplanner"],
     "runtime.subsystem.workspace": ["/workspace", "/activity", "/review"],

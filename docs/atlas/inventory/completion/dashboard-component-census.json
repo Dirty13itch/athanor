@@ -144,6 +144,18 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-execution-runs-card-tsx",
+    "title": "Execution Runs Card",
+    "filePath": "src/components/execution-runs-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-family-tabs-tsx",
     "title": "Family Tabs",
     "filePath": "src/components/family-tabs.tsx",
@@ -252,6 +264,18 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-governor-card-tsx",
+    "title": "Governor Card",
+    "filePath": "src/components/governor-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-gpu-card-tsx",
     "title": "Gpu Card",
     "filePath": "src/components/gpu-card.tsx",
@@ -283,6 +307,18 @@
     "hasStory": false,
     "hasTest": false,
     "completionStatus": "deprecated",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-judge-plane-card-tsx",
+    "title": "Judge Plane Card",
+    "filePath": "src/components/judge-plane-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
     "notes": [
       "Discovered from dashboard component/feature census."
     ]
@@ -348,9 +384,45 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-model-governance-card-tsx",
+    "title": "Model Governance Card",
+    "filePath": "src/components/model-governance-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-notifications-posture-card-tsx",
     "title": "Notifications Posture Card",
     "filePath": "src/components/notifications-posture-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-operations-readiness-card-tsx",
+    "title": "Operations Readiness Card",
+    "filePath": "src/components/operations-readiness-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-operator-presence-heartbeat-tsx",
+    "title": "Operator Presence Heartbeat",
+    "filePath": "src/components/operator-presence-heartbeat.tsx",
     "group": "shared-component",
     "hasStory": false,
     "hasTest": false,
@@ -423,6 +495,18 @@
     "id": "dashboard.component.src-components-progress-bar-tsx",
     "title": "Progress Bar",
     "filePath": "src/components/progress-bar.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-proving-ground-card-tsx",
+    "title": "Proving Ground Card",
+    "filePath": "src/components/proving-ground-card.tsx",
     "group": "shared-component",
     "hasStory": false,
     "hasTest": false,
@@ -540,6 +624,18 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-scheduled-jobs-card-tsx",
+    "title": "Scheduled Jobs Card",
+    "filePath": "src/components/scheduled-jobs-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-sidebar-nav-tsx",
     "title": "Sidebar Nav",
     "filePath": "src/components/sidebar-nav.tsx",
@@ -631,6 +727,18 @@
     "hasStory": false,
     "hasTest": false,
     "completionStatus": "deprecated",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-system-map-card-tsx",
+    "title": "System Map Card",
+    "filePath": "src/components/system-map-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
     "notes": [
       "Discovered from dashboard component/feature census."
     ]

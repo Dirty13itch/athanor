@@ -240,6 +240,36 @@
     "notes": ["Broker for premium and local model spend."]
   },
   {
+    "id": "runtime.subsystem.command-hierarchy",
+    "layer": "runtime",
+    "title": "Command hierarchy and system map",
+    "kind": "subsystem",
+    "owner": "agents",
+    "source_of_truth": "command hierarchy module and system-map endpoint",
+    "status_tag": "live",
+    "repo_source": ["projects/agents/src/athanor_agents/command_hierarchy.py", "projects/agents/src/athanor_agents/server.py"],
+    "runtime_source": ["agent server command-hierarchy snapshot"],
+    "depends_on": ["runtime.core.agent-server", "runtime.subsystem.subscriptions"],
+    "backed_by": ["system map", "authority order", "policy classes", "command rights"],
+    "entrypoints": ["/v1/system-map"],
+    "notes": ["Live read-only hierarchy snapshot for the operator cockpit and atlas-backed command map."]
+  },
+  {
+    "id": "runtime.subsystem.model-governance",
+    "layer": "runtime",
+    "title": "Model governance and proving-ground posture",
+    "kind": "subsystem",
+    "owner": "agents",
+    "source_of_truth": "model governance module and automation-backbone registries",
+    "status_tag": "live",
+    "repo_source": ["projects/agents/src/athanor_agents/model_governance.py", "config/automation-backbone/model-role-registry.json", "config/automation-backbone/workload-class-registry.json", "config/automation-backbone/model-proving-ground.json", "config/automation-backbone/model-intelligence-lane.json"],
+    "runtime_source": ["agent server model-governance snapshot"],
+    "depends_on": ["runtime.core.agent-server", "runtime.subsystem.command-hierarchy"],
+    "backed_by": ["role registry", "workload registry", "proving-ground posture", "model-intelligence cadence"],
+    "entrypoints": ["/v1/models/governance"],
+    "notes": ["Live read-only registry and posture surface, even though eval execution remains a future loop."]
+  },
+  {
     "id": "runtime.subsystem.skills-research-consolidation",
     "layer": "runtime",
     "title": "Skills, research jobs, and consolidation",

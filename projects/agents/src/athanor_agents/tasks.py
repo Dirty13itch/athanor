@@ -694,6 +694,12 @@ async def _task_worker_loop():
 
     while True:
         try:
+            from .governor import is_automation_paused
+
+            if await is_automation_paused("task_worker"):
+                await asyncio.sleep(TASK_WORKER_INTERVAL)
+                continue
+
             if _running_count < MAX_CONCURRENT_TASKS:
                 task = await _get_next_pending()
                 if task:

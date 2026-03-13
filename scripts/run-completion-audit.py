@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
+import socket
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -27,7 +29,21 @@ def npm_command() -> str:
     return shutil.which("npm.cmd") or shutil.which("npm") or "npm"
 
 
-def run_job(label: str, command: list[str], cwd: Path | None = None) -> dict[str, object]:
+def find_free_local_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def run_job(
+    label: str,
+    command: list[str],
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> dict[str, object]:
+    merged_env = os.environ.copy()
+    if env:
+        merged_env.update(env)
     completed = subprocess.run(
         command,
         cwd=cwd,
@@ -35,6 +51,7 @@ def run_job(label: str, command: list[str], cwd: Path | None = None) -> dict[str
         text=True,
         encoding="utf-8",
         errors="replace",
+        env=merged_env,
     )
     return {
         "label": label,
@@ -276,6 +293,7 @@ def main() -> int:
     run_dir = REPORTS_DIR / timestamp
     run_dir.mkdir(parents=True, exist_ok=True)
     LATEST_DIR.mkdir(parents=True, exist_ok=True)
+    playwright_port = find_free_local_port()
 
     jobs = [
         run_job("census-routes", [sys.executable, str(ROOT / "scripts" / "census-dashboard-routes.py")], ROOT),
@@ -287,7 +305,12 @@ def main() -> int:
         run_job("validate-atlas", [sys.executable, str(ROOT / "scripts" / "validate-atlas.py")], ROOT),
         run_job("check-doc-refs", [sys.executable, str(ROOT / "scripts" / "check-doc-refs.py"), "docs/atlas"], ROOT),
         run_job("dashboard:test", [npm, "run", "test"], ROOT / "projects" / "dashboard"),
-        run_job("dashboard:e2e", [npm, "run", "test:e2e"], ROOT / "projects" / "dashboard"),
+        run_job(
+            "dashboard:e2e",
+            [npm, "run", "test:e2e"],
+            ROOT / "projects" / "dashboard",
+            env={"PLAYWRIGHT_PORT": str(playwright_port)},
+        ),
         run_job("agents:tests", [sys.executable, "-m", "unittest", "discover", "-s", str(ROOT / "projects" / "agents" / "tests"), "-p", "test_*.py"], ROOT),
         run_job("deployment-ownership", [sys.executable, str(ROOT / "scripts" / "audit-deployment-ownership.py")], ROOT),
     ]

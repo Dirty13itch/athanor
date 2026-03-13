@@ -22,6 +22,7 @@ from completion_audit_common import (
 
 
 OUTPUT_PATH = ATLAS_COMPLETION_DIR / "dashboard-component-census.json"
+NON_UI_RUNTIME_FILES = {"proxy.ts", "middleware.ts"}
 
 SHELL_COMPONENTS = {
     "app-shell.tsx",
@@ -73,6 +74,8 @@ def main() -> int:
     records: list[dict] = []
     for file_path in sorted(list_dashboard_ui_files()):
         if file_path.suffix not in {".ts", ".tsx"}:
+            continue
+        if file_path.name in NON_UI_RUNTIME_FILES:
             continue
         if file_path.name in {"layout.tsx", "page.tsx", "loading.tsx", "error.tsx", "global-error.tsx", "not-found.tsx"}:
             continue

@@ -59,6 +59,21 @@
     mode: "0644"
   register: agent_config
 
+- name: Create agent automation backbone config directory
+  ansible.builtin.file:
+    path: "{{ agent_deploy_dir }}/config/automation-backbone"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+
+- name: Deploy agent automation backbone registries
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../config/automation-backbone/"
+    dest: "{{ agent_deploy_dir }}/config/automation-backbone/"
+    delete: true
+  register: agent_registry_config
+
 - name: Deploy agent docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -72,13 +87,13 @@
   community.docker.docker_compose_v2:
     project_src: "{{ agent_deploy_dir }}"
     state: absent
-  when: agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed or agent_config.changed
+  when: agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed or agent_config.changed or agent_registry_config.changed
 
 - name: Build and deploy agents
   community.docker.docker_compose_v2:
     project_src: "{{ agent_deploy_dir }}"
     state: present
-    build: "{{ 'always' if (agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed or agent_config.changed) else 'never' }}"
+    build: "{{ 'always' if (agent_src.changed or agent_dockerfile.changed or agent_pyproject.changed or agent_config.changed or agent_registry_config.changed) else 'never' }}"
     recreate: "{{ 'always' if (agent_compose.changed or agent_src.changed) else 'never' }}"
 
 - name: Wait for agent server health

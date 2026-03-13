@@ -18,7 +18,7 @@ This atlas maps the Athanor dashboard as a system, not just a route list. It cov
 | Terminal bridge | `src/components/terminal-view.tsx` | xterm.js plus WebSocket PTY bridge to `:3100` | `live` |
 | Lens provider and switcher | `src/hooks/use-lens.tsx`, `src/components/lens-switcher.tsx` | color/focus lens system defined in code but provider is not mounted in the root shell | `implemented_not_live` |
 | Bottom nav | `src/components/bottom-nav.tsx` | mobile footer navigation component present in repo but not mounted by the shell | `implemented_not_live` |
-| Ambient shell widgets | `agent-crew-bar`, `system-pulse`, `daily-briefing`, `unified-stream`, `voice-input`, `voice-output`, `work-plan` | higher-ambience operator components and generative UI helpers present in component library but not first-class shell mounts | `implemented_not_live` |
+| Ambient shell widgets | `system-pulse`, `voice-input`, `voice-output` | higher-ambience operator components present in the component library but intentionally not first-class shell mounts today | `implemented_not_live` |
 
 ## Component Families
 
@@ -47,7 +47,7 @@ This atlas maps the Athanor dashboard as a system, not just a route list. It cov
 
 | Route | Page / console | URL and local state | Primary actions | Backing APIs | Related routes | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `/` | `CommandCenter` | query-param lens is designed; recent context is browser-local from chat sessions and agent threads | open incidents, open work planner, resume agents | `/api/overview` | `/services`, `/workplanner`, `/agents`, `/tasks` | `live` |
+| `/` | `CommandCenter` | query-param lens is designed; recent context is browser-local from chat sessions and agent threads | open incidents, open work planner, resume agents, inspect command hierarchy, inspect operator stream | `/api/overview`, `/api/system-map`, `/api/activity/operator-stream`, `/api/subscriptions/summary` | `/services`, `/workplanner`, `/agents`, `/tasks` | `live` |
 | `/services` | `ServicesConsole` | URL: `search,status,node,category,sort,service,window` | refresh, export, open service drawer, copy URL, jump to Grafana/service | `/api/services`, `/api/services/history` | `/monitoring`, `/gpu` | `live` |
 | `/gpu` | `GpuConsole` | URL: `window,highlight,compare` | refresh, export, highlight GPU, compare up to three GPUs | `/api/gpu`, `/api/gpu/history` | `/services`, `/monitoring` | `live` |
 | `/workplanner` | `WorkPlannerConsole` | URL: `search,project,status` | refresh, generate plan, redirect work, approve/cancel queued work | `/api/workforce`, `/api/workforce/plan`, `/api/workforce/redirect`, workforce task mutations | `/tasks`, `/goals`, `/workspace`, `/review` | `live` |
@@ -115,5 +115,6 @@ This atlas maps the Athanor dashboard as a system, not just a route list. It cov
 ## Mounted vs Dormant UI Capability
 
 - The shell, route families, major consoles, drawers, query-state model, browser persistence, service-worker registration, and push subscription flow are mounted and part of the current operator experience.
-- The lens implementation, bottom-nav, ambient crew and pulse widgets, unified stream, voice widgets, and some feedback/autonomy components are implemented in code but not first-class mounted shell systems today.
+- Daily briefing, unified stream, work plan, agent-crew, run-ledger, scheduled-job, model-governance, and system-map surfaces are now promoted into the main operator routes.
+- The lens implementation, bottom-nav, `system-pulse`, voice widgets, and some feedback/autonomy helpers remain intentionally deferred rather than silently forgotten.
 - Supporting APIs such as `/api/stream`, `/api/autonomy`, `/api/tts`, `/api/feedback`, and `/api/feedback/implicit` exist partly to support those dormant or partially mounted UI capabilities.

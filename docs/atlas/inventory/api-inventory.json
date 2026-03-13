@@ -7,12 +7,12 @@
     "owner": "dashboard",
     "source_of_truth": "dashboard API routes and data layer",
     "status_tag": "live",
-    "repo_source": ["projects/dashboard/src/app/api/overview/route.ts", "projects/dashboard/src/app/api/projects/route.ts", "projects/dashboard/src/lib/dashboard-data.ts"],
+    "repo_source": ["projects/dashboard/src/app/api/overview/route.ts", "projects/dashboard/src/app/api/projects/route.ts", "projects/dashboard/src/app/api/system-map/route.ts", "projects/dashboard/src/app/api/governor/route.ts", "projects/dashboard/src/app/api/governor/pause/route.ts", "projects/dashboard/src/app/api/governor/resume/route.ts", "projects/dashboard/src/app/api/governor/presence/route.ts", "projects/dashboard/src/app/api/governor/heartbeat/route.ts", "projects/dashboard/src/app/api/governor/release-tier/route.ts", "projects/dashboard/src/app/api/governor/operations/route.ts", "projects/dashboard/src/app/api/governor/operator-tests/route.ts", "projects/dashboard/src/app/api/governor/tool-permissions/route.ts", "projects/dashboard/src/components/governor-card.tsx", "projects/dashboard/src/components/operator-presence-heartbeat.tsx", "projects/dashboard/src/components/operations-readiness-card.tsx", "projects/dashboard/src/lib/dashboard-data.ts"],
     "runtime_source": ["Workshop Next.js API runtime"],
     "depends_on": ["topology.service.agent-server", "topology.service.prometheus-grafana"],
-    "backed_by": ["getOverviewSnapshot", "getProjectsSnapshot"],
-    "entrypoints": ["/api/overview", "/api/projects"],
-    "notes": ["Consumed by the command center and command palette."]
+    "backed_by": ["getOverviewSnapshot", "getProjectsSnapshot", "GovernorCard", "OperatorPresenceHeartbeat", "OperationsReadinessCard", "governor posture panels", "synthetic operator test trigger", "tool-permission governor snapshot"],
+    "entrypoints": ["/api/overview", "/api/projects", "/api/system-map", "/api/governor", "/api/governor/pause", "/api/governor/resume", "/api/governor/presence", "/api/governor/heartbeat", "/api/governor/release-tier", "/api/governor/operations", "/api/governor/operator-tests", "/api/governor/tool-permissions"],
+    "notes": ["Consumed by the command center, command palette, task board, and work planner, including the operator-facing system map plus governor posture, automatic presence heartbeat, operations readiness, synthetic operator tests, presence, promotion-tier controls, and the narrow read-only tool-permission support surface."]
   },
   {
     "id": "api.family.dashboard.services",
@@ -47,17 +47,17 @@
   {
     "id": "api.family.dashboard.models-agents",
     "layer": "api",
-    "title": "Dashboard models, agents, and autonomy APIs",
+    "title": "Dashboard models, agents, autonomy, and governance APIs",
     "kind": "dashboard_api_family",
     "owner": "dashboard",
     "source_of_truth": "dashboard API routes and data layer",
     "status_tag": "live",
-    "repo_source": ["projects/dashboard/src/app/api/models/route.ts", "projects/dashboard/src/app/api/agents/route.ts", "projects/dashboard/src/app/api/autonomy/route.ts", "projects/dashboard/src/lib/dashboard-data.ts"],
+    "repo_source": ["projects/dashboard/src/app/api/models/route.ts", "projects/dashboard/src/app/api/models/governance/route.ts", "projects/dashboard/src/app/api/models/governance/promotions/route.ts", "projects/dashboard/src/app/api/models/governance/promotions/[promotionId]/advance/route.ts", "projects/dashboard/src/app/api/models/governance/promotions/[promotionId]/hold/route.ts", "projects/dashboard/src/app/api/models/governance/promotions/[promotionId]/rollback/route.ts", "projects/dashboard/src/app/api/models/governance/retirements/route.ts", "projects/dashboard/src/app/api/models/governance/retirements/[retirementId]/advance/route.ts", "projects/dashboard/src/app/api/models/governance/retirements/[retirementId]/hold/route.ts", "projects/dashboard/src/app/api/models/governance/retirements/[retirementId]/rollback/route.ts", "projects/dashboard/src/app/api/models/proving-ground/route.ts", "projects/dashboard/src/app/api/review/judges/route.ts", "projects/dashboard/src/app/api/agents/route.ts", "projects/dashboard/src/app/api/autonomy/route.ts", "projects/dashboard/src/components/judge-plane-card.tsx", "projects/dashboard/src/components/model-governance-card.tsx", "projects/dashboard/src/lib/dashboard-data.ts"],
     "runtime_source": ["Workshop Next.js API runtime"],
     "depends_on": ["topology.service.agent-server", "topology.service.litellm"],
-    "backed_by": ["getModelsSnapshot", "getAgentsSnapshot"],
-    "entrypoints": ["/api/models", "/api/agents", "/api/autonomy"],
-    "notes": ["Consumed by /chat and /agents; autonomy is mainly for supporting components."]
+    "backed_by": ["getModelsSnapshot", "getAgentsSnapshot", "model governance snapshot", "governed promotion controls", "governed retirement controls", "proving-ground snapshot", "judge plane snapshot"],
+    "entrypoints": ["/api/models", "/api/models/governance", "/api/models/governance/promotions", "/api/models/governance/promotions/[promotionId]/advance", "/api/models/governance/promotions/[promotionId]/hold", "/api/models/governance/promotions/[promotionId]/rollback", "/api/models/governance/retirements", "/api/models/governance/retirements/[retirementId]/advance", "/api/models/governance/retirements/[retirementId]/hold", "/api/models/governance/retirements/[retirementId]/rollback", "/api/models/proving-ground", "/api/review/judges", "/api/agents", "/api/autonomy"],
+    "notes": ["Consumed by /chat, /agents, the command center, /learning, and /review; autonomy is mainly for supporting components, while judge-plane posture plus governed promotion and retirement controls now surface directly in cockpit routes and support operator actions."]
   },
   {
     "id": "api.family.dashboard.chat",
@@ -82,12 +82,12 @@
     "owner": "dashboard",
     "source_of_truth": "workforce routes and dashboard data layer",
     "status_tag": "live",
-    "repo_source": ["projects/dashboard/src/app/api/workforce/route.ts", "projects/dashboard/src/app/api/workforce/goals/route.ts", "projects/dashboard/src/app/api/workforce/goals/[goalId]/route.ts", "projects/dashboard/src/app/api/workforce/notifications/[notificationId]/resolve/route.ts", "projects/dashboard/src/app/api/workforce/plan/route.ts", "projects/dashboard/src/app/api/workforce/redirect/route.ts", "projects/dashboard/src/app/api/workforce/tasks/route.ts", "projects/dashboard/src/app/api/workforce/tasks/[taskId]/approve/route.ts", "projects/dashboard/src/app/api/workforce/tasks/[taskId]/cancel/route.ts", "projects/dashboard/src/app/api/workforce/workspace/[itemId]/endorse/route.ts", "projects/dashboard/src/app/api/workforce/conventions/[conventionId]/confirm/route.ts", "projects/dashboard/src/app/api/workforce/conventions/[conventionId]/reject/route.ts", "projects/dashboard/src/lib/dashboard-data.ts"],
+    "repo_source": ["projects/dashboard/src/app/api/workforce/route.ts", "projects/dashboard/src/app/api/workforce/goals/route.ts", "projects/dashboard/src/app/api/workforce/goals/[goalId]/route.ts", "projects/dashboard/src/app/api/workforce/notifications/[notificationId]/resolve/route.ts", "projects/dashboard/src/app/api/workforce/plan/route.ts", "projects/dashboard/src/app/api/workforce/redirect/route.ts", "projects/dashboard/src/app/api/workforce/tasks/route.ts", "projects/dashboard/src/app/api/workforce/tasks/[taskId]/approve/route.ts", "projects/dashboard/src/app/api/workforce/tasks/[taskId]/cancel/route.ts", "projects/dashboard/src/app/api/workforce/workspace/[itemId]/endorse/route.ts", "projects/dashboard/src/app/api/workforce/conventions/[conventionId]/confirm/route.ts", "projects/dashboard/src/app/api/workforce/conventions/[conventionId]/reject/route.ts", "projects/dashboard/src/app/api/workforce/runs/route.ts", "projects/dashboard/src/app/api/workforce/scheduled/route.ts", "projects/dashboard/src/app/api/workforce/scheduled/[jobId]/run/route.ts", "projects/dashboard/src/lib/dashboard-data.ts"],
     "runtime_source": ["Workshop Next.js API runtime"],
     "depends_on": ["topology.service.agent-server"],
     "backed_by": ["getWorkforceSnapshot"],
-    "entrypoints": ["/api/workforce", "/api/workforce/goals", "/api/workforce/goals/[goalId]", "/api/workforce/notifications/[notificationId]/resolve", "/api/workforce/plan", "/api/workforce/redirect", "/api/workforce/tasks", "/api/workforce/tasks/[taskId]/approve", "/api/workforce/tasks/[taskId]/cancel", "/api/workforce/workspace/[itemId]/endorse", "/api/workforce/conventions/[conventionId]/confirm", "/api/workforce/conventions/[conventionId]/reject"],
-    "notes": ["Consumed by /tasks, /goals, /notifications, /workspace, /workplanner, and review actions."]
+    "entrypoints": ["/api/workforce", "/api/workforce/goals", "/api/workforce/goals/[goalId]", "/api/workforce/notifications/[notificationId]/resolve", "/api/workforce/plan", "/api/workforce/redirect", "/api/workforce/tasks", "/api/workforce/tasks/[taskId]/approve", "/api/workforce/tasks/[taskId]/cancel", "/api/workforce/workspace/[itemId]/endorse", "/api/workforce/conventions/[conventionId]/confirm", "/api/workforce/conventions/[conventionId]/reject", "/api/workforce/runs", "/api/workforce/scheduled", "/api/workforce/scheduled/[jobId]/run"],
+    "notes": ["Consumed by /tasks, /goals, /notifications, /workspace, /workplanner, and review actions, including the normalized run and schedule ledgers plus direct run-now control for scheduled jobs."]
   },
   {
     "id": "api.family.dashboard.history",
@@ -172,12 +172,12 @@
     "owner": "dashboard",
     "source_of_truth": "subscription operator panels and dashboard proxy routes",
     "status_tag": "live",
-    "repo_source": ["projects/dashboard/src/app/api/subscriptions/providers/route.ts", "projects/dashboard/src/app/api/subscriptions/policy/route.ts", "projects/dashboard/src/app/api/subscriptions/quotas/route.ts", "projects/dashboard/src/app/api/subscriptions/leases/route.ts", "projects/dashboard/src/components/subscription-control-card.tsx"],
+    "repo_source": ["projects/dashboard/src/app/api/subscriptions/providers/route.ts", "projects/dashboard/src/app/api/subscriptions/policy/route.ts", "projects/dashboard/src/app/api/subscriptions/quotas/route.ts", "projects/dashboard/src/app/api/subscriptions/leases/route.ts", "projects/dashboard/src/app/api/subscriptions/summary/route.ts", "projects/dashboard/src/app/api/subscriptions/execution/route.ts", "projects/dashboard/src/app/api/subscriptions/handoffs/route.ts", "projects/dashboard/src/app/api/subscriptions/handoffs/[handoffId]/outcome/route.ts", "projects/dashboard/src/components/subscription-control-card.tsx"],
     "runtime_source": ["Workshop Next.js API runtime"],
     "depends_on": ["api.family.server.subscriptions"],
-    "backed_by": ["SubscriptionControlCard", "subscription operator panels"],
-    "entrypoints": ["/api/subscriptions/providers", "/api/subscriptions/policy", "/api/subscriptions/quotas", "/api/subscriptions/leases"],
-    "notes": ["Consumed by /agents and /tasks to expose provider posture, policy, quotas, and lease issuance."]
+    "backed_by": ["SubscriptionControlCard", "subscription operator panels", "provider execution adapters", "structured handoff bundles"],
+    "entrypoints": ["/api/subscriptions/providers", "/api/subscriptions/policy", "/api/subscriptions/quotas", "/api/subscriptions/leases", "/api/subscriptions/summary", "/api/subscriptions/execution", "/api/subscriptions/handoffs", "/api/subscriptions/handoffs/[handoffId]/outcome"],
+    "notes": ["Consumed by /, /agents, /tasks, /learning, and /review to expose provider posture, policy, quotas, lease issuance, adapter execution state, summarized provider state, structured handoff bundles, and operator handoff outcome updates."]
   },
   {
     "id": "api.family.dashboard.skills",
@@ -261,13 +261,13 @@
     "kind": "dashboard_api_family",
     "owner": "dashboard",
     "source_of_truth": "supporting API routes and component hooks",
-    "status_tag": "implemented_not_live",
-    "repo_source": ["projects/dashboard/src/app/api/stream/route.ts", "projects/dashboard/src/app/api/feedback/route.ts", "projects/dashboard/src/app/api/feedback/implicit/route.ts", "projects/dashboard/src/app/api/tts/route.ts", "projects/dashboard/src/app/api/push/send/route.ts", "projects/dashboard/src/components/agent-detail-panel.tsx", "projects/dashboard/src/components/voice-output.tsx", "projects/dashboard/src/hooks/use-implicit-feedback.tsx", "projects/dashboard/src/hooks/use-system-stream.ts"],
+    "status_tag": "live",
+    "repo_source": ["projects/dashboard/src/app/api/activity/operator-stream/route.ts", "projects/dashboard/src/app/api/stream/route.ts", "projects/dashboard/src/app/api/feedback/route.ts", "projects/dashboard/src/app/api/feedback/implicit/route.ts", "projects/dashboard/src/app/api/tts/route.ts", "projects/dashboard/src/app/api/push/send/route.ts", "projects/dashboard/src/components/agent-detail-panel.tsx", "projects/dashboard/src/components/voice-output.tsx", "projects/dashboard/src/hooks/use-implicit-feedback.tsx", "projects/dashboard/src/hooks/use-system-stream.ts"],
     "runtime_source": ["Workshop Next.js API runtime"],
     "depends_on": ["topology.service.agent-server", "topology.service.prometheus-grafana"],
-    "backed_by": ["supporting shell widgets", "feedback hooks", "voice output"],
-    "entrypoints": ["/api/stream", "/api/feedback", "/api/feedback/implicit", "/api/tts", "/api/push/send"],
-    "notes": ["Mainly supports partially mounted or dormant UI systems."]
+    "backed_by": ["operator stream", "supporting shell widgets", "feedback hooks", "voice output"],
+    "entrypoints": ["/api/activity/operator-stream", "/api/stream", "/api/feedback", "/api/feedback/implicit", "/api/tts", "/api/push/send"],
+    "notes": ["Operator stream is live and mounted in the Command Center; the remaining support hooks mostly serve partially mounted or dormant UI systems."]
   },
   {
     "id": "api.family.server.health-models",
@@ -292,12 +292,12 @@
     "owner": "agents",
     "source_of_truth": "server.py endpoint surface",
     "status_tag": "live",
-    "repo_source": ["projects/agents/src/athanor_agents/server.py", "projects/agents/src/athanor_agents/subscriptions.py"],
+    "repo_source": ["projects/agents/src/athanor_agents/server.py", "projects/agents/src/athanor_agents/subscriptions.py", "projects/agents/src/athanor_agents/provider_execution.py"],
     "runtime_source": ["Foundry agent server runtime"],
     "depends_on": ["runtime.subsystem.subscriptions"],
-    "backed_by": ["provider inventory", "leases", "quotas"],
-    "entrypoints": ["/v1/subscriptions/providers", "/v1/subscriptions/policy", "/v1/subscriptions/leases", "/v1/subscriptions/leases/{lease_id}/outcome", "/v1/subscriptions/quotas"],
-    "notes": ["Provider policy and lease orchestration."]
+    "backed_by": ["provider inventory", "leases", "quotas", "summary", "provider execution adapters", "handoff bundle generator"],
+    "entrypoints": ["/v1/subscriptions/providers", "/v1/subscriptions/policy", "/v1/subscriptions/leases", "/v1/subscriptions/leases/{lease_id}/outcome", "/v1/subscriptions/quotas", "/v1/subscriptions/summary", "/v1/subscriptions/execution", "/v1/subscriptions/handoffs"],
+    "notes": ["Provider policy, lease orchestration, operator-facing provider summary state, direct provider execution posture, and structured handoff bundle generation."]
   },
   {
     "id": "api.family.server.workforce",
@@ -310,9 +310,9 @@
     "repo_source": ["projects/agents/src/athanor_agents/server.py"],
     "runtime_source": ["Foundry agent server runtime"],
     "depends_on": ["runtime.subsystem.task-engine", "runtime.subsystem.workspace", "runtime.subsystem.goals-workplan"],
-    "backed_by": ["tasks", "workspace", "goals", "projects", "notifications", "outputs"],
-    "entrypoints": ["/v1/tasks", "/v1/tasks/stats", "/v1/tasks/schedules", "/v1/tasks/{task_id}", "/v1/tasks/{task_id}/cancel", "/v1/tasks/{task_id}/approve", "/v1/workspace", "/v1/workspace/stats", "/v1/workspace/subscriptions", "/v1/workspace/{item_id}/endorse", "/v1/goals", "/v1/goals/{goal_id}", "/v1/workplan", "/v1/workplan/generate", "/v1/workplan/redirect", "/v1/projects", "/v1/projects/{project_id}", "/v1/notifications", "/v1/notifications/{action_id}/resolve", "/v1/notification-budget", "/v1/outputs", "/v1/outputs/{path:path}", "/v1/scheduling/status"],
-    "notes": ["Main workforce state and mutation layer."]
+    "backed_by": ["tasks", "workspace", "goals", "projects", "notifications", "outputs", "run ledger", "schedule ledger"],
+    "entrypoints": ["/v1/tasks", "/v1/tasks/stats", "/v1/tasks/schedules", "/v1/tasks/runs", "/v1/tasks/scheduled", "/v1/tasks/{task_id}", "/v1/tasks/{task_id}/cancel", "/v1/tasks/{task_id}/approve", "/v1/workspace", "/v1/workspace/stats", "/v1/workspace/subscriptions", "/v1/workspace/{item_id}/endorse", "/v1/goals", "/v1/goals/{goal_id}", "/v1/workplan", "/v1/workplan/generate", "/v1/workplan/redirect", "/v1/projects", "/v1/projects/{project_id}", "/v1/notifications", "/v1/notifications/{action_id}/resolve", "/v1/notification-budget", "/v1/outputs", "/v1/outputs/{path:path}", "/v1/scheduling/status"],
+    "notes": ["Main workforce state and mutation layer, including normalized execution-run and scheduled-job records."]
   },
   {
     "id": "api.family.server.history",
@@ -325,9 +325,24 @@
     "repo_source": ["projects/agents/src/athanor_agents/server.py"],
     "runtime_source": ["Foundry agent server runtime"],
     "depends_on": ["runtime.core.agent-server"],
-    "backed_by": ["activity", "conversations"],
-    "entrypoints": ["/v1/activity", "/v1/conversations"],
-    "notes": ["Durable operator and agent trail used by dashboard history normalization."]
+    "backed_by": ["activity", "operator stream", "conversations"],
+    "entrypoints": ["/v1/activity", "/v1/activity/operator-stream", "/v1/conversations"],
+    "notes": ["Durable operator and agent trail used by dashboard history normalization and the Command Center stream."]
+  },
+  {
+    "id": "api.family.server.hierarchy",
+    "layer": "api",
+    "title": "Agent-server hierarchy and command-visibility family",
+    "kind": "agent_server_api_family",
+    "owner": "agents",
+    "source_of_truth": "server.py endpoint surface",
+    "status_tag": "live",
+    "repo_source": ["projects/agents/src/athanor_agents/server.py", "projects/agents/src/athanor_agents/command_hierarchy.py", "projects/agents/src/athanor_agents/backbone.py", "projects/agents/src/athanor_agents/model_governance.py", "projects/agents/src/athanor_agents/proving_ground.py"],
+    "runtime_source": ["Foundry agent server runtime"],
+    "depends_on": ["runtime.core.agent-server", "runtime.subsystem.subscriptions"],
+    "backed_by": ["system map snapshot", "policy classes", "command rights", "meta-lane defaults", "model role registry", "workload class registry", "governed promotion controls", "governed retirement controls", "proving-ground snapshot"],
+    "entrypoints": ["/v1/system-map", "/v1/models/governance", "/v1/models/governance/promotions", "/v1/models/governance/promotions/{promotion_id}/{action}", "/v1/models/governance/retirements", "/v1/models/governance/retirements/{retirement_id}/{action}", "/v1/models/proving-ground"],
+    "notes": ["Read-only command hierarchy and model-governance surfaces for the operator-facing system map, governed promotion and retirement controls, proving-ground visibility, and atlas validation."]
   },
   {
     "id": "api.family.server.adaptive",

@@ -10,12 +10,10 @@ a task to the task queue.
 """
 
 import asyncio
-import json
 import logging
 import time
-from datetime import datetime
-
-from .config import settings
+from datetime import datetime, timedelta
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +50,18 @@ CACHE_CLEANUP_INTERVAL = 3600  # 1 hour
 IMPROVEMENT_CYCLE_KEY = "athanor:scheduler:improvement_cycle"
 IMPROVEMENT_CYCLE_HOUR = 5
 IMPROVEMENT_CYCLE_MINUTE = 30
+
+BUILTIN_JOB_SCOPES = {
+    "daily-digest": "scheduler",
+    "pattern-detection": "scheduler",
+    "consolidation": "scheduler",
+    "morning-plan": "scheduler",
+    "workplan-refill": "scheduler",
+    "alert-check": "alerts",
+    "benchmark-cycle": "benchmark_cycle",
+    "cache-cleanup": "maintenance",
+    "improvement-cycle": "benchmark_cycle",
+}
 
 AGENT_SCHEDULES = {
     "general-assistant": {
@@ -176,10 +186,180 @@ async def _set_last_run(agent: str, timestamp: float):
         logger.warning("Failed to set last run for %s: %s", agent, e)
 
 
+def get_schedule_control_scope(job_id: str) -> str | None:
+    if job_id.startswith("agent-schedule:"):
+        return "scheduler"
+    if job_id.startswith("research:"):
+        return "research_jobs"
+    return BUILTIN_JOB_SCOPES.get(job_id)
+
+
+async def _governor_allows(
+    *,
+    job_id: str,
+    job_family: str,
+    owner_agent: str,
+    capacity_snapshot: dict[str, Any] | None = None,
+) -> bool:
+    from .governor import evaluate_job_governance
+
+    decision = await evaluate_job_governance(
+        job_id=job_id,
+        job_family=job_family,
+        control_scope=get_schedule_control_scope(job_id),
+        owner_agent=owner_agent,
+        capacity_snapshot=capacity_snapshot,
+    )
+    return bool(decision.get("allowed"))
+
+
+def _manual_job_governance_context(job_id: str) -> tuple[str, str]:
+    if job_id.startswith("agent-schedule:"):
+        agent = job_id.split(":", 1)[1]
+        return "agent_schedule", agent
+    if job_id == "daily-digest":
+        return "daily_digest", "general-assistant"
+    if job_id == "consolidation":
+        return "consolidation", "system"
+    if job_id == "pattern-detection":
+        return "pattern_detection", "system"
+    if job_id == "morning-plan":
+        return "workplan", "system"
+    if job_id == "workplan-refill":
+        return "workplan_refill", "system"
+    if job_id == "alert-check":
+        return "alerts", "system"
+    if job_id == "research:scheduler":
+        return "research_jobs", "research-agent"
+    if job_id.startswith("research:"):
+        return "research_job", "research-agent"
+    if job_id == "benchmark-cycle":
+        return "benchmarks", "system"
+    if job_id == "improvement-cycle":
+        return "improvement_cycle", "system"
+    if job_id == "cache-cleanup":
+        return "cache_cleanup", "system"
+    raise KeyError(job_id)
+
+
+async def _emit_schedule_event(
+    *,
+    event_type: str,
+    job_id: str,
+    job_family: str,
+    owner_agent: str,
+    trigger_mode: str,
+    summary: str,
+    outcome: str,
+    metadata: dict[str, Any] | None = None,
+    error: str = "",
+) -> None:
+    from .activity import log_event
+
+    payload: dict[str, Any] = {
+        "job_id": job_id,
+        "job_family": job_family,
+        "owner_agent": owner_agent,
+        "trigger_mode": trigger_mode,
+        "outcome": outcome,
+        "summary": summary,
+        "control_scope": get_schedule_control_scope(job_id),
+        "error": error,
+    }
+    if metadata:
+        payload.update(metadata)
+
+    await log_event(
+        event_type=event_type,
+        agent=owner_agent,
+        description=summary,
+        data=payload,
+    )
+
+
+async def _run_agent_schedule(
+    agent: str,
+    schedule: dict[str, Any],
+    *,
+    trigger_mode: str,
+    actor: str,
+    force_override: bool = False,
+) -> dict[str, Any]:
+    from .tasks import submit_task
+
+    interval = int(schedule["interval"])
+    task = await submit_task(
+        agent=agent,
+        prompt=schedule["prompt"],
+        priority=schedule["priority"],
+        metadata={
+            "source": "scheduler",
+            "interval": interval,
+            "trigger_mode": trigger_mode,
+            "schedule_job_id": f"agent-schedule:{agent}",
+            "schedule_actor": actor,
+            "force_override": force_override,
+        },
+    )
+    await _set_last_run(agent, time.time())
+    summary = f"{agent} proactive task submitted"
+    await _emit_schedule_event(
+        event_type="schedule_run",
+        job_id=f"agent-schedule:{agent}",
+        job_family="agent_schedule",
+        owner_agent=agent,
+        trigger_mode=trigger_mode,
+        summary=summary,
+        outcome="queued",
+        metadata={"task_id": task.id, "interval": interval, "priority": schedule["priority"]},
+    )
+    return {
+        "job_id": f"agent-schedule:{agent}",
+        "status": "queued",
+        "task_id": task.id,
+        "summary": summary,
+    }
+
+
+async def _run_daily_digest(
+    *,
+    trigger_mode: str,
+    actor: str,
+    force_override: bool = False,
+) -> dict[str, Any]:
+    from .goals import generate_digest_prompt
+    from .tasks import submit_task
+
+    prompt = await generate_digest_prompt()
+    task = await submit_task(
+        agent="general-assistant",
+        prompt=prompt,
+        priority="normal",
+        metadata={
+            "source": "daily_digest",
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "trigger_mode": trigger_mode,
+            "schedule_job_id": "daily-digest",
+            "schedule_actor": actor,
+            "force_override": force_override,
+        },
+    )
+    summary = "Daily digest submitted"
+    await _emit_schedule_event(
+        event_type="schedule_run",
+        job_id="daily-digest",
+        job_family="daily_digest",
+        owner_agent="general-assistant",
+        trigger_mode=trigger_mode,
+        summary=summary,
+        outcome="queued",
+        metadata={"task_id": task.id},
+    )
+    return {"job_id": "daily-digest", "status": "queued", "task_id": task.id, "summary": summary}
+
+
 async def _check_daily_digest():
     """Check if it's time to run the daily digest (6:55 AM local)."""
-    from .tasks import submit_task
-    from .goals import generate_digest_prompt
 
     now = datetime.now()
     if now.hour != DIGEST_HOUR or now.minute != DIGEST_MINUTE:
@@ -196,26 +376,58 @@ async def _check_daily_digest():
     except Exception:
         pass
 
-    logger.info("Scheduler: generating daily digest")
     try:
-        prompt = await generate_digest_prompt()
-        await submit_task(
-            agent="general-assistant",
-            prompt=prompt,
-            priority="normal",
-            metadata={"source": "daily_digest", "date": now.strftime("%Y-%m-%d")},
-        )
+        logger.info("Scheduler: generating daily digest")
+        await _run_daily_digest(trigger_mode="daily", actor="scheduler")
         r = await _get_redis()
         await r.set(DAILY_DIGEST_KEY, now.strftime("%Y-%m-%d"))
         logger.info("Daily digest submitted for %s", now.strftime("%Y-%m-%d"))
     except Exception as e:
+        await _emit_schedule_event(
+            event_type="schedule_failed",
+            job_id="daily-digest",
+            job_family="daily_digest",
+            owner_agent="general-assistant",
+            trigger_mode="daily",
+            summary="Daily digest failed",
+            outcome="failed",
+            error=str(e),
+        )
         logger.warning("Scheduler: failed to submit daily digest: %s", e)
+
+
+async def _run_consolidation_job(
+    *,
+    trigger_mode: str,
+    actor: str,
+    force_override: bool = False,
+) -> dict[str, Any]:
+    from .consolidation import run_consolidation
+
+    results = await run_consolidation()
+    summary = (
+        f"Memory consolidation deleted {results.get('total_deleted', 0)} points "
+        f"with {len(results.get('errors', []))} error(s)"
+    )
+    await _emit_schedule_event(
+        event_type="schedule_run",
+        job_id="consolidation",
+        job_family="consolidation",
+        owner_agent="system",
+        trigger_mode=trigger_mode,
+        summary=summary,
+        outcome="completed" if not results.get("errors") else "degraded",
+        metadata={
+            "total_deleted": results.get("total_deleted", 0),
+            "actor": actor,
+            "force_override": force_override,
+        },
+    )
+    return {"job_id": "consolidation", "status": "completed", "summary": summary}
 
 
 async def _check_consolidation():
     """Check if it's time to run memory consolidation (3:00 AM local)."""
-    from .consolidation import run_consolidation
-
     now = datetime.now()
     if now.hour != CONSOLIDATION_HOUR or now.minute != CONSOLIDATION_MINUTE:
         return
@@ -231,24 +443,58 @@ async def _check_consolidation():
     except Exception:
         pass
 
-    logger.info("Scheduler: running memory consolidation")
     try:
-        results = await run_consolidation()
+        logger.info("Scheduler: running memory consolidation")
+        results = await _run_consolidation_job(trigger_mode="daily", actor="scheduler")
         r = await _get_redis()
         await r.set(CONSOLIDATION_KEY, now.strftime("%Y-%m-%d"))
-        logger.info(
-            "Memory consolidation completed: %d points deleted, %d errors",
-            results.get("total_deleted", 0),
-            len(results.get("errors", [])),
-        )
+        logger.info("Memory consolidation completed: %s", results.get("summary", "done"))
     except Exception as e:
+        await _emit_schedule_event(
+            event_type="schedule_failed",
+            job_id="consolidation",
+            job_family="consolidation",
+            owner_agent="system",
+            trigger_mode="daily",
+            summary="Memory consolidation failed",
+            outcome="failed",
+            error=str(e),
+        )
         logger.warning("Scheduler: memory consolidation failed: %s", e)
+
+
+async def _run_pattern_detection_job(
+    *,
+    trigger_mode: str,
+    actor: str,
+    force_override: bool = False,
+) -> dict[str, Any]:
+    from .patterns import run_pattern_detection
+
+    report = await run_pattern_detection()
+    pattern_count = len(report.get("patterns", []))
+    rec_count = len(report.get("recommendations", []))
+    summary = f"Pattern detection produced {pattern_count} patterns and {rec_count} recommendations"
+    await _emit_schedule_event(
+        event_type="schedule_run",
+        job_id="pattern-detection",
+        job_family="pattern_detection",
+        owner_agent="system",
+        trigger_mode=trigger_mode,
+        summary=summary,
+        outcome="completed",
+        metadata={
+            "pattern_count": pattern_count,
+            "recommendation_count": rec_count,
+            "actor": actor,
+            "force_override": force_override,
+        },
+    )
+    return {"job_id": "pattern-detection", "status": "completed", "summary": summary}
 
 
 async def _check_pattern_detection():
     """Check if it's time to run daily pattern detection (5:00 AM local)."""
-    from .patterns import run_pattern_detection
-
     now = datetime.now()
     if now.hour != PATTERN_HOUR or now.minute != PATTERN_MINUTE:
         return
@@ -264,19 +510,23 @@ async def _check_pattern_detection():
     except Exception:
         pass
 
-    logger.info("Scheduler: running pattern detection")
     try:
-        report = await run_pattern_detection()
+        logger.info("Scheduler: running pattern detection")
+        report = await _run_pattern_detection_job(trigger_mode="daily", actor="scheduler")
         r = await _get_redis()
         await r.set(PATTERN_DETECTION_KEY, now.strftime("%Y-%m-%d"))
-
-        pattern_count = len(report.get("patterns", []))
-        rec_count = len(report.get("recommendations", []))
-        logger.info(
-            "Pattern detection completed: %d patterns, %d recommendations",
-            pattern_count, rec_count,
-        )
+        logger.info("Pattern detection completed: %s", report.get("summary", "done"))
     except Exception as e:
+        await _emit_schedule_event(
+            event_type="schedule_failed",
+            job_id="pattern-detection",
+            job_family="pattern_detection",
+            owner_agent="system",
+            trigger_mode="daily",
+            summary="Pattern detection failed",
+            outcome="failed",
+            error=str(e),
+        )
         logger.warning("Scheduler: pattern detection failed: %s", e)
 
     # Apply trust → autonomy threshold adjustments after pattern detection
@@ -393,8 +643,28 @@ async def _check_research_jobs():
 
         triggered = await check_scheduled_jobs()
         if triggered > 0:
+            await _emit_schedule_event(
+                event_type="schedule_run",
+                job_id="research:scheduler",
+                job_family="research_jobs",
+                owner_agent="research-agent",
+                trigger_mode="interval",
+                summary=f"Research scheduler triggered {triggered} job(s)",
+                outcome="queued",
+                metadata={"triggered": triggered, "actor": "scheduler"},
+            )
             logger.info("Scheduler: triggered %d research job(s)", triggered)
     except Exception as e:
+        await _emit_schedule_event(
+            event_type="schedule_failed",
+            job_id="research:scheduler",
+            job_family="research_jobs",
+            owner_agent="research-agent",
+            trigger_mode="interval",
+            summary="Research scheduler check failed",
+            outcome="failed",
+            error=str(e),
+        )
         logger.warning("Scheduler: research job check failed: %s", e)
 
 
@@ -421,6 +691,16 @@ async def _check_benchmarks():
 
         passed = result.get("passed", 0)
         total = result.get("total", 0)
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id="benchmark-cycle",
+            job_family="benchmarks",
+            owner_agent="system",
+            trigger_mode="interval",
+            summary=f"Benchmark cycle completed: {passed}/{total} passed",
+            outcome="completed",
+            metadata={"passed": passed, "total": total, "actor": "scheduler"},
+        )
         logger.info(
             "Self-improvement benchmarks: %d/%d passed (%.0f%%)",
             passed, total, result.get("pass_rate", 0) * 100,
@@ -434,6 +714,16 @@ async def _check_benchmarks():
                     bid, comp.get("baseline", 0), comp.get("new", 0),
                 )
     except Exception as e:
+        await _emit_schedule_event(
+            event_type="schedule_failed",
+            job_id="benchmark-cycle",
+            job_family="benchmarks",
+            owner_agent="system",
+            trigger_mode="interval",
+            summary="Benchmark cycle failed",
+            outcome="failed",
+            error=str(e),
+        )
         logger.warning("Benchmark run failed: %s", e)
 
 
@@ -466,12 +756,39 @@ async def _check_improvement_cycle():
         result = await engine.run_improvement_cycle()
         r = await _get_redis()
         await r.set(IMPROVEMENT_CYCLE_KEY, now.strftime("%Y-%m-%d"))
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id="improvement-cycle",
+            job_family="improvement_cycle",
+            owner_agent="system",
+            trigger_mode="daily",
+            summary=(
+                f"Improvement cycle generated {result.get('proposals_generated', 0)} proposals "
+                f"from {result.get('patterns_consumed', 0)} patterns"
+            ),
+            outcome="completed",
+            metadata={
+                "proposals_generated": result.get("proposals_generated", 0),
+                "patterns_consumed": result.get("patterns_consumed", 0),
+                "actor": "scheduler",
+            },
+        )
         logger.info(
             "Self-improvement cycle: %d proposals generated, %d patterns consumed",
             result.get("proposals_generated", 0),
             result.get("patterns_consumed", 0),
         )
     except Exception as e:
+        await _emit_schedule_event(
+            event_type="schedule_failed",
+            job_id="improvement-cycle",
+            job_family="improvement_cycle",
+            owner_agent="system",
+            trigger_mode="daily",
+            summary="Improvement cycle failed",
+            outcome="failed",
+            error=str(e),
+        )
         logger.warning("Scheduler: improvement cycle failed: %s", e)
 
 
@@ -494,15 +811,313 @@ async def _check_cache_cleanup():
         deleted = await cache.cleanup_expired()
         r = await _get_redis()
         await r.set(CACHE_CLEANUP_KEY, str(time.time()))
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id="cache-cleanup",
+            job_family="cache_cleanup",
+            owner_agent="system",
+            trigger_mode="interval",
+            summary=f"Semantic cache cleanup removed {deleted} expired entries",
+            outcome="completed",
+            metadata={"deleted": deleted, "actor": "scheduler"},
+        )
         if deleted > 0:
             logger.info("Semantic cache cleanup: %d expired entries removed", deleted)
     except Exception as e:
+        await _emit_schedule_event(
+            event_type="schedule_failed",
+            job_id="cache-cleanup",
+            job_family="cache_cleanup",
+            owner_agent="system",
+            trigger_mode="interval",
+            summary="Semantic cache cleanup failed",
+            outcome="failed",
+            error=str(e),
+        )
         logger.warning("Cache cleanup failed: %s", e)
+
+
+async def run_scheduled_job(
+    job_id: str,
+    actor: str = "operator",
+    *,
+    force: bool = False,
+) -> dict[str, Any]:
+    from .governor import build_capacity_snapshot, evaluate_job_governance
+
+    job_family, owner_agent = _manual_job_governance_context(job_id)
+    capacity_snapshot = await build_capacity_snapshot()
+    governance = await evaluate_job_governance(
+        job_id=job_id,
+        job_family=job_family,
+        control_scope=get_schedule_control_scope(job_id),
+        owner_agent=owner_agent,
+        capacity_snapshot=capacity_snapshot,
+    )
+    if not governance.get("allowed") and not force:
+        summary = (
+            f"Governor deferred manual run for {job_id}: "
+            f"{str(governance.get('reason') or 'not permitted under current posture')}"
+        )
+        await _emit_schedule_event(
+            event_type="schedule_skipped",
+            job_id=job_id,
+            job_family=job_family,
+            owner_agent=owner_agent,
+            trigger_mode="manual",
+            summary=summary,
+            outcome="deferred",
+            metadata={
+                "actor": actor,
+                "governor_status": governance.get("status"),
+                "presence_state": governance.get("presence_state"),
+                "release_tier": governance.get("release_tier"),
+                "capacity_posture": governance.get("capacity_posture"),
+                "queue_posture": governance.get("queue_posture"),
+                "provider_posture": governance.get("provider_posture"),
+                "active_window_ids": governance.get("active_window_ids"),
+                "deferred_by": governance.get("deferred_by"),
+                "force_override": False,
+            },
+        )
+        return {
+            "job_id": job_id,
+            "status": "deferred",
+            "summary": summary,
+            "governor_decision": governance,
+            "override_available": True,
+        }
+
+    if job_id.startswith("agent-schedule:"):
+        agent = job_id.split(":", 1)[1]
+        schedule = AGENT_SCHEDULES.get(agent)
+        if not schedule:
+            raise KeyError(job_id)
+        return await _run_agent_schedule(
+            agent,
+            schedule,
+            trigger_mode="manual",
+            actor=actor,
+            force_override=force,
+        )
+
+    if job_id == "daily-digest":
+        return await _run_daily_digest(trigger_mode="manual", actor=actor, force_override=force)
+
+    if job_id == "consolidation":
+        return await _run_consolidation_job(
+            trigger_mode="manual",
+            actor=actor,
+            force_override=force,
+        )
+
+    if job_id == "pattern-detection":
+        return await _run_pattern_detection_job(
+            trigger_mode="manual",
+            actor=actor,
+            force_override=force,
+        )
+
+    if job_id == "morning-plan":
+        from .workplanner import generate_work_plan
+
+        plan = await generate_work_plan(focus="morning planning - prioritize creative work for EoBQ")
+        summary = f"Manual morning work plan generated with {plan.get('task_count', 0)} tasks"
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="workplan",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed",
+            metadata={
+                "plan_id": plan.get("plan_id"),
+                "task_count": plan.get("task_count", 0),
+                "actor": actor,
+                "force_override": force,
+            },
+        )
+        return {"job_id": job_id, "status": "completed", "summary": summary, "plan_id": plan.get("plan_id")}
+
+    if job_id == "workplan-refill":
+        from .workplanner import generate_work_plan, should_refill
+
+        needs_refill = await should_refill()
+        if not needs_refill:
+            summary = "Manual workplan refill skipped because queue posture is healthy"
+            await _emit_schedule_event(
+                event_type="schedule_skipped",
+                job_id=job_id,
+                job_family="workplan_refill",
+                owner_agent="system",
+                trigger_mode="manual",
+                summary=summary,
+                outcome="skipped",
+                metadata={"actor": actor, "force_override": force},
+            )
+            return {"job_id": job_id, "status": "skipped", "summary": summary}
+
+        plan = await generate_work_plan(focus="queue refill - pick up where we left off")
+        summary = f"Manual workplan refill generated {plan.get('task_count', 0)} tasks"
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="workplan_refill",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed",
+            metadata={
+                "plan_id": plan.get("plan_id"),
+                "task_count": plan.get("task_count", 0),
+                "actor": actor,
+                "force_override": force,
+            },
+        )
+        return {"job_id": job_id, "status": "completed", "summary": summary, "plan_id": plan.get("plan_id")}
+
+    if job_id == "alert-check":
+        from .alerts import check_prometheus_alerts
+
+        result = await check_prometheus_alerts()
+        summary = f"Manual alert check saw {result.get('active', 0)} active and {result.get('new', 0)} new alerts"
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="alerts",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed" if result.get("checked") else "failed",
+            metadata={
+                "active": result.get("active", 0),
+                "new": result.get("new", 0),
+                "actor": actor,
+                "force_override": force,
+            },
+            error=str(result.get("error", "")) if result.get("error") else "",
+        )
+        return {"job_id": job_id, "status": "completed", "summary": summary}
+
+    if job_id == "research:scheduler":
+        from .research_jobs import check_scheduled_jobs
+
+        triggered = await check_scheduled_jobs()
+        summary = f"Manual research scheduler run triggered {triggered} job(s)"
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="research_jobs",
+            owner_agent="research-agent",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="queued" if triggered > 0 else "completed",
+            metadata={"triggered": triggered, "actor": actor, "force_override": force},
+        )
+        return {"job_id": job_id, "status": "queued" if triggered > 0 else "completed", "summary": summary}
+
+    if job_id.startswith("research:"):
+        from .research_jobs import execute_job
+
+        research_job_id = job_id.split(":", 1)[1]
+        result = await execute_job(research_job_id)
+        if result.get("error"):
+            await _emit_schedule_event(
+                event_type="schedule_failed",
+                job_id=job_id,
+                job_family="research_job",
+                owner_agent="research-agent",
+                trigger_mode="manual",
+                summary="Research job execution failed",
+                outcome="failed",
+                error=str(result["error"]),
+            )
+            return {"job_id": job_id, "status": "failed", "summary": str(result["error"])}
+
+        summary = f"Research job {research_job_id} submitted"
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="research_job",
+            owner_agent="research-agent",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="queued",
+            metadata={"task_id": result.get("task_id"), "actor": actor, "force_override": force},
+        )
+        return {"job_id": job_id, "status": "queued", "task_id": result.get("task_id"), "summary": summary}
+
+    if job_id == "benchmark-cycle":
+        from .self_improvement import get_improvement_engine
+
+        engine = get_improvement_engine()
+        await engine.load()
+        result = await engine.run_benchmark_suite()
+        summary = f"Manual benchmark cycle completed: {result.get('passed', 0)}/{result.get('total', 0)} passed"
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="benchmarks",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed",
+            metadata={
+                "passed": result.get("passed", 0),
+                "total": result.get("total", 0),
+                "actor": actor,
+                "force_override": force,
+            },
+        )
+        return {"job_id": job_id, "status": "completed", "summary": summary}
+
+    if job_id == "improvement-cycle":
+        from .self_improvement import get_improvement_engine
+
+        engine = get_improvement_engine()
+        await engine.load()
+        result = await engine.run_improvement_cycle()
+        summary = (
+            f"Manual improvement cycle generated {result.get('proposals_generated', 0)} proposals "
+            f"from {result.get('patterns_consumed', 0)} patterns"
+        )
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="improvement_cycle",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed",
+            metadata={"actor": actor, "force_override": force},
+        )
+        return {"job_id": job_id, "status": "completed", "summary": summary}
+
+    if job_id == "cache-cleanup":
+        from .semantic_cache import get_semantic_cache
+
+        cache = get_semantic_cache()
+        deleted = await cache.cleanup_expired()
+        summary = f"Manual cache cleanup removed {deleted} expired entries"
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="cache_cleanup",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed",
+            metadata={"deleted": deleted, "actor": actor, "force_override": force},
+        )
+        return {"job_id": job_id, "status": "completed", "summary": summary}
+
+    raise KeyError(job_id)
 
 
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
-    from .tasks import submit_task
+    from .governor import build_capacity_snapshot, is_automation_paused
 
     logger.info("Proactive scheduler started (interval=%.0fs)", SCHEDULER_INTERVAL)
 
@@ -512,62 +1127,88 @@ async def _scheduler_loop():
     while True:
         try:
             now = time.time()
+            capacity_snapshot = await build_capacity_snapshot()
 
-            # Check infrastructure alerts (every 5 min)
-            await _check_alerts()
+            if not await is_automation_paused("alerts") and await _governor_allows(
+                job_id="alert-check",
+                job_family="alerts",
+                owner_agent="system",
+                capacity_snapshot=capacity_snapshot,
+            ):
+                await _check_alerts()
 
-            # Check time-of-day tasks
-            await _check_consolidation()
-            await _check_pattern_detection()
-            await _check_daily_digest()
-            await _check_morning_plan()
+            if not await is_automation_paused("scheduler"):
+                await _check_consolidation()
+                await _check_pattern_detection()
+                await _check_daily_digest()
+                await _check_morning_plan()
+                await _check_workplan_refill()
 
-            # Self-improvement cycle (5:30 AM, after pattern detection)
-            await _check_improvement_cycle()
+            if not await is_automation_paused("research_jobs") and await _governor_allows(
+                job_id="research:scheduler",
+                job_family="research_jobs",
+                owner_agent="research-agent",
+                capacity_snapshot=capacity_snapshot,
+            ):
+                await _check_research_jobs()
 
-            # Check work plan refill (every 2 hours)
-            await _check_workplan_refill()
+            if not await is_automation_paused("benchmark_cycle") and await _governor_allows(
+                job_id="improvement-cycle",
+                job_family="improvement_cycle",
+                owner_agent="system",
+                capacity_snapshot=capacity_snapshot,
+            ):
+                await _check_improvement_cycle()
+            if not await is_automation_paused("benchmark_cycle") and await _governor_allows(
+                job_id="benchmark-cycle",
+                job_family="benchmarks",
+                owner_agent="system",
+                capacity_snapshot=capacity_snapshot,
+            ):
+                await _check_benchmarks()
 
-            # Check autonomous research jobs
-            await _check_research_jobs()
+            if not await is_automation_paused("maintenance") and await _governor_allows(
+                job_id="cache-cleanup",
+                job_family="cache_cleanup",
+                owner_agent="system",
+                capacity_snapshot=capacity_snapshot,
+            ):
+                await _check_cache_cleanup()
 
-            # Self-improvement benchmarks (every 6h)
-            await _check_benchmarks()
+            if not await is_automation_paused("scheduler"):
+                for agent, schedule in AGENT_SCHEDULES.items():
+                    if not schedule.get("enabled", True):
+                        continue
 
-            # Semantic cache cleanup (every 1h)
-            await _check_cache_cleanup()
+                    interval = schedule["interval"]
+                    last_run = await _get_last_run(agent)
 
-            for agent, schedule in AGENT_SCHEDULES.items():
-                if not schedule.get("enabled", True):
-                    continue
-
-                interval = schedule["interval"]
-                last_run = await _get_last_run(agent)
-
-                if now - last_run >= interval:
-                    logger.info(
-                        "Scheduler: submitting proactive task for %s (interval=%ds)",
-                        agent, interval,
-                    )
-                    try:
-                        await submit_task(
-                            agent=agent,
-                            prompt=schedule["prompt"],
-                            priority=schedule["priority"],
-                            metadata={"source": "scheduler", "interval": interval},
+                    if now - last_run >= interval:
+                        if not await _governor_allows(
+                            job_id=f"agent-schedule:{agent}",
+                            job_family="agent_schedule",
+                            owner_agent=agent,
+                            capacity_snapshot=capacity_snapshot,
+                        ):
+                            continue
+                        logger.info(
+                            "Scheduler: submitting proactive task for %s (interval=%ds)",
+                            agent, interval,
                         )
-                        await _set_last_run(agent, now)
-
-                        # Log schedule_run event for pattern detection
-                        from .activity import log_event
-                        asyncio.create_task(log_event(
-                            event_type="schedule_run",
-                            agent=agent,
-                            description=f"Scheduled task submitted (interval={interval}s)",
-                            data={"interval": interval, "priority": schedule["priority"]},
-                        ))
-                    except Exception as e:
-                        logger.warning("Scheduler: failed to submit task for %s: %s", agent, e)
+                        try:
+                            await _run_agent_schedule(agent, schedule, trigger_mode="interval", actor="scheduler")
+                        except Exception as e:
+                            await _emit_schedule_event(
+                                event_type="schedule_failed",
+                                job_id=f"agent-schedule:{agent}",
+                                job_family="agent_schedule",
+                                owner_agent=agent,
+                                trigger_mode="interval",
+                                summary=f"{agent} proactive task failed",
+                                outcome="failed",
+                                error=str(e),
+                            )
+                            logger.warning("Scheduler: failed to submit task for %s: %s", agent, e)
 
         except Exception as e:
             logger.warning("Scheduler loop error: %s", e)
@@ -601,6 +1242,88 @@ async def get_schedule_status() -> dict:
     }
 
 
+async def get_model_intelligence_cadence() -> list[dict[str, Any]]:
+    now = time.time()
+    schedule_status = await get_schedule_status()
+    research_schedule = next(
+        (entry for entry in schedule_status.get("schedules", []) if entry.get("agent") == "research-agent"),
+        None,
+    )
+
+    async def _read_marker(key: str) -> str | None:
+        try:
+            redis = await _get_redis()
+            raw = await redis.get(key)
+            if not raw:
+                return None
+            value = raw.decode() if isinstance(raw, bytes) else str(raw)
+            if value.count("-") == 2 and len(value) == 10:
+                return datetime.strptime(value, "%Y-%m-%d").isoformat()
+            return datetime.fromtimestamp(float(value)).isoformat()
+        except Exception:
+            return None
+
+    cadence = [
+        {
+            "id": "agent-schedule:research-agent",
+            "title": "Weekly horizon scan posture",
+            "cadence": research_schedule.get("interval_human", "interval") if research_schedule else "interval",
+            "last_run": datetime.fromtimestamp(research_schedule.get("last_run")).isoformat()
+            if research_schedule and research_schedule.get("last_run")
+            else None,
+            "next_run": datetime.fromtimestamp(
+                now + int(research_schedule.get("next_run_in", 0) or 0)
+            ).isoformat()
+            if research_schedule
+            else None,
+            "owner_agent": "research-agent",
+            "job_family": "agent_schedule",
+        },
+        {
+            "id": "benchmark-cycle",
+            "title": "Monthly champion rebaseline posture",
+            "cadence": "every 6h",
+            "last_run": await _read_marker(BENCHMARK_KEY),
+            "next_run": datetime.fromtimestamp(now + BENCHMARK_INTERVAL).isoformat(),
+            "owner_agent": "system",
+            "job_family": "benchmarks",
+        },
+        {
+            "id": "improvement-cycle",
+            "title": "Weekly candidate triage posture",
+            "cadence": "daily 5:30",
+            "last_run": await _read_marker(IMPROVEMENT_CYCLE_KEY),
+            "next_run": _next_daily_occurrence(IMPROVEMENT_CYCLE_HOUR, IMPROVEMENT_CYCLE_MINUTE),
+            "owner_agent": "system",
+            "job_family": "improvement_cycle",
+        },
+    ]
+
+    items: list[dict[str, Any]] = []
+    for entry in cadence:
+        decision = await _governor_allows(
+            job_id=str(entry["id"]),
+            job_family=str(entry["job_family"]),
+            owner_agent=str(entry["owner_agent"]),
+        )
+        items.append(
+            {
+                "id": str(entry["id"]),
+                "title": str(entry["title"]),
+                "cadence": str(entry["cadence"]),
+                "current_state": "scheduled" if decision else "deferred",
+                "last_run": entry.get("last_run"),
+                "next_run": entry.get("next_run"),
+                "last_outcome": "scheduled",
+                "paused": False,
+                "governor_reason": None
+                if decision
+                else "Governor deferred this cadence under current presence or release posture.",
+            }
+        )
+    return items
+
+
 def _humanize_interval(seconds: int) -> str:
     if seconds < 60:
         return f"{seconds}s"
@@ -609,6 +1332,14 @@ def _humanize_interval(seconds: int) -> str:
     if seconds < 86400:
         return f"{seconds // 3600}h"
     return f"{seconds // 86400}d"
+
+
+def _next_daily_occurrence(hour: int, minute: int) -> str:
+    now = datetime.now()
+    candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if candidate <= now:
+        candidate += timedelta(days=1)
+    return candidate.isoformat()
 
 
 async def start_scheduler():

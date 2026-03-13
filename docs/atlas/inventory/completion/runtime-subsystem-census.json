@@ -67,12 +67,17 @@
       "/conversations",
       "/outputs"
     ],
-    "endpointCount": 4,
+    "endpointCount": 5,
     "endpoints": [
       {
         "method": "GET",
         "path": "/v1/activity",
         "handler": "get_activity"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/activity/operator-stream",
+        "handler": "operator_stream"
       },
       {
         "method": "GET",
@@ -124,6 +129,50 @@
     ],
     "statusTag": null,
     "completionStatus": "live_partial",
+    "notes": [
+      "Grouped from FastAPI route decorators in server.py.",
+      "Dashboard touchpoints are inferred from the current atlas/runtime model."
+    ]
+  },
+  {
+    "id": "runtime.misc",
+    "title": "Miscellaneous runtime",
+    "dashboardTouchpoints": [],
+    "endpointCount": 6,
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/v1/models/governance/promotions",
+        "handler": "model_governance_promotions"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/models/governance/promotions",
+        "handler": "stage_model_governance_promotion"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/models/governance/promotions/{promotion_id}/{action}",
+        "handler": "transition_model_governance_promotion"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/models/governance/retirements",
+        "handler": "model_governance_retirements"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/models/governance/retirements",
+        "handler": "stage_model_governance_retirement"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/models/governance/retirements/{retirement_id}/{action}",
+        "handler": "transition_model_governance_retirement"
+      }
+    ],
+    "statusTag": null,
+    "completionStatus": "implemented_not_live",
     "notes": [
       "Grouped from FastAPI route decorators in server.py.",
       "Dashboard touchpoints are inferred from the current atlas/runtime model."
@@ -184,6 +233,80 @@
     ]
   },
   {
+    "id": "runtime.subsystem.command-hierarchy",
+    "title": "Command hierarchy and system map",
+    "dashboardTouchpoints": [
+      "/",
+      "/agents",
+      "/tasks",
+      "/workplanner"
+    ],
+    "endpointCount": 11,
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/v1/governor",
+        "handler": "governor_snapshot"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/governor/heartbeat",
+        "handler": "governor_heartbeat"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/governor/operations",
+        "handler": "governor_operations_snapshot"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/governor/operator-tests",
+        "handler": "governor_operator_tests"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/governor/operator-tests/run",
+        "handler": "governor_operator_tests_run"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/governor/pause",
+        "handler": "governor_pause"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/governor/presence",
+        "handler": "governor_presence"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/governor/release-tier",
+        "handler": "governor_release_tier"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/governor/resume",
+        "handler": "governor_resume"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/governor/tool-permissions",
+        "handler": "governor_tool_permissions_snapshot"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/system-map",
+        "handler": "system_map"
+      }
+    ],
+    "statusTag": "live",
+    "completionStatus": "live_partial",
+    "notes": [
+      "Grouped from FastAPI route decorators in server.py.",
+      "Dashboard touchpoints are inferred from the current atlas/runtime model."
+    ]
+  },
+  {
     "id": "runtime.subsystem.goals-workplan",
     "title": "Goals and workplan",
     "dashboardTouchpoints": [
@@ -237,6 +360,45 @@
         "method": "POST",
         "path": "/v1/workplan/redirect",
         "handler": "redirect_workplan"
+      }
+    ],
+    "statusTag": "live",
+    "completionStatus": "live_partial",
+    "notes": [
+      "Grouped from FastAPI route decorators in server.py.",
+      "Dashboard touchpoints are inferred from the current atlas/runtime model."
+    ]
+  },
+  {
+    "id": "runtime.subsystem.model-governance",
+    "title": "Model governance and proving ground",
+    "dashboardTouchpoints": [
+      "/",
+      "/learning",
+      "/review",
+      "/agents"
+    ],
+    "endpointCount": 4,
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/v1/models/governance",
+        "handler": "model_governance"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/models/proving-ground",
+        "handler": "model_proving_ground"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/models/proving-ground/run",
+        "handler": "run_model_proving_ground"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/review/judges",
+        "handler": "judge_plane"
       }
     ],
     "statusTag": "live",
@@ -463,8 +625,38 @@
       "/tasks",
       "/workspace"
     ],
-    "endpointCount": 6,
+    "endpointCount": 13,
     "endpoints": [
+      {
+        "method": "GET",
+        "path": "/v1/subscriptions/execution",
+        "handler": "subscription_execution_snapshot"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/subscriptions/execution",
+        "handler": "subscription_execute_provider"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/subscriptions/handoffs",
+        "handler": "subscription_handoffs"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/subscriptions/handoffs",
+        "handler": "create_subscription_handoff"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/subscriptions/handoffs/events",
+        "handler": "subscription_handoff_events"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/subscriptions/handoffs/{handoff_id}/outcome",
+        "handler": "update_subscription_handoff_outcome"
+      },
       {
         "method": "GET",
         "path": "/v1/subscriptions/leases",
@@ -494,6 +686,11 @@
         "method": "GET",
         "path": "/v1/subscriptions/quotas",
         "handler": "subscription_quota_summary"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/subscriptions/summary",
+        "handler": "subscription_backbone_summary"
       }
     ],
     "statusTag": "live",
@@ -511,7 +708,7 @@
       "/review",
       "/workplanner"
     ],
-    "endpointCount": 7,
+    "endpointCount": 10,
     "endpoints": [
       {
         "method": "GET",
@@ -522,6 +719,21 @@
         "method": "POST",
         "path": "/v1/tasks",
         "handler": "create_task"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/tasks/runs",
+        "handler": "task_execution_runs"
+      },
+      {
+        "method": "GET",
+        "path": "/v1/tasks/scheduled",
+        "handler": "scheduled_jobs"
+      },
+      {
+        "method": "POST",
+        "path": "/v1/tasks/scheduled/{job_id}/run",
+        "handler": "run_scheduled_job_endpoint"
       },
       {
         "method": "GET",

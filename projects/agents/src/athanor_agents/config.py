@@ -1,4 +1,6 @@
-from pydantic import AliasChoices, Field
+from urllib.parse import quote, urlsplit, urlunsplit
+
+from pydantic import AliasChoices, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -128,9 +130,25 @@ class Settings(BaseSettings):
         default="redis://192.168.1.203:6379/0",
         validation_alias=AliasChoices("ATHANOR_REDIS_URL"),
     )
+    redis_password: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_REDIS_PASSWORD", "REDIS_PASSWORD"),
+    )
     subscription_policy_path: str = Field(
         default="",
         validation_alias=AliasChoices("ATHANOR_SUBSCRIPTION_POLICY_PATH"),
+    )
+    provider_bridge_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_PROVIDER_BRIDGE_URL"),
+    )
+    provider_bridge_token: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_PROVIDER_BRIDGE_TOKEN"),
+    )
+    provider_bridge_timeout_seconds: int = Field(
+        default=45,
+        validation_alias=AliasChoices("ATHANOR_PROVIDER_BRIDGE_TIMEOUT_SECONDS"),
     )
     neo4j_url: str = Field(
         default="http://192.168.1.203:7474",
@@ -248,6 +266,32 @@ class Settings(BaseSettings):
 
     host: str = Field(default="0.0.0.0", validation_alias=AliasChoices("ATHANOR_HOST"))
     port: int = Field(default=9000, validation_alias=AliasChoices("ATHANOR_PORT"))
+
+    @model_validator(mode="after")
+    def _apply_redis_password(self) -> "Settings":
+        if not self.redis_password:
+            return self
+
+        parsed = urlsplit(self.redis_url)
+        if not parsed.scheme or parsed.password:
+            return self
+
+        host = parsed.hostname or ""
+        if not host:
+            return self
+
+        userinfo = ""
+        if parsed.username:
+            userinfo = f"{parsed.username}:{quote(self.redis_password, safe='')}"
+        else:
+            userinfo = f":{quote(self.redis_password, safe='')}"
+
+        netloc = f"{userinfo}@{host}"
+        if parsed.port:
+            netloc = f"{netloc}:{parsed.port}"
+
+        self.redis_url = urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+        return self
 
     @property
     def llm_base_url(self) -> str:

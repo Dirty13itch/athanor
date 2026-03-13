@@ -2,6 +2,22 @@
 
 This atlas maps the active Athanor runtime: the agent server, the workforce subsystems around it, the adaptive loops that shape behavior, and the current split between surfaced and unsurfaced capabilities.
 
+## Command Hierarchy Snapshot
+
+The runtime now treats command and execution as separate layers:
+
+- Shaun remains final authority.
+- The constitution and policy registry remain the highest non-human authority.
+- The Athanor governor is the runtime commander of record.
+- The strategy layer is dual-lane:
+  - frontier cloud meta lane
+  - sovereign local meta lane
+- The control stack owns routing, schedules, durable tasks, leases, and shared attention.
+- Specialists execute within domain bounds.
+- Worker planes execute; judge planes score.
+
+See [COMMAND_HIERARCHY_ATLAS.md](./COMMAND_HIERARCHY_ATLAS.md) for the full mapped hierarchy and operator-facing surfaces.
+
 ## Runtime Strata
 
 | Stratum | Primary modules / surfaces | Responsibility | Status |
@@ -12,7 +28,7 @@ This atlas maps the active Athanor runtime: the agent server, the workforce subs
 | Memory and knowledge | `preferences.py`, `preference_learning.py`, `hybrid_search.py`, `graph_context.py`, `consolidation.py` | explicit memory, retrieval, graph context, promotion / consolidation | `live` |
 | Adaptive control | `escalation.py`, `patterns.py`, `diagnosis.py`, `self_improvement.py`, `semantic_cache.py`, `circuit_breaker.py` | trust, autonomy, failure handling, pattern detection, adaptive refinement | `live` |
 | Subscription brokerage | `subscriptions.py` | provider selection and execution leasing for premium and local model lanes | `live` |
-| Emerging subsystems | `skill_learning.py`, `research_jobs.py` | reusable skills and structured research-job queueing | `implemented_not_live` |
+| Emerging subsystems | `skill_learning.py`, `research_jobs.py`, `model_governance.py`, `proving_ground.py` | reusable skills, structured research-job queueing, and model-governance/proving-ground runtime posture | `live` |
 
 ## Agent Roster
 
@@ -41,9 +57,11 @@ This atlas maps the active Athanor runtime: the agent server, the workforce subs
 | Preferences and memory | explicit preferences, preference learning, model preferences | `/v1/preferences`, `/v1/preferences/models` | `preferences.py`, `preference_learning.py` | `live` |
 | Patterns and learning | pattern detection, learning metrics, self-improvement telemetry | `/v1/patterns`, `/v1/patterns/run`, `/v1/learning/metrics`, `/v1/briefing` | `patterns.py`, `self_improvement.py`, `briefing.py` | `live` |
 | Subscription control layer | execution leasing across local and cloud providers | `/v1/subscriptions/*` | `subscriptions.py`, [`../decisions/ADR-022-subscription-control-layer.md`](../decisions/ADR-022-subscription-control-layer.md) | `live` |
-| Skills library | learned skills, execution stats, top-skill inspection | `/v1/skills*` | `skill_learning.py` | `implemented_not_live` |
-| Research jobs | queued research work separate from direct agent chat | `/v1/research/jobs*` | `research_jobs.py` | `implemented_not_live` |
-| Consolidation | explicit promotion / consolidation lane for memory work | `/v1/consolidate*` | `consolidation.py` | `implemented_not_live` |
+| Command hierarchy, governor posture, and operator stream | read-only hierarchy map, governor posture, normalized run ledger, scheduled jobs, provider summary, and operator events | `/v1/system-map`, `/v1/governor`, `/v1/activity/operator-stream`, `/v1/tasks/runs`, `/v1/tasks/scheduled`, `/v1/subscriptions/summary` | `command_hierarchy.py`, `governor.py`, `backbone.py`, [`../decisions/ADR-023-command-hierarchy-and-governance.md`](../decisions/ADR-023-command-hierarchy-and-governance.md) | `live` |
+| Model governance, judge plane, and proving ground | model-role registry, workload registry, champion/challenger posture, proving-ground cadence, local judge posture, and live benchmark evidence | `/v1/models/governance`, `/v1/models/proving-ground`, `/v1/review/judges` | `model_governance.py`, `judge.py`, `proving_ground.py`, `config/automation-backbone/*.json`, [`./MODEL_GOVERNANCE_ATLAS.md`](./MODEL_GOVERNANCE_ATLAS.md) | `live` |
+| Skills library | learned skills, execution stats, top-skill inspection | `/v1/skills*` | `skill_learning.py` | `live` |
+| Research jobs | queued research work separate from direct agent chat | `/v1/research/jobs*` | `research_jobs.py` | `live` |
+| Consolidation | explicit promotion / consolidation lane for memory work | `/v1/consolidate*` | `consolidation.py` | `live` |
 
 ## Control Loops
 
@@ -61,7 +79,8 @@ This atlas maps the active Athanor runtime: the agent server, the workforce subs
 | Runtime surface | Current state | Atlas reading |
 | --- | --- | --- |
 | Tasks, goals, workspace, notifications, history, outputs, subscriptions | connected to the live operator shell through dashboard routes and APIs | `live` |
-| Skills library, research jobs, consolidation endpoints, CST inspection, specialist registry | implemented in the agent server and queryable by API, but not a first-class dashboard workflow | `implemented_not_live` |
+| Skills library, research jobs, and consolidation | connected to `/learning`, `/workplanner`, and `/personal-data` through first-class dashboard cards and actions | `live` |
+| Model governance, governor posture, and proving-ground registries | surfaced in the Command Center, `/learning`, `/review`, `/agents`, `/tasks`, and `/workplanner`; registry visibility, benchmark execution, governor controls, system-map visibility, and judge-plane visibility are all live | `live` |
 | Older Local-System behavior lines | useful only as lineage/reference for drift analysis | `legacy` |
 
 ## Truth Boundaries

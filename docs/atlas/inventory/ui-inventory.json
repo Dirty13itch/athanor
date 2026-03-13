@@ -482,16 +482,16 @@
   {
     "id": "ui.system.dormant-shell-widgets",
     "layer": "ui",
-    "title": "Dormant shell widget set",
+    "title": "Deferred ambient shell widgets",
     "kind": "shell_system",
     "owner": "dashboard",
     "source_of_truth": "component library search",
     "status_tag": "implemented_not_live",
-    "repo_source": ["projects/dashboard/src/components/agent-crew-bar.tsx", "projects/dashboard/src/components/system-pulse.tsx", "projects/dashboard/src/components/daily-briefing.tsx", "projects/dashboard/src/components/unified-stream.tsx", "projects/dashboard/src/components/voice-input.tsx", "projects/dashboard/src/components/voice-output.tsx", "projects/dashboard/src/components/work-plan.tsx"],
+    "repo_source": ["projects/dashboard/src/components/system-pulse.tsx", "projects/dashboard/src/components/voice-input.tsx", "projects/dashboard/src/components/voice-output.tsx"],
     "runtime_source": ["component library only"],
     "depends_on": ["api.family.dashboard.support"],
-    "backed_by": ["stream", "feedback", "tts", "autonomy"],
+    "backed_by": ["tts", "autonomy", "ambient shell framing"],
     "entrypoints": ["component library"],
-    "notes": ["Implemented but not mounted as first-class shell systems."]
+    "notes": ["Daily briefing, unified stream, work plan, and crew surfaces are promoted elsewhere; this record now tracks only intentionally deferred ambient widgets."]
   }
 ]

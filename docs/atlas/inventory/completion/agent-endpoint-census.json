@@ -48,6 +48,14 @@
     "subsystemTitle": "History and outputs"
   },
   {
+    "id": "agent.endpoint.get.v1-activity-operator-stream",
+    "method": "GET",
+    "path": "/v1/activity/operator-stream",
+    "handler": "operator_stream",
+    "subsystemId": "runtime.history-outputs",
+    "subsystemTitle": "History and outputs"
+  },
+  {
     "id": "agent.endpoint.get.v1-conversations",
     "method": "GET",
     "path": "/v1/conversations",
@@ -96,6 +104,54 @@
     "subsystemTitle": "Preferences and memory"
   },
   {
+    "id": "agent.endpoint.get.v1-models-governance-promotions",
+    "method": "GET",
+    "path": "/v1/models/governance/promotions",
+    "handler": "model_governance_promotions",
+    "subsystemId": "runtime.misc",
+    "subsystemTitle": "Miscellaneous runtime"
+  },
+  {
+    "id": "agent.endpoint.post.v1-models-governance-promotions",
+    "method": "POST",
+    "path": "/v1/models/governance/promotions",
+    "handler": "stage_model_governance_promotion",
+    "subsystemId": "runtime.misc",
+    "subsystemTitle": "Miscellaneous runtime"
+  },
+  {
+    "id": "agent.endpoint.post.v1-models-governance-promotions-promotion-id-action",
+    "method": "POST",
+    "path": "/v1/models/governance/promotions/{promotion_id}/{action}",
+    "handler": "transition_model_governance_promotion",
+    "subsystemId": "runtime.misc",
+    "subsystemTitle": "Miscellaneous runtime"
+  },
+  {
+    "id": "agent.endpoint.get.v1-models-governance-retirements",
+    "method": "GET",
+    "path": "/v1/models/governance/retirements",
+    "handler": "model_governance_retirements",
+    "subsystemId": "runtime.misc",
+    "subsystemTitle": "Miscellaneous runtime"
+  },
+  {
+    "id": "agent.endpoint.post.v1-models-governance-retirements",
+    "method": "POST",
+    "path": "/v1/models/governance/retirements",
+    "handler": "stage_model_governance_retirement",
+    "subsystemId": "runtime.misc",
+    "subsystemTitle": "Miscellaneous runtime"
+  },
+  {
+    "id": "agent.endpoint.post.v1-models-governance-retirements-retirement-id-action",
+    "method": "POST",
+    "path": "/v1/models/governance/retirements/{retirement_id}/{action}",
+    "handler": "transition_model_governance_retirement",
+    "subsystemId": "runtime.misc",
+    "subsystemTitle": "Miscellaneous runtime"
+  },
+  {
     "id": "agent.endpoint.post.v1-context-preview",
     "method": "POST",
     "path": "/v1/context/preview",
@@ -126,6 +182,94 @@
     "handler": "services_status",
     "subsystemId": "runtime.status",
     "subsystemTitle": "Service and media status"
+  },
+  {
+    "id": "agent.endpoint.get.v1-governor",
+    "method": "GET",
+    "path": "/v1/governor",
+    "handler": "governor_snapshot",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.post.v1-governor-heartbeat",
+    "method": "POST",
+    "path": "/v1/governor/heartbeat",
+    "handler": "governor_heartbeat",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.get.v1-governor-operations",
+    "method": "GET",
+    "path": "/v1/governor/operations",
+    "handler": "governor_operations_snapshot",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.get.v1-governor-operator-tests",
+    "method": "GET",
+    "path": "/v1/governor/operator-tests",
+    "handler": "governor_operator_tests",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.post.v1-governor-operator-tests-run",
+    "method": "POST",
+    "path": "/v1/governor/operator-tests/run",
+    "handler": "governor_operator_tests_run",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.post.v1-governor-pause",
+    "method": "POST",
+    "path": "/v1/governor/pause",
+    "handler": "governor_pause",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.post.v1-governor-presence",
+    "method": "POST",
+    "path": "/v1/governor/presence",
+    "handler": "governor_presence",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.post.v1-governor-release-tier",
+    "method": "POST",
+    "path": "/v1/governor/release-tier",
+    "handler": "governor_release_tier",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.post.v1-governor-resume",
+    "method": "POST",
+    "path": "/v1/governor/resume",
+    "handler": "governor_resume",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.get.v1-governor-tool-permissions",
+    "method": "GET",
+    "path": "/v1/governor/tool-permissions",
+    "handler": "governor_tool_permissions_snapshot",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
+  },
+  {
+    "id": "agent.endpoint.get.v1-system-map",
+    "method": "GET",
+    "path": "/v1/system-map",
+    "handler": "system_map",
+    "subsystemId": "runtime.subsystem.command-hierarchy",
+    "subsystemTitle": "Command hierarchy and system map"
   },
   {
     "id": "agent.endpoint.get.v1-goals",
@@ -198,6 +342,38 @@
     "handler": "redirect_workplan",
     "subsystemId": "runtime.subsystem.goals-workplan",
     "subsystemTitle": "Goals and workplan"
+  },
+  {
+    "id": "agent.endpoint.get.v1-models-governance",
+    "method": "GET",
+    "path": "/v1/models/governance",
+    "handler": "model_governance",
+    "subsystemId": "runtime.subsystem.model-governance",
+    "subsystemTitle": "Model governance and proving ground"
+  },
+  {
+    "id": "agent.endpoint.get.v1-models-proving-ground",
+    "method": "GET",
+    "path": "/v1/models/proving-ground",
+    "handler": "model_proving_ground",
+    "subsystemId": "runtime.subsystem.model-governance",
+    "subsystemTitle": "Model governance and proving ground"
+  },
+  {
+    "id": "agent.endpoint.post.v1-models-proving-ground-run",
+    "method": "POST",
+    "path": "/v1/models/proving-ground/run",
+    "handler": "run_model_proving_ground",
+    "subsystemId": "runtime.subsystem.model-governance",
+    "subsystemTitle": "Model governance and proving ground"
+  },
+  {
+    "id": "agent.endpoint.get.v1-review-judges",
+    "method": "GET",
+    "path": "/v1/review/judges",
+    "handler": "judge_plane",
+    "subsystemId": "runtime.subsystem.model-governance",
+    "subsystemTitle": "Model governance and proving ground"
   },
   {
     "id": "agent.endpoint.get.v1-alerts",
@@ -448,6 +624,54 @@
     "subsystemTitle": "Skills, research jobs, and consolidation"
   },
   {
+    "id": "agent.endpoint.get.v1-subscriptions-execution",
+    "method": "GET",
+    "path": "/v1/subscriptions/execution",
+    "handler": "subscription_execution_snapshot",
+    "subsystemId": "runtime.subsystem.subscriptions",
+    "subsystemTitle": "Subscription control layer"
+  },
+  {
+    "id": "agent.endpoint.post.v1-subscriptions-execution",
+    "method": "POST",
+    "path": "/v1/subscriptions/execution",
+    "handler": "subscription_execute_provider",
+    "subsystemId": "runtime.subsystem.subscriptions",
+    "subsystemTitle": "Subscription control layer"
+  },
+  {
+    "id": "agent.endpoint.get.v1-subscriptions-handoffs",
+    "method": "GET",
+    "path": "/v1/subscriptions/handoffs",
+    "handler": "subscription_handoffs",
+    "subsystemId": "runtime.subsystem.subscriptions",
+    "subsystemTitle": "Subscription control layer"
+  },
+  {
+    "id": "agent.endpoint.post.v1-subscriptions-handoffs",
+    "method": "POST",
+    "path": "/v1/subscriptions/handoffs",
+    "handler": "create_subscription_handoff",
+    "subsystemId": "runtime.subsystem.subscriptions",
+    "subsystemTitle": "Subscription control layer"
+  },
+  {
+    "id": "agent.endpoint.get.v1-subscriptions-handoffs-events",
+    "method": "GET",
+    "path": "/v1/subscriptions/handoffs/events",
+    "handler": "subscription_handoff_events",
+    "subsystemId": "runtime.subsystem.subscriptions",
+    "subsystemTitle": "Subscription control layer"
+  },
+  {
+    "id": "agent.endpoint.post.v1-subscriptions-handoffs-handoff-id-outcome",
+    "method": "POST",
+    "path": "/v1/subscriptions/handoffs/{handoff_id}/outcome",
+    "handler": "update_subscription_handoff_outcome",
+    "subsystemId": "runtime.subsystem.subscriptions",
+    "subsystemTitle": "Subscription control layer"
+  },
+  {
     "id": "agent.endpoint.get.v1-subscriptions-leases",
     "method": "GET",
     "path": "/v1/subscriptions/leases",
@@ -496,6 +720,14 @@
     "subsystemTitle": "Subscription control layer"
   },
   {
+    "id": "agent.endpoint.get.v1-subscriptions-summary",
+    "method": "GET",
+    "path": "/v1/subscriptions/summary",
+    "handler": "subscription_backbone_summary",
+    "subsystemId": "runtime.subsystem.subscriptions",
+    "subsystemTitle": "Subscription control layer"
+  },
+  {
     "id": "agent.endpoint.get.v1-tasks",
     "method": "GET",
     "path": "/v1/tasks",
@@ -508,6 +740,30 @@
     "method": "POST",
     "path": "/v1/tasks",
     "handler": "create_task",
+    "subsystemId": "runtime.subsystem.task-engine",
+    "subsystemTitle": "Task engine"
+  },
+  {
+    "id": "agent.endpoint.get.v1-tasks-runs",
+    "method": "GET",
+    "path": "/v1/tasks/runs",
+    "handler": "task_execution_runs",
+    "subsystemId": "runtime.subsystem.task-engine",
+    "subsystemTitle": "Task engine"
+  },
+  {
+    "id": "agent.endpoint.get.v1-tasks-scheduled",
+    "method": "GET",
+    "path": "/v1/tasks/scheduled",
+    "handler": "scheduled_jobs",
+    "subsystemId": "runtime.subsystem.task-engine",
+    "subsystemTitle": "Task engine"
+  },
+  {
+    "id": "agent.endpoint.post.v1-tasks-scheduled-job-id-run",
+    "method": "POST",
+    "path": "/v1/tasks/scheduled/{job_id}/run",
+    "handler": "run_scheduled_job_endpoint",
     "subsystemId": "runtime.subsystem.task-engine",
     "subsystemTitle": "Task engine"
   },

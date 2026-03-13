@@ -27,9 +27,13 @@ The atlas keeps older docs as source material, but it no longer lets them compet
 ## Atlas Layout
 
 - [`TOPOLOGY_ATLAS.md`](./TOPOLOGY_ATLAS.md) - nodes, services, models, stores, network paths, and deployment truth.
+- [`COMMAND_HIERARCHY_ATLAS.md`](./COMMAND_HIERARCHY_ATLAS.md) - authority order, dual-meta lanes, control-stack ownership, and operator-facing command visibility.
+- [`MODEL_GOVERNANCE_ATLAS.md`](./MODEL_GOVERNANCE_ATLAS.md) - model roles, workload classes, champion/challenger posture, and the proving-ground/update loop.
+- [`OPERATIONS_ATLAS.md`](./OPERATIONS_ATLAS.md) - constitution, capacity/economic governance, presence model, lifecycle, restore posture, release tiers, and runbooks.
 - [`RUNTIME_ATLAS.md`](./RUNTIME_ATLAS.md) - agents, task/workspace systems, control loops, subscriptions, and adaptive subsystems.
 - [`UI_ATLAS.md`](./UI_ATLAS.md) - shell, every dashboard route, shared console families, dormant UI systems, and cross-route dependencies.
 - [`API_ATLAS.md`](./API_ATLAS.md) - dashboard API families, agent-server endpoint families, contract ownership, and UI/API consumer mapping.
+- [`../design/automation-backbone-execution-tracker.md`](../design/automation-backbone-execution-tracker.md) - implementation-status tracker for the full backbone program, including what is live, partial, or still queued.
 - [`COMPLETION_AUDIT_PLAN.md`](./COMPLETION_AUDIT_PLAN.md) - the exhaustive program for finding unfinished, partial, dormant, broken, and legacy surfaces across every layer.
 - [`SOURCE_RECONCILIATION.md`](./SOURCE_RECONCILIATION.md) - which documents and code/config layers still own truth, and which older docs are now reference-only.
 
@@ -100,13 +104,14 @@ Run outputs land in:
 
 ### Current Gate State
 
-As of `2026-03-11`, the completion gate is passing in `ready` state.
+As of `2026-03-12`, the completion gate is passing in `ready` state.
 
 - `25` dashboard routes are inventoried and audited.
 - `30` support surfaces are inventoried with direct automated render coverage.
-- `54` dashboard APIs are inventoried; only `/api/stash/stats` remains unresolved as an orphan candidate.
+- `85` dashboard APIs are inventoried and covered by the census.
 - the deterministic fixture lane and live-runtime lane both pass with `0` failed jobs.
-- the remaining warnings are deliberate dormant/unmounted surfaces plus known deployment drift on `agent-server`, `LiteLLM`, and `VAULT` monitoring.
+- `87` dashboard APIs are currently inventoried by the canonical audit.
+- there are currently `0` active gate warnings.
 
 ## Source Anchors
 
@@ -115,7 +120,14 @@ These remain the main upstream sources the atlas reconciles:
 - [`../SYSTEM-SPEC.md`](../SYSTEM-SPEC.md) - operational architecture and system behavior.
 - [`../SERVICES.md`](../SERVICES.md) - live service placement and model routing.
 - [`../BUILD-MANIFEST.md`](../BUILD-MANIFEST.md) - execution queue and current deployment notes.
+- [`../design/automation-backbone-master-plan.md`](../design/automation-backbone-master-plan.md) - unified future-state automation backbone plan.
+- [`../design/visual-system/README.md`](../design/visual-system/README.md) - canonical visual-system index and redesign freeze point.
+- [`../design/visual-system/VISUAL_CONSTITUTION.md`](../design/visual-system/VISUAL_CONSTITUTION.md) - non-negotiable visual identity and signal rules.
+- [`../design/visual-system/TOKEN_SPEC.md`](../design/visual-system/TOKEN_SPEC.md) - semantic token, signal, chart, typography, and motion specification.
+- [`../design/system-constitution.md`](../design/system-constitution.md) - the stable constitutional layer for command, sovereignty, and no-go rules.
 - [`../design/agent-contracts.md`](../design/agent-contracts.md) - agent behavior contracts.
+- [`../design/command-hierarchy-governance.md`](../design/command-hierarchy-governance.md) - the full command hierarchy, dual-meta model, and governance design.
+- [`../operations/OPERATOR_RUNBOOKS.md`](../operations/OPERATOR_RUNBOOKS.md) - operator-facing recovery and routine operation guidance.
 - [`../../projects/dashboard/README.md`](../../projects/dashboard/README.md) - dashboard platform overview.
 - [`../../projects/dashboard/docs/UI_AUDIT.md`](../../projects/dashboard/docs/UI_AUDIT.md) - route quality baseline.
 

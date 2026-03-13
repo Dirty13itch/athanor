@@ -174,6 +174,134 @@ async def models():
     }
 
 
+@app.get("/v1/models/governance")
+async def model_governance():
+    from .model_governance import build_live_model_governance_snapshot
+
+    return await build_live_model_governance_snapshot()
+
+
+@app.get("/v1/models/governance/promotions")
+async def model_governance_promotions(limit: int = 12):
+    from .promotion_control import build_promotion_controls_snapshot
+
+    return await build_promotion_controls_snapshot(limit=limit)
+
+
+@app.post("/v1/models/governance/promotions")
+async def stage_model_governance_promotion(request: Request):
+    from .promotion_control import stage_promotion_candidate
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    role_id = body.get("role_id", "") if isinstance(body, dict) else ""
+    candidate = body.get("candidate", "") if isinstance(body, dict) else ""
+    if not role_id or not candidate:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Fields 'role_id' and 'candidate' are required"},
+        )
+
+    record = await stage_promotion_candidate(
+        role_id=role_id,
+        candidate=candidate,
+        target_tier=body.get("target_tier", "canary") if isinstance(body, dict) else "canary",
+        actor=body.get("actor", "operator") if isinstance(body, dict) else "operator",
+        reason=body.get("reason", "") if isinstance(body, dict) else "",
+        source=body.get("source", "manual") if isinstance(body, dict) else "manual",
+        asset_class=body.get("asset_class", "models") if isinstance(body, dict) else "models",
+    )
+    return {"promotion": record}
+
+
+@app.post("/v1/models/governance/promotions/{promotion_id}/{action}")
+async def transition_model_governance_promotion(promotion_id: str, action: str, request: Request):
+    from .promotion_control import transition_promotion_candidate
+
+    if action not in {"advance", "hold", "rollback"}:
+        return JSONResponse(status_code=400, content={"error": f"Unsupported action '{action}'"})
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    record = await transition_promotion_candidate(
+        promotion_id,
+        action=action,
+        actor=body.get("actor", "operator") if isinstance(body, dict) else "operator",
+        reason=body.get("reason", "") if isinstance(body, dict) else "",
+    )
+    if record is None:
+        return JSONResponse(status_code=404, content={"error": f"Promotion '{promotion_id}' not found"})
+    return {"promotion": record}
+
+
+@app.get("/v1/models/governance/retirements")
+async def model_governance_retirements(limit: int = 12):
+    from .retirement_control import build_retirement_controls_snapshot
+
+    return await build_retirement_controls_snapshot(limit=limit)
+
+
+@app.post("/v1/models/governance/retirements")
+async def stage_model_governance_retirement(request: Request):
+    from .retirement_control import stage_retirement_candidate
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    asset_class = body.get("asset_class", "") if isinstance(body, dict) else ""
+    asset_id = body.get("asset_id", "") if isinstance(body, dict) else ""
+    label = body.get("label", asset_id) if isinstance(body, dict) else asset_id
+    if not asset_class or not asset_id:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Fields 'asset_class' and 'asset_id' are required"},
+        )
+
+    record = await stage_retirement_candidate(
+        asset_class=asset_class,
+        asset_id=asset_id,
+        label=label,
+        target_stage=body.get("target_stage", "retired_reference_only")
+        if isinstance(body, dict)
+        else "retired_reference_only",
+        actor=body.get("actor", "operator") if isinstance(body, dict) else "operator",
+        reason=body.get("reason", "") if isinstance(body, dict) else "",
+        source=body.get("source", "manual") if isinstance(body, dict) else "manual",
+    )
+    return {"retirement": record}
+
+
+@app.post("/v1/models/governance/retirements/{retirement_id}/{action}")
+async def transition_model_governance_retirement(retirement_id: str, action: str, request: Request):
+    from .retirement_control import transition_retirement_candidate
+
+    if action not in {"advance", "hold", "rollback"}:
+        return JSONResponse(status_code=400, content={"error": f"Unsupported action '{action}'"})
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    record = await transition_retirement_candidate(
+        retirement_id,
+        action=action,
+        actor=body.get("actor", "operator") if isinstance(body, dict) else "operator",
+        reason=body.get("reason", "") if isinstance(body, dict) else "",
+    )
+    if record is None:
+        return JSONResponse(status_code=404, content={"error": f"Retirement '{retirement_id}' not found"})
+    return {"retirement": record}
+
+
+@app.get("/v1/models/proving-ground")
+async def model_proving_ground(limit: int = 12):
+    from .proving_ground import build_proving_ground_snapshot
+
+    return await build_proving_ground_snapshot(limit=limit)
+
+
+@app.post("/v1/models/proving-ground/run")
+async def run_model_proving_ground(request: Request):
+    from .proving_ground import run_proving_ground
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    limit = int(body.get("limit", 12)) if isinstance(body, dict) else 12
+    return await run_proving_ground(limit=limit)
+
+
 # --- Subscription control layer ---
 
 
@@ -207,6 +335,7 @@ async def subscription_leases(requester: str = "", limit: int = 50):
 @app.post("/v1/subscriptions/leases")
 async def create_subscription_lease(request: Request):
     from .subscriptions import LeaseRequest, issue_execution_lease
+    from .tool_permissions import evaluate_tool_permission
 
     body = await request.json()
     requester = body.get("requester", "")
@@ -216,6 +345,15 @@ async def create_subscription_lease(request: Request):
             status_code=400,
             content={"error": "Both 'requester' and 'task_class' are required"},
         )
+
+    permission = evaluate_tool_permission(
+        requester,
+        "lease requests",
+        tool_name="subscription lease",
+        metadata={"task_class": task_class},
+    )
+    if not permission["allowed"]:
+        return JSONResponse(status_code=403, content={"error": permission["reason"]})
 
     lease = await issue_execution_lease(
         LeaseRequest(
@@ -261,6 +399,122 @@ async def subscription_quota_summary():
     return await get_quota_summary()
 
 
+@app.get("/v1/subscriptions/summary")
+async def subscription_backbone_summary(limit: int = 10):
+    from .backbone import build_quota_lease_summary
+
+    return await build_quota_lease_summary(limit=limit)
+
+
+@app.get("/v1/subscriptions/execution")
+async def subscription_execution_snapshot(limit: int = 10):
+    from .provider_execution import build_provider_execution_snapshot
+
+    return await build_provider_execution_snapshot(limit=limit)
+
+
+@app.post("/v1/subscriptions/execution")
+async def subscription_execute_provider(request: Request):
+    from .provider_execution import execute_provider_request
+
+    body = await request.json()
+    requester = body.get("requester", "")
+    task_class = body.get("task_class", "")
+    prompt = body.get("prompt", "")
+    if not requester or not task_class or not prompt:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Fields 'requester', 'task_class', and 'prompt' are required"},
+        )
+
+    try:
+        result = await execute_provider_request(
+            requester=requester,
+            prompt=prompt,
+            task_class=task_class,
+            sensitivity=body.get("sensitivity", "repo_internal"),
+            interactive=bool(body.get("interactive", False)),
+            expected_context=body.get("expected_context", "medium"),
+            parallelism=body.get("parallelism", "low"),
+            metadata=body.get("metadata", {}),
+            issue_lease=bool(body.get("issue_lease", True)),
+            timeout_seconds=int(body.get("timeout_seconds", 90)),
+        )
+    except PermissionError as exc:
+        return JSONResponse(status_code=403, content={"error": str(exc)})
+    return result
+
+
+@app.get("/v1/subscriptions/handoffs")
+async def subscription_handoffs(requester: str = "", limit: int = 25):
+    from .provider_execution import list_handoff_bundles
+
+    bundles = await list_handoff_bundles(requester=requester, limit=limit)
+    return {"handoffs": bundles, "count": len(bundles)}
+
+
+@app.get("/v1/subscriptions/handoffs/events")
+async def subscription_handoff_events(limit: int = 25):
+    from .provider_execution import list_handoff_events
+
+    events = await list_handoff_events(limit=limit)
+    return {"events": events, "count": len(events)}
+
+
+@app.post("/v1/subscriptions/handoffs")
+async def create_subscription_handoff(request: Request):
+    from .provider_execution import create_handoff_bundle
+
+    body = await request.json()
+    requester = body.get("requester", "")
+    task_class = body.get("task_class", "")
+    prompt = body.get("prompt", "")
+    if not requester or not task_class or not prompt:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Fields 'requester', 'task_class', and 'prompt' are required"},
+        )
+
+    try:
+        bundle = await create_handoff_bundle(
+            requester=requester,
+            prompt=prompt,
+            task_class=task_class,
+            sensitivity=body.get("sensitivity", "repo_internal"),
+            interactive=bool(body.get("interactive", False)),
+            expected_context=body.get("expected_context", "medium"),
+            parallelism=body.get("parallelism", "low"),
+            metadata=body.get("metadata", {}),
+            issue_lease=bool(body.get("issue_lease", True)),
+        )
+    except PermissionError as exc:
+        return JSONResponse(status_code=403, content={"error": str(exc)})
+    return {"handoff": bundle}
+
+
+@app.post("/v1/subscriptions/handoffs/{handoff_id}/outcome")
+async def update_subscription_handoff_outcome(handoff_id: str, request: Request):
+    from .provider_execution import record_handoff_outcome
+
+    body = await request.json()
+    outcome = body.get("outcome", "")
+    if not outcome:
+        return JSONResponse(status_code=400, content={"error": "'outcome' is required"})
+
+    bundle = await record_handoff_outcome(
+        handoff_id=handoff_id,
+        outcome=outcome,
+        notes=body.get("notes", ""),
+        result_summary=body.get("result_summary", ""),
+        artifact_refs=body.get("artifact_refs"),
+        quality_score=body.get("quality_score"),
+        latency_ms=body.get("latency_ms"),
+    )
+    if bundle is None:
+        return JSONResponse(status_code=404, content={"error": f"Handoff '{handoff_id}' not found"})
+    return {"handoff": bundle}
+
+
 # --- Agent metadata endpoint ---
 
 
@@ -279,6 +533,116 @@ async def agents_metadata():
             "status_note": meta.get("status_note"),
         })
     return {"agents": agents}
+
+
+@app.get("/v1/system-map")
+async def system_map():
+    from .command_hierarchy import build_system_map_snapshot
+
+    return await build_system_map_snapshot(AGENT_METADATA)
+
+
+@app.get("/v1/governor")
+async def governor_snapshot():
+    from .governor import build_governor_snapshot
+
+    return await build_governor_snapshot()
+
+
+@app.get("/v1/governor/operations")
+async def governor_operations_snapshot():
+    from .governor import build_operations_readiness_snapshot
+
+    return await build_operations_readiness_snapshot()
+
+
+@app.get("/v1/governor/tool-permissions")
+async def governor_tool_permissions_snapshot():
+    from .governor import build_tool_permissions_snapshot
+
+    return await build_tool_permissions_snapshot()
+
+
+@app.get("/v1/governor/operator-tests")
+async def governor_operator_tests():
+    from .operator_tests import build_operator_tests_snapshot
+
+    return await build_operator_tests_snapshot()
+
+
+@app.post("/v1/governor/operator-tests/run")
+async def governor_operator_tests_run(request: Request):
+    from .operator_tests import run_operator_tests
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    flow_ids = None
+    if isinstance(body, dict):
+        raw_flow_ids = body.get("flow_ids")
+        if isinstance(raw_flow_ids, list):
+            flow_ids = [str(item) for item in raw_flow_ids if str(item).strip()]
+    actor = body.get("actor", "operator") if isinstance(body, dict) else "operator"
+    return await run_operator_tests(flow_ids=flow_ids, actor=actor)
+
+
+@app.post("/v1/governor/pause")
+async def governor_pause(request: Request):
+    from .governor import pause_automation
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    scope = body.get("scope", "global") if isinstance(body, dict) else "global"
+    reason = body.get("reason", "") if isinstance(body, dict) else ""
+    actor = body.get("actor", "operator") if isinstance(body, dict) else "operator"
+    return await pause_automation(scope=scope, reason=reason, actor=actor)
+
+
+@app.post("/v1/governor/resume")
+async def governor_resume(request: Request):
+    from .governor import resume_automation
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    scope = body.get("scope", "global") if isinstance(body, dict) else "global"
+    actor = body.get("actor", "operator") if isinstance(body, dict) else "operator"
+    return await resume_automation(scope=scope, actor=actor)
+
+
+@app.post("/v1/governor/presence")
+async def governor_presence(request: Request):
+    from .governor import set_operator_presence
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    state_id = body.get("state", "at_desk") if isinstance(body, dict) else "at_desk"
+    reason = body.get("reason", "") if isinstance(body, dict) else ""
+    actor = body.get("actor", "operator") if isinstance(body, dict) else "operator"
+    mode = body.get("mode", "manual") if isinstance(body, dict) else "manual"
+    return await set_operator_presence(state_id=state_id, reason=reason, actor=actor, mode=mode)
+
+
+@app.post("/v1/governor/heartbeat")
+async def governor_heartbeat(request: Request):
+    from .governor import record_presence_heartbeat
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    state_id = body.get("state", "at_desk") if isinstance(body, dict) else "at_desk"
+    source = body.get("source", "dashboard_heartbeat") if isinstance(body, dict) else "dashboard_heartbeat"
+    reason = body.get("reason", "") if isinstance(body, dict) else ""
+    actor = body.get("actor", "dashboard-heartbeat") if isinstance(body, dict) else "dashboard-heartbeat"
+    return await record_presence_heartbeat(
+        state_id=state_id,
+        source=source,
+        reason=reason,
+        actor=actor,
+    )
+
+
+@app.post("/v1/governor/release-tier")
+async def governor_release_tier(request: Request):
+    from .governor import set_release_tier
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    tier = body.get("tier", "production") if isinstance(body, dict) else "production"
+    reason = body.get("reason", "") if isinstance(body, dict) else ""
+    actor = body.get("actor", "operator") if isinstance(body, dict) else "operator"
+    return await set_release_tier(tier=tier, reason=reason, actor=actor)
 
 
 # --- Media status endpoint ---
@@ -395,6 +759,14 @@ async def get_activity(
         agent=agent, action_type=action_type, limit=limit, since_unix=since
     )
     return {"activity": results, "count": len(results)}
+
+
+@app.get("/v1/activity/operator-stream")
+async def operator_stream(limit: int = 30):
+    from .backbone import build_operator_stream
+
+    events = await build_operator_stream(limit=limit)
+    return {"events": events, "count": len(events)}
 
 
 @app.get("/v1/conversations")
@@ -971,6 +1343,14 @@ async def get_tasks(
     return {"tasks": tasks, "count": len(tasks)}
 
 
+@app.get("/v1/tasks/runs")
+async def task_execution_runs(agent: str = "", limit: int = 50):
+    from .backbone import build_execution_run_records
+
+    runs = await build_execution_run_records(agent=agent, limit=limit)
+    return {"runs": runs, "count": len(runs)}
+
+
 @app.get("/v1/tasks/stats")
 async def task_stats():
     """Get task execution statistics."""
@@ -985,6 +1365,31 @@ async def task_schedules():
     from .scheduler import get_schedule_status
 
     return await get_schedule_status()
+
+
+@app.get("/v1/tasks/scheduled")
+async def scheduled_jobs(limit: int = 50):
+    from .backbone import build_scheduled_job_records
+
+    jobs = await build_scheduled_job_records(limit=limit)
+    return {"jobs": jobs, "count": len(jobs)}
+
+
+@app.post("/v1/tasks/scheduled/{job_id}/run")
+async def run_scheduled_job_endpoint(job_id: str, request: Request):
+    from .scheduler import run_scheduled_job
+
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    actor = str(dict(body or {}).get("actor") or "operator")
+    force = bool(dict(body or {}).get("force"))
+    try:
+        result = await run_scheduled_job(job_id, actor=actor, force=force)
+        return result
+    except KeyError:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Scheduled job '{job_id}' not found"},
+        )
 
 
 @app.get("/v1/tasks/{task_id}")
@@ -1417,6 +1822,7 @@ async def classify_route(request: Request):
 
     Body: {"prompt": "Hello!", "agent": "general-assistant"}
     """
+    from .command_hierarchy import classify_policy_class
     from .router import classify_request
 
     body = await request.json()
@@ -1428,7 +1834,10 @@ async def classify_route(request: Request):
         return JSONResponse(status_code=400, content={"error": "prompt is required"})
 
     routing = classify_request(prompt, agent_name, conversation_length)
-    return routing.to_dict()
+    policy = classify_policy_class(prompt, body.get("metadata"))
+    payload = routing.to_dict()
+    payload.update(policy)
+    return payload
 
 
 # --- Cognitive State ---
@@ -2329,6 +2738,13 @@ async def learning_metrics():
         "metrics": metrics,
         "summary": _compute_learning_summary(metrics),
     }
+
+
+@app.get("/v1/review/judges")
+async def judge_plane(limit: int = 12):
+    from .judge import build_judge_plane_snapshot
+
+    return await build_judge_plane_snapshot(limit=limit)
 
 
 def _compute_learning_summary(metrics: dict) -> dict:

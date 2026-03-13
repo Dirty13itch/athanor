@@ -10,6 +10,11 @@ from typing import Any
 import yaml
 
 from .config import settings
+from .model_governance import (
+    get_contract_registry,
+    get_eval_corpus_registry,
+    get_experiment_ledger_policy,
+)
 
 LEASES_KEY = "athanor:subscriptions:leases"
 PROVIDER_STATS_KEY = "athanor:subscriptions:provider-stats"
@@ -309,6 +314,13 @@ def build_task_lease_request(
     sensitivity = str(meta.get("sensitivity", agent_meta.get("sensitivity_default", "repo_internal")))
     interactive = bool(meta.get("interactive", False))
     task_class = infer_task_class(requester, prompt, meta)
+    from .command_hierarchy import classify_policy_class
+
+    classification = classify_policy_class(prompt, meta, task_class=task_class)
+    meta.setdefault("policy_class", classification["policy_class"])
+    meta.setdefault("meta_lane", classification["meta_lane"])
+    if classification["policy_class"] in {"refusal_sensitive", "sovereign_only"}:
+        sensitivity = "lan_only"
     expected_context = _infer_expected_context(prompt, meta)
     parallelism = _infer_parallelism(priority, meta)
     return LeaseRequest(
@@ -388,7 +400,19 @@ def _score_provider(
 def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
     policy = load_policy()
     task_class = request.task_class or infer_task_class(request.requester, metadata=request.metadata)
-    candidates = _enabled_candidates(policy, task_class, request.requester)
+    policy_class = str(request.metadata.get("policy_class") or "")
+    if not policy_class:
+        from .command_hierarchy import classify_policy_class
+
+        classification = classify_policy_class("", request.metadata, task_class=task_class)
+        policy_class = classification["policy_class"]
+        request.metadata.setdefault("policy_class", policy_class)
+        request.metadata.setdefault("meta_lane", classification["meta_lane"])
+
+    if policy_class in {"refusal_sensitive", "sovereign_only"}:
+        candidates = ["athanor_local"]
+    else:
+        candidates = _enabled_candidates(policy, task_class, request.requester)
     if not candidates:
         candidates = ["athanor_local"]
 
@@ -493,6 +517,8 @@ async def attach_task_execution_lease(
     priority: str = "normal",
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    from .command_hierarchy import build_command_decision_record, build_plan_packet
+
     meta = dict(metadata or {})
     if meta.get("execution_lease"):
         return meta
@@ -506,7 +532,69 @@ async def attach_task_execution_lease(
         metadata=meta,
     )
     lease = await issue_execution_lease(lease_request)
+    task_class = lease_request.task_class
+    command_decision = build_command_decision_record(
+        prompt=prompt,
+        task_class=task_class,
+        requester=requester,
+        metadata=meta,
+    )
+    plan_packet = build_plan_packet(
+        prompt=prompt,
+        task_class=task_class,
+        requester=requester,
+        metadata=meta,
+    )
+    governance_versions = {
+        "prompt_version": str(meta.get("prompt_version") or plan_packet.get("prompt_version") or "inline-unversioned"),
+        "policy_version": str(
+            command_decision.get("policy_version")
+            or plan_packet.get("policy_version")
+            or "unknown"
+        ),
+        "rights_version": str(command_decision.get("rights_version") or "unknown"),
+        "workload_registry_version": str(
+            command_decision.get("workload_registry_version")
+            or plan_packet.get("workload_registry_version")
+            or "unknown"
+        ),
+        "contract_registry_version": get_contract_registry().get("version", "unknown"),
+        "eval_corpus_registry_version": get_eval_corpus_registry().get("version", "unknown"),
+        "experiment_ledger_version": get_experiment_ledger_policy().get("version", "unknown"),
+        "corpus_version": meta.get("corpus_version") or plan_packet.get("corpus_version"),
+    }
+    artifact_provenance = {
+        "status": "linked",
+        "deciding_layer": command_decision.get("authority_layer", "governor"),
+        "policy_class": command_decision.get("policy_class"),
+        "meta_lane": command_decision.get("meta_lane"),
+        "supervisor_lane": plan_packet.get("supervisor_lane"),
+        "worker_lane": plan_packet.get("worker_lane"),
+        "judge_lane": plan_packet.get("judge_lane"),
+        "prompt_version": governance_versions["prompt_version"],
+        "policy_version": governance_versions["policy_version"],
+        "corpus_version": governance_versions["corpus_version"],
+        "contract_registry_version": governance_versions["contract_registry_version"],
+        "experiment_ledger_version": governance_versions["experiment_ledger_version"],
+    }
+    lease.metadata.update(
+        {
+            "policy_class": command_decision["policy_class"],
+            "meta_lane": command_decision["meta_lane"],
+            "command_decision_id": command_decision["id"],
+            "approval_mode": plan_packet["approval_mode"],
+            "prompt_version": governance_versions["prompt_version"],
+            "policy_version": governance_versions["policy_version"],
+            "corpus_version": governance_versions["corpus_version"],
+        }
+    )
+    redis = await _get_redis()
+    await redis.hset(LEASES_KEY, lease.id, json.dumps(lease.to_dict()))
     meta["execution_lease"] = lease.to_dict()
+    meta["command_decision"] = command_decision
+    meta["plan_packet"] = plan_packet
+    meta["governance_versions"] = governance_versions
+    meta["artifact_provenance"] = artifact_provenance
     return meta
 
 

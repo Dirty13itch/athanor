@@ -36,7 +36,13 @@ SUPPORT_ONLY_PREFIXES = (
 )
 SUPPORT_ONLY_PATHS = {
     "/api/stash/stats",
+    "/api/governor/tool-permissions",
+    "/api/models/governance/retirements",
+    "/api/models/governance/retirements/:retirementId/advance",
+    "/api/models/governance/retirements/:retirementId/hold",
+    "/api/models/governance/retirements/:retirementId/rollback",
 }
+SOURCE_API_RE = re.compile(r"/api/[A-Za-z0-9_./\-\[\]:*${}]+")
 
 
 def api_dir_to_api_path(directory: Path) -> str:
@@ -63,29 +69,47 @@ def family_for_api_path(api_path: str) -> str:
 
 def source_consumers(api_path: str) -> list[str]:
     consumers: set[str] = set()
-    source_pattern = re.compile(_api_path_to_source_pattern(api_path))
     for file_path in list_dashboard_source_files():
         if "/app/api/" in file_path.as_posix():
             continue
         text = read_text(file_path)
-        if api_path in text or source_pattern.search(text):
+        if (
+            api_path in text
+            or any(_source_candidate_matches(candidate, api_path) for candidate in _extract_source_api_candidates(text))
+            or _source_dynamic_prefix_matches(text, api_path)
+        ):
             consumers.add(file_path.relative_to(DASHBOARD_SRC.parents[1]).as_posix())
     return sorted(consumers)
 
 
-def _api_path_to_source_pattern(api_path: str) -> str:
-    pattern = re.escape(api_path)
-    pattern = re.sub(
-        r"/:([A-Za-z0-9_]+)\*",
-        r"/(?:\\$\\{[^}]+\\}|[^/`\"'\\s)]+(?:/[^`\"'\\s)]*)*)",
-        pattern,
-    )
-    pattern = re.sub(
-        r"/:([A-Za-z0-9_]+)",
-        r"/(?:\\$\\{[^}]+\\}|[^/`\"'\\s)]+)",
-        pattern,
-    )
-    return pattern
+def _extract_source_api_candidates(text: str) -> set[str]:
+    candidates: set[str] = set()
+    for match in SOURCE_API_RE.finditer(text):
+        candidate = match.group(0).rstrip("`'\"),;")
+        if candidate:
+            candidates.add(candidate)
+    return candidates
+
+
+def _source_candidate_matches(candidate: str, api_path: str) -> bool:
+    candidate_segments = [segment for segment in candidate.split("/") if segment]
+    api_segments = [segment for segment in api_path.split("/") if segment]
+    if len(candidate_segments) != len(api_segments):
+        return False
+
+    for candidate_segment, api_segment in zip(candidate_segments, api_segments, strict=True):
+        if "${" in candidate_segment or candidate_segment.startswith(":"):
+            continue
+        if candidate_segment != api_segment:
+            return False
+    return True
+
+
+def _source_dynamic_prefix_matches(text: str, api_path: str) -> bool:
+    if "/:" not in api_path:
+        return False
+    static_prefix = api_path.split("/:", 1)[0] + "/"
+    return static_prefix in text and "${" in text
 
 
 def completion_status(consumer_status: str, coverage_status: str | None) -> str:

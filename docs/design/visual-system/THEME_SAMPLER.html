@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Athanor Theme Sampler</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,.04), transparent 24%),
+        linear-gradient(180deg, #0a0b0f 0%, #05060a 100%);
+      color: #f5f7fb;
+    }
+    .page { max-width: 1680px; margin: 0 auto; padding: 32px 28px 40px; }
+    .hero { display: grid; gap: 10px; margin-bottom: 24px; }
+    .eyebrow { font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: #98a1b3; }
+    h1 { margin: 0; font-size: 42px; letter-spacing: -.045em; line-height: 1.02; }
+    .hero p { margin: 0; max-width: 880px; color: #a6aec0; line-height: 1.7; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 20px; }
+    .theme {
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(11,13,18,.82);
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .theme-header {
+      padding: 22px 22px 18px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), transparent);
+      display: grid; gap: 8px;
+    }
+    .theme-header h2 { margin: 0; font-size: 20px; letter-spacing: -.03em; }
+    .theme-header p { margin: 0; color: #9fa8ba; font-size: 13px; line-height: 1.6; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag {
+      padding: 6px 10px; border-radius: 999px; font-size: 11px; text-transform: uppercase;
+      letter-spacing: .08em; border: 1px solid rgba(255,255,255,.12); color: #dbe3f2;
+    }
+    .sample { padding: 20px; }
+    .mini-app {
+      min-height: 468px;
+      display: grid;
+      grid-template-columns: 118px 1fr;
+      border-radius: 22px;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--fg);
+      border: 1px solid var(--line);
+      box-shadow: 0 26px 64px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .mini-rail {
+      padding: 14px 12px; display: grid; align-content: start; gap: 10px;
+      background: linear-gradient(180deg, var(--rail2), var(--rail));
+      border-right: 1px solid var(--line);
+    }
+    .tiny { font-size: 10px; text-transform: uppercase; letter-spacing: .18em; color: var(--muted); }
+    .mini-brand { display: grid; gap: 6px; margin-bottom: 8px; }
+    .brand-line { height: 1px; background: linear-gradient(90deg, var(--accent), transparent); }
+    .nav-pill {
+      border-radius: 14px; padding: 9px 10px; font-size: 11px; color: var(--muted);
+      background: var(--pill); border: 1px solid transparent;
+    }
+    .nav-pill.active {
+      color: var(--fg);
+      background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 16%, transparent), transparent), var(--pill-active);
+      border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+    }
+    .cluster { margin-top: auto; padding: 10px; border-radius: 16px; background: var(--well); border: 1px solid var(--line); }
+    .cluster strong { display: block; font-size: 26px; letter-spacing: -.04em; }
+    .mini-main {
+      display: grid; grid-template-rows: auto 1fr;
+      background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--accent) 10%, transparent), transparent 26%),
+        linear-gradient(180deg, var(--panel2), var(--panel));
+    }
+    .mini-topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 18px; border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel2) 86%, black);
+    }
+    .title { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+    .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 40%, transparent); }
+    .command-box {
+      min-width: 170px; padding: 9px 12px; border-radius: 999px; background: var(--pill);
+      border: 1px solid var(--line); color: var(--muted); font-size: 11px; text-align: center;
+    }
+    .mini-content { padding: 18px; display: grid; gap: 16px; }
+    .hero-block { display: grid; grid-template-columns: 1.18fr .82fr; gap: 14px; }
+    .hero-copy {
+      border-radius: 20px; padding: 18px; background: var(--hero);
+      border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--line));
+    }
+    .hero-copy h3 { margin: 0 0 8px; font-size: 28px; letter-spacing: -.04em; }
+    .hero-copy p, .hero-actions p, .metric p, .stream-item p, .plan-row p { margin: 0; color: var(--muted); }
+    .hero-actions { display: grid; gap: 10px; align-content: start; }
+    .action-row, .signal-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      padding: 10px 12px; border-radius: 12px; font-size: 11px; text-transform: uppercase;
+      letter-spacing: .05em; border: 1px solid transparent; background: var(--pill); color: var(--fg);
+    }
+    .btn.primary {
+      background: color-mix(in srgb, var(--accent) 22%, var(--panel2));
+      border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+    }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .metric, .panel {
+      border-radius: 18px; border: 1px solid var(--line); background: var(--well);
+    }
+    .metric { padding: 14px; display: grid; gap: 8px; }
+    .metric strong { font-size: 26px; letter-spacing: -.04em; }
+    .main-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .panel { min-height: 210px; padding: 16px; display: grid; align-content: start; gap: 12px; background: var(--panel); }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .panel h4 { margin: 0; font-size: 22px; letter-spacing: -.03em; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+      font-size: 10px; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel2) 72%, black);
+    }
+    .badge .dot { width: 6px; height: 6px; box-shadow: none; }
+    .stream-list, .plan-list { display: grid; gap: 10px; }
+    .stream-item, .plan-row { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid color-mix(in srgb, var(--line) 78%, transparent); }
+    .stream-item:first-child, .plan-row:first-child { border-top: 0; padding-top: 0; }
+    .stream-item strong, .plan-row strong { font-size: 12px; font-weight: 600; }
+    @media (max-width: 1120px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="eyebrow">Athanor Theme Sampler</div>
+      <h1>Small, sharply different themes built on the same mini cockpit</h1>
+      <p>These are controlled comparisons. Same structure, same sample content, different neutral systems and accent behavior. This is the fastest way to find the visual direction you actually want before another full dashboard pass.</p>
+    </section>
+    <section class="grid" id="themes"></section>
+  </div>
+  <script>
+    const themes = [
+      { name: "Monochrome Signal", description: "Black, white, and layered grays with a bright electric blue core accent. Cleanest operator-first direction.", tags: ["likely fit","minimal","operator-first"], cluster: "23/29", clusterLabel: "6 services need attention", hero: "Command Center", heroCopy: "A strict monochrome foundation with bright signals only where they carry meaning.", accent: "#5ebdff", ok: "#3ce0a0", warn: "#ffd85e", danger: "#ff6f7f", vars: { bg:"#090a0d", rail:"#0e1014", rail2:"#151821", panel:"#101318", panel2:"#141922", hero:"#10151f", well:"#12161d", pill:"#131720", pillActive:"#161b25", line:"rgba(255,255,255,.11)", fg:"#f5f7fb", muted:"#9ca5b5" } },
+      { name: "Polar Pulse", description: "Cold black glass with icy cyan and almost-white highlights. Premium and high-end without going warm.", tags: ["luxury dark","icy","clean"], cluster: "23/29", clusterLabel: "pulse is steady", hero: "Operator Pulse", heroCopy: "Still monochrome, but brighter and more premium with colder highlights.", accent: "#9ff3ff", ok: "#5af8b1", warn: "#ffe87a", danger: "#ff8aa8", vars: { bg:"#050607", rail:"#0a0b0e", rail2:"#111317", panel:"#0c0f14", panel2:"#10141c", hero:"#0c1118", well:"#0f1218", pill:"#0e1117", pillActive:"#111722", line:"rgba(255,255,255,.12)", fg:"#fbfcfe", muted:"#b1b7c5" } },
+      { name: "Volt Noir", description: "Hard black-and-gray with a shocking acid accent. More aggressive and machine-like.", tags: ["aggressive","high contrast","edgy"], cluster: "81%", clusterLabel: "high throughput mode", hero: "Priority Grid", heroCopy: "Best if you want Athanor to feel sharper, faster, and less polite.", accent: "#d6ff3f", ok: "#47ef9f", warn: "#ffd256", danger: "#ff6e86", vars: { bg:"#060606", rail:"#0d0d0d", rail2:"#151515", panel:"#101010", panel2:"#171717", hero:"#111111", well:"#141414", pill:"#161616", pillActive:"#1b1b1b", line:"rgba(255,255,255,.1)", fg:"#f7f7f7", muted:"#aaaaaa" } },
+      { name: "Ultra Clinical", description: "A disciplined monochrome lab feel with crisp cyan. Most analytical and least atmospheric.", tags: ["precise","clinical","analytical"], cluster: "96%", clusterLabel: "tests in range", hero: "Control Lab", heroCopy: "A better fit if you want the cockpit to feel like an intelligence lab, not a mission deck.", accent: "#40d8ff", ok: "#1df2c0", warn: "#f9df5e", danger: "#ff728f", vars: { bg:"#030405", rail:"#08090b", rail2:"#0d1015", panel:"#0c0f13", panel2:"#11161c", hero:"#0e1319", well:"#10141a", pill:"#12161b", pillActive:"#141b23", line:"rgba(255,255,255,.11)", fg:"#f7fbff", muted:"#a6b2c2" } },
+      { name: "Ghost Terminal", description: "Dark monochrome with mint and pale aqua accents. Quieter, stealthier, and less glossy.", tags: ["quiet","stealthy","calm"], cluster: "ON", clusterLabel: "quiet mode", hero: "Silent Console", heroCopy: "Best if you want the system to feel calmer and more covert while staying bright enough to steer.", accent: "#7df0d6", ok: "#46f1a8", warn: "#ffe16a", danger: "#ff798e", vars: { bg:"#070808", rail:"#0c0d0d", rail2:"#111314", panel:"#0f1111", panel2:"#141717", hero:"#101414", well:"#121515", pill:"#131616", pillActive:"#161a1a", line:"rgba(255,255,255,.09)", fg:"#f2f5f5", muted:"#9fa9a8" } },
+      { name: "Signal Prism", description: "Neutral-black base with richer domain accents. Most colorful option without leaving control-room territory.", tags: ["multi-signal","richer","expressive"], cluster: "7", clusterLabel: "live lanes visible", hero: "Signal Console", heroCopy: "If you want more obvious route/domain differentiation while keeping severity rules strict, this is the direction.", accent: "#7da1ff", ok: "#47f5c2", warn: "#ffd75b", danger: "#ff7c95", vars: { bg:"#050608", rail:"#090c10", rail2:"#10151d", panel:"#0e1319", panel2:"#141b23", hero:"#101721", well:"#121821", pill:"#131924", pillActive:"#182031", line:"rgba(255,255,255,.1)", fg:"#f6f8fb", muted:"#a7afc1" } },
+    ];
+
+    const template = (theme) => `
+      <article class="theme">
+        <div class="theme-header">
+          <h2>${theme.name}</h2>
+          <p>${theme.description}</p>
+          <div class="tags">${theme.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}</div>
+        </div>
+        <div class="sample">
+          <div class="mini-app" style="
+            --bg:${theme.vars.bg};
+            --rail:${theme.vars.rail};
+            --rail2:${theme.vars.rail2};
+            --panel:${theme.vars.panel};
+            --panel2:${theme.vars.panel2};
+            --hero:${theme.vars.hero};
+            --well:${theme.vars.well};
+            --pill:${theme.vars.pill};
+            --pill-active:${theme.vars.pillActive};
+            --line:${theme.vars.line};
+            --fg:${theme.vars.fg};
+            --muted:${theme.vars.muted};
+            --accent:${theme.accent};
+            --ok:${theme.ok};
+            --warn:${theme.warn};
+            --danger:${theme.danger};
+          ">
+            <aside class="mini-rail">
+              <div class="mini-brand"><div class="tiny">Athanor</div><strong>Command</strong><div class="brand-line"></div></div>
+              <div class="nav-pill active">Dashboard</div>
+              <div class="nav-pill">Agents</div>
+              <div class="nav-pill">Tasks</div>
+              <div class="nav-pill">Workplanner</div>
+              <div class="nav-pill">Notifications</div>
+              <div class="cluster"><div class="tiny">Cluster</div><strong>${theme.cluster}</strong><div class="tiny">${theme.clusterLabel}</div></div>
+            </aside>
+            <div class="mini-main">
+              <div class="mini-topbar"><div class="title"><span class="dot"></span>Command Center</div><div class="command-box">command palette</div></div>
+              <div class="mini-content">
+                <div class="hero-block">
+                  <div class="hero-copy"><div class="tiny">Operations</div><h3>${theme.hero}</h3><p>${theme.heroCopy}</p></div>
+                  <div class="hero-actions">
+                    <div class="action-row"><button class="btn">Open incidents</button><button class="btn primary">Resume agents</button></div>
+                    <div class="action-row"><button class="btn">Open planner</button></div>
+                  </div>
+                </div>
+                <div class="metrics">
+                  <div class="metric"><div class="tiny">Approvals</div><strong>1</strong><p>pending</p></div>
+                  <div class="metric"><div class="tiny">Agents</div><strong>8</strong><p>2 active</p></div>
+                  <div class="metric"><div class="tiny">Latency</div><strong>32ms</strong><p>nominal</p></div>
+                  <div class="metric"><div class="tiny">Queue</div><strong>14</strong><p>4 running</p></div>
+                </div>
+                <div class="main-panels">
+                  <div class="panel">
+                    <div class="panel-header"><h4>Unified stream</h4><span class="badge"><span class="dot"></span>live</span></div>
+                    <div class="stream-list">
+                      <div class="stream-item"><strong>Backup drift detected</strong><p>Vault qdrant backup is outside policy window.</p></div>
+                      <div class="stream-item"><strong>Sovereign route selected</strong><p>Private content stayed local-only.</p></div>
+                      <div class="stream-item"><strong>Approval waiting</strong><p>One task needs operator confirmation.</p></div>
+                    </div>
+                  </div>
+                  <div class="panel">
+                    <div class="panel-header"><h4>Work Plan</h4><span class="badge"><span class="dot"></span>steer</span></div>
+                    <div class="plan-list">
+                      <div class="plan-row"><strong>Refill coding queue</strong><p>1 pending approval · 4 blocked</p></div>
+                      <div class="plan-row"><strong>Audit provider posture</strong><p>Reserve below target</p></div>
+                      <div class="plan-row"><strong>Run consolidation</strong><p>06:55 local window</p></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>`;
+
+    document.getElementById("themes").innerHTML = themes.map(template).join("");
+  </script>
+</body>
+</html>

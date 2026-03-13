@@ -1,4 +1,5 @@
 import ast
+import json
 import re
 import unittest
 from pathlib import Path
@@ -41,6 +42,10 @@ EOQ_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "eoq" / "templates" / "docker-c
 ULRICH_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "ulrich-energy" / "templates" / "docker-compose.yml.j2"
 EOQ_CONFIG = REPO_ROOT / "projects" / "eoq" / "src" / "lib" / "config.ts"
 ULRICH_CONFIG = REPO_ROOT / "projects" / "ulrich-energy" / "src" / "lib" / "config.ts"
+AGENTS_COMPOSE = REPO_ROOT / "projects" / "agents" / "docker-compose.yml"
+AGENTS_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "agents" / "templates" / "docker-compose.yml.j2"
+ROOT_AUTOMATION_BACKBONE = REPO_ROOT / "config" / "automation-backbone"
+AGENTS_AUTOMATION_BACKBONE = REPO_ROOT / "projects" / "agents" / "config" / "automation-backbone"
 
 RAW_IP_PATTERN = re.compile(r"192\.168\.1\.\d+")
 ALLOWED_DASHBOARD_IP_FILES = {
@@ -372,6 +377,29 @@ class RepoContractsTest(unittest.TestCase):
 
         ulrich_config_text = ULRICH_CONFIG.read_text(encoding="utf-8")
         self.assertIn("ATHANOR_VAULT_HOST", ulrich_config_text)
+
+    def test_agents_compose_exports_redis_password_contract(self) -> None:
+        compose_text = AGENTS_COMPOSE.read_text(encoding="utf-8")
+        template_text = AGENTS_TEMPLATE.read_text(encoding="utf-8")
+        env_example = (REPO_ROOT / "projects" / "agents" / ".env.example").read_text(encoding="utf-8")
+
+        self.assertIn("ATHANOR_REDIS_PASSWORD", compose_text)
+        self.assertIn("ATHANOR_REDIS_PASSWORD", template_text)
+        self.assertIn("ATHANOR_REDIS_PASSWORD=", env_example)
+
+    def test_agents_package_contains_canonical_automation_backbone_registries(self) -> None:
+        root_files = sorted(path.name for path in ROOT_AUTOMATION_BACKBONE.glob("*.json"))
+        packaged_files = sorted(path.name for path in AGENTS_AUTOMATION_BACKBONE.glob("*.json"))
+        self.assertEqual(root_files, packaged_files, "Packaged agents registry set drifted from canonical automation-backbone")
+
+        for name in root_files:
+            root_payload = json.loads((ROOT_AUTOMATION_BACKBONE / name).read_text(encoding="utf-8"))
+            packaged_payload = json.loads((AGENTS_AUTOMATION_BACKBONE / name).read_text(encoding="utf-8"))
+            self.assertEqual(
+                root_payload,
+                packaged_payload,
+                f"Packaged agents registry drifted from canonical automation-backbone copy: {name}",
+            )
 
     def test_repo_no_longer_tracks_known_secret_literals(self) -> None:
         violations: list[str] = []

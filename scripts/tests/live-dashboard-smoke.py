@@ -80,14 +80,23 @@ def load_apis() -> list[str]:
             "/api/gpu/history",
         ]
     payload = json.loads(path.read_text(encoding="utf-8"))
-    return [
-        record["apiPath"]
-        for record in payload
-        if "GET" in record.get("methods", [])
-        and record.get("consumerStatus") != "orphan-candidate"
-        and ":" not in record.get("apiPath", "")
-        and record.get("responseMode") != "sse"
-    ]
+    apis: list[str] = []
+    for record in payload:
+        api_path = str(record.get("apiPath", ""))
+        methods = {str(method).upper() for method in record.get("methods", [])}
+        if "GET" not in methods:
+            continue
+        if record.get("consumerStatus") == "orphan-candidate":
+            continue
+        if ":" in api_path:
+            continue
+        if record.get("responseMode") == "sse":
+            continue
+        # Governed promotion actions are operator-triggered mutation routes, not live smoke GET targets.
+        if api_path.startswith("/api/models/governance/promotions/") and api_path != "/api/models/governance/promotions":
+            continue
+        apis.append(api_path)
+    return apis
 
 POST_APIS = {
     "/api/personal-data/search": {"query": "EoBQ", "limit": 3},

@@ -24,6 +24,7 @@ from completion_audit_common import (
 
 
 OUTPUT_PATH = ATLAS_COMPLETION_DIR / "dashboard-mount-graph.json"
+NON_UI_RUNTIME_FILES = {"proxy.ts", "middleware.ts"}
 
 
 def classify_kind(file_path: Path) -> str:
@@ -74,6 +75,8 @@ def main() -> int:
 
     records: list[dict] = []
     for file_path in sorted(list_dashboard_ui_files()):
+        if file_path.name in NON_UI_RUNTIME_FILES:
+            continue
         if "/src/app/" in file_path.as_posix():
             continue
         relative = file_path.relative_to(REPO_ROOT).as_posix()

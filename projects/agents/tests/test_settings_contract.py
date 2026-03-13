@@ -58,6 +58,19 @@ class SettingsContractTest(unittest.TestCase):
         self.assertEqual(cfg.vllm_node2_url, "http://legacy-workshop.internal:8000/v1")
         self.assertEqual(cfg.llm_api_key, "legacy-key")
 
+    def test_redis_password_augments_canonical_redis_url(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "ATHANOR_REDIS_URL": "redis://vault.internal:6379/0",
+                "ATHANOR_REDIS_PASSWORD": "redis-secret",
+            },
+            clear=True,
+        ):
+            cfg = Settings()
+
+        self.assertEqual(cfg.redis_url, "redis://:redis-secret@vault.internal:6379/0")
+
     def test_service_registry_builds_canonical_endpoints(self) -> None:
         with patch.dict(
             os.environ,
