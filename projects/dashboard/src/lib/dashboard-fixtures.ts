@@ -16,6 +16,7 @@ import type {
   WorkforceSnapshot,
 } from "@/lib/contracts";
 import { config } from "@/lib/config";
+import { buildNavAttentionSignals } from "@/lib/nav-attention";
 
 export const FIXTURE_BASE_TIME = "2026-03-09T15:00:00.000Z";
 const ACTIVE_PROJECT_STATUSES = new Set(["active", "operational", "planning", "active_development"]);
@@ -1404,6 +1405,23 @@ const fixtureOverview: OverviewSnapshot = {
   ],
   hotspots: fixtureGpuSnapshot.gpus.slice(0, 4),
   externalTools: config.externalTools,
+  navAttention: buildNavAttentionSignals({
+    workforce: fixtureWorkforce,
+    services: fixtureServices,
+    agents: fixtureAgents.agents,
+    judge: {
+      generated_at: FIXTURE_BASE_TIME,
+      summary: {
+        recent_verdicts: 5,
+        accept_count: 3,
+        reject_count: 2,
+        review_required: 2,
+        acceptance_rate: 0.6,
+        pending_review_queue: 2,
+      },
+    },
+    updatedAt: FIXTURE_BASE_TIME,
+  }),
   workforce: fixtureWorkforce,
 };
 

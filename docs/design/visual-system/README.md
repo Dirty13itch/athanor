@@ -10,6 +10,7 @@ It freezes ad hoc palette churn and replaces it with a research-first, implement
 - Implementation phase: `stages 1-8 completed; WORKSHOP rollout smoke-verified`
 - Current repo UI posture: operator-first, coherent, and systemized across the active cockpit
 - Current live UI posture: rebuilt on WORKSHOP and smoke-verified against the refreshed repo baselines
+- Left-rail attention posture: `live`; urgent/action/watch route signals now derive from overview state and calm down after acknowledgment
 
 ## Direction
 
@@ -28,6 +29,7 @@ The visual redesign exists to make it easier for Shaun to:
 - steer agents and work priorities confidently
 - decide when to approve, retry, pause, or redirect work
 - trust why the system chose a lane or escalation path
+- see which route needs review right now through governed left-rail attention rather than decorative motion
 
 If a visual idea is interesting but does not improve operator control, it does not belong in Athanor.
 

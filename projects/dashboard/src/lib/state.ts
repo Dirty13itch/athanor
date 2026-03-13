@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   directChatSessions: "athanor-direct-chat-sessions",
   agentThreads: "athanor-agent-threads",
   promptHistory: "athanor-prompt-history",
+  navAttention: "athanor-nav-attention-state",
 } as const;
 
 export function readJsonStorage<T>(key: string, fallback: T): T {

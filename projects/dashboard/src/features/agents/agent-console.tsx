@@ -332,7 +332,12 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
   if (agentsQuery.isError) {
     return (
       <div className="space-y-6">
-        <PageHeader eyebrow="Agents" title="Agent Console" description="Agent metadata failed to load." />
+        <PageHeader
+          eyebrow="Agents"
+          title="Agent Console"
+          description="Agent metadata failed to load."
+          attentionHref="/agents"
+        />
         <ErrorPanel
           description={
             agentsQuery.error instanceof Error
@@ -352,6 +357,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
         eyebrow="Agents"
         title="Agent Console"
         description="Persisted agent threads with stable tool timelines, normalized streaming, and quick session management."
+        attentionHref="/agents"
         actions={
           <>
             <Button variant="outline" onClick={() => void agentsQuery.refetch()} disabled={agentsQuery.isFetching}>

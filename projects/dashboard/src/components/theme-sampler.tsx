@@ -385,7 +385,7 @@ function ThemePreview({ theme }: ThemePreviewProps) {
   return (
     <div className="overflow-hidden rounded-[1.35rem] border" style={previewStyle}>
       <div className="grid min-h-[33rem] grid-cols-[7rem_1fr]">
-        <aside
+        <div
           className="grid content-start gap-2 border-r px-3 py-3"
           style={{
             borderColor: "var(--sampler-line)",
@@ -440,7 +440,7 @@ function ThemePreview({ theme }: ThemePreviewProps) {
               {theme.clusterLabel}
             </div>
           </div>
-        </aside>
+        </div>
 
         <div
           className="grid grid-rows-[auto_1fr]"

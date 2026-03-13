@@ -174,6 +174,36 @@ export const policyClassRecordSchema = z.object({
   description: z.string(),
 });
 
+export const navAttentionTierSchema = z.enum(["none", "watch", "action", "urgent"]);
+export const navAttentionSourceSchema = z.enum([
+  "clear",
+  "pending_approvals",
+  "failed_tasks",
+  "queued_work",
+  "critical_notifications",
+  "actionable_notifications",
+  "informational_notifications",
+  "pending_review_queue",
+  "review_activity",
+  "degraded_core_services",
+  "degraded_services",
+  "workplan_refill",
+  "planning_backlog",
+  "agent_roster_missing",
+  "agent_unavailable",
+  "agent_degraded",
+]);
+
+export const navAttentionSignalSchema = z.object({
+  routeHref: z.string(),
+  tier: navAttentionTierSchema,
+  count: z.number().int().nonnegative().nullable(),
+  reason: z.string(),
+  source: navAttentionSourceSchema,
+  updatedAt: z.string(),
+  signature: z.string(),
+});
+
 export const modelRoleProfileSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -1432,6 +1462,7 @@ export const overviewSnapshotSchema = z.object({
   alerts: z.array(alertSchema),
   hotspots: z.array(gpuSnapshotSchema),
   externalTools: z.array(externalToolSchema),
+  navAttention: z.array(navAttentionSignalSchema).default([]),
   workforce: workforceSnapshotSchema,
 });
 
@@ -1998,6 +2029,9 @@ export type CommandRightsProfile = z.infer<typeof commandRightsProfileSchema>;
 export type CommandHierarchyLayer = z.infer<typeof commandHierarchyLayerSchema>;
 export type MetaLaneSelectionRecord = z.infer<typeof metaLaneSelectionRecordSchema>;
 export type PolicyClassRecord = z.infer<typeof policyClassRecordSchema>;
+export type NavAttentionTier = z.infer<typeof navAttentionTierSchema>;
+export type NavAttentionSource = z.infer<typeof navAttentionSourceSchema>;
+export type NavAttentionSignal = z.infer<typeof navAttentionSignalSchema>;
 export type ModelRoleProfile = z.infer<typeof modelRoleProfileSchema>;
 export type WorkloadClassProfile = z.infer<typeof workloadClassProfileSchema>;
 export type ModelCandidateSummary = z.infer<typeof modelCandidateSummarySchema>;

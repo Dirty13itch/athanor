@@ -19,6 +19,7 @@ It preserves the current route structure and specifies what each route should be
 - carbon-charcoal shell chrome with bright neutral structural highlights and controlled signal accents
 - stronger separation between shell and content planes
 - clearer active state on navigation
+- left-rail attention should be operator-driven, with text-only spectral sweep for urgent routes, bright pulse for action routes, and quiet watch markers for lower-priority follow-up
 - no furnace-era metaphor in copy or materials
 - no page-level blue atmospheric wash
 

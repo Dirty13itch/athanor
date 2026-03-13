@@ -400,6 +400,112 @@
       0 14px 28px -24px color-mix(in srgb, var(--accent-structural) 18%, transparent);
   }
 
+  .nav-rail-link[data-attention-tier="watch"]:not([data-active="true"]) {
+    border-color: color-mix(in srgb, var(--line-soft) 92%, transparent);
+  }
+
+  .nav-rail-link[data-attention-tier="action"]:not([data-active="true"]),
+  .nav-rail-link[data-attention-tier="urgent"]:not([data-active="true"]) {
+    border-color: color-mix(in srgb, var(--line-strong) 68%, var(--line-soft));
+  }
+
+  .nav-attention-label {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    color: inherit;
+  }
+
+  .nav-attention-label--watch {
+    color: color-mix(in srgb, var(--text-primary) 86%, var(--text-secondary));
+  }
+
+  .nav-attention-label--action {
+    color: var(--text-primary);
+    text-shadow: 0 0 12px rgb(255 255 255 / 0.06);
+  }
+
+  .nav-attention-label--urgent {
+    color: var(--text-primary);
+  }
+
+  .nav-attention-char {
+    display: inline-block;
+    animation: nav-spectral-sweep 1.9s ease-in-out infinite;
+    animation-delay: calc(var(--char-index, 0) * 80ms);
+    will-change: color, text-shadow, opacity;
+  }
+
+  .nav-attention-label--settled .nav-attention-char {
+    animation-duration: 3.4s;
+    opacity: 0.94;
+  }
+
+  .nav-attention-indicator {
+    display: inline-flex;
+    min-width: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    padding: 0.12rem 0.42rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 0 0 1px rgb(0 0 0 / 0.16);
+  }
+
+  .nav-attention-indicator[data-tier="watch"] {
+    border-color: color-mix(in srgb, var(--line-soft) 94%, transparent);
+    background: color-mix(in srgb, var(--surface-panel-2) 92%, transparent);
+    color: var(--text-secondary);
+  }
+
+  .nav-attention-indicator[data-tier="action"] {
+    border-color: color-mix(in srgb, var(--signal-warning) 44%, transparent);
+    background: color-mix(in srgb, var(--signal-warning) 18%, var(--surface-panel-2));
+    color: color-mix(in srgb, var(--signal-warning) 88%, white);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 0 0 1px rgb(0 0 0 / 0.16),
+      0 0 22px -12px color-mix(in srgb, var(--signal-warning) 42%, transparent);
+  }
+
+  .nav-attention-indicator[data-tier="urgent"] {
+    border-color: color-mix(in srgb, var(--signal-danger) 44%, transparent);
+    background: color-mix(in srgb, var(--signal-danger) 18%, var(--surface-panel-2));
+    color: color-mix(in srgb, var(--signal-danger) 88%, white);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 0 0 1px rgb(0 0 0 / 0.16),
+      0 0 24px -12px color-mix(in srgb, var(--signal-danger) 42%, transparent);
+  }
+
+  .nav-attention-indicator--pulse {
+    animation: nav-attention-pulse 1.65s ease-in-out infinite;
+  }
+
+  .nav-attention-indicator--settled {
+    animation-duration: 3.2s;
+    opacity: 0.92;
+  }
+
+  .nav-attention-marker {
+    display: inline-flex;
+    height: 0.42rem;
+    width: 0.42rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text-secondary) 84%, transparent);
+    box-shadow: 0 0 10px -6px color-mix(in srgb, var(--text-secondary) 50%, transparent);
+  }
+
+  .nav-attention-marker[data-tier="watch"] {
+    background: color-mix(in srgb, var(--text-secondary) 84%, transparent);
+  }
+
   .status-badge {
     border-width: 1px;
     background: color-mix(in oklab, var(--surface-panel-2) 84%, transparent);
@@ -456,6 +562,43 @@
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.02),
       0 14px 28px -26px rgb(0 0 0 / 0.78);
+  }
+}
+
+@keyframes nav-spectral-sweep {
+  0%,
+  100% {
+    color: var(--text-primary);
+    opacity: 0.98;
+    text-shadow: 0 0 0 transparent;
+  }
+  22% {
+    color: color-mix(in srgb, var(--signal-warning) 88%, white);
+    text-shadow: 0 0 16px color-mix(in srgb, var(--signal-warning) 34%, transparent);
+  }
+  46% {
+    color: color-mix(in srgb, var(--signal-review) 88%, white);
+    text-shadow: 0 0 16px color-mix(in srgb, var(--signal-review) 32%, transparent);
+  }
+  68% {
+    color: color-mix(in srgb, var(--signal-success) 88%, white);
+    text-shadow: 0 0 16px color-mix(in srgb, var(--signal-success) 28%, transparent);
+  }
+  84% {
+    color: color-mix(in srgb, var(--signal-info) 96%, white);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--signal-info) 22%, transparent);
+  }
+}
+
+@keyframes nav-attention-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: saturate(1);
+  }
+  50% {
+    transform: scale(1.05);
+    filter: saturate(1.1);
   }
 }
 

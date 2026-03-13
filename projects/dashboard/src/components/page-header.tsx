@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { RouteAttentionChip } from "@/components/route-attention-chip";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
@@ -8,6 +9,7 @@ interface PageHeaderProps {
   actions?: ReactNode;
   children?: ReactNode;
   className?: string;
+  attentionHref?: string;
 }
 
 export function PageHeader({
@@ -17,6 +19,7 @@ export function PageHeader({
   actions,
   children,
   className,
+  attentionHref,
 }: PageHeaderProps) {
   return (
     <section className={cn("space-y-4", className)}>
@@ -26,9 +29,12 @@ export function PageHeader({
             <p className="page-eyebrow">{eyebrow}</p>
           )}
           <div className="space-y-1">
-            <h1 className="font-heading text-3xl font-medium tracking-[-0.03em] text-foreground sm:text-4xl">
-              {title}
-            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="font-heading text-3xl font-medium tracking-[-0.03em] text-foreground sm:text-4xl">
+                {title}
+              </h1>
+              {attentionHref ? <RouteAttentionChip routeHref={attentionHref} /> : null}
+            </div>
             <p className="max-w-3xl text-sm leading-6 text-[color:var(--text-secondary)] sm:text-base">
               {description}
             </p>

@@ -55,7 +55,12 @@ export function NotificationsConsole({ initialSnapshot }: { initialSnapshot: Wor
   if (workforceQuery.isError) {
     return (
       <div className="space-y-6">
-        <PageHeader eyebrow="Workforce" title="Notifications" description="The workforce notification snapshot failed to load." />
+        <PageHeader
+          eyebrow="Workforce"
+          title="Notifications"
+          description="The workforce notification snapshot failed to load."
+          attentionHref="/notifications"
+        />
         <ErrorPanel
           description={
             workforceQuery.error instanceof Error
@@ -81,6 +86,7 @@ export function NotificationsConsole({ initialSnapshot }: { initialSnapshot: Wor
         eyebrow="Workforce"
         title="Notifications"
         description="Escalations, auto-actions, and operator review items emitted by the workforce."
+        attentionHref="/notifications"
         actions={
           <>
             <Button variant="outline" onClick={() => void workforceQuery.refetch()} disabled={workforceQuery.isFetching}>

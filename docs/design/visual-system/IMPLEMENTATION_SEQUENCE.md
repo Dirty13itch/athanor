@@ -93,6 +93,10 @@ Status: `complete`; `WORKSHOP rollout smoke-verified`
 - accessibility contrast review
 - desktop/mobile screenshot review
 - live deployment review
+- left-rail attention validation:
+  - urgent spectral sweep confined to label text
+  - action pulse and watch markers use the shared badge grammar
+  - active-route acknowledgment and calm-down behavior verified across desktop and mobile nav
 
 ## Signoff gates
 

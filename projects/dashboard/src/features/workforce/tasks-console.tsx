@@ -135,7 +135,12 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
   if (workforceQuery.isError) {
     return (
       <div className="space-y-6">
-        <PageHeader eyebrow="Workforce" title="Task Board" description="The workforce task snapshot failed to load." />
+        <PageHeader
+          eyebrow="Workforce"
+          title="Task Board"
+          description="The workforce task snapshot failed to load."
+          attentionHref="/tasks"
+        />
         <ErrorPanel
           description={
             workforceQuery.error instanceof Error
@@ -153,6 +158,7 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
         eyebrow="Workforce"
         title="Task Board"
         description="Operator review, submission, reruns, and human-in-the-loop control for the active workforce queue."
+        attentionHref="/tasks"
         actions={
           <>
             <Button variant="outline" onClick={() => void workforceQuery.refetch()} disabled={workforceQuery.isFetching}>

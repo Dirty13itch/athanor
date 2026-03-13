@@ -116,7 +116,12 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
   if (workforceQuery.isError) {
     return (
       <div className="space-y-6">
-        <PageHeader eyebrow="Workforce" title="Work Planner" description="The workforce snapshot failed to load." />
+        <PageHeader
+          eyebrow="Workforce"
+          title="Work Planner"
+          description="The workforce snapshot failed to load."
+          attentionHref="/workplanner"
+        />
         <ErrorPanel
           description={
             workforceQuery.error instanceof Error
@@ -165,6 +170,7 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
         eyebrow="Workforce"
         title="Work Planner"
         description="Plan generation, queue posture, approvals, and project-state visibility for the Athanor operator loop."
+        attentionHref="/workplanner"
         actions={
           <>
             <Button variant="outline" onClick={() => void workforceQuery.refetch()} disabled={workforceQuery.isFetching}>

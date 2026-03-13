@@ -82,7 +82,12 @@ export function ServicesConsole({
   if (servicesQuery.isError) {
     return (
       <div className="space-y-6">
-        <PageHeader eyebrow="Operations" title="Services" description="Service monitoring failed to load." />
+        <PageHeader
+          eyebrow="Operations"
+          title="Services"
+          description="Service monitoring failed to load."
+          attentionHref="/services"
+        />
         <ErrorPanel
           description={
             servicesQuery.error instanceof Error
@@ -155,6 +160,7 @@ export function ServicesConsole({
         eyebrow="Operations"
         title="Services"
         description="Operational service surface with persisted filters, history, deep links, and safe export/copy actions."
+        attentionHref="/services"
         actions={
           <>
             <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.telemetry} />

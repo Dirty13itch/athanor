@@ -141,7 +141,12 @@ export function IntelligenceConsole({
   if (intelligenceQuery.isError) {
     return (
       <div className="space-y-6">
-        <PageHeader eyebrow="Intelligence" title="Intelligence Console" description="The intelligence snapshot failed to load." />
+        <PageHeader
+          eyebrow="Intelligence"
+          title="Intelligence Console"
+          description="The intelligence snapshot failed to load."
+          attentionHref={variant === "review" ? "/review" : undefined}
+        />
         <ErrorPanel
           description={
             intelligenceQuery.error instanceof Error
@@ -189,6 +194,7 @@ export function IntelligenceConsole({
         eyebrow="Intelligence"
         title={title}
         description={description}
+        attentionHref={variant === "review" ? "/review" : undefined}
         actions={
           <>
             <Button variant="outline" onClick={() => void intelligenceQuery.refetch()} disabled={intelligenceQuery.isFetching}>

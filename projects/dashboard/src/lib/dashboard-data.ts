@@ -5,6 +5,8 @@ import {
   type GpuHistoryResponse,
   type GpuSnapshot,
   type GpuSnapshotResponse,
+  judgePlaneSnapshotSchema,
+  type JudgePlaneSnapshot,
   type ModelInventoryEntry,
   type ModelsSnapshot,
   type OverviewSnapshot,
@@ -33,6 +35,7 @@ import {
   isDashboardFixtureMode,
 } from "@/lib/dashboard-fixtures";
 import { average, formatTemperatureF } from "@/lib/format";
+import { buildNavAttentionSignals } from "@/lib/nav-attention";
 import { config, getNodeNameFromInstance, joinUrl, type MonitoredService } from "@/lib/config";
 import { getRangeStepSeconds, getTimeWindow, type TimeWindowId } from "@/lib/ranges";
 
@@ -351,6 +354,26 @@ const agentPresentation: Record<string, { name: string; icon: string }> = {
 function nowIso() {
   return new Date().toISOString();
 }
+
+const fallbackJudgePlaneSnapshot: JudgePlaneSnapshot = {
+  generated_at: nowIso(),
+  status: "unavailable",
+  role_id: "judge",
+  label: "Judge Plane",
+  champion: "Unavailable",
+  challengers: [],
+  workload_classes: [],
+  summary: {
+    recent_verdicts: 0,
+    accept_count: 0,
+    reject_count: 0,
+    review_required: 0,
+    acceptance_rate: 0,
+    pending_review_queue: 0,
+  },
+  guardrails: [],
+  recent_verdicts: [],
+};
 
 function unixToIso(timestamp: number | null | undefined): string | null {
   if (!timestamp || timestamp <= 0) {
@@ -1646,7 +1669,17 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     return getFixtureOverviewSnapshot();
   }
 
-  const [servicesSnapshot, servicesHistory, gpuSnapshot, gpuHistory, backends, agents, projectsSnapshot, workforce] = await Promise.all([
+  const [
+    servicesSnapshot,
+    servicesHistory,
+    gpuSnapshot,
+    gpuHistory,
+    backends,
+    agents,
+    projectsSnapshot,
+    workforce,
+    judgePlane,
+  ] = await Promise.all([
     getServicesSnapshot(),
     getServicesHistory(window),
     getGpuSnapshot(),
@@ -1655,7 +1688,10 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     getAgentInfos(),
     getProjectsSnapshot(),
     getWorkforceSnapshot(),
+    fetchAgentJson("/v1/review/judges?limit=12", judgePlaneSnapshotSchema, fallbackJudgePlaneSnapshot),
   ]);
+
+  const generatedAt = nowIso();
 
   const nodes = servicesSnapshot.nodes.map((node) => {
     const gpuNode = gpuSnapshot.nodes.find((gpu) => gpu.nodeId === node.id);
@@ -1680,9 +1716,16 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
         value: average(gpuHistory.nodes.map((series) => series.points[index]?.value ?? null).filter((value): value is number => value !== null)),
       }))
     : [];
+  const navAttention = buildNavAttentionSignals({
+    workforce,
+    services: servicesSnapshot.services,
+    agents,
+    judge: judgePlane,
+    updatedAt: generatedAt,
+  });
 
   return {
-    generatedAt: nowIso(),
+    generatedAt,
     summary: {
       totalServices: servicesSnapshot.summary.total,
       healthyServices: servicesSnapshot.summary.healthy,
@@ -1706,6 +1749,7 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     alerts,
     hotspots,
     externalTools: config.externalTools,
+    navAttention,
     workforce,
   };
 }
