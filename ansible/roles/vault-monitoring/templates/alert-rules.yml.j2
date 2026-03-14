@@ -45,12 +45,14 @@ groups:
           summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} on {{ "{{" }} $labels.instance {{ "}}" }} CRITICAL {{ "{{" }} $value {{ "}}" }}C"
 
       - alert: GpuMemoryExhausted
-        expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) > 0.95
+        # vLLM pre-allocates KV cache at startup — normal steady-state is 95-99%.
+        # Only alert when VRAM is genuinely exhausted beyond vLLM's allocation.
+        expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) > 0.99
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} VRAM above 95% on {{ "{{" }} $labels.instance {{ "}}" }}"
+          summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} VRAM above 99% on {{ "{{" }} $labels.instance {{ "}}" }}"
 
   - name: backups
     rules:
