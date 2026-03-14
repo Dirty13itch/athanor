@@ -68,7 +68,7 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 |---|--------|------|----------|-------|---------|-------------|
 | 1–7 | Samsung M393A4K40DB3-CWE (x7) | DDR4 ECC RDIMM | 224 GB (7x32GB) | 3200 MT/s | — | Node 1 (7/8 channels populated, channel H empty) |
 | 8–11 | Micron CP32G60C40U5B.M8B3 (x4) | DDR5 UDIMM | 128 GB (4x32GB) | 5600 MT/s | CL40 | VAULT |
-| 12–15 | Kingston KF556R28RBE2-32 (x4) | DDR5 ECC RDIMM | 128 GB (4x32GB) | 5600 MT/s (running 4800, EXPO not enabled) | CL28 | Node 2 |
+| 12–15 | Kingston KF556R28RBE2-32 (x4) | DDR5 ECC RDIMM | 128 GB (4x32GB) | 5600 MT/s (EXPO enabled) | CL28 | Node 2 |
 | 16–17 | G.Skill Ripjaws S5 F5-5600J4040D32GX2 (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5600 MT/s | CL40 | DEV (audit confirmed 5600/CL40) |
 | 18–19 | G.Skill F5-5200J3636D32G (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5200 MT/s | CL36 | Loose |
 | 20–21 | Crucial Ballistix BL32G32C16U4B (x2) | DDR4 UDIMM | 64 GB (2x32GB) | 3200 MT/s | CL16 | Loose |

@@ -125,9 +125,11 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 | **Ansible vault-password** | Resolved | Vault recreated 2026-03-08, `ansible vault -m ping` verified |
 | **MSI 5070 Ti RGB still ON** (Ã—2) | Cosmetic | I2C port 1 not exposed on Blackwell. Fix: one-time MSI Center from Windows |
 | **FOUNDRY GPU 4 in TP=4** | Part of Qwen3.5-27B-FP8 TP=4 | All 4x 5070 Ti now in use |
-| **NordVPN credentials** | qBittorrent blocked | Shaun needs to provide |
-| **Anthropic API key** | Quality Cascade cloud escalation blocked | Shaun needs to provide |
-| **Google Drive OAuth** | ~40% personal data inaccessible | Shaun needs to run rclone config |
+| ~~NordVPN credentials~~ | ~~Resolved~~ | Session 60f — VPN + qBittorrent deployed |
+| ~~Anthropic API key~~ | ~~Resolved~~ | Session 60f — wired into LiteLLM |
+| ~~Google Drive OAuth~~ | ~~Resolved~~ | Session 60f — 2 remotes configured |
+| ~~Node 2 DDR5 EXPO~~ | ~~Resolved~~ | Session 60g — 5600 MT/s CL28 enabled |
+| **Node 1 Samsung 990 PRO** | 4TB NVMe not detected | M.2_2 invisible on PCIe bus, needs BIOS via IPMI |
 
 ## Build Progress
 
@@ -237,18 +239,21 @@ Phase 6 (Testing)            DONE — 391 tests pass
 ### Session 60f — Blocker Busting
 - **qBittorrent + Gluetun VPN deployed** — Ansible role `vault-vpn-torrent`. NordVPN OpenVPN tunnel to Switzerland. Kill switch via network_mode. WebUI at vault:8112. VPN verified (Swiss IP 176.223.172.131).
 - **Anthropic API key wired into LiteLLM** — `ANTHROPIC_API_KEY` env var passed through to LiteLLM container. Claude models (opus/sonnet/haiku) verified working via LiteLLM. Unblocks Quality Cascade (8.5).
-- **Google Drive rclone OAuth completed** — Manual OAuth flow (extracted rclone client_id, Shaun authorized in browser, exchanged code for tokens on DEV). Remote `gdrive:` configured at `~/.config/rclone/rclone.conf`. 90 GiB, 8 folders visible. Unblocks personal data sync (10.8).
+- **Google Drive rclone OAuth completed** — Manual OAuth flow (extracted rclone client_id, Shaun authorized in browser, exchanged code for tokens on DEV). Two remotes: `uea-drive:` and `personal-drive:`. Unblocks personal data sync (10.8).
 - **Python Docker SDK installed on VAULT** — `docker` + `requests` pip packages. Unblocks all `community.docker.docker_container` Ansible tasks on VAULT.
 - **NordVPN service creds + Anthropic key encrypted in ansible vault**
 - **3/5 blockers cleared in one session** (NordVPN, Anthropic, Google Drive)
 
+### Session 60g — BIOS Tasks
+- **WORKSHOP DDR5 EXPO enabled** — `systemctl reboot --firmware-setup` via SSH, EXPO Profile 1 selected in Gigabyte TRX50 AERO D BIOS Tweaker tab. Kingston Fury Renegade Pro now running at 5600 MT/s CL28 (was 4800 MT/s). 16.7% memory bandwidth increase. All 10 containers auto-recovered.
+- **FOUNDRY Samsung 990 PRO investigated** — Drive physically in M.2_2 (outer slot) but completely invisible on PCIe bus. ROMED8-2T M.2 slots share lanes with PCIE2 via PE8_SEL/PE16_SEL jumpers. Requires BIOS investigation via IPMI at 192.168.1.216.
+
 ### Next Actions
-1. Build Quality Cascade `escalate_to_cloud` tool (8.5 — now unblocked)
-2. Connect qBittorrent to Sonarr/Radarr download clients
-3. Google Drive sync to FOUNDRY (10.8 — now unblocked)
-4. Node 1 Samsung 990 PRO BIOS enable (via IPMI)
-5. Node 2 DDR5 EXPO profile enable (via JetKVM)
-6. Re-audit score target: 8.5+/10
+1. FOUNDRY Samsung 990 PRO BIOS enable (via IPMI — needs Shaun at console)
+2. Build Quality Cascade `escalate_to_cloud` tool (8.5 — now unblocked)
+3. Connect qBittorrent to Sonarr/Radarr download clients
+4. Google Drive sync to FOUNDRY (10.8 — now unblocked)
+5. Re-audit score target: 8.5+/10
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 

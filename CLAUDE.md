@@ -119,11 +119,11 @@ See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agen
 
 | Action | Unblocks |
 |--------|----------|
-| NordVPN credentials | qBittorrent (6.5) |
-| Anthropic API key | Quality Cascade cloud escalation |
-| Node 2 EXPO (BIOS) | DDR5 5600 MT/s |
-| Samsung 990 PRO check | Node 1 4TB NVMe |
-| Google Drive rclone OAuth | Personal data Phase 3 (~40% of data) |
+| ~~NordVPN credentials~~ | ~~qBittorrent (6.5)~~ Done |
+| ~~Anthropic API key~~ | ~~Quality Cascade cloud escalation~~ Done |
+| ~~Node 2 EXPO (BIOS)~~ | ~~DDR5 5600 MT/s~~ Done |
+| ~~Google Drive rclone OAuth~~ | ~~Personal data Phase 3~~ Done |
+| Samsung 990 PRO BIOS enable | Node 1 4TB NVMe (M.2_2 not on PCIe bus, IPMI at .216) |
 
 ---
 
