@@ -167,7 +167,7 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **Domain 3 (Agents):** ~95% — All APIs, tools, scheduler, error logging done. Knowledge upload, stash tags, creative batch all deployed. Remaining: home agent testing (blocked on HA token).
 - **Domain 4 (Dashboard):** ALL DONE — insights page, preferences backend, research jobs integration all verified complete.
 - **Domain 5 (IaC):** ALL DONE
-- **Domain 6 (Docs):** ~95% — Remaining: 2 missing design docs (project-platform-architecture, stash-agent-workflow)
+- **Domain 6 (Docs):** ALL DONE — All design docs created (project-platform-architecture, stash-agent-workflow). ADRs, SERVICES.md, RECOVERY.md, scripts README all complete.
 - **Domain 7 (Ops):** ALL DONE — Grafana backup alerts deployed, eval grader fixed, n8n clean, context metrics live, health script done. Eval v2 running.
 - **Domain 8 (Projects):** Blocked on Shaun or external
 - **Domain 9 (Blockers):** Requires Shaun
