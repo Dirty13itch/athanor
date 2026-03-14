@@ -23,8 +23,8 @@
     },
     "redis": {
       "type": "stdio",
-      "command": "python3",
-      "args": ["scripts/mcp-redis.py"],
+      "command": "bash",
+      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec python3 scripts/mcp-redis.py"],
       "env": {}
     },
     "qdrant": {
