@@ -661,13 +661,21 @@ async def get_scheduler_health() -> dict:
     except Exception:
         digest_ts = pattern_ts = alert_ts = None
 
+    def _safe_float(val):
+        if not val:
+            return None
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return None
+
     return {
         "running": running,
         "check_interval_s": SCHEDULER_INTERVAL,
         "agent_schedules": schedules,
         "special_schedules": {
-            "daily_digest": {"last_run": float(digest_ts) if digest_ts else None},
-            "pattern_detection": {"last_run": float(pattern_ts) if pattern_ts else None},
-            "alert_check": {"last_run": float(alert_ts) if alert_ts else None},
+            "daily_digest": {"last_run": _safe_float(digest_ts)},
+            "pattern_detection": {"last_run": _safe_float(pattern_ts)},
+            "alert_check": {"last_run": _safe_float(alert_ts)},
         },
     }

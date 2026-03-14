@@ -149,6 +149,7 @@ async def get_redis() -> aioredis.Redis:
     if _redis is None:
         _redis = aioredis.from_url(
             settings.redis_url,
+            password=settings.redis_password or None,
             decode_responses=True,
             socket_timeout=5,
             socket_connect_timeout=5,

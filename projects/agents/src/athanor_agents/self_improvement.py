@@ -99,7 +99,7 @@ class CapabilityBenchmarks:
             try:
                 import redis.asyncio as aioredis
                 from .config import settings
-                self._redis = aioredis.from_url(settings.redis_url, decode_responses=True)
+                self._redis = aioredis.from_url(settings.redis_url, password=settings.redis_password or None, decode_responses=True)
             except Exception:
                 return None
         return self._redis
@@ -354,7 +354,7 @@ class SelfImprovementEngine:
             try:
                 import redis.asyncio as aioredis
                 from .config import settings
-                self._redis = aioredis.from_url(settings.redis_url, decode_responses=True)
+                self._redis = aioredis.from_url(settings.redis_url, password=settings.redis_password or None, decode_responses=True)
             except Exception:
                 return None
         return self._redis

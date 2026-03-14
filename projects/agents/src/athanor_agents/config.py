@@ -128,6 +128,10 @@ class Settings(BaseSettings):
         default="redis://192.168.1.203:6379/0",
         validation_alias=AliasChoices("ATHANOR_REDIS_URL"),
     )
+    redis_password: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_REDIS_PASSWORD"),
+    )
     subscription_policy_path: str = Field(
         default="",
         validation_alias=AliasChoices("ATHANOR_SUBSCRIPTION_POLICY_PATH"),

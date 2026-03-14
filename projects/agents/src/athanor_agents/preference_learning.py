@@ -188,6 +188,7 @@ class PreferenceLearner:
         if self._redis is None:
             self._redis = aioredis.from_url(
                 settings.redis_url,
+                password=settings.redis_password or None,
                 decode_responses=True,
             )
         return self._redis
