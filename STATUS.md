@@ -99,7 +99,7 @@ Other: `athanor-dashboard` (3001), `athanor-eoq` (3002), `athanor-ws-pty-bridge`
 
 Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter`, `n8n` (5678), `gitea` (3033), `miniflux` (8070), `redis`, `vault-open-webui` (3090), `langfuse-web` (3030) + 5 langfuse services, `neo4j` (7474/7687), `qdrant` (6333), `postgres` (5432), `stash` (9999), `plex`, `homeassistant`, media stack (sonarr/radarr/prowlarr/sabnzbd/tautulli/tdarr), `spiderfoot` (5001), `ntfy` (8880), `meilisearch` (7700), `field-inspect-app` (3080/3081) + `field-inspect-s3` (9000-9001), `ulrich-energy-website` (8088), `blackbox-exporter` (9115), monitoring (loki, alloy, cadvisor, node-exporter)
 
-### DEV (.189) â€” 2 containers
+### DEV (.189) â€” 4 containers
 
 | GPU | Model | VRAM | Container | Port |
 |-----|-------|------|-----------|------|
@@ -183,6 +183,14 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **SYSTEM-SPEC drift fixed** — Container counts corrected (Foundry 11→14, Workshop 9→10, DEV 2→4). NVMe storage layout added. Date updated.
 - **SERVICES.md updated** — Added DEV node_exporter + dcgm-exporter entries.
 - **Grafana verified** — DCGM dashboard auto-discovers DEV GPU. All 24 alert rules active, 0 firing.
+
+### Session 59e — Redis Auth Fix, Proactive Scheduling Restored
+- **Critical bug fixed: Redis authentication** — All `aioredis.from_url()` calls (6 sites across 5 files) were missing `password=` kwarg. The `ATHANOR_REDIS_PASSWORD` env var was set in the container but never read by config or passed to Redis connections. Every proactive scheduler task, workspace operation, alert check, daily digest, pattern detection, and consolidation was silently failing with "Authentication required."
+  - Added `redis_password` field to `config.py` with `ATHANOR_REDIS_PASSWORD` alias
+  - Added `password=settings.redis_password or None` to all 6 connection sites: `workspace.py`, `skill_learning.py`, `preference_learning.py`, `self_improvement.py` (×2), `diagnosis.py`
+- **Scheduler health endpoint fix** — `/v1/scheduler/health` was crashing with `ValueError: could not convert string to float: '2026-03-14'` due to date string in Redis key. Added safe float conversion.
+- **Proactive scheduling verified operational** — All 9 agents scheduling. 2 tasks running concurrently, 62 completed, 0 recent failures. Task types: EoBQ art generation, research, morning digest, media curation, disk analysis.
+- **Task failure audit** — 257 historical failures analyzed: 55 timeouts, 30 mid-stream LiteLLM errors, 24 rate limits, 18 auth errors (pre-fix), 15 circuit breaker. All pre-fix; zero failures since deployment.
 
 ### Next Actions
 1. Home agent testing (blocked on HA token — needs Shaun)
