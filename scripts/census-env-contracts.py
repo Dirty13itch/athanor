@@ -122,7 +122,11 @@ def main() -> int:
             continue
         if path.suffix.lower() not in SCAN_SUFFIXES and path.name not in {".env.example"}:
             continue
-        if any(part in {".next", "node_modules", "__pycache__", ".git"} for part in path.parts):
+        if any(
+            part in {".next", "node_modules", "__pycache__", ".git"}
+            or part.startswith(".next-playwright")
+            for part in path.parts
+        ):
             continue
 
         env_names = extract_env_names(read_text(path))

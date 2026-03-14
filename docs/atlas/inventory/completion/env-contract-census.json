@@ -1514,7 +1514,8 @@
     "classification": "supporting",
     "consumerSources": [
       "projects/dashboard/src/lib/dashboard-fixtures.ts",
-      "projects/dashboard/src/lib/workforce.test.ts"
+      "projects/dashboard/src/lib/workforce.test.ts",
+      "projects/dashboard/src/proxy.ts"
     ],
     "exportSources": [],
     "completionStatus": "live_partial",
@@ -2415,6 +2416,27 @@
     "notes": [
       "Secret-valued env; inventory only, do not commit live values."
     ]
+  },
+  {
+    "name": "PLAYWRIGHT_NEXT_DIST_DIR",
+    "classification": "supporting",
+    "consumerSources": [
+      "projects/dashboard/next.config.ts",
+      "projects/dashboard/playwright.config.ts"
+    ],
+    "exportSources": [],
+    "completionStatus": "live_partial",
+    "notes": []
+  },
+  {
+    "name": "PLAYWRIGHT_PORT",
+    "classification": "supporting",
+    "consumerSources": [
+      "projects/dashboard/playwright.config.ts"
+    ],
+    "exportSources": [],
+    "completionStatus": "live_partial",
+    "notes": []
   },
   {
     "name": "PORT",

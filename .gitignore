@@ -49,6 +49,8 @@ tmp/
 *.tmp
 *.log
 *.bak
+*.bak-*
+dashboard-theme-sampler-*.tar.gz
 
 # Test logs
 logs/endpoint-tests/

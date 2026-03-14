@@ -1,5 +1,30 @@
 [
   {
+    "id": "dashboard.api.api-activity-operator-stream",
+    "title": "Activity Operator-Stream",
+    "apiPath": "/api/activity/operator-stream",
+    "family": "activity",
+    "sourceFile": "dashboard/src/app/api/activity/operator-stream/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/unified-stream.tsx",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
     "id": "dashboard.api.api-activity",
     "title": "Activity",
     "apiPath": "/api/activity",
@@ -13,7 +38,8 @@
     "likelyConsumers": [
       "dashboard.route.activity",
       "dashboard/src/components/agent-detail-panel.tsx",
-      "dashboard/src/components/unified-stream.tsx"
+      "dashboard/src/components/unified-stream.tsx",
+      "dashboard/src/lib/api.ts"
     ],
     "coverage": {
       "coverageStatus": null,
@@ -453,6 +479,229 @@
     ]
   },
   {
+    "id": "dashboard.api.api-governor-heartbeat",
+    "title": "Governor Heartbeat",
+    "apiPath": "/api/governor/heartbeat",
+    "family": "governor",
+    "sourceFile": "dashboard/src/app/api/governor/heartbeat/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/operator-presence-heartbeat.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-governor-operations",
+    "title": "Governor Operations",
+    "apiPath": "/api/governor/operations",
+    "family": "governor",
+    "sourceFile": "dashboard/src/app/api/governor/operations/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-governor-operator-tests",
+    "title": "Governor Operator-Tests",
+    "apiPath": "/api/governor/operator-tests",
+    "family": "governor",
+    "sourceFile": "dashboard/src/app/api/governor/operator-tests/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/operations-readiness-card.tsx",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-governor-pause",
+    "title": "Governor Pause",
+    "apiPath": "/api/governor/pause",
+    "family": "governor",
+    "sourceFile": "dashboard/src/app/api/governor/pause/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/governor-card.tsx",
+      "dashboard/src/components/scheduled-jobs-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-governor-presence",
+    "title": "Governor Presence",
+    "apiPath": "/api/governor/presence",
+    "family": "governor",
+    "sourceFile": "dashboard/src/app/api/governor/presence/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/governor-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-governor-release-tier",
+    "title": "Governor Release-Tier",
+    "apiPath": "/api/governor/release-tier",
+    "family": "governor",
+    "sourceFile": "dashboard/src/app/api/governor/release-tier/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/governor-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-governor-resume",
+    "title": "Governor Resume",
+    "apiPath": "/api/governor/resume",
+    "family": "governor",
+    "sourceFile": "dashboard/src/app/api/governor/resume/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/governor-card.tsx",
+      "dashboard/src/components/scheduled-jobs-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-governor",
+    "title": "Governor",
+    "apiPath": "/api/governor",
+    "family": "governor",
+    "sourceFile": "dashboard/src/app/api/governor/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/governor-card.tsx",
+      "dashboard/src/components/operations-readiness-card.tsx",
+      "dashboard/src/components/operator-presence-heartbeat.tsx",
+      "dashboard/src/components/scheduled-jobs-card.tsx",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-governor-tool-permissions",
+    "title": "Governor Tool-Permissions",
+    "apiPath": "/api/governor/tool-permissions",
+    "family": "governor",
+    "sourceFile": "dashboard/src/app/api/governor/tool-permissions/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "orphan-candidate",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "No direct consumer evidence found in dashboard source or curated registry."
+    ]
+  },
+  {
     "id": "dashboard.api.api-gpu-history",
     "title": "Gpu History",
     "apiPath": "/api/gpu/history",
@@ -854,6 +1103,243 @@
     ]
   },
   {
+    "id": "dashboard.api.api-models-governance-promotions-promotionid-advance",
+    "title": "Models Governance Promotions Promotionid Advance",
+    "apiPath": "/api/models/governance/promotions/:promotionId/advance",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/governance/promotions/[promotionId]/advance/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "orphan-candidate",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "No direct consumer evidence found in dashboard source or curated registry."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models-governance-promotions-promotionid-hold",
+    "title": "Models Governance Promotions Promotionid Hold",
+    "apiPath": "/api/models/governance/promotions/:promotionId/hold",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/governance/promotions/[promotionId]/hold/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "orphan-candidate",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "No direct consumer evidence found in dashboard source or curated registry."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models-governance-promotions-promotionid-rollback",
+    "title": "Models Governance Promotions Promotionid Rollback",
+    "apiPath": "/api/models/governance/promotions/:promotionId/rollback",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/governance/promotions/[promotionId]/rollback/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "orphan-candidate",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "No direct consumer evidence found in dashboard source or curated registry."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models-governance-promotions",
+    "title": "Models Governance Promotions",
+    "apiPath": "/api/models/governance/promotions",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/governance/promotions/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/model-governance-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models-governance-retirements-retirementid-advance",
+    "title": "Models Governance Retirements Retirementid Advance",
+    "apiPath": "/api/models/governance/retirements/:retirementId/advance",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/governance/retirements/[retirementId]/advance/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "orphan-candidate",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "No direct consumer evidence found in dashboard source or curated registry."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models-governance-retirements-retirementid-hold",
+    "title": "Models Governance Retirements Retirementid Hold",
+    "apiPath": "/api/models/governance/retirements/:retirementId/hold",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/governance/retirements/[retirementId]/hold/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "orphan-candidate",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "No direct consumer evidence found in dashboard source or curated registry."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models-governance-retirements-retirementid-rollback",
+    "title": "Models Governance Retirements Retirementid Rollback",
+    "apiPath": "/api/models/governance/retirements/:retirementId/rollback",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/governance/retirements/[retirementId]/rollback/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "orphan-candidate",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "No direct consumer evidence found in dashboard source or curated registry."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models-governance-retirements",
+    "title": "Models Governance Retirements",
+    "apiPath": "/api/models/governance/retirements",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/governance/retirements/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "orphan-candidate",
+    "likelyConsumers": [],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "implemented_not_live",
+    "notes": [
+      "Discovered from filesystem API route census.",
+      "No direct consumer evidence found in dashboard source or curated registry."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models-governance",
+    "title": "Models Governance",
+    "apiPath": "/api/models/governance",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/governance/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/model-governance-card.tsx",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-models-proving-ground",
+    "title": "Models Proving-Ground",
+    "apiPath": "/api/models/proving-ground",
+    "family": "models",
+    "sourceFile": "dashboard/src/app/api/models/proving-ground/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/proving-ground-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
     "id": "dashboard.api.api-models",
     "title": "Models",
     "apiPath": "/api/models",
@@ -866,6 +1352,8 @@
     "consumerStatus": "consumed",
     "likelyConsumers": [
       "dashboard.route.chat",
+      "dashboard/src/components/model-governance-card.tsx",
+      "dashboard/src/components/proving-ground-card.tsx",
       "dashboard/src/lib/api.ts"
     ],
     "coverage": {
@@ -1262,6 +1750,30 @@
     ]
   },
   {
+    "id": "dashboard.api.api-review-judges",
+    "title": "Review Judges",
+    "apiPath": "/api/review/judges",
+    "family": "review",
+    "sourceFile": "dashboard/src/app/api/review/judges/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
     "id": "dashboard.api.api-routing-classify",
     "title": "Routing Classify",
     "apiPath": "/api/routing/classify",
@@ -1538,6 +2050,80 @@
     ]
   },
   {
+    "id": "dashboard.api.api-subscriptions-execution",
+    "title": "Subscriptions Execution",
+    "apiPath": "/api/subscriptions/execution",
+    "family": "subscriptions",
+    "sourceFile": "dashboard/src/app/api/subscriptions/execution/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/subscription-control-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-subscriptions-handoffs-handoffid-outcome",
+    "title": "Subscriptions Handoffs Handoffid Outcome",
+    "apiPath": "/api/subscriptions/handoffs/:handoffId/outcome",
+    "family": "subscriptions",
+    "sourceFile": "dashboard/src/app/api/subscriptions/handoffs/[handoffId]/outcome/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/subscription-control-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-subscriptions-handoffs",
+    "title": "Subscriptions Handoffs",
+    "apiPath": "/api/subscriptions/handoffs",
+    "family": "subscriptions",
+    "sourceFile": "dashboard/src/app/api/subscriptions/handoffs/route.ts",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/subscription-control-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
     "id": "dashboard.api.api-subscriptions-leases",
     "title": "Subscriptions Leases",
     "apiPath": "/api/subscriptions/leases",
@@ -1623,6 +2209,55 @@
     "consumerStatus": "consumed",
     "likelyConsumers": [
       "dashboard/src/components/subscription-control-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-subscriptions-summary",
+    "title": "Subscriptions Summary",
+    "apiPath": "/api/subscriptions/summary",
+    "family": "subscriptions",
+    "sourceFile": "dashboard/src/app/api/subscriptions/summary/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/subscription-control-card.tsx",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-system-map",
+    "title": "System-Map",
+    "apiPath": "/api/system-map",
+    "family": "system-map",
+    "sourceFile": "dashboard/src/app/api/system-map/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/lib/api.ts"
     ],
     "coverage": {
       "coverageStatus": null,
@@ -1885,8 +2520,8 @@
       "dashboard/src/components/daily-briefing.tsx",
       "dashboard/src/components/gen-ui/approval-card.tsx",
       "dashboard/src/components/gen-ui/daily-digest.tsx",
+      "dashboard/src/components/scheduled-jobs-card.tsx",
       "dashboard/src/components/smart-stack.tsx",
-      "dashboard/src/components/unified-stream.tsx",
       "dashboard/src/components/work-plan.tsx",
       "dashboard/src/features/intelligence/intelligence-console.tsx",
       "dashboard/src/features/workforce/goals-console.tsx",
@@ -1909,6 +2544,79 @@
       ]
     },
     "completionStatus": "live_complete",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-runs",
+    "title": "Workforce Runs",
+    "apiPath": "/api/workforce/runs",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/runs/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-scheduled-jobid-run",
+    "title": "Workforce Scheduled Jobid Run",
+    "apiPath": "/api/workforce/scheduled/:jobId/run",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/scheduled/[jobId]/run/route.ts",
+    "methods": [
+      "POST"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/scheduled-jobs-card.tsx"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from filesystem API route census."
+    ]
+  },
+  {
+    "id": "dashboard.api.api-workforce-scheduled",
+    "title": "Workforce Scheduled",
+    "apiPath": "/api/workforce/scheduled",
+    "family": "workforce",
+    "sourceFile": "dashboard/src/app/api/workforce/scheduled/route.ts",
+    "methods": [
+      "GET"
+    ],
+    "responseMode": "unknown",
+    "consumerStatus": "consumed",
+    "likelyConsumers": [
+      "dashboard/src/components/scheduled-jobs-card.tsx",
+      "dashboard/src/lib/api.ts"
+    ],
+    "coverage": {
+      "coverageStatus": null,
+      "localChecks": [],
+      "liveChecks": []
+    },
+    "completionStatus": "live_partial",
     "notes": [
       "Discovered from filesystem API route census."
     ]
@@ -1988,7 +2696,6 @@
       "dashboard.route.tasks",
       "dashboard/src/components/agent-detail-panel.tsx",
       "dashboard/src/components/daily-briefing.tsx",
-      "dashboard/src/components/unified-stream.tsx",
       "dashboard/src/features/intelligence/intelligence-console.tsx",
       "dashboard/src/features/workforce/tasks-console.tsx",
       "dashboard/src/features/workforce/work-planner-console.tsx"

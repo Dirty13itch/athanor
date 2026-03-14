@@ -144,6 +144,18 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-execution-runs-card-tsx",
+    "title": "Execution Runs Card",
+    "filePath": "src/components/execution-runs-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-family-tabs-tsx",
     "title": "Family Tabs",
     "filePath": "src/components/family-tabs.tsx",
@@ -252,6 +264,18 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-governor-card-tsx",
+    "title": "Governor Card",
+    "filePath": "src/components/governor-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-gpu-card-tsx",
     "title": "Gpu Card",
     "filePath": "src/components/gpu-card.tsx",
@@ -288,6 +312,18 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-judge-plane-card-tsx",
+    "title": "Judge Plane Card",
+    "filePath": "src/components/judge-plane-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-kbd-tsx",
     "title": "Kbd",
     "filePath": "src/components/kbd.tsx",
@@ -303,6 +339,18 @@
     "id": "dashboard.component.src-components-lens-switcher-tsx",
     "title": "Lens Switcher",
     "filePath": "src/components/lens-switcher.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-live-badge-tsx",
+    "title": "Live Badge",
+    "filePath": "src/components/live-badge.tsx",
     "group": "shared-component",
     "hasStory": false,
     "hasTest": false,
@@ -348,9 +396,81 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-model-governance-card-tsx",
+    "title": "Model Governance Card",
+    "filePath": "src/components/model-governance-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-nav-attention-indicator-tsx",
+    "title": "Nav Attention Indicator",
+    "filePath": "src/components/nav-attention-indicator.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-nav-attention-label-tsx",
+    "title": "Nav Attention Label",
+    "filePath": "src/components/nav-attention-label.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-nav-attention-provider-tsx",
+    "title": "Nav Attention Provider",
+    "filePath": "src/components/nav-attention-provider.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-notifications-posture-card-tsx",
     "title": "Notifications Posture Card",
     "filePath": "src/components/notifications-posture-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-operations-readiness-card-tsx",
+    "title": "Operations Readiness Card",
+    "filePath": "src/components/operations-readiness-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-operator-presence-heartbeat-tsx",
+    "title": "Operator Presence Heartbeat",
+    "filePath": "src/components/operator-presence-heartbeat.tsx",
     "group": "shared-component",
     "hasStory": false,
     "hasTest": false,
@@ -432,6 +552,18 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-proving-ground-card-tsx",
+    "title": "Proving Ground Card",
+    "filePath": "src/components/proving-ground-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-pull-to-refresh-tsx",
     "title": "Pull To Refresh",
     "filePath": "src/components/pull-to-refresh.tsx",
@@ -492,6 +624,18 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-route-attention-chip-tsx",
+    "title": "Route Attention Chip",
+    "filePath": "src/components/route-attention-chip.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-route-icon-tsx",
     "title": "Route Icon",
     "filePath": "src/components/route-icon.tsx",
@@ -531,6 +675,18 @@
     "id": "dashboard.component.src-components-runtime-panel-utils-ts",
     "title": "Runtime Panel Utils",
     "filePath": "src/components/runtime-panel-utils.ts",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-scheduled-jobs-card-tsx",
+    "title": "Scheduled Jobs Card",
+    "filePath": "src/components/scheduled-jobs-card.tsx",
     "group": "shared-component",
     "hasStory": false,
     "hasTest": false,
@@ -636,6 +792,18 @@
     ]
   },
   {
+    "id": "dashboard.component.src-components-system-map-card-tsx",
+    "title": "System Map Card",
+    "filePath": "src/components/system-map-card.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-components-system-pulse-tsx",
     "title": "System Pulse",
     "filePath": "src/components/system-pulse.tsx",
@@ -651,6 +819,18 @@
     "id": "dashboard.component.src-components-terminal-view-tsx",
     "title": "Terminal View",
     "filePath": "src/components/terminal-view.tsx",
+    "group": "shared-component",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-components-theme-sampler-tsx",
+    "title": "Theme Sampler",
+    "filePath": "src/components/theme-sampler.tsx",
     "group": "shared-component",
     "hasStory": false,
     "hasTest": false,
@@ -1212,6 +1392,30 @@
     ]
   },
   {
+    "id": "dashboard.component.src-lib-live-updates-ts",
+    "title": "Live Updates",
+    "filePath": "src/lib/live-updates.ts",
+    "group": "other",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-lib-nav-attention-ts",
+    "title": "Nav Attention",
+    "filePath": "src/lib/nav-attention.ts",
+    "group": "other",
+    "hasStory": false,
+    "hasTest": true,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
     "id": "dashboard.component.src-lib-navigation-ts",
     "title": "Navigation",
     "filePath": "src/lib/navigation.ts",
@@ -1323,6 +1527,18 @@
     "id": "dashboard.component.src-lib-utils-ts",
     "title": "Utils",
     "filePath": "src/lib/utils.ts",
+    "group": "other",
+    "hasStory": false,
+    "hasTest": false,
+    "completionStatus": "live_partial",
+    "notes": [
+      "Discovered from dashboard component/feature census."
+    ]
+  },
+  {
+    "id": "dashboard.component.src-proxy-ts",
+    "title": "Proxy",
+    "filePath": "src/proxy.ts",
     "group": "other",
     "hasStory": false,
     "hasTest": false,
