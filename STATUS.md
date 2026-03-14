@@ -153,15 +153,27 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
   - All 4 backups verified manually: postgres (1.3M), qdrant (9 snapshots), neo4j (11K lines/1.4M), stash (917M)
 - **MEMORY.md updated** — Corrected stale backup claim, added Unraid crontab volatility pattern, postgres user discovery
 
-### Active Alerts (18 → ~12 expected after clear)
-- 6× `GpuMemoryExhausted` — CLEARING (threshold raised, 10min `for` duration)
-- 12× `BackupAgeCritical/Warning` — Will clear overnight as new crons run (postgres/stash already fresh)
+### Active Alerts: ALL CLEAR (0 firing)
+- GPU memory alerts: CLEARED (threshold 95% → 99%)
+- Backup alerts: CLEARED (all 5 scripts deployed, neo4j path fixed, flash_config/field_inspect excluded)
+- Blackbox probes: FIXED (Prometheus/Grafana localhost→vault_ip, HA /api/→/ for auth bypass)
+- Media stack (plex/sonarr/radarr/tautulli): DOWN due to shfs write failures → **auto-restarted, all UP**
+- Remaining probe-down: dev-dcgm-exporter (no DCGM on DEV), media services (intermittent Unraid shfs issues — watchdog deployed)
+
+### Session 59b Additions (continued session)
+- **Neo4j backup path fix** — Script wrote to `/mnt/user/backups/athanor/neo4j` but exporter monitors `/mnt/user/data/backups/neo4j`. Fixed, deployed, backup verified (11,088 lines, 1.4M).
+- **Blackbox probe fixes** — Prometheus and Grafana probes used `localhost` which is unreachable from bridge-mode blackbox container. Changed to `192.168.1.203`. HA probe used `/api/` which returns 401 (auth required) — changed to `/`.
+- **Backup alert exclusions** — `flash_config` and `field_inspect` are one-off historical snapshots, excluded from BackupAge rules.
+- **Container watchdog** — New `container-watchdog.sh` deployed to VAULT. Monitors Plex, Sonarr, Radarr, Tautulli, HA for crash loops and shfs write failures. Auto-restarts on detection. Runs every 5 min via cron with boot persistence.
+- **Docker cleanup** — Pruned ~8.5GB of stale field-inspect candidate images and build cache. Added monthly Docker prune cron (1st of month, 5 AM).
+- **VAULT storage audit** — Full NVMe + HDD analysis. Found 2.85TB wasted NVMe (3 drives: transcode 1%, VMs 0%, orphaned Ubuntu). Design doc at `docs/design/vault-storage-architecture.md`.
+- **Media stack recovery** — All 4 media services had shfs FUSE write failures ("No space left on device" despite 324G free). Docker restart fixed all. Watchdog prevents recurrence.
 
 ### Next Actions
 1. Home agent testing (blocked on HA token — needs Shaun)
-2. Run v3 eval with thinking disabled for clean baseline (optional)
-3. Verify GPU alerts fully cleared (~10 min)
-4. Verify backup alerts clear after tonight's cron runs
+2. VAULT storage restructuring — Shaun decisions needed on nvme4 format, cache pool redesign (see design doc)
+3. DEV DCGM exporter setup (optional — for GPU monitoring on DEV's 5060Ti)
+4. Run v3 eval with thinking disabled for clean baseline (optional)
 
 ## Session 58 (2026-03-14) Summary — Plan Verification, Research, Ops Improvements
 
