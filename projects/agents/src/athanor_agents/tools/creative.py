@@ -575,8 +575,58 @@ def generate_with_likeness(prompt: str, persona_name: str, width: int = 832, hei
         return f"Failed to generate with likeness: {e}"
 
 
+@tool
+def generate_image_batch(prompt: str, count: int = 4, width: int = 1024, height: int = 1024, steps: int = 20) -> str:
+    """Generate multiple image variants from the same prompt with different seeds.
+
+    Use this for A/B comparisons, style exploration, or picking the best result
+    from several generations.
+
+    Args:
+        prompt: Text description of the image to generate
+        count: Number of variants to generate (1-8, default 4)
+        width: Image width in pixels (default 1024). Divisible by 8.
+        height: Image height in pixels (default 1024). Divisible by 8.
+        steps: Sampling steps per image (default 20)
+    """
+    if count < 1 or count > 8:
+        return "Count must be between 1 and 8."
+
+    width = (width // 8) * 8
+    height = (height // 8) * 8
+
+    results = []
+    base_seed = int(time.time()) % (2**31)
+
+    for i in range(count):
+        try:
+            seed = base_seed + i
+            workflow = _flux_workflow(prompt, width, height, steps, seed=seed)
+            client_id = str(uuid.uuid4())
+
+            resp = httpx.post(
+                f"{COMFYUI_URL}/prompt",
+                json={"prompt": workflow, "client_id": client_id},
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            results.append(f"  [{i+1}] Prompt ID: {data.get('prompt_id', '?')} (seed: {seed})")
+        except Exception as e:
+            results.append(f"  [{i+1}] Failed: {e}")
+
+    queued = sum(1 for r in results if "Prompt ID:" in r)
+    return (
+        f"Batch generation: {queued}/{count} queued\n"
+        f"Settings: {width}x{height}, {steps} steps, Flux dev FP8\n"
+        f"Prompt: {prompt[:100]}{'...' if len(prompt) > 100 else ''}\n\n"
+        + "\n".join(results)
+        + "\n\nUse check_queue to monitor progress."
+    )
+
+
 CREATIVE_TOOLS = [
-    generate_image, generate_video, generate_character_portrait,
+    generate_image, generate_image_batch, generate_video, generate_character_portrait,
     check_queue, get_generation_history, get_comfyui_status,
     list_personas, generate_with_likeness,
 ]

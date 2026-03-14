@@ -366,12 +366,118 @@ def get_recent_scenes(limit: int = 20) -> str:
         return f"Error fetching recent scenes: {e}"
 
 
+@tool
+def create_tag(name: str, description: str = "") -> str:
+    """Create a new tag in Stash.
+
+    Args:
+        name: Tag name (e.g. "blonde", "outdoor", "POV")
+        description: Optional description of what this tag represents
+    """
+    try:
+        inp: dict = {"name": name}
+        if description:
+            inp["description"] = description
+        data = _stash_query("""
+            mutation($input: TagCreateInput!) {
+                tagCreate(input: $input) { id name description }
+            }
+        """, {"input": inp})
+        tag = data.get("tagCreate", {})
+        return f"Tag created: [{tag['id']}] {tag['name']}"
+    except Exception as e:
+        return f"Error creating tag: {e}"
+
+
+@tool
+def tag_scenes(scene_ids: list[str], tag_names: list[str], mode: str = "add") -> str:
+    """Add or remove tags from one or more scenes.
+
+    Args:
+        scene_ids: List of scene IDs to modify
+        tag_names: List of tag names to add/remove
+        mode: "add" to add tags, "remove" to remove tags
+    """
+    if mode not in ("add", "remove"):
+        return "Mode must be 'add' or 'remove'."
+    try:
+        # Resolve tag names to IDs
+        tag_ids = []
+        for name in tag_names:
+            data = _stash_query("""
+                query($filter: FindFilterType!) {
+                    findTags(filter: $filter) { tags { id name } }
+                }
+            """, {"filter": {"q": name, "per_page": 5}})
+            tags = data.get("findTags", {}).get("tags", [])
+            match = next((t for t in tags if t["name"].lower() == name.lower()), None)
+            if not match:
+                return f"Tag not found: '{name}'. Create it first with create_tag."
+            tag_ids.append(match["id"])
+
+        results = []
+        for sid in scene_ids:
+            # Get current tags
+            scene_data = _stash_query("""
+                query($id: ID!) { findScene(id: $id) { id title tags { id } } }
+            """, {"id": sid})
+            scene = scene_data.get("findScene")
+            if not scene:
+                results.append(f"Scene {sid}: not found")
+                continue
+            current_ids = [t["id"] for t in scene.get("tags", [])]
+            if mode == "add":
+                new_ids = list(set(current_ids + tag_ids))
+            else:
+                new_ids = [tid for tid in current_ids if tid not in tag_ids]
+
+            _stash_query("""
+                mutation($id: ID!, $tag_ids: [ID!]) {
+                    sceneUpdate(input: { id: $id, tag_ids: $tag_ids }) { id title }
+                }
+            """, {"id": sid, "tag_ids": new_ids})
+            results.append(f"Scene {sid} ({scene.get('title', '?')}): {mode}ed {len(tag_ids)} tags")
+
+        return "\n".join(results)
+    except Exception as e:
+        return f"Error tagging scenes: {e}"
+
+
+@tool
+def delete_tag(tag_name: str) -> str:
+    """Delete a tag from Stash. Removes the tag from all scenes.
+
+    Args:
+        tag_name: Exact name of the tag to delete
+    """
+    try:
+        data = _stash_query("""
+            query($filter: FindFilterType!) {
+                findTags(filter: $filter) { tags { id name scene_count } }
+            }
+        """, {"filter": {"q": tag_name, "per_page": 5}})
+        tags = data.get("findTags", {}).get("tags", [])
+        match = next((t for t in tags if t["name"].lower() == tag_name.lower()), None)
+        if not match:
+            return f"Tag not found: '{tag_name}'"
+
+        _stash_query("""
+            mutation($input: TagDestroyInput!) { tagDestroy(input: $input) }
+        """, {"input": {"id": match["id"]}})
+        return f"Tag deleted: [{match['id']}] {match['name']} (was on {match.get('scene_count', 0)} scenes)"
+    except Exception as e:
+        return f"Error deleting tag: {e}"
+
+
 STASH_TOOLS = [
     get_stash_stats,
     search_scenes,
     get_scene_details,
     search_performers,
     list_tags,
+    create_tag,
+    tag_scenes,
+    delete_tag,
     find_duplicates,
     scan_library,
     auto_tag,
