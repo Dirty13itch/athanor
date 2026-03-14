@@ -1,0 +1,47 @@
+---
+- name: Create Loki data directory
+  ansible.builtin.file:
+    path: "{{ loki_data_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Create Loki config directory
+  ansible.builtin.file:
+    path: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/loki-config"
+    state: directory
+    mode: "0755"
+
+- name: Deploy Loki config
+  ansible.builtin.template:
+    src: loki-config.yaml.j2
+    dest: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/loki-config/loki-config.yaml"
+    mode: "0644"
+  register: loki_config
+
+- name: Run Loki container
+  community.docker.docker_container:
+    name: ls-loki
+    image: "{{ loki_image }}"
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    volumes:
+      - "{{ vault_appdata_path | default('/mnt/user/appdata') }}/loki-config/loki-config.yaml:/etc/loki/local-config.yaml"
+      - "{{ loki_data_path }}:/loki"
+    command: "-config.file=/etc/loki/local-config.yaml"
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+    recreate: "{{ loki_config.changed | default(false) }}"
+  when: not ansible_check_mode
+
+- name: Wait for Loki to respond
+  ansible.builtin.uri:
+    url: "http://localhost:3100/ready"
+    status_code: 200
+  register: loki_health
+  retries: 10
+  delay: 5
+  until: loki_health.status == 200
+  when: not ansible_check_mode

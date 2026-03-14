@@ -1,0 +1,20 @@
+// Grafana Alloy config — ships Docker container logs to Loki on VAULT
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+loki.source.docker "docker_logs" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.containers.targets
+  labels     = {
+    "node" = "{{ alloy_node_name }}",
+  }
+  forward_to = [loki.write.vault.receiver]
+}
+
+loki.write "vault" {
+  endpoint {
+    url = "{{ alloy_loki_url }}"
+  }
+}

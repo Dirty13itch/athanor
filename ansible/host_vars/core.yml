@@ -83,4 +83,7 @@ network_interfaces:
         scope: link
         metric: 200
 
+# Alloy log shipping
+alloy_node_name: foundry
+
 # Agent config — API keys and LiteLLM routing in roles/agents/defaults/main.yml

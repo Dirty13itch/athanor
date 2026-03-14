@@ -1,0 +1,6 @@
+---
+alloy_image: grafana/alloy:v1.9.0
+alloy_container_name: alloy
+alloy_node_name: "{{ inventory_hostname }}"
+alloy_config_path: /opt/alloy
+alloy_loki_url: "http://{{ vault_ip | default('192.168.1.203') }}:3100/loki/api/v1/push"

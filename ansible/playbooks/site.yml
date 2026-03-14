@@ -16,6 +16,8 @@
     - { role: gpu-orchestrator, tags: [gpu-orchestrator] }
     - { role: voice, tags: [voice] }
     - { role: backup, tags: [backup] }
+    - { role: cadvisor, tags: [cadvisor] }
+    - { role: alloy, tags: [alloy] }
 
 - name: Configure Node 2 (Workshop)
   hosts: node2
@@ -31,6 +33,8 @@
     - { role: dashboard, tags: [dashboard] }
     - { role: eoq, tags: [eoq] }
     - { role: ulrich-energy, tags: [ulrich-energy] }
+    - { role: cadvisor, tags: [cadvisor] }
+    - { role: alloy, tags: [alloy] }
 
 - name: Configure DEV (Retrieval)
   hosts: dev

@@ -15,3 +15,5 @@
     - gpu-orchestrator
     - voice
     - backup
+    - cadvisor
+    - alloy

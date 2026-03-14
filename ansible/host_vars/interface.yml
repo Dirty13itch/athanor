@@ -49,6 +49,9 @@ network_interfaces:
       route-metric: 200
     mtu: 1500
 
+# Alloy log shipping
+alloy_node_name: workshop
+
 comfyui_gpu_device: "1"
 comfyui_port: 8188
 

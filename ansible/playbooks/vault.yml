@@ -13,6 +13,11 @@
 #   ansible-playbook playbooks/vault.yml --tags gitea       # Gitea git forge
 #   ansible-playbook playbooks/vault.yml --tags miniflux    # Miniflux RSS reader
 #   ansible-playbook playbooks/vault.yml --tags n8n         # n8n workflow automation
+#   ansible-playbook playbooks/vault.yml --tags postgres     # Postgres DB
+#   ansible-playbook playbooks/vault.yml --tags ntfy        # ntfy notifications
+#   ansible-playbook playbooks/vault.yml --tags loki        # Loki log aggregation
+#   ansible-playbook playbooks/vault.yml --tags cadvisor    # Container metrics
+#   ansible-playbook playbooks/vault.yml --tags alloy       # Grafana Alloy log shipper
 #   ansible-playbook playbooks/vault.yml --tags plex        # Single service
 #   ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx  # First Plex deploy
 #
@@ -49,3 +54,13 @@
       tags: [miniflux]
     - role: vault-n8n
       tags: [n8n]
+    - role: vault-postgres
+      tags: [postgres]
+    - role: vault-ntfy
+      tags: [ntfy]
+    - role: vault-loki
+      tags: [loki]
+    - role: cadvisor
+      tags: [cadvisor]
+    - role: alloy
+      tags: [alloy]

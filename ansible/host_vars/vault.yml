@@ -185,6 +185,13 @@ prometheus_probe_targets:
     category: platform
     node_id: vault
 
+# cadvisor on non-standard port (8080 used by other services)
+cadvisor_port: 9880
+
+# Alloy log shipping — match existing container name
+alloy_container_name: ls-alloy
+alloy_config_path: "{{ vault_appdata_path }}/alloy"
+
 # Media services
 plex_port: 32400
 plex_claim_token: ""  # Set via --extra-vars on first deploy
