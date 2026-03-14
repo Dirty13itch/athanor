@@ -410,9 +410,13 @@ Full details in `docs/design/intelligence-layers.md`.
 
 | Time | Job | Node | Description |
 |------|-----|------|-------------|
-| 03:00 | Qdrant backup | Node 1 | Snapshot API → NFS → VAULT |
-| 03:15 | Neo4j backup | VAULT | Cypher export to `/mnt/user/backups/` |
-| 03:30 | Appdata backup | VAULT | Tar 11 service appdatas |
+| 01:30 | Postgres backup | VAULT | `pg_dumpall` → gzip to `/mnt/user/data/backups/postgres/` |
+| 02:00 | Stash backup | VAULT | SQLite copy to `/mnt/user/data/backups/stash/` |
+| 03:00 | Qdrant backup | VAULT | Snapshot API per-collection to `/mnt/user/data/backups/qdrant/` |
+| 03:15 | Neo4j backup | VAULT | Cypher export to `/mnt/user/data/backups/neo4j/` |
+| 04:00 | Appdata backup | VAULT | Tar 11 service appdatas to `/mnt/user/data/backups/appdata/` |
+| */5 | Container watchdog | VAULT | Auto-restart crashed media/home containers |
+| 1st/mo | Docker prune | VAULT | Remove unused images older than 7 days + build cache |
 | Manual | Knowledge index | DEV | `python3 scripts/index-knowledge.py` |
 
 ### Storage
@@ -421,7 +425,7 @@ Full details in `docs/design/intelligence-layers.md`.
 |-------|--------|-------|---------|
 | `/mnt/vault/models` | VAULT NFS | Node 1, Node 2 | Shared model files |
 | `/mnt/vault/data` | VAULT NFS | Node 1, Node 2 | Shared data (backups, outputs) |
-| VAULT HDD array | Local | VAULT | 164 TB usable, 88% used (143T) |
+| VAULT HDD array | Local | VAULT | 164 TB usable, 85% used (139T) |
 
 **Gotcha:** NFS mounts go stale after VAULT reboots. The Ansible common role auto-recovers, but manual fix is `sudo umount -f /mnt/vault/models && sudo mount -a`.
 

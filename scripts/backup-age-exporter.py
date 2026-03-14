@@ -1,189 +1,124 @@
 #!/usr/bin/env python3
-"""Prometheus exporter for Athanor backup freshness.
+"""Expose backup freshness metrics for Prometheus.
 
-Checks backup file modification times and exposes metrics via HTTP
-in Prometheus text format. Designed to run on VAULT where all backup
-directories are accessible (Qdrant via NFS, Neo4j and appdata locally).
+Auto-discovers backup targets by glob patterns across /mnt. Designed
+to run on VAULT where all backup directories are accessible.
 
 Metrics:
-    athanor_backup_age_seconds{type="...",target="...",node="..."}
-    athanor_backup_last_success_timestamp{type="...",target="...",node="..."}
+    athanor_backup_age_seconds{target="...",path="..."}
+    athanor_backup_latest_mtime_seconds{target="...",path="..."}
+    athanor_backup_target_found{target="..."}
 
 Usage:
-    ./backup-age-exporter.py [-h] [-p PORT]
+    ./backup-age-exporter.py
+    BACKUP_EXPORTER_PORT=9199 ./backup-age-exporter.py
 
-Port: 9199 (default)
+Port: 9199 (default, overridable via BACKUP_EXPORTER_PORT)
 """
+
+from __future__ import annotations
 
 import glob
 import os
-import sys
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Iterable
 
-# ── Backup targets ──────────────────────────────────────────────────
-def _backup_targets():
-    """Return backup targets using env overrides for containerized deploys."""
-    return [
-        {
-            "type": "qdrant",
-            "node": "foundry",
-            "directory": os.environ.get(
-                "ATHANOR_QDRANT_BACKUP_DIR",
-                "/mnt/user/data/backups/athanor/qdrant",
-            ),
-            "fallback_directory": os.environ.get(
-                "ATHANOR_QDRANT_BACKUP_FALLBACK_DIR",
-                "/mnt/vault/data/backups/athanor/qdrant",
-            ),
-            "pattern": "*.snapshot",
-        },
-        {
-            "type": "neo4j",
-            "node": "vault",
-            "directory": os.environ.get(
-                "ATHANOR_NEO4J_BACKUP_DIR",
-                "/mnt/user/backups/athanor/neo4j",
-            ),
-            "pattern": "graph_*.cypher",
-        },
-        {
-            "type": "appdata",
-            "node": "vault",
-            "directory": os.environ.get(
-                "ATHANOR_APPDATA_BACKUP_DIR",
-                "/mnt/appdatacache/backups",
-            ),
-            "fallback_directory": os.environ.get(
-                "ATHANOR_APPDATA_BACKUP_FALLBACK_DIR",
-                "/mnt/user/backups/athanor/appdata",
-            ),
-            "pattern": "*.tar.gz",
-        },
+
+PORT = int(os.getenv("BACKUP_EXPORTER_PORT", "9199"))
+DEFAULT_TARGETS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("postgres", ("/mnt/user/data/backups/postgres/**/*",)),
+    ("stash", ("/mnt/user/data/backups/stash/**/*",)),
+    ("athanor", ("/mnt/user/data/backups/athanor/**/*",)),
+    ("qdrant", ("/mnt/user/data/backups/qdrant/**/*",)),
+    ("neo4j", ("/mnt/user/data/backups/neo4j/**/*",)),
+    ("field_inspect", ("/mnt/user/Backups/field-inspect/**/*",)),
+    ("flash_config", ("/mnt/user/Backups/pre_disassembly_Unraid_*/flash_config_*.tar.gz",)),
+)
+
+
+def iter_matches(patterns: Iterable[str]) -> Iterable[Path]:
+    seen: set[str] = set()
+    for pattern in patterns:
+        for match in glob.iglob(pattern, recursive=True):
+            if match in seen:
+                continue
+            seen.add(match)
+            candidate = Path(match)
+            if candidate.exists():
+                yield candidate
+
+
+def newest_mtime(patterns: Iterable[str]) -> tuple[float | None, str | None]:
+    latest_value: float | None = None
+    latest_path: str | None = None
+    for candidate in iter_matches(patterns):
+        try:
+            stat = candidate.stat()
+        except OSError:
+            continue
+        mtime = stat.st_mtime
+        if latest_value is None or mtime > latest_value:
+            latest_value = mtime
+            latest_path = str(candidate)
+    return latest_value, latest_path
+
+
+def render_metrics() -> bytes:
+    now = time.time()
+    lines = [
+        "# HELP athanor_backup_age_seconds Age of the newest backup artifact for a target.",
+        "# TYPE athanor_backup_age_seconds gauge",
+        "# HELP athanor_backup_latest_mtime_seconds Unix mtime of the newest backup artifact for a target.",
+        "# TYPE athanor_backup_latest_mtime_seconds gauge",
+        "# HELP athanor_backup_target_found Whether at least one backup artifact was found for a target.",
+        "# TYPE athanor_backup_target_found gauge",
     ]
 
-
-def find_newest_mtime(target):
-    """Return mtime of the newest file matching pattern, or None.
-
-    Checks primary directory first, then fallback_directory if defined.
-    """
-    dirs_to_check = [target["directory"]]
-    if "fallback_directory" in target:
-        dirs_to_check.append(target["fallback_directory"])
-
-    for directory in dirs_to_check:
-        if not os.path.isdir(directory):
+    for target, patterns in DEFAULT_TARGETS:
+        latest_mtime, latest_path = newest_mtime(patterns)
+        if latest_mtime is None:
+            lines.append(f'athanor_backup_age_seconds{{target="{target}",path="missing"}} +Inf')
+            lines.append(f'athanor_backup_latest_mtime_seconds{{target="{target}",path="missing"}} 0')
+            lines.append(f'athanor_backup_target_found{{target="{target}"}} 0')
             continue
-        search = os.path.join(directory, target["pattern"])
-        files = glob.glob(search)
-        if files:
-            return max(os.path.getmtime(f) for f in files)
-    return None
 
-
-def collect_metrics():
-    """Build Prometheus text exposition output."""
-    now = time.time()
-    lines = []
-
-    lines.append("# HELP athanor_backup_age_seconds Age of the most recent backup in seconds.")
-    lines.append("# TYPE athanor_backup_age_seconds gauge")
-
-    for target in _backup_targets():
-        label = (
-            f'type="{target["type"]}",target="{target["type"]}",'
-            f'node="{target["node"]}"'
-        )
-        mtime = find_newest_mtime(target)
-        if mtime is not None:
-            age = int(now - mtime)
-            lines.append(f"athanor_backup_age_seconds{{{label}}} {age}")
-        else:
-            # Directory missing or empty — report sentinel to trigger alert
-            lines.append(f"athanor_backup_age_seconds{{{label}}} 999999")
+        age = max(now - latest_mtime, 0)
+        path = latest_path.replace("\\", "\\\\").replace('"', '\\"') if latest_path else "unknown"
+        lines.append(f'athanor_backup_age_seconds{{target="{target}",path="{path}"}} {age:.0f}')
+        lines.append(f'athanor_backup_latest_mtime_seconds{{target="{target}",path="{path}"}} {latest_mtime:.0f}')
+        lines.append(f'athanor_backup_target_found{{target="{target}"}} 1')
 
     lines.append("")
-    lines.append("# HELP athanor_backup_last_success_timestamp Unix timestamp of the most recent backup.")
-    lines.append("# TYPE athanor_backup_last_success_timestamp gauge")
-
-    for target in _backup_targets():
-        label = (
-            f'type="{target["type"]}",target="{target["type"]}",'
-            f'node="{target["node"]}"'
-        )
-        mtime = find_newest_mtime(target)
-        if mtime is not None:
-            lines.append(f"athanor_backup_last_success_timestamp{{{label}}} {int(mtime)}")
-        else:
-            lines.append(f"athanor_backup_last_success_timestamp{{{label}}} 0")
-
-    lines.append("")
-    lines.append("# HELP athanor_backup_exporter_up Whether the backup age exporter is running.")
-    lines.append("# TYPE athanor_backup_exporter_up gauge")
-    lines.append("athanor_backup_exporter_up 1")
-    lines.append("")
-
-    return "\n".join(lines)
+    return "\n".join(lines).encode("utf-8")
 
 
 class MetricsHandler(BaseHTTPRequestHandler):
-    """Serve Prometheus metrics on /metrics, health on /."""
-
-    def do_GET(self):
-        if self.path == "/metrics":
-            body = collect_metrics().encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
+    def do_GET(self) -> None:
+        if self.path not in {"/metrics", "/"}:
+            self.send_response(404)
             self.end_headers()
-            self.wfile.write(body)
-        elif self.path == "/":
-            body = b"athanor-backup-exporter\n/metrics\n"
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-        else:
-            self.send_error(404)
+            return
 
-    def log_message(self, fmt, *args):
-        """Log to stderr with timestamp."""
-        print(f"[{time.strftime('%Y-%m-%dT%H:%M:%S%z')}] {fmt % args}", file=sys.stderr)
+        body = render_metrics()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, fmt: str, *args: object) -> None:
+        timestamp = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+        print(f"[{timestamp}] {fmt % args}")
 
 
-def main():
-    """Parse args and start the metrics HTTP server."""
-    port = 9199
-    args = sys.argv[1:]
-    i = 0
-    while i < len(args):
-        if args[i] in ("-p", "--port"):
-            if i + 1 < len(args):
-                port = int(args[i + 1])
-                i += 2
-                continue
-            else:
-                print("ERROR: --port requires a value", file=sys.stderr)
-                sys.exit(2)
-        elif args[i] in ("-h", "--help"):
-            print(__doc__)
-            print("  -p, --port PORT   HTTP port (default: 9199)")
-            print("  -h, --help        Show this help message")
-            sys.exit(0)
-        else:
-            print(f"ERROR: Unknown argument: {args[i]}", file=sys.stderr)
-            sys.exit(2)
-
-    server = HTTPServer(("0.0.0.0", port), MetricsHandler)
-    print(f"[{time.strftime('%Y-%m-%dT%H:%M:%S%z')}] Backup age exporter listening on :{port}", file=sys.stderr)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        print(f"\n[{time.strftime('%Y-%m-%dT%H:%M:%S%z')}] Shutting down", file=sys.stderr)
-        server.shutdown()
+def main() -> int:
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), MetricsHandler)
+    print(f"[{time.strftime('%Y-%m-%dT%H:%M:%S%z')}] Backup age exporter on :{PORT}")
+    server.serve_forever()
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
