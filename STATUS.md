@@ -177,11 +177,18 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **Design doc updated** — `docs/design/vault-storage-architecture.md` rewritten from recommendation to executed state with pool allocation strategy table.
 - **Net result:** 1.86TB NVMe capacity reclaimed (nvme2 + nvme4), available for backup staging, database overflow, build cache, model cache.
 
+### Session 59d — DCGM, Knowledge Re-index, Drift Fixes
+- **DEV DCGM exporter deployed** — All 8 GPUs across 3 nodes now reporting to Prometheus/Grafana. Driver 590 workaround: custom entrypoint starts nv-hostengine before dcgm-exporter. Cleaned up unused `latest` DCGM image (299MB).
+- **Knowledge re-indexed** — 3354 points in Qdrant (was 3076, +278 new chunks from recent docs). 73 docs processed with entity extraction.
+- **SYSTEM-SPEC drift fixed** — Container counts corrected (Foundry 11→14, Workshop 9→10, DEV 2→4). NVMe storage layout added. Date updated.
+- **SERVICES.md updated** — Added DEV node_exporter + dcgm-exporter entries.
+- **Grafana verified** — DCGM dashboard auto-discovers DEV GPU. All 24 alert rules active, 0 firing.
+
 ### Next Actions
 1. Home agent testing (blocked on HA token — needs Shaun)
-2. DEV DCGM exporter setup (optional — for GPU monitoring on DEV's 5060Ti)
-3. Run v3 eval with thinking disabled for clean baseline (optional)
-4. Route backup scripts to NVMe staging (future optimization — current HDD writes are fast enough)
+2. Run v3 eval with thinking disabled for clean baseline (optional)
+3. Route backup scripts to NVMe staging (future optimization)
+4. All build manifest items complete except Shaun-blocked items
 
 ## Session 58 (2026-03-14) Summary — Plan Verification, Research, Ops Improvements
 
