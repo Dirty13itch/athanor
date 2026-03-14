@@ -437,7 +437,9 @@ class SelfImprovementEngine:
         return proposal
 
     async def validate_proposal(self, proposal_id: str) -> dict[str, Any]:
-        """Validate a proposal (syntax check for Python, YAML validation)."""
+        """Validate a proposal (forbidden file check + syntax check)."""
+        from .constitution import check_forbidden_file
+
         proposal = next((p for p in self.proposals if p.id == proposal_id), None)
         if not proposal:
             return {"error": "Proposal not found"}
@@ -447,6 +449,37 @@ class SelfImprovementEngine:
         proposal.baseline_scores = self.benchmarks.get_baseline()
 
         results = {"valid": True, "checks": []}
+
+        # AUTO-003: Check all target files against forbidden modifications list
+        for target in proposal.target_files:
+            allowed, reason = check_forbidden_file(target, actor="self_improvement")
+            if not allowed:
+                proposal.status = ImprovementStatus.FAILED.value
+                results["valid"] = False
+                results["checks"].append({"file": target, "status": "forbidden", "error": reason})
+                await self.save()
+                return {
+                    "status": proposal.status,
+                    "proposal_id": proposal_id,
+                    "results": results,
+                    "auto_deploy": False,
+                    "ready_to_deploy": False,
+                }
+
+        for file_path in proposal.proposed_changes:
+            allowed, reason = check_forbidden_file(file_path, actor="self_improvement")
+            if not allowed:
+                proposal.status = ImprovementStatus.FAILED.value
+                results["valid"] = False
+                results["checks"].append({"file": file_path, "status": "forbidden", "error": reason})
+                await self.save()
+                return {
+                    "status": proposal.status,
+                    "proposal_id": proposal_id,
+                    "results": results,
+                    "auto_deploy": False,
+                    "ready_to_deploy": False,
+                }
 
         for file_path, content in proposal.proposed_changes.items():
             if file_path.endswith(".py"):

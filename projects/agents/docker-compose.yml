@@ -14,6 +14,8 @@ services:
       - /opt/athanor/agent-output:/output
       # Data curator: personal data synced from DEV (read-only)
       - /opt/athanor/personal-data:/data/personal:ro
+      # AUTO-002: Persistent audit log (90-day retention per CONSTITUTION.yaml)
+      - /var/log/athanor:/var/log/athanor
     environment:
       - ATHANOR_NODE1_HOST=${ATHANOR_NODE1_HOST:-192.168.1.244}
       - ATHANOR_NODE2_HOST=${ATHANOR_NODE2_HOST:-192.168.1.225}

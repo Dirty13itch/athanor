@@ -16,6 +16,7 @@ import time
 from datetime import datetime
 
 from .config import settings
+from .constitution import is_peak_hours
 
 logger = logging.getLogger(__name__)
 
@@ -545,6 +546,14 @@ async def _scheduler_loop():
                 last_run = await _get_last_run(agent)
 
                 if now - last_run >= interval:
+                    # INFRA-003: Skip infrastructure tasks during peak hours
+                    if schedule.get("infrastructure", False) and is_peak_hours():
+                        logger.info(
+                            "Scheduler: skipping %s during peak hours (INFRA-003)",
+                            agent,
+                        )
+                        continue
+
                     logger.info(
                         "Scheduler: submitting proactive task for %s (interval=%ds)",
                         agent, interval,

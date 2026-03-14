@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 import httpx
 
 from .config import settings
+from .constitution import _log_audit
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,14 @@ async def log_activity(
             timeout=15,
         )
         resp.raise_for_status()
+
+        # AUTO-002: Persistent audit trail
+        _log_audit(
+            operation_type=action_type,
+            target_resource=f"activity:{agent}",
+            actor=agent,
+            result="logged",
+        )
     except Exception as e:
         logger.warning("Failed to log activity for %s: %s", agent, e)
 
@@ -424,6 +433,14 @@ async def log_event(
             timeout=15,
         )
         resp.raise_for_status()
+
+        # AUTO-002: Persistent audit trail
+        _log_audit(
+            operation_type=event_type,
+            target_resource=f"events:{agent}",
+            actor=agent,
+            result="logged",
+        )
     except Exception as e:
         logger.debug("Failed to log event %s: %s", event_type, e)
 
