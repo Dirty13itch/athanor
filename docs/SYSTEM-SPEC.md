@@ -2,7 +2,7 @@
 
 *The complete operational specification. If you could only read one document about how Athanor works, this is it.*
 
-Last updated: 2026-03-08
+Last updated: 2026-03-14
 
 ---
 
@@ -79,10 +79,10 @@ scripts/index-knowledge.py (DEV cron or manual)
 
 Full inventory in `docs/SERVICES.md`. Summary:
 
-- **Node 1 (11 containers):** vLLM Qwen3.5-27B-FP8 (TP=4), vLLM Qwen3.5-35B-A3B-AWQ-4bit, Agent Server, Qdrant, GPU Orchestrator, Speaches, wyoming-whisper, node_exporter, dcgm-exporter
-- **Node 2 (9 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Open WebUI, Alloy, node_exporter, dcgm-exporter
+- **Foundry (14 containers):** vLLM Qwen3.5-27B-FP8 (TP=4), vLLM Qwen3.5-35B-A3B-AWQ-4bit, Agent Server, Qdrant, GPU Orchestrator, Speaches, wyoming-whisper, Crucible AI Search (api, chromadb, ollama, searxng), Alloy, node_exporter, dcgm-exporter
+- **Workshop (10 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Ulrich Energy, Open WebUI, Alloy, node_exporter, dcgm-exporter
 - **VAULT (44 containers):** LiteLLM, LangFuse (6 services), Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, n8n, Gitea, Miniflux, ntfy, Meilisearch, field-inspect-app, ulrich-energy-website, blackbox-exporter, backup-exporter, and more
-- **DEV (2 services):** Embedding model (:8001), Reranker (:8003)
+- **DEV (4 services):** Embedding model (:8001), Reranker (:8003), node_exporter (:9100), dcgm-exporter (:9400)
 
 ### Model Inventory
 
@@ -426,6 +426,12 @@ Full details in `docs/design/intelligence-layers.md`.
 | `/mnt/vault/models` | VAULT NFS | Node 1, Node 2 | Shared model files |
 | `/mnt/vault/data` | VAULT NFS | Node 1, Node 2 | Shared data (backups, outputs) |
 | VAULT HDD array | Local | VAULT | 164 TB usable, 85% used (139T) |
+| `/mnt/appdatacache` (nvme0) | Local NVMe | VAULT | Container configs + databases (66%) |
+| `/mnt/fastdata` (nvme4) | Local NVMe | VAULT | Backup staging, DB overflow (930G) |
+| `/mnt/vms` (nvme2) | Local NVMe | VAULT | Repurposed: overflow, model cache (930G) |
+| `/var/lib/docker` (nvme3) | Local NVMe | VAULT | Docker images/layers (13%) |
+
+Full NVMe layout: `docs/design/vault-storage-architecture.md`.
 
 **Gotcha:** NFS mounts go stale after VAULT reboots. The Ansible common role auto-recovers, but manual fix is `sudo umount -f /mnt/vault/models && sudo mount -a`.
 
