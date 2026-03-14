@@ -40,6 +40,7 @@ class ActionCategory(str, Enum):
     ROUTINE = "routine"     # Routine adjustments (lights, temp ±1)
     CONTENT = "content"     # Content additions (add show/movie)
     DELETE = "delete"       # Deletions (remove content, disable automation)
+    PURGE = "purge"         # Memory tier purge (personal_data, conversations — never autonomous)
     CONFIG = "config"       # Configuration changes
     SECURITY = "security"   # Security-related actions
 
@@ -50,6 +51,7 @@ DEFAULT_THRESHOLDS: dict[ActionCategory, float] = {
     ActionCategory.ROUTINE: 0.5,    # Low-stakes adjustments
     ActionCategory.CONTENT: 0.8,    # Medium-stakes additions
     ActionCategory.DELETE: 0.95,    # High-stakes deletions
+    ActionCategory.PURGE: 1.0,      # Never autonomous (memory tier operations)
     ActionCategory.CONFIG: 0.95,    # High-stakes config changes
     ActionCategory.SECURITY: 1.0,   # Never autonomous
 }

@@ -22,6 +22,7 @@ from typing import Any
 import httpx
 
 from .config import settings
+from .constitution import check_destructive_operation, snapshot_point_ids
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +175,35 @@ async def _purge_old_points(
             collection, retention_days, total_before,
         )
         return 0
+
+    # DATA-001/004: Constitutional check before deletion
+    allowed, reason = check_destructive_operation(
+        operation="delete",
+        target=collection,
+        count=len(old_ids),
+        actor="consolidation",
+    )
+    if not allowed:
+        logger.warning(
+            "Consolidation blocked for %s: %s (would delete %d points)",
+            collection, reason, len(old_ids),
+        )
+        # Queue for approval via escalation
+        try:
+            from .escalation import queue_pending_action
+            queue_pending_action(
+                agent="system",
+                action=f"Delete {len(old_ids)} points from {collection}",
+                category="delete",
+                confidence=0.0,
+                description=reason,
+            )
+        except Exception as e:
+            logger.debug("Escalation queue failed: %s", e)
+        return 0
+
+    # DATA-003: Snapshot point IDs before deletion for recovery
+    await snapshot_point_ids(collection, old_ids)
 
     # Batch delete
     resp = await client.post(
