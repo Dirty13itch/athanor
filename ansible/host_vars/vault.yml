@@ -169,6 +169,21 @@ prometheus_probe_targets:
     url: "http://{{ vault_ip }}:8123/api/"
     category: home
     node_id: vault
+  - id: gitea
+    name: "Gitea"
+    url: "http://{{ vault_ip }}:3033"
+    category: platform
+    node_id: vault
+  - id: miniflux
+    name: "Miniflux"
+    url: "http://{{ vault_ip }}:8070"
+    category: platform
+    node_id: vault
+  - id: n8n
+    name: "n8n"
+    url: "http://{{ vault_ip }}:5678"
+    category: platform
+    node_id: vault
 
 # Media services
 plex_port: 32400

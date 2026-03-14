@@ -105,3 +105,86 @@ groups:
           severity: warning
         annotations:
           summary: "{{ "{{" }} $labels.instance {{ "}}" }} memory above 90%"
+
+  - name: blackbox
+    rules:
+      - alert: LiteLLMDown
+        expr: probe_success{service_id="litellm"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LiteLLM is down"
+          description: "LiteLLM at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: CoordinatorVLLMDown
+        expr: probe_success{service_id="foundry-coordinator"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Coordinator vLLM is down"
+          description: "Coordinator vLLM at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: CoderVLLMDown
+        expr: probe_success{service_id="foundry-coder"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Coder vLLM is down"
+          description: "Coder vLLM at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: AgentServerDown
+        expr: probe_success{service_id="agent-server"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Agent Server is down"
+          description: "Agent Server at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: DashboardDown
+        expr: probe_success{service_id="dashboard"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dashboard is down"
+          description: "Dashboard at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: ComfyUIDown
+        expr: probe_success{service_id="comfyui"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ComfyUI is down"
+          description: "ComfyUI at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: GiteaDown
+        expr: probe_success{service_id="gitea"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Gitea is down"
+          description: "Gitea at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: MinifluxDown
+        expr: probe_success{service_id="miniflux"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Miniflux is down"
+          description: "Miniflux at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: N8nDown
+        expr: probe_success{service_id="n8n"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "n8n is down"
+          description: "n8n at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
