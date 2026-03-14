@@ -161,21 +161,23 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **Grafana backup alerts deployed** — 3 alert rules (Qdrant/Neo4j/Appdata backup age critical) provisioned via ansible. Fixed ansible role to use raw docker CLI (Unraid lacks `requests` for community.docker modules). Grafana restarted, rules verified.
 - **Domain 4 verified complete** — Insights page already built (600-line IntelligenceConsole with patterns, learning metrics, review queue, skills lane). All API routes exist (insights, learning, preferences, research-jobs).
 
-### Plan Completion Status (~84/86 items done)
+### Plan Completion Status (~86/86 actionable items done, 2 blocked on Shaun)
 - **Domain 1 (Security):** ALL DONE
 - **Domain 2 (Models):** ALL DONE
 - **Domain 3 (Agents):** ~95% — All APIs, tools, scheduler, error logging done. Knowledge upload, stash tags, creative batch all deployed. Remaining: home agent testing (blocked on HA token).
 - **Domain 4 (Dashboard):** ALL DONE — insights page, preferences backend, research jobs integration all verified complete.
 - **Domain 5 (IaC):** ALL DONE
 - **Domain 6 (Docs):** ALL DONE — All design docs created (project-platform-architecture, stash-agent-workflow). ADRs, SERVICES.md, RECOVERY.md, scripts README all complete.
-- **Domain 7 (Ops):** ALL DONE — Grafana backup alerts deployed, eval grader fixed, n8n clean, context metrics live, health script done. Eval v2 running.
+- **Domain 7 (Ops):** ALL DONE — Grafana backup alerts deployed, eval grader fixed (v3 config committed), n8n clean, context metrics live, health script done. 3-model eval complete.
 - **Domain 8 (Projects):** Blocked on Shaun or external
 - **Domain 9 (Blockers):** Requires Shaun
 
 ### Next Actions
-1. Record promptfoo eval v2 results when complete
-2. Domain 6.12 missing design docs (MEDIUM, optional)
+1. ~~Record promptfoo eval v2 results when complete~~ DONE — creative 100%, reasoning 80%, coder 70% (19/48 grading failures from thinking traces). v3 config fix committed.
+2. ~~Domain 6.12 missing design docs~~ DONE
 3. Home agent testing (blocked on HA token — needs Shaun)
+4. Run v3 eval with thinking disabled for clean baseline (optional)
+5. Test coverage ([XL] backlog — context injection, task execution, preference learning)
 
 ## Session 57 (2026-03-14) Summary — Master Plan Execution
 
