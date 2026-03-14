@@ -80,7 +80,7 @@
 |-----|-------|------|-----------|------|
 | 0: RTX 5070 Ti (MSI) | Qwen3.5-27B-FP8 (TP=4) | 15.6/16.3 GB | vllm-coordinator | 8000 |
 | 1: RTX 5070 Ti (Gigabyte) | Qwen3.5-27B-FP8 (TP=4) | 15.6/16.3 GB | (shared) | â€” |
-| 2: RTX 4090 (ASUS) | Qwen3-Coder-30B-A3B-Instruct-AWQ | 16.0/24.6 GB | vllm-coder | 8006 |
+| 2: RTX 4090 (ASUS) | Qwen3.5-35B-A3B-AWQ-4bit | ~21/24.6 GB | vllm-coder | 8006 |
 | 3: RTX 5070 Ti (Gigabyte) | Qwen3.5-27B-FP8 (TP=4) | 15.6/16.3 GB | (shared) | â€” |
 | 4: RTX 5070 Ti (MSI) | Qwen3.5-27B-FP8 (TP=4) | 15.6/16.3 GB | (shared) | â€” |
 
@@ -110,7 +110,7 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 | Endpoint | Model/Service | Status |
 |----------|---------------|--------|
 | foundry:8000 | Qwen3.5-27B-FP8 (TP=4) | âœ… Healthy |
-| foundry:8006 | Qwen3-Coder-30B-A3B-Instruct-AWQ | OK |
+| foundry:8006 | Qwen3.5-35B-A3B-AWQ-4bit | OK |
 | foundry:9000 | Agent Server (9 agents) | âœ… Healthy |
 | workshop:8000 | Qwen3.5-35B-A3B-AWQ-4bit | âœ… Healthy |
 | vault:4000 | LiteLLM (local + cloud routed model lanes) | âœ… Healthy |
@@ -154,7 +154,7 @@ UP: LiteLLM, Coordinator, Coder, Worker, Embedding, Reranker, Agents, Qdrant, Co
 DOWN: Sonarr, Radarr, Tautulli, Plex (need API keys), Home Assistant (needs token)
 
 ### Next Actions
-1. Deploy Qwen3.5-35B-A3B-AWQ to 4090 coder slot (upgrade from Qwen3-Coder-30B)
+1. ~~Deploy Qwen3.5-35B-A3B-AWQ to 4090 coder slot~~ DONE (compose updated, model copied to local NVMe)
 2. Clean up n8n legacy labels (Daily Digest + Performance Monitor reference “Hydra”/”TabbyAPI”)
 3. 21.4 Grafana backup alert deploy
 4. Configure Sonarr/Radarr/Tautulli/Plex API keys for full service monitoring

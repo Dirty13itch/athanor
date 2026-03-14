@@ -33,7 +33,7 @@ GPU3  NODE  NODE  PHB    X
 
 ### Current Deployment (Phase 2, 2026-03-11)
 - **Coordinator (TP=4)**: GPUs 0,1,3,4 (4x5070Ti) â€” Qwen3.5-27B-FP8 at :8000
-- **Coder**: GPU 2 (4090) - Qwen3-Coder-30B-A3B-Instruct-AWQ at :8006
+- **Coder**: GPU 2 (4090) - Qwen3.5-35B-A3B-AWQ-4bit at :8006
 
 ### Optimal Placement
 - **4-GPU tensor parallelism (vLLM)**: Use 4x RTX 5070 Ti (`CUDA_VISIBLE_DEVICES=0,1,3,4`). Same architecture required for TP. GPU 2 (4090) excluded.

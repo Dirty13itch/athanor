@@ -9,7 +9,7 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 | Service | Port | Details |
 |---------|------|---------|
 | vLLM Coordinator (Qwen3.5-27B-FP8) | 8000 | TP=4 across GPUs 0,1,3,4 (4x RTX 5070 Ti), `--tool-call-parser qwen3_xml`, `--enforce-eager`, `--language-model-only` |
-| vLLM Coder (Qwen3-Coder-30B-A3B-Instruct-AWQ) | 8006 | GPU 2 (RTX 4090), dedicated coding and tool-heavy lane |
+| vLLM Coder (Qwen3.5-35B-A3B-AWQ-4bit) | 8006 | GPU 2 (RTX 4090), dedicated coding and tool-heavy lane |
 | Agent Server | 9000 | 9 agents + GWT workspace + escalation + activity/preferences + routing + diagnosis + semantic cache + circuit breakers + self-improvement + preference learning APIs |
 | Qdrant | 6333/6334 | Vector DB: knowledge (2484), personal_data (2304), conversations, activity, preferences (55), implicit_feedback, events |
 | GPU Orchestrator | 9200 | 4 zones, DCGM metrics, vLLM sleep/wake, TTL auto-sleep, Prometheus export |
@@ -115,7 +115,7 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 |-------|---------|-------|------|
 | `reasoning` / `gpt-4` | vLLM | Qwen3.5-27B-FP8 | Foundry :8000 (TP=4) |
 | `coding` | vLLM | Qwen3.5-27B-FP8 | Foundry :8000 (same coordinator lane, coding-oriented alias) |
-| `coder` | vLLM | Qwen3-Coder-30B-A3B-Instruct-AWQ | Foundry :8006 |
+| `coder` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Foundry :8006 |
 | `creative` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `utility` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `fast` / `gpt-3.5-turbo` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
@@ -137,7 +137,7 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 |-------|------|---------|
 | Qwen3.5-27B-FP8 | ~29G | Coordinator (LiteLLM: `reasoning`, `coding`) - Foundry TP=4 |
 | Qwen3.5-35B-A3B-AWQ-4bit | ~22G | Worker lane (LiteLLM: `fast`, `worker`, `creative`, `utility`, `uncensored`) - Workshop |
-| Qwen3-Coder-30B-A3B-Instruct-AWQ | ~16G | Coder lane (LiteLLM: `coder`) - Foundry GPU 2 (4090) |
+| Qwen3.5-35B-A3B-AWQ-4bit | ~16G | Coder lane (LiteLLM: `coder`) - Foundry GPU 2 (4090) |
 | Qwen3-32B-AWQ | 19G | Previous reasoning model (replaced by Qwen3.5-27B-FP8) |
 | GLM-4.7-Flash-GPTQ-4bit | 16G | Previous local creative candidate (not currently loaded) |
 | Huihui-Qwen3.5-27B-abliterated | 52G | Abliterated 27B (available, not loaded) |
