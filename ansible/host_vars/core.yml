@@ -10,39 +10,63 @@ nvidia_gpu_power_limits:
   - { index: 3, watts: 250 }   # RTX 5070 Ti (PCI 82:00)
   - { index: 4, watts: 250 }   # RTX 5070 Ti (PCI C1:00, embedding)
 
-vllm_model: /models/Qwen3.5-27B-FP8
-vllm_quantization: ""
-vllm_tensor_parallel: 4
-vllm_port: 8000
-vllm_gpu_memory_util: "0.85"
-vllm_max_model_len: 32768
-vllm_max_num_seqs: 64
-vllm_gpu_devices: all
-vllm_extra_args:
-  - --language-model-only
-  - --enable-auto-tool-choice
-  - --tool-call-parser
-  - qwen3_xml
-  # REQUIRED: DeltaNet/Mamba Triton kernels OOM during CUDA graph replay on 16GB GPUs
-  - --enforce-eager
-  - --enable-prefix-caching
-  - --kv-cache-dtype
-  - auto
-  # NFS optimization: eager loading converts random page faults to sequential reads (2-5x faster model load)
-  - --safetensors-load-strategy
-  - eager
-  # Swap space for preemption recovery (16 GiB per GPU, uses system RAM)
-  - --swap-space
-  - "16"
-# Speculative decoding — Qwen3-0.6B as draft model, 2-3x throughput for ~1.2 GB extra VRAM
-# Uncomment to enable (requires vLLM restart):
-# vllm_speculative_config: '{"model": "/models/Qwen3-0.6B", "num_speculative_tokens": 5}'
-
-# Custom vLLM image: NGC CUDA 13.1 base + nightly vLLM (Qwen3.5 support)
-# Upstream cu130 image fails with CUDA 13.0 vs Blackwell driver mismatch — NGC 13.1 base required
+# vLLM image build settings (shared by all instances)
 vllm_custom_build: true
 vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
-vllm_pip_version: ""  # Empty = nightly (latest, unpinned) for Qwen3.5 qwen3_5 model type
+vllm_pip_version: ""  # Empty = nightly for Qwen3.5
+vllm_custom_image_tag: "qwen35"
+vllm_models_volume: "/mnt/local-fast/models:/models:ro"
+
+# Multi-instance vLLM: coordinator (TP=4 on 4x 5070 Ti) + coder (4090)
+vllm_instances:
+  - name: coordinator
+    container_name: vllm-coordinator
+    model: /models/Qwen3.5-27B-FP8
+    port: 8000
+    tensor_parallel: 4
+    gpu_devices: ["0", "1", "3", "4"]
+    network_mode: host
+    extra_volumes:
+      - /home/athanor/.cache/triton:/root/.cache/triton
+    speculative_config: '{"method": "mtp", "num_speculative_tokens": 1}'
+    extra_args:
+      - --enforce-eager
+      - --language-model-only
+      - --enable-auto-tool-choice
+      - --tool-call-parser
+      - qwen3_xml
+      - --kv-cache-dtype
+      - auto
+      - --enable-prefix-caching
+      - --safetensors-load-strategy
+      - eager
+      - --swap-space
+      - "16"
+
+  - name: coder
+    container_name: vllm-coder
+    model: /models/Qwen3.5-35B-A3B-AWQ-4bit
+    served_model_name: qwen35-coder
+    port: 8006
+    internal_port: 8000
+    gpu_devices: ["2"]
+    gpu_memory_util: "0.92"
+    max_num_seqs: 16
+    shm_size: "8g"
+    models_volume: "/mnt/local-fast/models:/models"
+    extra_volumes:
+      - /home/athanor/.cache/triton:/root/.cache/triton
+    extra_args:
+      - --enforce-eager
+      - --language-model-only
+      - --enable-auto-tool-choice
+      - --tool-call-parser
+      - qwen3_xml
+      - --kv-cache-dtype
+      - auto
+      - --enable-prefix-caching
+      - --safetensors-load-strategy
+      - eager
 
 # Network interfaces — dual 10GbE NICs, MTU 9000
 network_interfaces:
