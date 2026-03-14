@@ -26,6 +26,33 @@ groups:
         annotations:
           summary: "{{ "{{" }} $labels.instance {{ "}}" }} root disk above 85%"
 
+      - alert: AppdataDiskWarning
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/mnt/appdatacache", instance=~"192.168.1.203.*"} / node_filesystem_size_bytes{mountpoint="/mnt/appdatacache", instance=~"192.168.1.203.*"}) > 0.85
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VAULT appdata NVMe above 85% ({{ "{{" }} $value | humanizePercentage {{ "}}" }})"
+          description: "All container configs and databases live on this drive. Consider migrating data to /mnt/fastdata."
+
+      - alert: AppdataDiskCritical
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/mnt/appdatacache", instance=~"192.168.1.203.*"} / node_filesystem_size_bytes{mountpoint="/mnt/appdatacache", instance=~"192.168.1.203.*"}) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VAULT appdata NVMe above 95% — databases at risk ({{ "{{" }} $value | humanizePercentage {{ "}}" }})"
+          description: "Critical: Neo4j, Prometheus, Redis, and all container configs share this drive."
+
+      - alert: DockerDiskWarning
+        expr: (1 - node_filesystem_avail_bytes{mountpoint=~"/mnt/docker|/var/lib/docker", instance=~"192.168.1.203.*"} / node_filesystem_size_bytes{mountpoint=~"/mnt/docker|/var/lib/docker", instance=~"192.168.1.203.*"}) > 0.85
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VAULT Docker NVMe above 85% ({{ "{{" }} $value | humanizePercentage {{ "}}" }})"
+          description: "Run docker system prune or check for image accumulation."
+
   - name: gpu
     rules:
       - alert: GpuTemperatureHigh

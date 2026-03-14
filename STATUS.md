@@ -169,11 +169,19 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **VAULT storage audit** — Full NVMe + HDD analysis. Found 2.85TB wasted NVMe (3 drives: transcode 1%, VMs 0%, orphaned Ubuntu). Design doc at `docs/design/vault-storage-architecture.md`.
 - **Media stack recovery** — All 4 media services had shfs FUSE write failures ("No space left on device" despite 324G free). Docker restart fixed all. Watchdog prevents recurrence.
 
+### Session 59c — NVMe Reclamation & Monitoring
+- **nvme4 reclaimed** — Orphaned Ubuntu LVM fully removed (lvremove→vgremove→pvremove→wipefs). Reformatted as btrfs "fastdata" pool. Mounted at `/mnt/fastdata` (930G). Directory structure: `backups/{staging,snapshots}`, `databases`, `cache`. Unraid pool config at `/boot/config/pools/fastdata.cfg`, mount persisted in `/boot/config/go`.
+- **nvme2 repurposed** — Completely empty "vms" pool (no VMs run on VAULT). Directory structure created: `backup-staging`, `db-overflow`, `build-cache`, `model-cache`. Pool comment updated in Unraid config.
+- **nvme1 kept as transcode** — 925G free but legitimately used for Plex transcoding scratch (bursty I/O isolation). Not worth the risk of repurposing.
+- **NVMe monitoring alerts** — 3 new Prometheus rules: AppdataDiskWarning (85%), AppdataDiskCritical (95%), DockerDiskWarning (85%). Deployed and active. Total alert rules: 24, 0 firing.
+- **Design doc updated** — `docs/design/vault-storage-architecture.md` rewritten from recommendation to executed state with pool allocation strategy table.
+- **Net result:** 1.86TB NVMe capacity reclaimed (nvme2 + nvme4), available for backup staging, database overflow, build cache, model cache.
+
 ### Next Actions
 1. Home agent testing (blocked on HA token — needs Shaun)
-2. VAULT storage restructuring — Shaun decisions needed on nvme4 format, cache pool redesign (see design doc)
-3. DEV DCGM exporter setup (optional — for GPU monitoring on DEV's 5060Ti)
-4. Run v3 eval with thinking disabled for clean baseline (optional)
+2. DEV DCGM exporter setup (optional — for GPU monitoring on DEV's 5060Ti)
+3. Run v3 eval with thinking disabled for clean baseline (optional)
+4. Route backup scripts to NVMe staging (future optimization — current HDD writes are fast enough)
 
 ## Session 58 (2026-03-14) Summary — Plan Verification, Research, Ops Improvements
 
