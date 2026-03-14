@@ -66,7 +66,8 @@ groups:
           description: "Prometheus cannot scrape the backup freshness exporter on VAULT :9199."
 
       - alert: BackupAgeCritical
-        expr: athanor_backup_age_seconds > 129600
+        # Exclude historical one-off snapshots (flash_config, field_inspect) that aren't recurring
+        expr: athanor_backup_age_seconds{target!~"flash_config|field_inspect"} > 129600
         for: 10m
         labels:
           severity: critical
@@ -75,7 +76,7 @@ groups:
           description: "Check cron jobs and backup scripts. Target: {{ "{{" }} $labels.target {{ "}}" }}"
 
       - alert: BackupAgeWarning
-        expr: athanor_backup_age_seconds > 100800
+        expr: athanor_backup_age_seconds{target!~"flash_config|field_inspect"} > 100800
         for: 10m
         labels:
           severity: warning

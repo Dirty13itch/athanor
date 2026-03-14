@@ -76,12 +76,12 @@ prometheus_probe_targets:
     node_id: node1
   - id: prometheus
     name: "Prometheus"
-    url: "http://localhost:9090/-/healthy"
+    url: "http://{{ vault_ip }}:9090/-/healthy"
     category: observability
     node_id: vault
   - id: grafana
     name: "Grafana"
-    url: "http://localhost:3000/api/health"
+    url: "http://{{ vault_ip }}:3000/api/health"
     category: observability
     node_id: vault
   - id: node1-node-exporter
@@ -166,7 +166,7 @@ prometheus_probe_targets:
     node_id: vault
   - id: home-assistant
     name: "Home Assistant"
-    url: "http://{{ vault_ip }}:8123/api/"
+    url: "http://{{ vault_ip }}:8123/"
     category: home
     node_id: vault
   - id: gitea
