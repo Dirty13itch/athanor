@@ -277,8 +277,10 @@ The agent framework exists but is skeletal. These items make agents actually use
 ### 6.4 — Mobile access
 - **Status:** 🔲 Backlog — depends on 6.8 (remote access)
 
-### 6.5 — qBittorrent + Gluetun VPN (blocked on NordVPN creds)
-- **Status:** 🚫 Blocked on Shaun (NordVPN credentials)
+### 6.5 — qBittorrent + Gluetun VPN
+- **Status:** ✅ done (Session 60f, 2026-03-14)
+- **Result:** Ansible role `vault-vpn-torrent` deployed. Gluetun VPN (NordVPN/Switzerland OpenVPN) + qBittorrent (linuxserver). Kill switch via `network_mode: service:gluetun`. WebUI at vault:8112. VPN verified (Swiss IP 176.223.172.131).
+- **Files:** `ansible/roles/vault-vpn-torrent/`, NordVPN service creds in ansible vault
 
 ### 6.6 — Stash AI integration (adult content agent)
 - **Status:** ✅ Phase 1 complete — Stash configured + agent deployed
@@ -437,10 +439,10 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Research:** `docs/research/2026-03-13-coding-models-march-update.md`
 
 ### 8.5 — Quality Gating & Cascade
-- **Status:** 🚫 Blocked on Shaun (Anthropic API key for cloud escalation)
+- **Status:** 🔲 Unblocked (Anthropic API key deployed to LiteLLM, Session 60f)
 - **Scope:** Local model generates → runs tests → if tests fail, escalate to cloud (Claude). Automated quality loops for coding tasks.
-- **Existing:** Single auto-retry with error context (`_maybe_retry` in tasks.py). Step-level tool call logging.
-- **Missing:** Anthropic API credentials in agent config, `escalate_to_cloud` tool, multi-attempt strategy (local → cloud-fast → cloud-reasoning), reward model quality gate.
+- **Existing:** Single auto-retry with error context (`_maybe_retry` in tasks.py). Step-level tool call logging. Anthropic API key live in LiteLLM (claude/claude-sonnet-4-6/claude-opus-4-6 aliases working).
+- **Missing:** `escalate_to_cloud` tool, multi-attempt strategy (local → cloud-fast → cloud-reasoning), reward model quality gate.
 - **Research:** See 8.5 analysis from Session 20 exploration agent.
 - **Depends on:** 8.3 ✅, Anthropic API key from Shaun
 
@@ -1135,8 +1137,8 @@ These require human action. Claude Code cannot do them.
 
 | Item | Action | Unblocks |
 |------|--------|----------|
-| NordVPN credentials | Provide service creds | 6.5 (qBittorrent) |
-| Anthropic API key | Provide API key | 8.5 (Quality Cascade cloud escalation) |
+| ~~NordVPN credentials~~ | ~~Done~~ | ~~6.5 (qBittorrent)~~ ✅ |
+| ~~Anthropic API key~~ | ~~Done~~ | ~~8.5 (Quality Cascade cloud escalation)~~ ✅ |
 | Google Drive rclone OAuth | Run `~/.local/bin/rclone config` | 10.8 (Personal Data ~40%) |
 | Node 2 EXPO | BIOS via JetKVM | Performance |
 | Samsung 990 PRO reseat | Physical at rack | Node 1 storage |

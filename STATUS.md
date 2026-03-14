@@ -234,11 +234,18 @@ Phase 5 (Structural)         DONE — server.py 90% reduction, 16 route modules
 Phase 6 (Testing)            DONE — 391 tests pass
 ```
 
+### Session 60f — Blocker Busting
+- **qBittorrent + Gluetun VPN deployed** — Ansible role `vault-vpn-torrent`. NordVPN OpenVPN tunnel to Switzerland. Kill switch via network_mode. WebUI at vault:8112. VPN verified (Swiss IP).
+- **Anthropic API key wired into LiteLLM** — `ANTHROPIC_API_KEY` env var passed through to LiteLLM container. Claude models (opus/sonnet/haiku) verified working via LiteLLM. Unblocks Quality Cascade (8.5).
+- **Python Docker SDK installed on VAULT** — `docker` + `requests` pip packages. Unblocks all `community.docker.docker_container` Ansible tasks on VAULT.
+- **NordVPN service creds + Anthropic key encrypted in ansible vault**
+
 ### Next Actions
-1. Deploy Phase 3 to FOUNDRY: stop vllm-phase2 containers, run Ansible vLLM role (needs Shaun approval)
-2. Deploy new vault roles: `ansible-playbook playbooks/vault.yml --tags postgres,ntfy,loki,cadvisor,alloy`
-3. Home agent testing (blocked on HA token — needs Shaun)
-4. Re-audit score target: 8.5+/10
+1. Build Quality Cascade `escalate_to_cloud` tool (8.5 — now unblocked)
+2. Connect qBittorrent to Sonarr/Radarr download clients
+3. Node 1 Samsung 990 PRO BIOS enable (via IPMI)
+4. Node 2 DDR5 EXPO profile enable (via JetKVM)
+5. Re-audit score target: 8.5+/10
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
