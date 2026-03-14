@@ -214,10 +214,31 @@ GIT-001-002         YES        bash-firewall + .gitignore
 - Fixed cross-test sys.modules pollution — 7 test files mocked `sys.modules["athanor_agents"]` at import time, corrupting namespace for subsequent files
 - 9 safety-critical test modules all pass: constitution, escalation, input_guard, consolidation, self_improvement, diagnosis, workspace, router, scheduler
 
+### Phase 3: IaC Reconciliation (completed session 60e)
+- **3a: vLLM multi-instance** — Template now generates N services from `vllm_instances` list.
+  FOUNDRY: coordinator (TP=4 on 4x5070Ti, :8000) + coder (4090, :8006). Template output verified
+  against live vllm-phase2 compose. Legacy single-instance path (Workshop) fully backward compatible.
+- **3b: 5 new Ansible roles** — vault-postgres (pg_isready healthcheck), vault-ntfy,
+  vault-loki (7-day retention config), cadvisor (configurable port), alloy (per-node log shipping template)
+- **3c: Playbook reconciliation** — vault.yml +5 roles, node1/node2 +cadvisor +alloy, site.yml mirrored.
+  Host vars updated: alloy_node_name per node, cadvisor_port=9880 on VAULT, alloy container=ls-alloy on VAULT.
+- **Housekeeping** — completion-sprint team deleted, 3 idle tmux worker panes killed.
+
+### All 6 Phases Complete
+```
+Phase 1 (Quick Wins)         DONE — stale files, doc drift
+Phase 2 (Observability)      DONE — 9 probes, 8 alert rules
+Phase 3 (IaC)                DONE — vLLM multi-instance, 5 new roles, playbook reconciliation
+Phase 4 (Safety Hardening)   DONE — 16/16 constraints enforced
+Phase 5 (Structural)         DONE — server.py 90% reduction, 16 route modules
+Phase 6 (Testing)            DONE — 391 tests pass
+```
+
 ### Next Actions
-1. Phase 3: IaC reconciliation (vLLM multi-instance Ansible, unmanaged container roles)
-2. Phase 2b: Docker healthchecks for Redis, Postgres, LangFuse (lower priority)
+1. Deploy Phase 3 to FOUNDRY: stop vllm-phase2 containers, run Ansible vLLM role (needs Shaun approval)
+2. Deploy new vault roles: `ansible-playbook playbooks/vault.yml --tags postgres,ntfy,loki,cadvisor,alloy`
 3. Home agent testing (blocked on HA token — needs Shaun)
+4. Re-audit score target: 8.5+/10
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
@@ -624,5 +645,5 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-14 13:29 PDT
+*Last updated: 2026-03-14 15:05 PDT
 
