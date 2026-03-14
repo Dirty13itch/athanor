@@ -180,12 +180,44 @@ GIT-001-002         YES        bash-firewall + .gitignore
 ```
 **Result: 16/16 constraints code-enforced (was 9/16)**
 
+### Phase 2: Observability (completed session 60b)
+- **9 new blackbox probes** — gpu-orchestrator, ntfy, speaches, langfuse, eoq, meilisearch, ulrich-energy, n8n, gitea
+- **TCP probes** — Redis (:6379), Postgres (:5432) via blackbox tcp_connect module
+- **8 new alert rules** — RedisDown, PostgresDown, LangFuseDown, NtfyDown, QdrantDown, Neo4jDown, GPUOrchestratorDown, WorkerVLLMDown
+- **Version-controlled** — prometheus.yml, alert-rules.yml, blackbox.yml now in `ansible/files/monitoring/`
+- All 47 probes UP, 0 alerts firing
+
+### Phase 5: server.py Decomposition (COMPLETE)
+- **16 route modules extracted** to `routes/` (2425 LOC total):
+  - `chat.py` (530 LOC) — chat completions, streaming, think-tag filtering
+  - `metrics.py` (306 LOC) — learning, agent, inference, context metrics
+  - `goals.py` (196 LOC) — feedback, trust, autonomy, notification budgets
+  - `planning.py` (146 LOC) — work planner, projects, outputs
+  - `workspace.py` (149 LOC) — GWT broadcast, subscriptions, endorsement
+  - `emergency.py` (143 LOC) — kill switch, resume, status
+  - `notifications.py` (120 LOC) — escalation, approval workflow
+  - `tasks.py` (116 LOC) — task CRUD, scheduling, approval
+  - `diagnostics.py` (112 LOC) — context preview, routing, cognitive, consolidation, briefing
+  - `events.py` (108 LOC) — event ingestion, alerts, pattern detection
+  - `status.py` (106 LOC) — media stack, service health
+  - `skills.py` (92 LOC) — skill library CRUD, execution recording
+  - `subscriptions.py` (90 LOC) — providers, policy, leases, quotas
+  - `activity.py` (75 LOC) — activity, conversations, preferences
+  - `research.py` (71 LOC) — research job CRUD, execution
+  - `conventions.py` (69 LOC) — convention library CRUD
+- **server.py: 2545 → 251 LOC (90% reduction)**
+- server.py retains: lifespan, AGENT_METADATA, health/models/agents, router wiring, main()
+- All endpoints verified in production after deploy
+
+### Phase 6: Test Infrastructure (COMPLETE)
+- **391 tests pass** (was 213 + 2 collection errors)
+- Fixed cross-test sys.modules pollution — 7 test files mocked `sys.modules["athanor_agents"]` at import time, corrupting namespace for subsequent files
+- 9 safety-critical test modules all pass: constitution, escalation, input_guard, consolidation, self_improvement, diagnosis, workspace, router, scheduler
+
 ### Next Actions
-1. Phase 2: Observability hardening (blackbox probes for unmonitored services)
-2. Phase 3: IaC reconciliation (vLLM multi-instance Ansible)
-3. Phase 5: server.py decomposition (2533 LOC → modules)
-4. Deploy Phase 4 changes to production — DONE
-5. Home agent testing (blocked on HA token — needs Shaun)
+1. Phase 3: IaC reconciliation (vLLM multi-instance Ansible, unmanaged container roles)
+2. Phase 2b: Docker healthchecks for Redis, Postgres, LangFuse (lower priority)
+3. Home agent testing (blocked on HA token — needs Shaun)
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
