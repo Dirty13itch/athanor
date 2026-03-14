@@ -138,6 +138,31 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
+
+### Completed This Session
+- **Agent server test coverage (Domain 3.6)** — 169 new tests across 4 files covering the 4 highest-blast-radius modules with zero prior coverage: `test_context.py` (54 tests), `test_skill_learning.py` (33), `test_tasks.py` (44), `test_preference_learning.py` (38). All external deps fully mocked. 196 total tests pass.
+- **test_prompting.py fixed** — Pre-existing broken test. Root cause: `agents/__init__.py` imports all 9 agent modules which pull `langchain_openai` (not on DEV). Fix: `importlib.util` to load `prompting.py` directly, bypassing the package init.
+- **GPU memory alert threshold** — Raised from 95% → 99%. vLLM pre-allocates KV cache; steady-state VRAM is 95-99%. Was causing 6 permanent false-positive alerts across all inference GPUs. Deployed to Prometheus, alerts clearing.
+- **Backup cron recovery** — All 5 backup crons were missing (lost to Unraid volatile crontab). Root cause: VAULT reboot clears crontab, scripts not persisted. Fix:
+  - New scripts: `backup-postgres.sh` (pg_dumpall), `backup-stash.sh` (sqlite copy)
+  - Fixed `backup-qdrant.sh` default path to match exporter target
+  - All scripts deployed to `/boot/config/custom/backup-scripts/` (flash-persistent)
+  - Cron restoration block added to `/boot/config/go` (runs at boot)
+  - Schedule: postgres 01:30, stash 02:00, qdrant 03:00, neo4j 03:15, appdata 04:00
+  - All 4 backups verified manually: postgres (1.3M), qdrant (9 snapshots), neo4j (11K lines/1.4M), stash (917M)
+- **MEMORY.md updated** — Corrected stale backup claim, added Unraid crontab volatility pattern, postgres user discovery
+
+### Active Alerts (18 → ~12 expected after clear)
+- 6× `GpuMemoryExhausted` — CLEARING (threshold raised, 10min `for` duration)
+- 12× `BackupAgeCritical/Warning` — Will clear overnight as new crons run (postgres/stash already fresh)
+
+### Next Actions
+1. Home agent testing (blocked on HA token — needs Shaun)
+2. Run v3 eval with thinking disabled for clean baseline (optional)
+3. Verify GPU alerts fully cleared (~10 min)
+4. Verify backup alerts clear after tonight's cron runs
+
 ## Session 58 (2026-03-14) Summary — Plan Verification, Research, Ops Improvements
 
 ### Completed This Session
@@ -177,7 +202,7 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 2. ~~Domain 6.12 missing design docs~~ DONE
 3. Home agent testing (blocked on HA token — needs Shaun)
 4. Run v3 eval with thinking disabled for clean baseline (optional)
-5. Test coverage ([XL] backlog — context injection, task execution, preference learning)
+5. ~~Test coverage ([XL] backlog — context injection, task execution, preference learning)~~ DONE (session 59)
 
 ## Session 57 (2026-03-14) Summary — Master Plan Execution
 
