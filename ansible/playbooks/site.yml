@@ -30,6 +30,7 @@
     - { role: open-webui, tags: [open-webui] }
     - { role: dashboard, tags: [dashboard] }
     - { role: eoq, tags: [eoq] }
+    - { role: ulrich-energy, tags: [ulrich-energy] }
 
 - name: Configure DEV (Retrieval)
   hosts: dev
