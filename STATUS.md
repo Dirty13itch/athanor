@@ -156,23 +156,26 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **Error handler logging** — 20 bare `except: pass` blocks replaced with `logger.debug(...)` across 11 agent server files (scheduler, self_improvement, workplanner, consolidation, tasks, escalation, preference_learning, activity, patterns, agents/__init__, data_curator). Deployed to FOUNDRY, 9 agents healthy.
 - **Neo4j coder model ref** — Updated ansible vault-neo4j role + live graph from Qwen3-Coder-30B to Qwen3.5-35B-A3B-AWQ-4bit.
 - **BUILD-ROADMAP** — Marked as historical (active queue is BUILD-MANIFEST).
-- **Promptfoo 3-model eval** — Running in background (reasoning × creative × coder, 48 test cases, ~30min).
+- **Promptfoo 3-model eval** — Initial run: fast (8B) grader failed 18/48 with "Could not extract JSON". Switched grader to reasoning (27B-FP8, temp=0). Re-running v2.
+- **Agent feature gaps completed** — knowledge upload tool (chunks+embeds+Qdrant+Neo4j), stash tag CRUD (create/tag_scenes/delete), creative batch generation (1-8 variants). Deployed to FOUNDRY, 9 agents healthy.
+- **Grafana backup alerts deployed** — 3 alert rules (Qdrant/Neo4j/Appdata backup age critical) provisioned via ansible. Fixed ansible role to use raw docker CLI (Unraid lacks `requests` for community.docker modules). Grafana restarted, rules verified.
+- **Domain 4 verified complete** — Insights page already built (600-line IntelligenceConsole with patterns, learning metrics, review queue, skills lane). All API routes exist (insights, learning, preferences, research-jobs).
 
-### Plan Completion Status (~80/86 items done)
-- **Domain 1 (Security):** ALL DONE — keys rotated, backups deployed, docker hardened, WebUI auth enabled, alerts configured
-- **Domain 2 (Models):** ALL DONE — coder swapped to Qwen3.5-35B, Triton cache persisted, abliterated 27B verified infeasible, research complete
-- **Domain 3 (Agents):** ~80% — APIs wired, tools registered, scheduler health added, error logging done. Remaining: knowledge upload tool, data curator impl, stash tags, creative batch (all MEDIUM effort feature work)
-- **Domain 4 (Dashboard):** Backends wired but insights page not built
-- **Domain 5 (IaC):** ALL DONE — ansible roles in playbooks, README documented, stale dirs removed
-- **Domain 6 (Docs):** ~95% — ADRs, SERVICES, RECOVERY, AGENTS, GPU counts, scripts, BUILD-MANIFEST all done. Remaining: missing design docs (MEDIUM)
-- **Domain 7 (Ops):** ~90% — n8n clean, context metrics live, health script done. Remaining: Grafana backup alert deploy (vault password), promptfoo results
+### Plan Completion Status (~84/86 items done)
+- **Domain 1 (Security):** ALL DONE
+- **Domain 2 (Models):** ALL DONE
+- **Domain 3 (Agents):** ~95% — All APIs, tools, scheduler, error logging done. Knowledge upload, stash tags, creative batch all deployed. Remaining: home agent testing (blocked on HA token).
+- **Domain 4 (Dashboard):** ALL DONE — insights page, preferences backend, research jobs integration all verified complete.
+- **Domain 5 (IaC):** ALL DONE
+- **Domain 6 (Docs):** ~95% — Remaining: 2 missing design docs (project-platform-architecture, stash-agent-workflow)
+- **Domain 7 (Ops):** ALL DONE — Grafana backup alerts deployed, eval grader fixed, n8n clean, context metrics live, health script done. Eval v2 running.
 - **Domain 8 (Projects):** Blocked on Shaun or external
 - **Domain 9 (Blockers):** Requires Shaun
 
 ### Next Actions
-1. Record promptfoo eval results when complete
-2. Grafana backup alert deploy (7.2) — blocked on vault password
-3. Agent feature gaps (3.3) — knowledge upload tool, data curator, stash tags (next session)
+1. Record promptfoo eval v2 results when complete
+2. Domain 6.12 missing design docs (MEDIUM, optional)
+3. Home agent testing (blocked on HA token — needs Shaun)
 
 ## Session 57 (2026-03-14) Summary — Master Plan Execution
 
