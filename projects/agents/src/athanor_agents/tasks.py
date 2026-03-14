@@ -356,7 +356,7 @@ async def cancel_task(task_id: str) -> bool:
             return False
 
         task = Task.from_dict(json.loads(raw))
-        if task.status not in ("pending", "running"):
+        if task.status not in ("pending", "running", "pending_approval"):
             return False
 
         task.status = "cancelled"

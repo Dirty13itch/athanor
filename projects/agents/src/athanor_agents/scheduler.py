@@ -83,7 +83,7 @@ AGENT_SCHEDULES = {
             "report a brief status summary."
         ),
         "priority": "low",
-        "enabled": True,
+        "enabled": False,  # Disabled: HA token not yet provided (Shaun blocker)
     },
     "knowledge-agent": {
         "interval": 3600,  # 1 hour
