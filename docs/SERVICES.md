@@ -107,6 +107,8 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 | claude-squad | â€” | Multi-session Claude Code manager (git worktrees, parallel sessions) |
 | Embedding (Qwen3-Embedding-0.6B) | 8001 | vLLM embedding model on RTX 5060 Ti |
 | Reranker | 8003 | Reranker model on RTX 5060 Ti |
+| node_exporter | 9100 | Prometheus metrics |
+| dcgm-exporter | 9400 | GPU metrics (nv-hostengine entrypoint for driver 590) |
 | Gitea Actions Runner | â€” | act_runner v0.2.11 (systemd service, self-hosted label) |
 
 ## LiteLLM Model Routes
