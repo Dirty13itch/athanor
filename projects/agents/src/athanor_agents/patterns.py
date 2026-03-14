@@ -169,8 +169,8 @@ async def run_pattern_detection() -> dict:
                 age_days = (datetime.now(timezone.utc) - datetime.strptime(d, "%Y-%m-%d").replace(tzinfo=timezone.utc)).days
                 if age_days > 7:
                     await r.hdel(PATTERN_HISTORY_KEY, d)
-            except ValueError:
-                pass
+            except ValueError as e:
+                logger.debug("Pattern history date parse failed: %s", e)
     except Exception as e:
         logger.warning("Failed to store pattern report: %s", e)
 

@@ -193,8 +193,8 @@ async def _check_daily_digest():
             last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
             if last_str == now.strftime("%Y-%m-%d"):
                 return  # Already ran today
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
 
     logger.info("Scheduler: generating daily digest")
     try:
@@ -228,8 +228,8 @@ async def _check_consolidation():
             last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
             if last_str == now.strftime("%Y-%m-%d"):
                 return  # Already ran today
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
 
     logger.info("Scheduler: running memory consolidation")
     try:
@@ -261,8 +261,8 @@ async def _check_pattern_detection():
             last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
             if last_str == now.strftime("%Y-%m-%d"):
                 return  # Already ran today
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
 
     logger.info("Scheduler: running pattern detection")
     try:
@@ -307,8 +307,8 @@ async def _check_morning_plan():
             last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
             if last_str == now.strftime("%Y-%m-%d"):
                 return  # Already ran today
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
 
     logger.info("Scheduler: generating morning work plan")
     try:
@@ -335,8 +335,8 @@ async def _check_workplan_refill():
             ts = float(last_check.decode() if isinstance(last_check, bytes) else last_check)
             if time.time() - ts < WORKPLAN_REFILL_INTERVAL:
                 return
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
 
     try:
         if not await should_refill():
@@ -369,8 +369,8 @@ async def _check_alerts():
             ts = float(last_check.decode() if isinstance(last_check, bytes) else last_check)
             if time.time() - ts < ALERT_CHECK_INTERVAL:
                 return
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
 
     try:
         result = await check_prometheus_alerts()
@@ -407,8 +407,8 @@ async def _check_benchmarks():
             ts = float(last.decode() if isinstance(last, bytes) else last)
             if time.time() - ts < BENCHMARK_INTERVAL:
                 return
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
 
     try:
         from .self_improvement import get_improvement_engine
@@ -456,8 +456,8 @@ async def _check_improvement_cycle():
             last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
             if last_str == now.strftime("%Y-%m-%d"):
                 return
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
 
     logger.info("Scheduler: running self-improvement cycle")
     try:
@@ -484,8 +484,8 @@ async def _check_cache_cleanup():
             ts = float(last.decode() if isinstance(last, bytes) else last)
             if time.time() - ts < CACHE_CLEANUP_INTERVAL:
                 return
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
 
     try:
         from .semantic_cache import get_semantic_cache

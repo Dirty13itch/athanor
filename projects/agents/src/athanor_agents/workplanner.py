@@ -157,8 +157,8 @@ async def _gather_knowledge_context(focus: str = "") -> dict:
     try:
         from .goals import list_goals
         goals = await list_goals(active_only=True)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Goals fetch failed for work planner: %s", e)
 
     # Fetch completed task results (what has the system already produced?)
     completed_results = []
@@ -173,8 +173,8 @@ async def _gather_knowledge_context(focus: str = "") -> dict:
                     "prompt": t.get("prompt", "")[:200],
                     "result": t.get("result", "")[:500],
                 })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Completed tasks fetch failed for work planner: %s", e)
 
     return {
         "knowledge": [
@@ -612,8 +612,8 @@ async def get_current_plan() -> dict | None:
         raw = await r.get(WORKPLAN_KEY)
         if raw:
             return json.loads(raw.decode() if isinstance(raw, bytes) else raw)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Work plan load from Redis failed: %s", e)
     return None
 
 

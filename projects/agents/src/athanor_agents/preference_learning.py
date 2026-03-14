@@ -339,8 +339,8 @@ class PreferenceLearner:
             key = self._redis_key("recent_interactions")
             await r.lpush(key, json.dumps(asdict(interaction), default=str))
             await r.ltrim(key, 0, 999)  # Keep last 1000
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Preference interaction store failed: %s", e)
 
         return interaction
 

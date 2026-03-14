@@ -111,8 +111,8 @@ class CapabilityBenchmarks:
                 data = await r.get("improvement:benchmarks")
                 if data:
                     self.results = [BenchmarkResult(**d) for d in json.loads(data)]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Improvement Redis load/save failed: %s", e)
 
     async def save(self):
         r = await self._get_redis()
@@ -126,8 +126,8 @@ class CapabilityBenchmarks:
                     json.dumps([asdict(r) for r in self.results]),
                     ex=86400 * 30,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Improvement Redis load/save failed: %s", e)
 
     async def run_benchmark(
         self, category: BenchmarkCategory, name: str, test_fn,
@@ -372,8 +372,8 @@ class SelfImprovementEngine:
             data = await r.get("improvement:archive")
             if data:
                 self.archive = json.loads(data)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Improvement state load/save failed: %s", e)
 
     async def save(self):
         r = await self._get_redis()
@@ -390,8 +390,8 @@ class SelfImprovementEngine:
                 json.dumps(self.archive),
                 ex=86400 * 90,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Improvement state load/save failed: %s", e)
 
     async def run_benchmark_suite(self) -> dict[str, Any]:
         """Run full benchmark suite and compare to baseline."""
@@ -606,8 +606,8 @@ class SelfImprovementEngine:
                 data = await r.get("improvement:last_cycle")
                 if data:
                     last_cycle = json.loads(data)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Improvement state load/save failed: %s", e)
 
         return {
             "total_proposals": len(self.proposals),

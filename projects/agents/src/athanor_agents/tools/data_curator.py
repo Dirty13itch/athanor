@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import os
 import time
 from pathlib import Path
@@ -164,8 +165,8 @@ def _ensure_collection():
         resp = httpx.get(f"{_QDRANT_URL}/collections/{COLLECTION}", timeout=5)
         if resp.status_code == 200:
             return
-    except Exception:
-        pass
+    except Exception as e:
+        logging.getLogger(__name__).debug("Collection check failed: %s", e)
 
     httpx.put(
         f"{_QDRANT_URL}/collections/{COLLECTION}",

@@ -70,8 +70,8 @@ def ensure_collections():
             if resp.status_code == 200:
                 logger.info("Collection '%s' already exists", name)
                 continue
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Collection existence check failed: %s", e)
 
         try:
             resp = httpx.put(

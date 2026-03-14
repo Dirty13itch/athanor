@@ -481,8 +481,8 @@ async def _execute_task(task: Task):
         context_str = ""
         try:
             context_str = await enrich_context(task.agent, task.prompt) or ""
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Context enrichment failed, proceeding without: %s", e)
 
         task_prompt = _build_task_prompt(task)
         preamble_parts = []

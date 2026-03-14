@@ -94,8 +94,8 @@ async def run_consolidation() -> dict[str, Any]:
             ),
             data=results["collections"],
         ))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Consolidation activity log failed: %s", e)
 
     return results
 

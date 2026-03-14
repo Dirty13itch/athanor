@@ -222,8 +222,8 @@ def _fire_push(pending: "PendingAction") -> None:
         try:
             from .goals import increment_notification_count
             await increment_notification_count(pending.agent)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Notification count increment failed: %s", e)
 
     try:
         loop = asyncio.get_event_loop()
