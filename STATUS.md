@@ -138,19 +138,27 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
-## Session 58 (2026-03-14) Summary — Plan Verification & Ops Cleanup
+## Session 58 (2026-03-14) Summary — Plan Verification, Research, Ops Improvements
 
 ### Completed This Session
 - **WORKSHOP ansible fix** — `ansible/host_vars/interface.yml` `vllm_quantization: ""` (was `awq`). compressed-tensors models must omit flag for auto-detect. Committed `3ce6b23`.
 - **n8n workflow cleanup** — Updated 2 workflows via REST API: Daily Health Digest removed all Hydra/TabbyAPI/Ollama refs (→ Athanor/LiteLLM/Agent Registry), Model Performance Monitor replaced dead Ollama check with Coder vLLM (foundry:8006), renamed `hydra_` metrics to `athanor_`. Both verified active.
-- **Plan verification** — Systematic audit found 10+ plan items already completed in prior sessions (Docker hardening, Open WebUI auth, monitoring alerts, ansible roles in playbooks, ADR statuses, SERVICES.md, RECOVERY.md, AGENTS.md, GPU counts, health-check script). Plan was generated before sessions 56-57.
-- **Promptfoo 3-model eval launched** — reasoning × creative × coder, 16 prompts each (48 test cases). Still running.
+- **Plan verification** — Systematic audit found 20+ plan items already completed in prior sessions (Docker hardening, Open WebUI auth, monitoring alerts, ansible roles in playbooks, ADR statuses, SERVICES.md, RECOVERY.md, AGENTS.md, GPU counts, health-check script, preferences/research-jobs/subscriptions APIs, write_file in ALL_TOOLS, BLOCKED.md, SYSTEM-SPEC model table, atlas validation scripts). Plan was generated before sessions 56-57.
+- **Research agenda** — 5 deep research batches completed via local Research Agent:
+  - `2026-03-14-qwen35-model-landscape.md` — Qwen3.5 family, Qwen3-Coder-Next 80B MoE discovery, quantization providers
+  - `2026-03-14-inference-backends.md` — SGLang vs vLLM (stick with vLLM for Blackwell), llama.cpp for DEV
+  - `2026-03-14-dev-tool-orchestration.md` — Claude Code Agent Teams, OpenCode comparison, Goose recipes
+  - `2026-03-14-operational-intelligence.md` — AdaptOrch routing, RSS classification, GuideLLM benchmarks
+  - `2026-03-14-hardware-audit.md` — GPU thermal thresholds, UPS sizing (~2kW load, 3kVA recommended), MTU audit (NO MISMATCH — all 10GbE nodes at 9000)
+- **Context enrichment latency metrics** — Ring buffer (500 entries) in `context.py`, new `GET /v1/metrics/context` endpoint with p50/p95/p99/max and per-agent breakdown.
+- **Scheduler health endpoint** — New `GET /v1/scheduler/health` returns running state, per-agent last-run timestamps, overdue detection, special schedule status.
+- **Intelligence layers doc update** — Layer 2 "deployed, incomplete" → "deployed". Updated context injection flow diagram (3 queries → 5 + graph expansion + CST + goals + patterns + conventions + skills). Added stash-agent/data-curator to config table. Fixed stale counts. Layer 3 now "Partial" (pattern detection + skill learning live).
+- **Promptfoo 3-model eval** — Running in background (reasoning × creative × coder, 48 test cases).
 
 ### Next Actions
 1. Record promptfoo eval results when complete
-2. BUILD-MANIFEST cleanup (close completed items, align with plan verification)
-3. Research agenda batches (delegate overnight via deep_research)
-4. Grafana backup alert deploy (7.2)
+2. Deploy agent server changes to FOUNDRY (context metrics + scheduler health endpoints)
+3. Grafana backup alert deploy (7.2)
 
 ## Session 57 (2026-03-14) Summary — Master Plan Execution
 
