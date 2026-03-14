@@ -66,6 +66,11 @@ si = importlib.util.module_from_spec(spec)
 si.__package__ = "athanor_agents"
 spec.loader.exec_module(si)
 
+# Cleanup: remove MagicMock entries to prevent polluting other test files
+for _k in list(sys.modules):
+    if isinstance(sys.modules[_k], MagicMock):
+        del sys.modules[_k]
+
 
 def _run(coro):
     """Helper to run async functions in sync tests."""

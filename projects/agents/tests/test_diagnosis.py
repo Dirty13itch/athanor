@@ -32,6 +32,11 @@ diag = importlib.util.module_from_spec(spec)
 diag.__package__ = "athanor_agents"
 spec.loader.exec_module(diag)
 
+# Cleanup: remove MagicMock entries to prevent polluting other test files
+for _k in list(sys.modules):
+    if isinstance(sys.modules[_k], MagicMock):
+        del sys.modules[_k]
+
 
 class TestFailureClassification:
     """Pattern rule matching for error messages."""

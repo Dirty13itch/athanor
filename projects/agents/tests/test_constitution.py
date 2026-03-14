@@ -39,6 +39,11 @@ sys.modules["yaml"] = _yaml
 
 spec.loader.exec_module(constitution)
 
+# Cleanup: remove MagicMock entries to prevent polluting other test files
+for _k in list(sys.modules):
+    if isinstance(sys.modules[_k], MagicMock):
+        del sys.modules[_k]
+
 # Reset the cached constitution to use test data
 constitution._constitution = None
 

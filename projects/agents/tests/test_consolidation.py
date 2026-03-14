@@ -55,6 +55,11 @@ consolidation = importlib.util.module_from_spec(spec)
 consolidation.__package__ = "athanor_agents"
 spec.loader.exec_module(consolidation)
 
+# Cleanup: remove MagicMock entries to prevent polluting other test files
+for _k in list(sys.modules):
+    if isinstance(sys.modules[_k], MagicMock):
+        del sys.modules[_k]
+
 
 class TestRetentionConfig:
     """Verify retention policies match CONSTITUTION expectations."""
