@@ -142,7 +142,7 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 
 ### Completed This Session
 - **WORKSHOP ansible fix** — `ansible/host_vars/interface.yml` `vllm_quantization: ""` (was `awq`). compressed-tensors models must omit flag for auto-detect. Committed `3ce6b23`.
-- **n8n workflow cleanup** — Updated 2 workflows via REST API: Daily Health Digest removed all Hydra/TabbyAPI/Ollama refs (→ Athanor/LiteLLM/Agent Registry), Model Performance Monitor replaced dead Ollama check with Coder vLLM (foundry:8006), renamed `hydra_` metrics to `athanor_`. Both verified active.
+- **n8n workflow cleanup** — Updated 2 workflows via REST API: Daily Health Digest removed all Hydra/TabbyAPI/Ollama refs (→ Athanor/LiteLLM/Agent Registry), Model Performance Monitor replaced dead Ollama check with Coder vLLM (foundry:8006), renamed `hydra_` metrics to `athanor_`. Both verified active. Re-verified via n8n MCP — zero Hydra/TabbyAPI/Ollama references remain.
 - **Plan verification** — Systematic audit found 20+ plan items already completed in prior sessions (Docker hardening, Open WebUI auth, monitoring alerts, ansible roles in playbooks, ADR statuses, SERVICES.md, RECOVERY.md, AGENTS.md, GPU counts, health-check script, preferences/research-jobs/subscriptions APIs, write_file in ALL_TOOLS, BLOCKED.md, SYSTEM-SPEC model table, atlas validation scripts). Plan was generated before sessions 56-57.
 - **Research agenda** — 5 deep research batches completed via local Research Agent:
   - `2026-03-14-qwen35-model-landscape.md` — Qwen3.5 family, Qwen3-Coder-Next 80B MoE discovery, quantization providers
@@ -150,15 +150,29 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
   - `2026-03-14-dev-tool-orchestration.md` — Claude Code Agent Teams, OpenCode comparison, Goose recipes
   - `2026-03-14-operational-intelligence.md` — AdaptOrch routing, RSS classification, GuideLLM benchmarks
   - `2026-03-14-hardware-audit.md` — GPU thermal thresholds, UPS sizing (~2kW load, 3kVA recommended), MTU audit (NO MISMATCH — all 10GbE nodes at 9000)
-- **Context enrichment latency metrics** — Ring buffer (500 entries) in `context.py`, new `GET /v1/metrics/context` endpoint with p50/p95/p99/max and per-agent breakdown.
+- **Context enrichment latency metrics** — Ring buffer (500 entries) in `context.py`, new `GET /v1/metrics/context` endpoint with p50/p95/p99/max and per-agent breakdown. Cold start 4.5s, warm p50 105ms.
 - **Scheduler health endpoint** — New `GET /v1/scheduler/health` returns running state, per-agent last-run timestamps, overdue detection, special schedule status.
 - **Intelligence layers doc update** — Layer 2 "deployed, incomplete" → "deployed". Updated context injection flow diagram (3 queries → 5 + graph expansion + CST + goals + patterns + conventions + skills). Added stash-agent/data-curator to config table. Fixed stale counts. Layer 3 now "Partial" (pattern detection + skill learning live).
-- **Promptfoo 3-model eval** — Running in background (reasoning × creative × coder, 48 test cases).
+- **Error handler logging** — 20 bare `except: pass` blocks replaced with `logger.debug(...)` across 11 agent server files (scheduler, self_improvement, workplanner, consolidation, tasks, escalation, preference_learning, activity, patterns, agents/__init__, data_curator). Deployed to FOUNDRY, 9 agents healthy.
+- **Neo4j coder model ref** — Updated ansible vault-neo4j role + live graph from Qwen3-Coder-30B to Qwen3.5-35B-A3B-AWQ-4bit.
+- **BUILD-ROADMAP** — Marked as historical (active queue is BUILD-MANIFEST).
+- **Promptfoo 3-model eval** — Running in background (reasoning × creative × coder, 48 test cases, ~30min).
+
+### Plan Completion Status (~80/86 items done)
+- **Domain 1 (Security):** ALL DONE — keys rotated, backups deployed, docker hardened, WebUI auth enabled, alerts configured
+- **Domain 2 (Models):** ALL DONE — coder swapped to Qwen3.5-35B, Triton cache persisted, abliterated 27B verified infeasible, research complete
+- **Domain 3 (Agents):** ~80% — APIs wired, tools registered, scheduler health added, error logging done. Remaining: knowledge upload tool, data curator impl, stash tags, creative batch (all MEDIUM effort feature work)
+- **Domain 4 (Dashboard):** Backends wired but insights page not built
+- **Domain 5 (IaC):** ALL DONE — ansible roles in playbooks, README documented, stale dirs removed
+- **Domain 6 (Docs):** ~95% — ADRs, SERVICES, RECOVERY, AGENTS, GPU counts, scripts, BUILD-MANIFEST all done. Remaining: missing design docs (MEDIUM)
+- **Domain 7 (Ops):** ~90% — n8n clean, context metrics live, health script done. Remaining: Grafana backup alert deploy (vault password), promptfoo results
+- **Domain 8 (Projects):** Blocked on Shaun or external
+- **Domain 9 (Blockers):** Requires Shaun
 
 ### Next Actions
 1. Record promptfoo eval results when complete
-2. Deploy agent server changes to FOUNDRY (context metrics + scheduler health endpoints)
-3. Grafana backup alert deploy (7.2)
+2. Grafana backup alert deploy (7.2) — blocked on vault password
+3. Agent feature gaps (3.3) — knowledge upload tool, data curator, stash tags (next session)
 
 ## Session 57 (2026-03-14) Summary — Master Plan Execution
 
