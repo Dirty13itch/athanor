@@ -2,7 +2,7 @@
 
 *Live service inventory. Updated when services change.*
 
-Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-27B-FP8 TP=4 live on FOUNDRY)
+Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-website, blackbox-exporter to VAULT)
 
 ## Node 1 â€” Foundry (192.168.1.244)
 
