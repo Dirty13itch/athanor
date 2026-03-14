@@ -84,6 +84,28 @@
       "args": ["-c", "source ~/.claude/mcp-vars.sh && exec $HOME/go/bin/gitea-mcp -t stdio --host http://192.168.1.203:3033 --token \"$GITEA_TOKEN\""],
       "env": {},
       "disabled": true
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "serverInstructions": "Up-to-date programming library docs and code examples. Use resolve-library-id first, then get-library-docs.",
+      "disabled": true
+    },
+    "github": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y @modelcontextprotocol/server-github"],
+      "env": {},
+      "serverInstructions": "GitHub operations: repos, issues, PRs, releases, actions, code search. The Athanor repo lives on GitHub (Dirty13itch/Athanor) — this is for the real remote, not local Gitea.",
+      "disabled": true
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/mcp-playwright"],
+      "serverInstructions": "Browser automation and testing. Use for testing dashboard, EoBQ, and Ulrich Energy web apps. Can navigate, click, fill forms, screenshot, and assert on page content.",
+      "disabled": true
     }
   }
 }
