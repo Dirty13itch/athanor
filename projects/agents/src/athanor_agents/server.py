@@ -63,6 +63,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[lifespan] Skill seeding failed: {e}", flush=True)
 
+    # Reload pending escalation actions from Redis (survive container restarts)
+    try:
+        from .escalation import load_pending_from_redis
+        await load_pending_from_redis()
+    except Exception as e:
+        print(f"[lifespan] Escalation queue reload failed: {e}", flush=True)
+
     yield
     await stop_scheduler()
     await stop_task_worker()
@@ -2521,6 +2528,140 @@ async def context_metrics():
     from .context import get_latency_stats
 
     return get_latency_stats()
+
+
+# --- Emergency Protocols (CONSTITUTION.yaml) ---
+
+_autonomous_operations_enabled = True
+
+
+@app.post("/v1/emergency/stop")
+async def emergency_stop():
+    """Kill switch — halt all autonomous operations immediately.
+
+    CONSTITUTION emergency.kill_switch: halt_all_autonomous_operations
+    """
+    global _autonomous_operations_enabled
+    _autonomous_operations_enabled = False
+
+    from .scheduler import stop_scheduler
+    from .circuit_breaker import get_circuit_breakers
+
+    # Stop the scheduler
+    await stop_scheduler()
+
+    # Open all circuit breakers
+    cbs = get_circuit_breakers()
+    breaker_names = ["coordinator", "worker", "litellm", "qdrant", "redis", "embedding", "utility"]
+    for name in breaker_names:
+        try:
+            breaker = cbs.get_or_create(name)
+            await breaker.force_open()
+        except Exception:
+            pass
+
+    # Notify via ntfy
+    try:
+        from .escalation import _send_ntfy_notification
+        await _send_ntfy_notification(
+            title="EMERGENCY STOP",
+            body="All autonomous operations halted. Scheduler stopped. Circuit breakers opened.",
+            priority="urgent",
+            tags=["rotating_light", "stop_sign"],
+        )
+    except Exception:
+        pass
+
+    # Audit log
+    from .constitution import _log_audit
+    _log_audit(
+        operation_type="emergency_stop",
+        target_resource="all",
+        actor="operator",
+        result="halted",
+        constraint_checked="EMERGENCY",
+    )
+
+    logger.warning("EMERGENCY STOP activated — all autonomous operations halted")
+    return {
+        "status": "halted",
+        "timestamp": datetime.now().isoformat(),
+        "scheduler": "stopped",
+        "circuit_breakers": "all_open",
+    }
+
+
+@app.post("/v1/emergency/resume")
+async def emergency_resume(request: Request):
+    """Resume autonomous operations after emergency stop.
+
+    Requires confirmation token in body: {"confirm": "RESUME"}
+    """
+    global _autonomous_operations_enabled
+
+    body = await request.json()
+    if body.get("confirm") != "RESUME":
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Must provide {\"confirm\": \"RESUME\"} to resume operations"},
+        )
+
+    _autonomous_operations_enabled = True
+
+    from .scheduler import start_scheduler
+    from .circuit_breaker import get_circuit_breakers
+
+    # Resume scheduler
+    await start_scheduler()
+
+    # Reset circuit breakers to closed
+    cbs = get_circuit_breakers()
+    breaker_names = ["coordinator", "worker", "litellm", "qdrant", "redis", "embedding", "utility"]
+    for name in breaker_names:
+        try:
+            breaker = cbs.get_or_create(name)
+            await breaker.force_close()
+        except Exception:
+            pass
+
+    try:
+        from .escalation import _send_ntfy_notification
+        await _send_ntfy_notification(
+            title="EMERGENCY RESUME",
+            body="Autonomous operations resumed. Scheduler restarted. Circuit breakers reset.",
+            priority="high",
+            tags=["white_check_mark"],
+        )
+    except Exception:
+        pass
+
+    from .constitution import _log_audit
+    _log_audit(
+        operation_type="emergency_resume",
+        target_resource="all",
+        actor="operator",
+        result="resumed",
+        constraint_checked="EMERGENCY",
+    )
+
+    logger.info("Emergency resume — autonomous operations restored")
+    return {
+        "status": "resumed",
+        "timestamp": datetime.now().isoformat(),
+        "scheduler": "running",
+        "circuit_breakers": "all_closed",
+    }
+
+
+@app.get("/v1/emergency/status")
+async def emergency_status():
+    """Check whether autonomous operations are enabled."""
+    from .scheduler import _scheduler_task
+    return {
+        "autonomous_operations_enabled": _autonomous_operations_enabled,
+        "scheduler_running": _scheduler_task is not None and not _scheduler_task.done(),
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 def main():
