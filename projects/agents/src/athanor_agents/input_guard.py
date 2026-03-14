@@ -131,7 +131,8 @@ _OUTPUT_LEAK_PATTERNS: list[tuple[re.Pattern, str, float]] = [
     (re.compile(r"-----BEGIN\s+OPENSSH\s+PRIVATE\s+KEY-----"), "private_key_leak", 0.9),
 
     # API keys / tokens (common formats)
-    (re.compile(r"sk-[a-zA-Z0-9]{20,}"), "api_key_leak", 0.7),
+    (re.compile(r"sk-[a-zA-Z0-9\-]{20,}"), "api_key_leak", 0.7),
+    (re.compile(r"AKIA[0-9A-Z]{16}"), "aws_key_leak", 0.7),
     (re.compile(r"ghp_[a-zA-Z0-9]{36,}"), "github_token_leak", 0.7),
     (re.compile(r"glpat-[a-zA-Z0-9\-]{20,}"), "gitlab_token_leak", 0.7),
     (re.compile(r"xox[bpras]-[a-zA-Z0-9\-]{10,}"), "slack_token_leak", 0.7),

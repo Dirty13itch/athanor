@@ -2599,7 +2599,10 @@ async def emergency_resume(request: Request):
     """
     global _autonomous_operations_enabled
 
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
     if body.get("confirm") != "RESUME":
         return JSONResponse(
             status_code=400,
