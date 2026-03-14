@@ -993,6 +993,14 @@ async def task_schedules():
     return await get_schedule_status()
 
 
+@app.get("/v1/scheduler/health")
+async def scheduler_health():
+    """Scheduler subsystem health — running state, last-run timestamps, overdue agents."""
+    from .scheduler import get_scheduler_health
+
+    return await get_scheduler_health()
+
+
 @app.get("/v1/tasks/{task_id}")
 async def get_task_detail(task_id: str):
     """Get detailed task status including execution steps."""

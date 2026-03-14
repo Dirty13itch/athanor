@@ -633,3 +633,41 @@ async def stop_scheduler():
             pass
         _scheduler_task = None
         logger.info("Proactive agent scheduler stopped")
+
+
+async def get_scheduler_health() -> dict:
+    """Return scheduler health: running state and last-run timestamps per agent."""
+    running = _scheduler_task is not None and not _scheduler_task.done()
+    now = time.time()
+
+    schedules = {}
+    for agent, config in AGENT_SCHEDULES.items():
+        last_run = await _get_last_run(agent)
+        interval = config["interval"]
+        ago = int(now - last_run) if last_run > 0 else None
+        schedules[agent] = {
+            "interval_s": interval,
+            "enabled": config.get("enabled", True),
+            "last_run_ago_s": ago,
+            "overdue": ago is not None and ago > interval * 2,
+        }
+
+    # Special schedules
+    try:
+        r = await _get_redis()
+        digest_ts = await r.get(DAILY_DIGEST_KEY)
+        pattern_ts = await r.get(PATTERN_DETECTION_KEY)
+        alert_ts = await r.get(ALERT_CHECK_KEY)
+    except Exception:
+        digest_ts = pattern_ts = alert_ts = None
+
+    return {
+        "running": running,
+        "check_interval_s": SCHEDULER_INTERVAL,
+        "agent_schedules": schedules,
+        "special_schedules": {
+            "daily_digest": {"last_run": float(digest_ts) if digest_ts else None},
+            "pattern_detection": {"last_run": float(pattern_ts) if pattern_ts else None},
+            "alert_check": {"last_run": float(alert_ts) if alert_ts else None},
+        },
+    }
