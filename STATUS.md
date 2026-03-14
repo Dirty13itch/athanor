@@ -191,6 +191,9 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **Scheduler health endpoint fix** — `/v1/scheduler/health` was crashing with `ValueError: could not convert string to float: '2026-03-14'` due to date string in Redis key. Added safe float conversion.
 - **Proactive scheduling verified operational** — All 9 agents scheduling. 2 tasks running concurrently, 62 completed, 0 recent failures. Task types: EoBQ art generation, research, morning digest, media curation, disk analysis.
 - **Task failure audit** — 257 historical failures analyzed: 55 timeouts, 30 mid-stream LiteLLM errors, 24 rate limits, 18 auth errors (pre-fix), 15 circuit breaker. All pre-fix; zero failures since deployment.
+- **Home-agent schedule disabled** — Was creating 12 dead tasks/hour (HA token not provided). 26 accumulated `pending_approval` tasks cancelled.
+- **Task cancellation fix** — `cancel_task()` didn't accept `pending_approval` status, making those tasks impossible to clear. Fixed.
+- **All systems verified healthy** — 24 Prometheus rules active, 0 firing. FOUNDRY 4x 5070Ti + 4090, WORKSHOP 5090 + 5060Ti all online. Coder vLLM stable. VAULT disk at 85% HDD / 75% NVMe.
 
 ### Next Actions
 1. Home agent testing (blocked on HA token — needs Shaun)
