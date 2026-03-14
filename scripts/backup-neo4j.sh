@@ -11,7 +11,7 @@ set -euo pipefail
 NEO4J_URL="${ATHANOR_NEO4J_URL:-${NEO4J_URL:-http://localhost:7474}}"
 NEO4J_USER="${ATHANOR_NEO4J_USER:-${NEO4J_USER:-neo4j}}"
 NEO4J_PASS="${ATHANOR_NEO4J_PASSWORD:-${NEO4J_PASSWORD:-}}"
-BACKUP_DIR="/mnt/user/backups/athanor/neo4j"
+BACKUP_DIR="/mnt/user/data/backups/neo4j"
 RETENTION_DAYS=7
 DATE=$(date +%Y-%m-%d)
 
