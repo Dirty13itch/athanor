@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import re
 import time
 import uuid
@@ -14,6 +15,8 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from .agents import get_agent, list_agents
 from .config import settings
 from .input_guard import sanitize_input, check_output, REFUSAL_RESPONSE, OUTPUT_REDACTED_RESPONSE
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -373,7 +376,8 @@ async def services_status():
                     "status": "up" if resp.status_code < 400 else "error",
                     "latency_ms": int(resp.elapsed.total_seconds() * 1000),
                 }
-        except Exception:
+        except Exception as e:
+            logger.debug("Health check failed for %s: %s", svc.name, e)
             return {"name": svc.name, "node": svc.node, "status": "down", "latency_ms": None}
 
     results = await asyncio.gather(*[check(svc) for svc in registry.service_checks])
@@ -1765,8 +1769,8 @@ async def chat_completions(request: Request):
 
         try:
             context_str = await enrich_context(model_name, user_input) or ""
-        except Exception:
-            pass  # Never let context injection block a request
+        except Exception as e:
+            logger.debug("Context injection failed: %s", e)
 
     if context_str:
         if routing.tier_config.use_agent:
@@ -1797,8 +1801,8 @@ async def chat_completions(request: Request):
                 if cached:
                     cached_response, _score = cached
                     cache_hit = True
-            except Exception:
-                pass  # Cache failures never block requests
+            except Exception as e:
+                logger.debug("Semantic cache lookup failed: %s", e)
 
         start_ms = int(time.time() * 1000)
 
@@ -1871,8 +1875,8 @@ async def chat_completions(request: Request):
                 asyncio.create_task(cache.store(
                     user_input, content, routing.tier_config.model, tokens_est,
                 ))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Semantic cache store failed: %s", e)
 
         duration_ms = int(time.time() * 1000) - start_ms
 
@@ -1972,8 +1976,8 @@ async def chat_completions(request: Request):
                 error_message=f"{type(exc).__name__}: {str(exc)[:500]}",
                 context={"agent": model_name, "user_input": user_input[:200]},
             ))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Diagnosis record_failure failed: %s", e)
         raise
 
     duration_ms = int(time.time() * 1000) - start_ms
@@ -2226,7 +2230,8 @@ async def learning_metrics():
             "collection": stats.get("collection", "llm_cache"),
             "similarity_threshold": stats.get("similarity_threshold", 0.93),
         }
-    except Exception:
+    except Exception as e:
+        logger.debug("Learning metrics cache stats failed: %s", e)
         metrics["cache"] = None
 
     # 2. Circuit breaker health
@@ -2241,7 +2246,8 @@ async def learning_metrics():
             "closed": sum(1 for s in states.values() if s.get("state") == "closed"),
             "total_failures": sum(s.get("failures", 0) for s in states.values()),
         }
-    except Exception:
+    except Exception as e:
+        logger.debug("Learning metrics circuits failed: %s", e)
         metrics["circuits"] = None
 
     # 3. Preference learning convergence
@@ -2263,7 +2269,8 @@ async def learning_metrics():
             }
         else:
             metrics["preferences"] = {"model_task_pairs": 0, "total_samples": 0}
-    except Exception:
+    except Exception as e:
+        logger.debug("Learning metrics preferences failed: %s", e)
         metrics["preferences"] = None
 
     # 4. Trust scores
@@ -2280,7 +2287,8 @@ async def learning_metrics():
             }
         else:
             metrics["trust"] = {"agents_tracked": 0}
-    except Exception:
+    except Exception as e:
+        logger.debug("Learning metrics trust failed: %s", e)
         metrics["trust"] = None
 
     # 5. Diagnosis patterns
@@ -2295,7 +2303,8 @@ async def learning_metrics():
             "health_score": report.health_score,
             "trend": report.trend,
         }
-    except Exception:
+    except Exception as e:
+        logger.debug("Learning metrics diagnosis failed: %s", e)
         metrics["diagnosis"] = None
 
     # 6. Consolidation (memory hygiene)
@@ -2307,7 +2316,8 @@ async def learning_metrics():
             "collections": len(cstats) if isinstance(cstats, dict) else 0,
             "total_points": total_points,
         }
-    except Exception:
+    except Exception as e:
+        logger.debug("Learning metrics memory failed: %s", e)
         metrics["memory"] = None
 
     # 7. Task execution stats
@@ -2323,7 +2333,8 @@ async def learning_metrics():
                 max(tstats.get("total", 1), 1), 3
             ),
         }
-    except Exception:
+    except Exception as e:
+        logger.debug("Learning metrics tasks failed: %s", e)
         metrics["tasks"] = None
 
     return {
@@ -2407,8 +2418,8 @@ async def agent_metrics():
                 )
                 if resp.status_code == 200:
                     activity_by_agent[aid] = resp.json().get("result", {}).get("count", 0)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Agent status activity fetch failed: %s", e)
 
     # Get trust scores
     trust_by_agent = {}
@@ -2417,8 +2428,8 @@ async def agent_metrics():
         trust = await compute_trust_scores()
         if trust:
             trust_by_agent = {k: v.get("trust_score", 0) for k, v in trust.items()}
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Agent status trust fetch failed: %s", e)
 
     # Get task stats per agent
     task_by_agent = {}
@@ -2426,8 +2437,8 @@ async def agent_metrics():
         from .tasks import get_stats
         tstats = await get_stats()
         task_by_agent = tstats.get("by_agent", {})
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Agent status task stats failed: %s", e)
 
     result = []
     for info in agents_info:

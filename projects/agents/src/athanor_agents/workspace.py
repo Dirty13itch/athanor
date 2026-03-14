@@ -689,7 +689,8 @@ async def _check_reaction_cooldown(item_id: str, agent_name: str) -> bool:
         key = f"{WORKSPACE_REACTIONS_KEY}:{agent_name}:{item_id}"
         exists = await r.exists(key)
         return exists > 0
-    except Exception:
+    except Exception as e:
+        logger.debug("Reaction cooldown check failed: %s", e)
         return False
 
 
@@ -699,8 +700,8 @@ async def _set_reaction_cooldown(item_id: str, agent_name: str) -> None:
         r = await get_redis()
         key = f"{WORKSPACE_REACTIONS_KEY}:{agent_name}:{item_id}"
         await r.setex(key, REACTION_COOLDOWN, "1")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Reaction cooldown set failed: %s", e)
 
 
 async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:

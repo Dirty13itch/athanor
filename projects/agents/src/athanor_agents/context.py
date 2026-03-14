@@ -565,8 +565,8 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
             ]
             if sources:
                 graph_related = await expand_knowledge_graph(_async_client, sources, limit=3)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Graph expansion failed: %s", e)
 
     # Step 2c: Fetch CST state (Redis, fast)
     cst_line = ""
@@ -575,8 +575,8 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
         cst = await get_cst()
         if cst.cycle_count > 0:
             cst_line = cst.to_context_string()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("CST fetch failed: %s", e)
 
     # Step 2d: Fetch active goals + patterns (Redis, fast)
     goal_lines = []
@@ -584,31 +584,31 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
         from .goals import get_goals_for_agent
         goal_texts = await get_goals_for_agent(agent_name)
         goal_lines = [f"- {t}" for t in goal_texts]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Goals fetch failed: %s", e)
 
     pattern_lines = []
     try:
         from .patterns import get_agent_patterns
         agent_patterns = await get_agent_patterns(agent_name)
         pattern_lines = _format_patterns(agent_patterns)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Patterns fetch failed: %s", e)
 
     convention_lines = []
     try:
         from .conventions import get_agent_conventions
         convention_rules = await get_agent_conventions(agent_name)
         convention_lines = [f"- {rule}" for rule in convention_rules]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Conventions fetch failed: %s", e)
 
     skill_context = ""
     try:
         from .skill_learning import search_skills_for_context
         skill_context = await search_skills_for_context(agent_name, user_message, limit=3)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Skill search failed: %s", e)
 
     # Step 3: Format
     pref_lines = _format_preferences(prefs)
