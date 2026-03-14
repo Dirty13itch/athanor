@@ -558,8 +558,9 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Result:** Deployed on 6h schedule. Read access to /data/personal/ verified.
 
 ### 10.8 — Google Drive Integration
-- **Status:** 🚫 blocked (Shaun needs to run `~/.local/bin/rclone config` for OAuth)
+- **Status:** 🔲 Unblocked (rclone OAuth completed, Session 60f)
 - **Scope:** rclone sync from Google Drive to Node 1. Unlocks ~40% of personal data.
+- **Credentials:** rclone config at `~/.config/rclone/rclone.conf` on DEV, remote name `gdrive:`. 90 GiB total, 8 top-level folders (Ulrich Energy Auditing, Taxes, Invoices, etc.).
 
 ### 10.9 — File Content Indexer
 - **Status:** ✅ done
@@ -1139,6 +1140,6 @@ These require human action. Claude Code cannot do them.
 |------|--------|----------|
 | ~~NordVPN credentials~~ | ~~Done~~ | ~~6.5 (qBittorrent)~~ ✅ |
 | ~~Anthropic API key~~ | ~~Done~~ | ~~8.5 (Quality Cascade cloud escalation)~~ ✅ |
-| Google Drive rclone OAuth | Run `~/.local/bin/rclone config` | 10.8 (Personal Data ~40%) |
-| Node 2 EXPO | BIOS via JetKVM | Performance |
-| Samsung 990 PRO reseat | Physical at rack | Node 1 storage |
+| ~~Google Drive rclone OAuth~~ | ~~Done~~ | ~~10.8 (Personal Data ~40%)~~ ✅ |
+| Node 2 EXPO | BIOS via JetKVM | DDR5 5600 MT/s |
+| Node 1 Samsung 990 PRO | BIOS enable via IPMI | NVMe storage |
