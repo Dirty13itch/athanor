@@ -1,3 +1,8 @@
+---
+name: ComfyUI Deploy
+description: Deploy ComfyUI on Node 2 with Blackwell GPU compatibility.
+---
+
 # ComfyUI Deploy
 
 Deploy ComfyUI on Node 2, pinned to RTX 5090 (GPU 1).
