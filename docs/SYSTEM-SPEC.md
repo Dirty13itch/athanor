@@ -89,7 +89,7 @@ Full inventory in `docs/SERVICES.md`. Summary:
 | Model | Size | Location | GPU(s) | Purpose | LiteLLM Alias |
 |-------|------|----------|--------|---------|---------------|
 | Qwen3.5-27B-FP8 | ~15.6 GB/GPU | Node 1:8000 | GPUs 0,1,3,4 (TP=4) | Reasoning, agents, coding alias | `reasoning`, `coding` |
-| Qwen3.5-35B-A3B-AWQ-4bit | ~16 GB | Node 1:8006 | GPU 2 (4090) | Dedicated coding and tool-use lane | `coder` |
+| Qwen3.5-35B-A3B-AWQ-4bit | ~22 GB | Node 1:8006 | GPU 2 (4090) | Dedicated coding and tool-use lane | `coder` |
 | Qwen3.5-35B-A3B-AWQ | ~22 GB | Node 2:8000 | GPU 0 (5090) | Worker, utility, fast, creative local alias lane | `worker`, `fast`, `creative`, `utility`, `uncensored` |
 | Qwen3-Embedding-0.6B | 1.2 GB | DEV:8001 | GPU 0 (5060 Ti) | Embeddings | `embedding` |
 | Qwen3-Reranker-0.6B | — | DEV:8003 | GPU 0 (5060 Ti) | Reranking | `reranker` |
