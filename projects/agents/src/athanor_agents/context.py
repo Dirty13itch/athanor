@@ -14,6 +14,7 @@ Performance target: <300ms total enrichment time (1 embedding + 3 parallel queri
 import asyncio
 import logging
 import time
+from collections import deque
 
 import httpx
 
@@ -29,6 +30,10 @@ _EMBEDDING_KEY = settings.llm_api_key
 MAX_CONTEXT_CHARS = 6000
 QUERY_TIMEOUT = 3.0
 SCORE_THRESHOLD = 0.25  # minimum relevance for inclusion
+
+# Latency tracking — ring buffer of recent enrichment timings
+_LATENCY_BUFFER_SIZE = 500
+_latency_records: deque[dict] = deque(maxlen=_LATENCY_BUFFER_SIZE)
 
 # Time-decay constants for preference weighting (ADR-021 Phase 1)
 # Full weight for 7 days, linear decay to 25% at 90 days
@@ -622,6 +627,13 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines) + len(personal_data_lines) + len(conversation_lines) // 2
     skill_count = skill_context.count("###")
 
+    _latency_records.append({
+        "agent": agent_name,
+        "elapsed_ms": elapsed_ms,
+        "hits": total_hits,
+        "ts": time.time(),
+    })
+
     if total_hits > 0 or goal_lines or pattern_lines or convention_lines or skill_count:
         logger.info(
             "Context enrichment for %s: %d prefs, %d activity, %d knowledge (+%d graph), %d personal, %d convos, %d goals, %d patterns, %d conventions, %d skills (%dms)",
@@ -644,3 +656,38 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
         goal_lines, pattern_lines, convention_lines, personal_data_lines,
         conversation_lines, cst_line, graph_related_lines, skill_context,
     )
+
+
+def get_latency_stats() -> dict:
+    """Return context enrichment latency statistics from the ring buffer."""
+    if not _latency_records:
+        return {"count": 0}
+
+    latencies = [r["elapsed_ms"] for r in _latency_records]
+    latencies_sorted = sorted(latencies)
+    n = len(latencies_sorted)
+
+    per_agent: dict[str, list[int]] = {}
+    for r in _latency_records:
+        per_agent.setdefault(r["agent"], []).append(r["elapsed_ms"])
+
+    agent_stats = {}
+    for agent, vals in per_agent.items():
+        sv = sorted(vals)
+        agent_stats[agent] = {
+            "count": len(sv),
+            "avg_ms": round(sum(sv) / len(sv), 1),
+            "p50_ms": sv[len(sv) // 2],
+            "p95_ms": sv[int(len(sv) * 0.95)],
+            "max_ms": sv[-1],
+        }
+
+    return {
+        "count": n,
+        "avg_ms": round(sum(latencies) / n, 1),
+        "p50_ms": latencies_sorted[n // 2],
+        "p95_ms": latencies_sorted[int(n * 0.95)],
+        "p99_ms": latencies_sorted[int(n * 0.99)],
+        "max_ms": latencies_sorted[-1],
+        "by_agent": agent_stats,
+    }

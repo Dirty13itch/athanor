@@ -2507,6 +2507,14 @@ async def inference_metrics():
     return metrics
 
 
+@app.get("/v1/metrics/context")
+async def context_metrics():
+    """Context enrichment latency stats from in-memory ring buffer."""
+    from .context import get_latency_stats
+
+    return get_latency_stats()
+
+
 def main():
     import uvicorn
 
