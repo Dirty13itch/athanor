@@ -110,7 +110,7 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 | Endpoint | Model/Service | Status |
 |----------|---------------|--------|
 | foundry:8000 | Qwen3.5-27B-FP8 (TP=4) | âœ… Healthy |
-| foundry:8006 | Qwen3.5-35B-A3B-AWQ-4bit | OK |
+| foundry:8006 | Qwen3.5-35B-A3B-AWQ-4bit (qwen35-coder) | ✅ Healthy |
 | foundry:9000 | Agent Server (9 agents) | âœ… Healthy |
 | workshop:8000 | Qwen3.5-35B-A3B-AWQ-4bit | âœ… Healthy |
 | vault:4000 | LiteLLM (local + cloud routed model lanes) | âœ… Healthy |
@@ -138,6 +138,26 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - 8.4 Coding model upgrade: research complete, Qwen3.5-35B-A3B-AWQ recommended for 4090 slot
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
+
+## Session 57 (2026-03-14) Summary — Master Plan Execution
+
+### Completed This Session
+- **Coder model upgrade deployed** — Qwen3.5-35B-A3B-AWQ-4bit live on FOUNDRY:8006 (GPU 2, 4090). Fixed `--quantization awq` crash: model uses `compressed-tensors` format, must omit flag for auto-detect. LiteLLM `coder` alias updated to `openai/qwen35-coder`, verified end-to-end.
+- **API keys removed from git** — Sonarr/Radarr/Tautulli keys moved to `.env` file pattern, compose uses `env_file:`. `.env.example` created.
+- **Docker compose hardening** — Healthchecks, json-file log rotation (50m/3 files), mem_limit, and image pinning added to all 6 compose files.
+- **Agent server APIs complete** — Preference learning router, research jobs CRUD, subscriptions API all verified wired. Added missing GET `/v1/research/jobs/{id}`. `write_file` added to agent tools.
+- **Monitoring alerts** — 9 critical service probe alerts added to ansible alert rules template.
+- **Documentation convergence** — ADR statuses, SERVICES.md, SYSTEM-SPEC, RECOVERY.md, AGENTS.md, BLOCKED.md, BUILD-MANIFEST, script inventory, stale cleanup all done.
+- **Ops** — `health-check-all.sh` created, bare-except handlers logged, vLLM compressed-tensors gotcha documented.
+
+### Next Actions
+1. Deploy agent server changes to FOUNDRY (new GET endpoint, write_file tool)
+2. n8n legacy label cleanup
+3. Grafana backup alert deploy
+4. Promptfoo eval refresh with new coder model
+5. Research agenda batches (delegated overnight via deep_research)
+
+---
 
 ## Session 56 (2026-03-14) Summary â€” Blocker Resolution & Infrastructure Fixes
 
