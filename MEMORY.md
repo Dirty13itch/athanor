@@ -4,7 +4,24 @@
 
 ---
 
-## Last Session: 2026-03-11 (Session 56: Backup alerting drift reconciliation)
+## Last Session: 2026-03-14 (Post-Codex Audit)
+
+### What happened
+- Full repo audit after Codex (OpenAI) contributed 32 commits (84K insertions, 631 files).
+- Codex work assessed as structurally sound: 0 TS errors, 67/67 tests, 14/14 contract tests.
+- Gitignored 19K lines of generated census/audit JSON that Codex committed (`docs/atlas/inventory/completion/`, `tests/ui-audit/`).
+- Fixed atlas API inventory — added 29 missing routes (governor, model governance, subscriptions, workforce), validator now passes clean.
+- Updated STATUS.md with Codex era summary.
+- Documented Codex architectural patterns: `proxyAgentJson()` thin proxies, `isDashboardFixtureMode()`, env contract alignment.
+- Cleaned up dead weight: removed `services/` legacy snapshots, archived Codex planning doc.
+
+### Current blockers
+- Same as Session 56 — live deploy and promptfoo blocked in this environment.
+- NordVPN credentials, Anthropic API key, Google Drive OAuth still Shaun-gated.
+
+---
+
+## Session 56: 2026-03-11 (Backup alerting drift reconciliation)
 
 ### What happened
 - Reconciled backup freshness monitoring drift across scripts, Ansible, and the tactical backlog.

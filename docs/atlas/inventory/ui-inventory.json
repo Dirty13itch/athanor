@@ -189,7 +189,7 @@
     "status_tag": "live",
     "repo_source": ["projects/dashboard/src/app/agents/page.tsx", "projects/dashboard/src/features/agents/agent-console.tsx"],
     "runtime_source": ["Dashboard /agents route"],
-    "depends_on": ["ui.system.url-state", "ui.system.local-state", "api.family.dashboard.chat", "api.family.dashboard.models-agents", "api.family.dashboard.subscriptions", "api.family.dashboard.routing-context"],
+    "depends_on": ["ui.system.url-state", "ui.system.local-state", "api.family.dashboard.chat", "api.family.dashboard.models-agents", "api.family.dashboard.subscriptions", "api.family.dashboard.routing-context", "api.family.dashboard.governor", "api.family.dashboard.model-governance"],
     "backed_by": ["AgentConsole", "AgentsSnapshot"],
     "entrypoints": ["/agents"],
     "notes": ["URL state: agent, thread. Local state: agent threads and preferences. Includes crew, subscription, and routing posture panels."]

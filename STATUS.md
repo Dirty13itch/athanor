@@ -1,6 +1,6 @@
 ﻿# Athanor System Status
 
-*Ground-truth assessment as of 2026-03-08. Auto-generated from live cluster inspection.*
+*Last updated: 2026-03-13 (Claude Code post-Codex audit session)*
 
 ---
 
@@ -138,6 +138,34 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - 8.4 Dedicated Coding Model (deferred)
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
+
+## Codex Era (2026-03-09 to 2026-03-13) — 32 commits by "Shaunzy"
+
+Shaun used OpenAI Codex to continue development. 32 commits, 84,899 insertions, 18,753 deletions across 631 files.
+
+### What Codex Built
+- **Dashboard overhaul** — operator console convergence, sub-page consoles, visual system (cockpit palette, theme sampler, nav attention rail)
+- **Platform alignment** — unified `ATHANOR_*` env vars across dashboard, EoQ, Ulrich, Ansible templates
+- **Security hardening** — removed tracked credential fallbacks
+- **Test infrastructure** — repo contract tests (14 tests), UI audit loop, atlas validation system (7 atlas docs, 94 inventory records)
+- **Governor system** — operator presence, tier management, tool permissions (10 new API routes)
+- **Model governance** — promotion/retirement pipelines, proving ground (10 new API routes)
+- **Fixture mode** — `isDashboardFixtureMode()` for offline development with env toggle
+
+### Post-Codex Audit Findings (Claude Code session)
+- TypeScript: 0 errors (both dashboard and EoQ)
+- Unit tests: 67/67 pass (vitest)
+- Contract tests: 14/14 pass
+- Atlas validator: was failing (29 missing routes) — **fixed this session**
+- Generated JSON (19K lines) was tracked in git — **gitignored this session**
+- STATUS.md and MEMORY.md were stale — **updated this session**
+
+### API Surface
+- 101 API route handlers across 25 pages
+- All routes are thin proxies via `proxyAgentJson()` — no logic duplication
+- Governor (10), model governance (10), subscriptions (8) are forward-looking but structurally sound
+
+---
 
 ## Session 55 (2026-03-09) Summary â€” COO Audit & Operational Excellence
 

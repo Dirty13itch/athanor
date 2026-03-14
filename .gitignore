@@ -55,6 +55,10 @@ logs/endpoint-tests/
 /reports/
 /projects/reports/
 
+# Generated audit/census data (regenerate with scripts/validate-atlas.py)
+/docs/atlas/inventory/completion/
+/tests/ui-audit/
+
 # Claude Code
 .claude/settings.local.json
 .claude/CLAUDE.local.md
