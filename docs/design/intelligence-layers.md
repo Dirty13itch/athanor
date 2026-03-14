@@ -2,7 +2,7 @@
 
 *The self-improving loop. The furnace feeding itself. Extends ADR-008.*
 
-Last updated: 2026-02-26
+Last updated: 2026-03-14
 
 ---
 
@@ -63,20 +63,11 @@ Simple, debuggable, working.
    - Opt-out: `skip_context: true` in request body
    - Diagnostic: `POST /v1/context/preview` to inspect injection without invoking agent
 
-### What's Missing for Full Layer 2
+### Layer 2 Completion Status
 
-**Conversation history:** The `conversations` collection exists in Qdrant but isn't populated.
+**Conversation history:** Deployed. The `conversations` collection is populated by `log_conversation()` in `activity.py`, wired since session 40. Conversations are embedded and stored after each agent interaction with agent, timestamp, and conversation content metadata.
 
-Implementation needed:
-- After each agent interaction, embed the conversation and store
-- Metadata: agent, timestamp, topic tags, user satisfaction signal (if provided)
-- Enables "here's what Shaun previously asked about X" context injection
-
-**Proactive indexing:** Knowledge indexing is currently manual (`python3 scripts/index-knowledge.py`).
-
-Implementation needed:
-- Cron job on DEV or Node 1 at 03:00 (after backups)
-- Incremental updates (only re-embed changed documents)
+**Proactive indexing:** Knowledge indexing is manual (`python3 scripts/index-knowledge.py`). A cron-based incremental re-index (only changed docs) would automate this. Low priority — manual runs after doc changes are sufficient for current scale (172 docs, ~3 min full re-index).
 
 ### Layer 2 Context Injection (deployed)
 

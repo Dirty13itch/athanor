@@ -431,10 +431,10 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Verified:** 10-step coding task ran full loop (4 write-run cycles). Files persisted to disk. Timed out on complex mocks (model quality, not infra) — validates need for 8.5 cloud cascade.
 - **Files:** `tools/execution.py`, `tools/__init__.py`, `agents/coding.py`, `Dockerfile`, `docker-compose.yml`, Ansible role
 
-### 8.4 — Dedicated Coding Model (Qwen3-Coder-30B-A3B)
-- **Status:** 🔲 deferred
-- **Rationale:** Current Qwen3-32B-AWQ (SWE-bench 70.7%) outperforms Qwen3-Coder-30B-A3B (50.3%). The coding agent's test failures were quality issues, not speed issues. A faster but lower-quality model wouldn't help. Node 2's 5090 now runs Qwen3.5-27B-AWQ (~21 GB / 32 GB). Revisit when: (a) AWQ quant available for Coder-Next 80B/3B (SWE-bench 70.6%), or (b) a clearly superior coding model emerges.
-- **Research:** `docs/research/2026-02-16-tool-calling-coding-models.md`
+### 8.4 — Dedicated Coding Model Upgrade
+- **Status:** ✅ done (Session 57, 2026-03-14)
+- **Result:** Upgraded FOUNDRY coder slot from Qwen3-Coder-30B-A3B (SWE-bench 50.3%) to Qwen3.5-35B-A3B-AWQ-4bit (69.2%). Model uses `compressed-tensors` serialization — must NOT pass `--quantization awq`. LiteLLM `coder` alias updated to `openai/qwen35-coder`. All cross-repo references updated atomically.
+- **Research:** `docs/research/2026-03-13-coding-models-march-update.md`
 
 ### 8.5 — Quality Gating & Cascade
 - **Status:** 🚫 Blocked on Shaun (Anthropic API key for cloud escalation)
