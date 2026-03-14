@@ -358,23 +358,25 @@ async def media_status():
 
 @app.get("/v1/status/services")
 async def services_status():
-    from .tools.system import SERVICES
+    from .services import registry
 
-    async def check(name: str, info: dict) -> dict:
+    async def check(svc) -> dict:
         try:
-            headers = info.get("headers", {})
+            target = svc.health_url or svc.url()
             async with httpx.AsyncClient() as client:
-                resp = await client.get(info["url"], timeout=5, follow_redirects=True, headers=headers)
+                resp = await client.get(
+                    target, timeout=5, follow_redirects=True, headers=dict(svc.headers)
+                )
                 return {
-                    "name": name,
-                    "node": info["node"],
+                    "name": svc.name,
+                    "node": svc.node,
                     "status": "up" if resp.status_code < 400 else "error",
                     "latency_ms": int(resp.elapsed.total_seconds() * 1000),
                 }
         except Exception:
-            return {"name": name, "node": info["node"], "status": "down", "latency_ms": None}
+            return {"name": svc.name, "node": svc.node, "status": "down", "latency_ms": None}
 
-    results = await asyncio.gather(*[check(n, i) for n, i in SERVICES.items()])
+    results = await asyncio.gather(*[check(svc) for svc in registry.service_checks])
     return {"services": list(results)}
 
 

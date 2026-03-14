@@ -1,6 +1,6 @@
 ﻿# Athanor System Status
 
-*Ground-truth assessment as of 2026-03-08. Auto-generated from live cluster inspection.*
+*Ground-truth assessment as of 2026-03-14. Auto-generated from live cluster inspection.*
 
 ---
 
@@ -95,9 +95,9 @@ Other containers: `athanor-agents` (9000), `athanor-gpu-orchestrator`, `alloy`, 
 
 Other: `athanor-dashboard` (3001), `athanor-eoq` (3002), `athanor-ws-pty-bridge` (3100), `open-webui` (3000), `alloy`, `dcgm-exporter`, `node-exporter`
 
-### VAULT (.203) â€” 42 containers
+### VAULT (.203) â€” 44 containers
 
-Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter`, `n8n` (5678), `gitea` (3033), `miniflux` (8070), `redis`, `vault-open-webui` (3090), `langfuse-web` (3030) + 5 langfuse services, `neo4j` (7474/7687), `qdrant` (6333), `postgres` (5432), `stash` (9999), `plex`, `homeassistant`, media stack (sonarr/radarr/prowlarr/sabnzbd/tautulli/tdarr), `spiderfoot` (5001), `ntfy` (8880), `meilisearch` (7700), `field-inspect-app` (3080), monitoring (loki, alloy, cadvisor, node-exporter)
+Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter`, `n8n` (5678), `gitea` (3033), `miniflux` (8070), `redis`, `vault-open-webui` (3090), `langfuse-web` (3030) + 5 langfuse services, `neo4j` (7474/7687), `qdrant` (6333), `postgres` (5432), `stash` (9999), `plex`, `homeassistant`, media stack (sonarr/radarr/prowlarr/sabnzbd/tautulli/tdarr), `spiderfoot` (5001), `ntfy` (8880), `meilisearch` (7700), `field-inspect-app` (3080/3081) + `field-inspect-s3` (9000-9001), `ulrich-energy-website` (8088), `blackbox-exporter` (9115), monitoring (loki, alloy, cadvisor, node-exporter)
 
 ### DEV (.189) â€” 2 containers
 
@@ -135,9 +135,31 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - 6.2 InfiniBand (backlog)
 - 6.4 Mobile access (backlog)
 - 6.7 Mining enclosure (physical)
-- 8.4 Dedicated Coding Model (deferred)
+- 8.4 Coding model upgrade: research complete, Qwen3.5-35B-A3B-AWQ recommended for 4090 slot
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
+
+## Session 56 (2026-03-14) Summary â€” Blocker Resolution & Infrastructure Fixes
+
+### Completed This Session
+- **VAULT SSH fixed** â€” DEV's ed25519 key added to VAULT authorized_keys (both runtime + persistent `/boot/config/ssh/`). `ssh root@192.168.1.203` and `vault-ssh.py` both working. Docker MCP for VAULT now functional (44 containers visible).
+- **GitHub auth configured** â€” `gh auth login` with PAT (Dirty13itch account). PAT also added to `~/.claude/mcp-vars.sh` for GitHub MCP server.
+- **n8n workflows activated** â€” 4/5 workflows now active via MCP API: Cluster Health Check (5min), Daily Health Digest (8AM), Model Performance Monitor (hourly), Intelligence Signal Pipeline. 5th (duplicate pipeline) left inactive.
+- **system_status 500 fixed** â€” `server.py` endpoint `/v1/status/services` imported nonexistent `SERVICES` dict from `tools/system.py`. Refactored to use `services.registry.service_checks` (ServiceRegistry pattern). Deployed to FOUNDRY, rebuilt, verified: **20/25 services UP**.
+- **A2A protocol research** â€” Google A2A v1.0.0 evaluated. Verdict: don't implement, hub-and-spoke wins below 16 agents. Documented in `docs/research/2026-03-13-a2a-protocol-evaluation.md`.
+- **Coding model research** â€” Comprehensive benchmark analysis for 4090/5090/TP=4 slots. Recommendation: upgrade 4090 coder to Qwen3.5-35B-A3B-AWQ (+18.9 SWE-bench). Documented in `docs/research/2026-03-13-coding-models-march-update.md`.
+
+### Service Status (20/25 UP)
+UP: LiteLLM, Coordinator, Coder, Worker, Embedding, Reranker, Agents, Qdrant, ComfyUI, Dashboard, Prometheus, Grafana, SABnzbd, Stash, Neo4j, Open WebUI (x2), GPU Orchestrator, LangFuse, EoBQ
+DOWN: Sonarr, Radarr, Tautulli, Plex (need API keys), Home Assistant (needs token)
+
+### Next Actions
+1. Deploy Qwen3.5-35B-A3B-AWQ to 4090 coder slot (upgrade from Qwen3-Coder-30B)
+2. Clean up n8n legacy labels (Daily Digest + Performance Monitor reference “Hydra”/”TabbyAPI”)
+3. 21.4 Grafana backup alert deploy
+4. Configure Sonarr/Radarr/Tautulli/Plex API keys for full service monitoring
+
+---
 
 ## Session 55 (2026-03-09) Summary â€” COO Audit & Operational Excellence
 
@@ -398,5 +420,5 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-12 13:59 CDT
+*Last updated: 2026-03-14 00:35 CDT
 
