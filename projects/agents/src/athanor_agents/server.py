@@ -1641,6 +1641,17 @@ async def list_research_jobs(status: str = ""):
     return await list_jobs(status=status)
 
 
+@app.get("/v1/research/jobs/{job_id}")
+async def get_research_job(job_id: str):
+    """Get a specific research job by ID."""
+    from .research_jobs import get_job
+
+    job = await get_job(job_id)
+    if not job:
+        return JSONResponse(status_code=404, content={"error": f"Job {job_id} not found"})
+    return job.to_dict()
+
+
 @app.post("/v1/research/jobs/{job_id}/execute")
 async def execute_research_job(job_id: str):
     """Execute a research job immediately."""

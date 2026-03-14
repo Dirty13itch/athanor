@@ -109,8 +109,6 @@ services:
       - qwen3_xml
       - --kv-cache-dtype
       - auto
-      - --quantization
-      - awq
       - --enable-prefix-caching
       - --safetensors-load-strategy
       - eager

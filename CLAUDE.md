@@ -107,7 +107,7 @@ See `docs/SYSTEM-SPEC.md` for full operational state. `docs/BUILD-MANIFEST.md` f
 
 See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agents). Critical cross-cutting ones:
 
-- **Blackwell (sm_120):** NGC-based containers required. AWQ explicit (`--quantization awq`). `CUDA_DEVICE_ORDER=PCI_BUS_ID`.
+- **Blackwell (sm_120):** NGC-based containers required. `CUDA_DEVICE_ORDER=PCI_BUS_ID`. AWQ: check model's `config.json` — if `quant_method: "compressed-tensors"`, do NOT pass `--quantization awq`; let vLLM auto-detect.
 - **VAULT SSH:** Native hangs. Use `python3 scripts/vault-ssh.py`.
 - **NFS stale handles:** After VAULT reboots: `sudo umount -f /mnt/vault/models && sudo mount -a`.
 - **EPYC POST:** ~3 min (224 GB ECC RAM check).

@@ -52,7 +52,8 @@ environment:
   - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
   - HF_HUB_OFFLINE=1
 command:
-  - --quantization awq                     # Must be explicit (Marlin crashes on Blackwell)
+  # --quantization: check model config.json quant_method. If "compressed-tensors", omit flag.
+  # If standard AWQ, use --quantization awq (Marlin crashes on Blackwell).
   - --gpu-memory-utilization 0.85          # 0.90 OOMs on 16GB GPUs during warmup
   - --max-num-seqs 64                      # 128+ OOMs on 16GB GPUs
 ```
@@ -60,7 +61,7 @@ command:
 ## Mixed GPU Tensor Parallel (Node 1)
 
 4x RTX 5070 Ti (sm_120) + RTX 4090 (sm_89) work together with:
-- `--quantization awq` (not Marlin — Marlin kernel crashes on mixed architectures)
+- AWQ quantization: check model's `config.json` for `quant_method`. If `compressed-tensors`, omit `--quantization` flag. If standard AWQ, use `--quantization awq` (Marlin crashes on mixed architectures).
 - `CUDA_DEVICE_ORDER=PCI_BUS_ID`
 - `--tensor-parallel-size 4` (uses GPUs 0,1,3,4, the 4x 5070 Ti)
 
