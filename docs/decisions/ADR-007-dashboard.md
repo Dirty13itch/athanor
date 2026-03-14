@@ -1,7 +1,7 @@
 # ADR-007: Dashboard + Unified Interface
 
 **Date:** 2026-02-15
-**Status:** Proposed
+**Status:** Accepted
 **Research:** [docs/research/2026-02-15-dashboard.md](../research/2026-02-15-dashboard.md)
 **Depends on:** ADR-004 (Node Roles), ADR-005 (Inference Engine)
 

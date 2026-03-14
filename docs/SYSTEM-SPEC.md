@@ -72,7 +72,7 @@ scripts/index-knowledge.py (DEV cron or manual)
   → Scans docs/ directory (81 files)
   → Chunks into segments
   → Embeds via LiteLLM → Qwen3-Embedding-0.6B (DEV:8001)
-  → Upserts to Qdrant (Node 1:6333) — 2547 vectors
+  → Upserts to Qdrant (Node 1:6333) — 3076 chunks (knowledge collection)
 ```
 
 ### Service Inventory
@@ -81,7 +81,7 @@ Full inventory in `docs/SERVICES.md`. Summary:
 
 - **Node 1 (11 containers):** vLLM Qwen3.5-27B-FP8 (TP=4), vLLM Qwen3-Coder-30B-A3B-Instruct-AWQ, Agent Server, Qdrant, GPU Orchestrator, Speaches, wyoming-whisper, node_exporter, dcgm-exporter
 - **Node 2 (9 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Open WebUI, Alloy, node_exporter, dcgm-exporter
-- **VAULT (42 containers):** LiteLLM, LangFuse (6 services), Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, n8n, Gitea, Miniflux, ntfy, Meilisearch, and more
+- **VAULT (44 containers):** LiteLLM, LangFuse (6 services), Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, n8n, Gitea, Miniflux, ntfy, Meilisearch, field-inspect-app, ulrich-energy-website, blackbox-exporter, backup-exporter, and more
 - **DEV (2 services):** Embedding model (:8001), Reranker (:8003)
 
 ### Model Inventory

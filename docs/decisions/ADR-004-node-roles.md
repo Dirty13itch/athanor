@@ -1,7 +1,7 @@
 # ADR-004: Node Roles + Hardware Allocation
 
 **Date:** 2026-02-15
-**Status:** Proposed
+**Status:** Accepted
 **Research:** [docs/research/2026-02-15-node-roles.md](../research/2026-02-15-node-roles.md)
 **Depends on:** ADR-001 (Base Platform), ADR-002 (Network), ADR-003 (Storage)
 

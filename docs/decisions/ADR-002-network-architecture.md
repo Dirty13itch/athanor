@@ -1,7 +1,7 @@
 # ADR-002: Network Architecture
 
 **Date:** 2026-02-15
-**Status:** Proposed
+**Status:** Accepted
 **Research:** [docs/research/2026-02-15-network-architecture.md](../research/2026-02-15-network-architecture.md)
 **Depends on:** ADR-001 (Base Platform)
 

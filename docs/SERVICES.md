@@ -95,6 +95,9 @@ Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-
 | Spiderfoot | 5001 | OSINT tool |
 | ntfy | 8880 | Push notification server |
 | Field Inspect App | 3080 | Field inspection PWA (dedicated Postgres :5433, MinIO :9000-9001) |
+| Ulrich Energy Website | 8088 | Ulrich Energy business site |
+| backup-exporter | 9199 | Prometheus exporter for backup job status |
+| blackbox-exporter | 9115 | Prometheus blackbox exporter for endpoint probing |
 
 ## DEV (192.168.1.189)
 

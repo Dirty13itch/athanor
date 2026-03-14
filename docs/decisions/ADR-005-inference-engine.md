@@ -1,7 +1,7 @@
 # ADR-005: AI Inference Engine
 
 **Date:** 2026-02-15
-**Status:** Proposed
+**Status:** Accepted
 **Research:** [docs/research/2026-02-15-inference-engine.md](../research/2026-02-15-inference-engine.md)
 **Depends on:** ADR-004 (Node Roles + Hardware Allocation)
 

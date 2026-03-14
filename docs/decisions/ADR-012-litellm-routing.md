@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted** — Not yet deployed.
+**Accepted** — Deployed on VAULT:4000 (Session 8, 2026-02-24). Config path: `/mnt/user/appdata/litellm/config.yaml`.
 
 ## Context
 
