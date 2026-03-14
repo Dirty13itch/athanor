@@ -18,6 +18,7 @@
 #   ansible-playbook playbooks/vault.yml --tags loki        # Loki log aggregation
 #   ansible-playbook playbooks/vault.yml --tags cadvisor    # Container metrics
 #   ansible-playbook playbooks/vault.yml --tags alloy       # Grafana Alloy log shipper
+#   ansible-playbook playbooks/vault.yml --tags vpn-torrent # qBittorrent + Gluetun VPN
 #   ansible-playbook playbooks/vault.yml --tags plex        # Single service
 #   ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx  # First Plex deploy
 #
@@ -64,3 +65,5 @@
       tags: [cadvisor]
     - role: alloy
       tags: [alloy]
+    - role: vault-vpn-torrent
+      tags: [vpn-torrent]
