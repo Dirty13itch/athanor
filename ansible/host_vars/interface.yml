@@ -2,7 +2,7 @@
 # Node 2 (interface / Workshop) — host-specific vars
 
 vllm_model: /models/Qwen3.5-35B-A3B-AWQ-4bit
-vllm_quantization: awq  # Explicit AWQ required on Blackwell (sm_120)
+vllm_quantization: ""  # Model uses compressed-tensors quant — vLLM auto-detects from config.json
 vllm_tensor_parallel: 1
 vllm_port: 8000
 vllm_gpu_memory_util: "0.85"
