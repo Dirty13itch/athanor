@@ -138,6 +138,55 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
+## Session 60 (2026-03-14) Summary — Constitutional Hardening Sprint
+
+### Completed This Session
+- **Full System Audit v3** — Scored system 7.3/10. Found 9/16 constitutional constraints code-enforced, 4 CRITICAL policy-only (DATA-001 through DATA-004), 3 MEDIUM gaps (SEC-002, INFRA-003, AUTO-003). 7 defense layers documented.
+- **Phase 1: Quick wins** — Deleted stale compose files (`services/node1/agents/`, `services/node2/dashboard/`). Committed audit v3 artifacts.
+- **Phase 1d: IaC drift fixes** — `core.yml` gpu-memory-util 0.90→0.85 (matches live). node1.yml +gpu-orchestrator +voice roles. site.yml +ulrich-energy for Node 2.
+- **Phase 4a: DATA constraint enforcement** — New `constitution.py` module (343 LOC). `check_destructive_operation()` gates deletes with escalation for protected collections. Consolidation pipeline gated — personal_data/conversations require approval.
+- **Phase 4b: SEC-002 output redaction** — `check_output()` upgraded from warning-only to active redaction. Score ≥0.7: in-place `[REDACTED]`. Score ≥0.9 (private keys): full response replacement. Added `sk-proj-` and AWS AKIA patterns.
+- **Phase 4c: INFRA-003 peak hours** — `is_peak_hours()` in constitution.py (8≤hour<22). Scheduler checks before infrastructure tasks.
+- **Phase 4d: AUTO-003 forbidden files** — `validate_proposal()` now checks `forbidden_modifications` from CONSTITUTION.yaml. CONSTITUTION.yaml, .env*, secrets/, credentials/ all blocked. Verified live.
+- **Phase 4e: AUTO-002 audit log** — File logger at `/var/log/athanor/audit.log`. CONSTITUTION-specified format (timestamp, op, target, actor, result, constraint). Docker volume mount added. Logrotate 90-day.
+- **Phase 4f: Emergency endpoints** — `/v1/emergency/stop` (halt all autonomous ops), `/v1/emergency/resume` (with confirm token), `/v1/emergency/status`. Kill switch verified live: stops scheduler, opens all circuit breakers.
+- **Phase 4g: Redis-backed escalation** — Pending actions persisted to Redis (survive container restart). 24hr TTL auto-expire.
+- **Phase 4h: Watchdog expansion** — Added Redis, Postgres, LiteLLM, Qdrant, Neo4j to container-watchdog.sh.
+- **Phase 6a: Test suite** — 9 priority test files, 195 tests total, all passing:
+  - `test_constitution.py` (27): destructive ops, peak hours, forbidden files, audit logging
+  - `test_escalation.py` (19): tier evaluation, pending actions, thresholds
+  - `test_input_guard.py` (19): input sanitization, output redaction, homoglyphs
+  - `test_consolidation.py` (10): retention config, constitutional gate, purge function
+  - `test_self_improvement.py` (17): proposal lifecycle, forbidden files, syntax validation
+  - `test_diagnosis.py` (33): failure classification, severity, patterns, health scores, auto-remediation
+  - `test_router.py` (32): task classification, model routing, queue fallback, cost tracking
+  - `test_workspace.py` (19): salience computation, keyword relevance, self-reaction prevention
+  - `test_scheduler.py` (19): schedule definitions, timing constants, peak hours integration
+- **Deployed to FOUNDRY** — All Phase 4 changes live. 9 agents healthy. Emergency stop/resume verified. Audit log receiving entries. Forbidden file rejection confirmed. Output redaction confirmed.
+
+### Constitutional Enforcement (Post-Sprint)
+```
+CONSTRAINT          ENFORCED   MECHANISM
+DATA-001-004        YES        constitution.py + consolidation gate + escalation
+SEC-001             YES        Ansible SSH key-only
+SEC-002             YES        input_guard.py redaction (was warning-only)
+SEC-003-004         YES        Delegated + protect-paths hook
+INFRA-001-002       YES        Delegated + bash-firewall
+INFRA-003           YES        is_peak_hours() in scheduler
+AUTO-001            YES        protect-paths hook
+AUTO-002            YES        File logger + Qdrant (was Qdrant-only)
+AUTO-003            YES        validate_proposal forbidden check (was unchecked)
+GIT-001-002         YES        bash-firewall + .gitignore
+```
+**Result: 16/16 constraints code-enforced (was 9/16)**
+
+### Next Actions
+1. Phase 2: Observability hardening (blackbox probes for unmonitored services)
+2. Phase 3: IaC reconciliation (vLLM multi-instance Ansible)
+3. Phase 5: server.py decomposition (2533 LOC → modules)
+4. Deploy Phase 4 changes to production — DONE
+5. Home agent testing (blocked on HA token — needs Shaun)
+
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
 ### Completed This Session
@@ -543,5 +592,5 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-14 11:39 PDT
+*Last updated: 2026-03-14 13:29 PDT
 
