@@ -32,7 +32,7 @@ paths:
 
 ## Current FOUNDRY Deployment
 - Coordinator: Qwen3.5-27B-FP8 TP=4 on GPUs 0,1,3,4 (4x5070Ti) at foundry:8000 â€” `--tool-call-parser qwen3_xml --enforce-eager --language-model-only`
-- Coder: Qwen3-Coder-30B-A3B-Instruct-AWQ on GPU 2 (4090) at foundry:8006
+- Coder: Qwen3.5-35B-A3B-AWQ-4bit on GPU 2 (4090) at foundry:8006 — `--tool-call-parser qwen3_xml --enforce-eager --language-model-only --quantization awq`
 - Container names: `vllm-coordinator`, `vllm-coder`
 - Image: `athanor/vllm:qwen35` (nightly 0.16.1rc1.dev32)
 

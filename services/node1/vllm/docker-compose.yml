@@ -10,6 +10,7 @@ services:
     network_mode: host
     volumes:
       - /mnt/local-fast/models:/models:ro
+      - /home/athanor/.cache/triton:/root/.cache/triton
     environment:
       - HF_HUB_OFFLINE=1
       - VLLM_NO_USAGE_STATS=1
@@ -68,6 +69,7 @@ services:
       - "8006:8000"
     volumes:
       - /mnt/local-fast/models:/models
+      - /home/athanor/.cache/triton:/root/.cache/triton
     environment:
       - HF_HUB_OFFLINE=1
       - VLLM_NO_USAGE_STATS=1
@@ -87,9 +89,9 @@ services:
     entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
     command:
       - --model
-      - /models/Qwen3-Coder-30B-A3B-Instruct-AWQ
+      - /models/Qwen3.5-35B-A3B-AWQ-4bit
       - --served-model-name
-      - qwen3-coder
+      - qwen35-coder
       - --host
       - 0.0.0.0
       - --port
@@ -100,11 +102,15 @@ services:
       - "0.92"
       - --max-num-seqs
       - "16"
+      - --enforce-eager
+      - --language-model-only
       - --enable-auto-tool-choice
       - --tool-call-parser
-      - hermes
-      - --enable-prefix-caching
-      - --dtype
+      - qwen3_xml
+      - --kv-cache-dtype
       - auto
+      - --quantization
+      - awq
+      - --enable-prefix-caching
       - --safetensors-load-strategy
       - eager

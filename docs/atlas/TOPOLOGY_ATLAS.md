@@ -36,7 +36,7 @@ This atlas maps the live Athanor estate by node, service plane, model route, sto
 | --- | --- | --- | --- | --- |
 | `reasoning` | Qwen3.5-27B-FP8 | `FOUNDRY:8000` via LiteLLM | agent reasoning, high-value orchestration | `live` |
 | `coding` | Qwen3.5-27B-FP8 | `FOUNDRY:8000` via LiteLLM | coordinator lane with coding-oriented prompt posture | `live` |
-| `coder` | Qwen3-Coder-30B-A3B-Instruct-AWQ | `FOUNDRY:8006` via LiteLLM | dedicated coding and tool-use lane | `live` |
+| `coder` | Qwen3.5-35B-A3B-AWQ-4bit | `FOUNDRY:8006` via LiteLLM | dedicated coding and tool-use lane | `live` |
 | `creative` | Qwen3.5-35B-A3B-AWQ | `WORKSHOP:8000` via LiteLLM | creative-adjacent and broad local utility jobs | `live` |
 | `utility` | Qwen3.5-35B-A3B-AWQ | `WORKSHOP:8000` via LiteLLM | local utility lane for non-premium workloads | `live` |
 | `fast` | Qwen3.5-35B-A3B-AWQ | `WORKSHOP:8000` via LiteLLM | worker inference and fast interactive model lane | `live` |

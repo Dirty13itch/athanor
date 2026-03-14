@@ -63,7 +63,7 @@
 ## Current System State (verified 2026-03-11)
 
 ### Cluster (nodes healthy, all services up)
-- **FOUNDRY .244**: vllm-coordinator (Qwen3.5-27B-FP8 TP=4 on GPUs 0,1,3,4 :8000), vllm-coder (Qwen3-Coder-30B-A3B-Instruct-AWQ on GPU2/4090 :8006). 11 containers.
+- **FOUNDRY .244**: vllm-coordinator (Qwen3.5-27B-FP8 TP=4 on GPUs 0,1,3,4 :8000), vllm-coder (Qwen3.5-35B-A3B-AWQ-4bit on GPU2/4090 :8006). 11 containers.
 - **WORKSHOP .225**: Qwen3.5-35B-A3B-AWQ on 5090 (GPU0) :8000. ComfyUI on 5060Ti. Dashboard:3001, EoBQ:3002, Open WebUI:3000, Ulrich Energy:3003.
 - **VAULT .203**: 42+ containers. LiteLLM:4000, LangFuse:3030, Open WebUI:3090, Redis:6379, Qdrant:6333, Neo4j:7474. Storage 86% (141T/164T).
 - **DEV .189**: Embedding:8001 + Reranker:8003. Claude Code native install.
@@ -71,7 +71,7 @@
 ### LiteLLM Routing (at VAULT:4000)
 - `reasoning` → Qwen3.5-27B-FP8 at foundry:8000
 - `coding` → Qwen3.5-27B-FP8 at foundry:8000
-- `coder` → Qwen3-Coder-30B-A3B-Instruct-AWQ at foundry:8006
+- `coder` → Qwen3.5-35B-A3B-AWQ-4bit at foundry:8006
 - `fast` → Qwen3.5-35B-A3B-AWQ-4bit at workshop:8000
 - `uncensored` → Qwen3.5-35B-A3B-AWQ-4bit at workshop:8000
 - `utility` → Qwen3.5-35B-A3B-AWQ-4bit at workshop:8000

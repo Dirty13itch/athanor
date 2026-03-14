@@ -242,7 +242,7 @@ export const config = {
       name: "Foundry Coder",
       nodeId: "node1",
       description: "Dedicated coding runtime for autonomous implementation and code-heavy tasks.",
-      primaryModel: "Qwen3-Coder-30B-A3B-Instruct-AWQ",
+      primaryModel: "Qwen3.5-35B-A3B-AWQ-4bit",
       url: foundryCoderUrl,
     },
     {
