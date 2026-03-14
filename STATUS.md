@@ -135,9 +135,22 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - 6.2 InfiniBand (backlog)
 - 6.4 Mobile access (backlog)
 - 6.7 Mining enclosure (physical)
-- 8.4 Coding model upgrade: research complete, Qwen3.5-35B-A3B-AWQ recommended for 4090 slot
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
+
+## Session 58 (2026-03-14) Summary — Plan Verification & Ops Cleanup
+
+### Completed This Session
+- **WORKSHOP ansible fix** — `ansible/host_vars/interface.yml` `vllm_quantization: ""` (was `awq`). compressed-tensors models must omit flag for auto-detect. Committed `3ce6b23`.
+- **n8n workflow cleanup** — Updated 2 workflows via REST API: Daily Health Digest removed all Hydra/TabbyAPI/Ollama refs (→ Athanor/LiteLLM/Agent Registry), Model Performance Monitor replaced dead Ollama check with Coder vLLM (foundry:8006), renamed `hydra_` metrics to `athanor_`. Both verified active.
+- **Plan verification** — Systematic audit found 10+ plan items already completed in prior sessions (Docker hardening, Open WebUI auth, monitoring alerts, ansible roles in playbooks, ADR statuses, SERVICES.md, RECOVERY.md, AGENTS.md, GPU counts, health-check script). Plan was generated before sessions 56-57.
+- **Promptfoo 3-model eval launched** — reasoning × creative × coder, 16 prompts each (48 test cases). Still running.
+
+### Next Actions
+1. Record promptfoo eval results when complete
+2. BUILD-MANIFEST cleanup (close completed items, align with plan verification)
+3. Research agenda batches (delegate overnight via deep_research)
+4. Grafana backup alert deploy (7.2)
 
 ## Session 57 (2026-03-14) Summary — Master Plan Execution
 
@@ -151,10 +164,10 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **Ops** — `health-check-all.sh` created, bare-except handlers logged, vLLM compressed-tensors gotcha documented.
 
 ### Next Actions
-1. Deploy agent server changes to FOUNDRY (new GET endpoint, write_file tool)
-2. n8n legacy label cleanup
+1. ~~Deploy agent server changes to FOUNDRY~~ DONE (session 57)
+2. ~~n8n legacy label cleanup~~ DONE (session 58)
 3. Grafana backup alert deploy
-4. Promptfoo eval refresh with new coder model
+4. ~~Promptfoo eval refresh with new coder model~~ RUNNING (session 58)
 5. Research agenda batches (delegated overnight via deep_research)
 
 ---

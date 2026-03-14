@@ -2,7 +2,7 @@
 
 *This is the tactical execution queue. `docs/design/athanor-next.md` is the strategic design layer above it. Claude Code uses this file to decide what to build next, but the queue must remain subordinate to the Athanor Next operating model.*
 
-Last updated: 2026-03-11 (Session 56: backup alerting drift reconciliation)
+Last updated: 2026-03-14 (Session 58: plan verification, n8n cleanup, eval refresh)
 
 ---
 
