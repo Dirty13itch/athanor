@@ -395,9 +395,11 @@ Phase 6 (Testing)            DONE — 391 tests pass
 ### Next Actions
 1. **GPU scheduling decision** — ComfyUI needs 5090 for PuLID/InfiniteYou. Options: time-share with vLLM worker, dedicated creative sessions (vLLM sleep mode when available), or swap GPU assignments.
 2. Download missing ComfyUI models — HyperSwap 256, buffalo_l, FaceAnalysis node install
-3. Dashboard control — extend to FOUNDRY/VAULT containers (SSH tunnel or remote Docker proxy)
+3. ~~Dashboard control — extend to FOUNDRY/VAULT containers~~ **DONE** (session 60n)
 4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
 5. GWT Phase 3-4 — agent subscription/reaction to workspace broadcasts
+6. **Deploy docker-socket-proxy to FOUNDRY** — Ansible role ready, run `ansible-playbook playbooks/foundry.yml --tags docker-proxy -i inventory.yml`
+7. **Monitor agent productivity** — Workplan generation fixed, tasks executing. Verify output quality and refill cycle.
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
@@ -410,6 +412,24 @@ Phase 6 (Testing)            DONE — 391 tests pass
   - 9 scheduler last-runs within 5 min, 10+ tasks flowing (completed + running)
   - CST at 437K+ cycles, 3 node heartbeats fresh
   - Goals/preferences/patterns now populated in agent context injection
+
+### Session 60n (cont.) — Multi-Node Docker + Agent Productivity Fix
+- **Multi-node Docker control** — Full implementation across Ansible + dashboard backend + frontend:
+  - Ansible role `docker-socket-proxy` created (Tecnativa HAProxy-based Docker API proxy)
+  - Dashboard `docker.ts` refactored for multi-host support (Unix socket + HTTP)
+  - `listAllContainers()` queries WORKSHOP/FOUNDRY/VAULT in parallel via `Promise.allSettled`
+  - API routes `/api/containers`, restart, logs all node-aware
+  - Frontend shows node badges, FOUNDRY restart blocked (production protection)
+  - docker-socket-proxy health check fix (commit bb52601)
+- **Workplanner LLM timeout fix** — Root cause: Qwen3.5 generating thousands of `<think>` tokens before JSON output. `/no_think` in prompt text was ineffective.
+  - Fix: Added `chat_template_kwargs: {"enable_thinking": false}` to LiteLLM request body (disables thinking at template level)
+  - Timeout reduced 300s → 120s, `max_tokens` 8192 → 4096
+  - Result: workplan generation completes in <5s (was timing out at 300s)
+- **Agent server logging** — Added `logging.basicConfig()` to `server.py` so scheduler/workplanner/task module logs are visible in container output (previously only uvicorn access logs showed)
+- **Dashboard proxy timeout** — `workforce/plan/route.ts` increased 15s → 120s for workplan generation endpoint
+- **Dashboard config cleanup** — Removed stale env var fallbacks from `config.ts` (vars no longer in docker-compose.yml)
+- **Agent productivity restored** — Successfully generated 7-task productive workplan (wp-1773605011). Tasks executing: creative-agent (character portraits), coding-agent, research-agent, knowledge-agent. First productive outputs within minutes.
+- Commits: 19de164, 56e37fb, 3fcd08b, bb52601, f640287
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
