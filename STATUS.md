@@ -806,7 +806,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-15 00:06 PDT
+*Last updated: 2026-03-15 00:17 PDT
 
 ---
 
@@ -839,7 +839,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-15 00:06 PDT
+*Last updated: 2026-03-15 00:17 PDT
 
 ---
 
@@ -865,5 +865,5 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 3. Watch agent task execution — should now actually work (tasks, schedules, skills all backed by Redis)
 4. Run eval suite again — agent context injection now includes Redis-backed goals/preferences/patterns
 
-*Last updated: 2026-03-15 00:06 PDT
+*Last updated: 2026-03-15 00:17 PDT
 
