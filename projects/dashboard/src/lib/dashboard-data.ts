@@ -79,7 +79,7 @@ const rawAgentMetadataSchema = z.object({
   tools: z.array(z.string()).default([]),
   type: z.string().default("reactive"),
   status: z.string().default("planned"),
-  schedule: z.string().optional(),
+  schedule: z.string().nullable().optional(),
   status_note: z.string().nullable().optional(),
 });
 
