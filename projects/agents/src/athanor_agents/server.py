@@ -176,7 +176,7 @@ async def health():
     # Redis probe: use actual Redis PING instead of HTTP
     try:
         import redis as _redis
-        r = _redis.from_url(settings.redis_url, socket_timeout=1.0)
+        r = _redis.from_url(settings.redis_url, password=settings.redis_password or None, socket_timeout=1.0)
         r.ping()
         deps = list(deps)
         deps[0] = {"name": "redis", "status": "up", "latency_ms": 0}
