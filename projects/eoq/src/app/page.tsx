@@ -25,6 +25,7 @@ import { SceneParticles } from "./components/scene-particles";
 import { Inventory } from "./components/inventory";
 import { ItemToast } from "./components/item-toast";
 import { StatChangeToast } from "./components/stat-change-toast";
+import { QueenRoster } from "./components/queen-roster";
 import { useGameStore } from "@/stores/game-store";
 import { useGameEngine } from "@/hooks/use-game-engine";
 import { useImageGeneration } from "@/hooks/use-image-generation";
@@ -34,6 +35,7 @@ export default function GamePage() {
   const { session, isGenerating } = useGameStore();
   const {
     startGame,
+    startQueenSession,
     advanceDialogue,
     handleChoice,
     sendPlayerMessage,
@@ -52,6 +54,7 @@ export default function GamePage() {
   const [showInventory, setShowInventory] = useState(false);
   const [autoAdvance, setAutoAdvance] = useState(false);
   const [savedGameExists, setSavedGameExists] = useState(false);
+  const [showQueenRoster, setShowQueenRoster] = useState(false);
   const lastSceneIdRef = useRef<string | null>(null);
 
   // Derive choices and state (before hooks that depend on them)
@@ -309,8 +312,20 @@ export default function GamePage() {
         />
       )}
 
+      {/* Queen roster overlay */}
+      {showQueenRoster && !session && (
+        <QueenRoster
+          onSelect={(queenId) => {
+            setShowQueenRoster(false);
+            resetImageCache();
+            startQueenSession(queenId);
+          }}
+          onBack={() => setShowQueenRoster(false)}
+        />
+      )}
+
       {/* Title screen when no session */}
-      {!session && (
+      {!session && !showQueenRoster && (
         <div className="relative z-50 flex h-full flex-col items-center justify-center">
           {/* Decorative divider */}
           <div className="mb-6 h-px w-64 bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
@@ -321,9 +336,6 @@ export default function GamePage() {
           <h1 className="title-glow mb-2 text-6xl font-bold tracking-tight text-amber-400">
             Empire of Broken Queens
           </h1>
-          <p className="mb-1 text-sm text-white/30">
-            Act I: The Shattered Court
-          </p>
           <p className="mb-8 text-[10px] text-white/15 italic">
             Every queen has a breaking point. Will you find it?
           </p>
@@ -333,7 +345,13 @@ export default function GamePage() {
               onClick={handleNewGame}
               className="rounded border border-amber-400/40 bg-black/60 px-8 py-3 text-lg text-amber-400 transition-colors hover:bg-amber-900/30"
             >
-              New Game
+              Act I: The Shattered Court
+            </button>
+            <button
+              onClick={() => setShowQueenRoster(true)}
+              className="rounded border border-rose-500/40 bg-black/60 px-8 py-3 text-lg text-rose-400 transition-colors hover:bg-rose-900/30"
+            >
+              The Queen&apos;s Council
             </button>
             {savedGameExists && (
               <button
@@ -343,7 +361,7 @@ export default function GamePage() {
                 }}
                 className="rounded border border-white/20 bg-black/40 px-8 py-3 text-sm text-white/60 transition-colors hover:border-amber-400/30 hover:text-amber-400/60"
               >
-                Continue
+                Continue Saved Game
               </button>
             )}
           </div>
@@ -353,7 +371,7 @@ export default function GamePage() {
 
           {/* Credits */}
           <p className="mt-8 text-[9px] text-white/10">
-            Powered by Qwen3-32B · ComfyUI · Athanor
+            Powered by Qwen3.5 · ComfyUI · Athanor
           </p>
         </div>
       )}

@@ -160,6 +160,35 @@ export const SCENES: Record<string, SceneDefinition> = {
   },
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Queen's Council — Generic scenes for queen freeform dialogue
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Private audience scene — dynamically populated with a single queen */
+export const QUEEN_AUDIENCE: SceneDefinition = {
+  id: "queen-audience",
+  name: "The Private Audience Chamber",
+  description:
+    "A candlelit chamber deep within the palace. Heavy velvet drapes in crimson and black frame tall windows looking out over a moonlit garden. A chaise lounge, a writing desk, a decanter of dark wine. The air is warm, perfumed with jasmine and something darker. The door locks from the inside.",
+  visualPrompt:
+    "Luxurious dark fantasy private chamber, candlelight, crimson velvet drapes, tall windows with moonlight, chaise lounge, wine decanter, warm amber lighting, intimate atmosphere, dark opulent decor, cinematic, 8k, photorealistic",
+  presentCharacters: [], // Populated dynamically with selected queen
+  exits: [
+    { label: "Return to the Council Hall", targetSceneId: "queen-council-hall" },
+  ],
+};
+
+export const QUEEN_COUNCIL_HALL: SceneDefinition = {
+  id: "queen-council-hall",
+  name: "The Council Hall",
+  description:
+    "A vast circular chamber ringed with twenty-one throne-like seats, each carved from different stone — obsidian, marble, bloodstone, jade. The floor is a mosaic depicting the empire's founding. Braziers burn low, casting the seated queens in shifting firelight. Some watch you with curiosity, others with contempt, others with barely concealed hunger.",
+  visualPrompt:
+    "Grand circular council hall, 21 ornate thrones in a ring, diverse beautiful women seated on thrones, mosaic floor, brazier firelight, dark opulent fantasy architecture, dramatic lighting, cinematic wide shot, 8k, photorealistic",
+  presentCharacters: [], // Navigation hub — no single character
+  exits: [], // Exits generated dynamically from available queens
+};
+
 /** Starting scene for new games */
 export const STARTING_SCENE = "courtyard";
 

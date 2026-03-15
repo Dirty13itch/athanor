@@ -3,7 +3,8 @@
 import { useCallback, useRef } from "react";
 import { useGameStore } from "@/stores/game-store";
 import { CHARACTERS } from "@/data/characters";
-import { SCENES, STARTING_SCENE, SCENE_INTROS } from "@/data/scenes";
+import { QUEENS } from "@/data/queens";
+import { SCENES, STARTING_SCENE, SCENE_INTROS, QUEEN_AUDIENCE, QUEEN_COUNCIL_HALL } from "@/data/scenes";
 import {
   getScriptedIntro,
   getTriggeredEvent,
@@ -54,6 +55,47 @@ export function useGameEngine() {
         playNarratorLine(intro);
       }, 500);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Start a queen freeform dialogue session */
+  const startQueenSession = useCallback((queenId: string) => {
+    const queen = QUEENS[queenId];
+    if (!queen) return;
+
+    // Create the audience scene with this queen
+    const audienceScene = {
+      ...QUEEN_AUDIENCE,
+      name: `${queen.name}'s Private Audience`,
+      presentCharacters: [queenId],
+    };
+
+    const session = {
+      id: crypto.randomUUID(),
+      startedAt: Date.now(),
+      lastPlayedAt: Date.now(),
+      worldState: {
+        currentScene: audienceScene,
+        timeOfDay: "evening" as const,
+        day: 1,
+        plotFlags: { queen_mode: true },
+        inventory: [],
+        contentIntensity: 3 as const,
+      },
+      characters: { [queenId]: queen },
+      dialogueHistory: [],
+      arcPosition: "audience",
+    };
+
+    store.setSession(session);
+    store.markSceneVisited("queen-audience");
+
+    // Opening narration
+    setTimeout(() => {
+      playNarratorLine(
+        `The heavy door closes behind you. ${queen.name} — ${queen.title} — regards you from across the candlelit chamber. ${queen.archetype === "ice" ? "The air seems to cool." : queen.archetype === "seductress" ? "The warmth in the room intensifies." : queen.archetype === "shadow" ? "The shadows seem to deepen." : "The atmosphere shifts."} You are alone.`
+      );
+    }, 500);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -560,6 +602,7 @@ export function useGameEngine() {
 
   return {
     startGame,
+    startQueenSession,
     advanceDialogue,
     handleChoice,
     sendPlayerMessage,

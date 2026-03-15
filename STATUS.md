@@ -307,6 +307,14 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **SYSTEM-SPEC updated** — Qdrant counts refreshed: signals 82→102, conversations 2288→2293. Eval baseline updated to 100%.
 - **Qdrant current counts**: knowledge 3435, conversations 2293, signals 102, activity 5624, preferences 59, implicit_feedback 324, events 9555, llm_cache 2, personal_data 17916.
 
+### Session 60r — 21-Queen DNA System Ported, Likeness Research, Chat Route Wiring
+- **21-queen DNA system ported to TypeScript** — All 21 council queens defined in `projects/eoq/src/data/queens.ts` (1986 lines). Each queen: full Character fields (personality vectors, emotional profiles, relationship defaults, vulnerabilities, boundaries) + Queen-specific fields (19-trait SexualDNA, PhysicalBlueprint, StripperArc, Flux prompt, performer reference, awakening). Roster corrections: Sandee Westgate (not Sandy), Marisol Yotta (not Yada), removed Preta Jensen + Jacky Lawless, added Brianna Banks + Clanddi Jinkcebo.
+- **Queen type system added to game.ts** — ~100 lines of new types: `SexualDNA` interface (19 fields), `PhysicalBlueprint`, `StripperArc`, `Queen extends Character`, plus 8 union types (`DesireType`, `GaggingResponse`, `AwakeningType`, `BlackmailNeed`, `AddictionSpeed`, `JealousyType`, `AftercareNeed`, `GroupSexAttitude`).
+- **Queen DNA wired into dialogue system prompt** — `chat/route.ts`: `isQueen()` type guard, `buildQueenDNA()` injects all 19 DNA traits + stripper arc (unlocks at 70% corruption) + awakening (surfaces at 50% corruption) into the LLM system prompt. Queens and fantasy characters coexist — DNA section only appears for queen-type characters.
+- **Pixel-perfect likeness research completed** — 601-line research doc at `docs/research/2026-03-14-pixel-perfect-face-reproduction.md`. Multi-method pipeline: LoRA training (97% identity, 15-30 refs, ~2hrs on 5090) → PuLID/ACE++ (structure reinforcement) → FaceDetailer (detail sharpening) → ReActor HyperSwap 256 (pixel correction) → FaceAnalysis quality gate (≥0.85 cosine similarity). Full ComfyUI workflow architecture. Hardware: 5090 required (~22GB peak, 12-17s/image).
+- **Creative agent updated** — `EOQB_CHARACTERS` expanded from 5 to 26 entries (5 fantasy + 21 queens). Deployed to FOUNDRY, 26 characters verified loaded. All 9 agents healthy.
+- **TypeScript verified clean** — `npx tsc --noEmit` passes for both game.ts types and queens.ts data.
+
 ### Session 60q — HA Token Deployed, EoBQ Content Generation Assessment
 - **Home Agent unblocked** — HA long-lived access token provided by Shaun, deployed to FOUNDRY `.env`, scheduler enabled in `scheduler.py` (`enabled: True`, interval=5min). Verified: home-agent task completed successfully (43 entities, 15 domains, identified 3 unavailable media players).
 - **All 5 Shaun blockers now cleared** — NordVPN, Anthropic API key, Google Drive OAuth, Node 2 DDR5 EXPO, Node 1 Samsung 990 PRO, and now HA token.
@@ -314,9 +322,11 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **Stash library**: 14,547 performers. Top by scene count: Abigail Mac (71), Kendra Lust (52), Angela White (49). Performer photos available via GraphQL for PuLID reference injection.
 
 ### Next Actions
-1. Port 21-queen performer DNA from master document to live TypeScript character system — Shaun decision on scope/priority
-2. Dual Qdrant consolidation — low priority, VAULT:6333 has 3 unique collections worth ~640 points
-3. All build manifest items complete except Shaun-blocked items (none remaining)
+1. ~~Port 21-queen performer DNA from master document to live TypeScript character system~~ DONE (session 60r)
+2. EoBQ UI — wire queen roster into character selection so queens are playable
+3. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
+4. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
+5. Dual Qdrant consolidation — low priority, VAULT:6333 has 3 unique collections worth ~640 points
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
