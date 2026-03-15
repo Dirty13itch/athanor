@@ -8,6 +8,8 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
+    group_add:
+      - "988"  # docker group GID on WORKSHOP — grants socket access
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:

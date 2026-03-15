@@ -29,7 +29,7 @@ type SortMode = "severity" | "latency" | "name";
 
 // Map service IDs to their known Docker container names (WORKSHOP node only)
 const SERVICE_CONTAINER_MAP: Record<string, string> = {
-  "workshop-worker": "vllm-worker",
+  "workshop-worker": "vllm-node2",
   "comfyui": "comfyui",
   "workshop-open-webui": "open-webui",
   "eoq": "athanor-eoq",
