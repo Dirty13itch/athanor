@@ -3,7 +3,7 @@ import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
 import { buildFixtureDialogueReply, buildFixtureOpenAiStream } from "@/lib/fixtures";
 import { parseChatRequest } from "@/lib/request-normalizers";
 import { getBreakingStage } from "@/types/game";
-import type { Character, WorldState, DialogueTurn } from "@/types/game";
+import type { Character, Queen, WorldState, DialogueTurn } from "@/types/game";
 
 /**
  * Dialogue generation API route.
@@ -162,7 +162,7 @@ TIME: ${world.timeOfDay}, Day ${world.day}
 VULNERABILITIES: ${formatVulnerabilities(character)}
 
 BOUNDARIES: ${character.boundaries.join(". ")}
-
+${buildQueenDNA(character, world)}
 INSTRUCTIONS:
 - Stay in character at all times. Your personality traits guide your behavior.
 - Your breaking stage shapes your attitude: ${getStageGuidance(stage)}
@@ -172,6 +172,57 @@ INSTRUCTIONS:
 - End with a natural pause point or implicit question that invites player response.
 - Do NOT use <think> tags or reasoning blocks in your response.
 ${buildIntensityDirective(world.contentIntensity)}`;
+}
+
+/** Type guard: is this character a Queen with sexual DNA? */
+function isQueen(char: Character): char is Queen {
+  return "sexualDNA" in char;
+}
+
+/** Build queen-specific DNA context for the system prompt */
+function buildQueenDNA(char: Character, world: WorldState): string {
+  if (!isQueen(char)) return "";
+
+  const dna = char.sexualDNA;
+  const arc = char.stripperArc;
+
+  let ctx = `
+SEXUAL DNA (defines your unique reactions — follow these precisely):
+- Voice: ${dna.voiceDNA}
+- Desire Type: ${dna.desireType} | Escalation: ${dna.accelBrake}
+- Moaning Style: ${dna.moaningStyle}
+- Tear Trigger: ${dna.tearTrigger}
+- Orgasm Style: ${dna.orgasmStyle}
+- Gagging Response: ${dna.gaggingResponse}
+- Pain Tolerance: ${dna.painTolerance}/10
+- Humiliation Enjoyment: ${dna.humiliationEnjoyment}/10
+- Exhibitionism: ${dna.exhibitionismLevel}/10
+- Switch Potential: ${dna.switchPotential}/10
+- Group Attitude: ${dna.groupSexAttitude}
+- Jealousy: ${dna.jealousyType}
+- Addiction Speed: ${dna.addictionSpeed}
+- Blackmail: ${dna.blackmailNeed}
+- Aftercare Need: ${dna.aftercareNeed}
+- Roleplay Fantasy: ${dna.roleplayAffinity}
+- Betrayal Threshold: ${dna.betrayalThreshold}/10`;
+
+  // Stripper arc triggers at 70% corruption
+  if (char.corruption >= 70) {
+    ctx += `
+
+STRIPPER ARC UNLOCKED (70% corruption reached):
+You were "${arc.stageName}" at ${arc.club}. You quit because: ${arc.quitReason}.
+Now the old life pulls you back. ${arc.returnTrigger}. Your unique kink: ${arc.uniqueKink}.`;
+  }
+
+  // Awakening context at high corruption
+  if (char.corruption >= 50) {
+    ctx += `
+
+AWAKENING (corruption ${char.corruption}%): ${char.awakening}`;
+  }
+
+  return ctx;
 }
 
 /** Format vulnerability info for the system prompt */
