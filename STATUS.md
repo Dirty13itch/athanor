@@ -253,11 +253,12 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **10.8 Google Drive sync deployed** — `sync-personal-data.sh` rewritten for current DEV (native Linux, not WSL2). Two rclone remotes: `personal-drive:` (30 GiB) + `uea-drive:` (7 GiB). Pipeline: rclone → DEV staging → rsync → FOUNDRY. Cron every 6 hours.
 - **Phase 3c site.yml reconciliation** — Added VAULT (19 roles) to master playbook. All 4 nodes now in site.yml.
 - **Model rsync complete** — 283 GB synced to Samsung 990 PRO on FOUNDRY. VAULT NFS no longer inference SPOF.
+- **qBittorrent wired to Sonarr + Radarr** — Download clients configured via API. Categories: `sonarr`/`radarr`. Downloads route through Gluetun VPN tunnel.
 
 ### Next Actions
-1. Connect qBittorrent to Sonarr/Radarr download clients
-2. Re-run `scripts/index-files.py` against new Google Drive data
-3. Re-audit score target: 8.5+/10
+1. Re-run `scripts/index-files.py` against new Google Drive data (after rclone completes)
+2. Re-audit score target: 8.5+/10
+3. Set permanent qBittorrent WebUI password (currently using temp password)
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
