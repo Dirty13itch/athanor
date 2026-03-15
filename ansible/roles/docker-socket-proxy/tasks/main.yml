@@ -21,7 +21,7 @@
 
 - name: Wait for docker-socket-proxy to respond
   ansible.builtin.uri:
-    url: "http://localhost:{{ docker_socket_proxy_port }}/_ping"
+    url: "http://{{ docker_socket_proxy_bind_ip }}:{{ docker_socket_proxy_port }}/_ping"
     status_code: 200
   register: proxy_health
   retries: 5
