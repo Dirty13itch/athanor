@@ -2,5 +2,10 @@ vault_nfs:
     base_path: /mnt/vault/models/comfyui/
     diffusion_models: unet/
     clip: clip/
+    clip_vision: clip_vision/
     vae: vae/
     checkpoints: checkpoints/
+    loras: loras/
+    controlnet: controlnet/
+    upscale_models: upscale_models/
+    embeddings: embeddings/
