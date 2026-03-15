@@ -430,7 +430,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Volume mounts:** `/opt/athanor:/workspace:ro` (read-only codebase), `/opt/athanor/agent-output:/output` (writable staging).
 - **Dockerfile:** Added `git` and `pytest` to container image.
 - **Coding agent:** 9 tools total (4 coding + 5 execution). Autonomous loop verified: read source → generate test → write file → run pytest → self-correct on failure → repeat.
-- **Verified:** 10-step coding task ran full loop (4 write-run cycles). Files persisted to disk. Timed out on complex mocks (model quality, not infra) — validates need for 8.5 cloud cascade.
+- **Verified:** 10-step coding task ran full loop (4 write-run cycles). Files persisted to disk. Timed out on complex mocks (model quality limitation, resolved by 8.4 upgrade to Qwen3.5-35B).
 - **Files:** `tools/execution.py`, `tools/__init__.py`, `agents/coding.py`, `Dockerfile`, `docker-compose.yml`, Ansible role
 
 ### 8.4 — Dedicated Coding Model Upgrade
@@ -439,12 +439,9 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Research:** `docs/research/2026-03-13-coding-models-march-update.md`
 
 ### 8.5 — Quality Gating & Cascade
-- **Status:** 🔲 Unblocked (Anthropic API key deployed to LiteLLM, Session 60f)
-- **Scope:** Local model generates → runs tests → if tests fail, escalate to cloud (Claude). Automated quality loops for coding tasks.
-- **Existing:** Single auto-retry with error context (`_maybe_retry` in tasks.py). Step-level tool call logging. Anthropic API key live in LiteLLM (claude/claude-sonnet-4-6/claude-opus-4-6 aliases working).
-- **Missing:** `escalate_to_cloud` tool, multi-attempt strategy (local → cloud-fast → cloud-reasoning), reward model quality gate.
-- **Research:** See 8.5 analysis from Session 20 exploration agent.
-- **Depends on:** 8.3 ✅, Anthropic API key from Shaun
+- **Status:** ❌ Superseded (Session 60g)
+- **Original scope:** Automated escalation from local models to cloud Claude when tests fail.
+- **Why closed:** Cloud models (Claude opus/sonnet/haiku) are already routable through LiteLLM — same endpoint, same API. No special "escalation" mechanism needed. The routing intelligence is the human workflow: Claude Code for complex reasoning, local Qwen3.5 for mechanical tasks via MCP/aider. Building an automated reward-model quality gate adds complexity with minimal value for a one-person system where the operator already makes the routing decision.
 
 ---
 
