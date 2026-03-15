@@ -39,6 +39,7 @@ MAX_REACTIONS_PER_CYCLE = 2  # Max reactive tasks created per competition cycle
 
 _redis: aioredis.Redis | None = None
 _competition_task: asyncio.Task | None = None
+_last_broadcast_id: str | None = None  # Dedup: skip CST/history when broadcast unchanged
 
 
 class ItemPriority(str, Enum):
@@ -408,6 +409,7 @@ async def _competition_cycle():
     7. Update CST + specialist inhibition
     8. Trigger reactive tasks for subscribed agents
     """
+    global _last_broadcast_id
     logger.info("GWT competition cycle started (interval=%.1fs)", COMPETITION_INTERVAL)
     reaction_counter = 0  # Only check reactions every 10 cycles (10s)
 
@@ -422,6 +424,8 @@ async def _competition_cycle():
                     len(items), len(broadcast),
                     broadcast[0].source_agent, broadcast[0].salience,
                 )
+            else:
+                _last_broadcast_id = None  # Reset so next item always triggers
 
             # --- Specialist competition ---
             winning_specialist = None
@@ -432,39 +436,46 @@ async def _competition_cycle():
                     logger.debug("Specialist competition failed: %s", e)
 
             # Archive history + publish broadcast via pub/sub
+            # Only push when the top broadcast item changes (prevents flooding
+            # working memory and history with the same alert every second)
             if broadcast:
-                r = await get_redis()
-                entry_data = {
-                    "timestamp": time.time(),
-                    "broadcast": [i.to_dict() for i in broadcast],
-                    "total_candidates": len(items),
-                }
-                if winning_specialist:
-                    entry_data["winning_specialist"] = winning_specialist
-                entry = json.dumps(entry_data)
-                await r.lpush(WORKSPACE_HISTORY_KEY, entry)
-                await r.ltrim(WORKSPACE_HISTORY_KEY, 0, 99)
+                top_id = broadcast[0].id
+                broadcast_changed = top_id != _last_broadcast_id
 
-                # Publish to subscribers
-                await r.publish(WORKSPACE_BROADCAST_CHANNEL, entry)
-
-                # Update Continuous State Tensor from broadcast + specialist
-                try:
-                    from .cst import update_cst_from_broadcast
-
-                    top = broadcast[0]
-                    cst_broadcast = {
-                        "specialist": winning_specialist or top.source_agent,
-                        "content": top.content[:200],
-                        "confidence": min(top.salience, 1.0),
-                        "urgency": 0.5 if top.priority in ("critical", "high") else 0.2,
-                        "topics": {top.source_agent: 0.3},
+                if broadcast_changed:
+                    _last_broadcast_id = top_id
+                    r = await get_redis()
+                    entry_data = {
+                        "timestamp": time.time(),
+                        "broadcast": [i.to_dict() for i in broadcast],
+                        "total_candidates": len(items),
                     }
                     if winning_specialist:
-                        cst_broadcast["topics"][winning_specialist] = 0.4
-                    await update_cst_from_broadcast(cst_broadcast)
-                except Exception as e:
-                    logger.debug("CST update failed: %s", e)
+                        entry_data["winning_specialist"] = winning_specialist
+                    entry = json.dumps(entry_data)
+                    await r.lpush(WORKSPACE_HISTORY_KEY, entry)
+                    await r.ltrim(WORKSPACE_HISTORY_KEY, 0, 99)
+
+                    # Publish to subscribers
+                    await r.publish(WORKSPACE_BROADCAST_CHANNEL, entry)
+
+                    # Update Continuous State Tensor from broadcast + specialist
+                    try:
+                        from .cst import update_cst_from_broadcast
+
+                        top = broadcast[0]
+                        cst_broadcast = {
+                            "specialist": winning_specialist or top.source_agent,
+                            "content": top.content[:200],
+                            "confidence": min(top.salience, 1.0),
+                            "urgency": 0.5 if top.priority in ("critical", "high") else 0.2,
+                            "topics": {top.source_agent: 0.3},
+                        }
+                        if winning_specialist:
+                            cst_broadcast["topics"][winning_specialist] = 0.4
+                        await update_cst_from_broadcast(cst_broadcast)
+                    except Exception as e:
+                        logger.debug("CST update failed: %s", e)
 
             # Trigger reactive tasks every 10 cycles (10s)
             reaction_counter += 1
