@@ -118,8 +118,8 @@ These remain the main upstream sources the atlas reconciles:
 
 These older map documents remain useful as historical or planning context, but they are no longer the canonical map:
 
-- [`../planning/ATHANOR-MAP.md`](../planning/ATHANOR-MAP.md)
-- [`../planning/ATHANOR-MAP-ADDENDUM.md`](../planning/ATHANOR-MAP-ADDENDUM.md)
+- [`../archive/planning-era/ATHANOR-MAP.md`](../archive/planning-era/ATHANOR-MAP.md)
+- [`../archive/planning-era/ATHANOR-MAP-ADDENDUM.md`](../archive/planning-era/ATHANOR-MAP-ADDENDUM.md)
 - [`../hardware/ATHANOR-SYSTEM-MAP.md`](../hardware/ATHANOR-SYSTEM-MAP.md)
 - [`../hardware/COMPLETE-SYSTEM-BREAKDOWN.md`](../hardware/COMPLETE-SYSTEM-BREAKDOWN.md)
 

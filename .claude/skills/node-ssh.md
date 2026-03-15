@@ -77,7 +77,7 @@ ssh node2 'mount | grep nfs && echo "NFS OK" || echo "No NFS mounts"'
 # vLLM logs (recent errors)
 ssh node1 'docker logs vllm-coordinator --tail 50 2>&1 | grep -i error'
 ssh node1 'docker logs vllm-coder --tail 50 2>&1 | grep -i error'
-ssh node2 'docker logs vllm-worker --tail 50 2>&1 | grep -i error'
+ssh node2 'docker logs vllm-node2 --tail 50 2>&1 | grep -i error'
 
 # Agent server logs
 ssh node1 'docker logs athanor-agents --tail 100 2>&1'

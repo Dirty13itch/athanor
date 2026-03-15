@@ -1,10 +1,10 @@
 # DEPRECATED
 
-> **This file is deprecated.** The canonical system map is [`docs/atlas/README.md`](../atlas/README.md). This file is retained for historical context only.
+> **This file is deprecated.** The canonical system map is [`docs/atlas/README.md`](../../atlas/README.md). This file is retained for historical context only.
 
 # ATHANOR: Complete System Map
 
-> Atlas note: [`docs/atlas/README.md`](../atlas/README.md) is now the canonical cross-layer system map. This file remains planning-era context and should not be treated as the current single source of truth.
+> Atlas note: [`docs/atlas/README.md`](../../atlas/README.md) is now the canonical cross-layer system map. This file remains planning-era context and should not be treated as the current single source of truth.
 
 **Compiled March 7, 2026 — Single source of truth for the build sprint**
 **Session duration: ~10 hours of deep technical planning and research**

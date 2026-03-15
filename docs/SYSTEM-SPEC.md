@@ -331,7 +331,7 @@ Agents respond to requests. No memory between invocations beyond what's in the c
 
 ### Layer 2: Accumulated Knowledge (deployed)
 
-Knowledge base (3435 vectors), 9 Qdrant collections (including `signals` — 102 intelligence signals from n8n pipeline), preferences, activity logging, conversation auto-embedding, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (4447 relationships).
+Knowledge base (3435 vectors), 9 Qdrant collections (including `signals` — 102 intelligence signals from n8n pipeline), preferences, activity logging, conversation auto-embedding, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (7268 relationships, 4479 nodes).
 
 **What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config), conversation auto-embedding (every chat completion auto-embedded to `conversations` collection since session 40), n8n signal pipeline (102 signals in Qdrant `signals` collection, daily digest integration via `goals.py`), eval suite (promptfoo — 19 tests × 2 providers, 100% pass rate, `grader` LiteLLM alias for deterministic scoring).
 
@@ -470,7 +470,7 @@ Shaun (Owner / Alchemist)
 | Architecture & decisions | Claude (COO) | Shaun reviews | ADRs in `docs/decisions/` |
 | Infrastructure operations | Claude (COO) | General Assistant assists | Ansible, Prometheus |
 | Agent development & tuning | Claude (COO) | — | LangGraph, FastAPI |
-| Roadmap & work planning | Claude (COO) | — | BUILD-MANIFEST.md, TODO.md |
+| Roadmap & work planning | Claude (COO) | — | BUILD-MANIFEST.md |
 | Documentation accuracy | Claude (COO) | Knowledge Agent | Markdown, ADRs |
 | Knowledge management | Claude (COO) directs | Knowledge Agent executes | Qdrant, Neo4j |
 | Media operations | Claude (COO) plans | Media Agent executes | Sonarr, Radarr, Plex |

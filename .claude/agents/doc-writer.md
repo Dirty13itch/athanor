@@ -32,7 +32,7 @@ Write, update, and maintain documentation that is useful to both humans and LLMs
 - `docs/hardware/` — Physical inventory (LOCKED), audits, rack sessions
 - `docs/research/` — Deep technical research with dates
 - `docs/decisions/` — ADRs (Architecture Decision Records)
-- `docs/plans/` — Implementation plans
+- `docs/archive/` — Historical planning docs and implementation plans
 - `docs/` — BUILD-ROADMAP.md, VISION.md, BLOCKED.md
 - `projects/` — Empire of Broken Queens, agents, services
 - `services/` — Docker service configs

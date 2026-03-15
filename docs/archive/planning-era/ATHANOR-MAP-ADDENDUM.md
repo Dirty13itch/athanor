@@ -1,6 +1,6 @@
 # ATHANOR-MAP ADDENDUM — March 7, 2026 (Late Session)
 
-> Atlas note: [`docs/atlas/README.md`](../atlas/README.md) is now the canonical cross-layer system map. This addendum remains planning context for the March 7 map set.
+> Atlas note: [`docs/atlas/README.md`](../../atlas/README.md) is now the canonical cross-layer system map. This addendum remains planning context for the March 7 map set.
 
 **Append this to ATHANOR-MAP.md on DEV. These sections were developed after the initial map.**
 

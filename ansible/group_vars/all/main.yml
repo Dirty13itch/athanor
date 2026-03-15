@@ -16,4 +16,4 @@ cluster_hosts:
 athanor_sonarr_api_key: "{{ vault_agent_sonarr_api_key }}"
 athanor_radarr_api_key: "{{ vault_agent_radarr_api_key }}"
 athanor_tautulli_api_key: "{{ vault_agent_tautulli_api_key }}"
-athanor_neo4j_password: "athanor2026"
+athanor_neo4j_password: "{{ vault_neo4j_password }}"

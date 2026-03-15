@@ -156,11 +156,11 @@ The Data Curator agent handles this. Already deployed with 7 tools:
 
 **Implementation:** Add an `analyze_and_index` pipeline that:
 1. Parses the document
-2. Sends first 4000 chars to Qwen3-32B with a structured extraction prompt
+2. Sends first 4000 chars to the reasoning model with a structured extraction prompt
 3. Stores extracted metadata in Qdrant payload alongside the embedding
 4. Optionally creates Neo4j nodes (Layer 3)
 
-**Cost:** ~30 seconds per document at Qwen3-32B inference speed. For 200 unique documents: ~100 minutes total. Amortized over the 6-hour schedule cycle = negligible.
+**Cost:** ~30 seconds per document at local inference speed. For 200 unique documents: ~100 minutes total. Amortized over the 6-hour schedule cycle = negligible.
 
 ### Layer 3: Connect — The Entity Graph
 
@@ -456,7 +456,7 @@ This turns every photo into searchable text. "Find photos of ductwork problems" 
 
 ### Phase 6: Entity Extraction ✅ COMPLETE (2026-02-26)
 - ✅ `scripts/extract-entities.py` — LLM-powered extraction from all 793 Qdrant points (0 errors)
-- ✅ Qwen3-14B with thinking disabled (`enable_thinking: false`, `max_tokens: 2000`) for reliable JSON output
+- ✅ Qwen3.5-35B-A3B with thinking disabled (`enable_thinking: false`, `max_tokens: 2000`) for reliable JSON output
 - ✅ Neo4j final: 3,095 nodes (1055 Topics, 701 Documents, 391 Orgs, 97 People, 67 GitRepos, 24 Services, 18 Places)
 - ✅ 4,447 relationships (3139 MENTIONS, 685 CATEGORIZED_AS, 501 RELATES_TO, 77 SUBCATEGORY_OF)
 - ✅ Incremental support (skips already-extracted points)

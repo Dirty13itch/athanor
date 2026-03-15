@@ -1,6 +1,0 @@
-vault_nfs:
-    base_path: /mnt/vault/models/comfyui/
-    diffusion_models: unet/
-    clip: clip/
-    vae: vae/
-    checkpoints: checkpoints/
