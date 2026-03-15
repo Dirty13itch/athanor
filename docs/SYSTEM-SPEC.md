@@ -228,7 +228,7 @@ Every agent action is visible. Nothing happens silently.
 | Tasks | Live | Task board — submit, monitor, cancel background agent tasks |
 | Workspace | Live | GWT workspace broadcasts, agent registry, competition state |
 | Conversations | Live | Logged agent conversations, filterable, expandable |
-| Insights | Planned | What agents learned, pattern detections |
+| Insights | Deployed | What agents learned, pattern detections |
 
 ### Feedback Mechanisms
 

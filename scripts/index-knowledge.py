@@ -37,10 +37,13 @@ import httpx
 # --- Config ---
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
+RULES_DIR = REPO_ROOT / ".claude" / "rules"
 EXTRA_FILES = [
     REPO_ROOT / "CLAUDE.md",
     REPO_ROOT / "MEMORY.md",
     REPO_ROOT / "AGENTS.md",
+    REPO_ROOT / "CONSTITUTION.yaml",
+    REPO_ROOT / "STATUS.md",
     REPO_ROOT / "docs" / "VISION.md",
     REPO_ROOT / "docs" / "BUILD-MANIFEST.md",
     REPO_ROOT / "docs" / "SYSTEM-SPEC.md",
@@ -126,6 +129,8 @@ def categorize_file(path: Path) -> str:
         return "design"
     if "projects/" in rel:
         return "project"
+    if ".claude/rules/" in rel:
+        return "rules"
     if "VISION" in rel:
         return "vision"
     if "BUILD" in rel or "ROADMAP" in rel:
@@ -245,6 +250,11 @@ def find_docs() -> list[Path]:
         if f.name == "CLAUDE.md" and f.parent != DOCS_DIR:
             continue
         files.add(f)
+
+    # Scan .claude/rules/ for operational rules
+    if RULES_DIR.exists():
+        for f in RULES_DIR.rglob("*.md"):
+            files.add(f)
 
     for f in EXTRA_FILES:
         if f.exists():
