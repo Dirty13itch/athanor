@@ -377,14 +377,17 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - Agent server auth (bearer token middleware) — separate security sprint
 - Execution tool allowlist — separate security sprint
 
+### Session 60u — Cleanup + Handoff
+- **claude-squad reset** — Cleared 8 stale instances (agent-health, cleanup-worker, cluster-health, doc-worker, iac-worker, inspector, ts-checker, verifier). Cleaned tmux sessions, deleted leftover `worktree-agent-ab333c02` branch.
+
 ### Next Actions
-1. Deploy agent server to FOUNDRY — rsync + rebuild for health endpoint + workflows + tuning
-2. Deploy EoBQ to WORKSHOP — rebuild for character memory
-3. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
-4. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
-5. Dashboard control — extend to FOUNDRY/VAULT containers (SSH or remote Docker proxy)
-6. vLLM upgrade to v0.17.1 stable — test on WORKSHOP first, then FOUNDRY
-7. Agent server auth sprint — bearer token middleware, execution tool allowlist
+1. **Deploy agent server to FOUNDRY** — rsync + rebuild for health endpoint + workflows + tuning (session 60t changes)
+2. **Deploy EoBQ to WORKSHOP** — rebuild for character memory integration
+3. **Security sprint** — Agent server bearer token auth, execution tool allowlist (deferred from 60t)
+4. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
+5. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
+6. Dashboard control — extend to FOUNDRY/VAULT containers (SSH or remote Docker proxy)
+7. vLLM upgrade to v0.17.1 stable — test on WORKSHOP first, then FOUNDRY
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
