@@ -307,10 +307,16 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **SYSTEM-SPEC updated** — Qdrant counts refreshed: signals 82→102, conversations 2288→2293. Eval baseline updated to 100%.
 - **Qdrant current counts**: knowledge 3435, conversations 2293, signals 102, activity 5624, preferences 59, implicit_feedback 324, events 9555, llm_cache 2, personal_data 17916.
 
+### Session 60q — HA Token Deployed, EoBQ Content Generation Assessment
+- **Home Agent unblocked** — HA long-lived access token provided by Shaun, deployed to FOUNDRY `.env`, scheduler enabled in `scheduler.py` (`enabled: True`, interval=5min). Verified: home-agent task completed successfully (43 entities, 15 domains, identified 3 unavailable media players).
+- **All 5 Shaun blockers now cleared** — NordVPN, Anthropic API key, Google Drive OAuth, Node 2 DDR5 EXPO, Node 1 Samsung 990 PRO, and now HA token.
+- **EoBQ content generation assessed** — Full 21-queen performer database exists in `projects/eoq/docs/eoq-master-document.md` (87KB). 21 performers with physical blueprints, 19-trait sexual DNA matrices, stripper personas, voice DNA, and 10+ scene scripts each. Live system has working dialogue gen (LiteLLM→vLLM streaming), image gen (ComfyUI→Flux+PuLID), and Reference Library UI. Gap: master document queens not yet ported to TypeScript character definitions.
+- **Stash library**: 14,547 performers. Top by scene count: Abigail Mac (71), Kendra Lust (52), Angela White (49). Performer photos available via GraphQL for PuLID reference injection.
+
 ### Next Actions
-1. Home Agent testing — blocked on Shaun providing HA token
+1. Port 21-queen performer DNA from master document to live TypeScript character system — Shaun decision on scope/priority
 2. Dual Qdrant consolidation — low priority, VAULT:6333 has 3 unique collections worth ~640 points
-3. All build manifest items complete except Shaun-blocked items
+3. All build manifest items complete except Shaun-blocked items (none remaining)
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
