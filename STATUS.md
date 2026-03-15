@@ -380,16 +380,21 @@ Phase 6 (Testing)            DONE — 391 tests pass
 ### Session 60u — Cleanup + Handoff
 - **claude-squad reset** — Cleared 8 stale instances (agent-health, cleanup-worker, cluster-health, doc-worker, iac-worker, inspector, ts-checker, verifier). Cleaned tmux sessions, deleted leftover `worktree-agent-ab333c02` branch.
 
-### Session 60v — Security Hardening + Deploy + vLLM Assessment
+### Session 60v — Security Hardening + Deploy + Creative Pipeline + vLLM Assessment
 - **Phase 1: Deploy** — Agent server deployed to FOUNDRY (health endpoint + workflows + tuning from 60t). EoBQ deployed to WORKSHOP (character memory integration). Both verified live.
 - **Phase 1: Redis health fix** — Health endpoint was calling `_redis.from_url()` without password. Fixed to pass `settings.redis_password`. Commit: d94cedd.
 - **Phase 2: Bearer token auth** — Full end-to-end: `BearerAuthMiddleware` in server.py (exempt: /health, /metrics, /docs), config.py `api_bearer_token` field, all dashboard fetch calls updated (20+ callsites via centralized `agentServerHeaders()`), MCP bridge updated, Ansible vault secret added. Token: generated and deployed to FOUNDRY .env, WORKSHOP dashboard .env, ~/.claude/mcp-vars.sh. Commit: 34975dc.
 - **Phase 2: Command allowlist** — Replaced insecure blocklist in execution.py with explicit `COMMAND_ALLOWLIST_PREFIXES` (30+ safe prefixes: python, git read-only, file inspection, curl, npm/node). Kept deny patterns for absolute blocks (rm -rf /, fork bombs, etc).
 - **Phase 3: vLLM v0.17.1 — DEFERRED** — Research found Qwen3.5-27B-FP8 crashes on v0.17.1 across A100/L40/Blackwell (GitHub #36828, #35502, #35702). FlashInfer BatchPrefillWithPagedKVCache bf16 head_dim 256 bug. Fix only in nightly with regressions. Our nightly 0.16.1rc1.dev32 is stable with all needed features. Upgrade deferred to v0.17.2+.
+- **Phase 4: Creative pipeline audit** — ComfyUI custom nodes ALREADY installed on WORKSHOP (via Docker volume): ReActor, PuLID-Flux, PuLID (original), Impact Pack, IP-Adapter Plus, InfiniteYou. Models present: pulid_flux_v0.9.1, inswapper_128, antelopev2, CodeFormer, GFPGANv1.4. Missing: HyperSwap 256 models, buffalo_l, FaceAnalysis node.
+- **Phase 4: Stash photo extractor** — `scripts/extract-stash-performer-photos.py` built and tested. 18/21 EoBQ queens found in Stash (3 niche performers missing: Emilie Ekstrom, Brianna Banks, Clanddi Jinkcebo). Modes: --queens, --top N, --all. Dry run verified.
+- **Phase 4: PuLID portrait workflows** — Two new ComfyUI API workflows: `character-portrait-pulid.json` (PuLID + ReActor + CodeFormer full pipeline) and `character-portrait-pulid-simple.json` (PuLID only). Both use Flux dev FP8 with replaceable template fields.
+- **Phase 4: Dockerfile update** — Baked 6 custom nodes into ComfyUI Dockerfile for reproducible builds (were only in Docker volume). Updated extra_model_paths.yaml with standard paths (loras, controlnet, upscale, embeddings, clip_vision).
+- **Phase 4: GPU contention blocker** — ComfyUI on GPU 1 (5060 Ti 16GB) cannot run full identity pipeline (~20-24GB). Needs 5090 (GPU 0) which runs vLLM worker. Resource scheduling decision needed.
 
 ### Next Actions
-1. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
-2. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
+1. **GPU scheduling decision** — ComfyUI needs 5090 for PuLID/InfiniteYou. Options: time-share with vLLM worker, dedicated creative sessions (vLLM sleep mode when available), or swap GPU assignments.
+2. Download missing ComfyUI models — HyperSwap 256, buffalo_l, FaceAnalysis node install
 3. Dashboard control — extend to FOUNDRY/VAULT containers (SSH tunnel or remote Docker proxy)
 4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
 5. GWT Phase 3-4 — agent subscription/reaction to workspace broadcasts
