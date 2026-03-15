@@ -91,12 +91,7 @@ Core census and probe scripts:
 - `python scripts/probe-agent-runtime.py`
 - `python scripts/tests/live-dashboard-smoke.py`
 
-Run outputs land in:
-
-- [`../../reports/completion-audit/latest/summary.md`](../../reports/completion-audit/latest/summary.md)
-- [`../../reports/completion-audit/latest/release-readiness.json`](../../reports/completion-audit/latest/release-readiness.json)
-- [`../../reports/completion-audit/latest/remediation-backlog.json`](../../reports/completion-audit/latest/remediation-backlog.json)
-- timestamped runs under [`../../reports/completion-audit`](../../reports/completion-audit)
+Run outputs land in the `reports/completion-audit/` directory (created on first run).
 
 ### Current Gate State
 

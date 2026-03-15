@@ -2,7 +2,7 @@
 
 This document is the design-level explanation of how Athanor should make decisions, route work, and preserve sovereignty.
 
-It is the full design companion to [ADR-023](../decisions/ADR-023-command-hierarchy-and-governance.md) and the atlas entry in [COMMAND_HIERARCHY_ATLAS.md](../atlas/COMMAND_HIERARCHY_ATLAS.md).
+It is the full design companion to [ADR-023](../decisions/ADR-023-command-hierarchy-and-governance.md).
 
 ## Plain-language model
 
