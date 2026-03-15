@@ -1,0 +1,87 @@
+{
+  "_comment": "Simple PuLID portrait — no face swap pass. Faster, good for initial generation. Replaceable: {{prompt}}, {{reference_image_path}}, {{seed}}, {{filename_prefix}}",
+
+  "1": {
+    "class_type": "PulidFluxModelLoader",
+    "inputs": { "pulid_file": "pulid_flux_v0.9.1.safetensors" },
+    "_meta": { "title": "Load PuLID Flux Model" }
+  },
+  "2": {
+    "class_type": "PulidFluxInsightFaceLoader",
+    "inputs": { "provider": "CUDA" },
+    "_meta": { "title": "Load InsightFace" }
+  },
+  "3": {
+    "class_type": "PulidFluxEvaClipLoader",
+    "inputs": {},
+    "_meta": { "title": "Load EVA-CLIP" }
+  },
+  "10": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "flux1-dev-fp8.safetensors" },
+    "_meta": { "title": "Load Flux Dev FP8" }
+  },
+  "11": {
+    "class_type": "LoadImage",
+    "inputs": { "image": "{{reference_image_path}}" },
+    "_meta": { "title": "Load Reference Photo" }
+  },
+  "20": {
+    "class_type": "ApplyPulidFlux",
+    "inputs": {
+      "weight": 0.9,
+      "start_at": 0.0,
+      "end_at": 1.0,
+      "model": ["10", 0],
+      "pulid_flux": ["1", 0],
+      "eva_clip": ["3", 0],
+      "face_analysis": ["2", 0],
+      "image": ["11", 0]
+    },
+    "_meta": { "title": "Apply PuLID" }
+  },
+  "30": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "{{prompt}}", "clip": ["10", 1] },
+    "_meta": { "title": "Positive Prompt" }
+  },
+  "31": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "blurry, low quality, deformed, ugly, bad anatomy, extra fingers, mutated hands, watermark, text",
+      "clip": ["10", 1]
+    },
+    "_meta": { "title": "Negative Prompt" }
+  },
+  "40": {
+    "class_type": "EmptyLatentImage",
+    "inputs": { "width": 768, "height": 1024, "batch_size": 1 },
+    "_meta": { "title": "Latent (Portrait)" }
+  },
+  "50": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": "{{seed}}",
+      "steps": 25,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "model": ["20", 0],
+      "positive": ["30", 0],
+      "negative": ["31", 0],
+      "latent_image": ["40", 0]
+    },
+    "_meta": { "title": "KSampler" }
+  },
+  "60": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["50", 0], "vae": ["10", 2] },
+    "_meta": { "title": "VAE Decode" }
+  },
+  "70": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "{{filename_prefix}}", "images": ["60", 0] },
+    "_meta": { "title": "Save Portrait" }
+  }
+}
