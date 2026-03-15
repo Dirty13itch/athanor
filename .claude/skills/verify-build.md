@@ -1,3 +1,8 @@
+---
+description: "Verify a project builds correctly. Detects project type and runs appropriate checks."
+user_invocable: true
+---
+
 # Verify Build
 
 Run type-checking and validation for the current or specified project.

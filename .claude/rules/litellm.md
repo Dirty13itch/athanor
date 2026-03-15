@@ -1,52 +1,80 @@
 ---
 paths:
-  - "ansible/roles/litellm/**"
-  - "agents/**"
   - "projects/agents/**"
+  - "ansible/roles/vault-litellm/**"
+  - "scripts/**"
 ---
 
 # LiteLLM Routing
 
-Proxy at VAULT:4000. All inference routes through LiteLLM — agents, dashboard, CLI tools, MCP.
+Proxy at VAULT:4000 (`http://192.168.1.203:4000`). All inference routes through LiteLLM — agents, dashboard, CLI tools, MCP.
+
+Master key: `LITELLM_MASTER_KEY` env var (value in `~/.claude/mcp-vars.sh`). Also accepted as `OPENAI_API_KEY` for OpenAI-compatible tools.
+
+Config file on VAULT: `/opt/athanor/litellm/config.yaml`
 
 ## Model Aliases
 
 | Alias | Backend Model | Location | Use |
 |-------|---------------|----------|-----|
-| `reasoning` | Qwen3.5-27B-FP8 TP=4 | FOUNDRY:8000 | Complex reasoning, agents |
-| `coding` | Qwen3.5-27B-FP8 TP=4 | FOUNDRY:8000 | Code generation (alias of reasoning) |
-| `coder` | Qwen3.5-35B-A3B-AWQ-4bit | FOUNDRY:8006 | Dedicated coding lane |
-| `worker` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | General tasks |
-| `fast` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Low-latency |
-| `utility` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Utility tasks |
-| `creative` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Creative |
-| `uncensored` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Unfiltered |
-| `embedding` | Qwen3-Embedding-0.6B | DEV:8001 | Embeddings (1024-dim) |
-| `reranker` | Qwen3-Reranker-0.6B | DEV:8003 | Reranking |
+| `reasoning` | Qwen3.5-27B-FP8 TP=4 | FOUNDRY:8000 | Complex reasoning, architecture, agents |
+| `fast` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Quick responses, grading, low-latency |
+| `coder` | Qwen3.5-35B-A3B-AWQ-4bit | FOUNDRY:8006 | Code generation |
+| `embedding` | Qwen3-Embedding-0.6B | DEV:8001 | 1024-dim vectors |
+| `reranker` | Qwen3-Reranker-0.6B | DEV:8003 | Cross-encoder scoring |
+
+Additional aliases on WORKSHOP (`worker`, `utility`, `creative`, `uncensored`) all route to the same 35B-A3B-AWQ backend.
+
+## Config Changes
+
+**Always backup before modifying:**
+```bash
+cp /opt/athanor/litellm/config.yaml /opt/athanor/litellm/config.yaml.bak.$(date +%s)
+```
+
+- Deploy changes via Ansible when playbook exists (`ansible/roles/vault-litellm/`)
+- After manual edits: restart the LiteLLM container on VAULT
+- Never modify running config without backup
 
 ## Health Check
 
 ```bash
-curl -s http://192.168.1.203:4000/health
+curl -s http://192.168.1.203:4000/health/liveliness
 curl -s -H "Authorization: Bearer $LITELLM_MASTER_KEY" http://192.168.1.203:4000/v1/models | jq '.data[].id'
 ```
 
-## Config Changes
+## Qwen3.5 Thinking Mode
 
-1. Config location: `/opt/litellm/config.yaml` on VAULT
-2. **Always backup first:** `cp config.yaml config.yaml.bak.$(date +%s)`
-3. Deploy via Ansible when playbook exists
-4. After change: restart LiteLLM container on VAULT
+Thinking is enabled by default — responses include `<think>` blocks.
 
-## Debugging Slow Requests
+Disable per-request when you need deterministic structured output:
+```python
+extra_body={"chat_template_kwargs": {"enable_thinking": False}}
+```
 
-1. Identify which model alias was called
-2. Check GPU utilization: `ssh node1 'nvidia-smi'` / `ssh node2 'nvidia-smi'`
-3. High GPU util + many pending requests = queue backup (reduce concurrency or route elsewhere)
-4. LangFuse traces: check time-to-first-token vs total generation time
-5. LiteLLM dashboard: `http://192.168.1.203:4000/ui`
+Required for: JSON mode, grading tasks, structured data extraction, any prompt expecting plain output.
 
-## Credentials
+## LangFuse Integration
 
-- Master key: stored in `~/.claude/mcp-vars.sh` as `LITELLM_MASTER_KEY`
-- Env var: `OPENAI_API_KEY` (same value, for OpenAI-compatible tools)
+Traces auto-forwarded to LangFuse at VAULT:3030. Tag requests so they are filterable:
+```python
+extra_body={
+    "metadata": {
+        "trace_name": "agent-name",      # replaces "litellm-acompletion" in UI
+        "tags": ["agent-name"],          # filter label
+        "trace_metadata": {"agent": "agent-name"},
+    }
+}
+```
+
+Plain `metadata.agent` is NOT read by LangFuse — use the keys above.
+
+## Debugging
+
+1. Check which alias was called and confirm backend is healthy (`/health/liveliness`)
+2. GPU utilization: `ssh foundry 'nvidia-smi'` / `ssh workshop 'nvidia-smi'`
+3. High GPU util + queued requests = queue backup — reduce concurrency or reroute
+4. LangFuse traces: compare time-to-first-token vs total generation time to isolate queue vs inference
+5. LiteLLM UI: `http://192.168.1.203:4000/ui`
+
+<!-- updated 2026-03-14 -->

@@ -1,51 +1,65 @@
 ---
 paths:
-  - "scripts/index-knowledge.py"
-  - "agents/**"
   - "projects/agents/**"
+  - "scripts/**"
 ---
 
 # Qdrant Operations
 
-Endpoint: `http://192.168.1.244:6333` (FOUNDRY). MCP tool `qdrant` is preferred over raw curl.
+Endpoint: `http://192.168.1.203:6333` (VAULT). No auth required (internal network).
+Python client: `from qdrant_client import QdrantClient` — `QdrantClient("192.168.1.203", port=6333)`.
+REST API also available. MCP tool `qdrant` is preferred over raw curl for ad-hoc queries.
 
 ## Collections
 
-| Collection | Vectors | Distance | Points | Use Case |
-|------------|---------|----------|--------|----------|
-| knowledge | dense (1024) + sparse (miniCOIL) | Cosine | ~3076 | Documentation chunks |
-| conversations | dense (1024) | Cosine | ~2242 | Chat history |
-| activity | dense (1024) | Cosine | ~5573 | Activity tracking |
-| preferences | dense (1024) | Cosine | ~59 | User preference vectors |
-| implicit_feedback | dense (1024) | Cosine | ~324 | Inferred preferences |
-| events | dense (1024) | Cosine | ~10461 | System events |
-| personal_data | dense (1024) | Cosine | ~15747 | Personal data sync |
-| signals | dense (1024) | Cosine | — | Signal pipeline |
-| llm_cache | dense (1024) | Cosine | — | Response cache |
+| Collection | Dimensions | Distance | Points | Use Case |
+|------------|------------|----------|--------|----------|
+| knowledge | 1024 | Cosine | ~3076 | Indexed docs, ADRs, research |
+| conversations | 1024 | Cosine | ~2242 | Agent chat logs |
+| signals | 1024 | Cosine | — | RSS / intelligence signals |
+| activity | 1024 | Cosine | ~5573 | Agent activity logs |
+| preferences | 1024 | Cosine | ~59 | User preference vectors |
+| implicit_feedback | 1024 | Cosine | ~324 | Inferred preference signals |
+| events | 1024 | Cosine | ~10461 | Workspace events |
+| llm_cache | 1024 | Cosine | — | Semantic response cache |
+| personal_data | 1024 | Cosine | ~15747 | Personal files, bookmarks, repos |
 
-## Safe Operations
+## Search Patterns
 
-- **Collection stats:** `GET /collections/{name}` — point count, vector dims, status
-- **Scroll:** `POST /collections/{name}/points/scroll` — paginate with `limit` + `offset` (next_page_offset)
-- **Search:** `POST /collections/{name}/points/search` — requires vector, returns scored results
-- **Filter scroll:** Use `filter.must` with `key`/`match` for metadata queries
-- **Count:** `POST /collections/{name}/points/count` with optional filter
+**Vector search:** embed the query via LiteLLM `embedding` model first, then search:
+```python
+vector = litellm.embedding(model="embedding", input=[query]).data[0].embedding
+results = client.search("knowledge", query_vector=vector, score_threshold=0.75, limit=10)
+```
 
-## Dangerous — NEVER Without Approval
+**Payload filtering:**
+```python
+from qdrant_client.models import Filter, FieldCondition, MatchValue, Range
 
-- `DELETE /collections/{name}` — drops entire collection, requires full re-index
-- `POST /collections/{name}/points/delete` with empty/broad filter — mass deletion
-- Recreating a collection with wrong vector dimensions — breaks all indexed data
+# must / should / must_not
+filt = Filter(must=[FieldCondition(key="category", match=MatchValue(value="adr"))])
 
-## Deletion Pattern (safe)
+# date range on ISO8601 string field
+filt = Filter(must=[FieldCondition(key="ingested_at", range=Range(gte="2026-01-01T00:00:00Z"))])
+```
 
-Always delete by specific filter, never drop collection:
+**Pagination:**
+- `offset` + `limit` for search results
+- Scroll with point ID cursor for full collection traversal: `client.scroll(collection, offset=next_page_offset)`
+
+## Safety Rules
+
+- NEVER drop a collection without explicit user approval — full re-index required.
+- Use `delete-by-filter` for targeted cleanup, never bulk delete with empty filter.
+- Check point count before and after any delete operation.
+- Consolidation and cleanup run at 3 AM daily via the scheduler — don't duplicate manually.
+
+**Safe targeted delete:**
 ```json
 {"filter": {"must": [{"key": "source", "match": {"value": "path/to/file.md"}}]}}
 ```
 
-## Consistency Checks
-
-- Orphaned points: source file deleted but points remain — run `index-knowledge.py` incremental
-- Missing metadata: points without `source`, `title`, or `category` fields
-- Duplicate points: same source + chunk_index — deduplicated via `text_to_uuid` in indexer
+**Dangerous — require approval:**
+- `DELETE /collections/{name}` — drops entire collection
+- `POST /collections/{name}/points/delete` with empty or over-broad filter
+- Recreating a collection with wrong vector dimensions (breaks all indexed data)

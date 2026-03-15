@@ -4,15 +4,18 @@
 
 description: "Athanor agent quality baseline"
 
-# Use fast (Huihui-8B abliterated) as LLM-as-judge grader.
-# Reasoning (Qwen3.5-27B-FP8) generates <think> blocks that break promptfoo's JSON extraction.
-# Abliterated 8B has no think tags and produces clean JSON verdicts.
+# Grader: fast model (Qwen3.5-35B-A3B-AWQ) with thinking disabled.
+# Thinking traces break promptfoo's JSON extraction for llm-rubric.
+# extra_body.chat_template_kwargs disables thinking via LiteLLM → vLLM.
 defaultTest:
   options:
     provider:
       id: openai:chat:fast
       config:
         apiBaseUrl: http://192.168.1.203:4000/v1
+        extra_body:
+          chat_template_kwargs:
+            enable_thinking: false
     # Strip think tags from model outputs before grading
     transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
 

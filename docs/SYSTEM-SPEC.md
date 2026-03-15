@@ -132,7 +132,7 @@ Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`
 - **Agent registry:** All 9 agents register capabilities in Redis on startup. Discovery via `GET /v1/agents/registry`.
 - **Event ingestion:** External events (HA state changes, cron, webhooks) converted to workspace items via `POST /v1/events` with priority mapping.
 - **Redis pub/sub:** Competition cycle publishes broadcast to `athanor:workspace:broadcast` channel.
-- **Conversation logging:** Every chat completion logged to Qdrant `conversations` collection (embedded for semantic search). Queryable via `GET /v1/conversations`.
+- **Conversation logging (deployed):** Every chat completion auto-embedded to Qdrant `conversations` collection (2242 entries) for semantic search. Queryable via `GET /v1/conversations`.
 
 ### Task Execution Engine (deployed Session 19)
 
@@ -331,12 +331,11 @@ Agents respond to requests. No memory between invocations beyond what's in the c
 
 ### Layer 2: Accumulated Knowledge (deployed)
 
-Knowledge base (2547 vectors), 8 Qdrant collections, preferences, activity logging, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (4447 relationships).
+Knowledge base (3076 vectors), 9 Qdrant collections (including `signals` — 22 intelligence signals from n8n pipeline), preferences, activity logging, conversation auto-embedding, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (4447 relationships).
 
-**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config).
+**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config), conversation auto-embedding (every chat completion auto-embedded to `conversations` collection since session 40), n8n signal pipeline (22 signals in Qdrant `signals` collection, daily digest integration via `goals.py`).
 
 **What's remaining for full Layer 2:**
-- Conversation history indexing (collection exists but isn't populated)
 - Proactive knowledge indexing (currently manual, should be cron)
 
 **Infrastructure:** Qdrant, Neo4j, embedding model, index scripts, Redis.
@@ -359,7 +358,7 @@ Agents recognize patterns in their own operation and user behavior:
 - Explicit: thumbs up/down, "remember this" statements, preference edits
 - Meta: which agent actions led to follow-up requests (indicating incomplete results)
 
-**Infrastructure:** Preference collection (deployed), activity logging (deployed), context injection (deployed), pattern detection jobs (not started).
+**Infrastructure:** Preference collection (deployed), activity logging (deployed), context injection (deployed), signal pipeline (deployed, n8n + Qdrant `signals`), pattern detection jobs (not started).
 **Verification:** Agent recommendations improve measurably over time. Media Agent stops suggesting genres Shaun ignores.
 
 ### Layer 4: Self-Optimization (future)

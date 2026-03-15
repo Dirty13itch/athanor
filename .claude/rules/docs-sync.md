@@ -2,6 +2,7 @@
 paths:
   - "docs/**"
   - "ansible/**"
+  - "projects/**"
   - "CLAUDE.md"
   - "STATUS.md"
 ---

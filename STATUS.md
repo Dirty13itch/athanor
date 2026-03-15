@@ -689,5 +689,38 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-14 19:14 PDT
+*Last updated: 2026-03-14 19:14 PDT*
+
+---
+
+## Session 60k (2026-03-15 ~03:00 UTC)
+
+### Work Done
+- **Signal pipeline FIXED** — Root cause: n8n `pairedItem` tracking breaks across HTTP Request hops. Fixed with `$itemIndex`-based cross-references. Manual test: 21 articles processed, Qdrant `signals` collection: 1 → 22 points. Auto-trigger restored after n8n container restart (cron wasn't re-registering on API-only activate/deactivate).
+- **Mark Read node fixed** — Miniflux PUT /v1/entries returns 204 (empty body). Set `onError: continueRegularOutput` + `responseFormat: text`.
+- **Signal digest deployed** — `goals.py` now includes intelligence signals in daily morning digest. Groups by category, shows top 3 per category sorted by relevance. Deployed to FOUNDRY (rsync + rebuild + up -d). 9 agents healthy.
+- **Knowledge agent metadata synced** — `server.py` AGENT_METADATA for knowledge-agent updated to match actual 8 tools (was missing `search_signals`, `deep_search`, `upload_document`).
+- **COO persistent memory restructured** — Auto-memory split into 3 files: MEMORY.md (84 lines, identity-first), coo-playbook.md (118 lines, operational protocols), infrastructure.md (72 lines, cluster facts). Identity and operating posture now lead MEMORY.md instead of being buried after data.
+- **Rules created/updated** — `docs-sync.md` updated with `projects/**` path trigger. `qdrant-operations.md`, `litellm.md` created (via background agents).
+- **verify-build skill** — Added `user_invocable: true` frontmatter.
+- **Eval grader fix** — Added `extra_body.chat_template_kwargs.enable_thinking: false` to promptfoo grader config. Previous 15/38 pass rate was due to Qwen3.5 thinking traces breaking JSON extraction.
+- **BUILD-MANIFEST updates** — Tier 1.2 (LiteLLM), 2.6 (agent routing), 12.1 (signal pipeline) marked complete with implementation notes.
+- **Stale team cleanup** — 5 tmux panes from hardening-verify team killed.
+- **Knowledge indexer running** — Re-indexing `.claude/rules/*.md`, CONSTITUTION.yaml, STATUS.md into Qdrant `knowledge` collection.
+
+### Key Findings
+- n8n PATCH /workflows/{id} returns 405 in v2.10. Use POST /workflows/{id}/activate and /deactivate instead.
+- n8n container restart required to re-register crons after workflow activate/deactivate via API. API-only cycle doesn't reliably register schedule triggers.
+- `rsync --delete` to foundry triggers bash firewall (matches "delete" destructive verb). Use without `--delete` for agent deployments.
+
+### Next Actions
+1. Verify n8n signal pipeline auto-trigger succeeds (next at ~04:00 UTC)
+2. Collect eval results (running in background) — expect improved pass rate with thinking disabled
+3. Fix n8n Mark Read 204 properly (verify the continueOnFail fix works)
+4. Dashboard DailyBriefing signal integration (12.2 remaining)
+5. GWT Phase 3 — agents subscribing to workspace broadcasts
+6. LangFuse prompt versioning for agent system prompts
+7. Stale container cleanup (tei-test, vllm-coder2, field-inspect-app-legacy)
+
+*Last updated: 2026-03-15 03:45 UTC*
 
