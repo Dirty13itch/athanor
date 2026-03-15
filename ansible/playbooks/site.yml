@@ -1,5 +1,5 @@
 ---
-# Master playbook — applies all roles to compute nodes
+# Master playbook — applies all roles to all managed nodes
 # Usage: ansible-playbook playbooks/site.yml
 
 - name: Configure Node 1 (Foundry)
@@ -35,6 +35,30 @@
     - { role: ulrich-energy, tags: [ulrich-energy] }
     - { role: cadvisor, tags: [cadvisor] }
     - { role: alloy, tags: [alloy] }
+
+- name: Configure VAULT (Storage)
+  hosts: vault
+  become: false
+  roles:
+    - { role: vault-monitoring, tags: [monitoring] }
+    - { role: vault-media, tags: [media] }
+    - { role: vault-homeassistant, tags: [homeassistant] }
+    - { role: vault-litellm, tags: [litellm] }
+    - { role: vault-neo4j, tags: [neo4j] }
+    - { role: vault-redis, tags: [redis] }
+    - { role: vault-voice, tags: [voice] }
+    - { role: vault-langfuse, tags: [langfuse] }
+    - { role: vault-open-webui, tags: [open-webui-vault] }
+    - { role: vault-grafana-alerts, tags: [alerts] }
+    - { role: vault-gitea, tags: [gitea] }
+    - { role: vault-miniflux, tags: [miniflux] }
+    - { role: vault-n8n, tags: [n8n] }
+    - { role: vault-postgres, tags: [postgres] }
+    - { role: vault-ntfy, tags: [ntfy] }
+    - { role: vault-loki, tags: [loki] }
+    - { role: cadvisor, tags: [cadvisor] }
+    - { role: alloy, tags: [alloy] }
+    - { role: vault-vpn-torrent, tags: [vpn-torrent] }
 
 - name: Configure DEV (Retrieval)
   hosts: dev
