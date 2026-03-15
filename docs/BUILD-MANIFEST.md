@@ -654,16 +654,16 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Qdrant `signals` collection:** Created on FOUNDRY:6333 (1024-dim, Cosine).
 - **Ansible role:** `ansible/roles/vault-miniflux/` + `ansible/roles/vault-n8n/`.
 - **Feed seeder:** `scripts/seed-miniflux-feeds.py` — adds feeds via Miniflux API with category management.
-- **Remaining:** Daily signal digest generation. (`search_signals` tool already wired into Knowledge Agent via `KNOWLEDGE_TOOLS`.)
+- **Remaining:** None. Daily signal digest deployed (session 60k) — `goals.py` includes top signals per category in morning digest. `search_signals` tool wired into Knowledge Agent. Mark Read node handles Miniflux 204 responses.
 - **Depends on:** None
-- **Priority:** Done (remaining items P2)
+- **Priority:** Done
 
 ### 12.2 — Morning Briefing Agent Job
 - **Status:** ✅ done (Session 39 verified — infrastructure already exists)
 - **Scope:** Daily digest at 6:55 AM + morning work plan at 7:00 AM already in scheduler.py. Pattern detection at 5:00 AM. Memory consolidation at 3:00 AM. Alert checks every 5 min. Work plan refill every 2h. All via task engine with Redis state tracking.
 - **Verified:** `scheduler.py` has `_check_daily_digest()` (6:55 AM via `goals.generate_digest_prompt()`), `_check_morning_plan()` (7:00 AM via `workplanner.generate_work_plan()`), `_check_pattern_detection()` (5:00 AM), `_check_consolidation()` (3:00 AM), `_check_alerts()` (5 min intervals).
-- **Remaining:** Dashboard `DailyBriefing` component to display the briefing. Integration with Miniflux signal data once 12.1 n8n workflows are ready.
-- **Priority:** Done (dashboard component is P2)
+- **Remaining:** Dashboard `DailyBriefing` component exists but could show signal categories/counts from `/v1/signals` endpoint. Low priority — digest content already includes signals via `goals.py`.
+- **Priority:** Done (dashboard enhancement is P3)
 
 ### 12.3 — Overnight Autonomous Operations
 - **Status:** ✅ done (Session 39)

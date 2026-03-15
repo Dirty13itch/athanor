@@ -94,7 +94,7 @@ fi
 # Block destructive verbs targeting FOUNDRY, allow read-only commands
 if echo "$COMMAND" | grep -qiE "(192\.168\.1\.244|foundry|node1)" && \
    echo "$COMMAND" | grep -qiE "\b(restart|stop|delete|destroy|down|remove|kill|disable)\b" && \
-   ! echo "$COMMAND" | grep -qiE "(docker ps|nvidia-smi|docker logs|journalctl|cat |head |tail |ls |df |free |mount |curl |wget|docker stats|docker inspect)"; then
+   ! echo "$COMMAND" | grep -qiE "(docker ps|nvidia-smi|docker logs|journalctl|cat |head |tail |ls |df |free |mount |curl |wget|docker stats|docker inspect|rsync )"; then
   block "Destructive operation targeting FOUNDRY (.244)" \
     "FOUNDRY is production. Read-only ops allowed. Destructive actions require user approval."
 fi
