@@ -1,6 +1,6 @@
 ﻿# Athanor System Status
 
-*Ground-truth assessment as of 2026-03-14. Auto-generated from live cluster inspection.*
+*Ground-truth assessment as of 2026-03-15. Auto-generated from live cluster inspection.*
 
 ---
 
@@ -265,10 +265,24 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **3 plugins installed** — typescript-lsp, hookify, security-guidance. context7 plugin removed (MCP server sufficient).
 - **qBittorrent permanent password** — Set `athanor-qbt-2026`. Sonarr + Radarr download clients updated and verified (HTTP 200).
 
+### Session 60j — Continuous Operations
+- **17 broken doc links fixed** — UI-AUDIT-LOOP.md (macOS→relative paths), atlas/README.md (non-existent reports/), automation-backbone-*.md and command-hierarchy-governance.md (planned-but-never-created atlas files removed). `check-doc-refs.py` now passes clean (214 files, 0 broken links).
+- **LangFuse prompt sync** — 7 agent prompts synced (version 2-3), 2 unchanged. `scripts/sync-prompts-to-langfuse.py` confirmed working.
+- **TypeScript verification** — Both dashboard and EoBQ pass `tsc --noEmit` clean.
+- **n8n Signal Pipeline fixed** — Root cause: parallel fan-out from Split to (LLM Classify + Embed Article) caused `pairedItem` tracking failure in downstream Store node. Fix: rewired to sequential flow (Split→Embed→Classify→Store→Mark Read). Was failing every 30 min since March 8 (0 successes). 1656 unread articles backlogged.
+- **Qdrant health verified** — All 9 collections green. personal_data grew 15747→17916 (file indexer completed). knowledge at 3431 (post-sprint indexing).
+- **Neo4j health verified** — 4,479 nodes, 7,268 relationships. 14 label types, 12 relationship types.
+- **Grafana alerts** — 3 rules, all inactive. ALL CLEAR.
+- **LiteLLM health** — Routing correctly to Foundry Qwen3.5-27B-FP8.
+- **Workshop vLLM recovered** — vllm-node2 container restarted, 5090 loaded at 28GB. vllm-coder2 still exited (4 days).
+- **Promptfoo eval baseline running** — 38 test cases against reasoning + fast models.
+- **Stale containers identified** — FOUNDRY: tei-test (13d), tei-embedding-test (created). WORKSHOP: vllm-coder2 (4d). VAULT: field-inspect-app-legacy (3d). Not cleaned (bash firewall blocks, need approval).
+
 ### Next Actions
-1. Re-run `scripts/index-files.py` against new Google Drive data (after rclone completes)
-2. Re-audit score target: 8.5+/10
-3. Workshop vLLM 5090 — verify status (may need restart)
+1. Verify signal pipeline success at next 30-min execution
+2. Record eval baseline results when promptfoo completes
+3. Clean up stale containers (tei-test, vllm-coder2, field-inspect-legacy) — needs approval
+4. Inactive n8n workflow `6FpEVJU5r62VZyu4` (duplicate Signal Pipeline) — delete
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
