@@ -1,44 +1,92 @@
 import { config } from "@/lib/config";
 import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
-import { addFixtureMemory, getFixtureMemories } from "@/lib/fixtures";
+import { addFixtureMemory } from "@/lib/fixtures";
 
 /**
- * Character memory API — stores and retrieves interaction memories from Qdrant.
- * Uses the embedding model via LiteLLM to vectorize memory text.
+ * Character memory API -- stores interaction memories in Qdrant with
+ * typed memory categories, importance scoring, and recency decay.
  *
- * POST: Store a new memory
- * GET: Retrieve relevant memories for a character + context
+ * POST: Store a new memory (embeds via LiteLLM, upserts to Qdrant)
+ * GET:  Legacy retrieve endpoint (prefer /api/memory/[characterId] instead)
+ *
+ * Collection: eoq_character_memory
+ * Embedding: Qwen3-Embedding (1024 dims) via LiteLLM
  */
 
-const COLLECTION = "eoq_characters";
-const VECTOR_SIZE = 1024;
+export const COLLECTION = "eoq_character_memory";
+export const VECTOR_SIZE = 1024;
 
-/** Store a memory about a character interaction */
+const VALID_MEMORY_TYPES = new Set([
+  "interaction",
+  "choice",
+  "revelation",
+  "combat",
+  "relationship_change",
+]);
+
+// ---------------------------------------------------------------------------
+// POST -- store a new memory
+// ---------------------------------------------------------------------------
+
 export async function POST(req: Request) {
-  const { characterId, sessionId, text, metadata } = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
 
+  const characterId = typeof body.characterId === "string" ? body.characterId : "";
+  const sessionId = typeof body.sessionId === "string" ? body.sessionId : "";
+  // Accept both "content" (new) and "text" (legacy) field names
+  const content =
+    typeof body.content === "string"
+      ? body.content
+      : typeof body.text === "string"
+        ? body.text
+        : "";
+  const importance = clampImportance(body.importance);
+  const memoryType =
+    typeof body.memoryType === "string" && VALID_MEMORY_TYPES.has(body.memoryType)
+      ? body.memoryType
+      : "interaction";
+  const metadata =
+    typeof body.metadata === "object" && body.metadata !== null
+      ? (body.metadata as Record<string, unknown>)
+      : {};
+
+  if (!characterId || !content) {
+    return Response.json(
+      { error: "characterId and content (or text) are required" },
+      { status: 400 },
+    );
+  }
+
+  // ---- Fixture mode ----
   if (EOQ_FIXTURE_MODE) {
     const id = crypto.randomUUID();
     addFixtureMemory({
       characterId,
-      text,
+      text: content,
       timestamp: Date.now(),
-      metadata: { sessionId, ...metadata },
+      metadata: { sessionId, importance, memoryType, ...metadata },
     });
     return Response.json({ id });
   }
 
-  // Generate embedding
-  const embedding = await getEmbedding(text);
+  // ---- Generate embedding ----
+  const embedding = await getEmbedding(content);
   if (!embedding) {
     return Response.json({ error: "Embedding generation failed" }, { status: 500 });
   }
 
-  // Ensure collection exists
+  // ---- Ensure collection exists ----
   await ensureCollection();
 
-  // Upsert to Qdrant
+  // ---- Upsert to Qdrant ----
   const pointId = crypto.randomUUID();
+  const timestamp = Date.now();
+
   const resp = await fetch(`${config.qdrantUrl}/collections/${COLLECTION}/points`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -50,8 +98,10 @@ export async function POST(req: Request) {
           payload: {
             character_id: characterId,
             session_id: sessionId,
-            text,
-            timestamp: Date.now(),
+            text: content,
+            importance,
+            memory_type: memoryType,
+            timestamp,
             ...metadata,
           },
         },
@@ -67,7 +117,10 @@ export async function POST(req: Request) {
   return Response.json({ id: pointId });
 }
 
-/** Retrieve relevant memories for a character */
+// ---------------------------------------------------------------------------
+// GET -- legacy retrieve (kept for backwards compat; prefer [characterId] route)
+// ---------------------------------------------------------------------------
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const characterId = url.searchParams.get("characterId");
@@ -78,55 +131,18 @@ export async function GET(req: Request) {
     return Response.json({ error: "characterId and query required" }, { status: 400 });
   }
 
-  if (EOQ_FIXTURE_MODE) {
-    const memories = getFixtureMemories(characterId).slice(0, limit).map((memory, index) => ({
-      text: memory.text,
-      timestamp: memory.timestamp,
-      score: 0.92 - index * 0.08,
-      metadata: memory.metadata ?? {},
-    }));
-    return Response.json({ memories });
-  }
-
-  // Generate embedding for the query
-  const embedding = await getEmbedding(query);
-  if (!embedding) {
-    return Response.json({ memories: [] });
-  }
-
-  // Search Qdrant
-  const resp = await fetch(`${config.qdrantUrl}/collections/${COLLECTION}/points/query`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: embedding,
-      limit,
-      filter: {
-        must: [
-          { key: "character_id", match: { value: characterId } },
-        ],
-      },
-      with_payload: true,
-    }),
-  });
-
-  if (!resp.ok) {
-    return Response.json({ memories: [] });
-  }
-
-  const data = await resp.json();
-  const memories = (data.result?.points ?? []).map((p: { payload: Record<string, unknown>; score: number }) => ({
-    text: p.payload.text,
-    timestamp: p.payload.timestamp,
-    score: p.score,
-    metadata: p.payload,
-  }));
-
-  return Response.json({ memories });
+  // Redirect to the new route internally
+  const params = new URLSearchParams({ query, limit: String(limit) });
+  const internalUrl = new URL(`/api/memory/${characterId}?${params}`, url.origin);
+  return fetch(internalUrl);
 }
 
+// ---------------------------------------------------------------------------
+// Shared helpers (exported for use by [characterId] route)
+// ---------------------------------------------------------------------------
+
 /** Get embedding from LiteLLM */
-async function getEmbedding(text: string): Promise<number[] | null> {
+export async function getEmbedding(text: string): Promise<number[] | null> {
   try {
     const resp = await fetch(`${config.litellmUrl}/v1/embeddings`, {
       method: "POST",
@@ -149,8 +165,8 @@ async function getEmbedding(text: string): Promise<number[] | null> {
   }
 }
 
-/** Ensure the Qdrant collection exists */
-async function ensureCollection() {
+/** Ensure the Qdrant collection exists with the right schema */
+export async function ensureCollection() {
   try {
     const check = await fetch(`${config.qdrantUrl}/collections/${COLLECTION}`);
     if (check.ok) return;
@@ -165,7 +181,40 @@ async function ensureCollection() {
         },
       }),
     });
+
+    // Create payload indexes for common filter fields
+    const indexFields = ["character_id", "memory_type", "importance"];
+    for (const field of indexFields) {
+      await fetch(
+        `${config.qdrantUrl}/collections/${COLLECTION}/index`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            field_name: field,
+            field_schema: field === "importance" ? "integer" : "keyword",
+          }),
+        },
+      ).catch(() => {
+        // Index creation is best-effort
+      });
+    }
   } catch {
     // Collection might already exist
   }
+}
+
+/**
+ * Compute recency weight: exponential decay over days.
+ * Half-life of 7 days -- memories older than ~30 days score < 0.05.
+ */
+export function recencyWeight(timestampMs: number): number {
+  const daysSince = (Date.now() - timestampMs) / 86_400_000;
+  return Math.exp(-0.1 * daysSince);
+}
+
+function clampImportance(value: unknown): 1 | 2 | 3 | 4 | 5 {
+  if (typeof value !== "number") return 2;
+  const clamped = Math.round(Math.max(1, Math.min(5, value)));
+  return clamped as 1 | 2 | 3 | 4 | 5;
 }

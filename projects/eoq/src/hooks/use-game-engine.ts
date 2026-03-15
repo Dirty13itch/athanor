@@ -13,6 +13,13 @@ import {
   checkArcTransition,
 } from "@/data/narrative";
 import type { PlayerChoice, DialogueTurn, SceneExit, ChoiceEffects } from "@/types/game";
+import {
+  storeChoiceMemory,
+  storeSceneMemory,
+  storeMemory as storeMemoryApi,
+  retrieveMemories,
+  formatMemoriesForPrompt,
+} from "@/lib/character-memory";
 
 /**
  * Game engine hook — manages dialogue flow, scene navigation,
@@ -186,6 +193,20 @@ export function useGameEngine() {
         }
       }, 400);
 
+      // Store scene transition as memory for present characters (fire and forget)
+      const presentInTarget = targetScene.presentCharacters;
+      if (presentInTarget.length > 0) {
+        const { session: latestSession } = useGameStore.getState();
+        if (latestSession) {
+          storeSceneMemory(
+            presentInTarget,
+            latestSession.id,
+            targetScene.name,
+            `Player entered ${targetScene.name} at ${newTime.time}`,
+          );
+        }
+      }
+
       // Auto-save
       setTimeout(() => store.saveGame(), 1000);
     },
@@ -312,10 +333,37 @@ export function useGameEngine() {
           Math.abs(choice.effects.affection ?? 0) +
           Math.abs(choice.effects.respect ?? 0) +
           Math.abs(choice.effects.resistance ?? 0);
-        if (totalImpact >= 10) {
+        if (totalImpact >= 5) {
+          const presentChars = session.worldState.currentScene.presentCharacters;
+          storeChoiceMemory(
+            presentChars,
+            session.id,
+            choice.text,
+            choice.intent,
+            session.worldState.currentScene.name,
+            totalImpact,
+            choice.breakingMethod,
+          );
+        }
+
+        // Track relationship changes as separate memory type
+        if (
+          Math.abs(choice.effects.trust ?? 0) >= 10 ||
+          Math.abs(choice.effects.resistance ?? 0) >= 8
+        ) {
           const presentChars = session.worldState.currentScene.presentCharacters;
           for (const charId of presentChars) {
-            storeMemory(charId, session.id, choice, session.worldState.currentScene.name);
+            const desc = [];
+            if (choice.effects.trust) desc.push(`trust ${choice.effects.trust > 0 ? "+" : ""}${choice.effects.trust}`);
+            if (choice.effects.resistance) desc.push(`resistance ${choice.effects.resistance > 0 ? "+" : ""}${choice.effects.resistance}`);
+            storeMemoryApi(
+              charId,
+              session.id,
+              `Relationship shift: ${desc.join(", ")} after "${choice.text}" in ${session.worldState.currentScene.name}`,
+              4,
+              "relationship_change",
+              { scene: session.worldState.currentScene.name },
+            );
           }
         }
       }
@@ -485,6 +533,20 @@ export function useGameEngine() {
         .reverse()
         .find((t) => t.speaker === "player");
 
+      const playerInput = lastPlayerTurn?.text ?? "[The player approaches in silence.]";
+
+      // Retrieve relevant long-term memories for this character (non-blocking fetch)
+      // The chat API also fetches server-side, but client-side retrieval uses
+      // the new recency-decay scoring and typed memory system.
+      const memoriesPromise = retrieveMemories(currentCharId, playerInput, 5);
+      let memoryContext = "";
+      try {
+        const memories = await memoriesPromise;
+        memoryContext = formatMemoriesForPrompt(memories);
+      } catch {
+        // Memory retrieval is best-effort
+      }
+
       const resp = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -492,8 +554,8 @@ export function useGameEngine() {
           character,
           worldState: session.worldState,
           recentHistory,
-          playerInput:
-            lastPlayerTurn?.text ?? "[The player approaches in silence.]",
+          playerInput,
+          memoryContext,
         }),
       });
 
@@ -540,6 +602,19 @@ export function useGameEngine() {
       const inferredEmotion = inferEmotion(fullText);
       if (inferredEmotion) {
         store.updateCharacter(currentCharId, { emotion: inferredEmotion });
+      }
+
+      // Store the character's response as an interaction memory (fire and forget)
+      if (fullText.length > 20) {
+        const summary = `${character.name} said: "${fullText.length > 120 ? fullText.slice(0, 117) + "..." : fullText}" in ${session.worldState.currentScene.name}`;
+        storeMemoryApi(
+          currentCharId,
+          session.id,
+          summary,
+          2,
+          "interaction",
+          { scene: session.worldState.currentScene.name },
+        );
       }
 
       // Generate contextual choices for the player (fire and forget into state)
@@ -633,32 +708,6 @@ function fetchChoices(
     .catch(() => {
       // Choice generation is best-effort — player can always type freeform
     });
-}
-
-/** Store a significant memory to Qdrant (fire and forget) */
-function storeMemory(
-  characterId: string,
-  sessionId: string,
-  choice: PlayerChoice,
-  sceneName: string
-) {
-  const text = `Player chose: "${choice.text}" (intent: ${choice.intent}) in ${sceneName}`;
-  fetch("/api/memory", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      characterId,
-      sessionId,
-      text,
-      metadata: {
-        intent: choice.intent,
-        breaking_method: choice.breakingMethod,
-        scene: sceneName,
-      },
-    }),
-  }).catch(() => {
-    // Memory storage is best-effort
-  });
 }
 
 function clamp(value: number, min: number, max: number): number {

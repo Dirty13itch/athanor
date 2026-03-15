@@ -18,6 +18,10 @@ export async function POST(req: Request) {
   }
 
   const { character, worldState, recentHistory, playerInput } = parsed.data;
+  // Accept pre-fetched memory context from the client (uses recency-decay scoring)
+  const clientMemoryContext = typeof (rawBody as Record<string, unknown>)?.memoryContext === "string"
+    ? (rawBody as Record<string, unknown>).memoryContext as string
+    : "";
 
   if (EOQ_FIXTURE_MODE) {
     const stream = buildFixtureOpenAiStream(
@@ -32,10 +36,10 @@ export async function POST(req: Request) {
     });
   }
 
-  // Retrieve relevant memories from Qdrant (best-effort)
+  // Retrieve relevant memories from Qdrant (server-side, best-effort fallback)
   const memories = await fetchMemories(character.id, playerInput);
 
-  const systemPrompt = buildSystemPrompt(character, worldState, memories);
+  const systemPrompt = buildSystemPrompt(character, worldState, memories, clientMemoryContext);
   const messages = buildMessages(systemPrompt, recentHistory, playerInput);
 
   // Route to abliterated model at intensity >= 3 — guaranteed no refusal
@@ -94,8 +98,8 @@ async function fetchMemories(characterId: string, query: string): Promise<string
     const embedding = embData.data?.[0]?.embedding;
     if (!embedding) return [];
 
-    // Search Qdrant
-    const qdrantResp = await fetch(`${config.qdrantUrl}/collections/eoq_characters/points/query`, {
+    // Search Qdrant (try new collection first, fall back to legacy)
+    const qdrantResp = await fetch(`${config.qdrantUrl}/collections/eoq_character_memory/points/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -116,18 +120,27 @@ async function fetchMemories(characterId: string, query: string): Promise<string
   }
 }
 
-function buildSystemPrompt(character: Character, world: WorldState, qdrantMemories: string[] = []): string {
+function buildSystemPrompt(
+  character: Character,
+  world: WorldState,
+  qdrantMemories: string[] = [],
+  clientMemoryContext = "",
+): string {
   const p = character.personality;
   const ep = character.emotionalProfile;
   const stage = getBreakingStage(character.resistance);
 
-  // Build memories context from both in-session and Qdrant memories
+  // Build memories context from in-session, server-side Qdrant, and client-side recall
   const sessionMemories = character.relationship.memories.slice(-5).map((m) => `- ${m.summary}`);
   const longTermMemories = qdrantMemories.map((m) => `- [recalled] ${m}`);
   const allMemories = [...sessionMemories, ...longTermMemories];
-  const memoriesCtx = allMemories.length > 0
+  let memoriesCtx = allMemories.length > 0
     ? `\nMEMORIES OF PAST INTERACTIONS:\n${allMemories.join("\n")}`
     : "";
+  // Append client-side recency-scored memories if provided
+  if (clientMemoryContext) {
+    memoriesCtx += `\n${clientMemoryContext}`;
+  }
 
   return `You are ${character.name}${character.title ? ` (${character.title})` : ""} in Empire of Broken Queens, an interactive dark fantasy.
 
