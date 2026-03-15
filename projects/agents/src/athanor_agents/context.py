@@ -488,7 +488,7 @@ def _build_context_message(
     return context
 
 
-async def enrich_context(agent_name: str, user_message: str) -> str:
+async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0) -> str:
     """Build context injection for a request.
 
     Computes one embedding from the user message, then queries preferences,
@@ -500,6 +500,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     Args:
         agent_name: Which agent is handling the request
         user_message: The user's message text
+        max_chars: Override MAX_CONTEXT_CHARS budget (0 = use default)
     """
     # Skip for very short messages (greetings, etc.)
     if len(user_message.strip()) < 5:
@@ -693,11 +694,17 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
             elapsed_ms,
         )
 
-    return _build_context_message(
+    result = _build_context_message(
         pref_lines, activity_lines, knowledge_lines, agent_name,
         goal_lines, pattern_lines, convention_lines, personal_data_lines,
         conversation_lines, cst_line, graph_related_lines, skill_context,
     )
+
+    # Apply caller-specified budget override (e.g. task mode uses less context)
+    if max_chars > 0 and len(result) > max_chars:
+        result = result[:max_chars].rsplit("\n", 1)[0] + "\n\n[context truncated]"
+
+    return result
 
 
 def get_latency_stats() -> dict:
