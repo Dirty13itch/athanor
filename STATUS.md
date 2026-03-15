@@ -36,25 +36,26 @@
 | miniflux | .mcp.json (local) | disabled | RSS feed tools â€” enable when needed |
 | n8n | .mcp.json (local) | disabled | Workflow automation â€” enable when needed |
 | gitea | .mcp.json (local) | disabled | Repo/issue/PR management â€” enable when needed |
-| context7 | claude.ai plugin | ALWAYS | Live library docs (resolve-library-id, query-docs) |
+| context7 | settings.local.json | disabled | Live library docs (MCP server, plugin removed) |
+| github | settings.local.json | disabled | GitHub repo/issue/PR management |
 | Gmail | claude.ai connector | Active | Email integration |
 | Google Calendar | claude.ai connector | Active | Calendar management |
 
-**Removed from local config:** context7 (plugin duplicate), filesystem, playwright.
+**Plugins (5):** pyright-lsp (enabled), typescript-lsp (enabled), hookify (enabled), security-guidance (enabled), frontend-design (disabled). context7 plugin removed (redundant with MCP server).
 
 ## Configuration Inventory
 
 ### Commands (10)
 `audit` `build` `decide` `deploy` `health` `morning` `orient` `project` `research` `status`
 
-### Skills (13)
-`architecture-decision` `athanor-conventions` `comfyui-deploy` `deploy-agent` `deploy-docker-service` `gpu-placement` `local-coding` `network-diagnostics` `node-ssh` `state-update` `troubleshoot` `verify-inventory` `vllm-deploy`
+### Skills (14)
+`architecture-decision` `athanor-conventions` `comfyui-deploy` `deploy-agent` `deploy-docker-service` `gpu-placement` `local-coding` `network-diagnostics` `node-ssh` `state-update` `troubleshoot` `verify-build` `verify-inventory` `vllm-deploy`
 
 ### Agents (6)
 `coder` `debugger` `doc-writer` `infra-auditor` `node-inspector` `researcher`
 
-### Rules (10)
-`agents` `ansible` `dashboard` `docker` `docs` `eoq` `knowledge` `scripts` `session-continuity` `vllm`
+### Rules (13)
+`agents` `ansible` `dashboard` `docker` `docs` `docs-sync` `eoq` `knowledge` `litellm` `qdrant-operations` `scripts` `session-continuity` `vllm`
 
 ### Hooks (12 scripts, 14 registrations)
 | Hook | Event | Purpose |
@@ -95,9 +96,9 @@ Other containers: `athanor-agents` (9000), `athanor-gpu-orchestrator`, `alloy`, 
 
 Other: `athanor-dashboard` (3001), `athanor-eoq` (3002), `athanor-ws-pty-bridge` (3100), `open-webui` (3000), `alloy`, `dcgm-exporter`, `node-exporter`
 
-### VAULT (.203) â€” 44 containers
+### VAULT (.203) â€” 46 containers
 
-Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter`, `n8n` (5678), `gitea` (3033), `miniflux` (8070), `redis`, `vault-open-webui` (3090), `langfuse-web` (3030) + 5 langfuse services, `neo4j` (7474/7687), `qdrant` (6333), `postgres` (5432), `stash` (9999), `plex`, `homeassistant`, media stack (sonarr/radarr/prowlarr/sabnzbd/tautulli/tdarr), `spiderfoot` (5001), `ntfy` (8880), `meilisearch` (7700), `field-inspect-app` (3080/3081) + `field-inspect-s3` (9000-9001), `ulrich-energy-website` (8088), `blackbox-exporter` (9115), monitoring (loki, alloy, cadvisor, node-exporter)
+Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter`, `n8n` (5678), `gitea` (3033), `miniflux` (8070), `redis`, `vault-open-webui` (3090), `langfuse-web` (3030) + 5 langfuse services, `neo4j` (7474/7687), `qdrant` (6333), `postgres` (5432), `stash` (9999), `plex`, `homeassistant`, media stack (sonarr/radarr/prowlarr/sabnzbd/tautulli/tdarr), `qbittorrent` (8112) + `gluetun` (VPN), `spiderfoot` (5001), `ntfy` (8880), `meilisearch` (7700), `field-inspect-app` (3080/3081) + `field-inspect-s3` (9000-9001), `ulrich-energy-website` (8088), `blackbox-exporter` (9115), monitoring (loki, alloy, cadvisor, node-exporter)
 
 ### DEV (.189) â€” 4 containers
 
@@ -255,10 +256,19 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **Model rsync complete** — 283 GB synced to Samsung 990 PRO on FOUNDRY. VAULT NFS no longer inference SPOF.
 - **qBittorrent wired to Sonarr + Radarr** — Download clients configured via API. Categories: `sonarr`/`radarr`. Downloads route through Gluetun VPN tunnel.
 
+### Session 60i — Refinement Sprint (Claude Code Hardening)
+- **Bash firewall expanded** — 10 → 40+ blocked patterns. Docker ops, Ansible production gate (--check required for FOUNDRY), systemctl via SSH, database mass ops, credential leakage, filesystem ops, FOUNDRY node-aware protection. All advisory (exit 2).
+- **3 new rules** — `qdrant-operations.md` (collection inventory, safe/dangerous patterns), `litellm.md` (model alias map, health checks, debugging), `docs-sync.md` (drift prevention checklists).
+- **2 new/updated skills** — `verify-build.md` (auto-detect project type, run checker), `node-ssh.md` (enhanced: parallel all-node checks, GPU status, container health, NFS, logs).
+- **Session-start-health fixed** — Briefing API fallthrough when output empty, DEV added as 4th node.
+- **Knowledge indexer expanded** — Added 13 rules + CONSTITUTION.yaml + STATUS.md. Collection: 3076 → 3431 points.
+- **3 plugins installed** — typescript-lsp, hookify, security-guidance. context7 plugin removed (MCP server sufficient).
+- **qBittorrent permanent password** — Set `athanor-qbt-2026`. Sonarr + Radarr download clients updated and verified (HTTP 200).
+
 ### Next Actions
 1. Re-run `scripts/index-files.py` against new Google Drive data (after rclone completes)
 2. Re-audit score target: 8.5+/10
-3. Set permanent qBittorrent WebUI password (currently using temp password)
+3. Workshop vLLM 5090 — verify status (may need restart)
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 

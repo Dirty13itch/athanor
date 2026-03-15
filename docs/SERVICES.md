@@ -75,6 +75,8 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 | Tautulli | 8181 | Plex analytics |
 | Stash | 9999 | Adult content management |
 | Tdarr | 8265-8266 | Media transcoding (server + node) |
+| qBittorrent | 8112 | Torrent client (via Gluetun VPN). Admin: `admin`. |
+| Gluetun | -- | VPN tunnel (NordVPN/Switzerland). qBittorrent routes through this. |
 
 ### Home + Voice
 
