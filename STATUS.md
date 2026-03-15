@@ -298,11 +298,19 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **Qdrant topology clarified**: FOUNDRY:6333 = knowledge, signals, personal_data, activity, events, conversations, preferences, implicit_feedback, llm_cache. VAULT:6333 = separate instance with episodic, resources, knowledge_vault.
 - **Heartbeat utility=DOWN fixed** — FOUNDRY heartbeat env referenced stale `utility` model (Huihui-Qwen3-8B at :8002, not deployed). Updated to `coder` (Qwen3.5-35B-A3B-AWQ-4bit at :8006). Both models now report healthy. LiteLLM `utility` alias already routed correctly to WORKSHOP.
 
+### Session 60p — Agent Auth Fix, Background Task Cleanup
+- **Media agent auth restored** — Sonarr/Radarr/Tautulli API keys were missing from FOUNDRY `.env` file. Root cause: docker-compose uses `${VAR}` references but `.env` only had 5 vars (Redis password, LiteLLM key, provider bridge). Added 3 media API keys + Neo4j password. Container recreated. Verified: media-agent test task returned "All quiet." in 4.8s.
+- **Neo4j auth restored** — Agent container had empty `ATHANOR_NEO4J_PASSWORD`. Added `athanor2026` to `.env`. Verified: knowledge-agent successfully queried graph (8 Agent nodes, 22+ Bookmark nodes).
+- **Ansible vault→role mapping fixed** — `vault_agent_sonarr_api_key` etc. existed in `secrets.vault.yml` but were never mapped to `athanor_sonarr_api_key` that the agent role defaults reference. Added mappings to `group_vars/all/main.yml`. Future `ansible-playbook` runs will now include all API keys.
+- **Orphaned processes killed** — 2 zombie bash commands from previous Claude Code sessions: Unraid WebUI curl probe (PID 593297, hanging since Mar 13) and subnet scan (PID 792766). Both killed.
+- **Background task audit** — 87 subagent symlinks + 57 bash task outputs accumulated across 7+ conversation sessions. 4 empty output files from previous compaction. All resolved, nothing actively running.
+- **SYSTEM-SPEC updated** — Qdrant counts refreshed: signals 82→102, conversations 2288→2293. Eval baseline updated to 100%.
+- **Qdrant current counts**: knowledge 3435, conversations 2293, signals 102, activity 5624, preferences 59, implicit_feedback 324, events 9555, llm_cache 2, personal_data 17916.
+
 ### Next Actions
 1. Home Agent testing — blocked on Shaun providing HA token
-2. SYSTEM-SPEC Qdrant counts refresh (signals 42→82, conversations 2242→2290, knowledge 3076→3435)
-3. Dual Qdrant consolidation — low priority, VAULT:6333 has 3 unique collections worth ~640 points
-4. All build manifest items complete except Shaun-blocked items
+2. Dual Qdrant consolidation — low priority, VAULT:6333 has 3 unique collections worth ~640 points
+3. All build manifest items complete except Shaun-blocked items
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
