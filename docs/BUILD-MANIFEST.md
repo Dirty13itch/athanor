@@ -57,7 +57,7 @@ These are missing pieces that other work depends on.
 - **Aliases:** `gpt-4` → reasoning, `gpt-3.5-turbo` → fast, `text-embedding-ada-002` → embedding
 - **Auth:** env-backed bearer token via vault or host env
 - **Role:** `ansible/roles/vault-litellm/`
-- **Remaining:** Wire agents and dashboard to use LiteLLM instead of direct vLLM (item 2.6)
+- **Remaining:** None — agents already use LiteLLM (via `extra_body.metadata`), dashboard supports LiteLLM proxy target (`litellm-proxy` in chat selector).
 
 ### 1.3 — Embedding model service
 - **Status:** ✅ (Verified Session 8, deployed Session 6)
@@ -139,7 +139,7 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **What changed:** Rewired all agent inference from direct vLLM to LiteLLM proxy (VAULT:4000). Config uses model aliases (`reasoning`/`fast`). Service health checks now cover LiteLLM, Qdrant, all vLLM instances (16 services total). Fixed system prompt inaccuracies. Ansible role updated.
 - **Verified:** Agent server deployed on Node 1:9000, chat completion works end-to-end through LiteLLM → Qwen3-32B-AWQ. All 16 service health checks pass.
 - **Files:** `config.py`, `system.py`, `general.py`, `media.py`, `home.py`, `server.py`, `docker-compose.yml`, Ansible role
-- **Remaining:** Dashboard chat route still needs updating (item 3.2)
+- **Remaining:** None — dashboard chat supports LiteLLM proxy (`litellm-proxy` target), agent server, and direct vLLM backends.
 
 ---
 
@@ -650,11 +650,11 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Status:** ✅ done (Session 39-40)
 - **Miniflux deployed:** VAULT:8070 (miniflux/miniflux:2.2.6 + dedicated PostgreSQL 16). 17 feeds seeded across 6 categories (AI Models, Inference Engines, Dev Tools, Infrastructure, AI News, Security). Polling every 60 min, 5 workers. Admin credentials are managed outside tracked docs.
 - **n8n deployed:** VAULT:5678 (n8nio/n8n:latest, v2.10.4). Ansible role `vault-n8n/` (tasks + defaults). Owner credentials are managed outside tracked docs.
-- **Signal Pipeline workflow:** 7-node n8n workflow: Schedule (30 min) → Fetch Miniflux unread → Split → LLM Classify (via LiteLLM reasoning) + Embed (via DEV embedding) → Store in Qdrant `signals` collection → Mark read in Miniflux. Workflow created, needs manual UI activation (n8n v2.10 requirement).
+- **Signal Pipeline workflow:** 7-node n8n workflow (sequential): Schedule (30 min) → Fetch Miniflux unread → Split → Embed (DEV:8001) → LLM Classify (`fast` model, `enable_thinking: false`) → Store in Qdrant `signals` → Mark read. Active and processing (fixed session 60j — was broken since creation due to parallel fan-out bug + thinking tag contamination).
 - **Qdrant `signals` collection:** Created on FOUNDRY:6333 (1024-dim, Cosine).
 - **Ansible role:** `ansible/roles/vault-miniflux/` + `ansible/roles/vault-n8n/`.
 - **Feed seeder:** `scripts/seed-miniflux-feeds.py` — adds feeds via Miniflux API with category management.
-- **Remaining:** Shaun: activate workflow in n8n UI (http://192.168.1.203:5678). Knowledge Agent query integration for `signals` collection (search_signals tool). Daily signal digest generation.
+- **Remaining:** Knowledge Agent query integration for `signals` collection (search_signals tool). Daily signal digest generation.
 - **Depends on:** None
 - **Priority:** Done (remaining items P2)
 
