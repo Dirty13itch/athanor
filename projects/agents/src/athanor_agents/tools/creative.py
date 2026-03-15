@@ -405,11 +405,34 @@ def get_comfyui_status() -> str:
 
 # Character visual descriptions for consistent portrait generation
 EOQB_CHARACTERS = {
+    # --- Act 1 Fantasy Characters ---
     "isolde": "Regal woman in her 30s, sharp angular features, dark auburn hair in elaborate braids threaded with thin gold chains, pale porcelain skin, ice-blue eyes. Wears a fitted black and gold gown with high structured collar. A thin scar runs from her left ear to her jaw.",
     "seraphine": "Young woman with an ethereal, fragile beauty. Silver-white hair falling past her shoulders, violet eyes with an otherworldly glow. Wears tattered white and lavender robes. Faint magical sigils trace patterns on her skin. Dark circles under her eyes from sleepless visions.",
     "valeria": "Muscular woman in her late 20s, sun-bronzed skin, close-cropped dark hair with a streak of premature grey. Strong jaw, hawkish nose, amber eyes. Wears battered steel plate armor over chainmail. Multiple battle scars on her arms and face.",
     "lilith": "Strikingly beautiful woman with an unsettling edge. Long black hair, blood-red lips, dark eyes with flecks of gold. Wears a deep crimson dress that seems to shift between liquid and fabric. Pale skin with a faint luminescence.",
     "mireille": "Petite woman with sharp, fox-like features. Copper-red curls, freckled skin, bright green eyes that miss nothing. Wears practical dark leather with hidden pockets. Multiple rings and a thin dagger at her belt.",
+    # --- The 21 Council Queens ---
+    "emilie-ekstrom": "Lithe athletic woman, 5'10\", chestnut brown hair to mid-back, hazel-brown almond eyes, porcelain fair skin with subtle freckles on shoulders. 34DD high-set silicone teardrop implants. Elegant posture, toned legs, etched abs. High cheekbones, natural bow lips.",
+    "jordan-night": "Voluptuous hourglass, 5'8\", jet black hair, piercing ice blue eyes, pale olive skin. 34H heavy rounded silicone. Full floral sleeve left arm (roses/thorns), throat script 'Nachtblume', piercings. Heart-shaped face, full smirky lips.",
+    "alanah-rae": "Athletic hourglass, 5'7\", platinum long waves, blue eyes, golden California tan. 34F perfect bolt-on round implants with shine. Sharp jaw, full pouty lips. Tight waist, 2010-era perfection.",
+    "nikki-benz": "Athletic woman, 5'5\", blonde long waves, blue eyes with royal glare, golden tan. 34E enhanced silicone (500-700cc). Diamond high cheekbones, strong thighs. Royal posture.",
+    "chloe-lamour": "Curvy French hourglass, 5'6\", dark brunette to waist, warm brown eyes, tanned olive glow. 36DD with pronounced underboob. Throat tattoo 'freedom iron beach', forearm tattoos. Soft belly, flared hips.",
+    "nicolette-shea": "Amazonian, 5'11\", platinum long hair, blue eyes, golden tan. 36E implants on a perfect long-leg frame. Longest legs in porn. Sharp model face. Towering dominance.",
+    "peta-jensen": "Athletic Nordic, 5'7\", blonde long waves, ice blue eyes, pale skin. 34F perfect teardrop implants with pale areolas. Heart-shaped face, full lips. Toned legs.",
+    "sandee-westgate": "Exotic hourglass, 5'7\", dark brunette long hair, dark brown eyes, olive tan skin. 34DD implants with perfect integration. Mysterious almond face. Small lower back tattoo. Olive glow under lights.",
+    "marisol-yotta": "Thick Latina curves, 5'5\", dark brunette long hair, brown eyes, golden tan. 34H thick Colombian implants. Full lips, soft belly. Thick hip sway.",
+    "trina-michaels": "Voluptuous real weight, 5'5\", brunette long hair, brown eyes, tan. 36G heavy natural-to-enhanced implants. Round full cheeks. Heavy sway on drops.",
+    "nikki-sexx": "Athletic hips, 5'5\", blonde long hair, blue eyes, tan. 34F legendary implants. Sharp face. Throat bulge on gag.",
+    "madison-ivy": "Tiny frame massive contrast, 4'11\", platinum blonde, piercing green eyes, porcelain skin. 32F 800cc high profile teardrop implants. Sharp pixie face. Insane body-to-implant ratio.",
+    "amy-anderssen": "Cartoon proportions, 5'6\", jet black long hair, dark eyes, olive skin. 40HH 2000cc+ saline overfilled implants. Angular extreme face. Implants swing like wrecking balls.",
+    "puma-swede": "Towering Amazon, 6'1\", platinum long hair, ice blue eyes, pale skin. 32F silicone on tall frame. Strong jaw. Legs wrap entire pole.",
+    "ava-addams": "Ultimate MILF curves, 5'3\", dark brunette long hair, brown eyes, olive skin. 32G hourglass implants. Soft full face. Hourglass sway.",
+    "brooklyn-chase": "Soft curvy girl-next-door, 5'2\", brunette long hair, hazel eyes, tan skin. 32G curvy implants. Sweet face. Small lower back tattoo. Tears during first spin.",
+    "esperanza-gomez": "Ultimate Latina hourglass, 5'7\", dark brunette long hair, brown eyes, golden tan. 34DD perfect Colombian implants. Seductive full lips. Hips destroy the pole.",
+    "savannah-bond": "Perfect modern bimbo, 5'4\", platinum long hair, blue eyes, golden tan. 34G 2023 upgrade implants. Soft pretty face. Bimbo energy maxed.",
+    "shyla-stylez": "Perfect 2008 plastic, 5'3\", platinum long hair, blue eyes, tan. 36DD perfect bolt-on implants. Angelic face gone wrong.",
+    "brianna-banks": "Golden era glamour, 5'7\", blonde long hair, blue-green eyes, tanned skin. 34DD enhanced silicone. High cheekbones, classic features. Athletic with curves.",
+    "clanddi-jinkcebo": "Extreme European curves, 5'7\", brunette long with sharp styling, brown eyes, olive-pale skin. 34H+ extreme enhanced. Heart-shaped face turns filthy. Fetish goddess energy.",
 }
 
 
@@ -418,7 +441,7 @@ def generate_character_portrait(character_name: str, scene_context: str = "", st
     """Generate an EoBQ character portrait using Flux on ComfyUI.
 
     Args:
-        character_name: Character name (isolde, seraphine, valeria, lilith, mireille)
+        character_name: Character name (Act 1: isolde, seraphine, etc. Queens: emilie-ekstrom, jordan-night, etc.)
         scene_context: Optional scene or mood context (e.g., "throne room at night", "after battle")
         style: Visual style — 'cinematic', 'painting', 'illustration' (default: cinematic)
 
