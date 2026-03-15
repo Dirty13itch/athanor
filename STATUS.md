@@ -380,14 +380,19 @@ Phase 6 (Testing)            DONE — 391 tests pass
 ### Session 60u — Cleanup + Handoff
 - **claude-squad reset** — Cleared 8 stale instances (agent-health, cleanup-worker, cluster-health, doc-worker, iac-worker, inspector, ts-checker, verifier). Cleaned tmux sessions, deleted leftover `worktree-agent-ab333c02` branch.
 
+### Session 60v — Security Hardening + Deploy + vLLM Assessment
+- **Phase 1: Deploy** — Agent server deployed to FOUNDRY (health endpoint + workflows + tuning from 60t). EoBQ deployed to WORKSHOP (character memory integration). Both verified live.
+- **Phase 1: Redis health fix** — Health endpoint was calling `_redis.from_url()` without password. Fixed to pass `settings.redis_password`. Commit: d94cedd.
+- **Phase 2: Bearer token auth** — Full end-to-end: `BearerAuthMiddleware` in server.py (exempt: /health, /metrics, /docs), config.py `api_bearer_token` field, all dashboard fetch calls updated (20+ callsites via centralized `agentServerHeaders()`), MCP bridge updated, Ansible vault secret added. Token: generated and deployed to FOUNDRY .env, WORKSHOP dashboard .env, ~/.claude/mcp-vars.sh. Commit: 34975dc.
+- **Phase 2: Command allowlist** — Replaced insecure blocklist in execution.py with explicit `COMMAND_ALLOWLIST_PREFIXES` (30+ safe prefixes: python, git read-only, file inspection, curl, npm/node). Kept deny patterns for absolute blocks (rm -rf /, fork bombs, etc).
+- **Phase 3: vLLM v0.17.1 — DEFERRED** — Research found Qwen3.5-27B-FP8 crashes on v0.17.1 across A100/L40/Blackwell (GitHub #36828, #35502, #35702). FlashInfer BatchPrefillWithPagedKVCache bf16 head_dim 256 bug. Fix only in nightly with regressions. Our nightly 0.16.1rc1.dev32 is stable with all needed features. Upgrade deferred to v0.17.2+.
+
 ### Next Actions
-1. **Deploy agent server to FOUNDRY** — rsync + rebuild for health endpoint + workflows + tuning (session 60t changes)
-2. **Deploy EoBQ to WORKSHOP** — rebuild for character memory integration
-3. **Security sprint** — Agent server bearer token auth, execution tool allowlist (deferred from 60t)
-4. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
-5. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
-6. Dashboard control — extend to FOUNDRY/VAULT containers (SSH or remote Docker proxy)
-7. vLLM upgrade to v0.17.1 stable — test on WORKSHOP first, then FOUNDRY
+1. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
+2. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
+3. Dashboard control — extend to FOUNDRY/VAULT containers (SSH tunnel or remote Docker proxy)
+4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
+5. GWT Phase 3-4 — agent subscription/reaction to workspace broadcasts
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
@@ -806,7 +811,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-15 00:17 PDT
+*Last updated: 2026-03-15 11:31 PDT
 
 ---
 
@@ -839,7 +844,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-15 00:17 PDT
+*Last updated: 2026-03-15 11:31 PDT
 
 ---
 
@@ -865,5 +870,5 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 3. Watch agent task execution — should now actually work (tasks, schedules, skills all backed by Redis)
 4. Run eval suite again — agent context injection now includes Redis-backed goals/preferences/patterns
 
-*Last updated: 2026-03-15 00:17 PDT
+*Last updated: 2026-03-15 11:31 PDT
 
