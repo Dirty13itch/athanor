@@ -129,7 +129,7 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 | ~~Anthropic API key~~ | ~~Resolved~~ | Session 60f — wired into LiteLLM |
 | ~~Google Drive OAuth~~ | ~~Resolved~~ | Session 60f — 2 remotes configured |
 | ~~Node 2 DDR5 EXPO~~ | ~~Resolved~~ | Session 60g — 5600 MT/s CL28 enabled |
-| **Node 1 Samsung 990 PRO** | 4TB NVMe not detected | M.2_2 invisible on PCIe bus, needs BIOS via IPMI |
+| ~~Node 1 Samsung 990 PRO~~ | ~~Resolved~~ | Session 60g — PE8_SEL jumper moved, 4TB mounted as /mnt/local-fast |
 
 ## Build Progress
 
@@ -246,14 +246,14 @@ Phase 6 (Testing)            DONE — 391 tests pass
 
 ### Session 60g — BIOS Tasks
 - **WORKSHOP DDR5 EXPO enabled** — `systemctl reboot --firmware-setup` via SSH, EXPO Profile 1 selected in Gigabyte TRX50 AERO D BIOS Tweaker tab. Kingston Fury Renegade Pro now running at 5600 MT/s CL28 (was 4800 MT/s). 16.7% memory bandwidth increase. All 10 containers auto-recovered.
-- **FOUNDRY Samsung 990 PRO investigated** — Drive physically in M.2_2 (outer slot) but completely invisible on PCIe bus. ROMED8-2T M.2 slots share lanes with PCIE2 via PE8_SEL/PE16_SEL jumpers. Requires BIOS investigation via IPMI at 192.168.1.216.
+- **FOUNDRY Samsung 990 PRO enabled** — Drive was in M.2_1 (shares lanes with PCIE2). PE8_SEL jumper moved from pins 2-3 to 1-2. PCIE2 GPU now runs at x8 (no impact). Samsung formatted ext4, mounted at `/mnt/local-fast` (replaced P310 1TB). Full VAULT model library (~693G) rsynced locally. Eliminates VAULT NFS as inference SPOF. 3.4TB free for future models.
+- **5/5 blockers cleared** (NordVPN, Anthropic, Google Drive, WORKSHOP EXPO, FOUNDRY Samsung)
 
 ### Next Actions
-1. FOUNDRY Samsung 990 PRO BIOS enable (via IPMI — needs Shaun at console)
-2. Build Quality Cascade `escalate_to_cloud` tool (8.5 — now unblocked)
-3. Connect qBittorrent to Sonarr/Radarr download clients
-4. Google Drive sync to FOUNDRY (10.8 — now unblocked)
-5. Re-audit score target: 8.5+/10
+1. Build Quality Cascade `escalate_to_cloud` tool (8.5 — now unblocked)
+2. Connect qBittorrent to Sonarr/Radarr download clients
+3. Google Drive sync cron job (10.8 — now unblocked)
+4. Re-audit score target: 8.5+/10
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 

@@ -1142,4 +1142,4 @@ These require human action. Claude Code cannot do them.
 | ~~Anthropic API key~~ | ~~Done~~ | ~~8.5 (Quality Cascade cloud escalation)~~ ✅ |
 | ~~Google Drive rclone OAuth~~ | ~~Done~~ | ~~10.8 (Personal Data ~40%)~~ ✅ |
 | ~~Node 2 EXPO~~ | ~~Done~~ | ~~DDR5 5600 MT/s~~ ✅ |
-| Node 1 Samsung 990 PRO | BIOS enable via IPMI | NVMe storage |
+| ~~Node 1 Samsung 990 PRO~~ | ~~Done~~ | ~~NVMe storage~~ ✅ |

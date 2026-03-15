@@ -123,7 +123,7 @@ See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agen
 | ~~Anthropic API key~~ | ~~Quality Cascade cloud escalation~~ Done |
 | ~~Node 2 EXPO (BIOS)~~ | ~~DDR5 5600 MT/s~~ Done |
 | ~~Google Drive rclone OAuth~~ | ~~Personal data Phase 3~~ Done |
-| Samsung 990 PRO BIOS enable | Node 1 4TB NVMe (M.2_2 not on PCIe bus, IPMI at .216) |
+| ~~Samsung 990 PRO BIOS enable~~ | ~~Node 1 4TB NVMe~~ Done |
 
 ---
 

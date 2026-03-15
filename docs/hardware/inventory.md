@@ -87,10 +87,10 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 | # | Drive | Gen | Capacity | Currently In |
 |---|-------|-----|----------|-------------|
 | 1 | Crucial P3 (CT4000P3SSD8) | Gen3 | 4 TB | Node 1 (M.2_1, OS/system) |
-| 2 | Crucial P310 | Gen4 | 1 TB | Node 1 (M.2_2, mounted at /mnt/local-fast — audit confirmed P310, NOT Samsung 990 PRO) |
+| 2 | Crucial P310 | Gen4 | 1 TB | Node 1 (M.2_2, spare — replaced by Samsung 990 PRO 4TB as model store) |
 | 3–6 | Samsung 990 EVO Plus (x4) | Gen4 | 4 TB (4x1TB) | VAULT (X870E M.2 slots) |
 | 7 | Crucial T700 | Gen5 | 4 TB | Node 2 (M.2 Slot 1, OS/system) |
-| 8 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Loose (was listed as Node 1, audit found P310 1TB there — physical location unknown) |
+| 8 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Node 1 (M.2_1, /mnt/local-fast — model store, PE8_SEL jumper moved to pins 1-2) |
 | 9 | Crucial P3 Plus (CT4000P3PSSD8) | Gen4 | 4 TB | Loose |
 | 10 | Crucial P310 (CT2000P310SSD8) | Gen4 | 2 TB | Loose |
 | 11 | Samsung 970 EVO | Gen3 | 250 GB | Loose |
