@@ -396,10 +396,25 @@ Phase 6 (Testing)            DONE — 391 tests pass
 1. **GPU scheduling decision** — ComfyUI needs 5090 for PuLID/InfiniteYou. Options: time-share with vLLM worker, dedicated creative sessions (vLLM sleep mode when available), or swap GPU assignments.
 2. Download missing ComfyUI models — HyperSwap 256, buffalo_l, FaceAnalysis node install
 3. ~~Dashboard control — extend to FOUNDRY/VAULT containers~~ **DONE** (session 60n)
-4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
+4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix. **Also: vLLM nightly has RMSNormGated.activation regression — do NOT rebuild images until fixed.**
 5. GWT Phase 3-4 — agent subscription/reaction to workspace broadcasts
 6. **Deploy docker-socket-proxy to FOUNDRY** — Ansible role ready, run `ansible-playbook playbooks/foundry.yml --tags docker-proxy -i inventory.yml`
-7. **Monitor agent productivity** — Workplan generation fixed, tasks executing. Verify output quality and refill cycle.
+7. **Deploy fast model on WORKSHOP 5060 Ti** — Idle 16GB GPU. Options: Qwen3-8B-abliterated (~8GB) or GLM-4.7-Flash-GPTQ-4bit. See `docs/research/2026-03-15-cluster-resource-optimization.md`.
+8. **Mount WORKSHOP ZFS pool** — 2× 931GB NVMe drives sitting unmounted. Local model cache would cut load times from 30s to 5s.
+
+### Session 60n (cont.) — Context Window Upgrade + Cluster Optimization
+
+- **Context windows quadrupled** — All 3 vLLM instances were at 32K despite hardware supporting much more. Qwen3.5 hybrid DeltaNet architecture uses KV cache only every 4th layer, making 131K feasible:
+  - Coordinator (FOUNDRY TP=4, 64GB VRAM): 32K → **131K** (27GB KV budget, needs ~8GB for 131K)
+  - Worker (WORKSHOP 5090, 32GB): 32K → **131K** (8GB KV budget, needs ~2.5GB for 131K)
+  - Coder (FOUNDRY 4090, 24GB): 32K → **65K** (3GB KV budget, needs ~1.3GB for 65K)
+- **Agent quality restored** — Reverted band-aid degradations that were compensating for 32K limits:
+  - Task recursion_limit: 25 → 50 (full 25 tool steps restored)
+  - Context injection budget: 2000 → 6000 chars (full context restored)
+  - Removed unnecessary max-num-batched-tokens=2096 on WORKSHOP
+- **vLLM nightly regression caught** — Ansible rebuild pulled newer nightly with `RMSNormGated.activation` AttributeError. Pinned WORKSHOP to known-good `qwen35` image tag (matching FOUNDRY). Deployed via compose edit without rebuild.
+- **Cluster resource optimization research** — Full audit of all hardware: 166 GB GPU VRAM, 752 GB RAM, 216 CPU threads, 29 TB NVMe. Key findings: WORKSHOP 5060 Ti completely idle, 2.8 TB unmounted NVMe, 420 GB RAM available across nodes. Research doc: `docs/research/2026-03-15-cluster-resource-optimization.md`.
+- Commits: de89faa, c492eb5
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
