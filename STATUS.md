@@ -816,7 +816,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-15 11:31 PDT
+*Last updated: 2026-03-15 12:08 PDT
 
 ---
 
@@ -849,7 +849,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-15 11:31 PDT
+*Last updated: 2026-03-15 12:08 PDT
 
 ---
 
@@ -875,5 +875,31 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 3. Watch agent task execution — should now actually work (tasks, schedules, skills all backed by Redis)
 4. Run eval suite again — agent context injection now includes Redis-backed goals/preferences/patterns
 
-*Last updated: 2026-03-15 11:31 PDT
+---
+
+## Session 60n (2026-03-15 ~19:10 UTC)
+
+### Work Done
+- **Research docs recovered** — Copied vLLM v0.17 upgrade assessment, Stash performer image API, and multi-node Docker management research from agent worktrees. Cleaned up 2 stale worktrees.
+- **Multi-node Docker control (dashboard)** — Plan item #8 from Phase 5. Full implementation:
+  - **Ansible role `docker-socket-proxy`** — Deploys LinuxServer socket-proxy container. FOUNDRY gets `POST=0` (read-only), VAULT gets `POST=1` (read-write). Created `foundry.yml` playbook.
+  - **Dashboard backend** — `docker.ts` refactored for multi-host: workshop (local socket), foundry/vault (HTTP proxy). `listAllContainers()` queries all 3 in parallel with `Promise.allSettled` graceful degradation. API routes accept `?node=` param.
+  - **Dashboard frontend** — `SERVICE_CONTAINER_MAP` expanded from 6 to 23 entries across all 3 nodes. Container control card shows node badge. FOUNDRY containers show "Production — read-only" badge with restart hidden. Logs available from all nodes.
+  - **Safety** — FOUNDRY restart blocked at 3 layers: proxy (POST=0), API route (403), UI (button hidden).
+  - **docker-compose.yml** — Added `ATHANOR_FOUNDRY_DOCKER_PROXY` and `ATHANOR_VAULT_DOCKER_PROXY` env vars.
+- **TypeScript clean compile** — `npx tsc --noEmit` passes with all changes.
+
+### Deployment Steps Remaining
+1. Run Ansible on FOUNDRY: `ansible-playbook playbooks/foundry.yml --tags docker-proxy` (needs approval)
+2. Run Ansible on VAULT: `ansible-playbook playbooks/vault.yml --tags docker-proxy`
+3. Deploy dashboard: rsync to WORKSHOP + rebuild
+
+### Next Actions
+1. Deploy docker-socket-proxy to FOUNDRY + VAULT
+2. Deploy dashboard to WORKSHOP
+3. Verify end-to-end: containers from all 3 nodes visible in dashboard
+4. Monitor GWT workspace — first meaningful competition cycles
+5. Watch agent task execution with Redis auth
+
+*Last updated: 2026-03-15 12:20 PDT
 
