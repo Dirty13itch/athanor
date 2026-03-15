@@ -480,9 +480,7 @@ async def _execute_task(task: Task):
         # and create_react_agent already has its own system prompt)
         context_str = ""
         try:
-            # Reduced context budget for tasks (vs 6000 for chat) to stay within
-            # 32K context on fallback models. Tasks already have focused prompts.
-            context_str = await enrich_context(task.agent, task.prompt, max_chars=2000) or ""
+            context_str = await enrich_context(task.agent, task.prompt) or ""
         except Exception as e:
             logger.debug("Context enrichment failed, proceeding without: %s", e)
 
@@ -499,7 +497,7 @@ async def _execute_task(task: Task):
         thread_id = f"task-{task.id}"
         config = {
             "configurable": {"thread_id": thread_id},
-            "recursion_limit": 25,
+            "recursion_limit": 50,
             "metadata": {"agent": task.agent, "task_id": task.id},
             "tags": [task.agent],
         }
