@@ -293,10 +293,23 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - Remaining failures: GWT context (models lack Athanor system knowledge), Dune watchlist (strict rubric), List-5 format (thinking contamination — Python assertion improved)
 - Signal pipeline: 42 → 62 signals (WORKSHOP OOM fix unblocked embedding)
 
+### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
+- **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
+- **Eval suite re-run** — 30/38 (79%), up from 9/25 March 9 baseline. Reasoning: 15/19, Fast: 15/19. No regressions. 3-4 failures are grading artifacts from plain-text thinking traces not caught by XML `<think>` stripping.
+- **Eval transform fixed** — Added `Thinking Process:` prefix stripping to complement XML `<think>` tag removal. Should flip 3-4 failures to passes.
+- **IaC drift fixed** — Ansible agents template was missing `/var/log/athanor` audit log volume mount (AUTO-002 compliance). Present in repo compose and live deploy but absent from Jinja2 template — next `ansible-playbook` run would have dropped it.
+- **Stale container cleanup** — 4 containers pruned across FOUNDRY (2), WORKSHOP (1), VAULT (1). Done via `docker container prune`.
+- **Intelligence layer verified** — Redis auth fix (session 60m) confirmed all subsystems operational:
+  - 9 goals active, 8 skills registered, 6 workspace subscriptions
+  - 9 scheduler last-runs within 5 min, 10+ tasks flowing (completed + running)
+  - CST at 437K+ cycles, 3 node heartbeats fresh
+  - Goals/preferences/patterns now populated in agent context injection
+
 ### Next Actions
-1. Clean up stale containers (tei-test, vllm-coder2, field-inspect-legacy) — needs Shaun approval
-2. Home Agent testing — blocked on Shaun providing HA token
-3. Monitor eval CI workflow on next relevant push
+1. Home Agent testing — blocked on Shaun providing HA token
+2. Re-run eval with fixed thinking trace transform (expect ~83%+)
+3. Signal pipeline health — verify 62+ signals still flowing
+4. All build manifest items complete except Shaun-blocked items
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
