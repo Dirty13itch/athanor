@@ -555,9 +555,11 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Result:** Deployed on 6h schedule. Read access to /data/personal/ verified.
 
 ### 10.8 — Google Drive Integration
-- **Status:** 🔲 Unblocked (rclone OAuth completed, Session 60f)
-- **Scope:** rclone sync from Google Drive to Node 1. Unlocks ~40% of personal data.
-- **Credentials:** rclone config at `~/.config/rclone/rclone.conf` on DEV, remote name `gdrive:`. 90 GiB total, 8 top-level folders (Ulrich Energy Auditing, Taxes, Invoices, etc.).
+- **Status:** ✅ done (Session 60g)
+- **Scope:** rclone sync from 2 Google Drive accounts to FOUNDRY via DEV staging. Unlocks ~40% of personal data.
+- **Remotes:** `personal-drive:` (30 GiB, 14 folders) + `uea-drive:` (7 GiB, 8 folders — Ulrich Energy Auditing business). Total ~37 GiB.
+- **Pipeline:** `scripts/sync-personal-data.sh` — rclone to DEV `/home/shaun/data/personal/`, rsync to FOUNDRY `/opt/athanor/personal-data/`. Cron every 6 hours on DEV.
+- **Next:** Re-run `scripts/index-files.py` against new data to populate `personal_data` Qdrant collection.
 
 ### 10.9 — File Content Indexer
 - **Status:** ✅ done

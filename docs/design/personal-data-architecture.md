@@ -88,44 +88,36 @@ Layer 1: INDEX      Parse, chunk, embed, store in Qdrant
 Layer 0: TRANSIT    Get data from sources to processing location
 ```
 
-### Layer 0: Data Transit
+### Layer 0: Data Transit (DEPLOYED)
 
-**Problem:** The Data Curator agent runs on Node 1 in Docker. It can only see mounted volumes. Personal data lives on DEV (WSL2) and Google Drive (cloud).
+**Problem:** The Data Curator agent runs on FOUNDRY in Docker. It can only see mounted volumes. Personal data lives on Google Drive (2 accounts).
 
 **Solution:** A two-stage sync pipeline.
 
 ```
-Google Drive ──rclone──→ DEV local dir
-                              │
-DEV C:/D: drives ─────────────┤
-                              │
-                        rsync over SSH
-                              │
-                              ▼
-                    VAULT /mnt/vault/data/personal/
-                              │
-                         NFS mount
-                              │
-                              ▼
-                    Node 1 container /data/personal/ (read-only)
-                              │
-                       Data Curator Agent
+Google Drive (2 accounts) ──rclone──→ DEV staging
+                                          │
+                                    rsync over SSH
+                                          │
+                                          ▼
+                                FOUNDRY /opt/athanor/personal-data/
+                                          │
+                                   Docker volume mount
+                                          │
+                                          ▼
+                                container /data/personal/ (read-only)
+                                          │
+                                   Data Curator Agent
 ```
 
 **Implementation:**
-- `scripts/sync-personal-data.sh` on DEV — rsyncs key dirs to VAULT
+- `scripts/sync-personal-data.sh` on DEV — rclone + rsync pipeline
 - Runs as cron on DEV: `0 */6 * * *` (every 6 hours, aligned with curator schedule)
-- rclone config on DEV for Google Drive (needs one-time Shaun OAuth)
-- rclone sync in the same script: `rclone sync gdrive: /mnt/c/Users/Shaun/GoogleDrive/ --transfers 4`
-- Then rsync Google Drive sync target to VAULT with everything else
+- Two rclone remotes: `personal-drive:` (30 GiB) + `uea-drive:` (7 GiB)
+- DEV staging at `/home/shaun/data/personal/{personal-drive,uea-drive}/`
+- rsync to FOUNDRY at `/opt/athanor/personal-data/`
 
-**What NOT to sync:**
-- Installers/ISOs (~5.5 GB of bloat on D: Downloads)
-- node_modules directories
-- Duplicate photo exports (keep one copy)
-- Empty directory trees (D: ChatGPT Files scaffolding)
-
-**Estimated transfer:** ~1.75 GB initial, <100 MB incremental.
+**Estimated transfer:** ~37 GiB initial, <500 MB incremental.
 
 ### Layer 1: Parse & Index (DEPLOYED)
 
