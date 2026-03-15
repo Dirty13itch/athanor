@@ -27,14 +27,31 @@ import { useUrlState } from "@/lib/url-state";
 type StatusFilter = "all" | "healthy" | "degraded";
 type SortMode = "severity" | "latency" | "name";
 
-// Map service IDs to their known Docker container names (WORKSHOP node only)
-const SERVICE_CONTAINER_MAP: Record<string, string> = {
-  "workshop-worker": "vllm-node2",
-  "comfyui": "comfyui",
-  "workshop-open-webui": "open-webui",
-  "eoq": "athanor-eoq",
-  "workshop-node-exporter": "node-exporter",
-  "workshop-dcgm-exporter": "dcgm-exporter",
+// Map service IDs to their known Docker container names and nodes
+const SERVICE_CONTAINER_MAP: Record<string, { container: string; node: string }> = {
+  "workshop-worker": { container: "vllm-node2", node: "workshop" },
+  "comfyui": { container: "comfyui", node: "workshop" },
+  "workshop-open-webui": { container: "open-webui", node: "workshop" },
+  "eoq": { container: "athanor-eoq", node: "workshop" },
+  "workshop-node-exporter": { container: "node-exporter", node: "workshop" },
+  "workshop-dcgm-exporter": { container: "dcgm-exporter", node: "workshop" },
+  "coordinator": { container: "vllm-coordinator", node: "foundry" },
+  "coder": { container: "vllm-coder", node: "foundry" },
+  "agent-server": { container: "athanor-agents", node: "foundry" },
+  "foundry-qdrant": { container: "qdrant", node: "foundry" },
+  "foundry-node-exporter": { container: "node-exporter", node: "foundry" },
+  "foundry-dcgm-exporter": { container: "dcgm-exporter", node: "foundry" },
+  "litellm": { container: "litellm", node: "vault" },
+  "langfuse": { container: "langfuse-web", node: "vault" },
+  "vault-neo4j": { container: "neo4j", node: "vault" },
+  "vault-redis": { container: "redis", node: "vault" },
+  "prometheus": { container: "prometheus", node: "vault" },
+  "grafana": { container: "grafana", node: "vault" },
+  "plex": { container: "plex", node: "vault" },
+  "sonarr": { container: "sonarr", node: "vault" },
+  "radarr": { container: "radarr", node: "vault" },
+  "stash": { container: "stash", node: "vault" },
+  "vault-node-exporter": { container: "node-exporter", node: "vault" },
 };
 
 function toPrometheusLink(serviceId: string) {
@@ -99,10 +116,10 @@ export function ServicesConsole({
     ...liveQueryOptions(60_000),
   });
 
-  const handleRestart = useCallback(async (containerName: string) => {
+  const handleRestart = useCallback(async (containerName: string, node: string) => {
     setRestarting(containerName);
     setRestartResult(null);
-    const result = await restartContainer(containerName);
+    const result = await restartContainer(containerName, node);
     setRestartResult(result);
     setRestarting(null);
     if (result.ok) {
@@ -110,10 +127,10 @@ export function ServicesConsole({
     }
   }, [servicesQuery]);
 
-  const handleViewLogs = useCallback(async (containerName: string) => {
+  const handleViewLogs = useCallback(async (containerName: string, node: string) => {
     setLogsLoading(true);
     setLogs(null);
-    const text = await getContainerLogs(containerName, 80);
+    const text = await getContainerLogs(containerName, 80, node);
     setLogs(text);
     setLogsLoading(false);
   }, []);
@@ -497,45 +514,56 @@ export function ServicesConsole({
                 </Card>
 
                 {(() => {
-                  const containerName = SERVICE_CONTAINER_MAP[activeService.id]
+                  const mapped = SERVICE_CONTAINER_MAP[activeService.id];
+                  const containerName = mapped?.container
                     ?? (containersQuery.data ?? []).find((c: ContainerInfo) =>
                       c.name.includes(activeService.id.replace(/-/g, ""))
                       || activeService.name.toLowerCase().includes(c.name.replace(/^athanor-/, ""))
                     )?.name;
+                  const containerNode = mapped?.node
+                    ?? (containersQuery.data ?? []).find((c: ContainerInfo) => c.name === containerName)?.node
+                    ?? "workshop";
                   const container = containerName
-                    ? (containersQuery.data ?? []).find((c: ContainerInfo) => c.name === containerName)
+                    ? (containersQuery.data ?? []).find((c: ContainerInfo) => c.name === containerName && c.node === containerNode)
                     : null;
+                  const isProduction = containerNode === "foundry";
 
                   if (!containerName) return null;
 
                   return (
-                    <Card className="border-amber-500/30 bg-amber-950/10">
+                    <Card className={isProduction ? "border-red-500/30 bg-red-950/10" : "border-amber-500/30 bg-amber-950/10"}>
                       <CardHeader>
                         <CardTitle className="text-lg">Container control</CardTitle>
                         <CardDescription>
                           Docker container: <code className="text-xs font-mono">{containerName}</code>
+                          <Badge variant="outline" className="ml-2">{containerNode}</Badge>
                           {container && (
                             <Badge variant="outline" className="ml-2" data-tone={container.state === "running" ? "success" : "danger"}>
                               {container.state}
                             </Badge>
                           )}
+                          {isProduction && (
+                            <Badge variant="destructive" className="ml-2">Production — read-only</Badge>
+                          )}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         <div className="grid gap-3 sm:grid-cols-2">
-                          <Button
-                            variant="outline"
-                            className="border-amber-500/30 text-amber-200 hover:bg-amber-900/30"
-                            disabled={restarting === containerName}
-                            onClick={() => void handleRestart(containerName)}
-                          >
-                            <Power className="mr-2 h-4 w-4" />
-                            {restarting === containerName ? "Restarting..." : "Restart"}
-                          </Button>
+                          {!isProduction && (
+                            <Button
+                              variant="outline"
+                              className="border-amber-500/30 text-amber-200 hover:bg-amber-900/30"
+                              disabled={restarting === containerName}
+                              onClick={() => void handleRestart(containerName, containerNode)}
+                            >
+                              <Power className="mr-2 h-4 w-4" />
+                              {restarting === containerName ? "Restarting..." : "Restart"}
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             disabled={logsLoading}
-                            onClick={() => void handleViewLogs(containerName)}
+                            onClick={() => void handleViewLogs(containerName, containerNode)}
                           >
                             <FileText className="mr-2 h-4 w-4" />
                             {logsLoading ? "Loading..." : "View logs"}

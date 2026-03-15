@@ -245,6 +245,7 @@ export interface ContainerInfo {
   state: string;
   status: string;
   created: string;
+  node: string;
 }
 
 export async function getContainers(): Promise<ContainerInfo[]> {
@@ -253,13 +254,13 @@ export async function getContainers(): Promise<ContainerInfo[]> {
   return res.json();
 }
 
-export async function restartContainer(name: string): Promise<{ ok: boolean; error?: string }> {
-  const res = await fetch(`/api/containers/${encodeURIComponent(name)}/restart`, { method: "POST" });
+export async function restartContainer(name: string, node = "workshop"): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch(`/api/containers/${encodeURIComponent(name)}/restart?node=${encodeURIComponent(node)}`, { method: "POST" });
   return res.json();
 }
 
-export async function getContainerLogs(name: string, tail = 100): Promise<string> {
-  const res = await fetch(`/api/containers/${encodeURIComponent(name)}/logs?tail=${tail}`, { cache: "no-store" });
+export async function getContainerLogs(name: string, tail = 100, node = "workshop"): Promise<string> {
+  const res = await fetch(`/api/containers/${encodeURIComponent(name)}/logs?tail=${tail}&node=${encodeURIComponent(node)}`, { cache: "no-store" });
   if (!res.ok) return "";
   const data = await res.json();
   return data.logs ?? "";
