@@ -287,11 +287,16 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **SYSTEM-SPEC updated** — Knowledge 3076→3435, signals 22→42, added eval suite mention.
 - **Fresh eval running** — `--no-cache` with grader fix, output to `baseline-20260315-grader-fix.json`.
 
+### Eval Results (grader fix applied)
+- **31/38 (82%)**, up from 15/38 (39%)
+- Reasoning: 16/19, Fast: 15/19
+- Remaining failures: GWT context (models lack Athanor system knowledge), Dune watchlist (strict rubric), List-5 format (thinking contamination — Python assertion improved)
+- Signal pipeline: 42 → 62 signals (WORKSHOP OOM fix unblocked embedding)
+
 ### Next Actions
-1. Collect and analyze eval results when grader-fix run completes
-2. Add eval CI job to Gitea workflow (conditional on evals/agents changes)
-3. Clean up stale containers (tei-test, vllm-coder2, field-inspect-legacy) — needs approval
-4. Inactive n8n workflow `6FpEVJU5r62VZyu4` (duplicate Signal Pipeline) — delete
+1. Clean up stale containers (tei-test, vllm-coder2, field-inspect-legacy) — needs Shaun approval
+2. Home Agent testing — blocked on Shaun providing HA token
+3. Monitor eval CI workflow on next relevant push
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
