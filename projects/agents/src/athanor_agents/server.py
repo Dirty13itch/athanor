@@ -9,6 +9,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from .agents import list_agents
 from .config import settings
 
+# Configure root logger so all athanor_agents.* loggers are visible
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
+
 logger = logging.getLogger(__name__)
 
 

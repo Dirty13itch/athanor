@@ -395,24 +395,24 @@ async def generate_work_plan(focus: str = "") -> dict:
         focus=focus,
     )
 
-    # Call LLM for planning. Use /no_think to skip extended reasoning
-    # (Qwen3 feature) since we want structured JSON output, not deliberation.
+    # Call LLM for planning. Disable thinking to get clean JSON output fast.
     try:
-        async with httpx.AsyncClient(timeout=300) as client:
+        async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(
                 _LLM_URL,
                 json={
                     "model": _LLM_MODEL,
-                    "messages": [{"role": "user", "content": prompt + "\n\n/no_think"}],
+                    "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.7,
-                    "max_tokens": 8192,
+                    "max_tokens": 4096,
+                    "chat_template_kwargs": {"enable_thinking": False},
                 },
                 headers={"Authorization": f"Bearer {_LLM_KEY}"},
             )
             resp.raise_for_status()
             data = resp.json()
     except httpx.TimeoutException:
-        logger.error("Work planner LLM call timed out (180s)")
+        logger.error("Work planner LLM call timed out (120s)")
         return {"error": "LLM timeout", "tasks": [], "task_count": 0}
     except Exception as e:
         logger.error("Work planner LLM call failed: %s (type=%s)", e, type(e).__name__)
