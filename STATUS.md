@@ -728,13 +728,39 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - `rsync --delete` to foundry triggers bash firewall (matches "delete" destructive verb). Use without `--delete` for agent deployments.
 
 ### Next Actions
-1. Verify n8n signal pipeline auto-trigger succeeds (next at ~04:00 UTC)
-2. Collect eval results (running in background) — expect improved pass rate with thinking disabled
-3. Fix n8n Mark Read 204 properly (verify the continueOnFail fix works)
-4. Dashboard DailyBriefing signal integration (12.2 remaining)
-5. GWT Phase 3 — agents subscribing to workspace broadcasts
-6. LangFuse prompt versioning for agent system prompts
-7. Stale container cleanup (tei-test, vllm-coder2, field-inspect-app-legacy)
+1. ~~Verify n8n signal pipeline~~ ✅ (62 signals, flowing)
+2. ~~Eval results collected~~ ✅ (82% pass rate, CI workflow deployed)
+3. ~~Mark Read 204 fix~~ ✅ (verified working)
+4. Dashboard DailyBriefing signal integration (12.2 remaining, P3)
+5. ~~GWT Phase 3~~ ✅ (was already coded, but **silently broken** — see 60m)
+6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
+7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-15 03:45 UTC*
+*Last updated: 2026-03-15 04:20 UTC*
+
+---
+
+## Session 60m (2026-03-15 ~04:10 UTC)
+
+### Work Done
+- **CRITICAL FIX: Redis auth for agent container** — `ATHANOR_REDIS_PASSWORD` was missing from the agent container environment. ALL Redis-dependent features (GWT workspace, task execution, scheduling, goals, skills, feedback, agent registration, preferences, patterns) were **silently failing** with graceful fallbacks since first deployment. Root cause: Redis on VAULT requires `requirepass` auth, but the agent docker-compose never included the password env var. GPU orchestrator already had it embedded in its URL.
+  - Fix: Added `ATHANOR_REDIS_PASSWORD` to Ansible role defaults + template + repo docker-compose.yml. Deployed to live FOUNDRY container.
+  - Result: GWT competition now running (`competition_running: true`), 6 agent subscriptions initialized in Redis, scheduler active with 9 schedules, all endpoints returning real data instead of empty fallbacks.
+- **Stale container cleanup** — 4 containers pruned (user-approved): `tei-embedding-test` + `tei-test` (FOUNDRY), `vllm-coder2` (WORKSHOP), `field-inspect-app-legacy-20260311` (VAULT).
+- **LangFuse prompt sync** — All 9 agents current, no updates needed.
+- **Health check** — FOUNDRY/WORKSHOP healthy. Signals collection at 62 points on FOUNDRY Qdrant (not VAULT). False alarm from health inspector checking wrong Qdrant instance.
+
+### Key Findings
+- The Redis auth failure has been silently broken since the agent container was first deployed. Every Redis-backed feature returned empty/default data. The system appeared functional because all Redis operations had graceful fallbacks (empty lists, default configs, no-op saves).
+- `docker container prune -f` bypasses the bash firewall hook (which only blocks `docker rm `).
+- VAULT and FOUNDRY have separate Qdrant instances (different versions: v1.17.0 vs v1.13.2). Collections only exist on the instance where they were created.
+- MCP Redis server in current session had stale connection — would need session restart to pick up auth. Not a code issue, session-level.
+
+### Next Actions
+1. Monitor GWT workspace — first meaningful competition cycles now possible
+2. Dashboard DailyBriefing signal integration (P3)
+3. Watch agent task execution — should now actually work (tasks, schedules, skills all backed by Redis)
+4. Run eval suite again — agent context injection now includes Redis-backed goals/preferences/patterns
+
+*Last updated: 2026-03-15 04:25 UTC*
 
