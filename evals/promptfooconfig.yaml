@@ -12,10 +12,9 @@ defaultTest:
       id: openai:chat:grader
       config:
         apiBaseUrl: http://192.168.1.203:4000/v1
-    # Strip <think> tags from model outputs before grading.
-    # Plain-text thinking traces ("Thinking Process:") are handled by individual
-    # assertions where format matters (Python type checks).
-    transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+    # Strip <think> tags and plain-text thinking traces from model outputs before grading.
+    # Qwen3.5 emits both XML <think> tags and plain-text "Thinking Process:" prefixes.
+    transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^Thinking Process:[\s\S]*?\n\n/gm, '').trim()
 
 providers:
   - id: openai:chat:reasoning
