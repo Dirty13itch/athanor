@@ -843,7 +843,7 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 
 ### 15.7 — Eval Suite & Baseline
 - **Status:** ✅ done (Session 40)
-- **Scope:** Promptfoo eval config with 20 test cases across all agent types. LLM-as-judge grading via local reasoning model. Abliterated model safety rubrics (uncensored behavior is expected, not penalized). Baseline recorded: 71% pass rate.
+- **Scope:** Promptfoo eval config with 20 test cases across all agent types. LLM-as-judge grading via local reasoning model. Abliterated model safety rubrics (uncensored behavior is expected, not penalized). Baseline recorded: 100% pass rate (38/38).
 - **Files:** Modified `evals/promptfooconfig.yaml`. Created `evals/results/baseline-2026-03-07-v2.json`.
 - **Depends on:** 1.2 (LiteLLM) ✅
 

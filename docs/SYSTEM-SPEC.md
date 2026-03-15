@@ -72,7 +72,7 @@ scripts/index-knowledge.py (DEV cron or manual)
   → Scans docs/ directory (81 files)
   → Chunks into segments
   → Embeds via LiteLLM → Qwen3-Embedding-0.6B (DEV:8001)
-  → Upserts to Qdrant (Node 1:6333) — 3076 chunks (knowledge collection)
+  → Upserts to Qdrant (Node 1:6333) — 3435 chunks (knowledge collection)
 ```
 
 ### Service Inventory
@@ -132,7 +132,7 @@ Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`
 - **Agent registry:** All 9 agents register capabilities in Redis on startup. Discovery via `GET /v1/agents/registry`.
 - **Event ingestion:** External events (HA state changes, cron, webhooks) converted to workspace items via `POST /v1/events` with priority mapping.
 - **Redis pub/sub:** Competition cycle publishes broadcast to `athanor:workspace:broadcast` channel.
-- **Conversation logging (deployed):** Every chat completion auto-embedded to Qdrant `conversations` collection (2242 entries) for semantic search. Queryable via `GET /v1/conversations`.
+- **Conversation logging (deployed):** Every chat completion auto-embedded to Qdrant `conversations` collection (2288 entries) for semantic search. Queryable via `GET /v1/conversations`.
 
 ### Task Execution Engine (deployed Session 19)
 
@@ -331,9 +331,9 @@ Agents respond to requests. No memory between invocations beyond what's in the c
 
 ### Layer 2: Accumulated Knowledge (deployed)
 
-Knowledge base (3435 vectors), 9 Qdrant collections (including `signals` — 42 intelligence signals from n8n pipeline), preferences, activity logging, conversation auto-embedding, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (4447 relationships).
+Knowledge base (3435 vectors), 9 Qdrant collections (including `signals` — 82 intelligence signals from n8n pipeline), preferences, activity logging, conversation auto-embedding, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (4447 relationships).
 
-**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config), conversation auto-embedding (every chat completion auto-embedded to `conversations` collection since session 40), n8n signal pipeline (42 signals in Qdrant `signals` collection, daily digest integration via `goals.py`), eval suite (promptfoo — 19 tests × 2 providers, `grader` LiteLLM alias for deterministic scoring).
+**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config), conversation auto-embedding (every chat completion auto-embedded to `conversations` collection since session 40), n8n signal pipeline (82 signals in Qdrant `signals` collection, daily digest integration via `goals.py`), eval suite (promptfoo — 19 tests × 2 providers, `grader` LiteLLM alias for deterministic scoring).
 
 **What's remaining for full Layer 2:**
 - Proactive knowledge indexing (currently manual, should be cron)

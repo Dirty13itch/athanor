@@ -40,7 +40,7 @@ Simple, debuggable, working.
 
 ### What's Deployed
 
-1. **Knowledge base:** 3076 doc vectors in Qdrant `knowledge` collection, 3095 Neo4j nodes (172 Document + 879 Entity), 4447 relationships
+1. **Knowledge base:** 3435 doc vectors in Qdrant `knowledge` collection, 3095 Neo4j nodes (172 Document + 879 Entity), 4447 relationships
 2. **Preference storage:** `preferences` Qdrant collection (1024-dim, editable via dashboard)
    - Signal types: `thumbs_up`, `thumbs_down`, `remember_this`, `config_choice`
    - Semantic search — "I prefer dark themes" matches queries about UI colors

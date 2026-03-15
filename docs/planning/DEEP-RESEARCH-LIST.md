@@ -210,7 +210,7 @@ Status key: 🔴 Blocking (can't proceed without this) | 🟡 High-impact (shoul
 - Is this useful alongside claude-squad, or redundant?
 
 ### 5.5 ✅ Promptfoo for eval-driven development
-> **Resolved:** Tiers 12.5, 13.4, 15.7 — 36 eval cases (20 baseline + 16 A/B comparison). LLM-as-judge assertions. Abliterated safety rubrics. Baseline 71%. CI integration via Gitea Actions.
+> **Resolved:** Tiers 12.5, 13.4, 15.7 — 36 eval cases (20 baseline + 16 A/B comparison). LLM-as-judge assertions. Abliterated safety rubrics. Baseline 100% (38/38). CI integration via Gitea Actions.
 - YAML-based test definitions against local models
 - LLM-as-judge assertions
 - CI/CD integration (Gitea Actions)
