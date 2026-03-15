@@ -323,12 +323,29 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **EoBQ content generation assessed** — Full 21-queen performer database exists in `projects/eoq/docs/eoq-master-document.md` (87KB). 21 performers with physical blueprints, 19-trait sexual DNA matrices, stripper personas, voice DNA, and 10+ scene scripts each. Live system has working dialogue gen (LiteLLM→vLLM streaming), image gen (ComfyUI→Flux+PuLID), and Reference Library UI. Gap: master document queens not yet ported to TypeScript character definitions.
 - **Stash library**: 14,547 performers. Top by scene count: Abigail Mac (71), Kendra Lust (52), Angela White (49). Performer photos available via GraphQL for PuLID reference injection.
 
+### Session 60s — Dashboard Control Plane, Model Freshness Check
+- **Dashboard container control plane** — Command Center can now manage WORKSHOP Docker containers:
+  - `src/lib/docker.ts` — Node.js Docker socket client (list, restart, logs with multiplexed stream parsing)
+  - `/api/containers` — GET: list all containers on local daemon (10 WORKSHOP containers visible)
+  - `/api/containers/[name]/restart` — POST: restart by name (self-restart protection for athanor-dashboard)
+  - `/api/containers/[name]/logs` — GET: tail container logs with `?tail=N`
+  - Services console detail sheet now shows "Container control" card for WORKSHOP services with restart button + inline log viewer
+  - Docker socket mounted `:ro` with `group_add: 988` for nextjs user access
+  - Service→container mapping: vllm-node2, comfyui, open-webui, athanor-eoq, node-exporter, dcgm-exporter
+  - Deployed and verified on WORKSHOP:3001
+- **Model landscape confirmed current** — Research docs from Mar 13-14 cover full state:
+  - Qwen3.5 is latest Qwen family (no Qwen4). Current models optimal for hardware.
+  - vLLM v0.17.1 stable available (we're on nightly 0.16.1rc1.dev32 — compatible)
+  - `qwen35_coder` parser (PR #35347) worth investigating vs current `qwen3_xml`
+  - Qwen3-Coder-Next-80B-A3B exists as future upgrade path (needs TP=4, 45.9GB AWQ)
+  - SGLang has better raw throughput but Blackwell NVFP4 NaN issues — stick with vLLM
+
 ### Next Actions
-1. ~~Port 21-queen performer DNA from master document to live TypeScript character system~~ DONE (session 60r)
-2. ~~EoBQ UI — wire queen roster into character selection so queens are playable~~ DONE (session 60r)
-3. ~~Custom queen creation from uploaded photos~~ DONE (session 60r)
-4. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
-5. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
+1. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
+2. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
+3. Dashboard control — extend to FOUNDRY/VAULT containers (SSH or remote Docker proxy)
+4. vLLM upgrade to v0.17.1 stable — test on WORKSHOP first, then FOUNDRY
+5. Test `qwen35_coder` parser vs `qwen3_xml` — may improve tool calling
 6. Dual Qdrant consolidation — low priority, VAULT:6333 has 3 unique collections worth ~640 points
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
