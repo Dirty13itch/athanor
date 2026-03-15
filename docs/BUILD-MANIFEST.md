@@ -275,7 +275,8 @@ The agent framework exists but is skeletal. These items make agents actually use
 - **Remaining:** Physical voice satellite device (e.g., ESP32-S3), custom wake word training
 
 ### 6.4 — Mobile access
-- **Status:** 🔲 Backlog — depends on 6.8 (remote access)
+- **Status:** 🔲 Backlog — requires remote access solution (6.8 cancelled, revisit when Command Center is complete)
+- **Scope:** Access Command Center from phone anywhere. Needs: remote access to LAN (VPN/tunnel), mobile-optimized dashboard.
 
 ### 6.5 — qBittorrent + Gluetun VPN
 - **Status:** ✅ done (Session 60f, 2026-03-14)
