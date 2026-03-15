@@ -26,6 +26,10 @@ export default function ReferencesPage() {
   const [generateTarget, setGenerateTarget] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<string | null>(null);
+  const [creatingQueen, setCreatingQueen] = useState<string | null>(null);
+  const [queenGuidance, setQueenGuidance] = useState("");
+  const [queenResult, setQueenResult] = useState<{ id: string; profile: Record<string, unknown> } | null>(null);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
 
   const fetchPersonas = useCallback(async () => {
     setLoading(true);
@@ -63,18 +67,44 @@ export default function ReferencesPage() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadTarget) return;
-
-    const form = new FormData();
-    form.append("image", file);
-    const res = await fetch(`/api/references/${uploadTarget}/photos`, { method: "POST", body: form });
-    if (res.ok) {
-      await fetchPersonas();
+  const uploadFiles = async (personaId: string, files: FileList | File[]) => {
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
+      const form = new FormData();
+      form.append("image", file);
+      await fetch(`/api/references/${personaId}/photos`, { method: "POST", body: form });
     }
+    await fetchPersonas();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !uploadTarget) return;
+    await uploadFiles(uploadTarget, files);
     e.target.value = "";
     setUploadTarget(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, personaId: string) => {
+    e.preventDefault();
+    setDragTarget(null);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) await uploadFiles(personaId, files);
+  };
+
+  const createQueenProfile = async (persona: Persona) => {
+    setCreatingQueen(persona.id);
+    setQueenResult(null);
+    const res = await fetch(`/api/references/${persona.id}/create-queen`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customPrompt: queenGuidance || undefined }),
+    });
+    if (res.ok) {
+      const profile = await res.json();
+      setQueenResult({ id: persona.id, profile });
+    }
+    setCreatingQueen(null);
   };
 
   const deletePhoto = async (personaId: string, filename: string) => {
@@ -138,13 +168,24 @@ export default function ReferencesPage() {
       </div>
 
       {/* Generate prompt (shared) */}
-      <div className="mb-6 flex gap-3">
+      <div className="mb-4 flex gap-3">
         <input
           type="text"
           value={generatePrompt}
           onChange={(e) => setGeneratePrompt(e.target.value)}
           placeholder="Generation prompt — e.g. 'cinematic portrait, dark fantasy, ornate armor, candlelight'"
           className="flex-1 bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/20"
+        />
+      </div>
+
+      {/* Queen creation guidance */}
+      <div className="mb-6 flex gap-3">
+        <input
+          type="text"
+          value={queenGuidance}
+          onChange={(e) => setQueenGuidance(e.target.value)}
+          placeholder="Queen profile guidance (optional) — e.g. 'dominant ice archetype, high pain tolerance, French accent'"
+          className="flex-1 bg-white/5 border border-amber-400/10 rounded px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-amber-400/20"
         />
       </div>
 
@@ -179,7 +220,12 @@ export default function ReferencesPage() {
           {filtered.map((persona) => (
             <div
               key={persona.id}
-              className={`border rounded-lg bg-white/3 p-4 flex flex-col gap-3 ${CATEGORY_COLOR[persona.category]}`}
+              className={`border rounded-lg bg-white/3 p-4 flex flex-col gap-3 transition-colors ${
+                dragTarget === persona.id ? "border-amber-400/60 bg-amber-900/10" : CATEGORY_COLOR[persona.category]
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setDragTarget(persona.id); }}
+              onDragLeave={() => setDragTarget(null)}
+              onDrop={(e) => handleDrop(e, persona.id)}
             >
               {/* Persona header */}
               <div className="flex items-center justify-between">
@@ -233,6 +279,27 @@ export default function ReferencesPage() {
                 </button>
               </div>
 
+              {/* Create queen button */}
+              <button
+                onClick={() => createQueenProfile(persona)}
+                disabled={creatingQueen === persona.id}
+                className="px-3 py-1.5 bg-amber-900/30 hover:bg-amber-900/50 text-amber-300 text-xs rounded transition-colors disabled:opacity-40 border border-amber-400/20"
+              >
+                {creatingQueen === persona.id ? "Generating queen profile..." : "Create Queen Profile"}
+              </button>
+
+              {/* Queen profile result */}
+              {queenResult?.id === persona.id && (
+                <div className="mt-1 rounded border border-amber-400/20 bg-amber-900/10 p-3">
+                  <p className="text-xs font-medium text-amber-400">
+                    {(queenResult.profile as { name?: string }).name} — {(queenResult.profile as { title?: string }).title}
+                  </p>
+                  <p className="mt-1 text-[10px] text-white/40">
+                    Archetype: {(queenResult.profile as { archetype?: string }).archetype} · Queen profile saved to persona
+                  </p>
+                </div>
+              )}
+
               {/* Result preview */}
               {generateTarget === persona.id && generateResult && (
                 <div className="mt-2">
@@ -261,6 +328,7 @@ export default function ReferencesPage() {
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        multiple
         className="hidden"
         onChange={handleFileChange}
       />
