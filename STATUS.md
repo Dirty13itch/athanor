@@ -296,6 +296,13 @@ Phase 6 (Testing)            DONE — 391 tests pass
   - LiteLLM: ALL GREEN — reasoning 573ms, fast 222ms, worker 216ms, embedding 1024-dim OK
   - Nodes: all GPUs healthy, temps 44-49C, no restart loops
 - **Qdrant topology clarified**: FOUNDRY:6333 = knowledge, signals, personal_data, activity, events, conversations, preferences, implicit_feedback, llm_cache. VAULT:6333 = separate instance with episodic, resources, knowledge_vault.
+- **Heartbeat utility=DOWN fixed** — FOUNDRY heartbeat env referenced stale `utility` model (Huihui-Qwen3-8B at :8002, not deployed). Updated to `coder` (Qwen3.5-35B-A3B-AWQ-4bit at :8006). Both models now report healthy. LiteLLM `utility` alias already routed correctly to WORKSHOP.
+
+### Next Actions
+1. Home Agent testing — blocked on Shaun providing HA token
+2. SYSTEM-SPEC Qdrant counts refresh (signals 42→82, conversations 2242→2290, knowledge 3076→3435)
+3. Dual Qdrant consolidation — low priority, VAULT:6333 has 3 unique collections worth ~640 points
+4. All build manifest items complete except Shaun-blocked items
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
@@ -308,12 +315,6 @@ Phase 6 (Testing)            DONE — 391 tests pass
   - 9 scheduler last-runs within 5 min, 10+ tasks flowing (completed + running)
   - CST at 437K+ cycles, 3 node heartbeats fresh
   - Goals/preferences/patterns now populated in agent context injection
-
-### Next Actions
-1. Home Agent testing — blocked on Shaun providing HA token
-2. SYSTEM-SPEC Qdrant counts refresh (signals 42→82, conversations 2242→2288, knowledge 3076→3435)
-3. Investigate dual Qdrant topology — why VAULT:6333 and FOUNDRY:6333 both exist? Consolidation opportunity?
-4. All build manifest items complete except Shaun-blocked items
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
