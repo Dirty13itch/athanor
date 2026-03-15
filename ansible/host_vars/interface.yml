@@ -19,6 +19,7 @@ vllm_extra_volumes:
   - /home/athanor/.cache/triton:/root/.cache/triton
 vllm_extra_args:
   - --language-model-only
+  - --enforce-eager  # Qwen3.5 DeltaNet Triton kernels OOM during CUDA graph capture
   - --enable-auto-tool-choice
   - --tool-call-parser
   - qwen3_xml

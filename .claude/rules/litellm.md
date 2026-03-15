@@ -11,15 +11,16 @@ Proxy at VAULT:4000 (`http://192.168.1.203:4000`). All inference routes through 
 
 Master key: `LITELLM_MASTER_KEY` env var (value in `~/.claude/mcp-vars.sh`). Also accepted as `OPENAI_API_KEY` for OpenAI-compatible tools.
 
-Config file on VAULT: `/opt/athanor/litellm/config.yaml`
+Config file on VAULT: `/mnt/user/appdata/litellm/config.yaml`
 
 ## Model Aliases
 
 | Alias | Backend Model | Location | Use |
 |-------|---------------|----------|-----|
 | `reasoning` | Qwen3.5-27B-FP8 TP=4 | FOUNDRY:8000 | Complex reasoning, architecture, agents |
-| `fast` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Quick responses, grading, low-latency |
+| `fast` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Quick responses, low-latency |
 | `coder` | Qwen3.5-35B-A3B-AWQ-4bit | FOUNDRY:8006 | Code generation |
+| `grader` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Eval grading — thinking disabled at routing layer |
 | `embedding` | Qwen3-Embedding-0.6B | DEV:8001 | 1024-dim vectors |
 | `reranker` | Qwen3-Reranker-0.6B | DEV:8003 | Cross-encoder scoring |
 
@@ -77,4 +78,4 @@ Plain `metadata.agent` is NOT read by LangFuse — use the keys above.
 4. LangFuse traces: compare time-to-first-token vs total generation time to isolate queue vs inference
 5. LiteLLM UI: `http://192.168.1.203:4000/ui`
 
-<!-- updated 2026-03-14 -->
+<!-- updated 2026-03-15 -->
