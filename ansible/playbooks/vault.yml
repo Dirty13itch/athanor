@@ -67,3 +67,5 @@
       tags: [alloy]
     - role: vault-vpn-torrent
       tags: [vpn-torrent]
+    - role: docker-socket-proxy
+      tags: [docker-proxy]

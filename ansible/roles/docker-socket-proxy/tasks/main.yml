@@ -1,0 +1,30 @@
+---
+- name: Run docker-socket-proxy container
+  community.docker.docker_container:
+    name: docker-socket-proxy
+    image: "{{ docker_socket_proxy_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ docker_socket_proxy_bind_ip }}:{{ docker_socket_proxy_port }}:2375"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    env:
+      CONTAINERS: "{{ docker_socket_proxy_containers }}"
+      POST: "{{ docker_socket_proxy_post }}"
+      LOG_LEVEL: info
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+  when: not ansible_check_mode
+
+- name: Wait for docker-socket-proxy to respond
+  ansible.builtin.uri:
+    url: "http://localhost:{{ docker_socket_proxy_port }}/_ping"
+    status_code: 200
+  register: proxy_health
+  retries: 5
+  delay: 3
+  until: proxy_health.status == 200
+  when: not ansible_check_mode

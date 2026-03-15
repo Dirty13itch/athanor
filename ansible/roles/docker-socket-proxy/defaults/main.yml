@@ -1,0 +1,6 @@
+---
+docker_socket_proxy_image: "lscr.io/linuxserver/socket-proxy:latest"
+docker_socket_proxy_port: 2375
+docker_socket_proxy_bind_ip: "{{ ansible_default_ipv4.address }}"
+docker_socket_proxy_post: "1"
+docker_socket_proxy_containers: "1"
