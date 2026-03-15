@@ -137,7 +137,6 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - 6.2 InfiniBand (backlog)
 - 6.4 Mobile access (backlog)
 - 6.7 Mining enclosure (physical)
-- 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
 
 ## Session 60 (2026-03-14) Summary — Constitutional Hardening Sprint
@@ -238,7 +237,7 @@ Phase 6 (Testing)            DONE — 391 tests pass
 
 ### Session 60f — Blocker Busting
 - **qBittorrent + Gluetun VPN deployed** — Ansible role `vault-vpn-torrent`. NordVPN OpenVPN tunnel to Switzerland. Kill switch via network_mode. WebUI at vault:8112. VPN verified (Swiss IP 176.223.172.131).
-- **Anthropic API key wired into LiteLLM** — `ANTHROPIC_API_KEY` env var passed through to LiteLLM container. Claude models (opus/sonnet/haiku) verified working via LiteLLM. Unblocks Quality Cascade (8.5).
+- **Anthropic API key wired into LiteLLM** — `ANTHROPIC_API_KEY` env var passed through to LiteLLM container. Claude models (opus/sonnet/haiku) verified working via LiteLLM.
 - **Google Drive rclone OAuth completed** — Manual OAuth flow (extracted rclone client_id, Shaun authorized in browser, exchanged code for tokens on DEV). Two remotes: `uea-drive:` and `personal-drive:`. Unblocks personal data sync (10.8).
 - **Python Docker SDK installed on VAULT** — `docker` + `requests` pip packages. Unblocks all `community.docker.docker_container` Ansible tasks on VAULT.
 - **NordVPN service creds + Anthropic key encrypted in ansible vault**
@@ -249,11 +248,16 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **FOUNDRY Samsung 990 PRO enabled** — Drive was in M.2_1 (shares lanes with PCIE2). PE8_SEL jumper moved from pins 2-3 to 1-2. PCIE2 GPU now runs at x8 (no impact). Samsung formatted ext4, mounted at `/mnt/local-fast` (replaced P310 1TB). Full VAULT model library (~693G) rsynced locally. Eliminates VAULT NFS as inference SPOF. 3.4TB free for future models.
 - **5/5 blockers cleared** (NordVPN, Anthropic, Google Drive, WORKSHOP EXPO, FOUNDRY Samsung)
 
+### Session 60h — Manifest Cleanup + Google Drive Sync
+- **8.5 Quality Cascade closed as superseded** — Cloud models already routable via LiteLLM subscriptions. Automated quality gating adds complexity with minimal value; routing intelligence is the human workflow.
+- **10.8 Google Drive sync deployed** — `sync-personal-data.sh` rewritten for current DEV (native Linux, not WSL2). Two rclone remotes: `personal-drive:` (30 GiB) + `uea-drive:` (7 GiB). Pipeline: rclone → DEV staging → rsync → FOUNDRY. Cron every 6 hours.
+- **Phase 3c site.yml reconciliation** — Added VAULT (19 roles) to master playbook. All 4 nodes now in site.yml.
+- **Model rsync complete** — 283 GB synced to Samsung 990 PRO on FOUNDRY. VAULT NFS no longer inference SPOF.
+
 ### Next Actions
-1. Build Quality Cascade `escalate_to_cloud` tool (8.5 — now unblocked)
-2. Connect qBittorrent to Sonarr/Radarr download clients
-3. Google Drive sync cron job (10.8 — now unblocked)
-4. Re-audit score target: 8.5+/10
+1. Connect qBittorrent to Sonarr/Radarr download clients
+2. Re-run `scripts/index-files.py` against new Google Drive data
+3. Re-audit score target: 8.5+/10
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
 
