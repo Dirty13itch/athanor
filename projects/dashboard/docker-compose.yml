@@ -8,6 +8,8 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       NEXT_PUBLIC_PROMETHEUS_URL: ${NEXT_PUBLIC_PROMETHEUS_URL:-http://192.168.1.203:9090}
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}

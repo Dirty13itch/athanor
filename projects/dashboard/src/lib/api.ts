@@ -237,3 +237,30 @@ export async function getGalleryOverview(): Promise<GallerySnapshot> {
 export async function getHomeOverview(): Promise<HomeSnapshot> {
   return fetchJson("/api/home/overview", { cache: "no-store" }, homeSnapshotSchema);
 }
+
+export interface ContainerInfo {
+  id: string;
+  name: string;
+  image: string;
+  state: string;
+  status: string;
+  created: string;
+}
+
+export async function getContainers(): Promise<ContainerInfo[]> {
+  const res = await fetch("/api/containers", { cache: "no-store" });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function restartContainer(name: string): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetch(`/api/containers/${encodeURIComponent(name)}/restart`, { method: "POST" });
+  return res.json();
+}
+
+export async function getContainerLogs(name: string, tail = 100): Promise<string> {
+  const res = await fetch(`/api/containers/${encodeURIComponent(name)}/logs?tail=${tail}`, { cache: "no-store" });
+  if (!res.ok) return "";
+  const data = await res.json();
+  return data.logs ?? "";
+}

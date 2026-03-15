@@ -1,8 +1,8 @@
 "use client";
 
-import { useDeferredValue } from "react";
+import { useDeferredValue, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Copy, Download, ExternalLink, RefreshCcw, Search } from "lucide-react";
+import { ArrowUpRight, Copy, Download, ExternalLink, FileText, Power, RefreshCcw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { MetricChart } from "@/components/metric-chart";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
-import { getServices, getServicesHistory } from "@/lib/api";
+import { getServices, getServicesHistory, getContainers, restartContainer, getContainerLogs, type ContainerInfo } from "@/lib/api";
 import { type ServicesHistorySnapshot, type ServicesSnapshot } from "@/lib/contracts";
 import { config } from "@/lib/config";
 import { compactText, formatCategoryLabel, formatLatency, formatRelativeTime } from "@/lib/format";
@@ -26,6 +26,16 @@ import { useUrlState } from "@/lib/url-state";
 
 type StatusFilter = "all" | "healthy" | "degraded";
 type SortMode = "severity" | "latency" | "name";
+
+// Map service IDs to their known Docker container names (WORKSHOP node only)
+const SERVICE_CONTAINER_MAP: Record<string, string> = {
+  "workshop-worker": "vllm-worker",
+  "comfyui": "comfyui",
+  "workshop-open-webui": "open-webui",
+  "eoq": "athanor-eoq",
+  "workshop-node-exporter": "node-exporter",
+  "workshop-dcgm-exporter": "dcgm-exporter",
+};
 
 function toPrometheusLink(serviceId: string) {
   const expr = `probe_success{service_id="${serviceId}"}`;
@@ -66,6 +76,11 @@ export function ServicesConsole({
   const window = isTimeWindow(windowValue) ? windowValue : "3h";
   const deferredSearch = useDeferredValue(search);
 
+  const [restarting, setRestarting] = useState<string | null>(null);
+  const [restartResult, setRestartResult] = useState<{ ok: boolean; error?: string } | null>(null);
+  const [logs, setLogs] = useState<string | null>(null);
+  const [logsLoading, setLogsLoading] = useState(false);
+
   const servicesQuery = useQuery({
     queryKey: queryKeys.services,
     queryFn: getServices,
@@ -78,6 +93,30 @@ export function ServicesConsole({
     initialData: window === initialHistory.window ? initialHistory : undefined,
     ...liveQueryOptions(LIVE_REFRESH_INTERVALS.telemetry),
   });
+  const containersQuery = useQuery({
+    queryKey: ["containers"],
+    queryFn: getContainers,
+    ...liveQueryOptions(60_000),
+  });
+
+  const handleRestart = useCallback(async (containerName: string) => {
+    setRestarting(containerName);
+    setRestartResult(null);
+    const result = await restartContainer(containerName);
+    setRestartResult(result);
+    setRestarting(null);
+    if (result.ok) {
+      setTimeout(() => void servicesQuery.refetch(), 3000);
+    }
+  }, [servicesQuery]);
+
+  const handleViewLogs = useCallback(async (containerName: string) => {
+    setLogsLoading(true);
+    setLogs(null);
+    const text = await getContainerLogs(containerName, 80);
+    setLogs(text);
+    setLogsLoading(false);
+  }, []);
 
   if (servicesQuery.isError) {
     return (
@@ -373,7 +412,10 @@ export function ServicesConsole({
         </CardContent>
       </Card>
 
-      <Sheet open={Boolean(activeService)} onOpenChange={(open) => setSearchValue("service", open && activeService ? activeService.id : null)}>
+      <Sheet open={Boolean(activeService)} onOpenChange={(open) => {
+        setSearchValue("service", open && activeService ? activeService.id : null);
+        if (!open) { setLogs(null); setRestartResult(null); }
+      }}>
         <SheetContent side="right" className="w-full max-w-xl overflow-y-auto border-l border-border/80 bg-background/95">
           {activeService ? (
             <>
@@ -453,6 +495,66 @@ export function ServicesConsole({
                     </Button>
                   </CardContent>
                 </Card>
+
+                {(() => {
+                  const containerName = SERVICE_CONTAINER_MAP[activeService.id]
+                    ?? (containersQuery.data ?? []).find((c: ContainerInfo) =>
+                      c.name.includes(activeService.id.replace(/-/g, ""))
+                      || activeService.name.toLowerCase().includes(c.name.replace(/^athanor-/, ""))
+                    )?.name;
+                  const container = containerName
+                    ? (containersQuery.data ?? []).find((c: ContainerInfo) => c.name === containerName)
+                    : null;
+
+                  if (!containerName) return null;
+
+                  return (
+                    <Card className="border-amber-500/30 bg-amber-950/10">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Container control</CardTitle>
+                        <CardDescription>
+                          Docker container: <code className="text-xs font-mono">{containerName}</code>
+                          {container && (
+                            <Badge variant="outline" className="ml-2" data-tone={container.state === "running" ? "success" : "danger"}>
+                              {container.state}
+                            </Badge>
+                          )}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Button
+                            variant="outline"
+                            className="border-amber-500/30 text-amber-200 hover:bg-amber-900/30"
+                            disabled={restarting === containerName}
+                            onClick={() => void handleRestart(containerName)}
+                          >
+                            <Power className="mr-2 h-4 w-4" />
+                            {restarting === containerName ? "Restarting..." : "Restart"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            disabled={logsLoading}
+                            onClick={() => void handleViewLogs(containerName)}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            {logsLoading ? "Loading..." : "View logs"}
+                          </Button>
+                        </div>
+                        {restartResult && (
+                          <p className={`text-sm ${restartResult.ok ? "text-green-400" : "text-red-400"}`}>
+                            {restartResult.ok ? "Container restarted successfully." : restartResult.error}
+                          </p>
+                        )}
+                        {logs !== null && (
+                          <pre className="max-h-64 overflow-auto rounded-xl border border-border/50 bg-black/40 p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap">
+                            {logs || "(no output)"}
+                          </pre>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 <Card className="border-border/70 bg-card/70">
                   <CardHeader>
