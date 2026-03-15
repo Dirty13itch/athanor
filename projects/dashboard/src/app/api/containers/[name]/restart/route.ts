@@ -1,24 +1,25 @@
-import { NextResponse } from "next/server";
-import { isDockerAvailable, restartContainer } from "@/lib/docker";
+import { NextResponse, type NextRequest } from "next/server";
+import { restartContainer } from "@/lib/docker";
 
 const PROTECTED_CONTAINERS = new Set([
   "athanor-dashboard", // don't restart yourself
 ]);
 
 export async function POST(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
   const { name } = await params;
+  const node = request.nextUrl.searchParams.get("node") ?? "workshop";
 
-  if (!isDockerAvailable()) {
+  if (node === "foundry") {
     return NextResponse.json(
-      { error: "Docker socket not available" },
-      { status: 503 }
+      { error: "FOUNDRY is production — restart not allowed from dashboard" },
+      { status: 403 }
     );
   }
 
-  if (PROTECTED_CONTAINERS.has(name)) {
+  if (node === "workshop" && PROTECTED_CONTAINERS.has(name)) {
     return NextResponse.json(
       { error: `Container "${name}" is protected and cannot be restarted from the dashboard` },
       { status: 403 }
@@ -26,12 +27,11 @@ export async function POST(
   }
 
   try {
-    await restartContainer(name);
-    return NextResponse.json({ ok: true, container: name, action: "restart" });
+    await restartContainer(node, name);
+    return NextResponse.json({ ok: true, container: name, node, action: "restart" });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Restart failed" },
-      { status: 500 }
-    );
+    const message = err instanceof Error ? err.message : "Restart failed";
+    const status = message.includes("not allowed") ? 403 : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

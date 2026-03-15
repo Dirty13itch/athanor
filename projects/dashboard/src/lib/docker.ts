@@ -1,6 +1,12 @@
 import http from "node:http";
 
-const DOCKER_SOCKET = "/var/run/docker.sock";
+export interface DockerHost {
+  name: string;
+  socketPath?: string;
+  host?: string;
+  port?: number;
+  allowRestart: boolean;
+}
 
 export interface DockerContainer {
   Id: string;
@@ -11,80 +17,150 @@ export interface DockerContainer {
   Created: number;
 }
 
-function dockerRequest<T>(method: string, path: string): Promise<T> {
+export interface DockerContainerWithNode extends DockerContainer {
+  node: string;
+}
+
+const DOCKER_HOSTS: DockerHost[] = [
+  {
+    name: "workshop",
+    socketPath: "/var/run/docker.sock",
+    allowRestart: true,
+  },
+  {
+    name: "foundry",
+    host: process.env.ATHANOR_FOUNDRY_DOCKER_PROXY || `http://${process.env.ATHANOR_NODE1_HOST || "192.168.1.244"}:2375`,
+    allowRestart: false,
+  },
+  {
+    name: "vault",
+    host: process.env.ATHANOR_VAULT_DOCKER_PROXY || `http://${process.env.ATHANOR_VAULT_HOST || "192.168.1.203"}:2375`,
+    allowRestart: true,
+  },
+];
+
+function dockerRequest<T>(method: string, path: string, host: DockerHost): Promise<T> {
   return new Promise((resolve, reject) => {
-    const req = http.request(
-      { socketPath: DOCKER_SOCKET, path, method, headers: { "Content-Type": "application/json" } },
-      (res) => {
-        let data = "";
-        res.on("data", (chunk) => (data += chunk));
-        res.on("end", () => {
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(data ? (JSON.parse(data) as T) : (undefined as T));
-          } else {
-            reject(new Error(`Docker API ${method} ${path}: ${res.statusCode} ${data}`));
-          }
-        });
-      }
-    );
+    const timeout = host.socketPath ? 15_000 : 5_000;
+    let options: http.RequestOptions;
+
+    if (host.socketPath) {
+      options = { socketPath: host.socketPath, path, method, headers: { "Content-Type": "application/json" } };
+    } else {
+      const url = new URL(path, host.host);
+      options = {
+        hostname: url.hostname,
+        port: url.port,
+        path: url.pathname + url.search,
+        method,
+        headers: { "Content-Type": "application/json" },
+      };
+    }
+
+    const req = http.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(data ? (JSON.parse(data) as T) : (undefined as T));
+        } else {
+          reject(new Error(`Docker API ${method} ${path} on ${host.name}: ${res.statusCode} ${data}`));
+        }
+      });
+    });
     req.on("error", reject);
-    req.setTimeout(15_000, () => {
+    req.setTimeout(timeout, () => {
       req.destroy();
-      reject(new Error(`Docker API timeout: ${method} ${path}`));
+      reject(new Error(`Docker API timeout: ${method} ${path} on ${host.name}`));
     });
     req.end();
   });
 }
 
-export async function listContainers(): Promise<DockerContainer[]> {
-  return dockerRequest<DockerContainer[]>("GET", "/containers/json?all=true");
-}
-
-export async function restartContainer(idOrName: string): Promise<void> {
-  await dockerRequest<void>("POST", `/containers/${encodeURIComponent(idOrName)}/restart?t=10`);
-}
-
-export async function getContainerLogs(idOrName: string, tail = 100): Promise<string> {
+function getContainerLogsFromHost(host: DockerHost, idOrName: string, tail = 100): Promise<string> {
   return new Promise((resolve, reject) => {
-    const req = http.request(
-      {
-        socketPath: DOCKER_SOCKET,
-        path: `/containers/${encodeURIComponent(idOrName)}/logs?stdout=true&stderr=true&tail=${tail}&timestamps=true`,
-        method: "GET",
-      },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk: Buffer) => chunks.push(chunk));
-        res.on("end", () => {
-          const raw = Buffer.concat(chunks);
-          // Docker multiplexed stream: strip 8-byte header from each frame
-          const lines: string[] = [];
-          let offset = 0;
-          while (offset < raw.length) {
-            if (offset + 8 > raw.length) break;
-            const frameSize = raw.readUInt32BE(offset + 4);
-            if (offset + 8 + frameSize > raw.length) break;
-            lines.push(raw.subarray(offset + 8, offset + 8 + frameSize).toString("utf8"));
-            offset += 8 + frameSize;
-          }
-          resolve(lines.join(""));
-        });
-      }
-    );
+    const timeout = host.socketPath ? 10_000 : 5_000;
+    const path = `/containers/${encodeURIComponent(idOrName)}/logs?stdout=true&stderr=true&tail=${tail}&timestamps=true`;
+    let options: http.RequestOptions;
+
+    if (host.socketPath) {
+      options = { socketPath: host.socketPath, path, method: "GET" };
+    } else {
+      const url = new URL(path, host.host);
+      options = { hostname: url.hostname, port: url.port, path: url.pathname + url.search, method: "GET" };
+    }
+
+    const req = http.request(options, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (chunk: Buffer) => chunks.push(chunk));
+      res.on("end", () => {
+        const raw = Buffer.concat(chunks);
+        // Docker multiplexed stream: strip 8-byte header from each frame
+        const lines: string[] = [];
+        let offset = 0;
+        while (offset < raw.length) {
+          if (offset + 8 > raw.length) break;
+          const frameSize = raw.readUInt32BE(offset + 4);
+          if (offset + 8 + frameSize > raw.length) break;
+          lines.push(raw.subarray(offset + 8, offset + 8 + frameSize).toString("utf8"));
+          offset += 8 + frameSize;
+        }
+        resolve(lines.join(""));
+      });
+    });
     req.on("error", reject);
-    req.setTimeout(10_000, () => {
+    req.setTimeout(timeout, () => {
       req.destroy();
-      reject(new Error("Docker logs timeout"));
+      reject(new Error(`Docker logs timeout on ${host.name}`));
     });
     req.end();
   });
+}
+
+function getHostByName(name: string): DockerHost | undefined {
+  return DOCKER_HOSTS.find((h) => h.name === name);
+}
+
+async function listContainersFromHost(host: DockerHost): Promise<DockerContainerWithNode[]> {
+  const containers = await dockerRequest<DockerContainer[]>("GET", "/containers/json?all=true", host);
+  return containers.map((c) => ({ ...c, node: host.name }));
+}
+
+export async function listAllContainers(): Promise<DockerContainerWithNode[]> {
+  const results = await Promise.allSettled(
+    DOCKER_HOSTS.map((host) => listContainersFromHost(host))
+  );
+  const containers: DockerContainerWithNode[] = [];
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      containers.push(...result.value);
+    }
+  }
+  return containers;
+}
+
+export async function restartContainer(nodeName: string, idOrName: string): Promise<void> {
+  const host = getHostByName(nodeName);
+  if (!host) throw new Error(`Unknown node: ${nodeName}`);
+  if (!host.allowRestart) throw new Error(`Restart not allowed on ${nodeName}`);
+  await dockerRequest<void>("POST", `/containers/${encodeURIComponent(idOrName)}/restart?t=10`, host);
+}
+
+export async function getContainerLogs(nodeName: string, idOrName: string, tail = 100): Promise<string> {
+  const host = getHostByName(nodeName);
+  if (!host) throw new Error(`Unknown node: ${nodeName}`);
+  return getContainerLogsFromHost(host, idOrName, tail);
 }
 
 export function isDockerAvailable(): boolean {
   try {
-    require("node:fs").accessSync(DOCKER_SOCKET);
+    require("node:fs").accessSync("/var/run/docker.sock");
     return true;
   } catch {
     return false;
   }
+}
+
+export function getDockerHosts(): DockerHost[] {
+  return DOCKER_HOSTS;
 }

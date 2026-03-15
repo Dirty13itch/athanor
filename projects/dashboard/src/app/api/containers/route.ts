@@ -1,16 +1,9 @@
 import { NextResponse } from "next/server";
-import { isDockerAvailable, listContainers } from "@/lib/docker";
+import { listAllContainers } from "@/lib/docker";
 
 export async function GET() {
-  if (!isDockerAvailable()) {
-    return NextResponse.json(
-      { error: "Docker socket not available" },
-      { status: 503 }
-    );
-  }
-
   try {
-    const containers = await listContainers();
+    const containers = await listAllContainers();
     const mapped = containers.map((c) => ({
       id: c.Id.slice(0, 12),
       name: c.Names[0]?.replace(/^\//, "") ?? c.Id.slice(0, 12),
@@ -18,6 +11,7 @@ export async function GET() {
       state: c.State,
       status: c.Status,
       created: new Date(c.Created * 1000).toISOString(),
+      node: c.node,
     }));
     return NextResponse.json(mapped);
   } catch (err) {
