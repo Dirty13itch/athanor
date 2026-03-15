@@ -340,13 +340,51 @@ Phase 6 (Testing)            DONE — 391 tests pass
   - Qwen3-Coder-Next-80B-A3B exists as future upgrade path (needs TP=4, 45.9GB AWQ)
   - SGLang has better raw throughput but Blackwell NVFP4 NaN issues — stick with vLLM
 
+### Session 60t — Expert Council System Review (8-Domain)
+- **Structured health endpoint** — `/health` now probes Redis (PING), Qdrant, LiteLLM, coordinator, worker, embedding. Returns `{status: healthy|degraded|unhealthy, dependencies: {...}, issues: [...]}`. Core deps (redis, qdrant, litellm) trigger degraded if down.
+- **Context injection deduplication** — After parallel Qdrant queries, knowledge/personal_data deduplicated by 200-char text prefix. Conversations/activity deduplicated by 100-char message prefix. Prevents wasted 6000-char context budget.
+- **Agent specialization tuning** — Per-agent temperature tuning: research 0.7→0.3 (+4096 max_tokens), general 0.7→0.5, home 0.7→0.3, media 0.7→0.5, stash 0.7→0.5. Coding (0.3), creative (0.8), knowledge (0.3), data_curator (0.3) unchanged.
+- **Multi-step agent workflows** — New workflow system at `/v1/workflows`:
+  - Executor: sequential step chain, each step routes to an agent via internal `/v1/chat/completions`
+  - 3 built-in workflows: `deep_research` (search→synthesize→store), `media_pipeline` (describe→generate→review), `daily_digest` (collect→summarize→store)
+  - Routes: POST `/v1/workflows/{name}/run`, GET list/detail
+  - Wired into FastAPI server
+- **ComfyUI workflow templates** — `projects/comfyui-workflows/` with 4 API-format workflows:
+  - txt2img-flux (1024x1024, 20 steps), img2img-flux (denoise 0.7), upscale-4x (UltraSharp), character-portrait (768x1024, EoBQ-optimized)
+- **EoBQ character memory** — Persistent Qdrant-backed memory system:
+  - Collection: `eoq_character_memory` (auto-created)
+  - API routes: POST `/api/memory` (store), GET `/api/memory/[characterId]` (retrieve with recency decay)
+  - Memory types: interaction, choice, revelation, combat, relationship_change
+  - Importance scoring (1-5) from choice effect magnitude
+  - Fire-and-forget storage on choices/scenes/revelations in game engine
+  - Memory context injection into LLM chat prompts
+  - Relationship scoring with sentiment and interaction tracking
+- **Conversation summarizer** — Nightly batch script (`scripts/conversation-summarizer.py`):
+  - Scrolls Qdrant `conversations` collection for unsummarized entries
+  - Groups multi-turn threads, generates 2-3 sentence summaries via worker model
+  - Cron: 3:23 AM daily (after index-knowledge at 3:00 AM)
+  - Supports --dry-run, --limit N, idempotent
+
+**Items confirmed already done (skipped):**
+- CI pipeline (`.gitea/workflows/ci.yml` — Python, YAML, TypeScript checks, ntfy notify)
+- Agent eval baselines (17 promptfoo tests, CI workflow, weekly schedule, multiple baseline runs)
+- DailyBriefing dashboard component (task-based briefing aggregation)
+- GPU heartbeat beacon (`scripts/node-heartbeat.py` — 10s Redis publishing)
+- Auto knowledge indexing (daily cron at 3:00 AM, incremental mode)
+- Dashboard SystemMapCard (command rights, lanes, governance)
+
+**Deferred to later:**
+- Agent server auth (bearer token middleware) — separate security sprint
+- Execution tool allowlist — separate security sprint
+
 ### Next Actions
-1. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
-2. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
-3. Dashboard control — extend to FOUNDRY/VAULT containers (SSH or remote Docker proxy)
-4. vLLM upgrade to v0.17.1 stable — test on WORKSHOP first, then FOUNDRY
-5. Test `qwen35_coder` parser vs `qwen3_xml` — may improve tool calling
-6. Dual Qdrant consolidation — low priority, VAULT:6333 has 3 unique collections worth ~640 points
+1. Deploy agent server to FOUNDRY — rsync + rebuild for health endpoint + workflows + tuning
+2. Deploy EoBQ to WORKSHOP — rebuild for character memory
+3. Stash performer photo pipeline — automate reference photo extraction for PuLID/LoRA training
+4. ComfyUI pipeline deployment — install ReActor, FaceAnalysis, ACE++ nodes per likeness research
+5. Dashboard control — extend to FOUNDRY/VAULT containers (SSH or remote Docker proxy)
+6. vLLM upgrade to v0.17.1 stable — test on WORKSHOP first, then FOUNDRY
+7. Agent server auth sprint — bearer token middleware, execution tool allowlist
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
