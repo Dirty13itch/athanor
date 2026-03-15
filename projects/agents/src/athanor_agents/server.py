@@ -152,7 +152,59 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "agents": list_agents()}
+    """Structured health check with dependency probes."""
+    import asyncio
+    import httpx
+
+    async def _probe(name: str, url: str, timeout: float = 2.0) -> dict:
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as c:
+                resp = await c.get(url)
+                return {"name": name, "status": "up", "latency_ms": int(resp.elapsed.total_seconds() * 1000)}
+        except Exception as e:
+            return {"name": name, "status": "down", "error": str(e)[:120]}
+
+    deps = await asyncio.gather(
+        _probe("redis", f"http://{settings.vault_host}:6379", timeout=1.0),  # TCP only, will fail on HTTP but that's fine
+        _probe("qdrant", f"{settings.qdrant_url}/collections"),
+        _probe("litellm", f"{settings.litellm_url}/health"),
+        _probe("coordinator", f"{settings.coordinator_url}/health"),
+        _probe("worker", f"{settings.worker_url}/health"),
+        _probe("embedding", f"{settings.embedding_url}/health"),
+    )
+
+    # Redis probe: use actual Redis PING instead of HTTP
+    try:
+        import redis as _redis
+        r = _redis.from_url(settings.redis_url, socket_timeout=1.0)
+        r.ping()
+        deps = list(deps)
+        deps[0] = {"name": "redis", "status": "up", "latency_ms": 0}
+    except Exception as e:
+        deps = list(deps)
+        deps[0] = {"name": "redis", "status": "down", "error": str(e)[:120]}
+
+    dep_map = {d["name"]: d for d in deps}
+    down = [d["name"] for d in deps if d["status"] == "down"]
+    active_agents = list_agents()
+
+    # Core deps: qdrant, redis, litellm. If any core dep is down, status is degraded.
+    # If agents can't load, status is unhealthy.
+    core_down = [n for n in down if n in ("qdrant", "redis", "litellm")]
+    if not active_agents:
+        overall = "unhealthy"
+    elif core_down:
+        overall = "degraded"
+    else:
+        overall = "healthy"
+
+    return {
+        "status": overall,
+        "agents": active_agents,
+        "agent_count": len(active_agents),
+        "dependencies": dep_map,
+        "issues": down if down else None,
+    }
 
 
 @app.get("/v1/models")

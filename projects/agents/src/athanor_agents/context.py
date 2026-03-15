@@ -615,6 +615,48 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     except Exception as e:
         logger.debug("Skill search failed: %s", e)
 
+    # Step 2e: Deduplicate across collections
+    # Knowledge and personal_data can return overlapping content. Dedup by
+    # comparing the first 200 chars of text payloads.
+    if knowledge and personal_data:
+        seen_prefixes: set[str] = set()
+        for r in knowledge:
+            prefix = r.get("payload", {}).get("text", "")[:200].strip()
+            if prefix:
+                seen_prefixes.add(prefix)
+        deduped_personal: list[dict] = []
+        for r in personal_data:
+            prefix = r.get("payload", {}).get("text", "")[:200].strip()
+            if prefix and prefix in seen_prefixes:
+                continue
+            deduped_personal.append(r)
+        if len(deduped_personal) < len(personal_data):
+            logger.debug(
+                "Context dedup: removed %d duplicate(s) from personal_data",
+                len(personal_data) - len(deduped_personal),
+            )
+            personal_data = deduped_personal
+
+    # Conversations and activity can also overlap — dedup by user message prefix
+    if conversations and activity:
+        activity_prefixes: set[str] = set()
+        for p in activity:
+            prefix = p.get("payload", {}).get("input_summary", "")[:100].strip()
+            if prefix:
+                activity_prefixes.add(prefix)
+        deduped_convos: list[dict] = []
+        for r in conversations:
+            prefix = r.get("payload", {}).get("user_message", "")[:100].strip()
+            if prefix and prefix in activity_prefixes:
+                continue
+            deduped_convos.append(r)
+        if len(deduped_convos) < len(conversations):
+            logger.debug(
+                "Context dedup: removed %d duplicate(s) from conversations",
+                len(conversations) - len(deduped_convos),
+            )
+            conversations = deduped_convos
+
     # Step 3: Format
     pref_lines = _format_preferences(prefs)
     activity_lines = _format_activity(activity, agent_name)
