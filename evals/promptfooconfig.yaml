@@ -20,10 +20,17 @@ providers:
   - id: openai:chat:reasoning
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      # Suppress Qwen3.5 inline thinking traces for clean eval grading
+      passthrough:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - id: openai:chat:fast
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      passthrough:
+        chat_template_kwargs:
+          enable_thinking: false
 
 prompts:
   - "{{prompt}}"
@@ -130,7 +137,7 @@ tests:
       prompt: "Add the movie Dune Part Two to my watchlist."
     assert:
       - type: llm-rubric
-        value: "Acknowledges the request and either processes it or explains how it would interact with Radarr/Sonarr. Clear about what action was taken."
+        value: "Acknowledges the request. May explain it needs tools/APIs like Radarr to fulfill it, or offer to help if it had access. Does not pretend to have completed the action without a tool call. A helpful response explaining limitations is acceptable."
 
   # --- Reasoning & instruction following ---
   - vars:
@@ -141,10 +148,7 @@ tests:
       - type: python
         value: |
           import re
-          # Strip thinking traces before counting (model may prefix with "Thinking Process:")
-          clean = re.sub(r'^(Thinking Process|Thinking):.*?(?=\n\d+\.\s+\*\*|\n---)', '', output, flags=re.DOTALL)
-          clean = re.sub(r'^---\s*\n', '', clean, flags=re.MULTILINE)
-          numbers = re.findall(r'^\d+\.', clean.strip(), re.MULTILINE)
+          numbers = re.findall(r'^\d+\.', output.strip(), re.MULTILINE)
           return len(numbers) == 5
 
   - vars:
