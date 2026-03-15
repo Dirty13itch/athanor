@@ -250,6 +250,11 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("ATHANOR_NTFY_TOPIC"),
     )
 
+    api_bearer_token: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_AGENT_API_TOKEN", "ATHANOR_API_BEARER_TOKEN"),
+    )
+
     host: str = Field(default="0.0.0.0", validation_alias=AliasChoices("ATHANOR_HOST"))
     port: int = Field(default=9000, validation_alias=AliasChoices("ATHANOR_PORT"))
 

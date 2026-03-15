@@ -1,5 +1,5 @@
 import { queryPrometheus, type PrometheusResult } from "@/lib/api";
-import { config, getNodeNameFromInstance } from "@/lib/config";
+import { agentServerHeaders, config, getNodeNameFromInstance } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +81,7 @@ async function fetchSnapshot(): Promise<StreamPayload> {
   try {
     const res = await fetch(`${config.agentServer.url}/v1/status/services`, {
       signal: AbortSignal.timeout(5000),
+      headers: agentServerHeaders(),
     });
     if (res.ok) {
       const data = await res.json();
@@ -99,6 +100,7 @@ async function fetchSnapshot(): Promise<StreamPayload> {
   try {
     const res = await fetch(`${config.agentServer.url}/v1/tasks/stats`, {
       signal: AbortSignal.timeout(3000),
+      headers: agentServerHeaders(),
     });
     if (res.ok) {
       tasks = await res.json();
@@ -110,6 +112,7 @@ async function fetchSnapshot(): Promise<StreamPayload> {
   try {
     const res = await fetch(`${config.agentServer.url}/v1/notifications?include_resolved=true`, {
       signal: AbortSignal.timeout(3000),
+      headers: agentServerHeaders(),
     });
     if (res.ok) {
       const data = await res.json();

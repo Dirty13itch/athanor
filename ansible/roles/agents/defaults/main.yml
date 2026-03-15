@@ -1,6 +1,7 @@
 ---
 agent_deploy_dir: /opt/athanor/agents
 agent_port: 9000
+agent_api_token: "{{ athanor_agent_api_token | default('') }}"
 
 agent_node1_host: "{{ node1_ip | default('192.168.1.244') }}"
 agent_node2_host: "{{ node2_ip | default('192.168.1.225') }}"

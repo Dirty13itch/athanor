@@ -31,14 +31,38 @@ PERSONAL_DIR = Path("/data/personal")  # Read-only mount of personal data
 READ_ALLOWED = [WORKSPACE_DIR, OUTPUT_DIR, PERSONAL_DIR]
 WRITE_ALLOWED = [OUTPUT_DIR]
 
-# Commands that are never allowed
-COMMAND_BLOCKLIST = [
+# Allowlist: only these command prefixes are permitted.
+# Anything not matching is rejected. This is safer than a blocklist.
+COMMAND_ALLOWLIST_PREFIXES = [
+    # Python execution
+    "python", "python3", "python -", "python3 -",
+    # Testing
+    "pytest", "python -m pytest", "python3 -m pytest",
+    # File inspection (read-only)
+    "cat ", "head ", "tail ", "less ", "wc ", "file ",
+    "ls", "find ", "tree ", "du ", "df ",
+    "grep ", "rg ", "awk ", "sed ",  # sed is read-safe in pipeline context
+    "diff ", "sort ", "uniq ", "cut ",
+    # Git (read-only operations)
+    "git log", "git diff", "git status", "git show", "git blame",
+    "git ls-files", "git rev-parse", "git branch",
+    # Build/lint tools
+    "npm run", "npx ", "node ",
+    "pip list", "pip show",
+    "mypy ", "ruff ", "black --check", "flake8",
+    # System info (read-only)
+    "echo ", "date", "env ", "printenv", "whoami", "pwd", "id",
+    "uname", "hostname",
+    # Curl for API checks (no piping to shell)
+    "curl ",
+]
+
+# Even within allowed commands, these patterns are always blocked
+COMMAND_DENY_PATTERNS = [
+    "curl | sh", "curl | bash", "wget | sh", "wget | bash",
+    "| sh", "| bash",  # No piping into shell interpreters
     "rm -rf /", "rm -rf /*", "mkfs", "dd if=", ":(){ :|:&",
-    "chmod -R 777 /", "chown -R", "> /dev/sd",
-    "curl | sh", "wget | sh", "curl | bash", "wget | bash",
-    "docker rm", "docker stop", "docker kill",
-    "shutdown", "reboot", "halt", "poweroff",
-    "kill -9", "killall",
+    "> /dev/sd", "chmod -R 777", "shutdown", "reboot", "poweroff",
 ]
 
 MAX_COMMAND_TIMEOUT = 300  # 5 minutes max
@@ -76,11 +100,29 @@ def _validate_write_path(path_str: str) -> Path:
 
 
 def _check_command_safety(command: str) -> str | None:
-    """Check if a command is blocked. Returns reason if blocked, None if ok."""
-    cmd_lower = command.lower().strip()
-    for blocked in COMMAND_BLOCKLIST:
-        if blocked in cmd_lower:
-            return f"Command contains blocked pattern: '{blocked}'"
+    """Check if a command is allowed. Returns reason if blocked, None if ok.
+
+    Uses an allowlist approach: command must start with an allowed prefix.
+    Even allowed commands are checked against deny patterns for safety.
+    """
+    cmd_stripped = command.strip()
+    cmd_lower = cmd_stripped.lower()
+
+    # Check deny patterns first (absolute blocks)
+    for denied in COMMAND_DENY_PATTERNS:
+        if denied in cmd_lower:
+            return f"Command contains blocked pattern: '{denied}'"
+
+    # Check allowlist — command must start with an allowed prefix
+    allowed = any(cmd_stripped.startswith(prefix) or cmd_lower.startswith(prefix.lower())
+                   for prefix in COMMAND_ALLOWLIST_PREFIXES)
+    if not allowed:
+        return (
+            f"Command not in allowlist. Allowed prefixes: "
+            f"{', '.join(sorted(set(p.strip() for p in COMMAND_ALLOWLIST_PREFIXES[:10])))}... "
+            f"({len(COMMAND_ALLOWLIST_PREFIXES)} total)"
+        )
+
     return None
 
 

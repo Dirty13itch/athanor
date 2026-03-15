@@ -1,9 +1,10 @@
-import { config } from "@/lib/config";
+import { agentServerHeaders, config } from "@/lib/config";
 
 export async function GET() {
   try {
     const res = await fetch(`${config.agentServer.url}/v1/status/media`, {
       signal: AbortSignal.timeout(10000),
+      headers: agentServerHeaders(),
       next: { revalidate: 0 },
     });
     if (!res.ok) {

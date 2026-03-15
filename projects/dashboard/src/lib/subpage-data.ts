@@ -15,7 +15,7 @@ import {
   type MonitoringSnapshot,
   monitoringSnapshotSchema,
 } from "@/lib/contracts";
-import { config, joinUrl } from "@/lib/config";
+import { agentServerHeaders, config, joinUrl } from "@/lib/config";
 import {
   getFixtureGallerySnapshot,
   getFixtureHistorySnapshot,
@@ -399,6 +399,13 @@ async function fetchJsonSafe<T>(url: string, schema: z.ZodSchema<T>, fallback: T
   }
 }
 
+function fetchAgentSafe<T>(path: string, schema: z.ZodSchema<T>, fallback: T) {
+  return fetchJsonSafe(joinUrl(config.agentServer.url, path), schema, fallback, {
+    cache: "no-store",
+    headers: agentServerHeaders(),
+  });
+}
+
 function inferProjectId(...values: Array<string | null | undefined>) {
   const combined = values
     .filter((value): value is string => Boolean(value))
@@ -512,15 +519,11 @@ export async function getHistorySnapshot(): Promise<HistorySnapshot> {
   const [projects, workforce, activityResponse, conversationResponse, outputsResponse] = await Promise.all([
     getProjectsSnapshot(),
     getWorkforceSnapshot(),
-    fetchJsonSafe(joinUrl(config.agentServer.url, "/v1/activity?limit=60"), rawActivityResponseSchema, {
+    fetchAgentSafe("/v1/activity?limit=60", rawActivityResponseSchema, {
       activity: [],
     }),
-    fetchJsonSafe(
-      joinUrl(config.agentServer.url, "/v1/conversations?limit=40"),
-      rawConversationResponseSchema,
-      { conversations: [] }
-    ),
-    fetchJsonSafe(joinUrl(config.agentServer.url, "/v1/outputs"), rawOutputsResponseSchema, {
+    fetchAgentSafe("/v1/conversations?limit=40", rawConversationResponseSchema, { conversations: [] }),
+    fetchAgentSafe("/v1/outputs", rawOutputsResponseSchema, {
       outputs: [],
     }),
   ]);
@@ -619,7 +622,7 @@ export async function getIntelligenceSnapshot(): Promise<IntelligenceSnapshot> {
   const [projects, workforce, rawPatterns, rawLearning, rawImprovement] = await Promise.all([
     getProjectsSnapshot(),
     getWorkforceSnapshot(),
-    fetchJsonSafe(joinUrl(config.agentServer.url, "/v1/patterns"), rawPatternsResponseSchema, {
+    fetchAgentSafe("/v1/patterns", rawPatternsResponseSchema, {
       timestamp: nowIso(),
       period_hours: 24,
       event_count: 0,
@@ -629,21 +632,17 @@ export async function getIntelligenceSnapshot(): Promise<IntelligenceSnapshot> {
       autonomy_adjustments: [],
       agent_behavioral_patterns: {},
     }),
-    fetchJsonSafe(
-      joinUrl(config.agentServer.url, "/v1/learning/metrics"),
-      rawLearningResponseSchema,
-      {
-        timestamp: nowIso(),
-        metrics: {},
-        summary: {
-          overall_health: 0,
-          data_points: 0,
-          positive_signals: [],
-          assessment: "Unavailable",
-        },
-      }
-    ),
-    fetchJsonSafe(joinUrl(config.agentServer.url, "/v1/improvement/summary"), rawImprovementSchema, {
+    fetchAgentSafe("/v1/learning/metrics", rawLearningResponseSchema, {
+      timestamp: nowIso(),
+      metrics: {},
+      summary: {
+        overall_health: 0,
+        data_points: 0,
+        positive_signals: [],
+        assessment: "Unavailable",
+      },
+    }),
+    fetchAgentSafe("/v1/improvement/summary", rawImprovementSchema, {
       total_proposals: 0,
       pending: 0,
       validated: 0,
@@ -831,11 +830,7 @@ export async function getMemorySnapshot(): Promise<MemorySnapshot> {
       getProjectsSnapshot(),
       getQdrantStats(),
       getQdrantItems(120),
-      fetchJsonSafe(
-        joinUrl(config.agentServer.url, "/v1/preferences?query=operator&limit=8"),
-        rawPreferencesResponseSchema,
-        { preferences: [] }
-      ),
+      fetchAgentSafe("/v1/preferences?query=operator&limit=8", rawPreferencesResponseSchema, { preferences: [] }),
       neo4jQuery("MATCH (n) RETURN count(n) as count"),
       neo4jQuery("MATCH ()-[r]->() RETURN count(r) as count"),
       neo4jQuery("CALL db.labels() YIELD label RETURN label ORDER BY label"),
@@ -1015,7 +1010,7 @@ export async function getMediaSnapshot(): Promise<MediaSnapshot> {
   }
 
   const [media, stashGraphql] = await Promise.all([
-    fetchJsonSafe(joinUrl(config.agentServer.url, "/v1/status/media"), rawMediaResponseSchema, {
+    fetchAgentSafe("/v1/status/media", rawMediaResponseSchema, {
       plex_activity: { sessions: [] },
       sonarr_queue: [],
       radarr_queue: [],

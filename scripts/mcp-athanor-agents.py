@@ -30,8 +30,10 @@ AGENT_URL = (
     or os.environ.get("ATHANOR_AGENT_URL")
     or _default_agent_url()
 )
-_client = httpx.Client(timeout=120)
-_client_long = httpx.Client(timeout=600)  # 10 min for deep research
+_AGENT_TOKEN = os.environ.get("ATHANOR_AGENT_API_TOKEN", "")
+_AUTH_HEADERS = {"Authorization": f"Bearer {_AGENT_TOKEN}"} if _AGENT_TOKEN else {}
+_client = httpx.Client(timeout=120, headers=_AUTH_HEADERS)
+_client_long = httpx.Client(timeout=600, headers=_AUTH_HEADERS)  # 10 min for deep research
 
 mcp = FastMCP("athanor-agents")
 

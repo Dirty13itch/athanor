@@ -2,7 +2,9 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from .agents import list_agents
 from .config import settings
@@ -137,6 +139,31 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Athanor Agent Server", version="0.3.0", lifespan=lifespan)
+
+
+# --- Auth middleware ---
+# Unauthenticated paths: health (monitoring), metrics (prometheus)
+AUTH_EXEMPT_PATHS = {"/health", "/metrics", "/docs", "/openapi.json"}
+
+
+class BearerAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        token = settings.api_bearer_token
+        if not token:
+            # No token configured — auth disabled (backwards compatible)
+            return await call_next(request)
+        if request.url.path in AUTH_EXEMPT_PATHS:
+            return await call_next(request)
+        auth = request.headers.get("authorization", "")
+        if auth == f"Bearer {token}":
+            return await call_next(request)
+        return JSONResponse(
+            status_code=401,
+            content={"error": {"message": "Invalid or missing bearer token", "type": "authentication_error"}},
+        )
+
+
+app.add_middleware(BearerAuthMiddleware)
 
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(

@@ -11,6 +11,7 @@ export type ServiceCategory =
 
 export interface DashboardEndpoint {
   url: string;
+  token?: string;
 }
 
 export interface InferenceBackend extends DashboardEndpoint {
@@ -124,6 +125,7 @@ const prometheusUrl = env(
 );
 const grafanaUrl = env("ATHANOR_GRAFANA_URL", `http://${vaultHost}:3000`);
 const agentServerUrl = env("ATHANOR_AGENT_SERVER_URL", `http://${foundryHost}:9000`);
+const agentServerToken = process.env.ATHANOR_AGENT_API_TOKEN?.trim() || "";
 const litellmUrl = env("ATHANOR_LITELLM_URL", `http://${vaultHost}:4000`);
 const foundryCoordinatorUrl = env(
   "ATHANOR_VLLM_COORDINATOR_URL",
@@ -171,6 +173,7 @@ export const config = {
   },
   agentServer: {
     url: agentServerUrl,
+    token: agentServerToken,
   },
   litellm: {
     url: litellmUrl,
@@ -762,4 +765,9 @@ export function resolveChatModel(target: string | undefined, model: string | und
 
 export function getNodeNameFromInstance(instance: string): string {
   return config.nodes.find((node) => instance.includes(node.ip))?.name ?? instance;
+}
+
+export function agentServerHeaders(): Record<string, string> {
+  const token = config.agentServer.token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
