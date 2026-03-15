@@ -654,7 +654,7 @@ Shaun's "Second Brain" — discovers, catalogs, indexes, and connects all person
 - **Qdrant `signals` collection:** Created on FOUNDRY:6333 (1024-dim, Cosine).
 - **Ansible role:** `ansible/roles/vault-miniflux/` + `ansible/roles/vault-n8n/`.
 - **Feed seeder:** `scripts/seed-miniflux-feeds.py` — adds feeds via Miniflux API with category management.
-- **Remaining:** Knowledge Agent query integration for `signals` collection (search_signals tool). Daily signal digest generation.
+- **Remaining:** Daily signal digest generation. (`search_signals` tool already wired into Knowledge Agent via `KNOWLEDGE_TOOLS`.)
 - **Depends on:** None
 - **Priority:** Done (remaining items P2)
 

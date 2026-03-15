@@ -51,8 +51,8 @@ AGENT_METADATA = {
         "type": "reactive",
     },
     "knowledge-agent": {
-        "description": "Project librarian — search docs, ADRs, research notes, infrastructure graph, find related knowledge.",
-        "tools": ["search_knowledge", "list_documents", "query_knowledge_graph", "find_related_docs", "get_knowledge_stats"],
+        "description": "Project librarian — search docs, ADRs, research notes, infrastructure graph, intelligence signals, find related knowledge.",
+        "tools": ["search_knowledge", "search_signals", "deep_search", "list_documents", "query_knowledge_graph", "find_related_docs", "get_knowledge_stats", "upload_document"],
         "type": "reactive",
     },
     "coding-agent": {
