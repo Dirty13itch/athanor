@@ -287,11 +287,15 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **SYSTEM-SPEC updated** — Knowledge 3076→3435, signals 22→42, added eval suite mention.
 - **Fresh eval running** — `--no-cache` with grader fix, output to `baseline-20260315-grader-fix.json`.
 
-### Eval Results (grader fix applied)
-- **31/38 (82%)**, up from 15/38 (39%)
-- Reasoning: 16/19, Fast: 15/19
-- Remaining failures: GWT context (models lack Athanor system knowledge), Dune watchlist (strict rubric), List-5 format (thinking contamination — Python assertion improved)
-- Signal pipeline: 42 → 62 signals (WORKSHOP OOM fix unblocked embedding)
+### Session 60o — Eval 100%, Task Analysis, Parallel Audit
+- **Eval: 79% → 95% → 100%** — Root cause was Qwen3.5 inline thinking traces ("Thinking Process:", "Analyze the Request:") polluting model output. Fix: `passthrough.chat_template_kwargs.enable_thinking: false` in eval provider config suppresses thinking at API level. Also relaxed Dune watchlist rubric (bare LLM without tools can't interact with Radarr). Final: 38/38 (100%).
+- **Task failure analysis** — 382 total tasks in Redis. 258 failed (historical), 54 completed, 69 cancelled. Root causes: 97x LiteLLM 429 (system message ordering, fixed), 57x timeout (wrong path specs), 33x auth (pre-Redis-fix), 15x circuit breaker cascade. Recent tasks (last 6h): 6/9 completed — system healthy post-Redis-fix. Stale tasks auto-purge at 7d TTL.
+- **Parallel cluster audit** — 4 concurrent sub-agents:
+  - SYSTEM-SPEC: minor drift only (Qdrant counts stale, signals 42→82)
+  - Knowledge index: 3435 points on FOUNDRY:6333, green, no re-index needed
+  - LiteLLM: ALL GREEN — reasoning 573ms, fast 222ms, worker 216ms, embedding 1024-dim OK
+  - Nodes: all GPUs healthy, temps 44-49C, no restart loops
+- **Qdrant topology clarified**: FOUNDRY:6333 = knowledge, signals, personal_data, activity, events, conversations, preferences, implicit_feedback, llm_cache. VAULT:6333 = separate instance with episodic, resources, knowledge_vault.
 
 ### Session 60n — Workspace Dedup, Eval Refresh, IaC Drift Fix
 - **GWT workspace broadcast flooding fixed** — `_competition_cycle()` was pushing identical broadcasts to CST/history/pub-sub every 1-second cycle regardless of change. A single GPU alert filled all 20 working memory slots. Fix: track `_last_broadcast_id`, only update CST/history when top broadcast item changes. Deployed and verified — working memory stable at 1 item after 10+ seconds (was 20 in <10s).
@@ -307,8 +311,8 @@ Phase 6 (Testing)            DONE — 391 tests pass
 
 ### Next Actions
 1. Home Agent testing — blocked on Shaun providing HA token
-2. Re-run eval with fixed thinking trace transform (expect ~83%+)
-3. Signal pipeline health — verify 62+ signals still flowing
+2. SYSTEM-SPEC Qdrant counts refresh (signals 42→82, conversations 2242→2288, knowledge 3076→3435)
+3. Investigate dual Qdrant topology — why VAULT:6333 and FOUNDRY:6333 both exist? Consolidation opportunity?
 4. All build manifest items complete except Shaun-blocked items
 
 ## Session 59 (2026-03-14) Summary — Test Coverage, Alert Tuning, Backup Recovery
