@@ -12,7 +12,9 @@ defaultTest:
       id: openai:chat:grader
       config:
         apiBaseUrl: http://192.168.1.203:4000/v1
-    # Strip think tags from model outputs before grading
+    # Strip <think> tags from model outputs before grading.
+    # Plain-text thinking traces ("Thinking Process:") are handled by individual
+    # assertions where format matters (Python type checks).
     transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
 
 providers:
@@ -140,7 +142,10 @@ tests:
       - type: python
         value: |
           import re
-          numbers = re.findall(r'^\d+\.', output, re.MULTILINE)
+          # Strip thinking traces before counting (model may prefix with "Thinking Process:")
+          clean = re.sub(r'^(Thinking Process|Thinking):.*?(?=\n\d+\.\s+\*\*|\n---)', '', output, flags=re.DOTALL)
+          clean = re.sub(r'^---\s*\n', '', clean, flags=re.MULTILINE)
+          numbers = re.findall(r'^\d+\.', clean.strip(), re.MULTILINE)
           return len(numbers) == 5
 
   - vars:

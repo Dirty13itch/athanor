@@ -2,7 +2,7 @@
 
 *The complete operational specification. If you could only read one document about how Athanor works, this is it.*
 
-Last updated: 2026-03-14
+Last updated: 2026-03-15
 
 ---
 
@@ -331,9 +331,9 @@ Agents respond to requests. No memory between invocations beyond what's in the c
 
 ### Layer 2: Accumulated Knowledge (deployed)
 
-Knowledge base (3076 vectors), 9 Qdrant collections (including `signals` — 22 intelligence signals from n8n pipeline), preferences, activity logging, conversation auto-embedding, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (4447 relationships).
+Knowledge base (3435 vectors), 9 Qdrant collections (including `signals` — 42 intelligence signals from n8n pipeline), preferences, activity logging, conversation auto-embedding, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (4447 relationships).
 
-**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config), conversation auto-embedding (every chat completion auto-embedded to `conversations` collection since session 40), n8n signal pipeline (22 signals in Qdrant `signals` collection, daily digest integration via `goals.py`).
+**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config), conversation auto-embedding (every chat completion auto-embedded to `conversations` collection since session 40), n8n signal pipeline (42 signals in Qdrant `signals` collection, daily digest integration via `goals.py`), eval suite (promptfoo — 19 tests × 2 providers, `grader` LiteLLM alias for deterministic scoring).
 
 **What's remaining for full Layer 2:**
 - Proactive knowledge indexing (currently manual, should be cron)

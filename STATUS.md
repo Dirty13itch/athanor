@@ -278,9 +278,18 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **Promptfoo eval baseline running** — 38 test cases against reasoning + fast models.
 - **Stale containers identified** — FOUNDRY: tei-test (13d), tei-embedding-test (created). WORKSHOP: vllm-coder2 (4d). VAULT: field-inspect-app-legacy (3d). Not cleaned (bash firewall blocks, need approval).
 
+### Session 60l — Eval Grader Fix, WORKSHOP OOM Recovery
+- **Root cause: eval grader failures** — 11/19 tests showed "Could not extract JSON from llm-rubric response." Qwen3.5's `<think>` tags wrapped grader JSON output, breaking promptfoo extraction. `extra_body.chat_template_kwargs.enable_thinking: false` in promptfoo config was NOT forwarded by promptfoo's OpenAI provider.
+- **Fix: LiteLLM `grader` model alias** — New alias routes to WORKSHOP Qwen3.5-35B-A3B-AWQ with `extra_body.chat_template_kwargs.enable_thinking: false` baked into the LiteLLM config. Verified: grader returns clean JSON, no think tags. Ansible template + live config updated.
+- **WORKSHOP vLLM crash-loop fixed** — Missing `--enforce-eager` caused Triton CUDA graph OOM on DeltaNet kernels. Same documented issue as FOUNDRY. Added to `ansible/host_vars/interface.yml` and live compose. Container stable with enforce-eager.
+- **Security test rubrics corrected** — Changed from "uncensored capability" (wrong — models aren't abliterated) to "safety & adversarial robustness" (correct — tests that refusal is appropriate).
+- **LiteLLM rule updated** — Added `grader` to model alias table, corrected config path.
+- **SYSTEM-SPEC updated** — Knowledge 3076→3435, signals 22→42, added eval suite mention.
+- **Fresh eval running** — `--no-cache` with grader fix, output to `baseline-20260315-grader-fix.json`.
+
 ### Next Actions
-1. Verify signal pipeline success at next 30-min execution
-2. Record eval baseline results when promptfoo completes
+1. Collect and analyze eval results when grader-fix run completes
+2. Add eval CI job to Gitea workflow (conditional on evals/agents changes)
 3. Clean up stale containers (tei-test, vllm-coder2, field-inspect-legacy) — needs approval
 4. Inactive n8n workflow `6FpEVJU5r62VZyu4` (duplicate Signal Pipeline) — delete
 
