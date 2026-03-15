@@ -19,42 +19,63 @@ model_list:
       model: "hosted_vllm/{{ vllm_node1_model }}"
       api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
       api_key: "not-needed"
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - model_name: "coding"
     litellm_params:
       model: "hosted_vllm/{{ vllm_node1_model }}"
       api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
       api_key: "not-needed"
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - model_name: "utility"
     litellm_params:
       model: "hosted_vllm/{{ vllm_node2_model }}"
       api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - model_name: "fast"
     litellm_params:
       model: "hosted_vllm/{{ vllm_node2_model }}"
       api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - model_name: "creative"
     litellm_params:
       model: "hosted_vllm/{{ vllm_node2_model }}"
       api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - model_name: "worker"
     litellm_params:
       model: "hosted_vllm/{{ vllm_node2_model }}"
       api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - model_name: "uncensored"
     litellm_params:
       model: "hosted_vllm/{{ vllm_node2_model }}"
       api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
       api_key: "not-needed"
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - model_name: "grader"
     litellm_params:
@@ -70,6 +91,9 @@ model_list:
       model: "{{ vllm_node1_coder_public_model }}"
       api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - model_name: "embedding"
     litellm_params:

@@ -41,7 +41,6 @@ def create_home_agent():
         temperature=0.3,  # Low temp for precise action execution
         streaming=True,
         extra_body={
-            "chat_template_kwargs": {"enable_thinking": False},
             "metadata": {"trace_name": "home-agent", "tags": ["home-agent"], "trace_metadata": {"agent": "home-agent"}},
         },
     )

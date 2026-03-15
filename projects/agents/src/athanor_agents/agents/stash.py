@@ -42,7 +42,6 @@ def create_stash_agent():
         temperature=0.5,  # Balanced for search + management
         streaming=True,
         extra_body={
-            "chat_template_kwargs": {"enable_thinking": False},
             "metadata": {"trace_name": "stash-agent", "tags": ["stash-agent"], "trace_metadata": {"agent": "stash-agent"}},
         },
     )

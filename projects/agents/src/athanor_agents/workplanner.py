@@ -405,7 +405,6 @@ async def generate_work_plan(focus: str = "") -> dict:
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.7,
                     "max_tokens": 4096,
-                    "chat_template_kwargs": {"enable_thinking": False},
                 },
                 headers={"Authorization": f"Bearer {_LLM_KEY}"},
             )

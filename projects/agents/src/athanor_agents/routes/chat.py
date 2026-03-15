@@ -153,9 +153,6 @@ async def chat_completions(request: Request):
                     temperature=routing.tier_config.temperature,
                     max_tokens=routing.tier_config.max_tokens,
                     streaming=False,
-                    extra_body={
-                        "chat_template_kwargs": {"enable_thinking": False},
-                    },
                 )
                 return await fast_llm.ainvoke(lc_messages)
 
@@ -179,9 +176,6 @@ async def chat_completions(request: Request):
                                 temperature=routing.tier_config.temperature,
                                 max_tokens=routing.tier_config.max_tokens,
                                 streaming=False,
-                                extra_body={
-                                    "chat_template_kwargs": {"enable_thinking": False},
-                                },
                             )
                             return await fb_llm.ainvoke(lc_messages)
                         fb_result = await breakers.execute_with_breaker(

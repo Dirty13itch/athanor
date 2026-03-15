@@ -77,7 +77,6 @@ def create_coding_agent():
         temperature=0.3,  # Low temp for deterministic code generation
         streaming=True,
         extra_body={
-            "chat_template_kwargs": {"enable_thinking": False},
             "metadata": {"trace_name": "coding-agent", "tags": ["coding-agent"], "trace_metadata": {"agent": "coding-agent"}},
         },
     )
