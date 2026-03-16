@@ -2,6 +2,7 @@ import { config } from "@/lib/config";
 import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
 import { getFixtureChoices } from "@/lib/fixtures";
 import { parseChoicesRequest } from "@/lib/request-normalizers";
+import { QUEENS } from "@/data/queens";
 import { getBreakingStage } from "@/types/game";
 import type { Character, PlayerChoice, BreakingMethod } from "@/types/game";
 
@@ -16,7 +17,11 @@ export async function POST(req: Request) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { character, worldState, recentHistory } = parsed.data;
+  const { worldState, recentHistory } = parsed.data;
+  const knownQueen = QUEENS[parsed.data.character.id];
+  const character: Character = knownQueen
+    ? { ...knownQueen, ...parsed.data.character } as Character
+    : parsed.data.character;
 
   if (EOQ_FIXTURE_MODE) {
     return Response.json({ choices: getFixtureChoices(character) });

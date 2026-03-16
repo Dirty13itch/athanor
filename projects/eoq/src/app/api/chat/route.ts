@@ -2,6 +2,7 @@ import { config } from "@/lib/config";
 import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
 import { buildFixtureDialogueReply, buildFixtureOpenAiStream } from "@/lib/fixtures";
 import { parseChatRequest } from "@/lib/request-normalizers";
+import { QUEENS } from "@/data/queens";
 import { getBreakingStage } from "@/types/game";
 import type { Character, Queen, WorldState, DialogueTurn } from "@/types/game";
 
@@ -17,7 +18,15 @@ export async function POST(req: Request) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { character, worldState, recentHistory, playerInput } = parsed.data;
+  const { worldState, recentHistory, playerInput } = parsed.data;
+  // Enrich with queen data from server-side source of truth.
+  // The request normalizer strips queen-specific fields (sexualDNA, stripperArc, etc.)
+  // so we merge the client's mutable state (relationship, resistance) with the
+  // server's immutable queen data (DNA, blueprint, arc).
+  const knownQueen = QUEENS[parsed.data.character.id];
+  const character: Character = knownQueen
+    ? { ...knownQueen, ...parsed.data.character } as Character
+    : parsed.data.character;
   // Accept pre-fetched memory context from the client (uses recency-decay scoring)
   const clientMemoryContext = typeof (rawBody as Record<string, unknown>)?.memoryContext === "string"
     ? (rawBody as Record<string, unknown>).memoryContext as string
