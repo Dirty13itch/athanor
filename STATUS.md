@@ -1258,4 +1258,6 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - Q.8 — Memory-informed dialogue validation
 - S.3 — Per-queen promptfoo evals for all 21 archetypes
 
-*Last updated: 2026-03-16 09:10 PDT
+**Deployed:** workshop:3002 — rebuilt with all fixes, verified live choices + Stash integration.
+
+*Last updated: 2026-03-16 09:25 PDT
