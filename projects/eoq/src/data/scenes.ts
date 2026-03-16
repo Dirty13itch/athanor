@@ -262,10 +262,12 @@ export const SCENE_INTROS: Record<string, string> = {
     "The tower shouldn't exist. Something this damaged should have collapsed entirely. Yet here it stands, broken halfway, its upper half scattered like teeth knocked from a jaw. At its base, a woman sits, her silver hair catching light from stars that aren't where they should be.",
   "vision-chamber":
     "The mirrors don't show your reflection. They show everything else — things that were, things that might be, things you desperately hope won't happen. At the center of it all, the orb pulses with a light that feels like it's looking back at you.",
+  "queen-council-hall":
+    "Twenty-one thrones. Twenty-one queens. Each one was powerful once — a ruler, a warrior, a goddess in her own domain. Now they sit in your circle, watching you with twenty-one different expressions. Hatred. Fear. Calculation. Hunger. The air is thick with perfume and barely restrained violence. You own this room. The question is what you'll do with it.",
   "queen-confrontation":
-    "You summoned them both. They know why. The question isn't whether they'll fight — it's how, and whether you'll let them finish.",
+    "You summoned them both. They know why. The question isn't whether they'll fight — it's how, and whether you'll let them finish. The narrow hall amplifies every sound — the rustle of silk, the scrape of a chair, the sharp intake of breath when they finally look at each other.",
   "queen-banquet":
-    "Breaking bread with conquered queens. Some eat because they're hungry. Some because refusing would be worse. A few — the dangerous ones — eat because they're planning something.",
+    "Breaking bread with conquered queens. Some eat because they're hungry. Some because refusing would be worse. A few — the dangerous ones — eat because they're planning something. The wine flows. Inhibitions thin. Under the table, alliances form and fracture with every exchanged glance.",
   "queen-rivalry-duel":
-    "Two queens. One favor. The court watches with the particular hunger that comes from seeing powerful women diminished. You could stop this. You won't.",
+    "Two queens. One favor. The court watches with the particular hunger that comes from seeing powerful women diminished. Torchlight catches on sweat and silk. The rules are simple: impress you, or lose everything. You could stop this. You won't.",
 };
