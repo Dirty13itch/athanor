@@ -42,17 +42,13 @@ export async function GET(req: Request) {
     return Response.json({ error: `Performer "${performerName}" not found` }, { status: 404 });
   }
 
-  // Validate profile image is a real photo (silhouettes are < 20KB)
-  let hasRealProfileImage = false;
-  if (performer.image_path) {
-    try {
-      const headResp = await fetch(performer.image_path, { method: "HEAD" });
-      const contentLength = parseInt(headResp.headers.get("content-length") ?? "0");
-      // Check if Stash is serving a default/placeholder image vs a real photo.
-      // Stash appends &default=true to placeholder image URLs.
-      hasRealProfileImage = contentLength > 5000 && !performer.image_path!.includes("&default=true");
-    } catch { /* best effort */ }
-  }
+  // Check if performer has a real image (not a placeholder) via is_missing filter.
+  // Stash's HEAD endpoint returns 405, so we can't check content-length.
+  // Instead, query GraphQL: if is_missing:"image" returns 0 results for this
+  // performer, they have a real image.
+  const hasRealProfileImage = performer.image_path
+    ? await checkHasRealImage(performer.name)
+    : false;
 
   // Fetch scene screenshots for this performer (for PuLID reference variety)
   const screenshots = await fetchPerformerScreenshots(performer.id);
@@ -84,6 +80,28 @@ async function findPerformer(name: string): Promise<StashPerformer | null> {
     return performers[0] ?? null;
   } catch {
     return null;
+  }
+}
+
+async function checkHasRealImage(performerName: string): Promise<boolean> {
+  const query = `{
+    findPerformers(performer_filter: {
+      name: {value: "${escapeGraphQL(performerName)}", modifier: EQUALS},
+      is_missing: "image"
+    }) { count }
+  }`;
+  try {
+    const resp = await fetch(`${STASH_URL}/graphql`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    // If count is 0, the performer is NOT missing an image → has a real one
+    return (data?.data?.findPerformers?.count ?? 1) === 0;
+  } catch {
+    return false;
   }
 }
 
