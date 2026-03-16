@@ -3,15 +3,13 @@
 import Link from "next/link";
 import { type CSSProperties, useDeferredValue, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, RefreshCcw } from "lucide-react";
+import { ArrowUpRight, RefreshCcw, X } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { StatCard } from "@/components/stat-card";
 import { getGalleryOverview } from "@/lib/api";
 import { config } from "@/lib/config";
@@ -20,19 +18,28 @@ import { formatRelativeTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
 import { useUrlState } from "@/lib/url-state";
 
+function prefixToType(prefix: string): "portrait" | "scene" | "pulid" | "unknown" {
+  const p = prefix.toLowerCase();
+  if (p.includes("pulid")) return "pulid";
+  if (p.includes("scene")) return "scene";
+  if (p.includes("character") || p.includes("portrait")) return "portrait";
+  return "unknown";
+}
+
 function prefixToProject(prefix: string) {
   const normalized = prefix.toLowerCase();
-  if (normalized.startsWith("eobq") || normalized.startsWith("eoq")) {
-    return "eoq";
-  }
-  if (normalized.startsWith("kindred")) {
-    return "kindred";
-  }
+  if (normalized.startsWith("eobq") || normalized.startsWith("eoq")) return "eoq";
+  if (normalized.startsWith("kindred")) return "kindred";
   return "athanor";
 }
 
-function prefixToLabel(prefix: string) {
-  return prefix || "unlabeled";
+function typeBadgeStyle(type: string): string {
+  switch (type) {
+    case "pulid": return "bg-rose-500/20 text-rose-400 border-rose-500/30";
+    case "portrait": return "bg-amber-500/20 text-amber-400 border-amber-500/30";
+    case "scene": return "bg-sky-500/20 text-sky-400 border-sky-500/30";
+    default: return "bg-zinc-500/20 text-zinc-400 border-zinc-500/30";
+  }
 }
 
 const previewSurfaceStyle: CSSProperties = {
@@ -40,12 +47,12 @@ const previewSurfaceStyle: CSSProperties = {
     "radial-gradient(circle at top left, color-mix(in oklab, var(--domain-media) 24%, transparent) 0%, transparent 48%), linear-gradient(135deg, color-mix(in oklab, var(--accent-structural) 18%, transparent) 0%, color-mix(in oklab, var(--surface-panel) 84%, black) 100%)",
 };
 
-function GalleryImage({ images, alt }: { images: GallerySnapshot["items"][number]["outputImages"]; alt: string }) {
+function GalleryImage({ images, alt, className }: { images: GallerySnapshot["items"][number]["outputImages"]; alt: string; className?: string }) {
   const [failed, setFailed] = useState(false);
   const image = images[0];
 
   if (!image || failed) {
-    return <div className="aspect-[4/3] rounded-2xl border border-border/60" style={previewSurfaceStyle} />;
+    return <div className={`rounded-xl border border-border/60 ${className ?? ""}`} style={{ ...previewSurfaceStyle, aspectRatio: "3/4" }} />;
   }
 
   const src = `/api/comfyui/image/${image.subfolder ? `${image.subfolder}/` : ""}${image.filename}`;
@@ -54,7 +61,7 @@ function GalleryImage({ images, alt }: { images: GallerySnapshot["items"][number
     <img
       src={src}
       alt={alt}
-      className="aspect-[4/3] w-full rounded-2xl border border-border/60 object-cover bg-black/20"
+      className={`w-full rounded-xl border border-border/60 object-cover bg-black/20 ${className ?? ""}`}
       loading="lazy"
       onError={() => setFailed(true)}
     />
@@ -64,9 +71,9 @@ function GalleryImage({ images, alt }: { images: GallerySnapshot["items"][number
 export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySnapshot }) {
   const { getSearchValue, setSearchValue } = useUrlState();
   const source = getSearchValue("source", "all");
-  const selection = getSearchValue("selection", "");
   const query = getSearchValue("query", "");
   const deferredQuery = useDeferredValue(query.trim().toLowerCase());
+  const [lightbox, setLightbox] = useState<GallerySnapshot["items"][number] | null>(null);
 
   const galleryQuery = useQuery({
     queryKey: queryKeys.galleryOverview,
@@ -90,134 +97,147 @@ export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySn
   }
 
   const snapshot = galleryQuery.data ?? initialSnapshot;
-  const prefixes = Array.from(new Set(snapshot.items.map((item) => item.outputPrefix).filter(Boolean)));
+  const typeFilters = ["all", "pulid", "portrait", "scene"] as const;
   const visibleItems = snapshot.items.filter((item) => {
-    const matchesSource = source === "all" || item.outputPrefix === source;
+    const type = prefixToType(item.outputPrefix);
+    const matchesSource = source === "all" || type === source;
     const matchesQuery = !deferredQuery || `${item.prompt} ${item.outputPrefix}`.toLowerCase().includes(deferredQuery);
     return matchesSource && matchesQuery;
   });
-  const activeItem = snapshot.items.find((item) => item.id === selection) ?? null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
-        eyebrow="Domain Console"
+        eyebrow="Creative Pipeline"
         title="Gallery"
-        description="Creative production gallery with queue posture, generation context, and drawer-based preview flows."
+        description={`${snapshot.items.length} generation${snapshot.items.length !== 1 ? "s" : ""} · ${visibleItems.length} visible`}
         actions={
-          <Button variant="outline" onClick={() => void galleryQuery.refetch()} disabled={galleryQuery.isFetching}>
-            <RefreshCcw className={`mr-2 h-4 w-4 ${galleryQuery.isFetching ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => void galleryQuery.refetch()} disabled={galleryQuery.isFetching}>
+              <RefreshCcw className={`mr-2 h-3.5 w-3.5 ${galleryQuery.isFetching ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <a href={config.comfyui.url} target="_blank" rel="noopener noreferrer">
+                <ArrowUpRight className="mr-2 h-3.5 w-3.5" />
+                ComfyUI
+              </a>
+            </Button>
+          </div>
         }
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Queue running" value={`${snapshot.queueRunning}`} detail={`${snapshot.queuePending} pending`} tone={snapshot.queueRunning > 0 || snapshot.queuePending > 0 ? "warning" : "success"} />
-          <StatCard label="Device" value={snapshot.deviceName ?? "Unknown"} detail={`${snapshot.vramUsedGiB?.toFixed(1) ?? "--"} / ${snapshot.vramTotalGiB?.toFixed(1) ?? "--"} GiB`} />
-          <StatCard label="Visible generations" value={`${visibleItems.length}`} detail="Filtered creative outputs." />
-          <StatCard label="Featured project" value="EoBQ" detail="Primary tenant context for creative generation." />
+          <StatCard label="Queue" value={snapshot.queueRunning > 0 ? `${snapshot.queueRunning} running` : "Idle"} detail={snapshot.queuePending > 0 ? `${snapshot.queuePending} pending` : "Ready to generate"} tone={snapshot.queueRunning > 0 ? "warning" : "success"} />
+          <StatCard label="GPU" value={snapshot.deviceName?.replace("NVIDIA GeForce ", "") ?? "ComfyUI"} detail={snapshot.vramUsedGiB != null ? `${snapshot.vramUsedGiB.toFixed(1)} / ${snapshot.vramTotalGiB?.toFixed(1)} GiB` : "Connected"} />
+          <StatCard label="PuLID" value={`${snapshot.items.filter(i => prefixToType(i.outputPrefix) === "pulid").length}`} detail="Face-injected portraits" />
+          <StatCard label="Scenes" value={`${snapshot.items.filter(i => prefixToType(i.outputPrefix) === "scene").length}`} detail="Environment backgrounds" />
         </div>
       </PageHeader>
 
-      <Card className="surface-panel border">
-        <CardHeader>
-          <CardTitle className="text-lg">Source filters</CardTitle>
-          <CardDescription>URL-backed filters preserve the exact gallery selection and browser history.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Compact filter bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        {typeFilters.map((t) => (
+          <Button
+            key={t}
+            size="sm"
+            variant={source === t ? "default" : "outline"}
+            onClick={() => setSearchValue("source", t === "all" ? null : t)}
+            className="capitalize"
+          >
+            {t === "all" ? "All" : t === "pulid" ? "PuLID" : t}
+          </Button>
+        ))}
+        <div className="ml-auto w-64">
           <Input
             value={query}
             onChange={(event) => setSearchValue("query", event.target.value || null)}
-            placeholder="Search prompt or output prefix"
-            className="surface-instrument"
+            placeholder="Search prompts..."
+            className="surface-instrument h-8 text-sm"
           />
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant={source === "all" ? "default" : "outline"} onClick={() => setSearchValue("source", null)}>
-              All
-            </Button>
-            {prefixes.map((prefix) => (
-              <Button
-                key={prefix}
-                size="sm"
-                variant={source === prefix ? "default" : "outline"}
-                onClick={() => setSearchValue("source", prefix)}
-              >
-                {prefixToLabel(prefix)}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
+      {/* Masonry grid */}
       {visibleItems.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visibleItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setSearchValue("selection", item.id)}
-              className="surface-instrument rounded-2xl border p-4 text-left transition hover:bg-accent/40"
-            >
-              <GalleryImage images={item.outputImages} alt={item.prompt || "Generated image"} />
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{prefixToLabel(item.outputPrefix)}</Badge>
-                <Badge variant="outline">{prefixToProject(item.outputPrefix)}</Badge>
-                <span className="ml-auto text-xs text-muted-foreground">{formatRelativeTime(new Date(item.timestamp * 1000).toISOString())}</span>
-              </div>
-              <p className="mt-3 line-clamp-3 text-sm font-medium">{item.prompt || "No prompt captured"}</p>
-            </button>
-          ))}
+        <div className="columns-1 gap-4 sm:columns-2 xl:columns-3">
+          {visibleItems.map((item) => {
+            const type = prefixToType(item.outputPrefix);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setLightbox(item)}
+                className="mb-4 block w-full break-inside-avoid overflow-hidden rounded-2xl border border-border/60 bg-card transition hover:border-border hover:shadow-lg hover:shadow-black/20"
+              >
+                <GalleryImage images={item.outputImages} alt={item.prompt || "Generated image"} />
+                <div className="space-y-1.5 p-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={typeBadgeStyle(type)}>
+                      {type === "pulid" ? "PuLID" : type}
+                    </Badge>
+                    <span className="ml-auto text-[10px] text-muted-foreground">
+                      {formatRelativeTime(new Date(item.timestamp * 1000).toISOString())}
+                    </span>
+                  </div>
+                  {item.prompt && (
+                    <p className="line-clamp-2 text-left text-xs text-muted-foreground/80">
+                      {item.prompt}
+                    </p>
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </div>
       ) : (
-        <EmptyState title="No gallery items match the current filters" description="Clear the prefix filter or widen the search query." />
+        <EmptyState
+          title="No images match"
+          description={snapshot.items.length === 0
+            ? "Generate portraits and scenes through EoBQ or ComfyUI to populate the gallery."
+            : "Clear filters to see all generations."}
+        />
       )}
 
-      <Sheet open={Boolean(activeItem)} onOpenChange={(open) => setSearchValue("selection", open ? selection : null)}>
-        <SheetContent side="right" className="w-full max-w-xl overflow-y-auto border-l border-border/80 bg-background/95">
-          {activeItem ? (
-            <>
-              <SheetHeader className="border-b border-border/80 px-6 py-5 text-left">
-                <SheetTitle>{prefixToLabel(activeItem.outputPrefix)}</SheetTitle>
-                <SheetDescription>{activeItem.outputImages.map((image) => image.filename).join(", ")}</SheetDescription>
-              </SheetHeader>
-              <div className="space-y-6 p-6">
-                <GalleryImage images={activeItem.outputImages} alt={activeItem.prompt || "Generated image"} />
-                <Card className="surface-panel border">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Generation context</CardTitle>
-                    <CardDescription>Keep project and prompt context visible before jumping to ComfyUI.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary">{prefixToLabel(activeItem.outputPrefix)}</Badge>
-                      <Badge variant="outline">{prefixToProject(activeItem.outputPrefix)}</Badge>
-                    </div>
-                    <p className="text-sm">{activeItem.prompt || "No prompt captured."}</p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button asChild>
-                        <a href={config.comfyui.url} target="_blank" rel="noopener noreferrer">
-                          <ArrowUpRight className="mr-2 h-4 w-4" />
-                          Open ComfyUI
-                        </a>
-                      </Button>
-                      <Button asChild variant="outline">
-                        <Link href={`/workplanner?project=${prefixToProject(activeItem.outputPrefix)}`}>
-                          Open project
-                        </Link>
-                      </Button>
-                      <Button asChild variant="outline">
-                        <Link href={`/outputs?project=${prefixToProject(activeItem.outputPrefix)}`}>
-                          Open outputs
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          ) : null}
-        </SheetContent>
-      </Sheet>
+      {/* Fullscreen lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            className="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white/60 transition hover:bg-white/20 hover:text-white"
+            onClick={() => setLightbox(null)}
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div
+            className="flex max-h-[95vh] max-w-[95vw] flex-col items-center gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GalleryImage
+              images={lightbox.outputImages}
+              alt={lightbox.prompt || "Generated image"}
+              className="max-h-[85vh] w-auto rounded-2xl object-contain"
+            />
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <Badge variant="outline" className={typeBadgeStyle(prefixToType(lightbox.outputPrefix))}>
+                {prefixToType(lightbox.outputPrefix) === "pulid" ? "PuLID Face Injection" : prefixToType(lightbox.outputPrefix)}
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {formatRelativeTime(new Date(lightbox.timestamp * 1000).toISOString())}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {lightbox.outputImages[0]?.filename}
+              </span>
+            </div>
+            {lightbox.prompt && (
+              <p className="max-w-2xl text-center text-xs text-muted-foreground/70">
+                {lightbox.prompt}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
