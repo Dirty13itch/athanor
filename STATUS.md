@@ -1322,7 +1322,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - Explicit sex/penetration ✅
 - All with cinematic quality, no artifacts, anatomically correct
 
-**Gallery: 42+ items** — 17 PuLID, 10 portraits, 8 scenes, 2 HQ 4x, 3 videos.
+**Gallery: 42 items** — 17 PuLID, 10 portraits, 10 scenes (all Act 1 backgrounds), 2 HQ 4x, 3 videos.
 Disk scan + history merge, video player with controls, type badges, masonry layout.
 
 **Delegation model this session:**
