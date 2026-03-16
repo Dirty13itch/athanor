@@ -1,6 +1,6 @@
 # ADR: Remote Mobile Access to Command Center
 
-## Status: Proposed
+## Status: Ready to implement
 
 ## Context
 Shaun needs always-on mobile access to the Command Center (workshop:3001) when away from home. Requirements:
@@ -9,36 +9,47 @@ Shaun needs always-on mobile access to the Command Center (workshop:3001) when a
 - Self-hosted (no cloud dependency)
 
 ## Decision
-**Headscale + Tailscale client + PWA**
+**UDM Pro WireGuard VPN + PWA**
 
-### Architecture
-1. **Headscale** (VAULT container) — self-hosted Tailscale-compatible coordination server
-2. **Tailscale client** on each node (VAULT, WORKSHOP, FOUNDRY, DEV)
-3. **Tailscale app** on phone — set to "Always On VPN" in OS settings
-4. **PWA shortcut** on phone home screen → `http://workshop:3001`
+The UDM Pro already has a built-in WireGuard VPN server. No additional software needed.
 
-### Why Headscale over alternatives
-| Option | Self-hosted | Zero maintenance | No port forward | Works behind CGNAT |
-|--------|------------|-----------------|-----------------|-------------------|
-| Headscale + Tailscale | Yes | Yes | Yes | Yes |
-| WireGuard | Yes | Mostly | No (needs port forward) | No |
-| Cloudflare Tunnel | No (SaaS) | Yes | Yes | Yes |
-| Tailscale (cloud) | No (SaaS coord) | Yes | Yes | Yes |
+### Setup Steps
+1. **UDM Pro**: Settings → VPN → WireGuard Server
+   - Enable WireGuard server
+   - Set DNS to local DNS or 1.1.1.1
+   - Create a client profile for phone
+   - Download/export the `.conf` file
+2. **Phone**: Install WireGuard app (iOS/Android)
+   - Import the `.conf` file (scan QR or file transfer)
+   - Enable "Always On VPN" in phone OS settings:
+     - Android: Settings → Network → VPN → WireGuard → Always On
+     - iOS: Settings → VPN → WireGuard → Connect On Demand → enable for all networks
+3. **PWA**: Open `http://192.168.1.225:3001` in phone browser
+   - iOS: Share → Add to Home Screen
+   - Android: Menu → Add to Home Screen / Install App
+   - App installs with Athanor icon, opens standalone (no browser chrome)
 
-Headscale is the only option that is fully self-hosted AND requires no port forwarding or DDNS.
+### Why This Over Alternatives
+| Option | Extra software | Port forward | Self-hosted | Complexity |
+|--------|---------------|-------------|-------------|------------|
+| **UDM Pro WireGuard** | None | Auto-managed by UDM | Yes | Low |
+| Headscale + Tailscale | Headscale container + Tailscale on nodes | No | Yes | Medium |
+| Plain WireGuard on VAULT | WireGuard server | Manual | Yes | Medium |
+| Cloudflare Tunnel | cloudflared container | No | No (SaaS) | Low |
 
-### Implementation
-1. Deploy Headscale container on VAULT
-2. Register VAULT, WORKSHOP as nodes via `tailscale up --login-server=http://vault:8080`
-3. Install Tailscale on phone, point to Headscale
-4. Enable "Always On VPN" in phone settings
-5. Open workshop:3001 in phone browser, "Add to Home Screen"
+UDM Pro is the clear winner — zero new software, auto-managed port forwarding, hardware Shaun already owns.
+
+### Network Details
+- UDM Pro handles NAT traversal and dynamic DNS automatically
+- UniFi's built-in DDNS: `*.ui.direct` (optional, or use custom domain)
+- WireGuard uses UDP 51820 (auto-opened by UDM Pro firewall)
+- All home services accessible through the tunnel: dashboard:3001, EoBQ:3002, Grafana:3000, ComfyUI:8188
 
 ### Consequences
-- All traffic between phone and home goes through encrypted WireGuard tunnel
-- Phone can access any home service (dashboard, EoBQ, ComfyUI, Grafana)
-- Headscale needs to be accessible from the internet — requires ONE port forward (UDP 41641) or DERP relay
-- Alternative: use Headscale's built-in DERP relay (no port forward, slight latency increase)
+- Phone always has secure, encrypted access to entire home LAN
+- No additional containers, no maintenance, no subscription
+- PWA on home screen = opens like native app, receives push notifications
+- Battery impact: WireGuard is extremely efficient (< 1% battery per day)
 
-## Blocked On
-- Shaun to decide if port forwarding is acceptable or DERP relay preferred
+## Implementation
+Shaun task: enable WireGuard server on UDM Pro, create phone client profile.
