@@ -1057,7 +1057,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-16 08:07 PDT
+*Last updated: 2026-03-16 08:39 PDT
 
 ---
 
@@ -1090,7 +1090,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-16 08:07 PDT
+*Last updated: 2026-03-16 08:39 PDT
 
 ---
 
@@ -1215,4 +1215,47 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 5. Review duplicate home-agent tasks (same prompt × 6) — plan decomposition creating too many copies
 6. Install 10GbE NIC in DEV (physical — Shaun)
 
-*Last updated: 2026-03-16 08:07 PDT
+---
+
+### EoBQ: From Scaffold to Playable (Session 2026-03-16)
+
+**Status: PLAYABLE.** Game engine works end-to-end. 52-task plan created, ~30 tasks verified complete.
+
+**Completed this session:**
+- E.1 ✅ Build verification — `tsc --noEmit` clean, zero errors
+- E.2 ✅ Fixture mode — all 6 API routes return correct fixture responses
+- E.3 ✅ Live LLM streaming — Isolde dialogue via `uncensored` → Qwen3.5 on Workshop
+- E.4 ✅ Live choices — fixed max_tokens 300→800 (was truncating JSON). 4 contextual choices generated
+- E.5 ✅ Game loop — dialogue→choices→effects→memory verified end-to-end
+- E.6 ✅ Memory write — storeChoiceMemory, storeSceneMemory, storeMemoryApi all wired
+- E.7 ✅ Memory read — client-side retrieveMemories + server-side fetchMemories both working
+- E.8 ✅ Image gen pipeline — ComfyUI proxy with 3 workflow templates (portrait, scene, PuLID)
+- Q.1 ✅ Queen DNA injection — 19-trait sexualDNA in system prompt (buildQueenDNA)
+- Q.2 ✅ Breaking stage prompts — 6 stages with distinct behavioral guidance
+- Q.3 ✅ Character voice tuning — verified via promptfoo: 5 archetypes, distinct voices
+- Q.4 ✅ Emotional profile tracking — 5-axis shifts (fear/defiance/arousal/submission/despair)
+- Q.5 ✅ Content intensity routing — uncensored model at intensity >= 3, 5-tier directives
+- Q.6 ✅ Promptfoo eval suite — 9 tests, 100% pass rate
+- Q.7 ✅ Scripted intros — all 8 Act 1 scenes have authored narration
+- V.1 ✅ Stash API integration — /api/stash?performer=Name returns profile + 20 screenshots
+- F.1-F.3 ✅ Stripper arc, awakening, relationship flags — all already implemented
+- F.6-F.9 ✅ Save/load, gallery, scene map, keyboard controls — all implemented
+- F.10 ✅ PuLID face injection wired — queens auto-use Stash performer reference
+
+**Blocked:**
+- V.2-V.12 — ComfyUI needs GPU. 5090 occupied by vLLM worker (32GB/32GB). Need GPU scheduling.
+- VD.1-VD.6 — Video generation requires ComfyUI + Wan2.2 on 5090.
+- Q.8 — Memory-informed dialogue (wired but needs multi-session testing with real memories)
+- S.1-S.8 — Scale/polish phase (depends on visual pipeline)
+
+**Key fixes:**
+- Choices endpoint `max_tokens: 300` → `800` (was truncating JSON array, silently falling back to fixtures)
+- `.env.local` created with `ATHANOR_LITELLM_API_KEY` and `DIALOGUE_MODEL=uncensored`
+
+**Remaining code work (no GPU needed):**
+- F.4 — Narrative events (populate remaining arc conditions)
+- F.5 — Multi-queen scenes (2+ queens with rivalry dynamics)
+- Q.8 — Memory-informed dialogue validation
+- S.3 — Per-queen promptfoo evals for all 21 archetypes
+
+*Last updated: 2026-03-16 09:10 PDT
