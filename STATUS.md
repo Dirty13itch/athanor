@@ -1260,4 +1260,15 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 
 **Deployed:** workshop:3002 — rebuilt with all fixes, verified live choices + Stash integration.
 
-*Last updated: 2026-03-16 09:25 PDT
+**Visual Pipeline UNBLOCKED:**
+- Stopped vLLM vision model to free GPU 1 (5060 Ti 16GB)
+- Switched ComfyUI from GPU 0 → GPU 1
+- Flux dev FP8 portrait generation: WORKING (1.2 MB, ~60s)
+- Flux dev FP8 scene generation: WORKING (1.3 MB, ~60s)
+- PuLID face injection: WORKING (fixed InsightFace antelopev2 double-nesting)
+- VRAM: 13.3/16.3 GB post-generation (~3 GB headroom)
+- Images at: `workshop:8188/view?filename=X&subfolder=EoBQ&type=output`
+- In-game gallery: `workshop:3002/gallery`
+- Note: vLLM vision model (GPU 1) stopped. Restart with `docker start vllm-vision` when needed.
+
+*Last updated: 2026-03-16 09:45 PDT
