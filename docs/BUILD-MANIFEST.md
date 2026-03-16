@@ -28,8 +28,15 @@ Cross-project execution (2026-03-16):
 - Agents: Task dedup in submit_task() — hash-based, prevents 6x duplicate creation
 - Agents: Governor autonomy tuning — LOW_RISK_AGENTS category auto-executes
 - Infra: LoRA training pipeline (Ansible role, Docker, kohya sd-scripts, Stash integration)
-- Infra: NFS audit — 209GB reclaimable models identified (pending Shaun approval)
+- Infra: NFS cleanup — 155GB freed (10 unused models deleted), 77% usage (was 94%)
 - Infra: ComfyUI Impact Pack fixed (ultralytics + piexif deps, subpack symlink)
+- Infra: VAULT load fix — Stash RenameFile plugin stuck in retry loop (167% CPU), restarted
+- EoBQ: Combined HQ workflow — FaceDetailer + 4x UltraSharp upscale, new pulid-hq type
+- EoBQ: Eval suite expanded to 15 test cases covering all 7 archetypes
+- Dashboard: Breaking progress bars in queen roster detail
+- Knowledge: Re-indexed 220 docs (3632 points, +162 new)
+- Neo4j: 26 services linked to 4 nodes with correct topology
+- Infra: I2V model download started (Wan2.2 480p 14B FP8)
 
 ---
 
@@ -43,9 +50,9 @@ Cross-project execution (2026-03-16):
 - **Status:** 🔄 In progress (explorer agent scanning)
 - 10+ dashboard pages return 200 but many show fixture data. Verify each has live endpoints.
 
-### OR.3 — NFS model cleanup (209GB)
-- **Status:** 🚫 Blocked — needs Shaun approval to delete
-- 10 unused models: Huihui-abliterated (52G), gte-Qwen2-7B (29G), Qwen3-14B (28G), Qwen3.5-27B-AWQ (21G), Qwen3-32B-AWQ (19G), Qwen3.5-9B-abl (17G), Qwen3-Coder-30B (16G), Huihui-8B (16G), GLM-4.7 (16G), Qwen3-0.6B (1.5G)
+### OR.3 — NFS model cleanup
+- **Status:** ✅ Done (2026-03-16)
+- 155GB freed. 5 active models remain + ComfyUI assets. 77% usage (was 94%)
 
 ---
 
@@ -56,10 +63,10 @@ Cross-project execution (2026-03-16):
 | # | Item | Project | Status |
 |---|------|---------|--------|
 | 1 | First queen LoRA training (V.8) — proof of concept | EoBQ | 🔲 Ansible deploy → train |
-| 2 | Combined HQ workflow: LoRA + PuLID + FaceDetailer + 4x upscale (V.9) | EoBQ | 🔲 |
+| 2 | Combined HQ workflow: LoRA + PuLID + FaceDetailer + 4x upscale (V.9) | EoBQ | ✅ Done |
 | 3 | Dashboard EoBQ lens polish — queen stats, breaking progress | Dashboard | 🔲 |
-| 4 | I2V model download + portrait animation (VD.2-3) | EoBQ | 🔲 Background |
-| 5 | Expand eval suite to all 21 queens (S.3) | EoBQ | 🔲 Background |
+| 4 | I2V model download + portrait animation (VD.2-3) | EoBQ | 🔄 Downloading |
+| 5 | Expand eval suite to all 21 queens (S.3) | EoBQ | ✅ 15 tests, 7 archetypes |
 | 6 | Batch generate 5 portraits per queen (V.10) | EoBQ | 🔲 Background |
 | 7 | Mobile remote access — WireGuard on UDM Pro | Infra | 🚫 Shaun-dependent |
 
@@ -76,7 +83,7 @@ Cross-project execution (2026-03-16):
 | 14 | Ulrich Energy: build from workflows doc | Ulrich |
 | 15 | Knowledge: re-index all docs (81 docs → Qdrant) | Knowledge |
 | 16 | Neo4j: update graph with current topology | Knowledge |
-| 17 | VAULT load investigation | Infra |
+| 17 | ~~VAULT load investigation~~ | Infra | Done — Stash RenameFile loop |
 | 18 | Vision model on FOUNDRY 4090 | Infra |
 
 ---
