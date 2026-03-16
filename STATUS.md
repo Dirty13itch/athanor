@@ -1057,7 +1057,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-16 08:39 PDT
+*Last updated: 2026-03-16 12:35 PDT
 
 ---
 
@@ -1090,7 +1090,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-16 08:39 PDT
+*Last updated: 2026-03-16 12:35 PDT
 
 ---
 
@@ -1211,9 +1211,44 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 1. Wire vision model into agent system — media-agent and research-agent should use vision for image analysis
 2. Monitor vLLM upgrade path (v0.17.2+ for FP8 crash fix) — do NOT rebuild Docker images yet
 3. Mount WORKSHOP ZFS pool (local scratch storage)
-4. Tune governor autonomy levels — currently all tasks default to pending_approval, need trust ramp-up
-5. Review duplicate home-agent tasks (same prompt × 6) — plan decomposition creating too many copies
+4. ~~Tune governor autonomy levels~~ — Done (session 2026-03-16)
+5. ~~Review duplicate home-agent tasks~~ — Done (session 2026-03-16, hash-based dedup)
 6. Install 10GbE NIC in DEV (physical — Shaun)
+
+---
+
+### Session 2026-03-16: Continuous Autonomous Operations
+
+**Cross-project execution — 8 items across 3 projects in one session.**
+
+#### Completed (all deployed + verified)
+
+**EoBQ (4 items):**
+- Face quality gate — API-level retry (max 3 attempts), image size validation, solo prompt prefix
+- FaceDetailer integration — Impact Pack + YOLOv8n face detection in both portrait workflows. Fixed Impact Pack deps (ultralytics, piexif, subpack symlink)
+- Multi-queen rivalry scenes — 3 new scene types (Confrontation, Banquet, Rivalry Duel), multi-character system prompt with archetype-based rivalry dynamics, game engine auto-sends other present characters
+- Prompt hardening — "solo, single person" prefix for all portrait generation
+
+**Agents (2 items):**
+- Task dedup — hash-based deduplication in `submit_task()`, prevents 6x duplicate creation
+- Governor autonomy — removed home-agent from HIGH_IMPACT, added LOW_RISK_AGENTS category (+0.25 trust boost for routine monitoring tasks)
+
+**Infrastructure (2 items):**
+- NFS audit — 209GB reclaimable across 10 unused models (pending Shaun approval)
+- LoRA training pipeline — Ansible role with Docker-based kohya sd-scripts, Stash dataset prep, GPU scheduling script
+
+#### Deployments
+- Agents: deployed to FOUNDRY, 9 agents healthy, all 6 deps up
+- EoBQ: deployed to WORKSHOP, 200 OK
+- ComfyUI: restarted with Impact Pack + ultralytics + face detection models
+
+### Next Actions
+1. First queen LoRA training — deploy Ansible role, train proof-of-concept
+2. NFS cleanup — 209GB reclaimable (needs Shaun approval)
+3. Combined HQ workflow — LoRA + PuLID + FaceDetailer + 4x upscale
+4. Dashboard EoBQ lens polish
+5. VAULT load investigation (load ~10, 46+ containers)
+6. EoBQ eval suite run (verifying multi-queen changes don't regress)
 
 ---
 
@@ -1332,4 +1367,4 @@ Disk scan + history merge, video player with controls, type badges, masonry layo
 - Background Bash: image batch gen (4 PuLID queens), promptfoo eval (9/9)
 - Stash API: triggered cover gen for 6 queens (async)
 
-*Last updated: 2026-03-16 12:25 PDT
+*Last updated: 2026-03-16 12:35 PDT
