@@ -103,6 +103,10 @@ class Settings(BaseSettings):
         default="http://192.168.1.189:8003",
         validation_alias=AliasChoices("ATHANOR_VLLM_RERANKER_URL"),
     )
+    vision_url: str = Field(
+        default="http://192.168.1.225:8010",
+        validation_alias=AliasChoices("ATHANOR_VLLM_VISION_URL"),
+    )
 
     agent_server_url: str = Field(
         default="http://192.168.1.244:9000",
