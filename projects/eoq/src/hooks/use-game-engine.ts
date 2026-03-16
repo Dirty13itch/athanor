@@ -4,7 +4,11 @@ import { useCallback, useRef, useEffect } from "react";
 import { useGameStore } from "@/stores/game-store";
 import { CHARACTERS } from "@/data/characters";
 import { QUEENS } from "@/data/queens";
-import { SCENES, STARTING_SCENE, SCENE_INTROS, QUEEN_AUDIENCE, QUEEN_COUNCIL_HALL } from "@/data/scenes";
+import {
+  SCENES, STARTING_SCENE, SCENE_INTROS,
+  QUEEN_AUDIENCE, QUEEN_COUNCIL_HALL,
+  QUEEN_CONFRONTATION, QUEEN_BANQUET, QUEEN_RIVALRY_DUEL,
+} from "@/data/scenes";
 import {
   getScriptedIntro,
   getTriggeredEvent,
@@ -112,6 +116,92 @@ export function useGameEngine() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Start a council hall session — shows all queens, dynamic exits for navigation */
+  const startCouncilSession = useCallback(() => {
+    // Build characters map with all queens
+    const allQueens: Record<string, typeof QUEENS[string]> = {};
+    for (const [id, queen] of Object.entries(QUEENS)) {
+      allQueens[id] = queen;
+    }
+
+    // Build dynamic exits — one per queen for private audience, plus multi-queen options
+    const queenExits = Object.entries(QUEENS).map(([id, queen]) => ({
+      label: `Summon ${queen.name} — ${queen.title}`,
+      targetSceneId: `queen-audience:${id}`,
+    }));
+
+    const councilScene = {
+      ...QUEEN_COUNCIL_HALL,
+      presentCharacters: [],
+      exits: [
+        ...queenExits,
+        { label: "Call a Confrontation (2 queens)", targetSceneId: "queen-confrontation:select" },
+        { label: "Host a Banquet (3+ queens)", targetSceneId: "queen-banquet:select" },
+        { label: "Arrange a Rivalry Duel (2 queens)", targetSceneId: "queen-rivalry-duel:select" },
+      ],
+    };
+
+    const session = {
+      id: crypto.randomUUID(),
+      startedAt: Date.now(),
+      lastPlayedAt: Date.now(),
+      worldState: {
+        currentScene: councilScene,
+        timeOfDay: "evening" as const,
+        day: 1,
+        plotFlags: { queen_mode: true, council_unlocked: true },
+        inventory: [],
+        contentIntensity: 3 as const,
+      },
+      characters: allQueens,
+      dialogueHistory: [],
+      arcPosition: "council",
+    };
+
+    store.setSession(session);
+    store.markSceneVisited("queen-council-hall");
+
+    setTimeout(() => {
+      playNarratorLine(SCENE_INTROS["queen-council-hall"] ??
+        "Twenty-one thrones. Twenty-one queens. All of them watching. Waiting to see what kind of conqueror you are.");
+    }, 500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Start a multi-queen scene with specific queens */
+  const startMultiQueenScene = useCallback((queenIds: string[], sceneType: "confrontation" | "banquet" | "duel") => {
+    const sceneTemplates = {
+      confrontation: QUEEN_CONFRONTATION,
+      banquet: QUEEN_BANQUET,
+      duel: QUEEN_RIVALRY_DUEL,
+    };
+
+    const template = sceneTemplates[sceneType];
+    const queens = queenIds.map((id) => QUEENS[id]).filter(Boolean);
+    if (queens.length < 2) return;
+
+    const scene = {
+      ...template,
+      presentCharacters: queenIds,
+      exits: [
+        { label: "Return to the Council Hall", targetSceneId: "queen-council-hall" },
+        ...queenIds.map((id) => ({
+          label: `Take ${QUEENS[id]?.name ?? id} for a private audience`,
+          targetSceneId: `queen-audience:${id}`,
+        })),
+      ],
+    };
+
+    store.updateWorldState({ currentScene: scene });
+
+    const names = queens.map((q) => q.name).join(" and ");
+    const intro = SCENE_INTROS[`queen-${sceneType}`] ??
+      `${names} face each other. The tension is immediate.`;
+
+    store.addDialogue({ speaker: "narrator", text: intro });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** Navigate to a different scene */
   const changeScene = useCallback(
     (exit: SceneExit) => {
@@ -127,6 +217,23 @@ export function useGameEngine() {
           speaker: "narrator",
           text: "*The path is not yet open to you.*",
         });
+        return;
+      }
+
+      // Handle dynamic queen navigation targets
+      if (exit.targetSceneId.startsWith("queen-audience:")) {
+        const queenId = exit.targetSceneId.split(":")[1];
+        startQueenSession(queenId);
+        return;
+      }
+      if (exit.targetSceneId === "queen-council-hall") {
+        startCouncilSession();
+        return;
+      }
+      if (exit.targetSceneId.endsWith(":select")) {
+        // Multi-queen selection — trigger selector UI via store flag
+        const sceneType = exit.targetSceneId.replace("queen-", "").replace(":select", "") as "confrontation" | "banquet" | "duel";
+        store.setQueenSelectorMode(sceneType);
         return;
       }
 
@@ -703,6 +810,8 @@ export function useGameEngine() {
   return {
     startGame,
     startQueenSession,
+    startCouncilSession,
+    startMultiQueenScene,
     advanceDialogue,
     handleChoice,
     sendPlayerMessage,

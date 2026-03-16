@@ -23,6 +23,8 @@ interface GameState {
   portraitUrl: string | null;
   /** Scenes the player has already visited (for intro tracking) */
   visitedScenes: Set<string>;
+  /** Queen selector mode — when set, shows queen picker UI for multi-queen scenes */
+  queenSelectorMode: "confrontation" | "banquet" | "duel" | null;
 
   // Actions
   setSession: (session: GameSession) => void;
@@ -40,6 +42,7 @@ interface GameState {
   attachChoicesToLastTurn: (choices: import("@/types/game").PlayerChoice[]) => void;
   addInventoryItem: (item: string) => void;
   markSceneVisited: (sceneId: string) => void;
+  setQueenSelectorMode: (mode: "confrontation" | "banquet" | "duel" | null) => void;
   saveGame: () => void;
   loadGame: () => boolean;
   clearSave: () => void;
@@ -53,6 +56,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   backgroundUrl: null,
   portraitUrl: null,
   visitedScenes: new Set(),
+  queenSelectorMode: null,
 
   setSession: (session) => set({ session }),
 
@@ -171,6 +175,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       visited.add(sceneId);
       return { visitedScenes: visited };
     }),
+
+  setQueenSelectorMode: (mode) => set({ queenSelectorMode: mode }),
 
   saveGame: () => {
     const { session, visitedScenes } = get();
