@@ -1195,8 +1195,17 @@ export async function getGallerySnapshot(): Promise<GallerySnapshot> {
             prompt = node.inputs.text;
           }
         }
-        if (node.class_type === "SaveImage" && typeof node.inputs?.filename_prefix === "string") {
+        if (
+          (node.class_type === "SaveImage" || node.class_type === "SaveVideo") &&
+          typeof node.inputs?.filename_prefix === "string"
+        ) {
           outputPrefix = node.inputs.filename_prefix;
+        }
+        // WanVideoTextEncode stores prompts differently
+        if (node.class_type === "WanVideoTextEncode" && typeof node.inputs?.positive_prompt === "string") {
+          if (node.inputs.positive_prompt.length > prompt.length) {
+            prompt = node.inputs.positive_prompt;
+          }
         }
       }
 
@@ -1213,17 +1222,69 @@ export async function getGallerySnapshot(): Promise<GallerySnapshot> {
     deviceName: device?.name ?? null,
     vramUsedGiB: device ? (device.vram_total - device.vram_free) / 1024 ** 3 : null,
     vramTotalGiB: device ? device.vram_total / 1024 ** 3 : null,
-    items: items
-      .sort((left, right) => right.timestamp - left.timestamp)
-      .slice(0, 60)
-      .map((item) => ({
-        id: item.promptId,
-        prompt: item.prompt,
-        outputPrefix: item.outputPrefix,
-        timestamp: item.timestamp,
-        outputImages: item.outputImages,
-      })),
+    items: await mergeWithDiskFiles(items),
   });
+}
+
+/** Merge history-based items with disk-scanned files from ComfyUI output */
+async function mergeWithDiskFiles(
+  historyItems: Array<{ promptId: string; prompt: string; outputImages: Array<{ filename: string; subfolder: string; type: string }>; timestamp: number; outputPrefix: string }>
+) {
+  // Known filenames from history
+  const knownFiles = new Set(historyItems.flatMap((item) => item.outputImages.map((img) => img.filename)));
+
+  // Scan disk for files not in history
+  let diskFiles: Array<{ filename: string; subfolder: string; size: number; mtime: number }> = [];
+  try {
+    const { readdir, stat } = await import("fs/promises");
+    const { join } = await import("path");
+    const dir = join("/opt/comfyui-output", "EoBQ");
+    const entries = await readdir(dir);
+    for (const entry of entries) {
+      if (knownFiles.has(entry)) continue;
+      const ext = entry.split(".").pop()?.toLowerCase() ?? "";
+      if (!["png", "jpg", "jpeg", "webp", "mp4", "webm", "mov"].includes(ext)) continue;
+      const info = await stat(join(dir, entry)).catch(() => null);
+      if (!info?.isFile()) continue;
+      diskFiles.push({
+        filename: entry,
+        subfolder: "EoBQ",
+        size: info.size,
+        mtime: Math.floor(info.mtimeMs / 1000),
+      });
+    }
+  } catch {
+    // Disk scan is best-effort — volume may not be mounted
+  }
+
+  // Convert history items
+  const merged = historyItems.map((item) => ({
+    id: item.promptId,
+    prompt: item.prompt,
+    outputPrefix: item.outputPrefix,
+    timestamp: item.timestamp,
+    outputImages: item.outputImages,
+  }));
+
+  // Add disk-only files (no prompt context, but at least visible)
+  for (const file of diskFiles) {
+    const prefix = file.filename.startsWith("pulid") ? "EoBQ/pulid"
+      : file.filename.startsWith("scene") ? "EoBQ/scene"
+      : file.filename.startsWith("hq") ? "EoBQ/hq"
+      : file.filename.startsWith("video") ? "EoBQ/video"
+      : "EoBQ/character";
+    merged.push({
+      id: `disk-${file.filename}`,
+      prompt: "",
+      outputPrefix: prefix,
+      timestamp: file.mtime,
+      outputImages: [{ filename: file.filename, subfolder: file.subfolder, type: "output" }],
+    });
+  }
+
+  return merged
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 100);
 }
 
 export async function getHomeSnapshot(): Promise<HomeSnapshot> {
