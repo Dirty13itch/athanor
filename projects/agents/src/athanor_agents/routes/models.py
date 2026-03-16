@@ -1,6 +1,5 @@
 """Local model status + GPU management API routes."""
 
-import asyncio
 import logging
 
 import httpx
@@ -22,7 +21,8 @@ VLLM_ENDPOINTS = [
 ]
 
 # Workshop 5090 GPU swap — time-sharing between vLLM worker and ComfyUI
-_GPU_SWAP_SCRIPT = "/opt/athanor/gpu-swap.sh"
+# Swap is executed via Dashboard API (runs on Workshop, has local access)
+_DASHBOARD_GPU_SWAP_URL = f"{settings.dashboard_url}/api/gpu/swap"
 
 
 @router.get("/models/local")
@@ -64,35 +64,21 @@ async def local_models():
 
 
 async def _run_gpu_swap(mode: str) -> dict:
-    """Execute GPU swap script on Workshop via SSH.
-
-    Uses create_subprocess_exec (not shell) with validated mode argument.
-    """
-    proc = await asyncio.create_subprocess_exec(
-        "ssh", "-o", "ConnectTimeout=5", "-o", "StrictHostKeyChecking=no",
-        "athanor@192.168.1.225", f"{_GPU_SWAP_SCRIPT} {mode}",
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=300)
-    output = stdout.decode().strip()
-    if proc.returncode != 0:
-        error = stderr.decode().strip()
-        raise RuntimeError(f"GPU swap failed (exit {proc.returncode}): {error or output}")
-    return {"mode": mode, "output": output}
+    """Execute GPU swap via Dashboard API on Workshop."""
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        if mode == "status":
+            resp = await client.get(_DASHBOARD_GPU_SWAP_URL)
+        else:
+            resp = await client.post(_DASHBOARD_GPU_SWAP_URL, json={"mode": mode})
+        resp.raise_for_status()
+        return resp.json()
 
 
 @router.get("/gpu/workshop/status")
 async def gpu_workshop_status():
     """Get current Workshop GPU allocation (inference vs creative mode)."""
     try:
-        result = await _run_gpu_swap("status")
-        lines = result["output"].split("\n")
-        mode = "unknown"
-        for line in lines:
-            if line.startswith("MODE:"):
-                mode = line.split(":", 1)[1].strip()
-        return {"mode": mode, "detail": lines}
+        return await _run_gpu_swap("status")
     except Exception as e:
         logger.error("GPU status check failed: %s", e)
         return {"mode": "unknown", "error": str(e)}
@@ -110,8 +96,9 @@ async def gpu_workshop_swap(mode: str):
         return {"error": f"Invalid mode '{mode}'. Use 'creative' or 'inference'."}
     try:
         result = await _run_gpu_swap(mode)
-        logger.info("GPU swap to %s completed: %s", mode, result["output"][:200])
-        return {"status": "ok", **result}
+        output = result.get("output", "")
+        logger.info("GPU swap to %s completed: %s", mode, output[:200])
+        return result
     except Exception as e:
         logger.error("GPU swap to %s failed: %s", mode, e)
         return {"status": "error", "error": str(e)}
