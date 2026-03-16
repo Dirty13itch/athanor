@@ -449,7 +449,7 @@ export function useGameEngine() {
           Math.abs(choice.effects.affection ?? 0) +
           Math.abs(choice.effects.respect ?? 0) +
           Math.abs(choice.effects.resistance ?? 0);
-        if (totalImpact >= 5) {
+        if (totalImpact >= 2) {
           const presentChars = session.worldState.currentScene.presentCharacters;
           storeChoiceMemory(
             presentChars,
@@ -799,6 +799,15 @@ export function useGameEngine() {
 
       // Record the player's message
       store.addDialogue({ speaker: "player", text });
+
+      // Persist player message to long-term memory (fire and forget)
+      const presentChars = session.worldState.currentScene.presentCharacters;
+      if (presentChars.length > 0 && text.length > 10) {
+        const sceneName = session.worldState.currentScene.name;
+        for (const charId of presentChars) {
+          storeMemoryApi(charId, session.id, `Player said to ${session.characters[charId]?.name ?? charId}: "${text}"`, 2, "interaction", { scene: sceneName, speaker: "player" });
+        }
+      }
 
       // Trigger LLM response after a short beat
       setTimeout(() => advanceLive(), 200);
