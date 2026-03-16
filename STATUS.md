@@ -1247,20 +1247,22 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - VD.1-VD.2 ✅ — Video generation on 5090 verified (T2V 832x480, 5sec, H.264)
 - GPU scheduling: stop vLLM worker → ComfyUI on 5090 → generate → restart vLLM
 
+**New this session:**
+- Stage-aware portrait generation — portraits change with breaking stage (clothed→exposed→broken)
+- Emotion-to-visual mapping — 12 emotions mapped to specific Flux visual cues
+- Video generation API — type="video" uses Wan2.2 T2V workflow
+- Video portrait component — plays .mp4 in character portrait area
+- Gallery disk scan — shows all files (not just ephemeral ComfyUI history)
+- Gallery video support — video player, Film badge, type filter
+- Reference photo script — fallback to scene screenshots, 10/18 queens covered
+- Triggered Stash cover gen for 6 queens (async processing)
+
 **Remaining:**
 - Q.8 — Memory-informed dialogue (wired but needs multi-session testing)
-- VD.3-VD.6 — I2V animation, video API endpoint, video in-game playback
+- VD.3-VD.6 — I2V animation (needs I2V model download)
+- F.5 — Multi-queen scenes
 - S.1-S.8 — Scale/polish phase
-
-**Key fixes:**
-- Choices endpoint `max_tokens: 300` → `800` (was truncating JSON array, silently falling back to fixtures)
-- `.env.local` created with `ATHANOR_LITELLM_API_KEY` and `DIALOGUE_MODEL=uncensored`
-
-**Remaining code work (no GPU needed):**
-- F.4 — Narrative events (populate remaining arc conditions)
-- F.5 — Multi-queen scenes (2+ queens with rivalry dynamics)
-- Q.8 — Memory-informed dialogue validation
-- S.3 — Per-queen promptfoo evals for all 21 archetypes
+- 8 queens still need reference photos (Stash generating covers)
 
 **Deployed:** workshop:3002 — rebuilt with all fixes, verified live choices + Stash integration.
 
@@ -1320,6 +1322,14 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - Explicit sex/penetration ✅
 - All with cinematic quality, no artifacts, anatomically correct
 
-**Gallery: 36 items** — disk scan + history merge, video player with controls, type badges.
+**Gallery: 42+ items** — 17 PuLID, 10 portraits, 8 scenes, 2 HQ 4x, 3 videos.
+Disk scan + history merge, video player with controls, type badges, masonry layout.
 
-*Last updated: 2026-03-16 11:55 PDT
+**Delegation model this session:**
+- Node Inspector agent: cluster health audit (4 nodes, GPUs, containers)
+- Local Coder agent: EoBQ code quality review
+- Explorer agent: unfinished work scan
+- Background Bash: image batch gen (4 PuLID queens), promptfoo eval (9/9)
+- Stash API: triggered cover gen for 6 queens (async)
+
+*Last updated: 2026-03-16 12:25 PDT
