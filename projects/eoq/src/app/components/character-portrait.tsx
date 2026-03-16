@@ -52,7 +52,7 @@ export function CharacterPortrait() {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.5 }}
-          className="fixed bottom-48 right-8 z-10 flex h-[60vh] w-auto flex-col items-center md:bottom-48 md:right-8"
+          className="fixed left-1/2 top-12 z-10 flex h-[25vh] w-auto -translate-x-1/2 flex-col items-center sm:left-auto sm:right-8 sm:top-auto sm:bottom-48 sm:h-[50vh] sm:translate-x-0 md:h-[60vh]"
         >
           {isVideoUrl(portraitUrl) ? (
             <video

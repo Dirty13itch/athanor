@@ -165,20 +165,20 @@ export default function GamePage() {
 
       {/* Scene header with navigation */}
       {session && (
-        <div className="fixed left-0 right-0 top-0 z-20 p-4">
-          <div className="mx-auto flex max-w-4xl items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-400/60">
+        <div className="fixed left-0 right-0 top-0 z-20 p-2 md:p-4">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-2">
+            <h2 className="truncate text-xs font-semibold uppercase tracking-widest text-amber-400/60 md:text-sm">
               {session.worldState.currentScene.name}
             </h2>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 md:gap-3">
               {/* Day/Time indicator */}
-              <span className="text-xs text-white/30">
+              <span className="hidden text-xs text-white/30 sm:inline">
                 Day {session.worldState.day} · {session.worldState.timeOfDay}
               </span>
               {/* History button */}
               <button
                 onClick={() => setShowHistory(true)}
-                className="rounded border border-white/10 bg-black/40 px-3 py-1 text-xs text-white/50 transition-colors hover:border-amber-400/30 hover:text-amber-400/60"
+                className="min-h-[44px] min-w-[44px] rounded border border-white/10 bg-black/40 px-2 py-2 text-xs text-white/50 transition-colors hover:border-amber-400/30 hover:text-amber-400/60 md:min-h-0 md:min-w-0 md:px-3 md:py-1"
                 title="Dialogue History (H)"
               >
                 Log
@@ -186,7 +186,7 @@ export default function GamePage() {
               {/* Map button */}
               <button
                 onClick={() => setShowMap(true)}
-                className="rounded border border-white/10 bg-black/40 px-3 py-1 text-xs text-white/50 transition-colors hover:border-amber-400/30 hover:text-amber-400/60"
+                className="min-h-[44px] min-w-[44px] rounded border border-white/10 bg-black/40 px-2 py-2 text-xs text-white/50 transition-colors hover:border-amber-400/30 hover:text-amber-400/60 md:min-h-0 md:min-w-0 md:px-3 md:py-1"
                 title="Map (M)"
               >
                 Map
@@ -194,7 +194,7 @@ export default function GamePage() {
               {/* Navigation button */}
               <button
                 onClick={toggleExits}
-                className="rounded border border-white/10 bg-black/40 px-3 py-1 text-xs text-white/50 transition-colors hover:border-amber-400/30 hover:text-amber-400/60"
+                className="min-h-[44px] min-w-[44px] rounded border border-white/10 bg-black/40 px-2 py-2 text-xs text-white/50 transition-colors hover:border-amber-400/30 hover:text-amber-400/60 md:min-h-0 md:min-w-0 md:px-3 md:py-1"
               >
                 {showExits ? "Close" : "Explore"}
               </button>

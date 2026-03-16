@@ -43,7 +43,7 @@ export function PlayerInput({ onSubmit, disabled, placeholder }: PlayerInputProp
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed bottom-36 left-0 right-0 z-40 flex justify-center p-4"
+      className="fixed bottom-28 left-0 right-0 z-40 flex justify-center p-2 md:bottom-36 md:p-4"
     >
       <div className="flex w-full max-w-2xl gap-2">
         <textarea
@@ -54,12 +54,12 @@ export function PlayerInput({ onSubmit, disabled, placeholder }: PlayerInputProp
           disabled={disabled}
           placeholder={placeholder ?? "What do you say?"}
           rows={1}
-          className="flex-1 resize-none rounded border border-white/20 bg-black/70 px-4 py-3 text-sm text-white/90 placeholder-white/30 backdrop-blur-sm transition-colors focus:border-amber-400/50 focus:outline-none disabled:opacity-50"
+          className="flex-1 resize-none rounded border border-white/20 bg-black/70 px-3 py-3 text-base text-white/90 placeholder-white/30 backdrop-blur-sm transition-colors focus:border-amber-400/50 focus:outline-none disabled:opacity-50 md:px-4 md:text-sm"
         />
         <button
           onClick={handleSubmit}
           disabled={disabled || !text.trim()}
-          className="shrink-0 rounded border border-amber-400/30 bg-black/70 px-4 py-3 text-sm text-amber-400/80 backdrop-blur-sm transition-colors hover:border-amber-400/60 hover:bg-amber-900/30 disabled:opacity-30"
+          className="min-h-[44px] shrink-0 rounded border border-amber-400/30 bg-black/70 px-4 py-3 text-base text-amber-400/80 backdrop-blur-sm transition-colors hover:border-amber-400/60 hover:bg-amber-900/30 disabled:opacity-30 md:text-sm"
         >
           Send
         </button>
