@@ -1,0 +1,310 @@
+{
+  "queens": [
+    {
+      "id": "emilie-ekstrom",
+      "name": "Emilie Ekstrom",
+      "title": "The Ice Heiress",
+      "archetype": "ice",
+      "resistance": 90,
+      "corruption": 5,
+      "speechStylePreview": "Cold Swedish accent with breath that catches on 'Sir'.",
+      "topTraits": [
+        { "name": "ambition", "value": 0.9 },
+        { "name": "cunning", "value": 0.8 },
+        { "name": "loyalty", "value": 0.8 }
+      ]
+    },
+    {
+      "id": "jordan-night",
+      "name": "Jordan Night",
+      "title": "The Nachtblume",
+      "archetype": "fire",
+      "resistance": 60,
+      "corruption": 25,
+      "speechStylePreview": "Smoky Hamburg accent with a laugh that turns into a gasp.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "cunning", "value": 0.7 },
+        { "name": "ambition", "value": 0.7 }
+      ]
+    },
+    {
+      "id": "alanah-rae",
+      "name": "Alanah Rae",
+      "title": "The Plastic Doll",
+      "archetype": "seductress",
+      "resistance": 50,
+      "corruption": 20,
+      "speechStylePreview": "Valley girl confidence.",
+      "topTraits": [
+        { "name": "loyalty", "value": 0.9 },
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "warmth", "value": 0.6 }
+      ]
+    },
+    {
+      "id": "nikki-benz",
+      "name": "Nikki Benz",
+      "title": "The Royal Brat",
+      "archetype": "defiant",
+      "resistance": 75,
+      "corruption": 15,
+      "speechStylePreview": "Eastern European royal tone.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.8 },
+        { "name": "ambition", "value": 0.8 },
+        { "name": "dominance", "value": 0.7 }
+      ]
+    },
+    {
+      "id": "chloe-lamour",
+      "name": "Chloe Lamour",
+      "title": "The Surgeon's Shame",
+      "archetype": "shadow",
+      "resistance": 80,
+      "corruption": 10,
+      "speechStylePreview": "Husky French accent.",
+      "topTraits": [
+        { "name": "ambition", "value": 0.8 },
+        { "name": "cunning", "value": 0.7 },
+        { "name": "loyalty", "value": 0.7 }
+      ]
+    },
+    {
+      "id": "nicolette-shea",
+      "name": "Nicolette Shea",
+      "title": "The Tower",
+      "archetype": "sun",
+      "resistance": 55,
+      "corruption": 20,
+      "speechStylePreview": "Valley girl dominance — loud with a little-girl lilt.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "ambition", "value": 0.7 },
+        { "name": "dominance", "value": 0.6 }
+      ]
+    },
+    {
+      "id": "peta-jensen",
+      "name": "Peta Jensen",
+      "title": "The Nordic Fire",
+      "archetype": "priestess",
+      "resistance": 70,
+      "corruption": 10,
+      "speechStylePreview": "Husky warm voice.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.7 },
+        { "name": "warmth", "value": 0.6 },
+        { "name": "loyalty", "value": 0.6 }
+      ]
+    },
+    {
+      "id": "sandee-westgate",
+      "name": "Sandee Westgate",
+      "title": "The Exotic Flame",
+      "archetype": "seductress",
+      "resistance": 55,
+      "corruption": 20,
+      "speechStylePreview": "Soft seductive accent.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "cunning", "value": 0.7 },
+        { "name": "ambition", "value": 0.7 }
+      ]
+    },
+    {
+      "id": "marisol-yotta",
+      "name": "Marisol Yotta",
+      "title": "The Cam Queen",
+      "archetype": "fire",
+      "resistance": 40,
+      "corruption": 30,
+      "speechStylePreview": "Playful Latina accent.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "humor", "value": 0.8 },
+        { "name": "warmth", "value": 0.7 }
+      ]
+    },
+    {
+      "id": "trina-michaels",
+      "name": "Trina Michaels",
+      "title": "The Pain Queen",
+      "archetype": "defiant",
+      "resistance": 45,
+      "corruption": 30,
+      "speechStylePreview": "Real masochist voice — loud animal sounds.",
+      "topTraits": [
+        { "name": "loyalty", "value": 0.8 },
+        { "name": "sensuality", "value": 0.7 },
+        { "name": "dominance", "value": 0.4 }
+      ]
+    },
+    {
+      "id": "nikki-sexx",
+      "name": "Nikki Sexx",
+      "title": "The Throat GOAT",
+      "archetype": "warrior",
+      "resistance": 50,
+      "corruption": 25,
+      "speechStylePreview": "Throat GOAT voice — gurgles mid-sentence then laughs.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.8 },
+        { "name": "humor", "value": 0.7 },
+        { "name": "ambition", "value": 0.6 }
+      ]
+    },
+    {
+      "id": "madison-ivy",
+      "name": "Madison Ivy",
+      "title": "The Tiny Destroyer",
+      "archetype": "innocent",
+      "resistance": 45,
+      "corruption": 25,
+      "speechStylePreview": "Real tiny voice.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "loyalty", "value": 0.7 },
+        { "name": "ambition", "value": 0.7 }
+      ]
+    },
+    {
+      "id": "amy-anderssen",
+      "name": "Amy Anderssen",
+      "title": "The Monster Queen",
+      "archetype": "sun",
+      "resistance": 35,
+      "corruption": 35,
+      "speechStylePreview": "Real bimbo voice.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.95 },
+        { "name": "loyalty", "value": 0.6 },
+        { "name": "warmth", "value": 0.5 }
+      ]
+    },
+    {
+      "id": "puma-swede",
+      "name": "Puma Swede",
+      "title": "The Ex-Domme",
+      "archetype": "warrior",
+      "resistance": 85,
+      "corruption": 5,
+      "speechStylePreview": "Ex-domme accent — commanding, clipped.",
+      "topTraits": [
+        { "name": "dominance", "value": 0.9 },
+        { "name": "ambition", "value": 0.8 },
+        { "name": "sensuality", "value": 0.7 }
+      ]
+    },
+    {
+      "id": "ava-addams",
+      "name": "Ava Addams",
+      "title": "The MILF Boss",
+      "archetype": "seductress",
+      "resistance": 55,
+      "corruption": 20,
+      "speechStylePreview": "Loud French accent.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "ambition", "value": 0.7 },
+        { "name": "warmth", "value": 0.6 }
+      ]
+    },
+    {
+      "id": "brooklyn-chase",
+      "name": "Brooklyn Chase",
+      "title": "The Good Girl Gone",
+      "archetype": "innocent",
+      "resistance": 70,
+      "corruption": 10,
+      "speechStylePreview": "Sweet voice that cracks under pressure.",
+      "topTraits": [
+        { "name": "loyalty", "value": 0.8 },
+        { "name": "warmth", "value": 0.7 },
+        { "name": "sensuality", "value": 0.6 }
+      ]
+    },
+    {
+      "id": "esperanza-gomez",
+      "name": "Esperanza Gomez",
+      "title": "The Latina Fire",
+      "archetype": "fire",
+      "resistance": 50,
+      "corruption": 25,
+      "speechStylePreview": "Loud Spanish accent.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "ambition", "value": 0.7 },
+        { "name": "warmth", "value": 0.6 }
+      ]
+    },
+    {
+      "id": "savannah-bond",
+      "name": "Savannah Bond",
+      "title": "The Aussie Bimbo",
+      "archetype": "sun",
+      "resistance": 35,
+      "corruption": 30,
+      "speechStylePreview": "Aussie accent — 'Daddy's dumb slut' is her catchphrase, said with genuine joy.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.95 },
+        { "name": "warmth", "value": 0.7 },
+        { "name": "loyalty", "value": 0.7 }
+      ]
+    },
+    {
+      "id": "shyla-stylez",
+      "name": "Shyla Stylez",
+      "title": "The Original Doll",
+      "archetype": "seductress",
+      "resistance": 40,
+      "corruption": 25,
+      "speechStylePreview": "Valley girl prime — 2008 era.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "loyalty", "value": 0.6 },
+        { "name": "warmth", "value": 0.5 }
+      ]
+    },
+    {
+      "id": "brianna-banks",
+      "name": "Brianna Banks",
+      "title": "The Golden Era",
+      "archetype": "seductress",
+      "resistance": 55,
+      "corruption": 20,
+      "speechStylePreview": "Confident American glamour voice.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "ambition", "value": 0.8 },
+        { "name": "cunning", "value": 0.7 }
+      ]
+    },
+    {
+      "id": "clanddi-jinkcebo",
+      "name": "Clanddi Jinkcebo",
+      "title": "The French Fetish Goddess",
+      "archetype": "shadow",
+      "resistance": 65,
+      "corruption": 15,
+      "speechStylePreview": "Deep French accent with calculated pauses.",
+      "topTraits": [
+        { "name": "sensuality", "value": 0.9 },
+        { "name": "cunning", "value": 0.7 },
+        { "name": "dominance", "value": 0.6 }
+      ]
+    }
+  ],
+  "archetypeColors": {
+    "warrior": "oklch(0.55 0.08 230)",
+    "defiant": "oklch(0.55 0.08 230)",
+    "sorceress": "oklch(0.55 0.12 290)",
+    "priestess": "oklch(0.55 0.12 290)",
+    "seductress": "oklch(0.55 0.15 15)",
+    "ice": "oklch(0.7 0.08 230)",
+    "fire": "oklch(0.65 0.15 50)",
+    "shadow": "oklch(0.4 0.12 300)",
+    "sun": "oklch(0.75 0.12 80)",
+    "innocent": "oklch(0.7 0.1 350)"
+  }
+}

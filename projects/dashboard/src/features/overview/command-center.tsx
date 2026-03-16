@@ -51,6 +51,10 @@ import { queryKeys } from "@/lib/query-client";
 import { readJsonStorage, STORAGE_KEYS } from "@/lib/state";
 import { useLens } from "@/hooks/use-lens";
 import type { SectionId } from "@/lib/lens";
+import { QueenRosterCard } from "@/components/eoq/queen-roster-card";
+import { RecentDialogueCard } from "@/components/eoq/recent-dialogue-card";
+import { GenerationGalleryCard } from "@/components/eoq/generation-gallery-card";
+import { CharacterMemoryCard } from "@/components/eoq/character-memory-card";
 
 function buildTrendData(snapshot: OverviewSnapshot) {
   const map = new Map<string, { timestamp: string; services: number | null; gpu: number | null }>();
@@ -94,6 +98,7 @@ const CARD_SECTION_MAP: Record<string, SectionId[]> = {
   intelligenceRow: ["digest"],
   clusterPosture: ["gpus"],
   inferenceRow: ["links", "digest"],
+  eoqContent: ["eoq-content"],
 };
 
 function isCardVisible(cardGroup: string, sections: SectionId[]): boolean {
@@ -174,6 +179,17 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
     <div className="space-y-8">
       <SystemPulse sticky />
       <AgentCrewBar onAgentFilter={setAgentFilter} />
+
+      {show("eoqContent") && (
+        <div className="space-y-4">
+          <QueenRosterCard />
+          <div className="grid gap-4 md:grid-cols-2">
+            <RecentDialogueCard />
+            <GenerationGalleryCard />
+          </div>
+          <CharacterMemoryCard />
+        </div>
+      )}
 
       <PageHeader
         eyebrow="Operations"
