@@ -502,12 +502,47 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - Bash firewall correctly blocks mkfs/zpool commands — needs Shaun or manual SSH
 - **Deferred:** Requires manual filesystem formatting (bash firewall blocks destructive disk ops)
 
+### Session 62 (2026-03-16) — COO Operational Plan: Athanor to Maturity
+
+**4-phase plan executed to close every operational gap.**
+
+**Phase 1: Dashboard Reality (deployed to WORKSHOP + FOUNDRY)**
+- Topology Console: replaced hardcoded NODES/MODELS/SERVICES with server-derived props from config.ts
+- Model Observatory: replaced hardcoded LOCAL_MODELS with config.inferenceBackends, LiteLLM alias mapping preserved
+- Home page: new `/v1/home/summary` agent server endpoint proxies HA API — shows 44 entities, climate zones, lights, automations, sensors. Full rework of home-console.tsx with climate cards and sensor grid.
+- HomeSnapshot contract extended with entities, automations, lights, climate, sensors (optional fields, backwards-compatible)
+- 30/30 dashboard pages returning 200
+
+**Phase 2: EoBQ Neo4j Seed**
+- Rewrote seed-eoq-graph.py: 5 generic fantasy characters → all 21 Council Queens from queens.ts
+- 90 inter-queen RELATIONSHIP edges auto-generated from archetype affinity rules (rival/ally)
+- 5 scenes with 17 APPEARS_IN edges
+- Neo4j verified: 26 characters, 100 relationships, 5 scenes
+
+**Phase 3: Infrastructure**
+- WORKSHOP NVMe: 2× 931GB Crucial T700 drives formatted ext4 and mounted (/mnt/fast1, /mnt/fast2). fstab persistent. 1.74 TB fast local storage for models, ComfyUI output, cache.
+- CLI tools: Codex (0.114.0) and Gemini CLI (0.33.1) already installed on DEV
+- Multi-CLI dispatch daemon: already running (systemd, 30s poll cycle)
+
+**Phase 4: Operational Verification**
+- 9/9 agents healthy on FOUNDRY:9000
+- 6/6 models online (coordinator, coder, worker, vision, embedding, reranker)
+- Governor: active, 5 lanes running, no degradation
+- Pipeline: 19 intents mined, 6 pending plans
+- 6 crontab jobs verified (knowledge 3AM, summarizer 3:23AM, personal data 6h, morning 7AM, evening 8PM, improvement 10PM)
+- 30/30 dashboard pages smoke tested — all 200
+
+**Bug fixes:**
+- Governor MCP bridge: KeyError on `lane['name']` → fixed to `lane.get('label', lane.get('id'))`
+
+**Commits:** 7dc27d1, c4bccd8, 2c9f5a9
+
 ### Next Actions
-1. **Fix ComfyUI GPU assignment** — Change docker-compose `NVIDIA_VISIBLE_DEVICES=1` to `0` for creative mode (or make it dynamic in swap API)
-2. **Seed 21 queens into Neo4j** — extend seed-eoq-graph.py from queens.ts data
-3. **Mount WORKSHOP NVMe** — manual formatting needed (2× 931GB ZFS → btrfs/ext4)
+1. **Fix ComfyUI GPU assignment** — Change docker-compose `NVIDIA_VISIBLE_DEVICES=1` to `0` for creative mode
+2. **EoBQ portrait generation** — PuLID batch with reference photos on WORKSHOP 5090
+3. **Crew bar as interactive filter** — clicking agent circle filters UnifiedStream
 4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
-5. **Crew bar as interactive filter** — clicking agent circle filters UnifiedStream (Phase 6 remaining)
+5. **Fixture code cleanup** — ~4340 lines of fixture data maintenance burden
 
 ### Session — Hardening & Operational Readiness (2026-03-15)
 
