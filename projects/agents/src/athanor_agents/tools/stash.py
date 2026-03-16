@@ -469,26 +469,6 @@ def delete_tag(tag_name: str) -> str:
         return f"Error deleting tag: {e}"
 
 
-STASH_TOOLS = [
-    get_stash_stats,
-    search_scenes,
-    get_scene_details,
-    search_performers,
-    list_tags,
-    create_tag,
-    tag_scenes,
-    delete_tag,
-    find_duplicates,
-    scan_library,
-    auto_tag,
-    generate_content,
-    update_scene_rating,
-    mark_scene_organized,
-    get_recent_scenes,
-    check_queen_references,
-    get_performer_reference_photo,
-]
-
 
 # --- EoBQ Queen Reference Photo Tools ---
 
@@ -603,3 +583,26 @@ def get_performer_reference_photo(performer_name: str) -> str:
         return f"No reference photo available for {performer_name}"
     except Exception as e:
         return f"Error: {e}"
+
+
+# --- Tool registry (must be after all @tool definitions) ---
+
+STASH_TOOLS = [
+    get_stash_stats,
+    search_scenes,
+    get_scene_details,
+    search_performers,
+    list_tags,
+    create_tag,
+    tag_scenes,
+    delete_tag,
+    find_duplicates,
+    scan_library,
+    auto_tag,
+    generate_content,
+    update_scene_rating,
+    mark_scene_organized,
+    get_recent_scenes,
+    check_queen_references,
+    get_performer_reference_photo,
+]
