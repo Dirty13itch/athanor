@@ -1283,4 +1283,23 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - PuLID generate route now handles URL references (Stash returns URLs, not file paths).
 - Stash route validates profile image size to filter silhouette placeholders.
 
-*Last updated: 2026-03-16 10:00 PDT
+**NSFW Generation Verified (all intensities):**
+- Intensity 3 (lingerie/boudoir) — photorealistic, cinematic
+- Intensity 4 (full nudity) — anatomically correct, no artifacts
+- Intensity 5 (BDSM/explicit) — collar, restraints, submissive poses
+- PuLID + NSFW — face identity retained in explicit content (Ava Addams, Madison Ivy, Nikki Benz)
+- Uncensored LoRA at 0.85 — no quality degradation at any intensity
+
+**4x HQ Upscale — WORKING:**
+- `flux-portrait-hq.json` workflow: Flux gen + 4x-UltraSharp ESRGAN
+- Output: 3328x4864, 19.8 MB — near-4K portrait quality
+
+**Video Generation — BLOCKED on VRAM:**
+- Wan2.2 14B FP8 T2V queued and executed up to allocation error
+- 14B model + T5 encoder exceeds 16GB 5060 Ti even with offloading
+- Needs 5090 (32GB) — requires stopping vLLM worker during video gen sessions
+- Pipeline code and nodes are ready, just needs GPU scheduling
+
+**Gallery: 15+ images**, all loading via dashboard proxy. Masonry layout, type badges, fullscreen lightbox.
+
+*Last updated: 2026-03-16 10:45 PDT
