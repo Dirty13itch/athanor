@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DailyBriefing } from "@/components/daily-briefing";
+import { MediaGlance } from "@/components/media-glance";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { GovernorCard } from "@/components/governor-card";
@@ -218,8 +219,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         </div>
       </PageHeader>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <DailyBriefing />
+        <MediaGlance />
         <SmartStack />
         <Card className="surface-hero">
           <CardHeader>
