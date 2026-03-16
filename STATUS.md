@@ -392,15 +392,66 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - **Phase 4: Dockerfile update** — Baked 6 custom nodes into ComfyUI Dockerfile for reproducible builds (were only in Docker volume). Updated extra_model_paths.yaml with standard paths (loras, controlnet, upscale, embeddings, clip_vision).
 - **Phase 4: GPU contention blocker** — ComfyUI on GPU 1 (5060 Ti 16GB) cannot run full identity pipeline (~20-24GB). Needs 5090 (GPU 0) which runs vLLM worker. Resource scheduling decision needed.
 
+### Session 60w — The Athanor Operating System (Full Plan Implementation)
+
+**Massive build session:** Implemented the complete 6-phase "Perpetual Autonomous Work Engine" plan across 11 commits (86996f5..d4a8ae2). This is the foundational architecture for Athanor to operate autonomously.
+
+**Phase 1 — Governor Runtime:**
+- `governor.py` — Redis-backed singleton gating ALL task submission with trust scores, presence detection, autonomy levels (A/B/C/D)
+- `routes/governor.py` — 10 API endpoints matching dashboard contract (snapshot, pause, resume, heartbeat, presence, release-tier, operations, tool-permissions)
+- Wired into 4 callers: workplanner, scheduler, workspace, manual task submission
+
+**Phase 2 — Work Engine + Intent Mining + Plan Generation:**
+- `work_pipeline.py` — Perpetual self-feeding pipeline: 12 intent sources → mining → dedup → plan generation → approval → execution → feedback loop
+- `intent_miner.py` — Mines BUILD-MANIFEST, STATUS.md, goals, signals, patterns, diagnosis, git TODOs, design docs, operator chat
+- `plan_generator.py` — Intent → research → ExecutionPlan with approach/risk/agents/dependencies. Rejection learning
+- `routes/plans.py` — Full CRUD + approve/reject/steer/batch-approve/suggestions
+
+**Phase 3 — Three-Tier Command Hierarchy:**
+- `supervisor.py` — CLI supervisor → local worker delegation for reviewable tasks
+- `policy_router.py` — Rule-based classification: reviewable, refusal_sensitive, sovereign_only
+- `scripts/morning-manager.py` + `scripts/evening-manager.py` — Claude Code CLI scheduled sessions
+- `scripts/multi-cli-dispatch.py` — Multi-CLI task dispatcher (Claude/Codex/Gemini/Aider)
+
+**Phase 4 — Project Autonomy:**
+- `project_tracker.py` — Milestone tracking, autonomous continuation, stall detection, acceptance criteria
+- `routes/projects.py` — Milestone CRUD + advance/stalled endpoints
+
+**Phase 5 — Command Center (10 new dashboard pages):**
+- Governor Console — live governor state, trust scores, decision audit
+- Pipeline Console — intent flow visualization (sources → plans → tasks → outcomes)
+- Projects Console — milestone timeline, task kanban, stall indicators
+- Digest Console — morning briefing, pending approvals, overnight results
+- Operator Console — meta-orchestrator chat + approval queue + quick task injection
+- Improvement Console — nightly cycle results, benchmark trends, proposals
+- Routing Console — provider usage, cost tracking, routing decision log
+- Topology Console — interactive system map (4 nodes, GPUs, models, agents, services)
+- Agent Workbench — three-panel agent control (roster, work surface, direct chat)
+- Model Observatory — local models + subscription CLIs + routing intelligence + assignment matrix
+
+**Phase 6 — Intelligence Layers:**
+- Skill extraction wiring in `skill_learning.py`
+- Pattern detection engine in scheduler
+- Nightly prompt optimization (`prompt_optimizer.py`)
+- Weekly DPO training (Saturday 02:00, scheduler-triggered)
+- Knowledge refresh (`knowledge_refresh.py`, nightly 00:00)
+- Overnight-ops governor integration (maintenance window signaling)
+
+**MCP bridge extensions:** 5 new tools — `governor_snapshot`, `pipeline_status`, `trigger_pipeline_cycle`, `trigger_improvement_cycle`, `review_task_output`
+
+**Commits:** 86996f5, 225beed, db6bc9c, afa2b98, 6215051, 3b50008, b29128f, e0ffdf8, 98cec38, dc535f1, d4a8ae2
+
 ### Next Actions
-1. **GPU scheduling decision** — ComfyUI needs 5090 for PuLID/InfiniteYou. Options: time-share with vLLM worker, dedicated creative sessions (vLLM sleep mode when available), or swap GPU assignments.
-2. Download missing ComfyUI models — HyperSwap 256, buffalo_l, FaceAnalysis node install
-3. ~~Dashboard control — extend to FOUNDRY/VAULT containers~~ **DONE** (session 60n)
-4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix. **Also: vLLM nightly has RMSNormGated.activation regression — do NOT rebuild images until fixed.**
-5. GWT Phase 3-4 — agent subscription/reaction to workspace broadcasts
-6. **Deploy docker-socket-proxy to FOUNDRY** — Ansible role ready, run `ansible-playbook playbooks/foundry.yml --tags docker-proxy -i inventory.yml`
-7. **Deploy fast model on WORKSHOP 5060 Ti** — Idle 16GB GPU. Options: Qwen3-8B-abliterated (~8GB) or GLM-4.7-Flash-GPTQ-4bit. See `docs/research/2026-03-15-cluster-resource-optimization.md`.
-8. **Mount WORKSHOP ZFS pool** — 2× 931GB NVMe drives sitting unmounted. Local model cache would cut load times from 30s to 5s.
+1. **Deploy agent server to FOUNDRY** — rsync new modules + docker compose rebuild. This activates governor, work pipeline, plans, project tracker, all new routes.
+2. **Deploy dashboard to WORKSHOP** — rsync + rebuild. Activates 10 new pages.
+3. **Verify end-to-end** — governor endpoints from dashboard, pipeline cycle trigger, plan approval flow
+4. **Install CLI tools on DEV** — `npm i -g @openai/codex @google/gemini-cli` for multi-CLI dispatch
+5. **Set up cron for morning/evening managers** — DEV crontab for `scripts/morning-manager.py` and `scripts/evening-manager.py`
+6. **GPU scheduling decision** — ComfyUI needs 5090 for PuLID/InfiniteYou. Options: time-share with vLLM worker, dedicated creative sessions, or swap GPU assignments.
+7. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix. **vLLM nightly has RMSNormGated.activation regression — do NOT rebuild images until fixed.**
+8. **Deploy docker-socket-proxy to FOUNDRY** — Ansible role ready
+9. **Deploy fast model on WORKSHOP 5060 Ti** — Idle 16GB GPU
+10. **Mount WORKSHOP ZFS pool** — 2× 931GB NVMe drives sitting unmounted
 
 ### Session 60n (cont.) — Context Window Upgrade + Cluster Optimization
 
