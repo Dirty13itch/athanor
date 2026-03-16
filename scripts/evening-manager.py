@@ -18,6 +18,7 @@ import argparse
 import json
 import logging
 import subprocess
+import os
 import sys
 import time
 from pathlib import Path
@@ -28,13 +29,17 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-AGENT_SERVER = "http://foundry:9000"
+AGENT_SERVER = os.environ.get("ATHANOR_AGENT_URL", "http://192.168.1.244:9000")
+BEARER_TOKEN = os.environ.get("ATHANOR_AGENT_API_TOKEN", "")
 
 
 def fetch_json(path: str) -> dict:
     """Fetch JSON from the agent server."""
     try:
-        req = Request(f"{AGENT_SERVER}{path}", headers={"Accept": "application/json"})
+        headers = {"Accept": "application/json"}
+        if BEARER_TOKEN:
+            headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
+        req = Request(f"{AGENT_SERVER}{path}", headers=headers)
         with urlopen(req, timeout=30) as resp:
             return json.loads(resp.read())
     except (URLError, json.JSONDecodeError) as e:
@@ -146,10 +151,13 @@ def record_session(result: dict):
             "result_summary": str(result)[:2000],
             "timestamp": time.time(),
         }).encode()
+        headers = {"Content-Type": "application/json"}
+        if BEARER_TOKEN:
+            headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
         req = Request(
             f"{AGENT_SERVER}/v1/subscriptions/leases",
             data=data,
-            headers={"Content-Type": "application/json"},
+            headers=headers,
             method="POST",
         )
         urlopen(req, timeout=10)

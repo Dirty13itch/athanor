@@ -39,7 +39,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-AGENT_SERVER = "http://foundry:9000"
+AGENT_SERVER = os.environ.get("ATHANOR_AGENT_URL", "http://192.168.1.244:9000")
+BEARER_TOKEN = os.environ.get("ATHANOR_AGENT_API_TOKEN", "")
 DISPATCH_QUEUE_KEY = "athanor:dispatch:queue"
 
 # CLI command templates
@@ -79,9 +80,18 @@ def check_cli_available(cli_name: str) -> bool:
         return False
 
 
+def _auth_headers(extra: dict | None = None) -> dict:
+    headers = {"Accept": "application/json"}
+    if BEARER_TOKEN:
+        headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
+    if extra:
+        headers.update(extra)
+    return headers
+
+
 def fetch_json(path: str) -> dict:
     try:
-        req = Request(f"{AGENT_SERVER}{path}", headers={"Accept": "application/json"})
+        req = Request(f"{AGENT_SERVER}{path}", headers=_auth_headers())
         with urlopen(req, timeout=30) as resp:
             return json.loads(resp.read())
     except (URLError, json.JSONDecodeError) as e:
@@ -95,7 +105,7 @@ def post_json(path: str, data: dict) -> dict:
         req = Request(
             f"{AGENT_SERVER}{path}",
             data=body,
-            headers={"Content-Type": "application/json"},
+            headers=_auth_headers({"Content-Type": "application/json"}),
             method="POST",
         )
         with urlopen(req, timeout=30) as resp:
