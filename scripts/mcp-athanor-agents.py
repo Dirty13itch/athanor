@@ -423,7 +423,7 @@ def governor_snapshot() -> str:
             f"Presence: {data.get('presence', {}).get('state', '?')}",
         ]
         for lane in data.get("lanes", []):
-            lines.append(f"  Lane {lane['name']}: {'PAUSED' if lane.get('paused') else 'active'}")
+            lines.append(f"  Lane {lane.get('label', lane.get('id', '?'))}: {'PAUSED' if lane.get('paused') else 'active'}")
         capacity = data.get("capacity", {})
         lines.append(f"Queue: {capacity.get('queue_depth', '?')} pending, {capacity.get('running', '?')} running")
         return "\n".join(lines)
