@@ -89,13 +89,14 @@ Example format:
       body: JSON.stringify({
         model: config.dialogueModel,
         messages,
-        max_tokens: 300,
+        max_tokens: 800,
         temperature: 0.9,
         stream: false,
       }),
     });
 
     if (!response.ok) {
+      console.error("Choices LLM error:", response.status);
       return Response.json({ choices: getFixtureChoices(character) }, { status: 200 });
     }
 
