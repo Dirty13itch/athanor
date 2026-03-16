@@ -322,6 +322,89 @@ export interface Queen extends Character {
 }
 
 // ---------------------------------------------------------------------------
+// Player Style Tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * Tracks the player's behavioral tendencies across choices.
+ * Used for adaptive gameplay — "No Mercy Mode" detection, NPC reactions,
+ * and tailoring future choice generation.
+ */
+export interface PlayerStyle {
+  /** Mercy vs cruelty tendency (0=cruel, 100=merciful) */
+  mercyScore: number;
+  /** Seduction/charm usage frequency (0-100) */
+  seductionScore: number;
+  /** Psychological manipulation frequency (0-100) */
+  manipulationScore: number;
+  /** Physical force/intimidation frequency (0-100) */
+  dominanceScore: number;
+  /** Diplomatic/relationship-building frequency (0-100) */
+  diplomacyScore: number;
+  /** Total choices made (for weighted averaging) */
+  totalChoices: number;
+}
+
+export const DEFAULT_PLAYER_STYLE: PlayerStyle = {
+  mercyScore: 50,
+  seductionScore: 0,
+  manipulationScore: 0,
+  dominanceScore: 0,
+  diplomacyScore: 0,
+  totalChoices: 0,
+};
+
+/**
+ * Classify a choice and return style deltas.
+ * Positive mercyScore = merciful, negative = cruel.
+ */
+export function classifyChoiceStyle(choice: PlayerChoice): Partial<PlayerStyle> {
+  const deltas: Partial<PlayerStyle> = {};
+  const intent = choice.intent?.toLowerCase() ?? "";
+  const method = choice.breakingMethod;
+
+  // Mercy/cruelty from effects
+  const eff = choice.effects;
+  if (eff) {
+    const resistanceDelta = eff.resistance ?? 0;
+    const corruptionDelta = eff.corruption ?? 0;
+    if (resistanceDelta < -10 || corruptionDelta > 5) deltas.mercyScore = -15;
+    else if (resistanceDelta < 0) deltas.mercyScore = -5;
+
+    if ((eff.trust ?? 0) > 5 && resistanceDelta >= 0) deltas.mercyScore = 10;
+    if ((eff.affection ?? 0) > 10 && resistanceDelta >= 0) deltas.mercyScore = 5;
+  }
+
+  // Intent classification
+  if (/compassion|tender|comfort|protective|honest|empathetic/i.test(intent)) {
+    deltas.mercyScore = (deltas.mercyScore ?? 0) + 10;
+    deltas.diplomacyScore = 10;
+  }
+  if (/manipulat|probing|knowing|transactional|calculating/i.test(intent)) {
+    deltas.manipulationScore = 15;
+    deltas.mercyScore = (deltas.mercyScore ?? 0) - 5;
+  }
+  if (/seduc|desire|charm|playful/i.test(intent)) {
+    deltas.seductionScore = 15;
+  }
+  if (/aggressive|intimidat|demanding|challenge|confrontat|ruthless/i.test(intent)) {
+    deltas.dominanceScore = 15;
+    deltas.mercyScore = (deltas.mercyScore ?? 0) - 10;
+  }
+  if (/diplomat|cautious|respectful|loyal|inspiring|hopeful/i.test(intent)) {
+    deltas.diplomacyScore = (deltas.diplomacyScore ?? 0) + 10;
+    deltas.mercyScore = (deltas.mercyScore ?? 0) + 5;
+  }
+
+  // Breaking method
+  if (method === "physical") deltas.dominanceScore = (deltas.dominanceScore ?? 0) + 10;
+  if (method === "psychological") deltas.manipulationScore = (deltas.manipulationScore ?? 0) + 10;
+  if (method === "social") deltas.seductionScore = (deltas.seductionScore ?? 0) + 5;
+
+  return deltas;
+}
+
+// ---------------------------------------------------------------------------
 // Session
 // ---------------------------------------------------------------------------
 
@@ -334,6 +417,8 @@ export interface GameSession {
   dialogueHistory: DialogueTurn[];
   /** Position in the current narrative arc */
   arcPosition: string;
+  /** Tracks player behavioral tendencies across choices */
+  playerStyle: PlayerStyle;
 }
 
 /** Configuration for the LLM dialogue generation pipeline */

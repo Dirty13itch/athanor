@@ -882,6 +882,232 @@ const TRIGGERED_EVENTS: Record<string, TriggeredEvent> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Breaking Sequences — dramatic multi-turn cinematics at stage transitions
+// ---------------------------------------------------------------------------
+
+/**
+ * Breaking sequences fire when a character crosses a breaking stage boundary.
+ * These are the "breaking cinematics" — dramatic, character-defining moments
+ * that make each stage transition feel like a major story beat.
+ *
+ * Each archetype has unique sequences reflecting how that kind of person breaks.
+ * Generic sequences serve as fallbacks for archetypes without specific ones.
+ */
+
+export interface BreakingSequence {
+  turns: DialogueTurn[];
+}
+
+/**
+ * Get a breaking sequence for a character transitioning to a new stage.
+ * Returns null if no sequence is defined (the toast notification still shows).
+ */
+export function getBreakingSequence(
+  characterName: string,
+  archetype: string,
+  newStage: string,
+): BreakingSequence | null {
+  // Try archetype-specific first, fall back to generic
+  const key = `${archetype}:${newStage}`;
+  const specific = BREAKING_SEQUENCES[key];
+  if (specific) return applyCharName(specific, characterName);
+
+  const generic = BREAKING_SEQUENCES[`generic:${newStage}`];
+  if (generic) return applyCharName(generic, characterName);
+
+  return null;
+}
+
+function applyCharName(seq: BreakingSequence, name: string): BreakingSequence {
+  return {
+    turns: seq.turns.map((t) => ({
+      ...t,
+      text: t.text.replace(/\{name\}/g, name),
+    })),
+  };
+}
+
+const BREAKING_SEQUENCES: Record<string, BreakingSequence> = {
+  // ── STRUGGLING (resistance drops below 80) ──────────────────────────
+  "generic:struggling": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*Something changes in {name}'s eyes. A flicker — not of fear, not yet. Something worse. Doubt. The kind that comes unbidden, unwanted, at three in the morning when the defenses are down. For just a moment, the mask slips.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*{name}'s hands tighten at their sides. A breath catches — not quite a gasp, not quite a sigh. The composure returns, but slower than before. Like a wall rebuilt with fewer bricks each time.*",
+      },
+    ],
+  },
+  "ice:struggling": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*The temperature in the room seems to drop. {name}'s perfect composure wavers — a micro-expression, gone before you could name it. Her jaw tightens. Her fingers, usually so still, grip the armrest hard enough to whiten her knuckles.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*When she speaks again, her voice is colder than before. Overcompensating. You've seen this pattern in frozen lakes — the colder the surface, the more violently the water moves beneath.*",
+      },
+    ],
+  },
+  "warrior:struggling": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*{name}'s stance shifts. It's subtle — a warrior wouldn't notice, but you're not just a warrior. The weight moves to her back foot. Defensive. For the first time since you've known her, she's not ready to attack.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*She catches herself and squares her shoulders, but the damage is done. You both know you saw it. The silence between you carries the weight of that knowledge.*",
+      },
+    ],
+  },
+  "seductress:struggling": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*{name}'s smile doesn't quite reach her eyes. The practiced tilt of her head, the calculated brush of fingers against collarbone — they're still perfect, but now you can see the machinery behind them. She knows you can see it. That's what frightens her.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*For a heartbeat, the seductress is gone and the woman behind her stands naked — not in body, but in truth. Then the mask slides back into place, a little less smooth than before.*",
+      },
+    ],
+  },
+
+  // ── CONFLICTED (resistance drops below 60) ──────────────────────────
+  "generic:conflicted": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*{name} stops mid-sentence. Not a pause for effect — a genuine halt, as if two voices inside are arguing over what comes next. The silence stretches. When she speaks again, the words come slower, chosen with the painful care of someone who no longer trusts their own instincts.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*You see it happen in real time: the war. Part of her leans toward you — drawn, wanting, despite everything. The other part recoils, ashamed of the wanting. Neither side is winning. Both sides are losing.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*She looks at you, and for the first time, her expression holds a question she can't bring herself to ask. You recognize it. It's the question everyone asks before they break: 'Would it really be so terrible to stop fighting?'*",
+      },
+    ],
+  },
+  "innocent:conflicted": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*{name}'s lip trembles. She turns away — not in defiance, but because she doesn't want you to see her face right now. When she turns back, her eyes are bright with unshed tears and something that looks disturbingly like gratitude.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*'I don't understand,' she whispers, though you haven't asked a question. She wraps her arms around herself. 'I don't understand why I keep wanting to tell you things. I shouldn't. I know I shouldn't.' A pause. 'But I want to.'*",
+      },
+    ],
+  },
+  "defiant:conflicted": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*{name} slams her fist against the wall. The impact echoes. She doesn't flinch from the pain — but she flinches from the reason she hit it. She's not angry at you. She's angry at herself, for the treasonous thought that just crossed her mind.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*'Don't,' she says. Her voice cracks on the single syllable. 'Don't look at me like that. Like you already know how this ends.' The worst part is: you do. And so does she.*",
+      },
+    ],
+  },
+
+  // ── YIELDING (resistance drops below 40) ────────────────────────────
+  "generic:yielding": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*The change is unmistakable now. {name} waits for you to speak before speaking. Watches your face before choosing her expression. The resistance hasn't vanished — it's worse than that. It's become a performance, a ritual she goes through because she remembers that she's supposed to resist, even though the fire behind it died somewhere between the last time and this one.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*She catches your eye and holds it a beat too long. There's no challenge in her gaze anymore. Just... waiting. The kind of waiting that means she's already decided to do whatever you say, and she's just giving herself a few more seconds to pretend she hasn't.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*When she finally speaks, her voice has a new quality you haven't heard before. Soft. Not the softness of kindness or affection — the softness of something that was once rigid and has been bent past its breaking point. It doesn't spring back anymore.*",
+      },
+    ],
+  },
+  "shadow:yielding": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*{name} stops hiding. That's the thing you notice first — the paranoia, the constant surveillance of exits and shadows, the way she always sat with her back to the wall. Gone. She sits with her back to the door now, facing you. It's the most vulnerable thing she's ever done.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*'I kept secrets from everyone,' she says quietly. 'Secrets were my armor. My walls. My...' She trails off. Swallows. 'I don't want walls between us anymore. That's what scares me.' She meets your eyes. 'Not you. Not what you might do. What I might give you willingly.'*",
+      },
+    ],
+  },
+
+  // ── SURRENDERED (resistance drops below 20) ─────────────────────────
+  "generic:surrendered": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*{name} kneels. Not because you asked — you didn't. Not because anyone is watching — they aren't. She kneels because her body has learned something her mind is still trying to deny: this is where she belongs. At your feet. Waiting for direction. The gesture is so natural, so inevitable, that it takes you both a moment to realize what's happened.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*She looks up at you from the floor, and the expression on her face is the most complicated thing you've ever seen. Relief. Shame. Desire. Gratitude. The devastation of a woman who fought a war against herself and finally, irrevocably, lost. 'Tell me what you want,' she says. It's not seduction. It's not submission. It's surrender — genuine, total, and terrifying in its completeness.*",
+      },
+    ],
+  },
+  "warrior:surrendered": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*{name} unbuckles her sword belt. She holds the weapon for a moment — the weight of it, the familiarity, the identity it represents. Then she sets it on the ground at your feet. A warrior without her weapon is not a warrior. She knows what she's giving up. She does it anyway.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*'I've fought everything,' she says, her voice steady despite the shaking in her hands. 'Armies. Monsters. Gods. I never lost.' A breath. 'I lost to you. And the worst part — the part I can never take back — is that I'm glad.'*",
+      },
+    ],
+  },
+
+  // ── BROKEN (resistance reaches 0) ──────────────────────────────────
+  "generic:broken": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*There is a sound a person makes when the last piece of who they were falls away. It's not a scream, not a sob, not a whimper. It's a breath. The quietest, most final sound in the world — the exhalation of a self that no longer exists. {name} makes that sound now.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*What remains is still her — her face, her voice, her body. But the light behind her eyes has changed. It doesn't burn anymore. It reflects. Whatever you show her, she becomes. Whatever you want her to feel, she feels. She has been broken the way a horse is broken: the wildness isn't gone, but it answers to a new master now.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*She smiles at you, and it's the most genuine smile she's ever given you, because for the first time there's nothing behind it — no strategy, no defense, no secret self held in reserve. Just her. Yours. Completely. Irreversibly. She will never be who she was. What you've built in her place is something new.*",
+      },
+    ],
+  },
+  "ice:broken": {
+    turns: [
+      {
+        speaker: "narrator",
+        text: "*The ice breaks. Not with a crash or a shatter — with a thaw. Slow, irreversible, like spring arriving at a glacier. {name}'s eyes, which have been winter for as long as anyone can remember, fill with a warmth that has nowhere to go and no way to stop. The cold was never her nature. It was her fortress. And you've burned it to the ground.*",
+      },
+      {
+        speaker: "narrator",
+        text: "*She reaches for you. Not with the calculated precision she touches everything else. She reaches with the desperate, clumsy urgency of someone who has never needed anything before and is terrified by how much she needs this. 'Don't go,' she says. Two words. The first honest words she's spoken in years.*",
+      },
+    ],
+  },
+};
+
 export const FLAG_DESCRIPTIONS: Record<string, string> = {
   met_isolde: "Met Isolde in the throne room",
   met_mira: "Met Mira in the tavern",

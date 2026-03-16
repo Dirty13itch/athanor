@@ -18,6 +18,10 @@ export async function POST(req: Request) {
   }
 
   const { worldState, recentHistory } = parsed.data;
+  const playerStyle = (rawBody as Record<string, unknown>)?.playerStyle as {
+    mercyScore?: number; seductionScore?: number; manipulationScore?: number;
+    dominanceScore?: number; diplomacyScore?: number; totalChoices?: number;
+  } | undefined;
   const knownQueen = QUEENS[parsed.data.character.id];
   const character: Character = knownQueen
     ? { ...knownQueen, ...parsed.data.character } as Character
@@ -46,6 +50,12 @@ Generate 3-4 player dialogue choices for the current situation. Each choice shou
 - Represent different approaches (diplomatic, aggressive, seductive, cunning, etc.)
 - Include at least one option that could lower the character's resistance (breaking path)
 - Include at least one option that builds genuine trust/respect (relationship path)
+${playerStyle && playerStyle.totalChoices && playerStyle.totalChoices > 5 ? `
+PLAYER TENDENCY PROFILE (adapt choices to their style):
+- Mercy tendency: ${playerStyle.mercyScore?.toFixed(0) ?? 50}/100 ${(playerStyle.mercyScore ?? 50) < 25 ? "(CRUEL — lean into darker choices)" : (playerStyle.mercyScore ?? 50) > 75 ? "(MERCIFUL — include more redemptive options)" : ""}
+- Seduction: ${playerStyle.seductionScore?.toFixed(0) ?? 0}/100, Manipulation: ${playerStyle.manipulationScore?.toFixed(0) ?? 0}/100
+- Dominance: ${playerStyle.dominanceScore?.toFixed(0) ?? 0}/100, Diplomacy: ${playerStyle.diplomacyScore?.toFixed(0) ?? 0}/100
+- Offer choices that match their preferred style, plus one that challenges their pattern.` : ""}
 
 CURRENT CHARACTER: ${character.name} (${character.archetype})
 - Resistance: ${character.resistance}/100 (stage: ${stage})

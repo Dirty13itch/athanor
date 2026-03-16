@@ -50,4 +50,10 @@ export const config = {
 
   /** Max tokens for dialogue response */
   dialogueMaxTokens: parseInt(process.env.DIALOGUE_MAX_TOKENS || "512"),
+
+  /** Speaches TTS URL (FOUNDRY:8200) */
+  speachesUrl: urlEnv(
+    ["ATHANOR_SPEACHES_URL", "SPEACHES_URL"],
+    `http://${foundryHost}:8200`,
+  ),
 } as const;

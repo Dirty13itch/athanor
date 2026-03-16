@@ -3,8 +3,11 @@ import type {
   Character,
   DialogueTurn,
   GameSession,
+  PlayerStyle,
   WorldState,
 } from "@/types/game";
+import { classifyChoiceStyle, DEFAULT_PLAYER_STYLE } from "@/types/game";
+import type { PlayerChoice } from "@/types/game";
 
 const SAVE_KEY = "eoq-save";
 
@@ -43,6 +46,7 @@ interface GameState {
   addInventoryItem: (item: string) => void;
   markSceneVisited: (sceneId: string) => void;
   setQueenSelectorMode: (mode: "confrontation" | "banquet" | "duel" | null) => void;
+  trackChoice: (choice: PlayerChoice) => void;
   saveGame: () => void;
   loadGame: () => boolean;
   clearSave: () => void;
@@ -178,6 +182,33 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setQueenSelectorMode: (mode) => set({ queenSelectorMode: mode }),
 
+  trackChoice: (choice) =>
+    set((state) => {
+      if (!state.session) return state;
+      const style = { ...state.session.playerStyle };
+      const deltas = classifyChoiceStyle(choice);
+      const n = style.totalChoices + 1;
+      // Weighted running average — new choices blend into existing scores
+      const blend = (current: number, delta: number | undefined) => {
+        if (delta == null) return current;
+        const raw = current + (delta - current) / n;
+        return Math.max(0, Math.min(100, raw));
+      };
+      return {
+        session: {
+          ...state.session,
+          playerStyle: {
+            mercyScore: blend(style.mercyScore, deltas.mercyScore != null ? style.mercyScore + deltas.mercyScore : undefined),
+            seductionScore: blend(style.seductionScore, deltas.seductionScore != null ? style.seductionScore + deltas.seductionScore : undefined),
+            manipulationScore: blend(style.manipulationScore, deltas.manipulationScore != null ? style.manipulationScore + deltas.manipulationScore : undefined),
+            dominanceScore: blend(style.dominanceScore, deltas.dominanceScore != null ? style.dominanceScore + deltas.dominanceScore : undefined),
+            diplomacyScore: blend(style.diplomacyScore, deltas.diplomacyScore != null ? style.diplomacyScore + deltas.diplomacyScore : undefined),
+            totalChoices: n,
+          },
+        },
+      };
+    }),
+
   saveGame: () => {
     const { session, visitedScenes } = get();
     if (!session) return;
@@ -198,6 +229,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!raw) return false;
       const data = JSON.parse(raw);
       if (!data.session) return false;
+      // Backfill playerStyle for saves from before this feature
+      if (!data.session.playerStyle) {
+        data.session.playerStyle = { ...DEFAULT_PLAYER_STYLE };
+      }
       set({
         session: data.session,
         visitedScenes: new Set(data.visitedScenes ?? []),

@@ -16,6 +16,7 @@ import {
   checkRelationshipFlags,
   checkArcTransition,
 } from "@/data/narrative";
+import { DEFAULT_PLAYER_STYLE } from "@/types/game";
 import type { PlayerChoice, DialogueTurn, SceneExit, ChoiceEffects } from "@/types/game";
 import {
   storeChoiceMemory,
@@ -60,6 +61,7 @@ export function useGameEngine() {
       characters: { ...CHARACTERS },
       dialogueHistory: [],
       arcPosition: "prologue",
+      playerStyle: { ...DEFAULT_PLAYER_STYLE },
     };
 
     store.setSession(session);
@@ -102,6 +104,7 @@ export function useGameEngine() {
       characters: { [queenId]: queen },
       dialogueHistory: [],
       arcPosition: "audience",
+      playerStyle: { ...DEFAULT_PLAYER_STYLE },
     };
 
     store.setSession(session);
@@ -156,6 +159,7 @@ export function useGameEngine() {
       characters: allQueens,
       dialogueHistory: [],
       arcPosition: "council",
+      playerStyle: { ...DEFAULT_PLAYER_STYLE },
     };
 
     store.setSession(session);
@@ -406,6 +410,9 @@ export function useGameEngine() {
 
       // Record the player's choice
       store.addDialogue({ speaker: "player", text: choice.text });
+
+      // Track player style from this choice
+      store.trackChoice(choice);
 
       // Apply all effects
       if (choice.effects) {
@@ -748,7 +755,8 @@ export function useGameEngine() {
       }
 
       // Generate contextual choices for the player (fire and forget into state)
-      fetchChoices(character, session.worldState, session.dialogueHistory.slice(-10));
+      const latestSess = useGameStore.getState().session;
+      fetchChoices(character, session.worldState, session.dialogueHistory.slice(-10), latestSess?.playerStyle);
 
       // Auto-save periodically
       store.saveGame();
@@ -835,12 +843,13 @@ export function useGameEngine() {
 function fetchChoices(
   character: import("@/types/game").Character,
   worldState: import("@/types/game").WorldState,
-  recentHistory: DialogueTurn[]
+  recentHistory: DialogueTurn[],
+  playerStyle?: import("@/types/game").PlayerStyle,
 ) {
   fetch("/api/choices", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ character, worldState, recentHistory }),
+    body: JSON.stringify({ character, worldState, recentHistory, playerStyle }),
   })
     .then((r) => r.json())
     .then((data) => {
