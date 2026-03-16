@@ -23,6 +23,15 @@ export async function POST(req: Request) {
     ? { ...knownQueen, ...parsed.data.character } as Character
     : parsed.data.character;
 
+  // Collect other characters for multi-queen choice context
+  const otherCharacters = worldState.currentScene.presentCharacters
+    .filter((id: string) => id !== character.id)
+    .map((id: string) => {
+      const known = QUEENS[id];
+      return known ? { id, name: known.name, archetype: known.archetype, resistance: known.resistance } : null;
+    })
+    .filter(Boolean);
+
   if (EOQ_FIXTURE_MODE) {
     return Response.json({ choices: getFixtureChoices(character) });
   }
@@ -48,7 +57,12 @@ CURRENT CHARACTER: ${character.name} (${character.archetype})
 - Content intensity: ${worldState.contentIntensity}/5
 
 SCENE: ${worldState.currentScene.name}
-
+${otherCharacters.length > 0 ? `
+OTHER QUEENS PRESENT: ${(otherCharacters as Array<{ name: string; archetype: string; resistance: number }>).map((q) => `${q.name} (${q.archetype}, resistance ${q.resistance})`).join(", ")}
+- Include choices that exploit rivalry between queens (pit them against each other)
+- Include choices that address specific queens by name
+- Include choices that use one queen's weakness against another
+` : ""}
 Respond with ONLY a JSON array. Each element has:
 - "text": the player's dialogue (1-2 sentences, in character as the player)
 - "intent": brief description of what this signals (e.g., "intimidation", "genuine_concern", "manipulation")
