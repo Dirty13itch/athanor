@@ -1242,11 +1242,15 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - F.6-F.9 ✅ Save/load, gallery, scene map, keyboard controls — all implemented
 - F.10 ✅ PuLID face injection wired — queens auto-use Stash performer reference
 
-**Blocked:**
-- V.2-V.12 — ComfyUI needs GPU. 5090 occupied by vLLM worker (32GB/32GB). Need GPU scheduling.
-- VD.1-VD.6 — Video generation requires ComfyUI + Wan2.2 on 5090.
-- Q.8 — Memory-informed dialogue (wired but needs multi-session testing with real memories)
-- S.1-S.8 — Scale/polish phase (depends on visual pipeline)
+**Unblocked:**
+- V.2-V.5 ✅ — PuLID calibrated, face quality verified, 4x upscale working
+- VD.1-VD.2 ✅ — Video generation on 5090 verified (T2V 832x480, 5sec, H.264)
+- GPU scheduling: stop vLLM worker → ComfyUI on 5090 → generate → restart vLLM
+
+**Remaining:**
+- Q.8 — Memory-informed dialogue (wired but needs multi-session testing)
+- VD.3-VD.6 — I2V animation, video API endpoint, video in-game playback
+- S.1-S.8 — Scale/polish phase
 
 **Key fixes:**
 - Choices endpoint `max_tokens: 300` → `800` (was truncating JSON array, silently falling back to fixtures)
@@ -1302,4 +1306,20 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 
 **Gallery: 15+ images**, all loading via dashboard proxy. Masonry layout, type badges, fullscreen lightbox.
 
-*Last updated: 2026-03-16 10:45 PDT
+**Video Generation WORKING (5090):**
+- Wan2.2 T2V 14B FP8: 832x480, 81 frames, 5sec H.264 MP4
+- ~3.5 min generation time on 5090
+- NSFW video verified (explicit content renders correctly)
+- Requires GPU swap: stop vLLM worker → ComfyUI on GPU 0 → generate → restore
+- InsightFace models mounted persistently via docker volume
+
+**Extreme NSFW Verified (all content types):**
+- BDSM (restraints, impact play, submission) ✅
+- Oral scenes ✅
+- Lesbian/multi-character scenes ✅
+- Explicit sex/penetration ✅
+- All with cinematic quality, no artifacts, anatomically correct
+
+**Gallery: 36 items** — disk scan + history merge, video player with controls, type badges.
+
+*Last updated: 2026-03-16 11:55 PDT
