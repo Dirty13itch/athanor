@@ -537,12 +537,33 @@ Phase 6 (Testing)            DONE — 391 tests pass
 
 **Commits:** 7dc27d1, c4bccd8, 2c9f5a9
 
-### Next Actions
-1. **Fix ComfyUI GPU assignment** — Change docker-compose `NVIDIA_VISIBLE_DEVICES=1` to `0` for creative mode
-2. **EoBQ portrait generation** — PuLID batch with reference photos on WORKSHOP 5090
-3. **Crew bar as interactive filter** — clicking agent circle filters UnifiedStream
-4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
-5. **Fixture code cleanup** — ~4340 lines of fixture data maintenance burden
+### Session 62b (2026-03-16) — COO Master Plan: From Scaffolding to Living System
+
+**Strategic audit revealed: the scaffold layer doesn't produce visible value. Pipeline runs every 2h (19 intents mined, 0 new — dedup catches all). 50+ proactive tasks complete daily (home checks, media checks, health) but results never surface to Shaun. Morning/evening managers never ran (cron log paths pointed to /var/log/ — permission denied).**
+
+**Three campaigns identified: (1) Make the Furnace Visible, (2) Wire the Last 30%, (3) EoBQ First Real Tenant.**
+
+**Campaign 1: Make the Furnace Visible**
+- New `/v1/digests` endpoint: auto-generates summaries from completed proactive tasks (home checks, media checks, health). GET /latest, POST /generate.
+- DailyBriefing component now fetches from `/v1/digests/latest` first — shows real overnight activity (30 home checks, 9 media checks, 5 health checks) instead of empty state
+- Scheduler stores fresh digest after every pipeline cycle (every 2h)
+- Gallery page: renders actual ComfyUI images via existing proxy instead of placeholder gradients
+
+**Campaign 2: Wire the Last 30%**
+- PREFERENCE_PREAMBLE added to `prompting.py` — every agent prompt now includes instructions to honor injected user preferences silently
+- Cron log paths fixed: `/var/log/athanor-*` → `~/.local/log/athanor-*`. All 6 cron jobs were silently failing to write logs since deployment.
+- Morning/evening managers verified: claude CLI in PATH, API token in cron env, scripts exist and compile
+
+**Commits:** 04daa92, 11d63f2
+
+**Deploying to FOUNDRY (agent server) and WORKSHOP (dashboard).**
+
+### Next Actions (COO Master Plan Remaining)
+1. **Campaign 1 continued** — Push notification triggers for real events (C1.3), trust calibration display (C1.4)
+2. **Campaign 2 continued** — Workspace reactive task refinement (C2.2), feedback loop closure with trust auto-graduation (C2.3)
+3. **Campaign 3: EoBQ** — Game loop MVP, persistence layer, portrait pipeline, project lens
+4. **Fix ComfyUI GPU assignment** — NVIDIA_VISIBLE_DEVICES=0 for creative mode on 5090
+5. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
 
 ### Session — Hardening & Operational Readiness (2026-03-15)
 
