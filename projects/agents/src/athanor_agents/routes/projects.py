@@ -77,15 +77,6 @@ async def supervise_project_endpoint(project_id: str, request: Request):
     return result
 
 
-@router.get("/projects/stalled")
-async def stalled_projects():
-    """List stalled projects."""
-    from ..project_tracker import get_stalled_projects
-
-    stalled = await get_stalled_projects()
-    return {"stalled": stalled, "count": len(stalled)}
-
-
 @router.get("/projects/{project_id}/state")
 async def project_state(project_id: str):
     """Get full project state including milestones and metrics."""

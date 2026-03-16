@@ -20,7 +20,7 @@ REPO_ROOT = "/workspace"  # Mounted in agent container
 
 
 async def _get_redis():
-    from .redis_client import get_redis
+    from .workspace import get_redis
     return await get_redis()
 
 

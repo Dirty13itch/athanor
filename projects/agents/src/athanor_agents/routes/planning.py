@@ -69,6 +69,15 @@ async def get_projects():
     return {"projects": projects, "count": len(projects)}
 
 
+@router.get("/projects/stalled")
+async def stalled_projects():
+    """List stalled projects."""
+    from ..project_tracker import get_stalled_projects
+
+    stalled = await get_stalled_projects()
+    return {"stalled": stalled, "count": len(stalled)}
+
+
 @router.get("/projects/{project_id}")
 async def get_project_detail(project_id: str):
     """Get a detailed canonical project definition."""

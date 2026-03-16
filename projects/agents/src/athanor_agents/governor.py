@@ -213,6 +213,19 @@ class Governor:
         presence_state = presence["state"]
         presence_mod = PRESENCE_STATES.get(presence_state, {}).get("modifier", 0.0)
 
+        # Scheduler, auto-retry, and pipeline tasks are operational — auto-execute
+        if source in ("scheduler", "auto-retry", "pipeline"):
+            decision = GateDecision(
+                allowed=True,
+                status_override="pending",
+                autonomy_level="A",
+                reason=f"Source '{source}' — auto-execute (operational task)",
+                trust_score=trust_score,
+                presence_state=presence_state,
+            )
+            await self._record_decision(agent, source, priority, decision)
+            return decision
+
         # Modifiers
         effective_score = trust_score
         if agent in HIGH_IMPACT_AGENTS:

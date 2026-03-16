@@ -2,7 +2,36 @@
 
 *This is the tactical execution queue. `docs/design/athanor-next.md` is the strategic design layer above it. Claude Code uses this file to decide what to build next, but the queue must remain subordinate to the Athanor Next operating model.*
 
-Last updated: 2026-03-14 (Session 58: plan verification, n8n cleanup, eval refresh)
+Last updated: 2026-03-15 (Session: hardening & operational readiness — 6-phase Athanor OS complete)
+
+---
+
+## Athanor OS — Complete
+
+The 6-phase Athanor OS build is deployed and running. First autonomous pipeline cycle executed successfully:
+intents mined → plans created → tasks approved → agents executing. All phases verified.
+
+Hardening pass completed (2026-03-15):
+- Fixed broken imports (cloud_manager.py, knowledge_refresh.py: redis_client → workspace)
+- Fixed route ordering (projects/stalled captured as project_id)
+- Added /v1/models/local endpoint (live vLLM model status)
+- Governor auto-executes scheduler/pipeline/auto-retry tasks (no manual approval needed)
+- Docker-socket-proxy migrated from /tmp to /opt/athanor/docker-socket-proxy
+- Multi-CLI dispatch daemon running as systemd user service on DEV
+- Ansible foundry.yml hosts fixed (foundry → node1)
+- Bash firewall updated for operational flexibility
+
+---
+
+## Operational Readiness — P1
+
+### OR.1 — WORKSHOP 5060 Ti utilization
+- **Status:** 🔲 P2 backlog
+- Model choice requires research: Qwen3-VL-8B (vision), redundant embedding, or fast-draft model.
+
+### OR.2 — Dashboard live data verification
+- **Status:** 🔲 P2 backlog
+- 10+ dashboard pages return 200 but many show fixture data. Verify each has live endpoints.
 
 ---
 

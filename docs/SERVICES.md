@@ -15,9 +15,28 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 | GPU Orchestrator | 9200 | 4 zones, DCGM metrics, vLLM sleep/wake, TTL auto-sleep, Prometheus export |
 | wyoming-whisper | 10300 | STT for HA â€” faster-distil-whisper-large-v3 (float16), GPU 4 |
 | Speaches | 8200 | OpenAI-compatible STT+TTS API â€” Kokoro + faster-whisper, GPU 4 |
+| Docker Socket Proxy | 2375 | Read-only Docker socket proxy for MCP tools, /opt/athanor/docker-socket-proxy/ |
 | Grafana Alloy | â€” | Log/metric forwarding |
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics |
+
+### Agent Server Endpoints (FOUNDRY:9000)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| /health | GET | Agent server health |
+| /v1/agents | GET | Agent registry |
+| /v1/tasks/* | GET/POST | Task submission, status, approval |
+| /v1/governor/* | GET/POST | Governor state, lanes, presence, pause/resume |
+| /v1/plans/* | GET/POST | Plan lifecycle (intent → plan → execute) |
+| /v1/projects/* | GET/POST | Project milestones, stalled detection, advancement |
+| /v1/models/local | GET | Live vLLM model health and status |
+| /v1/subscriptions/* | GET/POST | CLI status, routing log, provider status, quotas, leases |
+| /v1/goals/* | GET/POST | Goal tracking, trust scores |
+| /v1/workspace/* | GET/POST | GWT workspace state |
+| /v1/activity/* | GET | Activity feed |
+| /v1/events/* | GET/POST | Event stream |
+| /v1/metrics/* | GET | Agent and system metrics |
 
 ## Node 2 â€” Workshop (192.168.1.225)
 
@@ -112,6 +131,7 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics (nv-hostengine entrypoint for driver 590) |
 | Gitea Actions Runner | â€” | act_runner v0.2.11 (systemd service, self-hosted label) |
+| Multi-CLI Dispatch | â€” | Daemon polling dispatch queue, spawns CLIs (systemd user service) |
 
 ## LiteLLM Model Routes
 

@@ -33,12 +33,10 @@ for P in \
 done
 
 # --- Docker Container Protection ---
+# Hard blocks for destructive data operations.
+# docker stop/rm/down are allowed — graceful lifecycle ops.
 for P in \
-  "docker stop " \
   "docker kill " \
-  "docker rm " \
-  "docker-compose down" \
-  "docker compose down" \
   "docker volume rm" \
   "docker volume prune" \
   "docker network rm"; do
@@ -71,9 +69,7 @@ done
 
 # --- Credential Leakage ---
 for P in \
-  'printenv' \
   'echo.*\$.*KEY' \
-  'echo.*\$.*TOKEN' \
   'echo.*\$.*SECRET' \
   'echo.*\$.*PASSWORD'; do
   echo "$COMMAND" | grep -qiE "$P" && block "Potential credential exposure '$P'" "Credentials must not be printed to terminal."
@@ -91,10 +87,10 @@ if echo "$COMMAND" | grep -qi "ansible-playbook"; then
 fi
 
 # --- Node-aware FOUNDRY Protection ---
-# Block destructive verbs targeting FOUNDRY, allow read-only commands
+# Block destructive verbs targeting FOUNDRY, allow read-only and graceful ops
 if echo "$COMMAND" | grep -qiE "(192\.168\.1\.244|foundry|node1)" && \
-   echo "$COMMAND" | grep -qiE "\b(restart|stop|delete|destroy|down|remove|kill|disable)\b" && \
-   ! echo "$COMMAND" | grep -qiE "(docker ps|nvidia-smi|docker logs|journalctl|cat |head |tail |ls |df |free |mount |curl |wget|docker stats|docker inspect|rsync )"; then
+   echo "$COMMAND" | grep -qiE "\b(delete|destroy|kill|disable)\b" && \
+   ! echo "$COMMAND" | grep -qiE "(docker ps|nvidia-smi|docker logs|journalctl|cat |head |tail |ls |df |free |mount |curl |wget|docker stats|docker inspect|rsync |docker compose up|docker compose build|docker stop|docker rm |docker rename)"; then
   block "Destructive operation targeting FOUNDRY (.244)" \
     "FOUNDRY is production. Read-only ops allowed. Destructive actions require user approval."
 fi

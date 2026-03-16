@@ -9,7 +9,7 @@
 # This playbook is for ancillary services only.
 
 - name: Configure FOUNDRY (Inference)
-  hosts: foundry
+  hosts: node1
   become: true
   roles:
     - role: docker-socket-proxy
