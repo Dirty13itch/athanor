@@ -453,6 +453,23 @@ async def _record_skill_execution_for_task(task: Task, success: bool):
         logger.debug("Skill recording skipped for task %s: %s", task.id, e)
 
 
+async def _auto_extract_skill(task: Task):
+    """Fire-and-forget: extract a reusable skill from a successful task's tool sequence."""
+    try:
+        from .skill_learning import extract_skill_from_task
+        skill_id = await extract_skill_from_task(
+            task_id=task.id,
+            agent=task.agent,
+            prompt=task.prompt,
+            steps=task.steps,
+            quality_score=0.8,  # default for completed tasks; overridden by judge if available
+        )
+        if skill_id:
+            logger.info("Auto-extracted skill %s from task %s", skill_id, task.id)
+    except Exception as e:
+        logger.debug("Skill extraction skipped for task %s: %s", task.id, e)
+
+
 async def _execute_task(task: Task):
     """Execute a task through its agent, capturing tool call steps."""
     from .agents import get_agent
@@ -616,6 +633,9 @@ async def _execute_task(task: Task):
 
         # Record skill execution outcome (learning feedback loop)
         asyncio.create_task(_record_skill_execution_for_task(task, success=True))
+
+        # Auto-extract skills from successful task traces (Layer 3)
+        asyncio.create_task(_auto_extract_skill(task))
 
         # Broadcast completion to GWT workspace
         asyncio.create_task(post_item(

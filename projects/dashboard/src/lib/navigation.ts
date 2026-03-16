@@ -32,6 +32,9 @@ export type RouteIconKey =
   | "home"
   | "terminal"
   | "more"
+  | "governor"
+  | "pipeline"
+  | "projects"
   | "offline";
 
 export interface RouteDefinition {
@@ -156,11 +159,30 @@ export const ROUTES: RouteDefinition[] = [
     mobile: true,
   },
   {
+    href: "/governor",
+    label: "Governor",
+    description: "Runtime control plane — lanes, capacity, presence, and autonomy levels.",
+    family: "workforce",
+    icon: "governor",
+    primary: false,
+    mobile: true,
+  },
+  {
     href: "/goals",
     label: "Goals",
     description: "Agent goals, focus lanes, and project-aligned intent.",
     family: "workforce",
     icon: "goals",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/projects",
+    label: "Projects",
+    shortLabel: "Projects",
+    description: "Milestone tracking, autonomous continuation, and stall detection.",
+    family: "workforce",
+    icon: "projects",
     primary: false,
     mobile: true,
   },
@@ -179,6 +201,15 @@ export const ROUTES: RouteDefinition[] = [
     description: "Shared workspace state, subscriptions, and cross-agent coordination.",
     family: "workforce",
     icon: "workspace",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/pipeline",
+    label: "Pipeline",
+    description: "Work pipeline flow — intent mining, plan generation, task execution, and outcomes.",
+    family: "workforce",
+    icon: "pipeline",
     primary: false,
     mobile: true,
   },

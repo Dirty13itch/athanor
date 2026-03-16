@@ -510,6 +510,102 @@ INITIAL_SKILLS: list[dict] = [
 ]
 
 
+AUTO_EXTRACT_KEY = "athanor:skills:auto_extracted"
+AUTO_EXTRACT_MAX = 100
+
+
+async def extract_skill_from_task(
+    task_id: str,
+    agent: str,
+    prompt: str,
+    steps: list[dict],
+    quality_score: float,
+) -> str | None:
+    """Extract a skill from a successful task's tool call sequence.
+
+    Called after task completion when quality > 0.7. Extracts the tool
+    call sequence as a candidate skill, checks for duplicates, and
+    stores if novel.
+
+    Returns skill_id if extracted, None if skipped.
+    """
+    if quality_score < 0.7:
+        return None
+
+    if len(steps) < 2:
+        return None
+
+    # Extract tool call sequence
+    tool_calls = []
+    for step in steps:
+        tool = step.get("tool") or step.get("tool_name") or step.get("action", "")
+        if tool:
+            tool_calls.append(tool)
+
+    if len(tool_calls) < 2:
+        return None
+
+    # Build a signature from tool sequence for dedup
+    signature = " → ".join(tool_calls)
+
+    # Check if similar skill already exists
+    existing = await get_all_skills()
+    for skill in existing:
+        if not skill.steps:
+            continue
+        existing_sig = " → ".join(skill.steps[:len(tool_calls)])
+        if existing_sig == signature:
+            return None
+        # Check keyword overlap in trigger conditions
+        prompt_words = set(prompt.lower().split())
+        trigger_words = set()
+        for cond in skill.trigger_conditions:
+            trigger_words.update(cond.lower().split())
+        overlap = len(prompt_words & trigger_words)
+        if overlap > 3 and existing_sig == signature:
+            return None
+
+    # Extract keywords from prompt for trigger conditions
+    stop_words = {"the", "a", "an", "is", "are", "was", "were", "be", "been",
+                  "to", "of", "in", "for", "on", "with", "at", "by", "from",
+                  "and", "or", "but", "not", "this", "that", "it", "as", "do"}
+    words = [w for w in prompt.lower().split() if len(w) > 3 and w not in stop_words]
+    triggers = list(set(words[:5]))
+
+    # Create the skill
+    name = f"auto_{agent}_{task_id[:8]}"
+    description = f"Auto-extracted from task {task_id}: {prompt[:100]}"
+    skill_steps = [f"Tool: {t}" for t in tool_calls[:10]]
+
+    skill_id = await add_skill(
+        name=name,
+        description=description,
+        trigger_conditions=triggers,
+        steps=skill_steps,
+        category="auto_extracted",
+        tags=[agent, "auto"],
+        created_by=agent,
+    )
+
+    # Record extraction
+    try:
+        r = await _get_redis()
+        await r.lpush(AUTO_EXTRACT_KEY, json.dumps({
+            "skill_id": skill_id,
+            "task_id": task_id,
+            "agent": agent,
+            "quality": quality_score,
+            "ts": time.time(),
+        }))
+        await r.ltrim(AUTO_EXTRACT_KEY, 0, AUTO_EXTRACT_MAX - 1)
+    except Exception as e:
+        logger.debug("Failed to record auto-extraction: %s", e)
+
+    logger.info("Auto-extracted skill '%s' from task %s (agent=%s, quality=%.2f)",
+                name, task_id, agent, quality_score)
+    return skill_id
+
+
 async def ensure_initial_skills() -> int:
     """Seed the library with initial skills if empty. Returns count added."""
     try:
