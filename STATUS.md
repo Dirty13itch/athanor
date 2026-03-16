@@ -1036,7 +1036,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-16 03:35 PDT
+*Last updated: 2026-03-16 03:45 PDT
 
 ---
 
@@ -1069,7 +1069,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-16 03:35 PDT
+*Last updated: 2026-03-16 03:45 PDT
 
 ---
 
@@ -1194,4 +1194,4 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 5. Review duplicate home-agent tasks (same prompt × 6) — plan decomposition creating too many copies
 6. Install 10GbE NIC in DEV (physical — Shaun)
 
-*Last updated: 2026-03-16 03:35 PDT
+*Last updated: 2026-03-16 03:45 PDT
