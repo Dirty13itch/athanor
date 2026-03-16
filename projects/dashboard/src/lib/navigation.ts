@@ -35,6 +35,7 @@ export type RouteIconKey =
   | "governor"
   | "pipeline"
   | "projects"
+  | "routing"
   | "offline";
 
 export interface RouteDefinition {
@@ -214,6 +215,24 @@ export const ROUTES: RouteDefinition[] = [
     mobile: true,
   },
   {
+    href: "/routing",
+    label: "Routing",
+    description: "Provider routing, cost tracking, and execution lane visibility.",
+    family: "intelligence",
+    icon: "routing",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/improvement",
+    label: "Improvement",
+    description: "Nightly optimization, prompt variants, benchmark health.",
+    family: "intelligence",
+    icon: "learning",
+    primary: false,
+    mobile: true,
+  },
+  {
     href: "/activity",
     label: "Activity",
     description: "Agent action feed with project, agent, and status filtering.",
@@ -351,6 +370,24 @@ export const ROUTES: RouteDefinition[] = [
     icon: "offline",
     primary: false,
     mobile: false,
+  },
+  {
+    href: "/digest",
+    label: "Digest",
+    description: "Morning briefing — pending approvals, overnight results, stalled projects.",
+    family: "workforce",
+    icon: "notifications",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/operator",
+    label: "Operator",
+    description: "Meta-orchestrator chat and approval queue.",
+    family: "core",
+    icon: "chat",
+    primary: false,
+    mobile: true,
   },
 ];
 
