@@ -436,6 +436,34 @@ EOQB_CHARACTERS = {
 }
 
 
+def _fetch_dynamic_character_desc(name: str) -> str | None:
+    """Try to fetch character visual description from Qdrant (eoq_characters collection).
+
+    Returns None if not found or on error, allowing fallback to static dict.
+    """
+    try:
+        qdrant_url = registry.qdrant.base_url
+        resp = httpx.post(
+            f"{qdrant_url}/collections/eoq_characters/points/scroll",
+            json={
+                "filter": {"must": [{"key": "character_id", "match": {"value": name}}]},
+                "limit": 1,
+                "with_payload": True,
+            },
+            timeout=5,
+        )
+        if resp.status_code == 200:
+            points = resp.json().get("result", {}).get("points", [])
+            if points:
+                payload = points[0].get("payload", {})
+                desc = payload.get("visual_description") or payload.get("flux_prompt")
+                if desc and len(desc) > 20:
+                    return desc
+    except Exception:
+        pass
+    return None
+
+
 @tool
 def generate_character_portrait(character_name: str, scene_context: str = "", style: str = "cinematic") -> str:
     """Generate an EoBQ character portrait using Flux on ComfyUI.
@@ -445,10 +473,12 @@ def generate_character_portrait(character_name: str, scene_context: str = "", st
         scene_context: Optional scene or mood context (e.g., "throne room at night", "after battle")
         style: Visual style — 'cinematic', 'painting', 'illustration' (default: cinematic)
 
-    Uses stored visual descriptions for character consistency.
+    Checks Qdrant for dynamic character descriptions first, falls back to static dict.
     """
     name = character_name.lower().strip()
-    base_desc = EOQB_CHARACTERS.get(name)
+
+    # Try dynamic lookup first (Qdrant), then fall back to static dict
+    base_desc = _fetch_dynamic_character_desc(name) or EOQB_CHARACTERS.get(name)
     if not base_desc:
         available = ", ".join(EOQB_CHARACTERS.keys())
         return f"Unknown character '{character_name}'. Available: {available}"
