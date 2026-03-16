@@ -1228,69 +1228,99 @@ export async function getHomeSnapshot(): Promise<HomeSnapshot> {
     return getFixtureHomeSnapshot();
   }
 
-  let online = false;
+  // Fetch live HA summary via agent server
+  let haSummary: {
+    online: boolean;
+    configured: boolean;
+    entities: number;
+    automations: { total: number; on: number };
+    lights: { total: number; on: number };
+    climate: Array<{ id: string; name: string; state: string; temperature?: number | null; current_temperature?: number | null; hvac_action?: string | null }>;
+    sensors: Array<{ id: string; name: string; state: string; unit: string }>;
+  } | null = null;
+
   try {
-    const response = await fetch(joinUrl(config.homeAssistant.url, "/api/"), {
-      signal: AbortSignal.timeout(3000),
+    const resp = await fetch(joinUrl(config.agentServer.url, "/v1/home/summary"), {
+      headers: agentServerHeaders(),
+      signal: AbortSignal.timeout(8000),
       next: { revalidate: 60 },
     });
-    online = response.status !== 404;
+    if (resp.ok) {
+      haSummary = await resp.json();
+    }
   } catch {
-    online = false;
+    // Agent server unreachable — fall back to basic probe
   }
+
+  const online = haSummary?.online ?? false;
+  const configured = haSummary?.configured ?? false;
+  const hasEntities = (haSummary?.entities ?? 0) > 0;
+
+  const summary = !online
+    ? "Home Assistant is not reachable."
+    : !configured
+      ? "Home Assistant is reachable but no API token is configured."
+      : hasEntities
+        ? `${haSummary!.entities} entities, ${haSummary!.lights.on}/${haSummary!.lights.total} lights on, ${haSummary!.automations.on}/${haSummary!.automations.total} automations active.`
+        : "Home Assistant is connected but no entities found.";
 
   return homeSnapshotSchema.parse({
     generatedAt: nowIso(),
     online,
-    configured: false,
+    configured,
     title: "Home Assistant",
-    summary: online
-      ? "Home Assistant is reachable. Finish onboarding and credential wiring to unlock focused panels."
-      : "Home Assistant is not reachable from the current dashboard probe.",
+    summary,
+    entities: haSummary?.entities ?? 0,
+    automations: haSummary?.automations ?? { total: 0, on: 0 },
+    lights: haSummary?.lights ?? { total: 0, on: 0 },
+    climate: haSummary?.climate ?? [],
+    sensors: haSummary?.sensors ?? [],
     setupSteps: [
       {
         id: "ha-runtime",
         label: "Home Assistant runtime reachable",
         status: online ? "complete" : "pending",
-        note: online ? "Dashboard probe can reach the Home Assistant API root." : "Probe failed or timed out.",
+        note: online ? "API is responding." : "Probe failed or timed out.",
       },
       {
-        id: "ha-onboarding",
-        label: "Complete Home Assistant onboarding",
-        status: online ? "pending" : "blocked",
-        note: "Requires an authenticated browser session in Home Assistant.",
+        id: "ha-credentials",
+        label: "API token configured",
+        status: configured ? "complete" : "pending",
+        note: configured ? "Long-lived token active via agent server." : "Set ATHANOR_HA_TOKEN in agent server env.",
       },
       {
         id: "home-agent",
-        label: "Enable home-agent operational lane",
-        status: "blocked",
-        note: "Wait until onboarding and credential wiring are complete.",
+        label: "Home Agent operational",
+        status: online && configured ? "complete" : "blocked",
+        note: online && configured ? "Home Agent can control devices." : "Requires runtime + token.",
       },
       {
         id: "ha-panels",
-        label: "Expose focused home-control panels in Athanor",
-        status: "pending",
-        note: "Panel drawers come after the core integration is verified live.",
+        label: "Focused control panels",
+        status: hasEntities ? "complete" : "pending",
+        note: hasEntities ? "Live entity data available." : "Panels unlock when entities are discovered.",
       },
     ],
     panels: [
       {
         id: "lights",
         label: "Lights",
-        description: "Room-level lighting scenes, brightness, and presence-aware overrides.",
+        description: `${haSummary?.lights.on ?? 0} of ${haSummary?.lights.total ?? 0} lights on.`,
         href: "/home?panel=lights",
       },
       {
         id: "climate",
         label: "Climate",
-        description: "HVAC, temperature, and comfort-state monitoring.",
+        description: haSummary?.climate.length
+          ? haSummary.climate.map((c) => `${c.name}: ${c.state}`).join(", ")
+          : "No climate entities found.",
         href: "/home?panel=climate",
       },
       {
-        id: "presence",
-        label: "Presence",
-        description: "Who is home, device presence, and routine triggers.",
-        href: "/home?panel=presence",
+        id: "sensors",
+        label: "Sensors",
+        description: `${haSummary?.sensors.length ?? 0} key sensors tracked.`,
+        href: "/home?panel=sensors",
       },
     ],
   });

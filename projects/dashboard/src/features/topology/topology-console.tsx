@@ -15,7 +15,7 @@ import { liveQueryOptions } from "@/lib/live-updates";
 import { queryKeys } from "@/lib/query-client";
 import type { GpuSnapshotResponse } from "@/lib/contracts";
 
-// ─── Static topology ────────────────────────────────────────────────────────
+// ─── Topology types (props from server) ─────────────────────────────────────
 
 interface NodeDef {
   id: string;
@@ -29,32 +29,14 @@ interface ModelDef {
   name: string;
   alias: string;
   port: number;
-  contextK: number;
-  gpuLabel: string;
+  description: string;
 }
 
-const NODES: NodeDef[] = [
-  { id: "foundry", name: "FOUNDRY", ip: "10.0.0.244", role: "Coordinator + Inference" },
-  { id: "workshop", name: "WORKSHOP", ip: "10.0.0.225", role: "Worker + Creative" },
-  { id: "vault", name: "VAULT", ip: "10.0.0.203", role: "Storage + Services" },
-  { id: "dev", name: "DEV", ip: "10.0.0.189", role: "Ops Center" },
-];
-
-const MODELS: ModelDef[] = [
-  { nodeId: "foundry", name: "Qwen3.5-27B-FP8", alias: "reasoning", port: 8000, contextK: 131, gpuLabel: "4x5070Ti TP=4" },
-  { nodeId: "foundry", name: "Qwen3.5-35B-A3B-AWQ-4bit", alias: "coder", port: 8006, contextK: 65, gpuLabel: "4090" },
-  { nodeId: "workshop", name: "Qwen3.5-35B-A3B-AWQ", alias: "fast", port: 8000, contextK: 131, gpuLabel: "5090" },
-  { nodeId: "workshop", name: "ComfyUI", alias: "—", port: 8188, contextK: 0, gpuLabel: "5060Ti" },
-  { nodeId: "dev", name: "Qwen3-Embedding-0.6B", alias: "embedding", port: 8001, contextK: 32, gpuLabel: "5060Ti" },
-  { nodeId: "dev", name: "Reranker", alias: "reranker", port: 8003, contextK: 0, gpuLabel: "5060Ti" },
-];
-
-const NODE_SERVICES: Record<string, string[]> = {
-  foundry: ["vllm-coordinator", "vllm-coder", "athanor-agents", "qdrant", "node-exporter", "dcgm-exporter"],
-  workshop: ["vllm-node2", "comfyui", "open-webui", "athanor-eoq", "node-exporter", "dcgm-exporter"],
-  vault: ["litellm", "langfuse-web", "neo4j", "redis", "prometheus", "grafana", "loki", "plex", "sonarr", "radarr", "stash"],
-  dev: ["vllm-embedding", "vllm-reranker"],
-};
+export interface TopologyProps {
+  nodes: NodeDef[];
+  models: ModelDef[];
+  nodeServices: Record<string, string[]>;
+}
 
 // ─── API types (minimal) ────────────────────────────────────────────────────
 
@@ -159,15 +141,10 @@ function ModelRow({ model }: { model: ModelDef }) {
     <div className="surface-instrument flex items-center justify-between rounded-xl border px-3 py-2 gap-3">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium truncate">{model.name}</p>
-        <p className="text-[11px] text-muted-foreground">{model.gpuLabel} — :{model.port}</p>
+        <p className="text-[11px] text-muted-foreground">:{model.port}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {model.alias !== "—" && (
-          <Badge variant="secondary" className="text-xs font-mono">{model.alias}</Badge>
-        )}
-        {model.contextK > 0 && (
-          <Badge variant="outline" className="text-xs">{model.contextK}K</Badge>
-        )}
+        <Badge variant="secondary" className="text-xs font-mono">{model.alias}</Badge>
       </div>
     </div>
   );
@@ -177,13 +154,17 @@ function NodeCard({
   node,
   gpus,
   overviewNode,
+  models,
+  services,
 }: {
   node: NodeDef;
   gpus: GpuSnapshotResponse["gpus"];
   overviewNode: OverviewNode | undefined;
+  models: ModelDef[];
+  services: string[];
 }) {
-  const nodeModels = MODELS.filter((m) => m.nodeId === node.id);
-  const nodeServices = NODE_SERVICES[node.id] ?? [];
+  const nodeModels = models.filter((m) => m.nodeId === node.id);
+  const nodeServices = services;
   const tone = nodeHealthTone(overviewNode);
 
   return (
@@ -258,7 +239,7 @@ function NodeCard({
 
 // ─── Main console ────────────────────────────────────────────────────────────
 
-export function TopologyConsole() {
+export function TopologyConsole({ nodes, models, nodeServices }: TopologyProps) {
   const gpuQuery = useQuery<GpuSnapshotResponse>({
     queryKey: queryKeys.gpuSnapshot,
     queryFn: () => requestJson("/api/gpu") as Promise<GpuSnapshotResponse>,
@@ -282,7 +263,7 @@ export function TopologyConsole() {
   const overviewNodes = overviewQuery.data?.nodes ?? [];
 
   const totalGpus = gpuData?.gpus.length ?? 0;
-  const activeModels = MODELS.filter((m) => m.contextK > 0).length;
+  const activeModels = models.length;
   const readyAgents = agents.filter((a) => a.status === "ready").length;
 
   const isFetching = gpuQuery.isFetching || agentsQuery.isFetching || overviewQuery.isFetching;
@@ -311,8 +292,8 @@ export function TopologyConsole() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Nodes"
-            value={`${NODES.length}`}
-            detail="FOUNDRY, WORKSHOP, VAULT, DEV"
+            value={`${nodes.length}`}
+            detail={nodes.map((n) => n.name).join(", ")}
             icon={<Server className="h-5 w-5" />}
           />
           <StatCard
@@ -324,7 +305,7 @@ export function TopologyConsole() {
           <StatCard
             label="Active models"
             value={`${activeModels}`}
-            detail="reasoning, coder, fast, embedding"
+            detail={models.map((m) => m.alias).slice(0, 4).join(", ")}
             icon={<Layers className="h-5 w-5" />}
           />
           <StatCard
@@ -339,7 +320,7 @@ export function TopologyConsole() {
 
       {/* Node cards */}
       <div className="grid gap-6 xl:grid-cols-2">
-        {NODES.map((node) => {
+        {nodes.map((node) => {
           const nodeGpus = (gpuData?.gpus ?? []).filter((gpu) => {
             const gpuNode = gpu.node?.toLowerCase() ?? "";
             return gpuNode === node.id || gpuNode.startsWith(node.name.toLowerCase());
@@ -351,6 +332,8 @@ export function TopologyConsole() {
               node={node}
               gpus={nodeGpus}
               overviewNode={overviewNode}
+              models={models}
+              services={nodeServices[node.id] ?? []}
             />
           );
         })}

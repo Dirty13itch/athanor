@@ -20,56 +20,20 @@ import { type GpuSnapshotResponse } from "@/lib/contracts";
 import { queryKeys } from "@/lib/query-client";
 import { requestJson } from "@/features/workforce/helpers";
 
-// ── Static model definitions ────────────────────────────────────────────────
+// ── Model definitions (from server props) ───────────────────────────────────
 
 interface LocalModelDef {
   alias: string;
+  litellmAlias: string;
   name: string;
   node: string;
-  gpus: string;
-  vramTotal: number;
-  context: string;
   nodeId: string;
+  description: string;
 }
 
-const LOCAL_MODELS: LocalModelDef[] = [
-  {
-    alias: "reasoning",
-    name: "Qwen3.5-27B-FP8",
-    node: "FOUNDRY",
-    nodeId: "foundry",
-    gpus: "TP=4 (4x5070Ti)",
-    vramTotal: 64,
-    context: "131K",
-  },
-  {
-    alias: "fast",
-    name: "Qwen3.5-35B-A3B-AWQ",
-    node: "WORKSHOP",
-    nodeId: "workshop",
-    gpus: "5090",
-    vramTotal: 32,
-    context: "131K",
-  },
-  {
-    alias: "coder",
-    name: "Qwen3.5-35B-A3B-AWQ-4bit",
-    node: "FOUNDRY",
-    nodeId: "foundry",
-    gpus: "4090",
-    vramTotal: 24,
-    context: "65K",
-  },
-  {
-    alias: "embedding",
-    name: "Qwen3-Embedding-0.6B",
-    node: "DEV",
-    nodeId: "dev",
-    gpus: "5060Ti",
-    vramTotal: 16,
-    context: "--",
-  },
-];
+export interface ModelObservatoryProps {
+  localModels: LocalModelDef[];
+}
 
 interface CliToolDef {
   name: string;
@@ -186,16 +150,15 @@ function vramForModel(
   );
   if (nodeGpus.length === 0) return { usedMiB: null, totalMiB: null };
 
-  // For TP=4 models (reasoning on FOUNDRY) sum the 4x5070Ti, excluding the 4090
-  // We identify the 4090 by GPU name; all others are 5070Ti
+  // Match GPUs by alias (config backend IDs) or model name heuristics
   let gpus = nodeGpus;
-  if (model.alias === "reasoning") {
+  if (model.alias === "foundry-coordinator") {
     gpus = nodeGpus.filter((g) => !g.gpuName.includes("4090"));
-  } else if (model.alias === "coder") {
+  } else if (model.alias === "foundry-coder") {
     gpus = nodeGpus.filter((g) => g.gpuName.includes("4090"));
-  } else if (model.alias === "fast") {
+  } else if (model.alias === "workshop-worker") {
     gpus = nodeGpus.filter((g) => g.gpuName.includes("5090"));
-  } else if (model.alias === "embedding") {
+  } else if (model.alias === "dev-embedding" || model.alias === "dev-reranker") {
     gpus = nodeGpus.filter((g) => g.gpuName.includes("5060"));
   }
 
@@ -234,7 +197,7 @@ function policyClass(entry: RoutingLogEntry): string {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function ModelObservatory() {
+export function ModelObservatory({ localModels }: ModelObservatoryProps) {
   const gpuQuery = useQuery({
     queryKey: queryKeys.gpuSnapshot,
     queryFn: getGpuSnapshot,
@@ -316,7 +279,7 @@ export function ModelObservatory() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Local Models"
-            value={`${LOCAL_MODELS.length}`}
+            value={`${localModels.length}`}
             detail="Always-on, $0/token"
             icon={<Cpu className="h-5 w-5" />}
             tone="success"
@@ -353,11 +316,11 @@ export function ModelObservatory() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 lg:grid-cols-2">
-            {LOCAL_MODELS.map((model) => {
+            {localModels.map((model) => {
               const { usedMiB, totalMiB } = vramForModel(model, snapshot);
               const pct = vramPct(usedMiB, totalMiB);
               const agentNames = Object.entries(ASSIGNMENTS)
-                .filter(([, cols]) => cols[model.alias])
+                .filter(([, cols]) => cols[model.litellmAlias])
                 .map(([agentId]) => AGENT_DISPLAY[agentId] ?? agentId);
 
               return (
@@ -375,21 +338,19 @@ export function ModelObservatory() {
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         alias:{" "}
                         <span className="font-mono text-foreground">
-                          {model.alias}
+                          {model.litellmAlias}
                         </span>
                       </p>
                     </div>
                     <Badge variant="outline" className="shrink-0 text-xs">
-                      {model.context} ctx
+                      {model.node}
                     </Badge>
                   </div>
 
-                  {/* Location */}
+                  {/* Description */}
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      {model.node} &middot; {model.gpus}
-                    </span>
-                    <span className="font-mono tabular-nums">
+                    <span className="truncate">{model.description}</span>
+                    <span className="font-mono tabular-nums shrink-0 ml-2">
                       SERVING
                     </span>
                   </div>

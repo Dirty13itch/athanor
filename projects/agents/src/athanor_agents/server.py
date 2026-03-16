@@ -302,6 +302,7 @@ from .routes.governor import router as governor_router
 from .routes.plans import router as plans_router
 from .routes.projects import router as projects_router
 from .routes.models import router as models_router
+from .routes.home import router as home_router
 
 app.include_router(subscriptions_router)
 app.include_router(notifications_router)
@@ -324,6 +325,7 @@ app.include_router(governor_router)
 app.include_router(plans_router)
 app.include_router(projects_router)
 app.include_router(models_router)
+app.include_router(home_router)
 
 # --- Factory routers (modules that define create_*_router()) ---
 
