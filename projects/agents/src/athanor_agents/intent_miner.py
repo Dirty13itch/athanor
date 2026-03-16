@@ -160,29 +160,70 @@ async def _mine_active_goals() -> list[RawIntent]:
 
 
 async def _mine_signals() -> list[RawIntent]:
-    """Query Qdrant signals collection for RSS-derived intelligence."""
+    """Query Qdrant signals collection for RSS-derived intelligence.
+
+    Uses pagination and freshness decay: signals older than 7 days get
+    halved relevance, older than 30 days are skipped entirely.
+    """
+    import time as _time
+
     intents = []
     try:
         from qdrant_client import QdrantClient
         from .config import settings
 
         client = QdrantClient(url=settings.qdrant_url)
-        results = client.scroll(
-            collection_name="signals",
-            limit=20,
-            with_payload=True,
-        )
-        if results and results[0]:
-            for point in results[0]:
+        now = _time.time()
+        seven_days = 7 * 86400
+        thirty_days = 30 * 86400
+
+        # Paginated scan — up to 100 signals
+        offset = None
+        total_scanned = 0
+        while total_scanned < 100:
+            results = client.scroll(
+                collection_name="signals",
+                limit=20,
+                offset=offset,
+                with_payload=True,
+            )
+            points = results[0] if results else []
+            if not points:
+                break
+
+            offset = results[1]  # next page token
+            total_scanned += len(points)
+
+            for point in points:
                 payload = point.payload or {}
                 relevance = payload.get("relevance_score", 0)
-                if relevance >= 0.7:
+
+                # Freshness decay
+                crawled_at = payload.get("crawled_at", payload.get("timestamp", 0))
+                if isinstance(crawled_at, str):
+                    try:
+                        from datetime import datetime
+                        crawled_at = datetime.fromisoformat(crawled_at.replace("Z", "+00:00")).timestamp()
+                    except (ValueError, TypeError):
+                        crawled_at = 0
+
+                age = now - (crawled_at if isinstance(crawled_at, (int, float)) else 0)
+                if age > thirty_days:
+                    continue  # Skip stale signals
+                if age > seven_days:
+                    relevance *= 0.5  # Halve relevance for older signals
+
+                if relevance >= 0.6:
                     intents.append(RawIntent(
                         source="signals",
                         text=payload.get("title", "") + ": " + payload.get("summary", ""),
-                        metadata={"signal_id": str(point.id), "relevance": relevance},
+                        metadata={"signal_id": str(point.id), "relevance": relevance,
+                                  "age_days": round(age / 86400, 1)},
                         priority_hint=min(relevance, 0.8),
                     ))
+
+            if offset is None:
+                break
     except Exception as e:
         logger.debug("Signals mining failed: %s", e)
     return intents
