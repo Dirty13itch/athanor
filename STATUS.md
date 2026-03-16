@@ -1219,36 +1219,52 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 
 ### Session 2026-03-16: Continuous Autonomous Operations
 
-**Cross-project execution — 8 items across 3 projects in one session.**
+**14 commits, 5 projects, 155GB freed, all deployed and verified.**
 
-#### Completed (all deployed + verified)
-
-**EoBQ (4 items):**
+#### EoBQ (7 items)
 - Face quality gate — API-level retry (max 3 attempts), image size validation, solo prompt prefix
-- FaceDetailer integration — Impact Pack + YOLOv8n face detection in both portrait workflows. Fixed Impact Pack deps (ultralytics, piexif, subpack symlink)
-- Multi-queen rivalry scenes — 3 new scene types (Confrontation, Banquet, Rivalry Duel), multi-character system prompt with archetype-based rivalry dynamics, game engine auto-sends other present characters
-- Prompt hardening — "solo, single person" prefix for all portrait generation
+- FaceDetailer integration — Impact Pack + YOLOv8n face detection in both portrait workflows
+- Multi-queen rivalry scenes — 3 scene types + multi-character dialogue system
+- Combined HQ workflow — FaceDetailer + 4x UltraSharp upscale, new pulid-hq type
+- Eval suite expanded — 15 test cases covering all 7 archetypes (13/15 pass, 86.7%)
+- I2V model downloading — Wan2.2 480p 14B FP8 for portrait animation
+- ComfyUI: Impact Pack fixed (ultralytics, piexif, subpack symlink, face detection models)
 
-**Agents (2 items):**
-- Task dedup — hash-based deduplication in `submit_task()`, prevents 6x duplicate creation
-- Governor autonomy — removed home-agent from HIGH_IMPACT, added LOW_RISK_AGENTS category (+0.25 trust boost for routine monitoring tasks)
+#### Agents (2 items)
+- Task dedup — hash-based deduplication in submit_task(), prevents 6x duplicates
+- Governor autonomy — LOW_RISK_AGENTS category auto-executes routine monitoring
 
-**Infrastructure (2 items):**
-- NFS audit — 209GB reclaimable across 10 unused models (pending Shaun approval)
-- LoRA training pipeline — Ansible role with Docker-based kohya sd-scripts, Stash dataset prep, GPU scheduling script
+#### Dashboard (2 items)
+- Breaking progress bars — resistance/corruption bars in queen roster detail
+- Empire Status stats card — aggregate game state (broken queens, avg resistance/corruption, dialogues)
+
+#### Infrastructure (3 items)
+- NFS cleanup — **155GB freed** (10 models deleted), 77% usage (was 94%)
+- VAULT load fix — Stash RenameFile plugin stuck in retry loop (167% CPU), restarted → load dropping
+- LoRA training pipeline — Ansible role, Docker-based kohya sd-scripts, Stash dataset prep
+- MCP redis_tasks fix — handles hash key type for task queue inspection
+
+#### Knowledge
+- Re-indexed 220 docs → 3632 Qdrant points (+162 new)
+- Neo4j updated — 26 services linked to 4 nodes
+
+#### Eval Results
+- Main suite: 38/38 (100%), 37/38 (97.4%) on second run
+- EoBQ suite: 13/15 (86.7%) — new archetype tests, LLM-judge variability on 2
 
 #### Deployments
-- Agents: deployed to FOUNDRY, 9 agents healthy, all 6 deps up
-- EoBQ: deployed to WORKSHOP, 200 OK
-- ComfyUI: restarted with Impact Pack + ultralytics + face detection models
+- Agents: FOUNDRY, 9 healthy, all 6 deps up
+- EoBQ: WORKSHOP:3002, 200 OK (deployed twice)
+- Dashboard: WORKSHOP:3001, 200 OK
+- ComfyUI: restarted with Impact Pack + face detection
 
 ### Next Actions
-1. First queen LoRA training — deploy Ansible role, train proof-of-concept
-2. NFS cleanup — 209GB reclaimable (needs Shaun approval)
-3. Combined HQ workflow — LoRA + PuLID + FaceDetailer + 4x upscale
-4. Dashboard EoBQ lens polish
-5. VAULT load investigation (load ~10, 46+ containers)
-6. EoBQ eval suite run (verifying multi-queen changes don't regress)
+1. First queen LoRA training — deploy Ansible role, populate Stash reference photos, train
+2. Stash reference photos — all 21 queens show hasRealProfileImage=false, need photos for PuLID
+3. Dashboard deploy to Workshop (already done this session)
+4. Stash /data/archive filesystem — read-only error causing RenameFile loop, needs Unraid check
+5. I2V portrait animation — once model download completes, wire into EoBQ
+6. Batch generate portraits — once Stash refs populated
 
 ---
 
