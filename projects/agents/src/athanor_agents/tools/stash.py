@@ -485,4 +485,121 @@ STASH_TOOLS = [
     update_scene_rating,
     mark_scene_organized,
     get_recent_scenes,
+    check_queen_references,
+    get_performer_reference_photo,
 ]
+
+
+# --- EoBQ Queen Reference Photo Tools ---
+
+# 21 queen performer references (from projects/eoq/src/data/queens.ts)
+EOQB_QUEEN_PERFORMERS = [
+    "Emilie Ekstrom", "Jordan Night", "Alanah Rae", "Nikki Benz",
+    "Chloe Lamour", "Nicolette Shea", "Peta Jensen", "Sandee Westgate",
+    "Marisol Yotta", "Trina Michaels", "Nikki Sexx", "Madison Ivy",
+    "Amy Anderssen", "Puma Swede", "Ava Addams", "Brooklyn Chase",
+    "Esperanza Gomez", "Savannah Bond", "Shyla Stylez", "Brianna Banks",
+    "Clanddi Jinkcebo",
+]
+
+
+@tool
+def check_queen_references() -> str:
+    """Check which EoBQ queens have real profile photos in Stash.
+
+    Returns a table showing each queen's performer reference status:
+    which have real images (suitable for PuLID face injection) and
+    which are missing or have placeholder images.
+    """
+    results = []
+    for name in EOQB_QUEEN_PERFORMERS:
+        try:
+            # Find performer
+            data = _stash_query("""
+                query ($name: String!) {
+                    findPerformers(performer_filter: {name: {value: $name, modifier: EQUALS}}) {
+                        count performers { id name scene_count image_count }
+                    }
+                }
+            """, {"name": name})
+            performers = data.get("findPerformers", {}).get("performers", [])
+
+            if not performers:
+                results.append(f"  {name}: NOT FOUND in Stash")
+                continue
+
+            p = performers[0]
+
+            # Check if has real image (not placeholder)
+            missing_data = _stash_query("""
+                query ($name: String!) {
+                    findPerformers(performer_filter: {name: {value: $name, modifier: EQUALS}, is_missing: "image"}) {
+                        count
+                    }
+                }
+            """, {"name": name})
+            has_real_image = missing_data.get("findPerformers", {}).get("count", 1) == 0
+
+            status = "HAS PHOTO" if has_real_image else "NO PHOTO"
+            results.append(f"  {name}: {status} ({p.get('scene_count', 0)} scenes, {p.get('image_count', 0)} images)")
+
+        except Exception as e:
+            results.append(f"  {name}: ERROR ({e})")
+
+    with_photos = sum(1 for r in results if "HAS PHOTO" in r)
+    total = len(EOQB_QUEEN_PERFORMERS)
+    header = f"EoBQ Queen Reference Photos: {with_photos}/{total} have real profile images\n"
+    return header + "\n".join(results)
+
+
+@tool
+def get_performer_reference_photo(performer_name: str) -> str:
+    """Get the best reference photo URL for a performer (for PuLID face injection).
+
+    Returns the performer's profile image URL if they have a real photo,
+    or the URL of their highest-rated scene screenshot as a fallback.
+
+    Args:
+        performer_name: Exact performer name as it appears in Stash
+    """
+    try:
+        data = _stash_query("""
+            query ($name: String!) {
+                findPerformers(performer_filter: {name: {value: $name, modifier: EQUALS}}) {
+                    performers { id name image_path }
+                }
+            }
+        """, {"name": performer_name})
+        performers = data.get("findPerformers", {}).get("performers", [])
+        if not performers:
+            return f"Performer '{performer_name}' not found in Stash"
+
+        p = performers[0]
+
+        # Check if has real image
+        missing = _stash_query("""
+            query ($name: String!) {
+                findPerformers(performer_filter: {name: {value: $name, modifier: EQUALS}, is_missing: "image"}) { count }
+            }
+        """, {"name": performer_name})
+        has_image = missing.get("findPerformers", {}).get("count", 1) == 0
+
+        if has_image and p.get("image_path"):
+            return f"Profile image: {p['image_path']}"
+
+        # Fallback: get best scene screenshot
+        scenes = _stash_query("""
+            query ($id: [ID!]) {
+                findScenes(scene_filter: {performers: {value: $id, modifier: INCLUDES}}, filter: {per_page: 5, sort: "rating100", direction: DESC}) {
+                    scenes { id title paths { screenshot } rating100 }
+                }
+            }
+        """, {"id": [p["id"]]})
+        scene_list = scenes.get("findScenes", {}).get("scenes", [])
+        if scene_list and scene_list[0].get("paths", {}).get("screenshot"):
+            s = scene_list[0]
+            return f"Scene screenshot (rating {s.get('rating100', '?')}): {s['paths']['screenshot']}"
+
+        return f"No reference photo available for {performer_name}"
+    except Exception as e:
+        return f"Error: {e}"
