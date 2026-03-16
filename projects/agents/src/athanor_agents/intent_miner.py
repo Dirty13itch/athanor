@@ -150,7 +150,7 @@ async def _mine_active_goals() -> list[RawIntent]:
         for goal in goals:
             intents.append(RawIntent(
                 source="active_goals",
-                text=goal.get("description", goal.get("title", "")),
+                text=goal.get("text", goal.get("description", goal.get("title", ""))),
                 metadata={"goal_id": goal.get("id", "")},
                 priority_hint=0.9 if goal.get("priority") == "high" else 0.6,
             ))
