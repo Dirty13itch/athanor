@@ -1036,14 +1036,17 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~Test work pipeline cycle~~ — DONE. 20 intents mined (project_needs + active_goals), 15 plans created (12 draft, 3 pending_approval).
 7. ~~Script auth + connectivity~~ — DONE. All 3 scripts (morning/evening/dispatch) use bearer token, reach agent server. All 5 CLIs pass reachability check.
 
-### Next Actions
-1. Investigate empty `active_goals` intent text in pipeline cycle output
-2. Run first real morning manager session (non-dry-run) to validate end-to-end
-3. GPU scheduling: decide ComfyUI vs vLLM on WORKSHOP 5090 time-sharing
-4. Monitor vLLM upgrade path (v0.17.2+ for FP8 crash fix) — do NOT rebuild Docker images yet
-5. Deploy docker-socket-proxy to FOUNDRY (read-only Docker socket for dashboard)
-6. Deploy fast model on WORKSHOP 5060 Ti (second inference endpoint)
-7. Mount WORKSHOP ZFS pool (local scratch storage)
+### Additional Fixes
+8. ~~Fix empty `active_goals` intent text~~ — DONE. `intent_miner.py` was reading `description` but goals use `text` field. Fixed, deployed, verified (9 new intents with full text).
+9. ~~Deploy docker-socket-proxy to FOUNDRY~~ — DONE. Read-only (POST=0) at 192.168.1.244:2375. Dashboard can query FOUNDRY containers safely.
 
-*Last updated: 2026-03-15 20:24 PDT
+### Next Actions
+1. Run first real morning manager session (non-dry-run) to validate end-to-end
+2. GPU scheduling: decide ComfyUI vs vLLM on WORKSHOP 5090 time-sharing
+3. Monitor vLLM upgrade path (v0.17.2+ for FP8 crash fix) — do NOT rebuild Docker images yet
+4. Deploy fast model on WORKSHOP 5060 Ti (second inference endpoint)
+5. Mount WORKSHOP ZFS pool (local scratch storage)
+6. Clean up empty-text plans from pre-fix pipeline cycles
+
+*Last updated: 2026-03-15 20:32 PDT
 
