@@ -73,7 +73,7 @@ const FILTER_OPTIONS = [
   { label: "System", value: "system" },
 ] as const;
 
-export function UnifiedStream({ limit = 12, filterTypes, showFilters = false }: { limit?: number; filterTypes?: string[]; showFilters?: boolean }) {
+export function UnifiedStream({ limit = 12, filterTypes, showFilters = false, agentFilter }: { limit?: number; filterTypes?: string[]; showFilters?: boolean; agentFilter?: string | null }) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -127,10 +127,15 @@ export function UnifiedStream({ limit = 12, filterTypes, showFilters = false }: 
 
         merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-        const filtered =
-          effectiveFilter && effectiveFilter.length > 0
-            ? merged.filter((event) => effectiveFilter.includes(event.type))
-            : merged;
+        let filtered = effectiveFilter && effectiveFilter.length > 0
+          ? merged.filter((event) => effectiveFilter.includes(event.type))
+          : merged;
+
+        if (agentFilter) {
+          filtered = filtered.filter((event) =>
+            event.source.toLowerCase().includes(agentFilter.toLowerCase())
+          );
+        }
 
         if (mounted) {
           setEvents(filtered.slice(0, limit));
@@ -147,7 +152,7 @@ export function UnifiedStream({ limit = 12, filterTypes, showFilters = false }: 
       mounted = false;
       clearInterval(interval);
     };
-  }, [limit, effectiveFilter]);
+  }, [limit, effectiveFilter, agentFilter]);
 
   if (loading) {
     return (

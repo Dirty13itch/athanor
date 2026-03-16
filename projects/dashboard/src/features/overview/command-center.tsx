@@ -18,6 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AgentCrewBar } from "@/components/agent-crew-bar";
 import { DailyBriefing } from "@/components/daily-briefing";
 import { MediaGlance } from "@/components/media-glance";
 import { EmptyState } from "@/components/empty-state";
@@ -104,6 +105,7 @@ function isCardVisible(cardGroup: string, sections: SectionId[]): boolean {
 export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSnapshot }) {
   const { config: lensConfig } = useLens();
   const show = (group: string) => isCardVisible(group, lensConfig.sections);
+  const [agentFilter, setAgentFilter] = useState<string | null>(null);
 
   const overviewQuery = useQuery({
     queryKey: queryKeys.overview,
@@ -171,6 +173,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   return (
     <div className="space-y-8">
       <SystemPulse sticky />
+      <AgentCrewBar onAgentFilter={setAgentFilter} />
 
       <PageHeader
         eyebrow="Operations"
@@ -260,7 +263,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <UnifiedStream limit={8} showFilters />
+            <UnifiedStream limit={8} showFilters agentFilter={agentFilter} />
           </CardContent>
         </Card>
         <WorkPlan />
