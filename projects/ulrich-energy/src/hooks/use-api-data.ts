@@ -6,6 +6,7 @@ export function useApiData<T>(url: string, initialData: T) {
   const [data, setData] = useState<T>(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,7 +38,11 @@ export function useApiData<T>(url: string, initialData: T) {
     return () => {
       cancelled = true;
     };
-  }, [url]);
+  }, [url, tick]);
 
-  return { data, loading, error, setData };
+  function refresh() {
+    setTick((t) => t + 1);
+  }
+
+  return { data, loading, error, setData, refresh };
 }
