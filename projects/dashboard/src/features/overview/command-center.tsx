@@ -55,6 +55,7 @@ import { QueenRosterCard } from "@/components/eoq/queen-roster-card";
 import { RecentDialogueCard } from "@/components/eoq/recent-dialogue-card";
 import { GenerationGalleryCard } from "@/components/eoq/generation-gallery-card";
 import { CharacterMemoryCard } from "@/components/eoq/character-memory-card";
+import { GameStatsCard } from "@/components/eoq/game-stats-card";
 
 function buildTrendData(snapshot: OverviewSnapshot) {
   const map = new Map<string, { timestamp: string; services: number | null; gpu: number | null }>();
@@ -183,6 +184,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       {show("eoqContent") && (
         <div className="space-y-4">
           <QueenRosterCard />
+          <GameStatsCard />
           <div className="grid gap-4 md:grid-cols-2">
             <RecentDialogueCard />
             <GenerationGalleryCard />
