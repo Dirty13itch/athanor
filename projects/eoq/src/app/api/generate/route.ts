@@ -12,7 +12,14 @@ interface GenerateRequest {
   referencePath?: string;
   /** For type=video: negative prompt for quality control */
   negativePrompt?: string;
+  /** Max retry attempts for portrait quality gate (default: 3) */
+  maxRetries?: number;
 }
+
+const PORTRAIT_TYPES = new Set(["portrait", "pulid", "hq"]);
+const MAX_PORTRAIT_RETRIES = 3;
+/** Minimum image file size in bytes — below this, image is likely blank/corrupt */
+const MIN_IMAGE_BYTES = 15_000;
 
 /**
  * Image generation API route.
@@ -23,7 +30,7 @@ interface GenerateRequest {
 export async function POST(req: Request) {
   const rawBody = await req.text();
   const parsedBody = (rawBody ? JSON.parse(rawBody) : {}) as Partial<GenerateRequest>;
-  const { prompt = "", type = "portrait", seed, referencePath, negativePrompt } = parsedBody;
+  const { prompt = "", type = "portrait", seed, referencePath, negativePrompt, maxRetries } = parsedBody;
 
   if (EOQ_FIXTURE_MODE) {
     const label =
@@ -40,43 +47,130 @@ export async function POST(req: Request) {
     });
   }
 
-  let workflow: Record<string, unknown>;
+  if (type === "pulid" && !referencePath) {
+    return Response.json({ error: "referencePath required for pulid generation" }, { status: 400 });
+  }
 
-  if (type === "pulid") {
-    if (!referencePath) {
-      return Response.json({ error: "referencePath required for pulid generation" }, { status: 400 });
-    }
-    // Upload reference photo to ComfyUI input, then build PuLID workflow
-    const uploadedFilename = await uploadReferenceToComfyUI(referencePath);
+  // For PuLID, upload reference once before any retries
+  let uploadedFilename: string | null = null;
+  if (type === "pulid" && referencePath) {
+    uploadedFilename = await uploadReferenceToComfyUI(referencePath);
     if (!uploadedFilename) {
       return Response.json({ error: "Failed to upload reference photo to ComfyUI" }, { status: 500 });
     }
-    workflow = await buildPulidWorkflow(prompt, uploadedFilename, seed);
-  } else if (type === "video") {
-    workflow = await buildVideoWorkflow(prompt, negativePrompt, seed);
-  } else {
-    workflow = await buildWorkflow(type, prompt, seed);
   }
 
-  // Queue the generation
-  const queueResp = await fetch(`${config.comfyuiUrl}/prompt`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: workflow }),
-  });
-
-  if (!queueResp.ok) {
-    const error = await queueResp.text();
-    return Response.json({ error }, { status: queueResp.status });
-  }
-
-  const { prompt_id } = await queueResp.json();
-
-  // Poll for completion — videos take longer (~4 min vs ~1 min for images)
+  // Portrait types get retry logic with seed rotation
+  const retryLimit = PORTRAIT_TYPES.has(type) ? (maxRetries ?? MAX_PORTRAIT_RETRIES) : 1;
   const maxWait = type === "video" ? 600000 : (type === "hq" ? 300000 : 120000);
-  const imageUrl = await pollForResult(prompt_id, maxWait);
 
-  return Response.json({ imageUrl, promptId: prompt_id });
+  let bestResult: { imageUrl: string | null; promptId: string } | null = null;
+
+  for (let attempt = 0; attempt < retryLimit; attempt++) {
+    const attemptSeed = seed != null && attempt === 0
+      ? seed
+      : Math.floor(Math.random() * 2147483647);
+
+    const workflow = await buildWorkflowForType(type, prompt, attemptSeed, uploadedFilename, negativePrompt);
+
+    const queueResp = await fetch(`${config.comfyuiUrl}/prompt`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: workflow }),
+    });
+
+    if (!queueResp.ok) {
+      const error = await queueResp.text();
+      if (attempt === retryLimit - 1) {
+        return Response.json({ error }, { status: queueResp.status });
+      }
+      continue;
+    }
+
+    const { prompt_id } = await queueResp.json();
+    const imageUrl = await pollForResult(prompt_id, maxWait);
+
+    // For non-portrait types (scenes, video), return immediately
+    if (!PORTRAIT_TYPES.has(type)) {
+      return Response.json({ imageUrl, promptId: prompt_id });
+    }
+
+    // Quality gate: validate portrait output
+    if (imageUrl) {
+      const quality = await checkImageQuality(imageUrl);
+      if (quality.pass) {
+        return Response.json({
+          imageUrl,
+          promptId: prompt_id,
+          attempt: attempt + 1,
+          quality: quality.reason,
+        });
+      }
+
+      // Keep as fallback in case all retries fail
+      if (!bestResult) {
+        bestResult = { imageUrl, promptId: prompt_id };
+      }
+      console.log(`[face-gate] Attempt ${attempt + 1}/${retryLimit} rejected: ${quality.reason}`);
+    }
+  }
+
+  // All retries exhausted — return best available result
+  if (bestResult) {
+    return Response.json({
+      ...bestResult,
+      attempt: retryLimit,
+      quality: "fallback — all retries failed quality check",
+    });
+  }
+
+  return Response.json({ imageUrl: null, promptId: null, quality: "generation failed" });
+}
+
+/** Build the appropriate workflow based on generation type */
+async function buildWorkflowForType(
+  type: string,
+  prompt: string,
+  seed: number,
+  uploadedFilename: string | null,
+  negativePrompt?: string,
+): Promise<Record<string, unknown>> {
+  if (type === "pulid" && uploadedFilename) {
+    return buildPulidWorkflow(prompt, uploadedFilename, seed);
+  }
+  if (type === "video") {
+    return buildVideoWorkflow(prompt, negativePrompt, seed);
+  }
+  return buildWorkflow(type as "portrait" | "scene" | "hq", prompt, seed);
+}
+
+/** Validate generated portrait quality by checking image file size and dimensions */
+async function checkImageQuality(imageUrl: string): Promise<{ pass: boolean; reason: string }> {
+  try {
+    const resp = await fetch(imageUrl);
+    if (!resp.ok) return { pass: false, reason: "failed to fetch image" };
+
+    const contentLength = resp.headers.get("content-length");
+    const sizeBytes = contentLength ? parseInt(contentLength, 10) : null;
+
+    // If content-length header is missing, read the body to check size
+    if (sizeBytes == null) {
+      const buffer = await resp.arrayBuffer();
+      if (buffer.byteLength < MIN_IMAGE_BYTES) {
+        return { pass: false, reason: `image too small (${buffer.byteLength} bytes)` };
+      }
+      return { pass: true, reason: "ok" };
+    }
+
+    if (sizeBytes < MIN_IMAGE_BYTES) {
+      return { pass: false, reason: `image too small (${sizeBytes} bytes)` };
+    }
+
+    return { pass: true, reason: "ok" };
+  } catch {
+    // If we can't check quality, pass it through rather than blocking
+    return { pass: true, reason: "quality check skipped (fetch error)" };
+  }
 }
 
 /**
@@ -135,9 +229,12 @@ async function buildPulidWorkflow(
   const raw = await readFile(workflowPath, "utf-8");
   const workflow = JSON.parse(raw);
 
+  const actualSeed = seed ?? Math.floor(Math.random() * 2147483647);
   if (workflow["3"]?.inputs) workflow["3"].inputs.text = prompt;
-  if (workflow["7"]?.inputs) workflow["7"].inputs.seed = seed ?? Math.floor(Math.random() * 2147483647);
+  if (workflow["7"]?.inputs) workflow["7"].inputs.seed = actualSeed;
   if (workflow["15"]?.inputs) workflow["15"].inputs.image = referenceFilename;
+  // FaceDetailer node uses same seed for consistency
+  if (workflow["21"]?.inputs) workflow["21"].inputs.seed = actualSeed;
 
   return workflow;
 }
@@ -161,12 +258,19 @@ async function buildWorkflow(
   const raw = await readFile(workflowPath, "utf-8");
   const workflow = JSON.parse(raw);
 
+  const actualSeed = seed ?? Math.floor(Math.random() * 2147483647);
+
   if (workflow["3"]?.inputs) {
     workflow["3"].inputs.text = prompt;
   }
 
   if (workflow["7"]?.inputs) {
-    workflow["7"].inputs.seed = seed ?? Math.floor(Math.random() * 2147483647);
+    workflow["7"].inputs.seed = actualSeed;
+  }
+
+  // FaceDetailer node uses same seed for consistency (portrait/pulid workflows)
+  if (workflow["21"]?.inputs) {
+    workflow["21"].inputs.seed = actualSeed;
   }
 
   return workflow;

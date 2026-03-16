@@ -57,7 +57,8 @@ function buildStagePrompt(char: Character, contentIntensity: number): string {
     ? `, ${emotionVisuals[emotion] ?? `${emotion} expression`}`
     : "";
 
-  return `${base}, ${modifier}${emotionHint}`;
+  // Prefix with solo/single to reduce multi-face generation artifacts
+  return `solo, single person, ${base}, ${modifier}${emotionHint}`;
 }
 
 /**
