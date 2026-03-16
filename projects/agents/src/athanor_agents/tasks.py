@@ -13,6 +13,7 @@ Architecture:
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import time
@@ -243,6 +244,34 @@ async def _get_redis():
     return await get_redis()
 
 
+def _task_dedup_key(agent: str, prompt: str) -> str:
+    """Generate a dedup key from agent + normalized prompt prefix."""
+    # Use first 200 chars of prompt for dedup (captures intent without exact match)
+    normalized = prompt.strip().lower()[:200]
+    h = hashlib.sha256(f"{agent}:{normalized}".encode()).hexdigest()[:16]
+    return h
+
+
+async def _has_duplicate_pending(agent: str, prompt: str) -> Task | None:
+    """Check if there's already a pending/in-progress task for the same agent+prompt."""
+    dedup_key = _task_dedup_key(agent, prompt)
+    r = await _get_redis()
+    all_tasks = await r.hgetall(TASKS_KEY)
+    for raw in all_tasks.values():
+        try:
+            task = Task.from_dict(json.loads(raw))
+            if task.status not in ("pending", "in_progress", "pending_approval"):
+                continue
+            if task.agent != agent:
+                continue
+            existing_key = _task_dedup_key(task.agent, task.prompt)
+            if existing_key == dedup_key:
+                return task
+        except Exception:
+            continue
+    return None
+
+
 async def submit_task(
     agent: str,
     prompt: str,
@@ -254,12 +283,23 @@ async def submit_task(
 
     Returns the created Task (status=pending). The background worker
     will pick it up and execute it through the specified agent.
+    Deduplicates: if a pending/in-progress task exists for the same
+    agent with a similar prompt, returns the existing task instead.
     """
     from .agents import list_agents
 
     available = list_agents()
     if agent not in available:
         raise ValueError(f"Agent '{agent}' not found. Available: {available}")
+
+    # Dedup check — return existing task if duplicate found
+    existing = await _has_duplicate_pending(agent, prompt)
+    if existing:
+        logger.info(
+            "Task dedup: reusing existing task %s for agent=%s (prompt=%.80s)",
+            existing.id, agent, prompt,
+        )
+        return existing
 
     task_metadata = metadata or {}
     if agent in {"coding-agent", "research-agent"}:
