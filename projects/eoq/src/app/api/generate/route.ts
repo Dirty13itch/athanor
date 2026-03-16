@@ -6,7 +6,7 @@ import { join } from "path";
 
 interface GenerateRequest {
   prompt: string;
-  type: "portrait" | "scene" | "pulid" | "hq" | "video";
+  type: "portrait" | "scene" | "pulid" | "hq" | "pulid-hq" | "video";
   seed?: number;
   /** For type=pulid: filesystem path or URL to the reference photo */
   referencePath?: string;
@@ -16,7 +16,7 @@ interface GenerateRequest {
   maxRetries?: number;
 }
 
-const PORTRAIT_TYPES = new Set(["portrait", "pulid", "hq"]);
+const PORTRAIT_TYPES = new Set(["portrait", "pulid", "hq", "pulid-hq"]);
 const MAX_PORTRAIT_RETRIES = 3;
 /** Minimum image file size in bytes — below this, image is likely blank/corrupt */
 const MIN_IMAGE_BYTES = 15_000;
@@ -47,13 +47,14 @@ export async function POST(req: Request) {
     });
   }
 
-  if (type === "pulid" && !referencePath) {
+  const isPulidType = type === "pulid" || type === "pulid-hq";
+  if (isPulidType && !referencePath) {
     return Response.json({ error: "referencePath required for pulid generation" }, { status: 400 });
   }
 
-  // For PuLID, upload reference once before any retries
+  // For PuLID types, upload reference once before any retries
   let uploadedFilename: string | null = null;
-  if (type === "pulid" && referencePath) {
+  if (isPulidType && referencePath) {
     uploadedFilename = await uploadReferenceToComfyUI(referencePath);
     if (!uploadedFilename) {
       return Response.json({ error: "Failed to upload reference photo to ComfyUI" }, { status: 500 });
@@ -62,7 +63,8 @@ export async function POST(req: Request) {
 
   // Portrait types get retry logic with seed rotation
   const retryLimit = PORTRAIT_TYPES.has(type) ? (maxRetries ?? MAX_PORTRAIT_RETRIES) : 1;
-  const maxWait = type === "video" ? 600000 : (type === "hq" ? 300000 : 120000);
+  const isHqType = type === "hq" || type === "pulid-hq";
+  const maxWait = type === "video" ? 600000 : (isHqType ? 300000 : 120000);
 
   let bestResult: { imageUrl: string | null; promptId: string } | null = null;
 
@@ -135,8 +137,8 @@ async function buildWorkflowForType(
   uploadedFilename: string | null,
   negativePrompt?: string,
 ): Promise<Record<string, unknown>> {
-  if (type === "pulid" && uploadedFilename) {
-    return buildPulidWorkflow(prompt, uploadedFilename, seed);
+  if ((type === "pulid" || type === "pulid-hq") && uploadedFilename) {
+    return buildPulidWorkflow(prompt, uploadedFilename, seed, type === "pulid-hq");
   }
   if (type === "video") {
     return buildVideoWorkflow(prompt, negativePrompt, seed);
@@ -218,14 +220,17 @@ async function uploadReferenceToComfyUI(referencePath: string): Promise<string |
 
 /**
  * Build a PuLID face-injection workflow.
- * Loads flux-pulid-portrait.json and injects the prompt, seed, and reference image filename.
+ * Standard mode: flux-pulid-portrait.json (FaceDetailer included)
+ * HQ mode: flux-pulid-hq.json (FaceDetailer + 4x UltraSharp upscale)
  */
 async function buildPulidWorkflow(
   prompt: string,
   referenceFilename: string,
-  seed?: number
+  seed?: number,
+  hq = false,
 ): Promise<Record<string, unknown>> {
-  const workflowPath = join(process.cwd(), "comfyui", "flux-pulid-portrait.json");
+  const filename = hq ? "flux-pulid-hq.json" : "flux-pulid-portrait.json";
+  const workflowPath = join(process.cwd(), "comfyui", filename);
   const raw = await readFile(workflowPath, "utf-8");
   const workflow = JSON.parse(raw);
 
@@ -235,6 +240,7 @@ async function buildPulidWorkflow(
   if (workflow["15"]?.inputs) workflow["15"].inputs.image = referenceFilename;
   // FaceDetailer node uses same seed for consistency
   if (workflow["21"]?.inputs) workflow["21"].inputs.seed = actualSeed;
+  if (workflow["31"]?.inputs) workflow["31"].inputs.seed = actualSeed;
 
   return workflow;
 }

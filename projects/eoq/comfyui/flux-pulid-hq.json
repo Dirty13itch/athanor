@@ -45,6 +45,12 @@
       "batch_size": 1
     }
   },
+  "8": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    }
+  },
   "11": {
     "class_type": "LoraLoaderModelOnly",
     "_meta": { "title": "Uncensored LoRA" },
@@ -54,10 +60,51 @@
       "strength_model": 0.85
     }
   },
+  "12": {
+    "class_type": "PulidFluxModelLoader",
+    "_meta": { "title": "PuLID Model" },
+    "inputs": {
+      "pulid_file": "pulid_flux_v0.9.1.safetensors"
+    }
+  },
+  "13": {
+    "class_type": "PulidFluxEvaClipLoader",
+    "_meta": { "title": "EVA CLIP" },
+    "inputs": {}
+  },
+  "14": {
+    "class_type": "PulidFluxInsightFaceLoader",
+    "_meta": { "title": "InsightFace" },
+    "inputs": {
+      "provider": "CUDA"
+    }
+  },
+  "15": {
+    "class_type": "LoadImage",
+    "_meta": { "title": "Reference Photo" },
+    "inputs": {
+      "image": "reference.jpg",
+      "upload": "image"
+    }
+  },
+  "16": {
+    "class_type": "ApplyPulidFlux",
+    "_meta": { "title": "Apply PuLID" },
+    "inputs": {
+      "model": ["11", 0],
+      "pulid_flux": ["12", 0],
+      "eva_clip": ["13", 0],
+      "face_analysis": ["14", 0],
+      "image": ["15", 0],
+      "weight": 0.9,
+      "start_at": 0.0,
+      "end_at": 1.0
+    }
+  },
   "7": {
     "class_type": "KSampler",
     "inputs": {
-      "model": ["11", 0],
+      "model": ["16", 0],
       "seed": 42,
       "steps": 25,
       "cfg": 1.0,
@@ -67,12 +114,6 @@
       "negative": ["5", 0],
       "latent_image": ["6", 0],
       "denoise": 1.0
-    }
-  },
-  "8": {
-    "class_type": "VAELoader",
-    "inputs": {
-      "vae_name": "ae.safetensors"
     }
   },
   "9": {
@@ -94,7 +135,7 @@
     "_meta": { "title": "Face Detailer (pre-upscale)" },
     "inputs": {
       "image": ["9", 0],
-      "model": ["11", 0],
+      "model": ["16", 0],
       "clip": ["2", 0],
       "vae": ["8", 0],
       "positive": ["4", 0],
@@ -143,10 +184,10 @@
   },
   "10": {
     "class_type": "SaveImage",
-    "_meta": { "title": "Save HQ (FaceDetailer + 4x upscaled)" },
+    "_meta": { "title": "Save HQ (PuLID + FaceDetailer + 4x)" },
     "inputs": {
       "images": ["21", 0],
-      "filename_prefix": "EoBQ/hq"
+      "filename_prefix": "EoBQ/pulid-hq"
     }
   }
 }
