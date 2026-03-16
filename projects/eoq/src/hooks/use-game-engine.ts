@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { useGameStore } from "@/stores/game-store";
 import { CHARACTERS } from "@/data/characters";
 import { QUEENS } from "@/data/queens";
@@ -29,6 +29,12 @@ export function useGameEngine() {
   const store = useGameStore();
   const scriptedQueueRef = useRef<DialogueTurn[]>([]);
   const scriptedIndexRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Cancel in-flight LLM requests on unmount
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   /** Start a new game */
   const startGame = useCallback(() => {
@@ -111,6 +117,9 @@ export function useGameEngine() {
     (exit: SceneExit) => {
       const { session } = useGameStore.getState();
       if (!session) return;
+
+      // Cancel any in-flight LLM requests from the previous scene
+      abortRef.current?.abort();
 
       // Check condition
       if (!checkCondition(exit.condition, session.worldState.plotFlags)) {
@@ -464,6 +473,11 @@ export function useGameEngine() {
     const { session } = useGameStore.getState();
     if (!session) return;
 
+    // Cancel any previous in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     store.setGenerating(true);
     store.setStreamingText("");
 
@@ -477,6 +491,7 @@ export function useGameEngine() {
           const narResp = await fetch("/api/narrate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            signal: controller.signal,
             body: JSON.stringify({
               worldState: session.worldState,
               recentHistory: session.dialogueHistory.slice(-4),
@@ -550,6 +565,7 @@ export function useGameEngine() {
       const resp = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           character,
           worldState: session.worldState,
@@ -623,6 +639,8 @@ export function useGameEngine() {
       // Auto-save periodically
       store.saveGame();
     } catch (err) {
+      // Aborted requests are expected (user navigated away) — don't show error
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("Dialogue generation failed:", err);
       store.addDialogue({
         speaker: "narrator",
