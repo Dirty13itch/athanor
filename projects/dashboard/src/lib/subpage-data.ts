@@ -1190,7 +1190,10 @@ export async function getGallerySnapshot(): Promise<GallerySnapshot> {
       const workflow = value.prompt?.[2] ?? {};
       for (const node of Object.values(workflow)) {
         if (node.class_type === "CLIPTextEncode" && typeof node.inputs?.text === "string") {
-          prompt = node.inputs.text;
+          // Take the longest text (positive prompt), not the last (may be empty negative)
+          if (node.inputs.text.length > prompt.length) {
+            prompt = node.inputs.text;
+          }
         }
         if (node.class_type === "SaveImage" && typeof node.inputs?.filename_prefix === "string") {
           outputPrefix = node.inputs.filename_prefix;
