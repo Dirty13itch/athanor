@@ -98,29 +98,78 @@ def fetch_all_performers() -> list[dict]:
     return all_performers
 
 
+MIN_REAL_PHOTO_SIZE = 20_000  # Silhouette placeholders are < 20KB
+
+
+def fetch_scene_screenshots(performer_id: str, limit: int = 5) -> list[str]:
+    """Fetch scene screenshot URLs for a performer (fallback for silhouette profiles)."""
+    query = """
+    query($id: [ID!]!) {
+      findScenes(scene_filter: {performers: {value: $id, modifier: INCLUDES}}, filter: {per_page: %d, sort: "random"}) {
+        scenes { paths { screenshot } }
+      }
+    }
+    """ % limit
+    try:
+        result = graphql(query, {"id": [performer_id]})
+        scenes = result.get("data", {}).get("findScenes", {}).get("scenes", [])
+        return [s["paths"]["screenshot"] for s in scenes if s.get("paths", {}).get("screenshot")]
+    except Exception:
+        return []
+
+
 def download_photo(performer: dict, output_dir: Path) -> bool:
     name = performer["name"]
     image_url = performer.get("image_path", "")
-    if not image_url:
-        return False
+    performer_id = performer.get("id", "")
 
     dirname = safe_dirname(name)
     dest_dir = output_dir / dirname
     dest_file = dest_dir / "profile.png"
 
-    if dest_file.exists():
-        print(f"  SKIP {name} (already exists)")
+    if dest_file.exists() and dest_file.stat().st_size > MIN_REAL_PHOTO_SIZE:
+        print(f"  SKIP {name} (already exists, {dest_file.stat().st_size:,} bytes)")
         return True
 
     dest_dir.mkdir(parents=True, exist_ok=True)
-    try:
-        urllib.request.urlretrieve(image_url, str(dest_file))
-        size = dest_file.stat().st_size
-        print(f"  OK   {name} ({size:,} bytes)")
-        return True
-    except Exception as e:
-        print(f"  FAIL {name}: {e}")
-        return False
+
+    # Try profile photo first
+    if image_url:
+        try:
+            urllib.request.urlretrieve(image_url, str(dest_file))
+            size = dest_file.stat().st_size
+            if size > MIN_REAL_PHOTO_SIZE:
+                print(f"  OK   {name} profile ({size:,} bytes)")
+                return True
+            else:
+                print(f"  WARN {name} profile is silhouette ({size:,} bytes), trying screenshots...")
+                dest_file.unlink()
+        except Exception as e:
+            print(f"  WARN {name} profile download failed: {e}")
+
+    # Fall back to scene screenshots
+    if performer_id:
+        screenshots = fetch_scene_screenshots(performer_id)
+        for i, ss_url in enumerate(screenshots):
+            ss_file = dest_dir / f"screenshot_{i:02d}.jpg"
+            try:
+                urllib.request.urlretrieve(ss_url, str(ss_file))
+                size = ss_file.stat().st_size
+                if size > MIN_REAL_PHOTO_SIZE:
+                    # Use first good screenshot as the reference
+                    if not dest_file.exists():
+                        ss_file.rename(dest_file)
+                        print(f"  OK   {name} screenshot ({size:,} bytes)")
+                    else:
+                        print(f"  OK   {name} extra screenshot_{i:02d} ({size:,} bytes)")
+                    return True
+                else:
+                    ss_file.unlink()
+            except Exception:
+                continue
+
+    print(f"  FAIL {name}: no usable photos found")
+    return False
 
 
 def main():
