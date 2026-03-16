@@ -75,13 +75,30 @@ export async function POST(req: Request) {
 }
 
 /**
- * Upload a reference photo from the /references volume to ComfyUI's input directory.
+ * Upload a reference photo to ComfyUI's input directory.
+ * Accepts both local file paths and URLs (e.g., Stash performer images).
  * Returns the filename ComfyUI assigned (use in LoadImage node).
  */
 async function uploadReferenceToComfyUI(referencePath: string): Promise<string | null> {
   try {
-    const fileData = await readFile(referencePath);
-    const filename = referencePath.split("/").pop() ?? "reference.jpg";
+    let fileData: ArrayBuffer;
+    let filename: string;
+
+    if (referencePath.startsWith("http://") || referencePath.startsWith("https://")) {
+      // Fetch from URL (e.g., Stash performer profile image)
+      const resp = await fetch(referencePath);
+      if (!resp.ok) return null;
+      fileData = await resp.arrayBuffer();
+      // Extract filename from URL or generate one
+      const urlPath = new URL(referencePath).pathname;
+      filename = urlPath.split("/").pop() ?? "reference.jpg";
+      if (!filename.includes(".")) filename += ".jpg";
+    } else {
+      // Read from local filesystem
+      const buf = await readFile(referencePath);
+      fileData = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+      filename = referencePath.split("/").pop() ?? "reference.jpg";
+    }
 
     const form = new FormData();
     form.append("image", new Blob([fileData], { type: "image/jpeg" }), filename);

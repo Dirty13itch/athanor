@@ -114,7 +114,7 @@ export function useImageGeneration() {
     []
   );
 
-  /** Fetch performer profile image path from Stash API (cached per performer) */
+  /** Fetch performer reference image URL from Stash API (cached per performer) */
   async function getPerformerImagePath(performerName: string): Promise<string | null> {
     if (performerName in stashCache.current) {
       return stashCache.current[performerName];
@@ -128,7 +128,8 @@ export function useImageGeneration() {
       }
 
       const data = await resp.json();
-      const imagePath = data.performer?.image_path ?? null;
+      // Only use profile image if it's a real photo (not a silhouette placeholder)
+      const imagePath = data.hasRealProfileImage ? data.performer?.image_path : null;
       stashCache.current[performerName] = imagePath;
       return imagePath;
     } catch {

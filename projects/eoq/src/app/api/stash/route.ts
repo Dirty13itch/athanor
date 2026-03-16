@@ -42,10 +42,24 @@ export async function GET(req: Request) {
     return Response.json({ error: `Performer "${performerName}" not found` }, { status: 404 });
   }
 
+  // Validate profile image is a real photo (silhouettes are < 20KB)
+  let hasRealProfileImage = false;
+  if (performer.image_path) {
+    try {
+      const headResp = await fetch(performer.image_path, { method: "HEAD" });
+      const contentLength = parseInt(headResp.headers.get("content-length") ?? "0");
+      hasRealProfileImage = contentLength > 20000;
+    } catch { /* best effort */ }
+  }
+
   // Fetch scene screenshots for this performer (for PuLID reference variety)
   const screenshots = await fetchPerformerScreenshots(performer.id);
 
-  return Response.json({ performer, screenshots });
+  return Response.json({
+    performer,
+    hasRealProfileImage,
+    screenshots,
+  });
 }
 
 async function findPerformer(name: string): Promise<StashPerformer | null> {
