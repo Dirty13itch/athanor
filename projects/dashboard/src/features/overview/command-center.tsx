@@ -47,6 +47,8 @@ import { formatTemperatureF } from "@/lib/format";
 import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
 import { queryKeys } from "@/lib/query-client";
 import { readJsonStorage, STORAGE_KEYS } from "@/lib/state";
+import { useLens } from "@/hooks/use-lens";
+import type { SectionId } from "@/lib/lens";
 
 function buildTrendData(snapshot: OverviewSnapshot) {
   const map = new Map<string, { timestamp: string; services: number | null; gpu: number | null }>();
@@ -80,7 +82,28 @@ function isActiveProject(status: string) {
   return ["active", "active_development", "operational", "planning"].includes(status);
 }
 
+/** Maps command center card groups to lens section IDs. */
+const CARD_SECTION_MAP: Record<string, SectionId[]> = {
+  operationalRow: ["briefing", "watches", "smartstack", "stream", "workplan"],
+  priorityLane: ["pulse"],
+  recentContext: ["links"],
+  workforceRow: ["workloads", "crew"],
+  projectPlatform: ["links"],
+  intelligenceRow: ["digest"],
+  clusterPosture: ["gpus"],
+  inferenceRow: ["links", "digest"],
+};
+
+function isCardVisible(cardGroup: string, sections: SectionId[]): boolean {
+  const mapped = CARD_SECTION_MAP[cardGroup];
+  if (!mapped) return true;
+  return mapped.some((s) => sections.includes(s));
+}
+
 export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSnapshot }) {
+  const { config: lensConfig } = useLens();
+  const show = (group: string) => isCardVisible(group, lensConfig.sections);
+
   const overviewQuery = useQuery({
     queryKey: queryKeys.overview,
     queryFn: getOverview,
@@ -240,7 +263,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         <WorkPlan />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+      {show("priorityLane") && <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card className="surface-hero">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -314,9 +337,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             )}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_1fr]">
+      {show("workforceRow") && <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_1fr]">
         <Card className="surface-hero">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -403,9 +426,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             ))}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+      {show("projectPlatform") && <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -472,16 +495,16 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
         <SystemMapCard />
         <GovernorCard compact />
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      {show("intelligenceRow") && <div className="grid gap-4 xl:grid-cols-2">
         <ModelGovernanceCard />
         <ProvingGroundCard compact />
         <JudgePlaneCard compact />
         <OperationsReadinessCard compact />
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+      {show("clusterPosture") && <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
         <Card className="surface-instrument">
           <CardHeader>
             <CardTitle className="text-lg">Cluster posture</CardTitle>
@@ -573,9 +596,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             )}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1fr]">
+      {show("inferenceRow") && <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1fr]">
         <Card className="surface-instrument">
           <CardHeader>
             <CardTitle className="text-lg">Inference posture</CardTitle>
@@ -697,7 +720,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div>}
     </div>
   );
 }
