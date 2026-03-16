@@ -2,7 +2,7 @@
 
 *This is the tactical execution queue. `docs/design/athanor-next.md` is the strategic design layer above it. Claude Code uses this file to decide what to build next, but the queue must remain subordinate to the Athanor Next operating model.*
 
-Last updated: 2026-03-15 (Session: hardening & operational readiness — 6-phase Athanor OS complete)
+Last updated: 2026-03-16 (Session: continuous autonomous operations — cross-project execution)
 
 ---
 
@@ -21,6 +21,16 @@ Hardening pass completed (2026-03-15):
 - Ansible foundry.yml hosts fixed (foundry → node1)
 - Bash firewall updated for operational flexibility
 
+Cross-project execution (2026-03-16):
+- EoBQ: Face quality gate with retry (max 3 attempts, image size validation)
+- EoBQ: FaceDetailer integration (Impact Pack + YOLOv8n in both portrait workflows)
+- EoBQ: Multi-queen rivalry scenes (Confrontation, Banquet, Duel) + multi-char dialogue
+- Agents: Task dedup in submit_task() — hash-based, prevents 6x duplicate creation
+- Agents: Governor autonomy tuning — LOW_RISK_AGENTS category auto-executes
+- Infra: LoRA training pipeline (Ansible role, Docker, kohya sd-scripts, Stash integration)
+- Infra: NFS audit — 209GB reclaimable models identified (pending Shaun approval)
+- Infra: ComfyUI Impact Pack fixed (ultralytics + piexif deps, subpack symlink)
+
 ---
 
 ## Operational Readiness — P1
@@ -30,8 +40,44 @@ Hardening pass completed (2026-03-15):
 - Model choice requires research: Qwen3-VL-8B (vision), redundant embedding, or fast-draft model.
 
 ### OR.2 — Dashboard live data verification
-- **Status:** 🔲 P2 backlog
+- **Status:** 🔄 In progress (explorer agent scanning)
 - 10+ dashboard pages return 200 but many show fixture data. Verify each has live endpoints.
+
+### OR.3 — NFS model cleanup (209GB)
+- **Status:** 🚫 Blocked — needs Shaun approval to delete
+- 10 unused models: Huihui-abliterated (52G), gte-Qwen2-7B (29G), Qwen3-14B (28G), Qwen3.5-27B-AWQ (21G), Qwen3-32B-AWQ (19G), Qwen3.5-9B-abl (17G), Qwen3-Coder-30B (16G), Huihui-8B (16G), GLM-4.7 (16G), Qwen3-0.6B (1.5G)
+
+---
+
+## Current Priority Queue (2026-03-16)
+
+### P1 — Next Up
+
+| # | Item | Project | Status |
+|---|------|---------|--------|
+| 1 | First queen LoRA training (V.8) — proof of concept | EoBQ | 🔲 Ansible deploy → train |
+| 2 | Combined HQ workflow: LoRA + PuLID + FaceDetailer + 4x upscale (V.9) | EoBQ | 🔲 |
+| 3 | Dashboard EoBQ lens polish — queen stats, breaking progress | Dashboard | 🔲 |
+| 4 | I2V model download + portrait animation (VD.2-3) | EoBQ | 🔲 Background |
+| 5 | Expand eval suite to all 21 queens (S.3) | EoBQ | 🔲 Background |
+| 6 | Batch generate 5 portraits per queen (V.10) | EoBQ | 🔲 Background |
+| 7 | Mobile remote access — WireGuard on UDM Pro | Infra | 🚫 Shaun-dependent |
+
+### P2 — When P1 Clear
+
+| # | Item | Project |
+|---|------|---------|
+| 8 | Per-queen LoRA training for all 21 | EoBQ |
+| 9 | E2E Playwright tests (S.5) | EoBQ |
+| 10 | Mobile polish — touch controls, responsive VN layout | EoBQ |
+| 11 | EoBQ deploy automation — Ansible role | EoBQ |
+| 12 | Dashboard performance audit | Dashboard |
+| 13 | Kindred: scaffold project from concept doc | Kindred |
+| 14 | Ulrich Energy: build from workflows doc | Ulrich |
+| 15 | Knowledge: re-index all docs (81 docs → Qdrant) | Knowledge |
+| 16 | Neo4j: update graph with current topology | Knowledge |
+| 17 | VAULT load investigation | Infra |
+| 18 | Vision model on FOUNDRY 4090 | Infra |
 
 ---
 
