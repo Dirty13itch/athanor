@@ -779,6 +779,17 @@ async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
             )
 
             try:
+                from .governor import Governor
+                gov = Governor.get()
+                decision = await gov.gate_task_submission(
+                    agent=agent_name, prompt=prompt, priority="normal",
+                    metadata={
+                        "source": "workspace_reaction",
+                        "workspace_item_id": item.id,
+                        "relevance_score": round(relevance, 3),
+                    },
+                    source="workspace_reaction",
+                )
                 task = await submit_task(
                     agent=agent_name,
                     prompt=prompt,
@@ -787,8 +798,13 @@ async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
                         "source": "workspace_reaction",
                         "workspace_item_id": item.id,
                         "relevance_score": round(relevance, 3),
+                        "governor_decision": decision.reason,
                     },
                 )
+                if decision.status_override == "pending_approval":
+                    task.status = "pending_approval"
+                    from .tasks import _update_task
+                    await _update_task(task)
                 await _set_reaction_cooldown(item.id, agent_name)
                 reactions_this_cycle += 1
                 logger.info(

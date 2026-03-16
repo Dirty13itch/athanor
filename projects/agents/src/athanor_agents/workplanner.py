@@ -456,6 +456,18 @@ async def generate_work_plan(focus: str = "") -> dict:
             continue
 
         try:
+            from .governor import Governor
+            gov = Governor.get()
+            decision = await gov.gate_task_submission(
+                agent=agent, prompt=task_prompt, priority=priority,
+                metadata={
+                    "source": "work_planner",
+                    "plan_id": plan_id,
+                    "project": project,
+                    "rationale": rationale,
+                },
+                source="work_planner",
+            )
             task = await submit_task(
                 agent=agent,
                 prompt=task_prompt,
@@ -465,9 +477,13 @@ async def generate_work_plan(focus: str = "") -> dict:
                     "plan_id": plan_id,
                     "project": project,
                     "rationale": rationale,
-                    "requires_approval": agent in HIGH_IMPACT_AGENTS,
+                    "governor_decision": decision.reason,
                 },
             )
+            if decision.status_override == "pending_approval":
+                task.status = "pending_approval"
+                from .tasks import _update_task
+                await _update_task(task)
             submitted.append({
                 "task_id": task.id if hasattr(task, "id") else str(task),
                 "agent": agent,

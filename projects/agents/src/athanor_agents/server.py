@@ -117,6 +117,9 @@ async def lifespan(app: FastAPI):
     await start_task_worker()
     await start_scheduler()
 
+    from .governor import Governor
+    await Governor.get().load()
+
     for name, meta in AGENT_METADATA.items():
         await register_agent(
             name=name,
@@ -140,6 +143,7 @@ async def lifespan(app: FastAPI):
         print(f"[lifespan] Escalation queue reload failed: {e}", flush=True)
 
     yield
+    await Governor.get().shutdown()
     await stop_scheduler()
     await stop_task_worker()
     await stop_competition()
@@ -293,6 +297,7 @@ from .routes.metrics import router as metrics_router
 from .routes.chat import router as chat_router
 from .routes.emergency import router as emergency_router
 from .routes.workflows import router as workflows_router
+from .routes.governor import router as governor_router
 
 app.include_router(subscriptions_router)
 app.include_router(notifications_router)
@@ -311,6 +316,7 @@ app.include_router(metrics_router)
 app.include_router(chat_router)
 app.include_router(emergency_router)
 app.include_router(workflows_router)
+app.include_router(governor_router)
 
 # --- Factory routers (modules that define create_*_router()) ---
 

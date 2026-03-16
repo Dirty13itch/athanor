@@ -414,6 +414,20 @@ async def approve_task(task_id: str) -> bool:
     return True
 
 
+async def reject_task(task_id: str, reason: str = "Rejected by operator") -> bool:
+    """Reject a pending_approval task."""
+    task = await get_task(task_id)
+    if not task:
+        return False
+    if task.status != "pending_approval":
+        return False
+    task.status = "cancelled"
+    task.result = reason
+    await _update_task(task)
+    logger.info("Task %s rejected (agent=%s): %s", task_id, task.agent, reason)
+    return True
+
+
 async def _record_skill_execution_for_task(task: Task, success: bool):
     """Fire-and-forget: record task outcome against the best matching skill.
 

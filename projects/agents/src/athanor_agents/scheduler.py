@@ -200,12 +200,24 @@ async def _check_daily_digest():
     logger.info("Scheduler: generating daily digest")
     try:
         prompt = await generate_digest_prompt()
-        await submit_task(
+        from .governor import Governor
+        gov = Governor.get()
+        decision = await gov.gate_task_submission(
+            agent="general-assistant", prompt=prompt, priority="normal",
+            metadata={"source": "daily_digest", "date": now.strftime("%Y-%m-%d")},
+            source="scheduler",
+        )
+        task = await submit_task(
             agent="general-assistant",
             prompt=prompt,
             priority="normal",
-            metadata={"source": "daily_digest", "date": now.strftime("%Y-%m-%d")},
+            metadata={"source": "daily_digest", "date": now.strftime("%Y-%m-%d"),
+                       "governor_decision": decision.reason},
         )
+        if decision.status_override == "pending_approval":
+            task.status = "pending_approval"
+            from .tasks import _update_task
+            await _update_task(task)
         r = await _get_redis()
         await r.set(DAILY_DIGEST_KEY, now.strftime("%Y-%m-%d"))
         logger.info("Daily digest submitted for %s", now.strftime("%Y-%m-%d"))
@@ -559,12 +571,25 @@ async def _scheduler_loop():
                         agent, interval,
                     )
                     try:
-                        await submit_task(
+                        from .governor import Governor
+                        gov = Governor.get()
+                        decision = await gov.gate_task_submission(
+                            agent=agent, prompt=schedule["prompt"],
+                            priority=schedule["priority"],
+                            metadata={"source": "scheduler", "interval": interval},
+                            source="scheduler",
+                        )
+                        task = await submit_task(
                             agent=agent,
                             prompt=schedule["prompt"],
                             priority=schedule["priority"],
-                            metadata={"source": "scheduler", "interval": interval},
+                            metadata={"source": "scheduler", "interval": interval,
+                                       "governor_decision": decision.reason},
                         )
+                        if decision.status_override == "pending_approval":
+                            task.status = "pending_approval"
+                            from .tasks import _update_task
+                            await _update_task(task)
                         await _set_last_run(agent, now)
 
                         # Log schedule_run event for pattern detection

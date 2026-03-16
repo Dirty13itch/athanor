@@ -28,13 +28,26 @@ async def create_task(request: Request):
         )
 
     try:
+        from ..governor import Governor
+        gov = Governor.get()
+        decision = await gov.gate_task_submission(
+            agent=agent, prompt=prompt, priority=priority,
+            metadata=metadata, source="manual",
+        )
         task = await submit_task(
             agent=agent,
             prompt=prompt,
             priority=priority,
-            metadata=metadata,
+            metadata={**(metadata or {}), "governor_decision": decision.reason},
         )
-        return {"status": "submitted", "task": task.to_dict()}
+        if decision.status_override == "pending_approval":
+            task.status = "pending_approval"
+            from ..tasks import _update_task
+            await _update_task(task)
+        return {"status": "submitted", "task": task.to_dict(), "governor": {
+            "level": decision.autonomy_level,
+            "reason": decision.reason,
+        }}
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
 
