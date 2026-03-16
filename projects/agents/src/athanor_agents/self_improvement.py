@@ -740,4 +740,16 @@ def create_improvement_router():
         await engine.load()
         return await engine.get_improvement_summary()
 
+    @router.post("/trigger")
+    async def trigger_nightly():
+        """Trigger nightly prompt optimization cycle."""
+        from .prompt_optimizer import run_nightly_optimization
+        return await run_nightly_optimization()
+
+    @router.get("/optimization-status")
+    async def optimization_status():
+        """Get prompt optimization status."""
+        from .prompt_optimizer import get_optimization_status
+        return await get_optimization_status()
+
     return router

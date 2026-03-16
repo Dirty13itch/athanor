@@ -88,3 +88,29 @@ async def subscription_quota_summary():
     from ..subscriptions import get_quota_summary
 
     return await get_quota_summary()
+
+
+@router.get("/subscriptions/cli-status")
+async def cli_status():
+    """CLI reachability and usage stats."""
+    from ..cloud_manager import get_cli_status
+
+    return await get_cli_status()
+
+
+@router.get("/subscriptions/routing-log")
+async def routing_log(limit: int = 30):
+    """Recent dispatch/routing decisions."""
+    from ..cloud_manager import get_routing_log
+
+    entries = await get_routing_log(limit=limit)
+    return {"entries": entries, "count": len(entries)}
+
+
+@router.get("/subscriptions/provider-status")
+async def provider_status():
+    """Provider status for the routing/models dashboard."""
+    from ..cloud_manager import get_provider_status
+
+    providers = await get_provider_status()
+    return {"providers": providers, "count": len(providers)}

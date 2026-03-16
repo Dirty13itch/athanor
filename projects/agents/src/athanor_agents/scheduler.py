@@ -64,6 +64,11 @@ NIGHTLY_OPTIMIZATION_KEY = "athanor:scheduler:nightly_optimization"
 NIGHTLY_OPTIMIZATION_HOUR = 22
 NIGHTLY_OPTIMIZATION_MINUTE = 0
 
+# Nightly knowledge refresh (Phase 6) — runs at 00:00
+KNOWLEDGE_REFRESH_KEY = "athanor:scheduler:knowledge_refresh"
+KNOWLEDGE_REFRESH_HOUR = 0
+KNOWLEDGE_REFRESH_MINUTE = 0
+
 AGENT_SCHEDULES = {
     "general-assistant": {
         "interval": 1800,  # 30 min
@@ -589,6 +594,39 @@ async def _check_nightly_optimization():
         logger.warning("Scheduler: nightly optimization failed: %s", e)
 
 
+async def _check_knowledge_refresh():
+    """Check if it's time to run nightly knowledge refresh (00:00 local)."""
+    from .knowledge_refresh import run_knowledge_refresh
+
+    now = datetime.now()
+    if now.hour != KNOWLEDGE_REFRESH_HOUR or now.minute != KNOWLEDGE_REFRESH_MINUTE:
+        return
+
+    try:
+        r = await _get_redis()
+        last_date = await r.get(KNOWLEDGE_REFRESH_KEY)
+        if last_date:
+            last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
+            if last_str == now.strftime("%Y-%m-%d"):
+                return
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
+
+    logger.info("Scheduler: running nightly knowledge refresh")
+    try:
+        result = await run_knowledge_refresh()
+        r = await _get_redis()
+        await r.set(KNOWLEDGE_REFRESH_KEY, now.strftime("%Y-%m-%d"))
+        logger.info(
+            "Knowledge refresh: %d found, %d refreshed, %d failed",
+            result.get("docs_found", 0),
+            result.get("docs_refreshed", 0),
+            result.get("docs_failed", 0),
+        )
+    except Exception as e:
+        logger.warning("Scheduler: knowledge refresh failed: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -619,6 +657,9 @@ async def _scheduler_loop():
 
             # Nightly prompt optimization (22:00)
             await _check_nightly_optimization()
+
+            # Nightly knowledge refresh (00:00)
+            await _check_knowledge_refresh()
 
             # Check work plan refill (every 2 hours)
             await _check_workplan_refill()
