@@ -44,7 +44,11 @@ LANES = {
 }
 
 # Agents whose tasks have higher impact (require more oversight)
-HIGH_IMPACT_AGENTS = {"coding-agent", "creative-agent", "home-agent"}
+HIGH_IMPACT_AGENTS = {"coding-agent", "creative-agent"}
+
+# Low-risk agents whose routine tasks should auto-execute at Level A/B
+# These agents typically perform read-only monitoring or data retrieval
+LOW_RISK_AGENTS = {"home-agent", "stash-agent", "data-curator", "knowledge-agent"}
 
 # Presence state labels and postures
 PRESENCE_STATES = {
@@ -230,8 +234,14 @@ class Governor:
         effective_score = trust_score
         if agent in HIGH_IMPACT_AGENTS:
             effective_score -= 0.2  # More oversight for high-impact agents
+        if agent in LOW_RISK_AGENTS:
+            effective_score += 0.15  # Less oversight for routine monitoring agents
         if source == "manual":
             effective_score += 0.1  # Manual submissions get more trust
+        if source == "workspace_reaction":
+            effective_score += 0.1  # Inter-agent coordination is operational
+        if priority in ("low", "normal") and agent in LOW_RISK_AGENTS:
+            effective_score += 0.1  # Routine low-risk tasks get extra trust
         if priority == "critical":
             effective_score -= 0.2  # Critical tasks get more oversight
         effective_score += presence_mod  # Away/asleep = more autonomous
