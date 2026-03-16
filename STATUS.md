@@ -1219,14 +1219,18 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 
 ### Session 2026-03-16: Continuous Autonomous Operations
 
-**14 commits, 5 projects, 155GB freed, all deployed and verified.**
+**20 commits, 6 projects, 155GB freed, all deployed and verified.**
 
-#### EoBQ (7 items)
+#### EoBQ (10 items)
 - Face quality gate — API-level retry (max 3 attempts), image size validation, solo prompt prefix
 - FaceDetailer integration — Impact Pack + YOLOv8n face detection in both portrait workflows
 - Multi-queen rivalry scenes — 3 scene types + multi-character dialogue system
 - Combined HQ workflow — FaceDetailer + 4x UltraSharp upscale, new pulid-hq type
-- Eval suite expanded — 15 test cases covering all 7 archetypes (13/15 pass, 86.7%)
+- Eval suite expanded — 15 test cases covering all 7 archetypes
+- **Stash image detection fixed** — was broken (HEAD 405 + wrong heuristic), now uses GraphQL is_missing filter. PuLID face injection unblocked for ALL 21 queens
+- **Council hall navigation** — dynamic exits for all 21 queens + multi-queen scene entry
+- **Portrait carousel** — auto-cycling with prev/next arrows for multi-character scenes
+- **Multi-char portrait generation** — generates portraits for ALL present characters (was first-only)
 - I2V model downloading — Wan2.2 480p 14B FP8 for portrait animation
 - ComfyUI: Impact Pack fixed (ultralytics, piexif, subpack symlink, face detection models)
 
