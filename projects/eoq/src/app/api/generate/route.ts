@@ -6,7 +6,7 @@ import { join } from "path";
 
 interface GenerateRequest {
   prompt: string;
-  type: "portrait" | "scene" | "pulid";
+  type: "portrait" | "scene" | "pulid" | "hq";
   seed?: number;
   /** For type=pulid: filesystem path to the reference photo (inside /references volume) */
   referencePath?: string;
@@ -142,13 +142,15 @@ async function buildPulidWorkflow(
  * Templates live in projects/eoq/comfyui/*.json
  */
 async function buildWorkflow(
-  type: "portrait" | "scene",
+  type: "portrait" | "scene" | "hq",
   prompt: string,
   seed?: number
 ): Promise<Record<string, unknown>> {
-  const filename = type === "portrait"
-    ? "flux-character-portrait.json"
-    : "flux-scene.json";
+  const filename = type === "hq"
+    ? "flux-portrait-hq.json"
+    : type === "portrait"
+      ? "flux-character-portrait.json"
+      : "flux-scene.json";
 
   const workflowPath = join(process.cwd(), "comfyui", filename);
   const raw = await readFile(workflowPath, "utf-8");
