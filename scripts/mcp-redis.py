@@ -87,12 +87,31 @@ def redis_scheduler() -> str:
 @mcp.tool()
 def redis_tasks() -> str:
     """Get the task queue state — active and recent tasks."""
-    data = _redis.get("athanor:tasks")
-    if data:
-        try:
-            return json.dumps(json.loads(data), indent=2)
-        except json.JSONDecodeError:
-            return data
+    key_type = _redis.type("athanor:tasks")
+    if key_type == "hash":
+        raw = _redis.hgetall("athanor:tasks")
+        tasks = []
+        for tid, val in raw.items():
+            try:
+                t = json.loads(val)
+                tasks.append(t)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        # Sort by updated_at descending, show active first
+        active = [t for t in tasks if t.get("status") in ("pending", "in_progress", "pending_approval")]
+        recent = sorted(
+            [t for t in tasks if t.get("status") not in ("pending", "in_progress", "pending_approval")],
+            key=lambda t: t.get("updated_at", 0),
+            reverse=True,
+        )[:10]
+        return json.dumps({"active": active, "recent_completed": recent, "total": len(tasks)}, indent=2)
+    elif key_type == "string":
+        data = _redis.get("athanor:tasks")
+        if data:
+            try:
+                return json.dumps(json.loads(data), indent=2)
+            except json.JSONDecodeError:
+                return data
     return "No tasks found"
 
 
