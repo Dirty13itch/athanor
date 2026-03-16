@@ -3,9 +3,47 @@
 import { useCallback, useRef } from "react";
 import { useGameStore } from "@/stores/game-store";
 import type { Character, Queen } from "@/types/game";
+import { getBreakingStage } from "@/types/game";
 
 function isQueen(char: Character): char is Queen {
   return "performerReference" in char && !!(char as Queen).performerReference;
+}
+
+/**
+ * Build a stage-aware visual prompt.
+ * Defiant queens are fully clothed and hostile.
+ * Broken queens are exposed and submissive.
+ * The base prompt (fluxPrompt or visualDescription) provides the face/body,
+ * and we append a stage-specific scene/clothing/mood modifier.
+ */
+function buildStagePrompt(char: Character, contentIntensity: number): string {
+  const base = isQueen(char) ? (char.fluxPrompt || char.visualDescription) : char.visualDescription;
+  const stage = getBreakingStage(char.resistance);
+  const emotion = char.emotion.primary;
+
+  // Scene/mood modifiers based on breaking stage
+  const stageModifiers: Record<string, string> = {
+    defiant: "regal commanding pose, arms crossed, cold hostile expression, fully clothed in ornate dark gown, armored shoulders, dramatic harsh lighting, unyielding",
+    struggling: "guarded stance, one shoulder exposed, conflicted expression mixing defiance and vulnerability, dramatic side lighting, tension visible",
+    conflicted: "seated with legs crossed, dress slipping off one shoulder, torn expression, warm and cool lighting mixed, inner turmoil visible",
+    yielding: "sheer fabric revealing silhouette, lowered gaze with upward glance, compliant but traces of dignity, soft warm amber lighting",
+    surrendered: "minimal clothing, kneeling or seated submissively, seeking approval expression, collar visible, warm intimate candlelight",
+    broken: "nude or nearly nude, fully submissive pose on knees, devoted desperate expression, collar and chain, dramatic spotlight from above",
+  };
+
+  // Only apply explicit modifiers at intensity >= 3
+  const modifier = contentIntensity >= 3
+    ? (stageModifiers[stage] ?? "")
+    : stage === "defiant" || stage === "struggling"
+      ? stageModifiers[stage] ?? ""
+      : "elegant pose, suggestive tension, dramatic lighting";
+
+  // Emotion overlay
+  const emotionHint = emotion && char.emotion.intensity > 0.4
+    ? `, ${emotion} expression`
+    : "";
+
+  return `${base}, ${modifier}${emotionHint}`;
 }
 
 /**
@@ -58,11 +96,19 @@ export function useImageGeneration() {
     []
   );
 
-  /** Generate a character portrait — uses PuLID for queens with performer references */
+  /** Generate a character portrait — uses PuLID for queens with performer references.
+   *  Portraits are stage-aware: different breaking stages produce different visuals. */
   const generatePortrait = useCallback(
     async (charId: string, char: Character) => {
-      if (lastCharRef.current === charId) return;
-      lastCharRef.current = charId;
+      // Cache key includes breaking stage so portraits regenerate on stage transitions
+      const stage = getBreakingStage(char.resistance);
+      const cacheKey = `${charId}:${stage}`;
+      if (lastCharRef.current === cacheKey) return;
+      lastCharRef.current = cacheKey;
+
+      // Get content intensity from current session
+      const intensity = useGameStore.getState().session?.worldState.contentIntensity ?? 3;
+      const prompt = buildStagePrompt(char, intensity);
 
       try {
         if (isQueen(char) && char.performerReference) {
@@ -74,7 +120,7 @@ export function useImageGeneration() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                prompt: char.fluxPrompt || char.visualDescription,
+                prompt,
                 type: "pulid",
                 referencePath,
               }),
@@ -95,7 +141,7 @@ export function useImageGeneration() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            prompt: char.visualDescription,
+            prompt,
             type: "portrait",
           }),
         });

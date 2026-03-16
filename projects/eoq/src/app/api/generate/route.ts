@@ -6,10 +6,12 @@ import { join } from "path";
 
 interface GenerateRequest {
   prompt: string;
-  type: "portrait" | "scene" | "pulid" | "hq";
+  type: "portrait" | "scene" | "pulid" | "hq" | "video";
   seed?: number;
-  /** For type=pulid: filesystem path to the reference photo (inside /references volume) */
+  /** For type=pulid: filesystem path or URL to the reference photo */
   referencePath?: string;
+  /** For type=video: negative prompt for quality control */
+  negativePrompt?: string;
 }
 
 /**
@@ -21,7 +23,7 @@ interface GenerateRequest {
 export async function POST(req: Request) {
   const rawBody = await req.text();
   const parsedBody = (rawBody ? JSON.parse(rawBody) : {}) as Partial<GenerateRequest>;
-  const { prompt = "", type = "portrait", seed, referencePath } = parsedBody;
+  const { prompt = "", type = "portrait", seed, referencePath, negativePrompt } = parsedBody;
 
   if (EOQ_FIXTURE_MODE) {
     const label =
@@ -50,6 +52,8 @@ export async function POST(req: Request) {
       return Response.json({ error: "Failed to upload reference photo to ComfyUI" }, { status: 500 });
     }
     workflow = await buildPulidWorkflow(prompt, uploadedFilename, seed);
+  } else if (type === "video") {
+    workflow = await buildVideoWorkflow(prompt, negativePrompt, seed);
   } else {
     workflow = await buildWorkflow(type, prompt, seed);
   }
@@ -68,8 +72,9 @@ export async function POST(req: Request) {
 
   const { prompt_id } = await queueResp.json();
 
-  // Poll for completion
-  const imageUrl = await pollForResult(prompt_id);
+  // Poll for completion — videos take longer (~4 min vs ~1 min for images)
+  const maxWait = type === "video" ? 600000 : (type === "hq" ? 300000 : 120000);
+  const imageUrl = await pollForResult(prompt_id, maxWait);
 
   return Response.json({ imageUrl, promptId: prompt_id });
 }
@@ -167,6 +172,35 @@ async function buildWorkflow(
   return workflow;
 }
 
+/**
+ * Build Wan2.2 T2V video workflow from template.
+ * Requires 5090 GPU (14B model doesn't fit on 16GB cards).
+ */
+async function buildVideoWorkflow(
+  prompt: string,
+  negativePrompt?: string,
+  seed?: number
+): Promise<Record<string, unknown>> {
+  const workflowPath = join(process.cwd(), "comfyui", "wan-t2v.json");
+  const raw = await readFile(workflowPath, "utf-8");
+  const workflow = JSON.parse(raw);
+
+  // Inject prompt into WanVideoTextEncode node
+  if (workflow["2"]?.inputs) {
+    workflow["2"].inputs.positive_prompt = prompt;
+    if (negativePrompt) {
+      workflow["2"].inputs.negative_prompt = negativePrompt;
+    }
+  }
+
+  // Inject seed into WanVideoSampler node
+  if (workflow["5"]?.inputs) {
+    workflow["5"].inputs.seed = seed ?? Math.floor(Math.random() * 2147483647);
+  }
+
+  return workflow;
+}
+
 async function pollForResult(promptId: string, maxWait = 120000): Promise<string | null> {
   const start = Date.now();
 
@@ -180,11 +214,17 @@ async function pollForResult(promptId: string, maxWait = 120000): Promise<string
     const result = data[promptId];
     if (!result?.outputs) continue;
 
+    // Check for error status
+    if (result.status?.status_str === "error") return null;
+
     for (const nodeOutput of Object.values(result.outputs) as Array<Record<string, unknown>>) {
-      const images = nodeOutput.images as Array<{ filename: string; subfolder: string; type: string }> | undefined;
-      if (images?.[0]) {
-        const img = images[0];
-        return `${config.comfyuiUrl}/view?filename=${img.filename}&subfolder=${img.subfolder}&type=${img.type}`;
+      // Check images (portraits, scenes, HQ), videos (mp4), and gifs (animated previews)
+      for (const key of ["images", "videos", "gifs"] as const) {
+        const files = nodeOutput[key] as Array<{ filename: string; subfolder: string; type: string }> | undefined;
+        if (files?.[0]) {
+          const f = files[0];
+          return `${config.comfyuiUrl}/view?filename=${f.filename}&subfolder=${f.subfolder}&type=${f.type}`;
+        }
       }
     }
   }

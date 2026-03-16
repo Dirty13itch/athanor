@@ -28,6 +28,7 @@ import { StatChangeToast } from "./components/stat-change-toast";
 import { QueenRoster } from "./components/queen-roster";
 import { useGameStore } from "@/stores/game-store";
 import { useGameEngine } from "@/hooks/use-game-engine";
+import { getBreakingStage } from "@/types/game";
 import { useImageGeneration } from "@/hooks/use-image-generation";
 import { useKeyboard } from "@/hooks/use-keyboard";
 
@@ -107,15 +108,20 @@ export default function GamePage() {
     setSavedGameExists(hasSavedGame());
   }, [hasSavedGame]);
 
-  // Generate images when the scene changes
+  // Generate images when the scene changes or a character's breaking stage shifts
+  const currentCharId = session?.worldState.currentScene.presentCharacters[0];
+  const currentChar = currentCharId ? session?.characters[currentCharId] : undefined;
+  const currentStage = currentChar ? getBreakingStage(currentChar.resistance) : undefined;
+
   useEffect(() => {
     if (!session) return;
     const sceneId = session.worldState.currentScene.id;
-    if (sceneId !== lastSceneIdRef.current) {
+    // Regenerate on scene change OR breaking stage transition
+    if (sceneId !== lastSceneIdRef.current || currentStage) {
       lastSceneIdRef.current = sceneId;
       generateForCurrentScene();
     }
-  }, [session, generateForCurrentScene]);
+  }, [session, generateForCurrentScene, currentStage]);
 
   /** Click the dialogue box to advance when there are no choices pending */
   function handleDialogueClick() {
