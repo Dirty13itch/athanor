@@ -132,7 +132,11 @@ AGENT_SCHEDULES = {
         "prompt": (
             "Check ComfyUI health — verify the queue endpoint responds. "
             "Report queue status (pending/running/completed). "
-            "If idle, note GPU availability for creative work."
+            "If the queue is idle and GPU is available, generate a portrait "
+            "for an EoBQ queen who doesn't have one yet. Pick a queen randomly "
+            "from the 21 Council Queens. Use the character's fluxPrompt as the "
+            "base prompt, add 'solo, single person, cinematic portrait' prefix. "
+            "This proactively builds the gallery without anyone asking."
         ),
         "priority": "low",
         "enabled": True,
