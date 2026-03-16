@@ -452,6 +452,30 @@ def pipeline_status() -> str:
 
 
 @mcp.tool()
+def trigger_pipeline_cycle() -> str:
+    """Trigger an on-demand work pipeline cycle — mines intents, generates plans, spawns tasks."""
+    try:
+        resp = _client.post(f"{AGENT_URL}/v1/pipeline/cycle", json={}, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+        return f"Pipeline cycle: mined={data.get('intents_mined', '?')}, new={data.get('intents_new', '?')}, plans={data.get('plans_created', '?')}, tasks={data.get('tasks_spawned', '?')}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def trigger_improvement_cycle() -> str:
+    """Trigger the nightly prompt optimization cycle manually."""
+    try:
+        resp = _client.post(f"{AGENT_URL}/v1/improvement/trigger", json={}, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+        return f"Improvement cycle: {data.get('status', '?')}, proposals={data.get('proposals_generated', 0)}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
 def review_task_output(task_id: str) -> str:
     """Score a completed task's output quality via grader model. Records feedback for learning.
 
