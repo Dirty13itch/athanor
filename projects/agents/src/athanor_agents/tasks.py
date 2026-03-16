@@ -637,6 +637,20 @@ async def _execute_task(task: Task):
         # Auto-extract skills from successful task traces (Layer 3)
         asyncio.create_task(_auto_extract_skill(task))
 
+        # Notify on notable completions (skip routine health/home checks)
+        prompt_lower = (task.prompt or "").lower()
+        is_routine = any(kw in prompt_lower for kw in ["health check", "entities", "queue items", "check for any active"])
+        task_source = task.metadata.get("source", "")
+        if not is_routine and task_source not in ("scheduler", "auto_retry"):
+            from .escalation import add_notification
+            add_notification(
+                agent=task.agent,
+                action=f"Task completed ({task.duration_ms or 0}ms)",
+                category="routine",
+                confidence=1.0,
+                description=f"{task.prompt[:120]}\n\nResult: {result_text[:150]}",
+            )
+
         # Broadcast completion to GWT workspace
         asyncio.create_task(post_item(
             source_agent=task.agent,
@@ -667,6 +681,16 @@ async def _execute_task(task: Task):
             description=f"{task.prompt[:150]} — {str(e)[:100]}",
             data={"task_id": task.id, "error": str(e)[:500]},
         ))
+
+        # Notify on task failures (always — failures need attention)
+        from .escalation import add_notification
+        add_notification(
+            agent=task.agent,
+            action=f"Task failed (retry={task.retry_count})",
+            category="routine",
+            confidence=0.6,
+            description=f"{task.prompt[:120]}\n\nError: {str(e)[:150]}",
+        )
 
         # Broadcast failure
         from .workspace import post_item

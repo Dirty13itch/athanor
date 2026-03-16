@@ -567,24 +567,31 @@ DEFAULT_SUBSCRIPTIONS: dict[str, AgentSubscription] = {
     "media-agent": AgentSubscription(
         agent_name="media-agent",
         keywords=["movie", "show", "episode", "download", "plex", "sonarr", "radarr",
-                  "media", "tv", "film", "stream", "torrent", "transcode"],
+                  "media", "tv", "film", "stream", "torrent", "transcode",
+                  "new episode", "download complete", "grabbed"],
         source_filters=["event:sonarr", "event:radarr", "event:plex", "event:tdarr"],
         threshold=0.3,
         react_prompt_template=(
-            "A workspace broadcast is relevant to your domain: '{content}' "
-            "(from {source_agent}). Assess this and take appropriate action — "
-            "check media library status, update metadata, or report findings."
+            "Media event: '{content}' (from {source_agent}). "
+            "1. If this is a new download/grab: check the Sonarr/Radarr queue for status. "
+            "2. If this is a completion: verify it appeared in Plex. "
+            "3. Report only notable findings (new content, stuck downloads, quality issues). "
+            "Do NOT report 'all clear' — only report if something needs attention."
         ),
     ),
     "home-agent": AgentSubscription(
         agent_name="home-agent",
         keywords=["motion", "door", "light", "temperature", "humidity", "presence",
-                  "home", "room", "sensor", "automation", "climate", "power"],
+                  "home", "room", "sensor", "automation", "climate", "power",
+                  "anomaly", "offline", "unavailable"],
         source_filters=["event:home-assistant", "event:homeassistant"],
         threshold=0.3,
         react_prompt_template=(
-            "Home automation event detected: '{content}' (from {source_agent}). "
-            "Check relevant Home Assistant entities and take appropriate action."
+            "Home event: '{content}' (from {source_agent}). "
+            "1. If temperature anomaly: check all climate entities, report current vs expected. "
+            "2. If device offline: identify the device, check if it recovered. "
+            "3. If motion/presence: note the event but take no action unless unusual. "
+            "Only report findings that need owner attention."
         ),
     ),
     "research-agent": AgentSubscription(
@@ -592,10 +599,11 @@ DEFAULT_SUBSCRIPTIONS: dict[str, AgentSubscription] = {
         keywords=["research", "investigate", "analyze", "report", "benchmark",
                   "compare", "evaluate", "upgrade", "new version", "release"],
         source_filters=[],
-        threshold=0.4,
+        threshold=0.5,
         react_prompt_template=(
-            "A topic needs research: '{content}' (from {source_agent}). "
-            "Search for current information and produce a brief summary."
+            "Research request: '{content}' (from {source_agent}). "
+            "Search the web for current information. Produce a 3-5 bullet summary with sources. "
+            "Store findings in the knowledge base via store_knowledge tool."
         ),
     ),
     "coding-agent": AgentSubscription(
@@ -603,10 +611,11 @@ DEFAULT_SUBSCRIPTIONS: dict[str, AgentSubscription] = {
         keywords=["code", "bug", "test", "generate", "refactor", "implement",
                   "component", "function", "script", "fix"],
         source_filters=[],
-        threshold=0.4,
+        threshold=0.5,
         react_prompt_template=(
-            "A coding task is relevant: '{content}' (from {source_agent}). "
-            "Read relevant source files and generate the requested code."
+            "Coding task: '{content}' (from {source_agent}). "
+            "Read the relevant source files first. Write the implementation. "
+            "Output the complete file contents with changes clearly marked."
         ),
     ),
     "creative-agent": AgentSubscription(
@@ -616,19 +625,22 @@ DEFAULT_SUBSCRIPTIONS: dict[str, AgentSubscription] = {
         source_filters=[],
         threshold=0.4,
         react_prompt_template=(
-            "A creative request is in the workspace: '{content}' (from {source_agent}). "
-            "Craft an appropriate prompt and queue the generation."
+            "Creative request: '{content}' (from {source_agent}). "
+            "Use the generate_image tool with a detailed prompt. "
+            "Choose appropriate dimensions and model for the subject matter."
         ),
     ),
     "knowledge-agent": AgentSubscription(
         agent_name="knowledge-agent",
         keywords=["knowledge", "document", "index", "search", "qdrant",
-                  "docs", "wiki", "reference"],
+                  "docs", "wiki", "reference", "store", "remember"],
         source_filters=[],
         threshold=0.5,
         react_prompt_template=(
-            "Knowledge-related activity: '{content}' (from {source_agent}). "
-            "Check if knowledge base needs updating or can answer the query."
+            "Knowledge event: '{content}' (from {source_agent}). "
+            "1. If a query: search the knowledge base and return relevant results. "
+            "2. If new information: store it in the appropriate Qdrant collection. "
+            "3. If indexing needed: check which docs changed recently and re-index them."
         ),
     ),
 }
