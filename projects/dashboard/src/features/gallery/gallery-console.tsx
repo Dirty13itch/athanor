@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type CSSProperties, useDeferredValue } from "react";
+import { type CSSProperties, useDeferredValue, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, RefreshCcw } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
@@ -39,6 +39,27 @@ const previewSurfaceStyle: CSSProperties = {
   background:
     "radial-gradient(circle at top left, color-mix(in oklab, var(--domain-media) 24%, transparent) 0%, transparent 48%), linear-gradient(135deg, color-mix(in oklab, var(--accent-structural) 18%, transparent) 0%, color-mix(in oklab, var(--surface-panel) 84%, black) 100%)",
 };
+
+function GalleryImage({ images, alt }: { images: GallerySnapshot["items"][number]["outputImages"]; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  const image = images[0];
+
+  if (!image || failed) {
+    return <div className="aspect-[4/3] rounded-2xl border border-border/60" style={previewSurfaceStyle} />;
+  }
+
+  const src = `/api/comfyui/image/${image.subfolder ? `${image.subfolder}/` : ""}${image.filename}`;
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="aspect-[4/3] w-full rounded-2xl border border-border/60 object-cover bg-black/20"
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySnapshot }) {
   const { getSearchValue, setSearchValue } = useUrlState();
@@ -137,7 +158,7 @@ export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySn
               onClick={() => setSearchValue("selection", item.id)}
               className="surface-instrument rounded-2xl border p-4 text-left transition hover:bg-accent/40"
             >
-              <div className="aspect-[4/3] rounded-2xl border border-border/60" style={previewSurfaceStyle} />
+              <GalleryImage images={item.outputImages} alt={item.prompt || "Generated image"} />
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">{prefixToLabel(item.outputPrefix)}</Badge>
                 <Badge variant="outline">{prefixToProject(item.outputPrefix)}</Badge>
@@ -160,7 +181,7 @@ export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySn
                 <SheetDescription>{activeItem.outputImages.map((image) => image.filename).join(", ")}</SheetDescription>
               </SheetHeader>
               <div className="space-y-6 p-6">
-                <div className="aspect-[4/3] rounded-2xl border border-border/60" style={previewSurfaceStyle} />
+                <GalleryImage images={activeItem.outputImages} alt={activeItem.prompt || "Generated image"} />
                 <Card className="surface-panel border">
                   <CardHeader>
                     <CardTitle className="text-lg">Generation context</CardTitle>
