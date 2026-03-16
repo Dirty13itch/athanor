@@ -34,6 +34,7 @@ import { SmartStack } from "@/components/smart-stack";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
 import { SystemMapCard } from "@/components/system-map-card";
+import { SystemPulse } from "@/components/system-pulse";
 import { UnifiedStream } from "@/components/unified-stream";
 import { WorkPlan } from "@/components/work-plan";
 import { getOverview } from "@/lib/api";
@@ -169,6 +170,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
   return (
     <div className="space-y-8">
+      <SystemPulse sticky />
+
       <PageHeader
         eyebrow="Operations"
         title="Command Center"
@@ -257,7 +260,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <UnifiedStream limit={8} />
+            <UnifiedStream limit={8} showFilters />
           </CardContent>
         </Card>
         <WorkPlan />

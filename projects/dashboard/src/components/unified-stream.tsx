@@ -65,9 +65,22 @@ function typeIcon(type: StreamEvent["type"]) {
   }
 }
 
-export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; filterTypes?: string[] }) {
+const FILTER_OPTIONS = [
+  { label: "All", value: null },
+  { label: "Tasks", value: "tasks" },
+  { label: "Agents", value: "agents" },
+  { label: "Alerts", value: "alerts" },
+  { label: "System", value: "system" },
+] as const;
+
+export function UnifiedStream({ limit = 12, filterTypes, showFilters = false }: { limit?: number; filterTypes?: string[]; showFilters?: boolean }) {
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+  const effectiveFilter = activeFilter
+    ? [activeFilter]
+    : filterTypes;
 
   useEffect(() => {
     let mounted = true;
@@ -115,8 +128,8 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
         merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
         const filtered =
-          filterTypes && filterTypes.length > 0
-            ? merged.filter((event) => filterTypes.includes(event.type))
+          effectiveFilter && effectiveFilter.length > 0
+            ? merged.filter((event) => effectiveFilter.includes(event.type))
             : merged;
 
         if (mounted) {
@@ -134,7 +147,7 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
       mounted = false;
       clearInterval(interval);
     };
-  }, [limit, filterTypes]);
+  }, [limit, effectiveFilter]);
 
   if (loading) {
     return (
@@ -155,6 +168,24 @@ export function UnifiedStream({ limit = 12, filterTypes }: { limit?: number; fil
 
   return (
     <div className="space-y-1">
+      {showFilters && (
+        <div className="flex gap-1 pb-1.5 flex-wrap">
+          {FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.label}
+              onClick={() => setActiveFilter(opt.value)}
+              className={cn(
+                "rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition",
+                (activeFilter === null && opt.value === null) || activeFilter === opt.value
+                  ? "bg-primary/15 border-primary/30 text-primary"
+                  : "border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
       {events.map((event, index) => {
         const Icon = typeIcon(event.type);
         return (
