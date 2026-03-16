@@ -345,7 +345,7 @@ async def _check_morning_plan():
 
     logger.info("Scheduler: generating morning work plan")
     try:
-        plan = await generate_work_plan(focus="morning planning — prioritize creative work for EoBQ")
+        plan = await generate_work_plan(focus="morning planning — review all active projects, prioritize highest-impact unblocked work")
         r = await _get_redis()
         await r.set(WORKPLAN_MORNING_KEY, now.strftime("%Y-%m-%d"))
         logger.info(

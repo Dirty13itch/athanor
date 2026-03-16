@@ -48,7 +48,9 @@ export async function GET(req: Request) {
     try {
       const headResp = await fetch(performer.image_path, { method: "HEAD" });
       const contentLength = parseInt(headResp.headers.get("content-length") ?? "0");
-      hasRealProfileImage = contentLength > 20000;
+      // Check if Stash is serving a default/placeholder image vs a real photo.
+      // Stash appends &default=true to placeholder image URLs.
+      hasRealProfileImage = contentLength > 5000 && !performer.image_path!.includes("&default=true");
     } catch { /* best effort */ }
   }
 
