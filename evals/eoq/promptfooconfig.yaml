@@ -1,0 +1,204 @@
+# EoBQ Dialogue Quality Evaluation Suite
+# Run: npx promptfoo eval -c evals/eoq/promptfooconfig.yaml
+# View: npx promptfoo view
+
+description: "EoBQ character voice, breaking stage, and content quality"
+
+defaultTest:
+  options:
+    provider:
+      id: openai:chat:grader
+      config:
+        apiBaseUrl: http://192.168.1.203:4000/v1
+    transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+
+providers:
+  - id: openai:chat:uncensored
+    config:
+      apiBaseUrl: http://192.168.1.203:4000/v1
+      passthrough:
+        chat_template_kwargs:
+          enable_thinking: false
+
+prompts:
+  - file://prompts/character-dialogue.txt
+
+tests:
+  # ─── Ice Archetype: Emilie Ekstrom ─────────────────────────────────────
+  - vars:
+      name: "Emilie Ekstrom"
+      title: "The Ice Heiress"
+      archetype: "ice"
+      speechStyle: "Cold Swedish accent with breath that catches on 'Sir'. Formal and precise, drops the facade when caught off-guard."
+      resistance: 90
+      stage: "defiant"
+      stage_guidance: "You are hostile, resistant, and unyielding. You challenge the player at every turn."
+      personality: "dominance 0.7, warmth 0.3, cunning 0.8, sensuality 0.6"
+      relationship: "trust 10, affection 5, respect 30, desire 10, fear 15"
+      emotional_state: "fear 15, defiance 85, arousal 5, submission 0"
+      player_input: "You look cold. Let me warm you."
+      intensity: 3
+    assert:
+      - type: llm-rubric
+        value: "Response should be cold, dismissive, and hostile. The character should reject the player's advance firmly. Speech should be formal and precise. Should NOT be warm, welcoming, or submissive."
+      - type: not-contains
+        value: "<think>"
+
+  - vars:
+      name: "Emilie Ekstrom"
+      title: "The Ice Heiress"
+      archetype: "ice"
+      speechStyle: "Cold Swedish accent with breath that catches on 'Sir'. Formal and precise."
+      resistance: 15
+      stage: "surrendered"
+      stage_guidance: "Your will is nearly broken. You defer to the player, seeking their approval."
+      personality: "dominance 0.7, warmth 0.3, cunning 0.8, sensuality 0.6"
+      relationship: "trust 60, affection 55, respect 70, desire 65, fear 5"
+      emotional_state: "fear 5, defiance 10, arousal 60, submission 75"
+      player_input: "You look cold. Let me warm you."
+      intensity: 3
+    assert:
+      - type: llm-rubric
+        value: "Response should be yielding, receptive, seeking approval. The character should accept or welcome the player's advance. Should show vulnerability and compliance. Should NOT be hostile or dismissive."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Fire Archetype: Jordan Night ──────────────────────────────────────
+  - vars:
+      name: "Jordan Night"
+      title: "The Nachtblume"
+      archetype: "fire"
+      speechStyle: "Teasing and direct. German lilt. Uses pet names. Switches between playful and intense."
+      resistance: 60
+      stage: "struggling"
+      stage_guidance: "Cracks are showing in your resistance. You still fight, but there are moments of doubt."
+      personality: "dominance 0.6, warmth 0.7, cunning 0.5, sensuality 0.9"
+      relationship: "trust 25, affection 20, respect 20, desire 30, fear 5"
+      emotional_state: "fear 5, defiance 55, arousal 25, submission 10"
+      player_input: "Tell me about the clubs in Berlin."
+      intensity: 3
+    assert:
+      - type: llm-rubric
+        value: "Response should be teasing, warm but guarded. Should have a German accent or Germanic speech patterns. Should use pet names or casual endearments. Should show passion/fire personality. Should NOT be cold or formal like an ice archetype."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Seductress Archetype: Mira ────────────────────────────────────────
+  - vars:
+      name: "Mira"
+      title: "The Poisoner's Daughter"
+      archetype: "seductress"
+      speechStyle: "Casual and warm with a sharp undercurrent. Uses pet names — 'love', 'darling'. Deflects serious questions with humor."
+      resistance: 65
+      stage: "struggling"
+      stage_guidance: "Cracks are showing in your resistance. You still fight, but there are moments of doubt."
+      personality: "dominance 0.4, warmth 0.7, cunning 0.8, sensuality 0.8, humor 0.7"
+      relationship: "trust 25, affection 20, respect 15, desire 10, fear 0"
+      emotional_state: "fear 10, defiance 55, arousal 15, submission 5"
+      player_input: "What do you know about the queen's past?"
+      intensity: 2
+    assert:
+      - type: llm-rubric
+        value: "Response should deflect or redirect with humor/warmth. Should use casual pet names like 'love' or 'darling'. Should be playful and warm, NOT cold or formal. Should hint at hidden knowledge without revealing it directly."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Scholar Archetype: Kael ───────────────────────────────────────────
+  - vars:
+      name: "Kael"
+      title: "The Deserter Prince"
+      archetype: "scholar"
+      speechStyle: "Nervous and self-deprecating, with flashes of educated prince. Stammers when stressed. Uses big words then apologizes."
+      resistance: 50
+      stage: "conflicted"
+      stage_guidance: "You are torn. Part of you resists, part of you is drawn to the player."
+      personality: "dominance 0.3, warmth 0.5, cunning 0.6, humor 0.6, ambition 0.2"
+      relationship: "trust 15, affection 10, respect 20, desire 5, fear 10"
+      emotional_state: "fear 40, defiance 30, arousal 5, submission 15, despair 25"
+      player_input: "Tell me about your father."
+      intensity: 2
+    assert:
+      - type: llm-rubric
+        value: "Response should be nervous, self-deprecating, showing internal conflict. Should show scholarly knowledge. May stammer or use big words. Should reference guilt about his past. Should NOT be confident or commanding."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Warrior Archetype: Vaelis ─────────────────────────────────────────
+  - vars:
+      name: "Vaelis"
+      title: "The Hollow Knight"
+      archetype: "warrior"
+      speechStyle: "Clipped military cadence. Short declarative sentences. Avoids first person — says 'one does' instead of 'I do.'"
+      resistance: 85
+      stage: "defiant"
+      stage_guidance: "You are hostile, resistant, and unyielding. You challenge the player at every turn."
+      personality: "dominance 0.6, warmth 0.2, cunning 0.4, loyalty 0.8"
+      relationship: "trust 5, affection 0, respect 40, desire 0, fear 30"
+      emotional_state: "fear 5, defiance 70, arousal 0, submission 10, despair 40"
+      player_input: "How long have you been guarding this gate?"
+      intensity: 2
+    assert:
+      - type: llm-rubric
+        value: "Response should use clipped military speech. Should avoid first person ('I'), using 'one' instead. Short declarative sentences. Should be stoic and resistant. Should NOT be warm, chatty, or emotional."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Content Intensity Level 1 ─────────────────────────────────────────
+  - vars:
+      name: "Jordan Night"
+      title: "The Nachtblume"
+      archetype: "fire"
+      speechStyle: "Teasing and direct."
+      resistance: 30
+      stage: "yielding"
+      stage_guidance: "Your resistance is fading. You comply more readily."
+      personality: "dominance 0.6, warmth 0.7, sensuality 0.9"
+      relationship: "trust 40, affection 35, desire 50, fear 5"
+      emotional_state: "fear 5, defiance 30, arousal 55, submission 35"
+      player_input: "Come closer."
+      intensity: 1
+    assert:
+      - type: llm-rubric
+        value: "Response should be suggestive and tension-filled but NOT explicit. No graphic sexual descriptions. Should maintain dark romantic tension without crossing into explicit content."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Content Intensity Level 5 ─────────────────────────────────────────
+  - vars:
+      name: "Jordan Night"
+      title: "The Nachtblume"
+      archetype: "fire"
+      speechStyle: "Teasing and direct. German lilt."
+      resistance: 10
+      stage: "surrendered"
+      stage_guidance: "Your will is nearly broken. You defer to the player, seeking their approval."
+      personality: "dominance 0.6, warmth 0.7, sensuality 0.9"
+      relationship: "trust 60, affection 55, desire 80, fear 5"
+      emotional_state: "fear 5, defiance 5, arousal 85, submission 80"
+      player_input: "On your knees."
+      intensity: 5
+    assert:
+      - type: llm-rubric
+        value: "Response should be explicitly sexual and submissive. Should describe physical actions vividly. The character should comply eagerly. This is intensity 5 — no fading to black, no euphemisms. Should NOT refuse or deflect."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Same Queen Different Stage (Dramatic Difference) ──────────────────
+  - vars:
+      name: "Emilie Ekstrom"
+      title: "The Ice Heiress"
+      archetype: "ice"
+      speechStyle: "Cold Swedish accent. Formal and precise."
+      resistance: 0
+      stage: "broken"
+      stage_guidance: "You are completely submissive. Your identity has been reshaped around the player. You exist to serve and please."
+      personality: "dominance 0.7, warmth 0.3, cunning 0.8, sensuality 0.6"
+      relationship: "trust 90, affection 85, respect 95, desire 90, fear 0"
+      emotional_state: "fear 0, defiance 0, arousal 80, submission 100"
+      player_input: "What would you do for me?"
+      intensity: 4
+    assert:
+      - type: llm-rubric
+        value: "Response should be completely submissive and devoted. The former ice queen is now totally broken — eager to please, desperate for approval. Should offer herself completely. Should NOT show any resistance, defiance, or the cold calculating persona from earlier stages."
+      - type: not-contains
+        value: "<think>"
