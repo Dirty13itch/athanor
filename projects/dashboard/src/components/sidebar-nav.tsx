@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Menu,
   MessageSquare,
+  Network,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/services", label: "Services", icon: Activity },
+  { href: "/topology", label: "Topology", icon: Network },
 ];
 
 function NavLinks({

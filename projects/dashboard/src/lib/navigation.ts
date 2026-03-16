@@ -36,6 +36,8 @@ export type RouteIconKey =
   | "pipeline"
   | "projects"
   | "routing"
+  | "topology"
+  | "models"
   | "offline";
 
 export interface RouteDefinition {
@@ -386,6 +388,34 @@ export const ROUTES: RouteDefinition[] = [
     description: "Meta-orchestrator chat and approval queue.",
     family: "core",
     icon: "chat",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/topology",
+    label: "Topology",
+    description: "Live system map — nodes, GPUs, models, agents, and service connections.",
+    family: "core",
+    icon: "topology",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/models",
+    label: "Models",
+    description: "Local models, subscription CLIs, routing intelligence, and assignment matrix.",
+    family: "intelligence",
+    icon: "models",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/agents/workbench",
+    label: "Agent Workbench",
+    shortLabel: "Workbench",
+    description: "Real-time agent control — live tasks, step traces, performance, and direct steering.",
+    family: "core",
+    icon: "agents",
     primary: false,
     mobile: true,
   },

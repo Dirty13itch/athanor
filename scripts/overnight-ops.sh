@@ -40,6 +40,12 @@ run_or_skip() {
 
 log "=== Overnight operations starting ==="
 
+# Signal governor: entering maintenance window
+curl -sf -X POST "$AGENT_URL/v1/governor/presence" \
+    -H "Content-Type: application/json" \
+    -d '{"mode":"manual","state":"maintenance","reason":"overnight-ops maintenance window","actor":"overnight-ops"}' \
+    2>/dev/null || log "WARN: Could not signal governor maintenance mode"
+
 # --- 1. Qdrant collection optimization ---
 log "Phase 1: Qdrant collection optimization"
 COLLECTIONS=$(curl -sf "$QDRANT_URL/collections" 2>/dev/null | python3 -c "
@@ -135,5 +141,12 @@ else
 fi
 
 # --- Summary ---
+
+# Signal governor: exiting maintenance window
+curl -sf -X POST "$AGENT_URL/v1/governor/presence" \
+    -H "Content-Type: application/json" \
+    -d '{"mode":"auto","state":"auto","reason":"overnight-ops complete","actor":"overnight-ops"}' \
+    2>/dev/null || log "WARN: Could not signal governor auto mode"
+
 log "=== Overnight operations complete ==="
 log "Log: $LOG_FILE"

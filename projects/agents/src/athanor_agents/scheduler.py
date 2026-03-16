@@ -69,6 +69,12 @@ KNOWLEDGE_REFRESH_KEY = "athanor:scheduler:knowledge_refresh"
 KNOWLEDGE_REFRESH_HOUR = 0
 KNOWLEDGE_REFRESH_MINUTE = 0
 
+# Weekly DPO training (Phase 6) — Saturday 02:00 on FOUNDRY 4090
+DPO_TRAINING_KEY = "athanor:scheduler:dpo_training"
+DPO_TRAINING_HOUR = 2
+DPO_TRAINING_MINUTE = 0
+DPO_TRAINING_WEEKDAY = 5  # Saturday (Monday=0)
+
 AGENT_SCHEDULES = {
     "general-assistant": {
         "interval": 1800,  # 30 min
@@ -627,6 +633,92 @@ async def _check_knowledge_refresh():
         logger.warning("Scheduler: knowledge refresh failed: %s", e)
 
 
+async def _check_weekly_dpo_training():
+    """Check if it's time to run weekly DPO training (Saturday 02:00, FOUNDRY 4090).
+
+    Collects preference pairs from the week's feedback (thumbs + judge scores),
+    generates a DPO training dataset, and logs a training task.
+    Actual LoRA fine-tuning requires stopping vllm-coder — this creates the
+    dataset and submits a task for the coding-agent to orchestrate the training.
+    """
+    now = datetime.now()
+    if now.weekday() != DPO_TRAINING_WEEKDAY:
+        return
+    if now.hour != DPO_TRAINING_HOUR or now.minute != DPO_TRAINING_MINUTE:
+        return
+
+    try:
+        r = await _get_redis()
+        last_run = await r.get(DPO_TRAINING_KEY)
+        if last_run:
+            last_str = last_run.decode() if isinstance(last_run, bytes) else last_run
+            if last_str == now.strftime("%Y-%m-%d"):
+                return
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
+
+    logger.info("Scheduler: collecting DPO training data for weekly fine-tune")
+    try:
+        # Collect preference pairs from this week's task outcomes
+        r = await _get_redis()
+        outcomes_raw = await r.lrange("athanor:pipeline:outcomes", 0, -1)
+        if not outcomes_raw:
+            logger.info("Scheduler: no outcomes for DPO training, skipping")
+            await r.set(DPO_TRAINING_KEY, now.strftime("%Y-%m-%d"))
+            return
+
+        pairs = []
+        for raw in outcomes_raw:
+            try:
+                outcome = json.loads(raw if isinstance(raw, str) else raw.decode())
+                score = outcome.get("quality_score", 0.5)
+                prompt = outcome.get("prompt", "")
+                output = outcome.get("output_summary", "")
+                if prompt and output and score != 0.5:
+                    pairs.append({
+                        "prompt": prompt[:2000],
+                        "output": output[:2000],
+                        "score": score,
+                    })
+            except (json.JSONDecodeError, AttributeError):
+                continue
+
+        if len(pairs) < 10:
+            logger.info("Scheduler: only %d DPO pairs (need 10+), skipping", len(pairs))
+            await r.set(DPO_TRAINING_KEY, now.strftime("%Y-%m-%d"))
+            return
+
+        # Store dataset for training
+        dataset_key = f"athanor:dpo:dataset:{now.strftime('%Y-%m-%d')}"
+        await r.set(dataset_key, json.dumps(pairs), ex=604800)  # 7 day TTL
+        await r.set(DPO_TRAINING_KEY, now.strftime("%Y-%m-%d"))
+
+        logger.info(
+            "DPO training dataset ready: %d pairs stored at %s",
+            len(pairs), dataset_key,
+        )
+
+        # Submit a coding-agent task to orchestrate the training
+        from .tasks import submit_task
+        await submit_task(
+            agent="coding-agent",
+            prompt=(
+                f"Weekly DPO training dataset is ready at Redis key '{dataset_key}' "
+                f"with {len(pairs)} preference pairs. "
+                "To run LoRA fine-tuning: 1) Stop vllm-coder container on FOUNDRY, "
+                "2) Run DPO training on FOUNDRY 4090, "
+                "3) Evaluate against promptfoo baseline, "
+                "4) If improved, deploy as new worker model on WORKSHOP, "
+                "5) Restart vllm-coder. "
+                "Report dataset stats and readiness status."
+            ),
+            priority="low",
+            metadata={"source": "dpo_training", "pairs": len(pairs), "date": now.strftime("%Y-%m-%d")},
+        )
+    except Exception as e:
+        logger.warning("Scheduler: DPO training data collection failed: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -660,6 +752,9 @@ async def _scheduler_loop():
 
             # Nightly knowledge refresh (00:00)
             await _check_knowledge_refresh()
+
+            # Weekly DPO training (Saturday 02:00)
+            await _check_weekly_dpo_training()
 
             # Check work plan refill (every 2 hours)
             await _check_workplan_refill()

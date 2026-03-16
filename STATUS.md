@@ -851,7 +851,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-15 12:08 PDT
+*Last updated: 2026-03-15 19:07 PDT
 
 ---
 
@@ -884,7 +884,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-15 12:08 PDT
+*Last updated: 2026-03-15 19:07 PDT
 
 ---
 
@@ -929,12 +929,53 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 2. Run Ansible on VAULT: `ansible-playbook playbooks/vault.yml --tags docker-proxy`
 3. Deploy dashboard: rsync to WORKSHOP + rebuild
 
-### Next Actions
-1. Deploy docker-socket-proxy to FOUNDRY + VAULT
-2. Deploy dashboard to WORKSHOP
-3. Verify end-to-end: containers from all 3 nodes visible in dashboard
-4. Monitor GWT workspace — first meaningful competition cycles
-5. Watch agent task execution with Redis auth
+### Session 60n cont — Athanor Operating System Build
 
-*Last updated: 2026-03-15 12:20 PDT
+**Phase 1: Governor Runtime** — DONE
+- `governor.py` (300+ LOC) — Redis-backed singleton, trust scoring, presence detection, autonomy levels (A/B/C/D)
+- `routes/governor.py` — 10 API endpoints matching dashboard contract
+- Wired into all 4 callers: workplanner, scheduler, workspace, routes/tasks
+
+**Phase 2: Work Engine** — DONE
+- `work_pipeline.py` — Perpetual self-feeding pipeline: 12 intent sources, dedup, plan generation
+- `intent_miner.py` — Mines BUILD-MANIFEST, STATUS, git TODOs, design docs, operator chat, signals
+- `plan_generator.py` — Intent → research → ExecutionPlan with approval workflow
+- `policy_router.py` — 3 policy classes (reviewable, refusal_sensitive, sovereign_only)
+- `routes/plans.py` + `routes/pipeline.py` — Full plan CRUD + pipeline status APIs
+
+**Phase 3: Three-Tier Command Hierarchy** — DONE
+- `supervisor.py` — CLI supervisor → local worker decomposition + review dispatch
+- `cloud_manager.py` — CLI dispatch queue, quality gate, auto-debug, consensus patterns
+- `scripts/morning-manager.py` — Opus CLI session at 07:00 via cron
+- `scripts/evening-manager.py` — Sonnet CLI session at 20:00 via cron
+- `scripts/multi-cli-dispatch.py` — Multi-CLI daemon (Claude/Codex/Gemini/Aider)
+
+**Phase 4: Project Autonomy** — DONE
+- `project_tracker.py` — Milestone tracking, autonomous continuation, stall detection
+- `routes/projects.py` — Milestone CRUD + advancement + stall detection APIs
+
+**Phase 5: Command Center Dashboard** — 10/10 pages DONE
+- Governor Console, Pipeline View, Projects Console (batch 1)
+- Digest Console, Operator Console, Improvement Console, Routing Console (batch 2)
+- System Topology, Agent Workbench, Model Observatory (batch 3)
+- Navigation + route icons updated for all new pages
+
+**Phase 6: Intelligence Layers** — DONE
+- Auto-skill extraction wired into task completion path
+- Pattern detection already implemented (not a stub)
+- Nightly prompt optimization (`prompt_optimizer.py`) + scheduler integration
+- Knowledge refresh (`knowledge_refresh.py`) + scheduler integration
+- Weekly DPO training data collection (Saturday 02:00) + scheduler integration
+- Overnight-ops governor presence integration (maintenance window signaling)
+
+### Next Actions
+1. Deploy agent server to FOUNDRY — rsync + docker compose rebuild
+2. Deploy dashboard to WORKSHOP — rsync + rebuild
+3. Install CLI tools on DEV: `npm i -g @openai/codex @google/gemini-cli`
+4. Set up cron for morning/evening managers on DEV
+5. Verify governor endpoints live from dashboard
+6. Test work pipeline cycle: `POST /v1/pipeline/cycle`
+7. Monitor first autonomous operation cycle
+
+*Last updated: 2026-03-15 19:44 PDT
 
