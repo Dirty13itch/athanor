@@ -558,6 +558,17 @@ async def _check_work_pipeline():
             result.intents_mined, result.intents_new,
             result.plans_created, result.tasks_submitted,
         )
+        # Refresh the auto-digest after each pipeline cycle
+        try:
+            from .routes.digests import _generate_digest_from_tasks
+            digest = await _generate_digest_from_tasks(r)
+            if digest.get("task_count", 0) > 0:
+                import json as _json
+                await r.lpush("athanor:digests", _json.dumps(digest))
+                await r.ltrim("athanor:digests", 0, 29)
+                logger.info("Auto-digest stored: %d tasks, %d completed", digest["task_count"], digest["completed_count"])
+        except Exception as de:
+            logger.debug("Auto-digest generation failed: %s", de)
     except Exception as e:
         logger.warning("Scheduler: work pipeline cycle failed: %s", e)
 

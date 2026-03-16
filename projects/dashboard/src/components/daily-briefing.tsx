@@ -26,6 +26,37 @@ async function fetchLatestBriefing(
   setState: Dispatch<SetStateAction<BriefingState>>
 ) {
   try {
+    // Try the digest endpoint first (auto-generated from proactive task results)
+    const digestRes = await fetch("/api/agents/proxy?path=/v1/digests/latest", {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (digestRes.ok) {
+      const digest = await digestRes.json();
+      if (digest?.summary && digest.task_count > 0) {
+        const parts = [digest.summary];
+        const completions = digest.recent_completions ?? [];
+        if (completions.length > 0) {
+          const uniqueResults = completions
+            .filter((c: { result_preview?: string }) => c.result_preview)
+            .slice(0, 3)
+            .map((c: { result_preview?: string }) => (c.result_preview ?? "").slice(0, 100));
+          if (uniqueResults.length > 0) {
+            parts.push("\nRecent results:");
+            for (const r of uniqueResults) {
+              parts.push("  - " + r);
+            }
+          }
+        }
+        setState({
+          content: parts.join("\n"),
+          timestamp: digest.generated_at ?? null,
+          loading: false,
+        });
+        return;
+      }
+    }
+
+    // Fallback: search completed tasks for briefing/digest keywords
     const res = await fetch("/api/workforce/tasks?limit=50", {
       signal: AbortSignal.timeout(8000),
     });
