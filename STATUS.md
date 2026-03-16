@@ -87,12 +87,12 @@
 
 Other containers: `athanor-agents` (9000), `athanor-gpu-orchestrator`, `alloy`, `wyoming-whisper` (10300), `qdrant` (6333-6334), `speaches` (8200), `dcgm-exporter` (9400), `node-exporter`
 
-### WORKSHOP (.225) â€” 9 containers
+### WORKSHOP (.225) â€” 10 containers
 
 | GPU | Model | VRAM | Temp | Container | Port |
 |-----|-------|------|------|-----------|------|
 | 0: RTX 5090 | Qwen3.5-35B-A3B-AWQ-4bit | 31.3/32.6 GB | 38Â°C | vllm-node2 | 8000 |
-| 1: RTX 5060 Ti | ComfyUI | 5.1/16.3 GB | 32Â°C | comfyui | 8188 |
+| 1: RTX 5060 Ti | Qwen3-VL-8B-FP8 + ComfyUI | 12.5/16.3 GB | 33Â°C | vllm-vision (8010), comfyui (8188) |
 
 Other: `athanor-dashboard` (3001), `athanor-eoq` (3002), `athanor-ws-pty-bridge` (3100), `open-webui` (3000), `alloy`, `dcgm-exporter`, `node-exporter`
 
@@ -114,10 +114,11 @@ Key services: `litellm` (4000), `grafana` (3000), `prometheus`, `backup-exporter
 | foundry:8006 | Qwen3.5-35B-A3B-AWQ-4bit (qwen35-coder) | ✅ Healthy |
 | foundry:9000 | Agent Server (9 agents) | âœ… Healthy |
 | workshop:8000 | Qwen3.5-35B-A3B-AWQ-4bit | âœ… Healthy |
+| workshop:8010 | Qwen3-VL-8B-Instruct-FP8 (vision) | âœ… Healthy |
 | vault:4000 | LiteLLM (local + cloud routed model lanes) | âœ… Healthy |
 
 ### LiteLLM Model Routes
-`reasoning` `coding` `coder` `fast` `creative` `utility` `worker` `uncensored` `embedding` `reranker` `claude` `gpt` `deepseek` `gemini` `kimi` `glm` `openrouter` + aliases (`gpt-4` `gpt-3.5-turbo` `text-embedding-ada-002`)
+`reasoning` `coding` `coder` `fast` `creative` `utility` `worker` `uncensored` `vision` `embedding` `reranker` `claude` `gpt` `deepseek` `gemini` `kimi` `glm` `openrouter` + aliases (`gpt-4` `gpt-3.5-turbo` `text-embedding-ada-002`)
 
 ## Known Issues & Blockers
 
@@ -1086,14 +1087,24 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 10. ~~Clean up empty-text plans~~ — DONE. 4 empty drafts deleted from Redis.
 11. ~~First end-to-end pipeline test~~ — DONE. Approved Home Automation plan → decomposed into tasks → governor gated at pending_approval → manually approved → task worker executing. Knowledge-agent completed health check autonomously with useful output. **System is live and producing real work.**
 
-### Next Actions
-1. First morning manager session runs at 07:00 tomorrow — monitor logs
-2. GPU scheduling: decide ComfyUI vs vLLM on WORKSHOP 5090 time-sharing
-3. Monitor vLLM upgrade path (v0.17.2+ for FP8 crash fix) — do NOT rebuild Docker images yet
-4. Deploy fast model on WORKSHOP 5060 Ti (second inference endpoint)
-5. Mount WORKSHOP ZFS pool (local scratch storage)
-6. Tune governor autonomy levels — currently all tasks default to pending_approval, need trust ramp-up
-7. Review duplicate home-agent tasks (same prompt × 6) — plan decomposition creating too many copies
+### Session — Hardware Research + Vision Model Deployment
+- **Deep hardware optimization research** — 548-line research doc (`docs/research/2026-03-16-hardware-optimization.md`) covering GPU optimization (MTP, undervolting, KV offloading), CPU (llama.cpp, NUMA), NVMe (T700 Gen5, NVMe-oF), network (LACP, nconnect), 5th node analysis. 6 research agents contributed findings. 15 prioritized action items in 3 tiers.
+- **Vision model deployed** — Qwen3-VL-8B-Instruct-FP8 on Workshop 5060Ti (GPU 1, port 8010). 10.16 GiB VRAM, FP8 quantized, 8K context. Multimodal confirmed working (image+text inference tested). Container: `vllm-vision` at `/opt/athanor/vllm-vision/docker-compose.yml`.
+- **LiteLLM `vision` route added** — Ansible template + defaults updated, config rendered and deployed to VAULT, LiteLLM restarted. Vision model accessible as `vision` alias through LiteLLM proxy.
+- **Workshop ufw rule added** — Port 8010/tcp allowed for external access.
+- **GPU contention documented** — vLLM Vision and ComfyUI share 5060Ti (GPU 1). Cannot run simultaneously. Vision owns GPU permanently; ComfyUI can only run when vision is stopped.
+- **Dashboard fixes** — Added missing `/api/agents/proxy` route (GET+POST), fixed goals GET handler, corrected trust-scores path (`/v1/trust`).
+- **Agent model alias map updated** — `workspace.py` `_MODEL_ALIAS_MAP` now includes `vision: workshop`.
+- **SERVICES.md updated** — Vision model, LiteLLM route, model inventory all documented.
 
-*Last updated: 2026-03-15 20:43 PDT
+### Next Actions
+1. First morning manager session — monitor logs
+2. Monitor vLLM upgrade path (v0.17.2+ for FP8 crash fix) — do NOT rebuild Docker images yet
+3. Mount WORKSHOP ZFS pool (local scratch storage)
+4. Tune governor autonomy levels — currently all tasks default to pending_approval, need trust ramp-up
+5. Review duplicate home-agent tasks (same prompt × 6) — plan decomposition creating too many copies
+6. Wire vision model into agent system — media-agent and research-agent should use vision for image analysis
+7. Install 10GbE NIC in DEV (physical — Shaun)
+
+*Last updated: 2026-03-16 00:00 PDT
 

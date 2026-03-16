@@ -173,6 +173,7 @@ _MODEL_ALIAS_MAP: dict[str, str] = {
     "worker": "workshop",
     "embedding": "dev",
     "reranker": "dev",
+    "vision": "workshop",
 }
 
 # Agent name → node where its backing model runs

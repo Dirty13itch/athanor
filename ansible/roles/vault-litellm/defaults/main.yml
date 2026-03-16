@@ -24,6 +24,10 @@ vllm_node2_host: 192.168.1.225
 vllm_node2_port: 8000
 vllm_node2_model: "/models/Qwen3.5-35B-A3B-AWQ-4bit"
 
+vllm_vision_host: 192.168.1.225
+vllm_vision_port: 8010
+vllm_vision_model: "/models/Qwen3-VL-8B-Instruct-FP8"
+
 vllm_embedding_host: "{{ dev_ip | default('192.168.1.189') }}"
 vllm_embedding_port: 8001
 vllm_embedding_model: "/models/Qwen3-Embedding-0.6B"

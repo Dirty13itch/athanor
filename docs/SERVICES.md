@@ -2,7 +2,7 @@
 
 *Live service inventory. Updated when services change.*
 
-Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-website, blackbox-exporter to VAULT)
+Last updated: 2026-03-16 (Added vLLM Vision model on Workshop 5060Ti :8010, vision LiteLLM route)
 
 ## Node 1 â€” Foundry (192.168.1.244)
 
@@ -45,7 +45,8 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 | vLLM (Qwen3.5-35B-A3B-AWQ-4bit) | 8000 | RTX 5090, vLLM nightly, `--tool-call-parser qwen3_xml`, `--kv-cache-dtype auto` |
 | Dashboard | 3001 | Next.js 16, PWA, 5 lens modes, SSE real-time, 17+ pages |
 | ws-pty Bridge | 3100 | WebSocket terminal bridge (node-pty + ws sidecar) |
-| ComfyUI | 8188 | Flux dev FP8 + Wan2.x T2V, RTX 5060 Ti, WanVideoWrapper + KJNodes |
+| vLLM Vision (Qwen3-VL-8B-Instruct-FP8) | 8010 | RTX 5060 Ti (GPU 1), multimodal vision-language model, FP8, 8K context |
+| ComfyUI | 8188 | Flux dev FP8 + Wan2.x T2V, RTX 5060 Ti (GPU 1, shared with vLLM Vision — cannot run simultaneously) |
 | EoBQ | 3002 | Empire of Broken Queens â€” Next.js game app |
 | Open WebUI | 3000 | Chat interface (Workshop-local, routes to Node 1 vLLM) |
 | Grafana Alloy | â€” | Log/metric forwarding |
@@ -58,7 +59,7 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 
 | Service | Port | Details |
 |---------|------|---------|
-| LiteLLM Proxy | 4000 | Routed local + cloud inference: reasoning, coding, coder, creative, utility, fast, worker, uncensored, embedding, reranker, Anthropic, OpenAI, Google, DeepSeek, Moonshot, Z.ai, OpenRouter. LangFuse callbacks. Auth is env-backed. |
+| LiteLLM Proxy | 4000 | Routed local + cloud inference: reasoning, coding, coder, creative, utility, fast, worker, uncensored, vision, embedding, reranker, Anthropic, OpenAI, Google, DeepSeek, Moonshot, Z.ai, OpenRouter. LangFuse callbacks. Auth is env-backed. |
 | Neo4j | 7474/7687 | Graph DB (3095 nodes, 4447 rels), auth is env-backed. |
 | Redis | 6379 | GWT workspace + GPU orchestrator state + scheduler |
 | Qdrant | 6333/6334 | VAULT-side vector DB instance |
@@ -145,6 +146,7 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 | `fast` / `gpt-3.5-turbo` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `worker` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `uncensored` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
+| `vision` | vLLM | Qwen3-VL-8B-Instruct-FP8 | Workshop :8010 (5060Ti) |
 | `embedding` / `text-embedding-ada-002` | vLLM | Qwen3-Embedding-0.6B | DEV :8001 |
 | `reranker` | vLLM | Reranker model | DEV :8003 |
 | `claude` | Anthropic API | Claude | Cloud |
@@ -162,6 +164,7 @@ Last updated: 2026-03-14 (Session 56 — added backup-exporter, ulrich-energy-we
 | Qwen3.5-27B-FP8 | ~29G | Coordinator (LiteLLM: `reasoning`, `coding`) - Foundry TP=4 |
 | Qwen3.5-35B-A3B-AWQ-4bit | ~22G | Worker lane (LiteLLM: `fast`, `worker`, `creative`, `utility`, `uncensored`) - Workshop |
 | Qwen3.5-35B-A3B-AWQ-4bit | ~16G | Coder lane (LiteLLM: `coder`) - Foundry GPU 2 (4090) |
+| Qwen3-VL-8B-Instruct-FP8 | ~10G | Vision-language model (LiteLLM: `vision`) - Workshop 5060Ti :8010 |
 | Qwen3-32B-AWQ | 19G | Previous reasoning model (replaced by Qwen3.5-27B-FP8) |
 | GLM-4.7-Flash-GPTQ-4bit | 16G | Previous local creative candidate (not currently loaded) |
 | Huihui-Qwen3.5-27B-abliterated | 52G | Abliterated 27B (available, not loaded) |
