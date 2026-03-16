@@ -298,6 +298,7 @@ from .routes.chat import router as chat_router
 from .routes.emergency import router as emergency_router
 from .routes.workflows import router as workflows_router
 from .routes.governor import router as governor_router
+from .routes.plans import router as plans_router
 
 app.include_router(subscriptions_router)
 app.include_router(notifications_router)
@@ -317,6 +318,7 @@ app.include_router(chat_router)
 app.include_router(emergency_router)
 app.include_router(workflows_router)
 app.include_router(governor_router)
+app.include_router(plans_router)
 
 # --- Factory routers (modules that define create_*_router()) ---
 
