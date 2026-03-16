@@ -53,6 +53,15 @@ const FALLBACK_ARCHETYPE_COLORS: Record<string, string> = {
   innocent: "oklch(0.7 0.1 350)",
 };
 
+function getBreakingStage(resistance: number): string {
+  if (resistance >= 80) return "Defiant";
+  if (resistance >= 60) return "Struggling";
+  if (resistance >= 40) return "Conflicted";
+  if (resistance >= 20) return "Yielding";
+  if (resistance >= 1) return "Surrendered";
+  return "Broken";
+}
+
 function archetypeColor(archetype: string, colors: Record<string, string>): string {
   return colors[archetype] ?? FALLBACK_ARCHETYPE_COLORS[archetype] ?? "oklch(0.5 0.05 250)";
 }
@@ -164,8 +173,41 @@ function QueenDetail({ queen, colors }: { queen: Queen; colors: Record<string, s
           <Badge style={{ backgroundColor: bg, color: archetypeForeground(queen.archetype) }}>
             {queen.archetype}
           </Badge>
-          <Badge variant="outline">Resistance {queen.resistance}</Badge>
-          <Badge variant="outline">Corruption {queen.corruption}</Badge>
+          <Badge variant="outline">{getBreakingStage(queen.resistance)}</Badge>
+        </div>
+
+        <div className="space-y-2">
+          <div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Resistance</span>
+              <span className="font-mono">{queen.resistance}/100</span>
+            </div>
+            <div className="mt-1 h-2 rounded-full bg-muted">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${queen.resistance}%`,
+                  backgroundColor: queen.resistance > 60 ? "oklch(0.6 0.15 25)" : queen.resistance > 30 ? "oklch(0.7 0.15 80)" : "oklch(0.5 0.15 300)",
+                }}
+              />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Corruption</span>
+              <span className="font-mono">{queen.corruption}/100</span>
+            </div>
+            <div className="mt-1 h-2 rounded-full bg-muted">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${queen.corruption}%`,
+                  backgroundColor: "oklch(0.5 0.2 300)",
+                  opacity: 0.4 + (queen.corruption / 100) * 0.6,
+                }}
+              />
+            </div>
+          </div>
         </div>
 
         <div>
