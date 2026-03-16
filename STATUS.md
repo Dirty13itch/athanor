@@ -1,6 +1,6 @@
 ﻿# Athanor System Status
 
-*Ground-truth assessment as of 2026-03-15. Auto-generated from live cluster inspection.*
+*Ground-truth assessment as of 2026-03-16. Auto-generated from live cluster inspection.*
 
 ---
 
@@ -89,10 +89,12 @@ Other containers: `athanor-agents` (9000), `athanor-gpu-orchestrator`, `alloy`, 
 
 ### WORKSHOP (.225) â€” 10 containers
 
-| GPU | Model | VRAM | Temp | Container | Port |
-|-----|-------|------|------|-----------|------|
-| 0: RTX 5090 | Qwen3.5-35B-A3B-AWQ-4bit | 31.3/32.6 GB | 38Â°C | vllm-node2 | 8000 |
-| 1: RTX 5060 Ti | Qwen3-VL-8B-FP8 + ComfyUI | 12.5/16.3 GB | 33Â°C | vllm-vision (8010), comfyui (8188) |
+| GPU | Model | VRAM | Container | Port |
+|-----|-------|------|-----------|------|
+| 0: RTX 5090 | Qwen3.5-35B-A3B-AWQ **OR** ComfyUI (time-shared) | ~31/32.6 GB | vllm-node2 / comfyui | 8000 / 8188 |
+| 1: RTX 5060 Ti | Qwen3-VL-8B-Instruct-FP8 (vision, dedicated) | ~12.5/16.3 GB | vllm-vision | 8010 |
+
+GPU 0 time-sharing: swap via `/v1/gpu/workshop/swap/{creative|inference}` (agent server) or `/api/gpu/swap` (dashboard). Currently: **inference mode**.
 
 Other: `athanor-dashboard` (3001), `athanor-eoq` (3002), `athanor-ws-pty-bridge` (3100), `open-webui` (3000), `alloy`, `dcgm-exporter`, `node-exporter`
 
@@ -1097,14 +1099,18 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - **Agent model alias map updated** — `workspace.py` `_MODEL_ALIAS_MAP` now includes `vision: workshop`.
 - **SERVICES.md updated** — Vision model, LiteLLM route, model inventory all documented.
 
+### GPU Time-Sharing + Swap API (Session cont)
+- **GPU time-sharing deployed** — Workshop 5090 (GPU 0) now time-shared between vLLM Worker and ComfyUI. ComfyUI moved from GPU 1 → GPU 0 (5090 is the creative powerhouse). Vision model stays on GPU 1 (5060Ti) permanently.
+- **GPU swap API** — Dashboard route (`/api/gpu/swap`) uses Docker Engine API via mounted socket. Agent server proxies to dashboard (`/v1/gpu/workshop/swap/{mode}`). Tested end-to-end: status returns correct mode and container states.
+- **GPU orchestrator zones updated** — 4 zones: coordinator (TP=4), coder (4090), worker (5090, time-shared), vision (5060Ti).
+- **All 6 models online** — Coordinator, Coder, Worker, Vision, Embedding, Reranker. `/v1/models/local` returns full health + model metadata.
+
 ### Next Actions
-1. First morning manager session — monitor logs
+1. Wire vision model into agent system — media-agent and research-agent should use vision for image analysis
 2. Monitor vLLM upgrade path (v0.17.2+ for FP8 crash fix) — do NOT rebuild Docker images yet
 3. Mount WORKSHOP ZFS pool (local scratch storage)
 4. Tune governor autonomy levels — currently all tasks default to pending_approval, need trust ramp-up
 5. Review duplicate home-agent tasks (same prompt × 6) — plan decomposition creating too many copies
-6. Wire vision model into agent system — media-agent and research-agent should use vision for image analysis
-7. Install 10GbE NIC in DEV (physical — Shaun)
+6. Install 10GbE NIC in DEV (physical — Shaun)
 
-*Last updated: 2026-03-16 00:00 PDT
-
+*Last updated: 2026-03-16 02:00 PDT*
