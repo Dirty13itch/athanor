@@ -37,6 +37,8 @@ This adds an entirely new modality (image/video understanding) that doesn't exis
 
 **Why Qwen3-VL-8B:** AWQ 4-bit fits comfortably in 16GB with room for 8-16K context KV cache. It adds vision to every agent — Research can analyze screenshots, Knowledge can read documents/charts, Creative can understand reference images, Home can process camera feeds. The model supports 256K context natively and understands video. Deploy via vLLM with `--max-model-len 8192 --gpu-memory-utilization 0.90`. Do NOT pass `--quantization awq` if using compressed-tensors format — let vLLM auto-detect.
 
+**Alternative: GPT-OSS-20B (MXFP4)** — OpenAI's first open-weight model (Apache 2.0, released 2026). MoE with 20.9B total / 3.6B active params, ships in MXFP4 format for 16GB deployment (~13.7GB VRAM). Matches o3-mini on reasoning, strong function calling, 42 tok/s. vLLM v0.17.0 added MXFP4 kernel support for sm_120. This provides model diversity (not all Qwen) and a genuine "fast reasoning" tier. **However**, vision adds a new *capability* whereas GPT-OSS adds redundant *capacity* (text generation). Vision is higher ROI unless we need a non-Qwen fallback.
+
 **LiteLLM route:** Add `vision` alias pointing to Workshop 5060Ti. Agents can then request vision capability through the existing routing infrastructure.
 
 Sources:
@@ -61,7 +63,9 @@ vllm serve Qwen/Qwen3.5-27B-FP8 \
 - Only `num_speculative_tokens: 1` works for Qwen3.5-27B (2+ crashes)
 - Known bugs with tool calling in speculative mode (vllm#35800)
 
-**Recommendation:** Test MTP-1 on the Coordinator (FOUNDRY TP=4) for the interactive `reasoning` route. Do NOT enable on high-throughput worker routes. Monitor acceptance rate — if below 70%, the overhead isn't worth it.
+**CRITICAL caveat (from GPU research agent):** MTP-1 is **incompatible with prefix caching** and requires `max-num-seqs 1` for decent acceptance rates. For a 9-agent system, disabling prefix caching to gain ~16% ITL improvement is a net loss.
+
+**Revised recommendation:** Enable MTP-1 only on the **Coder** model (FOUNDRY 4090, single-user, prefix caching less critical). Do NOT enable on Coordinator or Worker. Also consider n-gram speculation (zero cost, works everywhere) on all instances.
 
 Sources:
 - [vLLM Qwen3.5 Recipe](https://docs.vllm.ai/projects/recipes/en/latest/Qwen/Qwen3.5.html)
@@ -229,25 +233,26 @@ EPYC 7663 has 8 NUMA nodes (1 per CCD). With 7 DIMMs across 7 channels, memory a
 
 ### 3.1 Workshop T700 Drives (3x 1TB Gen5 NVMe — UNMOUNTED)
 
-**Recommendation: RAID0 as local model cache + fast scratch**
+**Recommendation: Individual mounts (not RAID0)**
 
-These are Gen5 NVMe drives (~12 GB/s sequential each). In RAID0: ~36 GB/s theoretical, ~25 GB/s practical.
+Storage research agent analysis: each T700 delivers ~11.7 GB/s sequential, which already exceeds any single workload's need. RAID0 adds complexity without real benefit. Individual mounts allow flexible allocation.
 
 **Configuration:**
 ```bash
 # Clear stale ZFS labels
 wipefs -a /dev/nvme1n1 /dev/nvme2n1 /dev/nvme3n1
-# Create mdadm RAID0
-mdadm --create /dev/md0 --level=0 --raid-devices=3 /dev/nvme1n1 /dev/nvme2n1 /dev/nvme3n1
-mkfs.ext4 /dev/md0
-mount /dev/md0 /mnt/local-fast
+# Format individually
+mkfs.ext4 /dev/nvme1n1 && mount /dev/nvme1n1 /data/models
+mkfs.ext4 /dev/nvme2n1 && mount /dev/nvme2n1 /data/scratch
+mkfs.ext4 /dev/nvme3n1 && mount /dev/nvme3n1 /data/docker
 ```
 
 **Uses:**
-- Local model cache (rsync from VAULT NFS → local NVMe). Cold start: seconds instead of minutes.
-- ComfyUI scratch space (Flux/Wan2.x intermediate files)
-- KV cache spill tier (if vLLM ever supports NVMe-backed KV)
-- Future training data staging
+- `/data/models`: Local model cache (rsync from VAULT NFS). Cold start: seconds instead of minutes.
+- `/data/scratch`: ComfyUI scratch space (Flux/Wan2.x intermediate files)
+- `/data/docker`: Docker data directory (images, volumes) — faster container builds
+
+**Note:** T700 throttles at 181F — monitor thermals, especially under sustained write.
 
 ### 3.2 Model Loading Optimization
 
@@ -330,7 +335,7 @@ Qdrant on FOUNDRY (34K+ points, 9 collections) — check if it's using mmap or i
 
 FOUNDRY's ROMED8-2T has 2x Intel X550 10GbE onboard. Currently only one is used.
 
-**Action:** Bond both NICs for 20Gbps aggregate bandwidth to VAULT.
+**Action:** Bond both NICs for redundancy and aggregate bandwidth.
 
 ```bash
 # /etc/netplan/01-bond.yaml
@@ -347,7 +352,7 @@ network:
 
 **Requires:** LACP support on the UniFi USW Pro XG 10 PoE switch (supported).
 
-**Benefit:** 2x bandwidth for NFS model loading, NFS-backed dataset access, and any future distributed inference.
+**Important caveat (from network research agent):** LACP hashes by flow — a single NFS mount = a single TCP flow = a single link. LACP will NOT give 20Gbps for a single NFS stream. Use NFS `nconnect=2` mount option to distribute across both links. Main value is redundancy (immediate failover if one NIC fails).
 
 ### 4.2 Disaggregated Prefill/Decode
 
@@ -475,17 +480,22 @@ Already have Prometheus + Grafana + Loki. Add inference-specific dashboards:
 - VAULT's 47 containers are a lot for one machine
 - Reduces VAULT load, improves HDD throughput for media workloads
 
-**Recommendation: Option B** — A dedicated batch/eval node adds the most value without disrupting production. The 12700K's 8 P-cores give decent CPU inference, and the 2x RTX 3060 can run 7-8B models for testing/evaluation without consuming production GPU capacity.
+**Agent disagreement on this decision:**
+- CPU/RAM agent says **don't build** — 24GB slow VRAM (360 GB/s vs 896-1008 GB/s on existing GPUs), no AVX-512, management overhead exceeds value. Keep parts as hot spares.
+- Network agent says **build** — 24GB additional VRAM for batch/eval, CI pipeline runner, model testing sandbox.
+- GPU agent says **sell the 3060s** — vLLM V1 engine has known OOM crashes on 12GB consumer cards. Two 3060s ($500-600 resale) would fund a new RTX 5060 Ti 16GB ($450).
+
+**My assessment:** The sell-and-upgrade path is most compelling. Two aging 12GB Ampere cards with OOM issues vs one 16GB Blackwell card with modern tensor cores is a clear win. But building costs $0 and selling requires effort, so this is a priority call for Shaun.
 
 ### Build Decision Matrix
 
-| Factor | Build Now | Wait |
-|--------|-----------|------|
-| Cost | $0 (parts on hand) | — |
-| Power | +150W idle | None |
-| Complexity | +1 node to manage | None |
-| Value | Batch processing, eval, experimentation | Parts depreciate |
-| Risk | Another system to maintain | None |
+| Factor | Build ($0) | Sell 3060s + Buy 5060Ti (~+$0 net) | Keep as Spares |
+|--------|------------|-------------------------------------|----------------|
+| VRAM gained | +24GB (slow) | +16GB (fast, Blackwell) | 0 |
+| Effort | 4hrs build | Selling/shipping time | None |
+| Power | +200W idle | +180W idle | None |
+| Compatibility | Needs separate vLLM image (sm_86) | Same image as cluster | N/A |
+| Risk | OOM issues on 12GB | Proven hardware | Parts depreciate |
 
 ---
 
@@ -497,7 +507,7 @@ Already have Prometheus + Grafana + Loki. Add inference-specific dashboards:
 |---|--------|--------|--------|
 | 1 | Deploy Qwen3-VL-8B on Workshop 5060Ti | New vision capability | 30 min |
 | 2 | Undervolt all Blackwell GPUs | -120W, better sustained perf | 15 min |
-| 3 | Mount Workshop T700 drives as RAID0 | 3TB fast local storage | 30 min |
+| 3 | Mount Workshop T700 drives individually | 3TB fast local storage | 30 min |
 | 4 | Tune NFS mount options (rsize/wsize/nconnect) | 2-3x NFS throughput | 15 min |
 | 5 | Install 10GbE NIC in DEV | Consistent cluster networking | 20 min (physical) |
 
@@ -506,8 +516,8 @@ Already have Prometheus + Grafana + Loki. Add inference-specific dashboards:
 | # | Action | Impact | Effort |
 |---|--------|--------|--------|
 | 6 | Test KV cache offloading on Coordinator | Better cache hit rates, lower TTFT | 2 hrs |
-| 7 | Test MTP-1 speculative decoding on Coordinator | Lower TPOT for interactive | 2 hrs |
-| 8 | Bond FOUNDRY NICs (LACP) | 20Gbps to VAULT | 1 hr |
+| 7 | Test MTP-1 speculative decoding on Coder only | Lower TPOT for coding (NOT Coordinator — breaks prefix cache) | 2 hrs |
+| 8 | Bond FOUNDRY NICs (LACP) | Redundancy + nconnect=2 for NFS | 1 hr |
 | 9 | Deploy llama.cpp on FOUNDRY for batch route | Free CPU inference for low-priority | 2 hrs |
 | 10 | Add vLLM Prometheus dashboards to Grafana | Inference observability | 1 hr |
 
@@ -515,11 +525,22 @@ Already have Prometheus + Grafana + Loki. Add inference-specific dashboards:
 
 | # | Action | Impact | Effort |
 |---|--------|--------|--------|
-| 11 | Build 5th node | Dedicated batch/eval capacity | 4 hrs |
+| 11 | Decide: build 5th node, sell 3060s for 5060Ti, or keep as spares | GPU capacity decision (Shaun call) | — |
 | 12 | Install 4x P310 in VAULT Hyper M.2 | Faster NFS cache pool | 1 hr (physical) |
 | 13 | Test vLLM v0.17.1 upgrade on DEV | Performance mode, SM120 optimizations | 4 hrs |
 | 14 | NUMA pinning optimization on FOUNDRY | 5-15% memory perf improvement | 2 hrs |
 | 15 | Evaluate Portainer for cluster UI | Operational visibility | 2 hrs |
+
+---
+
+## Appendix: Sub-Agent Research Reports
+
+Four research agents produced detailed reports on specific domains. These are available in worktree branches:
+
+1. **GPU Optimization** — GPT-OSS-20B recommendation, RTX 3060 sell analysis, MTP-1/prefix-cache incompatibility
+2. **CPU/RAM Optimization** — KV cache offloading config, llama.cpp benchmarks, TEI CPU embedding, NUMA pinning
+3. **Storage Optimization** — Individual T700 mounts, FOUNDRY model path verification, VAULT NFS `nconnect=8`
+4. **Network/Infrastructure** — LACP flow-hashing caveat, Komodo container management, power management, 25GbE upgrade pricing
 
 ---
 
