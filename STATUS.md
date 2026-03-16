@@ -1271,4 +1271,16 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - In-game gallery: `workshop:3002/gallery`
 - Note: vLLM vision model (GPU 1) stopped. Restart with `docker start vllm-vision` when needed.
 
-*Last updated: 2026-03-16 09:45 PDT
+**Gallery Improvements:**
+- Fixed dashboard image proxy — was passing subfolder in filename (404). Now splits correctly.
+- Rewrote gallery-console.tsx: masonry layout, type badges (PuLID/portrait/scene), prompt excerpts, fullscreen lightbox.
+- Generated 7 images: 4 PuLID portraits (Ava Addams, Madison Ivy, Nikki Benz, first test), 2 scenes, 1 basic portrait.
+- All images verified loading through dashboard proxy at workshop:3001/gallery.
+
+**Critical Bug Fixed:**
+- Queen DNA injection was broken in actual game flow — request normalizer stripped sexualDNA fields.
+  Chat and choices routes now look up queen by ID from server-side QUEENS data and merge with client's mutable state.
+- PuLID generate route now handles URL references (Stash returns URLs, not file paths).
+- Stash route validates profile image size to filter silhouette placeholders.
+
+*Last updated: 2026-03-16 10:00 PDT
