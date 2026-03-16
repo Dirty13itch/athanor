@@ -301,11 +301,40 @@ async def _check_starvation():
         now = time.time()
         threshold = 24 * 3600  # 24 hours
 
+        starved = []
         for project_id, ts in last_tasks.items():
             pid = project_id.decode() if isinstance(project_id, bytes) else project_id
             ts_val = float(ts.decode() if isinstance(ts, bytes) else ts)
             if now - ts_val > threshold:
-                logger.info("Starvation detected: project %s has no tasks in 24h", pid)
-                # Could trigger priority boost here in future
+                hours_idle = round((now - ts_val) / 3600, 1)
+                logger.info("Starvation detected: project %s idle for %.1f hours", pid, hours_idle)
+                starved.append(pid)
+
+        # Auto-recovery: publish starvation event and submit a general-assistant
+        # planning task to review the starved project
+        if starved:
+            from .tasks import submit_task
+            for pid in starved[:2]:  # Max 2 recovery tasks per cycle
+                try:
+                    await submit_task(
+                        agent="general-assistant",
+                        prompt=(
+                            f"Project '{pid}' has had no activity for over 24 hours. "
+                            f"Review its current status, check for blockers, and suggest "
+                            f"the next actionable step. Be specific and practical."
+                        ),
+                        priority="low",
+                        metadata={"source": "pipeline", "trigger": "starvation_recovery", "project": pid},
+                    )
+                    logger.info("Starvation recovery task submitted for project %s", pid)
+                except Exception as e:
+                    logger.warning("Failed to submit recovery task for %s: %s", pid, e)
+
+            # Publish event for dashboard visibility
+            await r.publish("athanor:tasks:events", json.dumps({
+                "event": "starvation_detected",
+                "projects": starved,
+                "timestamp": now,
+            }))
     except Exception as e:
         logger.debug("Starvation check failed: %s", e)
