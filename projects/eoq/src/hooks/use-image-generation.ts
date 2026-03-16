@@ -209,12 +209,13 @@ export function useImageGeneration() {
     // Generate scene background
     generateSceneImage(scene.id, scene.visualPrompt);
 
-    // Generate portrait for the first present character
-    const charId = scene.presentCharacters[0];
-    if (charId) {
-      const char = session.characters[charId];
-      if (char) {
-        generatePortrait(charId, char);
+    // Generate portraits for all present characters (fire-and-forget)
+    if (scene.presentCharacters.length > 0) {
+      for (const charId of scene.presentCharacters) {
+        const char = session.characters[charId];
+        if (char) {
+          generatePortrait(charId, char);
+        }
       }
     } else {
       // No character present — clear portrait
