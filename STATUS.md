@@ -1040,13 +1040,18 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 8. ~~Fix empty `active_goals` intent text~~ — DONE. `intent_miner.py` was reading `description` but goals use `text` field. Fixed, deployed, verified (9 new intents with full text).
 9. ~~Deploy docker-socket-proxy to FOUNDRY~~ — DONE. Read-only (POST=0) at 192.168.1.244:2375. Dashboard can query FOUNDRY containers safely.
 
+### First Autonomous Execution (Session 60n cont)
+10. ~~Clean up empty-text plans~~ — DONE. 4 empty drafts deleted from Redis.
+11. ~~First end-to-end pipeline test~~ — DONE. Approved Home Automation plan → decomposed into tasks → governor gated at pending_approval → manually approved → task worker executing. Knowledge-agent completed health check autonomously with useful output. **System is live and producing real work.**
+
 ### Next Actions
-1. Run first real morning manager session (non-dry-run) to validate end-to-end
+1. First morning manager session runs at 07:00 tomorrow — monitor logs
 2. GPU scheduling: decide ComfyUI vs vLLM on WORKSHOP 5090 time-sharing
 3. Monitor vLLM upgrade path (v0.17.2+ for FP8 crash fix) — do NOT rebuild Docker images yet
 4. Deploy fast model on WORKSHOP 5060 Ti (second inference endpoint)
 5. Mount WORKSHOP ZFS pool (local scratch storage)
-6. Clean up empty-text plans from pre-fix pipeline cycles
+6. Tune governor autonomy levels — currently all tasks default to pending_approval, need trust ramp-up
+7. Review duplicate home-agent tasks (same prompt × 6) — plan decomposition creating too many copies
 
-*Last updated: 2026-03-15 20:32 PDT
+*Last updated: 2026-03-15 20:40 PDT
 
