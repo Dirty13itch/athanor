@@ -361,10 +361,16 @@ export default function GamePage() {
               Act I: The Shattered Court
             </button>
             <button
-              onClick={() => setShowQueenRoster(true)}
+              onClick={() => startCouncilSession()}
               className="rounded border border-rose-500/40 bg-black/60 px-8 py-3 text-lg text-rose-400 transition-colors hover:bg-rose-900/30"
             >
               The Queen&apos;s Council
+            </button>
+            <button
+              onClick={() => setShowQueenRoster(true)}
+              className="rounded border border-rose-500/20 bg-black/40 px-8 py-3 text-sm text-rose-300/60 transition-colors hover:bg-rose-900/20"
+            >
+              Quick Audience (pick a queen)
             </button>
             {savedGameExists && (
               <button
