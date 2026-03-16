@@ -25,6 +25,7 @@ class ModelTier(Enum):
     FAST = "fast"
     REASONING = "reasoning"
     WORKER = "worker"
+    CLOUD = "cloud"  # Quality escalation — cloud models for high-stakes tasks
 
 
 class TaskType(Enum):
@@ -53,13 +54,34 @@ TIER_MODELS = {
     ModelTier.FAST: "fast",          # Workshop worker lane optimized for fast interactive use
     ModelTier.REASONING: "reasoning",  # Qwen3.5-27B-FP8 on Foundry TP=4
     ModelTier.WORKER: "worker",      # Qwen3.5-35B-A3B-AWQ on Workshop
+    ModelTier.CLOUD: "claude",       # Anthropic Claude Sonnet — quality escalation
 }
 
+# Cloud model pool — rotated for cost distribution
+CLOUD_MODELS = ["claude", "gpt", "gemini", "deepseek"]
+
 # Fallback chains: if preferred model is busy, try these
+# Cloud escalation: when all local models are busy, escalate to cloud
 FALLBACK_CHAINS = {
-    "reasoning": ["worker", "fast"],
+    "reasoning": ["worker", "fast", "claude"],
     "fast": ["worker", "reasoning"],
-    "worker": ["reasoning", "fast"],
+    "worker": ["reasoning", "fast", "claude"],
+    "claude": ["gpt", "gemini", "deepseek", "reasoning"],
+}
+
+# Task types that should prefer cloud for quality
+CLOUD_PREFERRED_TASKS = {TaskType.RESEARCH, TaskType.CREATIVE}
+
+# Subscription provider names → LiteLLM model aliases
+PROVIDER_TO_MODEL = {
+    "athanor_local": "reasoning",
+    "anthropic_claude_code": "claude",
+    "openai_codex": "gpt",
+    "google_gemini": "gemini",
+    "moonshot_kimi": "kimi-k2.5",
+    "zai_glm_coding": "glm-4.7",
+    "deepseek": "deepseek",
+    "venice": "venice-uncensored",
 }
 
 
@@ -198,8 +220,8 @@ TASK_ROUTING = {
     TaskType.CHAT: ModelTier.FAST,
     TaskType.CODE: ModelTier.REASONING,
     TaskType.REASONING: ModelTier.REASONING,
-    TaskType.RESEARCH: ModelTier.REASONING,
-    TaskType.CREATIVE: ModelTier.REASONING,
+    TaskType.RESEARCH: ModelTier.CLOUD,   # Research benefits from cloud model quality
+    TaskType.CREATIVE: ModelTier.CLOUD,   # Creative tasks use cloud for better output
     TaskType.SYSTEM: ModelTier.REASONING,
     TaskType.HOME: ModelTier.FAST,
     TaskType.MEDIA: ModelTier.FAST,
@@ -212,9 +234,16 @@ def route(
     queue_depths: dict[str, int] | None = None,
     prefer_quality: bool = False,
     high_queue_threshold: int = 5,
+    metadata: dict | None = None,
+    prefer_local: bool = False,
 ) -> RoutingDecision:
     """
-    Route a prompt to the optimal local model.
+    Route a prompt to the optimal model — local or cloud.
+
+    Cloud routing is activated when:
+    1. Task metadata contains an execution lease with a cloud provider, OR
+    2. Task type is in CLOUD_PREFERRED_TASKS and prefer_local is False, OR
+    3. All local models are busy (queue depth fallback to cloud)
 
     Args:
         prompt: User prompt
@@ -222,14 +251,36 @@ def route(
         queue_depths: Dict of model_name → current queue depth
         prefer_quality: Bump to reasoning tier if uncertain
         high_queue_threshold: Queue depth above which to use fallback
+        metadata: Task metadata (may contain subscription lease)
+        prefer_local: Force local-only routing (for privacy-sensitive tasks)
 
     Returns:
         RoutingDecision with LiteLLM model name
     """
     task_type = classify_task(prompt, system_prompt)
+    metadata = metadata or {}
+
+    # Check for subscription lease in metadata → cloud routing
+    lease = metadata.get("lease") or metadata.get("execution_lease")
+    if lease and not prefer_local:
+        provider = lease.get("provider") or lease.get("recommended_provider", "")
+        if provider and provider in PROVIDER_TO_MODEL:
+            cloud_model = PROVIDER_TO_MODEL[provider]
+            return RoutingDecision(
+                model=cloud_model,
+                tier=ModelTier.CLOUD,
+                confidence=0.9,
+                reason=f"Subscription lease → {provider} → {cloud_model}",
+                task_type=task_type,
+            )
+
     preferred_tier = TASK_ROUTING[task_type]
 
     if prefer_quality and preferred_tier == ModelTier.FAST:
+        preferred_tier = ModelTier.REASONING
+
+    # Cloud-preferred tasks use cloud when not forced local
+    if preferred_tier == ModelTier.CLOUD and prefer_local:
         preferred_tier = ModelTier.REASONING
 
     model = TIER_MODELS[preferred_tier]

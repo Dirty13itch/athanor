@@ -302,7 +302,7 @@ async def submit_task(
         return existing
 
     task_metadata = metadata or {}
-    if agent in {"coding-agent", "research-agent"}:
+    if agent in {"coding-agent", "research-agent", "general-assistant"}:
         from .subscriptions import attach_task_execution_lease
 
         try:
