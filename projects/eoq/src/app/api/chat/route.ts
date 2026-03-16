@@ -27,6 +27,11 @@ export async function POST(req: Request) {
   const character: Character = knownQueen
     ? { ...knownQueen, ...parsed.data.character } as Character
     : parsed.data.character;
+  // Enrich other characters for multi-queen scenes
+  const otherCharacters = (parsed.data.otherCharacters ?? []).map((c) => {
+    const known = QUEENS[c.id];
+    return known ? { ...known, ...c } as Character : c;
+  });
   // Accept pre-fetched memory context from the client (uses recency-decay scoring)
   const clientMemoryContext = typeof (rawBody as Record<string, unknown>)?.memoryContext === "string"
     ? (rawBody as Record<string, unknown>).memoryContext as string
@@ -48,7 +53,9 @@ export async function POST(req: Request) {
   // Retrieve relevant memories from Qdrant (server-side, best-effort fallback)
   const memories = await fetchMemories(character.id, playerInput);
 
-  const systemPrompt = buildSystemPrompt(character, worldState, memories, clientMemoryContext);
+  const systemPrompt = otherCharacters.length > 0
+    ? buildMultiCharacterPrompt(character, otherCharacters, worldState, memories, clientMemoryContext)
+    : buildSystemPrompt(character, worldState, memories, clientMemoryContext);
   const messages = buildMessages(systemPrompt, recentHistory, playerInput);
 
   // Route to abliterated model at intensity >= 3 — guaranteed no refusal
@@ -315,4 +322,87 @@ function buildMessages(
   messages.push({ role: "user", content: playerInput });
 
   return messages;
+}
+
+/**
+ * Build a system prompt for multi-queen scenes.
+ * The LLM voices the primary character but is aware of (and reacts to) others present.
+ * The primary character's responses should be shaped by the rivalry/alliance dynamics.
+ */
+function buildMultiCharacterPrompt(
+  primary: Character,
+  others: Character[],
+  world: WorldState,
+  qdrantMemories: string[] = [],
+  clientMemoryContext = "",
+): string {
+  // Start with the regular system prompt for the primary character
+  const basePrompt = buildSystemPrompt(primary, world, qdrantMemories, clientMemoryContext);
+
+  // Build context about each other character present
+  const otherDescriptions = others.map((other) => {
+    const stage = getBreakingStage(other.resistance);
+    const rel = other.relationship;
+    return `- ${other.name}${other.title ? ` (${other.title})` : ""}: ${other.archetype} archetype, ${stage} (resistance ${other.resistance}/100). Trust: ${rel.trust}, Respect: ${rel.respect}. Current emotion: ${other.emotion.primary}`;
+  }).join("\n");
+
+  // Determine rivalry dynamics based on archetypes and breaking stages
+  const rivalryContext = buildRivalryDynamics(primary, others);
+
+  return `${basePrompt}
+
+MULTI-CHARACTER SCENE — OTHER QUEENS PRESENT:
+${otherDescriptions}
+
+${rivalryContext}
+
+MULTI-SCENE INSTRUCTIONS:
+- You are ${primary.name}. Speak as yourself, but react to the other queens' presence.
+- Include brief reactions, side-glances, or comments about the other queens in *italics*.
+- Your rivalry dynamics above should influence your tone and behavior.
+- If another queen would naturally speak or react, you may include a brief line from them in the format: **QueenName:** "Their words."
+- The player can address any queen. If addressed to another queen, you may interject or react.
+- Keep the primary focus on YOUR character's perspective and reactions.`;
+}
+
+/** Determine how queens relate to each other based on archetypes and states */
+function buildRivalryDynamics(primary: Character, others: Character[]): string {
+  const dynamics: string[] = [];
+
+  for (const other of others) {
+    const primaryStage = getBreakingStage(primary.resistance);
+    const otherStage = getBreakingStage(other.resistance);
+
+    // More broken queen resents less broken queen
+    if (primary.resistance < other.resistance) {
+      dynamics.push(`You resent ${other.name}'s continued defiance. She still holds what you've lost.`);
+    } else if (primary.resistance > other.resistance) {
+      dynamics.push(`${other.name} has broken further than you. You feel contempt — or perhaps fear that you'll follow.`);
+    }
+
+    // Archetype-based tensions
+    if (primary.archetype === "warrior" && other.archetype === "sorceress") {
+      dynamics.push(`You distrust ${other.name}'s magic. Sorcery is the weapon of cowards.`);
+    } else if (primary.archetype === "seductress" && other.archetype === "innocent") {
+      dynamics.push(`${other.name}'s naivety disgusts you — or reminds you of what you used to be.`);
+    } else if (primary.archetype === other.archetype) {
+      dynamics.push(`${other.name} shares your nature. That makes her your most dangerous rival.`);
+    }
+
+    // Jealousy based on player relationship
+    if (primary.relationship.desire > 50 && other.relationship.desire > 50) {
+      dynamics.push(`Both you and ${other.name} desire the player. Neither will yield gracefully.`);
+    }
+
+    // Submission creates hierarchy
+    if (primaryStage === "broken" && otherStage === "defiant") {
+      dynamics.push(`You serve the player utterly. ${other.name}'s defiance is an insult to your devotion.`);
+    }
+  }
+
+  if (dynamics.length === 0) {
+    dynamics.push("The queens maintain a tense, wary neutrality.");
+  }
+
+  return `RIVALRY DYNAMICS:\n${dynamics.join("\n")}`;
 }

@@ -562,6 +562,12 @@ export function useGameEngine() {
         // Memory retrieval is best-effort
       }
 
+      // Collect other characters in the scene for multi-queen interactions
+      const otherCharacters = session.worldState.currentScene.presentCharacters
+        .filter((id) => id !== currentCharId)
+        .map((id) => session.characters[id])
+        .filter(Boolean);
+
       const resp = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -572,6 +578,7 @@ export function useGameEngine() {
           recentHistory,
           playerInput,
           memoryContext,
+          ...(otherCharacters.length > 0 ? { otherCharacters } : {}),
         }),
       });
 

@@ -189,6 +189,55 @@ export const QUEEN_COUNCIL_HALL: SceneDefinition = {
   exits: [], // Exits generated dynamically from available queens
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Multi-Queen Rivalry Scenes — 2+ queens interact, compete, and react
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Confrontation scene — two queens face off, player mediates or exploits */
+export const QUEEN_CONFRONTATION: SceneDefinition = {
+  id: "queen-confrontation",
+  name: "The Judgment Hall",
+  description:
+    "A narrow hall of polished black stone, lit by a single row of oil lamps. Two chairs face each other across a low table. No throne here — just two queens, forced into proximity by your summons. The tension is a living thing. You stand at the head, watching them watching each other.",
+  visualPrompt:
+    "Dark fantasy judgment hall, polished black stone walls, single row of oil lamps, two ornate chairs facing each other, low table between them, tense atmosphere, dramatic shadow lighting, gothic architecture, cinematic, 8k, photorealistic",
+  presentCharacters: [], // Populated with two queens dynamically
+  exits: [
+    { label: "Dismiss them both", targetSceneId: "queen-council-hall" },
+    { label: "Send one away", targetSceneId: "queen-audience" },
+  ],
+};
+
+/** Banquet scene — multiple queens together, social dynamics play out */
+export const QUEEN_BANQUET: SceneDefinition = {
+  id: "queen-banquet",
+  name: "The Conqueror's Banquet",
+  description:
+    "A long table groaning with food and wine, set in the great hall. Tapestries depicting your victories line the walls. The queens sit along both sides, each in their place — some by choice, some by force. Music plays from somewhere unseen. Beneath the civility, alliances form and break with every glance. You sit at the head, carving knife in hand.",
+  visualPrompt:
+    "Dark fantasy banquet hall, long wooden table with feast, tapestries on walls, multiple beautiful women seated at the table, goblets of wine, candlelight, warm but tense atmosphere, gothic opulence, cinematic wide shot, 8k, photorealistic",
+  presentCharacters: [], // Populated with 3-5 queens
+  exits: [
+    { label: "End the banquet", targetSceneId: "queen-council-hall" },
+    { label: "Call a queen to your side", targetSceneId: "queen-audience" },
+  ],
+};
+
+/** Rivalry duel — two queens compete for favor, player judges */
+export const QUEEN_RIVALRY_DUEL: SceneDefinition = {
+  id: "queen-rivalry-duel",
+  name: "The Arena of Favors",
+  description:
+    "A sunken pit ringed with torches, once used for gladiatorial contests. Now repurposed for a different kind of spectacle. Two queens stand at opposite ends, dressed for competition — one in armor, one in silk, both in fury. The court watches from above. You sit on the raised platform, the only judge that matters.",
+  visualPrompt:
+    "Dark fantasy arena pit, ring of torches, two beautiful women facing off at opposite ends, spectators watching from above, raised judge platform, dramatic contrast lighting, dust particles, cinematic, tension, 8k, photorealistic",
+  presentCharacters: [], // Populated with two rival queens
+  exits: [
+    { label: "Declare a victor", targetSceneId: "queen-council-hall" },
+    { label: "Take both to your chambers", targetSceneId: "queen-audience" },
+  ],
+};
+
 /** Starting scene for new games */
 export const STARTING_SCENE = "courtyard";
 
@@ -213,4 +262,10 @@ export const SCENE_INTROS: Record<string, string> = {
     "The tower shouldn't exist. Something this damaged should have collapsed entirely. Yet here it stands, broken halfway, its upper half scattered like teeth knocked from a jaw. At its base, a woman sits, her silver hair catching light from stars that aren't where they should be.",
   "vision-chamber":
     "The mirrors don't show your reflection. They show everything else — things that were, things that might be, things you desperately hope won't happen. At the center of it all, the orb pulses with a light that feels like it's looking back at you.",
+  "queen-confrontation":
+    "You summoned them both. They know why. The question isn't whether they'll fight — it's how, and whether you'll let them finish.",
+  "queen-banquet":
+    "Breaking bread with conquered queens. Some eat because they're hungry. Some because refusing would be worse. A few — the dangerous ones — eat because they're planning something.",
+  "queen-rivalry-duel":
+    "Two queens. One favor. The court watches with the particular hunger that comes from seeing powerful women diminished. You could stop this. You won't.",
 };
