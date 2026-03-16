@@ -454,14 +454,40 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - Dashboard proxy verified: `GET /api/governor` and `GET /api/pipeline/status` both proxy correctly to FOUNDRY:9000.
 - Added 2 missing MCP tools: `trigger_pipeline_cycle`, `trigger_improvement_cycle`.
 
+### Session 61 (2026-03-15) — Light the Furnace
+
+**Making the system self-sustaining. Backend throughput + Command Center UX.**
+
+**Phase 1: Backend Throughput (deployed to FOUNDRY)**
+- MAX_CONCURRENT_TASKS: 2 → 6 (match 6 model endpoints)
+- Pipeline: fixed 3x/day (06:00, 12:00, 18:00) → interval-based every 2 hours
+- MAX_QUEUE_DEPTH: 10 → 20 (match higher throughput)
+- Auto-approve medium-risk plans under 30min (expanded from low-risk only)
+- LiteLLM health probe: added bearer token (fixes 401 in health logs)
+- First pipeline cycle triggered: 19 intents mined, 0 new (dedup working)
+- All 6 health dependencies UP: redis, qdrant, litellm, coordinator, worker, embedding
+
+**Phase 2: Notifications**
+- VAPID keys generated and deployed to WORKSHOP dashboard .env
+- Push notifications unblocked (was returning 500 for every escalation)
+
+**Phase 3: Improvement Loop**
+- Nightly improvement cycle added to DEV crontab (10 PM daily)
+- DEV crontab now has: knowledge index (3AM), conversation summarizer (3:23AM), personal data sync (6h), morning manager (7AM), evening manager (8PM), nightly improvement (10PM)
+
+**Phase 6: Command Center UX (deployed to WORKSHOP)**
+- New MediaGlance component on Command Center overview: Now Playing (Plex sessions), Downloads (Sonarr/Radarr), Recently Watched, Library Stats (TV/Movies/Total)
+- SSE /api/stream now includes media data (stream count, download count, active sessions) — 5s real-time updates
+- Media card integrated as 5th card in top row (5-col layout on xl screens)
+- Dashboard verified: root and media pages returning 200
+
 ### Next Actions
-1. **Install CLI tools on DEV** — `npm i -g @openai/codex @google/gemini-cli` for multi-CLI dispatch
-2. **Set up cron for morning/evening managers** — DEV crontab for `scripts/morning-manager.py` and `scripts/evening-manager.py`
-3. **GPU scheduling decision** — ComfyUI needs 5090 for PuLID/InfiniteYou. Options: time-share with vLLM worker, dedicated creative sessions, or swap GPU assignments.
-4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix. **vLLM nightly has RMSNormGated.activation regression — do NOT rebuild images until fixed.**
-5. **Deploy fast model on WORKSHOP 5060 Ti** — Idle 16GB GPU, research model choice (P2)
-6. **Mount WORKSHOP ZFS pool** — 2× 931GB NVMe drives sitting unmounted
-7. **Dashboard live data verification** — 10+ pages need live endpoint check (P2)
+1. **EoBQ creative pipeline test** — PuLID identity via GPU swap, queen dialogue with live LLM
+2. **Seed 21 queens into Neo4j** — extend seed-eoq-graph.py
+3. **Mount WORKSHOP NVMe** — 2× 931GB unmounted
+4. **Command Center continued** — lens filtering, sticky SystemPulse, crew bar as filter, furnace glow
+5. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
+6. **Install CLI tools on DEV** — Codex/Gemini for multi-CLI dispatch
 
 ### Session — Hardening & Operational Readiness (2026-03-15)
 
@@ -955,7 +981,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-15 20:43 PDT
+*Last updated: 2026-03-15 22:24 PDT
 
 ---
 
@@ -988,7 +1014,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-15 20:43 PDT
+*Last updated: 2026-03-15 22:24 PDT
 
 ---
 
@@ -1113,4 +1139,4 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 5. Review duplicate home-agent tasks (same prompt × 6) — plan decomposition creating too many copies
 6. Install 10GbE NIC in DEV (physical — Shaun)
 
-*Last updated: 2026-03-16 02:00 PDT*
+*Last updated: 2026-03-15 22:24 PDT
