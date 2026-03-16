@@ -441,17 +441,25 @@ Phase 6 (Testing)            DONE — 391 tests pass
 
 **Commits:** 86996f5, 225beed, db6bc9c, afa2b98, 6215051, 3b50008, b29128f, e0ffdf8, 98cec38, dc535f1, d4a8ae2
 
+**Deployed and verified:**
+- Agent server deployed to FOUNDRY — `rsync` + `docker compose build --no-cache` + `up -d`. Health: 9 agents, all deps up.
+- Fixed Redis WRONGTYPE — old dashboard stored governor state as JSON strings, new code uses hashes. Deleted stale `athanor:governor:state` and `athanor:governor:presence` keys. Governor recreated them as proper hashes on first request.
+- Governor endpoint verified: `GET /v1/governor` returns full snapshot (lanes, capacity, presence, release_tier, control_stack). All 5 lanes active.
+- Plans endpoint verified: `GET /v1/plans` returns `{plans: [], count: 0}` (clean start).
+- Pipeline status verified: `GET /v1/pipeline/status` returns cycle history (empty, no cycles run yet).
+- Dashboard deployed to WORKSHOP — `rsync` + `docker compose up -d --build`. All 10 new pages return 200.
+- Dashboard proxy verified: `GET /api/governor` and `GET /api/pipeline/status` both proxy correctly to FOUNDRY:9000.
+- Added 2 missing MCP tools: `trigger_pipeline_cycle`, `trigger_improvement_cycle`.
+
 ### Next Actions
-1. **Deploy agent server to FOUNDRY** — rsync new modules + docker compose rebuild. This activates governor, work pipeline, plans, project tracker, all new routes.
-2. **Deploy dashboard to WORKSHOP** — rsync + rebuild. Activates 10 new pages.
-3. **Verify end-to-end** — governor endpoints from dashboard, pipeline cycle trigger, plan approval flow
-4. **Install CLI tools on DEV** — `npm i -g @openai/codex @google/gemini-cli` for multi-CLI dispatch
-5. **Set up cron for morning/evening managers** — DEV crontab for `scripts/morning-manager.py` and `scripts/evening-manager.py`
-6. **GPU scheduling decision** — ComfyUI needs 5090 for PuLID/InfiniteYou. Options: time-share with vLLM worker, dedicated creative sessions, or swap GPU assignments.
-7. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix. **vLLM nightly has RMSNormGated.activation regression — do NOT rebuild images until fixed.**
-8. **Deploy docker-socket-proxy to FOUNDRY** — Ansible role ready
-9. **Deploy fast model on WORKSHOP 5060 Ti** — Idle 16GB GPU
-10. **Mount WORKSHOP ZFS pool** — 2× 931GB NVMe drives sitting unmounted
+1. **Install CLI tools on DEV** — `npm i -g @openai/codex @google/gemini-cli` for multi-CLI dispatch
+2. **Set up cron for morning/evening managers** — DEV crontab for `scripts/morning-manager.py` and `scripts/evening-manager.py`
+3. **First pipeline cycle test** — `POST /v1/pipeline/cycle` to trigger intent mining + plan generation
+4. **GPU scheduling decision** — ComfyUI needs 5090 for PuLID/InfiniteYou. Options: time-share with vLLM worker, dedicated creative sessions, or swap GPU assignments.
+5. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix. **vLLM nightly has RMSNormGated.activation regression — do NOT rebuild images until fixed.**
+6. **Deploy docker-socket-proxy to FOUNDRY** — Ansible role ready
+7. **Deploy fast model on WORKSHOP 5060 Ti** — Idle 16GB GPU
+8. **Mount WORKSHOP ZFS pool** — 2× 931GB NVMe drives sitting unmounted
 
 ### Session 60n (cont.) — Context Window Upgrade + Cluster Optimization
 
