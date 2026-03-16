@@ -5,11 +5,14 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await params;
-  const filename = path.join("/");
+  // ComfyUI expects separate filename and subfolder params
+  const filename = path[path.length - 1];
+  const subfolder = path.length > 1 ? path.slice(0, -1).join("/") : "";
 
   try {
     const url = new URL(`${config.comfyui.url}/view`);
     url.searchParams.set("filename", filename);
+    if (subfolder) url.searchParams.set("subfolder", subfolder);
     url.searchParams.set("type", "output");
 
     const res = await fetch(url.toString(), {
