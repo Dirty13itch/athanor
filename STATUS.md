@@ -481,13 +481,33 @@ Phase 6 (Testing)            DONE — 391 tests pass
 - Media card integrated as 5th card in top row (5-col layout on xl screens)
 - Dashboard verified: root and media pages returning 200
 
+**Phase 6: Command Center UX (deployed to WORKSHOP)**
+- New MediaGlance component on Command Center overview: Now Playing (Plex sessions), Downloads (Sonarr/Radarr), Recently Watched, Library Stats (TV/Movies/Total)
+- SSE /api/stream now includes media data (stream count, download count, active sessions) — 5s real-time updates
+- Lens-driven card filtering: switching to media/system/creative/eoq lens hides irrelevant cards on overview
+- Sticky SystemPulse header: GPU bars, VRAM, power, services, agents always visible while scrolling
+- SystemPulse glow hue follows active lens accent (media=teal, creative=magenta, system=blue, eoq=rose)
+- SystemPulse shows active Plex streams and download count from SSE
+- UnifiedStream interactive filter pills: [All] [Tasks] [Agents] [Alerts] [System] — visible on Command Center
+- SystemSnapshot type extended with media field
+
+**Phase 5: EoBQ Creative Pipeline**
+- GPU swap API works: creative mode starts ComfyUI, stops vLLM worker. Inference mode reverses.
+- **Issue found:** ComfyUI docker-compose pins to GPU 1 (5060 Ti 16GB). PuLID needs GPU 0 (5090 32GB). Docker-compose change needed for creative-mode GPU assignment.
+- 5 Act I characters seeded to Neo4j (5 chars, 10 relationships, 3 scenes)
+- **EoBQ dialogue streaming verified:** Isolde responds via `uncensored` alias → Qwen3.5-35B-A3B-AWQ on Workshop. SSE streaming works.
+
+**Phase 4: WORKSHOP NVMe**
+- Two 931GB drives found (ZFS `hpc_nvme` label from previous system)
+- Bash firewall correctly blocks mkfs/zpool commands — needs Shaun or manual SSH
+- **Deferred:** Requires manual filesystem formatting (bash firewall blocks destructive disk ops)
+
 ### Next Actions
-1. **EoBQ creative pipeline test** — PuLID identity via GPU swap, queen dialogue with live LLM
-2. **Seed 21 queens into Neo4j** — extend seed-eoq-graph.py
-3. **Mount WORKSHOP NVMe** — 2× 931GB unmounted
-4. **Command Center continued** — lens filtering, sticky SystemPulse, crew bar as filter, furnace glow
-5. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
-6. **Install CLI tools on DEV** — Codex/Gemini for multi-CLI dispatch
+1. **Fix ComfyUI GPU assignment** — Change docker-compose `NVIDIA_VISIBLE_DEVICES=1` to `0` for creative mode (or make it dynamic in swap API)
+2. **Seed 21 queens into Neo4j** — extend seed-eoq-graph.py from queens.ts data
+3. **Mount WORKSHOP NVMe** — manual formatting needed (2× 931GB ZFS → btrfs/ext4)
+4. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
+5. **Crew bar as interactive filter** — clicking agent circle filters UnifiedStream (Phase 6 remaining)
 
 ### Session — Hardening & Operational Readiness (2026-03-15)
 
@@ -981,7 +1001,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-15 22:24 PDT
+*Last updated: 2026-03-16 02:26 PDT
 
 ---
 
@@ -1014,7 +1034,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-15 22:24 PDT
+*Last updated: 2026-03-16 02:26 PDT
 
 ---
 
@@ -1139,4 +1159,4 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 5. Review duplicate home-agent tasks (same prompt × 6) — plan decomposition creating too many copies
 6. Install 10GbE NIC in DEV (physical — Shaun)
 
-*Last updated: 2026-03-15 22:24 PDT
+*Last updated: 2026-03-16 02:26 PDT
