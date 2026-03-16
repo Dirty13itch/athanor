@@ -38,9 +38,23 @@ function buildStagePrompt(char: Character, contentIntensity: number): string {
       ? stageModifiers[stage] ?? ""
       : "elegant pose, suggestive tension, dramatic lighting";
 
-  // Emotion overlay
+  // Emotion overlay — map emotional states to specific visual cues
+  const emotionVisuals: Record<string, string> = {
+    angry: "furious glare, clenched jaw, flushed cheeks, tense posture",
+    fearful: "wide frightened eyes, trembling lips, pale skin, shrinking posture",
+    aroused: "flushed skin, parted lips, heavy-lidded eyes, chest heaving",
+    contemptuous: "raised chin, cold sneer, narrowed eyes, dismissive posture",
+    amused: "sly smile, sparkling eyes, relaxed confident posture",
+    tender: "soft warm gaze, gentle half-smile, relaxed open body language",
+    defiant: "chin up, hard stare, squared shoulders, proud stance",
+    vulnerable: "averted gaze, arms crossed protectively, unshed tears",
+    calculating: "narrowed assessing eyes, steepled fingers, predatory calm",
+    melancholic: "distant unfocused gaze, tear tracks, hollowed expression",
+    playful: "teasing smirk, tilted head, mischievous eyes, relaxed pose",
+    desperate: "pleading wide eyes, reaching hands, trembling, tear-streaked",
+  };
   const emotionHint = emotion && char.emotion.intensity > 0.4
-    ? `, ${emotion} expression`
+    ? `, ${emotionVisuals[emotion] ?? `${emotion} expression`}`
     : "";
 
   return `${base}, ${modifier}${emotionHint}`;
