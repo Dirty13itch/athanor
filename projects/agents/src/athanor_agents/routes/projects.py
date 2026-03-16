@@ -61,6 +61,22 @@ async def advance_project_endpoint(project_id: str):
     return result
 
 
+@router.post("/projects/{project_id}/supervise")
+async def supervise_project_endpoint(project_id: str, request: Request):
+    """Decompose a project into milestones and assign cloud managers."""
+    from ..supervisor import supervise_project
+
+    body = await request.json()
+    instruction = body.get("instruction", "")
+    milestones = body.get("milestones")
+
+    if not instruction:
+        return JSONResponse(status_code=400, content={"error": "Instruction required"})
+
+    result = await supervise_project(project_id, instruction, milestones)
+    return result
+
+
 @router.get("/projects/stalled")
 async def stalled_projects():
     """List stalled projects."""

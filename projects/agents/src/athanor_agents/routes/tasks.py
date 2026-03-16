@@ -127,3 +127,47 @@ async def approve_task_endpoint(task_id: str):
         status_code=404,
         content={"error": f"Task '{task_id}' not found or not pending approval"},
     )
+
+
+@router.post("/tasks/{task_id}/reject")
+async def reject_task_endpoint(task_id: str, request: Request):
+    """Reject a pending_approval task with reason."""
+    from ..tasks import reject_task
+
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    reason = body.get("reason", "Rejected by operator")
+
+    if await reject_task(task_id, reason=reason):
+        return {"rejected": True, "task_id": task_id}
+    return JSONResponse(
+        status_code=404,
+        content={"error": f"Task '{task_id}' not found or not pending approval"},
+    )
+
+
+@router.post("/tasks/batch-approve")
+async def batch_approve_tasks(request: Request):
+    """Approve multiple pending_approval tasks at once."""
+    from ..tasks import approve_task
+
+    body = await request.json()
+    task_ids = body.get("task_ids", [])
+
+    results = []
+    for tid in task_ids:
+        approved = await approve_task(tid)
+        results.append({"task_id": tid, "approved": approved})
+
+    approved_count = sum(1 for r in results if r["approved"])
+    return {"results": results, "approved": approved_count, "total": len(results)}
+
+
+@router.post("/tasks/{task_id}/review")
+async def review_task_endpoint(task_id: str):
+    """Score a completed task's output quality via grader model."""
+    from ..supervisor import review_task_output
+
+    result = await review_task_output(task_id)
+    if "error" in result:
+        return JSONResponse(status_code=400, content=result)
+    return result

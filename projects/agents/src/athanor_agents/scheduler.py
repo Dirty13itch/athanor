@@ -54,6 +54,16 @@ IMPROVEMENT_CYCLE_KEY = "athanor:scheduler:improvement_cycle"
 IMPROVEMENT_CYCLE_HOUR = 5
 IMPROVEMENT_CYCLE_MINUTE = 30
 
+# Work pipeline (Phase 2) — runs at 06:00, 12:00, 18:00
+PIPELINE_KEY = "athanor:scheduler:pipeline"
+PIPELINE_HOURS = [6, 12, 18]
+PIPELINE_MINUTE = 0
+
+# Nightly prompt optimization (Phase 6) — runs at 22:00
+NIGHTLY_OPTIMIZATION_KEY = "athanor:scheduler:nightly_optimization"
+NIGHTLY_OPTIMIZATION_HOUR = 22
+NIGHTLY_OPTIMIZATION_MINUTE = 0
+
 AGENT_SCHEDULES = {
     "general-assistant": {
         "interval": 1800,  # 30 min
@@ -513,6 +523,72 @@ async def _check_cache_cleanup():
         logger.warning("Cache cleanup failed: %s", e)
 
 
+async def _check_work_pipeline():
+    """Check if it's time to run the work pipeline (06:00, 12:00, 18:00 local)."""
+    from .work_pipeline import run_pipeline_cycle
+
+    now = datetime.now()
+    if now.hour not in PIPELINE_HOURS or now.minute != PIPELINE_MINUTE:
+        return
+
+    # Check if already run this hour
+    try:
+        r = await _get_redis()
+        last_run = await r.get(PIPELINE_KEY)
+        if last_run:
+            last_str = last_run.decode() if isinstance(last_run, bytes) else last_run
+            if last_str == f"{now.strftime('%Y-%m-%d')}:{now.hour}":
+                return
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
+
+    logger.info("Scheduler: running work pipeline cycle (hour=%d)", now.hour)
+    try:
+        result = await run_pipeline_cycle()
+        r = await _get_redis()
+        await r.set(PIPELINE_KEY, f"{now.strftime('%Y-%m-%d')}:{now.hour}")
+        logger.info(
+            "Work pipeline cycle: mined=%d new=%d plans=%d tasks=%d",
+            result.intents_mined, result.intents_new,
+            result.plans_created, result.tasks_submitted,
+        )
+    except Exception as e:
+        logger.warning("Scheduler: work pipeline cycle failed: %s", e)
+
+
+async def _check_nightly_optimization():
+    """Check if it's time to run nightly prompt optimization (22:00 local)."""
+    from .prompt_optimizer import run_nightly_optimization
+
+    now = datetime.now()
+    if now.hour != NIGHTLY_OPTIMIZATION_HOUR or now.minute != NIGHTLY_OPTIMIZATION_MINUTE:
+        return
+
+    try:
+        r = await _get_redis()
+        last_date = await r.get(NIGHTLY_OPTIMIZATION_KEY)
+        if last_date:
+            last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
+            if last_str == now.strftime("%Y-%m-%d"):
+                return
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
+
+    logger.info("Scheduler: running nightly prompt optimization")
+    try:
+        result = await run_nightly_optimization()
+        r = await _get_redis()
+        await r.set(NIGHTLY_OPTIMIZATION_KEY, now.strftime("%Y-%m-%d"))
+        logger.info(
+            "Nightly optimization: %d traces, %d underperformers, %d variants",
+            result.get("traces_analyzed", 0),
+            len(result.get("underperformers", [])),
+            result.get("variants_generated", 0),
+        )
+    except Exception as e:
+        logger.warning("Scheduler: nightly optimization failed: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -537,6 +613,12 @@ async def _scheduler_loop():
 
             # Self-improvement cycle (5:30 AM, after pattern detection)
             await _check_improvement_cycle()
+
+            # Work pipeline cycles (06:00, 12:00, 18:00)
+            await _check_work_pipeline()
+
+            # Nightly prompt optimization (22:00)
+            await _check_nightly_optimization()
 
             # Check work plan refill (every 2 hours)
             await _check_workplan_refill()

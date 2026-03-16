@@ -408,6 +408,94 @@ def task_status(task_id: str = "") -> str:
 # --- Agent metadata ---
 
 
+# --- Governor & Pipeline tools ---
+
+
+@mcp.tool()
+def governor_snapshot() -> str:
+    """Get current governor state — lanes, capacity, presence, autonomy levels."""
+    try:
+        resp = _client.get(f"{AGENT_URL}/v1/governor", timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        lines = [
+            f"Mode: {data.get('global_mode', '?')}",
+            f"Presence: {data.get('presence', {}).get('state', '?')}",
+        ]
+        for lane in data.get("lanes", []):
+            lines.append(f"  Lane {lane['name']}: {'PAUSED' if lane.get('paused') else 'active'}")
+        capacity = data.get("capacity", {})
+        lines.append(f"Queue: {capacity.get('queue_depth', '?')} pending, {capacity.get('running', '?')} running")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def pipeline_status() -> str:
+    """Get work pipeline status — queue depth, recent outcomes, project progress."""
+    try:
+        resp = _client.get(f"{AGENT_URL}/v1/pipeline/status", timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        lines = [
+            f"Pending plans: {data.get('pending_plans', 0)}",
+            f"Recent outcomes: {data.get('recent_outcomes_count', 0)}",
+            f"Avg quality: {data.get('avg_quality', 0):.3f}",
+        ]
+        last = data.get("last_cycle")
+        if last:
+            lines.append(f"Last cycle: mined={last.get('intents_mined', 0)} plans={last.get('plans_created', 0)} tasks={last.get('tasks_submitted', 0)}")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def review_task_output(task_id: str) -> str:
+    """Score a completed task's output quality via grader model. Records feedback for learning.
+
+    Args:
+        task_id: The task ID to review (e.g., "T-abc123").
+    """
+    try:
+        resp = _client.post(
+            f"{AGENT_URL}/v1/tasks/{task_id}/review",
+            json={},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return f"Task {task_id}: quality={data.get('quality_score', '?')}, agent={data.get('agent', '?')}, status={data.get('status', '?')}"
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+def supervise_project(project_id: str, instruction: str, milestones: str = "") -> str:
+    """Decompose a project into milestones and assign cloud managers.
+
+    Args:
+        project_id: Project ID (e.g., "eoq", "athanor").
+        instruction: High-level instruction for the project.
+        milestones: Optional JSON array of milestone specs: [{"title": "...", "description": "...", "criteria": [...], "agents": [...]}]
+    """
+    try:
+        body: dict = {"instruction": instruction}
+        if milestones:
+            body["milestones"] = json.loads(milestones)
+        resp = _client.post(
+            f"{AGENT_URL}/v1/projects/{project_id}/supervise",
+            json=body,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return f"Project {project_id}: {data.get('milestones_created', 0)} milestones created, {data.get('total_milestones', 0)} total"
+    except Exception as e:
+        return f"Error: {e}"
+
+
 @mcp.tool()
 def list_agents() -> str:
     """List all available Athanor agents with their capabilities."""
