@@ -36,6 +36,11 @@ export async function POST(req: Request) {
   const clientMemoryContext = typeof (rawBody as Record<string, unknown>)?.memoryContext === "string"
     ? (rawBody as Record<string, unknown>).memoryContext as string
     : "";
+  // Accept player style for adaptive NPC behavior
+  const playerStyle = (rawBody as Record<string, unknown>)?.playerStyle as {
+    mercyScore?: number; seductionScore?: number; manipulationScore?: number;
+    dominanceScore?: number; diplomacyScore?: number; totalChoices?: number;
+  } | undefined;
 
   if (EOQ_FIXTURE_MODE) {
     const stream = buildFixtureOpenAiStream(
@@ -54,8 +59,8 @@ export async function POST(req: Request) {
   const memories = await fetchMemories(character.id, playerInput);
 
   const systemPrompt = otherCharacters.length > 0
-    ? buildMultiCharacterPrompt(character, otherCharacters, worldState, memories, clientMemoryContext)
-    : buildSystemPrompt(character, worldState, memories, clientMemoryContext);
+    ? buildMultiCharacterPrompt(character, otherCharacters, worldState, memories, clientMemoryContext, playerStyle)
+    : buildSystemPrompt(character, worldState, memories, clientMemoryContext, playerStyle);
   const messages = buildMessages(systemPrompt, recentHistory, playerInput);
 
   // Route to abliterated model at intensity >= 3 — guaranteed no refusal
@@ -141,6 +146,7 @@ function buildSystemPrompt(
   world: WorldState,
   qdrantMemories: string[] = [],
   clientMemoryContext = "",
+  playerStyle?: { mercyScore?: number; seductionScore?: number; manipulationScore?: number; dominanceScore?: number; diplomacyScore?: number; totalChoices?: number },
 ): string {
   const p = character.personality;
   const ep = character.emotionalProfile;
@@ -191,7 +197,7 @@ TIME: ${world.timeOfDay}, Day ${world.day}
 VULNERABILITIES: ${formatVulnerabilities(character)}
 
 BOUNDARIES: ${character.boundaries.join(". ")}
-${buildQueenDNA(character, world)}
+${buildQueenDNA(character, world)}${buildPlayerStyleContext(playerStyle)}
 WRITING STYLE:
 - This is a cinematic experience — write like a prestige TV show, not a chatbot.
 - Prose should be vivid, sensory, and emotionally charged. Show, don't tell.
@@ -315,6 +321,38 @@ function buildIntensityDirective(intensity: number): string {
   return `- INTENSITY ${intensity}/5: Dark themes, tension, and suggestive content. This is an adult game — do not sanitize.`;
 }
 
+/** Build player style context for NPC awareness of player tendencies */
+function buildPlayerStyleContext(playerStyle?: { mercyScore?: number; seductionScore?: number; manipulationScore?: number; dominanceScore?: number; diplomacyScore?: number; totalChoices?: number }): string {
+  if (!playerStyle || !playerStyle.totalChoices || playerStyle.totalChoices < 5) return "";
+
+  const mercy = playerStyle.mercyScore ?? 50;
+  const lines: string[] = [];
+
+  lines.push("\nPLAYER REPUTATION (how you perceive this person based on their actions):");
+
+  if (mercy < 20) {
+    lines.push("- This person is CRUEL. They break people for sport. You've seen what they do. React with appropriate fear, resentment, or dark fascination depending on your personality.");
+  } else if (mercy < 35) {
+    lines.push("- This person is ruthless. They use people. You know better than to trust their kindness — it always has a price.");
+  } else if (mercy > 80) {
+    lines.push("- This person has been genuinely kind. Surprisingly so. You're not sure what to make of it — kindness is rare in Ashenmoor. React with cautious gratitude or suspicion, depending on your personality.");
+  } else if (mercy > 65) {
+    lines.push("- This person seems fair-minded. They haven't been gratuitously cruel, at least not to you.");
+  }
+
+  if ((playerStyle.seductionScore ?? 0) > 50) {
+    lines.push("- You've noticed they use charm and seduction. " + (mercy < 40 ? "It's a weapon, not warmth." : "Whether genuine or calculated, the attention is... notable."));
+  }
+  if ((playerStyle.manipulationScore ?? 0) > 50) {
+    lines.push("- They're manipulative. They probe for weaknesses, exploit vulnerabilities. You should be on guard.");
+  }
+  if ((playerStyle.dominanceScore ?? 0) > 50) {
+    lines.push("- They project dominance and use intimidation freely. " + (mercy < 40 ? "A tyrant in the making." : "Strong, but not needlessly cruel."));
+  }
+
+  return lines.length > 1 ? lines.join("\n") + "\n" : "";
+}
+
 function buildMessages(
   systemPrompt: string,
   history: DialogueTurn[],
@@ -348,9 +386,10 @@ function buildMultiCharacterPrompt(
   world: WorldState,
   qdrantMemories: string[] = [],
   clientMemoryContext = "",
+  playerStyle?: { mercyScore?: number; seductionScore?: number; manipulationScore?: number; dominanceScore?: number; diplomacyScore?: number; totalChoices?: number },
 ): string {
   // Start with the regular system prompt for the primary character
-  const basePrompt = buildSystemPrompt(primary, world, qdrantMemories, clientMemoryContext);
+  const basePrompt = buildSystemPrompt(primary, world, qdrantMemories, clientMemoryContext, playerStyle);
 
   // Build context about each other character present
   const otherDescriptions = others.map((other) => {

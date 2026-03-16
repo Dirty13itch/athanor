@@ -692,6 +692,7 @@ export function useGameEngine() {
           recentHistory,
           playerInput,
           memoryContext,
+          playerStyle: session.playerStyle,
           ...(otherCharacters.length > 0 ? { otherCharacters } : {}),
         }),
       });
