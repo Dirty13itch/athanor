@@ -194,10 +194,10 @@ async def health():
     import asyncio
     import httpx
 
-    async def _probe(name: str, url: str, timeout: float = 2.0) -> dict:
+    async def _probe(name: str, url: str, timeout: float = 2.0, headers: dict | None = None) -> dict:
         try:
             async with httpx.AsyncClient(timeout=timeout) as c:
-                resp = await c.get(url)
+                resp = await c.get(url, headers=headers or {})
                 return {"name": name, "status": "up", "latency_ms": int(resp.elapsed.total_seconds() * 1000)}
         except Exception as e:
             return {"name": name, "status": "down", "error": str(e)[:120]}
@@ -205,7 +205,8 @@ async def health():
     deps = await asyncio.gather(
         _probe("redis", f"http://{settings.vault_host}:6379", timeout=1.0),  # TCP only, will fail on HTTP but that's fine
         _probe("qdrant", f"{settings.qdrant_url}/collections"),
-        _probe("litellm", f"{settings.litellm_url}/health"),
+        _probe("litellm", f"{settings.litellm_url}/health",
+               headers={"Authorization": f"Bearer {settings.litellm_api_key}"} if settings.litellm_api_key else None),
         _probe("coordinator", f"{settings.coordinator_url}/health"),
         _probe("worker", f"{settings.worker_url}/health"),
         _probe("embedding", f"{settings.embedding_url}/health"),

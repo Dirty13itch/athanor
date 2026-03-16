@@ -54,10 +54,9 @@ IMPROVEMENT_CYCLE_KEY = "athanor:scheduler:improvement_cycle"
 IMPROVEMENT_CYCLE_HOUR = 5
 IMPROVEMENT_CYCLE_MINUTE = 30
 
-# Work pipeline (Phase 2) — runs at 06:00, 12:00, 18:00
+# Work pipeline (Phase 2) — runs every 2 hours
 PIPELINE_KEY = "athanor:scheduler:pipeline"
-PIPELINE_HOURS = [6, 12, 18]
-PIPELINE_MINUTE = 0
+PIPELINE_INTERVAL = 7200  # 2 hours in seconds
 
 # Nightly prompt optimization (Phase 6) — runs at 22:00
 NIGHTLY_OPTIMIZATION_KEY = "athanor:scheduler:nightly_optimization"
@@ -535,29 +534,25 @@ async def _check_cache_cleanup():
 
 
 async def _check_work_pipeline():
-    """Check if it's time to run the work pipeline (06:00, 12:00, 18:00 local)."""
+    """Check if it's time to run the work pipeline (every 2 hours)."""
     from .work_pipeline import run_pipeline_cycle
 
-    now = datetime.now()
-    if now.hour not in PIPELINE_HOURS or now.minute != PIPELINE_MINUTE:
-        return
-
-    # Check if already run this hour
+    # Interval-based: check if enough time has passed since last run
     try:
         r = await _get_redis()
         last_run = await r.get(PIPELINE_KEY)
         if last_run:
-            last_str = last_run.decode() if isinstance(last_run, bytes) else last_run
-            if last_str == f"{now.strftime('%Y-%m-%d')}:{now.hour}":
+            last_ts = float(last_run.decode() if isinstance(last_run, bytes) else last_run)
+            if time.time() - last_ts < PIPELINE_INTERVAL:
                 return
     except Exception as e:
         logger.debug("Scheduler Redis check fallback: %s", e)
 
-    logger.info("Scheduler: running work pipeline cycle (hour=%d)", now.hour)
+    logger.info("Scheduler: running work pipeline cycle (interval=%ds)", PIPELINE_INTERVAL)
     try:
         result = await run_pipeline_cycle()
         r = await _get_redis()
-        await r.set(PIPELINE_KEY, f"{now.strftime('%Y-%m-%d')}:{now.hour}")
+        await r.set(PIPELINE_KEY, str(time.time()))
         logger.info(
             "Work pipeline cycle: mined=%d new=%d plans=%d tasks=%d",
             result.intents_mined, result.intents_new,

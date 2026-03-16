@@ -21,7 +21,7 @@ PIPELINE_GENERATION_CONTEXT_KEY = "athanor:pipeline:generation_context"
 
 OUTCOMES_MAX = 200
 CYCLE_HISTORY_MAX = 30
-MAX_QUEUE_DEPTH = 10  # Skip generation if queue has >10 pending tasks
+MAX_QUEUE_DEPTH = 20  # Skip generation if queue has >20 pending tasks
 
 
 @dataclass
@@ -140,8 +140,10 @@ async def run_pipeline_cycle() -> CycleResult:
     gov = Governor.get()
 
     for plan in plans:
-        if plan.risk_level == "low":
-            # Check governor autonomy for auto-approve
+        if plan.risk_level == "low" or (
+            plan.risk_level == "medium" and getattr(plan, "estimated_minutes", 60) < 30
+        ):
+            # Auto-approve low-risk and short medium-risk plans
             try:
                 decision = await gov.gate_task_submission(
                     agent=plan.assigned_agents[0] if plan.assigned_agents else "general-assistant",
