@@ -1027,14 +1027,23 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - Weekly DPO training data collection (Saturday 02:00) + scheduler integration
 - Overnight-ops governor presence integration (maintenance window signaling)
 
-### Next Actions
-1. Deploy agent server to FOUNDRY — rsync + docker compose rebuild
-2. Deploy dashboard to WORKSHOP — rsync + rebuild
-3. Install CLI tools on DEV: `npm i -g @openai/codex @google/gemini-cli`
-4. Set up cron for morning/evening managers on DEV
-5. Verify governor endpoints live from dashboard
-6. Test work pipeline cycle: `POST /v1/pipeline/cycle`
-7. Monitor first autonomous operation cycle
+### Deployment Verification (Session 60n cont)
+1. ~~Deploy agent server to FOUNDRY~~ — DONE. rsync + rebuild. All endpoints verified (governor, pipeline, plans, projects).
+2. ~~Deploy dashboard to WORKSHOP~~ — DONE. rsync + rebuild. Dashboard serving at :3001.
+3. ~~Install CLI tools on DEV~~ — DONE. codex-cli 0.114.0, gemini-cli 0.33.1, claude, aider all available.
+4. ~~Set up cron for morning/evening managers~~ — DONE. 07:00 Opus, 20:00 Sonnet. Crontab on DEV.
+5. ~~Verify governor endpoints~~ — DONE. Redis WRONGTYPE fixed (old JSON keys → hash keys). Governor snapshot returns live data.
+6. ~~Test work pipeline cycle~~ — DONE. 20 intents mined (project_needs + active_goals), 15 plans created (12 draft, 3 pending_approval).
+7. ~~Script auth + connectivity~~ — DONE. All 3 scripts (morning/evening/dispatch) use bearer token, reach agent server. All 5 CLIs pass reachability check.
 
-*Last updated: 2026-03-15 19:44 PDT
+### Next Actions
+1. Investigate empty `active_goals` intent text in pipeline cycle output
+2. Run first real morning manager session (non-dry-run) to validate end-to-end
+3. GPU scheduling: decide ComfyUI vs vLLM on WORKSHOP 5090 time-sharing
+4. Monitor vLLM upgrade path (v0.17.2+ for FP8 crash fix) — do NOT rebuild Docker images yet
+5. Deploy docker-socket-proxy to FOUNDRY (read-only Docker socket for dashboard)
+6. Deploy fast model on WORKSHOP 5060 Ti (second inference endpoint)
+7. Mount WORKSHOP ZFS pool (local scratch storage)
+
+*Last updated: 2026-03-15 20:24 PDT
 
