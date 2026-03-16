@@ -52,8 +52,9 @@ async def generate_digest():
 
 async def _generate_digest_from_tasks(r) -> dict:
     """Build a digest from completed tasks in the last 24 hours."""
-    # Fetch recent tasks from Redis
-    task_keys = await r.keys("athanor:task:*")
+    # Fetch recent tasks from Redis — stored as JSON in hash "athanor:tasks"
+    TASKS_KEY = "athanor:tasks"
+    all_tasks_raw = await r.hgetall(TASKS_KEY)
     now = time.time()
     cutoff = now - 86400  # 24 hours
 
@@ -62,16 +63,10 @@ async def _generate_digest_from_tasks(r) -> dict:
     agents = Counter()
     categories = Counter()
 
-    for key in task_keys:
+    for _task_id, task_json in all_tasks_raw.items():
         try:
-            task_data = await r.hgetall(key)
-            if not task_data:
-                continue
-            # Decode bytes if needed
-            task = {
-                (k.decode() if isinstance(k, bytes) else k): (v.decode() if isinstance(v, bytes) else v)
-                for k, v in task_data.items()
-            }
+            raw = task_json.decode() if isinstance(task_json, bytes) else task_json
+            task = json.loads(raw)
 
             created = float(task.get("created_at", 0))
             if created < cutoff:
