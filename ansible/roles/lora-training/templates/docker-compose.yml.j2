@@ -1,0 +1,26 @@
+services:
+  lora-training:
+    image: athanor/lora-training:latest
+    container_name: lora-training
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES={{ training_gpu }}
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - {{ lora_datasets_dir }}:/dataset:ro
+      - {{ lora_output_dir }}:/output
+      - {{ lora_training_dir }}/flux-lora-config.toml:/app/config.toml:ro
+      - /mnt/vault/models:/models:ro
+    working_dir: /app/sd-scripts
+    command: >
+      flux_train_network.py
+      --config_file /app/config.toml
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["{{ training_gpu }}"]
+              capabilities: [gpu]
+    profiles:
+      - training  # Only starts when explicitly run
