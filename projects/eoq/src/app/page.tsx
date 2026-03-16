@@ -26,6 +26,7 @@ import { Inventory } from "./components/inventory";
 import { ItemToast } from "./components/item-toast";
 import { StatChangeToast } from "./components/stat-change-toast";
 import { QueenRoster } from "./components/queen-roster";
+import { QueenSelector } from "./components/queen-selector";
 import { useGameStore } from "@/stores/game-store";
 import { useGameEngine } from "@/hooks/use-game-engine";
 import { getBreakingStage } from "@/types/game";
@@ -37,6 +38,8 @@ export default function GamePage() {
   const {
     startGame,
     startQueenSession,
+    startCouncilSession,
+    startMultiQueenScene,
     advanceDialogue,
     handleChoice,
     sendPlayerMessage,
@@ -147,6 +150,10 @@ export default function GamePage() {
       <SceneParticles />
       <CharacterPortrait />
       <SceneTransition />
+      <QueenSelector onConfirm={(queenIds) => {
+        const mode = useGameStore.getState().queenSelectorMode;
+        if (mode) startMultiQueenScene(queenIds, mode);
+      }} />
       <AmbientMood />
       <SaveIndicator />
       <UnlockToast />
