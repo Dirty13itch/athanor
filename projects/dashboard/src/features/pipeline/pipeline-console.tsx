@@ -4,12 +4,19 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
+  ArrowUpCircle,
+  Ban,
   CheckCircle2,
   CircleDot,
+  Compass,
+  Eye,
+  Heart,
   Loader2,
   Play,
   RefreshCcw,
   Target,
+  ThumbsDown,
+  ThumbsUp,
   XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +31,7 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
-import { requestJson, postWithoutBody } from "@/features/workforce/helpers";
+import { requestJson, postJson, postWithoutBody } from "@/features/workforce/helpers";
 
 interface PipelineStatus {
   recent_cycles: number;
@@ -52,10 +59,21 @@ interface PipelinePlan {
   status: string;
 }
 
+interface SynthesisProposal {
+  text: string;
+  priority: number;
+  project: string;
+  agent: string;
+  twelve_word: string;
+  explore: boolean;
+  reasoning: string;
+}
+
 const pipelineKeys = {
   status: ["pipeline", "status"] as const,
   outcomes: ["pipeline", "outcomes"] as const,
   plans: ["pipeline", "plans"] as const,
+  preview: ["pipeline", "preview"] as const,
 };
 
 function qualityTone(score: number): "success" | "warning" | "danger" {
@@ -127,9 +145,77 @@ export function PipelineConsole() {
     refetchInterval: 20_000,
   });
 
+  const previewQuery = useQuery({
+    queryKey: pipelineKeys.preview,
+    queryFn: async () => {
+      const data = await requestJson("/api/pipeline/preview");
+      return (data as { proposals: SynthesisProposal[]; count: number }).proposals ?? [];
+    },
+    enabled: false, // Only fetch on demand
+  });
+
   const status = statusQuery.data;
   const outcomes = outcomesQuery.data ?? [];
   const plans = plansQuery.data ?? [];
+  const proposals = previewQuery.data ?? [];
+
+  async function loadPreview() {
+    setActionBusy("preview");
+    setFeedback(null);
+    try {
+      await previewQuery.refetch();
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Preview failed.");
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function reactToProposal(index: number, reaction: "more" | "less" | "love" | "wrong") {
+    const proposal = proposals[index];
+    if (!proposal) return;
+    setActionBusy(`react:${index}`);
+    try {
+      await postJson("/api/pipeline/react", {
+        intent_id: `preview-${index}`,
+        reaction,
+        intent_metadata: {
+          twelve_word: proposal.twelve_word,
+          project: proposal.project,
+          domain: proposal.project,
+        },
+      });
+      setFeedback(`Reacted "${reaction}" to: ${proposal.text.slice(0, 60)}...`);
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Reaction failed.");
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function boostDomain(domain: string) {
+    setActionBusy(`boost:${domain}`);
+    try {
+      await postJson("/api/pipeline/boost", { domain, amount: 0.15 });
+      setFeedback(`Boosted "${domain}" for next cycle.`);
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Boost failed.");
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function suppressDomain(domain: string) {
+    setActionBusy(`suppress:${domain}`);
+    try {
+      await postJson("/api/pipeline/suppress", { domain, duration_hours: 24 });
+      setFeedback(`Suppressed "${domain}" for 24h.`);
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Suppress failed.");
+    } finally {
+      setActionBusy(null);
+    }
+  }
 
   async function triggerCycle() {
     setCycling(true);
@@ -221,10 +307,140 @@ export function PipelineConsole() {
       </PageHeader>
 
       {feedback && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
           {feedback}
         </div>
       )}
+
+      {/* Synthesis Preview & Steering */}
+      <Card className="surface-panel">
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg">Intent Synthesis</CardTitle>
+              <CardDescription>
+                Preview what the synthesizer would generate. React to steer future cycles.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => void loadPreview()}
+              disabled={actionBusy === "preview" || previewQuery.isFetching}
+            >
+              {previewQuery.isFetching ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Eye className="mr-2 h-4 w-4" />
+              )}
+              Preview Next Cycle
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {proposals.length > 0 ? (
+            proposals.map((proposal, i) => (
+              <div
+                key={`${proposal.agent}-${i}`}
+                className="rounded-2xl border border-border/70 bg-background/20 p-4 space-y-3"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary">{proposal.agent}</Badge>
+                  <Badge variant="outline">{proposal.project}</Badge>
+                  <Badge
+                    variant="outline"
+                    className={
+                      proposal.priority >= 0.7
+                        ? "border-emerald-500/40 text-emerald-300"
+                        : proposal.priority >= 0.4
+                        ? "border-amber-500/40 text-amber-300"
+                        : "border-zinc-500/40 text-zinc-400"
+                    }
+                  >
+                    {proposal.priority.toFixed(1)}
+                  </Badge>
+                  {proposal.twelve_word && (
+                    <Badge variant="outline" className="border-purple-500/30 text-purple-300">
+                      {proposal.twelve_word}
+                    </Badge>
+                  )}
+                  {proposal.explore && (
+                    <Badge variant="outline" className="border-cyan-500/40 text-cyan-300">
+                      <Compass className="mr-1 h-3 w-3" />
+                      explore
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm">{proposal.text}</p>
+                {proposal.reasoning && (
+                  <p className="text-xs text-muted-foreground">{proposal.reasoning}</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => void reactToProposal(i, "love")}
+                    disabled={actionBusy === `react:${i}`}
+                  >
+                    <Heart className="mr-1 h-3 w-3 text-pink-400" /> Love
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => void reactToProposal(i, "more")}
+                    disabled={actionBusy === `react:${i}`}
+                  >
+                    <ThumbsUp className="mr-1 h-3 w-3 text-emerald-400" /> More
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => void reactToProposal(i, "less")}
+                    disabled={actionBusy === `react:${i}`}
+                  >
+                    <ThumbsDown className="mr-1 h-3 w-3 text-amber-400" /> Less
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => void reactToProposal(i, "wrong")}
+                    disabled={actionBusy === `react:${i}`}
+                  >
+                    <XCircle className="mr-1 h-3 w-3 text-red-400" /> Wrong
+                  </Button>
+                  <span className="mx-1 self-center text-xs text-muted-foreground/50">|</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => void boostDomain(proposal.project)}
+                    disabled={!!actionBusy?.startsWith("boost:")}
+                  >
+                    <ArrowUpCircle className="mr-1 h-3 w-3 text-blue-400" /> Boost domain
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => void suppressDomain(proposal.project)}
+                    disabled={!!actionBusy?.startsWith("suppress:")}
+                  >
+                    <Ban className="mr-1 h-3 w-3 text-zinc-400" /> Suppress 24h
+                  </Button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <EmptyState
+              title="No preview loaded"
+              description="Click 'Preview Next Cycle' to see what the synthesizer would generate."
+            />
+          )}
+        </CardContent>
+      </Card>
 
       {/* Pending Plans */}
       <Card className="surface-panel">
