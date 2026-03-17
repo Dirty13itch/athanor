@@ -33,12 +33,22 @@ export default function ReportDetailPage() {
             Back to Reports
           </Link>
           {report && (
-            <Link
-              href={`/inspections/${report.inspectionId}`}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Open Inspection
-            </Link>
+            <>
+              <a
+                href={`/api/reports/${reportId}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                View PDF
+              </a>
+              <Link
+                href={`/inspections/${report.inspectionId}`}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+              >
+                Open Inspection
+              </Link>
+            </>
           )}
         </div>
       </div>
