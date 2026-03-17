@@ -585,6 +585,154 @@ def get_performer_reference_photo(performer_name: str) -> str:
         return f"Error: {e}"
 
 
+# --- Smart Playlists (Saved Filters) ---
+
+
+@tool
+def list_smart_playlists() -> str:
+    """List all saved filters (smart playlists) in Stash.
+
+    Returns filter names, IDs, and modes (SCENES, PERFORMERS, etc).
+    """
+    try:
+        data = _stash_query("""
+            { findSavedFilters {
+                id name mode
+                find_filter { q sort direction per_page }
+                object_filter
+            } }
+        """)
+        filters = data.get("findSavedFilters", [])
+        if not filters:
+            return "No saved filters/smart playlists found."
+        lines = [f"Smart Playlists ({len(filters)} total):"]
+        for f in filters:
+            mode = f.get("mode", "SCENES")
+            ff = f.get("find_filter") or {}
+            query = ff.get("q", "")
+            sort = ff.get("sort", "")
+            lines.append(
+                f"  [{f['id']}] {f['name']} ({mode})"
+                + (f" — query: {query}" if query else "")
+                + (f", sort: {sort}" if sort else "")
+            )
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error listing smart playlists: {e}"
+
+
+@tool
+def create_smart_playlist(
+    name: str,
+    mode: str = "SCENES",
+    query: str = "",
+    sort: str = "date",
+    direction: str = "DESC",
+    tags: list[str] | None = None,
+    rating_min: int | None = None,
+    performer: str | None = None,
+) -> str:
+    """Create a smart playlist (saved filter) in Stash.
+
+    Args:
+        name: Playlist name (e.g., "Top Rated This Month", "Unorganized Scenes")
+        mode: Filter mode — SCENES, PERFORMERS, IMAGES, GALLERIES, STUDIOS, TAGS
+        query: Text search query
+        sort: Sort field (date, rating, random, title, duration, file_count)
+        direction: Sort direction (ASC or DESC)
+        tags: Optional list of tag names to filter by
+        rating_min: Optional minimum rating (1-5 scale, stored as 1-100)
+        performer: Optional performer name to filter by
+    """
+    find_filter = {
+        "q": query,
+        "sort": sort,
+        "direction": direction.upper(),
+        "per_page": 40,
+    }
+
+    # Build object filter for advanced criteria
+    scene_filter = {}
+    if tags:
+        # Resolve tag names to IDs
+        tag_ids = []
+        for tag_name in tags:
+            try:
+                tag_data = _stash_query(
+                    'query ($q: String!) { findTags(tag_filter: { name: { value: $q, modifier: EQUALS } }) { tags { id name } } }',
+                    {"q": tag_name},
+                )
+                found = tag_data.get("findTags", {}).get("tags", [])
+                if found:
+                    tag_ids.append(found[0]["id"])
+            except Exception:
+                pass
+        if tag_ids:
+            scene_filter["tags"] = {
+                "value": tag_ids,
+                "modifier": "INCLUDES",
+                "depth": 0,
+            }
+
+    if rating_min is not None:
+        scene_filter["rating100"] = {
+            "value": rating_min * 20,
+            "modifier": "GREATER_THAN",
+        }
+
+    if performer:
+        try:
+            perf_data = _stash_query(
+                'query ($q: String!) { findPerformers(performer_filter: { name: { value: $q, modifier: EQUALS } }) { performers { id name } } }',
+                {"q": performer},
+            )
+            found = perf_data.get("findPerformers", {}).get("performers", [])
+            if found:
+                scene_filter["performers"] = {
+                    "value": [found[0]["id"]],
+                    "modifier": "INCLUDES",
+                    "depth": 0,
+                }
+        except Exception:
+            pass
+
+    try:
+        data = _stash_query(
+            """mutation ($input: SaveFilterInput!) {
+                saveFilter(input: $input) { id name mode }
+            }""",
+            {
+                "input": {
+                    "name": name,
+                    "mode": mode.upper(),
+                    "find_filter": find_filter,
+                    "object_filter": scene_filter if scene_filter else None,
+                }
+            },
+        )
+        result = data.get("saveFilter", {})
+        return f"Smart playlist '{result.get('name', name)}' created (ID: {result.get('id', '?')}, mode: {result.get('mode', mode)})."
+    except Exception as e:
+        return f"Error creating smart playlist: {e}"
+
+
+@tool
+def delete_smart_playlist(playlist_id: str) -> str:
+    """Delete a saved filter (smart playlist) by ID.
+
+    Args:
+        playlist_id: The ID of the saved filter to delete. Use list_smart_playlists to find IDs.
+    """
+    try:
+        _stash_query(
+            "mutation ($id: ID!) { destroySavedFilter(id: $id) }",
+            {"id": playlist_id},
+        )
+        return f"Smart playlist {playlist_id} deleted."
+    except Exception as e:
+        return f"Error deleting smart playlist: {e}"
+
+
 # --- Tool registry (must be after all @tool definitions) ---
 
 STASH_TOOLS = [
@@ -605,4 +753,7 @@ STASH_TOOLS = [
     get_recent_scenes,
     check_queen_references,
     get_performer_reference_photo,
+    list_smart_playlists,
+    create_smart_playlist,
+    delete_smart_playlist,
 ]
