@@ -44,11 +44,17 @@ LANES = {
 }
 
 # Agents whose tasks have higher impact (require more oversight)
-HIGH_IMPACT_AGENTS = {"coding-agent", "creative-agent"}
+# creative-agent removed: its operations are reversible (bad video doesn't break anything)
+# and it needs to build trust to enable autonomous content production
+HIGH_IMPACT_AGENTS = {"coding-agent"}
 
 # Low-risk agents whose routine tasks should auto-execute at Level A/B
 # These agents typically perform read-only monitoring or data retrieval
 LOW_RISK_AGENTS = {"home-agent", "stash-agent", "data-curator", "knowledge-agent"}
+
+# Medium-risk agents: no penalty, no bonus — trust builds from track record
+# creative-agent starts here so the pipeline can prime the trust flywheel
+MEDIUM_RISK_AGENTS = {"creative-agent", "media-agent", "research-agent"}
 
 # Presence state labels and postures
 PRESENCE_STATES = {

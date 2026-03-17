@@ -329,11 +329,17 @@ async def compute_trust_scores() -> dict:
         es_score = es_approved / es_total if es_total > 0 else 0.5
 
         # Combined score (weighted: feedback 60%, escalation 40%)
-        # With sample penalty: scores regress to 0.5 with fewer samples
+        # With sample penalty: scores regress to baseline with fewer samples
         total_samples = fb_total + es_total
         confidence = min(1.0, total_samples / 20)  # Full confidence at 20+ samples
         raw_score = 0.6 * fb_score + 0.4 * es_score
-        trust_score = 0.5 + (raw_score - 0.5) * confidence
+
+        # Baseline trust: new agents start at 0.55 instead of 0.5 so pipeline
+        # tasks can execute at Level B without waiting for 20+ samples.
+        # This avoids the cold-start problem where the trust flywheel can't spin
+        # because nothing ever executes to generate trust data.
+        baseline = 0.55
+        trust_score = baseline + (raw_score - 0.5) * confidence
 
         # Trust grade
         if trust_score >= 0.8:
