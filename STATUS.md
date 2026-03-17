@@ -1433,6 +1433,11 @@ Kindred:
 - Dashboard lens health dots: green/red indicators on lens switcher buttons
 - Ulrich Energy email delivery: POST /api/reports/:id/send with SMTP support + graceful fallback
 
-**Final tally: 20 commits, 28 features across 5 projects (~4,000 lines added).**
+**Third wave:**
+- EoBQ Empire News Network: contextual headlines from game state, 12s rotation, tone-coded
+- Kindred: passion extraction API (LLM-powered), matching API (vector similarity in Qdrant), wired onboarding
+- Stash: image search, gallery list/create tools added to agent
 
-*Last updated: 2026-03-16 17:21 PDT
+**Final tally: 22 commits, 34 features across 5 projects (~5,000 lines added).**
+
+*Last updated: 2026-03-16 17:29 PDT
