@@ -232,7 +232,7 @@ async def _call_llm(prompt: str) -> list[RawIntent]:
 async def _call_llm_raw(prompt: str) -> list[dict]:
     """Call LLM and return parsed JSON proposals."""
     try:
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=180) as client:
             resp = await client.post(
                 _LLM_URL,
                 json={
@@ -246,7 +246,7 @@ async def _call_llm_raw(prompt: str) -> list[dict]:
             resp.raise_for_status()
             data = resp.json()
     except httpx.TimeoutException:
-        logger.error("Intent synthesis LLM call timed out")
+        logger.error("Intent synthesis LLM call timed out (180s)")
         return []
     except Exception as e:
         logger.error("Intent synthesis LLM call failed: %s", e)
