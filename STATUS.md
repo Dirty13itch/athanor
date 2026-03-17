@@ -564,6 +564,25 @@ Phase 6 (Testing)            DONE — 391 tests pass
 3. **Campaign 3: EoBQ** — Game loop MVP, persistence layer, portrait pipeline, project lens
 4. **Fix ComfyUI GPU assignment** — NVIDIA_VISIBLE_DEVICES=0 for creative mode on 5090
 5. vLLM upgrade — monitor v0.17.2+ for Qwen3.5-FP8 crash fix
+6. **First queen LoRA training** — NVMe ready, Ansible role ready, proof of concept run
+7. **inference_health:endpoint_health** — Investigate why benchmark at 6/100 while others are 100
+8. **Feed pipeline** — Add ComfyUI GPU fix, LoRA training, C1.3-C1.4 as explicit BUILD-MANIFEST intents so miner produces new plans
+
+### Evening Review — 2026-03-16 20:00
+
+**Score: 8/10**
+
+Sessions 62 and 62b closed two major structural items: WORKSHOP NVMe online (1.74 TB fast storage at /mnt/fast1 + /mnt/fast2) and dashboard 30/30 pages returning live data (topology, home HA summary, model observatory all defixtured). EoBQ Neo4j seeded with 21 queens + 90 inter-queen relationship edges. Digest system built — DailyBriefing now surfaces 30+ daily proactive agent results. Six cron jobs had been silently failing since deployment (permission denied on /var/log/) — fixed.
+
+**Pipeline stagnation**: 0 new intents across 5 consecutive cycles. All 19 existing intents already processed. Engine is coasting — needs fresh BUILD-MANIFEST items added so miner has actionable work.
+
+**Coding agent path failures**: 10 tasks failed today matching the known `/workspace/` pattern. Not fixed at source — tasks still being constructed with invalid container paths.
+
+**Key issues for tomorrow:**
+- Fix ComfyUI GPU assignment (blocks portrait quality work — PuLID needs 5090 32GB)
+- First queen LoRA training PoC (NVMe ready, Ansible ready)
+- Feed pipeline with unblocked intents
+- Investigate inference_health:endpoint_health at 6/100
 
 ### Session — Hardening & Operational Readiness (2026-03-15)
 
