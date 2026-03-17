@@ -139,6 +139,34 @@ export default function ReferencesPage() {
     setGenerating(null);
   };
 
+  const animatePortrait = async (persona: Persona) => {
+    if (!generateResult) {
+      alert("Generate a portrait first, then animate it.");
+      return;
+    }
+    setGenerating(persona.id);
+    const motionPrompt = generatePrompt
+      ? `${generatePrompt}, subtle breathing, blinking, looking at viewer, cinematic`
+      : "subtle breathing, blinking, looking at viewer, cinematic, photorealistic";
+
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "i2v",
+        prompt: motionPrompt,
+        referencePath: generateResult,
+        negativePrompt: "blurry, distorted face, morphing, identity change, static, watermark, cartoon",
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.imageUrl) setGenerateResult(data.imageUrl);
+    }
+    setGenerating(null);
+  };
+
   const filtered = personas.filter((p) => p.category === tab);
 
   return (
@@ -303,11 +331,28 @@ export default function ReferencesPage() {
               {/* Result preview */}
               {generateTarget === persona.id && generateResult && (
                 <div className="mt-2">
-                  <img
-                    src={generateResult}
-                    alt="Generated"
-                    className="w-full rounded border border-white/10"
-                  />
+                  {/\.(mp4|webm|mov)(\?|$)/i.test(generateResult) ? (
+                    <video
+                      src={generateResult}
+                      className="w-full rounded border border-white/10"
+                      autoPlay loop muted playsInline
+                    />
+                  ) : (
+                    <>
+                      <img
+                        src={generateResult}
+                        alt="Generated"
+                        className="w-full rounded border border-white/10"
+                      />
+                      <button
+                        onClick={() => animatePortrait(persona)}
+                        disabled={generating === persona.id}
+                        className="mt-2 w-full px-3 py-1.5 bg-violet-900/40 hover:bg-violet-900/60 text-violet-200 text-xs rounded transition-colors disabled:opacity-40 border border-violet-400/20"
+                      >
+                        {generating === persona.id ? "Animating..." : "Animate Portrait (I2V)"}
+                      </button>
+                    </>
+                  )}
                   <a
                     href={generateResult}
                     target="_blank"

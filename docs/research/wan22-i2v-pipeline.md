@@ -44,7 +44,7 @@ HQ mode: GPU swap to 5090 (stop vLLM worker, start ComfyUI on GPU 0)
 |------|-----|------|--------|
 | wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors | unet/ | 14G | Present |
 | wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors | unet/ | 14G | Present |
-| Wan2.2-I2V-A14B-Q4_K_S.gguf | unet/ | 8.75G | Downloading |
+| Wan2.2-I2V-A14B-HighNoise-Q4_K_S.gguf | unet/ | 8.75G | Downloading |
 | umt5-xxl-enc-fp8_e4m3fn.safetensors | clip/ | 6.3G | Present |
 | CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors | clip_vision/ | 2.4G | Present |
 | wan_2.1_vae.safetensors | vae/ | 243M | Present |
