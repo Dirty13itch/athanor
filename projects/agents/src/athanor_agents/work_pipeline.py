@@ -139,10 +139,10 @@ async def run_pipeline_cycle() -> CycleResult:
         await _record_cycle(result)
         return result
 
-    # 4. Generate plans (limit to 15 per cycle)
+    # 4. Generate plans (limit to 8 per cycle — each is an LLM call)
     from .plan_generator import generate_plan_from_intent, decompose_plan_to_tasks, approve_plan
     plans = []
-    for intent in new_intents[:15]:
+    for intent in new_intents[:8]:
         try:
             plan = await generate_plan_from_intent(
                 intent_source=intent.source,
