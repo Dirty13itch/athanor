@@ -63,6 +63,24 @@ export function GenerationGalleryCard() {
             />
           ) : (
             <>
+              {/* Queen attribution summary */}
+              <div className="mb-3 flex flex-wrap gap-1">
+                {Array.from(new Set(generations.map((g) => g.queenName)))
+                  .slice(0, 8)
+                  .map((name) => {
+                    const count = generations.filter((g) => g.queenName === name).length;
+                    return (
+                      <Badge key={name} variant="outline" className="text-[10px]">
+                        {name} ({count})
+                      </Badge>
+                    );
+                  })}
+                {new Set(generations.map((g) => g.queenName)).size > 8 && (
+                  <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                    +{new Set(generations.map((g) => g.queenName)).size - 8} more
+                  </Badge>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 {generations.slice(0, 4).map((gen) => (
                   <button
