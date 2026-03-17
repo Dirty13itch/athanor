@@ -585,6 +585,130 @@ def get_performer_reference_photo(performer_name: str) -> str:
         return f"Error: {e}"
 
 
+# --- Image and Gallery Management ---
+
+
+@tool
+def search_images(query: str = "", performer: str = "", limit: int = 20) -> str:
+    """Search images in Stash by query text or performer name.
+
+    Args:
+        query: Text search query
+        performer: Filter by performer name
+        limit: Max results (default 20)
+    """
+    try:
+        image_filter: dict = {}
+        if performer:
+            perf_data = _stash_query(
+                'query ($q: String!) { findPerformers(performer_filter: { name: { value: $q, modifier: EQUALS } }) { performers { id } } }',
+                {"q": performer},
+            )
+            found = perf_data.get("findPerformers", {}).get("performers", [])
+            if found:
+                image_filter["performers"] = {"value": [found[0]["id"]], "modifier": "INCLUDES", "depth": 0}
+
+        data = _stash_query(
+            """query ($filter: ImageFilterType, $find: FindFilterType) {
+                findImages(image_filter: $filter, filter: $find) {
+                    count
+                    images { id title rating100 o_counter file { width height size } paths { thumbnail } performers { name } }
+                }
+            }""",
+            {"filter": image_filter if image_filter else None, "find": {"q": query, "per_page": limit, "sort": "created_at", "direction": "DESC"}},
+        )
+        result = data.get("findImages", {})
+        images = result.get("images", [])
+        if not images:
+            return f"No images found{' for ' + performer if performer else ''}."
+        lines = [f"Images ({result.get('count', len(images))} total, showing {len(images)}):"]
+        for img in images:
+            perfs = ", ".join(p["name"] for p in img.get("performers", []))
+            f = img.get("file", {})
+            lines.append(
+                f"  [{img['id']}] {img.get('title', 'untitled')}"
+                + (f" | {perfs}" if perfs else "")
+                + (f" | {f.get('width', '?')}x{f.get('height', '?')}" if f else "")
+                + (f" | rating {img['rating100']}" if img.get("rating100") else "")
+            )
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error searching images: {e}"
+
+
+@tool
+def list_galleries(limit: int = 20) -> str:
+    """List galleries in Stash.
+
+    Args:
+        limit: Max results (default 20)
+    """
+    try:
+        data = _stash_query(
+            """query ($find: FindFilterType) {
+                findGalleries(filter: $find) {
+                    count
+                    galleries { id title image_count date performers { name } }
+                }
+            }""",
+            {"find": {"per_page": limit, "sort": "created_at", "direction": "DESC"}},
+        )
+        result = data.get("findGalleries", {})
+        galleries = result.get("galleries", [])
+        if not galleries:
+            return "No galleries found."
+        lines = [f"Galleries ({result.get('count', len(galleries))} total):"]
+        for g in galleries:
+            perfs = ", ".join(p["name"] for p in g.get("performers", []))
+            lines.append(
+                f"  [{g['id']}] {g.get('title', 'untitled')}"
+                + f" | {g.get('image_count', 0)} images"
+                + (f" | {perfs}" if perfs else "")
+                + (f" | {g['date']}" if g.get("date") else "")
+            )
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error listing galleries: {e}"
+
+
+@tool
+def create_gallery(title: str, performer_names: list[str] | None = None) -> str:
+    """Create a new gallery in Stash.
+
+    Args:
+        title: Gallery title
+        performer_names: Optional list of performer names to associate
+    """
+    try:
+        input_data: dict = {"title": title}
+        if performer_names:
+            perf_ids = []
+            for name in performer_names:
+                try:
+                    perf_data = _stash_query(
+                        'query ($q: String!) { findPerformers(performer_filter: { name: { value: $q, modifier: EQUALS } }) { performers { id } } }',
+                        {"q": name},
+                    )
+                    found = perf_data.get("findPerformers", {}).get("performers", [])
+                    if found:
+                        perf_ids.append(found[0]["id"])
+                except Exception:
+                    pass
+            if perf_ids:
+                input_data["performer_ids"] = perf_ids
+
+        data = _stash_query(
+            """mutation ($input: GalleryCreateInput!) {
+                galleryCreate(input: $input) { id title }
+            }""",
+            {"input": input_data},
+        )
+        result = data.get("galleryCreate", {})
+        return f"Gallery '{result.get('title', title)}' created (ID: {result.get('id', '?')})."
+    except Exception as e:
+        return f"Error creating gallery: {e}"
+
+
 # --- Smart Playlists (Saved Filters) ---
 
 
@@ -816,6 +940,9 @@ STASH_TOOLS = [
     get_recent_scenes,
     check_queen_references,
     get_performer_reference_photo,
+    search_images,
+    list_galleries,
+    create_gallery,
     list_smart_playlists,
     create_smart_playlist,
     delete_smart_playlist,
