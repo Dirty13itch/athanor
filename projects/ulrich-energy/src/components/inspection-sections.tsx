@@ -919,3 +919,112 @@ export function HvacSection({ inspection, onSave }: SectionProps) {
     </SectionWrapper>
   );
 }
+
+// ── Photos ─────────────────────────────────────────────────────────────
+
+const PHOTO_SECTIONS = [
+  "building_envelope",
+  "blower_door",
+  "duct_leakage",
+  "insulation",
+  "windows",
+  "hvac",
+  "general",
+];
+
+export function PhotosSection({ inspection }: { inspection: Inspection; onSave: SectionProps["onSave"] }) {
+  const [uploading, setUploading] = useState(false);
+  const [section, setSection] = useState("general");
+  const [caption, setCaption] = useState("");
+  const photos = inspection.photos ?? [];
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+      formData.append("section", section);
+      formData.append("caption", caption);
+
+      const resp = await fetch(`/api/inspections/${inspection.id}/photos`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (resp.ok) {
+        setCaption("");
+        // Trigger page refresh via parent
+        window.location.reload();
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <section className="rounded-lg border border-border bg-card p-5">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        Photos ({photos.length})
+      </h3>
+
+      {/* Existing photos */}
+      {photos.length > 0 && (
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {photos.map((photo) => (
+            <div
+              key={photo.id}
+              className="rounded border border-border bg-muted/30 p-2 text-center"
+            >
+              <div className="text-xs font-medium truncate">{photo.filename}</div>
+              <div className="text-[10px] text-muted-foreground">
+                {photo.section.replace(/_/g, " ")}
+              </div>
+              {photo.caption && (
+                <div className="text-[10px] text-muted-foreground italic truncate">
+                  {photo.caption}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload form */}
+      <div className="mt-4 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            className={select}
+            value={section}
+            onChange={(e) => setSection(e.target.value)}
+          >
+            {PHOTO_SECTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+          <input
+            className={input}
+            placeholder="Caption (optional)"
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+          />
+        </div>
+        <label className="flex w-full cursor-pointer items-center justify-center rounded-md border border-dashed border-border py-3 text-sm text-muted-foreground hover:bg-accent">
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleUpload(file);
+            }}
+            disabled={uploading}
+          />
+          {uploading ? "Uploading..." : "Take Photo or Choose File"}
+        </label>
+      </div>
+    </section>
+  );
+}

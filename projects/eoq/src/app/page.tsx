@@ -32,6 +32,7 @@ import { useGameEngine } from "@/hooks/use-game-engine";
 import { getBreakingStage } from "@/types/game";
 import { useImageGeneration } from "@/hooks/use-image-generation";
 import { useKeyboard } from "@/hooks/use-keyboard";
+import { useTouchControls } from "@/hooks/use-touch-controls";
 
 export default function GamePage() {
   const { session, isGenerating } = useGameStore();
@@ -60,6 +61,7 @@ export default function GamePage() {
   const [savedGameExists, setSavedGameExists] = useState(false);
   const [showQueenRoster, setShowQueenRoster] = useState(false);
   const lastSceneIdRef = useRef<string | null>(null);
+  const gameContainerRef = useRef<HTMLElement | null>(null);
 
   // Derive choices and state (before hooks that depend on them)
   const history = session?.dialogueHistory ?? [];
@@ -106,6 +108,29 @@ export default function GamePage() {
     showExits,
   });
 
+  // Touch gesture controls for mobile
+  useTouchControls(gameContainerRef, {
+    onTap: () => {
+      if (!isGenerating && !hasChoices && session) advanceDialogue();
+    },
+    onSwipeLeft: () => {
+      if (!isGenerating && !hasChoices && session) advanceDialogue();
+    },
+    onSwipeRight: () => {
+      if (session) setShowHistory((prev) => !prev);
+    },
+    onSwipeUp: () => {
+      if (session) setShowExits((prev) => !prev);
+    },
+    onLongPress: () => {
+      if (session) setShowMenu(true);
+    },
+    onDoubleTap: () => {
+      if (session) setAutoAdvance((prev) => !prev);
+    },
+    enabled: !!session,
+  });
+
   // Check for saved game on mount
   useEffect(() => {
     setSavedGameExists(hasSavedGame());
@@ -145,7 +170,7 @@ export default function GamePage() {
   }
 
   return (
-    <main className="vignette relative h-screen w-screen overflow-hidden select-none">
+    <main ref={gameContainerRef} className="vignette relative h-screen w-screen overflow-hidden select-none">
       <SceneBackground />
       <SceneParticles />
       <CharacterPortrait />

@@ -12,6 +12,7 @@ import {
   InsulationSection,
   WindowsSection,
   HvacSection,
+  PhotosSection,
 } from "@/components/inspection-sections";
 
 type InspectionResponse = {
@@ -191,6 +192,10 @@ export default function InspectionDetailPage() {
             onSave={handleSectionSave}
           />
           <WindowsSection
+            inspection={inspection}
+            onSave={handleSectionSave}
+          />
+          <PhotosSection
             inspection={inspection}
             onSave={handleSectionSave}
           />
