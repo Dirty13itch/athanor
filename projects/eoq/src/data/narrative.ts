@@ -116,6 +116,87 @@ export function getScriptedIntro(
  * from the GDD's breaking system design.
  */
 const SCRIPTED_INTROS: Record<string, DialogueTurn[]> = {
+  // ── Act 2: The Hollowlands ────────────────────────────────────────────
+  "ashen-wastes": [
+    {
+      speaker: "narrator",
+      text: "The Crimson Gate closes behind you with the sound of a coffin lid. The world you knew — Ashenmoor, the tavern, the throne room — is behind the stone now. Ahead: nothing. Grey dust. Dead sky. The air tastes of endings and copper, and the silence is so complete you can hear your own blood moving.",
+    },
+    {
+      speaker: "narrator",
+      text: "Something moves under the dust in the distance. Something vast. It shifts like a whale turning in deep water, slow and inexorable. The ground trembles once, then is still. Whatever it is, it knows you're here. It was waiting.",
+    },
+  ],
+
+  "bone-road": [
+    {
+      speaker: "narrator",
+      text: "The first bone crunches under your boot and you stop. Not because of the sound — because of the arrangement. These aren't scattered remains. They're paving stones. Femurs laid parallel. Skulls at the borders, facing outward. Someone built this road, and they built it to be walked on. The green lanterns float ahead, patient and cold, lighting a path that wants to be followed.",
+    },
+    {
+      speaker: "narrator",
+      text: "As you walk, you notice the bones aren't all human. Some are too long. Some have too many joints. Some have teeth where teeth shouldn't be. The deeper you go, the newer the bones get. Whatever supplies the road's materials is still working.",
+    },
+  ],
+
+  "the-ossuary": [
+    {
+      speaker: "narrator",
+      text: "The bone cathedral takes your breath. Ribs arch overhead like Gothic vaults, each one perfect, polished, locked into place with a precision that makes you sick. The walls are skulls — thousands of them — arranged by size, smallest at the top, largest at the bottom. A sorting. A taxonomy of the dead.",
+    },
+    {
+      speaker: "narrator",
+      text: "At the center: the throne. It's warm. You can feel the heat from three paces away. Someone — something — was sitting here moments ago. The vertebrae that form its arms are fused with a material that isn't bone. It's darker. Harder. It catches the light like obsidian and hums when you lean close.",
+    },
+  ],
+
+  "the-sink": [
+    {
+      speaker: "narrator",
+      text: "You feel it before you see it — a wrongness in your inner ear, like the ground has tilted two degrees and your body can't reconcile the difference. Then the rim appears, and the wasteland drops away into something impossible. The Sink is miles across, and at its bottom, a pool of liquid darkness that isn't water, isn't shadow, isn't anything you have a word for.",
+    },
+    {
+      speaker: "narrator",
+      text: "The ruins on the slopes are older than Ashenmoor. Older than the Gate. Their architecture is wrong — the angles don't add up, the doorways are the wrong height, the windows face inward. A civilization that built for beings shaped differently than humans. And from the bottom of the Sink, a heartbeat. Not yours. Slower. Deeper. Patient.",
+    },
+  ],
+
+  "ember-citadel": [
+    {
+      speaker: "narrator",
+      text: "The citadel doesn't burn. It remembers burning, and the memory is so vivid that the obsidian walls glow amber, veins of trapped light pulsing like arteries in a body that refuses to die. The heat hits you thirty paces out — not fire heat, but the kind of heat that comes from being too close to something alive and angry.",
+    },
+    {
+      speaker: "narrator",
+      text: "The ember-born see you first. They stand in the corridors like statues made of cooling lava — humanoid, barely, with eyes that were alive once and now hold only the light's reflection. One of them raises a hand. Not in greeting. In recognition. 'We've been expecting you,' it says, in a voice like the last coal in a dying fire. 'The Flame remembers your blood.'",
+      choices: [
+        {
+          text: '"My blood? What do you mean?"',
+          intent: "curious",
+          effects: {
+            plotFlags: { ember_blood_recognized: true },
+          },
+        },
+        {
+          text: '"Take me to whoever runs this place."',
+          intent: "demanding",
+          effects: {
+            plotFlags: { ember_blood_recognized: true, demanded_audience: true },
+          },
+        },
+        {
+          text: "*Draw your weapon.* \"Nothing that remembers my blood gets to keep that memory.\"",
+          intent: "aggressive",
+          breakingMethod: "physical",
+          effects: {
+            plotFlags: { ember_blood_recognized: true, threatened_ember_born: true },
+          },
+        },
+      ],
+    },
+  ],
+
+  // ── Act 1: Original Scenes ────────────────────────────────────────────
   "throne-room": [
     {
       speaker: "narrator",
