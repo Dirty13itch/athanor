@@ -3,7 +3,7 @@
     "class_type": "WanVideoModelLoader",
     "_meta": { "title": "Wan2.2 I2V 14B (GGUF)" },
     "inputs": {
-      "model": "Wan2.2-I2V-A14B-Q4_K_S.gguf",
+      "model": "Wan2.2-I2V-A14B-HighNoise-Q4_K_S.gguf",
       "base_precision": "bf16",
       "quantization": "disabled",
       "load_device": "main_device",
