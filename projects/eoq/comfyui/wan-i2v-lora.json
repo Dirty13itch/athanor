@@ -3,8 +3,8 @@
     "class_type": "WanVideoLoraSelect",
     "_meta": { "title": "NSFW LoRA" },
     "inputs": {
-      "lora": "wan_nsfw_general.safetensors",
-      "strength": 0.9
+      "lora": "NSFW-22-H-e8.safetensors",
+      "strength": 0.75
     }
   },
   "1": {
