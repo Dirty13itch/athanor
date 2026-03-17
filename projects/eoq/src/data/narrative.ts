@@ -23,6 +23,11 @@ export const ARC_POSITIONS: Record<string, string> = {
   gathering_allies: "The player has met at least 3 characters. Alliances forming.",
   the_choice: "Isolde presents the central choice: serve her or defy her.",
   act1_end: "Act 1 concludes based on the player's choice and alliances.",
+  // Act 2: The Hollowlands
+  beyond_the_gate: "The player has crossed the Crimson Gate. The Hollowlands await.",
+  the_descent: "The player discovers the Sink and the ruins of the pre-empire civilization.",
+  ember_path: "The Ember Citadel is revealed. The truth about the Gate's purpose approaches.",
+  act2_climax: "The player must decide what to do with the power behind the Gate.",
 };
 
 /**
@@ -50,6 +55,23 @@ export function checkArcTransition(
 
   if (currentArc === "the_choice") {
     if (flags.chose_serve_isolde || flags.chose_defy_isolde) return "act1_end";
+  }
+
+  // Act 2 transitions
+  if (currentArc === "act1_end") {
+    if (flags.crossed_crimson_gate) return "beyond_the_gate";
+  }
+
+  if (currentArc === "beyond_the_gate") {
+    if (flags.entered_the_sink) return "the_descent";
+  }
+
+  if (currentArc === "the_descent") {
+    if (flags.ember_citadel_revealed) return "ember_path";
+  }
+
+  if (currentArc === "ember_path") {
+    if (flags.faced_gate_truth) return "act2_climax";
   }
 
   return null;

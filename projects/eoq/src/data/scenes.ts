@@ -238,6 +238,101 @@ export const QUEEN_RIVALRY_DUEL: SceneDefinition = {
   ],
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Act 2: The Hollowlands — Scenes beyond the Crimson Gate
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const ACT2_SCENES: Record<string, SceneDefinition> = {
+  "ashen-wastes": {
+    id: "ashen-wastes",
+    name: "The Ashen Wastes",
+    description:
+      "Beyond the Crimson Gate, the world dies. Grey dust stretches to every horizon, broken only by the black skeletons of trees that haven't grown in centuries. The sky is wrong — too close, too still, like a painted ceiling. The air tastes of copper and endings. Somewhere in the distance, something vast shifts under the dust.",
+    visualPrompt:
+      "Vast grey wasteland stretching to horizon, dead black tree skeletons, low oppressive sky like painted ceiling, copper-tinted atmosphere, dust storms in distance, dark fantasy, desolate, cinematic wide shot, 8k, photorealistic",
+    presentCharacters: [],
+    exits: [
+      { label: "Return to the Crimson Gate", targetSceneId: "crimson-gate" },
+      { label: "Follow the bone road east", targetSceneId: "bone-road" },
+      { label: "Descend into the Sink", targetSceneId: "the-sink" },
+      {
+        label: "Approach the Ember Citadel",
+        targetSceneId: "ember-citadel",
+        condition: "ember_citadel_revealed",
+      },
+    ],
+  },
+
+  "bone-road": {
+    id: "bone-road",
+    name: "The Bone Road",
+    description:
+      "A road paved with bones — human, animal, and things you can't name. Each step produces a muted crunch that echoes longer than it should. The bones are arranged too precisely to be natural. Someone built this road. Someone who wanted travelers to know exactly what they were walking on. Lanterns of pale green fire float at regular intervals, guiding the way to something you're not sure you want to find.",
+    visualPrompt:
+      "Fantasy road paved with bones in a wasteland, pale green floating lanterns lining the path, eerie perspective, skulls and ribcages visible in the road surface, dark misty atmosphere, gothic horror, cinematic, 8k, photorealistic",
+    presentCharacters: [],
+    exits: [
+      { label: "Turn back to the wastes", targetSceneId: "ashen-wastes" },
+      { label: "Follow the road to its end", targetSceneId: "the-ossuary" },
+    ],
+  },
+
+  "the-ossuary": {
+    id: "the-ossuary",
+    name: "The Ossuary of the Forgotten",
+    description:
+      "The bone road ends at a cathedral of bones. Ribs arc overhead like Gothic vaults. Skulls line the walls in rows so perfect they look printed. At the center, a throne of fused vertebrae. And on it — nothing. An empty throne. But the throne is warm. Someone was just sitting here. The bones around the throne are newer than the rest.",
+    visualPrompt:
+      "Cathedral interior built entirely of human bones, gothic bone vaults, rows of skulls on walls, central throne made of fused vertebrae, warm amber glow suggesting recent presence, dark fantasy, macabre beauty, cinematic, 8k, photorealistic",
+    presentCharacters: [],
+    exits: [
+      { label: "Leave this place", targetSceneId: "bone-road" },
+      {
+        label: "Sit on the throne",
+        targetSceneId: "ossuary-throne",
+        condition: "knows_throne_secret",
+      },
+    ],
+  },
+
+  "the-sink": {
+    id: "the-sink",
+    name: "The Sink",
+    description:
+      "A vast depression in the wasteland, miles across, where the ground sags inward like a wound that won't heal. At the bottom, liquid darkness pools — not water, not shadow. Something between. Structures jut from the slopes: half-buried buildings from a civilization that existed before Ashenmoor, before the Crimson Gate, before the bones. The air here is thicker. Warmer. You can hear a heartbeat that isn't yours.",
+    visualPrompt:
+      "Vast sinkhole depression in wasteland, ruined ancient buildings half-buried in slopes, pool of liquid darkness at the bottom, warm hazy atmosphere, ancient pre-civilization ruins, mysterious and foreboding, dark fantasy, cinematic aerial view, 8k, photorealistic",
+    presentCharacters: [],
+    exits: [
+      { label: "Climb back to the wastes", targetSceneId: "ashen-wastes" },
+      {
+        label: "Enter the submerged temple",
+        targetSceneId: "drowned-temple",
+        condition: "sink_path_cleared",
+      },
+    ],
+  },
+
+  "ember-citadel": {
+    id: "ember-citadel",
+    name: "The Ember Citadel",
+    description:
+      "The citadel burns. It has always burned. Not with fire — with heat, with light trapped in stone, with the memory of a sun that died and refused to stop shining. The walls pulse with an amber glow, veins of molten light running through obsidian. Inside, the heat is almost unbearable. Figures move in the deeper corridors — not ghosts, not quite alive. The ember-born. Servants of whoever lit this place and never learned to put it out.",
+    visualPrompt:
+      "Massive obsidian citadel with veins of molten amber light running through the walls, pulsing heat glow, ember-born figures in corridors, volcanic glass architecture, oppressive heat haze, dark fantasy fortress, dramatic lighting, cinematic, 8k, photorealistic",
+    presentCharacters: [],
+    exits: [
+      { label: "Retreat to the wastes", targetSceneId: "ashen-wastes" },
+      { label: "Enter the throne of embers", targetSceneId: "ember-throne" },
+    ],
+  },
+};
+
+// Register Act 2 scenes in the main SCENES map
+for (const [id, scene] of Object.entries(ACT2_SCENES)) {
+  SCENES[id] = scene;
+}
+
 /** Starting scene for new games */
 export const STARTING_SCENE = "courtyard";
 
@@ -270,4 +365,15 @@ export const SCENE_INTROS: Record<string, string> = {
     "Breaking bread with conquered queens. Some eat because they're hungry. Some because refusing would be worse. A few — the dangerous ones — eat because they're planning something. The wine flows. Inhibitions thin. Under the table, alliances form and fracture with every exchanged glance.",
   "queen-rivalry-duel":
     "Two queens. One favor. The court watches with the particular hunger that comes from seeing powerful women diminished. Torchlight catches on sweat and silk. The rules are simple: impress you, or lose everything. You could stop this. You won't.",
+  // Act 2: The Hollowlands
+  "ashen-wastes":
+    "The world ends at the Crimson Gate, and what begins beyond it isn't a new world — it's the corpse of one. Grey dust. Dead sky. The air tastes like the end of things. Everything you've built in Ashenmoor feels very far away. Very small.",
+  "bone-road":
+    "The road is bones. Not scattered, not random — laid with the precision of a mason who hated everything alive. Each step is a small desecration. The green lanterns float ahead, patient as death, lighting a path to somewhere you're increasingly sure you shouldn't go.",
+  "the-ossuary":
+    "The bone cathedral takes your breath. Not with beauty — with scale. The recognition that this many dead exist, arranged this carefully, by hands that took the time to sort femurs from fibulae. The empty throne at the center is the worst part. It's still warm.",
+  "the-sink":
+    "You feel the Sink before you see it — a wrongness in the ground, a pull like gravity learned a new direction. The ruins on the slopes are older than anything in Ashenmoor. The liquid darkness at the bottom moves when you look at it directly. The heartbeat you hear is getting louder.",
+  "ember-citadel":
+    "The citadel doesn't burn — it remembers burning, and the memory is strong enough to melt stone. The amber light in the walls pulses like a living thing. The ember-born watch you pass with eyes that were alive once. 'Welcome,' the walls seem to say. 'We've been waiting.'",
 };
