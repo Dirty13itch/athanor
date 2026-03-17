@@ -1263,12 +1263,34 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - ComfyUI: restarted with Impact Pack + face detection
 
 ### Next Actions
-1. First queen LoRA training — deploy Ansible role, populate Stash reference photos, train
-2. Stash reference photos — all 21 queens show hasRealProfileImage=false, need photos for PuLID
-3. Dashboard deploy to Workshop (already done this session)
-4. Stash /data/archive filesystem — read-only error causing RenameFile loop, needs Unraid check
-5. I2V portrait animation — once model download completes, wire into EoBQ
-6. Batch generate portraits — once Stash refs populated
+1. **Seed creative-agent trust** — remove HIGH_IMPACT penalty or inject baseline trust credits so governor auto-approves first batch
+2. **Wire cloud evaluation** — use Gemini vision to evaluate I2V output quality (replace file-size heuristic)
+3. **Auto-escalate RESEARCH/CREATIVE tasks to cloud** — lease issuance exists but nothing triggers it
+4. **Operator intent injection UI** — dashboard widget for Shaun to inject goals/priorities into pipeline
+5. **Presence detection v2** — integrate Home Assistant device_tracker for real presence instead of time-of-day fallback
+6. First queen LoRA training — deploy Ansible role, populate Stash reference photos, train
+7. Stash reference photos — all 21 queens show hasRealProfileImage=false, need photos for PuLID
+
+---
+
+### Autonomous Intelligence Loop (Session 2026-03-16 evening)
+
+**Committed:** `6fb78fa` — 509 lines, 7 files
+
+**What was built:**
+- 3 new intent miners (content_completeness, creative_quality, infrastructure_drift) — 15 sources total
+- 5 new creative-agent tools (generate_i2v_video, poll_video_completion, check_video_inventory, update_video_inventory, evaluate_video_quality)
+- Cache-first video lookup in EoBQ (video-cache API route + hook integration)
+- TeaCache node in wan-i2v.json workflow for faster I2V sampling
+- Enhanced creative-agent scheduler prompt (full production cycle every 4h)
+- Updated workplanner capability descriptions
+
+**Deep audit findings (3 critical gaps for 24/7 autonomy):**
+1. Governor cold-start: All agents start at trust 0.5 with 0 samples. Creative-agent has -0.2 HIGH_IMPACT penalty. Result: Level C/D until 20+ samples accumulate → everything needs approval.
+2. Cloud subscriptions idle: 13+ cloud models configured in LiteLLM, routing layer wired, subscription lease system built, but NO task flow actually requests cloud execution. All inference stays local.
+3. Trust→Governor feedback loop exists (`apply_trust_adjustments` at 05:00 AM → `set_autonomy_adjustment`) but needs 10+ samples before it activates. Need to prime the pump.
+
+**Meta-orchestrator question:** Local Qwen3.5-27B is fine for routine orchestration (plan generation, task decomposition, quality gating). Cloud Claude/Gemini for escalation on complex multi-agent coordination and quality evaluation. Orchestrator doesn't need to be uncensored — it routes to uncensored models, doesn't generate NSFW content itself.
 
 ---
 
