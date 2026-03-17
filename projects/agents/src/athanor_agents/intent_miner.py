@@ -39,8 +39,8 @@ class RawIntent:
 
 
 async def mine_all_sources() -> list[RawIntent]:
-    """Mine all intent sources and return combined list."""
-    intents: list[RawIntent] = []
+    """Mine all intent sources concurrently and return combined list."""
+    import asyncio
 
     miners = [
         _mine_build_manifest,
@@ -60,12 +60,17 @@ async def mine_all_sources() -> list[RawIntent]:
         _mine_infrastructure_drift,
     ]
 
-    for miner in miners:
+    async def _safe_mine(miner):
         try:
-            results = await miner()
-            intents.extend(results)
+            return await miner()
         except Exception as e:
             logger.warning("Intent miner %s failed: %s", miner.__name__, e)
+            return []
+
+    results = await asyncio.gather(*[_safe_mine(m) for m in miners])
+    intents: list[RawIntent] = []
+    for batch in results:
+        intents.extend(batch)
 
     logger.info("Mined %d raw intents from %d sources", len(intents), len(miners))
     return intents
@@ -164,70 +169,60 @@ async def _mine_active_goals() -> list[RawIntent]:
 
 
 async def _mine_signals() -> list[RawIntent]:
-    """Query Qdrant signals collection for RSS-derived intelligence.
+    """Query Qdrant signals collection for high-relevance RSS-derived intelligence.
 
-    Uses pagination and freshness decay: signals older than 7 days get
-    halved relevance, older than 30 days are skipped entirely.
+    Single filtered scroll (relevance >= 0.6) with freshness decay.
     """
     import time as _time
 
     intents = []
     try:
         from qdrant_client import QdrantClient
+        from qdrant_client.models import Filter, FieldCondition, Range
         from .config import settings
 
-        client = QdrantClient(url=settings.qdrant_url)
+        client = QdrantClient(url=settings.qdrant_url, timeout=10)
         now = _time.time()
         seven_days = 7 * 86400
         thirty_days = 30 * 86400
 
-        # Paginated scan — up to 100 signals
-        offset = None
-        total_scanned = 0
-        while total_scanned < 100:
-            results = client.scroll(
-                collection_name="signals",
-                limit=20,
-                offset=offset,
-                with_payload=True,
-            )
-            points = results[0] if results else []
-            if not points:
-                break
+        # Single filtered scroll — only fetch signals with relevance >= 0.6
+        results = client.scroll(
+            collection_name="signals",
+            limit=50,
+            scroll_filter=Filter(must=[
+                FieldCondition(key="relevance_score", range=Range(gte=0.6)),
+            ]),
+            with_payload=True,
+        )
+        points = results[0] if results else []
 
-            offset = results[1]  # next page token
-            total_scanned += len(points)
+        for point in points:
+            payload = point.payload or {}
+            relevance = payload.get("relevance_score", 0)
 
-            for point in points:
-                payload = point.payload or {}
-                relevance = payload.get("relevance_score", 0)
+            crawled_at = payload.get("crawled_at", payload.get("timestamp", 0))
+            if isinstance(crawled_at, str):
+                try:
+                    from datetime import datetime
+                    crawled_at = datetime.fromisoformat(crawled_at.replace("Z", "+00:00")).timestamp()
+                except (ValueError, TypeError):
+                    crawled_at = 0
 
-                # Freshness decay
-                crawled_at = payload.get("crawled_at", payload.get("timestamp", 0))
-                if isinstance(crawled_at, str):
-                    try:
-                        from datetime import datetime
-                        crawled_at = datetime.fromisoformat(crawled_at.replace("Z", "+00:00")).timestamp()
-                    except (ValueError, TypeError):
-                        crawled_at = 0
+            age = now - (crawled_at if isinstance(crawled_at, (int, float)) else 0)
+            if age > thirty_days:
+                continue
+            if age > seven_days:
+                relevance *= 0.5
 
-                age = now - (crawled_at if isinstance(crawled_at, (int, float)) else 0)
-                if age > thirty_days:
-                    continue  # Skip stale signals
-                if age > seven_days:
-                    relevance *= 0.5  # Halve relevance for older signals
-
-                if relevance >= 0.6:
-                    intents.append(RawIntent(
-                        source="signals",
-                        text=payload.get("title", "") + ": " + payload.get("summary", ""),
-                        metadata={"signal_id": str(point.id), "relevance": relevance,
-                                  "age_days": round(age / 86400, 1)},
-                        priority_hint=min(relevance, 0.8),
-                    ))
-
-            if offset is None:
-                break
+            if relevance >= 0.6:
+                intents.append(RawIntent(
+                    source="signals",
+                    text=payload.get("title", "") + ": " + payload.get("summary", ""),
+                    metadata={"signal_id": str(point.id), "relevance": relevance,
+                              "age_days": round(age / 86400, 1)},
+                    priority_hint=min(relevance, 0.8),
+                ))
     except Exception as e:
         logger.debug("Signals mining failed: %s", e)
     return intents
@@ -444,20 +439,27 @@ async def _mine_content_completeness() -> list[RawIntent]:
 
         stages = ["defiant", "struggling", "conflicted", "yielding", "surrendered", "broken"]
 
+        # Batch all EXISTS checks in a single Redis pipeline (126 keys → 1 roundtrip)
+        checks = []
         for qid_raw in queen_ids:
             qid = qid_raw.decode() if isinstance(qid_raw, bytes) else qid_raw
-
             for stage in stages:
-                inv_key = f"athanor:eoq:video_inventory:{qid}:{stage}"
-                exists = await r.exists(inv_key)
-                if not exists:
-                    priority = 0.6 if stage == "defiant" else 0.4
-                    intents.append(RawIntent(
-                        source="content_completeness",
-                        text=f"Generate I2V video for queen '{qid}' at {stage} stage",
-                        metadata={"queen_id": qid, "stage": stage, "project": "eoq"},
-                        priority_hint=priority,
-                    ))
+                checks.append((qid, stage, f"athanor:eoq:video_inventory:{qid}:{stage}"))
+
+        pipe = r.pipeline(transaction=False)
+        for _, _, key in checks:
+            pipe.exists(key)
+        results = await pipe.execute()
+
+        for (qid, stage, _), exists in zip(checks, results):
+            if not exists:
+                priority = 0.6 if stage == "defiant" else 0.4
+                intents.append(RawIntent(
+                    source="content_completeness",
+                    text=f"Generate I2V video for queen '{qid}' at {stage} stage",
+                    metadata={"queen_id": qid, "stage": stage, "project": "eoq"},
+                    priority_hint=priority,
+                ))
     except Exception as e:
         logger.debug("Content completeness mining failed: %s", e)
     return intents
