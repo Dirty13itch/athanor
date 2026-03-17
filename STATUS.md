@@ -1057,7 +1057,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-16 16:44 PDT
+*Last updated: 2026-03-16 18:03 PDT
 
 ---
 
@@ -1090,7 +1090,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-16 16:44 PDT
+*Last updated: 2026-03-16 18:03 PDT
 
 ---
 
@@ -1448,4 +1448,4 @@ Kindred:
 
 **Final tally: 25 commits, 39 features across 5 projects (~6,500 lines added).**
 
-*Last updated: 2026-03-16 17:38 PDT
+*Last updated: 2026-03-16 18:03 PDT
