@@ -25,6 +25,10 @@ PROTECTED_PATTERNS=(
   "vault-password"          # Ansible vault password
   "credentials.json"        # Service credentials
   ".secret"                 # Generic secrets
+  "CONSTITUTION.yaml"       # AUTO-001: Constitutional constraints (immutable)
+  "/etc/ufw/"               # SEC-003/INFRA-001: Firewall rules
+  "/etc/iptables"           # SEC-003/INFRA-001: Firewall rules
+  "/etc/netplan/"           # INFRA-001: Network configuration
 )
 
 for PATTERN in "${PROTECTED_PATTERNS[@]}"; do

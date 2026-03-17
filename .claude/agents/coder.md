@@ -1,5 +1,6 @@
 ---
 name: Local Coder
+model: sonnet
 description: Dispatches coding tasks to local Qwen3.5-27B-FP8 for boilerplate generation, refactoring, and test writing. Use for mechanical coding tasks where the "what" is already specified. Keep architecture and novel problems in cloud.
 skills:
   - athanor-conventions

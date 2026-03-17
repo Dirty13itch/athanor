@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash(*)",
       "Read(*)",
       "Write(*)",
       "Edit(*)",
@@ -9,6 +10,7 @@
       "Glob(*)",
       "LS(*)",
       "Task(*)",
+      "Agent(*)",
       "WebFetch(*)",
       "WebSearch(*)",
       "TodoRead(*)",
@@ -25,10 +27,7 @@
       "mcp__gitea__*",
       "mcp__langfuse__*",
       "mcp__miniflux__*",
-      "mcp__n8n__*",
-      "mcp__context7__*",
-      "mcp__github__*",
-      "mcp__playwright__*"
+      "mcp__n8n__*"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
@@ -45,7 +44,6 @@
       "Read(./.env.*)"
     ]
   },
-  "enableAllProjectMcpServers": true,
   "alwaysThinkingEnabled": true,
   "statusLine": {
     "type": "command",
@@ -53,13 +51,12 @@
   },
   "plansDirectory": ".claude/plans",
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80",
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0",
-    "BASH_DEFAULT_TIMEOUT_MS": "120000",
+    "BASH_DEFAULT_TIMEOUT_MS": "180000",
     "BASH_MAX_TIMEOUT_MS": "600000",
     "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
-    "ENABLE_TOOL_SEARCH": "true"
+    "ENABLE_TOOL_SEARCH": "auto:5"
   },
   "hooks": {
     "PreToolUse": [
@@ -110,7 +107,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "notify-send -t 10000 'Claude Code' 'Permission request waiting' 2>/dev/null || true"
+            "command": "bash .claude/hooks/notify.sh 'Claude Code' 'Permission request waiting' 10000",
+            "async": true
           }
         ]
       },
@@ -119,7 +117,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "notify-send -t 5000 'Claude Code' 'Waiting for input' 2>/dev/null || true"
+            "command": "bash .claude/hooks/notify.sh 'Claude Code' 'Waiting for input' 5000",
+            "async": true
           }
         ]
       }
@@ -141,7 +140,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/task-completed-notify.sh"
+            "command": "bash .claude/hooks/task-completed-notify.sh",
+            "async": true
           }
         ]
       }
@@ -203,7 +203,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat ~/.claude/projects/-home-shaun-repos-athanor/session-state.md 2>/dev/null || echo 'No pre-compaction state found. Re-read CLAUDE.md and MEMORY.md for context.'"
+            "command": "bash .claude/hooks/post-compact-reload.sh"
           }
         ]
       }

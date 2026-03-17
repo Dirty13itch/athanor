@@ -3,9 +3,9 @@
 # Covers all tracking/state files, not just a few
 
 # Guard against infinite loop: if this stop hook triggers another stop, bail
-INPUT=$(cat)
-IS_STOP_HOOK=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('stop_hook_active','false'))" 2>/dev/null)
-if [ "$IS_STOP_HOOK" = "true" ] || [ "$IS_STOP_HOOK" = "True" ]; then
+# Use simple grep — python3/jq parsing fails on large or malformed input
+INPUT=$(cat 2>/dev/null || true)
+if echo "$INPUT" | grep -qi '"stop_hook_active"[[:space:]]*:[[:space:]]*true' 2>/dev/null; then
   exit 0
 fi
 

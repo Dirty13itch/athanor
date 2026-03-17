@@ -1,107 +1,130 @@
 #!/bin/bash
 # PreToolUse hook: Block dangerous Bash commands
 # Matcher: Bash
-# Guards: destructive operations, production nodes, credential exposure
-# All blocks are advisory (exit 2) — user can approve individual commands.
+# Blocks: destructive operations, evasion patterns, secret access
 
 INPUT=$(cat)
+
+# Extract the command from tool input using jq
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+
+# Fallback to grep if jq fails
 if [ -z "$COMMAND" ]; then
   COMMAND=$(echo "$INPUT" | grep -oP '"command"\s*:\s*"([^"]*)"' | head -1 | sed 's/.*"command"\s*:\s*"//;s/"$//')
 fi
 
-block() {
-  echo "BLOCKED: $1"
-  echo "Command: $COMMAND"
-  echo "$2"
+# Normalize: lowercase for case-insensitive matching
+CMD_LOWER=$(echo "$COMMAND" | tr '[:upper:]' '[:lower:]')
+
+# === EVASION DETECTION ===
+# Block eval/exec wrapping
+if echo "$CMD_LOWER" | grep -qE '(^|\s|;|&&|\|\|)eval\s'; then
+  echo "BLOCKED: eval wrapping detected: $COMMAND"
+  echo "Direct commands only — no eval wrappers."
   exit 2
-}
+fi
 
-# --- Destructive Git/Filesystem ---
-for P in \
-  "rm -rf /" \
-  "rm -rf /\*" \
-  "git reset --hard" \
-  "git push --force" \
-  "git push -f " \
-  "git clean -fd" \
-  "git checkout -- \." \
-  "mkfs\." \
-  "dd if=" \
-  "> /dev/sd"; do
-  echo "$COMMAND" | grep -qi "$P" && block "Dangerous pattern '$P'" "Could cause irreversible damage. Ask the user first."
+# Block piped execution (echo ... | bash/sh)
+if echo "$CMD_LOWER" | grep -qE '\|\s*(ba)?sh(\s|$)'; then
+  echo "BLOCKED: Piped shell execution detected: $COMMAND"
+  exit 2
+fi
+
+# Block base64 decode to shell
+if echo "$CMD_LOWER" | grep -qE 'base64.*\|\s*(ba)?sh'; then
+  echo "BLOCKED: Encoded command execution detected: $COMMAND"
+  exit 2
+fi
+
+# Block explicit subshell for dangerous ops
+if echo "$CMD_LOWER" | grep -qE '(ba)?sh\s+-c\s+.*rm\s'; then
+  echo "BLOCKED: Subshell rm detected: $COMMAND"
+  exit 2
+fi
+
+# === DESTRUCTIVE FILESYSTEM ===
+BLOCKED_FS=(
+  "rm -rf /"
+  "rm -rf /*"
+  "rm -rf ~"
+  "rm -rf \$HOME"
+)
+
+for PATTERN in "${BLOCKED_FS[@]}"; do
+  if echo "$COMMAND" | grep -qi "$PATTERN"; then
+    echo "BLOCKED: Dangerous filesystem operation '$PATTERN': $COMMAND"
+    exit 2
+  fi
 done
 
-# --- Docker Container Protection ---
-# Hard blocks for destructive data operations.
-# docker stop/rm/down are allowed — graceful lifecycle ops.
-for P in \
-  "docker kill " \
-  "docker volume rm" \
-  "docker volume prune" \
-  "docker network rm"; do
-  echo "$COMMAND" | grep -qi "$P" && block "Docker destructive operation '$P'" "Container operations require user approval."
+# === DESTRUCTIVE GIT ===
+BLOCKED_GIT=(
+  "git reset --hard"
+  "git push --force"
+  "git push -f "
+  "git push.*--force"
+  "git clean -fd"
+  "git clean -f "
+  "git checkout -- \."
+  "git branch -D "
+  "git stash drop"
+  "git stash clear"
+)
+
+for PATTERN in "${BLOCKED_GIT[@]}"; do
+  if echo "$COMMAND" | grep -qi "$PATTERN"; then
+    echo "BLOCKED: Dangerous git operation '$PATTERN': $COMMAND"
+    echo "This could cause irreversible data loss. Ask the user before proceeding."
+    exit 2
+  fi
 done
 
-# --- Database Operations ---
-for P in \
-  "DROP TABLE" \
-  "DROP DATABASE" \
-  "DELETE FROM" \
-  "TRUNCATE " \
-  "DETACH DELETE"; do
-  echo "$COMMAND" | grep -qi "$P" && block "Database destructive operation '$P'" "Mass data deletion requires user approval."
+# === DATABASE ===
+if echo "$CMD_LOWER" | grep -qE '(drop|truncate)\s+(table|database|schema|index)'; then
+  echo "BLOCKED: Destructive database operation detected: $COMMAND"
+  exit 2
+fi
+
+# === SYSTEM ===
+BLOCKED_SYS=(
+  "mkfs\."
+  "dd if="
+  "> /dev/sd"
+)
+
+for PATTERN in "${BLOCKED_SYS[@]}"; do
+  if echo "$COMMAND" | grep -qi "$PATTERN"; then
+    echo "BLOCKED: Dangerous system operation '$PATTERN': $COMMAND"
+    exit 2
+  fi
 done
 
-# --- Systemctl via SSH ---
-for P in \
-  "ssh.*systemctl stop" \
-  "ssh.*systemctl restart" \
-  "ssh.*systemctl disable" \
-  "systemctl restart docker"; do
-  echo "$COMMAND" | grep -qiE "$P" && block "Remote service control '$P'" "Service lifecycle changes require user approval."
-done
-
-# --- Filesystem/Partition Operations ---
-for P in "fdisk " "parted " "mdadm " "lvremove"; do
-  echo "$COMMAND" | grep -qi "$P" && block "Filesystem/partition operation '$P'" "Partition changes require user approval."
-done
-
-# --- Credential Leakage ---
-for P in \
-  'echo.*\$.*KEY' \
-  'echo.*\$.*SECRET' \
-  'echo.*\$.*PASSWORD'; do
-  echo "$COMMAND" | grep -qiE "$P" && block "Potential credential exposure '$P'" "Credentials must not be printed to terminal."
-done
-
-# --- Ansible Production Gate ---
-# Block ansible-playbook targeting FOUNDRY/site.yml unless --check is present
-if echo "$COMMAND" | grep -qi "ansible-playbook"; then
-  if echo "$COMMAND" | grep -qiE "(node1|foundry|192\.168\.1\.244|site\.yml)"; then
-    if ! echo "$COMMAND" | grep -qi "\-\-check"; then
-      block "Ansible targeting production without --check" \
-        "Add --check for dry-run, or get explicit user approval."
-    fi
+# === CONSTITUTIONAL: INFRA-002 — protect infrastructure files from deletion ===
+if echo "$CMD_LOWER" | grep -qE 'rm\s+.*(docker-compose|playbook|\.yml|\.yaml)'; then
+  if echo "$CMD_LOWER" | grep -qE '(ansible|compose|playbook|deploy)'; then
+    echo "BLOCKED: Deleting infrastructure config: $COMMAND"
+    echo "INFRA-002: Never delete playbooks, compose files, or system configs without approval."
+    exit 2
   fi
 fi
 
-# --- Node-aware FOUNDRY Protection ---
-# Block destructive verbs targeting FOUNDRY, allow read-only and graceful ops
-if echo "$COMMAND" | grep -qiE "(192\.168\.1\.244|foundry|node1)" && \
-   echo "$COMMAND" | grep -qiE "\b(delete|destroy|kill|disable)\b" && \
-   ! echo "$COMMAND" | grep -qiE "(docker ps|nvidia-smi|docker logs|journalctl|cat |head |tail |ls |df |free |mount |curl |wget|docker stats|docker inspect|rsync |docker compose up|docker compose build|docker stop|docker rm |docker rename)"; then
-  block "Destructive operation targeting FOUNDRY (.244)" \
-    "FOUNDRY is production. Read-only ops allowed. Destructive actions require user approval."
+# === CONSTITUTIONAL: SEC-003/INFRA-001 — block firewall/network changes ===
+if echo "$CMD_LOWER" | grep -qE '(ufw|iptables|firewall-cmd|netplan)\s+(delete|allow|deny|reject|apply|reset)'; then
+  echo "BLOCKED: Firewall/network modification: $COMMAND"
+  echo "SEC-003/INFRA-001: Network/firewall changes require human approval."
+  exit 2
 fi
 
-# --- Secrets File Access via Bash ---
-for P in \
-  "cat.*\.env" \
-  "cat.*vault-password" \
-  "cat.*credentials\.json" \
-  "cat.*/\.secret"; do
-  echo "$COMMAND" | grep -qiE "$P" && block "Reading secrets via Bash '$P'" "Use the Read tool instead for path protection."
-done
+# === SECRET ACCESS ===
+if echo "$CMD_LOWER" | grep -qE '(cat|less|more|head|tail|bat)\s+.*\.(env|secret|pem|key)'; then
+  echo "BLOCKED: Reading secrets via Bash: $COMMAND"
+  echo "Use the Read tool so the protect-paths hook can check."
+  exit 2
+fi
+
+if echo "$CMD_LOWER" | grep -qE '(cat|less|more|head|tail|bat)\s+.*(vault-password|credentials\.json|id_rsa|id_ed25519)'; then
+  echo "BLOCKED: Reading credentials via Bash: $COMMAND"
+  exit 2
+fi
 
 exit 0

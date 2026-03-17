@@ -12,8 +12,8 @@ Deploy vLLM inference services on Athanor. Uses custom Docker image (NGC 26.01-p
 
 | Instance | Node | Port | GPUs | Model | Purpose |
 |----------|------|------|------|-------|---------|
-| vllm-coordinator | Foundry | 8000 | 0,1,3,4 (4x 5070Ti) TP=4 | Qwen3.5-27B-FP8 | Reasoning, agents, coding alias |
-| vllm-coder | Foundry | 8006 | 2 (4090) | Qwen3.5-35B-A3B-AWQ-4bit | Dedicated coding and tool-use |
+| vllm-coordinator | Foundry | 8000 | 0,1,3,4 (4x 5070Ti) TP=4 | Qwen3.5-27B-FP8 | Reasoning, agents |
+| vllm-utility | Foundry | 8002 | 2 (4090) | Huihui-Qwen3-8B | Utility/fast |
 | vllm-embedding | DEV | 8001 | 0 (5060Ti), 0.40 mem | Qwen3-Embedding-0.6B | Embeddings (1024-dim) |
 | vllm (secondary) | Workshop | 8000 | 0 (5090) | Qwen3.5-35B-A3B-AWQ | Fast inference |
 
@@ -52,8 +52,7 @@ environment:
   - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
   - HF_HUB_OFFLINE=1
 command:
-  # --quantization: check model config.json quant_method. If "compressed-tensors", omit flag.
-  # If standard AWQ, use --quantization awq (Marlin crashes on Blackwell).
+  - --quantization awq                     # Must be explicit (Marlin crashes on Blackwell)
   - --gpu-memory-utilization 0.85          # 0.90 OOMs on 16GB GPUs during warmup
   - --max-num-seqs 64                      # 128+ OOMs on 16GB GPUs
 ```
@@ -61,7 +60,7 @@ command:
 ## Mixed GPU Tensor Parallel (Node 1)
 
 4x RTX 5070 Ti (sm_120) + RTX 4090 (sm_89) work together with:
-- AWQ quantization: check model's `config.json` for `quant_method`. If `compressed-tensors`, omit `--quantization` flag. If standard AWQ, use `--quantization awq` (Marlin crashes on mixed architectures).
+- `--quantization awq` (not Marlin — Marlin kernel crashes on mixed architectures)
 - `CUDA_DEVICE_ORDER=PCI_BUS_ID`
 - `--tensor-parallel-size 4` (uses GPUs 0,1,3,4, the 4x 5070 Ti)
 
@@ -75,7 +74,7 @@ command:
 |-------|------|-------|----------------|
 | Qwen3.5-27B-FP8 | ~27 GB | FP8 | Foundry TP=4 at :8000 (current) |
 | Qwen3.5-35B-A3B-AWQ | ~22 GB | AWQ | Workshop single GPU at :8000 (--language-model-only) |
-| Qwen3.5-35B-A3B-AWQ-4bit | ~22 GB | AWQ | Foundry GPU 2 (4090) at :8006 |
+| Huihui-Qwen3-8B | ~8 GB | None | Foundry GPU 2 (4090) at :8002 |
 | Qwen3-Embedding-0.6B | ~1.2 GB | None | DEV GPU 0 at :8001 |
 
 ## Validation
@@ -94,6 +93,6 @@ curl http://192.168.1.189:8001/v1/embeddings \
   -H "Content-Type: application/json" \
   -d '{"model":"/models/Qwen3-Embedding-0.6B","input":"test"}'
 
-# Check coder lane (Foundry GPU 2)
-curl http://192.168.1.244:8006/v1/models
+# Check utility (Foundry GPU 2)
+curl http://192.168.1.244:8002/v1/models
 ```

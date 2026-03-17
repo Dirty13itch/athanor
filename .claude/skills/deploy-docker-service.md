@@ -1,8 +1,3 @@
----
-name: Deploy Docker Service
-description: Standard pattern for deploying Docker Compose services on Athanor nodes.
----
-
 # Deploy Docker Service
 
 Standard pattern for deploying Docker Compose services on Athanor nodes.

@@ -1,12 +1,5 @@
 {
   "mcpServers": {
-    "grafana": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y @leval/mcp-grafana"],
-      "env": {},
-      "disabled": true
-    },
     "docker": {
       "type": "stdio",
       "command": "python3",
@@ -15,97 +8,11 @@
     },
     "athanor-agents": {
       "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec python3 scripts/mcp-athanor-agents.py"],
+      "command": "python3",
+      "args": ["scripts/mcp-athanor-agents.py"],
       "env": {
         "ATHANOR_AGENT_URL": "http://192.168.1.244:9000"
       }
-    },
-    "redis": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec python3 scripts/mcp-redis.py"],
-      "env": {}
-    },
-    "qdrant": {
-      "type": "stdio",
-      "command": "python3",
-      "args": ["scripts/mcp-qdrant.py"],
-      "env": {}
-    },
-    "smart-reader": {
-      "type": "stdio",
-      "command": "python3",
-      "args": ["scripts/mcp-smart-reader.py"],
-      "env": {}
-    },
-    "sequential-thinking": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
-      "env": {}
-    },
-    "neo4j": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec uvx mcp-neo4j-cypher"],
-      "env": {}
-    },
-    "postgres": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y @modelcontextprotocol/server-postgres \"$POSTGRES_URL\""],
-      "env": {}
-    },
-    "langfuse": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec uvx langfuse-mcp"],
-      "env": {},
-      "disabled": true
-    },
-    "miniflux": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y miniflux-mcp"],
-      "env": {},
-      "disabled": true
-    },
-    "n8n": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec node ~/.local/node_modules/@illuminaresolutions/n8n-mcp-server/build/index.js"],
-      "env": {},
-      "disabled": true
-    },
-    "gitea": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec $HOME/go/bin/gitea-mcp -t stdio --host http://192.168.1.203:3033 --token \"$GITEA_TOKEN\""],
-      "env": {},
-      "disabled": true
-    },
-    "context7": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"],
-      "serverInstructions": "Up-to-date programming library docs and code examples. Use resolve-library-id first, then get-library-docs.",
-      "disabled": true
-    },
-    "github": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y @modelcontextprotocol/server-github"],
-      "env": {},
-      "serverInstructions": "GitHub operations: repos, issues, PRs, releases, actions, code search. The Athanor repo lives on GitHub (Dirty13itch/Athanor) — this is for the real remote, not local Gitea.",
-      "disabled": true
-    },
-    "playwright": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@anthropic-ai/mcp-playwright"],
-      "serverInstructions": "Browser automation and testing. Use for testing dashboard, EoBQ, and Ulrich Energy web apps. Can navigate, click, fill forms, screenshot, and assert on page content.",
-      "disabled": true
     }
   }
 }
