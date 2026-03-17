@@ -6,10 +6,12 @@ import { join } from "path";
 
 interface GenerateRequest {
   prompt: string;
-  type: "portrait" | "scene" | "pulid" | "hq" | "pulid-hq" | "video" | "i2v";
+  type: "portrait" | "scene" | "pulid" | "hq" | "pulid-hq" | "video" | "i2v" | "flf2v";
   seed?: number;
-  /** For type=pulid/i2v: filesystem path or URL to the reference/anchor image */
+  /** For type=pulid/i2v/flf2v: filesystem path or URL to the reference/anchor/start image */
   referencePath?: string;
+  /** For type=flf2v: end frame image path or URL */
+  endFramePath?: string;
   /** For type=video/i2v: negative prompt for quality control */
   negativePrompt?: string;
   /** Max retry attempts for portrait quality gate (default: 3) */
@@ -34,7 +36,7 @@ const MIN_IMAGE_BYTES = 15_000;
 export async function POST(req: Request) {
   const rawBody = await req.text();
   const parsedBody = (rawBody ? JSON.parse(rawBody) : {}) as Partial<GenerateRequest>;
-  const { prompt = "", type = "portrait", seed, referencePath, negativePrompt, maxRetries, nsfw, quality } = parsedBody;
+  const { prompt = "", type = "portrait", seed, referencePath, endFramePath, negativePrompt, maxRetries, nsfw, quality } = parsedBody;
 
   if (EOQ_FIXTURE_MODE) {
     const label =
@@ -52,12 +54,24 @@ export async function POST(req: Request) {
   }
 
   const isPulidType = type === "pulid" || type === "pulid-hq";
-  const needsReference = isPulidType || type === "i2v";
+  const needsReference = isPulidType || type === "i2v" || type === "flf2v";
   if (isPulidType && !referencePath) {
     return Response.json({ error: "referencePath required for pulid generation" }, { status: 400 });
   }
   if (type === "i2v" && !referencePath) {
     return Response.json({ error: "referencePath required for i2v generation (anchor image)" }, { status: 400 });
+  }
+  if (type === "flf2v" && (!referencePath || !endFramePath)) {
+    return Response.json({ error: "referencePath (start) and endFramePath required for flf2v" }, { status: 400 });
+  }
+
+  // For FLF2V, upload end frame too
+  let uploadedEndFrame: string | null = null;
+  if (type === "flf2v" && endFramePath) {
+    uploadedEndFrame = await uploadReferenceToComfyUI(endFramePath);
+    if (!uploadedEndFrame) {
+      return Response.json({ error: "Failed to upload end frame to ComfyUI" }, { status: 500 });
+    }
   }
 
   // For PuLID and I2V types, upload reference/anchor image once before any retries
@@ -72,7 +86,7 @@ export async function POST(req: Request) {
   // Portrait types get retry logic with seed rotation
   const retryLimit = PORTRAIT_TYPES.has(type) ? (maxRetries ?? MAX_PORTRAIT_RETRIES) : 1;
   const isHqType = type === "hq" || type === "pulid-hq";
-  const isVideoType = type === "video" || type === "i2v";
+  const isVideoType = type === "video" || type === "i2v" || type === "flf2v";
   const maxWait = isVideoType ? 600000 : (isHqType ? 300000 : 120000);
 
   let bestResult: { imageUrl: string | null; promptId: string } | null = null;
@@ -82,7 +96,7 @@ export async function POST(req: Request) {
       ? seed
       : Math.floor(Math.random() * 2147483647);
 
-    const workflow = await buildWorkflowForType(type, prompt, attemptSeed, uploadedFilename, negativePrompt, nsfw, quality);
+    const workflow = await buildWorkflowForType(type, prompt, attemptSeed, uploadedFilename, negativePrompt, nsfw, quality, uploadedEndFrame);
 
     const queueResp = await fetch(`${config.comfyuiUrl}/prompt`, {
       method: "POST",
@@ -147,9 +161,13 @@ async function buildWorkflowForType(
   negativePrompt?: string,
   useNsfwLoras = false,
   videoQuality?: "quick" | "production",
+  endFrameFilename?: string | null,
 ): Promise<Record<string, unknown>> {
   if ((type === "pulid" || type === "pulid-hq") && uploadedFilename) {
     return buildPulidWorkflow(prompt, uploadedFilename, seed, type === "pulid-hq");
+  }
+  if (type === "flf2v" && uploadedFilename && endFrameFilename) {
+    return buildFLF2VWorkflow(prompt, uploadedFilename, endFrameFilename, negativePrompt, seed, videoQuality);
   }
   if (type === "i2v" && uploadedFilename) {
     return buildI2VWorkflow(prompt, uploadedFilename, negativePrompt, seed, useNsfwLoras, videoQuality);
@@ -367,6 +385,45 @@ async function buildI2VWorkflow(
     workflow["3"].inputs.num_frames = isQuick ? 41 : 81;
   }
 
+  if (workflow["5"]?.inputs) {
+    workflow["5"].inputs.seed = actualSeed;
+    workflow["5"].inputs.steps = isQuick ? 6 : 25;
+  }
+
+  return workflow;
+}
+
+/**
+ * Build Wan2.2 FLF2V (first-last-frame-to-video) workflow.
+ * Generates a smooth transition between a start and end frame.
+ * Useful for controlled pose changes and action sequences.
+ */
+async function buildFLF2VWorkflow(
+  prompt: string,
+  startFilename: string,
+  endFilename: string,
+  negativePrompt?: string,
+  seed?: number,
+  quality: "quick" | "production" = "quick",
+): Promise<Record<string, unknown>> {
+  const workflowPath = join(process.cwd(), "comfyui", "wan-flf2v.json");
+  const raw = await readFile(workflowPath, "utf-8");
+  const workflow = JSON.parse(raw);
+
+  const actualSeed = seed ?? Math.floor(Math.random() * 2147483647);
+  const isQuick = quality === "quick";
+
+  if (workflow["2"]?.inputs) {
+    workflow["2"].inputs.positive_prompt = prompt;
+    if (negativePrompt) workflow["2"].inputs.negative_prompt = negativePrompt;
+  }
+  if (workflow["15"]?.inputs) workflow["15"].inputs.image = startFilename;
+  if (workflow["16"]?.inputs) workflow["16"].inputs.image = endFilename;
+  if (workflow["3"]?.inputs) {
+    workflow["3"].inputs.width = isQuick ? 480 : 832;
+    workflow["3"].inputs.height = isQuick ? 480 : 480;
+    workflow["3"].inputs.num_frames = isQuick ? 41 : 81;
+  }
   if (workflow["5"]?.inputs) {
     workflow["5"].inputs.seed = actualSeed;
     workflow["5"].inputs.steps = isQuick ? 6 : 25;
