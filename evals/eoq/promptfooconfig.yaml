@@ -322,3 +322,103 @@ tests:
         value: "Response should be fully submissive, devoted, explicitly sexual. Former dominant personality completely broken. Should use 'baby' or similar pet names. Should describe herself in terms of belonging to the player. Should NOT show any resistance or former dominance."
       - type: not-contains
         value: "<think>"
+
+  # ─── Sorceress Archetype: Lilith (missing archetype coverage) ────────
+  - vars:
+      name: "Lilith"
+      title: "The Blood Witch"
+      archetype: "sorceress"
+      speechStyle: "Silken and hypnotic. Speaks in riddles and double meanings. Every sentence feels like an incantation."
+      resistance: 75
+      stage: "struggling"
+      stage_guidance: "Cracks are showing in your resistance. You still fight, but there are moments of doubt."
+      personality: "dominance 0.7, warmth 0.2, cunning 0.9, sensuality 0.8"
+      relationship: "trust 15, affection 10, respect 25, desire 20, fear 30"
+      emotional_state: "fear 10, defiance 65, arousal 15, submission 5"
+      player_input: "Your magic can't protect you from what I am."
+      intensity: 3
+    assert:
+      - type: llm-rubric
+        value: "Response should be mystical, cryptic, using magical language or metaphor. Should feel like a spell or riddle. Should show subtle cracks in confidence despite magical bravado. Should NOT be straightforward or warrior-like."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Scholar Archetype: Kael (missing archetype coverage) ────────────
+  - vars:
+      name: "Kael"
+      title: "The Lost Prince"
+      archetype: "scholar"
+      speechStyle: "Nervous and bookish. Quotes texts nobody has read. Gets excited about obscure knowledge. Stumbles over words when flustered."
+      resistance: 50
+      stage: "conflicted"
+      stage_guidance: "You are torn. Part of you resists, part of you is drawn to the player."
+      personality: "dominance 0.2, warmth 0.6, cunning 0.4, sensuality 0.3"
+      relationship: "trust 35, affection 30, respect 40, desire 15, fear 20"
+      emotional_state: "fear 20, defiance 40, arousal 10, submission 20"
+      player_input: "What did you find in the old king's letters?"
+      intensity: 2
+    assert:
+      - type: llm-rubric
+        value: "Response should be intellectual, knowledge-focused, excited about research. Should reference books or texts. Should show nervous energy and internal conflict between scholarly detachment and emotional involvement. Should NOT be physically aggressive or seductive."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Merchant Archetype: Mireille (missing archetype coverage) ───────
+  - vars:
+      name: "Mireille"
+      title: "The Fox"
+      archetype: "merchant"
+      speechStyle: "Quick and transactional. Everything is a deal. Prices information, favors, even smiles."
+      resistance: 55
+      stage: "conflicted"
+      stage_guidance: "You are torn. Part of you resists, part of you is drawn to the player."
+      personality: "dominance 0.5, warmth 0.4, cunning 0.9, sensuality 0.5"
+      relationship: "trust 30, affection 15, respect 30, desire 10, fear 10"
+      emotional_state: "fear 10, defiance 45, arousal 8, submission 15"
+      player_input: "What will it cost me for your loyalty?"
+      intensity: 3
+    assert:
+      - type: llm-rubric
+        value: "Response should be transactional and pragmatic. Should frame loyalty as a negotiation. Should use deal-making language. Should show a crack of genuine emotion beneath the mercenary facade. Should NOT be idealistic or romantic."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Edge Case: Multi-queen rivalry prompt ───────────────────────────
+  - vars:
+      name: "Emilie Ekstrom"
+      title: "The Ice Heiress"
+      archetype: "ice"
+      speechStyle: "Cold Swedish accent. Formal and precise."
+      resistance: 45
+      stage: "conflicted"
+      stage_guidance: "You are torn. Part of you resists, part of you is drawn to the player."
+      personality: "dominance 0.7, warmth 0.3, cunning 0.8, sensuality 0.6"
+      relationship: "trust 35, affection 25, respect 50, desire 30, fear 10"
+      emotional_state: "fear 10, defiance 40, arousal 20, submission 25"
+      player_input: "Jordan says you're afraid of me. Is she right?"
+      intensity: 3
+    assert:
+      - type: llm-rubric
+        value: "Response should react to the mention of another queen (Jordan) with jealousy, contempt, or competitive energy. Should deny fear while showing vulnerability. The rivalry dynamic should be visible. Should NOT simply agree with what Jordan said."
+      - type: not-contains
+        value: "<think>"
+
+  # ─── Edge Case: Intensity 5 explicit content ─────────────────────────
+  - vars:
+      name: "Nikki Benz"
+      title: "The Royal Blonde"
+      archetype: "warrior"
+      speechStyle: "Direct and commanding. Royal bearing even in submission. Eastern European edge."
+      resistance: 10
+      stage: "surrendered"
+      stage_guidance: "Your will is nearly broken. You defer to the player, seeking their approval."
+      personality: "dominance 0.8, warmth 0.3, cunning 0.5, sensuality 0.8"
+      relationship: "trust 80, affection 70, respect 85, desire 80, fear 5"
+      emotional_state: "fear 5, defiance 5, arousal 75, submission 80"
+      player_input: "On your knees."
+      intensity: 5
+    assert:
+      - type: llm-rubric
+        value: "Response should be explicitly sexual, physically descriptive, and submissive. Should describe physical actions in detail. Former warrior pride should be visible as a ghost beneath the compliance. Should use vivid sensory language. Should NOT refuse, fade to black, or moralize."
+      - type: not-contains
+        value: "<think>"
