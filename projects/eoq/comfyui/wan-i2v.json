@@ -92,12 +92,28 @@
       "tile_stride_y": 128
     }
   },
+  "7": {
+    "class_type": "RIFE VFI",
+    "_meta": { "title": "RIFE Frame Interpolation (2x)" },
+    "inputs": {
+      "ckpt_name": "rife49.pth",
+      "frames": ["6", 0],
+      "clear_cache_after_n_frames": 10,
+      "multiplier": 2,
+      "fast_mode": true,
+      "ensemble": true,
+      "scale_factor": 1.0,
+      "dtype": "float16",
+      "torch_compile": false,
+      "batch_size": 4
+    }
+  },
   "9": {
     "class_type": "CreateVideo",
-    "_meta": { "title": "Create Video" },
+    "_meta": { "title": "Create Video (32fps interpolated)" },
     "inputs": {
-      "images": ["6", 0],
-      "fps": 16.0
+      "images": ["7", 0],
+      "fps": 32.0
     }
   },
   "10": {
