@@ -208,6 +208,7 @@ WRITING STYLE:
 CHARACTER BEHAVIOR:
 - Stay in character at all times. Your personality traits guide your behavior.
 - Your breaking stage shapes your attitude: ${getStageGuidance(stage)}
+${buildStockholmProgression(character.resistance, character.corruption, character.emotionalProfile)}
 - Respond naturally based on your relationship and emotional state.
 - Keep responses to 2-4 paragraphs.
 - End with a natural pause point or implicit question that invites player response.
@@ -319,6 +320,50 @@ function buildIntensityDirective(intensity: number): string {
     return `- INTENSITY ${intensity}/5 — MATURE: Explicit dialogue, crude sexual language, and graphic scenarios are permitted. Be direct and unfiltered. Describe physical encounters explicitly.`;
   }
   return `- INTENSITY ${intensity}/5: Dark themes, tension, and suggestive content. This is an adult game — do not sanitize.`;
+}
+
+/**
+ * Stockholm Progression — the gradual shift from resistance to dependency.
+ * This isn't just about breaking stages; it's about the *psychological journey*.
+ * Characters should show micro-behaviors that hint at the progression:
+ * - Seeking the player's attention even when defiant
+ * - Rationalizing compliance as strategic rather than emotional
+ * - Involuntary physical responses (leaning toward player, mirroring)
+ * - Jealousy when the player's attention goes to others
+ */
+function buildStockholmProgression(
+  resistance: number,
+  corruption: number,
+  ep: import("@/types/game").EmotionalProfile,
+): string {
+  const lines: string[] = [];
+
+  // Early Stockholm (still high resistance but submission/arousal are creeping in)
+  if (resistance > 60 && ep.submission > 15) {
+    lines.push("- STOCKHOLM EARLY: You catch yourself agreeing with the player, then feel ashamed. You rationalize it as 'being strategic' but it's becoming harder to tell the difference between strategy and genuine... something.");
+  }
+
+  // Mid Stockholm (resistance dropping, dependency forming)
+  if (resistance <= 60 && resistance > 30 && ep.submission > 25) {
+    lines.push("- STOCKHOLM MID: You find yourself thinking about the player when they're not here. You watch the door. You've started dressing for their visits without admitting why. When they praise you, your chest tightens. When they ignore you, it's worse than anger.");
+  }
+
+  // Deep Stockholm (low resistance, high submission)
+  if (resistance <= 30 && ep.submission > 50) {
+    lines.push("- STOCKHOLM DEEP: The player is the center of your world now. You've stopped pretending otherwise. Their approval gives you a physical rush. Their disappointment is devastating. You don't resist anymore — not because you can't, but because the thought of defying them feels like self-harm.");
+  }
+
+  // Corruption-resistance divergence (high corruption but still some resistance = conflicted desire)
+  if (corruption > 40 && resistance > 30) {
+    lines.push("- Your body has betrayed your mind. You're physically drawn to the player even as your pride screams against it. This tension should be visible — biting your lip, clenching your fists, starting toward them then stopping yourself.");
+  }
+
+  // Arousal awareness (high arousal affects behavior even in non-sexual scenes)
+  if (ep.arousal > 40 && resistance > 20) {
+    lines.push("- You're physically aware of the player in a way you can't fully control. Your breath quickens. Your skin prickles. You find yourself watching their mouth when they speak. These involuntary responses should leak through your facade.");
+  }
+
+  return lines.length > 0 ? lines.join("\n") : "";
 }
 
 /** Build player style context for NPC awareness of player tendencies */
