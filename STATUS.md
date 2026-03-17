@@ -1076,7 +1076,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-16 19:42 PDT
+*Last updated: 2026-03-16 20:36 PDT
 
 ---
 
@@ -1109,7 +1109,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-16 19:42 PDT
+*Last updated: 2026-03-16 20:36 PDT
 
 ---
 
@@ -1284,12 +1284,43 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 ### Next Actions
 1. ~~**Seed creative-agent trust**~~ DONE — removed HIGH_IMPACT penalty, raised baseline to 0.55
 2. ~~**Operator intent capture**~~ DONE — chat messages auto-extract directives, POST /v1/steer API
-3. **Wire cloud evaluation** — use Gemini vision to evaluate I2V output quality (replace file-size heuristic)
-4. **Auto-escalate RESEARCH/CREATIVE tasks to cloud** — lease issuance exists but nothing triggers it
-5. **Dashboard steering widget** — UI for pending intents, goal management, pipeline preview
+3. ~~**Wire cloud evaluation**~~ DONE — Gemini vision evaluates I2V via LiteLLM, file-size fallback
+4. ~~**Auto-escalate RESEARCH/CREATIVE tasks to cloud**~~ REVERSED — flipped to local-first (GPUs idle, Qwen3.5 95.0 IFEval)
+5. **Dashboard steering widget** — UI for pending intents, goal management, pipeline preview (APIs ready)
 6. **Presence detection v2** — integrate Home Assistant device_tracker for real presence
 7. **Deploy agents** — rsync + rebuild to activate all changes on FOUNDRY
 8. First queen LoRA training — deploy Ansible role, populate Stash reference photos, train
+
+---
+
+### Owner Model + Intent Synthesizer (Session 2026-03-16 late)
+
+**Committed:** `6fe2c27` — 1118 lines added, 2 new files, 4 modified
+
+**The Problem:** Pipeline had 15 intent miners but they're all mechanical scanners. Work planner had a hardcoded 6-line OWNER PROFILE. No unified view of Shaun. System doesn't know what to do autonomously.
+
+**What was built (Expert Council plan, 4 modules):**
+
+1. **owner_model.py** (NEW, ~270 lines): Unified Shaun representation from 11 sources — twelve words as behavioral parameters, project momentum, goals, implicit feedback, GPU/queue/agent capacity, pipeline outcomes. Full rebuild 4AM, light refresh every cycle. Reaction-based weight adjustment with 7-day decay.
+
+2. **intent_synthesizer.py** (NEW, ~370 lines): Cross-domain strategic intent generation via local LLM (Qwen3.5-27B reasoning alias). Reads owner model, produces 8-15 intents spanning ALL domains. 80/20 exploit/explore split. Twelve-word scoring. Preview endpoint for review before execution.
+
+3. **tools/creative.py** (MODIFIED): evaluate_video_quality now calls Gemini Vision (via LiteLLM) when anchor_url provided — scores face consistency, motion quality, artifacts, prompt adherence. File-size heuristic fallback.
+
+4. **routes/goals.py** (MODIFIED): 5 new API endpoints:
+   - POST /v1/react — thumbs for synthesized intents (more/less/love/wrong)
+   - POST /v1/steer/boost — boost domain priority
+   - POST /v1/steer/suppress — suppress domain with TTL
+   - GET /v1/pipeline/preview — preview synthesis output
+   - POST /v1/pipeline/preview/approve — approve and trigger
+
+5. **Integration:**
+   - work_pipeline.py: synthesizer runs before miners, intents combined
+   - routing.py: RESEARCH/CREATIVE flipped from cloud-first to local-first
+   - scheduler.py: owner model rebuild at 4AM, synthesis stats in health endpoint
+
+**Before:** System scans for TODOs, checks inventory. Only works on EoBQ. Ignores 8 other domains.
+**After:** Every 2h: refreshes Shaun model → synthesizes 8-15 cross-domain intents → 80% exploit + 20% explore → idle agents get work → feedback loop tunes it.
 
 ---
 
@@ -1516,4 +1547,4 @@ Kindred:
 
 **Updated tally: 35 commits, 51 features across 5 projects.**
 
-*Last updated: 2026-03-16 19:42 PDT
+*Last updated: 2026-03-16 20:36 PDT
