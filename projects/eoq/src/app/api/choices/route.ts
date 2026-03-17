@@ -18,6 +18,7 @@ export async function POST(req: Request) {
   }
 
   const { worldState, recentHistory } = parsed.data;
+  const noMercyActive = (rawBody as Record<string, unknown>)?.noMercyActive === true;
   const playerStyle = (rawBody as Record<string, unknown>)?.playerStyle as {
     mercyScore?: number; seductionScore?: number; manipulationScore?: number;
     dominanceScore?: number; diplomacyScore?: number; totalChoices?: number;
@@ -50,6 +51,13 @@ Generate 3-4 player dialogue choices for the current situation. Each choice shou
 - Represent different approaches (diplomatic, aggressive, seductive, cunning, etc.)
 - Include at least one option that could lower the character's resistance (breaking path)
 - Include at least one option that builds genuine trust/respect (relationship path)
+${noMercyActive ? `
+NO MERCY MODE ACTIVE — The player is a TYRANT:
+- Include at least 2 aggressively cruel options (intimidation, humiliation, breaking)
+- Resistance reduction effects should be -8 to -15 (harsh)
+- Include emotional devastation effects (fear +15, despair +10, submission +10)
+- One option should reference a specific vulnerability of the character
+- The "kind" option should still exist but feel patronizing or conditional` : ""}
 ${playerStyle && playerStyle.totalChoices && playerStyle.totalChoices > 5 ? `
 PLAYER TENDENCY PROFILE (adapt choices to their style):
 - Mercy tendency: ${playerStyle.mercyScore?.toFixed(0) ?? 50}/100 ${(playerStyle.mercyScore ?? 50) < 25 ? "(CRUEL — lean into darker choices)" : (playerStyle.mercyScore ?? 50) > 75 ? "(MERCIFUL — include more redemptive options)" : ""}

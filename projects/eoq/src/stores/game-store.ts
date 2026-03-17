@@ -47,6 +47,7 @@ interface GameState {
   markSceneVisited: (sceneId: string) => void;
   setQueenSelectorMode: (mode: "confrontation" | "banquet" | "duel" | null) => void;
   trackChoice: (choice: PlayerChoice) => void;
+  setNoMercy: (active: boolean) => void;
   saveGame: () => void;
   loadGame: () => boolean;
   clearSave: () => void;
@@ -205,7 +206,18 @@ export const useGameStore = create<GameState>((set, get) => ({
             diplomacyScore: blend(style.diplomacyScore, deltas.diplomacyScore != null ? style.diplomacyScore + deltas.diplomacyScore : undefined),
             totalChoices: n,
           },
+          // Unlock No Mercy Mode when player is consistently cruel (10+ choices, mercy < 20)
+          noMercyUnlocked: state.session.noMercyUnlocked ||
+            (n >= 10 && blend(style.mercyScore, deltas.mercyScore != null ? style.mercyScore + deltas.mercyScore : undefined) < 20),
         },
+      };
+    }),
+
+  setNoMercy: (active) =>
+    set((state) => {
+      if (!state.session || !state.session.noMercyUnlocked) return state;
+      return {
+        session: { ...state.session, noMercyActive: active },
       };
     }),
 
@@ -229,9 +241,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!raw) return false;
       const data = JSON.parse(raw);
       if (!data.session) return false;
-      // Backfill playerStyle for saves from before this feature
+      // Backfill for saves from before these features
       if (!data.session.playerStyle) {
         data.session.playerStyle = { ...DEFAULT_PLAYER_STYLE };
+      }
+      if (data.session.noMercyUnlocked === undefined) {
+        data.session.noMercyUnlocked = false;
+        data.session.noMercyActive = false;
       }
       set({
         session: data.session,

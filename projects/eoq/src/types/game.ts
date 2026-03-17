@@ -419,6 +419,10 @@ export interface GameSession {
   arcPosition: string;
   /** Tracks player behavioral tendencies across choices */
   playerStyle: PlayerStyle;
+  /** No Mercy Mode — unlocked when mercyScore drops below 20 after 10+ choices */
+  noMercyUnlocked: boolean;
+  /** Whether No Mercy Mode is actively enabled by the player */
+  noMercyActive: boolean;
 }
 
 /** Configuration for the LLM dialogue generation pipeline */

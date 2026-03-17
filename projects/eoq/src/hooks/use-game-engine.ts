@@ -62,6 +62,8 @@ export function useGameEngine() {
       dialogueHistory: [],
       arcPosition: "prologue",
       playerStyle: { ...DEFAULT_PLAYER_STYLE },
+      noMercyUnlocked: false,
+      noMercyActive: false,
     };
 
     store.setSession(session);
@@ -105,6 +107,8 @@ export function useGameEngine() {
       dialogueHistory: [],
       arcPosition: "audience",
       playerStyle: { ...DEFAULT_PLAYER_STYLE },
+      noMercyUnlocked: false,
+      noMercyActive: false,
     };
 
     store.setSession(session);
@@ -160,6 +164,8 @@ export function useGameEngine() {
       dialogueHistory: [],
       arcPosition: "council",
       playerStyle: { ...DEFAULT_PLAYER_STYLE },
+      noMercyUnlocked: false,
+      noMercyActive: false,
     };
 
     store.setSession(session);
@@ -693,6 +699,7 @@ export function useGameEngine() {
           playerInput,
           memoryContext,
           playerStyle: session.playerStyle,
+          noMercyActive: session.noMercyActive,
           ...(otherCharacters.length > 0 ? { otherCharacters } : {}),
         }),
       });
@@ -757,7 +764,7 @@ export function useGameEngine() {
 
       // Generate contextual choices for the player (fire and forget into state)
       const latestSess = useGameStore.getState().session;
-      fetchChoices(character, session.worldState, session.dialogueHistory.slice(-10), latestSess?.playerStyle);
+      fetchChoices(character, session.worldState, session.dialogueHistory.slice(-10), latestSess?.playerStyle, latestSess?.noMercyActive);
 
       // Auto-save periodically
       store.saveGame();
@@ -846,11 +853,12 @@ function fetchChoices(
   worldState: import("@/types/game").WorldState,
   recentHistory: DialogueTurn[],
   playerStyle?: import("@/types/game").PlayerStyle,
+  noMercyActive?: boolean,
 ) {
   fetch("/api/choices", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ character, worldState, recentHistory, playerStyle }),
+    body: JSON.stringify({ character, worldState, recentHistory, playerStyle, noMercyActive }),
   })
     .then((r) => r.json())
     .then((data) => {

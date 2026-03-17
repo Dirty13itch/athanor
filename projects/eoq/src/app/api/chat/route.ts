@@ -36,6 +36,8 @@ export async function POST(req: Request) {
   const clientMemoryContext = typeof (rawBody as Record<string, unknown>)?.memoryContext === "string"
     ? (rawBody as Record<string, unknown>).memoryContext as string
     : "";
+  // No Mercy Mode flag
+  const noMercyActive = (rawBody as Record<string, unknown>)?.noMercyActive === true;
   // Accept player style for adaptive NPC behavior
   const playerStyle = (rawBody as Record<string, unknown>)?.playerStyle as {
     mercyScore?: number; seductionScore?: number; manipulationScore?: number;
@@ -59,8 +61,8 @@ export async function POST(req: Request) {
   const memories = await fetchMemories(character.id, playerInput);
 
   const systemPrompt = otherCharacters.length > 0
-    ? buildMultiCharacterPrompt(character, otherCharacters, worldState, memories, clientMemoryContext, playerStyle)
-    : buildSystemPrompt(character, worldState, memories, clientMemoryContext, playerStyle);
+    ? buildMultiCharacterPrompt(character, otherCharacters, worldState, memories, clientMemoryContext, playerStyle, noMercyActive)
+    : buildSystemPrompt(character, worldState, memories, clientMemoryContext, playerStyle, noMercyActive);
   const messages = buildMessages(systemPrompt, recentHistory, playerInput);
 
   // Route to abliterated model at intensity >= 3 — guaranteed no refusal
@@ -147,6 +149,7 @@ function buildSystemPrompt(
   qdrantMemories: string[] = [],
   clientMemoryContext = "",
   playerStyle?: { mercyScore?: number; seductionScore?: number; manipulationScore?: number; dominanceScore?: number; diplomacyScore?: number; totalChoices?: number },
+  noMercyActive = false,
 ): string {
   const p = character.personality;
   const ep = character.emotionalProfile;
@@ -197,7 +200,15 @@ TIME: ${world.timeOfDay}, Day ${world.day}
 VULNERABILITIES: ${formatVulnerabilities(character)}
 
 BOUNDARIES: ${character.boundaries.join(". ")}
-${buildQueenDNA(character, world)}${buildPlayerStyleContext(playerStyle)}
+${buildQueenDNA(character, world)}${buildPlayerStyleContext(playerStyle)}${noMercyActive ? `
+NO MERCY MODE ACTIVE:
+- The player has earned this. They are CRUEL. Every interaction should reflect this.
+- Characters should be visibly afraid. Trembling. Avoiding eye contact. Flinching at sudden movements.
+- Resistance crumbles faster. Emotional breakdowns are more dramatic. Despair is deeper.
+- Include physical terror responses: shaking hands, quivering voice, involuntary tears.
+- The player OWNS this room. Every character knows it. Act accordingly.
+- When breaking, go harder. When they beg, make it visceral. No softening.
+` : ""}
 WRITING STYLE:
 - This is a cinematic experience — write like a prestige TV show, not a chatbot.
 - Prose should be vivid, sensory, and emotionally charged. Show, don't tell.
@@ -432,9 +443,10 @@ function buildMultiCharacterPrompt(
   qdrantMemories: string[] = [],
   clientMemoryContext = "",
   playerStyle?: { mercyScore?: number; seductionScore?: number; manipulationScore?: number; dominanceScore?: number; diplomacyScore?: number; totalChoices?: number },
+  noMercyActive = false,
 ): string {
   // Start with the regular system prompt for the primary character
-  const basePrompt = buildSystemPrompt(primary, world, qdrantMemories, clientMemoryContext, playerStyle);
+  const basePrompt = buildSystemPrompt(primary, world, qdrantMemories, clientMemoryContext, playerStyle, noMercyActive);
 
   // Build context about each other character present
   const otherDescriptions = others.map((other) => {
