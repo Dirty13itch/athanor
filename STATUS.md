@@ -1438,6 +1438,14 @@ Kindred:
 - Kindred: passion extraction API (LLM-powered), matching API (vector similarity in Qdrant), wired onboarding
 - Stash: image search, gallery list/create tools added to agent
 
-**Final tally: 22 commits, 34 features across 5 projects (~5,000 lines added).**
+**Fourth wave:**
+- EoBQ touch gesture controls: tap/swipe/long-press for mobile VN
+- EoBQ legacy daughters: generational mechanic for broken queens producing heirs
+- EoBQ Empire News Network: contextual headlines from game state
+- Ulrich photo upload: API + camera capture UI with auto-section tagging
+- Dashboard gallery: per-queen attribution badges
+- Kindred: passion extraction API + matching algorithm
 
-*Last updated: 2026-03-16 17:29 PDT
+**Final tally: 25 commits, 39 features across 5 projects (~6,500 lines added).**
+
+*Last updated: 2026-03-16 17:38 PDT
