@@ -156,6 +156,7 @@ export default function ReferencesPage() {
         type: "i2v",
         prompt: motionPrompt,
         referencePath: generateResult,
+        quality: "quick",
         negativePrompt: "blurry, distorted face, morphing, identity change, static, watermark, cartoon",
       }),
     });
@@ -276,9 +277,12 @@ export default function ReferencesPage() {
                 <div className="flex gap-2 flex-wrap">
                   {persona.photos.map((photo) => (
                     <div key={photo} className="relative group">
-                      <div className="w-16 h-16 rounded bg-white/10 flex items-center justify-center overflow-hidden">
-                        <span className="text-gray-500 text-xs text-center px-1">{photo.split(".")[0].slice(0, 10)}</span>
-                      </div>
+                      <img
+                        src={`/api/references/${persona.id}/photos?filename=${encodeURIComponent(photo)}`}
+                        alt={photo}
+                        className="w-16 h-16 rounded bg-white/10 object-cover"
+                        loading="lazy"
+                      />
                       <button
                         onClick={() => deletePhoto(persona.id, photo)}
                         className="absolute -top-1 -right-1 w-4 h-4 bg-red-900 text-red-300 rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -344,13 +348,41 @@ export default function ReferencesPage() {
                         alt="Generated"
                         className="w-full rounded border border-white/10"
                       />
-                      <button
-                        onClick={() => animatePortrait(persona)}
-                        disabled={generating === persona.id}
-                        className="mt-2 w-full px-3 py-1.5 bg-violet-900/40 hover:bg-violet-900/60 text-violet-200 text-xs rounded transition-colors disabled:opacity-40 border border-violet-400/20"
-                      >
-                        {generating === persona.id ? "Animating..." : "Animate Portrait (I2V)"}
-                      </button>
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          onClick={() => animatePortrait(persona)}
+                          disabled={generating === persona.id}
+                          className="flex-1 px-3 py-1.5 bg-violet-900/40 hover:bg-violet-900/60 text-violet-200 text-xs rounded transition-colors disabled:opacity-40 border border-violet-400/20"
+                        >
+                          {generating === persona.id ? "Animating..." : "Quick Video (~90s)"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            // Override quality to production for this call
+                            if (!generateResult) return;
+                            setGenerating(persona.id);
+                            const motionPrompt = generatePrompt
+                              ? `${generatePrompt}, subtle breathing, blinking, looking at viewer, cinematic`
+                              : "subtle breathing, blinking, looking at viewer, cinematic, photorealistic";
+                            fetch("/api/generate", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                type: "i2v", prompt: motionPrompt, referencePath: generateResult,
+                                quality: "production",
+                                negativePrompt: "blurry, distorted face, morphing, identity change, static, watermark, cartoon",
+                              }),
+                            }).then(r => r.ok ? r.json() : null).then(d => {
+                              if (d?.imageUrl) setGenerateResult(d.imageUrl);
+                              setGenerating(null);
+                            }).catch(() => setGenerating(null));
+                          }}
+                          disabled={generating === persona.id}
+                          className="flex-1 px-3 py-1.5 bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-200 text-xs rounded transition-colors disabled:opacity-40 border border-indigo-400/20"
+                        >
+                          HQ Video (~18min)
+                        </button>
+                      </div>
                     </>
                   )}
                   <a

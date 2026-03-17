@@ -16,6 +16,8 @@ interface GenerateRequest {
   maxRetries?: number;
   /** For type=i2v: whether to use NSFW LoRA stack */
   nsfw?: boolean;
+  /** For type=i2v: "quick" (6 steps, 480p) or "production" (25 steps, 832x480). Default: quick */
+  quality?: "quick" | "production";
 }
 
 const PORTRAIT_TYPES = new Set(["portrait", "pulid", "hq", "pulid-hq"]);
@@ -32,7 +34,7 @@ const MIN_IMAGE_BYTES = 15_000;
 export async function POST(req: Request) {
   const rawBody = await req.text();
   const parsedBody = (rawBody ? JSON.parse(rawBody) : {}) as Partial<GenerateRequest>;
-  const { prompt = "", type = "portrait", seed, referencePath, negativePrompt, maxRetries, nsfw } = parsedBody;
+  const { prompt = "", type = "portrait", seed, referencePath, negativePrompt, maxRetries, nsfw, quality } = parsedBody;
 
   if (EOQ_FIXTURE_MODE) {
     const label =
@@ -80,7 +82,7 @@ export async function POST(req: Request) {
       ? seed
       : Math.floor(Math.random() * 2147483647);
 
-    const workflow = await buildWorkflowForType(type, prompt, attemptSeed, uploadedFilename, negativePrompt, nsfw);
+    const workflow = await buildWorkflowForType(type, prompt, attemptSeed, uploadedFilename, negativePrompt, nsfw, quality);
 
     const queueResp = await fetch(`${config.comfyuiUrl}/prompt`, {
       method: "POST",
@@ -144,12 +146,13 @@ async function buildWorkflowForType(
   uploadedFilename: string | null,
   negativePrompt?: string,
   useNsfwLoras = false,
+  videoQuality?: "quick" | "production",
 ): Promise<Record<string, unknown>> {
   if ((type === "pulid" || type === "pulid-hq") && uploadedFilename) {
     return buildPulidWorkflow(prompt, uploadedFilename, seed, type === "pulid-hq");
   }
   if (type === "i2v" && uploadedFilename) {
-    return buildI2VWorkflow(prompt, uploadedFilename, negativePrompt, seed, useNsfwLoras);
+    return buildI2VWorkflow(prompt, uploadedFilename, negativePrompt, seed, useNsfwLoras, videoQuality);
   }
   if (type === "video") {
     return buildVideoWorkflow(prompt, negativePrompt, seed);
@@ -334,6 +337,7 @@ async function buildI2VWorkflow(
   negativePrompt?: string,
   seed?: number,
   useNsfwLoras = false,
+  quality: "quick" | "production" = "quick",
 ): Promise<Record<string, unknown>> {
   const filename = useNsfwLoras ? "wan-i2v-lora.json" : "wan-i2v.json";
   const workflowPath = join(process.cwd(), "comfyui", filename);
@@ -341,6 +345,7 @@ async function buildI2VWorkflow(
   const workflow = JSON.parse(raw);
 
   const actualSeed = seed ?? Math.floor(Math.random() * 2147483647);
+  const isQuick = quality === "quick";
 
   // Inject prompt into WanVideoTextEncode node (node "2")
   if (workflow["2"]?.inputs) {
@@ -355,9 +360,16 @@ async function buildI2VWorkflow(
     workflow["15"].inputs.image = anchorFilename;
   }
 
-  // Inject seed into WanVideoSampler node (node "5")
+  // Apply quality overrides to I2V encoder (node "3") and sampler (node "5")
+  if (workflow["3"]?.inputs) {
+    workflow["3"].inputs.width = isQuick ? 480 : 832;
+    workflow["3"].inputs.height = isQuick ? 480 : 480;
+    workflow["3"].inputs.num_frames = isQuick ? 41 : 81;
+  }
+
   if (workflow["5"]?.inputs) {
     workflow["5"].inputs.seed = actualSeed;
+    workflow["5"].inputs.steps = isQuick ? 6 : 25;
   }
 
   return workflow;
