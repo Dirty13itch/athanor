@@ -44,12 +44,16 @@ HQ mode: GPU swap to 5090 (stop vLLM worker, start ComfyUI on GPU 0)
 |------|-----|------|--------|
 | wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors | unet/ | 14G | Present |
 | wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors | unet/ | 14G | Present |
-| Wan2.2-I2V-A14B-HighNoise-Q4_K_S.gguf | unet/ | 8.75G | Downloading |
+| Wan2.2-I2V-A14B-HighNoise-Q4_K_S.gguf | unet/ | 8.75G | Present |
+| Wan2.2_Remix_NSFW_i2v_14b_high_v2.0.safetensors | unet/ | ~14G | Downloading |
+| Wan2.2_Remix_NSFW_i2v_14b_low_v2.0.safetensors | unet/ | ~14G | Downloading |
 | umt5-xxl-enc-fp8_e4m3fn.safetensors | clip/ | 6.3G | Present |
 | CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors | clip_vision/ | 2.4G | Present |
 | wan_2.1_vae.safetensors | vae/ | 243M | Present |
 | flux-uncensored.safetensors | loras/ | 656M | Present (Flux) |
-| NSFW-22-H-e8.safetensors | loras/ | ~599M | Downloading |
+| wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors | loras/ | 1.2G | Present |
+| wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors | loras/ | 1.2G | Present |
+| NSFW-22-H-e8.safetensors | loras/ | ~599M | Blocked (CivitAI auth) |
 
 ### ComfyUI Custom Nodes (Workshop container)
 
@@ -62,7 +66,8 @@ All installed:
 - ComfyUI_IPAdapter_plus — IP adapter
 - ComfyUI_InfiniteYou — Identity preservation
 - ComfyUI-Manager — Package management
-- VHS (VideoHelperSuite) — Video I/O, RIFE VFI
+- VHS (VideoHelperSuite) — Video I/O
+- ComfyUI-Frame-Interpolation — RIFE VFI, FILM VFI, AMT VFI, etc.
 
 ### Key Node Names (verified via /object_info API)
 
@@ -80,8 +85,9 @@ All installed:
 
 | File | Type | Notes |
 |------|------|-------|
-| wan-i2v.json | I2V base | GGUF Q4_K_S, no LoRA, 25 steps |
-| wan-i2v-lora.json | I2V + NSFW | Same + NSFW-22-H LoRA at 0.75 |
+| wan-i2v.json | I2V base | GGUF Q4_K_S, RIFE 2x, quality toggle |
+| wan-i2v-lora.json | I2V + NSFW | Same + NSFW LoRA at 0.75 |
+| wan-flf2v.json | FLF2V | Start + end frame controlled transition |
 | wan-t2v.json | T2V | Existing text-to-video |
 
 ### EoBQ Integration
@@ -102,6 +108,18 @@ All installed:
 - **noise_aug_strength**: 0.025 adds motion without artifacts. Higher = more deviation from anchor.
 - **NSFW LoRA works with GGUF** per community reports (untested locally)
 - **Lock seed during testing** — change one variable at a time
+
+### LightX2V 4-Step Speed Mode (5090 Only)
+
+LightX2V distills 25-step generation to 4 steps. Requires dual I2V model architecture:
+- **Two KSamplers** in sequence: high-noise model → low-noise model
+- **Two LoRAs**: `wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors` (1.2G, present)
+  and `wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors` (1.2G, present)
+- **Requires FP8 dual models** (high + low I2V), NOT compatible with single GGUF
+- Steps split: 4 total = 2+2, 8 = 4+4, 12 = 6+6
+- Source: [Comfy-Org/Wan_2.2_ComfyUI_Repackaged](https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged)
+
+Not usable on 5060 Ti (need two 14GB models). Phase 3 feature for 5090 HQ mode.
 
 ### Phase Plan
 
