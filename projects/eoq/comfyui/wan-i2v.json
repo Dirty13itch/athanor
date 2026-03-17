@@ -63,11 +63,20 @@
       "start_image": ["15", 0]
     }
   },
+  "11": {
+    "class_type": "WanVideoTeaCache",
+    "_meta": { "title": "TeaCache (speed boost)" },
+    "inputs": {
+      "model": ["1", 0],
+      "rel_l1_thresh": 0.15,
+      "cache_device": "main_device"
+    }
+  },
   "5": {
     "class_type": "WanVideoSampler",
     "_meta": { "title": "Sampler" },
     "inputs": {
-      "model": ["1", 0],
+      "model": ["11", 0],
       "image_embeds": ["3", 0],
       "steps": 25,
       "cfg": 1.0,

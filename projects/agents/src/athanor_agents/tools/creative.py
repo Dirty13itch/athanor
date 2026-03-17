@@ -1,5 +1,7 @@
 """Creative tools — ComfyUI image/video generation, queue management, history."""
 
+import asyncio
+import json
 import time
 import uuid
 
@@ -9,6 +11,7 @@ from langchain_core.tools import tool
 from ..services import registry
 
 COMFYUI_URL = registry.comfyui.base_url
+EOQ_URL = registry.eoq.base_url
 
 # Wan2.x model files (on NFS via extra_model_paths.yaml)
 WAN_UNET_HIGH = "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors"
@@ -516,9 +519,6 @@ def generate_character_portrait(character_name: str, scene_context: str = "", st
         return f"Failed to queue portrait: {e}"
 
 
-EOQ_URL = registry.eoq.base_url
-
-
 @tool
 def list_personas() -> str:
     """List all reference personas available for face-injection (PuLID) generation.
@@ -678,8 +678,257 @@ def generate_image_batch(prompt: str, count: int = 4, width: int = 1024, height:
     )
 
 
+@tool
+def generate_i2v_video(anchor_url: str, motion_prompt: str, quality: str = "quick") -> str:
+    """Generate an I2V (image-to-video) clip from a portrait/anchor image via EoBQ + ComfyUI.
+
+    Animates a static image into a short video using Wan2.2 I2V pipeline.
+    Calls the EoBQ /api/generate endpoint which handles image upload and workflow building.
+
+    Args:
+        anchor_url: URL or filesystem path to the anchor/first-frame image.
+        motion_prompt: Description of the motion to add (e.g., "subtle breathing, cold stare at viewer").
+        quality: "quick" (6 steps, 480p, ~30s) or "production" (25 steps, 832x480, ~120s). Default: quick.
+
+    Returns: prompt_id for tracking, or error message.
+    """
+    try:
+        full_prompt = f"{motion_prompt}, cinematic, photorealistic, 8k"
+        resp = httpx.post(
+            f"{EOQ_URL}/api/generate",
+            json={
+                "type": "i2v",
+                "prompt": full_prompt,
+                "referencePath": anchor_url,
+                "quality": quality,
+                "negativePrompt": "blurry, distorted face, morphing, identity change, static image, watermark, text, cartoon",
+            },
+            timeout=600,  # I2V can take 5-10 min for production quality
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        video_url = data.get("imageUrl")
+        prompt_id = data.get("promptId", "unknown")
+
+        if video_url:
+            return (
+                f"I2V video generated successfully.\n"
+                f"Prompt ID: {prompt_id}\n"
+                f"Video URL: {video_url}\n"
+                f"Quality: {quality}\n"
+                f"Motion: {motion_prompt[:100]}"
+            )
+        return f"I2V generation queued (prompt_id={prompt_id}) but result not yet available. Poll with poll_video_completion."
+
+    except httpx.TimeoutException:
+        return "I2V generation timed out. The job may still be running in ComfyUI — use poll_video_completion."
+    except Exception as e:
+        return f"Failed to generate I2V video: {e}"
+
+
+@tool
+def poll_video_completion(prompt_id: str, timeout_s: int = 300) -> str:
+    """Poll ComfyUI for a specific generation job until it completes or times out.
+
+    Unlike check_queue (which shows queue state), this blocks until a specific
+    prompt_id finishes and returns the output URL.
+
+    Args:
+        prompt_id: The ComfyUI prompt ID to wait for.
+        timeout_s: Maximum seconds to wait (default 300 = 5 min).
+
+    Returns: Video/image URL if completed, or status message.
+    """
+    start = time.time()
+    poll_interval = 3  # seconds between checks
+
+    while time.time() - start < timeout_s:
+        try:
+            resp = httpx.get(f"{COMFYUI_URL}/history/{prompt_id}", timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                result = data.get(prompt_id)
+                if result and result.get("outputs"):
+                    # Check for error
+                    if result.get("status", {}).get("status_str") == "error":
+                        return f"Generation {prompt_id} failed with error."
+
+                    # Find output files
+                    for node_output in result["outputs"].values():
+                        for key in ("videos", "images", "gifs"):
+                            files = node_output.get(key, [])
+                            if files:
+                                f = files[0]
+                                url = f"{COMFYUI_URL}/view?filename={f['filename']}&subfolder={f.get('subfolder', '')}&type={f.get('type', 'output')}"
+                                elapsed = int(time.time() - start)
+                                return f"Completed in {elapsed}s.\nURL: {url}\nFilename: {f['filename']}"
+        except Exception:
+            pass
+
+        time.sleep(poll_interval)
+
+    return f"Timed out after {timeout_s}s waiting for {prompt_id}. Job may still be running."
+
+
+@tool
+def check_video_inventory(queen_id: str = "") -> str:
+    """Check which EoBQ queens/stages have pre-generated I2V videos.
+
+    Reads Redis athanor:eoq:video_inventory keys. If queen_id is provided,
+    shows stages for that queen. Otherwise shows a summary of all queens.
+
+    Args:
+        queen_id: Optional queen ID to check (e.g., "isolde", "jordan-night"). If empty, shows all.
+    """
+    try:
+        import redis
+        r = redis.Redis(host="192.168.1.203", port=6379, db=0)
+
+        if queen_id:
+            stages = ["defiant", "struggling", "conflicted", "yielding", "surrendered", "broken"]
+            lines = [f"Video inventory for '{queen_id}':"]
+            for stage in stages:
+                key = f"athanor:eoq:video_inventory:{queen_id}:{stage}"
+                data = r.get(key)
+                if data:
+                    info = json.loads(data)
+                    lines.append(f"  {stage}: {info.get('quality', '?')} — {info.get('video_url', 'unknown')[:80]}")
+                else:
+                    lines.append(f"  {stage}: MISSING")
+            return "\n".join(lines)
+
+        # Summary mode: scan all inventory keys
+        cursor = 0
+        inventory = {}
+        while True:
+            cursor, keys = r.scan(cursor, match="athanor:eoq:video_inventory:*", count=100)
+            for key in keys:
+                key_str = key.decode() if isinstance(key, bytes) else key
+                parts = key_str.split(":")
+                if len(parts) >= 5:
+                    qid = parts[3]
+                    stage = parts[4]
+                    inventory.setdefault(qid, []).append(stage)
+            if cursor == 0:
+                break
+
+        if not inventory:
+            return "No video inventory found. No queens have pre-generated I2V videos yet."
+
+        lines = [f"Video inventory ({len(inventory)} queens):"]
+        for qid in sorted(inventory.keys()):
+            stages = sorted(inventory[qid])
+            lines.append(f"  {qid}: {len(stages)}/6 stages — {', '.join(stages)}")
+
+        total_videos = sum(len(s) for s in inventory.values())
+        lines.append(f"\nTotal: {total_videos} videos across {len(inventory)} queens")
+        return "\n".join(lines)
+
+    except Exception as e:
+        return f"Failed to check video inventory: {e}"
+
+
+@tool
+def update_video_inventory(queen_id: str, stage: str, video_url: str, quality: str = "quick") -> str:
+    """Record a generated video in the EoBQ inventory (Redis).
+
+    Call this after a successful I2V generation to track which queens/stages have videos.
+
+    Args:
+        queen_id: Queen ID (e.g., "isolde", "jordan-night").
+        stage: Breaking stage ("defiant", "struggling", "conflicted", "yielding", "surrendered", "broken").
+        video_url: URL of the generated video.
+        quality: Quality level — "quick" or "production".
+    """
+    valid_stages = {"defiant", "struggling", "conflicted", "yielding", "surrendered", "broken"}
+    if stage not in valid_stages:
+        return f"Invalid stage '{stage}'. Must be one of: {', '.join(sorted(valid_stages))}"
+
+    try:
+        import redis
+        r = redis.Redis(host="192.168.1.203", port=6379, db=0)
+
+        inv_key = f"athanor:eoq:video_inventory:{queen_id}:{stage}"
+        quality_key = f"athanor:eoq:video_quality:{queen_id}:{stage}"
+
+        entry = json.dumps({
+            "queen_id": queen_id,
+            "stage": stage,
+            "video_url": video_url,
+            "quality": quality,
+            "generated_at": time.time(),
+        })
+
+        r.set(inv_key, entry)
+
+        # Also set a quality entry (default score based on quality level)
+        score = 0.8 if quality == "production" else 0.5
+        quality_entry = json.dumps({
+            "queen_id": queen_id,
+            "stage": stage,
+            "score": score,
+            "quality": quality,
+            "evaluated_at": time.time(),
+        })
+        r.set(quality_key, quality_entry)
+
+        return f"Inventory updated: {queen_id}/{stage} = {quality} (score={score})"
+
+    except Exception as e:
+        return f"Failed to update inventory: {e}"
+
+
+@tool
+def evaluate_video_quality(video_url: str, anchor_url: str = "") -> str:
+    """Basic video quality validation. Checks if the video file is accessible and reasonably sized.
+
+    Args:
+        video_url: URL of the video to evaluate.
+        anchor_url: Optional URL of the original anchor image for comparison (not yet used for visual comparison).
+
+    Returns: Quality score 0-1 and validation details.
+    """
+    try:
+        # Check video is accessible and get size
+        resp = httpx.head(video_url, timeout=10, follow_redirects=True)
+        if resp.status_code == 405:
+            # Some servers don't support HEAD, try GET with range
+            resp = httpx.get(video_url, timeout=10, follow_redirects=True, headers={"Range": "bytes=0-1024"})
+
+        if resp.status_code not in (200, 206):
+            return json.dumps({"score": 0.0, "reason": f"Video not accessible (HTTP {resp.status_code})"})
+
+        content_length = resp.headers.get("content-length")
+        size_bytes = int(content_length) if content_length else None
+
+        # Score heuristic based on file size
+        if size_bytes is None:
+            score = 0.5
+            reason = "Cannot determine file size — assumed moderate quality"
+        elif size_bytes < 50_000:
+            score = 0.1
+            reason = f"Very small file ({size_bytes} bytes) — likely corrupt or blank"
+        elif size_bytes < 200_000:
+            score = 0.4
+            reason = f"Small file ({size_bytes // 1024}KB) — may be low quality"
+        elif size_bytes < 2_000_000:
+            score = 0.7
+            reason = f"Reasonable size ({size_bytes // 1024}KB)"
+        else:
+            score = 0.9
+            reason = f"Good size ({size_bytes // (1024*1024)}MB) — likely production quality"
+
+        return json.dumps({"score": score, "reason": reason, "size_bytes": size_bytes})
+
+    except Exception as e:
+        return json.dumps({"score": 0.0, "reason": f"Evaluation failed: {e}"})
+
+
 CREATIVE_TOOLS = [
     generate_image, generate_image_batch, generate_video, generate_character_portrait,
     check_queue, get_generation_history, get_comfyui_status,
     list_personas, generate_with_likeness,
+    generate_i2v_video, poll_video_completion,
+    check_video_inventory, update_video_inventory, evaluate_video_quality,
 ]

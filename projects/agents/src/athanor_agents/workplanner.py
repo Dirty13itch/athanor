@@ -63,8 +63,12 @@ AGENT_CAPABILITIES = {
         "tools": "search_tv_shows, add_tv_show, search_movies, add_movie, get_plex_activity, get_watch_history",
     },
     "creative-agent": {
-        "can_do": "Generate images (Flux dev FP8 via ComfyUI), generate video (Wan2.x), check queue status",
-        "tools": "generate_image, generate_video, check_queue, get_comfyui_status",
+        "can_do": "Generate images (Flux), generate I2V video (Wan2.2 image-to-video), "
+                  "generate portraits with face injection (PuLID), check video inventory, "
+                  "evaluate quality, manage video content library",
+        "tools": "generate_image, generate_i2v_video, generate_with_likeness, "
+                 "check_video_inventory, update_video_inventory, evaluate_video_quality, "
+                 "poll_video_completion, check_queue, get_comfyui_status",
     },
     "research-agent": {
         "can_do": "Web search, fetch pages, search knowledge base, query infrastructure graph",

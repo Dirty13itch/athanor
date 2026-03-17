@@ -130,13 +130,17 @@ AGENT_SCHEDULES = {
     "creative-agent": {
         "interval": 14400,  # 4 hours
         "prompt": (
-            "Check ComfyUI health — verify the queue endpoint responds. "
-            "Report queue status (pending/running/completed). "
-            "If the queue is idle and GPU is available, generate a portrait "
-            "for an EoBQ queen who doesn't have one yet. Pick a queen randomly "
-            "from the 21 Council Queens. Use the character's fluxPrompt as the "
-            "base prompt, add 'solo, single person, cinematic portrait' prefix. "
-            "This proactively builds the gallery without anyone asking."
+            "Run a creative production cycle:\n"
+            "1. Check ComfyUI health (check_queue). If queue is busy, report and stop.\n"
+            "2. Check video inventory (check_video_inventory). Find queens missing 'defiant' stage videos.\n"
+            "3. For the first queen missing a video: generate an I2V video using generate_i2v_video "
+            "with their portrait URL as anchor and a stage-appropriate motion prompt "
+            "(e.g., 'cold stare at viewer, subtle breathing, imperious'). Use quality='quick'.\n"
+            "4. Poll for completion (poll_video_completion). If successful, update the inventory "
+            "(update_video_inventory) with the video URL.\n"
+            "5. Evaluate video quality (evaluate_video_quality). Report the result.\n"
+            "If no queens are missing defiant videos, check for other missing stages.\n"
+            "If all stages are covered, check for quick-preview videos that could be upgraded to production."
         ),
         "priority": "low",
         "enabled": True,

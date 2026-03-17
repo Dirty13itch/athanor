@@ -226,6 +226,8 @@ export function useImageGeneration() {
   }, []);
 
   /** Animate an existing portrait into a short video clip via Wan 2.2 I2V.
+   *  Checks the video cache first — if the work pipeline has pre-generated a video
+   *  for this queen/stage, uses that instead of generating on-the-fly.
    *  Uses the current portrait URL as the anchor (first frame).
    *  Fire-and-forget — replaces the portrait with the video URL when done. */
   const generatePortraitVideo = useCallback(
@@ -235,6 +237,24 @@ export function useImageGeneration() {
 
       const intensity = useGameStore.getState().session?.worldState.contentIntensity ?? 3;
       const stage = getBreakingStage(char.resistance);
+
+      // Cache-first: check if the work pipeline has pre-generated a video
+      if (isQueen(char)) {
+        try {
+          const cacheResp = await fetch(
+            `/api/video-cache?queen=${encodeURIComponent(charId)}&stage=${encodeURIComponent(stage)}`
+          );
+          if (cacheResp.ok) {
+            const cached = await cacheResp.json();
+            if (cached.videoUrl) {
+              store.setPortraitUrl(cached.videoUrl);
+              return;
+            }
+          }
+        } catch {
+          // Cache miss — fall through to on-demand generation
+        }
+      }
 
       // Build a motion prompt — describe what movement to add
       const motionPrompts: Record<string, string> = {
