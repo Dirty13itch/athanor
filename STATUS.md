@@ -1448,4 +1448,19 @@ Kindred:
 
 **Final tally: 25 commits, 39 features across 5 projects (~6,500 lines added).**
 
-*Last updated: 2026-03-16 18:03 PDT
+**Fifth wave — Video Pipeline:**
+- Wan 2.2 I2V pipeline: complete implementation from research to working generation
+- ComfyUI workflows: wan-i2v.json (base) + wan-i2v-lora.json (NSFW LoRA)
+- EoBQ /api/generate: type="i2v" with anchor image upload, 10-min poll timeout
+- Frontend: generatePortraitVideo() with stage-aware motion prompts
+- References page: "Animate Portrait (I2V)" button + video preview (autoplay/loop)
+- GGUF I2V model downloaded: Wan2.2-I2V-A14B-HighNoise-Q4_K_S.gguf (8.75GB on VAULT)
+- End-to-end test: 480x480 41-frame video generated in 93s on 5060 Ti (16GB)
+- All ComfyUI nodes verified via /object_info API (WanVideoImageToVideoEncode, etc.)
+- Research doc: docs/research/wan22-i2v-pipeline.md
+- NSFW LoRA: CivitAI auth required for download — manual step remaining
+- Unraid NFS inode bug discovered: NFS exports report 0 inodes, write directly on VAULT
+
+**Updated tally: 30 commits, 45 features across 5 projects.**
+
+*Last updated: 2026-03-16 18:36 PDT
