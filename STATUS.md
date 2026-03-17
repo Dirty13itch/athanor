@@ -1263,13 +1263,14 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 - ComfyUI: restarted with Impact Pack + face detection
 
 ### Next Actions
-1. **Seed creative-agent trust** — remove HIGH_IMPACT penalty or inject baseline trust credits so governor auto-approves first batch
-2. **Wire cloud evaluation** — use Gemini vision to evaluate I2V output quality (replace file-size heuristic)
-3. **Auto-escalate RESEARCH/CREATIVE tasks to cloud** — lease issuance exists but nothing triggers it
-4. **Operator intent injection UI** — dashboard widget for Shaun to inject goals/priorities into pipeline
-5. **Presence detection v2** — integrate Home Assistant device_tracker for real presence instead of time-of-day fallback
-6. First queen LoRA training — deploy Ansible role, populate Stash reference photos, train
-7. Stash reference photos — all 21 queens show hasRealProfileImage=false, need photos for PuLID
+1. ~~**Seed creative-agent trust**~~ DONE — removed HIGH_IMPACT penalty, raised baseline to 0.55
+2. ~~**Operator intent capture**~~ DONE — chat messages auto-extract directives, POST /v1/steer API
+3. **Wire cloud evaluation** — use Gemini vision to evaluate I2V output quality (replace file-size heuristic)
+4. **Auto-escalate RESEARCH/CREATIVE tasks to cloud** — lease issuance exists but nothing triggers it
+5. **Dashboard steering widget** — UI for pending intents, goal management, pipeline preview
+6. **Presence detection v2** — integrate Home Assistant device_tracker for real presence
+7. **Deploy agents** — rsync + rebuild to activate all changes on FOUNDRY
+8. First queen LoRA training — deploy Ansible role, populate Stash reference photos, train
 
 ---
 
