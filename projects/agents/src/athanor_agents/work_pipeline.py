@@ -93,14 +93,36 @@ async def run_pipeline_cycle() -> CycleResult:
     except Exception as e:
         logger.warning("Queue depth check failed: %s", e)
 
-    # 2. Mine all intent sources
+    # 2a. Ensure owner model is fresh
+    try:
+        from .owner_model import ensure_fresh
+        await ensure_fresh()
+    except Exception as e:
+        logger.warning("Owner model refresh failed: %s", e)
+
+    # 2b. Synthesize strategic intents (cross-domain, vision-aware)
+    synthesis_intents: list = []
+    try:
+        from .intent_synthesizer import synthesize_strategic_intents
+        synthesis_intents = await synthesize_strategic_intents()
+        logger.info("Synthesis produced %d strategic intents", len(synthesis_intents))
+    except Exception as e:
+        logger.warning("Intent synthesis failed: %s", e)
+        result.errors.append(f"Synthesis failed: {e}")
+
+    # 2c. Mine reactive intent sources (existing 15 miners)
     try:
         from .intent_miner import mine_all_sources
-        raw_intents = await mine_all_sources()
-        result.intents_mined = len(raw_intents)
+        mined_intents = await mine_all_sources()
     except Exception as e:
         logger.error("Intent mining failed: %s", e)
         result.errors.append(f"Mining failed: {e}")
+        mined_intents = []
+
+    raw_intents = synthesis_intents + mined_intents
+    result.intents_mined = len(raw_intents)
+
+    if not raw_intents:
         await _record_cycle(result)
         return result
 

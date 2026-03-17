@@ -69,8 +69,8 @@ FALLBACK_CHAINS = {
     "claude": ["gpt", "gemini", "deepseek", "reasoning"],
 }
 
-# Task types that should prefer cloud for quality
-CLOUD_PREFERRED_TASKS = {TaskType.RESEARCH, TaskType.CREATIVE}
+# Task types eligible for cloud escalation when local quality is insufficient
+CLOUD_ESCALATION_TASKS = {TaskType.RESEARCH, TaskType.CREATIVE}
 
 # Subscription provider names → LiteLLM model aliases
 PROVIDER_TO_MODEL = {
@@ -220,8 +220,8 @@ TASK_ROUTING = {
     TaskType.CHAT: ModelTier.FAST,
     TaskType.CODE: ModelTier.REASONING,
     TaskType.REASONING: ModelTier.REASONING,
-    TaskType.RESEARCH: ModelTier.CLOUD,   # Research benefits from cloud model quality
-    TaskType.CREATIVE: ModelTier.CLOUD,   # Creative tasks use cloud for better output
+    TaskType.RESEARCH: ModelTier.REASONING,  # Local-first: Qwen3.5-27B 95.0 IFEval, cloud for escalation
+    TaskType.CREATIVE: ModelTier.REASONING,  # Local-first: GPUs idle, cloud for quality eval only
     TaskType.SYSTEM: ModelTier.REASONING,
     TaskType.HOME: ModelTier.FAST,
     TaskType.MEDIA: ModelTier.FAST,
@@ -242,7 +242,7 @@ def route(
 
     Cloud routing is activated when:
     1. Task metadata contains an execution lease with a cloud provider, OR
-    2. Task type is in CLOUD_PREFERRED_TASKS and prefer_local is False, OR
+    2. Task type is in CLOUD_ESCALATION_TASKS and prefer_local is False, OR
     3. All local models are busy (queue depth fallback to cloud)
 
     Args:

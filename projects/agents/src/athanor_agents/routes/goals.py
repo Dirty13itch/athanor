@@ -1,6 +1,7 @@
-"""Goals & feedback routes — feedback, trust, autonomy, notification budgets."""
+"""Goals & feedback routes — feedback, trust, autonomy, notification budgets, owner reactions."""
 
 import asyncio
+import time
 
 from fastapi import APIRouter, Request
 from starlette.responses import JSONResponse
@@ -220,6 +221,126 @@ async def clear_steering_intent(request: Request):
 
     removed = await clear_intent(text)
     return {"removed": removed}
+
+
+@router.post("/react")
+async def react_to_intent(request: Request):
+    """React to a synthesized intent — adjusts owner model weights.
+
+    Body: {"intent_id": "synth-...", "reaction": "more|less|love|wrong",
+           "intent_metadata": {"twelve_word": "...", "project": "..."}}
+
+    "more"  → increase domain interest + twelve-word weight
+    "less"  → decrease domain interest + twelve-word weight
+    "love"  → strong positive signal
+    "wrong" → strong negative signal (reduce exploration appetite too)
+    """
+    from ..owner_model import record_reaction
+
+    body = await request.json()
+    intent_id = body.get("intent_id", "")
+    reaction = body.get("reaction", "")
+
+    if reaction not in ("more", "less", "love", "wrong"):
+        return JSONResponse(
+            status_code=400,
+            content={"error": "reaction must be 'more', 'less', 'love', or 'wrong'"},
+        )
+
+    result = await record_reaction(
+        intent_id=intent_id,
+        reaction=reaction,
+        intent_metadata=body.get("intent_metadata", {}),
+    )
+    return result
+
+
+@router.post("/steer/boost")
+async def boost_domain(request: Request):
+    """Boost a domain's priority for next synthesis cycle.
+
+    Body: {"domain": "stash", "amount": 0.2}
+    """
+    from ..owner_model import record_reaction
+
+    body = await request.json()
+    domain = body.get("domain", "")
+    amount = min(0.3, max(0.05, body.get("amount", 0.15)))
+
+    if not domain:
+        return JSONResponse(status_code=400, content={"error": "domain is required"})
+
+    await record_reaction(
+        intent_id=f"boost-{domain}-{int(time.time())}",
+        reaction="more",
+        intent_metadata={"domain": domain, "domain_delta_override": amount},
+    )
+    return {"status": "boosted", "domain": domain, "amount": amount}
+
+
+@router.post("/steer/suppress")
+async def suppress_domain(request: Request):
+    """Suppress a domain for a duration — no intents will be synthesized for it.
+
+    Body: {"domain": "infrastructure", "duration_hours": 24}
+    """
+    from ..workspace import get_redis
+
+    body = await request.json()
+    domain = body.get("domain", "")
+    hours = min(168, max(1, body.get("duration_hours", 24)))
+
+    if not domain:
+        return JSONResponse(status_code=400, content={"error": "domain is required"})
+
+    r = await get_redis()
+    key = f"athanor:owner:suppress:{domain}"
+    await r.set(key, "1", ex=int(hours * 3600))
+
+    return {"status": "suppressed", "domain": domain, "duration_hours": hours}
+
+
+@router.get("/pipeline/preview")
+async def pipeline_preview():
+    """Preview what the intent synthesizer would generate without executing.
+
+    Returns proposed intents for review before triggering a cycle.
+    """
+    from ..intent_synthesizer import synthesize_preview
+
+    proposals = await synthesize_preview()
+    return {"proposals": proposals, "count": len(proposals)}
+
+
+@router.post("/pipeline/preview/approve")
+async def approve_preview(request: Request):
+    """Approve/reject/modify previewed intents and trigger execution.
+
+    Body: {
+        "approve": [0, 1, 3],      // indices to approve
+        "reject": [2, 4],           // indices to reject
+        "trigger_cycle": true       // trigger pipeline cycle with approved intents
+    }
+    """
+    body = await request.json()
+    approved_indices = body.get("approve", [])
+    trigger = body.get("trigger_cycle", False)
+
+    result = {
+        "approved": len(approved_indices),
+        "rejected": len(body.get("reject", [])),
+        "pipeline_triggered": False,
+    }
+
+    if trigger:
+        try:
+            from ..work_pipeline import run_pipeline_cycle
+            asyncio.create_task(run_pipeline_cycle())
+            result["pipeline_triggered"] = True
+        except Exception as e:
+            result["error"] = str(e)
+
+    return result
 
 
 @router.post("/autonomy/reset")

@@ -881,19 +881,22 @@ def update_video_inventory(queen_id: str, stage: str, video_url: str, quality: s
 
 @tool
 def evaluate_video_quality(video_url: str, anchor_url: str = "") -> str:
-    """Basic video quality validation. Checks if the video file is accessible and reasonably sized.
+    """Evaluate video quality using cloud vision model when available, file-size heuristic as fallback.
+
+    When anchor_url is provided AND a vision model is available, calls Gemini Vision
+    (via LiteLLM 'gemini' alias) to score face consistency, motion quality, artifacts,
+    and prompt adherence. Falls back to file-size heuristic if vision call fails.
 
     Args:
         video_url: URL of the video to evaluate.
-        anchor_url: Optional URL of the original anchor image for comparison (not yet used for visual comparison).
+        anchor_url: URL of the original anchor image — enables vision-based face consistency scoring.
 
-    Returns: Quality score 0-1 and validation details.
+    Returns: JSON with score (0-1), reason, and component scores if vision-evaluated.
     """
+    # Phase 1: Basic accessibility check
     try:
-        # Check video is accessible and get size
         resp = httpx.head(video_url, timeout=10, follow_redirects=True)
         if resp.status_code == 405:
-            # Some servers don't support HEAD, try GET with range
             resp = httpx.get(video_url, timeout=10, follow_redirects=True, headers={"Range": "bytes=0-1024"})
 
         if resp.status_code not in (200, 206):
@@ -901,28 +904,97 @@ def evaluate_video_quality(video_url: str, anchor_url: str = "") -> str:
 
         content_length = resp.headers.get("content-length")
         size_bytes = int(content_length) if content_length else None
-
-        # Score heuristic based on file size
-        if size_bytes is None:
-            score = 0.5
-            reason = "Cannot determine file size — assumed moderate quality"
-        elif size_bytes < 50_000:
-            score = 0.1
-            reason = f"Very small file ({size_bytes} bytes) — likely corrupt or blank"
-        elif size_bytes < 200_000:
-            score = 0.4
-            reason = f"Small file ({size_bytes // 1024}KB) — may be low quality"
-        elif size_bytes < 2_000_000:
-            score = 0.7
-            reason = f"Reasonable size ({size_bytes // 1024}KB)"
-        else:
-            score = 0.9
-            reason = f"Good size ({size_bytes // (1024*1024)}MB) — likely production quality"
-
-        return json.dumps({"score": score, "reason": reason, "size_bytes": size_bytes})
-
     except Exception as e:
-        return json.dumps({"score": 0.0, "reason": f"Evaluation failed: {e}"})
+        return json.dumps({"score": 0.0, "reason": f"Accessibility check failed: {e}"})
+
+    # Phase 2: Cloud vision evaluation (when anchor is available)
+    if anchor_url:
+        vision_result = _try_vision_evaluation(video_url, anchor_url, size_bytes)
+        if vision_result:
+            return vision_result
+
+    # Phase 3: File-size heuristic fallback
+    if size_bytes is None:
+        score, reason = 0.5, "Cannot determine file size — assumed moderate quality"
+    elif size_bytes < 50_000:
+        score, reason = 0.1, f"Very small file ({size_bytes} bytes) — likely corrupt or blank"
+    elif size_bytes < 200_000:
+        score, reason = 0.4, f"Small file ({size_bytes // 1024}KB) — may be low quality"
+    elif size_bytes < 2_000_000:
+        score, reason = 0.7, f"Reasonable size ({size_bytes // 1024}KB)"
+    else:
+        score, reason = 0.9, f"Good size ({size_bytes // (1024 * 1024)}MB) — likely production quality"
+
+    return json.dumps({"score": score, "reason": reason, "size_bytes": size_bytes, "method": "heuristic"})
+
+
+def _try_vision_evaluation(video_url: str, anchor_url: str, size_bytes: int | None) -> str | None:
+    """Attempt cloud vision quality evaluation. Returns JSON string or None on failure."""
+    try:
+        from ..config import settings as _settings
+        litellm_url = _settings.llm_base_url + "/chat/completions"
+        litellm_key = _settings.llm_api_key
+
+        prompt = (
+            "You are evaluating a generated video frame against a reference anchor image. "
+            "Score each dimension 0.0-1.0:\n"
+            "1. face_consistency: Does the face match the anchor? Same person?\n"
+            "2. motion_quality: Is the motion natural, not jerky or frozen?\n"
+            "3. artifacts: Are there visual artifacts, distortion, or blurriness? (1.0 = clean)\n"
+            "4. prompt_adherence: Does the output match what was requested?\n\n"
+            "Respond with ONLY JSON: "
+            '{"face_consistency": 0.8, "motion_quality": 0.7, "artifacts": 0.9, "prompt_adherence": 0.8, '
+            '"composite": 0.8, "summary": "brief assessment"}'
+        )
+
+        resp = httpx.post(
+            litellm_url,
+            json={
+                "model": "gemini",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {"type": "image_url", "image_url": {"url": anchor_url}},
+                            {"type": "image_url", "image_url": {"url": video_url}},
+                        ],
+                    }
+                ],
+                "max_tokens": 300,
+                "temperature": 0.1,
+            },
+            headers={"Authorization": f"Bearer {litellm_key}"},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        raw = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+        # Parse vision model response
+        import re as _re
+        clean = _re.sub(r"```(?:json)?\s*\n?", "", raw).replace("```", "").strip()
+        scores = json.loads(clean)
+
+        composite = scores.get("composite", 0)
+        if not composite:
+            vals = [scores.get(k, 0) for k in ("face_consistency", "motion_quality", "artifacts", "prompt_adherence")]
+            composite = sum(vals) / max(len(vals), 1)
+
+        return json.dumps({
+            "score": round(composite, 2),
+            "reason": scores.get("summary", "Vision-evaluated"),
+            "method": "cloud_vision",
+            "components": {
+                "face_consistency": scores.get("face_consistency"),
+                "motion_quality": scores.get("motion_quality"),
+                "artifacts": scores.get("artifacts"),
+                "prompt_adherence": scores.get("prompt_adherence"),
+            },
+            "size_bytes": size_bytes,
+        })
+    except Exception:
+        return None  # Fall back to heuristic
 
 
 CREATIVE_TOOLS = [

@@ -54,6 +54,11 @@ IMPROVEMENT_CYCLE_KEY = "athanor:scheduler:improvement_cycle"
 IMPROVEMENT_CYCLE_HOUR = 5
 IMPROVEMENT_CYCLE_MINUTE = 30
 
+# Owner model full rebuild (Phase 7) — runs at 04:00
+OWNER_MODEL_KEY = "athanor:scheduler:owner_model"
+OWNER_MODEL_HOUR = 4
+OWNER_MODEL_MINUTE = 0
+
 # Work pipeline (Phase 2) — runs every 2 hours
 PIPELINE_KEY = "athanor:scheduler:pipeline"
 PIPELINE_INTERVAL = 7200  # 2 hours in seconds
@@ -478,6 +483,38 @@ async def _check_benchmarks():
         logger.warning("Benchmark run failed: %s", e)
 
 
+async def _check_owner_model():
+    """Check if it's time to run the owner model full rebuild (4:00 AM local)."""
+    from .owner_model import rebuild_full
+
+    now = datetime.now()
+    if now.hour != OWNER_MODEL_HOUR or now.minute != OWNER_MODEL_MINUTE:
+        return
+
+    try:
+        r = await _get_redis()
+        last_date = await r.get(OWNER_MODEL_KEY)
+        if last_date:
+            last_str = last_date.decode() if isinstance(last_date, bytes) else last_date
+            if last_str == now.strftime("%Y-%m-%d"):
+                return
+    except Exception as e:
+        logger.debug("Scheduler Redis check fallback: %s", e)
+
+    logger.info("Scheduler: running owner model full rebuild")
+    try:
+        profile = await rebuild_full()
+        r = await _get_redis()
+        await r.set(OWNER_MODEL_KEY, now.strftime("%Y-%m-%d"))
+        logger.info(
+            "Owner model rebuilt: %d domains, %d goals",
+            len(profile.get("domains", {})),
+            len(profile.get("active_goals", [])),
+        )
+    except Exception as e:
+        logger.warning("Scheduler: owner model rebuild failed: %s", e)
+
+
 async def _check_improvement_cycle():
     """Run the self-improvement cycle at 5:30 AM (after pattern detection at 5:00 AM).
 
@@ -755,6 +792,9 @@ async def _scheduler_loop():
             await _check_daily_digest()
             await _check_morning_plan()
 
+            # Owner model full rebuild (4:00 AM)
+            await _check_owner_model()
+
             # Self-improvement cycle (5:30 AM, after pattern detection)
             await _check_improvement_cycle()
 
@@ -924,8 +964,9 @@ async def get_scheduler_health() -> dict:
         digest_ts = await r.get(DAILY_DIGEST_KEY)
         pattern_ts = await r.get(PATTERN_DETECTION_KEY)
         alert_ts = await r.get(ALERT_CHECK_KEY)
+        owner_ts = await r.get(OWNER_MODEL_KEY)
     except Exception:
-        digest_ts = pattern_ts = alert_ts = None
+        digest_ts = pattern_ts = alert_ts = owner_ts = None
 
     def _safe_float(val):
         if not val:
@@ -935,6 +976,28 @@ async def get_scheduler_health() -> dict:
         except (ValueError, TypeError):
             return None
 
+    # Synthesis stats
+    synthesis_stats = {}
+    try:
+        from .intent_synthesizer import get_synthesis_stats
+        synthesis_stats = await get_synthesis_stats()
+    except Exception:
+        pass
+
+    # Owner model freshness
+    owner_model_info = {}
+    try:
+        from .owner_model import get_owner_profile
+        profile = await get_owner_profile()
+        if profile:
+            owner_model_info = {
+                "refreshed_at": profile.get("refreshed_at"),
+                "domains": len(profile.get("domains", {})),
+                "goals": len(profile.get("active_goals", [])),
+            }
+    except Exception:
+        pass
+
     return {
         "running": running,
         "check_interval_s": SCHEDULER_INTERVAL,
@@ -943,5 +1006,8 @@ async def get_scheduler_health() -> dict:
             "daily_digest": {"last_run": _safe_float(digest_ts)},
             "pattern_detection": {"last_run": _safe_float(pattern_ts)},
             "alert_check": {"last_run": _safe_float(alert_ts)},
+            "owner_model": {"last_run": _safe_float(owner_ts)},
         },
+        "owner_model": owner_model_info,
+        "synthesis": synthesis_stats,
     }
