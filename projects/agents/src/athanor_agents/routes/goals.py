@@ -166,6 +166,62 @@ async def get_autonomy_adjustments():
     return {"adjustments": adjustments, "max_adjustment": 0.15}
 
 
+@router.post("/steer")
+async def steer_system(request: Request):
+    """Inject a steering directive into the work pipeline.
+
+    This is the primary owner-to-system intent channel. When Shaun says
+    "I want X", this captures it as a high-priority operator intent that
+    the pipeline acts on next cycle.
+
+    Body: {
+        "text": "Generate I2V videos for all 21 queens",
+        "priority": 0.9,        // 0-1, default 0.9
+        "trigger_now": false     // If true, immediately run a pipeline cycle
+    }
+
+    Returns: {"captured": true, "intent_id": "steer-...", "pipeline_triggered": bool}
+    """
+    from ..intent_capture import inject_steering_intent
+
+    body = await request.json()
+    text = body.get("text", "")
+
+    if not text:
+        return JSONResponse(status_code=400, content={"error": "text is required"})
+
+    result = await inject_steering_intent(
+        text=text,
+        priority=body.get("priority", 0.9),
+        source=body.get("source", "dashboard"),
+        trigger_cycle=body.get("trigger_now", False),
+    )
+    return result
+
+
+@router.get("/steer")
+async def get_steering_intents():
+    """Get pending operator intents (what the pipeline will act on next)."""
+    from ..intent_capture import get_pending_intents
+
+    intents = await get_pending_intents()
+    return {"intents": intents, "count": len(intents)}
+
+
+@router.delete("/steer")
+async def clear_steering_intent(request: Request):
+    """Remove a specific intent from the pending queue."""
+    from ..intent_capture import clear_intent
+
+    body = await request.json()
+    text = body.get("text", "")
+    if not text:
+        return JSONResponse(status_code=400, content={"error": "text is required"})
+
+    removed = await clear_intent(text)
+    return {"removed": removed}
+
+
 @router.post("/autonomy/reset")
 async def reset_autonomy(request: Request):
     """Reset autonomy adjustments for an agent (or all agents).

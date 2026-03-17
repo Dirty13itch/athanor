@@ -339,6 +339,10 @@ async def chat_completions(request: Request):
         routing.tier_config.model, input_tokens_est, output_tokens_est, float(duration_ms),
     )
 
+    # Capture operator intent from chat (fire-and-forget)
+    from ..intent_capture import capture_intent_from_chat
+    asyncio.create_task(capture_intent_from_chat(user_input, content, model_name))
+
     # Output guard: scan for data leakage
     _, output_risk_score, output_warnings = check_output(content)
     if output_risk_score > 0.7:
@@ -457,6 +461,10 @@ async def _stream_response(agent, messages, config, model_name, user_input="", r
         duration_ms=duration_ms,
         thread_id=thread_id,
     ))
+
+    # Capture operator intent from chat (fire-and-forget)
+    from ..intent_capture import capture_intent_from_chat
+    asyncio.create_task(capture_intent_from_chat(user_input, full_response, model_name))
 
     # Record cost (fire-and-forget)
     if routing:
