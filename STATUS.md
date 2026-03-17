@@ -1461,6 +1461,17 @@ Kindred:
 - NSFW LoRA: CivitAI auth required for download — manual step remaining
 - Unraid NFS inode bug discovered: NFS exports report 0 inodes, write directly on VAULT
 
-**Updated tally: 30 commits, 45 features across 5 projects.**
+**Sixth wave — Pipeline Completion:**
+- Quality toggle: quick (480p/6 steps/90s) vs production (832x480/25 steps/18min)
+- RIFE 2x frame interpolation: 16fps -> 32fps in both I2V workflows
+- FLF2V (first-last-frame) workflow: controlled transitions between start/end images
+- Photo thumbnails: actual image previews instead of filename text on References page
+- Photo serving API: GET /api/references/[id]/photos?filename= with MIME types + caching
+- LightX2V 4-step LoRAs downloaded (2x 1.2G) for 5090 speed mode
+- Remix NSFW dual model downloading (2x 14G) for 5090 HQ mode
+- ComfyUI-Frame-Interpolation installed (RIFE, FILM, AMT, 13 VFI methods)
+- Production I2V test: 832x480, 25 steps, 17.9 min, 1.4MB MP4 verified
 
-*Last updated: 2026-03-16 18:36 PDT
+**Updated tally: 35 commits, 51 features across 5 projects.**
+
+*Last updated: 2026-03-16 19:12 PDT
