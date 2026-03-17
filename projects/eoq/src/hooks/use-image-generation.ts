@@ -225,6 +225,58 @@ export function useImageGeneration() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Animate an existing portrait into a short video clip via Wan 2.2 I2V.
+   *  Uses the current portrait URL as the anchor (first frame).
+   *  Fire-and-forget — replaces the portrait with the video URL when done. */
+  const generatePortraitVideo = useCallback(
+    async (charId: string, char: Character) => {
+      const currentPortrait = useGameStore.getState().portraitUrl;
+      if (!currentPortrait) return;
+
+      const intensity = useGameStore.getState().session?.worldState.contentIntensity ?? 3;
+      const stage = getBreakingStage(char.resistance);
+
+      // Build a motion prompt — describe what movement to add
+      const motionPrompts: Record<string, string> = {
+        defiant: "subtle breathing, cold stare directly at viewer, slight head tilt, imperious",
+        struggling: "uneasy shifting, eyes darting between defiance and uncertainty, breathing quickens",
+        conflicted: "slow exhale, eyes close briefly then open, internal struggle visible",
+        yielding: "gentle swaying, eyes lowered then glancing up, lips part slightly",
+        surrendered: "slow rhythmic breathing, devoted upward gaze, gentle trembling",
+        broken: "deep submissive breathing, pleading eyes locked on viewer, body sways gently",
+      };
+
+      const basePrompt = isQueen(char) ? (char.fluxPrompt || char.visualDescription) : char.visualDescription;
+      const motion = motionPrompts[stage] ?? "subtle breathing, blinking, looking at viewer";
+      const prompt = `${basePrompt}, ${motion}, cinematic, photorealistic, 8k`;
+
+      try {
+        const resp = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            type: "i2v",
+            referencePath: currentPortrait,
+            nsfw: intensity >= 4,
+            negativePrompt: "blurry, distorted face, morphing, identity change, static image, watermark, text, cartoon",
+          }),
+        });
+
+        if (resp.ok) {
+          const { imageUrl } = await resp.json();
+          if (imageUrl) {
+            store.setPortraitUrl(imageUrl);
+          }
+        }
+      } catch (err) {
+        console.error("Portrait video generation failed:", err);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   /** Clear cached refs (for new game) */
   const resetImageCache = useCallback(() => {
     lastSceneRef.current = null;
@@ -234,6 +286,7 @@ export function useImageGeneration() {
   return {
     generateSceneImage,
     generatePortrait,
+    generatePortraitVideo,
     generateForCurrentScene,
     resetImageCache,
   };

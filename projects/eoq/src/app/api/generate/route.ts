@@ -6,14 +6,16 @@ import { join } from "path";
 
 interface GenerateRequest {
   prompt: string;
-  type: "portrait" | "scene" | "pulid" | "hq" | "pulid-hq" | "video";
+  type: "portrait" | "scene" | "pulid" | "hq" | "pulid-hq" | "video" | "i2v";
   seed?: number;
-  /** For type=pulid: filesystem path or URL to the reference photo */
+  /** For type=pulid/i2v: filesystem path or URL to the reference/anchor image */
   referencePath?: string;
-  /** For type=video: negative prompt for quality control */
+  /** For type=video/i2v: negative prompt for quality control */
   negativePrompt?: string;
   /** Max retry attempts for portrait quality gate (default: 3) */
   maxRetries?: number;
+  /** For type=i2v: whether to use NSFW LoRA stack */
+  nsfw?: boolean;
 }
 
 const PORTRAIT_TYPES = new Set(["portrait", "pulid", "hq", "pulid-hq"]);
@@ -30,7 +32,7 @@ const MIN_IMAGE_BYTES = 15_000;
 export async function POST(req: Request) {
   const rawBody = await req.text();
   const parsedBody = (rawBody ? JSON.parse(rawBody) : {}) as Partial<GenerateRequest>;
-  const { prompt = "", type = "portrait", seed, referencePath, negativePrompt, maxRetries } = parsedBody;
+  const { prompt = "", type = "portrait", seed, referencePath, negativePrompt, maxRetries, nsfw } = parsedBody;
 
   if (EOQ_FIXTURE_MODE) {
     const label =
@@ -48,13 +50,17 @@ export async function POST(req: Request) {
   }
 
   const isPulidType = type === "pulid" || type === "pulid-hq";
+  const needsReference = isPulidType || type === "i2v";
   if (isPulidType && !referencePath) {
     return Response.json({ error: "referencePath required for pulid generation" }, { status: 400 });
   }
+  if (type === "i2v" && !referencePath) {
+    return Response.json({ error: "referencePath required for i2v generation (anchor image)" }, { status: 400 });
+  }
 
-  // For PuLID types, upload reference once before any retries
+  // For PuLID and I2V types, upload reference/anchor image once before any retries
   let uploadedFilename: string | null = null;
-  if (isPulidType && referencePath) {
+  if (needsReference && referencePath) {
     uploadedFilename = await uploadReferenceToComfyUI(referencePath);
     if (!uploadedFilename) {
       return Response.json({ error: "Failed to upload reference photo to ComfyUI" }, { status: 500 });
@@ -64,7 +70,8 @@ export async function POST(req: Request) {
   // Portrait types get retry logic with seed rotation
   const retryLimit = PORTRAIT_TYPES.has(type) ? (maxRetries ?? MAX_PORTRAIT_RETRIES) : 1;
   const isHqType = type === "hq" || type === "pulid-hq";
-  const maxWait = type === "video" ? 600000 : (isHqType ? 300000 : 120000);
+  const isVideoType = type === "video" || type === "i2v";
+  const maxWait = isVideoType ? 600000 : (isHqType ? 300000 : 120000);
 
   let bestResult: { imageUrl: string | null; promptId: string } | null = null;
 
@@ -73,7 +80,7 @@ export async function POST(req: Request) {
       ? seed
       : Math.floor(Math.random() * 2147483647);
 
-    const workflow = await buildWorkflowForType(type, prompt, attemptSeed, uploadedFilename, negativePrompt);
+    const workflow = await buildWorkflowForType(type, prompt, attemptSeed, uploadedFilename, negativePrompt, nsfw);
 
     const queueResp = await fetch(`${config.comfyuiUrl}/prompt`, {
       method: "POST",
@@ -136,9 +143,13 @@ async function buildWorkflowForType(
   seed: number,
   uploadedFilename: string | null,
   negativePrompt?: string,
+  useNsfwLoras = false,
 ): Promise<Record<string, unknown>> {
   if ((type === "pulid" || type === "pulid-hq") && uploadedFilename) {
     return buildPulidWorkflow(prompt, uploadedFilename, seed, type === "pulid-hq");
+  }
+  if (type === "i2v" && uploadedFilename) {
+    return buildI2VWorkflow(prompt, uploadedFilename, negativePrompt, seed, useNsfwLoras);
   }
   if (type === "video") {
     return buildVideoWorkflow(prompt, negativePrompt, seed);
@@ -306,6 +317,47 @@ async function buildVideoWorkflow(
   // Inject seed into WanVideoSampler node
   if (workflow["5"]?.inputs) {
     workflow["5"].inputs.seed = seed ?? Math.floor(Math.random() * 2147483647);
+  }
+
+  return workflow;
+}
+
+/**
+ * Build Wan2.2 I2V (image-to-video) workflow.
+ * Takes a first-frame anchor image and animates it.
+ * Uses WanVideoImageToVideoEncode for CLIP-based image conditioning.
+ * LoRA variant available for NSFW content.
+ */
+async function buildI2VWorkflow(
+  prompt: string,
+  anchorFilename: string,
+  negativePrompt?: string,
+  seed?: number,
+  useNsfwLoras = false,
+): Promise<Record<string, unknown>> {
+  const filename = useNsfwLoras ? "wan-i2v-lora.json" : "wan-i2v.json";
+  const workflowPath = join(process.cwd(), "comfyui", filename);
+  const raw = await readFile(workflowPath, "utf-8");
+  const workflow = JSON.parse(raw);
+
+  const actualSeed = seed ?? Math.floor(Math.random() * 2147483647);
+
+  // Inject prompt into WanVideoTextEncode node (node "2")
+  if (workflow["2"]?.inputs) {
+    workflow["2"].inputs.positive_prompt = prompt;
+    if (negativePrompt) {
+      workflow["2"].inputs.negative_prompt = negativePrompt;
+    }
+  }
+
+  // Inject anchor image filename into LoadImage node (node "15")
+  if (workflow["15"]?.inputs) {
+    workflow["15"].inputs.image = anchorFilename;
+  }
+
+  // Inject seed into WanVideoSampler node (node "5")
+  if (workflow["5"]?.inputs) {
+    workflow["5"].inputs.seed = actualSeed;
   }
 
   return workflow;
