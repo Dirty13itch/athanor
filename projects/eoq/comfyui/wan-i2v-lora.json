@@ -1,13 +1,22 @@
 {
+  "20": {
+    "class_type": "WanVideoLoraSelect",
+    "_meta": { "title": "NSFW LoRA" },
+    "inputs": {
+      "lora": "wan_nsfw_general.safetensors",
+      "strength": 0.9
+    }
+  },
   "1": {
     "class_type": "WanVideoModelLoader",
-    "_meta": { "title": "Wan2.2 I2V 14B (GGUF)" },
+    "_meta": { "title": "Wan2.2 I2V 14B (GGUF) + LoRA" },
     "inputs": {
       "model": "Wan2.2-I2V-A14B-Q4_K_S.gguf",
       "base_precision": "bf16",
       "quantization": "disabled",
       "load_device": "main_device",
-      "attention_mode": "sdpa"
+      "attention_mode": "sdpa",
+      "lora": ["20", 0]
     }
   },
   "8": {
@@ -29,7 +38,7 @@
       "force_offload": true,
       "device": "gpu",
       "t5": ["8", 0],
-      "model_to_offload": ["20", 0]
+      "model_to_offload": ["1", 0]
     }
   },
   "15": {
@@ -40,34 +49,6 @@
       "upload": "image"
     }
   },
-  "3": {
-    "class_type": "WanVideoImageToVideoEncode",
-    "_meta": { "title": "Encode First Frame for I2V" },
-    "inputs": {
-      "model": ["20", 0],
-      "clip_vision": ["11", 0],
-      "image": ["15", 0],
-      "width": 832,
-      "height": 480,
-      "num_frames": 81
-    }
-  },
-  "11": {
-    "class_type": "CLIPVisionLoader",
-    "_meta": { "title": "CLIP Vision for I2V" },
-    "inputs": {
-      "clip_name": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors"
-    }
-  },
-  "20": {
-    "class_type": "WanVideoLoraSelect",
-    "_meta": { "title": "NSFW LoRA" },
-    "inputs": {
-      "model": ["1", 0],
-      "lora": "wan_nsfw_general.safetensors",
-      "strength": 0.9
-    }
-  },
   "4": {
     "class_type": "WanVideoVAELoader",
     "_meta": { "title": "Video VAE" },
@@ -76,11 +57,26 @@
       "precision": "bf16"
     }
   },
+  "3": {
+    "class_type": "WanVideoImageToVideoEncode",
+    "_meta": { "title": "Encode First Frame for I2V" },
+    "inputs": {
+      "width": 832,
+      "height": 480,
+      "num_frames": 81,
+      "noise_aug_strength": 0.025,
+      "start_latent_strength": 1.0,
+      "end_latent_strength": 1.0,
+      "force_offload": true,
+      "vae": ["4", 0],
+      "start_image": ["15", 0]
+    }
+  },
   "5": {
     "class_type": "WanVideoSampler",
     "_meta": { "title": "Sampler" },
     "inputs": {
-      "model": ["20", 0],
+      "model": ["1", 0],
       "image_embeds": ["3", 0],
       "steps": 25,
       "cfg": 1.0,
