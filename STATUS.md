@@ -1419,4 +1419,13 @@ Infrastructure:
 Kindred:
 - Project scaffolded: types (PassionCategory, UserPassion, PassionMatch), onboarding flow, explore page
 
-*Last updated: 2026-03-16 23:55 PDT
+**Additional items (continued execution):**
+- Dashboard dialogue feed: EoBQ memory API now mirrors to `conversations` collection with project:eoq tags
+- Stash performer creation tool: full CRUD for performers via GraphQL
+- Act 2 scenes: 5 Hollowlands locations (Ashen Wastes, Bone Road, Ossuary, Sink, Ember Citadel)
+- Act 2 arc transitions: beyond_the_gate → the_descent → ember_path → act2_climax
+- Signal pipeline: n8n restarted by audit agent (was stalled 3.6h), 1,692 signals in Qdrant
+
+**Final tally: 15 commits, 21 features across 5 projects (~3,000 lines added).**
+
+*Last updated: 2026-03-16 17:10 PDT
