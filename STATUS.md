@@ -1286,10 +1286,11 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 2. ~~**Operator intent capture**~~ DONE — chat messages auto-extract directives, POST /v1/steer API
 3. ~~**Wire cloud evaluation**~~ DONE — Gemini vision evaluates I2V via LiteLLM, file-size fallback
 4. ~~**Auto-escalate RESEARCH/CREATIVE tasks to cloud**~~ REVERSED — flipped to local-first (GPUs idle, Qwen3.5 95.0 IFEval)
-5. **Dashboard steering widget** — UI for pending intents, goal management, pipeline preview (APIs ready)
-6. **Presence detection v2** — integrate Home Assistant device_tracker for real presence
-7. **Deploy agents** — rsync + rebuild to activate all changes on FOUNDRY
+5. ~~**Dashboard steering widget**~~ DONE — preview, react (love/more/less/wrong), boost, suppress. Dashboard auth fixed.
+6. ~~**Deploy agents**~~ DONE — rsync + build + up. 9 healthy, all deps up. Synthesis verified: 12 intents, 8 domains, 7 agents.
+7. **Presence detection v2** — integrate Home Assistant device_tracker for real presence
 8. First queen LoRA training — deploy Ansible role, populate Stash reference photos, train
+9. **Pipeline cycle speed** — miners slow (signals pagination + 126 Redis checks). Cycle takes >5min. Optimize.
 
 ---
 
