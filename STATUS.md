@@ -1057,7 +1057,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 4. Watch Workshop vLLM for load under new tactical routing (agents now calling workshop more)
 5. Run Promptfoo eval again with fixed rubric to verify 100% pass rate for both models
 
-*Last updated: 2026-03-16 12:35 PDT
+*Last updated: 2026-03-16 16:44 PDT
 
 ---
 
@@ -1090,7 +1090,7 @@ All traces arrive as generic `litellm-acompletion`/`litellm-aembedding` â€”
 6. ~~LangFuse prompt sync~~ ✅ (9 agents unchanged, all current)
 7. ~~Stale container cleanup~~ ✅ (4 containers pruned across 3 nodes)
 
-*Last updated: 2026-03-16 12:35 PDT
+*Last updated: 2026-03-16 16:44 PDT
 
 ---
 
@@ -1387,4 +1387,36 @@ Disk scan + history merge, video player with controls, type badges, masonry layo
 - Background Bash: image batch gen (4 PuLID queens), promptfoo eval (9/9)
 - Stash API: triggered cover gen for 6 queens (async)
 
-*Last updated: 2026-03-16 12:35 PDT
+### Session — Master Plan Execution (2026-03-16 evening)
+
+**12 commits, 16 features across 5 projects.**
+
+EoBQ:
+- Player style tracking: mercy/seduction/manipulation/dominance/diplomacy scores, auto-classified from choices, fed into LLM choice generation and chat prompts
+- Breaking sequences: dramatic multi-turn scripted cinematics at stage transitions (ice, warrior, seductress, innocent, defiant, shadow + generic per-stage)
+- Stockholm progression: NPCs exhibit gradual dependency behaviors based on submission/resistance/arousal ratios
+- Voice API: /api/voice route proxying to Speaches TTS on FOUNDRY:8200 with archetype-to-voice mapping
+- Player reputation in NPC behavior: cruel players get different NPC reactions than merciful ones
+- PWA manifest + safe area insets for mobile
+- Eval suite expanded from 15 to 20 tests, covering all 12 archetypes
+- Playwright config fixed for Linux
+
+Ulrich Energy:
+- Multi-step inspection form with editable sections (Building Envelope, Blower Door, Duct Leakage, Insulation, Windows, HVAC)
+- PDF report generation endpoint with print-ready HTML layout
+
+Dashboard:
+- Ulrich Energy lens added to project switcher (green accent, oklch 145 hue)
+- Subscription control card was already fully built (ADR-022 Phase 2 complete)
+
+Agents:
+- Creative agent: dynamic character descriptions from Qdrant (falls back to static dict)
+- Stash agent: smart playlist tools (list/create/delete saved filters)
+
+Infrastructure:
+- EoBQ Ansible role: Speaches URL, timezone, log rotation added
+
+Kindred:
+- Project scaffolded: types (PassionCategory, UserPassion, PassionMatch), onboarding flow, explore page
+
+*Last updated: 2026-03-16 23:55 PDT

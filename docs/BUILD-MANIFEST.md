@@ -66,25 +66,46 @@ Cross-project execution (2026-03-16):
 | 2 | Combined HQ workflow: LoRA + PuLID + FaceDetailer + 4x upscale (V.9) | EoBQ | ✅ Done |
 | 3 | Dashboard EoBQ lens polish — queen stats, breaking progress | Dashboard | 🔲 |
 | 4 | I2V model download + portrait animation (VD.2-3) | EoBQ | 🔄 Downloading |
-| 5 | Expand eval suite to all 21 queens (S.3) | EoBQ | ✅ 15 tests, 7 archetypes |
+| 5 | Expand eval suite to all 21 queens (S.3) | EoBQ | ✅ 20 tests, 12 archetypes |
 | 6 | Batch generate 5 portraits per queen (V.10) | EoBQ | 🔲 Background |
 | 7 | Mobile remote access — WireGuard on UDM Pro | Infra | 🚫 Shaun-dependent |
 
 ### P2 — When P1 Clear
 
-| # | Item | Project |
-|---|------|---------|
-| 8 | Per-queen LoRA training for all 21 | EoBQ |
-| 9 | E2E Playwright tests (S.5) | EoBQ |
-| 10 | Mobile polish — touch controls, responsive VN layout | EoBQ |
-| 11 | EoBQ deploy automation — Ansible role | EoBQ |
-| 12 | Dashboard performance audit | Dashboard |
-| 13 | Kindred: scaffold project from concept doc | Kindred |
-| 14 | Ulrich Energy: build from workflows doc | Ulrich |
-| 15 | Knowledge: re-index all docs (81 docs → Qdrant) | Knowledge |
-| 16 | Neo4j: update graph with current topology | Knowledge |
-| 17 | ~~VAULT load investigation~~ | Infra | Done — Stash RenameFile loop |
-| 18 | Vision model on FOUNDRY 4090 | Infra |
+| # | Item | Project | Status |
+|---|------|---------|--------|
+| 8 | Per-queen LoRA training for all 21 | EoBQ | |
+| 9 | E2E Playwright tests (S.5) | EoBQ | ✅ 5 tests (3 smoke + 2 gameplay) |
+| 10 | Mobile polish — touch controls, responsive VN layout | EoBQ | ✅ PWA manifest + safe areas |
+| 11 | EoBQ deploy automation — Ansible role | EoBQ | ✅ Role exists + Speaches env added |
+| 12 | Dashboard performance audit | Dashboard | |
+| 13 | Kindred: scaffold project from concept doc | Kindred | ✅ Scaffolded (types, onboarding, pages) |
+| 14 | Ulrich Energy: build from workflows doc | Ulrich | ✅ Inspection form + PDF reports |
+| 15 | Knowledge: re-index all docs (81 docs → Qdrant) | Knowledge | ✅ Done (3632 points) |
+| 16 | Neo4j: update graph with current topology | Knowledge | ✅ Done (26 services) |
+| 17 | ~~VAULT load investigation~~ | Infra | ✅ Done — Stash RenameFile loop |
+| 18 | Vision model on FOUNDRY 4090 | Infra | |
+
+### Completed This Session (2026-03-16 evening)
+
+| Item | Project |
+|------|---------|
+| Player style tracking system | EoBQ |
+| Breaking sequences (cinematic stage transitions) | EoBQ |
+| Stockholm progression narrative hooks | EoBQ |
+| Voice API route (Speaches TTS integration) | EoBQ |
+| Player style shapes NPC behavior in chat | EoBQ |
+| Fix Playwright config for Linux | EoBQ |
+| PWA manifest + safe areas for mobile | EoBQ |
+| Eval suite expanded to 20 tests, all 12 archetypes | EoBQ |
+| Multi-step inspection field data entry | Ulrich Energy |
+| PDF report generation endpoint | Ulrich Energy |
+| Ulrich Energy lens in dashboard | Dashboard |
+| Subscription control already fully built | Dashboard |
+| Dynamic character descriptions from Qdrant | Agents |
+| Stash smart playlist tools (list/create/delete) | Agents |
+| Kindred project scaffold from concept doc | Kindred |
+| EoBQ Ansible role hardening (Speaches, TZ, logging) | Infra |
 
 ---
 
