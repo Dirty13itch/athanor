@@ -114,6 +114,20 @@ export async function POST(req: Request) {
     return Response.json({ error }, { status: resp.status });
   }
 
+  // Also write to `conversations` collection for dashboard visibility.
+  // The dashboard's RecentDialogueCard queries this collection with project:eoq.
+  if (importance >= 3 || memoryType === "choice") {
+    writeToConversations(
+      characterId,
+      sessionId,
+      content,
+      memoryType,
+      metadata,
+      embedding,
+      timestamp,
+    ).catch(() => { /* best-effort, never block */ });
+  }
+
   return Response.json({ id: pointId });
 }
 
@@ -211,6 +225,63 @@ export async function ensureCollection() {
 export function recencyWeight(timestampMs: number): number {
   const daysSince = (Date.now() - timestampMs) / 86_400_000;
   return Math.exp(-0.1 * daysSince);
+}
+
+/**
+ * Mirror significant memories to the `conversations` collection
+ * so the dashboard's EoBQ lens can surface recent dialogue.
+ */
+async function writeToConversations(
+  characterId: string,
+  sessionId: string,
+  content: string,
+  memoryType: string,
+  metadata: Record<string, unknown>,
+  embedding: number[],
+  timestamp: number,
+) {
+  const CONVERSATIONS = "conversations";
+  const scene = typeof metadata.scene === "string" ? metadata.scene : "";
+
+  // Extract player input and queen response from content if it's a choice/interaction
+  let playerInput = "";
+  let queenResponse = "";
+  const playerMatch = content.match(/Player (?:chose|said)[^:]*:\s*"([^"]+)"/);
+  if (playerMatch) playerInput = playerMatch[1];
+  const queenMatch = content.match(/said:\s*"([^"]+)"/);
+  if (queenMatch && !content.startsWith("Player")) queenResponse = queenMatch[1];
+
+  await fetch(`${config.qdrantUrl}/collections/${CONVERSATIONS}/points`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      points: [
+        {
+          id: crypto.randomUUID(),
+          vector: embedding,
+          payload: {
+            project: "eoq",
+            source: "eoq",
+            tags: ["eoq", "empire-of-broken-queens"],
+            character_name: characterId,
+            queen_name: characterId,
+            character_id: characterId,
+            queen_id: characterId,
+            player_input: playerInput,
+            user_message: playerInput,
+            queen_response: queenResponse,
+            assistant_message: queenResponse,
+            text: content,
+            session_id: sessionId,
+            memory_type: memoryType,
+            scene,
+            timestamp,
+            created_at: new Date(timestamp).toISOString(),
+          },
+        },
+      ],
+    }),
+  });
 }
 
 function clampImportance(value: unknown): 1 | 2 | 3 | 4 | 5 {

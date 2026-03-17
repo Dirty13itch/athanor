@@ -717,6 +717,69 @@ def create_smart_playlist(
 
 
 @tool
+def create_performer(
+    name: str,
+    disambiguation: str = "",
+    gender: str = "FEMALE",
+    country: str = "",
+    ethnicity: str = "",
+    details: str = "",
+    tattoos: str = "",
+    piercings: str = "",
+    favorite: bool = False,
+) -> str:
+    """Create a new performer profile in Stash.
+
+    Args:
+        name: Performer's name (required)
+        disambiguation: Disambiguation text (e.g., "actress" or "model") if name is common
+        gender: MALE, FEMALE, TRANSGENDER_MALE, TRANSGENDER_FEMALE, INTERSEX, NON_BINARY
+        country: Two-letter country code (e.g., "US", "SE", "DE")
+        ethnicity: Ethnicity string
+        details: Biography or notes
+        tattoos: Tattoo descriptions
+        piercings: Piercing descriptions
+        favorite: Mark as favorite
+    """
+    try:
+        mutation = """
+        mutation ($input: PerformerCreateInput!) {
+            performerCreate(input: $input) {
+                id name disambiguation gender country
+            }
+        }
+        """
+        input_data: dict = {"name": name}
+        if disambiguation:
+            input_data["disambiguation"] = disambiguation
+        if gender:
+            input_data["gender"] = gender.upper()
+        if country:
+            input_data["country"] = country.upper()
+        if ethnicity:
+            input_data["ethnicity"] = ethnicity
+        if details:
+            input_data["details"] = details
+        if tattoos:
+            input_data["tattoos"] = tattoos
+        if piercings:
+            input_data["piercings"] = piercings
+        if favorite:
+            input_data["favorite"] = True
+
+        data = _stash_query(mutation, {"input": input_data})
+        result = data.get("performerCreate", {})
+        return (
+            f"Performer created: {result.get('name', name)} "
+            f"(ID: {result.get('id', '?')}, "
+            f"gender: {result.get('gender', gender)}, "
+            f"country: {result.get('country', country or 'unset')})"
+        )
+    except Exception as e:
+        return f"Error creating performer: {e}"
+
+
+@tool
 def delete_smart_playlist(playlist_id: str) -> str:
     """Delete a saved filter (smart playlist) by ID.
 
@@ -756,4 +819,5 @@ STASH_TOOLS = [
     list_smart_playlists,
     create_smart_playlist,
     delete_smart_playlist,
+    create_performer,
 ]
