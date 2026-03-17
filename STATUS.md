@@ -1426,6 +1426,13 @@ Kindred:
 - Act 2 arc transitions: beyond_the_gate → the_descent → ember_path → act2_climax
 - Signal pipeline: n8n restarted by audit agent (was stalled 3.6h), 1,692 signals in Qdrant
 
-**Final tally: 15 commits, 21 features across 5 projects (~3,000 lines added).**
+**Continued execution (second wave):**
+- No Mercy Mode: auto-detected when mercyScore < 20 after 10+ choices, toggle in settings, intensifies NPC fear/breaking
+- Act 2 scripted intros: 5 Hollowlands scenes with full narrative sequences, Ember Citadel with 3 player choices
+- Dashboard breaking timeline: resistance bars for all queens, color-coded by stage
+- Dashboard lens health dots: green/red indicators on lens switcher buttons
+- Ulrich Energy email delivery: POST /api/reports/:id/send with SMTP support + graceful fallback
 
-*Last updated: 2026-03-16 17:10 PDT
+**Final tally: 20 commits, 28 features across 5 projects (~4,000 lines added).**
+
+*Last updated: 2026-03-16 17:21 PDT
