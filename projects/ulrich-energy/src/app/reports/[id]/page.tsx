@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useApiData } from "@/hooks/use-api-data";
 import type { Report } from "@/types/report";
 
@@ -13,8 +14,37 @@ type ReportResponse = {
 export default function ReportDetailPage() {
   const params = useParams<{ id: string }>();
   const reportId = typeof params.id === "string" ? params.id : params.id?.[0];
-  const { data, loading, error } = useApiData<ReportResponse>(`/api/reports/${reportId}`, {});
+  const { data, loading, error, refresh } = useApiData<ReportResponse>(`/api/reports/${reportId}`, {});
   const report = data.report;
+  const [sendEmail, setSendEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState<string | null>(null);
+
+  async function handleSend() {
+    if (!sendEmail.includes("@")) return;
+    setSending(true);
+    setSendResult(null);
+    try {
+      const resp = await fetch(`/api/reports/${reportId}/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipientEmail: sendEmail }),
+      });
+      const payload = await resp.json();
+      if (payload.sent) {
+        setSendResult(`Report sent to ${sendEmail}`);
+      } else if (payload.queued) {
+        setSendResult(`Delivery recorded for ${sendEmail} (SMTP not configured)`);
+      } else {
+        setSendResult(payload.error ?? "Send failed");
+      }
+      refresh();
+    } catch {
+      setSendResult("Network error");
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -113,6 +143,40 @@ export default function ReportDetailPage() {
                 </p>
               )}
             </div>
+          </section>
+
+          {/* Email delivery */}
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Deliver to Client
+            </h3>
+            {report.deliveredAt ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Delivered to {report.recipientEmail} on{" "}
+                {new Date(report.deliveredAt).toLocaleDateString()}
+              </p>
+            ) : (
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="email"
+                  value={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.value)}
+                  placeholder="client@email.com"
+                  className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleSend()}
+                  disabled={sending || !sendEmail.includes("@")}
+                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                >
+                  {sending ? "Sending..." : "Send"}
+                </button>
+              </div>
+            )}
+            {sendResult && (
+              <p className="mt-2 text-sm text-muted-foreground">{sendResult}</p>
+            )}
           </section>
         </>
       )}
