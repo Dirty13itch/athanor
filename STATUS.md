@@ -1,57 +1,64 @@
 # Athanor Status
 
-**Last updated:** 2026-03-18 18:45 PDT
-**Session:** COO Architecture Planning + Execution
+**Last updated:** 2026-03-18 19:30 PDT
+**Session:** COO Architecture Planning + Full Execution
 
-## What Was Done This Session
+## Session Results — 19 Actions Executed
 
-### Planning (complete)
-- MASTER-PLAN.md written (619 lines, canonical strategic reference)
-- Tactical implementation plan (2395 lines, detailed configs/commands)  
-- 4 guide documents (system overview, daily ops, system map, doc index)
-- 50+ research agents run, 100+ documents analyzed, all archives scanned
-- 7 governance domains with 23 prior concepts mapped
-- Cloud-first with local backbone design philosophy established
-- Subscription parallel utilization strategy (not serial overflow)
-- Graduated autonomous agent cloud access model
-
-### Execution (complete — 10 items)
-1. Auto_gen LLM endpoint fixed (dead 12 days → LiteLLM creative)
-2. Langfuse API keys set (dark 4 days → tracing active)
+### Infrastructure Fixes (10)
+1. Auto_gen LLM endpoint restored (12 days dead → 3 images generated)
+2. Langfuse API keys set (4 days dark → tracing active)
 3. Agent Qdrant URL fixed (FOUNDRY→VAULT) + timeout 600→1800s
-4. WORKSHOP models rsynced to local Gen5 NVMe (14x faster)
+4. WORKSHOP models on local Gen5 NVMe (14x faster loading)
 5. LiteLLM routing overhauled (24min→10s failover)
 6. MCP Tool Search fixed (auto:5→true)
 7. vLLM swap-space added to coder+node2 (pending restart)
 8. GSD v1.26.0 installed on DEV
-9. Crucible (4 containers) + old FOUNDRY Qdrant stopped/removed
+9. Crucible (4 containers) + old FOUNDRY Qdrant removed
 10. Vision --language-model-only removed from coordinator (pending restart)
+
+### New Deployments (9)
+11. vllm-node2 stopped, 5090 freed (32GB→2MB) for creative gen
+12. LiteLLM rerouted all WORKSHOP aliases to FOUNDRY
+13. Whisparr deployed (VAULT:6969, adult content arr)
+14. Bazarr deployed (VAULT:6767, automated subtitles)
+15. Recyclarr deployed (VAULT, daily TRaSH sync)
+16. Seerr deployed (VAULT:5055, request management)
+17. Aesthetic Predictor V2.5 deployed (WORKSHOP:8050, image scoring)
+18. JOSIEFIED-Qwen3-8B deployed via Ollama (WORKSHOP:11434)
+19. LiteLLM uncensored route → JOSIEFIED via Ollama
+
+### Documentation
+- MASTER-PLAN.md (619 lines, canonical strategic reference)
+- Tactical plan (2395 lines, implementation details)
+- 5 guide documents (overview, daily ops, system map, workflow maps, doc index)
+- CLAUDE.md updated with cloud-first subscription strategy
+- All committed and pushed to GitHub
 
 ## Next Actions
 
-### Infrastructure (do first)
-1. Remove vllm-node2 from WORKSHOP 5090 (frees GPU for creative gen)
-2. Restart vLLM coordinator (applies vision + swap-space changes)
-3. Restart vLLM coder + node2 (applies swap-space)
-4. Fix local-system-ui crash loop on DEV:3001
-
-### Tool Stack
-5. Deploy Aesthetic Predictor V2.5 on WORKSHOP 5060Ti
-6. Deploy JOSIEFIED-Qwen3-8B on WORKSHOP 5060Ti
-7. Set up Semantic Router on DEV
-8. Add APScheduler to agent server
-9. Update CLAUDE.md with routing matrix
-10. Set up first overnight autonomous coding run
-
 ### Blocked on Shaun
-- Install Roo Code in VS Code (RooVeterinaryInc.roo-cline)
-- Set up CodeRabbit (app.coderabbit.ai, GitHub OAuth)
-- Rotate 3 API keys (Mistral, Z.ai, HuggingFace)
-- Encrypt Usenet credentials on Desktop
-- Schedule vLLM restart maintenance window
+1. Install Roo Code in VS Code (RooVeterinaryInc.roo-cline)
+2. Set up CodeRabbit (app.coderabbit.ai, GitHub OAuth)
+3. Rotate 3 API keys (Mistral, Z.ai, HuggingFace)
+4. Encrypt Usenet credentials on Desktop
+5. Schedule vLLM coordinator restart (vision + swap-space)
+6. Set up offsite backup (Duplicati → Backblaze B2)
+
+### Next Autonomous Work
+7. Set up Semantic Router service on DEV
+8. Add APScheduler to LangGraph agent server
+9. Update delegate skill with auto-dispatch logic
+10. Set up first overnight autonomous coding run
+11. Performer data merge (script ready, 801 records)
+12. MEMORY.md full rewrite (14+ inaccuracies)
+13. Merge automation-backbone branch (backbone.py)
+14. Deploy Vaultwarden, Uptime Kuma, Headscale
 
 ## Cluster Health
-- FOUNDRY: 5 GPUs loaded, all healthy
-- WORKSHOP: 5090 at 98% (vllm-node2), 5060Ti at 3% (ComfyUI)
+- FOUNDRY: 5 GPUs loaded, all healthy, agents online (77 tools)
+- WORKSHOP: 5090 FREE (2MB), 5060Ti running ComfyUI+Scorer+Ollama
 - DEV: Services running (UI crash-looping)
-- VAULT: 47 containers, Langfuse tracing active
+- VAULT: 51+ containers, Langfuse tracing, full media stack
+- Auto_gen: WORKING (3 images generated this session)
+- Scoring: WORKING (Aesthetic V2.5 tested, all 3 images scored)
