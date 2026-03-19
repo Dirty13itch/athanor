@@ -71,3 +71,12 @@ check "codex in PATH" 'which codex'
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ] && echo "No drift detected." || echo "DRIFT DETECTED"
+
+# Send ntfy alert if drift detected
+if [ "$FAIL" -gt 0 ]; then
+    curl -s -H "Title: Drift Detected ($FAIL failures)" \
+         -H "Priority: high" \
+         -H "Tags: warning" \
+         -d "Drift check found $FAIL issue(s). Run scripts/drift-check.sh for details." \
+         http://192.168.1.203:8880/athanor
+fi
