@@ -1,0 +1,32 @@
+{
+  "version": "2026-03-12",
+  "updated_at": "2026-03-12T20:05:00Z",
+  "status": "live_partial",
+  "default_mode": "governor_mediated",
+  "subjects": [
+    {
+      "id": "meta_lanes",
+      "allowed_tools": ["planning helpers", "context synthesis", "read-only review"],
+      "restricted_tools": ["shell mutation", "filesystem writes", "direct external service mutation"],
+      "direct_execution": false
+    },
+    {
+      "id": "specialist_agents",
+      "allowed_tools": ["domain-scoped tools", "lease requests", "bounded execution"],
+      "restricted_tools": ["policy mutation", "schedule ownership", "cross-domain destructive actions"],
+      "direct_execution": true
+    },
+    {
+      "id": "workers",
+      "allowed_tools": ["generation and transform helpers"],
+      "restricted_tools": ["approvals", "lease issuance", "unbounded shell access"],
+      "direct_execution": false
+    },
+    {
+      "id": "judges",
+      "allowed_tools": ["scoring", "rubric evaluation", "regression comparison"],
+      "restricted_tools": ["production mutation", "deployment actions"],
+      "direct_execution": false
+    }
+  ]
+}

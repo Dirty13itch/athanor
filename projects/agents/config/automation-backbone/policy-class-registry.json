@@ -1,0 +1,46 @@
+{
+  "version": "2026-03-12",
+  "updated_at": "2026-03-12T06:20:00Z",
+  "classes": [
+    {
+      "id": "cloud_safe",
+      "label": "Cloud safe",
+      "default_meta_lane": "frontier_cloud",
+      "cloud_allowed": true,
+      "sovereign_required": false,
+      "description": "Safe for frontier planning, review, or execution according to workload policy."
+    },
+    {
+      "id": "private_but_cloud_allowed",
+      "label": "Private but cloud allowed",
+      "default_meta_lane": "frontier_cloud",
+      "cloud_allowed": true,
+      "sovereign_required": false,
+      "description": "Private material that may use cloud only when policy and data-boundary rules allow it."
+    },
+    {
+      "id": "hybrid_abstractable",
+      "label": "Hybrid abstractable",
+      "default_meta_lane": "frontier_cloud",
+      "cloud_allowed": true,
+      "sovereign_required": true,
+      "description": "Cloud may see an abstracted plan; raw sensitive content stays local."
+    },
+    {
+      "id": "refusal_sensitive",
+      "label": "Refusal sensitive",
+      "default_meta_lane": "sovereign_local",
+      "cloud_allowed": false,
+      "sovereign_required": true,
+      "description": "Likely provider-refused or fragile content that should stay on the sovereign lane."
+    },
+    {
+      "id": "sovereign_only",
+      "label": "Sovereign only",
+      "default_meta_lane": "sovereign_local",
+      "cloud_allowed": false,
+      "sovereign_required": true,
+      "description": "Never leaves the local cluster because of privacy, refusal risk, or explicit-content rules."
+    }
+  ]
+}

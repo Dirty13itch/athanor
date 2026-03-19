@@ -1,0 +1,63 @@
+{
+  "version": "2026-03-12",
+  "updated_at": "2026-03-12T18:15:00Z",
+  "status": "live_partial",
+  "runbooks": [
+    {
+      "id": "morning-review",
+      "label": "Morning Review",
+      "description": "Review the daily briefing, scheduled-job posture, unified stream, and current governor status before widening automation for the day.",
+      "cadence": "daily",
+      "related_surface": "/",
+      "evidence_flow_ids": ["scheduled_job_governance", "presence_tier"]
+    },
+    {
+      "id": "pause-or-resume-automation",
+      "label": "Pause or Resume Automation",
+      "description": "Pause a lane or resume it through the governor when you need to halt background automation without touching SSH or Docker directly.",
+      "cadence": "as-needed",
+      "related_surface": "/tasks",
+      "evidence_flow_ids": ["pause_resume"]
+    },
+    {
+      "id": "provider-exhaustion-recovery",
+      "label": "Provider Exhaustion Recovery",
+      "description": "Inspect quota pressure, reserve posture, and provider fallback state; then prefer local execution or handoff-only modes when premium lanes are constrained.",
+      "cadence": "as-needed",
+      "related_surface": "/agents",
+      "evidence_flow_ids": ["provider_fallback", "economic_governance"]
+    },
+    {
+      "id": "stuck-queue-recovery",
+      "label": "Stuck Queue Recovery",
+      "description": "Use governor posture, scheduled-job state, and execution-run lineage to identify paused, deferred, or blocked work and restore forward progress safely.",
+      "cadence": "as-needed",
+      "related_surface": "/tasks",
+      "evidence_flow_ids": ["stuck_queue_recovery", "pause_resume", "scheduled_job_governance"]
+    },
+    {
+      "id": "sovereign-routing-verification",
+      "label": "Sovereign Routing Verification",
+      "description": "Confirm refusal-sensitive or private work stayed on sovereign local lanes and that cloud-safe work remained eligible for frontier supervision.",
+      "cadence": "as-needed",
+      "related_surface": "/chat",
+      "evidence_flow_ids": ["sovereign_routing", "data_lifecycle"]
+    },
+    {
+      "id": "restore-drill",
+      "label": "Restore Drill",
+      "description": "Verify the ordered recovery posture for Redis, Qdrant, Neo4j, and dashboard/agent deployment state using the governed non-destructive restore rehearsal.",
+      "cadence": "daily",
+      "related_surface": "/personal-data",
+      "evidence_flow_ids": ["restore_drill", "promotion_ladder"]
+    },
+    {
+      "id": "incident-review",
+      "label": "Incident Review",
+      "description": "Use the operator stream, synthetic operator tests, and release-ladder posture to understand failures, retries, fallback behavior, and recovery decisions.",
+      "cadence": "as-needed",
+      "related_surface": "/notifications",
+      "evidence_flow_ids": ["incident_review", "provider_fallback", "restore_drill", "promotion_ladder"]
+    }
+  ]
+}

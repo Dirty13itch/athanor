@@ -1,0 +1,110 @@
+{
+  "version": "2026-03-12",
+  "updated_at": "2026-03-12T06:20:00Z",
+  "roles": [
+    {
+      "id": "frontier_supervisor",
+      "label": "Frontier supervisor",
+      "plane": "frontier_cloud",
+      "status": "live",
+      "champion": "Claude",
+      "challengers": ["Codex", "Gemini", "Kimi", "GLM"],
+      "workload_classes": ["architecture_planning", "repo_audit", "code_review", "research_synthesis", "briefing_digest"],
+      "strengths": ["large-context planning", "cross-repo critique", "strategic decomposition"],
+      "weaknesses": ["refusal-sensitive work", "provider limits", "privacy boundaries"],
+      "refusal_posture": "provider-governed",
+      "privacy_posture": "cloud_safe_or_abstracted_only"
+    },
+    {
+      "id": "sovereign_supervisor",
+      "label": "Sovereign supervisor",
+      "plane": "sovereign_local",
+      "status": "live",
+      "champion": "reasoning",
+      "challengers": ["coding", "uncensored"],
+      "workload_classes": ["private_automation", "refusal_sensitive_creative", "explicit_dialogue", "sovereign_planning"],
+      "strengths": ["privacy", "uncensored continuity", "refusal resilience"],
+      "weaknesses": ["weaker frontier reasoning", "higher local contention"],
+      "refusal_posture": "operator-governed",
+      "privacy_posture": "local_only"
+    },
+    {
+      "id": "coding_worker",
+      "label": "Coding worker",
+      "plane": "local_worker",
+      "status": "live",
+      "champion": "coding",
+      "challengers": ["coder", "worker"],
+      "workload_classes": ["coding_implementation", "repo_mutation", "test_fixing"],
+      "strengths": ["bulk code generation", "iterative edits", "private repo work"],
+      "weaknesses": ["broad architectural judgment"],
+      "refusal_posture": "local",
+      "privacy_posture": "local_default"
+    },
+    {
+      "id": "bulk_worker",
+      "label": "Bulk worker",
+      "plane": "local_worker",
+      "status": "live",
+      "champion": "worker",
+      "challengers": ["fast", "utility"],
+      "workload_classes": ["background_transform", "task_refill", "data_cleanup", "batch_generation"],
+      "strengths": ["throughput", "cheap retries", "background loops"],
+      "weaknesses": ["deep reasoning", "high-stakes review"],
+      "refusal_posture": "local",
+      "privacy_posture": "local_default"
+    },
+    {
+      "id": "creative_worker",
+      "label": "Creative worker",
+      "plane": "local_worker",
+      "status": "live",
+      "champion": "creative",
+      "challengers": ["uncensored", "worker"],
+      "workload_classes": ["creative_generation", "media_prompting", "explicit_dialogue"],
+      "strengths": ["style iteration", "creative volume", "local sovereignty"],
+      "weaknesses": ["strict factuality"],
+      "refusal_posture": "local",
+      "privacy_posture": "local_default"
+    },
+    {
+      "id": "judge_verifier",
+      "label": "Judge / verifier",
+      "plane": "local_judge",
+      "status": "live",
+      "champion": "judge-local-v1",
+      "challengers": ["critic-local-v1"],
+      "workload_classes": ["judge_verification", "promotion_gating", "regression_scoring"],
+      "strengths": ["rubric scoring", "lane comparison", "promotion gating"],
+      "weaknesses": ["not an execution lane"],
+      "refusal_posture": "local",
+      "privacy_posture": "local_only"
+    },
+    {
+      "id": "embedding_support",
+      "label": "Embedding support",
+      "plane": "support",
+      "status": "live",
+      "champion": "embedding",
+      "challengers": [],
+      "workload_classes": ["retrieval_embedding"],
+      "strengths": ["indexing", "semantic search"],
+      "weaknesses": ["not generative"],
+      "refusal_posture": "n/a",
+      "privacy_posture": "local_default"
+    },
+    {
+      "id": "reranker_support",
+      "label": "Reranker support",
+      "plane": "support",
+      "status": "live",
+      "champion": "reranker",
+      "challengers": [],
+      "workload_classes": ["retrieval_reranking"],
+      "strengths": ["search precision", "retrieval quality"],
+      "weaknesses": ["not generative"],
+      "refusal_posture": "n/a",
+      "privacy_posture": "local_default"
+    }
+  ]
+}
