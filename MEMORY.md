@@ -81,3 +81,52 @@ Scorer:8050 | Ollama:11434 | Dashboard:3001 | Seerr:5055 | Whisparr:6969
 - DEV NIC: 5GbE (NOT 10GbE)
 - FOUNDRY PSU at 95% (cannot add GPUs)
 - Design: cloud-first with local backbone (NOT local-first)
+
+## Session 2026-03-19 Additions
+
+### New Services Deployed
+| Service | Location | Port | Status |
+|---------|----------|------|--------|
+| OpenFang v0.4.9 | DEV | 4200 | Running, Telegram @athanor_ops_bot |
+| Semantic Router | DEV | 8060 | 5 routes, all-MiniLM-L6-v2 |
+| Aesthetic Scorer | WORKSHOP | 8050 | V2.5, RTX 5060 Ti |
+| Uptime Kuma | VAULT | 3009 | 8 monitors, admin/AthanorKuma2026\! |
+| Vaultwarden | VAULT | 8222 | Password manager |
+| Headscale | VAULT | 8443 | Mesh networking (needs node registration) |
+| Alertmanager webhook | FOUNDRY | 9000 | /webhook/alertmanager on agent server |
+| Cluster health timer | DEV | systemd | Every 5 min, ntfy alerts |
+
+### OpenFang Config
+- Binary: /usr/local/bin/openfang (Rust, not Docker)
+- Config: ~/.openfang/config.toml (provider=ollama, model=qwen3:8b)
+- CRITICAL: Per-agent config at ~/.openfang/agents/assistant/agent.toml OVERRIDES global. Must set valid provider there.
+- Boot: /etc/cron.d/openfang-boot (nohup, TELEGRAM_BOT_TOKEN env)
+- Ollama models on DEV: qwen3:8b, nomic-embed-text, dolphin-mistral:7b
+
+### Greywall v0.2.7
+- Binary: ~/.local/bin/greywall
+- Deps: bubblewrap, socat (apt installed)
+- Profile: ~/.config/greywall/claude-code.json
+- Usage: `greywall --settings ~/.config/greywall/claude-code.json -- claude`
+
+### Superset
+- Cloned to ~/tools/superset, built with bun
+- Electron desktop app — needs display, install on DESK not DEV
+- For headless parallel agents: use claude-squad instead
+
+### Keys Deployed
+- Telegram bot: 8139170372 (@athanor_ops_bot) — token in /etc/cron.d/openfang-boot
+- GitHub PAT: in ~/.secrets/github-pat, gh authed as Dirty13itch
+- CodeRabbit: installed on GitHub repo
+- DashScope: key rejected (LTAI5t... is AccessKey, not API key)
+
+### LiteLLM Status (VAULT:4000)
+- 9 healthy endpoints: 3x Qwen3.5-27B, embedding, coder, 4x Anthropic
+- 25 unhealthy: all cloud models (missing API keys in container env)
+- Cloud keys needed: OPENAI, MISTRAL, CODESTRAL, VENICE, OPENROUTER, GOOGLE, ZAI, MOONSHOT, DEEPSEEK, GROQ, CEREBRAS
+- Only Anthropic key is set in container
+
+### WORKSHOP vLLM (vllm-vision container)
+- Stopped by gpu-swap.sh 2 days ago, restarted 2026-03-19
+- Container name: vllm-vision (NOT vllm-node2)
+- Model: Qwen3.5-35B-A3B-AWQ-4bit on RTX 5090
