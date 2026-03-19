@@ -16,7 +16,6 @@ Learning loop:
 Author: Athanor autonomous system
 """
 
-from __future__ import annotations
 
 import asyncio
 import json

@@ -10,6 +10,7 @@ This service schedules automated burn sessions to maximize utilization.
 """
 
 import asyncio
+import importlib
 import json
 import logging
 import os
@@ -28,6 +29,11 @@ try:
     from zoneinfo import ZoneInfo
 except ImportError:
     from backports.zoneinfo import ZoneInfo
+# Import CLI Router (hyphenated filename requires importlib)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_cli_router_mod = importlib.import_module("cli-router")
+CLIRouter = _cli_router_mod.CLIRouter
+register_router_endpoints = _cli_router_mod.register_router_endpoints
 
 # ---------------------------------------------------------------------------
 # Config
@@ -459,6 +465,9 @@ async def daily_summary():
 # ---------------------------------------------------------------------------
 _scheduler_running = True
 
+# CLI Router instance (lifecycle managed in lifespan)
+_cli_router = CLIRouter()
+
 
 async def scheduler_loop():
     fired_today: set[str] = set()
@@ -509,6 +518,13 @@ async def lifespan(app: FastAPI):
     log.info(f"Task dir: {TASKS_DIR}")
     TASKS_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Initialize CLI Router embedding index
+    try:
+        await _cli_router.build_index()
+        log.info("CLI Router index built successfully")
+    except Exception as e:
+        log.warning(f"CLI Router index build failed (non-fatal): {e}")
+
     sched_task = asyncio.create_task(scheduler_loop())
     await ntfy("Burn Scheduler Online", f"Tracking {len(SUBSCRIPTIONS)} subscriptions", tags="rocket")
     yield
@@ -519,6 +535,7 @@ async def lifespan(app: FastAPI):
         await sched_task
     except asyncio.CancelledError:
         pass
+    await _cli_router.close()
     state.save()
     log.info("Subscription Burn Scheduler stopped.")
 
@@ -530,6 +547,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Register CLI Router endpoints (/route, /dispatch, /classify, /router-stats)
+register_router_endpoints(app, _cli_router)
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
