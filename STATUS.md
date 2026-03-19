@@ -62,3 +62,47 @@
 - VAULT: 51+ containers, Langfuse tracing, full media stack
 - Auto_gen: WORKING (3 images generated this session)
 - Scoring: WORKING (Aesthetic V2.5 tested, all 3 images scored)
+
+## Session: 2026-03-18/19 — Athanor Layer Build Execution
+
+### Completed (Batch 1-7 + extras)
+- Kilo Code CLI v7.0.50 installed, 9-mode YAML config written
+- 5 MCP servers (Context7, GitHub w/ PAT, Sequential-Thinking + 2 existing)
+- Tokscale + Claude Usage Monitor installed
+- GSD v1.26.0 verified, claude-squad verified
+- Semantic Router DEV:8060 (systemd, 5 routes, all-MiniLM-L6-v2)
+- LiteLLM: uncensored→JOSIEFIED, vision→FOUNDRY, groq-llama free tier, content_policy_fallbacks, stream_timeout=10/num_retries=0
+- vLLM coordinator restarted (vision enabled, swap-space 32)
+- vLLM coder restarted (swap-space 16)
+- Aesthetic Scorer integrated with auto_gen (Best-of-N, score_history.json)
+- Stash GraphQL theme weighting (20 tag→theme boost mappings)
+- Context compression pipeline (local 50K→2K→cloud, 25x savings)
+- Overnight coding script + 2am cron (Claude Max + Codex + Aider + Copilot)
+- Overnight queue YAML (multi-project subscription assignment)
+- OpenFang v0.4.9 deployed DEV:4200, @athanor_ops_bot Telegram bot connected
+- GitHub PAT wired into MCP + gh auth (Dirty13itch)
+- CodeRabbit installed on GitHub
+- Vaultwarden deployed VAULT:8222
+- Uptime Kuma deployed VAULT:3009 (8 monitors, admin/AthanorKuma2026!)
+- Headscale deployed VAULT:8443 (user: athanor, preauthkey created)
+- DESK Ollama running (qwen3:8b on RTX 3060)
+- Performer data merge (121/801 enriched waist/hip)
+- Tdarr server restarted (was ENOSPC), node active, 1 GPU worker 520 FPS
+- Cluster health check systemd timer (5-min interval)
+- gpu-swap.sh copied to repo
+- Aider config updated to Qwen3.5
+- DEV /data partitioned (worktrees/models/rag-cache/sandbox)
+- Model upgrade research: 122B NOT feasible, abliterated-35B VIABLE
+
+### In-Progress (agents running)
+- Whisparr 63TB as 3rd Tdarr library
+- Alertmanager webhook on agent server
+- Tdarr workdir cleanup cron
+
+### Remaining
+- PuLID Flux II upgrade (~1hr, lldacing version)
+- n8n→Miniflux→agents webhook wiring (needs Miniflux creds)
+- DashScope key (rejected, low priority)
+- Headscale node registration (physical access)
+- Backbone branch merge (71K lines, needs careful review)
+- LoRA training automation (train_subject_lora.py)
