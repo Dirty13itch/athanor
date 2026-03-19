@@ -106,3 +106,56 @@
 - Headscale node registration (physical access)
 - Backbone branch merge (71K lines, needs careful review)
 - LoRA training automation (train_subject_lora.py)
+
+## Session 3: 2026-03-19 Morning — Subscription Orchestration + P0 Fixes
+
+### Critical Fixes (P0)
+- Memory Procedural + Vault tiers: FIXED (wrong PG password + path symlinks)
+- Dashboard DEV:3001: FIXED (symlinked to quarantine source, Next.js serving)
+
+### Major Deployments
+- Subscription Burn Scheduler (DEV:8065): 8 subs tracked, 4 daily windows, waste alerts
+- subscription-status.sh CLI: 4 subcommands (status, waste, schedule, tasks)
+- 26 initial tasks across 4 subscription task queues
+- APScheduler: 25 autonomous jobs on FOUNDRY agent server
+- PuLID Flux II: upgraded on WORKSHOP + pipelines.py fixed
+- Stash GraphQL theme weighting: dual-source merge (performers.json + live Stash)
+- LoRA training script: 730 lines, dry-run verified
+- Greywall v0.2.7 + Claude Code sandbox profile
+- GSD v1.26.0 installed with hooks
+- Kimi CLI v1.24.0 (agent swarm access)
+
+### Research Completed
+- All 9 subscription limits, reset windows, optimal burn strategies
+- All model versions current to March 2026 (GPT-5.4 released 2 days ago)
+- 90+ multi-agent orchestration tools evaluated
+- Top 3: Ruflo (21.6K stars, Q-learning router), multi-agent-shogun, claude-octopus
+- Free tiers identified: Cerebras GPT-OSS-120B (2400 tok/s), Groq Llama 3.3 70B
+
+### System Status After Session
+- All 6 memory tiers: OK
+- Dashboard: serving at DEV:3001
+- 9 agents: healthy with 25 scheduled jobs
+- Subscription scheduler: tracking $543/mo across 8 subscriptions
+- OpenFang: running on Telegram
+- All vLLM instances: healthy
+- LiteLLM: 9 healthy (local + Anthropic), 20 unhealthy (missing cloud keys)
+
+## Session 3: 2026-03-19 Morning
+
+### P0 Fixes
+- Memory tiers: ALL 6 OK (PG password + symlinks)
+- Dashboard: DEV:3001 serving (symlinked source)
+
+### Deployed
+- Subscription Burn Scheduler DEV:8065 (8 subs, 4 windows, waste alerts)
+- APScheduler 25 jobs on FOUNDRY agent server
+- PuLID Flux II on WORKSHOP + workflow fix
+- Stash GraphQL theme weighting (dual-source)
+- LoRA training script (730 lines)
+- Greywall v0.2.7 + GSD v1.26.0 + Kimi CLI v1.24.0
+
+### Research
+- 90+ multi-agent orchestrators evaluated, top pick: Ruflo (21.6K stars)
+- All subscription limits/windows documented
+- All model versions verified current (GPT-5.4 released Mar 17)
