@@ -1,48 +1,54 @@
 # BUILD-MANIFEST.md — Autonomous Build Queue
 
-Items for overnight coding agents and autonomous sessions.
-Priority: P0 (blocking) > P1 (high value) > P2 (nice-to-have)
+Updated: 2026-03-19 09:00 PDT
 
 ## Queue
 
-### P0 — Blocking / Broken
-- [ ] **LiteLLM cloud API keys**: 25 unhealthy endpoints. Need OPENAI, MISTRAL, CODESTRAL, VENICE, OPENROUTER, GOOGLE, ZAI, MOONSHOT, DEEPSEEK, GROQ, CEREBRAS keys added to container env on VAULT
-- [ ] **n8n API key**: Generate via web UI at VAULT:5678 → Settings → API → Create key
+### P0 — Blocking
+- [ ] LiteLLM cloud API keys: 20+ unhealthy endpoints need OPENAI, MISTRAL, CODESTRAL, VENICE, OPENROUTER, GOOGLE, ZAI, MOONSHOT, DEEPSEEK, GROQ, CEREBRAS keys
+- [ ] n8n API key: generate via VAULT:5678 web UI
 
 ### P1 — High Value
-- [ ] **APScheduler in agent server**: Add scheduled autonomous agent execution to FOUNDRY:9000 (IN PROGRESS via agent)
-- [ ] **PuLID Flux II upgrade**: Swap balazik→lldacing on WORKSHOP ComfyUI (IN PROGRESS via agent)
-- [ ] **Stash GraphQL theme weighting**: Content-weighted theme selection in auto_gen scheduler (IN PROGRESS via agent)
-- [ ] **Auto_gen Best-of-N**: Generate 4 images per prompt, keep highest scoring (scorer is integrated, need to increase AUTO_PORTRAITS from 3 to 4)
-- [ ] **Workflow templates for PuLID Flux II**: Update pipelines.py after node swap (new loader nodes: PulidFluxModelLoader, PulidFluxInsightFaceLoader, PulidFluxEvaClipLoader)
-- [ ] **Backbone branch merge**: codex/backbone-wip-sync-20260313 has 71K lines. Needs careful review, likely cherry-pick not full merge
-- [ ] **Headscale node registration**: Install tailscale on DEV, FOUNDRY, WORKSHOP, VAULT. Register with preauthkey
+- [ ] Auto_gen Best-of-N: increase AUTO_PORTRAITS from 3 to 4, keep highest scoring
+- [ ] Backbone branch merge: codex/backbone-wip-sync-20260313 (71K lines, needs cherry-pick)
+- [ ] Headscale node registration: install tailscale on all nodes
+- [ ] ai-toolkit install on WORKSHOP for LoRA training execution
+- [ ] n8n workflows: morning briefing, RSS processor, health digest (needs API key)
 
 ### P2 — Nice-to-Have
-- [ ] **Continue.dev**: Install on DESK VS Code for free local autocomplete via Ollama
-- [ ] **Superset desktop**: Install built Electron app on DESK for parallel agent GUI
-- [ ] **Claude Code plugins**: Install from active session: code-review, feature-dev, code-simplifier, commit-commands, claude-md-management, context7, playwright
-- [ ] **n8n workflows**: Morning briefing, RSS processor, health digest (needs API key first)
-- [ ] **Performer data enrichment**: Run build_performers_db.py from DESK xlsx sources to fill remaining 680 empty waist/hip records
-- [ ] **Model eval: abliterated-35B**: Test Huihui-Qwen3.5-35B-A3B-abliterated on WORKSHOP as uncensored replacement
-- [ ] **DashScope key**: Regenerate proper API key (sk- prefix) from dashscope.console.aliyun.com
-- [ ] **Tdarr Whisparr scan**: Trigger initial scan of 63TB library (weekly cron set for Sunday 3:30am)
+- [ ] Continue.dev on DESK for free local autocomplete
+- [ ] Superset desktop on DESK (built, needs install)
+- [ ] Claude Code plugins (7 identified, install from active session)
+- [ ] Performer data enrichment from DESK xlsx sources
+- [ ] Model eval: abliterated-35B on WORKSHOP
+- [ ] DashScope key regeneration
 
-## Completed This Session
-- [x] OpenFang fix (provider default→ollama) + Athanor system prompt
+## Done (This Session — 2026-03-19)
+- [x] APScheduler: 25 autonomous jobs on FOUNDRY agent server
+- [x] PuLID Flux II: upgraded on WORKSHOP + workflow templates fixed
+- [x] OpenFang: provider fix + Athanor system prompt + Telegram working
+- [x] LoRA training script: 730 lines, dry-run verified
 - [x] Greywall v0.2.7 + Claude Code sandbox profile
-- [x] Kimi CLI v1.24.0, GSD v1.26.0
-- [x] LoRA training script (730 lines)
-- [x] Auto_gen scorer verified integrated
-- [x] WORKSHOP vLLM restarted
+- [x] GSD v1.26.0 + Claude Code hooks
+- [x] Kimi CLI v1.24.0 (agent swarm access)
+- [x] WORKSHOP vLLM restarted (was down 2 days)
+- [x] BUILD-MANIFEST.md created
 - [x] CLAUDE.md + MEMORY.md updated
-- [x] Gemini gc alias, claude-squad configured
-- [x] Superset built (for DESK)
+- [x] Stash GraphQL theme weighting (agent in progress)
 
-## Overnight Coding Assignments
-| Project | Tool | Subscription | Task File |
-|---------|------|-------------|-----------|
-| athanor | Claude Code (GSD) | Max 20x | .claude/tasks/next-overnight.md |
-| Field_Inspect | Codex CLI | ChatGPT Pro | .tasks/next.md |
-| ulrich-energy-auditing | Aider | Local Qwen | .tasks/next.md |
-| amanda-med-tracker | Aider | Local Qwen | .tasks/next.md |
+## Done (Previous Session — 2026-03-18)
+- [x] Kilo Code CLI v7.0.50 + 9-mode config
+- [x] 5 MCP servers (Context7, GitHub, Sequential-Thinking + 2 existing)
+- [x] Semantic Router DEV:8060 (5 routes)
+- [x] LiteLLM overhaul (uncensored, vision, fallbacks, timeouts)
+- [x] vLLM coordinator + coder restarts
+- [x] Aesthetic Scorer integrated with auto_gen
+- [x] Overnight coding script + 2am cron
+- [x] Alertmanager webhook on agent server
+- [x] Vaultwarden, Uptime Kuma, Headscale deployed
+- [x] DESK Ollama (qwen3:8b on RTX 3060)
+- [x] Performer merge (121/801 enriched)
+- [x] Whisparr 63TB Tdarr library + cleanup cron
+- [x] Cluster health check (5-min timer)
+- [x] GitHub PAT + CodeRabbit
+- [x] Tdarr server restarted (was ENOSPC)
