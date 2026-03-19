@@ -24,18 +24,29 @@ Athanor has two operating modes that share infrastructure but serve different co
 
 The user describes a task. The system picks the tool and model.
 
+**Three contexts, three governors — no meta-layer needed above them:**
+
+| Context | Governor | Tools Available |
+|---------|----------|----------------|
+| **Terminal** | Claude Code CLI (Opus 4.6, Max sub) | Complex reasoning, MCP, hooks, skills, Agent Teams |
+| **IDE** | Kilo Code (VS Code + JetBrains + CLI) | 9-mode model routing, Orchestrator mode, parallel subagents |
+| **Autonomous** | OpenFang (24/7 Rust daemon, Telegram) | Phone commands, HERS Hand, scheduled tasks |
+
+**Supporting tools (used by all three contexts):**
+
 | Tool | Role | Model |
 |------|------|-------|
-| Claude Code CLI | Complex interactive work | Opus 4.6 (Max 20x sub) |
-| Roo Code (VS Code) | Visual development, 9-mode routing | Per-mode model selection |
-| GSD v1.26.0 | Context rot prevention | Wraps Claude Code sessions |
-| CodeRabbit | Automated PR review | AI review (free OSS tier) |
-| Gemini CLI | 1M context ingestion, quick questions | Gemini 3.1 Pro (free 1000/day) |
-| Codex CLI | Terminal debugging | GPT-5.4 (Pro sub) |
+| Aider | Overnight autonomous git-native coding | Architect=Sonnet, Editor=local Qwen via LiteLLM |
+| GSD v1.26.0 | Context rot prevention (spawns fresh agents per task) | Wraps any agent session |
+| Greywall | Kernel-level sandbox for safe autonomous execution | N/A (security layer) |
+| CodeRabbit | Automated PR review on every push | AI review (free OSS tier) |
+| Superset | Parallel multi-agent orchestrator with worktree isolation | Wraps Kilo + Aider + Claude Code simultaneously |
+| Gemini CLI | Quick questions, 1M context | Gemini 3.1 Pro (free 1000/day) |
+| Codex CLI | Terminal debugging, second opinion | GPT-5.4 (Pro sub) |
 | Perplexity | Deep research | Opus-backed (Pro sub) |
 | Kimi Agent Swarm | Massive breadth tasks | K2.5, 100 parallel (Allegretto sub) |
 
-The user never manually picks a tool or subscription. Claude Code's delegate skill contains the routing matrix. Roo Code's 9 modes each use different models automatically.
+The user never manually picks a tool or subscription. Claude Code's delegate skill and Kilo Code's mode routing handle selection automatically. Each cloud subscription is used for its strength (see Subscription Utilization Strategy below).
 
 ### Autonomous Orchestrator (User Absent)
 
@@ -258,17 +269,28 @@ The governor routes each task to the subscription that is: (1) best at that task
 ### System Layers
 
 ```
-Layer 7: USER (DESK → SSH/VS Code → DEV)
-Layer 6: GOVERNOR (Claude Code + Roo Code + delegate skill routing)
-Layer 5: TOOL ECOSYSTEM (Aider, Goose, Codex, Gemini, Kimi, GSD, CodeRabbit)
-Layer 4: MODEL ROUTER (LiteLLM on VAULT:4000 — all local routing)
-Layer 3: LOCAL INFERENCE (vLLM on FOUNDRY + WORKSHOP GPUs)
-Layer 2: AUTONOMOUS AGENTS (LangGraph on FOUNDRY:9000 + Semantic Router)
-Layer 1: CONTENT PIPELINES (auto_gen, ComfyUI, LTX 2.3, Dia TTS)
-Layer 0: INFRASTRUCTURE (Docker, Prometheus, Langfuse, ntfy, Backups)
+Layer 7: USER (DESK → VS Code/Terminal → DEV)
+Layer 6: GOVERNORS
+         Terminal: Claude Code (Opus, MCP, hooks, skills, Agent Teams)
+         IDE:     Kilo Code (9-mode routing, Orchestrator, parallel subagents)
+         24/7:    OpenFang (Rust daemon, Telegram, HERS Hand, phone access)
+Layer 5: ORCHESTRATION
+         Superset (parallel multi-agent with worktree isolation)
+         GSD (context rot prevention — spawns fresh agents per task)
+         Greywall (kernel sandbox for safe autonomous execution)
+Layer 4: TOOL ECOSYSTEM
+         Aider (overnight autonomous, git-native, architect/editor)
+         Codex CLI, Gemini CLI, Kimi CLI, Perplexity (subscription tools)
+         CodeRabbit (automated PR review)
+Layer 3: MODEL ROUTER (LiteLLM on VAULT:4000 — all local + cloud routing)
+Layer 2: LOCAL INFERENCE (vLLM on FOUNDRY + WORKSHOP, Ollama for JOSIEFIED)
+Layer 1: AUTONOMOUS AGENTS (LangGraph on FOUNDRY:9000 + Semantic Router on DEV)
+Layer 0: CONTENT + INFRASTRUCTURE
+         auto_gen, ComfyUI, LTX 2.3, Dia TTS, Aesthetic Predictor
+         Docker, Prometheus, Langfuse, ntfy, Backups, Media Stack
 ```
 
-Each layer only talks to adjacent layers. The user talks to Layer 6. Layer 6 routes to Layer 5 (tools) or Layer 4 (local models) or Layer 2 (agents). Cloud subscriptions power Layers 6+5. Local models power Layers 4+3+2+1.
+Cloud subscriptions power Layers 6+4. Local models power Layers 3+2+1+0. Layer 5 ensures quality (GSD), safety (Greywall), and parallelism (Superset). No meta-layer needed above Layer 6 — the three governors serve different contexts (terminal/IDE/autonomous) that don't overlap.
 
 ---
 
