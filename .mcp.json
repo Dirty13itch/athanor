@@ -3,13 +3,17 @@
     "docker": {
       "type": "stdio",
       "command": "python3",
-      "args": ["scripts/mcp-docker.py"],
+      "args": [
+        "scripts/mcp-docker.py"
+      ],
       "env": {}
     },
     "athanor-agents": {
       "type": "stdio",
       "command": "python3",
-      "args": ["scripts/mcp-athanor-agents.py"],
+      "args": [
+        "scripts/mcp-athanor-agents.py"
+      ],
       "env": {
         "ATHANOR_AGENT_URL": "http://192.168.1.244:9000"
       }
@@ -17,20 +21,26 @@
     "context7": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@upstash/context7-mcp@latest"]
+      "args": [
+        "@upstash/context7-mcp@latest"
+      ]
     },
     "github": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-github"],
+      "args": [
+        "@modelcontextprotocol/server-github"
+      ],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": ""
+        "GITHUB_TOKEN": "os.environ/GITHUB_TOKEN"
       }
     },
     "sequential-thinking": {
       "type": "stdio",
       "command": "npx",
-      "args": ["@modelcontextprotocol/server-sequential-thinking"]
+      "args": [
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
     }
   }
 }

@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Athanor Semantic Router — content classification for task routing (10-25ms)"""
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pydantic import BaseModel
 from semantic_router import Route, SemanticRouter
 from semantic_router.encoders import HuggingFaceEncoder
 from semantic_router.index.local import LocalIndex
-
-app = FastAPI(title="Athanor Semantic Router")
 
 # Routes for content governance
 routes = [
@@ -37,10 +36,18 @@ routes = [
     ]),
 ]
 
-# Use a small local encoder - sentence-transformers compatible
-encoder = HuggingFaceEncoder(name="sentence-transformers/all-MiniLM-L6-v2")
-router = SemanticRouter(encoder=encoder, routes=routes, index=LocalIndex())
-router.sync("local")  # Build the in-memory index from routes
+router = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global router
+    encoder = HuggingFaceEncoder(name="sentence-transformers/all-MiniLM-L6-v2")
+    router = SemanticRouter(encoder=encoder, routes=routes, index=LocalIndex())
+    router.sync("local")
+    print(f"Router ready, index.is_ready={router.index.is_ready()}")
+    yield
+
+app = FastAPI(title="Athanor Semantic Router", lifespan=lifespan)
 
 class ClassifyRequest(BaseModel):
     text: str
