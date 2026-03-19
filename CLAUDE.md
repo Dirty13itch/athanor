@@ -127,6 +127,30 @@ See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agen
 
 ---
 
+## Cloud-First Subscription Utilization
+
+**Design principle:** Cloud subscriptions are the primary power source ($543/mo flat-rate). Local models are the UPS. Maximize every resetting limit.
+
+**Burn free tiers first:** Gemini CLI (1000/day), Mistral Codestral (free autocomplete), Cerebras GLM-4.7 (free), Groq GPT-OSS-20B (free).
+
+**Then use each paid sub for its strength:**
+- Claude Max (Opus): complex architecture, multi-file reasoning. Use Sonnet 80% of the time (3× less quota).
+- ChatGPT Pro (GPT-5.4): terminal workflows, computer-use tasks, o3-pro for hard math only.
+- Perplexity Pro: deep research sessions (Opus-backed, unlimited).
+- Z.ai GLM Pro: fact checking, verification (lowest hallucination rate).
+- Kimi Allegretto: Agent Swarm for massive breadth (100 parallel).
+- Copilot Pro+: IDE autocomplete, GitHub Spark, BYOK bridge.
+- Qwen Code: DashScope free third-party models.
+- Venice Pro: burn credits on uncensored API before July cancel.
+
+**When all cloud at capacity:** Local Qwen3.5 via LiteLLM ($0, unlimited).
+
+**Content routing:** NSFW/pen-test/sovereign → always local (JOSIEFIED, Dolphin). Never cloud.
+
+**Autonomous agents:** Start on local. As trust grows, can use cloud when limits are resetting and tokens would be wasted.
+
+See `docs/MASTER-PLAN.md` for full subscription utilization strategy and system architecture.
+
 ## Local Model Delegation
 
 Offload mechanical tasks to local models (free tokens). Keep architecture, novel reasoning, and multi-file refactoring in Claude Code.
