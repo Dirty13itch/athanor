@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Athanor Semantic Router — content classification for task routing (10-25ms)"""
+import uvicorn
+from fastapi import FastAPI
+from pydantic import BaseModel
+from semantic_router import Route, SemanticRouter
+from semantic_router.encoders import HuggingFaceEncoder
+from semantic_router.index.local import LocalIndex
+
+app = FastAPI(title="Athanor Semantic Router")
+
+# Routes for content governance
+routes = [
+    Route(name="cloud_safe", utterances=[
+        "write a function", "refactor this code", "add unit tests", "fix this bug",
+        "create a new component", "optimize this query", "add error handling",
+        "implement the API endpoint", "write documentation", "review this PR"
+    ]),
+    Route(name="refusal_sensitive", utterances=[
+        "write explicit scene", "nsfw content", "adult dialogue", "sexual description",
+        "write erotic story", "porn scene", "blowjob dialogue", "hardcore scene",
+        "empire of broken queens", "queen profile", "EoBQ scene"
+    ]),
+    Route(name="sovereign_only", utterances=[
+        "scan for vulnerabilities", "pen test this server", "exploit the endpoint",
+        "hack into", "bypass authentication", "crack password", "security audit",
+        "find open ports", "SQL injection", "XSS attack vector"
+    ]),
+    Route(name="research", utterances=[
+        "research this topic", "find information about", "compare options for",
+        "what are the best", "survey available tools", "deep dive into",
+        "investigate alternatives", "benchmark comparison"
+    ]),
+    Route(name="quick_question", utterances=[
+        "what is", "how do I", "explain", "what does this mean",
+        "quick question", "syntax for", "how to use", "difference between"
+    ]),
+]
+
+# Use a small local encoder - sentence-transformers compatible
+encoder = HuggingFaceEncoder(name="sentence-transformers/all-MiniLM-L6-v2")
+router = SemanticRouter(encoder=encoder, routes=routes, index=LocalIndex())
+router.sync("local")  # Build the in-memory index from routes
+
+class ClassifyRequest(BaseModel):
+    text: str
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "routes": len(routes), "encoder": "all-MiniLM-L6-v2"}
+
+@app.post("/classify")
+def classify(req: ClassifyRequest):
+    result = router(req.text)
+    return {"text": req.text, "route": result.name if result.name else "cloud_safe", "score": None}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8060)

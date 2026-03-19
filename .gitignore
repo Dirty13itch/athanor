@@ -69,3 +69,4 @@ logs/endpoint-tests/
 .claude/worktrees/
 .claude/plans/
 .claude/agent-memory/
+scripts/.venv-router/
