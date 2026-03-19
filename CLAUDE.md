@@ -195,3 +195,23 @@ After modifying code, verify with the relevant checker:
 - Design closed systems
 - Let GPUs sit idle without a plan
 - Let docs go stale
+
+---
+
+## Available CLI Tools (DEV)
+
+| Tool | Command | Subscription | Use For |
+|------|---------|-------------|---------|
+| Claude Code | `claude` | Max 20x ($200) | Architecture, complex reasoning |
+| Codex | `codex` | ChatGPT Pro ($200) | Terminal debug, GPT-5.4 |
+| Gemini | `gemini` / `gc` | Advanced ($20) | Quick questions (FREE 1000/day) |
+| Kimi | `~/.local/bin/kimi` | Allegretto ($19) | Agent Swarm (100 parallel) |
+| Aider | `aider` | Local + Claude | Architect/editor pair coding |
+| Kilo Code | `kilo` | Multi-sub routing | 9-mode IDE agent |
+| GSD | `gsd` | Claude Max | Context rot prevention |
+| claude-squad | `~/.local/bin/claude-squad` | Any | Parallel agent sessions |
+| Greywall | `~/.local/bin/greywall` | N/A | Kernel sandbox enforcement |
+| OpenFang | `openfang` | Local Ollama | Telegram @athanor_ops_bot |
+| gh | `gh` | GitHub | PR/issue automation |
+
+**Rule:** Burn free tiers first (Gemini 1000/day, Codestral unlimited), then local ($0), then paid.
