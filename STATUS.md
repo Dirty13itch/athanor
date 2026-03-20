@@ -194,3 +194,28 @@
 - PuLID II: verified working
 - ai-toolkit: ready for LoRA training
 - LiteLLM: 19 models, zero surprise spending
+
+## Session 4: 2026-03-19 Evening — System Audit Batch D
+
+### D.4: Agent Documentation Alignment
+- Created `docs/AGENTS.md` — canonical agent roster document
+- 9/9 agents verified online via FOUNDRY:9000/health
+- All agent schedules, trust classes, tools, and content policies documented
+- APScheduler: 25 background jobs documented (14 global + per-agent schedules)
+- Governor autonomy levels (A-D) and inference-aware scheduling documented
+- Dependencies: Redis UP, Qdrant UP, LiteLLM UP, coordinator UP, embedding UP
+- Issue: worker dependency DOWN ("All connection attempts failed")
+
+### D.9: MCP Permission Cleanup
+- Reviewed `.mcp.json`: 5 MCP servers (docker, athanor-agents, context7, github, sequential-thinking)
+- Reviewed `settings.json` permissions: `allow: [Bash, Read, Write, WebFetch, mcp__*]`
+- No orphaned permissions found — `mcp__*` wildcard covers all MCP tools
+- All 5 configured MCP servers have valid scripts/packages
+- Hooks verified: gsd-check-update.js, gsd-context-monitor.js, gsd-statusline.js
+
+### D.10: MCP Server Additions
+- Added `filesystem` MCP server (direct file access across cluster via allowed paths)
+- Added `memory` MCP server (persistent cross-session knowledge)
+- Existing servers retained: docker, athanor-agents, context7, github, sequential-thinking
+- Total: 7 MCP servers configured
+- Not added: brave-search (requires paid API key), playwright (already available via plugins)

@@ -41,6 +41,38 @@
       "args": [
         "@modelcontextprotocol/server-sequential-thinking"
       ]
+    },
+    "qdrant": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "scripts/mcp-qdrant.py"
+      ],
+      "env": {}
+    },
+    "redis": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "scripts/mcp-redis.py"
+      ],
+      "env": {}
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-filesystem",
+        "/home/shaun/repos/athanor",
+        "/home/shaun/.claude"
+      ]
+    },
+    "memory": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-memory"
+      ]
     }
   }
 }

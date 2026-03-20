@@ -15,19 +15,15 @@
       "WebSearch(*)",
       "TodoRead(*)",
       "TodoWrite(*)",
-      "mcp__grafana__*",
       "mcp__athanor-agents__*",
       "mcp__docker__*",
       "mcp__redis__*",
       "mcp__qdrant__*",
-      "mcp__smart-reader__*",
       "mcp__sequential-thinking__*",
-      "mcp__neo4j__*",
-      "mcp__postgres__*",
-      "mcp__gitea__*",
-      "mcp__langfuse__*",
-      "mcp__miniflux__*",
-      "mcp__n8n__*"
+      "mcp__context7__*",
+      "mcp__filesystem__*",
+      "mcp__github__*",
+      "mcp__memory__*"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
