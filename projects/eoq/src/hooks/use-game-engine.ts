@@ -12,6 +12,11 @@ import {
   checkArcTransition,
 } from "@/data/narrative";
 import type { PlayerChoice, DialogueTurn, SceneExit, ChoiceEffects } from "@/types/game";
+import {
+  shouldFireAwakening,
+  resolveEndingPath,
+  computeRivalryTensionIncrease,
+} from "@/types/game";
 
 /**
  * Game engine hook — manages dialogue flow, scene navigation,
@@ -38,6 +43,10 @@ export function useGameEngine() {
         plotFlags: {},
         inventory: [],
         contentIntensity: 3 as const,
+        playMode: "blissful" as const,
+        rivalryTensions: [],
+        pendingPhoneMessages: [],
+        legacyDaughters: [],
       },
       characters: { ...CHARACTERS },
       dialogueHistory: [],
@@ -348,12 +357,68 @@ export function useGameEngine() {
         ];
       }
 
+      // Clamp resistance to character's ceiling
+      resistance = Math.min(resistance, char.resistanceCeiling);
+
+      // Update ending path tracking
+      const updatedChar = {
+        ...char,
+        relationship: rel,
+        resistance,
+        corruption,
+        emotionalProfile: ep,
+      };
+      const endingPath = resolveEndingPath(updatedChar, useGameStore.getState().session?.worldState.plotFlags ?? {});
+
       store.updateCharacter(charId, {
         relationship: rel,
         resistance,
         corruption,
         emotionalProfile: ep,
+        currentEndingPath: endingPath,
       });
+
+      // Check awakening trigger (corruption >= 70, not yet fired)
+      const afterUpdate = useGameStore.getState().session?.characters[charId];
+      if (afterUpdate && shouldFireAwakening(afterUpdate)) {
+        // Fire awakening: resistance ceiling drops to 30 (post-awakening range from GDD)
+        store.fireAwakening(charId, 30);
+        // Queue the awakening narration
+        setTimeout(() => {
+          store.addDialogue({
+            speaker: "narrator",
+            text: `*Something changes in ${char.name}. The resistance that defined her — the careful control, the walls she built — all of it cracks at once. She looks at you differently. As if she's seeing the truth of something she's been running from for a long time. Her voice, when she speaks, is different.*`,
+          });
+        }, 500);
+      }
+    }
+
+    // Update rivalry tensions: if player acted intimately with one queen
+    // while other queens exist, increase their rivalry tension
+    if (effects.corruption && effects.corruption > 0) {
+      const { session: currentSession } = useGameStore.getState();
+      if (currentSession) {
+        const allQueens = Object.values(currentSession.characters).filter(
+          (c) => c.dna !== undefined
+        );
+        const actedOn = presentCharacters;
+        for (const actedId of actedOn) {
+          const actedChar = currentSession.characters[actedId];
+          if (!actedChar?.dna) continue;
+          // Other queens experience rivalry tension
+          for (const other of allQueens) {
+            if (other.id === actedId) continue;
+            if (!other.dna) continue;
+            const tensionIncrease = computeRivalryTensionIncrease(
+              other.dna.jealousyType,
+              Math.min(10, Math.ceil(effects.corruption))
+            );
+            if (tensionIncrease !== 0) {
+              store.updateRivalryTension(actedId, other.id, tensionIncrease);
+            }
+          }
+        }
+      }
     }
 
     // Apply plot flag effects

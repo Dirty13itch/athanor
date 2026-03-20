@@ -52,6 +52,373 @@ export type BreakingMethod = "physical" | "psychological" | "magical" | "social"
 export type ContentIntensity = 1 | 2 | 3 | 4 | 5;
 
 // ---------------------------------------------------------------------------
+// 19-Trait Sexual DNA System (from GDD master document)
+// ---------------------------------------------------------------------------
+
+/**
+ * How desire initiates — affects pacing of corruption arc.
+ * Spontaneous: arousal fires readily without external stimulus.
+ * Responsive: arousal only rises in reaction to player actions.
+ * Hybrid: context-dependent, both modes active.
+ * Responsive Switch: switches between dominant and submissive based on context.
+ */
+export type DesireType = "spontaneous" | "responsive" | "hybrid" | "responsive_switch";
+
+/**
+ * Gag response category — governs throat-play scene behavior and
+ * how the LLM describes physical reactions during those acts.
+ */
+export type GagResponse = "fights" | "pushes_through" | "enjoys" | "breaks" | "minimal" | "legendary_pusher";
+
+/**
+ * How quickly the character becomes fixated/addicted once breaking begins.
+ * Instant characters can cascade rapidly at high corruption.
+ */
+export type AddictionSpeed = "very_slow" | "slow" | "normal" | "fast" | "instant";
+
+/**
+ * How the character reacts to jealousy stimuli (harem rival scenes).
+ * Governs available Harem Wars events for this character.
+ */
+export type JealousyType = "possessive" | "competitive" | "turns_her_on" | "doesnt_care" | "none";
+
+/**
+ * How much post-scene care the character needs to maintain stability.
+ * Affects the dialogue tone in the aftermath phase of intimate scenes.
+ */
+export type AfterCareNeed = "none" | "light" | "medium" | "heavy" | "craves_cuddles_while_crying";
+
+/**
+ * The character's orientation toward group scenarios (harem scenes).
+ */
+export type GroupSexAttitude = "hates" | "tolerates" | "curious" | "craves" | "initiates";
+
+/**
+ * How the character first realizes/accepts their submissive nature.
+ * Governs the shape of the Awakening cinematic event at 70% corruption.
+ */
+export type AwakeningType =
+  | "always_knew"         // no surprise, slides in smoothly
+  | "total_surprise"      // dramatic, visible shock before surrender
+  | "slow_realization"    // gradual, builds over several scenes
+  | "denial_until_forced";// maximum resistance, breaks hardest and deepest
+
+/**
+ * The character's relationship to blackmail/leverage mechanics.
+ * Affects available manipulation-tactic dialogue choices.
+ */
+export type BlackmailNeed =
+  | "necessary"      // won't break without leverage
+  | "heightens_it"   // leverage accelerates corruption
+  | "bored_without"  // becomes disinterested without stakes
+  | "begs_for_it"    // actively craves the power dynamic
+  | "none";          // blackmail has no effect or backfires
+
+/**
+ * The full 19-trait Sexual DNA profile.
+ * Every character (council queens + SoulForge daughters) carries this.
+ * Drives LLM prompt enrichment, scene generation, and Awakening events.
+ */
+export interface SexualDNA {
+  /** Trait 1: Base desire initiation mode */
+  desireType: DesireType;
+  /** Trait 2: Accel 0-10 / Brake 0-10 — arousal ramp speed vs. kill-switch sensitivity */
+  accelerator: number;   // 0-10
+  brake: number;         // 0-10
+  /** Trait 3: Pain tolerance (1-10) */
+  painTolerance: number;
+  /** Trait 4: Humiliation enjoyment (1-10) */
+  humiliationEnjoyment: number;
+  /** Trait 5: Exhibitionism level (1-10) */
+  exhibitionismLevel: number;
+  /** Trait 6: Gag response category */
+  gagResponse: GagResponse;
+  /** Trait 7: Unique moaning style description (verbatim from GDD) */
+  moaningStyle: string;
+  /** Trait 8: What triggers tears during intimate scenes */
+  tearTrigger: string;
+  /** Trait 9: Orgasm style description */
+  orgasmStyle: string;
+  /** Trait 10: Awakening type — shape of the corruption-peak cinematic */
+  awakeningType: AwakeningType;
+  /** Trait 11: Character's relationship to blackmail mechanics */
+  blackmailNeed: BlackmailNeed;
+  /** Trait 12: How fast addiction/obsession builds post-breaking */
+  addictionSpeed: AddictionSpeed;
+  /** Trait 13: Jealousy reaction in harem-rival scenarios */
+  jealousyType: JealousyType;
+  /** Trait 14: Post-scene aftercare need */
+  afterCareNeed: AfterCareNeed;
+  /** Trait 15: Switch potential (1-10) — capacity to flip dominant/submissive */
+  switchPotential: number;
+  /** Trait 16: Attitude toward group scenes */
+  groupSexAttitude: GroupSexAttitude;
+  /** Trait 17: Specific roleplay fantasy (e.g. "Corporate Power Reversal") */
+  roleplayAffinity: string;
+  /** Trait 18: Betrayal threshold (1-10) — how much it takes to trigger betrayal route */
+  betrayalThreshold: number;
+  /** Trait 19: Voice description (accent, breath, cadence) */
+  voiceDNA: string;
+}
+
+// ---------------------------------------------------------------------------
+// Struggle Meter (from GDD)
+// ---------------------------------------------------------------------------
+
+/**
+ * The Struggle Meter tracks moment-to-moment physical/psychological resistance
+ * during active scenes. Distinct from long-term Resistance stat.
+ *
+ * 0   = full surrender (scene ends in full submission)
+ * 100 = maximum resistance (scene blocked or fails)
+ *
+ * The meter depletes when player actions match the character's vulnerability
+ * profile and DNA traits. It resets between scenes.
+ */
+export interface StruggleMeter {
+  /** Current value 0-100 */
+  current: number;
+  /** Whether the meter is active in the current scene */
+  active: boolean;
+  /**
+   * Multiplier applied to depletion based on DNA traits.
+   * Calculated from: painTolerance, brake, awakeningType, blackmailNeed.
+   */
+  resistanceMultiplier: number;
+}
+
+/**
+ * Compute the struggle resistance multiplier from a character's DNA.
+ * Higher = harder to deplete (more struggle before surrender).
+ */
+export function computeStruggleMultiplier(dna: SexualDNA): number {
+  // Base: brake sensitivity + pain tolerance (high = more resistant)
+  const base = (dna.brake / 10) * 0.4 + (dna.painTolerance / 10) * 0.3;
+  // Awakening modifier: denial_until_forced is hardest, always_knew is easiest
+  const awakeningMod: Record<AwakeningType, number> = {
+    always_knew: 0.0,
+    total_surprise: 0.1,
+    slow_realization: 0.15,
+    denial_until_forced: 0.3,
+  };
+  // Blackmail modifier: begs_for_it softens resistance
+  const blackmailMod: Record<BlackmailNeed, number> = {
+    begs_for_it: -0.1,
+    heightens_it: -0.05,
+    necessary: 0.1,
+    bored_without: 0.05,
+    none: 0.0,
+  };
+  return Math.max(0.1, Math.min(1.0, base + awakeningMod[dna.awakeningType] + blackmailMod[dna.blackmailNeed]));
+}
+
+// ---------------------------------------------------------------------------
+// Harem Wars Jealousy Matrix (from GDD Appendix A)
+// ---------------------------------------------------------------------------
+
+/**
+ * Harem Wars event types — what happens when rival queens collide.
+ * Non-lethal; always ends in sexual competition or forced cooperation.
+ */
+export type HaremWarsEventType =
+  | "catfight"            // hair-pulling, slapping, physical confrontation
+  | "sabotage_nudes"      // one queen leaks compromising material on another
+  | "false_accusation"    // political manipulation within the harem
+  | "forced_kiss"         // QTE-style scene, rivals forced together
+  | "competition_dance"   // rivalry pole/strip competition
+  | "competition_scene";  // sexual competition for player's favor
+
+export interface HaremWarsEvent {
+  id: string;
+  type: HaremWarsEventType;
+  instigatorId: string;
+  targetId: string;
+  /** Minimum harem rivalry tension required to trigger */
+  tensionThreshold: number;
+  /** Scene ID where this event can fire */
+  sceneId: string;
+  /** Dialogue turns for this event */
+  turns: DialogueTurn[];
+}
+
+/**
+ * Rivalry tension between two queens — increases when they share scenes
+ * or when player shows favoritism. Drives Harem Wars event triggers.
+ */
+export interface RivalryTension {
+  queenAId: string;
+  queenBId: string;
+  /** 0-100: 0 = neutral/friendly, 100 = maximum conflict */
+  tension: number;
+  /** Events already fired between this pair */
+  firedEvents: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Ending System (from GDD — 8 endings per queen)
+// ---------------------------------------------------------------------------
+
+/**
+ * The 8 possible ending paths for each queen.
+ * Determined by corruption level, betrayal threshold, and relationship stats
+ * at the time of the final choice sequence.
+ */
+export type QueenEndingType =
+  | "blissful_wife"      // Quits career, eternal devotion
+  | "shattered_pet"      // Total psychological submission, mindless bliss
+  | "betrayed_rebel"     // Low betrayal threshold triggered; flees but returns
+  | "perfect_pet"        // Complete surrender, recruits other queens for player
+  | "worship_queen"      // Starts a cult/movement in player's name
+  | "harem_empress"      // Leads the other queens as first among servants
+  | "eternal_addict"     // Lives entirely for player's attention/touch
+  | "legacy_mother";     // Pregnant with player's child, dynasty path
+
+export interface QueenEnding {
+  type: QueenEndingType;
+  /** Display label */
+  label: string;
+  /** Conditions required (plot flags + stat thresholds) */
+  conditions: EndingCondition;
+  /** Narrative summary for journal/gallery */
+  summary: string;
+  /** Scene ID to jump to for this ending */
+  sceneId: string;
+}
+
+export interface EndingCondition {
+  minCorruption?: number;
+  maxCorruption?: number;
+  minTrust?: number;
+  maxTrust?: number;
+  minAffection?: number;
+  /** Plot flags that must be set */
+  requiredFlags?: string[];
+  /** Plot flags that must NOT be set */
+  blockedFlags?: string[];
+  /** Whether betrayal threshold was triggered */
+  betrayalTriggered?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Awakening Event (from GDD — fires at 70% corruption)
+// ---------------------------------------------------------------------------
+
+/**
+ * The Awakening is the pivotal cinematic moment that fires when a queen
+ * reaches 70% corruption (corruption >= 70). It is shaped by her
+ * AwakeningType DNA trait and represents her permanent personality shift.
+ *
+ * After the Awakening: resistance resets to a permanently lower ceiling,
+ * and new scene options unlock (stripper arc return, obsession phone calls,
+ * Legacy path).
+ */
+export interface AwakeningEvent {
+  characterId: string;
+  /** Corruption level at which this fires */
+  triggerCorruption: number; // default 70
+  /** Whether this has already fired for this character */
+  fired: boolean;
+  /** Cinematic description (used as ComfyUI/Mochi prompt basis) */
+  cinematicPrompt: string;
+  /** The shift summary (e.g., "Ice queen suit on conference table pole...") */
+  shiftDescription: string;
+  /** Dialogue turns for the awakening scene */
+  turns: DialogueTurn[];
+  /** New resistance ceiling post-awakening (0-40 range from GDD) */
+  newResistanceCeiling: number;
+}
+
+// ---------------------------------------------------------------------------
+// Phone Obsession System (from GDD)
+// ---------------------------------------------------------------------------
+
+/**
+ * Post-breaking phone behavior — queens send messages once obsession sets in.
+ * Driven by addictionSpeed and jealousyType DNA traits.
+ * Messages unlock progressively as corruption increases past 70.
+ */
+export interface PhoneMessage {
+  characterId: string;
+  /** In-game day this message becomes available */
+  day: number;
+  /** Message content */
+  text: string;
+  /** Whether this is a missed call vs text */
+  type: "text" | "missed_call" | "voice_note";
+  /** Minimum corruption required */
+  minCorruption: number;
+}
+
+// ---------------------------------------------------------------------------
+// Stripper Arc Return (from GDD)
+// ---------------------------------------------------------------------------
+
+/**
+ * Each queen has a stripper past and a specific "return trigger" at 70% corruption.
+ * This defines the club, stage name, and the unique kink scene.
+ */
+export interface StripperArc {
+  characterId: string;
+  /** Club name (e.g., "Sapphire Elite") */
+  clubName: string;
+  /** Stage name (e.g., "Ice Princess") */
+  stageName: string;
+  /** Why she quit originally */
+  quitReason: string;
+  /** What triggers the return (e.g., "70% corruption + office pole scene") */
+  returnTrigger: string;
+  /** Unique physical kink for this queen's pole work */
+  uniqueKink: string;
+  /** Flux.2 scene prompt for the return scene */
+  scenePrompt: string;
+  /** Whether the return has been triggered */
+  triggered: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// No Mercy Mode (from GDD)
+// ---------------------------------------------------------------------------
+
+/**
+ * No Mercy Mode is a hidden toggle that switches between:
+ * - Default (Blissful): Resistance as foreplay, tears of pleasure, surrender = ecstasy
+ * - Dark Mode: Ruthless play, no softening, maximum psychological pressure
+ *
+ * The mode affects LLM prompt intensity directives and available scene branches.
+ */
+export type PlayMode = "blissful" | "no_mercy";
+
+// ---------------------------------------------------------------------------
+// Legacy Daughters System (from GDD)
+// ---------------------------------------------------------------------------
+
+/**
+ * Legacy daughters are procedurally generated characters created by SoulForge.
+ * They inherit DNA from their mother (one of the 21 council queens) and the player.
+ * They know the full history of their mother's breaking — either craving it or fighting it.
+ */
+export interface LegacyDaughter {
+  id: string;
+  name: string;
+  /** Council queen this daughter descends from */
+  motherId: string;
+  /** 19-trait DNA — inherited and mutated from mother's DNA */
+  dna: SexualDNA;
+  /** Inherited personality vector (blended from mother + random mutation) */
+  personality: PersonalityVector;
+  /** Whether she craves the same breaking path or fights it harder */
+  inheritedPath: "craves" | "fights";
+  /** Generation number (1 = direct daughter, 2 = granddaughter, etc.) */
+  generation: number;
+  /** Visual description for portrait generation */
+  visualDescription: string;
+  /** SoulForge generation timestamp */
+  generatedAt: number;
+  /** Whether she has been introduced in the narrative */
+  introduced: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Emotional System (from Dialogue System Design)
 // ---------------------------------------------------------------------------
 
@@ -102,12 +469,29 @@ export interface Character {
   archetype: QueenArchetype;
   /** Resistance to the player's influence (0-100, starts high) */
   resistance: number;
+  /** Maximum resistance ceiling — lowered permanently after Awakening */
+  resistanceCeiling: number;
   /** Corruption level (0-100, starts low) */
   corruption: number;
   /** What breaking methods are most/least effective (-1 to 1 scale) */
   vulnerabilities: Partial<Record<BreakingMethod, number>>;
   /** Title or role for display */
   title?: string;
+  /**
+   * 19-trait Sexual DNA — present for council queens and SoulForge daughters.
+   * Optional for non-queen characters (Kael, Vaelis etc. don't have it).
+   */
+  dna?: SexualDNA;
+  /** Active struggle meter for this character (present during intimate scenes) */
+  struggleMeter?: StruggleMeter;
+  /** Whether the Awakening event has fired for this character */
+  awakeningFired: boolean;
+  /** Stripper arc state */
+  stripperArc?: StripperArc;
+  /** Which ending path this character is currently tracking toward */
+  currentEndingPath?: QueenEndingType;
+  /** Harem role post-breaking */
+  haremRole?: "first_queen" | "rivalry_instigator" | "devotee" | "recruiter" | "empress";
 }
 
 export interface PersonalityVector {
@@ -156,6 +540,14 @@ export interface WorldState {
   inventory: string[];
   /** Current content intensity ceiling (player-configurable) */
   contentIntensity: ContentIntensity;
+  /** Play mode — blissful (default) or no_mercy (hidden toggle) */
+  playMode: PlayMode;
+  /** Active rivalry tensions between queens */
+  rivalryTensions: RivalryTension[];
+  /** Pending phone messages from obsessing queens */
+  pendingPhoneMessages: PhoneMessage[];
+  /** Legacy daughters that have been generated */
+  legacyDaughters: LegacyDaughter[];
 }
 
 export interface SceneDefinition {
@@ -240,4 +632,138 @@ export interface DialogueConfig {
   temperature: number;
   /** Whether to stream tokens */
   stream: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Ending Resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Determine which ending path a character is tracking toward.
+ * Called after each significant choice to update currentEndingPath.
+ *
+ * Priority (highest to lowest): betrayed_rebel, legacy_mother, shattered_pet,
+ * worship_queen, harem_empress, perfect_pet, eternal_addict, blissful_wife.
+ */
+export function resolveEndingPath(
+  character: Character,
+  flags: Record<string, boolean>
+): QueenEndingType {
+  const { corruption, resistance, relationship, dna } = character;
+  const { trust, affection, desire } = relationship;
+
+  // Betrayal path: betrayal threshold exceeded
+  const betrayalFlag = flags[`betrayed_${character.id}`];
+  if (betrayalFlag) return "betrayed_rebel";
+
+  // Legacy path: pregnancy flag or legacy desire active
+  if (flags[`legacy_path_${character.id}`] && corruption >= 80) return "legacy_mother";
+
+  // Shattered pet: total corruption with low trust
+  if (corruption >= 95 && resistance === 0 && trust < 30) return "shattered_pet";
+
+  // Worship queen: high corruption + high affection + cult flag
+  if (flags[`worship_path_${character.id}`] && corruption >= 80 && affection >= 60) return "worship_queen";
+
+  // Harem empress: first queen broken, leads others
+  if (flags[`harem_empress_${character.id}`] && corruption >= 70) return "harem_empress";
+
+  // Perfect pet: high corruption, recruits others
+  if (corruption >= 80 && trust >= 50 && dna && dna.groupSexAttitude !== "hates") return "perfect_pet";
+
+  // Eternal addict: high addiction speed + high desire
+  if (
+    corruption >= 60 &&
+    desire >= 70 &&
+    dna &&
+    (dna.addictionSpeed === "instant" || dna.addictionSpeed === "fast")
+  ) return "eternal_addict";
+
+  // Blissful wife: high trust + high affection + moderate corruption
+  if (trust >= 70 && affection >= 70 && corruption >= 50) return "blissful_wife";
+
+  // Default: wherever corruption is pointing
+  if (corruption >= 60) return "perfect_pet";
+  return "blissful_wife";
+}
+
+// ---------------------------------------------------------------------------
+// Awakening Trigger Check
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether a character's Awakening should fire.
+ * Returns true if corruption >= 70 and awakening has not yet fired.
+ */
+export function shouldFireAwakening(character: Character): boolean {
+  return character.corruption >= 70 && !character.awakeningFired;
+}
+
+// ---------------------------------------------------------------------------
+// Harem Wars Trigger Check
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether a Harem Wars event should trigger between two queens.
+ * Returns true if rivalry tension >= threshold and event hasn't fired.
+ */
+export function shouldTriggerHaremWars(
+  tension: RivalryTension,
+  event: HaremWarsEvent
+): boolean {
+  return (
+    tension.tension >= event.tensionThreshold &&
+    !tension.firedEvents.includes(event.id)
+  );
+}
+
+/**
+ * Compute rivalry tension increase when player interacts with one queen
+ * while another is in the scene or aware of the interaction.
+ * Based on jealousyType DNA of the witnessing queen.
+ */
+export function computeRivalryTensionIncrease(
+  witnessJealousyType: JealousyType,
+  playerActionIntensity: number // 1-10
+): number {
+  const multipliers: Record<JealousyType, number> = {
+    possessive: 2.0,
+    competitive: 1.5,
+    turns_her_on: -0.5,  // actually reduces tension, she enjoys it
+    doesnt_care: 0.1,
+    none: 0.0,
+  };
+  return Math.round(playerActionIntensity * multipliers[witnessJealousyType]);
+}
+
+// ---------------------------------------------------------------------------
+// DNA Prompt Fragment Builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a compact DNA context string for the LLM system prompt.
+ * Summarizes the most behaviorally relevant traits without overwhelming context.
+ */
+export function buildDNAPromptFragment(dna: SexualDNA): string {
+  return [
+    `Desire: ${dna.desireType}`,
+    `Arousal ramp: accel ${dna.accelerator}/10, brake ${dna.brake}/10`,
+    `Pain tolerance: ${dna.painTolerance}/10`,
+    `Humiliation enjoyment: ${dna.humiliationEnjoyment}/10`,
+    `Exhibitionism: ${dna.exhibitionismLevel}/10`,
+    `Gagging: ${dna.gagResponse}`,
+    `Moaning: ${dna.moaningStyle}`,
+    `Tears from: ${dna.tearTrigger}`,
+    `Orgasm: ${dna.orgasmStyle}`,
+    `Awakening type: ${dna.awakeningType}`,
+    `Blackmail need: ${dna.blackmailNeed}`,
+    `Addiction speed: ${dna.addictionSpeed}`,
+    `Jealousy: ${dna.jealousyType}`,
+    `Aftercare: ${dna.afterCareNeed}`,
+    `Switch potential: ${dna.switchPotential}/10`,
+    `Group scenes: ${dna.groupSexAttitude}`,
+    `Roleplay fantasy: ${dna.roleplayAffinity}`,
+    `Betrayal threshold: ${dna.betrayalThreshold}/10`,
+    `Voice: ${dna.voiceDNA}`,
+  ].join(" | ");
 }

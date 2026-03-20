@@ -91,10 +91,51 @@ export function CharacterStatus({
             <div className="mb-3 space-y-1.5">
               <p className="text-[10px] uppercase tracking-wider text-white/20">
                 Breaking
+                {char.awakeningFired && (
+                  <span className="ml-2 text-rose-400 normal-case tracking-normal">
+                    ✦ Awakened
+                  </span>
+                )}
+                {!char.awakeningFired && char.corruption >= 50 && (
+                  <span className="ml-2 text-amber-400 normal-case tracking-normal">
+                    ◈ Threshold Near
+                  </span>
+                )}
               </p>
-              <StatRow label="Resistance" value={char.resistance} min={0} max={100} color="amber" />
+              <StatRow
+                label={`Resistance (max ${char.resistanceCeiling ?? 100})`}
+                value={char.resistance}
+                min={0}
+                max={char.resistanceCeiling ?? 100}
+                color="amber"
+              />
               <StatRow label="Corruption" value={char.corruption} min={0} max={100} color="purple" />
+              {char.currentEndingPath && (
+                <p className="text-[9px] text-white/30 mt-1">
+                  Path: <span className="text-white/50">{char.currentEndingPath.replace(/_/g, " ")}</span>
+                </p>
+              )}
             </div>
+
+            {/* DNA Summary (queen characters only) */}
+            {char.dna && (
+              <div className="mb-3 space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-white/20">DNA Profile</p>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[9px] text-white/40">
+                  <span>Desire: <span className="text-white/60">{char.dna.desireType}</span></span>
+                  <span>Addiction: <span className="text-white/60">{char.dna.addictionSpeed}</span></span>
+                  <span>Awakening: <span className="text-white/60">{char.dna.awakeningType.replace(/_/g, " ")}</span></span>
+                  <span>Jealousy: <span className="text-white/60">{char.dna.jealousyType.replace(/_/g, " ")}</span></span>
+                  <span>Switch: <span className="text-white/60">{char.dna.switchPotential}/10</span></span>
+                  <span>Groups: <span className="text-white/60">{char.dna.groupSexAttitude}</span></span>
+                </div>
+                {char.stripperArc?.triggered && (
+                  <p className="text-[9px] text-rose-300/60 mt-1">
+                    Stage: {char.stripperArc.stageName} · {char.stripperArc.clubName}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Emotional Profile */}
             <div className="mb-3 space-y-1.5">

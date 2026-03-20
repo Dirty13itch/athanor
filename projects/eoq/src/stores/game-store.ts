@@ -4,6 +4,9 @@ import type {
   DialogueTurn,
   GameSession,
   WorldState,
+  RivalryTension,
+  PhoneMessage,
+  LegacyDaughter,
 } from "@/types/game";
 
 const SAVE_KEY = "eoq-save";
@@ -40,6 +43,22 @@ interface GameState {
   attachChoicesToLastTurn: (choices: import("@/types/game").PlayerChoice[]) => void;
   addInventoryItem: (item: string) => void;
   markSceneVisited: (sceneId: string) => void;
+  /** Mark a character's Awakening as fired and apply resistance ceiling drop */
+  fireAwakening: (characterId: string, newResistanceCeiling: number) => void;
+  /** Trigger a character's stripper arc return */
+  triggerStripperArc: (characterId: string) => void;
+  /** Update rivalry tension between two queens */
+  updateRivalryTension: (queenAId: string, queenBId: string, delta: number) => void;
+  /** Mark a Harem Wars event as fired */
+  markHaremWarsEventFired: (queenAId: string, queenBId: string, eventId: string) => void;
+  /** Add a phone message to the pending queue */
+  addPhoneMessage: (message: PhoneMessage) => void;
+  /** Dismiss/read a phone message */
+  dismissPhoneMessage: (characterId: string, day: number) => void;
+  /** Add a Legacy daughter */
+  addLegacyDaughter: (daughter: LegacyDaughter) => void;
+  /** Toggle No Mercy mode */
+  togglePlayMode: () => void;
   saveGame: () => void;
   loadGame: () => boolean;
   clearSave: () => void;
@@ -170,6 +189,180 @@ export const useGameStore = create<GameState>((set, get) => ({
       const visited = new Set(state.visitedScenes);
       visited.add(sceneId);
       return { visitedScenes: visited };
+    }),
+
+  fireAwakening: (characterId, newResistanceCeiling) =>
+    set((state) => {
+      if (!state.session) return state;
+      const char = state.session.characters[characterId];
+      if (!char) return state;
+      return {
+        session: {
+          ...state.session,
+          characters: {
+            ...state.session.characters,
+            [characterId]: {
+              ...char,
+              awakeningFired: true,
+              resistanceCeiling: newResistanceCeiling,
+              // Cap current resistance at new ceiling
+              resistance: Math.min(char.resistance, newResistanceCeiling),
+              // Trigger stripper arc
+              stripperArc: char.stripperArc
+                ? { ...char.stripperArc, triggered: true }
+                : char.stripperArc,
+            },
+          },
+          worldState: {
+            ...state.session.worldState,
+            plotFlags: {
+              ...state.session.worldState.plotFlags,
+              [`awakening_fired_${characterId}`]: true,
+            },
+          },
+        },
+      };
+    }),
+
+  triggerStripperArc: (characterId) =>
+    set((state) => {
+      if (!state.session) return state;
+      const char = state.session.characters[characterId];
+      if (!char?.stripperArc) return state;
+      return {
+        session: {
+          ...state.session,
+          characters: {
+            ...state.session.characters,
+            [characterId]: {
+              ...char,
+              stripperArc: { ...char.stripperArc, triggered: true },
+            },
+          },
+          worldState: {
+            ...state.session.worldState,
+            plotFlags: {
+              ...state.session.worldState.plotFlags,
+              [`stripper_arc_triggered_${characterId}`]: true,
+            },
+          },
+        },
+      };
+    }),
+
+  updateRivalryTension: (queenAId, queenBId, delta) =>
+    set((state) => {
+      if (!state.session) return state;
+      const tensions = [...state.session.worldState.rivalryTensions];
+      const idx = tensions.findIndex(
+        (t) =>
+          (t.queenAId === queenAId && t.queenBId === queenBId) ||
+          (t.queenAId === queenBId && t.queenBId === queenAId)
+      );
+      if (idx >= 0) {
+        tensions[idx] = {
+          ...tensions[idx],
+          tension: Math.max(0, Math.min(100, tensions[idx].tension + delta)),
+        };
+      } else {
+        tensions.push({
+          queenAId,
+          queenBId,
+          tension: Math.max(0, Math.min(100, delta)),
+          firedEvents: [],
+        });
+      }
+      return {
+        session: {
+          ...state.session,
+          worldState: { ...state.session.worldState, rivalryTensions: tensions },
+        },
+      };
+    }),
+
+  markHaremWarsEventFired: (queenAId, queenBId, eventId) =>
+    set((state) => {
+      if (!state.session) return state;
+      const tensions = state.session.worldState.rivalryTensions.map((t) => {
+        if (
+          (t.queenAId === queenAId && t.queenBId === queenBId) ||
+          (t.queenAId === queenBId && t.queenBId === queenAId)
+        ) {
+          return { ...t, firedEvents: [...t.firedEvents, eventId] };
+        }
+        return t;
+      });
+      return {
+        session: {
+          ...state.session,
+          worldState: { ...state.session.worldState, rivalryTensions: tensions },
+        },
+      };
+    }),
+
+  addPhoneMessage: (message) =>
+    set((state) => {
+      if (!state.session) return state;
+      return {
+        session: {
+          ...state.session,
+          worldState: {
+            ...state.session.worldState,
+            pendingPhoneMessages: [
+              ...state.session.worldState.pendingPhoneMessages,
+              message,
+            ],
+          },
+        },
+      };
+    }),
+
+  dismissPhoneMessage: (characterId, day) =>
+    set((state) => {
+      if (!state.session) return state;
+      return {
+        session: {
+          ...state.session,
+          worldState: {
+            ...state.session.worldState,
+            pendingPhoneMessages: state.session.worldState.pendingPhoneMessages.filter(
+              (m) => !(m.characterId === characterId && m.day === day)
+            ),
+          },
+        },
+      };
+    }),
+
+  addLegacyDaughter: (daughter) =>
+    set((state) => {
+      if (!state.session) return state;
+      return {
+        session: {
+          ...state.session,
+          worldState: {
+            ...state.session.worldState,
+            legacyDaughters: [
+              ...state.session.worldState.legacyDaughters,
+              daughter,
+            ],
+          },
+        },
+      };
+    }),
+
+  togglePlayMode: () =>
+    set((state) => {
+      if (!state.session) return state;
+      const current = state.session.worldState.playMode;
+      return {
+        session: {
+          ...state.session,
+          worldState: {
+            ...state.session.worldState,
+            playMode: current === "blissful" ? "no_mercy" : "blissful",
+          },
+        },
+      };
     }),
 
   saveGame: () => {

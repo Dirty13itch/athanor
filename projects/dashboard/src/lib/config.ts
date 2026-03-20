@@ -151,7 +151,7 @@ const stashUrl = env("ATHANOR_STASH_URL", `http://${vaultHost}:9999`);
 const prowlarrUrl = env("ATHANOR_PROWLARR_URL", `http://${vaultHost}:9696`);
 const sabnzbdUrl = env("ATHANOR_SABNZBD_URL", `http://${vaultHost}:8080`);
 const homeAssistantUrl = env("ATHANOR_HOME_ASSISTANT_URL", `http://${vaultHost}:8123`);
-const qdrantUrl = env("ATHANOR_QDRANT_URL", `http://${foundryHost}:6333`);
+const qdrantUrl = env("ATHANOR_QDRANT_URL", `http://${vaultHost}:6333`);
 const neo4jUrl = env("ATHANOR_NEO4J_URL", `http://${vaultHost}:7474`);
 const speachesUrl = env("ATHANOR_SPEACHES_URL", `http://${foundryHost}:8200`);
 
@@ -338,8 +338,8 @@ export const config = {
       id: "qdrant",
       name: "Qdrant",
       url: joinUrl(qdrantUrl, "/collections"),
-      nodeId: "node1",
-      node: "Foundry",
+      nodeId: "vault",
+      node: "VAULT",
       category: "knowledge",
       description: "Vector memory and retrieval store.",
     },
