@@ -50,6 +50,9 @@ tmp/
 *.log
 *.bak
 *.bak-*
+*-backup
+*.backup
+*.orig
 dashboard-theme-sampler-*.tar.gz
 
 # ComfyUI test outputs

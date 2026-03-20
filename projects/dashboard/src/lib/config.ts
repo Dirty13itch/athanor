@@ -236,15 +236,15 @@ export const config = {
       name: "Foundry Coder",
       nodeId: "node1",
       description: "Dedicated coding runtime for autonomous implementation and code-heavy tasks.",
-      primaryModel: "Qwen3.5-35B-A3B-AWQ-4bit",
+      primaryModel: "Qwen3.5-35B-A3B-AWQ-4bit (qwen35-coder)",
       url: foundryCoderUrl,
     },
     {
       id: "workshop-worker",
       name: "Workshop Worker",
       nodeId: "node2",
-      description: "Interactive worker runtime for fast direct-chat and UI-adjacent inference.",
-      primaryModel: "Qwen3.5-35B-A3B-AWQ-4bit",
+      description: "Interactive worker runtime for fast direct-chat and UI-adjacent inference (currently offline).",
+      primaryModel: "Qwen3.5-35B-A3B",
       url: workshopWorkerUrl,
     },
     {

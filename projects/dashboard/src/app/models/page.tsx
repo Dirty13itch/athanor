@@ -4,9 +4,12 @@ import { config } from "@/lib/config";
 export const revalidate = 15;
 
 export default async function ModelsPage() {
+  // Maps inference backend IDs to their primary LiteLLM alias.
+  // All FOUNDRY chat aliases (reasoning, coding, fast, creative, etc.)
+  // currently route to the same vLLM coordinator endpoint (FOUNDRY:8000).
   const LITELLM_ALIAS_MAP: Record<string, string> = {
     "foundry-coordinator": "reasoning",
-    "foundry-coder": "coder",
+    "foundry-coder": "coding",
     "workshop-worker": "fast",
     "dev-embedding": "embedding",
     "dev-reranker": "reranker",
