@@ -24,12 +24,14 @@ import time
 from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import URLError
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-AGENT_SERVER = os.environ.get("ATHANOR_AGENT_URL", "http://192.168.1.244:9000")
+AGENT_SERVER = get_url("agent_server")
 BEARER_TOKEN = os.environ.get("ATHANOR_AGENT_API_TOKEN", "")
 
 

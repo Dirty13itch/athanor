@@ -43,9 +43,11 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import NODES
 
 # Agent server on FOUNDRY
-AGENT_HOST = "192.168.1.244"
+AGENT_HOST = NODES["foundry"]
 AGENT_PORT = 9000
 AGENT_DEPLOY_PATH = "/opt/athanor/agents/src/"
 

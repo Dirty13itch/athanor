@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 # Deploy agent server to FOUNDRY - sync, build, restart
 # Usage: ./scripts/deploy-agents.sh [--no-build]
+
+# Source cluster config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FOUNDRY="foundry"
 REMOTE_DIR="/opt/athanor/agents"
 SRC_DIR="${REPO_DIR}/projects/agents"
-AGENT_URL="${ATHANOR_AGENT_SERVER_URL:-http://${ATHANOR_NODE1_HOST:-192.168.1.244}:9000}"
+AGENT_URL="${AGENT_SERVER_URL}"
 
 echo "=== Deploying Athanor Agent Server to FOUNDRY ==="
 

@@ -15,8 +15,11 @@ import os
 import re
 import urllib.request
 from pathlib import Path
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
-STASH_URL = os.environ.get("STASH_URL", "http://192.168.1.203:9999")
+STASH_URL = get_url("stash")
 GRAPHQL_URL = f"{STASH_URL}/graphql"
 OUTPUT_DIR = Path(os.environ.get("OUTPUT_DIR", "/mnt/vault/models/comfyui/reference_photos"))
 

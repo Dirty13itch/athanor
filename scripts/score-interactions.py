@@ -21,8 +21,10 @@ import sys
 import time
 
 import httpx
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, get_url
 
-LITELLM_BASE_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/")
+LITELLM_BASE_URL = get_url("litellm").rstrip("/")
 LITELLM_URL = f"{LITELLM_BASE_URL}/v1/chat/completions"
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")

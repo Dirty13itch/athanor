@@ -28,6 +28,10 @@ from typing import Any, Optional
 
 import httpx
 import numpy as np
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, get_url
 
 try:
     from zoneinfo import ZoneInfo
@@ -43,8 +47,8 @@ log = logging.getLogger("cli-router")
 # ---------------------------------------------------------------------------
 EMBEDDING_URL = "http://127.0.0.1:8001/v1/embeddings"
 EMBEDDING_MODEL = "/models/Qwen3-Embedding-0.6B"
-LITELLM_URL = "http://192.168.1.203:4000"
-LITELLM_KEY = "sk-athanor-litellm-2026"
+LITELLM_URL = get_url("litellm")
+# LITELLM_KEY imported from cluster_config
 LITELLM_MODEL = "creative"  # Qwen3.5 on WORKSHOP
 
 HISTORY_FILE = Path.home() / ".athanor" / "cli-router-history.json"

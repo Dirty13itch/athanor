@@ -3,6 +3,11 @@
 # Usage: scripts/health-check-all.sh [-q] [-j]
 #   -q  Quiet mode: only show failures
 #   -j  JSON output (no colors, machine-readable)
+
+# Source cluster config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
 set -euo pipefail
 
 QUIET=false
@@ -29,21 +34,21 @@ fi
 # Service definitions: NAME|URL|METHOD
 # METHOD: http (curl GET), tcp (nc check), redis (redis-cli ping)
 SERVICES=(
-  "Coordinator vLLM|http://192.168.1.244:8000/health|http"
-  "Coder vLLM|http://192.168.1.244:8006/health|http"
-  "Agent Server|http://192.168.1.244:9000/health|http"
-  "Worker vLLM|http://192.168.1.225:8000/health|http"
-  "Dashboard|http://192.168.1.225:3001|http"
-  "EoBQ|http://192.168.1.225:3002|http"
-  "LiteLLM|http://192.168.1.203:4000/health/readiness|http"
-  "Grafana|http://192.168.1.203:3000/api/health|http"
-  "Prometheus|http://192.168.1.203:9090/-/healthy|http"
-  "LangFuse|http://192.168.1.203:3030|http"
-  "Qdrant|http://192.168.1.203:6333/healthz|http"
-  "Neo4j|http://192.168.1.203:7474|http"
-  "Redis|192.168.1.203:6379|redis"
-  "Embedding|http://192.168.1.189:8001/health|http"
-  "Reranker|http://192.168.1.189:8003/health|http"
+  "Coordinator vLLM|${VLLM_COORDINATOR_URL}/health|http"
+  "Coder vLLM|${VLLM_CODER_URL}/health|http"
+  "Agent Server|${AGENT_SERVER_URL}/health|http"
+  "Worker vLLM|${VLLM_VISION_URL}/health|http"
+  "Dashboard|${DASHBOARD_URL}|http"
+  "EoBQ|http://${WORKSHOP_IP}:3002|http"
+  "LiteLLM|${LITELLM_URL}/health/readiness|http"
+  "Grafana|${GRAFANA_URL}/api/health|http"
+  "Prometheus|${PROMETHEUS_URL}/-/healthy|http"
+  "LangFuse|${LANGFUSE_URL}|http"
+  "Qdrant|${QDRANT_URL}/healthz|http"
+  "Neo4j|${NEO4J_HTTP_URL}|http"
+  "Redis|${VAULT_IP}:6379|redis"
+  "Embedding|${EMBEDDING_URL}/health|http"
+  "Reranker|${RERANKER_URL}/health|http"
 )
 
 TOTAL=0

@@ -18,15 +18,18 @@ import os
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, NODES
 
 
 def _default_qdrant_url() -> str:
-    node1_host = os.environ.get("ATHANOR_NODE1_HOST", "192.168.1.244").strip()
+    node1_host = NODES["foundry"]
     return f"http://{node1_host}:6333"
 
 
 def _default_litellm_url() -> str:
-    vault_host = os.environ.get("ATHANOR_VAULT_HOST", "192.168.1.203").strip()
+    vault_host = NODES["vault"]
     return f"http://{vault_host}:4000/v1"
 
 

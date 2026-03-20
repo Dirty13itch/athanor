@@ -22,8 +22,10 @@ import os
 import sys
 
 import httpx
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, get_url
 
-LITELLM_URL = os.environ.get("LITELLM_URL", "http://192.168.1.203:4000/v1")
+LITELLM_URL = get_url("litellm") + "/v1"
 LITELLM_KEY = os.environ.get("LITELLM_KEY", "sk-athanor-litellm-2026")
 LOCAL_MODEL = os.environ.get("COMPRESS_MODEL", "reasoning")  # Free local Qwen3.5-27B
 

@@ -10,8 +10,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
-DEFAULT_BASE_URL = "http://192.168.1.225:3001"
+DEFAULT_BASE_URL = get_url("dashboard")
 ROOT = Path(__file__).resolve().parents[2]
 COMPLETION_DIR = ROOT / "docs" / "atlas" / "inventory" / "completion"
 

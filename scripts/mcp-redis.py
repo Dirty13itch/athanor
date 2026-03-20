@@ -18,8 +18,11 @@ import os
 
 import redis
 from mcp.server.fastmcp import FastMCP
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import NODES
 
-REDIS_HOST = os.environ.get("ATHANOR_REDIS_HOST") or os.environ.get("ATHANOR_VAULT_HOST", "192.168.1.203")
+REDIS_HOST = NODES["vault"]
 REDIS_PORT = int(os.environ.get("ATHANOR_REDIS_PORT") or os.environ.get("REDIS_PORT", "6379"))
 REDIS_PASSWORD = (
     os.environ.get("ATHANOR_REDIS_PASSWORD")

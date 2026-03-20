@@ -5,6 +5,11 @@
 # Usage: ./scripts/tp-benchmark.sh [REQUESTS]
 # Default: 10 requests per endpoint
 
+
+# Source cluster config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
 set -euo pipefail
 
 REQUESTS="${1:-10}"
@@ -27,15 +32,15 @@ except ImportError:
 
 ENDPOINTS = {
     "coordinator (Qwen3.5-27B-FP8 TP=4)": {
-        "url": "http://192.168.1.244:8000/v1/completions",
+        "url": "${VLLM_COORDINATOR_URL}/v1/completions",
         "model": "/models/Qwen3.5-27B-FP8",
     },
     "coder (Qwen3.5-35B-A3B-AWQ)": {
-        "url": "http://192.168.1.244:8006/v1/completions",
+        "url": "${VLLM_CODER_URL}/v1/completions",
         "model": "qwen35-coder",
     },
     "worker (Qwen3.5-35B-A3B-AWQ)": {
-        "url": "http://192.168.1.225:8000/v1/completions",
+        "url": "${VLLM_VISION_URL}/v1/completions",
         "model": "/models/Qwen3.5-35B-A3B-AWQ-4bit",
     },
 }

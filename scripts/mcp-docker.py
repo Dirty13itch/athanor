@@ -19,11 +19,13 @@ import subprocess
 import sys
 
 from mcp.server.fastmcp import FastMCP
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import NODES
 
 NODES = {
-    "foundry": {"ssh": "node1", "ip": "192.168.1.244", "role": "AI inference + agents"},
-    "workshop": {"ssh": "node2", "ip": "192.168.1.225", "role": "Creative + interface"},
-    "vault": {"ssh": None, "ip": "192.168.1.203", "role": "Storage + media + monitoring"},
+    "foundry": {"ssh": "node1", "ip": NODES["foundry"], "role": "AI inference + agents"},
+    "workshop": {"ssh": "node2", "ip": NODES["workshop"], "role": "Creative + interface"},
+    "vault": {"ssh": None, "ip": NODES["vault"], "role": "Storage + media + monitoring"},
 }
 
 VAULT_SSH_SCRIPT = os.path.join(os.path.dirname(__file__), "vault-ssh.py")

@@ -13,10 +13,12 @@ import uuid
 from datetime import datetime, timezone
 from urllib.error import URLError
 from urllib.request import Request, urlopen
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
 COLLECTION = "preferences"
-DEFAULT_QDRANT_URL = "http://192.168.1.244:6333"
-DEFAULT_EMBEDDING_URL = "http://192.168.1.189:8001"
+DEFAULT_QDRANT_URL = get_url("qdrant")
+DEFAULT_EMBEDDING_URL = get_url("embedding")
 EMBEDDING_MODEL = os.environ.get("ATHANOR_EMBEDDING_MODEL", "/models/Qwen3-Embedding-0.6B")
 
 

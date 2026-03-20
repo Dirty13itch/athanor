@@ -31,6 +31,7 @@ except ImportError:
     from backports.zoneinfo import ZoneInfo
 # Import CLI Router (hyphenated filename requires importlib)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 _cli_router_mod = importlib.import_module("cli-router")
 CLIRouter = _cli_router_mod.CLIRouter
 register_router_endpoints = _cli_router_mod.register_router_endpoints
@@ -43,7 +44,7 @@ TASKS_DIR = Path.home() / ".athanor" / "subscription-tasks"
 LOG_DIR = Path("/var/log/athanor")
 USAGE_LOG = LOG_DIR / "subscription-usage.log"
 STATE_FILE = Path.home() / ".athanor" / "subscription-burn-state.json"
-NTFY_URL = "http://192.168.1.203:8880/athanor"
+NTFY_URL = get_url("ntfy_topic")
 
 # ---------------------------------------------------------------------------
 # Logging

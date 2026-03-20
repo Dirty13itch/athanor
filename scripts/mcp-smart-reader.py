@@ -25,6 +25,8 @@ import sys
 import httpx
 import redis
 from mcp.server.fastmcp import FastMCP
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, NODES, get_url
 
 # --- Configuration ---
 
@@ -37,7 +39,7 @@ def _ensure_openai_base(url: str) -> str:
 LITELLM_BASE = _ensure_openai_base(
     os.environ.get("ATHANOR_LITELLM_URL")
     or os.environ.get("LITELLM_BASE_URL")
-    or f"http://{os.environ.get('ATHANOR_VAULT_HOST', '192.168.1.203')}:4000"
+    or get_url("litellm")
 )
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
@@ -46,7 +48,7 @@ LITELLM_KEY = (
 )
 LITELLM_MODEL = os.environ.get("LITELLM_MODEL", "reasoning")
 
-REDIS_HOST = os.environ.get("ATHANOR_REDIS_HOST") or os.environ.get("ATHANOR_VAULT_HOST", "192.168.1.203")
+REDIS_HOST = NODES["vault"]
 REDIS_PORT = int(os.environ.get("ATHANOR_REDIS_PORT") or os.environ.get("REDIS_PORT", "6379"))
 REDIS_PASSWORD = (
     os.environ.get("ATHANOR_REDIS_PASSWORD")

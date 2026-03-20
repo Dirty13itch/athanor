@@ -18,11 +18,13 @@ import json
 import os
 import sys
 import urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
 NEO4J_BASE_URL = (
     os.environ.get("ATHANOR_NEO4J_URL")
     or os.environ.get("NEO4J_URL")
-    or "http://192.168.1.203:7474"
+    or get_url("neo4j_http")
 ).rstrip("/")
 NEO4J_URL = f"{NEO4J_BASE_URL}/db/neo4j/tx/commit"
 NEO4J_USER = os.environ.get("ATHANOR_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")

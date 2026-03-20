@@ -4,13 +4,18 @@
 # Usage: ./scripts/run-evals.sh [--output FILE]
 # Requires: npx (Node.js), LiteLLM accessible at VAULT:4000
 
+
+# Source cluster config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 EVAL_CONFIG="$REPO_DIR/evals/promptfooconfig.yaml"
 OUTPUT_DIR="$REPO_DIR/evals/results"
 OUTPUT_FILE="${1:-$OUTPUT_DIR/baseline-$(date +%Y-%m-%d).json}"
-LITELLM_BASE_URL="${ATHANOR_LITELLM_URL:-http://192.168.1.203:4000}"
+LITELLM_BASE_URL="${LITELLM_URL}"
 LITELLM_API_KEY="${ATHANOR_LITELLM_API_KEY:-${OPENAI_API_KEY:-}}"
 
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then

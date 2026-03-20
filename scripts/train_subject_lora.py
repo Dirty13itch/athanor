@@ -26,6 +26,8 @@ from typing import Optional
 
 import httpx
 from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, NODES, get_url
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -43,12 +45,12 @@ FLUX_CLIP_L_PATH = "/mnt/vault/models/comfyui/clip/clip_l.safetensors"
 FLUX_T5_PATH = "/mnt/vault/models/comfyui/clip/t5xxl_fp8_e4m3fn.safetensors"
 
 # LiteLLM
-LITELLM_URL = "http://192.168.1.203:4000"
+LITELLM_URL = get_url("litellm")
 LITELLM_KEY = "sk-athanor-litellm-2026"
 LITELLM_MODEL = "creative"
 
 # WORKSHOP SSH
-WORKSHOP_SSH = "athanor@192.168.1.225"
+WORKSHOP_SSH = f"athanor@{NODES['workshop']}"
 
 # ---------------------------------------------------------------------------
 # Logging

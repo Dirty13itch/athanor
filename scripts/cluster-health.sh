@@ -1,6 +1,11 @@
 #!/bin/bash
 # Athanor Cluster Health Check — runs every 5 min via systemd timer
-ALERT="http://192.168.1.203:8880/athanor"
+
+# Source cluster config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
+ALERT="${NTFY_TOPIC_URL}"
 
 # Check each node is reachable
 for node in foundry workshop vault; do
@@ -16,7 +21,7 @@ if [ -n "$DOWN" ]; then
 fi
 
 # Check VAULT disk
-DISK_PCT=$(ssh -o ConnectTimeout=5 root@192.168.1.203 "df /mnt/user | tail -1 | awk {print } | tr -d %" 2>/dev/null)
+DISK_PCT=$(ssh -o ConnectTimeout=5 root@${VAULT_IP} "df /mnt/user | tail -1 | awk {print } | tr -d %" 2>/dev/null)
 if [ -n "$DISK_PCT" ] && [ "$DISK_PCT" -gt 90 ]; then
     curl -s -H "Content-Type: application/json" -d "{\"title\":\"DISK WARNING\",\"message\":\"VAULT array at ${DISK_PCT}%\",\"priority\":4}" $ALERT
 fi

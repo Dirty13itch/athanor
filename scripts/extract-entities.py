@@ -33,12 +33,14 @@ import re
 import sys
 import time
 import urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, get_url
 
 # --- Config ---
-QDRANT_URL = os.environ.get("ATHANOR_QDRANT_URL") or os.environ.get("QDRANT_URL", "http://192.168.1.244:6333")
+QDRANT_URL = get_url("qdrant")
 COLLECTION = "personal_data"
 
-LITELLM_BASE_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/")
+LITELLM_BASE_URL = get_url("litellm").rstrip("/")
 LITELLM_URL = f"{LITELLM_BASE_URL}/v1/chat/completions"
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
@@ -50,7 +52,7 @@ LLM_MODEL = "fast"
 NEO4J_BASE_URL = (
     os.environ.get("ATHANOR_NEO4J_URL")
     or os.environ.get("NEO4J_URL")
-    or "http://192.168.1.203:7474"
+    or get_url("neo4j_http")
 ).rstrip("/")
 NEO4J_URL = f"{NEO4J_BASE_URL}/db/neo4j/tx/commit"
 NEO4J_USER = os.environ.get("ATHANOR_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")

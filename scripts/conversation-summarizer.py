@@ -14,8 +14,8 @@ Usage:
 
 Environment:
     ATHANOR_LITELLM_API_KEY  LiteLLM API key (default: sk-athanor-litellm-2026)
-    ATHANOR_QDRANT_URL       Qdrant base URL (default: http://192.168.1.244:6333)
-    ATHANOR_LITELLM_URL      LiteLLM base URL (default: http://192.168.1.203:4000)
+    ATHANOR_QDRANT_URL       Qdrant base URL (from cluster_config)
+    ATHANOR_LITELLM_URL      LiteLLM base URL (from cluster_config)
 """
 
 import argparse
@@ -28,11 +28,13 @@ import time
 from collections import defaultdict
 
 import httpx
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, get_url
 
 # -- Config -------------------------------------------------------------------
 
-QDRANT_URL = os.environ.get("ATHANOR_QDRANT_URL", "http://192.168.1.244:6333").rstrip("/")
-LITELLM_URL = os.environ.get("ATHANOR_LITELLM_URL", "http://192.168.1.203:4000").rstrip("/")
+QDRANT_URL = get_url("qdrant").rstrip("/")
+LITELLM_URL = get_url("litellm").rstrip("/")
 LITELLM_KEY = os.environ.get("ATHANOR_LITELLM_API_KEY", "sk-athanor-litellm-2026")
 COLLECTION = "conversations"
 SUMMARIZE_MODEL = "worker"
