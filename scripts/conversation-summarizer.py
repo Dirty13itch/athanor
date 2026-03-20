@@ -13,7 +13,7 @@ Usage:
     python3 scripts/conversation-summarizer.py --help
 
 Environment:
-    ATHANOR_LITELLM_API_KEY  LiteLLM API key (default: sk-athanor-litellm-2026)
+    ATHANOR_LITELLM_API_KEY  LiteLLM API key (default: sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d)
     ATHANOR_QDRANT_URL       Qdrant base URL (from cluster_config)
     ATHANOR_LITELLM_URL      LiteLLM base URL (from cluster_config)
 """
@@ -35,7 +35,7 @@ from cluster_config import LITELLM_KEY, get_url
 
 QDRANT_URL = get_url("qdrant").rstrip("/")
 LITELLM_URL = get_url("litellm").rstrip("/")
-LITELLM_KEY = os.environ.get("ATHANOR_LITELLM_API_KEY", "sk-athanor-litellm-2026")
+LITELLM_KEY = os.environ.get("ATHANOR_LITELLM_API_KEY", "sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d")
 COLLECTION = "conversations"
 SUMMARIZE_MODEL = "worker"
 MAX_CONCURRENT = 3

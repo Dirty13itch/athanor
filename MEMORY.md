@@ -76,7 +76,7 @@ Scorer:8050 | Ollama:11434 | Dashboard:3001 | Seerr:5055 | Whisparr:6969
 ## Key Facts
 - SSH WORKSHOP: user is athanor, NOT shaun
 - VAULT SSH: use root@192.168.1.203
-- LiteLLM auth: Bearer sk-athanor-litellm-2026
+- LiteLLM auth: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d
 - Memory port: 8720 (NOT 8702)
 - DEV NIC: 5GbE (NOT 10GbE)
 - FOUNDRY PSU at 95% (cannot add GPUs)

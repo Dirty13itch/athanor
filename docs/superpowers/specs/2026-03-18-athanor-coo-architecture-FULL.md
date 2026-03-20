@@ -314,7 +314,7 @@ Once keys are restored, analyze the existing data to optimize routing:
 # In auto_gen.py line 49-52:
 LLM_API_URL = "http://192.168.1.203:4000/v1"
 LLM_MODEL = "creative"  # LiteLLM alias → WORKSHOP Qwen3.5-35B-A3B-AWQ
-# Also set: LLM_API_KEY = "sk-athanor-litellm-2026"
+# Also set: LLM_API_KEY = "sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d"
 ```
 **Also:** Clean up 113 empty drop folders. Rebuild gateway venv (Python binary marked "(deleted)").
 **Pipeline stats (when working):** 84 images generated (March 6-7), 54 rated (81% rejection rate), 18 active subjects, 45 themes. FLUX.1 Dev FP8 + PuLID Flux on 5090.
@@ -1606,14 +1606,14 @@ After these 5 fixes (~2 hours total), the cluster goes from "mostly broken" to "
 ```bash
 # Fix 1: LiteLLM failover — verify stream_timeout works
 curl -s -w "\nTime: %{time_total}s\n" http://192.168.1.203:4000/v1/chat/completions \
-  -H "Authorization: Bearer sk-athanor-litellm-2026" \
+  -H "Authorization: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d" \
   -H "Content-Type: application/json" \
   -d '{"model":"reasoning","messages":[{"role":"user","content":"hi"}],"stream":true}' | head -5
 # Should get first token within 10s or fail fast (not 24 min)
 
 # Fix 1b: Verify coding route goes to coder (8006), not coordinator (8000)
 curl -s http://192.168.1.203:4000/v1/chat/completions \
-  -H "Authorization: Bearer sk-athanor-litellm-2026" \
+  -H "Authorization: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d" \
   -d '{"model":"coding","messages":[{"role":"user","content":"hi"}]}' 2>&1 | grep -o '"model":"[^"]*"'
 # Should return qwen35-coder, not Qwen3.5-27B-FP8
 
@@ -2142,7 +2142,7 @@ The following should be added to the project CLAUDE.md at `~/repos/athanor/CLAUD
 
 ```markdown
 ## Available Infrastructure
-- LiteLLM: VAULT:4000 (key: sk-athanor-litellm-2026) — routes to local models
+- LiteLLM: VAULT:4000 (key: sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d) — routes to local models
 - LangGraph: FOUNDRY:9000 — 9 agents, 77 tools (via athanor-agents MCP)
 - GPU Orchestrator: FOUNDRY:9200 — 4 GPU zones, metrics
 - Langfuse: VAULT:3030 — LLM observability (139K+ traces)

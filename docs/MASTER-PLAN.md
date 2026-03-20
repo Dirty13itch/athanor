@@ -421,7 +421,7 @@ A visual novel with procedurally generated characters.
 
 | Service | Location | Notes |
 |---------|----------|-------|
-| LiteLLM | VAULT:4000 | v1.81.9-stable, 33 model aliases, auth: `sk-athanor-litellm-2026` |
+| LiteLLM | VAULT:4000 | v1.81.9-stable, 33 model aliases, auth: `sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d` |
 | Qdrant | VAULT:6333 | Collections: knowledge_vault, resources, episodic |
 | PostgreSQL | VAULT | Strong password, rotated 2026-03-05 |
 | Redis | VAULT | Requirepass set, persistent via redis.conf |
@@ -582,7 +582,7 @@ Reference details that prevent common mistakes.
 - **All Qwen3.5 models are natively multimodal VLMs**
 - **FOUNDRY PSU at 95%** — cannot add GPUs
 - **Memory port is 8720** everywhere (old refs to 8702 are wrong)
-- **LiteLLM health requires auth:** `Authorization: Bearer sk-athanor-litellm-2026`
+- **LiteLLM health requires auth:** `Authorization: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d`
 - **LiteLLM metrics path needs trailing slash:** `/metrics/`
 - **WORKSHOP SSH user is `athanor`**, not `shaun`
 - **VAULT SSH:** `root@192.168.1.203` (shaun user SSH was failing)

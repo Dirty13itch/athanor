@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cluster_config import LITELLM_KEY, get_url
 
 LITELLM_URL = get_url("litellm") + "/v1"
-LITELLM_KEY = os.environ.get("LITELLM_KEY", "sk-athanor-litellm-2026")
+LITELLM_KEY = os.environ.get("LITELLM_KEY", "sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d")
 LOCAL_MODEL = os.environ.get("COMPRESS_MODEL", "reasoning")  # Free local Qwen3.5-27B
 
 COMPRESS_SYSTEM_PROMPT = """You are a context compression engine. Your job is to read a large body of text and produce a dense, information-preserving brief.
