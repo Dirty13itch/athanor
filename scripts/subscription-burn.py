@@ -83,7 +83,7 @@ SUBSCRIPTIONS: dict[str, dict[str, Any]] = {
         "window_hours": 5,
         "tokens_per_window": 220000,
         "cost_per_month": 200,
-        "cli": "claude",
+        "cli": "/home/shaun/.local/bin/claude",
         "cli_args": ["-p", "--dangerously-skip-permissions"],
         "task_file": "claude-tasks.yaml",
     },
