@@ -74,12 +74,31 @@ check "gsd in PATH" 'which gsd'
 check "codex in PATH" 'which codex'
 
 echo ""
+echo ""
+echo "--- AGENTS ---"
+check "Agent server 9 agents" \
+    'curl -sf http://${FOUNDRY_IP}:9000/health --connect-timeout 5 | python3 -c '"'"'import sys,json; d=json.load(sys.stdin); assert d.get("agent_count",0) >= 9'"'"''
+
+check "APScheduler 25+ jobs" \
+    'curl -sf -H "Authorization: Bearer OXydknsIRAC48gg0xv8t0J-iUnM0q4btx0t1GE-vQEw" http://${FOUNDRY_IP}:9000/v1/scheduler/health --connect-timeout 5 | python3 -c '"'"'import sys,json; d=json.load(sys.stdin); assert d.get("total_jobs",0) >= 20'"'"''
+
+echo ""
+echo "--- CONTENT PIPELINE ---"
+check "Auto_gen scanner running" \
+    'curl -sf http://localhost:8700/auto-gen/status --connect-timeout 3 | python3 -c '"'"'import sys,json; d=json.load(sys.stdin); assert d.get("scanner_running",False)'"'"' 2>/dev/null || curl -sf http://localhost:8700/health'
+
+check "Memory consolidation cron exists" \
+    'crontab -l 2>/dev/null | grep -q consolidat'
+
+check "Voice pipeline healthy" \
+    'curl -sf http://${FOUNDRY_IP}:8250/health --connect-timeout 3'
+
 echo "=== Results: $PASS passed, $FAIL failed ==="
 [ "$FAIL" -eq 0 ] && echo "No drift detected." || echo "DRIFT DETECTED"
 
 # Send ntfy alert if drift detected
 if [ "$FAIL" -gt 0 ]; then
-    curl -s -H "Title: Drift Detected ($FAIL failures)" \
+    curl -s -H "Title: Drift Detected ($FAIL of $((PASS+FAIL)) checks failed)" \
          -H "Priority: high" \
          -H "Tags: warning" \
          -d "Drift check found $FAIL issue(s). Run scripts/drift-check.sh for details." \
