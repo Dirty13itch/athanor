@@ -153,6 +153,7 @@ class BurnState:
 
     def __init__(self):
         self.active_pids: dict[str, int] = {}
+        self.active_procs: dict[str, subprocess.Popen] = {}  # Popen objects for reaping
         self.daily_usage: dict[str, int] = {}
         self.last_burn: dict[str, str] = {}
         self.total_burns_today: dict[str, int] = {}
@@ -189,6 +190,15 @@ class BurnState:
         self.save()
 
     def is_running(self, sub_name: str) -> bool:
+        proc = self.active_procs.get(sub_name)
+        if proc is not None:
+            rc = proc.poll()  # reaps zombie via waitpid
+            if rc is None:
+                return True
+            # Process exited -- clean up
+            self.active_procs.pop(sub_name, None)
+            self.active_pids.pop(sub_name, None)
+            return False
         pid = self.active_pids.get(sub_name)
         if pid is None:
             return False
@@ -368,6 +378,7 @@ async def execute_burn(sub_name: str, manual: bool = False) -> dict:
             start_new_session=True,
         )
         state.active_pids[sub_name] = proc.pid
+        state.active_procs[sub_name] = proc  # store for reaping
         state.record_burn(sub_name)
 
         source = "manual" if manual else "scheduled"
@@ -469,6 +480,64 @@ _scheduler_running = True
 _cli_router = CLIRouter()
 
 
+
+# ---------------------------------------------------------------------------
+# Zombie process reaper
+# ---------------------------------------------------------------------------
+async def reaper_loop():
+    """Periodically reap completed burn processes and update state."""
+    while _scheduler_running:
+        try:
+            for sub_name in list(state.active_procs.keys()):
+                proc = state.active_procs.get(sub_name)
+                if proc is None:
+                    continue
+                rc = proc.poll()
+                if rc is not None:
+                    pid = proc.pid
+                    duration_s = None
+                    last_str = state.last_burn.get(sub_name)
+                    if last_str:
+                        try:
+                            started = datetime.fromisoformat(last_str)
+                            if started.tzinfo is None:
+                                started = started.replace(tzinfo=TZ)
+                            duration_s = round((datetime.now(TZ) - started).total_seconds())
+                        except Exception:
+                            pass
+
+                    state.active_procs.pop(sub_name, None)
+                    state.active_pids.pop(sub_name, None)
+                    state.save()
+
+                    status_str = "success" if rc == 0 else f"failed (exit {rc})"
+                    dur_str = f" in {duration_s // 60}m{duration_s % 60}s" if duration_s else ""
+                    log.info(f"[reaper] {sub_name} PID {pid} completed: {status_str}{dur_str}")
+                    mark_task_done(sub_name, "")
+
+                    await ntfy(
+                        f"Burn Complete: {sub_name}",
+                        f"PID {pid} {status_str}{dur_str}",
+                        tags="white_check_mark" if rc == 0 else "x",
+                    )
+
+            # Check for orphaned PIDs (from pre-restart state) with no Popen object
+            for sub_name in list(state.active_pids.keys()):
+                if sub_name in state.active_procs:
+                    continue
+                pid = state.active_pids[sub_name]
+                try:
+                    os.kill(pid, 0)
+                except (ProcessLookupError, PermissionError):
+                    state.active_pids.pop(sub_name, None)
+                    state.save()
+                    log.info(f"[reaper] Cleared stale PID {pid} for {sub_name}")
+        except Exception as e:
+            log.error(f"[reaper] Error: {e}")
+
+        await asyncio.sleep(30)
+
+
 async def scheduler_loop():
     fired_today: set[str] = set()
     last_waste_check: Optional[datetime] = None
@@ -526,13 +595,19 @@ async def lifespan(app: FastAPI):
         log.warning(f"CLI Router index build failed (non-fatal): {e}")
 
     sched_task = asyncio.create_task(scheduler_loop())
+    reaper_task = asyncio.create_task(reaper_loop())
     await ntfy("Burn Scheduler Online", f"Tracking {len(SUBSCRIPTIONS)} subscriptions", tags="rocket")
     yield
 
     _scheduler_running = False
     sched_task.cancel()
+    reaper_task.cancel()
     try:
         await sched_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await reaper_task
     except asyncio.CancelledError:
         pass
     await _cli_router.close()
