@@ -23,7 +23,7 @@ NODES = {
 }
 
 # Convenience: LiteLLM master key
-LITELLM_KEY = os.environ.get("LITELLM_MASTER_KEY", "sk-athanor-litellm-2026")
+LITELLM_KEY = os.environ.get("LITELLM_MASTER_KEY", "sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d")
 
 # Service endpoints
 SERVICES = {
@@ -40,6 +40,7 @@ SERVICES = {
     "subscription_burn":{"node": "dev",      "port": 8065,  "url": f"http://{NODES['dev']}:8065"},
     "scorer":           {"node": "workshop", "port": 8050,  "url": f"http://{NODES['workshop']}:8050"},
     "comfyui":          {"node": "workshop", "port": 8188,  "url": f"http://{NODES['workshop']}:8188"},
+    "speaches":         {"node": "foundry",  "port": 8200,  "url": f"http://{NODES['foundry']}:8200"},
     "ollama_workshop":  {"node": "workshop", "port": 11434, "url": f"http://{NODES['workshop']}:11434"},
     "qdrant":           {"node": "vault",    "port": 6333,  "url": f"http://{NODES['vault']}:6333"},
     "neo4j":            {"node": "vault",    "port": 7687,  "url": f"bolt://{NODES['vault']}:7687"},
