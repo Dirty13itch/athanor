@@ -364,20 +364,15 @@ const rawComfyQueueSchema = z.object({
 });
 
 const rawComfyStatsSchema = z.object({
-  system: z
-    .object({
-      devices: z
-        .array(
-          z.object({
-            name: z.string(),
-            vram_total: z.number(),
-            vram_free: z.number(),
-          })
-        )
-        .default([]),
-    })
-    .nullable()
-    .optional(),
+  devices: z
+    .array(
+      z.object({
+        name: z.string(),
+        vram_total: z.number(),
+        vram_free: z.number(),
+      })
+    )
+    .default([]),
 });
 
 function nowIso() {
@@ -1165,7 +1160,7 @@ export async function getGallerySnapshot(): Promise<GallerySnapshot> {
       signal: AbortSignal.timeout(5000),
       next: { revalidate: 0 },
     }),
-    fetchJsonSafe(`${config.comfyui.url}/system_stats`, rawComfyStatsSchema, { system: null }, {
+    fetchJsonSafe(`${config.comfyui.url}/system_stats`, rawComfyStatsSchema, { devices: [] }, {
       signal: AbortSignal.timeout(5000),
       next: { revalidate: 0 },
     }),
@@ -1213,7 +1208,7 @@ export async function getGallerySnapshot(): Promise<GallerySnapshot> {
     }),
   }).items;
 
-  const device = stats.system?.devices?.[0] ?? null;
+  const device = stats.devices?.[0] ?? null;
 
   return gallerySnapshotSchema.parse({
     generatedAt: nowIso(),

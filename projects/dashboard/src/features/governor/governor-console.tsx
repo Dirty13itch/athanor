@@ -24,8 +24,9 @@ interface TrustScore {
 }
 
 function trustBadgeVariant(level: string) {
-  if (level === "high" || level === "full") return "outline" as const;
-  if (level === "medium" || level === "standard") return "secondary" as const;
+  const l = level.toLowerCase();
+  if (l === "high" || l === "full" || l === "a" || l === "a+") return "outline" as const;
+  if (l === "medium" || l === "standard" || l === "b" || l === "b+") return "secondary" as const;
   return "destructive" as const;
 }
 
@@ -36,7 +37,7 @@ function trustBarColor(score: number) {
 }
 
 function controlStackStatusClass(status: string) {
-  if (status === "active" || status === "ok" || status === "healthy") return "text-[color:var(--signal-success)]";
+  if (status === "active" || status === "ok" || status === "healthy" || status === "live") return "text-[color:var(--signal-success)]";
   if (status === "degraded" || status === "warning") return "text-[color:var(--signal-warning)]";
   if (status === "failed" || status === "error") return "text-[color:var(--signal-danger)]";
   return "text-muted-foreground";
@@ -54,6 +55,17 @@ export function GovernorConsole() {
     queryKey: ["trust-scores"],
     queryFn: async (): Promise<TrustScore[]> => {
       const data = await requestJson("/api/agents/proxy?path=/v1/trust");
+      // Agent Server returns { agents: { agent_id: { score, grade, ... } } }
+      const agents = data?.agents;
+      if (agents && typeof agents === "object" && !Array.isArray(agents)) {
+        return Object.entries(agents).map(([id, entry]: [string, any]) => ({
+          agent_id: id,
+          agent_name: id.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
+          score: entry.score ?? 0,
+          level: entry.grade ?? "unknown",
+        }));
+      }
+      // Fallback for legacy array format
       return (data?.scores ?? data ?? []) as TrustScore[];
     },
     refetchInterval: 60_000,
@@ -118,10 +130,10 @@ export function GovernorConsole() {
             />
             <StatCard
               label="Presence"
-              value={snapshot.presence.state}
+              value={snapshot.presence.label}
               detail={snapshot.presence.effective_reason}
               icon={<Radio className="h-5 w-5" />}
-              tone={snapshot.presence.state === "active" ? "success" : "warning"}
+              tone={snapshot.presence.state === "at_desk" || snapshot.presence.state === "active" ? "success" : "warning"}
             />
             <StatCard
               label="Release Tier"
