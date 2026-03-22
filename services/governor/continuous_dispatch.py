@@ -3,8 +3,23 @@ Checks for queued tasks every 60 seconds and dispatches immediately.
 No waiting for 10pm. Agents work ALL THE TIME.
 """
 import asyncio
+from task_monitor import monitor_tasks
 import logging
 from datetime import datetime
+
+# Per-subscription cooldown (minutes between dispatches)
+SUBSCRIPTION_COOLDOWN = {
+    "claude-max": 5,       # 5 min between Claude tasks (preserve 5hr quota)
+    "chatgpt-pro": 5,      # Same for Codex
+    "copilot-pro-plus": 2,  # Copilot GPT-5 mini is unlimited, can go faster
+    "kimi-code": 10,        # Kimi has token-based billing
+    "glm-zai": 10,          # GLM has monthly quota
+    "gemini-advanced": 5,   # Gemini free tier: 1000/day
+    "local-opencode": 1,    # Local = free, go fast
+    "local-aider": 1,
+    "local-goose": 1,
+}
+last_dispatch_time: dict[str, float] = {}
 
 logger = logging.getLogger("governor.continuous")
 
@@ -15,6 +30,16 @@ async def continuous_dispatch_loop(app_state):
     while True:
         try:
             await asyncio.sleep(60)  # Check every 60 seconds
+
+            # Monitor running tasks for completion
+            try:
+                from main import task_queue as tq, active_agents as aa
+                updated = monitor_tasks(tq, aa)
+                if updated:
+                    for u in updated:
+                        logger.info(f"Task {u['task_id']} completed: {u['new_status']}")
+            except Exception as e:
+                logger.error(f"Monitor error: {e}")
 
             # Import here to avoid circular imports
             from main import task_queue, SUBSCRIPTIONS, active_agents
@@ -40,9 +65,15 @@ async def continuous_dispatch_loop(app_state):
                 else:
                     candidates = ["claude-max", "local-opencode", "chatgpt-pro"]
 
-                # Find first available candidate
+                # Find first available candidate (with rate limiting)
+                import time
                 for sub in candidates:
                     if sub not in busy_subs and SUBSCRIPTIONS.get(sub, {}).get("status") == "active":
+                        # Check cooldown
+                        cooldown = SUBSCRIPTION_COOLDOWN.get(sub, 5) * 60
+                        last = last_dispatch_time.get(sub, 0)
+                        if time.time() - last < cooldown:
+                            continue  # Skip, still in cooldown
                         task["assigned_to"] = sub
                         task["status"] = "running"
 
@@ -50,6 +81,7 @@ async def continuous_dispatch_loop(app_state):
                             result = dispatch_task(task, sub)
                             active_agents[task["id"]] = result
                             busy_subs.add(sub)
+                            last_dispatch_time[sub] = time.time()
                             logger.info(f"Dispatched {task['id']} to {sub}: {task['title'][:50]}")
                         except Exception as e:
                             task["status"] = "queued"  # Reset on failure

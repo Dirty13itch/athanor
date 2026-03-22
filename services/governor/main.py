@@ -205,6 +205,25 @@ async def get_attention_items():
     }
 
 
+
+
+@app.post("/cleanup-stuck")
+async def cleanup_stuck_tasks():
+    """Kill tasks stuck in 'running' for over 4 hours. Circuit breaker."""
+    from datetime import datetime, timedelta
+    cutoff = (datetime.utcnow() - timedelta(hours=4)).isoformat()
+    stuck = []
+    for task in task_queue:
+        if task["status"] == "running" and task.get("created_at", "") < cutoff:
+            task["status"] = "failed"
+            task["result"] = "Circuit breaker: stuck for >4 hours"
+            stuck.append(task["id"])
+            # Remove from active agents
+            if task["id"] in active_agents:
+                del active_agents[task["id"]]
+    return {"cleaned": len(stuck), "task_ids": stuck}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8760)
