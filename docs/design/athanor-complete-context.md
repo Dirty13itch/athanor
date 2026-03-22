@@ -269,7 +269,7 @@ LangGraph on Node 1. Supervisor routes requests. Each agent is a directed graph 
 
 **Supervisor** on Node 1:9000 routes requests based on classification. Agents exposed as OpenAI-compatible endpoints → appear as "models" in Open WebUI.
 
-**API Gateway** on Node 2:9001 proxies dashboard → agents across the 10GbE network.
+**API Gateway** on Node 2:9001 proxies dashboard → agents across the 5GbE network.
 
 ### How Agents Become Intelligent Over Time
 
@@ -346,7 +346,7 @@ This is where Athanor genuinely starts managing itself. The Knowledge Agent beco
 **System Health Panel:**
 - Node status cards (Node 1, Node 2, VAULT, DEV) — CPU, RAM, GPU utilization
 - GPU cards with VRAM usage, temperature, current model loaded
-- Network status (10GbE throughput, InfiniBand status when deployed)
+- Network status (5GbE throughput, InfiniBand status when deployed)
 - Storage status (NVMe usage per node, HDD array health)
 
 **Agent Management Panel:**
@@ -465,7 +465,7 @@ Creative workloads tolerate higher latency — batch, not interactive.
 ### Tier 1: Hot Model Store (Local NVMe per node)
 Each compute node has local NVMe for currently-loaded model weights. vLLM reads from here. ~2-3 second load times.
 
-### Tier 2: Model Repository (VAULT NVMe via NFS over 10GbE)
+### Tier 2: Model Repository (VAULT NVMe via NFS over 5GbE)
 Complete collection of all downloaded models. VAULT `models` share is canonical. Local `/data/models/` on each node is a cache populated by rsync. ~25 second load times.
 
 Organization: `models/llm/`, `models/diffusion/`, `models/lora/`, `models/embeddings/`
@@ -475,7 +475,7 @@ Organization: `models/llm/`, `models/diffusion/`, `models/lora/`, `models/embedd
 
 ### Model Staging Workflow
 ```
-Download → Tier 2 (VAULT NVMe) → rsync over 10GbE → Tier 1 (node local NVMe) → vLLM loads
+Download → Tier 2 (VAULT NVMe) → rsync over 5GbE → Tier 1 (node local NVMe) → vLLM loads
 ```
 
 ---
@@ -490,7 +490,7 @@ Download → Tier 2 (VAULT NVMe) → rsync over 10GbE → Tier 1 (node local NVM
       ┌────────────┤
       │            │
 [USW Pro 24 PoE]  [USW Pro XG 10 PoE]
- 1GbE home/mgmt    10GbE data plane
+ 1GbE home/mgmt    5GbE data plane
  │  │  │  │  │    │     │     │
 APs IoT Lut DEV  Node1 Node2 VAULT
                   │     │
@@ -500,7 +500,7 @@ APs IoT Lut DEV  Node1 Node2 VAULT
 ```
 
 **Plane 1 — Home (1GbE):** WiFi APs, IoT devices, Lutron, streaming clients, DEV
-**Plane 2 — Data (10GbE):** NFS model serving, service APIs, dashboard, Plex streaming between nodes
+**Plane 2 — Data (5GbE):** NFS model serving, service APIs, dashboard, Plex streaming between nodes
 **Plane 3 — GPU Interconnect (InfiniBand FDR 56Gbps):** Cross-node tensor parallelism (future). ConnectX-3 cards identified, not yet purchased/installed.
 
 ---
@@ -547,7 +547,7 @@ AllowedIPs = 10.10.50.3/32
 
 ### Layer 2: Service Authentication
 
-- vLLM instances bind to 10GbE data plane only — not accessible from 1GbE home network
+- vLLM instances bind to 5GbE data plane only — not accessible from 1GbE home network
 - Dashboard requires authentication (session-based or basic auth)
 - API endpoints require API keys for any service-to-service calls
 - Unraid web UI restricted to management VLAN only (not accessible from IoT devices)
@@ -573,7 +573,7 @@ AllowedIPs = 10.10.50.3/32
 | VLAN | Purpose | Members | Access |
 |------|---------|---------|--------|
 | INFERENCE | GPU inference endpoints | Node 1, Node 2 vLLM ports | Agent server only |
-| DATA | 10GbE model staging, NFS | Node 1, Node 2, VAULT | Internal only |
+| DATA | 5GbE model staging, NFS | Node 1, Node 2, VAULT | Internal only |
 | SERVICES | User-facing (dashboard, HA, Plex) | All nodes service ports | LAN + WireGuard |
 | MGMT | Node management, SSH, IPMI | All nodes SSH | LAN admin only |
 | HOME | IoT, WiFi, streaming clients | APs, Lutron, clients | Internet + SERVICES |
@@ -584,9 +584,9 @@ AllowedIPs = 10.10.50.3/32
 
 Security is baked in from day one, not retrofitted:
 1. Secrets in `.env` files with restricted permissions (now)
-2. vLLM bound to 10GbE interface only (now)
+2. vLLM bound to 5GbE interface only (now)
 3. WireGuard on VAULT (before any remote access)
-4. VLAN segmentation (when 10GbE switch is configured)
+4. VLAN segmentation (when 5GbE switch is configured)
 5. API authentication on all endpoints (before dashboard goes live)
 
 ---
@@ -601,7 +601,7 @@ Security is baked in from day one, not retrofitted:
 ### If InfiniBand EDR is deployed:
 - ConnectX-3 FDR cards in Node 1 and Node 2
 - Cross-node tensor parallelism for models exceeding 64GB after quantization
-- Also enables fast model staging (replace 10GbE rsync)
+- Also enables fast model staging (replace 5GbE rsync)
 
 ### If better MoE models arrive:
 - Stage new model, update vLLM config, update routing

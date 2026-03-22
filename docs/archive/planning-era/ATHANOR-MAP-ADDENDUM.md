@@ -15,7 +15,7 @@
 | VAULT (.203) | OK | root | Intel A380 | LiteLLM :4000, Qdrant :6333, Redis :6379 | LangFuse :3030 NOT deployed |
 | DEV (.189) | local | shaun | 5060Ti | Claude Code + dev tools | N/A |
 
-Corrections: DEV IP=.189 (was TBD), DEV NIC=5GbE Realtek (not 10GbE), SSH users: DEV=shaun FOUNDRY/WORKSHOP=athanor VAULT=root, both keys (id_ed25519 + athanor_mgmt) needed on all nodes.
+Corrections: DEV IP=.189 (was TBD), DEV NIC=5GbE Realtek (not 5GbE), SSH users: DEV=shaun FOUNDRY/WORKSHOP=athanor VAULT=root, both keys (id_ed25519 + athanor_mgmt) needed on all nodes.
 
 ---
 

@@ -31,7 +31,7 @@ ping -c 1 -M do -s 8972 192.168.1.225  # Node 2
 # NFS mount health
 ssh node1 'stat /mnt/vault/models/ > /dev/null 2>&1 && echo "NFS OK" || echo "NFS STALE"'
 
-# 10GbE link speed
+# 5GbE link speed
 ssh node1 'ethtool eno1 2>/dev/null | grep Speed'
 ssh node2 'ethtool eno1 2>/dev/null | grep Speed'
 ```
@@ -52,7 +52,7 @@ ls /mnt/vault/models/ | head -3
 ssh node1 'iperf3 -s -D'  # Start server
 ssh node2 'iperf3 -c 192.168.1.244 -t 5'  # Run client
 ssh node1 'pkill iperf3'  # Cleanup
-# Expect: ~9.4 Gbps on 10GbE with jumbo frames
+# Expect: ~9.4 Gbps on 5GbE with jumbo frames
 ```
 
 ## Known Issues

@@ -40,7 +40,7 @@ Check `docs/decisions/` — 12 ADRs already made. Understand current architectur
 - Memory/RAG: Qdrant + Neo4j
 - Orchestration: LiteLLM routing (ADR-012), LangGraph agents
 - Hardware: EPYC 7663, Ryzen 9950X, TR 7960X, Ryzen 9900X
-- Networking: 10GbE current, InfiniBand EDR target
+- Networking: 5GbE current, InfiniBand EDR target
 - Media: Plex + Sonarr + Radarr + Tautulli (ADR-011)
 
 ## Rules

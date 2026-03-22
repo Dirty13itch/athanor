@@ -12,7 +12,7 @@
 ADR-003 established the three-tier storage hierarchy (local NVMe / VAULT NVMe over NFS / VAULT HDD array). That research answered *where* data should live. This research answers *how* to make each tier as fast as possible through software configuration, kernel tuning, caching layers, and inference engine options.
 
 Current state:
-- Models load from VAULT NFS over 10GbE at ~1.1 GB/s (measured)
+- Models load from VAULT NFS over 5GbE at ~1.1 GB/s (measured)
 - Local NVMe available at 3-7 GB/s (Gen4) or up to 12 GB/s (Gen5 T700)
 - vLLM serves Qwen3-32B-AWQ with TP=4 on Node 1, TP=1 on Node 2
 - KV cache lives entirely in VRAM
@@ -54,7 +54,7 @@ Tensorizer pre-serializes models into a streaming-optimized format. Key benchmar
 | HTTP/S3 streaming | Standard | 0.875-1.0 GiB/s (network-bound) |
 | 40GbE network | Standard | ~5 GB/s (wire speed) |
 
-**Applicability to Athanor:** Limited. The 10GbE network caps NFS at ~1.1 GB/s regardless of format. Tensorizer's advantage materializes only on local NVMe reads, where safetensors with mmap is already near optimal. Not worth the pre-serialization overhead for a homelab.
+**Applicability to Athanor:** Limited. The 5GbE network caps NFS at ~1.1 GB/s regardless of format. Tensorizer's advantage materializes only on local NVMe reads, where safetensors with mmap is already near optimal. Not worth the pre-serialization overhead for a homelab.
 
 **Source:** [CoreWeave Tensorizer GitHub](https://github.com/CoreWeave/tensorizer)
 
@@ -78,7 +78,7 @@ For Qwen3-32B-AWQ (~18 GB model weights):
 | Source | Throughput | Load Time | Bottleneck |
 |--------|-----------|-----------|------------|
 | VAULT HDD over NFS | 150-250 MB/s | 72-120 sec | HDD single-drive read |
-| VAULT NVMe over NFS | ~1.1 GB/s | ~16 sec | 10GbE network |
+| VAULT NVMe over NFS | ~1.1 GB/s | ~16 sec | 5GbE network |
 | Local NVMe (Gen4) | 3-7 GB/s | 2.6-6 sec | NVMe sequential read |
 | Local NVMe (Gen5 T700) | 10-12 GB/s | 1.5-1.8 sec | PCIe bandwidth |
 
@@ -232,9 +232,9 @@ Tuning option: `--prefix-caching-hash-algo xxhash` for faster (non-cryptographic
 
 ### 3.1 nconnect: Multiple TCP Connections (Highest Impact)
 
-The `nconnect` mount option establishes multiple TCP connections per NFS mount, distributing load across them. This is the single most impactful NFS tuning parameter for 10GbE.
+The `nconnect` mount option establishes multiple TCP connections per NFS mount, distributing load across them. This is the single most impactful NFS tuning parameter for 5GbE.
 
-**Why it matters:** A single NFS TCP connection on Linux is limited by per-socket processing overhead. On 10GbE, a single connection typically tops out at 3-5 Gbps. Multiple connections can approach wire speed.
+**Why it matters:** A single NFS TCP connection on Linux is limited by per-socket processing overhead. On 5GbE, a single connection typically tops out at 3-5 Gbps. Multiple connections can approach wire speed.
 
 ```
 nconnect=8   # 8 TCP connections per mount
@@ -242,8 +242,8 @@ nconnect=8   # 8 TCP connections per mount
 
 Recommended values:
 - `nconnect=4`: Good starting point, low overhead
-- `nconnect=8`: Near-optimal for 10GbE
-- `nconnect=16`: Maximum, diminishing returns beyond 8 on 10GbE
+- `nconnect=8`: Near-optimal for 5GbE
+- `nconnect=16`: Maximum, diminishing returns beyond 8 on 5GbE
 
 **Estimated throughput improvement:**
 | Setting | Expected Throughput | Qwen3-32B-AWQ Load |
@@ -900,7 +900,7 @@ Throughput measurements from the deep audits and NFS testing:
 | Path | Measured | Theoretical Max | Bottleneck |
 |------|----------|-----------------|------------|
 | VAULT HDD array (single spindle) | 150-250 MB/s | ~260 MB/s (CMR) | Disk seek + sequential |
-| VAULT NVMe cache over NFS | 703 MB/s (Node 2 read test) | ~1.17 GB/s (10GbE) | NFS overhead, TCP buffers |
+| VAULT NVMe cache over NFS | 703 MB/s (Node 2 read test) | ~1.17 GB/s (5GbE) | NFS overhead, TCP buffers |
 | VAULT NVMe cache over NFS (tuned) | ~1.0-1.1 GB/s (estimated) | ~1.17 GB/s | Wire speed |
 | Node 1 local NVMe (P310 Gen4) | Not measured | 3.5 GB/s seq read | PCIe Gen4 x4 |
 | Node 2 local NVMe (T700 Gen5) | Not measured | 11.7 GB/s seq read | PCIe Gen5 x4 |
@@ -951,7 +951,7 @@ echo "[$(date -Iseconds)] Preload complete"
 
 ### 13.1 Current State (Verified via SSH 2026-02-25)
 
-| Device | Interface | Current MTU | 10GbE Link |
+| Device | Interface | Current MTU | 5GbE Link |
 |--------|-----------|-------------|------------|
 | Node 1 (Foundry) | enp36s0f0 | **1500** | Aquantia AQC113 |
 | Node 2 (Workshop) | eno1 | **9000** | Aquantia AQC113 |
@@ -978,7 +978,7 @@ All 4 segments must have MTU 9000 for jumbo frames to work:
 
 **Step 1: UniFi Switch (USW Pro XG 10 PoE)**
 - UniFi Network > Settings > Networks > Default > Advanced > Jumbo frames: Enable
-- Or per-port: Devices > USW Pro XG > Ports > [each 10GbE port] > MTU: 9000
+- Or per-port: Devices > USW Pro XG > Ports > [each 5GbE port] > MTU: 9000
 - UniFi switches support jumbo frames on all ports (USW Pro XG supports up to 9216)
 
 **Step 2: VAULT (Unraid)**
@@ -1026,7 +1026,7 @@ ping -M do -s 8972 192.168.1.203
 | VAULT reboot required | Low | Schedule during off-hours |
 | SSH loss during change | Medium | Have JetKVM ready for Node 1, physical access for VAULT |
 
-**Recommendation:** Deploy jumbo frames across all 10GbE segments. Start with the switch, then VAULT, then Node 1. Test at each step. Node 2 is already done.
+**Recommendation:** Deploy jumbo frames across all 5GbE segments. Start with the switch, then VAULT, then Node 1. Test at each step. Node 2 is already done.
 
 ---
 
@@ -1038,13 +1038,13 @@ NVMe-oF/TCP exposes a remote NVMe drive as a local block device over the network
 
 ### 14.2 Performance Characteristics
 
-| Protocol | Overhead | Max Throughput (10GbE) | Latency | CPU Cost |
+| Protocol | Overhead | Max Throughput (5GbE) | Latency | CPU Cost |
 |----------|----------|----------------------|---------|----------|
 | NFS v4 | High (RPC, VFS, metadata) | ~1.1 GB/s | ~200-500 us | Medium |
 | NVMe-oF/TCP | Low (block-level, minimal headers) | ~1.15 GB/s | ~50-100 us | Low |
 | NVMe-oF/RDMA | Minimal (kernel bypass) | ~1.17 GB/s (wire speed) | ~10-20 us | Minimal |
 
-On 10GbE, both NFS and NVMe-oF/TCP are network-bound at ~1.1-1.17 GB/s. NVMe-oF/TCP has lower latency for small random reads (useful for database workloads), but for Athanor's primary use case (large sequential model loads), the throughput difference is negligible.
+On 5GbE, both NFS and NVMe-oF/TCP are network-bound at ~1.1-1.17 GB/s. NVMe-oF/TCP has lower latency for small random reads (useful for database workloads), but for Athanor's primary use case (large sequential model loads), the throughput difference is negligible.
 
 ### 14.3 Setup (for reference)
 
@@ -1094,7 +1094,7 @@ lsblk
 
 | Factor | Assessment |
 |--------|-----------|
-| **Throughput gain** | Negligible over NFS on 10GbE (~5% at best) |
+| **Throughput gain** | Negligible over NFS on 5GbE (~5% at best) |
 | **Latency gain** | Meaningful for database IOPS, not for model loading |
 | **Complexity** | Block device export means no filesystem sharing -- only one client can mount read-write |
 | **Data sharing** | NFS allows multiple nodes to read the same files. NVMe-oF is single-client unless you add a cluster filesystem (GFS2, OCFS2). |
@@ -1107,7 +1107,7 @@ lsblk
 - RDMA/InfiniBand networks (ADR-003 mentions InfiniBand EDR as a target)
 - Database workloads needing sub-100us latency to remote storage
 
-**Recommendation:** Do not deploy NVMe-oF/TCP. The 10GbE link is the bottleneck, not the protocol. When InfiniBand EDR is deployed, revisit NVMe-oF/RDMA -- that combination would deliver ~6 GB/s with <20 us latency.
+**Recommendation:** Do not deploy NVMe-oF/TCP. The 5GbE link is the bottleneck, not the protocol. When InfiniBand EDR is deployed, revisit NVMe-oF/RDMA -- that combination would deliver ~6 GB/s with <20 us latency.
 
 ---
 
@@ -1449,14 +1449,14 @@ net.core.rmem_max = 212992    (~208 KB)
 net.core.wmem_max = 212992    (~208 KB)
 ```
 
-**For 10GbE NFS, these are far too small.** The TCP buffer must be large enough to hold the bandwidth-delay product (BDP) of the link:
+**For 5GbE NFS, these are far too small.** The TCP buffer must be large enough to hold the bandwidth-delay product (BDP) of the link:
 ```
 BDP = bandwidth x RTT
     = 1.25 GB/s x 0.2 ms (LAN RTT)
     = 250 KB minimum
 ```
 
-212 KB is below the minimum BDP for 10GbE, meaning the TCP window cannot grow large enough to saturate the link. This is likely why Node 2 measured 703 MB/s over NFS instead of the theoretical ~1.1 GB/s.
+212 KB is below the minimum BDP for 5GbE, meaning the TCP window cannot grow large enough to saturate the link. This is likely why Node 2 measured 703 MB/s over NFS instead of the theoretical ~1.1 GB/s.
 
 **Recommended sysctl:**
 ```bash
@@ -1480,7 +1480,7 @@ net.ipv4.tcp_window_scaling = 1
 net.core.somaxconn = 4096
 ```
 
-**Expected impact:** With 16 MB buffers, the TCP window can grow to fill the 10GbE pipe. NFS throughput should increase from ~700 MB/s to ~1.0-1.1 GB/s for large sequential reads.
+**Expected impact:** With 16 MB buffers, the TCP window can grow to fill the 5GbE pipe. NFS throughput should increase from ~700 MB/s to ~1.0-1.1 GB/s for large sequential reads.
 
 ### 19.5 VM Tuning
 
@@ -1511,7 +1511,7 @@ All tuning should be deployed via the `common` Ansible role for consistency:
 - name: Deploy sysctl tuning for AI workloads
   copy:
     content: |
-      # Network tuning for 10GbE NFS
+      # Network tuning for 5GbE NFS
       net.core.rmem_max = 16777216
       net.core.wmem_max = 16777216
       net.ipv4.tcp_rmem = 4096 1048576 16777216
@@ -1555,7 +1555,7 @@ All tuning should be deployed via the `common` Ansible role for consistency:
 |---|--------|------|--------|--------|
 | 1 | **Mount Node 1 NVMe at /data** | Node 1 | Unlock 1 TB local storage | 5 min |
 | 2 | **Update NFS mount options** (1MB blocks, hard, noatime, nconnect=8) | Both | ~40% NFS throughput increase | Ansible change |
-| 3 | **Deploy TCP buffer sysctl** (16 MB rmem/wmem) | Both | Unlock full 10GbE throughput | Ansible change |
+| 3 | **Deploy TCP buffer sysctl** (16 MB rmem/wmem) | Both | Unlock full 5GbE throughput | Ansible change |
 | 4 | **Deploy VM sysctl** (swappiness=10, vfs_cache_pressure=50) | Both | Better memory utilization | Ansible change |
 | 5 | **Deploy read-ahead udev rule** (4 MB) | Both | Faster sequential reads | Ansible change |
 | 6 | **Fix backup-qdrant.sh default path** | Repo | Prevent confusion on manual runs | 1-line edit |
@@ -1585,8 +1585,8 @@ All tuning should be deployed via the `common` Ansible role for consistency:
 |-------|----------|-----------|
 | NVMe tiering | **rsync, not bcache/dm-cache/FS-Cache** | One-person scale, full control, simpler |
 | Model preloading | **rsync to local /data** | 5x faster cold starts, NFS-independent |
-| Jumbo frames | **Deploy MTU 9000 on all 10GbE** | Low effort, reduces CPU overhead |
-| NVMe-oF/TCP | **Do not deploy** | Negligible gain on 10GbE, complexity penalty |
+| Jumbo frames | **Deploy MTU 9000 on all 5GbE** | Low effort, reduces CPU overhead |
+| NVMe-oF/TCP | **Do not deploy** | Negligible gain on 5GbE, complexity penalty |
 | Node 2 NVMe | **3 independent ext4 mounts** | Simplest, full capacity, no RAID overhead |
 | Node 1 NVMe | **Mount immediately at /data** | 1 TB idle storage, takes 5 minutes |
 | VAULT capacity | **Monitor + 22TB WD Gold at 92%** | 3-4 months headroom at current growth |

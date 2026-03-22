@@ -399,7 +399,7 @@ Two of three rack circuits handle this easily (20A circuit = 2,400W max continuo
 | **Total** | **~$75** |
 
 Already on the purchase list (BUILD-ROADMAP Phase 8). Provides:
-- 56 Gbps (7 GB/s) point-to-point — 5.6x faster than 10GbE
+- 56 Gbps (7 GB/s) point-to-point — 5.6x faster than 5GbE
 - RDMA for zero-copy cross-node transfers
 - Enables Mode 4 (Titan) for cross-node model distribution
 - Future-proofs for distributed inference as models grow

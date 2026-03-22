@@ -12,7 +12,7 @@ Last updated: 2026-02-24 (Session 8: Post-deployment hardening, monitoring verif
 - [x] SSH into both nodes with the staged Athanor credentials from vault/env
 - [x] Verify Samsung 990 PRO 4TB physical seat on Node 1 — reseated during rack session (verify detection in BIOS)
 - [x] Reconnect JetKVM ATX power cable on Node 2 — Done (Session 3)
-- [x] Move Node 1 + Node 2 ethernet to USW Pro XG 10 PoE (10GbE data plane) — Done (Session 3)
+- [x] Move Node 1 + Node 2 ethernet to USW Pro XG 10 PoE (5GbE data plane) — Done (Session 3)
 
 ## Phase 1: NVIDIA + Docker (ADR-001 validation)
 
@@ -36,7 +36,7 @@ Last updated: 2026-02-24 (Session 8: Post-deployment hardening, monitoring verif
 
 - [x] Configure NFS exports on VAULT (/mnt/user/data, /mnt/user/models, /mnt/user/appdata, /mnt/user/system) — already configured
 - [x] Mount NFS shares on both nodes (fstab entries) — /mnt/vault/{models,data,appdata}
-- [ ] Verify 10GbE throughput between nodes and VAULT (iperf3)
+- [ ] Verify 5GbE throughput between nodes and VAULT (iperf3)
 - [x] Set static IPs on Node 1 (.244/.246) and Node 2 (.225) — netplan configs, dual default route fix
 - [ ] Order Mellanox ConnectX-3 FDR InfiniBand cards (2x, ~$30 each on eBay)
 
@@ -203,7 +203,7 @@ These require hands at the rack:
 - ~~Install P310 2TB in DEV M.2_2~~ — Done
 - ~~Move RX 5700 XT to DEV Slot 2~~ — Done
 - ~~Verify Samsung 990 PRO 4TB seat on Node 1~~ — Reseated (verify detection in BIOS)
-- ~~Move ethernet cables to 10GbE switch~~ — Done
+- ~~Move ethernet cables to 5GbE switch~~ — Done
 - ~~Reconnect JetKVM ATX power cable on Node 2~~ — Done
 - Move RTX 3060 from DEV → Node 1 (deferred - PSU budget)
 - Move Node 1 into mining GPU enclosure with risers + dual PSU
@@ -225,7 +225,7 @@ These require hands at the rack:
 - ~~**Plex claim**~~: Done — claimed, movies+TV libraries added
 - ~~**VAULT media stack**~~: Done — all 10 containers deployed via Ansible (2026-02-24)
 - ~~**Flux models**~~: Done
-- ~~**10GbE migration**~~: Done
+- ~~**5GbE migration**~~: Done
 - ~~**JetKVM ATX cable**~~: Done
 - ~~**DHCP reservations**~~: Done (6 Fixed IPs)
 

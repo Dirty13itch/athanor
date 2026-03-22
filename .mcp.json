@@ -73,6 +73,10 @@
       "args": [
         "@modelcontextprotocol/server-memory"
       ]
+    },
+    "hindsight": {
+      "type": "http",
+      "url": "http://localhost:8888/mcp/general-assistant/"
     }
   }
 }

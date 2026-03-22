@@ -32,7 +32,7 @@
 | DESK | desk | .215 | i7-13700K | 64GB DDR5 | RTX 3060 (12GB) | Windows workstation | — |
 | MOBILE | — | — | Asus ROG Strix G17 | — | — | Field device | — |
 
-**Network:** UniFi UDM Pro + USW Pro XG 10GbE + USW Pro 24 PoE. All servers on 10GbE SFP+ data plane.
+**Network:** UniFi UDM Pro + USW Pro XG 5GbE + USW Pro 24 PoE. All servers on 5GbE SFP+ data plane.
 **Remote access:** JetKVMs + IPMI for headless management. Tailscale for field access.
 
 ---
@@ -553,7 +553,7 @@ export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 | VAULT (.203) | OK | root | Intel A380 | LiteLLM :4000, Qdrant :6333, Redis :6379 | LangFuse :3030 NOT deployed |
 | DEV (.189) | local | shaun | 5060Ti | Claude Code + dev tools | N/A |
 
-Corrections: DEV IP=.189 (was TBD), DEV NIC=5GbE Realtek (not 10GbE), SSH users: DEV=shaun FOUNDRY/WORKSHOP=athanor VAULT=root, both keys (id_ed25519 + athanor_mgmt) needed on all nodes.
+Corrections: DEV IP=.189 (was TBD), DEV NIC=5GbE Realtek (not 5GbE), SSH users: DEV=shaun FOUNDRY/WORKSHOP=athanor VAULT=root, both keys (id_ed25519 + athanor_mgmt) needed on all nodes.
 
 ---
 

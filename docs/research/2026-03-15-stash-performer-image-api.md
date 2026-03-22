@@ -339,7 +339,7 @@ asyncio.run(download_performer_images())
 
 For 14,547 performers at ~50KB average image size:
 - **Estimated data:** ~700 MB total (not all will have images)
-- **Estimated time:** ~5-10 minutes at 20 concurrent downloads over 10GbE
+- **Estimated time:** ~5-10 minutes at 20 concurrent downloads over 5GbE
 
 ---
 

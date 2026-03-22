@@ -38,7 +38,7 @@ This plan consolidates findings from 60+ research documents, 28 research/audit a
 - **Hindsight (vectorize-io)**: Trending agent memory system — retain/recall/reflect, +44.6pts on LongMemEval. MCP server. Could complement/replace 6-tier memory. **EVALUATE.**
 - **Karpathy autoresearch**: 22.9K stars in 3 days. Auto AI research on single GPU.
 - **Qwen3.5-9B confirmed**: Outperforms last-gen Qwen3-30B. Validates our deployment plan.
-- **DEV NIC is 5GbE** (measured), not 10GbE as user stated. Still adequate but not 10GbE.
+- **DEV NIC is 5GbE** (measured), not 5GbE as user stated. Still adequate but not 5GbE.
 - **VAULT has 5 NVMe** (not 3 as MEMORY.md says): 4× Samsung 990 EVO Plus 1TB + 1× P310 1TB
 
 **Locked Architectural Decisions (non-negotiable):**
@@ -106,7 +106,7 @@ The original KAIZEN vision (Jan 2026) planned 30 environments with GWT cognitive
 - RAM: 219GB DDR4-3200 ECC (7/8 channels populated, Channel H empty — $50-80 for 32GB RDIMM → 256GB + full bandwidth)
 - GPUs: 4× RTX 5070Ti 16GB + 1× RTX 4090 24GB = 88GB VRAM
 - NVMe: 3.6TB Samsung 990 PRO (/mnt/local-fast, models), 3.6TB Crucial P3 Plus (OS), 932GB Crucial P310 (**UNMOUNTED** — waste)
-- Network: 2× 10GbE (enp66s0f0 + enp66s0f1), both UP at 10000Mb/s
+- Network: 2× 5GbE (enp66s0f0 + enp66s0f1), both UP at 10000Mb/s
 - Kernel: 6.17.0-14-generic, Docker 29.2.1
 
 **WORKSHOP (.225) — Creative**
@@ -114,7 +114,7 @@ The original KAIZEN vision (Jan 2026) planned 30 environments with GWT cognitive
 - RAM: 125GB DDR5-5600
 - GPUs: RTX 5090 32GB + RTX 5060Ti 16GB = 48GB VRAM
 - NVMe: 3.6TB Crucial T700 Gen5 (OS), 932GB T700 Gen5 (/mnt/fast1, **EMPTY**), 932GB T700 Gen5 (/mnt/fast2, **EMPTY**)
-- Network: 10GbE (eno1 at 10000Mb/s) + 2.5GbE (enp70s0) + WiFi
+- Network: 5GbE (eno1 at 10000Mb/s) + 2.5GbE (enp70s0) + WiFi
 - Kernel: 6.17.0-14-generic, Docker 29.2.1
 
 **DEV (.189) — Ops Center**
@@ -122,7 +122,7 @@ The original KAIZEN vision (Jan 2026) planned 30 environments with GWT cognitive
 - RAM: 60GB
 - GPU: RTX 5060Ti 16GB
 - NVMe: 932GB Crucial T700 Gen5 (OS /), 3.6TB Crucial P3 Plus (/data, **EMPTY**), 932GB Samsung 970 EVO Plus (/var/lib/docker)
-- Network: **5GbE** (enp14s0, measured 5000Mb/s — NOT 10GbE) + WiFi
+- Network: **5GbE** (enp14s0, measured 5000Mb/s — NOT 5GbE) + WiFi
 - Kernel: 6.17.0-14-generic, Docker 29.2.1
 
 **VAULT (.203) — Storage**
@@ -131,7 +131,7 @@ The original KAIZEN vision (Jan 2026) planned 30 environments with GWT cognitive
 - GPUs: Intel ARC A380 (QSV transcode) + AMD Radeon iGPU
 - NVMe: 4× Samsung 990 EVO Plus 1TB + 1× Crucial P310 1TB = **5 NVMe** (MEMORY.md says 3)
 - HDDs: 2× WDC 22TB + 5× WDC 20TB + 1× Seagate 20TB + 2× WDC 18TB = **~200TB raw** (164TB usable array)
-- Network: bond0 active-backup (eth0 10GbE primary + eth1 2.5GbE backup)
+- Network: bond0 active-backup (eth0 5GbE primary + eth1 2.5GbE backup)
 - Kernel: 6.12.54-Unraid
 
 **DESK (.50) — Windows Workstation**
@@ -139,7 +139,7 @@ The original KAIZEN vision (Jan 2026) planned 30 environments with GWT cognitive
 - RAM: 64GB DDR5-4800 (2× 32GB)
 - GPU: RTX 3060 12GB + Intel UHD 770
 - NVMe: 2TB Crucial P310 + 1TB Crucial T700 = 3TB
-- Network: 1GbE (Ethernet 2) + 10GbE (vEthernet FSE HostVnic / Hyper-V)
+- Network: 1GbE (Ethernet 2) + 5GbE (vEthernet FSE HostVnic / Hyper-V)
 
 **Cluster Totals:**
 - CPUs: 120 cores / 240 threads
@@ -147,7 +147,7 @@ The original KAIZEN vision (Jan 2026) planned 30 environments with GWT cognitive
 - VRAM: 120.5GB GPU + 12GB DESK = 132.5GB
 - NVMe: ~25TB (18.7TB idle)
 - HDD: ~200TB raw (164TB usable, 22TB free)
-- Network: All nodes 5-10GbE
+- Network: All nodes 5-5GbE
 
 ### MEMORY.md Corrections Required
 
@@ -160,7 +160,7 @@ The original KAIZEN vision (Jan 2026) planned 30 environments with GWT cognitive
 | FOUNDRY containers | vllm-coordinator, vllm-coder, athanor-agents | Also: **Crucible** (API+Ollama+ChromaDB+SearXNG), **GPU orchestrator**, wyoming-whisper, speaches, qdrant, alloy |
 | WORKSHOP containers | vllm-node2, comfyui | Also: **athanor-dashboard**, **ws-pty-bridge**, **athanor-eoq**, **athanor-ulrich-energy**, open-webui |
 | DESK GPU | Not documented | **RTX 3060 12GB** + Intel UHD 770 |
-| DESK full specs | Not documented | **i7-13700K 16C/24T, 64GB DDR5-4800, RTX 3060 12GB, 2TB P310 + 1TB T700 NVMe, 10GbE (vEthernet/Hyper-V)** |
+| DESK full specs | Not documented | **i7-13700K 16C/24T, 64GB DDR5-4800, RTX 3060 12GB, 2TB P310 + 1TB T700 NVMe, 5GbE (vEthernet/Hyper-V)** |
 
 ### Verified GPU Map
 
@@ -268,7 +268,7 @@ Custom `athanor/vllm:qwen35` image has CUDA 12.8 with sm_120 support. Verified v
 **Alternative (Option A):** Deploy Qwen3-VL-8B-FP8 (~18-20GB with images) on FOUNDRY 4090 by displacing vllm-coder. Not recommended — loses the dedicated coding endpoint.
 
 ### 0.3c NVMe Quick Win: Copy WORKSHOP Models to Local Storage
-**Finding:** WORKSHOP loads models over NFS from VAULT at 873 MB/s (10GbE saturated). Meanwhile, TWO Crucial T700 Gen5 NVMe drives sit EMPTY on WORKSHOP (`/mnt/fast1`, `/mnt/fast2`, 870GB each, 12.4 GB/s).
+**Finding:** WORKSHOP loads models over NFS from VAULT at 873 MB/s (5GbE saturated). Meanwhile, TWO Crucial T700 Gen5 NVMe drives sit EMPTY on WORKSHOP (`/mnt/fast1`, `/mnt/fast2`, 870GB each, 12.4 GB/s).
 **Impact:** Model load time 26s (NFS) → 1.9s (local Gen5). 14x improvement. Also eliminates VAULT dependency for inference.
 **Fix:**
 ```bash
@@ -314,7 +314,7 @@ Once keys are restored, analyze the existing data to optimize routing:
 # In auto_gen.py line 49-52:
 LLM_API_URL = "http://192.168.1.203:4000/v1"
 LLM_MODEL = "creative"  # LiteLLM alias → WORKSHOP Qwen3.5-35B-A3B-AWQ
-# Also set: LLM_API_KEY = "sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d"
+# Also set: LLM_API_KEY = "<REDACTED-see-~/.secrets/litellm-master-key>"
 ```
 **Also:** Clean up 113 empty drop folders. Rebuild gateway venv (Python binary marked "(deleted)").
 **Pipeline stats (when working):** 84 images generated (March 6-7), 54 rated (81% rejection rate), 18 active subjects, 45 themes. FLUX.1 Dev FP8 + PuLID Flux on 5090.
@@ -1606,14 +1606,14 @@ After these 5 fixes (~2 hours total), the cluster goes from "mostly broken" to "
 ```bash
 # Fix 1: LiteLLM failover — verify stream_timeout works
 curl -s -w "\nTime: %{time_total}s\n" http://192.168.1.203:4000/v1/chat/completions \
-  -H "Authorization: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d" \
+  -H "Authorization: Bearer <REDACTED-see-~/.secrets/litellm-master-key>" \
   -H "Content-Type: application/json" \
   -d '{"model":"reasoning","messages":[{"role":"user","content":"hi"}],"stream":true}' | head -5
 # Should get first token within 10s or fail fast (not 24 min)
 
 # Fix 1b: Verify coding route goes to coder (8006), not coordinator (8000)
 curl -s http://192.168.1.203:4000/v1/chat/completions \
-  -H "Authorization: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d" \
+  -H "Authorization: Bearer <REDACTED-see-~/.secrets/litellm-master-key>" \
   -d '{"model":"coding","messages":[{"role":"user","content":"hi"}]}' 2>&1 | grep -o '"model":"[^"]*"'
 # Should return qwen35-coder, not Qwen3.5-27B-FP8
 
@@ -1760,7 +1760,7 @@ The prior "Sovereign Autonomous Agent Engine" (50+ Python/shell/JSON files in Tr
 
 ### Files Read (all processed)
 
-- `AI Coding System Research & Architecture.docx` — READ. 48K chars, 6 parts, 85 citations. Master research/architecture doc. Key unique content: 1Gbps DEV bottleneck analysis (DOCX said 1Gbps, user said 10GbE, SSH measurement shows **5GbE** — partially corrected), $91.42/mo subscription savings calc, Best-of-N with ModeX, context compression "Focus" agent, NVMe partitioning strategy.
+- `AI Coding System Research & Architecture.docx` — READ. 48K chars, 6 parts, 85 citations. Master research/architecture doc. Key unique content: 1Gbps DEV bottleneck analysis (DOCX said 1Gbps, user said 5GbE, SSH measurement shows **5GbE** — partially corrected), $91.42/mo subscription savings calc, Best-of-N with ModeX, context compression "Focus" agent, NVMe partitioning strategy.
 - `AI_Subscriptions_and_API_Keys_Master (2).xlsx` — READ. 4 sheets: Subscriptions (10 paid, 35+ free tools), API Keys (32 entries, 20 in "Verify" status), Local Models (inventory with priorities), MCP & Integrations (plugins, marketplaces, skills). **Note: Several API keys exposed in plaintext during reading — Mistral, Zhipu, HuggingFace keys should be rotated.**
 
 ## Coding Tool Stack (DEFINITIVE — research-proven for non-coder operator)
@@ -1857,7 +1857,7 @@ Evaluate: Everything Claude Code, claude-task-master
 
 ### DEV as Dedicated Development Machine (Full Stack)
 
-**Hardware:** Ryzen 9 9900X 12C/24T, 60GB RAM (51GB available), RTX 5060Ti 16GB (11.5GB available), **5GbE** (NOT 10GbE — measured 5000 Mbps via sysfs, likely Realtek RTL8126 onboard)
+**Hardware:** Ryzen 9 9900X 12C/24T, 60GB RAM (51GB available), RTX 5060Ti 16GB (11.5GB available), **5GbE** (NOT 5GbE — measured 5000 Mbps via sysfs, likely Realtek RTL8126 onboard)
 **NVMe:** 5.5TB total — 932GB Crucial T700 OS (/), 3.4TB Crucial P3 Plus empty (/data), 932GB Samsung 970 EVO Plus Docker (/var/lib/docker)
 
 **NVMe Partitioning Strategy (from research):**
@@ -1984,7 +1984,7 @@ claude-squad (Agent Teams replaces), Kilo Code (redundant with Roo), Kiro (separ
 
 ### DESK as Local Workstation (Windows, currently just SSH terminal)
 
-**Hardware:** i7-13700K 16C/24T, 64GB DDR5-4800, RTX 3060 12GB, 2TB P310 + 1TB T700, 10GbE (Hyper-V vSwitch)
+**Hardware:** i7-13700K 16C/24T, 64GB DDR5-4800, RTX 3060 12GB, 2TB P310 + 1TB T700, 5GbE (Hyper-V vSwitch)
 
 **Current use:** SSH terminal to DEV via tmux. No local AI workloads.
 
@@ -2003,11 +2003,11 @@ claude-squad (Agent Teams replaces), Kilo Code (redundant with Roo), Kiro (separ
 | FOUNDRY | enp66s0f0 | 10 Gbps | Primary, UP |
 | FOUNDRY | enp66s0f1 | 10 Gbps | Secondary, UP (not bonded) |
 | WORKSHOP | eno1 | 10 Gbps | Primary, UP |
-| DEV | enp14s0 | **5 Gbps** | Onboard (user claimed 10GbE — verify if 10GbE NIC available) |
-| VAULT | bond0 | 10 Gbps | Active-backup: eth0 (10GbE primary) + eth1 (2.5GbE backup) |
-| DESK | vEthernet | 10 Gbps | Hyper-V vSwitch over physical 10GbE NIC |
+| DEV | enp14s0 | **5 Gbps** | Onboard (user claimed 5GbE — verify if 5GbE NIC available) |
+| VAULT | bond0 | 10 Gbps | Active-backup: eth0 (5GbE primary) + eth1 (2.5GbE backup) |
+| DESK | vEthernet | 10 Gbps | Hyper-V vSwitch over physical 5GbE NIC |
 
-**Network Equipment:** Ubiquiti UDM Pro + USW switches (10GbE backbone)
+**Network Equipment:** Ubiquiti UDM Pro + USW switches (5GbE backbone)
 - **UDM Pro built-in VPN:** WireGuard VPN server (native, no additional software needed)
 - **WiFiman:** Ubiquiti's network monitoring/management app
 - **Remote access options:** UDM Pro WireGuard > Tailscale > OpenVPN. WireGuard is kernel-native, lowest latency, built into the UDM Pro — may eliminate need for Tailscale on the NETWORK level (though Tailscale still useful for device-level mesh + MagicDNS on phone)
@@ -2032,8 +2032,8 @@ If VAULT goes down, the cluster loses: LiteLLM (routing), PostgreSQL (agent stat
 - Adequate for: SSH sessions, LiteLLM API calls, embedding requests, file editing
 - NOT adequate for: tensor parallelism across nodes (needs 100Gbps+), large model transfers (use rsync overnight)
 - DEV is the ops center, not a compute node — 5GbE is sufficient for its role
-- FOUNDRY↔WORKSHOP: both 10GbE, can do fast model sync between compute nodes
-- NFS from VAULT: currently saturates 10GbE at 873 MB/s — plan fixes this by copying models to local NVMe
+- FOUNDRY↔WORKSHOP: both 5GbE, can do fast model sync between compute nodes
+- NFS from VAULT: currently saturates 5GbE at 873 MB/s — plan fixes this by copying models to local NVMe
 
 ### Complete Service Map (verified live March 18, 2026 — 50+ services across 4 nodes)
 
@@ -2142,7 +2142,7 @@ The following should be added to the project CLAUDE.md at `~/repos/athanor/CLAUD
 
 ```markdown
 ## Available Infrastructure
-- LiteLLM: VAULT:4000 (key: sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d) — routes to local models
+- LiteLLM: VAULT:4000 (key: <REDACTED-see-~/.secrets/litellm-master-key>) — routes to local models
 - LangGraph: FOUNDRY:9000 — 9 agents, 77 tools (via athanor-agents MCP)
 - GPU Orchestrator: FOUNDRY:9200 — 4 GPU zones, metrics
 - Langfuse: VAULT:3030 — LLM observability (139K+ traces)

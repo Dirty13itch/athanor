@@ -137,7 +137,7 @@ docker run -d --name litellm --restart unless-stopped \
   --config /app/config/config.yaml
 
 # Verify
-curl -H "Authorization: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d" http://localhost:4000/health
+curl -H "Authorization: Bearer <REDACTED-see-~/.secrets/litellm-master-key>" http://localhost:4000/health
 ```
 
 ### Monitoring
@@ -494,7 +494,7 @@ Run after recovery to confirm all services are operational:
 
 ```bash
 # === VAULT ===
-curl -s -H "Authorization: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d" \
+curl -s -H "Authorization: Bearer <REDACTED-see-~/.secrets/litellm-master-key>" \
   http://192.168.1.203:4000/health | python3 -m json.tool
 curl -s http://192.168.1.203:6333/collections | python3 -m json.tool
 curl -s http://192.168.1.203:7474 | head -5

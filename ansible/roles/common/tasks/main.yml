@@ -74,7 +74,7 @@
     state: present
   loop: "{{ cluster_hosts }}"
 
-- name: Apply kernel tuning for 10GbE and inference workloads
+- name: Apply kernel tuning for 5GbE and inference workloads
   ansible.posix.sysctl:
     name: "{{ item.key }}"
     value: "{{ item.value }}"
@@ -82,7 +82,7 @@
     state: present
     reload: true
   loop:
-    # TCP buffer sizes for 10GbE NFS performance
+    # TCP buffer sizes for 5GbE NFS performance
     - { key: "net.core.rmem_max", value: "16777216" }
     - { key: "net.core.wmem_max", value: "16777216" }
     - { key: "net.ipv4.tcp_rmem", value: "4096 1048576 16777216" }

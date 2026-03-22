@@ -24,7 +24,7 @@ Key constraints:
 - Node 1: PCIe 4.0 (32 GB/s per x16 slot). 5070 Ti is Blackwell sm_120, 4090 is Ada sm_89.
 - Node 2: PCIe 5.0 (64 GB/s per x16 slot). Both GPUs are Blackwell sm_120.
 - No NVLink on any GPU.
-- Network between nodes: 10GbE (~1.25 GB/s sustained). InfiniBand EDR planned (~6.25 GB/s).
+- Network between nodes: 5GbE (~1.25 GB/s sustained). InfiniBand EDR planned (~6.25 GB/s).
 - Current deployment: Qwen3-32B-AWQ on Node 1 TP=4 (5070 Ti x4), Qwen3-14B FP16 on Node 2 5090.
 
 ---
@@ -256,7 +256,7 @@ TP requires all-reduce operations at every transformer layer. This is bandwidth-
 
 | Network | Bandwidth | All-reduce per layer (32B) | Per-token overhead (48 layers) | Verdict |
 |---------|-----------|---------------------------|-------------------------------|---------|
-| 10GbE | ~1.25 GB/s | ~25 ms | ~1.2 s | **Not viable** |
+| 5GbE | ~1.25 GB/s | ~25 ms | ~1.2 s | **Not viable** |
 | IB EDR (56 Gbps) | ~6.25 GB/s | ~5 ms | ~240 ms | **Marginally viable** |
 | IB HDR (200 Gbps) | ~25 GB/s | ~1.3 ms | ~62 ms | Viable for batch |
 | PCIe 4.0 (intra-node) | ~32 GB/s | ~1 ms | ~48 ms | Standard (Node 1) |
@@ -270,7 +270,7 @@ PP only transfers activations between pipeline stages (once per token, not per l
 
 | Network | Activation Transfer | Per-token overhead | Viable? |
 |---------|--------------------|--------------------|---------|
-| 10GbE | ~8 ms | ~8 ms | **Marginal** (adds 8ms per token) |
+| 5GbE | ~8 ms | ~8 ms | **Marginal** (adds 8ms per token) |
 | IB EDR | ~1.6 ms | ~1.6 ms | **Yes** (minimal overhead) |
 
 PP with InfiniBand is viable but introduces pipeline bubble (~30-50% throughput loss with 2 stages). Combined with TP within each node:
@@ -566,7 +566,7 @@ This could be automated via the GPU Orchestrator's zone management.
 
 ### What NOT To Do
 
-1. **Don't try cross-node TP over 10GbE.** The latency penalty makes it worse than just using a smaller model that fits on one node.
+1. **Don't try cross-node TP over 5GbE.** The latency penalty makes it worse than just using a smaller model that fits on one node.
 2. **Don't run DeepSeek-R1 for coding.** Its SWE-bench 49.2% is worse than Qwen3-Coder-30B-A3B (50.3%) despite being 22x larger.
 3. **Don't quantize below Q4 for coding tasks.** The quality degradation below 4 bits is disproportionately severe for code generation.
 4. **Don't run Kimi K2.5 or GLM-5 locally.** They exceed your hardware capacity at any viable quantization. Use them via API for the handful of tasks where 76-78% SWE-bench matters.

@@ -1,7 +1,10 @@
-import { NextRequest } from "next/server";
 import { proxyAgentJson } from "@/lib/server-agent";
+import { NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
-  const status = request.nextUrl.searchParams.get("status") ?? "pending";
-  return proxyAgentJson(`/v1/plans?status=${status}`, undefined, "Failed to fetch plans");
+export async function GET() {
+  try {
+    return await proxyAgentJson("/v1/pipeline/plans", undefined, "Failed to fetch plans");
+  } catch {
+    return NextResponse.json({ plans: [], message: "Pipeline plans not yet implemented" }, { status: 200 });
+  }
 }

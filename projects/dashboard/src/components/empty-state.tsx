@@ -15,7 +15,7 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div
+    <div data-empty-card="true"
       className={cn(
         "rounded-2xl border border-dashed border-border/70 bg-background/20 px-6 py-10 text-center",
         className

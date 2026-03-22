@@ -26,7 +26,7 @@ For the full philosophy, see `docs/VISION.md`. For the build history, see `docs/
 
 ```
                     ┌──────────────────────────────────────────────┐
-                    │              Network (10GbE)                  │
+                    │              Network (5GbE)                  │
                     │  USW Pro XG 10 PoE (192.168.1.31)            │
                     └──┬──────────┬──────────┬──────────┬──────────┘
                        │          │          │          │

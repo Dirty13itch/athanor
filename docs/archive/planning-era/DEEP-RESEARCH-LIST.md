@@ -342,7 +342,7 @@ Status key: 🔴 Blocking (can't proceed without this) | 🟡 High-impact (shoul
 
 ### 8.6 ⚪ MTU mismatch across nodes
 - Identified in Session 19, not yet resolved
-- 10GbE SFP+ data plane — jumbo frames configured consistently?
+- 5GbE SFP+ data plane — jumbo frames configured consistently?
 - Impact on large model weight transfers and inference latency
 
 ---
@@ -461,7 +461,7 @@ Status key: 🔴 Blocking (can't proceed without this) | 🟡 High-impact (shoul
 - Zero telemetry — how to verify no outbound connections from inference nodes?
 - `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` for Claude Code
 - Network monitoring: what should each node be allowed to reach?
-- Firewall rules for the 10GbE data plane
+- Firewall rules for the 5GbE data plane
 
 ### 13.3 ⚪ Model integrity verification
 - How to verify downloaded model weights haven't been tampered with?

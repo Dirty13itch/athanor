@@ -124,7 +124,7 @@ Options ranked by value:
 
 3. **Vision model** — Qwen3.5-27B (with VLM encoder, not `--language-model-only`) for image understanding. Would need ~14 GB. Enables photo analysis for Stash agent, image description for Knowledge agent.
 
-4. **Move embedding/reranker from DEV** — Currently on DEV 5060 Ti using only 4.8 GB. Moving to WORKSHOP 5060 Ti keeps them closer to the inference stack (10GbE vs 5GbE on DEV). Frees DEV GPU entirely.
+4. **Move embedding/reranker from DEV** — Currently on DEV 5060 Ti using only 4.8 GB. Moving to WORKSHOP 5060 Ti keeps them closer to the inference stack (5GbE vs 5GbE on DEV). Frees DEV GPU entirely.
 
 **Recommendation:** Option 2 (small fast model) has highest immediate value — reduces latency for simple agent queries and provides a true "fast" tier distinct from the 35B worker.
 
@@ -179,7 +179,7 @@ Formatted but unmounted. Could serve as:
 
 ### NFS Performance
 
-WORKSHOP reads models from VAULT NFS (932 GB share, 85% full). The `--safetensors-load-strategy eager` flag already optimizes this by converting random page faults to sequential reads. With 10GbE, model loading takes ~30s for 20 GB models. Local NVMe cache would reduce this to ~5s.
+WORKSHOP reads models from VAULT NFS (932 GB share, 85% full). The `--safetensors-load-strategy eager` flag already optimizes this by converting random page faults to sequential reads. With 5GbE, model loading takes ~30s for 20 GB models. Local NVMe cache would reduce this to ~5s.
 
 **Recommendation:** Mount WORKSHOP ZFS pool and rsync frequently-used models locally. Saves 25s on every model load/restart.
 

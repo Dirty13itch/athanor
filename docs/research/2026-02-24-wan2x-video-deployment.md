@@ -476,7 +476,7 @@ cd ComfyUI-KJNodes && pip install -r requirements.txt
 
 2. **Block swapping performance impact:** WanVideoWrapper's block swapping trades VRAM for speed. At 20/40 blocks offloaded, VRAM drops to ~16 GB but generation time increases significantly. Need to benchmark the sweet spot on RTX 5090.
 
-3. **NFS latency for model loading:** Models are served from VAULT via 10GbE NFS. First-load time for 14.3 GB files over 10GbE is ~12 seconds. ComfyUI caches loaded models in GPU VRAM between generations, so this is a one-time cost per session.
+3. **NFS latency for model loading:** Models are served from VAULT via 5GbE NFS. First-load time for 14.3 GB files over 5GbE is ~12 seconds. ComfyUI caches loaded models in GPU VRAM between generations, so this is a one-time cost per session.
 
 4. **LoRA training feasibility:** Wan2.2 LoRA training for EoBQ character consistency is possible via DiffSynth-Studio. The 5B model is trainable on 32 GB; the 14B requires 48 GB+ or aggressive optimization.
 

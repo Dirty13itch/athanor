@@ -374,7 +374,7 @@ This is a soft policy — agents can override if needed. The workspace tracks wh
 
 **Deployment**: New container on VAULT alongside the existing services (LiteLLM, Neo4j, Prometheus, etc.). VAULT already runs 12+ containers; one more Redis instance is negligible. Alternatively, deploy on Node 1 co-located with the agent server to minimize latency — but VAULT keeps all stateful services in one place for backup simplicity.
 
-**Recommendation**: VAULT. The 1Hz cycle and pub/sub messages are tiny payloads. Network latency from Node 1 to VAULT over 10GbE is <0.5ms. Backup story is clean — Redis RDB snapshots go to the same VAULT backup location as Neo4j and appdata.
+**Recommendation**: VAULT. The 1Hz cycle and pub/sub messages are tiny payloads. Network latency from Node 1 to VAULT over 5GbE is <0.5ms. Backup story is clean — Redis RDB snapshots go to the same VAULT backup location as Neo4j and appdata.
 
 **Memory**: Default Redis with no persistence is fine for the active workspace (it's ephemeral by design). Enable RDB snapshots for stats and configuration persistence. Expected memory: <10 MB for workspace state even at scale.
 
@@ -497,7 +497,7 @@ The router agent approach is simpler for small agent counts but scales poorly. E
 
 ## Open Questions
 
-1. **Redis location**: VAULT (centralized, clean backup story) vs. Node 1 (co-located with agent server, lowest latency). Recommendation: VAULT, but benchmark the 1Hz cycle over 10GbE to confirm latency is acceptable.
+1. **Redis location**: VAULT (centralized, clean backup story) vs. Node 1 (co-located with agent server, lowest latency). Recommendation: VAULT, but benchmark the 1Hz cycle over 5GbE to confirm latency is acceptable.
 
 2. **Workspace capacity**: 7 is a starting point (Miller's Law analogy). The right number depends on event volume and agent count. May need to be tunable.
 

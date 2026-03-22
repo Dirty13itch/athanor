@@ -153,12 +153,22 @@ export const ROUTES: RouteDefinition[] = [
     mobile: true,
   },
   {
+    href: "/subscriptions",
+    label: "Subscriptions",
+    shortLabel: "Subs",
+    description: "Cloud subscription spend, provider burn rates, lease tracking, and execution history.",
+    family: "core",
+    icon: "routing",
+    primary: true,
+    mobile: true,
+  },
+  {
     href: "/tasks",
     label: "Tasks",
     description: "Queued, running, failed, and approval-bound workforce tasks.",
     family: "workforce",
     icon: "tasks",
-    primary: false,
+    primary: true,
     mobile: true,
   },
   {
@@ -167,7 +177,7 @@ export const ROUTES: RouteDefinition[] = [
     description: "Runtime control plane — lanes, capacity, presence, and autonomy levels.",
     family: "workforce",
     icon: "governor",
-    primary: false,
+    primary: true,
     mobile: true,
   },
   {
@@ -315,7 +325,7 @@ export const ROUTES: RouteDefinition[] = [
     description: "Deep cluster monitoring with Grafana-linked drill-downs.",
     family: "domains",
     icon: "monitoring",
-    primary: false,
+    primary: true,
     mobile: true,
   },
   {
@@ -397,7 +407,7 @@ export const ROUTES: RouteDefinition[] = [
     description: "Live system map — nodes, GPUs, models, agents, and service connections.",
     family: "core",
     icon: "topology",
-    primary: false,
+    primary: true,
     mobile: true,
   },
   {
@@ -406,7 +416,7 @@ export const ROUTES: RouteDefinition[] = [
     description: "Local models, subscription CLIs, routing intelligence, and assignment matrix.",
     family: "intelligence",
     icon: "models",
-    primary: false,
+    primary: true,
     mobile: true,
   },
   {

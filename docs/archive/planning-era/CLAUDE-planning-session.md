@@ -24,7 +24,7 @@
 | DESK | desk | .215 | i7-13700K, 64GB DDR5, Win11 | RTX 3060 | Workstation |
 | DEV | dev | TBD | Ryzen 9 9900X, 64GB DDR5 | RTX 5060Ti | Ops center (you are here) |
 
-All nodes 10GbE SFP+. SSH from DEV to all nodes configured.
+All nodes 5GbE SFP+. SSH from DEV to all nodes configured.
 
 ## Development Tools
 

@@ -92,7 +92,7 @@ curl -f http://localhost:{port}/health
 
 ### 5. Network Notes
 
-- Compute nodes reach VAULT via 1GbE (192.168.1.x) — 10GbE pending physical cable move
+- Compute nodes reach VAULT via 1GbE (192.168.1.x) — 5GbE pending physical cable move
 - NFS shares from VAULT: /mnt/user/data, /mnt/user/models, /mnt/user/appdata, /mnt/user/system
 - All services bind 0.0.0.0 for cross-node access
 - DNS: Use IP addresses until DNS is configured

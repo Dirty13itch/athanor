@@ -53,7 +53,7 @@ Target: Mellanox EDR (Enhanced Data Rate) for tensor parallelism across nodes.
 **Estimated total: $400–1,200 depending on CX-5 vs CX-6 and switch choice.**
 
 ### What InfiniBand Unlocks
-- Sub-microsecond latency between nodes (vs ~100μs for 10GbE TCP)
+- Sub-microsecond latency between nodes (vs ~100μs for 5GbE TCP)
 - RDMA — direct memory access across nodes without CPU involvement
 - Enables tensor parallelism across 4× RTX 5070 Ti cards spanning multiple nodes
 - NCCL native support for distributed inference
@@ -69,7 +69,7 @@ If EDR deals don't materialize, FDR 56 Gb/s is much cheaper:
 | Switch | Mellanox SX6036 (FDR, 36-port) | 1 | $100–200 |
 | Cables | QSFP+ FDR passive copper | 3–6 | $10–20 each |
 
-**FDR total: ~$200–350.** Still dramatically faster than 10GbE for NCCL traffic.
+**FDR total: ~$200–350.** Still dramatically faster than 5GbE for NCCL traffic.
 
 ---
 

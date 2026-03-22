@@ -17,9 +17,9 @@ What does each machine in Athanor actually do? Which workloads run where, given 
 
 | Machine | CPU | RAM | GPU | VRAM | Local NVMe | Network | OS |
 |---------|-----|-----|-----|------|------------|---------|-----|
-| **Node 1** | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x RTX 5070 Ti | 64 GB | 16 TB (after expansion) | 10GbE + IB 56G | Ubuntu 24.04 |
-| **Node 2** | Ryzen 9 9950X 16C/32T | 128 GB DDR5 | RTX 5090 + RTX 4090 | 56 GB | 4 TB | 10GbE + IB 56G | Ubuntu 24.04 |
-| **VAULT** | TR 7960X 24C/48T | 128 GB DDR5 ECC | Arc A380 | 6 GB | 6.5 TB NVMe + 164 TB HDD | 10GbE | Unraid |
+| **Node 1** | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x RTX 5070 Ti | 64 GB | 16 TB (after expansion) | 5GbE + IB 56G | Ubuntu 24.04 |
+| **Node 2** | Ryzen 9 9950X 16C/32T | 128 GB DDR5 | RTX 5090 + RTX 4090 | 56 GB | 4 TB | 5GbE + IB 56G | Ubuntu 24.04 |
+| **VAULT** | TR 7960X 24C/48T | 128 GB DDR5 ECC | Arc A380 | 6 GB | 6.5 TB NVMe + 164 TB HDD | 5GbE | Unraid |
 | **DEV** | i7-13700K 16C/24T | 64 GB DDR5 | RTX 3060 | 12 GB | 6.25 TB | 1GbE / WiFi | Windows 11 |
 
 ---
@@ -99,7 +99,7 @@ When a model exceeds either node's capacity (e.g., 70B FP16 at ~140 GB), pipelin
 | **Fine-tuning** — LoRA/QLoRA | 4x 5070 Ti | Multi-GPU training needs identical cards |
 | **Model management** — loading, caching, serving | None (CPU + NVMe) | 16 TB local NVMe holds the model cache |
 
-**Why agents on Node 1:** Agents are primarily LLM consumers. They send prompts to the inference API and process responses. Putting them on the same machine as the primary inference engine means their API calls are `localhost:8000` — zero network latency, zero bandwidth concern. The dashboard on Node 2 talks to agents over 10GbE, which is fine for small JSON payloads.
+**Why agents on Node 1:** Agents are primarily LLM consumers. They send prompts to the inference API and process responses. Putting them on the same machine as the primary inference engine means their API calls are `localhost:8000` — zero network latency, zero bandwidth concern. The dashboard on Node 2 talks to agents over 5GbE, which is fine for small JSON payloads.
 
 ### Node 2 — "Interface" (Interactive + Creative)
 

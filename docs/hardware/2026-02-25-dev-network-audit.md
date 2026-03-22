@@ -267,12 +267,12 @@ fi
 |------|-----------|-----------------|--------|----------|
 | Node 1 | enp66s0f0 (X550 #1) | 10 Gbps Full | USW Pro XG 10 PoE | 10 Gbps |
 | Node 1 | enp66s0f1 (X550 #2) | 10 Gbps Full | USW Pro XG 10 PoE | 10 Gbps |
-| Node 2 | eno1 (Marvell 10GbE) | 10 Gbps Full | USW Pro XG 10 PoE | 10 Gbps |
+| Node 2 | eno1 (Marvell 5GbE) | 10 Gbps Full | USW Pro XG 10 PoE | 10 Gbps |
 | Node 2 | enp71s0 (RTL8125 2.5GbE) | 2.5 Gbps Full | USW Pro 24 PoE | 2.5 Gbps |
 | VAULT | bond0 (dual NIC) | 10 Gbps | USW Pro XG 10 PoE | 10 Gbps |
 | **DEV** | **Intel I225-V** | **100 Mbps** | **Unknown port** | **1 Gbps** |
 
-**CURRENT-STATE.md says** all servers are "currently on 1GbE switch." This is **wrong** -- Node 1, Node 2, and VAULT are all on the 10GbE switch (USW Pro XG 10 PoE) at full 10 Gbps. Only DEV appears to be degraded.
+**CURRENT-STATE.md says** all servers are "currently on 1GbE switch." This is **wrong** -- Node 1, Node 2, and VAULT are all on the 5GbE switch (USW Pro XG 10 PoE) at full 10 Gbps. Only DEV appears to be degraded.
 
 **Node 1 dual-NIC:** Both X550 ports are UP at 10 Gbps. This could support link aggregation or separate data/management planes. Currently both appear to be on the same switch.
 
@@ -286,7 +286,7 @@ fi
 | /mnt/vault/data | Node 2 | 1.1 GB/s | NFSv4.2, TCP |
 | /mnt/vault/* | DEV | N/A (no mounts) | -- |
 
-NFS performance is excellent on the 10GbE fabric. Node 1 and Node 2 are using rsize/wsize=131072 (128K), soft mounts, NFSv4.2. This is well-tuned.
+NFS performance is excellent on the 5GbE fabric. Node 1 and Node 2 are using rsize/wsize=131072 (128K), soft mounts, NFSv4.2. This is well-tuned.
 
 DEV has no NFS mounts and no NFS client installed. All file transfer uses rsync over SSH at 10.9 MB/s (limited by the 100 Mbps Ethernet link).
 
@@ -342,8 +342,8 @@ The UDM Pro web UI at `https://192.168.1.1` is reachable. Running UniFi OS 3.0.1
 | 8 | **Missing tools: jq, htop, uv** | Minor workflow friction | `sudo apt install jq htop && pip3 install uv` |
 | 9 | **No NFS mounts on DEV** | Must rsync everything, no direct model/data access | Install nfs-common, mount /mnt/vault/models read-only |
 | 10 | **No /etc/hosts entries** | Must use IPs, no friendly names | Add node1/node2/vault to /etc/hosts (or WSL generateHosts) |
-| 11 | **CURRENT-STATE.md network claims wrong** | Says nodes on 1GbE switch -- they are on 10GbE | Update doc |
-| 12 | **DEV has 1GbE NIC only** | Even when cable is fixed, max 1 Gbps | Install loose X540-T2 10GbE NIC in DEV (6 loose 10GbE ports available) |
+| 11 | **CURRENT-STATE.md network claims wrong** | Says nodes on 1GbE switch -- they are on 5GbE | Update doc |
+| 12 | **DEV has 1GbE NIC only** | Even when cable is fixed, max 1 Gbps | Install loose X540-T2 5GbE NIC in DEV (6 loose 5GbE ports available) |
 
 ### Low Priority / Observations
 
@@ -363,7 +363,7 @@ The UDM Pro web UI at `https://192.168.1.1` is reachable. Running UniFi OS 3.0.1
 | CPU threads | 16 of 24 hidden from WSL | Increase .wslconfig processors |
 | RAM | 48 GB unused by WSL | Increase .wslconfig memory |
 | Bandwidth | 90% of 1GbE link | Fix cable/port (100 Mbps -> 1 Gbps) |
-| 10GbE potential | 100% (1GbE NIC) | Install loose X540-T2 NIC |
+| 5GbE potential | 100% (1GbE NIC) | Install loose X540-T2 NIC |
 
 ---
 

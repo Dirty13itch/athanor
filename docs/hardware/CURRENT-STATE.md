@@ -30,8 +30,8 @@
 │   NFS: /mnt/vault/models (22 TB array on VAULT)                │
 │                                                                  │
 │ Network:                                                         │
-│   eth0: Intel X550 10GbE (.244) - currently on 1GbE switch     │
-│   eth1: Intel X550 10GbE (.246) - currently on 1GbE switch     │
+│   eth0: Intel X550 5GbE (.244) - currently on 1GbE switch     │
+│   eth1: Intel X550 5GbE (.246) - currently on 1GbE switch     │
 │                                                                  │
 │ PSU: MSI MEG Ai1600T PCIE5 (1600W, 80+ Titanium)               │
 │   Power Budget: 1,520W optimized (95% utilization)             │
@@ -63,7 +63,7 @@
 │   - 3× PCIe 5.0 x16 slots (full x16 lanes each)                │
 │   - 4× M.2 PCIe 5.0 slots (onboard)                            │
 │   - 4× DDR5 RDIMM slots (quad channel, RDIMM only)             │
-│   - Marvell 10GbE + RTL8125 2.5GbE (dual LAN)                  │
+│   - Marvell 5GbE + RTL8125 2.5GbE (dual LAN)                  │
 │   - 2× USB4 Type-C (40 Gbps each)                              │
 │   - WiFi 7                                                      │
 │                                                                  │
@@ -89,7 +89,7 @@
 │   Slot 3: EMPTY (PCIe 5.0 x16 available)                       │
 │                                                                  │
 │ Network:                                                         │
-│   Marvell 10GbE (.225) - currently on 1GbE switch              │
+│   Marvell 5GbE (.225) - currently on 1GbE switch              │
 │   RTL8125 2.5GbE - unused                                       │
 │   WiFi 7 - unused                                               │
 │   2× USB4 Type-C (40 Gbps each) - available                    │
@@ -147,7 +147,7 @@
 │   Unraid array: /mnt/user/data, /mnt/user/models               │
 │                                                                  │
 │ Network:                                                         │
-│   Aquantia 10GbE (.203) - currently on 1GbE switch             │
+│   Aquantia 5GbE (.203) - currently on 1GbE switch             │
 │   RTL8125 2.5GbE - management                                   │
 │                                                                  │
 │ PSU: Unknown (adequate for current load)                        │
@@ -260,9 +260,9 @@ Gen3 (2 TB):
 ### PCIe Expansion Cards (7 total)
 ```
 Networking:
-  Intel X540-T2 (dual 10GbE RJ45)                   PCIe 2.1 x8
-  2× SR-PT02-X540 clone (dual 10GbE RJ45 each)     PCIe 2.1 x8
-    Total: 6 ports of 10GbE available
+  Intel X540-T2 (dual 5GbE RJ45)                   PCIe 2.1 x8
+  2× SR-PT02-X540 clone (dual 5GbE RJ45 each)     PCIe 2.1 x8
+    Total: 6 ports of 5GbE available
 
 Storage:
   2× ASUS Hyper M.2 X16 Gen5 (4× NVMe each)        PCIe 5.0 x16
@@ -306,7 +306,7 @@ GPUs:        1 (RTX 3060 12GB, available for Node 1)
 Motherboards: 4 (all Intel-compatible)
 RAM:         256 GB (128 GB DDR5 + 128 GB DDR4)
 NVMe:        13 TB (1× Gen5, 6× Gen4, 3× Gen3)
-10GbE NICs:  3 cards, 6 ports total
+5GbE NICs:  3 cards, 6 ports total
 PSUs:        4 (1000W SFX-L, 1200W ATX, 750W ATX, 600W ATX)
 ```
 
@@ -330,7 +330,7 @@ PSUs:        4 (1000W SFX-L, 1200W ATX, 750W ATX, 600W ATX)
 
 ### Immediate (Rack Session Required)
 - [ ] Reseat Samsung 990 PRO 4TB on Node 1 (M.2_2 not detected)
-- [ ] Move all nodes to 10GbE switch (USW Pro XG 10 PoE)
+- [ ] Move all nodes to 5GbE switch (USW Pro XG 10 PoE)
 - [ ] Reconnect JetKVM ATX power cable on Node 2
 - [ ] Enable EXPO in VAULT BIOS (DDR5 4800→5600 MT/s)
 

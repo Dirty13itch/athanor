@@ -32,7 +32,7 @@ vllm serve meta-llama/Llama-3.1-70B-Instruct \
 - 4x RTX 5070 Ti in tensor parallelism via NCCL over PCIe 4.0
 - NVFP4 quantization: 70B model in ~35 GB VRAM, leaving ~29 GB for KV cache across 4 GPUs
 - Agents on Node 1 call `localhost:8000` — zero network latency
-- Dashboard and Node 2 services call via 10GbE (`node1:8000`)
+- Dashboard and Node 2 services call via 5GbE (`node1:8000`)
 
 #### Node 2 — Dual Independent Instances
 
@@ -93,7 +93,7 @@ Every inference consumer speaks the same API:
 └──────────────────────────────────────────────────┘
          ▲              ▲              ▲
     Agents (Node 1)  Dashboard    Game AI (EoBQ)
-    localhost:8000   10GbE        10GbE or localhost
+    localhost:8000   5GbE        5GbE or localhost
 ```
 
 Benefits:
@@ -199,7 +199,7 @@ SGLang's ~29% throughput advantage and RadixAttention's multi-turn benefits are 
 
 - **Blackwell build complexity.** Building vLLM from source with PyTorch nightly is fragile — version mismatches break things. Mitigated by Docker (pin all versions in Dockerfile) and the fact that this is temporary (stable PyTorch sm_120 coming).
 - **PCIe 4.0 TP scaling.** Without NVLink, 4-GPU tensor parallelism on Node 1 won't scale as efficiently as datacenter setups. For inference (not training), benchmarks show this is manageable. Monitor actual throughput after deployment and adjust batch sizes if needed.
-- **ConnectX-3 + consumer GPU NCCL.** Multi-node InfiniBand with consumer GPUs is less tested than datacenter configurations. GPUDirect RDMA may not work (consumer GPUs lack BAR1 size for full GPU memory mapping). Fallback: NCCL over IB without RDMA, which still beats 10GbE. This is a validation spike, not a blocker.
+- **ConnectX-3 + consumer GPU NCCL.** Multi-node InfiniBand with consumer GPUs is less tested than datacenter configurations. GPUDirect RDMA may not work (consumer GPUs lack BAR1 size for full GPU memory mapping). Fallback: NCCL over IB without RDMA, which still beats 5GbE. This is a validation spike, not a blocker.
 - **vLLM API stability.** vLLM moves fast and occasionally introduces breaking changes. Pin versions in Docker and test upgrades before deploying.
 
 ---

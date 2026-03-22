@@ -58,7 +58,7 @@ AllowedIPs = 10.10.50.3/32
 
 #### Layer 2: Service Authentication
 
-- vLLM instances bind to 10GbE data plane only — not accessible from 1GbE home network
+- vLLM instances bind to 5GbE data plane only — not accessible from 1GbE home network
 - Dashboard requires authentication (session-based or basic auth)
 - API endpoints require API keys for service-to-service calls
 - LiteLLM proxy (VAULT:4000) authenticates with the vaulted `ATHANOR_LITELLM_API_KEY`
@@ -86,7 +86,7 @@ AllowedIPs = 10.10.50.3/32
 | VLAN | Purpose | Members | Access |
 |------|---------|---------|--------|
 | INFERENCE | GPU inference endpoints | Node 1, Node 2 vLLM ports | Agent server only |
-| DATA | 10GbE model staging, NFS | Node 1, Node 2, VAULT | Internal only |
+| DATA | 5GbE model staging, NFS | Node 1, Node 2, VAULT | Internal only |
 | SERVICES | User-facing (dashboard, HA, Plex) | All nodes service ports | LAN + WireGuard |
 | MGMT | Node management, SSH, IPMI | All nodes SSH | LAN admin only |
 | HOME | IoT, WiFi, streaming clients | APs, Lutron, clients | Internet + SERVICES |
@@ -101,7 +101,7 @@ AllowedIPs = 10.10.50.3/32
 2. UFW firewall on all nodes (done — Ansible common role)
 3. LiteLLM API key authentication (done — VAULT:4000)
 4. WireGuard on VAULT (before any remote access)
-5. VLAN segmentation (when 10GbE switch is configured)
+5. VLAN segmentation (when 5GbE switch is configured)
 6. API authentication on all endpoints (before dashboard goes live)
 
 ---

@@ -40,7 +40,7 @@ Home Assistant runs as a Docker container on VAULT (Unraid) with host networking
 | Integration | Direction | Method |
 |-------------|-----------|--------|
 | Dashboard → HA | Read + write | HA REST/WebSocket API, long-lived access token |
-| Home Agent → HA | Read + write | Same API, called from Node 1 over 10GbE |
+| Home Agent → HA | Read + write | Same API, called from Node 1 over 5GbE |
 | HA → Agents | Trigger | HA automations call agent API (webhook) |
 | HA → Unraid | Read | ha-unraid integration (GraphQL API) |
 | HA → vLLM | Read | Custom REST sensor for inference status |

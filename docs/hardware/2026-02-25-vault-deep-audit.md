@@ -32,7 +32,7 @@ Exhaustive hardware and service audit of VAULT (192.168.1.203). All data gathere
 | Field | Documented | Observed | Status |
 |-------|-----------|----------|--------|
 | Board | ASUS ProArt X870E-CREATOR WIFI | ASUSTeK ProArt X870E-CREATOR WIFI Rev 1.xx | VERIFIED |
-| 10GbE | Aquantia 10GbE | AQtion AQC113CS 10GbE (confirmed) | VERIFIED |
+| 5GbE | Aquantia 5GbE | AQtion AQC113CS 5GbE (confirmed) | VERIFIED |
 | 2.5GbE | Intel 2.5GbE | Intel I226-V (confirmed) | VERIFIED |
 | WiFi | WiFi 7 | MediaTek MT7927 (present, not audited for use) | VERIFIED |
 
@@ -218,7 +218,7 @@ This is a standard Unraid Docker configuration. The 20G limit is adequate for 15
 
 | Interface | Type | Speed | Status | Notes |
 |-----------|------|-------|--------|-------|
-| eth0 | Aquantia AQC113CS 10GbE | 10,000 Mb/s | UP, slave of bond0 | Primary NIC |
+| eth0 | Aquantia AQC113CS 5GbE | 10,000 Mb/s | UP, slave of bond0 | Primary NIC |
 | eth1 | Intel I226-V 2.5GbE | 2,500 Mb/s | UP, slave of bond0 | Secondary NIC |
 | bond0 | Bond (eth0 + eth1) | 10,000 Mb/s | UP, master of br0 | Active-backup likely |
 | br0 | Bridge (over bond0) | -- | UP | 192.168.1.203/24 |
@@ -227,7 +227,7 @@ This is a standard Unraid Docker configuration. The 20G limit is adequate for 15
 
 **MTU:** 1500 on all interfaces (no jumbo frames).
 
-**Assessment:** The bond of 10GbE + 2.5GbE is functional but the 2.5G NIC contributes nothing meaningful in active-backup mode. In balance modes it would cap at 2.5G for its traffic. The primary 10GbE link is the one doing all the heavy lifting for NFS serving.
+**Assessment:** The bond of 5GbE + 2.5GbE is functional but the 2.5G NIC contributes nothing meaningful in active-backup mode. In balance modes it would cap at 2.5G for its traffic. The primary 5GbE link is the one doing all the heavy lifting for NFS serving.
 
 **Optimization opportunity:** Enable jumbo frames (MTU 9000) on eth0/bond0/br0 and the corresponding switch port on the USW Pro XG 10. This would reduce CPU overhead for NFS traffic and improve throughput by ~10-15% for large sequential transfers. Requires matching MTU on Node 1 and Node 2 NFS clients.
 
@@ -450,14 +450,14 @@ The following containers have appdata but are NOT explicitly listed in backup ou
 | NVMe (VMs) | 34C | Good |
 | NVMe (Ubuntu/unused) | 36C | Good |
 | Arc A380 iGPU edge | 42C | Good (near idle) |
-| 10GbE NIC (Aquantia) | 63C | Warm but within spec |
+| 5GbE NIC (Aquantia) | 63C | Warm but within spec |
 | Ryzen iGPU | 42C (edge) | Good |
 
 **Fan speeds:** fan1: 863 RPM, fan2: 964 RPM, fan4: 643 RPM, fan5: 662 RPM, fan6: 657 RPM. Two fans (fan3, fan7) report 0 RPM -- likely unpopulated headers.
 
 **Intrusion sensor:** intrusion1 reports ALARM. This is typically a chassis intrusion header that isn't connected or the case has been opened. Not a real concern.
 
-**Assessment:** All temperatures are well within safe operating ranges. The 10GbE NIC at 63C is the warmest component but this is normal for Aquantia controllers under load.
+**Assessment:** All temperatures are well within safe operating ranges. The 5GbE NIC at 63C is the warmest component but this is normal for Aquantia controllers under load.
 
 ---
 
@@ -510,7 +510,7 @@ vault/           -- Unknown
 | 7 | Storage | nvme4n1 has unused Ubuntu LVM partition (1TB wasted) | LOW | Wipe and repurpose |
 | 8 | Storage | Array at 90% capacity, disk4/disk5 at 93% | HIGH | Plan capacity expansion (1 free slot available) |
 | 9 | Network | NFS exports have no host restrictions | LOW | Add host whitelist for hardening |
-| 10 | Network | MTU 1500 (no jumbo frames) on 10GbE links | LOW | Consider MTU 9000 for NFS performance |
+| 10 | Network | MTU 1500 (no jumbo frames) on 5GbE links | LOW | Consider MTU 9000 for NFS performance |
 | 11 | Home Assistant | Auth failures from Node 2 and DEV dashboard health checks | LOW | Already known, stale tokens |
 | 12 | Home Assistant | Chromecast connection failures to TV (.166) | LOW | TV likely powered off |
 

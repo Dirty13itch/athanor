@@ -394,13 +394,13 @@ For a responsive voice assistant, the perception thresholds are:
 |-------|----------|-------|
 | Wake word detection | ~80ms | openWakeWord processes 80ms frames |
 | Audio capture + VAD | 200-500ms | Wait for speech end detection |
-| Network (satellite -> Node 1) | <5ms | 10GbE LAN |
+| Network (satellite -> Node 1) | <5ms | 5GbE LAN |
 | **STT** (faster-whisper distil-large-v3) | **100-300ms** | Short utterance on RTX 5070 Ti |
 | Network (Node 1 internal) | <1ms | Same machine |
 | **LLM inference** (first token) | **200-500ms** | Qwen3-32B-AWQ on TP=4, depends on prompt length |
 | **LLM inference** (full response) | **500-2000ms** | ~50-100 tok/s, short response = 20-40 tokens |
 | **TTS** (Kokoro/Piper) | **100-300ms** | Faster than real-time synthesis |
-| Network (Node 1 -> satellite) | <5ms | 10GbE LAN |
+| Network (Node 1 -> satellite) | <5ms | 5GbE LAN |
 | Audio playback start | <50ms | Buffer first chunk |
 | **Total (simple query)** | **~1.2-1.7s** | From end of speech to start of audio response |
 | **Total (complex query)** | **~2-4s** | Longer LLM generation |

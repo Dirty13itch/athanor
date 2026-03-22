@@ -70,7 +70,7 @@ Tasks that cannot proceed without Shaun's physical presence, credentials, or bro
 
 | Item | When | How |
 |------|------|-----|
-| 10GbE Switch Migration | Session 12, 2026-02-24 | Cables moved, iperf3 verified 9.4+ Gbps |
+| 5GbE Switch Migration | Session 12, 2026-02-24 | Cables moved, iperf3 verified 9.4+ Gbps |
 | JetKVM ATX Power Cable | Session 3, 2026-02-16 | Reconnected during rack work |
 | HA Onboarding | Session 13, 2026-02-24 | Completed in browser, 38 entities discovered |
 | BMC Config (.216) | — | Deprioritized — SSH access sufficient for all current tasks |

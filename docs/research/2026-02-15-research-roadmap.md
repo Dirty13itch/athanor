@@ -13,7 +13,7 @@ Each decision becomes an ADR in docs/decisions/ once research supports it.
 ```
 ADR-001  Base Platform (OS + Workload Management)
   │
-  ├── ADR-002  Network Architecture (10GbE fabric, VLANs, DNS, discovery)
+  ├── ADR-002  Network Architecture (5GbE fabric, VLANs, DNS, discovery)
   │
   ├── ADR-003  Storage Architecture (shared storage, model storage, NFS/local/distributed)
   │
@@ -41,7 +41,7 @@ ADR-001  Base Platform (OS + Workload Management)
 | # | Topic | Research Doc | Depends On | Status |
 |---|-------|-------------|------------|--------|
 | 1 | Base Platform: OS + Workload Management | 2026-02-15-base-platform.md | Hardware inventory | **Complete** — recommends Ubuntu 24.04 + Docker Compose + Ansible |
-| 2 | Network Architecture | 2026-02-15-network-architecture.md | ADR-001 | **Complete** — ADR-002 written. 10GbE switched + 56G InfiniBand direct link. |
+| 2 | Network Architecture | 2026-02-15-network-architecture.md | ADR-001 | **Complete** — ADR-002 written. 5GbE switched + 56G InfiniBand direct link. |
 | 3 | Storage Architecture | 2026-02-15-storage-architecture.md | ADR-001, ADR-002 | **Complete** — ADR-003 written. Three-tier NVMe/NFS, Hyper M.2 expansion for Node 1. |
 | 4 | Node Roles + Hardware Allocation | 2026-02-15-node-roles.md | ADR-001, 002, 003 | **Complete** — ADR-004 written. Node 1=inference+agents, Node 2=creative+interactive, VAULT=storage+media+always-on. |
 | 5 | AI Inference Engine | 2026-02-15-inference-engine.md | ADR-004 | **Complete** — ADR-005 written. vLLM primary, NVFP4 on Blackwell, SGLang on watch list. |
@@ -91,6 +91,6 @@ Some decisions are nearly forced by constraints:
 - **VAULT stays on Unraid** — non-negotiable per VISION.md
 - **DEV stays as-is** — Windows 11 workstation, not a server
 - **NVIDIA drivers required** — no alternative for CUDA inference
-- **10GbE hardware exists** — the question is topology, not whether to use it
+- **5GbE hardware exists** — the question is topology, not whether to use it
 
 These get noted in the relevant ADRs without full research docs.

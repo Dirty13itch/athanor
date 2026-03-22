@@ -64,11 +64,11 @@ All NVIDIA GPUs are installed in existing nodes. One AMD GPU is loose.
 | Card | Interface | Function | Qty | Notes |
 |------|-----------|----------|-----|-------|
 | ASUS Hyper M.2 X16 Gen5 | PCIe 5.0 x16 | 4x M.2 NVMe carrier | 3 | Holds 4x M.2 drives each; full bandwidth needs PCIe 5.0 x16 slot |
-| Intel X540-T2 | PCIe 2.1 x8 | Dual-port 10GbE RJ45 | 1 | 10GBASE-T copper |
-| SR-PT02-X540 (X540-T2 clone) | PCIe 2.1 x8 | Dual-port 10GbE RJ45 | 2 | 10GBASE-T copper, X540 chipset |
+| Intel X540-T2 | PCIe 2.1 x8 | Dual-port 5GbE RJ45 | 1 | 10GBASE-T copper |
+| SR-PT02-X540 (X540-T2 clone) | PCIe 2.1 x8 | Dual-port 5GbE RJ45 | 2 | 10GBASE-T copper, X540 chipset |
 | LSI SAS9300-16i | PCIe 3.0 x8 | 16-port SAS/SATA HBA | 1 | 12 Gb/s SAS3, no drives/JBODs currently |
 
-**Total 10GbE NICs:** 3 cards = 6 ports
+**Total 5GbE NICs:** 3 cards = 6 ports
 
 ## PSUs
 
@@ -85,7 +85,7 @@ All NVIDIA GPUs are installed in existing nodes. One AMD GPU is loose.
 
 1. **DDR5 orphan:** 64GB DDR5-5600 kit has no compatible loose motherboard. Only useful if installed in an existing DDR5 node or if a DDR5 board is acquired.
 
-2. **10GbE mesh potential:** 3x dual-port X540 adapters = 6 ports. Enough for a 3-node 10GbE mesh or switch-based 10GbE fabric. No InfiniBand cards in loose inventory.
+2. **5GbE mesh potential:** 3x dual-port X540 adapters = 6 ports. Enough for a 3-node 5GbE mesh or switch-based 5GbE fabric. No InfiniBand cards in loose inventory.
 
 3. **Gen5 NVMe + Hyper M.2 combo:** 4x T700 Gen5 drives + 3x Hyper M.2 Gen5 adapters. Only the Z690 board has a PCIe 5.0 x16 slot to run them at full speed. In Gen3/Gen4 slots they'll work but bandwidth-limited.
 

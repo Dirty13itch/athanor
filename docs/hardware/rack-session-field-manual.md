@@ -11,7 +11,7 @@ Four machines. One session. The work breaks into two independent rounds that sha
 
 **Round 1 — Node 1 + DEV** (no swap, no coordination needed)
 - Node 1: reseat Samsung 990 PRO, install Hyper M.2 adapter with 4x T700, install RTX 3060
-- DEV: remove RTX 3060, install RX 5700 XT + Intel X540-T2 10GbE NIC
+- DEV: remove RTX 3060, install RX 5700 XT + Intel X540-T2 5GbE NIC
 
 **Round 2 — The Big Swap** (VAULT and Node 2 simultaneously)
 - VAULT: TRX50 + 7960X comes out, X870E + 9950X goes in
@@ -23,8 +23,8 @@ Four machines. One session. The work breaks into two independent rounds that sha
 - Node 1: 990 PRO reseated, 4 TB T700 NVMe (4× 1TB) on Hyper M.2, RTX 3060 added
 - Node 2: 7960X, 128 GB DDR5 ECC RDIMM, TRX50 AERO D
 - VAULT: 9950X, 128 GB DDR5, X870E CREATOR WIFI
-- DEV: RX 5700 XT, Intel X540-T2 10GbE
-- Network: all servers on 10GbE XG switch
+- DEV: RX 5700 XT, Intel X540-T2 5GbE
+- Network: all servers on 5GbE XG switch
 
 **Time estimate:** 3-4 hours total.
 
@@ -180,7 +180,7 @@ You have three identical ASUS Hyper M.2 X16 Gen5 cards. They are interchangeable
 - Reads "Intel Ethernet Server Adapter X540-T2" on the PCB or bracket
 - PCIe x8 connector (shorter gold connector than x16)
 - You have 3 similar cards — Intel X540-T2 and two SR-PT02-X540 clones
-- Any of them will work — they're all X540 chipset, all dual-port 10GbE
+- Any of them will work — they're all X540 chipset, all dual-port 5GbE
 - Pick any one for DEV
 
 ### 1.6 — Identifying the Unraid Boot USB
@@ -748,8 +748,8 @@ Windows will auto-detect the X540-T2 and install drivers. This may take a few mi
 
 **After boot:**
 - Device Manager → Network Adapters → Intel X540 should appear
-- Connect DEV ethernet cable to **USW Pro XG 10 PoE** switch (the 10GbE switch)
-- Test: from WSL2 terminal: `iperf3 -c 192.168.1.244` — expect 9+ Gbps if Node 1 is also on the 10GbE switch
+- Connect DEV ethernet cable to **USW Pro XG 10 PoE** switch (the 5GbE switch)
+- Test: from WSL2 terminal: `iperf3 -c 192.168.1.244` — expect 9+ Gbps if Node 1 is also on the 5GbE switch
 
 **If Intel X540 driver not found:** Windows should auto-download. If no internet, driver package can be downloaded from Intel's site. Part number: ixgbe or ixgben driver package.
 
@@ -761,7 +761,7 @@ Windows will auto-detect the X540-T2 and install drivers. This may take a few mi
 
 Checklist before starting:
 - [ ] Node 1 verified: 990 PRO + 4x T700 visible, correct GPU count
-- [ ] DEV on 10GbE, working
+- [ ] DEV on 5GbE, working
 - [ ] VAULT config backed up
 - [ ] NVMe serials and labels known (see labeling scheme above)
 - [ ] Photos taken of VAULT cable routing
@@ -1216,7 +1216,7 @@ Should show 5600 MT/s.
 Run from DEV (WSL2) or any machine with SSH access:
 
 ```bash
-# 10GbE throughput — install iperf3 if needed: sudo apt install iperf3
+# 5GbE throughput — install iperf3 if needed: sudo apt install iperf3
 # On each target, start iperf3 server first if needed: iperf3 -s -D
 
 iperf3 -c 192.168.1.244   # Node 1 — expect 9+ Gbps
@@ -1312,7 +1312,7 @@ When the session is complete, verify the following final state:
 | VAULT | Ryzen 9950X | X870E CREATOR | 128 GB DDR5 | Arc A380 | T700+3xP310 (Unraid pools) |
 | DEV | i7-13700K | Z690 AORUS ULTRA | 64 GB DDR5 | RX 5700 XT | P3 Plus + P310 + 970 EVO |
 
-**All servers on 10GbE (USW Pro XG 10 PoE) at 9+ Gbps.**
+**All servers on 5GbE (USW Pro XG 10 PoE) at 9+ Gbps.**
 
 ---
 

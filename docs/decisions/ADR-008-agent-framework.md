@@ -54,7 +54,7 @@ Node 2 (Interface):
 
 All agents run as Docker containers on Node 1. They call vLLM on `localhost:8000` — zero network latency for the thousands of inference calls agents make per task.
 
-The API gateway on Node 2 is a thin FastAPI proxy that routes dashboard requests to the appropriate agent on Node 1 over 10GbE.
+The API gateway on Node 2 is a thin FastAPI proxy that routes dashboard requests to the appropriate agent on Node 1 over 5GbE.
 
 #### Agent Definitions
 

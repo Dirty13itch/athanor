@@ -60,8 +60,8 @@
 ## Physical Information
 - **Location:** Rack position 1 (top), 5U Silverstone RM52 Upper Tray
 - **IP Addresses:**
-  - Primary: 192.168.1.244 (Intel X550 10GbE eth0)
-  - Secondary: 192.168.1.246 (Intel X550 10GbE eth1)
+  - Primary: 192.168.1.244 (Intel X550 5GbE eth0)
+  - Secondary: 192.168.1.246 (Intel X550 5GbE eth1)
 - **SSH Access:** `ssh -i ~/.ssh/athanor_mgmt athanor@192.168.1.244`
 - **Role:** Heavy inference, TP pooling, agent serving
 
@@ -127,7 +127,7 @@ PCIE6 [Gen4 x16]: ASUS Hyper M.2 X16 Gen5        [POPULATED]
 PCIE7 [Gen4 x16]: EMPTY                          [AVAILABLE]
                   64 Gbps bandwidth
                   Candidates: InfiniBand ConnectX-3 FDR card
-                            10GbE NIC (redundant, already has dual 10GbE)
+                            5GbE NIC (redundant, already has dual 5GbE)
                             Future: Second Hyper M.2 if storage needs grow
                   Note: Second Hyper M.2 adapter allocated to DEV for Gen5 storage
 
@@ -154,13 +154,13 @@ OCuLink_2: Not used                              [AVAILABLE]
 
 ### Network Interfaces
 ```
-eth0 (Intel X550): 10GbE RJ45                    [ACTIVE - 192.168.1.244]
+eth0 (Intel X550): 5GbE RJ45                    [ACTIVE - 192.168.1.244]
                    Currently on USW Pro 24 PoE (1GbE switch)
-                   Target: USW Pro XG 10 PoE (10GbE switch)
+                   Target: USW Pro XG 10 PoE (5GbE switch)
 
-eth1 (Intel X550): 10GbE RJ45                    [ACTIVE - 192.168.1.246]
+eth1 (Intel X550): 5GbE RJ45                    [ACTIVE - 192.168.1.246]
                    Currently on USW Pro 24 PoE (1GbE switch)
-                   Target: USW Pro XG 10 PoE (10GbE switch)
+                   Target: USW Pro XG 10 PoE (5GbE switch)
 
 IPMI/BMC:          AMI MegaRAC @ 192.168.1.216   [CONFIGURED]
                    admin credential managed outside the repo
@@ -277,7 +277,7 @@ NVMe Configuration:
 ```
 1. NVMe Storage - Slot 7 available
    - Could add InfiniBand card for node-to-node pipeline parallelism
-   - Could add 10GbE NIC (redundant with onboard dual 10GbE)
+   - Could add 5GbE NIC (redundant with onboard dual 5GbE)
    - Future: Second Hyper M.2 if model library grows beyond 12 TB
 
 2. InfiniBand Networking (Slot 7 alternative)
@@ -301,7 +301,7 @@ NVMe Configuration:
 
 ## Physical Information
 - **Location:** Rack position 2 (middle), 5U Silverstone RM52 Middle Tray
-- **IP Address:** 192.168.1.225 (Marvell 10GbE eth0)
+- **IP Address:** 192.168.1.225 (Marvell 5GbE eth0)
 - **SSH Access:** `ssh -i ~/.ssh/athanor_mgmt athanor@192.168.1.225`
 - **Peripherals:** JetKVM @ 192.168.1.165 (ATX power cable DISCONNECTED - needs reconnect)
 - **Role:** Interface layer, creative workloads, tool calling, ComfyUI
@@ -378,16 +378,16 @@ Total: 7 TB local NVMe Gen5 (all slots used)
 
 ### Network Interfaces
 ```
-eth0 (Marvell AQC113CS): 10GbE RJ45              [ACTIVE - 192.168.1.225]
+eth0 (Marvell AQC113CS): 5GbE RJ45              [ACTIVE - 192.168.1.225]
                          Currently on USW Pro 24 PoE (1GbE switch)
-                         Target: USW Pro XG 10 PoE (10GbE switch)
+                         Target: USW Pro XG 10 PoE (5GbE switch)
 
 eth1 (Realtek RTL8125):  2.5GbE RJ45             [AVAILABLE]
 
 WiFi 7 (802.11be):       WiFi 7 wireless         [AVAILABLE]
 
 2× USB4 Type-C:          40 Gbps each            [AVAILABLE]
-                         Can be used for 10GbE via adapter
+                         Can be used for 5GbE via adapter
 ```
 
 ### USB Ports
@@ -526,7 +526,7 @@ Priority: RTX 3060 in Slot 3 (maximizes GPU compute, plenty of PSU headroom)
 
 ## Physical Information
 - **Location:** Rack position 3 (lower), 4U unknown case
-- **IP Address:** 192.168.1.203 (Aquantia 10GbE eth0)
+- **IP Address:** 192.168.1.203 (Aquantia 5GbE eth0)
 - **SSH Access:** `python scripts/vault-ssh.py "<command>"` (vault-managed root credential or SSH key, Dropbear SSH)
 - **Peripherals:** JetKVM @ 192.168.1.80 (working)
 - **Role:** NFS storage, media services, monitoring stack, Home Assistant
@@ -633,9 +633,9 @@ Unraid Array Mounts:
 
 ### Network Interfaces
 ```
-eth0 (Aquantia AQC113CS): 10GbE RJ45             [ACTIVE - 192.168.1.203]
+eth0 (Aquantia AQC113CS): 5GbE RJ45             [ACTIVE - 192.168.1.203]
                           Currently on USW Pro 24 PoE (1GbE switch)
-                          Target: USW Pro XG 10 PoE (10GbE switch)
+                          Target: USW Pro XG 10 PoE (5GbE switch)
 
 eth1 (Realtek RTL8125):   2.5GbE RJ45            [AVAILABLE]
 
@@ -711,7 +711,7 @@ To add expansion:
 1. Remove Hyper M.2 adapter from PCIE3
    - Loses 4 TB NVMe (4× P310 drives)
    - Opens 1× Gen4 x4 slot
-   - Could add: 10GbE NIC (redundant), other utility card
+   - Could add: 5GbE NIC (redundant), other utility card
 
 2. Upgrade to larger HDDs
    - Replace 16TB/18TB drives with 22TB+ drives
@@ -786,7 +786,7 @@ PCIE2 [Gen3 x16]: ASUS ROG STRIX RX 5700 XT 8GB  [POPULATED]
 
 PCIE3 [Gen3 x4]:  EMPTY                          [AVAILABLE]
                   32 Gbps bandwidth
-                  Candidates: 10GbE NIC
+                  Candidates: 5GbE NIC
                             Sound card, capture card
                             Expansion cards
 
@@ -852,8 +852,8 @@ eth0 (Intel I225-V): 2.5GbE RJ45                 [ACTIVE - 192.168.1.215]
 WiFi 6E (AX210):     WiFi 6E wireless            [AVAILABLE]
 
 Upgrade Option:
-  - Add Intel X540-T2 or SR-PT02-X540 10GbE NIC to PCIE2/3
-  - Connect to USW Pro XG 10 PoE (10GbE switch)
+  - Add Intel X540-T2 or SR-PT02-X540 5GbE NIC to PCIE2/3
+  - Connect to USW Pro XG 10 PoE (5GbE switch)
   - Cost: $0 (3 cards, 6 ports available in loose inventory)
 ```
 
@@ -910,7 +910,7 @@ Loose Spares:
   - Samsung 970 EVO 250GB Gen3
 
 Network Storage:
-  - VAULT NFS shares accessible at 1GbE (future 10GbE)
+  - VAULT NFS shares accessible at 1GbE (future 5GbE)
   - /mnt/vault/models, /mnt/vault/data, /mnt/vault/appdata
 ```
 
@@ -968,7 +968,7 @@ Potential Future:
    - Use: Large datasets, VMs, Docker builds
    - Cost: $0 (already owned)
 
-3. 10GbE Networking (EASY - $0)
+3. 5GbE Networking (EASY - $0)
    - Add Intel X540-T2 or SR-PT02-X540 to PCIE2 or PCIE3
    - Connect to USW Pro XG 10 PoE
    - Bandwidth: 10 Gbps to Node 1/Node 2/VAULT
@@ -982,7 +982,7 @@ Potential Future:
 Priority Recommendation:
   1. Add 3× SATA SSDs (5 TB storage boost)
   2. Add 2× DDR5 32GB (→ 128 GB RAM)
-  3. Optional: Add 10GbE NIC if frequent large file transfers to cluster
+  3. Optional: Add 5GbE NIC if frequent large file transfers to cluster
 ```
 
 ---
@@ -1009,7 +1009,7 @@ Priority Recommendation:
 │ 24× 1GbE ports │
 │ Currently:     │
 │ - Node 1 eth0  │  .244  ┐
-│ - Node 1 eth1  │  .246  │  BOTH 10GbE interfaces bottlenecked at 1GbE!
+│ - Node 1 eth1  │  .246  │  BOTH 5GbE interfaces bottlenecked at 1GbE!
 │ - Node 2 eth0  │  .225  │  Need to move to USW Pro XG 10 PoE
 │ - VAULT eth0   │  .203  │
 │ - DEV eth0     │  .215  ┘
@@ -1017,14 +1017,14 @@ Priority Recommendation:
 
         ┌──────────────────────────────────────────────────┐
         │         USW Pro XG 10 PoE (AVAILABLE)            │
-        │          10GbE Data Plane                        │
-        │      8× 10GbE SFP+, 4× 10GbE RJ45               │
+        │          5GbE Data Plane                        │
+        │      8× 5GbE SFP+, 4× 5GbE RJ45               │
         │                                                  │
         │  TARGET MIGRATION:                               │
-        │    - Node 1 eth0/eth1 → 10GbE (dual 10G)        │
-        │    - Node 2 eth0 → 10GbE                         │
-        │    - VAULT eth0 → 10GbE                          │
-        │    - Optional: DEV eth0 via 10GbE NIC            │
+        │    - Node 1 eth0/eth1 → 5GbE (dual 10G)        │
+        │    - Node 2 eth0 → 5GbE                         │
+        │    - VAULT eth0 → 5GbE                          │
+        │    - Optional: DEV eth0 via 5GbE NIC            │
         │                                                  │
         │  BENEFITS:                                       │
         │    - NFS performance: 125 MB/s → 1,250 MB/s     │
@@ -1033,10 +1033,10 @@ Priority Recommendation:
         └──────────────────────────────────────────────────┘
 
 CURRENT STATE: All nodes on 1GbE management switch
-ACTION REQUIRED: Move ethernet cables to 10GbE switch (5 min physical task)
+ACTION REQUIRED: Move ethernet cables to 5GbE switch (5 min physical task)
 ```
 
-## NFS Storage Flows (Current: 1GbE, Target: 10GbE)
+## NFS Storage Flows (Current: 1GbE, Target: 5GbE)
 
 ```
                     ┌─────────────────────────────────────┐
@@ -1047,7 +1047,7 @@ ACTION REQUIRED: Move ethernet cables to 10GbE switch (5 min physical task)
                     │    /mnt/user/appdata               │
                     └──────────┬──────────────────────────┘
                                │
-                               │ 10GbE (currently limited to 1GbE!)
+                               │ 5GbE (currently limited to 1GbE!)
                                │
             ┌──────────────────┼──────────────────┐
             │                  │                  │
@@ -1069,7 +1069,7 @@ WRITE PATTERNS:
   - Download completion: VAULT → local HDD array → NFS share
 
 BOTTLENECK: 1GbE = 125 MB/s max (shared across all NFS traffic)
-TARGET: 10GbE = 1,250 MB/s (10× faster, dedicated bandwidth per node)
+TARGET: 5GbE = 1,250 MB/s (10× faster, dedicated bandwidth per node)
 ```
 
 ## Service Dependencies & Data Flows
@@ -1327,7 +1327,7 @@ STATUS: SUBOPTIMAL compared to Node 2
 
 ## Immediate (Rack Session ~30 min)
 
-1. **Move all nodes to 10GbE switch** (5 min)
+1. **Move all nodes to 5GbE switch** (5 min)
    - Node 1 eth0 (.244) → USW Pro XG 10 PoE
    - Node 1 eth1 (.246) → USW Pro XG 10 PoE
    - Node 2 eth0 (.225) → USW Pro XG 10 PoE

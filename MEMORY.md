@@ -78,7 +78,7 @@ Scorer:8050 | Ollama:11434 | Dashboard:3001 | Seerr:5055 | Whisparr:6969
 - VAULT SSH: use root@192.168.1.203
 - LiteLLM auth: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d
 - Memory port: 8720 (NOT 8702)
-- DEV NIC: 5GbE (NOT 10GbE)
+- DEV NIC: 5GbE (NOT 5GbE)
 - FOUNDRY PSU at 95% (cannot add GPUs)
 - Design: cloud-first with local backbone (NOT local-first)
 

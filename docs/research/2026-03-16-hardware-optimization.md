@@ -15,7 +15,7 @@ Last updated: 2026-03-16
 | DEV | 9900X 12C/24T | 64GB / 44GB free | 5060Ti | 5GB/16GB | 1TB | Embedding only |
 | VAULT | 9950X 16C/32T | 128GB / ~60GB free | A380 | — | 4x1TB Gen4 | 47 containers |
 
-**Loose hardware:** i7-12700K, i5-12600K, i7-9700K, 2xRTX 3060 (12GB each), RX 5700XT (8GB), 192GB RAM, ~15TB NVMe, 3x10GbE NICs, 2x Hyper M.2 adapters, ASUS ROG 1200W PSU
+**Loose hardware:** i7-12700K, i5-12600K, i7-9700K, 2xRTX 3060 (12GB each), RX 5700XT (8GB), 192GB RAM, ~15TB NVMe, 3x5GbE NICs, 2x Hyper M.2 adapters, ASUS ROG 1200W PSU
 
 ---
 
@@ -256,12 +256,12 @@ mkfs.ext4 /dev/nvme3n1 && mount /dev/nvme3n1 /data/docker
 
 ### 3.2 Model Loading Optimization
 
-Current flow: VAULT HDD array → NFS over 10GbE → compute node → GPU
+Current flow: VAULT HDD array → NFS over 5GbE → compute node → GPU
 
 **Bottlenecks:**
 - VAULT HDD array: ~200 MB/s sequential read (limited by Unraid parity)
-- 10GbE: ~1.1 GB/s theoretical
-- A 27GB FP8 model takes ~25 seconds over 10GbE, ~135 seconds from cold HDD
+- 5GbE: ~1.1 GB/s theoretical
+- A 27GB FP8 model takes ~25 seconds over 5GbE, ~135 seconds from cold HDD
 
 **Fix:** Local NVMe model caches on compute nodes.
 
@@ -284,7 +284,7 @@ Current NFS is default settings. Improvements:
 
 Key changes:
 - `rsize/wsize=1048576` — 1MB read/write blocks (default is often 32K)
-- `nconnect=4` — multiple TCP connections, utilizes more of 10GbE bandwidth
+- `nconnect=4` — multiple TCP connections, utilizes more of 5GbE bandwidth
 - Already using `hard` mount (good for reliability)
 
 **Expected improvement:** 2-3x NFS throughput for large sequential reads (model loading).
@@ -333,7 +333,7 @@ Qdrant on FOUNDRY (34K+ points, 9 collections) — check if it's using mmap or i
 
 ### 4.1 FOUNDRY NIC Bonding
 
-FOUNDRY's ROMED8-2T has 2x Intel X550 10GbE onboard. Currently only one is used.
+FOUNDRY's ROMED8-2T has 2x Intel X550 5GbE onboard. Currently only one is used.
 
 **Action:** Bond both NICs for redundancy and aggregate bandwidth.
 
@@ -362,7 +362,7 @@ vLLM supports disaggregated prefill/decode where one instance handles prompt pro
 
 **Why not now:**
 - Requires fast KV transfer between nodes (RDMA ideal, TCP adds latency)
-- 10GbE is marginal — KV cache for 131K context is multiple GB
+- 5GbE is marginal — KV cache for 131K context is multiple GB
 - Doesn't improve throughput, only tail latency separation
 - Current single-node serving is simpler and adequate
 - Bug surface area is large (bidirectional KV transfer just proposed Jan 2026)
@@ -375,9 +375,9 @@ Sources:
 
 ### 4.3 DEV Network Upgrade
 
-DEV has 5GbE Realtek — slowest in the cluster. With 3 loose dual-port 10GbE NICs available:
+DEV has 5GbE Realtek — slowest in the cluster. With 3 loose dual-port 5GbE NICs available:
 
-**Action:** Install one Intel X540-T2 in DEV for 10GbE.
+**Action:** Install one Intel X540-T2 in DEV for 5GbE.
 
 **Benefit:** Faster rsync deployments, better access to NFS models, consistent cluster networking.
 
@@ -387,7 +387,7 @@ DEV has 5GbE Realtek — slowest in the cluster. With 3 loose dual-port 10GbE NI
 
 For future reference, used Mellanox ConnectX-4 25GbE cards are ~$30-50 on eBay in 2026. ConnectX-5 100GbE are ~$80-120. Would need a compatible switch (used Mellanox SN2100 32-port 100GbE ~$200-400).
 
-**Not urgent** — 10GbE with bonding (20Gbps on FOUNDRY) is sufficient for current workloads. Worth revisiting if distributed inference or training becomes a priority.
+**Not urgent** — 5GbE with bonding (20Gbps on FOUNDRY) is sufficient for current workloads. Worth revisiting if distributed inference or training becomes a priority.
 
 ---
 
@@ -455,7 +455,7 @@ Already have Prometheus + Grafana + Loki. Add inference-specific dashboards:
 | NVMe | 4TB Crucial P3 Plus Gen4 | OS + storage |
 | NVMe 2 | 2TB Crucial P310 Gen4 | Model cache |
 | PSU | ASUS ROG 1200W 80+ Platinum | Overkill but available |
-| NIC | Intel X540-T2 10GbE | From loose inventory |
+| NIC | Intel X540-T2 5GbE | From loose inventory |
 | Case | — | Need to source or use open frame |
 
 **Total cost: $0** (all parts on hand) + time to assemble
@@ -509,7 +509,7 @@ Already have Prometheus + Grafana + Loki. Add inference-specific dashboards:
 | 2 | Undervolt all Blackwell GPUs | -120W, better sustained perf | 15 min |
 | 3 | Mount Workshop T700 drives individually | 3TB fast local storage | 30 min |
 | 4 | Tune NFS mount options (rsize/wsize/nconnect) | 2-3x NFS throughput | 15 min |
-| 5 | Install 10GbE NIC in DEV | Consistent cluster networking | 20 min (physical) |
+| 5 | Install 5GbE NIC in DEV | Consistent cluster networking | 20 min (physical) |
 
 ### Tier 2 — Medium Effort (hours, significant impact)
 

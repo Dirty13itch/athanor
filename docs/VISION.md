@@ -118,7 +118,7 @@ These exist to serve the AI core and Shaun's daily life:
 
 **Storage** — Unraid is the backbone. Bulk storage, media, backups. Non-negotiable — it stays.
 
-**Networking** — UniFi stack with 10GbE backbone deployed (USW Pro XG 10 PoE). All server nodes on SFP+ data plane.
+**Networking** — UniFi stack with 5GbE backbone deployed (USW Pro XG 10 PoE). All server nodes on SFP+ data plane.
 
 **Development Environment** — Claude Code, Kimi Code, and other cloud coding tools stay in the workflow. Local dev environments as needed for Athanor development, game development, app development, and other projects.
 

@@ -46,8 +46,8 @@
 ### Results
 | Node | Primary NIC | MTU | Status |
 |------|-------------|-----|--------|
-| FOUNDRY | enp66s0f0/f1 (10GbE SFP+) | **9000** | OK |
-| WORKSHOP | eno1 (10GbE) | **9000** | OK |
+| FOUNDRY | enp66s0f0/f1 (5GbE SFP+) | **9000** | OK |
+| WORKSHOP | eno1 (5GbE) | **9000** | OK |
 | VAULT | bond0/br0 (bonded eth0+eth1) | **9000** | OK |
 | DEV | enp14s0 (5GbE Realtek) | **1500** | Expected |
 

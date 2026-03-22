@@ -222,7 +222,7 @@ All drives healthy. Zero media errors. Low wear. The 1 TB drives have more power
 | 192.168.1.203:/mnt/user/models | /mnt/vault/models | 932 GB | 121 GB | 810 GB | 13% |
 | 192.168.1.203:/mnt/user/data | /mnt/vault/data | 165 TB | 147 TB | 19 TB | 89% |
 
-NFS options: NFSv4.2, rsize/wsize=131072, soft mount, TCP. Performance: **703 MB/s** sequential read (excellent for 10GbE).
+NFS options: NFSv4.2, rsize/wsize=131072, soft mount, TCP. Performance: **703 MB/s** sequential read (excellent for 5GbE).
 
 ### Root Filesystem
 
@@ -283,9 +283,9 @@ default via 192.168.1.1 dev eno1 proto static          <-- primary default
 default via 192.168.1.1 dev enp71s0 proto dhcp metric 200  <-- secondary (higher metric)
 ```
 
-The primary default route correctly uses eno1 (10GbE). The secondary route via enp71s0 has metric 200 so it serves as a fallback. ARP shows VAULT traffic flows over eno1 (REACHABLE state).
+The primary default route correctly uses eno1 (5GbE). The secondary route via enp71s0 has metric 200 so it serves as a fallback. ARP shows VAULT traffic flows over eno1 (REACHABLE state).
 
-### 10GbE NIC Details (eno1)
+### 5GbE NIC Details (eno1)
 
 | Property | Value |
 |----------|-------|
@@ -302,7 +302,7 @@ The TRX50 AERO D has Intel Maple Ridge Thunderbolt 4 controllers detected at bus
 
 ### TCP Tuning
 
-| Parameter | Current | Recommended for 10GbE |
+| Parameter | Current | Recommended for 5GbE |
 |-----------|---------|-----------------------|
 | net.core.rmem_max | 212,992 | 16,777,216 |
 | net.core.wmem_max | 212,992 | 16,777,216 |
@@ -313,12 +313,12 @@ The TRX50 AERO D has Intel Maple Ridge Thunderbolt 4 controllers detected at bus
 
 | Aspect | Status | Detail |
 |--------|--------|--------|
-| 10GbE link | optimal | Full 10 Gbps, jumbo frames enabled |
-| NFS performance | good | 703 MB/s read -- 64% of theoretical 10GbE max |
-| MTU match | verified | eno1 at MTU 9000, consistent with 10GbE data plane |
+| 5GbE link | optimal | Full 10 Gbps, jumbo frames enabled |
+| NFS performance | good | 703 MB/s read -- 64% of theoretical 5GbE max |
+| MTU match | verified | eno1 at MTU 9000, consistent with 5GbE data plane |
 | Secondary NIC | informational | enp71s0 at 2.5G -- usable for management traffic |
 | WiFi 7 | unused | wlp70s0 DOWN -- not needed for server role |
-| TCP buffers | suboptimal | Core buffer limits too small for 10GbE saturation |
+| TCP buffers | suboptimal | Core buffer limits too small for 5GbE saturation |
 | Routing | acceptable | Dual default routes but metric ordering is correct |
 
 ---
@@ -337,7 +337,7 @@ The TRX50 AERO D has Intel Maple Ridge Thunderbolt 4 controllers detected at bus
   +-- 01.1 [41] NVIDIA RTX 5090    -- Gen5 x16 capable -- OK
   +-- 03.1 [42] nvme3n1: Crucial T700 1TB -- Gen5 x4 (running Gen4!) -- DEGRADED
   +-- 03.3 [43-5f] TRX50 Chipset Bridge:
-        +-- [45] Aquantia AQC113C 10GbE
+        +-- [45] Aquantia AQC113C 5GbE
         +-- [46] Qualcomm WCN785x WiFi 7
         +-- [47] Realtek RTL8125 2.5GbE
         +-- [48-5d] Intel Maple Ridge Thunderbolt 4
@@ -442,8 +442,8 @@ VRAM consumption: 31,122 MiB / 32,607 MiB (95.5%). The 5090 is essentially a ded
 | HugePages | 0 | 0 | Not configured -- could help vLLM if CUDA uses system memory |
 | IOMMU | not detected in dmesg | -- | Not enabled in kernel params |
 | CPU governor | powersave | performance | See CPU section |
-| TCP rmem_max | 212,992 | 16,777,216 | Limits 10GbE throughput |
-| TCP wmem_max | 212,992 | 16,777,216 | Limits 10GbE throughput |
+| TCP rmem_max | 212,992 | 16,777,216 | Limits 5GbE throughput |
+| TCP wmem_max | 212,992 | 16,777,216 | Limits 5GbE throughput |
 | sunrpc.tcp_max_slot_table_entries | 65,536 | 65,536 | Already optimal for NFS |
 
 ### Services
@@ -553,7 +553,7 @@ This CPU could handle significant additional tasks without impacting GPU inferen
 
 | # | Action | Impact | Effort |
 |---|--------|--------|--------|
-| 5 | **Tune TCP buffers for 10GbE** | Better NFS throughput under concurrent load | 5 min sysctl |
+| 5 | **Tune TCP buffers for 5GbE** | Better NFS throughput under concurrent load | 5 min sysctl |
 | 6 | **Set vm.swappiness=10** | Reduce unnecessary swap pressure | 1 min sysctl |
 | 7 | **Enable GPU persistence mode** | Eliminate first-request latency overhead | 2 min systemd |
 | 8 | **Disable ModemManager/upower** | Remove unnecessary services | 2 min systemctl |

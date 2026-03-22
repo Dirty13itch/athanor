@@ -112,13 +112,13 @@ Note: Arc A380 provides hardware transcoding (Quick Sync via Intel oneVPL/VAAPI)
 
 | Interface | Controller | Speed | Status |
 |-----------|-----------|-------|--------|
-| eth0 | Aquantia AQC113C | 10GbE NBase-T | DOWN |
+| eth0 | Aquantia AQC113C | 5GbE NBase-T | DOWN |
 | eth1 | Realtek RTL8125 | 2.5GbE | UP (bonded) |
 | bond0 | (bond of eth1) | — | UP |
 | br0 | Bridge on bond0 | — | 192.168.1.203/24 |
 | docker0 | Docker bridge | — | 172.17.0.1/16 |
 
-**Note:** The Aquantia 10GbE NIC is present but DOWN. Connected to the USW Pro XG 10 PoE? Could enable 10GbE if connected.
+**Note:** The Aquantia 5GbE NIC is present but DOWN. Connected to the USW Pro XG 10 PoE? Could enable 5GbE if connected.
 
 ## Thunderbolt
 
@@ -137,7 +137,7 @@ Intel Thunderbolt 4 (Maple Ridge 4C) controller present with USB controller. Par
 1. **Threadripper 7960X** — This is a current-gen workstation CPU. 24C/48T with AVX-512. Massive compute headroom.
 2. **128 GB DDR5 ECC** — Only using 4 channels of the TRX50's available slots. Could expand.
 3. **Array is 90% full** — 18 TB free across 164 TB. Will need expansion or cleanup eventually.
-4. **10GbE available but unused** — Aquantia AQC113C is present but eth0 is DOWN.
+4. **5GbE available but unused** — Aquantia AQC113C is present but eth0 is DOWN.
 5. **T700 4TB NVMe** — High-performance cache drive (PCIe 5.0). Serious hardware choice.
 6. **Arc A380** — Provides hardware video transcoding without consuming a GPU slot for compute.
 7. **Only Stash running** — No Plex, no *arr stack visible in Docker. Either not configured or stopped.

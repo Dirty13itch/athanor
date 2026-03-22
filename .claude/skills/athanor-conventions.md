@@ -95,8 +95,8 @@ athanor/
 
 - Services bind `0.0.0.0` for cross-node access
 - Use SSH config aliases (`node1`, `node2`, `vault`) not raw IPs
-- 10GbE for data plane, 1GbE for management
-- MTU 9000 (jumbo frames) on all server 10GbE NICs
+- 5GbE for data plane, 1GbE for management
+- MTU 9000 (jumbo frames) on all server 5GbE NICs
 - Standard ports documented in `docs/SERVICES.md`
 - No reverse proxy yet — direct port access
 

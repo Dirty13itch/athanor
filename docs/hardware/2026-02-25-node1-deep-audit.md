@@ -20,7 +20,7 @@ Foundry is a single-socket EPYC server running 5 GPUs (4x RTX 5070 Ti + 1x RTX 4
 | 3 | Samsung 990 PRO 4TB NOT INSTALLED (inventory says it is) | DISCREPANCY | Inventory doc is wrong |
 | 4 | Memory channel H empty (7/8 populated) | SUBOPTIMAL | ~12% reduced memory bandwidth |
 | 5 | vm.swappiness=60, no hugepages, no kernel tuning | SUBOPTIMAL | Higher tail latency for inference |
-| 6 | MTU 1500 on 10GbE NFS links (no jumbo frames) | SUBOPTIMAL | NFS throughput not maximized |
+| 6 | MTU 1500 on 5GbE NFS links (no jumbo frames) | SUBOPTIMAL | NFS throughput not maximized |
 | 7 | PCIE slot 6 physically available | OPPORTUNITY | RTX 3060 could be installed |
 | 8 | NFS appdata mount in fstab but not active | MINOR | Missing backup path for agents |
 
@@ -331,8 +331,8 @@ LVM: single VG `ubuntu-vg` with single LV consuming all 3.64T. No free extents.
 
 | Interface | Type | IP | Speed | MTU | State | Driver |
 |-----------|------|-----|-------|-----|-------|--------|
-| enp66s0f0 | 10GbE (Intel X550) | 192.168.1.244/24 | 10,000 Mb/s Full Duplex | 1500 | UP | ixgbe |
-| enp66s0f1 | 10GbE (Intel X550) | 192.168.1.246/24 | 10,000 Mb/s Full Duplex | 1500 | UP | ixgbe |
+| enp66s0f0 | 5GbE (Intel X550) | 192.168.1.244/24 | 10,000 Mb/s Full Duplex | 1500 | UP | ixgbe |
+| enp66s0f1 | 5GbE (Intel X550) | 192.168.1.246/24 | 10,000 Mb/s Full Duplex | 1500 | UP | ixgbe |
 | enx2e6af1318629 | USB Ethernet (BMC) | none | unknown | 1500 | DOWN | (USB) |
 | docker0 | Bridge | 172.17.0.1/16 | virtual | 1500 | UP | bridge |
 
@@ -351,9 +351,9 @@ LVM: single VG `ubuntu-vg` with single LV consuming all 3.64T. No free extents.
 
 ### Assessment
 
-- WARNING: MTU 1500 on all interfaces. For NFS over 10GbE, jumbo frames (MTU 9000) would reduce CPU overhead and increase throughput by 10-30% for large sequential transfers (model loading).
+- WARNING: MTU 1500 on all interfaces. For NFS over 5GbE, jumbo frames (MTU 9000) would reduce CPU overhead and increase throughput by 10-30% for large sequential transfers (model loading).
 - The second NIC (enp66s0f1 / .246) is UP and linked but has no services bound to it. It could be dedicated to NFS traffic for isolation.
-- net.core.rmem_max and wmem_max are at defaults (212992). For 10GbE, these should be increased to at least 16MB for optimal throughput.
+- net.core.rmem_max and wmem_max are at defaults (212992). For 5GbE, these should be increased to at least 16MB for optimal throughput.
 
 ---
 
@@ -386,7 +386,7 @@ Domain 0x00 (Root Complex 1):
 
 Domain 0x40 (Root Complex 2):
   +-- 41:00.0  NVMe 0 - Crucial P3 4TB    [Gen 3 x4]
-  +-- 42:00.x  Intel X550 (dual 10GbE)    [Gen 3 x4]
+  +-- 42:00.x  Intel X550 (dual 5GbE)    [Gen 3 x4]
   +-- 44:00.0  ASMedia USB 3.1
   +-- 45-46     ASPEED BMC VGA
   +-- 47:00.0  NVMe 1 - Crucial P310 1TB  [Gen 4 x4]
@@ -525,9 +525,9 @@ With PSU headroom of 1600W, there is approximately 780W available. This is suffi
 | vm.dirty_background_ratio | 10 | 5 | SLIGHTLY HIGH for NFS workloads |
 | vm.overcommit_memory | 0 | 0 | OK (heuristic) |
 | transparent_hugepages | madvise | madvise | OK |
-| net.core.rmem_max | 212992 | 16777216 | TOO LOW for 10GbE |
-| net.core.wmem_max | 212992 | 16777216 | TOO LOW for 10GbE |
-| net.core.netdev_max_backlog | 1000 | 5000 | LOW for 10GbE |
+| net.core.rmem_max | 212992 | 16777216 | TOO LOW for 5GbE |
+| net.core.wmem_max | 212992 | 16777216 | TOO LOW for 5GbE |
+| net.core.netdev_max_backlog | 1000 | 5000 | LOW for 5GbE |
 | fs.file-max | 9223372036854775807 | (max) | OK |
 | kernel boot params | (clean) | (none needed) | OK |
 | CPU governor | schedutil | performance | CONSIDER for latency |
@@ -575,7 +575,7 @@ For latency-sensitive inference, consider:
 | 4090 extra VRAM | 8.3 GB | 0 | 8.3 GB | **0% (wasted by TP symmetry)** |
 | NVMe storage | 5 TB local | 180 GB | 4.8 TB | **4%** |
 | NVMe (unmounted) | 1 TB | 0 | 1 TB | **0% (completely idle)** |
-| 10GbE ports | 2 | 1 active | 1 secondary | **50%** |
+| 5GbE ports | 2 | 1 active | 1 secondary | **50%** |
 | PCIe x16 slots | 7 | 5 GPUs + 1 NVMe domain | 1 empty | **86%** |
 | Power budget | 1600W | ~820W | ~780W | **51%** |
 
@@ -588,7 +588,7 @@ For latency-sensitive inference, consider:
 5. **3.3 TB free on boot drive** -- OS only uses 180 GB of 3.6 TB.
 6. **1 empty PCIe x16 slot** -- RTX 3060 deferred but PSU budget allows it.
 7. **780W PSU headroom** -- enough for another GPU and raised power limits.
-8. **Second 10GbE port** -- linked but underutilized.
+8. **Second 5GbE port** -- linked but underutilized.
 
 ---
 
@@ -639,7 +639,7 @@ For latency-sensitive inference, consider:
 | 01:00.0 | RTX 5070 Ti (GPU0) | Gen 4 (16GT/s) | x16 |
 | 02:00.0 | RTX 5070 Ti (GPU1) | Gen 4 (16GT/s) | x16 |
 | 41:00.0 | Crucial P3 4TB NVMe | Gen 3 (8GT/s) | x4 |
-| 42:00.0 | Intel X550 10GbE | Gen 3 (8GT/s) | x4 |
+| 42:00.0 | Intel X550 5GbE | Gen 3 (8GT/s) | x4 |
 | 44:00.0 | ASMedia USB 3.1 | Gen 3 | x1 |
 | 47:00.0 | Crucial P310 1TB NVMe | Gen 4 (16GT/s) | x4 |
 | 81:00.0 | RTX 4090 (GPU2) | Gen 4 (16GT/s) | x16 |

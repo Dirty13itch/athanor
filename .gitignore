@@ -77,3 +77,4 @@ scripts/.venv-router/
 # Generated audit/census data (regenerate with scripts/validate-atlas.py)
 /docs/atlas/inventory/completion/
 /tests/ui-audit/
+projects/eoq/.next/

@@ -282,15 +282,15 @@ From vLLM docs: "This argument can be seen as a virtual way to increase the GPU 
 
 ### What It Does
 
-Mount a tmpfs filesystem backed by RAM to cache model weights. Models loaded from tmpfs benefit from ~150 GB/s bandwidth vs ~1 GB/s over NFS (10GbE).
+Mount a tmpfs filesystem backed by RAM to cache model weights. Models loaded from tmpfs benefit from ~150 GB/s bandwidth vs ~1 GB/s over NFS (5GbE).
 
 ### Current State
 
-Models are served from NFS: `/mnt/vault/models/` mounted via 10GbE from VAULT.
+Models are served from NFS: `/mnt/vault/models/` mounted via 5GbE from VAULT.
 
 | Source | Read Bandwidth | 18 GB Model Load Time |
 |--------|---------------|----------------------|
-| NFS (10GbE) | ~1 GB/s | ~18 seconds |
+| NFS (5GbE) | ~1 GB/s | ~18 seconds |
 | NVMe (local) | ~5-7 GB/s | ~2.5-3.5 seconds |
 | tmpfs (RAM) | ~100-150 GB/s | **<0.2 seconds** |
 
@@ -330,7 +330,7 @@ tmpfs /mnt/ram-models tmpfs size=60G,noatime 0 0
 ### Sources
 
 - Linux tmpfs documentation (kernel.org)
-- NFS 10GbE throughput measured empirically
+- NFS 5GbE throughput measured empirically
 
 ---
 
@@ -754,7 +754,7 @@ No practical way to pool RAM across nodes for per-token inference operations:
 
 | Technology | Bandwidth | Latency | vs Local DDR4 |
 |-----------|-----------|---------|---------------|
-| 10GbE (current) | ~1.1 GB/s | ~100 us | ~150x slower |
+| 5GbE (current) | ~1.1 GB/s | ~100 us | ~150x slower |
 | RDMA/RoCE v2 | ~1.1 GB/s | ~5-10 us | ~150x BW / ~50x latency |
 | InfiniBand EDR (target) | ~12 GB/s | ~1 us | ~14x BW / ~10x latency |
 | Local DDR4 (Node 1) | ~170 GB/s | ~100 ns | baseline |

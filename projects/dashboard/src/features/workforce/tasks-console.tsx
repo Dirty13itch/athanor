@@ -51,7 +51,7 @@ function formatDuration(durationMs: number | null) {
     return "--";
   }
   if (durationMs < 1000) {
-    return `${durationMs}ms`;
+    return `${Math.round(durationMs)}ms`;
   }
   if (durationMs < 60_000) {
     return `${(durationMs / 1000).toFixed(1)}s`;

@@ -29,7 +29,7 @@ The implementation is notably lightweight -- no `dockerode` dependency, just raw
 2. Read operations (list, logs) on all nodes; write operations (restart) on WORKSHOP and VAULT; FOUNDRY writes require extra protection per deployment safety rules
 3. Must work from inside a Docker container (the dashboard runs in Docker)
 4. Ansible-deployable across all nodes
-5. Reasonable security on trusted 10GbE LAN (no internet exposure)
+5. Reasonable security on trusted 5GbE LAN (no internet exposure)
 6. Reliable -- should not require manual intervention after node reboots
 
 ---

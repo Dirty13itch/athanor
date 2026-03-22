@@ -568,7 +568,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                                 <div className="min-w-0 flex-1">
                                   <p className="font-mono text-sm">{toolCall.name}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {toolCall.durationMs ? `${toolCall.durationMs}ms` : toolCall.status}
+                                    {toolCall.durationMs ? `${Math.round(toolCall.durationMs)}ms` : toolCall.status}
                                   </p>
                                 </div>
                                 <Badge variant={toolCall.status === "error" ? "destructive" : "outline"}>

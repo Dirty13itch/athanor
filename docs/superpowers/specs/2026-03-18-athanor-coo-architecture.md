@@ -5,7 +5,7 @@
 - Zero per-token LLM API costs. Local models ($0) + flat-rate subscriptions ($0 marginal) only.
 - Service APIs (HuggingFace, Tavily, Langfuse, etc.) are fine.
 - All development tooling lives on DEV (192.168.1.189), accessed from DESK via SSH/tmux.
-- DEV has 10GbE.
+- DEV has 5GbE.
 
 ## 10 Locked Architectural Decisions
 1. Claude Code is primary interactive tool
@@ -183,7 +183,7 @@ Intelligence stack (planned): Inoreader, Readwise, Snipd, n8n, Miniflux
 
 ## LAYER 10: PHYSICAL INFRASTRUCTURE
 4 nodes, 7 GPUs, 527GB RAM (305GB idle), 21.9TB NVMe (18.7TB idle)
-10GbE all nodes. UPS connected (NUT monitoring needs USB cable).
+5GbE all nodes. UPS connected (NUT monitoring needs USB cable).
 Upgrades: FOUNDRY Channel H 32GB DDR4 ($50-80)
 
 ## SUBSCRIPTIONS ($543.91/mo)

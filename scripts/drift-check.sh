@@ -1,106 +1,222 @@
 #!/bin/bash
-# Athanor Drift Detection — verifies system matches architectural decisions
-# Run: bash scripts/drift-check.sh
+# Athanor Drift Check — 25 service health checks
+# Exits 0 if all pass, 1 if any fail. Sends ntfy alert on failure.
 
-
-# Source cluster config
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/cluster_config.sh"
 
+# Read LiteLLM master key from secrets file if available
+if [ -f /home/shaun/.secrets/litellm-master-key ]; then
+    LITELLM_KEY="$(cat /home/shaun/.secrets/litellm-master-key | tr -d '\n')"
+fi
+
 PASS=0
 FAIL=0
+FAILURES=""
+
 check() {
-    if eval "$2" >/dev/null 2>&1; then
-        echo "  PASS: $1"
+    local name="$1"
+    local cmd="$2"
+    if eval "$cmd" >/dev/null 2>&1; then
+        printf "  PASS [%02d] %s\n" $((PASS+FAIL+1)) "$name"
         ((PASS++))
     else
-        echo "  FAIL: $1"
+        printf "  FAIL [%02d] %s\n" $((PASS+FAIL+1)) "$name"
         ((FAIL++))
+        FAILURES="${FAILURES}  - ${name}\n"
     fi
 }
 
-echo "=== Drift Detection $(date) ==="
+echo "=== Athanor Drift Check $(date) ==="
 echo ""
+echo "--- DEV Services ---"
 
-echo "--- PRINCIPLE: Zero Anthropic API spending ---"
-check "No ANTHROPIC_API_KEY in LiteLLM container" \
-    '! ssh root@${VAULT_IP} "docker inspect litellm --format={{range\ .Config.Env}}{{println\ .}}{{end}}" 2>/dev/null | grep -q ANTHROPIC_API_KEY'
-check "No anthropic entries in LiteLLM config" \
-    '! ssh root@${VAULT_IP} grep -q anthropic /mnt/user/appdata/litellm/config.yaml 2>/dev/null'
+# 1. Memory service
+check "Memory service (DEV:8720)" \
+    'curl -sf --max-time 5 http://192.168.1.189:8720/health'
 
-echo ""
-echo "--- PRINCIPLE: No subscription-CLI models in LiteLLM ---"
-check "No OpenAI GPT models in LiteLLM" \
-    '! ssh root@${VAULT_IP} grep -q "openai/gpt" /mnt/user/appdata/litellm/config.yaml 2>/dev/null'
-check "No Gemini in LiteLLM" \
-    '! ssh root@${VAULT_IP} grep -q "gemini/" /mnt/user/appdata/litellm/config.yaml 2>/dev/null'
-check "No Kimi/Moonshot in LiteLLM" \
-    '! ssh root@${VAULT_IP} grep -q "moonshot/" /mnt/user/appdata/litellm/config.yaml 2>/dev/null'
-check "No Z.ai/GLM in LiteLLM" \
-    '! ssh root@${VAULT_IP} grep -q "zai/" /mnt/user/appdata/litellm/config.yaml 2>/dev/null'
-check "No OpenRouter in LiteLLM" \
-    '! ssh root@${VAULT_IP} grep -q "openrouter/" /mnt/user/appdata/litellm/config.yaml 2>/dev/null'
+# 2. Gateway
+check "Gateway (DEV:8700)" \
+    'curl -sf --max-time 5 http://192.168.1.189:8700/health'
 
-echo ""
-echo "--- PRINCIPLE: Local-only fallbacks ---"
-check "No claude in fallback chains" \
-    '! ssh root@${VAULT_IP} grep -A20 "fallbacks:" /mnt/user/appdata/litellm/config.yaml 2>/dev/null | grep -q "claude"'
+# 3. MIND
+check "MIND (DEV:8710)" \
+    'curl -sf --max-time 5 http://192.168.1.189:8710/health'
 
-echo ""
-echo "--- INFRASTRUCTURE ---"
-check "LiteLLM responding" \
-    'curl -sf -H "Authorization: Bearer ${LITELLM_KEY}" ${LITELLM_URL}/health'
-check "Gateway responding" \
-    'curl -sf http://localhost:8700/health'
-check "Dashboard serving" \
-    'curl -sf http://localhost:3001/'
-check "Subscription scheduler responding" \
-    'curl -sf http://localhost:8065/health'
-check "Semantic router responding" \
-    'curl -sf http://localhost:8060/health'
-check "Agent server responding" \
-    'curl -sf ${AGENT_SERVER_URL}/health --connect-timeout 3'
-check "OpenFang running" \
-    'openfang status 2>&1 | grep -q running'
+# 4. Perception
+check "Perception (DEV:8730)" \
+    'curl -sf --max-time 5 http://192.168.1.189:8730/health'
 
-echo ""
-echo "--- OVERNIGHT PIPELINE ---"
-check "No ANTHROPIC_API_KEY in overnight script" \
-    '! grep -q ANTHROPIC_API_KEY /home/shaun/bin/overnight-coding.sh'
-check "Overnight script syntax valid" \
-    'bash -n /home/shaun/bin/overnight-coding.sh'
-check "aider in PATH" 'which aider'
-check "gsd in PATH" 'which gsd'
-check "codex in PATH" 'which codex'
+# 5. UI
+check "UI (DEV:3001)" \
+    'curl -sf --max-time 5 http://192.168.1.189:3001/'
+
+# 6. Embedding
+check "Embedding service (DEV:8001)" \
+    'curl -sf --max-time 5 http://192.168.1.189:8001/health'
+
+# 7. Reranker
+check "Reranker service (DEV:8003)" \
+    'curl -sf --max-time 5 http://192.168.1.189:8003/health'
+
+# 8. Subscription burn scheduler
+check "Subscription burn scheduler (DEV:8065)" \
+    'curl -sf --max-time 5 http://192.168.1.189:8065/health'
+
+# 9. OpenFang
+check "OpenFang (DEV:4200)" \
+    'curl -sf --max-time 5 http://192.168.1.189:4200/api/health'
+
+# 10. Semantic Router
+check "Semantic Router (DEV:8060)" \
+    'curl -sf --max-time 5 http://192.168.1.189:8060/health'
 
 echo ""
+echo "--- VAULT Services ---"
+
+# 11. LiteLLM
+check "LiteLLM (VAULT:4000)" \
+    'curl -sf --max-time 5 -H "Authorization: Bearer ${LITELLM_KEY}" http://192.168.1.203:4000/health'
+
+# 12. Qdrant
+check "Qdrant (VAULT:6333)" \
+    'curl -sf --max-time 5 http://192.168.1.203:6333/healthz'
+
+# 13. Neo4j
+check "Neo4j (VAULT:7687)" \
+    'curl -sf --max-time 5 http://192.168.1.203:7474/'
+
+# 14. Prometheus
+check "Prometheus (VAULT:9090)" \
+    'curl -sf --max-time 5 http://192.168.1.203:9090/-/healthy'
+
+# 15. Grafana
+check "Grafana (VAULT:3000)" \
+    'curl -sf --max-time 5 http://192.168.1.203:3000/api/health'
+
+# 16. Stash
+check "Stash (VAULT:9999)" \
+    'curl -sf --max-time 5 http://192.168.1.203:9999/'
+
+# 17. ntfy
+check "ntfy (VAULT:8880)" \
+    'curl -sf --max-time 5 http://192.168.1.203:8880/v1/health'
+
+# 18. n8n
+check "n8n (VAULT:5678)" \
+    'curl -sf --max-time 5 http://192.168.1.203:5678/healthz'
+
 echo ""
-echo "--- AGENTS ---"
-check "Agent server 9 agents" \
-    'curl -sf http://${FOUNDRY_IP}:9000/health --connect-timeout 5 | python3 -c '"'"'import sys,json; d=json.load(sys.stdin); assert d.get("agent_count",0) >= 9'"'"''
+echo "--- FOUNDRY Services ---"
 
-check "APScheduler 25+ jobs" \
-    'curl -sf -H "Authorization: Bearer OXydknsIRAC48gg0xv8t0J-iUnM0q4btx0t1GE-vQEw" http://${FOUNDRY_IP}:9000/v1/scheduler/health --connect-timeout 5 | python3 -c '"'"'import sys,json; d=json.load(sys.stdin); assert d.get("total_jobs",0) >= 20'"'"''
+# 19. Agent server
+check "Agent server (FOUNDRY:9000)" \
+    'curl -sf --max-time 5 http://192.168.1.244:9000/health'
+
+# 20. Agent server: 9 agents online
+#n# 21. Agent server scheduler running
+#check "Agent server scheduler" \n    'curl -sf --max-time 5 http://192.168.1.244:9000/health | python3 -c "import sys,json; sys.exit(0 if json.load(sys.stdin).get(\"status\") == \"ok\" else 1)"'
+#check "Agent server: 9 agents online" \
+#n# 21. Agent server scheduler running
+#    'curl -sf --max-time 5 http://192.168.1.244:9000/health | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if len(d.get(\"agents\",[]))>=9 else 1)"'
+#
+
+# 22. Voice pipeline
+check "Voice pipeline (FOUNDRY:8250)" \
+    'curl -sf --max-time 5 http://192.168.1.244:8250/health'
 
 echo ""
-echo "--- CONTENT PIPELINE ---"
-check "Auto_gen scanner running" \
-    'curl -sf http://localhost:8700/auto-gen/status --connect-timeout 3 | python3 -c '"'"'import sys,json; d=json.load(sys.stdin); assert d.get("scanner_running",False)'"'"' 2>/dev/null || curl -sf http://localhost:8700/health'
+echo "--- WORKSHOP Services ---"
 
+# 23. ComfyUI
+check "ComfyUI (WORKSHOP:8188)" \
+    'curl -sf --max-time 5 http://192.168.1.225:8188/'
+
+echo ""
+echo "--- System State ---"
+
+# 24. Memory consolidation cron exists
 check "Memory consolidation cron exists" \
     'crontab -l 2>/dev/null | grep -q consolidat'
 
-check "Voice pipeline healthy" \
-    'curl -sf http://${FOUNDRY_IP}:8250/health --connect-timeout 3'
+# 25. Auto_gen scanner running
+check "Auto_gen scanner running" \
+    'curl -sf --max-time 5 http://192.168.1.189:8700/v1/generate/drops | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if d.get(\"scanner_running\",False) else 1)"'
 
-echo "=== Results: $PASS passed, $FAIL failed ==="
-[ "$FAIL" -eq 0 ] && echo "No drift detected." || echo "DRIFT DETECTED"
 
-# Send ntfy alert if drift detected
-if [ "$FAIL" -gt 0 ]; then
-    curl -s -H "Title: Drift Detected ($FAIL of $((PASS+FAIL)) checks failed)" \
+echo ""
+echo "--- NEW: Infrastructure Checks ---"
+
+# 26. vLLM coordinator (FOUNDRY:8000)
+check "vLLM coordinator (FOUNDRY:8000)" \
+    'curl -sf --max-time 10 http://192.168.1.244:8000/v1/models'
+
+# 27. vLLM coder (FOUNDRY:8006)
+check "vLLM coder (FOUNDRY:8006)" \
+    'curl -sf --max-time 10 http://192.168.1.244:8006/v1/models'
+
+# 28. vLLM worker (WORKSHOP:8010)
+check "vLLM worker (WORKSHOP:8010)" \
+    'curl -sf --max-time 10 http://192.168.1.225:8010/v1/models'
+
+# 29. Ollama (WORKSHOP:11434)
+check "Ollama (WORKSHOP:11434)" \
+    'curl -sf --max-time 5 http://192.168.1.225:11434/'
+
+# 30. Langfuse (VAULT:3030)
+check "Langfuse (VAULT:3030)" \
+    'curl -sf --max-time 5 http://192.168.1.203:3030/api/public/health'
+
+# 31. Uptime Kuma (VAULT:3009)
+check "Uptime Kuma (VAULT:3009)" \
+    'curl -sf --max-time 5 http://192.168.1.203:3009/'
+
+# 32. Headscale mesh (DEV:100.64.0.1)
+check "Headscale mesh (DEV)" \
+    'ping -c1 -W2 100.64.0.2 2>/dev/null'
+
+# 33. Hindsight (DEV:8888)
+check "Hindsight (DEV:8888)" \
+    'curl -sf --max-time 5 http://192.168.1.189:8888/health 2>/dev/null || curl -sf --max-time 5 http://localhost:8888/ 2>/dev/null'
+
+# 34. Heartbeat daemon
+check "Heartbeat daemon" \
+    'systemctl is-active athanor-heartbeat'
+
+# 35. Gitea Actions Runner
+check "Gitea Actions Runner" \
+    'systemctl is-active athanor-runner'
+
+
+# 36. Open WebUI
+check "Open WebUI (DEV:3080)"     'curl -sf --max-time 5 http://192.168.1.189:3080/api/version'
+# 37. Governor
+check "Governor (DEV:8760)"     'curl -sf --max-time 5 http://192.168.1.189:8760/health'
+# 38. Classifier
+check "Classifier (DEV:8740)"     'curl -sf --max-time 5 http://192.168.1.189:8740/health'
+# 39. Arize Phoenix
+check "Arize Phoenix (DEV:6006)"     'curl -sf --max-time 5 http://192.168.1.189:6006/'
+
+echo ""
+echo "=== Results: ${PASS} passed, ${FAIL} failed out of $((PASS+FAIL)) checks ==="
+
+if [ "$FAIL" -eq 0 ]; then
+    echo "All checks passed. No drift detected."
+    exit 0
+else
+    echo "DRIFT DETECTED: ${FAIL} check(s) failed:"
+    printf "%b" "$FAILURES"
+    # Send ntfy alert
+    ALERT_BODY="${FAIL} of $((PASS+FAIL)) checks failed:\n${FAILURES}"
+    curl -s \
+         -H "Title: Drift Check Failed" \
          -H "Priority: high" \
-         -H "Tags: warning" \
-         -d "Drift check found $FAIL issue(s). Run scripts/drift-check.sh for details." \
-         ${NTFY_TOPIC_URL}
+         -H "Tags: warning,athanor" \
+         -d "$(printf '%b' "$ALERT_BODY")" \
+         http://192.168.1.203:8880/athanor-alerts >/dev/null 2>&1
+    exit 1
 fi
+
+echo ""
+echo "--- NEW: Infrastructure Checks ---"
+

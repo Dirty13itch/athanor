@@ -109,32 +109,32 @@ All specs SSH-verified March 18, 2026.
 ### FOUNDRY (192.168.1.244) — Heavy Compute
 - EPYC 7663 56-core, 219GB DDR4 (7/8 channels populated, Channel H empty)
 - 4× RTX 5070 Ti + 1× RTX 4090
-- 8.1TB NVMe, dual 10GbE
+- 8.1TB NVMe, dual 5GbE
 - PSU at 95% utilization — cannot add GPUs
 - Channel H upgrade: $50-80 for 32GB RDIMM → 256GB + full 8-channel bandwidth
 
 ### WORKSHOP (192.168.1.225) — Creative + Code
 - Threadripper 7960X 24-core, 125GB DDR5
 - RTX 5090 32GB + RTX 5060 Ti 16GB
-- 5.5TB NVMe (2× Crucial T700 Gen5 slots empty), 10GbE
+- 5.5TB NVMe (2× Crucial T700 Gen5 slots empty), 5GbE
 - SSH user: `athanor` (not `shaun`)
 
 ### DEV (192.168.1.189) — Operations Center
 - Ryzen 9 9900X 12-core, 60GB DDR5
 - RTX 5060 Ti 16GB
-- 5.5TB NVMe, 5GbE (NOT 10GbE — Intel X540-T2 upgrade in spare inventory)
+- 5.5TB NVMe, 5GbE (NOT 5GbE — Intel X540-T2 upgrade in spare inventory)
 
 ### VAULT (192.168.1.203) — Storage
 - Ryzen 9 9950X 16-core, 123GB DDR5
 - Intel ARC A380 (QSV transcode)
 - 5× NVMe cache/Docker/transcode, 200TB HDD array (87% full, 22TB free)
-- 10GbE bonded (bond0, 2× NIC)
+- 5GbE bonded (bond0, 2× NIC)
 - Docker moved to NVMe `/mnt/docker` (932GB, bind-mounted to `/var/lib/docker`)
 
 ### DESK (192.168.1.50) — Windows Workstation
 - i7-13700K, 64GB DDR5
 - RTX 3060 12GB
-- 3TB NVMe, 10GbE
+- 3TB NVMe, 5GbE
 
 ### Idle Resources
 - 305GB RAM cluster-wide (75% available)
@@ -144,7 +144,7 @@ All specs SSH-verified March 18, 2026.
 
 ### Planned Hardware Changes
 - Motherboard swap: TRX50 + 7960X from VAULT → WORKSHOP; X870E + 9950X → VAULT
-- DEV NIC upgrade: Intel X540-T2 (in spare inventory) for 10GbE
+- DEV NIC upgrade: Intel X540-T2 (in spare inventory) for 5GbE
 
 ---
 
@@ -421,7 +421,7 @@ A visual novel with procedurally generated characters.
 
 | Service | Location | Notes |
 |---------|----------|-------|
-| LiteLLM | VAULT:4000 | v1.81.9-stable, 33 model aliases, auth: `sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d` |
+| LiteLLM | VAULT:4000 | v1.81.9-stable, 33 model aliases, auth: `<REDACTED-see-~/.secrets/litellm-master-key>` |
 | Qdrant | VAULT:6333 | Collections: knowledge_vault, resources, episodic |
 | PostgreSQL | VAULT | Strong password, rotated 2026-03-05 |
 | Redis | VAULT | Requirepass set, persistent via redis.conf |
@@ -582,7 +582,7 @@ Reference details that prevent common mistakes.
 - **All Qwen3.5 models are natively multimodal VLMs**
 - **FOUNDRY PSU at 95%** — cannot add GPUs
 - **Memory port is 8720** everywhere (old refs to 8702 are wrong)
-- **LiteLLM health requires auth:** `Authorization: Bearer sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d`
+- **LiteLLM health requires auth:** `Authorization: Bearer <REDACTED-see-~/.secrets/litellm-master-key>`
 - **LiteLLM metrics path needs trailing slash:** `/metrics/`
 - **WORKSHOP SSH user is `athanor`**, not `shaun`
 - **VAULT SSH:** `root@192.168.1.203` (shaun user SSH was failing)

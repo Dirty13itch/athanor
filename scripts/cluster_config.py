@@ -23,7 +23,7 @@ NODES = {
 }
 
 # Convenience: LiteLLM master key
-LITELLM_KEY = os.environ.get("LITELLM_MASTER_KEY", "sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d")
+LITELLM_KEY = os.environ.get("LITELLM_MASTER_KEY", "<REDACTED-see-~/.secrets/litellm-master-key>")
 
 # Service endpoints
 SERVICES = {

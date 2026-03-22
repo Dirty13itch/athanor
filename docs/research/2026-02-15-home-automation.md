@@ -89,7 +89,7 @@ The Home Agent (ADR-008) uses the same API to query and control HA programmatica
 
 ## Agent Integration (ADR-008)
 
-The Home Agent on Node 1 connects to HA's API over 10GbE:
+The Home Agent on Node 1 connects to HA's API over 5GbE:
 
 | Agent Action | HA API |
 |-------------|--------|

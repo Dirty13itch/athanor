@@ -94,7 +94,7 @@ The Media Agent (ADR-008) manages the entire stack via REST/GraphQL APIs:
 | Organize adult content | Stash GraphQL API | "Tag unmatched scenes" |
 | Submit request | Overseerr API | "Request this title" |
 
-All APIs are authenticated via API keys stored in environment variables. The Media Agent on Node 1 reaches VAULT over 10GbE.
+All APIs are authenticated via API keys stored in environment variables. The Media Agent on Node 1 reaches VAULT over 5GbE.
 
 ---
 

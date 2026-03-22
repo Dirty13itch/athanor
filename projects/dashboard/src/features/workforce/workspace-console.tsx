@@ -106,7 +106,7 @@ export function WorkspaceConsole({ initialSnapshot }: { initialSnapshot: Workfor
                         <Badge variant="secondary">{getAgentName(snapshot, item.sourceAgent)}</Badge>
                         <Badge variant="outline">{item.priority}</Badge>
                         {item.projectId ? <Badge variant="outline">{getProjectName(snapshot, item.projectId)}</Badge> : null}
-                        <span className="text-xs text-muted-foreground">salience {item.salience.toFixed(2)}</span>
+                        <span className="text-xs text-muted-foreground">salience {item.salience.toFixed(1)}</span>
                       </div>
                       <p className="text-sm">{item.content}</p>
                       <p className="text-xs text-muted-foreground">

@@ -271,9 +271,9 @@ At 28 tokens/sec decode rate, each token generates one KV block per layer per he
 Model weights in safetensors format are loaded sequentially at startup:
 - Sequential read: The primary access pattern. NVMe Gen4 achieves 5-7 GB/s, Gen5 achieves 10-12 GB/s.
 - Random read: Not a factor for model loading (safetensors is a flat memory-mapped format).
-- **Cold start timing:** FOUNDRY's Qwen3.5-27B-FP8 (~27 GB weights) loads in ~4-5 seconds from local NVMe at Gen3 speeds. From NFS (10GbE) it would take ~24 seconds.
+- **Cold start timing:** FOUNDRY's Qwen3.5-27B-FP8 (~27 GB weights) loads in ~4-5 seconds from local NVMe at Gen3 speeds. From NFS (5GbE) it would take ~24 seconds.
 
-**Current model storage:** Models load from `/models/` which is likely NFS-mounted from VAULT over 10GbE. This means cold starts are bottlenecked at ~1.1 GB/s NFS throughput.
+**Current model storage:** Models load from `/models/` which is likely NFS-mounted from VAULT over 5GbE. This means cold starts are bottlenecked at ~1.1 GB/s NFS throughput.
 
 **Recommendation: Copy hot models to local NVMe.**
 
@@ -479,7 +479,7 @@ DEV's Realtek 5 GbE NIC is the weakest link. For DEV's role as ops center:
 - Embedding requests: ~10 KB per request, ~100 requests/min max -- negligible
 - Model loading (if needed): 5 GbE delivers ~550 MB/s, adequate for 0.6B models
 
-**No network upgrade needed for DEV.** The existing spare Intel X540-T2 10GbE cards could be installed if DEV ever runs larger models, but the current workload doesn't justify it.
+**No network upgrade needed for DEV.** The existing spare Intel X540-T2 5GbE cards could be installed if DEV ever runs larger models, but the current workload doesn't justify it.
 
 ---
 
@@ -494,7 +494,7 @@ The ASRock ROMED8-2T has 128 PCIe 4.0 lanes from the EPYC 7663 (single socket, s
 - Slot 4 (x16): 5070 Ti GPU3
 - Slot 5 (x16): 5070 Ti GPU4
 
-With 5 GPUs at x16 = 80 lanes. Plus 2x NVMe (2 lanes each via M.2), SAS HBA, and 10GbE NICs. Total: ~100 of 128 lanes used.
+With 5 GPUs at x16 = 80 lanes. Plus 2x NVMe (2 lanes each via M.2), SAS HBA, and 5GbE NICs. Total: ~100 of 128 lanes used.
 
 ### 7.2 No P2P on GeForce
 
@@ -641,7 +641,7 @@ vLLM's PagedAttention treats GPU memory as virtual memory pages. For heterogeneo
 | Flash Attention sm_120 support | Official release | Evaluate FA3/FA4 vs FlashInfer |
 | vLLM CPU draft model support | Feature merge | Enable speculative decoding with 0.8B CPU draft |
 | VAULT at 90% | Storage growth | Add 22 TB drive or upgrade parity |
-| DEV 5 GbE bottleneck | DEV running larger models | Install spare Intel X540-T2 10GbE |
+| DEV 5 GbE bottleneck | DEV running larger models | Install spare Intel X540-T2 5GbE |
 
 ---
 

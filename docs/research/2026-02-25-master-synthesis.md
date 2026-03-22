@@ -128,7 +128,7 @@ The Qwen3.5 family dropped Feb 16-24, 2026. This changes everything:
 |---|--------|------|--------|--------|
 | 1 | **vLLM NGC upgrade** to v0.15.0+ | Node 1, 2 | 2 hrs | Unlocks Qwen3.5, DeltaNet, NVFP4, SageAttention2 |
 | 2 | **Deploy Qwen3.5-27B** on TP=4 (replacing Qwen3-32B) | Node 1 | 1 hr | 72.4% vs ~55% SWE-bench, 68% vs 49% BFCL V4 |
-| 3 | **Jumbo frames** (MTU 9000) on 10GbE links | All nodes + VAULT | 1 hr | ~15-30% NFS throughput improvement |
+| 3 | **Jumbo frames** (MTU 9000) on 5GbE links | All nodes + VAULT | 1 hr | ~15-30% NFS throughput improvement |
 | 4 | **KV cache CPU offloading** — Use 200+ GB free Node 1 RAM | Node 1 | 1 hr | 2-4x effective context length |
 | 5 | **llama.cpp auxiliary model** — Qwen3-8B Q4_K_M on EPYC | Node 1 | 2 hrs | Free background inference (tagging, summarization) |
 | 6 | **NVMe model preloading** — Copy hot models to Node 1/2 local NVMe | Node 1, 2 | 1 hr | Instant model loading vs NFS |
@@ -325,7 +325,7 @@ The narrative models research found a rich ecosystem of creative-specialist mode
 
 1. Upgrade vLLM NGC to v0.15.0+
 2. Deploy Qwen3.5-27B on Node 1 TP=4
-3. Jumbo frames on 10GbE
+3. Jumbo frames on 5GbE
 4. KV cache CPU offloading
 5. Deploy llama.cpp 7B on EPYC
 6. Deploy code completion (Tabby + Qwen2.5-Coder-1.5B)

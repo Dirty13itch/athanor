@@ -70,7 +70,7 @@ vllm_instances:
       - --safetensors-load-strategy
       - eager
 
-# Network interfaces — dual 10GbE NICs, MTU 9000
+# Network interfaces — dual 5GbE NICs, MTU 9000
 network_interfaces:
   - name: enp66s0f0
     addresses: ["192.168.1.244/24"]

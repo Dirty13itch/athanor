@@ -1,6 +1,6 @@
 # Rack Session Checklist
 
-**Goal:** 10GbE everywhere, EXPO on Node 2, Node 1 storage + 5th GPU, DEV refresh, VAULT ↔ Node 2 motherboard swap.
+**Goal:** 5GbE everywhere, EXPO on Node 2, Node 1 storage + 5th GPU, DEV refresh, VAULT ↔ Node 2 motherboard swap.
 
 **RAM note:** 192 GB is NOT achievable with current hardware. TRX50 AERO D has 4 DIMM slots (not 8) and requires DDR5 RDIMM only — G.Skill non-ECC UDIMMs are incompatible. Node 2 will have 128 GB DDR5 ECC RDIMM post-swap (same 4× Kingston KF556R28RBE2-32 sticks, same capacity, better CPU). To reach 192 GB would require buying 4× 48 GB DDR5 RDIMMs (~$600-800).
 
@@ -21,7 +21,7 @@
 - **IP method: DHCP reservation in UniFi** (not static in Unraid) — tied to this MAC
   - After X870E install: VAULT will get a new random IP on first boot (new MACs)
   - Fix: log in via JetKVM (.80) → Unraid Settings → Network Settings → configure static 192.168.1.203 directly, OR update UniFi DHCP reservation to new X870E MAC
-  - X870E has Aquantia 10GbE + Intel 2.5GbE — bonding config may need rebuild with new interface names
+  - X870E has Aquantia 5GbE + Intel 2.5GbE — bonding config may need rebuild with new interface names
 - VAULT NVMe pool assignments confirmed via SSH — exact mapping:
   - **nvme1n1** = `CT4000T700SSD5_2423E8B78B09` → **/mnt/appdatacache** (T700 4TB)
   - **nvme0n1** = `CT1000P310SSD8_25064E23123B` → **/mnt/docker** (P310 1TB)
@@ -43,7 +43,7 @@
 
 ## Phase 1 — Cable Moves (~20 min, no downtime)
 
-All three servers have 10GbE onboard. They're just plugged into the wrong switch.
+All three servers have 5GbE onboard. They're just plugged into the wrong switch.
 
 - [ ] Move **Node 1** ethernet → USW Pro XG 10 PoE
 - [ ] Move **Node 2** ethernet → USW Pro XG 10 PoE
@@ -113,10 +113,10 @@ nvidia-smi  # 5x GPUs if 3060 installed: 4x 5070 Ti + 1x 3060
 - [ ] Open DEV chassis
 - [ ] **Remove RTX 3060** (goes to Node 1 — or sits loose if Node 1 clearance was tight)
 - [ ] Install **RX 5700 XT** (from loose inventory) — DEV keeps a display GPU
-- [ ] Install **Intel X540-T2 dual-port 10GbE NIC** in PCIe slot
+- [ ] Install **Intel X540-T2 dual-port 5GbE NIC** in PCIe slot
 - [ ] Close chassis, power on Windows
 - [ ] Connect DEV ethernet → USW Pro XG 10 PoE
-- [ ] Verify 10GbE in Device Manager / `iperf3`
+- [ ] Verify 5GbE in Device Manager / `iperf3`
 - [ ] If RTX 3060 not yet installed in Node 1: go do it now while DEV boots
 
 ---
@@ -265,7 +265,7 @@ docker stop $(docker ps -q) && sudo shutdown now
 ## Phase 7 — Full Verification
 
 ```bash
-# 10GbE throughput — run from DEV or any node
+# 5GbE throughput — run from DEV or any node
 iperf3 -c 192.168.1.244  # Node 1
 iperf3 -c 192.168.1.225  # Node 2
 iperf3 -c 192.168.1.203  # VAULT
@@ -355,7 +355,7 @@ Do these on first boot (or before first OS boot where noted). All are persistent
 | **Node 1** | 990 PRO missing, no extra NVMe | 990 PRO reseated, 16 TB T700 NVMe, RTX 3060 (if fits) |
 | **Node 2** | 9950X, 128 GB @ 3600 MT/s, X870E | 7960X, 128 GB DDR5 ECC RDIMM, TRX50 AERO D, same GPUs |
 | **VAULT** | 7960X, 128 GB DDR5 ECC, TRX50 | 9950X, 128 GB DDR5, X870E |
-| **DEV** | RTX 3060, 1GbE | RX 5700 XT, 10GbE |
-| **Network** | All servers on 1GbE management switch | All servers on 10GbE XG switch |
+| **DEV** | RTX 3060, 1GbE | RX 5700 XT, 5GbE |
+| **Network** | All servers on 1GbE management switch | All servers on 5GbE XG switch |
 
 **What's still deferred:** RTX 3060 → Node 1 (if physical fit was tight), Add2PSU for Phase 8 dual-PSU, GPU enclosure purchase, InfiniBand cards.

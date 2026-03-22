@@ -4,7 +4,7 @@ export function formatLatency(value: number | null): string {
   }
 
   if (value < 1000) {
-    return `${value}ms`;
+    return `${Math.round(value)}ms`;
   }
 
   return `${(value / 1000).toFixed(1)}s`;

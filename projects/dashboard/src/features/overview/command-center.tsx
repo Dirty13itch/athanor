@@ -23,6 +23,10 @@ import { DailyBriefing } from "@/components/daily-briefing";
 import { MediaGlance } from "@/components/media-glance";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
+import { AttentionBanner } from "@/components/attention-banner";
+import { GovernorQueuePanel } from "@/components/governor-queue-panel";
+import { GoalsPanel } from "@/components/goals-panel";
+import { LiveActivityPanel } from "@/components/live-activity-panel";
 import { GovernorCard } from "@/components/governor-card";
 import { JudgePlaneCard } from "@/components/judge-plane-card";
 import { LiveBadge } from "@/components/live-badge";
@@ -177,7 +181,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const trendData = buildTrendData(snapshot);
 
   return (
-    <div className="space-y-8">
+    <div className="command-center space-y-8">
       <SystemPulse sticky />
       <AgentCrewBar onAgentFilter={setAgentFilter} />
 

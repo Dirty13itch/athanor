@@ -37,7 +37,7 @@ vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
 vllm_pip_version: ""  # Empty = nightly (latest, unpinned) for Qwen3.5 qwen3_5 model type
 vllm_custom_image_tag: "qwen35"  # Match FOUNDRY image tag
 
-# Network interfaces — 10GbE primary + DHCP secondary
+# Network interfaces — 5GbE primary + DHCP secondary
 network_interfaces:
   - name: eno1
     addresses: ["192.168.1.225/24"]

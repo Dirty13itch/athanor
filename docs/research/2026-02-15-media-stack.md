@@ -116,7 +116,7 @@ Request management interface — users (or agents) can request movies/TV shows, 
 
 ## Agent Integration (ADR-008)
 
-The Media Agent on Node 1 manages the entire media stack via APIs over 10GbE:
+The Media Agent on Node 1 manages the entire media stack via APIs over 5GbE:
 
 | Action | Target API | Example |
 |--------|-----------|---------|

@@ -200,7 +200,7 @@ Dashboard (Node 2)  ──→  Agent API Gateway (Node 2)  ──→  Agent Work
 
 Each agent is a LangGraph graph deployed as a Docker container on Node 1. Agents call vLLM on localhost:8000.
 
-The API gateway on Node 2 routes dashboard requests to the appropriate agent on Node 1 over 10GbE. The payload is small JSON — latency is negligible.
+The API gateway on Node 2 routes dashboard requests to the appropriate agent on Node 1 over 5GbE. The payload is small JSON — latency is negligible.
 
 **Proactive agents** (media agent, home agent) run on schedules via APScheduler within their containers. They check for new media, optimize automations, and report via the dashboard.
 

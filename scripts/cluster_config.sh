@@ -12,7 +12,7 @@ VAULT_IP="${ATHANOR_VAULT_IP:-192.168.1.203}"
 DESK_IP="${ATHANOR_DESK_IP:-192.168.1.50}"
 
 # Auth
-LITELLM_KEY="${LITELLM_MASTER_KEY:-sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d}"
+LITELLM_KEY="${LITELLM_MASTER_KEY:-<REDACTED-see-~/.secrets/litellm-master-key>}"
 
 # Service URLs
 LITELLM_URL="http://${VAULT_IP}:4000"

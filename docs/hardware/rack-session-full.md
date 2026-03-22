@@ -2,7 +2,7 @@
 
 **Everything in one pass: Node 1 storage/GPU + DEV refresh + VAULT↔Node 2 board swap.**
 
-**State entering this doc:** Phase 1 ✅ done (10GbE confirmed, 9.42 Gbps). Node 1 is powered off. Everything else running.
+**State entering this doc:** Phase 1 ✅ done (5GbE confirmed, 9.42 Gbps). Node 1 is powered off. Everything else running.
 
 **Time estimate:** 3–4 hours.
 
@@ -159,7 +159,7 @@ DEV done. ✅
 
 - [ ] VAULT config backed up ✅
 - [ ] Node 1 fully verified (drives + GPUs) ✅
-- [ ] DEV on 10GbE ✅
+- [ ] DEV on 5GbE ✅
 - [ ] NVMe pool serial assignments known (from below)
 
 **VAULT NVMe serials (needed for Unraid reassignment after swap):**
@@ -314,7 +314,7 @@ VAULT done. ✅
 
 Power on Node 2 (TRX50). Watch via **JetKVM at 192.168.1.165** if needed.
 
-Ubuntu should boot from Samsung 990 EVO Plus. Both X870E and TRX50 have Marvell/Aquantia 10GbE NICs using the same `atlantic` kernel driver — Ubuntu will load it automatically. Interface name may change.
+Ubuntu should boot from Samsung 990 EVO Plus. Both X870E and TRX50 have Marvell/Aquantia 5GbE NICs using the same `atlantic` kernel driver — Ubuntu will load it automatically. Interface name may change.
 
 **If SSH works:**
 ```bash
@@ -413,7 +413,7 @@ Bifurcation and M.2 were already set in Step 5. Already verified in Step 6.
 From DEV (WSL2) or any machine:
 
 ```bash
-# 10GbE to all nodes
+# 5GbE to all nodes
 iperf3 -c 192.168.1.244   # Node 1 — expect 9+ Gbps
 iperf3 -c 192.168.1.225   # Node 2 — expect 9+ Gbps
 iperf3 -c 192.168.1.203   # VAULT  — expect 9+ Gbps
@@ -459,5 +459,5 @@ ssh -i ~/.ssh/athanor_mgmt athanor@192.168.1.225 "nvidia-smi && free -h"
 | **Node 1** | 990 PRO missing, no extra NVMe | 990 PRO reseated, 16 TB T700 NVMe, RTX 3060 |
 | **Node 2** | 9950X, 128 GB DDR5 @ 3600, X870E | 7960X, 128 GB DDR5 ECC @ 5600, TRX50 AERO D |
 | **VAULT** | 7960X, 128 GB DDR5 ECC, TRX50 | 9950X, 128 GB DDR5, X870E CREATOR |
-| **DEV** | RTX 3060, 1GbE | RX 5700 XT, 10GbE (X540-T2) |
-| **Network** | All servers on 1GbE management switch | All servers on 10GbE XG switch |
+| **DEV** | RTX 3060, 1GbE | RX 5700 XT, 5GbE (X540-T2) |
+| **Network** | All servers on 1GbE management switch | All servers on 5GbE XG switch |

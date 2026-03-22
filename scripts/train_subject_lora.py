@@ -46,7 +46,7 @@ FLUX_T5_PATH = "/mnt/vault/models/comfyui/clip/t5xxl_fp8_e4m3fn.safetensors"
 
 # LiteLLM
 LITELLM_URL = get_url("litellm")
-LITELLM_KEY = "sk-athanor-_rmK0ymrhtnh_lFTI8I-3QEsB8buCV5d"
+LITELLM_KEY = "<REDACTED-see-~/.secrets/litellm-master-key>"
 LITELLM_MODEL = "creative"
 
 # WORKSHOP SSH

@@ -59,7 +59,7 @@ cd /home/shaun/athanor
 
 **Hardware Moves:**
 
-#### 1. 10GbE Network (20 min)
+#### 1. 5GbE Network (20 min)
 - Move all node ethernet cables to USW Pro XG 10 PoE switch
 - Verify link speed with `ethtool eth0` on each node
 - Update /etc/netplan/ configs if needed
@@ -72,7 +72,7 @@ cd /home/shaun/athanor
 - Move TRX50 motherboard from Node 2 → VAULT
 - Verify POST, enable EXPO in BIOS (DDR5 3600 → 5600 MT/s)
 - Reconnect JetKVM ATX power cable
-- Boot, verify 10GbE link
+- Boot, verify 5GbE link
 
 #### 3. Node 1 GPU Expansion (90 min)
 - Power off Node 1
@@ -97,7 +97,7 @@ cd /home/shaun/athanor
 **Validation:**
 - All nodes boot
 - All GPUs detected
-- 10GbE links up
+- 5GbE links up
 - Services can start (don't need to be running yet)
 
 ---
@@ -168,7 +168,7 @@ cd /home/shaun/athanor
 If anything fails during Phase B:
 - Node 1: Can run with 4-6 GPUs (leave one out)
 - Node 2: RTX 5090 stays, can run ComfyUI standalone
-- Network: Can fall back to 1GbE if 10GbE issues
+- Network: Can fall back to 1GbE if 5GbE issues
 - Worst case: Reverse motherboard swap, back to original config in ~2 hours
 
 ---
@@ -182,7 +182,7 @@ If anything fails during Phase B:
 **Phase B Success:**
 - All nodes boot and POST
 - All 7 GPUs detected on Node 1
-- 10GbE network operational
+- 5GbE network operational
 - Services can start (validation smoke test)
 
 **Phase C Success:**

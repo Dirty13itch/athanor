@@ -49,9 +49,9 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 
 | # | Board | Socket | RAM Type | DIMM Slots | PCIe Slots | M.2 Slots | Onboard Network | Currently In |
 |---|-------|--------|----------|------------|------------|-----------|----------------|-------------|
-| 1 | ASRock Rack ROMED8-2T | SP3 | DDR4 ECC RDIMM | 8 | 7 (3x x16 + 4x x8) | 2 | 2x Intel X550 10GbE | Node 1 |
-| 2 | ASUS ProArt X870E-CREATOR WIFI | AM5 | DDR5 | 4 | 2 (1x 5.0 x16, 1x 4.0 x16) | 2+ | Aquantia 10GbE + Intel 2.5GbE + WiFi 7 | VAULT |
-| 3 | Gigabyte TRX50 AERO D | sTR5 | DDR5 ECC RDIMM only | 4 | Multiple | Multiple | Aquantia 10GbE + RTL8125 2.5GbE + TB4 | Node 2 |
+| 1 | ASRock Rack ROMED8-2T | SP3 | DDR4 ECC RDIMM | 8 | 7 (3x x16 + 4x x8) | 2 | 2x Intel X550 5GbE | Node 1 |
+| 2 | ASUS ProArt X870E-CREATOR WIFI | AM5 | DDR5 | 4 | 2 (1x 5.0 x16, 1x 4.0 x16) | 2+ | Aquantia 5GbE + Intel 2.5GbE + WiFi 7 | VAULT |
+| 3 | Gigabyte TRX50 AERO D | sTR5 | DDR5 ECC RDIMM only | 4 | Multiple | Multiple | Aquantia 5GbE + RTL8125 2.5GbE + TB4 | Node 2 |
 | 4 | Gigabyte Z690 AORUS ULTRA | LGA 1700 | DDR5 | 4 | Multiple | Multiple | Intel I225-V 1GbE + WiFi 6 | DEV |
 | 5 | Gigabyte Z690 AORUS ELITE AX DDR4 | LGA 1700 | DDR4 | 4 | 3 (1x 5.0 x16, 1x 3.0 x16, 1x 3.0 x1) | 4 | 2.5GbE + WiFi 6E | Loose |
 | 6 | Gigabyte Z390 AORUS PRO WIFI | LGA 1151 | DDR4 | 4 | 3 (2x 3.0 x16, 1x 3.0 x1) | 2 | 1GbE + WiFi | Loose |
@@ -132,11 +132,11 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 | 1 | Broadcom/LSI SAS3224 | SAS-3 HBA | PCIe 3.0 x8 | VAULT |
 | 2 | ASUS Hyper M.2 X16 Gen5 | 4x NVMe carrier (ALL SLOTS EMPTY — confirmed by PCIe enumeration) | PCIe 5.0 x16 | VAULT |
 | 3–4 | ASUS Hyper M.2 X16 Gen5 (x2) | 4x NVMe carrier | PCIe 5.0 x16 | Loose |
-| 5 | Intel X540-T2 | Dual-port 10GbE RJ45 | PCIe 2.1 x8 | Loose |
-| 6–7 | SR-PT02-X540 / X540 clone (x2) | Dual-port 10GbE RJ45 | PCIe 2.1 x8 | Loose |
+| 5 | Intel X540-T2 | Dual-port 5GbE RJ45 | PCIe 2.1 x8 | Loose |
+| 6–7 | SR-PT02-X540 / X540 clone (x2) | Dual-port 5GbE RJ45 | PCIe 2.1 x8 | Loose |
 | 8 | LSI SAS9300-16i | 16-port SAS/SATA HBA | PCIe 3.0 x8 | Loose |
 
-**Loose 10GbE: 3 cards, 6 ports** | **Hyper M.2 adapters: 2 loose, 1 in VAULT**
+**Loose 5GbE: 3 cards, 6 ports** | **Hyper M.2 adapters: 2 loose, 1 in VAULT**
 
 ---
 
@@ -163,7 +163,7 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 |--------|------|-------|-------|
 | UniFi Dream Machine Pro | Router/Gateway | — | Core router |
 | USW Pro 24 PoE | Switch | 24x 1GbE + 2x 10G SFP+ | JetKVMs, BMC, home devices |
-| USW Pro XG 10 PoE | Switch | 8x 10GbE RJ45 + 4x 10G SFP+ | All server 10GbE links |
+| USW Pro XG 10 PoE | Switch | 8x 5GbE RJ45 + 4x 10G SFP+ | All server 5GbE links |
 | USW Flex | Switch | 5x 1GbE | Garage |
 | U6 APs (x6) | WiFi 6 | — | Whole-home coverage |
 | Lutron controller | Lighting | — | .158 |
@@ -195,6 +195,6 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 | HDDs | 10 | 184 TB raw |
 | Motherboards | 8 | — |
 | PSUs | 8 | — |
-| 10GbE ports (all hardware) | 10 | — |
+| 5GbE ports (all hardware) | 10 | — |
 | Hyper M.2 adapters | 3 | 12 NVMe slots |
 | HBAs | 2 | — |

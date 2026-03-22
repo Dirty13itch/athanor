@@ -182,7 +182,7 @@ REMEDIATION_SUGGESTIONS = {
         ],
         "Service connection failure": [
             "Verify service is running on target node",
-            "Check 10GbE link status between nodes",
+            "Check 5GbE link status between nodes",
         ],
     },
     FailureCategory.RESOURCE: {

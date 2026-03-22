@@ -13,7 +13,7 @@ Athanor has 23 NVMe drives (31.75 TB), a 164 TB HDD parity array on VAULT, and 3
 
 Meanwhile, 11 NVMe drives (11 TB) and 3 Hyper M.2 X16 Gen5 adapters (12 NVMe slots) are loose. Installing them costs nothing.
 
-The other critical insight: VAULT's HDD array reads at 150-250 MB/s per file (Unraid reads from a single drive, no striping). The 10GbE link from ADR-002 can do 1.1 GB/s — but only if the source file is on NVMe. **Serving AI models from VAULT's HDD array wastes the 10GbE network.** Models must be on NVMe, either locally on the compute node or on VAULT's NVMe cache.
+The other critical insight: VAULT's HDD array reads at 150-250 MB/s per file (Unraid reads from a single drive, no striping). The 5GbE link from ADR-002 can do 1.1 GB/s — but only if the source file is on NVMe. **Serving AI models from VAULT's HDD array wastes the 5GbE network.** Models must be on NVMe, either locally on the compute node or on VAULT's NVMe cache.
 
 ---
 
@@ -28,7 +28,7 @@ The other critical insight: VAULT's HDD array reads at 150-250 MB/s per file (Un
 └─────────────────────────────────────────────┘
                     ▲ rsync / pull
 ┌─────────────────────────────────────────────┐
-│  Tier 2: VAULT NVMe (over NFS/10GbE)       │  Model repository, warm storage
+│  Tier 2: VAULT NVMe (over NFS/5GbE)       │  Model repository, warm storage
 │  ~6.5 TB (expandable to ~9.5 TB)            │  ~1.1 GB/s over network
 │  Unraid share with "cache: prefer"          │
 └─────────────────────────────────────────────┘
@@ -160,7 +160,7 @@ All 23 drives accounted for:
 | Scenario | Speed | 70B FP16 (140 GB) | 70B Q4 (40 GB) | Flux (12 GB) |
 |----------|-------|-------------------|-----------------|---------------|
 | From local NVMe | 3-7 GB/s | 20-47 sec | 6-13 sec | 2-4 sec |
-| From VAULT NVMe over NFS/10GbE | ~1.1 GB/s | ~2 min | ~36 sec | ~11 sec |
+| From VAULT NVMe over NFS/5GbE | ~1.1 GB/s | ~2 min | ~36 sec | ~11 sec |
 | From VAULT HDD (avoid for models) | 150-250 MB/s | 9-15 min | 2.5-4.5 min | 48-80 sec |
 
 Hot models load from local NVMe in under a minute. Warm models from VAULT NVMe in ~2 minutes. Both are fine for inference workloads where models load once and stay resident in VRAM.
@@ -184,7 +184,7 @@ No storage purchases are needed now. The loose hardware covers immediate needs.
 | Alternative | Why Not |
 |-------------|---------|
 | Distributed filesystem (Ceph, GlusterFS) | Massive operational complexity for one person. Requires dedicated OSDs, monitors, metadata servers. Debugging Ceph is a full-time job. NFS + local NVMe is simpler and faster for this scale. |
-| All models on VAULT HDD via NFS | Wastes 10GbE — HDD reads at 150-250 MB/s. Model loading takes 9-15 min for large models. Defeats the purpose of fast networking. |
+| All models on VAULT HDD via NFS | Wastes 5GbE — HDD reads at 150-250 MB/s. Model loading takes 9-15 min for large models. Defeats the purpose of fast networking. |
 | All models local only (no NFS) | Node 1 has 16 TB which could hold many models, but no canonical source of truth across nodes. New model downloads must be managed per node. VAULT's capacity is wasted. NFS hybrid is more flexible. |
 | MinIO / S3-compatible object store | Over-engineering. Models are files read sequentially. Object store adds HTTP overhead, API complexity, and another service to maintain. No benefit over NFS for this access pattern. |
 | iSCSI instead of NFS | Block-level protocol — can't share the same volume across multiple nodes simultaneously without a cluster filesystem on top. NFS is simpler for shared read access. |
@@ -204,5 +204,5 @@ No storage purchases are needed now. The loose hardware covers immediate needs.
 - [Unraid array architecture — single-drive reads](https://docs.unraid.net/unraid-os/using-unraid-to/manage-storage/array/overview/)
 - [Unraid cache share behavior](https://docs.unraid.net/unraid-os/using-unraid-to/manage-storage/cache/overview/)
 - [Unraid NFS configuration guide](https://gist.github.com/pbarone/1f783a94a69aecd2eac49d9b77df0ceb)
-- [Unraid 10GbE NFS performance](https://forums.unraid.net/topic/120776-10gbe-performance/)
+- [Unraid 5GbE NFS performance](https://forums.unraid.net/topic/120776-10gbe-performance/)
 - [Unraid performance tuning wiki](https://wiki.unraid.net/Improving_unRAID_Performance)

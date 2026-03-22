@@ -13,7 +13,7 @@ Where should data live in Athanor? How do AI models, game assets, media, and wor
 
 This decision determines:
 - How fast models load into VRAM (seconds vs minutes)
-- Whether VAULT's 10GbE connection actually delivers 10GbE speed (spoiler: not always)
+- Whether VAULT's 5GbE connection actually delivers 5GbE speed (spoiler: not always)
 - What to do with 11 NVMe drives and 3 Hyper M.2 adapters sitting loose on a shelf
 - How much runway VAULT has before it needs more capacity
 
@@ -55,14 +55,14 @@ The ADR-002 research doc estimated model loading times based on network speed. T
 | Source | Read Speed | 70B FP16 (140 GB) | 70B Q4 (40 GB) | Flux (12 GB) |
 |--------|-----------|-------------------|-----------------|---------------|
 | VAULT HDD (single drive) | 150-250 MB/s | **9-15 min** | 2.5-4.5 min | 48-80 sec |
-| VAULT NVMe over NFS/10GbE | ~1.1 GB/s (network limited) | **2.1 min** | 36 sec | 11 sec |
+| VAULT NVMe over NFS/5GbE | ~1.1 GB/s (network limited) | **2.1 min** | 36 sec | 11 sec |
 | Local NVMe on compute node | 3-7 GB/s | **20-47 sec** | 6-13 sec | 2-4 sec |
 
-**Key insight:** Unraid doesn't stripe reads across drives. Each file lives on a single HDD. A 20TB WD Gold does ~200 MB/s sequential. The 10GbE link can do 1.1 GB/s, but the HDD can only feed it at 200 MB/s. **10GbE is wasted if the file is on spinning disk.**
+**Key insight:** Unraid doesn't stripe reads across drives. Each file lives on a single HDD. A 20TB WD Gold does ~200 MB/s sequential. The 5GbE link can do 1.1 GB/s, but the HDD can only feed it at 200 MB/s. **5GbE is wasted if the file is on spinning disk.**
 
-For AI model loading to benefit from 10GbE, models must be on VAULT's NVMe — not the HDD array.
+For AI model loading to benefit from 5GbE, models must be on VAULT's NVMe — not the HDD array.
 
-Sources: [Unraid array docs](https://docs.unraid.net/unraid-os/using-unraid-to/manage-storage/array/overview/), [Unraid performance wiki](https://wiki.unraid.net/Improving_unRAID_Performance), [Unraid forum: 10GbE performance](https://forums.unraid.net/topic/120776-10gbe-performance/)
+Sources: [Unraid array docs](https://docs.unraid.net/unraid-os/using-unraid-to/manage-storage/array/overview/), [Unraid performance wiki](https://wiki.unraid.net/Improving_unRAID_Performance), [Unraid forum: 5GbE performance](https://forums.unraid.net/topic/120776-10gbe-performance/)
 
 ---
 
@@ -106,7 +106,7 @@ Sources: [Unraid array docs](https://docs.unraid.net/unraid-os/using-unraid-to/m
 └─────────────────────────────────────────┘
                     ▲ rsync / cache fill
 ┌─────────────────────────────────────────┐
-│  Tier 2: VAULT NVMe (over NFS/10GbE)   │  ← Model repository, warm cache
+│  Tier 2: VAULT NVMe (over NFS/5GbE)   │  ← Model repository, warm cache
 │  Currently ~6.5 TB (expandable)         │     ~1.1 GB/s over network
 │  "cache: prefer" share in Unraid        │     Models stay on NVMe unless full
 └─────────────────────────────────────────┘
@@ -292,7 +292,7 @@ Could install in VAULT to expand NVMe cache from ~6.5 TB to ~9.5 TB. Worth doing
 **Three-tier storage with NFS and local NVMe caching.** No distributed filesystem.
 
 1. **VAULT is the canonical store** for all persistent data. Models, media, datasets, backups — everything permanent lives here.
-2. **VAULT model share uses "cache: prefer"** so AI models stay on NVMe. Served over NFS/10GbE at ~1.1 GB/s.
+2. **VAULT model share uses "cache: prefer"** so AI models stay on NVMe. Served over NFS/5GbE at ~1.1 GB/s.
 3. **Compute nodes have local NVMe** for OS, Docker, and hot model cache. Node 1 expands to 16 TB (990 PRO + 2 Hyper M.2 adapters with 8 NVMe drives). Node 2 stays at 4 TB.
 4. **NFS via systemd automount** on compute nodes. Handles VAULT reboots gracefully.
 5. **rsync or script** to cache hot models from VAULT to local NVMe. No exotic tooling.
@@ -309,5 +309,5 @@ This gives every workload the speed it needs without complexity Shaun can't debu
 - [Unraid cache behavior docs](https://docs.unraid.net/unraid-os/using-unraid-to/manage-storage/cache/overview/)
 - [Unraid performance wiki](https://wiki.unraid.net/Improving_unRAID_Performance)
 - [Unraid NFS configuration guide](https://gist.github.com/pbarone/1f783a94a69aecd2eac49d9b77df0ceb)
-- [Unraid 10GbE performance forum thread](https://forums.unraid.net/topic/120776-10gbe-performance/)
-- [NVMe cache write speed on 10GbE (Unraid forums)](https://forums.unraid.net/topic/128084-solved-slow-write-speed-to-nvme-cache-drive-on-10g-network-possible-network-issue/)
+- [Unraid 5GbE performance forum thread](https://forums.unraid.net/topic/120776-10gbe-performance/)
+- [NVMe cache write speed on 5GbE (Unraid forums)](https://forums.unraid.net/topic/128084-solved-slow-write-speed-to-nvme-cache-drive-on-10g-network-possible-network-issue/)

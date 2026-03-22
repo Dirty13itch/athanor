@@ -14,7 +14,7 @@
 
 - Node status cards (Node 1, Node 2, VAULT, DEV) — CPU, RAM, disk, network
 - GPU cards with VRAM usage, temperature, power draw, current model loaded
-- Network status (10GbE throughput between nodes)
+- Network status (5GbE throughput between nodes)
 - Storage status (NVMe usage per node, VAULT HDD array health and capacity)
 
 ### Agent Management Panel

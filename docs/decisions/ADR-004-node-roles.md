@@ -122,7 +122,7 @@ Six GPUs, four machines, all working. No resource conflicts.
 | All inference on Node 2 (most powerful single GPUs) | Wastes Node 1's 4-GPU tensor parallelism. Can't run 70B+ models on a single 5090. |
 | All creative work on Node 1 | Wastes the 5090's superior single-GPU performance. ComfyUI uses one GPU — tying up 4 is wasteful. |
 | Agents on VAULT | Adds network latency to every agent → LLM call. Agents make thousands of inference calls. Localhost is faster. |
-| Agents on Node 2 | Agent → LLM calls go over 10GbE to Node 1 instead of localhost. Works but adds latency for no benefit. |
+| Agents on Node 2 | Agent → LLM calls go over 5GbE to Node 1 instead of localhost. Works but adds latency for no benefit. |
 | Dashboard on VAULT | Would be always-on (good), but VAULT's Unraid Docker environment is less flexible than Ubuntu. Dashboard likely needs to talk to many services. Node 2 is fine. |
 | HA on Node 2 | HA needs to be always-on. Compute nodes might be powered down when Shaun isn't working. VAULT never sleeps. |
 | Split agents across nodes | Adds complexity with no gain. Agents are lightweight (CPU, not GPU). Centralizing them on one node keeps orchestration simple. |

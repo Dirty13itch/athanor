@@ -51,7 +51,7 @@ CRITICAL SERVICES:
 │ │  Slot 4 [x16 Gen4]: RTX 5070 Ti 16GB (adapter 3×8-pin)     [USED]     │       │
 │ │  Slot 5 [x16 Gen4]: RTX 5070 Ti 16GB (adapter 3×8-pin)     [USED]     │       │
 │ │  Slot 6 [x16 Gen4]: Hyper M.2 (4× P310 1TB = 4 TB)         [USED]     │       │
-│ │  Slot 7 [x16 Gen4]: Available (InfiniBand/10GbE/storage)   [FREE]     │       │
+│ │  Slot 7 [x16 Gen4]: Available (InfiniBand/5GbE/storage)   [FREE]     │       │
 │ └────────────────────────────────────────────────────────────────────────┘       │
 │                                                                                   │
 │ ┌─────────────────────── M.2 SLOTS (2 total) ────────────────────────────┐      │
@@ -61,7 +61,7 @@ CRITICAL SERVICES:
 │                                                                                   │
 │ TOTAL VRAM: 88 GB (4×16 GB + 24 GB)   |   TOTAL NVMe: 12 TB (8+4)                │
 │ EXPANSION: 1× PCIe slot free (Slot 7) - 2nd Hyper M.2 allocated to DEV          │
-│ NETWORK: Dual Intel X550 10GbE (.244/.246) - currently on 1GbE switch            │
+│ NETWORK: Dual Intel X550 5GbE (.244/.246) - currently on 1GbE switch            │
 │ PSU: MSI MEG Ai1600T PCIE5 (1600W, 95% utilized @ 1,520W)                        │
 │                                                                                   │
 │ [vLLM TP=4: Qwen3-32B-AWQ] [Agent Server] [node_exporter] [dcgm-exporter]       │
@@ -89,7 +89,7 @@ CRITICAL SERVICES:
 │                                                                                   │
 │ TOTAL VRAM: 48 GB (32 GB + 16 GB)                                                │
 │ EXPANSION: 1× PCIe 5.0 x16 slot available (can add Hyper M.2 Gen5 = 4 drives)   │
-│ NETWORK: Marvell 10GbE (.225) + RTL8125 2.5GbE + 2× USB4 40Gbps + WiFi 7        │
+│ NETWORK: Marvell 5GbE (.225) + RTL8125 2.5GbE + 2× USB4 40Gbps + WiFi 7        │
 │ PSU: MSI 1600W (55% utilized @ 880W)                                             │
 │                                                                                   │
 │ [ComfyUI: Flux FP8] [Dashboard] [Open WebUI] [node_exporter] [dcgm-exporter]    │
@@ -153,7 +153,7 @@ CRITICAL SERVICES:
 │                                                                                   │
 │ NFS EXPORTS: /mnt/user/data (22TB), /mnt/user/models (22TB)                      │
 │ EXPANSION: All PCIe slots used, all M.2 slots used                               │
-│ NETWORK: Aquantia 10GbE (.203) + RTL8125 2.5GbE - currently on 1GbE switch       │
+│ NETWORK: Aquantia 5GbE (.203) + RTL8125 2.5GbE - currently on 1GbE switch       │
 │                                                                                   │
 │ [Prometheus] [Grafana] [Plex] [Sonarr] [Radarr] [Prowlarr] [SABnzbd]            │
 │ [Tautulli] [Stash] [Home Assistant]                                              │
@@ -179,7 +179,7 @@ CRITICAL SERVICES:
 | **M.2 Free** | 0 (1 issue) | 0 | 0 | Unknown |
 | **SATA Ports** | — | — | — | 6× available |
 | **Storage** | 8 TB NVMe | 7 TB NVMe | 8 TB NVMe + 164 TB HDD | Unknown + 5 TB SATA SSD available |
-| **Network** | Dual 10GbE | 10GbE + 2.5GbE + WiFi 7 | 10GbE + 2.5GbE | Intel 2.5GbE |
+| **Network** | Dual 5GbE | 5GbE + 2.5GbE + WiFi 7 | 5GbE + 2.5GbE | Intel 2.5GbE |
 | **PSU** | MSI 1600W (95% util) | MSI 1600W (55% util) | Unknown (~460W) | Unknown |
 | **IP Address** | .244, .246 | .225 | .203 | .215 |
 | **SSH** | athanor@.244 | athanor@.225 | root@.203 (Dropbear) | shaun@.215 (assumed) |
@@ -212,12 +212,12 @@ CRITICAL SERVICES:
 
     ┌─────────────────────────────────┐
     │   USW Pro XG 10 PoE             │
-    │   10GbE Data Plane (UNUSED)     │
+    │   5GbE Data Plane (UNUSED)     │
     │   Ready for migration           │
     └─────────────────────────────────┘
 
 CURRENT STATE: All nodes on 1GbE switch
-TODO: Move Node 1 (.244/.246), Node 2 (.225), VAULT (.203) to 10GbE switch
+TODO: Move Node 1 (.244/.246), Node 2 (.225), VAULT (.203) to 5GbE switch
 ```
 
 ### NFS Mounts (VAULT → Nodes)
@@ -406,8 +406,8 @@ Sonarr/Radarr (VAULT) ──→ SABnzbd (VAULT) ──→ /mnt/user/data/usenet/
 
 | Card | Type | Ports/Slots | Interface | Use Case |
 |------|------|-------------|-----------|----------|
-| **Intel X540-T2** | 10GbE NIC | 2× RJ45 | PCIe 2.1 x8 | Add 10GbE to any node |
-| **2× SR-PT02-X540** | 10GbE NIC | 2× RJ45 each | PCIe 2.1 x8 | Add 10GbE to any node (6 ports total) |
+| **Intel X540-T2** | 5GbE NIC | 2× RJ45 | PCIe 2.1 x8 | Add 5GbE to any node |
+| **2× SR-PT02-X540** | 5GbE NIC | 2× RJ45 each | PCIe 2.1 x8 | Add 5GbE to any node (6 ports total) |
 | **2× ASUS Hyper M.2 X16 Gen5** | NVMe adapter | 4× M.2 each | PCIe 5.0 x16 | Node 1 Slot 6/7, Node 2 Slot 3, DEV Slot 2 |
 | **LSI SAS9300-16i** | SAS/SATA HBA | 16× SATA/SAS | PCIe 3.0 x8 | Massive storage expansion |
 
@@ -525,7 +525,7 @@ Cost: $0 (already owned)
   - Note: PCIE2 can run at x8 via jumper (PE8_SEL/PE16_SEL)
 - **M.2 Slots:** 2× M.2 (PCIe 4.0 x4 or SATA 6Gb/s)
 - **OCuLink:** 2× OCuLink (PCIe 4.0 x4 each)
-- **Network:** Dual Intel X550 10GbE (RJ45)
+- **Network:** Dual Intel X550 5GbE (RJ45)
 - **RAM:** 8× DDR4 ECC RDIMM slots, supports up to 2TB
 - **Form Factor:** ATX (12" × 9.6")
 - **Current Usage:**
@@ -540,7 +540,7 @@ Cost: $0 (already owned)
 - **Socket:** sTR5 (LGA 4844) for AMD Threadripper 7000 series
 - **PCIe Slots:** 3× PCIe 5.0 x16 (all from CPU, full x16 lanes each)
 - **M.2 Slots:** 4× M.2 PCIe 5.0 x4 (onboard)
-- **Network:** Marvell AQC113CS 10GbE + Realtek RTL8125 2.5GbE
+- **Network:** Marvell AQC113CS 5GbE + Realtek RTL8125 2.5GbE
 - **USB:** 2× USB4 Type-C (40 Gbps each)
 - **WiFi:** WiFi 7 (802.11be)
 - **RAM:** 4× DDR5 RDIMM slots (quad channel, RDIMM-only)
@@ -563,7 +563,7 @@ Cost: $0 (already owned)
   - M.2_2: PCIe 5.0 x4 (CPU) - shares bandwidth with PCIEX16(G5)_2
   - M.2_3: PCIe 4.0 x4 (Chipset)
   - M.2_4: PCIe 4.0 x4 (Chipset)
-- **Network:** Aquantia AQC113CS 10GbE + Realtek RTL8125 2.5GbE
+- **Network:** Aquantia AQC113CS 5GbE + Realtek RTL8125 2.5GbE
 - **WiFi:** WiFi 7 (802.11be)
 - **USB:** 2× USB4 Type-C (40 Gbps each)
 - **RAM:** 4× DDR5 UDIMM slots (dual channel)
@@ -591,7 +591,7 @@ Cost: $0 (already owned)
   - 2× DDR5 UDIMM (64 GB, 2 slots available)
 - **Expansion Potential:**
   - 2× DDR5 slots available (+64 GB possible with loose RAM)
-  - 2× PCIe slots available (RTX 3060, 10GbE NIC, or Hyper M.2)
+  - 2× PCIe slots available (RTX 3060, 5GbE NIC, or Hyper M.2)
   - 6× SATA ports available (3× 2.5" SSDs pending install)
   - Unknown M.2 availability (needs audit)
 
@@ -614,13 +614,13 @@ Cost: $0 (already owned)
 
 ### Network Performance
 - **Current:** All nodes on 1GbE management switch (bottleneck for NFS)
-- **Available:** USW Pro XG 10 PoE switch (10GbE ports ready)
-- **Upgrade Path:** Move all nodes to 10GbE for 10× faster NFS throughput
+- **Available:** USW Pro XG 10 PoE switch (5GbE ports ready)
+- **Upgrade Path:** Move all nodes to 5GbE for 10× faster NFS throughput
 
 ### Storage Tiers
 1. **Tier 1 (Hot):** Node-local Gen5 NVMe (Node 2: 7 TB, fastest)
 2. **Tier 2 (Warm):** Node-local Gen4 NVMe (Node 1: 8 TB, fast)
-3. **Tier 3 (Cold):** NFS over 10GbE from VAULT (22 TB models + 22 TB data)
+3. **Tier 3 (Cold):** NFS over 5GbE from VAULT (22 TB models + 22 TB data)
 4. **Tier 4 (Archive):** VAULT HDD array (164 TB, media/backups)
 
 ---
@@ -642,7 +642,7 @@ STORAGE:
   Total:        8 TB loose storage (down from 18 TB - 10 TB allocated)
 
 NETWORKING:
-  10GbE NICs:   3 cards (6× 10GbE RJ45 ports total)
+  5GbE NICs:   3 cards (6× 5GbE RJ45 ports total)
 
 EXPANSION:
   M.2 Adapters: 0 (both used: Node 1 Slot 6 + DEV Slot 1)
@@ -670,7 +670,7 @@ POWER:
 
 **Node 2:**
 - Slot 3 available for expansion if needed
-- Network: Already has 10GbE + 2.5GbE + WiFi 7
+- Network: Already has 5GbE + 2.5GbE + WiFi 7
 
 **Want to build a new system?**
 - Option 1: i7-12700K + Z690 ELITE + 2× DDR4 32GB + RTX 3060 (gaming/dev)
@@ -687,7 +687,7 @@ POWER:
 
 ### Immediate (Rack Session ~30 min)
 - [ ] **Reseat Samsung 990 PRO 4TB** on Node 1 M.2_1 slot (not detected in audit)
-- [ ] **Move all nodes to 10GbE switch** (Node 1, Node 2, VAULT)
+- [ ] **Move all nodes to 5GbE switch** (Node 1, Node 2, VAULT)
 - [ ] **Reconnect JetKVM ATX power cable** on Node 2 (.165)
 - [ ] **Enable EXPO in Node 2 BIOS** (DDR5 4800→5600 MT/s, +16% RAM speed)
 
