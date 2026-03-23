@@ -14,6 +14,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { AgentCrewBar } from "@/components/agent-crew-bar";
+import { LensSwitcher } from "@/components/lens-switcher";
 import { CommandPalette } from "@/components/command-palette";
 import { Kbd } from "@/components/kbd";
 import { MiniTrend } from "@/components/mini-trend";
@@ -137,7 +139,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} overview={overview} />
-        <OperatorPresenceHeartbeat />
+        <LensSwitcher />
+          <OperatorPresenceHeartbeat />
 
         <header className="surface-chrome fixed inset-x-0 top-0 z-40 border-b">
           <div className="flex h-[4.5rem] items-center gap-3 px-4 sm:px-6 lg:pl-[18.5rem]">
@@ -349,6 +352,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
+        <div className="fixed top-14 right-4 z-30 hidden lg:block"><AgentCrewBar /></div>
         <main className="min-h-screen px-4 pb-8 pt-24 sm:px-6 lg:ml-[17rem] lg:px-8">{children}</main>
       </div>
     </NavAttentionProvider>
