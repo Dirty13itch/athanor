@@ -1,5 +1,5 @@
 pre-commit:
   commands:
     gitleaks:
-      run: gitleaks detect --source . --no-git --staged --verbose
+      run: gitleaks git --log-opts="--diff-filter=d --staged" --verbose
       stage_fixed: true
