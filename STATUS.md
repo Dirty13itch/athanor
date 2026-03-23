@@ -1,7 +1,35 @@
 # Athanor Status
 
-**Last updated: 2026-03-22 22:43 PDT
-**Session:** COO Architecture Planning + Full Execution
+**Last updated: 2026-03-23 07:00 PDT**
+**Session:** Morning Briefing
+
+## Morning Review — 2026-03-23
+
+### Cluster Health
+- FOUNDRY: Healthy. 9 agents online, coordinator vLLM sleeping (weights offloaded), coder active (21.9 GB). Load 4.7.
+- WORKSHOP: Degraded. **Dashboard DOWN** (no container). ComfyUI/EoBQ/vision running. 5090 at 26.6 GB. Load 0.1.
+- VAULT: Healthy. 28+ containers, LiteLLM up 9h, Qdrant OK, storage 83% (135T/164T). Load 9.1.
+- DEV: Healthy. Embedding/Reranker/Router/Scheduler all OK. Load 0.3. Up 19 days.
+
+### Alerts (7 firing)
+- DashboardDown: REAL — dashboard container missing on WORKSHOP
+- QdrantDown: FALSE POSITIVE — Qdrant responding fine, probe misconfigured
+- WorkerVLLMDown: STALE — worker role changed to vision model
+- BackupAgeCritical x2 + BackupAgeWarning x2: REAL — no recent backups
+
+### Agent Pipeline
+- **DORMANT since March 20** — no tasks executed in 3 days despite 9 enabled scheduled jobs
+- Governor: all 4 lanes active, scheduler running
+- Root cause unknown — needs APScheduler/dispatcher investigation
+
+### Today's Priorities
+1. Fix Dashboard on WORKSHOP (P0 — primary interface down)
+2. Diagnose agent scheduler dormancy (3 days silent)
+3. Fix stale Prometheus alert rules (QdrantDown, WorkerVLLMDown)
+
+### Blocked on Shaun
+- Offsite backup setup (Duplicati → Backblaze B2) — credentials needed
+- VAULT storage trending (83%) — cleanup/expansion decision
 
 ## Session Results — 19 Actions Executed
 
