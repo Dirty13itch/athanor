@@ -118,11 +118,11 @@ def run_readiness(name: str) -> CheckResult:
     """Tier 2: functional probe per service type."""
     start = time.monotonic()
     try:
-        if name in ("vllm_coordinator", "vllm_coder", "vllm_sovereign"):
+        if name in ("vllm_coordinator", "vllm_coder", "ollama_sovereign"):
             port_map = {
                 "vllm_coordinator": ("192.168.1.244", 8000, "/models/Qwen3.5-27B-FP8"),
                 "vllm_coder": ("192.168.1.244", 8006, "devstral-small-2"),
-                "vllm_sovereign": ("192.168.1.225", 11434, "huihui_ai/qwen3.5-abliterated:35b"),
+                "ollama_sovereign": ("192.168.1.225", 11434, "huihui_ai/qwen3.5-abliterated:35b"),
             }
             host, port, model_name = port_map[name]
             if port == 11434:  # Ollama
