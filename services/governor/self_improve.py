@@ -5,7 +5,8 @@ import requests
 import json
 from datetime import datetime
 
-AGENT_SERVER = "http://192.168.1.244:9000"
+import os
+AGENT_SERVER = os.environ.get("AGENT_SERVER_URL", "http://192.168.1.244:9000")
 GOVERNOR = "http://localhost:8760"
 
 

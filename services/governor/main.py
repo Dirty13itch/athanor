@@ -184,7 +184,7 @@ async def get_attention_items():
 
     # 4. Self-improvement proposals waiting
     try:
-        r = req.get("http://192.168.1.244:9000/v1/improvement/proposals", timeout=5)
+        r = req.get("" + os.environ.get("AGENT_SERVER_URL", "http://192.168.1.244:9000") + "/v1/improvement/proposals", timeout=5)
         if r.status_code == 200:
             proposals = r.json().get("proposals", [])
             pending = [p for p in proposals if p.get("status") == "proposed"]

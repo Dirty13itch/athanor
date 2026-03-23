@@ -5,7 +5,8 @@ import os
 import glob
 from datetime import datetime, timedelta
 
-NTFY_URL = "http://192.168.1.203:8880"
+import os
+NTFY_URL = os.environ.get("NTFY_URL", "http://192.168.1.203:8880")
 NTFY_TOPIC = "athanor"
 
 def notify(title, message, priority="default"):

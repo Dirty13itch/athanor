@@ -7,7 +7,8 @@ import requests
 import subprocess
 from datetime import datetime
 
-NTFY_URL = "http://192.168.1.203:8880"
+import os
+NTFY_URL = os.environ.get("NTFY_URL", "http://192.168.1.203:8880")
 NTFY_TOPIC = "athanor"
 GOVERNOR = "http://localhost:8760"
 
