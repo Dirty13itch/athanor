@@ -170,9 +170,9 @@ def tick_integration():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler(daemon=True)
-    scheduler.add_job(tick_heartbeat, "interval", seconds=60, next_run_time=None)
-    scheduler.add_job(tick_readiness, "interval", minutes=5, next_run_time=None)
-    scheduler.add_job(tick_integration, "interval", minutes=15, next_run_time=None)
+    scheduler.add_job(tick_heartbeat, "interval", seconds=60, )
+    scheduler.add_job(tick_readiness, "interval", minutes=5, )
+    scheduler.add_job(tick_integration, "interval", minutes=15, )
     scheduler.start()
 
     # Run Tier 1 immediately on startup
