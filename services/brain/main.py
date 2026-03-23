@@ -19,6 +19,10 @@ from lifecycle import (
     async_get_idle_models, swap_models,
 )
 from placer import recommend_placement, find_available_gpu, suggest_migrations
+from quality import recommend_model, MODEL_PROFILES
+from cost import get_cost_summary
+from advisor import generate_briefing
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("brain")
@@ -179,3 +183,27 @@ def placer_available(min_vram_gb: float = 8.0):
 def placer_migrations():
     """Suggest model migrations to rebalance GPU load."""
     return suggest_migrations()
+
+
+# -- Layers 5-7: Quality Router + Cost + Advisor --
+
+@app.get("/quality/recommend")
+def quality_recommend(task_type: str = "coding", complexity: str = "medium", content_class: str = "cloud_safe"):
+    return recommend_model(task_type, complexity, content_class)
+
+@app.get("/quality/profiles")
+def quality_profiles():
+    return MODEL_PROFILES
+
+@app.get("/cost/summary")
+def cost_summary():
+    return get_cost_summary()
+
+@app.get("/advisor/briefing")
+def advisor_briefing():
+    return generate_briefing(
+        _state.get("resources", {}),
+        _state.get("predictions", {}),
+        {},
+        get_cost_summary()
+    )
