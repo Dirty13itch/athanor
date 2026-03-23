@@ -1,7 +1,11 @@
-"""Smart dispatch — leverage each tool's unique capabilities."""
+"""Smart dispatch — leverage each tool's unique capabilities.
+Each agent gets the correct headless/non-interactive flags.
+Prompts are written to tempfiles to avoid shell injection.
+"""
 import subprocess
 import os
-from datetime import datetime
+import tempfile
+from datetime import datetime, timezone
 
 REPO_PATHS = {
     "athanor": "/home/shaun/repos/athanor",
@@ -16,67 +20,81 @@ def create_worktree(repo, task_id):
     subprocess.run(["git", "-C", repo_path, "worktree", "add", worktree_path, branch], capture_output=True)
     return worktree_path
 
+def _write_prompt(task):
+    """Write prompt to a temp file to avoid shell escaping issues."""
+    prompt = f"Task {task['id']}: {task['title']}. {task['description']}"
+    fd, path = tempfile.mkstemp(suffix=".txt", prefix=f"governor-{task['id']}-")
+    with os.fdopen(fd, "w") as f:
+        f.write(prompt)
+    return path, prompt
+
 def dispatch_claude(task, worktree):
     """Claude Code — best for complex architecture, multi-file features."""
     session = "agent-claude-" + task["id"]
-    prompt = "Task " + task["id"] + ": " + task["title"] + ". " + task["description"]
+    prompt_file, _ = _write_prompt(task)
     log = "/tmp/agent-logs/" + task["id"] + "-claude.log"
-    cmd = "tmux new-session -d -s " + session + " -c " + worktree + " 'claude -p \"" + prompt + "\" --dangerously-skip-permissions 2>&1 | tee " + log + "'"
+    # claude -p reads prompt from arg, --dangerously-skip-permissions for full autonomy
+    cmd = f"tmux new-session -d -s {session} -c {worktree} 'claude -p \"$(cat {prompt_file})\" --dangerously-skip-permissions 2>&1 | tee {log}; rm -f {prompt_file}'"
     subprocess.run(cmd, shell=True, capture_output=True)
     return {"session": session, "agent": "claude", "status": "running", "mode": "autonomous"}
 
 def dispatch_codex(task, worktree):
-    """Codex CLI — uses LiteLLM proxy for local models. For ChatGPT Pro sub, needs device-auth."""
+    """Codex CLI — ChatGPT Pro subscription, device-auth. Full auto mode."""
     session = "agent-codex-" + task["id"]
-    prompt = task["title"] + ": " + task["description"]
+    prompt_file, _ = _write_prompt(task)
     log = "/tmp/agent-logs/" + task["id"] + "-codex.log"
-    cmd = "tmux new-session -d -s " + session + " -c " + worktree + " 'OPENAI_BASE_URL=http://192.168.1.203:4000 OPENAI_API_KEY=sk-athanor-litellm-2026 codex exec \"" + prompt + "\" --full-auto 2>&1 | tee " + log + "'"
+    # codex exec with --full-auto for autonomous operation
+    cmd = f"tmux new-session -d -s {session} -c {worktree} 'codex exec \"$(cat {prompt_file})\" --full-auto 2>&1 | tee {log}; rm -f {prompt_file}'"
     subprocess.run(cmd, shell=True, capture_output=True)
-    return {"session": session, "agent": "codex", "status": "running", "mode": "litellm-local"}
+    return {"session": session, "agent": "codex", "status": "running", "mode": "chatgpt-pro"}
 
 def dispatch_copilot(task, worktree):
-    """Copilot CLI — unlimited GPT-5 mini. Use autopilot mode."""
+    """Copilot CLI — unlimited GPT-5 mini. Non-interactive with -p and --yolo."""
     session = "agent-copilot-" + task["id"]
-    prompt = task["title"] + ": " + task["description"]
+    prompt_file, _ = _write_prompt(task)
     log = "/tmp/agent-logs/" + task["id"] + "-copilot.log"
-    # Use autopilot mode for fully autonomous operation
-    cmd = "tmux new-session -d -s " + session + " -c " + worktree + " 'COPILOT_GITHUB_TOKEN=$(cat ~/.secrets/github-pat) copilot \"" + prompt + "\" 2>&1 | tee " + log + "'"
+    # copilot -p for non-interactive, --yolo for all permissions
+    cmd = f"tmux new-session -d -s {session} -c {worktree} 'copilot -p \"$(cat {prompt_file})\" --yolo 2>&1 | tee {log}; rm -f {prompt_file}'"
     subprocess.run(cmd, shell=True, capture_output=True)
     return {"session": session, "agent": "copilot", "status": "running", "mode": "autopilot-gpt5mini"}
 
 def dispatch_kimi(task, worktree):
-    """Kimi CLI — use swarm mode for batch operations."""
+    """Kimi CLI — non-interactive with -p flag."""
     session = "agent-kimi-" + task["id"]
-    prompt = task["title"] + ": " + task["description"]
+    prompt_file, _ = _write_prompt(task)
     log = "/tmp/agent-logs/" + task["id"] + "-kimi.log"
-    cmd = "tmux new-session -d -s " + session + " -c " + worktree + " 'kimi \"" + prompt + "\" 2>&1 | tee " + log + "'"
+    # kimi -p for non-interactive prompt
+    cmd = f"tmux new-session -d -s {session} -c {worktree} 'kimi -p \"$(cat {prompt_file})\" 2>&1 | tee {log}; rm -f {prompt_file}'"
     subprocess.run(cmd, shell=True, capture_output=True)
-    return {"session": session, "agent": "kimi", "status": "running", "mode": "swarm"}
+    return {"session": session, "agent": "kimi", "status": "running", "mode": "kimi-k2.5"}
 
 def dispatch_opencode(task, worktree):
-    """OpenCode — local models via LiteLLM, parallel agents."""
+    """OpenCode — local models via LiteLLM, non-interactive with -p flag."""
     session = "agent-opencode-" + task["id"]
-    prompt = task["title"] + ": " + task["description"]
+    prompt_file, _ = _write_prompt(task)
     log = "/tmp/agent-logs/" + task["id"] + "-opencode.log"
-    cmd = "tmux new-session -d -s " + session + " -c " + worktree + " 'opencode \"" + prompt + "\" 2>&1 | tee " + log + "'"
+    # opencode -p for non-interactive mode
+    cmd = f"tmux new-session -d -s {session} -c {worktree} 'opencode -p \"$(cat {prompt_file})\" 2>&1 | tee {log}; rm -f {prompt_file}'"
     subprocess.run(cmd, shell=True, capture_output=True)
-    return {"session": session, "agent": "opencode", "status": "running", "mode": "local-parallel"}
+    return {"session": session, "agent": "opencode", "status": "running", "mode": "local-litellm"}
 
 def dispatch_aider(task, worktree):
     """aider — git pair programming with clean auto-commits."""
     session = "agent-aider-" + task["id"]
-    prompt = task["title"] + ": " + task["description"]
+    prompt_file, _ = _write_prompt(task)
     log = "/tmp/agent-logs/" + task["id"] + "-aider.log"
-    cmd = "tmux new-session -d -s " + session + " -c " + worktree + " 'aider --yes --message \"" + prompt + "\" 2>&1 | tee " + log + "'"
+    # aider --yes for auto-confirm, --message for the prompt
+    cmd = f"tmux new-session -d -s {session} -c {worktree} 'aider --yes --message \"$(cat {prompt_file})\" 2>&1 | tee {log}; rm -f {prompt_file}'"
     subprocess.run(cmd, shell=True, capture_output=True)
     return {"session": session, "agent": "aider", "status": "running", "mode": "pair-program"}
 
 def dispatch_goose(task, worktree):
-    """Goose — system automation, MCP-native recipes."""
+    """Goose — system automation, MCP-native. Uses 'goose run -t' for text input."""
     session = "agent-goose-" + task["id"]
-    prompt = task["title"] + ": " + task["description"]
+    prompt_file, _ = _write_prompt(task)
     log = "/tmp/agent-logs/" + task["id"] + "-goose.log"
-    cmd = "tmux new-session -d -s " + session + " -c " + worktree + " 'goose run \"" + prompt + "\" 2>&1 | tee " + log + "'"
+    # goose run -t for text-based non-interactive execution
+    cmd = f"tmux new-session -d -s {session} -c {worktree} 'goose run -t \"$(cat {prompt_file})\" 2>&1 | tee {log}; rm -f {prompt_file}'"
     subprocess.run(cmd, shell=True, capture_output=True)
     return {"session": session, "agent": "goose", "status": "running", "mode": "mcp-recipe"}
 
@@ -100,5 +118,5 @@ def dispatch_task(task, subscription):
     result["worktree"] = worktree
     result["task_id"] = task["id"]
     result["subscription"] = subscription
-    result["dispatched_at"] = datetime.utcnow().isoformat()
+    result["dispatched_at"] = datetime.now(timezone.utc).isoformat()
     return result

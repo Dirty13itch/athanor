@@ -1,13 +1,17 @@
-"""SQLite persistence for the Governor task queue."""
+"""SQLite persistence for the Governor task queue.
+Uses WAL mode and timeout to handle concurrent access from dispatch loop + API.
+"""
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.environ.get("GOVERNOR_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "governor.db"))
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)  # 10s timeout for lock contention
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")  # WAL mode for concurrent reads+writes
+    conn.execute("PRAGMA busy_timeout=5000")  # 5s busy wait
     return conn
 
 def init_db():
@@ -47,7 +51,7 @@ def add_task(title, description, repo="athanor", complexity="medium", content_cl
     task_id = "task-" + datetime.now().strftime("%Y%m%d%H%M%S")
     conn.execute(
         "INSERT INTO tasks (id, title, description, repo, complexity, content_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (task_id, title, description, repo, complexity, content_class, datetime.utcnow().isoformat())
+        (task_id, title, description, repo, complexity, content_class, datetime.now(timezone.utc).isoformat())
     )
     conn.commit()
     conn.close()
@@ -56,6 +60,13 @@ def add_task(title, description, repo="athanor", complexity="medium", content_cl
 def get_queued_tasks(limit=10):
     conn = get_db()
     tasks = conn.execute("SELECT * FROM tasks WHERE status = 'queued' ORDER BY created_at LIMIT ?", (limit,)).fetchall()
+    conn.close()
+    return [dict(t) for t in tasks]
+
+def get_all_tasks(limit=50):
+    """Get all tasks ordered by creation time, most recent first."""
+    conn = get_db()
+    tasks = conn.execute("SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
     conn.close()
     return [dict(t) for t in tasks]
 
@@ -74,15 +85,16 @@ def get_stats():
 def update_task_status(task_id, status, assigned_to=None, result=None):
     """Update task status in SQLite."""
     conn = get_db()
+    now = datetime.now(timezone.utc).isoformat()
     if assigned_to:
         conn.execute(
             "UPDATE tasks SET status=?, assigned_to=?, started_at=? WHERE id=?",
-            (status, assigned_to, datetime.utcnow().isoformat(), task_id)
+            (status, assigned_to, now, task_id)
         )
     elif result:
         conn.execute(
             "UPDATE tasks SET status=?, completed_at=?, result=? WHERE id=?",
-            (status, datetime.utcnow().isoformat(), result, task_id)
+            (status, now, result, task_id)
         )
     else:
         conn.execute("UPDATE tasks SET status=? WHERE id=?", (status, task_id))

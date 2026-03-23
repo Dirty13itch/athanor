@@ -6,12 +6,13 @@ import asyncio
 from task_monitor import monitor_tasks
 from act_first import report_completed_tasks
 import logging
-from datetime import datetime
+import time
+from datetime import datetime, timezone
 
 # Per-subscription cooldown (minutes between dispatches)
 SUBSCRIPTION_COOLDOWN = {
-    "claude-max": 5,       # 5 min between Claude tasks (preserve 5hr quota)
-    "chatgpt-pro": 5,      # Same for Codex
+    "claude-max": 5,        # 5 min between Claude tasks (preserve 5hr quota)
+    "chatgpt-pro": 5,       # Same for Codex
     "copilot-pro-plus": 2,  # Copilot GPT-5 mini is unlimited, can go faster
     "kimi-code": 10,        # Kimi has token-based billing
     "glm-zai": 10,          # GLM has monthly quota
@@ -21,6 +22,16 @@ SUBSCRIPTION_COOLDOWN = {
     "local-goose": 1,
 }
 last_dispatch_time: dict[str, float] = {}
+
+# Subscription priority tiers — try cloud first to maximize burn, local as overflow
+DISPATCH_ORDER = [
+    # Tier 1: $200/mo powerhouses — burn these first
+    "claude-max", "chatgpt-pro",
+    # Tier 2: Paid subs — keep busy
+    "copilot-pro-plus", "kimi-code", "glm-zai", "gemini-advanced",
+    # Tier 3: Local/free — overflow capacity
+    "local-aider", "local-opencode", "local-goose",
+]
 
 logger = logging.getLogger("governor.continuous")
 
@@ -41,77 +52,94 @@ async def continuous_dispatch_loop(app_state):
             # Monitor running tasks for completion
             try:
                 from main import task_queue as tq, active_agents as aa
+                import db
                 updated = monitor_tasks(tq, aa)
                 if updated:
                     for u in updated:
                         try:
-                            db.update_task_status(u["task_id"], u["new_status"], result="completed by agent")
-                        except: pass
+                            db.update_task_status(
+                                u["task_id"],
+                                u["new_status"],
+                                result=u.get("result", "status updated by monitor")
+                            )
+                        except Exception as db_err:
+                            logger.error(f"DB update error for {u['task_id']}: {db_err}")
                     for u in updated:
-                        logger.info(f"Task {u['task_id']} completed: {u['new_status']}")
+                        logger.info(f"Task {u['task_id']} -> {u['new_status']}: {u.get('result', '')[:80]}")
             except Exception as e:
                 logger.error(f"Monitor error: {e}")
 
             # Import here to avoid circular imports
             from main import task_queue, SUBSCRIPTIONS, active_agents
             import db
+            from dispatch import dispatch_task
 
             # Load queued tasks from BOTH stores (in-memory + SQLite)
             db_tasks = db.get_queued_tasks(limit=20)
-            # Merge: in-memory tasks + SQLite tasks (deduplicate by id)
             in_memory_ids = {t["id"] for t in task_queue}
             for dt in db_tasks:
                 if dt["id"] not in in_memory_ids:
                     task_queue.append(dt)
                     in_memory_ids.add(dt["id"])
-            from dispatch import dispatch_task
 
             queued = [t for t in task_queue if t["status"] == "queued"]
             if not queued:
                 continue
 
-            # Find available subscription (not already running a task)
-            busy_subs = set(a.get("assigned_to") for a in active_agents.values())
+            # Find available subscriptions (not already running a task)
+            busy_subs = set()
+            for a in active_agents.values():
+                sub = a.get("subscription") or a.get("assigned_to")
+                if sub:
+                    busy_subs.add(sub)
 
             for task in queued:
-                # Content class check first
+                # Content class determines eligible candidates
                 if task.get("content_class") == "sovereign_only":
-                    candidates = ["local-opencode", "local-aider", "local-goose"]
-                elif task["complexity"] == "critical":
-                    candidates = ["claude-max"]
-                elif task["complexity"] == "high":
+                    candidates = ["local-aider", "local-opencode", "local-goose"]
+                elif task.get("complexity") == "critical":
                     candidates = ["claude-max", "chatgpt-pro"]
-                elif task["complexity"] == "low":
-                    candidates = ["local-aider", "local-opencode", "copilot-pro-plus"]
+                elif task.get("complexity") == "high":
+                    candidates = ["claude-max", "chatgpt-pro", "copilot-pro-plus"]
+                elif task.get("complexity") == "low":
+                    candidates = ["copilot-pro-plus", "local-aider", "local-opencode", "local-goose"]
                 else:
-                    candidates = ["claude-max", "local-opencode", "chatgpt-pro"]
+                    # Medium — use DISPATCH_ORDER to maximize paid sub burn
+                    candidates = DISPATCH_ORDER
 
-                # Find first available candidate (with rate limiting)
-                import time
+                # Find first available candidate respecting cooldowns
+                dispatched = False
                 for sub in candidates:
-                    if sub not in busy_subs and SUBSCRIPTIONS.get(sub, {}).get("status") == "active":
-                        # Check cooldown
-                        cooldown = SUBSCRIPTION_COOLDOWN.get(sub, 5) * 60
-                        last = last_dispatch_time.get(sub, 0)
-                        if time.time() - last < cooldown:
-                            continue  # Skip, still in cooldown
-                        task["assigned_to"] = sub
-                        task["status"] = "running"
+                    if sub in busy_subs:
+                        continue
+                    if SUBSCRIPTIONS.get(sub, {}).get("status") != "active":
+                        continue
 
+                    # Check cooldown
+                    cooldown = SUBSCRIPTION_COOLDOWN.get(sub, 5) * 60
+                    last = last_dispatch_time.get(sub, 0)
+                    if time.time() - last < cooldown:
+                        continue
+
+                    task["assigned_to"] = sub
+                    task["status"] = "running"
+
+                    try:
+                        result = dispatch_task(task, sub)
+                        active_agents[task["id"]] = result
+                        busy_subs.add(sub)
+                        last_dispatch_time[sub] = time.time()
                         try:
-                            result = dispatch_task(task, sub)
-                            active_agents[task["id"]] = result
-                            busy_subs.add(sub)
-                            last_dispatch_time[sub] = time.time()
-                            try:
-                                db.update_task_status(task["id"], "running", assigned_to=sub)
-                            except: pass
-                            logger.info(f"Dispatched {task['id']} to {sub}: {task['title'][:50]}")
-                        except Exception as e:
-                            task["status"] = "queued"  # Reset on failure
-                            task["assigned_to"] = None
-                            logger.error(f"Dispatch failed for {task['id']}: {e}")
-                        break
+                            db.update_task_status(task["id"], "running", assigned_to=sub)
+                        except Exception as db_err:
+                            logger.error(f"DB status update error: {db_err}")
+                        logger.info(f"Dispatched {task['id']} to {sub}: {task['title'][:50]}")
+                        dispatched = True
+                    except Exception as e:
+                        task["status"] = "queued"
+                        task["assigned_to"] = None
+                        logger.error(f"Dispatch failed for {task['id']} to {sub}: {e}")
+                    break
 
         except Exception as e:
             logger.error(f"Continuous dispatch error: {e}")
