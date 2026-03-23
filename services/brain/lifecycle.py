@@ -19,6 +19,8 @@ OLLAMA_ENDPOINTS = {
 VLLM_ENDPOINTS = [
     ("coordinator", "http://192.168.1.244:8000"),
     ("coder", "http://192.168.1.244:8006"),
+    ("embedding", "http://192.168.1.189:8001"),
+    ("reranker", "http://192.168.1.189:8003"),
 ]
 
 # Track last access time per model (updated on list/load)

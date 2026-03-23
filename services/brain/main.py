@@ -138,7 +138,7 @@ def cluster():
 @app.get("/lifecycle/loaded")
 async def lifecycle_loaded():
     """List all currently loaded models (Ollama + vLLM)."""
-    return await get_loaded_models()
+    return get_loaded_models()
 
 
 @app.post("/lifecycle/load")

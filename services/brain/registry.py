@@ -50,6 +50,7 @@ MODELS = {
         "tp_size": 4, "node": "foundry", "gpus": [0, 1, 3, 4],
     },
     "Devstral-Small-2-AWQ": {
+        "aliases": ["devstral-small-2", "coder"],
         "weights_gb": 13.0, "overhead_gb": 3.0, "min_vram_gb": 17,
         "tp_size": 1, "node": "foundry", "gpu": 2,
     },

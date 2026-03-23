@@ -22,7 +22,7 @@ MODEL_PROFILES = {
         "rating": 4, "max_context": 8192,
         "strengths": ["creative_writing", "uncensored", "no_refusal", "literary_quality"],
         "weaknesses": ["needs_think_false", "slower_than_vllm", "limited_context_8k"],
-        "best_tasks": ["eoq_content", "nsfw_creative", "character_profiles", "scene_writing"],
+        "best_tasks": ["eoq_content", "nsfw_creative", "character_profiles", "scene_writing", "creative_writing", "sovereign_creative", "creative"],
         "cost_tier": "free_local", "sovereign": True,
         "node": "workshop", "runtime": "ollama",
     },
