@@ -152,8 +152,8 @@ check "vLLM coordinator health (FOUNDRY:8000)" \
 check "vLLM coder health (FOUNDRY:8006)" \
     'curl -sf --max-time 10 http://192.168.1.244:8006/health'
 
-check "vLLM sovereign health (WORKSHOP:8010)" \
-    'curl -sf --max-time 10 http://192.168.1.225:8010/health'
+check "Ollama sovereign (WORKSHOP:11434)"
+    'curl -sf --max-time 10 http://192.168.1.225:11434/api/tags'
 
 echo ""
 echo "--- Agent & Model Checks ---"

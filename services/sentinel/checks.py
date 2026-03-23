@@ -57,7 +57,7 @@ HEARTBEAT_CHECKS = [
     ("agent_server", "http://192.168.1.244:9000/health"),
     ("vllm_coordinator", "http://192.168.1.244:8000/health"),
     ("vllm_coder", "http://192.168.1.244:8006/health"),
-    ("vllm_sovereign", "http://192.168.1.225:8010/health"),
+    ("ollama_sovereign", "http://192.168.1.225:11434/api/tags"),
     ("comfyui", "http://192.168.1.225:8188/system_stats"),
     ("ollama", "http://192.168.1.225:11434/api/tags"),
 ]
