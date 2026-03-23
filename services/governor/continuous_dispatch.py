@@ -4,6 +4,7 @@ No waiting for 10pm. Agents work ALL THE TIME.
 """
 import asyncio
 from task_monitor import monitor_tasks
+from act_first import report_completed_tasks
 import logging
 from datetime import datetime
 
@@ -30,6 +31,12 @@ async def continuous_dispatch_loop(app_state):
     while True:
         try:
             await asyncio.sleep(60)  # Check every 60 seconds
+
+            # Report completed/failed tasks (act first, report after)
+            try:
+                report_completed_tasks()
+            except Exception as e:
+                logger.error(f"Report error: {e}")
 
             # Monitor running tasks for completion
             try:
