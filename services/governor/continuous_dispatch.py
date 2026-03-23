@@ -50,6 +50,16 @@ async def continuous_dispatch_loop(app_state):
 
             # Import here to avoid circular imports
             from main import task_queue, SUBSCRIPTIONS, active_agents
+            import db
+
+            # Load queued tasks from BOTH stores (in-memory + SQLite)
+            db_tasks = db.get_queued_tasks(limit=20)
+            # Merge: in-memory tasks + SQLite tasks (deduplicate by id)
+            in_memory_ids = {t["id"] for t in task_queue}
+            for dt in db_tasks:
+                if dt["id"] not in in_memory_ids:
+                    task_queue.append(dt)
+                    in_memory_ids.add(dt["id"])
             from dispatch import dispatch_task
 
             queued = [t for t in task_queue if t["status"] == "queued"]
