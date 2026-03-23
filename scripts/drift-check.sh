@@ -267,6 +267,28 @@ sys.exit(0 if len(d) >= 7 else 1)
 "'
 
 echo ""
+
+# Additional services (Phase 13)
+check "Brain: system intelligence (DEV:8780)" \
+    'curl -sf --max-time 5 http://localhost:8780/health'
+
+check "Draftsman service (DEV:8400)" \
+    'curl -sf --max-time 5 http://localhost:8400/ -o /dev/null'
+
+check "Open WebUI (DEV:3080)" \
+    'curl -sf --max-time 5 http://localhost:3080/ -o /dev/null'
+
+
+# Additional services (Phase 13)
+check "Brain: system intelligence (DEV:8780)" \
+    'curl -sf --max-time 5 http://localhost:8780/health'
+
+check "Draftsman service (DEV:8400)" \
+    'curl -sf --max-time 5 http://localhost:8400/ -o /dev/null'
+
+check "Open WebUI (DEV:3080)" \
+    'curl -sf --max-time 5 http://localhost:3080/ -o /dev/null'
+
 echo "=== Results: ${PASS} passed, ${FAIL} failed out of $((PASS+FAIL)) checks ==="
 
 if [ "$FAIL" -eq 0 ]; then
@@ -285,15 +307,3 @@ else
          http://192.168.1.203:8880/athanor-alerts >/dev/null 2>&1
     exit 1
 fi
-
-# Brain service
-check "Brain: system intelligence (DEV:8780)" \
-    "curl -sf --max-time 5 http://localhost:8780/health"
-
-# Draftsman service
-check "Draftsman service (DEV:8400)" \
-    "curl -sf --max-time 5 http://localhost:8400/ -o /dev/null"
-
-# Open WebUI
-check "Open WebUI (DEV:3080)" \
-    "curl -sf --max-time 5 http://localhost:3080/ -o /dev/null"
