@@ -4,6 +4,7 @@ Uses WAL mode and timeout to handle concurrent access from dispatch loop + API.
 import sqlite3
 import os
 from datetime import datetime, timezone
+import uuid
 
 DB_PATH = os.environ.get("GOVERNOR_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "governor.db"))
 
@@ -48,7 +49,7 @@ def init_db():
 
 def add_task(title, description, repo="athanor", complexity="medium", content_class="cloud_safe"):
     conn = get_db()
-    task_id = "task-" + datetime.now().strftime("%Y%m%d%H%M%S")
+    task_id = "task-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + uuid.uuid4().hex[:6]
     conn.execute(
         "INSERT INTO tasks (id, title, description, repo, complexity, content_class, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         (task_id, title, description, repo, complexity, content_class, datetime.now(timezone.utc).isoformat())
