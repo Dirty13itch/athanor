@@ -1,76 +1,94 @@
-"""Athanor System Brain — cluster-wide intelligence layer."""
+"""Athanor System Brain - cluster-wide intelligence layer.
+
+Layers 1-4: Resource Registry + Capacity Planner + Lifecycle Manager + Workload Placer.
+Port 8780 on DEV, 30s resource refresh, 5min capacity refresh.
+"""
+from datetime import datetime, timezone
+from contextlib import asynccontextmanager
+import logging
+import time
+
 from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
-from contextlib import asynccontextmanager
-import time
-import logging
 
-from registry import (
-    CLUSTER, MODEL_SPECS, can_fit,
-    get_gpu_state, get_disk_state, get_ram_state,
-)
-from capacity import get_capacity_report, predict_disk_full, detect_ram_leaks
+from registry import CLUSTER, MODELS, can_fit, get_cluster_state
+from capacity import predict_disk_full, detect_memory_leaks, get_capacity_report
+from lifecycle import get_loaded_models, load_model, unload_model, get_idle_models, swap_models
+from placer import recommend_placement, find_best_gpu
+from quality import recommend_model, MODEL_PROFILES
+from cost import get_cost_summary
+from advisor import generate_briefing
+
+
+
+
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("brain")
 
-# Cache for expensive queries
-_cache = {"gpu": {}, "disk": {}, "ram": {}, "capacity": {}, "updated_at": 0}
+# -- Cached state --
+_state: dict = {
+    "resources": {},
+    "predictions": {},
+    "updated_at": None,
+}
+
+scheduler = BackgroundScheduler()
 
 
 def refresh_state():
-    """Periodic refresh of cluster resource state."""
+    """Periodic refresh of cluster resource state (every 30s)."""
     try:
-        _cache["gpu"] = get_gpu_state()
-        _cache["disk"] = get_disk_state()
-        _cache["ram"] = get_ram_state()
-        _cache["updated_at"] = time.time()
-        logger.info("State refreshed: %d GPUs, %d disks", len(_cache["gpu"]), len(_cache["disk"]))
+        _state["resources"] = get_cluster_state()
+        _state["updated_at"] = datetime.now(timezone.utc).isoformat()
+        gpu_count = len(_state["resources"].get("gpu", {}))
+        logger.info("State refreshed: %d GPUs tracked", gpu_count)
     except Exception as e:
         logger.error("State refresh failed: %s", e)
 
 
 def refresh_capacity():
-    """Periodic capacity trend analysis."""
+    """Periodic capacity trend analysis (every 5min)."""
     try:
-        _cache["capacity"] = get_capacity_report()
+        _state["predictions"] = get_capacity_report()
         logger.info("Capacity report refreshed")
     except Exception as e:
         logger.error("Capacity refresh failed: %s", e)
 
 
-scheduler = BackgroundScheduler()
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     refresh_state()
-    scheduler.add_job(refresh_state, "interval", seconds=30)
-    scheduler.add_job(refresh_capacity, "interval", minutes=5)
+    refresh_capacity()
+    scheduler.add_job(refresh_state, "interval", seconds=30, id="refresh_state")
+    scheduler.add_job(refresh_capacity, "interval", minutes=5, id="refresh_capacity")
     scheduler.start()
+    logger.info("Brain started - 30s state / 5min capacity refresh")
     yield
     scheduler.shutdown()
 
 
-app = FastAPI(title="Athanor System Brain", lifespan=lifespan)
+app = FastAPI(title="Athanor System Brain", version="0.2.0", lifespan=lifespan)
 
+
+# -- Layer 1-2: Resource Registry + Capacity Planner --
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "cache_age_s": round(time.time() - _cache["updated_at"], 1)}
+    return {"status": "ok", "service": "brain", "port": 8780}
 
 
 @app.get("/status")
 def status():
-    """Full cluster resource state."""
-    return {
-        "cluster": CLUSTER,
-        "gpu_state": _cache.get("gpu", {}),
-        "disk_state": _cache.get("disk", {}),
-        "ram_state": _cache.get("ram", {}),
-        "models": MODEL_SPECS,
-        "updated_at": _cache.get("updated_at", 0),
-    }
+    """Full cached state - resources + predictions + timestamp."""
+    return _state
+
+
+@app.get("/resources")
+def resources():
+    """Live cluster resource state (GPU/RAM/disk)."""
+    return get_cluster_state()
 
 
 @app.get("/can-fit")
@@ -82,36 +100,86 @@ def check_fit(model: str, node: str, gpu: int = 0):
 @app.get("/capacity")
 def capacity():
     """Capacity trends and predictions."""
-    return _cache.get("capacity", {})
+    return _state.get("predictions", {})
 
 
 @app.get("/gpu")
 def gpu_state():
-    """Real-time GPU state across all nodes."""
-    return _cache.get("gpu", {})
-
-
-@app.get("/disk")
-def disk_state():
-    """Disk usage and trends."""
-    return {
-        "current": _cache.get("disk", {}),
-        "predictions": {
-            "nvme0": predict_disk_full("appdatacache"),
-        },
-    }
+    """Real-time GPU state from cache."""
+    return _state.get("resources", {}).get("gpu", {})
 
 
 @app.get("/ram")
 def ram_state():
-    """RAM usage per node + leak detection."""
-    return {
-        "current": _cache.get("ram", {}),
-        "leaks": detect_ram_leaks(),
-    }
+    """RAM usage per node from cache."""
+    return _state.get("resources", {}).get("ram", {})
+
+
+@app.get("/disk")
+def disk_state():
+    """Disk usage from cache."""
+    return _state.get("resources", {}).get("disk", {})
 
 
 @app.get("/models")
 def models():
     """Known model requirements."""
-    return MODEL_SPECS
+    return MODELS
+
+
+@app.get("/cluster")
+def cluster():
+    """Static cluster hardware inventory."""
+    return CLUSTER
+
+
+# -- Layer 3: Lifecycle Manager --
+
+@app.get("/lifecycle/loaded")
+async def lifecycle_loaded():
+    """List all currently loaded models (Ollama + vLLM)."""
+    return await get_loaded_models()
+
+
+@app.post("/lifecycle/load")
+async def lifecycle_load(model: str, keep_alive: str = "5m"):
+    """Load a model into Ollama VRAM."""
+    return await async_load_model(model, keep_alive)
+
+
+@app.post("/lifecycle/unload")
+async def lifecycle_unload(model: str):
+    """Unload a model from Ollama VRAM."""
+    return await async_unload_model(model)
+
+
+@app.get("/lifecycle/idle")
+async def lifecycle_idle(minutes: int = 30):
+    """List models idle for longer than N minutes."""
+    return await async_get_idle_models(minutes)
+
+
+@app.post("/lifecycle/swap-for-comfyui")
+async def lifecycle_swap():
+    """Unload sovereign model to free VRAM for ComfyUI on WORKSHOP GPU 0."""
+    return await lambda: swap_models("huihui_ai/qwen3.5-abliterated:35b", "none")()
+
+
+# -- Layer 4: Workload Placer --
+
+@app.get("/placer/recommend")
+def placer_recommend(model: str):
+    """Recommend best GPU placement for a model."""
+    return recommend_placement(model)
+
+
+@app.get("/placer/available")
+def placer_available(min_vram_gb: float = 8.0):
+    """List GPUs with at least N GB free VRAM."""
+    return find_best_gpu(min_vram_gb)
+
+
+@app.get("/placer/migrations")
+def placer_migrations():
+    """Suggest model migrations to rebalance GPU load."""
+    return suggest_migrations()
