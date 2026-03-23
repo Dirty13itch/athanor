@@ -224,6 +224,56 @@ async def cleanup_stuck_tasks():
     return {"cleaned": len(stuck), "task_ids": stuck}
 
 
+
+
+@app.get("/recent-commits")
+async def get_recent_commits():
+    """Get recent git commits from agent branches and main."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["git", "-C", "/home/shaun/repos/athanor", "log", "--all", "--oneline", "--since=24 hours ago", "--format=%H|%an|%s|%ar"],
+            capture_output=True, text=True, timeout=5
+        )
+        commits = []
+        for line in result.stdout.strip().split("\n"):
+            if not line:
+                continue
+            parts = line.split("|", 3)
+            if len(parts) == 4:
+                commits.append({
+                    "hash": parts[0][:8],
+                    "author": parts[1],
+                    "message": parts[2],
+                    "when": parts[3],
+                })
+        return {"commits": commits, "count": len(commits)}
+    except:
+        return {"commits": [], "count": 0}
+
+@app.get("/active-sessions")
+async def get_active_sessions():
+    """Get currently running tmux agent sessions."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["tmux", "list-sessions", "-F", "#{session_name}|#{session_created}|#{session_activity}"],
+            capture_output=True, text=True, timeout=5
+        )
+        sessions = []
+        for line in result.stdout.strip().split("\n"):
+            if not line or "agent-" not in line:
+                continue
+            parts = line.split("|")
+            sessions.append({
+                "name": parts[0],
+                "created": parts[1] if len(parts) > 1 else "",
+                "last_activity": parts[2] if len(parts) > 2 else "",
+            })
+        return {"sessions": sessions, "count": len(sessions)}
+    except:
+        return {"sessions": [], "count": 0}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8760)

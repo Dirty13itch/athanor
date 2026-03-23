@@ -27,6 +27,7 @@ import { AttentionBanner } from "@/components/attention-banner";
 import { GovernorQueuePanel } from "@/components/governor-queue-panel";
 import { GoalsPanel } from "@/components/goals-panel";
 import { LiveActivityPanel } from "@/components/live-activity-panel";
+import { AgentWorkPanel } from "@/components/agent-work-panel";
 import { GovernorCard } from "@/components/governor-card";
 import { JudgePlaneCard } from "@/components/judge-plane-card";
 import { LiveBadge } from "@/components/live-badge";
