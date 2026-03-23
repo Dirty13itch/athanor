@@ -1,6 +1,7 @@
-"""Athanor System Brain - cluster-wide intelligence layer.
+"""Athanor System Brain — cluster-wide intelligence layer.
 
-Layers 1-4: Resource Registry + Capacity Planner + Lifecycle Manager + Workload Placer.
+Layers 1-2: Resource Registry + Capacity Planner.
+Layers 3-4: Lifecycle Manager + Workload Placer.
 Port 8780 on DEV, 30s resource refresh, 5min capacity refresh.
 """
 from datetime import datetime, timezone
@@ -13,21 +14,16 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from registry import CLUSTER, MODELS, can_fit, get_cluster_state
 from capacity import predict_disk_full, detect_memory_leaks, get_capacity_report
-from lifecycle import get_loaded_models, load_model, unload_model, get_idle_models, swap_models
-from placer import recommend_placement, find_best_gpu
-from quality import recommend_model, MODEL_PROFILES
-from cost import get_cost_summary
-from advisor import generate_briefing
-
-
-
-
-
+from lifecycle import (
+    get_loaded_models, async_load_model, async_unload_model,
+    async_get_idle_models, swap_models,
+)
+from placer import recommend_placement, find_available_gpu, suggest_migrations
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("brain")
 
-# -- Cached state --
+# ── Cached state ───────────────────────────────────────────────────────
 _state: dict = {
     "resources": {},
     "predictions": {},
@@ -64,15 +60,15 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(refresh_state, "interval", seconds=30, id="refresh_state")
     scheduler.add_job(refresh_capacity, "interval", minutes=5, id="refresh_capacity")
     scheduler.start()
-    logger.info("Brain started - 30s state / 5min capacity refresh")
+    logger.info("Brain started — 30s state / 5min capacity refresh")
     yield
     scheduler.shutdown()
 
 
-app = FastAPI(title="Athanor System Brain", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="Athanor System Brain", version="0.1.0", lifespan=lifespan)
 
 
-# -- Layer 1-2: Resource Registry + Capacity Planner --
+# ── Layer 1-2: Resource Registry + Capacity Planner ────────────────────
 
 @app.get("/health")
 def health():
@@ -81,7 +77,7 @@ def health():
 
 @app.get("/status")
 def status():
-    """Full cached state - resources + predictions + timestamp."""
+    """Full cached state — resources + predictions + timestamp."""
     return _state
 
 
@@ -133,7 +129,7 @@ def cluster():
     return CLUSTER
 
 
-# -- Layer 3: Lifecycle Manager --
+# ── Layer 3: Lifecycle Manager ─────────────────────────────────────────
 
 @app.get("/lifecycle/loaded")
 async def lifecycle_loaded():
@@ -162,10 +158,10 @@ async def lifecycle_idle(minutes: int = 30):
 @app.post("/lifecycle/swap-for-comfyui")
 async def lifecycle_swap():
     """Unload sovereign model to free VRAM for ComfyUI on WORKSHOP GPU 0."""
-    return await lambda: swap_models("huihui_ai/qwen3.5-abliterated:35b", "none")()
+    return await swap_models("huihui_ai/qwen3.5-abliterated:35b", "none")
 
 
-# -- Layer 4: Workload Placer --
+# ── Layer 4: Workload Placer ───────────────────────────────────────────
 
 @app.get("/placer/recommend")
 def placer_recommend(model: str):
@@ -176,7 +172,7 @@ def placer_recommend(model: str):
 @app.get("/placer/available")
 def placer_available(min_vram_gb: float = 8.0):
     """List GPUs with at least N GB free VRAM."""
-    return find_best_gpu(min_vram_gb)
+    return find_available_gpu(min_vram_gb)
 
 
 @app.get("/placer/migrations")
