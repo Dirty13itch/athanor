@@ -80,6 +80,7 @@ export interface DashboardConfig {
   eoq: DashboardEndpoint;
   stash: DashboardEndpoint;
   speaches: DashboardEndpoint;
+  langfuse: { url: string; publicKey: string; secretKey: string };
   qdrant: DashboardEndpoint;
   neo4j: DashboardEndpoint;
   homeAssistant: DashboardEndpoint;
@@ -147,6 +148,9 @@ const homeAssistantUrl = env("ATHANOR_HOME_ASSISTANT_URL", `http://${vaultHost}:
 const qdrantUrl = env("ATHANOR_QDRANT_URL", `http://${foundryHost}:6333`);
 const neo4jUrl = env("ATHANOR_NEO4J_URL", `http://${vaultHost}:7474`);
 const speachesUrl = env("ATHANOR_SPEACHES_URL", `http://${foundryHost}:8200`);
+const langfuseUrl = env("ATHANOR_LANGFUSE_URL", `http://${vaultHost}:3030`);
+const langfusePublicKey = process.env.ATHANOR_LANGFUSE_PUBLIC_KEY?.trim() || "pk-lf-athanor";
+const langfuseSecretKey = process.env.ATHANOR_LANGFUSE_SECRET_KEY?.trim() || "sk-lf-athanor";
 
 const legacyChatTargetAliases: Record<string, string> = {
   "node1-vllm": "foundry-coordinator",
@@ -186,6 +190,11 @@ export const config = {
   },
   speaches: {
     url: speachesUrl,
+  },
+  langfuse: {
+    url: langfuseUrl,
+    publicKey: langfusePublicKey,
+    secretKey: langfuseSecretKey,
   },
   qdrant: {
     url: qdrantUrl,
@@ -678,6 +687,36 @@ export const config = {
       label: "NVIDIA DCGM Exporter",
       description: "GPU fleet telemetry and thermal pressure dashboard.",
       url: joinUrl(grafanaUrl, "/d/Oxed_c6Wz/nvidia-dcgm-exporter-dashboard"),
+    },
+    {
+      id: "athanor-operations",
+      label: "Athanor Operations",
+      description: "Cluster-wide operational metrics and service health.",
+      url: joinUrl(grafanaUrl, "/d/3349e8df-5e19-458f-b663-29c2075b73bf/athanor-operations"),
+    },
+    {
+      id: "athanor-inference",
+      label: "Athanor Inference",
+      description: "vLLM inference throughput, latency, and token rates.",
+      url: joinUrl(grafanaUrl, "/d/625cdba9-8234-4d27-a0ec-f8d49a252ff6/athanor-inference"),
+    },
+    {
+      id: "athanor-service-health",
+      label: "Athanor Service Health",
+      description: "Service uptime, error rates, and endpoint availability.",
+      url: joinUrl(grafanaUrl, "/d/athanor-service-health/athanor-service-health"),
+    },
+    {
+      id: "athanor-agent-activity",
+      label: "Athanor Agent Activity",
+      description: "Agent task execution, run counts, and scheduling metrics.",
+      url: joinUrl(grafanaUrl, "/d/athanor-agent-activity/athanor-agent-activity"),
+    },
+    {
+      id: "vault-server-monitor",
+      label: "VAULT Server Monitor",
+      description: "Unraid array health, Docker containers, and NVMe status.",
+      url: joinUrl(grafanaUrl, "/d/vault-server-monitor/vault-server-monitor"),
     },
   ],
   gpuWorkloads: {

@@ -60,6 +60,9 @@ export function LiveActivityPanel() {
         <Link href="/activity" className="text-xs text-primary hover:underline flex items-center gap-1">
           Full history <ChevronRight className="h-3 w-3" />
         </Link>
+        <a href="http://192.168.1.189:6006" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
+          Traces
+        </a>
       </CardHeader>
       <CardContent className="space-y-1.5">
         {items.length === 0 && (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, RefreshCcw } from "lucide-react";
+import { ArrowUpRight, BarChart3, ExternalLink, RefreshCcw } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { LiveBadge } from "@/components/live-badge";
@@ -185,6 +185,35 @@ export function MonitoringConsole({ initialSnapshot }: { initialSnapshot: Monito
       ) : (
         <EmptyState title="No nodes match the current filter" description="Clear the node filter to restore the full monitoring view." />
       )}
+
+      {/* Grafana dashboard cards */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Grafana Dashboards</h2>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {snapshot.dashboards.map((entry) => (
+            <Card key={entry.id} className="surface-panel group transition-colors hover:border-primary/40">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">{entry.label}</CardTitle>
+                <CardDescription className="line-clamp-2 text-xs">{entry.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex gap-2 pt-0">
+                <Button size="sm" variant="outline" onClick={() => setSearchValue("panel", entry.id)}>
+                  Preview
+                </Button>
+                <Button size="sm" variant="ghost" asChild>
+                  <a href={entry.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Grafana
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
 
       <Sheet open={Boolean(activeDashboard)} onOpenChange={(open) => setSearchValue("panel", open ? panel : null)}>
         <SheetContent side="right" className="w-full max-w-xl overflow-y-auto border-l border-border/80 bg-background/95">

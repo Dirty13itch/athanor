@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Bell, Database, RefreshCcw, Search } from "lucide-react";
 import { FamilyTabs } from "@/components/family-tabs";
 import { ConsolidationCard } from "@/components/consolidation-card";
+import { KnowledgeGraphViewer } from "@/components/knowledge-graph-viewer";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { PageHeader } from "@/components/page-header";
@@ -341,6 +342,8 @@ export function MemoryConsole({
           </Card>
 
           <ConsolidationCard />
+
+          <KnowledgeGraphViewer />
 
           <div className="grid gap-4 xl:grid-cols-[1.25fr_0.9fr]">
             <Card className="surface-panel">
