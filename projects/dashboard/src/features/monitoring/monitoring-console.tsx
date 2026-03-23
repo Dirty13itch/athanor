@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, BarChart3, ExternalLink, RefreshCcw } from "lucide-react";
+import { ArrowUpRight, BarChart3, DollarSign, ExternalLink, RefreshCcw } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { LiveBadge } from "@/components/live-badge";
@@ -65,6 +65,16 @@ export function MonitoringConsole({ initialSnapshot }: { initialSnapshot: Monito
     ...liveQueryOptions(LIVE_REFRESH_INTERVALS.telemetry),
   });
 
+  const langfuseCostsQuery = useQuery({
+    queryKey: ["langfuse-costs"],
+    queryFn: async () => {
+      const res = await fetch("/api/langfuse/costs");
+      if (!res.ok) throw new Error("Failed to fetch Langfuse costs");
+      return res.json();
+    },
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+  });
   if (monitoringQuery.isError) {
     return (
       <div className="space-y-6">
@@ -184,6 +194,62 @@ export function MonitoringConsole({ initialSnapshot }: { initialSnapshot: Monito
         </div>
       ) : (
         <EmptyState title="No nodes match the current filter" description="Clear the node filter to restore the full monitoring view." />
+      )}
+
+      {/* Langfuse LLM cost summary */}
+      {langfuseCostsQuery.data && !langfuseCostsQuery.data.error && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold">LLM Costs (Langfuse)</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {langfuseCostsQuery.data.buckets?.map((b: { label: string; totalCost: number; requestCount: number; totalTokens: number }) => (
+              <StatCard
+                key={b.label}
+                label={`Cost (${b.label})`}
+                value={b.totalCost > 0 ? `$${b.totalCost.toFixed(4)}` : "$0.00"}
+                detail={`${b.requestCount} requests · ${(b.totalTokens / 1000).toFixed(1)}k tokens`}
+              />
+            ))}
+          </div>
+          {langfuseCostsQuery.data.byModel?.length > 0 && (
+            <Card className="surface-panel">
+              <CardHeader>
+                <CardTitle className="text-base">Cost per model (30d)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-0">
+                  
+                <div className="grid grid-cols-5 gap-2 text-xs font-medium text-muted-foreground border-b border-border/60 pb-2">
+                  <span>Model</span>
+                  <span className="text-right">Requests</span>
+                  <span className="text-right">Tokens</span>
+                  <span className="text-right">Cost</span>
+                  <span className="text-right">Errors</span>
+                </div>
+                  
+                    {langfuseCostsQuery.data.byModel.map((entry: { model: string; requestCount: number; totalTokens: number; totalCost: number; errorCount: number }) => (
+                      <div key={entry.model} className="grid grid-cols-5 gap-2 text-sm py-1.5 border-b border-border/30 last:border-0">
+                        <span className="font-medium">{entry.model}</span>
+                        <span className="text-right">{entry.requestCount}</span>
+                        <span className="text-right">{(entry.totalTokens / 1000).toFixed(1)}k</span>
+                        <span className="text-right">{entry.totalCost > 0 ? `$${entry.totalCost.toFixed(4)}` : "-"}</span>
+                        <span className="text-right">
+                          {entry.errorCount > 0 ? (
+                            <Badge variant="outline" className="status-badge" data-tone="danger">{entry.errorCount}</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">0</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </section>
       )}
 
       {/* Grafana dashboard cards */}

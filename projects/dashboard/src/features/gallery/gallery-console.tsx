@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatCard } from "@/components/stat-card";
+import { ComfyUILivePanel } from "@/components/comfyui-live";
 import { getGalleryOverview } from "@/lib/api";
 import { config } from "@/lib/config";
 import { type GallerySnapshot } from "@/lib/contracts";
@@ -223,6 +224,8 @@ export function GalleryConsole({ initialSnapshot }: { initialSnapshot: GallerySn
           <StatCard label="Video + Scene" value={`${counts.video + counts.scene}`} detail={`${counts.video} video · ${counts.scene} scene`} />
         </div>
       </PageHeader>
+
+      <ComfyUILivePanel />
 
       {/* Compact filter bar */}
       <div className="flex flex-wrap items-center gap-2">
