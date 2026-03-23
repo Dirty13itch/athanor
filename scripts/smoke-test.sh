@@ -3,8 +3,8 @@
 # Exit 0 = all pass, Exit 1 = failures
 FAILS=0
 check() {
-  local name="$1" url="$2" timeout="${3:-5}"
-  status=$(curl -sf -o /dev/null -w "%{http_code}" --max-time "$timeout" "$url" 2>/dev/null)
+  local name="$1" url="$2" timeout="${3:-5}" header="${4:-}"
+  status=$(curl -sf -o /dev/null -w "%{http_code}" --max-time "$timeout" ${header:+-H "$header"} "$url" 2>/dev/null)
   if [ "$status" = "200" ]; then printf "  OK  %s\n" "$name"; else printf "FAIL  %s (HTTP %s)\n" "$name" "$status"; FAILS=$((FAILS+1)); fi
 }
 echo "=== Smoke Test $(date -Iseconds) ==="
@@ -17,7 +17,7 @@ check "Embedding"       "http://localhost:8001/v1/models"
 check "Reranker"        "http://localhost:8003/v1/models"
 check "Semantic Router" "http://localhost:8060/health"
 check "Burn Scheduler"  "http://localhost:8065/health"
-check "LiteLLM"         "http://192.168.1.203:4000/health" 10
+check "LiteLLM"         "http://192.168.1.203:4000/health" 10 "Authorization: Bearer $(cat /home/shaun/.secrets/litellm-master-key)"
 check "Qdrant"          "http://192.168.1.203:6333/healthz"
 check "Prometheus"      "http://192.168.1.203:9090/-/healthy"
 check "Grafana"         "http://192.168.1.203:3000/api/health"
