@@ -3,6 +3,7 @@ Checks for queued tasks every 60 seconds and dispatches immediately.
 No waiting for 10pm. Agents work ALL THE TIME.
 """
 import asyncio
+import subprocess
 from task_monitor import monitor_tasks
 from act_first import report_completed_tasks
 import logging
@@ -33,7 +34,55 @@ DISPATCH_ORDER = [
     "local-aider", "local-opencode", "local-goose",
 ]
 
+# Maximum time (seconds) a task can run before being killed
+TASK_TIMEOUT_SECONDS = 20 * 60  # 20 minutes
+
 logger = logging.getLogger("governor.continuous")
+
+
+def kill_timed_out_tasks(active_agents, task_queue):
+    """Kill agent sessions that have been running longer than TASK_TIMEOUT_SECONDS.
+    Returns list of task IDs that were killed.
+    """
+    killed = []
+    now = time.time()
+
+    # Iterate over a copy since we modify during iteration
+    for task_id, agent_info in list(active_agents.items()):
+        dispatch_time = agent_info.get("dispatch_time")
+        if dispatch_time is None:
+            continue
+
+        elapsed = now - dispatch_time
+        if elapsed > TASK_TIMEOUT_SECONDS:
+            session_name = agent_info.get("session", "")
+            elapsed_min = int(elapsed / 60)
+            logger.warning(f"Task {task_id} timed out after {elapsed_min}m — killing session {session_name}")
+
+            # Kill the tmux session
+            if session_name:
+                try:
+                    subprocess.run(
+                        ["tmux", "kill-session", "-t", session_name],
+                        capture_output=True, timeout=10
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to kill tmux session {session_name}: {e}")
+
+            # Update task status in the in-memory queue
+            for task in task_queue:
+                if task["id"] == task_id:
+                    task["status"] = "failed"
+                    task["completed_at"] = datetime.now(timezone.utc).isoformat()
+                    task["result"] = f"timeout: killed after {elapsed_min} minutes"
+                    break
+
+            # Remove from active agents
+            del active_agents[task_id]
+            killed.append(task_id)
+
+    return killed
+
 
 async def continuous_dispatch_loop(app_state):
     """Background task that continuously dispatches queued tasks."""
@@ -53,6 +102,22 @@ async def continuous_dispatch_loop(app_state):
             try:
                 from main import task_queue as tq, active_agents as aa
                 import db
+
+                # Kill timed-out tasks before monitoring
+                killed_ids = kill_timed_out_tasks(aa, tq)
+                for kid in killed_ids:
+                    try:
+                        # Find the task to get the result text
+                        result_text = "timeout: killed after 20 minutes"
+                        for t in tq:
+                            if t["id"] == kid:
+                                result_text = t.get("result", result_text)
+                                break
+                        db.update_task_status(kid, "failed", result=result_text)
+                        logger.info(f"Task {kid} -> failed: {result_text}")
+                    except Exception as db_err:
+                        logger.error(f"DB update error for timed-out {kid}: {db_err}")
+
                 updated = monitor_tasks(tq, aa)
                 if updated:
                     for u in updated:
@@ -126,6 +191,8 @@ async def continuous_dispatch_loop(app_state):
 
                     try:
                         result = dispatch_task(task, sub)
+                        # Track dispatch time for timeout enforcement
+                        result["dispatch_time"] = time.time()
                         active_agents[task["id"]] = result
                         busy_subs.add(sub)
                         last_dispatch_time[sub] = time.time()
