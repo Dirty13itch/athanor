@@ -54,9 +54,17 @@ EXTRA_FILES = [
 
 QDRANT_URL = get_url("qdrant")
 LITELLM_URL = get_url("litellm").rstrip("/") + "/v1"
+def _read_secret(fpath: str) -> str:
+    try:
+        return open(fpath).read().strip()
+    except (OSError, IOError):
+        return ""
+
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
     or os.environ.get("LITELLM_API_KEY")
+    or os.environ.get("LITELLM_MASTER_KEY")
+    or _read_secret("/home/shaun/.secrets/litellm-master-key")
     or os.environ.get("OPENAI_API_KEY", "")
 )
 NEO4J_URL = (

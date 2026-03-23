@@ -32,7 +32,17 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 AGENT_SERVER = get_url("agent_server")
-BEARER_TOKEN = os.environ.get("ATHANOR_AGENT_API_TOKEN", "")
+def _read_secret(path: str) -> str:
+    """Read a secret from file, stripping whitespace."""
+    try:
+        return Path(path).read_text().strip()
+    except (OSError, IOError):
+        return ""
+
+BEARER_TOKEN = (
+    os.environ.get("ATHANOR_AGENT_API_TOKEN")
+    or _read_secret("/home/shaun/.secrets/agent-server-api-key")
+)
 
 
 def fetch_json(path: str) -> dict:
