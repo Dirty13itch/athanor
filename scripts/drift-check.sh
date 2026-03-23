@@ -159,7 +159,7 @@ echo ""
 echo "--- Agent & Model Checks ---"
 
 check "Agent Server: 9 agents online" \
-    'curl -sf --max-time 5 http://192.168.1.244:9000/v1/agents | python3 -c "import sys,json; d=json.load(sys.stdin); agents=d if isinstance(d,list) else d.get(\"agents\",[]); sys.exit(0 if len(agents)>=9 else 1)"'
+    'curl -sf --max-time 5 -H "Authorization: Bearer $(cat /home/shaun/.secrets/agent-server-api-key)" http://192.168.1.244:9000/v1/agents | python3 -c "import sys,json; d=json.load(sys.stdin); agents=d if isinstance(d,list) else d.get(\"agents\",[]); sys.exit(0 if len(agents)>=9 else 1)"'
 
 check "Ollama has FIM model (qwen2.5-coder)" \
     'curl -sf --max-time 5 http://192.168.1.225:11434/api/tags | python3 -c "import sys,json; d=json.load(sys.stdin); names=[m[\"name\"] for m in d.get(\"models\",[])]; sys.exit(0 if any(\"qwen2.5-coder\" in n for n in names) else 1)"'

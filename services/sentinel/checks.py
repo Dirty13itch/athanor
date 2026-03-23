@@ -22,6 +22,19 @@ def _get_litellm_key() -> str:
     return _LITELLM_KEY
 
 
+_AGENT_KEY = ""
+
+
+def _get_agent_key() -> str:
+    global _AGENT_KEY
+    if not _AGENT_KEY:
+        try:
+            _AGENT_KEY = Path("/home/shaun/.secrets/agent-server-api-key").read_text().strip()
+        except Exception:
+            _AGENT_KEY = ""
+    return _AGENT_KEY
+
+
 # ---------------------------------------------------------------------------
 # Tier 1: Heartbeat -- is it alive?
 # ---------------------------------------------------------------------------
@@ -50,7 +63,7 @@ HEARTBEAT_CHECKS = [
 ]
 
 # Services that need Authorization header
-AUTH_SERVICES = {"litellm"}
+AUTH_SERVICES = {"litellm", "agent_server"}
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -78,7 +91,10 @@ def run_heartbeat(name: str, url: str, timeout: float = 5.0) -> CheckResult:
     try:
         headers = {}
         if name in AUTH_SERVICES:
-            key = _get_litellm_key()
+            if name == "agent_server":
+                key = _get_agent_key()
+            else:
+                key = _get_litellm_key()
             if key:
                 headers["Authorization"] = f"Bearer {key}"
         r = httpx.get(url, timeout=timeout, follow_redirects=True, headers=headers)
@@ -167,7 +183,8 @@ def run_integration() -> list[CheckResult]:
     # Dashboard -> Agent Server
     start = time.monotonic()
     try:
-        r = httpx.get("http://192.168.1.244:9000/api/agents", timeout=15.0)
+        agent_headers = {"Authorization": f"Bearer {_get_agent_key()}"} if _get_agent_key() else {}
+        r = httpx.get("http://192.168.1.244:9000/v1/agents", headers=agent_headers, timeout=15.0)
         latency = (time.monotonic() - start) * 1000
         passed = r.status_code == 200
         detail = f"HTTP {r.status_code}"
