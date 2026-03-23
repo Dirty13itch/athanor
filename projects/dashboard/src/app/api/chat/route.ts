@@ -1,9 +1,12 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { joinUrl, resolveChatModel, resolveChatTarget } from "@/lib/config";
+import { joinUrl, getInferenceBackend, resolveChatModel, resolveChatTarget } from "@/lib/config";
 import { buildChatUpstreamHeaders } from "@/lib/chat-proxy";
 import { serverConfig } from "@/lib/server-config";
 import { toSseEvent } from "@/lib/sse";
+
+const SOVEREIGN_ROUTES = new Set(["sovereign", "sovereign_only"]);
+const SOVEREIGN_MODEL = "uncensored";
 
 const chatRequestSchema = z.object({
   messages: z.array(
@@ -171,13 +174,25 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const resolvedTarget = resolveChatTarget(target);
+  let resolvedTarget = resolveChatTarget(target);
   if (!resolvedTarget) {
     return new Response("Unknown chat target", { status: 400 });
   }
-  const resolvedModel = resolveChatModel(target, model);
+  let resolvedModel = resolveChatModel(target, model);
+  let sovereignOverride = false;
 
-  const { headers, error } = buildChatUpstreamHeaders(target, serverConfig.litellmApiKey);
+  // --- Sovereign override: reroute unsafe content to local uncensored model ---
+  if (classification && SOVEREIGN_ROUTES.has(classification.route)) {
+    const litellmBackend = getInferenceBackend("litellm-proxy");
+    if (litellmBackend) {
+      resolvedTarget = litellmBackend;
+      resolvedModel = SOVEREIGN_MODEL;
+      sovereignOverride = true;
+    }
+  }
+
+  const upstreamTarget = sovereignOverride ? "litellm-proxy" : target;
+  const { headers, error } = buildChatUpstreamHeaders(upstreamTarget, serverConfig.litellmApiKey);
   if (error) {
     return new Response(error, { status: 503 });
   }
@@ -194,7 +209,7 @@ export async function POST(req: NextRequest) {
         max_tokens: 2048,
         temperature: 0.7,
         stream: true,
-        ...(target === "agent-server" && threadId ? { thread_id: threadId } : {}),
+        ...(target === "agent-server" && threadId && !sovereignOverride ? { thread_id: threadId } : {}),
       }),
     });
   } catch {
@@ -225,6 +240,8 @@ export async function POST(req: NextRequest) {
               category: classification.category,
               confidence: classification.confidence,
               route: classification.route,
+              sovereignOverride,
+              resolvedModel,
             })
           )
         );
