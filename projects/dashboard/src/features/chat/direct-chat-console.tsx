@@ -218,12 +218,60 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
       }
 
       let assistantContent = "";
+      const toolCalls: Array<{id: string; name: string; args?: Record<string, unknown>; output?: string; durationMs?: number; error?: string; status: "running" | "done" | "error"}> = [];
       await readChatEventStream(response.body, (event) => {
         if (event.type === "assistant_delta") {
           assistantContent += event.content;
           mutateSession(nextSession.id, (current) => ({
             ...current,
             updatedAt: new Date().toISOString(),
+            messages: current.messages.map((message) =>
+              message.id === assistantMessage.id
+                ? { ...message, content: assistantContent }
+                : message
+            ),
+          }));
+        }
+
+        if (event.type === "tool_start") {
+          toolCalls.push({
+            id: event.toolCallId,
+            name: event.name,
+            args: event.args,
+            status: "running"
+          });
+          // Add tool indicator to assistant content
+          assistantContent += `\n\n🔧 **Tool: ${event.name}** (running...)\n`;
+          mutateSession(nextSession.id, (current) => ({
+            ...current,
+            messages: current.messages.map((message) =>
+              message.id === assistantMessage.id
+                ? { ...message, content: assistantContent }
+                : message
+            ),
+          }));
+        }
+
+        if (event.type === "tool_end") {
+          const tc = toolCalls.find(t => t.id === event.toolCallId);
+          if (tc) {
+            tc.status = event.error ? "error" : "done";
+            tc.output = event.output;
+            tc.durationMs = event.durationMs;
+            tc.error = event.error;
+          }
+          const duration = event.durationMs ? ` (${Math.round(event.durationMs)}ms)` : "";
+          const status = event.error ? "❌" : "✅";
+          // Replace the running indicator with result
+          assistantContent = assistantContent.replace(
+            `🔧 **Tool: ${event.name}** (running...)`,
+            `${status} **Tool: ${event.name}**${duration}`
+          );
+          if (event.output && event.output.length < 200) {
+            assistantContent += `\n> ${event.output}\n`;
+          }
+          mutateSession(nextSession.id, (current) => ({
+            ...current,
             messages: current.messages.map((message) =>
               message.id === assistantMessage.id
                 ? { ...message, content: assistantContent }

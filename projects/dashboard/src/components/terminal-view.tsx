@@ -70,7 +70,7 @@ export default function TerminalView({
 
     // WebSocket connection to PTY bridge
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${window.location.hostname}:3100/ws?node=${nodeId}`;
+    const wsUrl = `${wsProtocol}//192.168.1.225:3100/ws?node=${nodeId}`;
 
     term.writeln(`\x1b[90mConnecting to ${host}...\x1b[0m`);
     setError(null);

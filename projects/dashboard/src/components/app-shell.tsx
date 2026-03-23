@@ -15,6 +15,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { AgentCrewBar } from "@/components/agent-crew-bar";
+import dynamic from "next/dynamic";
+const PushManager = dynamic(() => import("@/components/push-manager").then(m => m.PushManager), { ssr: false });
 import { LensSwitcher } from "@/components/lens-switcher";
 import { CommandPalette } from "@/components/command-palette";
 import { Kbd } from "@/components/kbd";
@@ -139,7 +141,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
       >
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} overview={overview} />
-        <LensSwitcher />
+        <PushManager />
+          <LensSwitcher />
           <OperatorPresenceHeartbeat />
 
         <header className="surface-chrome fixed inset-x-0 top-0 z-40 border-b">
