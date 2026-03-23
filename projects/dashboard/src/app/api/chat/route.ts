@@ -210,6 +210,7 @@ export async function POST(req: NextRequest) {
         temperature: 0.7,
         stream: true,
         ...(target === "agent-server" && threadId && !sovereignOverride ? { thread_id: threadId } : {}),
+        ...(sovereignOverride ? { chat_template_kwargs: { enable_thinking: false } } : {}),
       }),
     });
   } catch {
