@@ -60,6 +60,9 @@ HEARTBEAT_CHECKS = [
     ("ollama_sovereign", "http://192.168.1.225:11434/api/tags"),
     ("comfyui", "http://192.168.1.225:8188/system_stats"),
     ("ollama", "http://192.168.1.225:11434/api/tags"),
+    ("brain", "http://localhost:8780/health"),
+    ("draftsman", "http://localhost:8400/"),
+    ("open_webui", "http://localhost:3080/"),
 ]
 
 # Services that need Authorization header
@@ -117,17 +120,25 @@ def run_readiness(name: str) -> CheckResult:
     try:
         if name in ("vllm_coordinator", "vllm_coder", "vllm_sovereign"):
             port_map = {
-                "vllm_coordinator": ("192.168.1.244", 8000),
-                "vllm_coder": ("192.168.1.244", 8006),
-                "vllm_sovereign": ("192.168.1.225", 8010),
+                "vllm_coordinator": ("192.168.1.244", 8000, "/models/Qwen3.5-27B-FP8"),
+                "vllm_coder": ("192.168.1.244", 8006, "devstral-small-2"),
+                "vllm_sovereign": ("192.168.1.225", 11434, "huihui_ai/qwen3.5-abliterated:35b"),
             }
-            host, port = port_map[name]
-            r = httpx.post(
-                f"http://{host}:{port}/v1/completions",
-                json={"model": "default", "prompt": "Hi", "max_tokens": 1},
-                timeout=30.0,
-            )
-            passed = r.status_code == 200 and "choices" in r.text
+            host, port, model_name = port_map[name]
+            if port == 11434:  # Ollama
+                r = httpx.post(
+                    f"http://{host}:{port}/api/generate",
+                    json={"model": model_name, "prompt": "Hi", "stream": False, "think": False, "options": {"num_predict": 1}},
+                    timeout=30.0,
+                )
+                passed = r.status_code == 200 and "response" in r.text
+            else:  # vLLM
+                r = httpx.post(
+                    f"http://{host}:{port}/v1/chat/completions",
+                    json={"model": model_name, "messages": [{"role": "user", "content": "hi"}], "max_tokens": 1},
+                    timeout=30.0,
+                )
+                passed = r.status_code == 200 and "choices" in r.text
             detail = f"HTTP {r.status_code}"
 
         elif name == "litellm":
@@ -145,7 +156,7 @@ def run_readiness(name: str) -> CheckResult:
         elif name == "embedding":
             r = httpx.post(
                 "http://localhost:8001/v1/embeddings",
-                json={"model": "default", "input": "test"},
+                json={"model": "/models/Qwen3-Embedding-0.6B", "input": "test"},
                 timeout=15.0,
             )
             passed = r.status_code == 200 and "data" in r.text
@@ -200,7 +211,7 @@ def run_integration() -> list[CheckResult]:
     # Dashboard -> Governor queue
     start = time.monotonic()
     try:
-        r = httpx.get("http://localhost:8760/api/governor/queue", timeout=10.0)
+        r = httpx.get("http://localhost:8760/queue", timeout=10.0)
         latency = (time.monotonic() - start) * 1000
         passed = r.status_code == 200
         detail = f"HTTP {r.status_code}"
