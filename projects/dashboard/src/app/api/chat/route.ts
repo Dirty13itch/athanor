@@ -152,6 +152,25 @@ export async function POST(req: NextRequest) {
 
   const { messages, model, target, threadId } = parseResult.data;
 
+  // --- Content classification ---
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+  let classification: { classification: string; category: string; confidence: number; route: string } | null = null;
+  if (lastUserMsg) {
+    try {
+      const classRes = await fetch("http://localhost:8740/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: lastUserMsg.content }),
+        signal: AbortSignal.timeout(2000),
+      });
+      if (classRes.ok) {
+        classification = await classRes.json();
+      }
+    } catch {
+      // Classifier unavailable - continue without it.
+    }
+  }
+
   const resolvedTarget = resolveChatTarget(target);
   if (!resolvedTarget) {
     return new Response("Unknown chat target", { status: 400 });
@@ -196,6 +215,20 @@ export async function POST(req: NextRequest) {
 
   const normalizedStream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      if (classification) {
+        controller.enqueue(
+          encoder.encode(
+            toSseEvent({
+              type: "classification",
+              timestamp: new Date().toISOString(),
+              classification: classification.classification,
+              category: classification.category,
+              confidence: classification.confidence,
+              route: classification.route,
+            })
+          )
+        );
+      }
       const reader = upstream.body!.getReader();
       let buffer = "";
       let emittedDone = false;

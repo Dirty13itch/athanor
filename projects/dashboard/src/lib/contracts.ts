@@ -1573,6 +1573,14 @@ export const chatStreamEventSchema = z.discriminatedUnion("type", [
     timestamp: z.string(),
     message: z.string(),
   }),
+  z.object({
+    type: z.literal("classification"),
+    timestamp: z.string(),
+    classification: z.string(),
+    category: z.string(),
+    confidence: z.number(),
+    route: z.string(),
+  }),
 ]);
 
 export const transcriptMessageSchema = z.object({

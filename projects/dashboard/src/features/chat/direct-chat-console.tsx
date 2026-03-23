@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { PageHeader } from "@/components/page-header";
 import { RichText } from "@/components/rich-text";
+import { VoiceInputButton, TtsPlayButton } from "@/components/voice-input-button";
 import { RoutingContextCard } from "@/components/routing-context-card";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
@@ -72,6 +73,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
   );
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [lastClassification, setLastClassification] = useState<{ classification: string; category: string; confidence: number; route: string } | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [pendingSessionId, setPendingSessionId] = useState<string | null>(null);
@@ -195,6 +197,7 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
     setSearchValue("session", nextSession.id);
 
     setInput("");
+    setLastClassification(null);
     setIsStreaming(true);
     const controller = new AbortController();
     abortRef.current = controller;
@@ -220,6 +223,15 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
       let assistantContent = "";
       const toolCalls: Array<{id: string; name: string; args?: Record<string, unknown>; output?: string; durationMs?: number; error?: string; status: "running" | "done" | "error"}> = [];
       await readChatEventStream(response.body, (event) => {
+        if (event.type === "classification") {
+          setLastClassification({
+            classification: event.classification,
+            category: event.category,
+            confidence: event.confidence,
+            route: event.route,
+          });
+        }
+
         if (event.type === "assistant_delta") {
           assistantContent += event.content;
           mutateSession(nextSession.id, (current) => ({
@@ -507,6 +519,15 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                             : "surface-instrument border text-foreground"
                         }`}
                       >
+                        {message.role === "assistant" && lastClassification && message.id === activeSession?.messages[activeSession.messages.length - 1]?.id && (
+                          <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg bg-muted/50 px-3 py-1.5 text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                            <span>Routed to: <strong className="text-foreground">{lastClassification.route}</strong></span>
+                            <span className="opacity-40">|</span>
+                            <span>Classification: <strong className={lastClassification.classification === "safe" ? "text-emerald-500" : "text-red-400"}>{lastClassification.classification}</strong></span>
+                            <span className="opacity-40">|</span>
+                            <span>Category: <strong className="text-foreground">{lastClassification.category}</strong></span>
+                          </div>
+                        )}
                         <div className="mb-2 flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.2em] opacity-70">
                           <span>{message.role === "user" ? "Operator" : "Model"}</span>
                           <span data-volatile="true">{formatRelativeTime(message.createdAt)}</span>
@@ -589,6 +610,10 @@ export function DirectChatConsole({ initialModels }: { initialModels: ModelsSnap
                     Stop
                   </Button>
                 ) : null}
+                <VoiceInputButton
+                  onTranscript={(text) => { setInput((prev) => prev + text); }}
+                  disabled={!selectedModel || isStreaming}
+                />
                 <Button type="submit" disabled={!selectedModel || !input.trim() || isStreaming}>
                   <Send className="mr-2 h-4 w-4" />
                   Send
