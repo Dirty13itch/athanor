@@ -68,15 +68,15 @@ def run_overnight():
         if result and result.get("task_id"):
             dispatched.append(result)
             notify(
-                f"Agent Dispatched: {result.get(agent, ?)}",
-                f"Task {result[task_id]} assigned to {result.get(assigned_to, ?)} in {result.get(session, ?)}",
+                f"Agent Dispatched: {result.get("agent", "?")}",
+                f"Task {result.get("task_id", "?")} assigned to {result.get("assigned_to", "?")} in {result.get("session", "?")}",
                 "low"
             )
     
     if dispatched:
         notify(
             f"Overnight: {len(dispatched)} Agents Running",
-            f"Dispatched: {, .join(d.get(agent,?) for d in dispatched)}. Check in the morning.",
+            f"Dispatched: {", ".join(d.get("agent","?") for d in dispatched)}. Check in the morning.",
             "default"
         )
     else:
