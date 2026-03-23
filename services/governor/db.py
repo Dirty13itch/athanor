@@ -71,4 +71,29 @@ def get_stats():
     conn.close()
     return stats
 
+def update_task_status(task_id, status, assigned_to=None, result=None):
+    """Update task status in SQLite."""
+    conn = get_db()
+    if assigned_to:
+        conn.execute(
+            "UPDATE tasks SET status=?, assigned_to=?, started_at=? WHERE id=?",
+            (status, assigned_to, datetime.utcnow().isoformat(), task_id)
+        )
+    elif result:
+        conn.execute(
+            "UPDATE tasks SET status=?, completed_at=?, result=? WHERE id=?",
+            (status, datetime.utcnow().isoformat(), result, task_id)
+        )
+    else:
+        conn.execute("UPDATE tasks SET status=? WHERE id=?", (status, task_id))
+    conn.commit()
+    conn.close()
+
+def get_task_by_id(task_id):
+    """Get a single task by ID."""
+    conn = get_db()
+    row = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
 init_db()

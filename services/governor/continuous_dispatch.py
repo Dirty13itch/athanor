@@ -44,6 +44,10 @@ async def continuous_dispatch_loop(app_state):
                 updated = monitor_tasks(tq, aa)
                 if updated:
                     for u in updated:
+                        try:
+                            db.update_task_status(u["task_id"], u["new_status"], result="completed by agent")
+                        except: pass
+                    for u in updated:
                         logger.info(f"Task {u['task_id']} completed: {u['new_status']}")
             except Exception as e:
                 logger.error(f"Monitor error: {e}")
@@ -99,6 +103,9 @@ async def continuous_dispatch_loop(app_state):
                             active_agents[task["id"]] = result
                             busy_subs.add(sub)
                             last_dispatch_time[sub] = time.time()
+                            try:
+                                db.update_task_status(task["id"], "running", assigned_to=sub)
+                            except: pass
                             logger.info(f"Dispatched {task['id']} to {sub}: {task['title'][:50]}")
                         except Exception as e:
                             task["status"] = "queued"  # Reset on failure
