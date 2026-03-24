@@ -60,7 +60,7 @@ scrape_configs:
           service_category: "inference"
           node_id: "node1"
 
-      - targets: ["http://192.168.1.225:8000/v1/models"]
+      - targets: ["http://192.168.1.225:8010/v1/models"]
         labels:
           service_id: "workshop-worker"
           service_name: "Workshop Worker"

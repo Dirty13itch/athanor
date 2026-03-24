@@ -36,7 +36,7 @@ class Settings(BaseSettings):
         ),
     )
     vllm_node2_url: str = Field(
-        default="http://192.168.1.225:8000",
+        default="http://192.168.1.225:8010",
         validation_alias=AliasChoices("GPU_ORCH_VLLM_NODE2_URL", "ATHANOR_VLLM_WORKER_URL"),
     )
     vllm_vision_url: str = Field(
