@@ -4,9 +4,9 @@
 vllm_model: /models/Qwen3.5-35B-A3B-AWQ-4bit
 vllm_quantization: ""  # Model uses compressed-tensors quant — vLLM auto-detects from config.json
 vllm_tensor_parallel: 1
-vllm_port: 8000
+vllm_port: 8010
 vllm_gpu_memory_util: "0.85"
-vllm_max_model_len: 65536
+vllm_max_model_len: 32768
 vllm_max_num_seqs: 32
 vllm_gpu_devices: "0"
 vllm_container_name: vllm-node2

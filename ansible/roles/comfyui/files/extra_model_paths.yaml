@@ -1,11 +1,43 @@
-vault_nfs:
-    base_path: /mnt/vault/models/comfyui/
-    diffusion_models: unet/
+local_nvme:
+    base_path: /mnt/fast2/comfyui/
+    checkpoints: checkpoints/
     clip: clip/
     clip_vision: clip_vision/
-    vae: vae/
-    checkpoints: checkpoints/
-    loras: loras/
     controlnet: controlnet/
-    upscale_models: upscale_models/
+    diffusion_models: unet/
     embeddings: embeddings/
+    facerestore_models: facerestore_models/
+    infinite_you: infinite_you/
+    insightface: insightface/
+    instantid: instantid/
+    ipadapter: ipadapter/
+    latent_upscale_models: latent_upscale_models/
+    loras: loras/
+    pulid: pulid/
+    text_encoders: text_encoders/
+    ultralytics: ultralytics/
+    unet: unet/
+    upscale_models: upscale_models/
+    vae: vae/
+
+vault_nfs:
+    base_path: /mnt/vault/models/comfyui/
+    checkpoints: checkpoints/
+    clip: clip/
+    clip_vision: clip_vision/
+    controlnet: controlnet/
+    diffusion_models: unet/
+    embeddings: embeddings/
+    facerestore_models: facerestore_models/
+    infinite_you: infinite_you/
+    insightface: insightface/
+    instantid: instantid/
+    ipadapter: ipadapter/
+    latent_upscale_models: latent_upscale_models/
+    loras: loras/
+    pulid: pulid/
+    text_encoders: text_encoders/
+    ultralytics: ultralytics/
+    unet: unet/
+    upscale_models: upscale_models/
+    vae: vae/
