@@ -1,4 +1,4 @@
-"""GPU state monitoring via DCGM-exporter and vLLM sleep/wake management."""
+"""GPU state monitoring via DCGM-exporter, vLLM sleep/wake, and Ollama model management."""
 
 import logging
 import re
@@ -11,6 +11,29 @@ import httpx
 from .config import settings
 
 logger = logging.getLogger(__name__)
+
+# --- 404 backoff cache for sleep endpoints ---
+# Maps URL -> timestamp of last 404. Skip polling for SLEEP_404_BACKOFF_SECONDS after a 404.
+_sleep_endpoint_404_cache: dict[str, float] = {}
+SLEEP_404_BACKOFF_SECONDS = 300  # 5 minutes
+
+
+def _is_sleep_endpoint_backed_off(url: str) -> bool:
+    """Check if a URL's sleep endpoint recently returned 404."""
+    last_404 = _sleep_endpoint_404_cache.get(url)
+    if last_404 is None:
+        return False
+    return (time.time() - last_404) < SLEEP_404_BACKOFF_SECONDS
+
+
+def _mark_sleep_endpoint_404(url: str):
+    """Record that a URL's sleep endpoint returned 404."""
+    _sleep_endpoint_404_cache[url] = time.time()
+
+
+def _clear_sleep_endpoint_404(url: str):
+    """Clear 404 backoff for a URL (e.g., if it starts responding)."""
+    _sleep_endpoint_404_cache.pop(url, None)
 
 
 # --- GPU Metrics ---
@@ -163,17 +186,29 @@ class VllmInstance:
 
 
 async def check_vllm_sleeping(url: str) -> SleepState:
-    """Check if a vLLM instance is sleeping."""
+    """Check if a vLLM instance is sleeping.
+
+    Uses a 404 backoff cache: if the endpoint returned 404 recently,
+    skip polling to avoid log spam on vLLM builds without sleep support.
+    """
+    if _is_sleep_endpoint_backed_off(url):
+        return SleepState.UNAVAILABLE
+
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{url}/is_sleeping", timeout=5)
             if resp.status_code == 200:
+                _clear_sleep_endpoint_404(url)
                 data = resp.json()
-                # vLLM returns {"is_sleeping": true/false}
                 if data.get("is_sleeping", False):
                     return SleepState.SLEEPING
                 return SleepState.AWAKE
-            # Endpoint doesn't exist — sleep mode not enabled
+            if resp.status_code == 404:
+                _mark_sleep_endpoint_404(url)
+                logger.info(
+                    "Sleep endpoint not available at %s (404) -- backing off for %ds",
+                    url, SLEEP_404_BACKOFF_SECONDS,
+                )
             return SleepState.UNAVAILABLE
     except httpx.ConnectError:
         return SleepState.UNAVAILABLE
@@ -183,13 +218,28 @@ async def check_vllm_sleeping(url: str) -> SleepState:
 
 
 async def sleep_vllm(url: str, level: int = 1) -> bool:
-    """Put a vLLM instance to sleep."""
+    """Put a vLLM instance to sleep.
+
+    Skips if the sleep endpoint is known to return 404 (backoff cache).
+    """
+    if _is_sleep_endpoint_backed_off(url):
+        logger.debug("Skipping sleep for %s -- endpoint backed off (404)", url)
+        return False
+
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.post(f"{url}/sleep", params={"level": level}, timeout=30)
             if resp.status_code == 200:
+                _clear_sleep_endpoint_404(url)
                 logger.info("vLLM at %s slept (level %d)", url, level)
                 return True
+            if resp.status_code == 404:
+                _mark_sleep_endpoint_404(url)
+                logger.info(
+                    "Sleep endpoint not available at %s (404) -- backing off for %ds",
+                    url, SLEEP_404_BACKOFF_SECONDS,
+                )
+                return False
             logger.warning("Failed to sleep vLLM at %s: %d %s", url, resp.status_code, resp.text)
             return False
     except Exception as e:
@@ -217,6 +267,84 @@ async def check_vllm_health(url: str) -> bool:
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{url}/health", timeout=5)
+            return resp.status_code == 200
+    except Exception:
+        return False
+
+
+# --- Ollama Model Management ---
+
+
+@dataclass
+class OllamaModelState:
+    """Tracks an Ollama model's loaded state on WORKSHOP."""
+
+    name: str
+    loaded: bool = False
+    vram_gb: float = 0.0
+    expires_at: str = ""
+    last_checked_at: float = 0.0
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "loaded": self.loaded,
+            "vram_gb": round(self.vram_gb, 2),
+            "expires_at": self.expires_at,
+            "last_checked_at": self.last_checked_at,
+        }
+
+
+async def check_ollama_loaded(ollama_url: str) -> list[OllamaModelState]:
+    """Query Ollama /api/ps to see what models are currently loaded in VRAM."""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{ollama_url}/api/ps", timeout=5)
+            resp.raise_for_status()
+            data = resp.json()
+
+        models = []
+        for m in data.get("models", []):
+            models.append(OllamaModelState(
+                name=m.get("name", ""),
+                loaded=True,
+                vram_gb=round(m.get("size_vram", 0) / 1e9, 2),
+                expires_at=m.get("expires_at", ""),
+                last_checked_at=time.time(),
+            ))
+        return models
+    except Exception as e:
+        logger.warning("Failed to query Ollama at %s: %s", ollama_url, e)
+        return []
+
+
+async def unload_ollama_model(ollama_url: str, model_name: str) -> bool:
+    """Unload a model from Ollama VRAM by setting keep_alive=0."""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{ollama_url}/api/generate",
+                json={"model": model_name, "prompt": "", "keep_alive": "0"},
+                timeout=30,
+            )
+            if resp.status_code == 200:
+                logger.info("Ollama model %s unloaded at %s", model_name, ollama_url)
+                return True
+            logger.warning(
+                "Failed to unload Ollama model %s at %s: %d",
+                model_name, ollama_url, resp.status_code,
+            )
+            return False
+    except Exception as e:
+        logger.warning("Failed to unload Ollama model %s: %s", model_name, e)
+        return False
+
+
+async def check_ollama_health(ollama_url: str) -> bool:
+    """Check if Ollama is responding."""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(ollama_url, timeout=5)
             return resp.status_code == 200
     except Exception:
         return False

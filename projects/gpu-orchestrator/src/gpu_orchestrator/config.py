@@ -27,6 +27,10 @@ class Settings(BaseSettings):
         default="http://192.168.1.244:8000",
         validation_alias=AliasChoices("GPU_ORCH_VLLM_NODE1_URL", "ATHANOR_VLLM_COORDINATOR_URL"),
     )
+    vllm_coder_url: str = Field(
+        default="http://192.168.1.244:8006",
+        validation_alias=AliasChoices("GPU_ORCH_VLLM_CODER_URL", "ATHANOR_VLLM_CODER_URL"),
+    )
     vllm_node1_embed_url: str = Field(
         default="http://192.168.1.189:8001",
         validation_alias=AliasChoices(
@@ -35,13 +39,11 @@ class Settings(BaseSettings):
             "ATHANOR_VLLM_EMBEDDING_URL",
         ),
     )
-    vllm_node2_url: str = Field(
-        default="http://192.168.1.225:8000",
-        validation_alias=AliasChoices("GPU_ORCH_VLLM_NODE2_URL", "ATHANOR_VLLM_WORKER_URL"),
-    )
-    vllm_vision_url: str = Field(
-        default="http://192.168.1.225:8010",
-        validation_alias=AliasChoices("GPU_ORCH_VLLM_VISION_URL", "ATHANOR_VLLM_VISION_URL"),
+
+    # Ollama endpoint (WORKSHOP — replaces vLLM for worker zone)
+    ollama_url: str = Field(
+        default="http://192.168.1.225:11434",
+        validation_alias=AliasChoices("GPU_ORCH_OLLAMA_URL", "ATHANOR_OLLAMA_URL"),
     )
 
     # DCGM-exporter endpoints (GPU metrics)

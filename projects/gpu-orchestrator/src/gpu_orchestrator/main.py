@@ -1,6 +1,9 @@
-"""Athanor GPU Orchestrator — manages GPU state and vLLM sleep/wake across nodes.
+"""Athanor GPU Orchestrator -- manages GPU state, vLLM sleep/wake, and Ollama time-sharing.
 
 Phase 2 implementation per ADR-018: GPU monitoring, TTL auto-sleep, manual controls.
+Updated 2026-03-23: WORKSHOP worker zone migrated from vLLM to Ollama with native
+keep_alive time-sharing (OLLAMA_KEEP_ALIVE=10m). Ollama auto-unloads idle models,
+freeing VRAM for ComfyUI without external polling.
 """
 
 import asyncio
@@ -26,12 +29,16 @@ from starlette.responses import Response
 from .config import settings
 from .gpu import (
     GpuMetrics,
+    OllamaModelState,
     SleepState,
     VllmInstance,
+    check_ollama_health,
+    check_ollama_loaded,
     check_vllm_health,
     check_vllm_sleeping,
     fetch_all_gpu_metrics,
     sleep_vllm,
+    unload_ollama_model,
     wake_vllm,
 )
 
@@ -47,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 class ZoneState(str, Enum):
     ACTIVE = "active"       # GPU in use, workload running
-    SLEEPING = "sleeping"   # vLLM sleeping, VRAM freed
+    SLEEPING = "sleeping"   # Model unloaded / vLLM sleeping, VRAM freed
     AVAILABLE = "available" # GPU available for scheduling
     OFFLINE = "offline"     # Node or GPU unreachable
 
@@ -62,27 +69,36 @@ class Zone:
     vllm_url: str | None
     default_workload: str
     sleep_ttl: int  # seconds of idle before auto-sleep
+    runtime: str = "vllm"  # "vllm" or "ollama"
+    ollama_url: str | None = None
     state: ZoneState = ZoneState.ACTIVE
     last_request_at: float = field(default_factory=time.time)
     vllm_instance: VllmInstance | None = None
+    ollama_models: list[OllamaModelState] = field(default_factory=list)
     gpu_metrics: list[GpuMetrics] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "name": self.name,
             "node": self.node,
             "gpus": self.gpus,
             "default_workload": self.default_workload,
             "state": self.state.value,
+            "runtime": self.runtime,
             "sleep_ttl": self.sleep_ttl,
             "idle_seconds": round(time.time() - self.last_request_at),
             "ttl_remaining": max(0, self.sleep_ttl - int(time.time() - self.last_request_at)),
             "vllm": self.vllm_instance.to_dict() if self.vllm_instance else None,
             "gpu_metrics": [g.to_dict() for g in self.gpu_metrics],
         }
+        if self.runtime == "ollama":
+            d["ollama_models"] = [m.to_dict() for m in self.ollama_models]
+        return d
 
 
-# Zone configuration — updated 2026-03-16
+# Zone configuration -- updated 2026-03-23
+# WORKSHOP GPU 0 (RTX 5090): Ollama sovereign model time-shared with ComfyUI.
+# Ollama KEEP_ALIVE=10m handles auto-unload; no vLLM sleep/wake polling needed.
 ZONES: dict[str, Zone] = {
     "coordinator": Zone(
         name="coordinator",
@@ -91,30 +107,26 @@ ZONES: dict[str, Zone] = {
         vllm_url=settings.vllm_node1_url,
         default_workload="vLLM Qwen3.5-27B-FP8 TP=4 (coordinator)",
         sleep_ttl=1800,  # 30 min
+        runtime="vllm",
     ),
     "coder": Zone(
         name="coder",
         node="node1",
         gpus=[2],
-        vllm_url=None,  # FOUNDRY GPU 2 (4090) — Qwen3.5-35B-A3B-AWQ-4bit
-        default_workload="vLLM Qwen3.5-35B-A3B-AWQ-4bit (coder)",
+        vllm_url=settings.vllm_coder_url,
+        default_workload="vLLM devstral-small-2 (coder)",
         sleep_ttl=1800,  # 30 min
+        runtime="vllm",
     ),
     "worker": Zone(
         name="worker",
         node="node2",
         gpus=[0],
-        vllm_url=settings.vllm_node2_url,
-        default_workload="vLLM Qwen3.5-35B-A3B-AWQ (worker) / ComfyUI (time-shared)",
-        sleep_ttl=1800,  # 30 min
-    ),
-    "vision": Zone(
-        name="vision",
-        node="node2",
-        gpus=[1],
-        vllm_url=settings.vllm_vision_url,
-        default_workload="vLLM Qwen3-VL-8B-Instruct-FP8 (vision)",
-        sleep_ttl=3600,  # 1 hour — vision is always-on
+        vllm_url=None,  # No vLLM -- Ollama handles model lifecycle
+        default_workload="Ollama qwen3.5-abliterated:35b / ComfyUI (time-shared via keep_alive=10m)",
+        sleep_ttl=600,  # 10 min -- matches OLLAMA_KEEP_ALIVE
+        runtime="ollama",
+        ollama_url=settings.ollama_url,
     ),
 }
 
@@ -157,6 +169,16 @@ zone_idle_seconds = Gauge(
     "Seconds since last request to zone",
     ["zone"],
 )
+ollama_model_loaded = Gauge(
+    "athanor_ollama_model_loaded",
+    "Whether an Ollama model is loaded in VRAM (1=yes, 0=no)",
+    ["zone", "model"],
+)
+ollama_model_vram_gb = Gauge(
+    "athanor_ollama_model_vram_gb",
+    "VRAM used by loaded Ollama model in GB",
+    ["zone", "model"],
+)
 sleep_events = Counter(
     "athanor_gpu_sleep_events_total",
     "Total sleep events",
@@ -198,6 +220,14 @@ def update_prometheus_metrics():
             gpu_vram_total.labels(**labels).set(gm.vram_total_mb)
             gpu_temperature.labels(**labels).set(gm.temperature_c)
             gpu_power.labels(**labels).set(gm.power_watts)
+
+        # Ollama model metrics
+        if zone.runtime == "ollama":
+            for m in zone.ollama_models:
+                ollama_model_loaded.labels(zone=zone.name, model=m.name).set(
+                    1.0 if m.loaded else 0.0
+                )
+                ollama_model_vram_gb.labels(zone=zone.name, model=m.name).set(m.vram_gb)
 
 
 # --- Redis State Persistence ---
@@ -259,8 +289,24 @@ async def monitor_loop():
                     m for m in node_metrics if m.gpu_index in zone.gpus
                 ]
 
-                # Check vLLM sleep state
-                if zone.vllm_url:
+                if zone.runtime == "ollama" and zone.ollama_url:
+                    # Ollama-managed zone: check model load state via /api/ps
+                    models = await check_ollama_loaded(zone.ollama_url)
+                    zone.ollama_models = models
+
+                    if models:
+                        # At least one model loaded -- zone is active
+                        zone.state = ZoneState.ACTIVE
+                    else:
+                        # No models loaded -- VRAM is free (available for ComfyUI)
+                        healthy = await check_ollama_health(zone.ollama_url)
+                        if healthy:
+                            zone.state = ZoneState.AVAILABLE
+                        else:
+                            zone.state = ZoneState.OFFLINE
+
+                elif zone.vllm_url:
+                    # vLLM-managed zone: check sleep state
                     if zone.vllm_instance is None:
                         zone.vllm_instance = VllmInstance(
                             name=zone.default_workload,
@@ -278,14 +324,13 @@ async def monitor_loop():
                     elif sleep_state == SleepState.AWAKE:
                         zone.state = ZoneState.ACTIVE
                     elif sleep_state == SleepState.UNAVAILABLE:
-                        # Check if the instance is at least healthy
                         healthy = await check_vllm_health(zone.vllm_url)
                         if healthy:
                             zone.state = ZoneState.ACTIVE
                         else:
                             zone.state = ZoneState.OFFLINE
                 else:
-                    # Non-vLLM zone (creative) — check if node is reachable via metrics
+                    # No runtime configured -- check if node is reachable via metrics
                     if zone.gpu_metrics:
                         zone.state = ZoneState.ACTIVE
                     else:
@@ -302,20 +347,26 @@ async def monitor_loop():
 
 
 async def scheduler_loop():
-    """TTL-based auto-sleep: check idle zones every 30 seconds."""
+    """TTL-based auto-sleep: check idle zones every 30 seconds.
+
+    For vLLM zones: sends /sleep API call.
+    For Ollama zones: no action needed -- Ollama's native KEEP_ALIVE handles unloading.
+    """
     while _running:
         try:
             now = time.time()
 
             for zone in ZONES.values():
-                # Only auto-sleep active zones with vLLM
+                # Only auto-sleep active vLLM zones (Ollama handles its own TTL)
+                if zone.runtime == "ollama":
+                    continue  # Ollama KEEP_ALIVE=10m handles this natively
                 if zone.state != ZoneState.ACTIVE or zone.vllm_url is None:
                     continue
 
                 idle_seconds = now - zone.last_request_at
                 if idle_seconds >= zone.sleep_ttl:
                     logger.info(
-                        "Zone %s idle for %ds (TTL: %ds) — triggering sleep",
+                        "Zone %s idle for %ds (TTL: %ds) -- triggering sleep",
                         zone.name, int(idle_seconds), zone.sleep_ttl,
                     )
                     start = time.time()
@@ -375,7 +426,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Athanor GPU Orchestrator",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -393,7 +444,7 @@ async def health():
 
 @app.get("/status")
 async def full_status():
-    """Full GPU status across both nodes — the primary debugging endpoint."""
+    """Full GPU status across both nodes -- the primary debugging endpoint."""
     total_vram_used = 0.0
     total_vram_total = 0.0
 
@@ -410,6 +461,7 @@ async def full_status():
             "total_gpus": sum(len(z.gpus) for z in ZONES.values()),
             "zones_active": sum(1 for z in ZONES.values() if z.state == ZoneState.ACTIVE),
             "zones_sleeping": sum(1 for z in ZONES.values() if z.state == ZoneState.SLEEPING),
+            "zones_available": sum(1 for z in ZONES.values() if z.state == ZoneState.AVAILABLE),
             "zones_offline": sum(1 for z in ZONES.values() if z.state == ZoneState.OFFLINE),
             "total_vram_used_mb": round(total_vram_used, 1),
             "total_vram_total_mb": round(total_vram_total, 1),
@@ -435,17 +487,47 @@ async def zone_status(zone_name: str):
 
 @app.post("/gpu/{zone_name}/sleep")
 async def zone_sleep(zone_name: str, level: int = 1):
-    """Manually put a zone to sleep."""
+    """Manually put a zone to sleep (unload models)."""
     zone = ZONES.get(zone_name)
     if not zone:
         return JSONResponse(
             status_code=404,
             content={"error": f"Zone '{zone_name}' not found"},
         )
+
+    if zone.runtime == "ollama" and zone.ollama_url:
+        # Ollama zone: unload all loaded models
+        if not zone.ollama_models:
+            return {"status": "already_sleeping", "zone": zone_name, "runtime": "ollama"}
+
+        unloaded = []
+        for m in zone.ollama_models:
+            if m.loaded:
+                success = await unload_ollama_model(zone.ollama_url, m.name)
+                if success:
+                    unloaded.append(m.name)
+
+        if unloaded:
+            zone.state = ZoneState.AVAILABLE
+            zone.ollama_models = []
+            sleep_events.labels(zone=zone_name, trigger="manual").inc()
+            await save_zone_state(zone)
+            return {
+                "status": "sleeping",
+                "zone": zone_name,
+                "runtime": "ollama",
+                "unloaded": unloaded,
+            }
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to unload Ollama models in zone '{zone_name}'"},
+        )
+
+    # vLLM zone
     if not zone.vllm_url:
         return JSONResponse(
             status_code=400,
-            content={"error": f"Zone '{zone_name}' has no vLLM instance (ComfyUI zone)"},
+            content={"error": f"Zone '{zone_name}' has no vLLM instance"},
         )
     if zone.state == ZoneState.SLEEPING:
         return {"status": "already_sleeping", "zone": zone_name}
@@ -480,6 +562,17 @@ async def zone_wake(zone_name: str):
             status_code=404,
             content={"error": f"Zone '{zone_name}' not found"},
         )
+
+    if zone.runtime == "ollama":
+        # Ollama zones wake on-demand when a request comes in.
+        # Nothing to do here -- the next inference request will load the model.
+        return {
+            "status": "ok",
+            "zone": zone_name,
+            "runtime": "ollama",
+            "message": "Ollama models load on-demand. Next inference request will load the model.",
+        }
+
     if not zone.vllm_url:
         return JSONResponse(
             status_code=400,
@@ -538,10 +631,14 @@ async def zone_ttl(zone_name: str):
     idle = time.time() - zone.last_request_at
     return {
         "zone": zone_name,
+        "runtime": zone.runtime,
         "sleep_ttl": zone.sleep_ttl,
         "idle_seconds": round(idle),
         "ttl_remaining": max(0, zone.sleep_ttl - int(idle)),
-        "will_auto_sleep": zone.state == ZoneState.ACTIVE and zone.vllm_url is not None,
+        "auto_sleep_mechanism": (
+            "Ollama native KEEP_ALIVE=10m" if zone.runtime == "ollama"
+            else "GPU orchestrator TTL polling"
+        ),
     }
 
 
@@ -575,6 +672,7 @@ async def list_zones():
                 "node": z.node,
                 "gpus": z.gpus,
                 "state": z.state.value,
+                "runtime": z.runtime,
                 "workload": z.default_workload,
                 "idle_seconds": round(time.time() - z.last_request_at),
             }
