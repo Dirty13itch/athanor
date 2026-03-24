@@ -3,7 +3,7 @@ gpu_orch_deploy_dir: /opt/athanor/gpu-orchestrator
 gpu_orch_port: 9200
 
 # Redis (on VAULT, shared with agent workspace)
-gpu_orch_redis_url: "{{ athanor_redis_url | default('redis://' ~ (vault_ip | default('192.168.1.203')) ~ ':6379/0') }}"
+gpu_orch_redis_url: "{{ athanor_redis_url | default('redis://:' ~ (athanor_redis_password | default('')) ~ '@' ~ (vault_ip | default('192.168.1.203')) ~ ':6379/0') }}"
 
 # Node IPs
 gpu_orch_node1_ip: "{{ node1_ip | default('192.168.1.244') }}"
@@ -12,7 +12,7 @@ gpu_orch_node2_ip: "{{ node2_ip | default('192.168.1.225') }}"
 # vLLM endpoints
 gpu_orch_vllm_node1_url: "http://{{ node1_ip | default('192.168.1.244') }}:8000"
 gpu_orch_vllm_node1_embed_url: "http://{{ dev_ip | default('192.168.1.189') }}:8001"
-gpu_orch_vllm_node2_url: "http://{{ node2_ip | default('192.168.1.225') }}:8000"
+gpu_orch_vllm_node2_url: "http://{{ node2_ip | default('192.168.1.225') }}:8010"
 
 # DCGM-exporter endpoints (GPU metrics)
 gpu_orch_dcgm_node1_url: "http://{{ node1_ip | default('192.168.1.244') }}:9400"

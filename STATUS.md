@@ -1,7 +1,7 @@
 # Athanor Status
 
-**Last updated:** 2026-03-18 19:30 PDT
-**Session:** COO Architecture Planning + Full Execution
+**Last updated:** 2026-03-23 23:25 CDT
+**Session:** Session 58 — System Recovery + Git Convergence
 
 ## Session Results — 19 Actions Executed
 
@@ -55,13 +55,13 @@
 13. Merge automation-backbone branch (backbone.py)
 14. Deploy Vaultwarden, Uptime Kuma, Headscale
 
-## Cluster Health
-- FOUNDRY: 5 GPUs loaded, all healthy, agents online (77 tools)
-- WORKSHOP: 5090 FREE (2MB), 5060Ti running ComfyUI+Scorer+Ollama
-- DEV: Services running (UI crash-looping)
-- VAULT: 51+ containers, Langfuse tracing, full media stack
-- Auto_gen: WORKING (3 images generated this session)
-- Scoring: WORKING (Aesthetic V2.5 tested, all 3 images scored)
+## Cluster Health (verified 2026-03-23)
+- FOUNDRY: 5 GPUs loaded, coordinator (Qwen3.5-27B-FP8 TP=4 :8000), coder (devstral-small-2 :8006), agents (9 agents :9000), GPU orchestrator (:9200)
+- WORKSHOP: 5090 running vLLM (Qwen3.5-35B-A3B-AWQ-4bit :8010), 5060Ti ComfyUI. Dashboard:3001, EoBQ:3002, Ulrich:3003
+- DEV: Embedding:8001, Reranker:8003
+- VAULT: 50+ containers, LiteLLM:4000, full stack
+- **Recovered this session:** Workshop vLLM (Ollama displaced), GPU orchestrator (Redis auth)
+- **Ollama disabled on Workshop** (was conflicting with vLLM for GPU memory)
 
 ## Session: 2026-03-18/19 — Athanor Layer Build Execution
 
