@@ -1580,6 +1580,8 @@ export const chatStreamEventSchema = z.discriminatedUnion("type", [
     category: z.string(),
     confidence: z.number(),
     route: z.string(),
+    sovereignOverride: z.boolean().optional(),
+    resolvedModel: z.string().optional(),
   }),
 ]);
 
