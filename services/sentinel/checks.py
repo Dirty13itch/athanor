@@ -61,6 +61,7 @@ HEARTBEAT_CHECKS = [
     ("comfyui", "http://192.168.1.225:8188/system_stats"),
     ("ollama", "http://192.168.1.225:11434/api/tags"),
     ("brain", "http://localhost:8780/health"),
+    ("quality_gate", "http://localhost:8790/health"),
     ("draftsman", "http://localhost:8400/"),
     ("open_webui", "http://localhost:3080/"),
 ]
