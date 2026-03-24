@@ -242,11 +242,21 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 | Dashboard | 35 pages, all 200 |
 | EoBQ | Live at workshop:3002 with TTS |
 
+### Session 60 Continued — EoBQ Creative Pipeline & Gallery
+
+- **PuLID face injection working on Blackwell** — PyTorch 2.12.0.dev+cu128 (today's nightly) with native sm_120 support. PuLID PulidFluxHook.py patched with `**kwargs` to accept `timestep_zero_index` from newer ComfyUI. First ever PuLID generation on RTX 5060 Ti Blackwell.
+- **69+ PuLID portraits generated** — All 20 queens with Stash-pulled reference photos. Two waves: Wave 1 (generic prompts), Wave 2 (master-doc exact Flux prompts with precise physical blueprints).
+- **98 total EoBQ assets** — PuLID portraits, character portraits, scenes, HQ upscales, videos (MP4).
+- **Gallery volume mount fix** — Dashboard had no access to ComfyUI output volume. Added `comfyui_comfyui-output` as read-only mount. Gallery now shows all 98 files (was 7).
+- **Gallery feedback system built** — Star rating (1-5), approve/reject/flag, notes, refine button. localStorage-backed with Redis upgrade path. Separate components: use-gallery-ratings.ts, rating-badge.tsx, rating-controls.tsx.
+- **Gallery UX improvements building** — Sorting (date, rating, name, type), character grouping, comparison mode, grid size control, better lightbox with navigation.
+
 ### Next Actions
-1. Shaun: Create Backblaze B2 account + app key to activate offsite backup
-2. Trigger creative-agent EoBQ portrait generation — pipeline now fully working
-3. Delete 9 stale Codex branches (manual or fix firewall pattern)
-4. Persist PyTorch upgrade in ComfyUI Dockerfile (commit to repo)
+1. Shaun: Review gallery at workshop:3001/gallery — rate Wave 1 vs Wave 2 portraits
+2. Shaun: Create Backblaze B2 account + app key for offsite backup
+3. Gallery UX agent completing — merge and deploy when done
+4. Queue Wave 3 scene-specific generations (using master-doc scene Flux prompts)
+5. Video generation (Wan2.2 I2V) from best-rated still images as keyframes
 
 ---
 
