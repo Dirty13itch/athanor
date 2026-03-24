@@ -37,6 +37,6 @@ paths:
 - Image: `athanor/vllm:qwen35` (nightly 0.16.1rc1.dev32)
 
 ## Current WORKSHOP Deployment
-- Worker: Qwen3.5-35B-A3B-AWQ on GPU 0 (5090) at workshop:8000 â€” `--tool-call-parser qwen3_xml --kv-cache-dtype auto`
+- Worker: Qwen3.5-35B-A3B-AWQ-4bit on GPU 0 (5090) at workshop:8010 â€” `--tool-call-parser qwen3_xml --kv-cache-dtype auto`
 - Image: `athanor/vllm:qwen35` (nightly 0.16.1rc1.dev32)
 
