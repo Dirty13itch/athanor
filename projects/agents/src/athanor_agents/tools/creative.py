@@ -406,36 +406,37 @@ def get_comfyui_status() -> str:
 
 # --- EoBQ Character Portrait Generation ---
 
-# Character visual descriptions for consistent portrait generation
+# Per-queen Flux prompts from queens.ts — photorealistic baseline, prime-era accurate.
+# PuLID face injection adds the actual performer's face on top of these body/scene prompts.
 EOQB_CHARACTERS = {
-    # --- Act 1 Fantasy Characters ---
-    "isolde": "Regal woman in her 30s, sharp angular features, dark auburn hair in elaborate braids threaded with thin gold chains, pale porcelain skin, ice-blue eyes. Wears a fitted black and gold gown with high structured collar. A thin scar runs from her left ear to her jaw.",
-    "seraphine": "Young woman with an ethereal, fragile beauty. Silver-white hair falling past her shoulders, violet eyes with an otherworldly glow. Wears tattered white and lavender robes. Faint magical sigils trace patterns on her skin. Dark circles under her eyes from sleepless visions.",
-    "valeria": "Muscular woman in her late 20s, sun-bronzed skin, close-cropped dark hair with a streak of premature grey. Strong jaw, hawkish nose, amber eyes. Wears battered steel plate armor over chainmail. Multiple battle scars on her arms and face.",
-    "lilith": "Strikingly beautiful woman with an unsettling edge. Long black hair, blood-red lips, dark eyes with flecks of gold. Wears a deep crimson dress that seems to shift between liquid and fabric. Pale skin with a faint luminescence.",
-    "mireille": "Petite woman with sharp, fox-like features. Copper-red curls, freckled skin, bright green eyes that miss nothing. Wears practical dark leather with hidden pockets. Multiple rings and a thin dagger at her belt.",
-    # --- The 21 Council Queens ---
-    "emilie-ekstrom": "Lithe athletic woman, 5'10\", chestnut brown hair to mid-back, hazel-brown almond eyes, porcelain fair skin with subtle freckles on shoulders. 34DD high-set silicone teardrop implants. Elegant posture, toned legs, etched abs. High cheekbones, natural bow lips.",
-    "jordan-night": "Voluptuous hourglass, 5'8\", jet black hair, piercing ice blue eyes, pale olive skin. 34H heavy rounded silicone. Full floral sleeve left arm (roses/thorns), throat script 'Nachtblume', piercings. Heart-shaped face, full smirky lips.",
-    "alanah-rae": "Athletic hourglass, 5'7\", platinum long waves, blue eyes, golden California tan. 34F perfect bolt-on round implants with shine. Sharp jaw, full pouty lips. Tight waist, 2010-era perfection.",
-    "nikki-benz": "Athletic woman, 5'5\", blonde long waves, blue eyes with royal glare, golden tan. 34E enhanced silicone (500-700cc). Diamond high cheekbones, strong thighs. Royal posture.",
-    "chloe-lamour": "Curvy French hourglass, 5'6\", dark brunette to waist, warm brown eyes, tanned olive glow. 36DD with pronounced underboob. Throat tattoo 'freedom iron beach', forearm tattoos. Soft belly, flared hips.",
-    "nicolette-shea": "Amazonian, 5'11\", platinum long hair, blue eyes, golden tan. 36E implants on a perfect long-leg frame. Longest legs in porn. Sharp model face. Towering dominance.",
-    "peta-jensen": "Athletic Nordic, 5'7\", blonde long waves, ice blue eyes, pale skin. 34F perfect teardrop implants with pale areolas. Heart-shaped face, full lips. Toned legs.",
-    "sandee-westgate": "Exotic hourglass, 5'7\", dark brunette long hair, dark brown eyes, olive tan skin. 34DD implants with perfect integration. Mysterious almond face. Small lower back tattoo. Olive glow under lights.",
-    "marisol-yotta": "Thick Latina curves, 5'5\", dark brunette long hair, brown eyes, golden tan. 34H thick Colombian implants. Full lips, soft belly. Thick hip sway.",
-    "trina-michaels": "Voluptuous real weight, 5'5\", brunette long hair, brown eyes, tan. 36G heavy natural-to-enhanced implants. Round full cheeks. Heavy sway on drops.",
-    "nikki-sexx": "Athletic hips, 5'5\", blonde long hair, blue eyes, tan. 34F legendary implants. Sharp face. Throat bulge on gag.",
-    "madison-ivy": "Tiny frame massive contrast, 4'11\", platinum blonde, piercing green eyes, porcelain skin. 32F 800cc high profile teardrop implants. Sharp pixie face. Insane body-to-implant ratio.",
-    "amy-anderssen": "Cartoon proportions, 5'6\", jet black long hair, dark eyes, olive skin. 40HH 2000cc+ saline overfilled implants. Angular extreme face. Implants swing like wrecking balls.",
-    "puma-swede": "Towering Amazon, 6'1\", platinum long hair, ice blue eyes, pale skin. 32F silicone on tall frame. Strong jaw. Legs wrap entire pole.",
-    "ava-addams": "Ultimate MILF curves, 5'3\", dark brunette long hair, brown eyes, olive skin. 32G hourglass implants. Soft full face. Hourglass sway.",
-    "brooklyn-chase": "Soft curvy girl-next-door, 5'2\", brunette long hair, hazel eyes, tan skin. 32G curvy implants. Sweet face. Small lower back tattoo. Tears during first spin.",
-    "esperanza-gomez": "Ultimate Latina hourglass, 5'7\", dark brunette long hair, brown eyes, golden tan. 34DD perfect Colombian implants. Seductive full lips. Hips destroy the pole.",
-    "savannah-bond": "Perfect modern bimbo, 5'4\", platinum long hair, blue eyes, golden tan. 34G 2023 upgrade implants. Soft pretty face. Bimbo energy maxed.",
-    "shyla-stylez": "Perfect 2008 plastic, 5'3\", platinum long hair, blue eyes, tan. 36DD perfect bolt-on implants. Angelic face gone wrong.",
-    "brianna-banks": "Golden era glamour, 5'7\", blonde long hair, blue-green eyes, tanned skin. 34DD enhanced silicone. High cheekbones, classic features. Athletic with curves.",
-    "clanddi-jinkcebo": "Extreme European curves, 5'7\", brunette long with sharp styling, brown eyes, olive-pale skin. 34H+ extreme enhanced. Heart-shaped face turns filthy. Fetish goddess energy.",
+    # --- Act 1 Fantasy Characters (dark-court narrative overlay) ---
+    "isolde": "hyperreal 4K cinematic athletic Nordic woman 5'10\" 34DD high-set implants subsurface glow, hazel almond eyes longing, porcelain freckled skin, Arri Alexa color, volumetric office lighting.",
+    "seraphine": "hyperreal 4K ethereal fragile woman silver-white hair violet eyes, tattered white robes, magical sigils on skin, dark circles, Arri Alexa color, moonlit chamber lighting.",
+    "valeria": "hyperreal 4K muscular woman sun-bronzed skin close-cropped dark hair grey streak, amber eyes hawkish nose, battle scars, battered steel armor, Arri Alexa color, battlefield lighting.",
+    "lilith": "hyperreal 4K strikingly beautiful woman long black hair blood-red lips, dark eyes gold flecks, crimson liquid dress, pale luminescent skin, Arri Alexa color, candlelit chamber lighting.",
+    "mireille": "hyperreal 4K petite fox-like woman copper-red curls freckled skin, bright green eyes, dark leather outfit, multiple rings thin dagger, Arri Alexa color, tavern firelight.",
+    # --- The 21 Council Queens (exact Flux prompts from queens.ts) ---
+    "emilie-ekstrom": "hyperreal 4K cinematic athletic Nordic woman 5'10\" 34DD high-set implants subsurface glow, hazel almond eyes longing, porcelain freckled skin, Arri Alexa color, volumetric office lighting.",
+    "jordan-night": "hyperreal 4K voluptuous tattooed woman 5'8\" 34H heavy implants, piercing blue eyes smirking, pale olive floral sleeve flexing, Arri Alexa color, neon club lighting.",
+    "alanah-rae": "hyperreal 4K athletic hourglass woman 5'7\" 34F bolt-on implants perfect shine, blue eyes, golden tan, Arri Alexa color, mirror room lighting.",
+    "nikki-benz": "hyperreal 4K athletic woman 5'5\" 34E enhanced implants, blue eyes royal glare, golden tan, Arri Alexa color, throne lighting.",
+    "chloe-lamour": "hyperreal 4K curvy French woman 5'6\" 36DD fake implants underboob, brown eyes, tanned olive skin throat tattoo flex, Arri Alexa color, medical lighting.",
+    "nicolette-shea": "hyperreal 4K amazonian woman 5'11\" 36E implants, blue eyes, golden tan long legs, Arri Alexa color, helipad lighting.",
+    "peta-jensen": "hyperreal 4K athletic Nordic woman 5'7\" 34F teardrop implants, ice blue eyes, pale skin, Arri Alexa color, fjord lighting.",
+    "sandee-westgate": "hyperreal 4K exotic hourglass woman 5'7\" 34DD implants, dark brown eyes, olive tan skin, Arri Alexa color, island lighting.",
+    "marisol-yotta": "hyperreal 4K thick Latina woman 5'5\" 34H implants, brown eyes, golden tan skin, Arri Alexa color, cam room lighting.",
+    "trina-michaels": "hyperreal 4K voluptuous woman 5'5\" 36G enhanced implants heavy sway, brown eyes, tan skin, Arri Alexa color, casino lighting.",
+    "nikki-sexx": "hyperreal 4K athletic woman 5'5\" 34F implants, blue eyes, tan skin, Arri Alexa color, casino lighting.",
+    "madison-ivy": "hyperreal 4K tiny woman 4'11\" 32F implants contrast, green piercing eyes, porcelain skin, Arri Alexa color, vegas lighting.",
+    "amy-anderssen": "hyperreal 4K extreme plastic woman 5'6\" 40HH overfilled implants, dark eyes, olive skin, Arri Alexa color, monster lighting.",
+    "puma-swede": "hyperreal 4K towering Amazon woman 6'1\" 32F implants, ice blue eyes, pale skin, Arri Alexa color, tall lighting.",
+    "ava-addams": "hyperreal 4K MILF hourglass woman 5'3\" 32G implants, brown eyes, olive skin, Arri Alexa color, vault lighting.",
+    "brooklyn-chase": "hyperreal 4K curvy girl-next-door woman 5'2\" 32G implants, hazel eyes, tan skin, Arri Alexa color, sweet lighting.",
+    "esperanza-gomez": "hyperreal 4K Latina hourglass woman 5'7\" 34DD implants, brown eyes, golden tan skin, Arri Alexa color, Latina lighting.",
+    "savannah-bond": "hyperreal 4K modern bimbo woman 5'4\" 34G implants, blue eyes, golden tan skin, Arri Alexa color, Aussie lighting.",
+    "shyla-stylez": "hyperreal 4K perfect 2008 woman 5'3\" 36DD bolt-on implants, blue eyes, tan skin, Arri Alexa color, original lighting.",
+    "brianna-banks": "hyperreal 4K golden era glamour woman 5'7\" 34DD enhanced implants, blue-green eyes, tanned skin, Arri Alexa color, golden hour lighting.",
+    "clanddi-jinkcebo": "hyperreal 4K extreme curves European woman 5'7\" 34H+ enhanced implants, brown eyes, olive-pale skin, Arri Alexa color, fetish dungeon lighting.",
 }
 
 
