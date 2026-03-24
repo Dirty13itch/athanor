@@ -35,7 +35,7 @@ from cluster_config import LITELLM_KEY, get_url
 
 QDRANT_URL = get_url("qdrant").rstrip("/")
 LITELLM_URL = get_url("litellm").rstrip("/")
-LITELLM_KEY = os.environ.get("ATHANOR_LITELLM_API_KEY", "<REDACTED-see-~/.secrets/litellm-master-key>")
+LITELLM_KEY = os.environ.get("ATHANOR_LITELLM_API_KEY") or LITELLM_KEY  # Keep cluster_config value if env not set
 COLLECTION = "conversations"
 SUMMARIZE_MODEL = "worker"
 MAX_CONCURRENT = 3

@@ -23,7 +23,14 @@ NODES = {
 }
 
 # Convenience: LiteLLM master key
-LITELLM_KEY = os.environ.get("LITELLM_MASTER_KEY", "<REDACTED-see-~/.secrets/litellm-master-key>")
+def _read_secret(name, default=""):
+    path = os.path.expanduser(f"~/.secrets/{name}")
+    try:
+        return open(path).read().strip()
+    except FileNotFoundError:
+        return default
+
+LITELLM_KEY = os.environ.get("LITELLM_MASTER_KEY") or _read_secret("litellm-master-key")
 
 # Service endpoints
 SERVICES = {
