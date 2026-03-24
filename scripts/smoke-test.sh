@@ -30,3 +30,6 @@ check "Ollama"          "http://192.168.1.225:11434/api/tags"
 check "ntfy"            "http://192.168.1.203:8880/v1/health"
 echo "=== $FAILS failures ==="
 exit $((FAILS > 0))
+
+check_endpoint "Quality Gate" http://localhost:8790/health
+

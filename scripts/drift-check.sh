@@ -307,3 +307,7 @@ else
          http://192.168.1.203:8880/athanor-alerts >/dev/null 2>&1
     exit 1
 fi
+
+# Quality Gate
+check 57 "Quality Gate (DEV:8790)" curl -sf http://localhost:8790/health
+
