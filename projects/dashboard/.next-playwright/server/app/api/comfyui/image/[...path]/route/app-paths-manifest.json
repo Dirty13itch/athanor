@@ -1,3 +1,0 @@
-{
-  "/api/comfyui/image/[...path]/route": "app/api/comfyui/image/[...path]/route.js"
-}

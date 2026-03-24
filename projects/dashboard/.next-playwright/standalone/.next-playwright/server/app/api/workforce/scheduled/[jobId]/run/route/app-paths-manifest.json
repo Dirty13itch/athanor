@@ -1,3 +1,0 @@
-{
-  "/api/workforce/scheduled/[jobId]/run/route": "app/api/workforce/scheduled/[jobId]/run/route.js"
-}
