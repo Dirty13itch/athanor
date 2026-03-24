@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameStore } from "@/stores/game-store";
 import { ProseText } from "./prose-text";
+import { VoiceButton } from "./voice-button";
 
 interface DialogueHistoryProps {
   open: boolean;
@@ -111,8 +112,16 @@ export function DialogueHistory({ open, onClose }: DialogueHistoryProps) {
                   {filtered.map((turn, i) => (
                     <div key={i} className="group">
                       {turn.speaker !== "narrator" && (
-                        <div className={`mb-0.5 text-xs font-semibold uppercase tracking-wider ${getSpeakerColor(turn.speaker)}`}>
+                        <div className={`mb-0.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider ${getSpeakerColor(turn.speaker)}`}>
                           {getSpeakerName(turn.speaker)}
+                          {turn.speaker !== "player" && (
+                            <VoiceButton characterId={turn.speaker} text={turn.text} className="opacity-0 group-hover:opacity-100" />
+                          )}
+                        </div>
+                      )}
+                      {turn.speaker === "narrator" && (
+                        <div className="mb-0.5 flex items-center gap-1.5">
+                          <VoiceButton characterId="narrator" text={turn.text} className="opacity-0 group-hover:opacity-100" />
                         </div>
                       )}
                       <div
