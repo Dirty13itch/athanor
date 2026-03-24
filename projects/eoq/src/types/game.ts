@@ -655,11 +655,11 @@ export type GroupSexAttitude =
 /** 19-trait sexual personality DNA — makes every queen unique */
 export interface SexualDNA {
   desireType: DesireType;
-  accelBrake: string;
+  accelBrake?: string;
   painTolerance: number;        // 1-10
   humiliationEnjoyment: number; // 1-10
   exhibitionismLevel: number;   // 1-10
-  gaggingResponse: GaggingResponse;
+  gaggingResponse?: GaggingResponse;
   moaningStyle: string;
   tearTrigger: string;
   orgasmStyle: string;
@@ -667,7 +667,7 @@ export interface SexualDNA {
   blackmailNeed: BlackmailNeed;
   addictionSpeed: AddictionSpeed;
   jealousyType: JealousyType;
-  aftercareNeed: AftercareNeed;
+  aftercareNeed?: AftercareNeed;
   switchPotential: number;      // 1-10
   groupSexAttitude: GroupSexAttitude;
   roleplayAffinity: string;
