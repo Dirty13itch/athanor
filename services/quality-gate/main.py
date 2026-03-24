@@ -6,12 +6,16 @@ import httpx
 import hashlib
 import logging
 
+import sys, os as _os
+sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
+from cluster_config import QDRANT_URL as _QDRANT_URL, EMBEDDING_URL as _EMBEDDING_URL
+
 logger = logging.getLogger("quality-gate")
 
 app = FastAPI(title="Athanor Quality Gate", version="0.1.0")
 
-QDRANT_URL = "http://192.168.1.203:6333"
-EMBEDDING_URL = "http://192.168.1.189:8001/v1/embeddings"
+QDRANT_URL = _QDRANT_URL
+EMBEDDING_URL = f"{_EMBEDDING_URL}/v1/embeddings"
 EMBEDDING_MODEL = "Qwen3-Embedding-0.6B"
 
 # Config

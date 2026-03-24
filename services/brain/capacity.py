@@ -2,6 +2,9 @@
 import httpx
 import numpy as np
 import logging
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from cluster_config import NODES, PROMETHEUS_URL
 from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger("brain.capacity")
@@ -21,7 +24,7 @@ def _sanitize(obj):
         return float(obj)
     return obj
 
-PROMETHEUS = "http://192.168.1.203:9090"
+PROMETHEUS = PROMETHEUS_URL
 
 
 def query_prometheus_range(query: str, hours: int = 168) -> list:
@@ -53,9 +56,9 @@ def predict_disk_full(node: str, mount: str) -> dict:
     Returns days_to_full, current_pct, trend_gb_per_day.
     """
     instance_map = {
-        "foundry": "192.168.1.244:9100",
-        "workshop": "192.168.1.225:9100",
-        "dev": "192.168.1.189:9100",
+        "foundry": f"{NODES['foundry']}:9100",
+        "workshop": f"{NODES['workshop']}:9100",
+        "dev": f"{NODES['dev']}:9100",
     }
     instance = instance_map.get(node, "")
     instance_filter = f',instance="{instance}"' if instance else ""

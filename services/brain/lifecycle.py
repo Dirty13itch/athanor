@@ -6,6 +6,12 @@ Provides both sync helpers (for internal use) and async endpoint handlers
 import httpx
 import time
 import logging
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from cluster_config import (
+    OLLAMA_WORKSHOP_URL, VLLM_COORDINATOR_URL, VLLM_CODER_URL,
+    EMBEDDING_URL, RERANKER_URL,
+)
 from datetime import datetime, timezone
 
 from registry import CLUSTER, MODELS, query_prometheus
@@ -13,14 +19,14 @@ from registry import CLUSTER, MODELS, query_prometheus
 logger = logging.getLogger("brain.lifecycle")
 
 OLLAMA_ENDPOINTS = {
-    "workshop": "http://192.168.1.225:11434",
+    "workshop": OLLAMA_WORKSHOP_URL,
 }
 
 VLLM_ENDPOINTS = [
-    ("coordinator", "http://192.168.1.244:8000"),
-    ("coder", "http://192.168.1.244:8006"),
-    ("embedding", "http://192.168.1.189:8001"),
-    ("reranker", "http://192.168.1.189:8003"),
+    ("coordinator", VLLM_COORDINATOR_URL),
+    ("coder", VLLM_CODER_URL),
+    ("embedding", EMBEDDING_URL),
+    ("reranker", RERANKER_URL),
 ]
 
 # Track last access time per model (updated on list/load)
@@ -73,7 +79,7 @@ def load_model(model_name: str, node: str = "workshop") -> dict:
     try:
         httpx.post(
             f"{OLLAMA_ENDPOINTS[node]}/api/generate",
-            json={"model": model_name, "prompt": "", "keep_alive": "30m"},
+            json={"model": model_name, "prompt": "", "keep_alive": "10m"},
             timeout=120,
         )
         _last_access[model_name] = time.time()
@@ -161,7 +167,7 @@ async def list_loaded_models() -> dict:
     return {"loaded": loaded}
 
 
-async def async_load_model(model_name: str, keep_alive: str = "5m") -> dict:
+async def async_load_model(model_name: str, keep_alive: str = "10m") -> dict:
     """Async: load a model into Ollama VRAM."""
     logger.info("Loading model: %s (keep_alive=%s)", model_name, keep_alive)
     try:

@@ -228,28 +228,39 @@ async def cleanup_stuck_tasks():
 
 @app.get("/recent-commits")
 async def get_recent_commits():
-    """Get recent git commits from agent branches and main."""
+    """Get recent git commits from agent branches and main across ALL repos."""
     import subprocess
-    try:
-        result = subprocess.run(
-            ["git", "-C", "/home/shaun/repos/athanor", "log", "--all", "--oneline", "--since=24 hours ago", "--format=%H|%an|%s|%ar"],
-            capture_output=True, text=True, timeout=5
-        )
-        commits = []
-        for line in result.stdout.strip().split("\n"):
-            if not line:
-                continue
-            parts = line.split("|", 3)
-            if len(parts) == 4:
-                commits.append({
-                    "hash": parts[0][:8],
-                    "author": parts[1],
-                    "message": parts[2],
-                    "when": parts[3],
-                })
-        return {"commits": commits, "count": len(commits)}
-    except:
-        return {"commits": [], "count": 0}
+    from dispatch import REPO_PATHS
+
+    all_commits = []
+    seen_repos = set()
+    for repo_name, repo_path in REPO_PATHS.items():
+        if repo_path in seen_repos:
+            continue
+        seen_repos.add(repo_path)
+        if not os.path.isdir(repo_path):
+            continue
+        try:
+            result = subprocess.run(
+                ["git", "-C", repo_path, "log", "--all", "--oneline", "--since=24 hours ago", "--format=%H|%an|%s|%ar"],
+                capture_output=True, text=True, timeout=5
+            )
+            for line in result.stdout.strip().split("\n"):
+                if not line:
+                    continue
+                parts = line.split("|", 3)
+                if len(parts) == 4:
+                    all_commits.append({
+                        "hash": parts[0][:8],
+                        "author": parts[1],
+                        "message": parts[2],
+                        "when": parts[3],
+                        "repo": repo_name,
+                    })
+        except Exception:
+            pass
+    return {"commits": all_commits, "count": len(all_commits)}
+
 
 @app.get("/active-sessions")
 async def get_active_sessions():

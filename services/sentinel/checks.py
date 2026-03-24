@@ -2,6 +2,14 @@
 
 import time
 import httpx
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from cluster_config import (
+    VAULT_HOST, FOUNDRY_HOST, WORKSHOP_HOST,
+    LITELLM_URL, QDRANT_URL, PROMETHEUS_URL, NTFY_URL,
+    AGENT_SERVER_URL, VLLM_COORDINATOR_URL, VLLM_CODER_URL,
+    OLLAMA_WORKSHOP_URL, COMFYUI_URL,
+)
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -50,16 +58,16 @@ HEARTBEAT_CHECKS = [
     ("reranker", "http://localhost:8003/v1/models"),
     ("semantic_router", "http://localhost:8060/health"),
     ("burn_scheduler", "http://localhost:8065/health"),
-    ("litellm", "http://192.168.1.203:4000/health"),
-    ("qdrant", "http://192.168.1.203:6333/healthz"),
-    ("prometheus", "http://192.168.1.203:9090/-/healthy"),
-    ("ntfy", "http://192.168.1.203:8880/v1/health"),
-    ("agent_server", "http://192.168.1.244:9000/health"),
-    ("vllm_coordinator", "http://192.168.1.244:8000/health"),
-    ("vllm_coder", "http://192.168.1.244:8006/health"),
-    ("ollama_sovereign", "http://192.168.1.225:11434/api/tags"),
-    ("comfyui", "http://192.168.1.225:8188/system_stats"),
-    ("ollama", "http://192.168.1.225:11434/api/tags"),
+    ("litellm", f"{LITELLM_URL}/health"),
+    ("qdrant", f"{QDRANT_URL}/healthz"),
+    ("prometheus", f"{PROMETHEUS_URL}/-/healthy"),
+    ("ntfy", f"{NTFY_URL}/v1/health"),
+    ("agent_server", f"{AGENT_SERVER_URL}/health"),
+    ("vllm_coordinator", f"{VLLM_COORDINATOR_URL}/health"),
+    ("vllm_coder", f"{VLLM_CODER_URL}/health"),
+    ("ollama_sovereign", f"{OLLAMA_WORKSHOP_URL}/api/tags"),
+    ("comfyui", f"{COMFYUI_URL}/system_stats"),
+    ("ollama", f"{OLLAMA_WORKSHOP_URL}/api/tags"),
     ("brain", "http://localhost:8780/health"),
     ("quality_gate", "http://localhost:8790/health"),
     ("draftsman", "http://localhost:8400/"),
@@ -121,9 +129,9 @@ def run_readiness(name: str) -> CheckResult:
     try:
         if name in ("vllm_coordinator", "vllm_coder", "ollama_sovereign"):
             port_map = {
-                "vllm_coordinator": ("192.168.1.244", 8000, "/models/Qwen3.5-27B-FP8"),
-                "vllm_coder": ("192.168.1.244", 8006, "devstral-small-2"),
-                "ollama_sovereign": ("192.168.1.225", 11434, "huihui_ai/qwen3.5-abliterated:35b"),
+                "vllm_coordinator": (FOUNDRY_HOST, 8000, "/models/Qwen3.5-27B-FP8"),
+                "vllm_coder": (FOUNDRY_HOST, 8006, "devstral-small-2"),
+                "ollama_sovereign": (WORKSHOP_HOST, 11434, "huihui_ai/qwen3.5-abliterated:35b"),
             }
             host, port, model_name = port_map[name]
             if port == 11434:  # Ollama
@@ -146,7 +154,7 @@ def run_readiness(name: str) -> CheckResult:
             key = _get_litellm_key()
             headers = {"Authorization": f"Bearer {key}"} if key else {}
             r = httpx.post(
-                "http://192.168.1.203:4000/v1/completions",
+                f"{LITELLM_URL}/v1/completions",
                 json={"model": "worker", "prompt": "Hi", "max_tokens": 1},
                 headers=headers,
                 timeout=30.0,
@@ -196,7 +204,7 @@ def run_integration() -> list[CheckResult]:
     start = time.monotonic()
     try:
         agent_headers = {"Authorization": f"Bearer {_get_agent_key()}"} if _get_agent_key() else {}
-        r = httpx.get("http://192.168.1.244:9000/v1/agents", headers=agent_headers, timeout=15.0)
+        r = httpx.get(f"{AGENT_SERVER_URL}/v1/agents", headers=agent_headers, timeout=15.0)
         latency = (time.monotonic() - start) * 1000
         passed = r.status_code == 200
         detail = f"HTTP {r.status_code}"
@@ -228,7 +236,7 @@ def run_integration() -> list[CheckResult]:
     # Memory -> Qdrant collections
     start = time.monotonic()
     try:
-        r = httpx.get("http://192.168.1.203:6333/collections", timeout=10.0)
+        r = httpx.get(f"{QDRANT_URL}/collections", timeout=10.0)
         latency = (time.monotonic() - start) * 1000
         data = r.json()
         count = len(data.get("result", {}).get("collections", []))
@@ -250,7 +258,7 @@ def send_ntfy_alert(service: str, message: str):
     """Fire ntfy notification."""
     try:
         httpx.post(
-            "http://192.168.1.203:8880/athanor",
+            f"{NTFY_URL}/athanor",
             json={
                 "topic": "athanor",
                 "title": "Sentinel Alert",

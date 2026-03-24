@@ -7,13 +7,10 @@ from datetime import datetime
 
 import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scripts"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-try:
-    from cluster_config import get_url
-    AGENT_SERVER = get_url("agent_server")
-except Exception:
-    AGENT_SERVER = os.environ.get("AGENT_SERVER_URL", "http://192.168.1.244:9000")
+from cluster_config import AGENT_SERVER_URL
+AGENT_SERVER = AGENT_SERVER_URL
 
 GOVERNOR = "http://localhost:8760"
 

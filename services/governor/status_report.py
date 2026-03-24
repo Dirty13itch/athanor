@@ -3,9 +3,12 @@ Run manually or via cron to see full system state at a glance.
 """
 import requests
 import json
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from cluster_config import AGENT_SERVER_URL, DASHBOARD_URL, GOVERNOR_URL, DEV_HOST
 from datetime import datetime
 
-AGENT_SERVER = "http://192.168.1.244:9000"
+AGENT_SERVER = AGENT_SERVER_URL
 GOVERNOR = "http://localhost:8760"
 DASHBOARD = "http://localhost:3001"
 
@@ -80,10 +83,10 @@ def generate_report():
     report.append(f"\nSYSTEM HEALTH: Run 'bash ~/repos/athanor/scripts/drift-check.sh' for full 37-check verification")
 
     report.append(f"\n{'='*60}")
-    report.append(f"Dashboard: http://192.168.1.189:3001")
-    report.append(f"Subscriptions: http://192.168.1.189:3001/subscriptions")
-    report.append(f"Agents: http://192.168.1.189:3001/agents")
-    report.append(f"Governor: http://192.168.1.189:8760/status")
+    report.append(f"Dashboard: {DASHBOARD_URL}")
+    report.append(f"Subscriptions: {DASHBOARD_URL}/subscriptions")
+    report.append(f"Agents: {DASHBOARD_URL}/agents")
+    report.append(f"Governor: {GOVERNOR_URL}/status")
     return "\n".join(report)
 
 if __name__ == "__main__":

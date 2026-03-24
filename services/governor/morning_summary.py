@@ -6,7 +6,10 @@ import glob
 from datetime import datetime, timedelta
 
 import os
-NTFY_URL = os.environ.get("NTFY_URL", "http://192.168.1.203:8880")
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from cluster_config import NTFY_URL as _CLUSTER_NTFY_URL
+NTFY_URL = os.environ.get("NTFY_URL", _CLUSTER_NTFY_URL)
 NTFY_TOPIC = "athanor"
 
 def notify(title, message, priority="default"):
