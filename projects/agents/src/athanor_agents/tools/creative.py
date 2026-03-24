@@ -30,7 +30,7 @@ def _flux_workflow(prompt: str, width: int = 1024, height: int = 1024, steps: in
             "class_type": "CLIPTextEncode",
             "inputs": {
                 "text": prompt,
-                "clip": ["11", 0],
+                "clip": ["11", 1],
             },
         },
         "8": {
@@ -72,7 +72,7 @@ def _flux_workflow(prompt: str, width: int = 1024, height: int = 1024, steps: in
             "class_type": "CLIPTextEncode",
             "inputs": {
                 "text": "",
-                "clip": ["11", 0],
+                "clip": ["11", 1],
             },
         },
         "27": {
