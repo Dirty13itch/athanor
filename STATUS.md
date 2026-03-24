@@ -224,6 +224,10 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **Agent autonomy verified** — Scheduler active, tasks completing every 5 min. Home-agent doing full HA entity audits (21 tool calls per task). Media-agent, knowledge-agent, general-assistant, creative-agent all active. Recent completion rate ~100%.
 - **Cleared 14 stale coding-agent tasks** — All stuck in `pending_approval` (correct behavior for `propose_wait` posture). Cancelled to clean the queue.
 - **Circuit breakers healthy** — All 6 services closed. data-curator had opened earlier (connection refused during restart) but recovered.
+- **B2 offsite backup** — Research doc + `scripts/backup-b2.sh` committed. 3-tier backup (DBs daily, configs daily, personal weekly). ~$4-5/mo. Needs Shaun to create B2 account.
+- **Flux workflow CLIP fix** — `_flux_workflow()` had `["11", 0]` (MODEL) for CLIP input instead of `["11", 1]` (CLIP). Root cause of every creative-agent generation failing with 400. Fixed and deployed.
+- **ComfyUI PyTorch sm_120 fix** — Upgraded from 2.6.0+cu124 (no Blackwell kernels) to 2.11.0+cu128 (sm_120 included). First successful Flux image generated on RTX 5060 Ti Blackwell: `athanor_blackwell_test_00001_.png`. Dockerfile updated on Workshop.
+- **Dashboard deep data audit** — All 90+ API routes tested. 28/29 services healthy. GPU, models, personal-data, stash, media, HA all returning rich real data. Gallery was empty because creative pipeline was broken — now fixed.
 
 ### Current System Health
 | Component | Status |
@@ -239,9 +243,10 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 | EoBQ | Live at workshop:3002 with TTS |
 
 ### Next Actions
-1. Build Backblaze B2 offsite backup script (researching)
-2. Audit 24 dashboard test.fail() tests — which are fixable?
+1. Shaun: Create Backblaze B2 account + app key to activate offsite backup
+2. Trigger creative-agent EoBQ portrait generation — pipeline now fully working
 3. Delete 9 stale Codex branches (manual or fix firewall pattern)
+4. Persist PyTorch upgrade in ComfyUI Dockerfile (commit to repo)
 
 ---
 
