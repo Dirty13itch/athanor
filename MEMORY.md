@@ -43,9 +43,11 @@ Scorer:8050 | Ollama:11434 | Dashboard:3001 | Seerr:5055 | Whisparr:6969
 5. All 10 service endpoints verified healthy. Pushed to GitHub.
 
 ### What's next
-- P0: LTX 2.3 video gen test (model downloaded, needs workflow)
-- P1: Dashboard route migration, EoBQ SoulForge, self-editable core memory
-- Master plan TARGET: transition 5090 from vLLM to creative-only (needs LiteLLM reroute first)
+- **LTX 2.3: BLOCKED on Blackwell sm_120** — CUDA kernel error "no kernel image available". Wan2.x works. Need GGUF path or upstream fix.
+- EoBQ SoulForge page built + TTS voice wired (Kokoro at :8200, 54 voices)
+- Core memory system deployed (465 LOC, Redis-backed)
+- ComfyUI models on Gen5 NVMe (208 GB), DEV models local
+- All blocked items need Shaun (credentials, decisions, physical)
 
 ---
 
