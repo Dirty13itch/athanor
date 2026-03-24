@@ -52,8 +52,15 @@ def predict_disk_full(node: str, mount: str) -> dict:
     Uses linear regression on node_filesystem_avail_bytes.
     Returns days_to_full, current_pct, trend_gb_per_day.
     """
+    instance_map = {
+        "foundry": "192.168.1.244:9100",
+        "workshop": "192.168.1.225:9100",
+        "dev": "192.168.1.189:9100",
+    }
+    instance = instance_map.get(node, "")
+    instance_filter = f',instance="{instance}"' if instance else ""
     query = (
-        f'node_filesystem_avail_bytes{{mountpoint=~".*{mount}.*"}}'
+        f'node_filesystem_avail_bytes{{mountpoint=~".*{mount}.*"{instance_filter}}}'
     )
     results = query_prometheus_range(query, hours=168)  # 7 days
 
@@ -70,7 +77,7 @@ def predict_disk_full(node: str, mount: str) -> dict:
     # Get total size from the latest instant query
     size_results = httpx.get(
         f"{PROMETHEUS}/api/v1/query",
-        params={"query": f'node_filesystem_size_bytes{{mountpoint=~".*{mount}.*"}}'},
+        params={"query": f'node_filesystem_size_bytes{{mountpoint=~".*{mount}.*"{instance_filter}}}'},
         timeout=10,
     ).json().get("data", {}).get("result", [])
 
