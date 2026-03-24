@@ -6,6 +6,21 @@ from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger("brain.capacity")
 
+
+def _sanitize(obj):
+    """Convert numpy types to native Python for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize(v) for v in obj]
+    if isinstance(obj, (np.bool_,)):
+        return bool(obj)
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    return obj
+
 PROMETHEUS = "http://192.168.1.203:9090"
 
 
@@ -189,11 +204,13 @@ def detect_gpu_overheating() -> list:
 
 def get_capacity_report() -> dict:
     """Full capacity analysis across the cluster."""
-    return {
+    return _sanitize({
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "disk_predictions": {
-            "vault_appdatacache": predict_disk_full("vault", "appdatacache"),
+            "foundry_root": predict_disk_full("foundry", "/"),
+            "workshop_root": predict_disk_full("workshop", "/"),
+            "dev_root": predict_disk_full("dev", "/"),
         },
         "memory_leaks": detect_memory_leaks(),
         "gpu_thermal": detect_gpu_overheating(),
-    }
+    })
