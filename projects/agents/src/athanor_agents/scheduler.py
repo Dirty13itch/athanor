@@ -595,7 +595,7 @@ async def _check_work_pipeline():
 
     logger.info("Scheduler: running work pipeline cycle (interval=%ds)", PIPELINE_INTERVAL)
     try:
-        result = await run_pipeline_cycle()
+        result = await asyncio.wait_for(run_pipeline_cycle(), timeout=120)
         r = await _get_redis()
         await r.set(PIPELINE_KEY, str(time.time()))
         logger.info(
@@ -875,7 +875,10 @@ async def _scheduler_loop():
                     except Exception as e:
                         logger.warning("Scheduler: failed to submit task for %s: %s", agent, e)
 
-        except Exception as e:
+        except asyncio.CancelledError:
+            logger.warning("Scheduler loop cancelled — stopping")
+            return
+        except BaseException as e:
             logger.warning("Scheduler loop error: %s", e)
 
         await asyncio.sleep(SCHEDULER_INTERVAL)
