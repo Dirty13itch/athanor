@@ -1,4 +1,4 @@
-import type { Character } from "@/types/game";
+import type { Character, SexualDNA, StripperArc } from "@/types/game";
 
 /**
  * Empire of Broken Queens — Character Definitions
@@ -13,6 +13,49 @@ import type { Character } from "@/types/game";
  * - Storytelling Framework: Power asymmetry, resistance/erosion, transformation
  */
 
+// ---------------------------------------------------------------------------
+// DNA definitions for council queens (maps to GDD 19-trait system)
+// ---------------------------------------------------------------------------
+
+/**
+ * Isolde's DNA — Ice Queen archetype.
+ * Slow burn, high brake, total surprise awakening, manipulation blackmail.
+ * Based on GDD Profile 1 traits mapped to the fantasy dark-court context.
+ */
+const ISOLDE_DNA: SexualDNA = {
+  desireType: "responsive",
+  accelerator: 3,  // slow to arouse
+  brake: 8,        // high kill-switch sensitivity
+  painTolerance: 4,
+  humiliationEnjoyment: 8,
+  exhibitionismLevel: 6,
+  gagResponse: "pushes_through",
+  moaningStyle: "Quiet breathy → sudden sharp gasp when caught off-guard",
+  tearTrigger: "Humiliation combined with pleasure overload",
+  orgasmStyle: "Hard to reach — requires total surrender of control",
+  awakeningType: "total_surprise",
+  blackmailNeed: "heightens_it",
+  addictionSpeed: "slow",
+  jealousyType: "possessive",
+  afterCareNeed: "craves_cuddles_while_crying",
+  switchPotential: 3,
+  groupSexAttitude: "curious",
+  roleplayAffinity: "Corporate/royal power reversal",
+  betrayalThreshold: 2,
+  voiceDNA: "Cold measured cadence, breath catches on 'Sir', voice drops to near-whisper when losing control",
+};
+
+const ISOLDE_STRIPPER_ARC: StripperArc = {
+  characterId: "isolde",
+  clubName: "The Gilded Spire",
+  stageName: "Ice Princess",
+  quitReason: "Seized political power — abandoned the stage as beneath her station",
+  returnTrigger: "Corruption >= 70 + throne room intimate scene played",
+  uniqueKink: "Elegant controlled movements that shatter into desperate improvisation mid-dance",
+  scenePrompt: "4K hyperreal regal woman in torn court gown at ornate pole in throne room, ice-blue eyes dilating, porcelain skin flushing, dramatic side lighting, cinematic",
+  triggered: false,
+};
+
 /** Isolde — The Usurper Queen. Controls Ashenmoor Keep. */
 export const ISOLDE: Character = {
   id: "isolde",
@@ -20,13 +63,17 @@ export const ISOLDE: Character = {
   title: "The Usurper Queen",
   archetype: "ice",
   resistance: 90,
+  resistanceCeiling: 90,
   corruption: 5,
+  awakeningFired: false,
   vulnerabilities: {
     physical: -0.5,    // highly resistant to force
     psychological: 0.6, // her ambition and paranoia are exploitable
     magical: 0.2,      // moderate
     social: 0.8,       // isolation and political pressure work
   },
+  dna: ISOLDE_DNA,
+  stripperArc: ISOLDE_STRIPPER_ARC,
   personality: {
     dominance: 0.8,
     warmth: 0.3,
@@ -65,6 +112,29 @@ export const ISOLDE: Character = {
   ],
 };
 
+const SERAPHINE_DNA: SexualDNA = {
+  desireType: "responsive",
+  accelerator: 5,
+  brake: 6,
+  painTolerance: 3,
+  humiliationEnjoyment: 5,
+  exhibitionismLevel: 4,
+  gagResponse: "fights",
+  moaningStyle: "Barely audible whispers that build to sudden keening when overwhelmed by vision+sensation",
+  tearTrigger: "Visions of the future colliding with physical sensation — grief and pleasure merging",
+  orgasmStyle: "Rare, intense, dissociative — she slips into a vision state at the peak",
+  awakeningType: "slow_realization",
+  blackmailNeed: "none",
+  addictionSpeed: "slow",
+  jealousyType: "doesnt_care",
+  afterCareNeed: "heavy",
+  switchPotential: 2,
+  groupSexAttitude: "hates",
+  roleplayAffinity: "Oracle/supplicant — she prophesies while being taken",
+  betrayalThreshold: 7,
+  voiceDNA: "Soft breathy cadence, fragments when distressed, sudden crystalline clarity at moments of surrender",
+};
+
 /** Seraphine — The Broken Oracle. Roams the ruins of the Spire. */
 export const SERAPHINE: Character = {
   id: "seraphine",
@@ -72,13 +142,16 @@ export const SERAPHINE: Character = {
   title: "The Broken Oracle",
   archetype: "sorceress",
   resistance: 40,
+  resistanceCeiling: 40,
   corruption: 20,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.8,      // fragile, easily overwhelmed
     psychological: 0.5, // already half-broken by her own gift
     magical: -0.3,      // resistant to magical manipulation
     social: 0.6,        // lonely, craves connection
   },
+  dna: SERAPHINE_DNA,
   personality: {
     dominance: 0.2,
     warmth: 0.6,
@@ -117,20 +190,23 @@ export const SERAPHINE: Character = {
   ],
 };
 
-/** Vaelis — The Hollow Knight. Guards the Crimson Gate. */
+/** Vaelis — The Hollow Knight. Guards the Crimson Gate. Non-queen NPC. */
 export const VAELIS: Character = {
   id: "vaelis",
   name: "Vaelis",
   title: "The Hollow Knight",
   archetype: "warrior",
   resistance: 85,
+  resistanceCeiling: 85,
   corruption: 10,
+  awakeningFired: false,
   vulnerabilities: {
     physical: -0.8,     // nearly immune to physical coercion
     psychological: 0.7, // his oath, his lost humanity, his guilt
     magical: 0.5,       // the void curse makes him susceptible
     social: -0.3,       // doesn't care about social standing
   },
+  // No DNA — Vaelis is not a council queen
   personality: {
     dominance: 0.6,
     warmth: 0.2,
@@ -169,6 +245,40 @@ export const VAELIS: Character = {
   ],
 };
 
+const MIRA_DNA: SexualDNA = {
+  desireType: "hybrid",
+  accelerator: 6,
+  brake: 5,
+  painTolerance: 5,
+  humiliationEnjoyment: 7,
+  exhibitionismLevel: 8,
+  gagResponse: "enjoys",
+  moaningStyle: "Low seductive hum that builds to breathless laughter when surrendering",
+  tearTrigger: "Being truly seen — when the barmaid mask is stripped away",
+  orgasmStyle: "Easy multiple — she's practiced control but lets go completely when she trusts",
+  awakeningType: "slow_realization",
+  blackmailNeed: "heightens_it",
+  addictionSpeed: "fast",
+  jealousyType: "competitive",
+  afterCareNeed: "light",
+  switchPotential: 6,
+  groupSexAttitude: "curious",
+  roleplayAffinity: "Poisoner's daughter / information trade / power through knowledge",
+  betrayalThreshold: 5,
+  voiceDNA: "Warm tavern drawl, pet names (love/darling/sweet thing), drops to flat precision when the real Mira appears",
+};
+
+const MIRA_STRIPPER_ARC: StripperArc = {
+  characterId: "mira",
+  clubName: "The Black Vial",
+  stageName: "Poison Pen",
+  quitReason: "The tavern pays better and the regulars are family",
+  returnTrigger: "Corruption >= 70 + mira_confession_heard flag set",
+  uniqueKink: "The vial around her neck swings against her skin during spins — she notices the player noticing",
+  scenePrompt: "4K hyperreal dark-skinned woman with curly hair at pole in underground speakeasy, warm brown eyes dilating, candlelight on skin, vial catching light, dark fantasy tavern, cinematic",
+  triggered: false,
+};
+
 /** Mira — The Poisoner's Daughter. Works the tavern in Ashenmoor. */
 export const MIRA: Character = {
   id: "mira",
@@ -176,13 +286,17 @@ export const MIRA: Character = {
   title: "The Poisoner's Daughter",
   archetype: "seductress",
   resistance: 65,
+  resistanceCeiling: 65,
   corruption: 15,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.3,      // trained in self-defense, not easy
     psychological: 0.5, // her mother's legacy, her dual identity
     magical: 0.4,       // moderate
     social: 0.7,        // her tavern family is her weakness
   },
+  dna: MIRA_DNA,
+  stripperArc: MIRA_STRIPPER_ARC,
   personality: {
     dominance: 0.4,
     warmth: 0.7,
@@ -221,20 +335,23 @@ export const MIRA: Character = {
   ],
 };
 
-/** Kael — The Deserter Prince. Hiding in the Undercroft. */
+/** Kael — The Deserter Prince. Hiding in the Undercroft. Non-queen NPC. */
 export const KAEL: Character = {
   id: "kael",
   name: "Kael",
   title: "The Deserter Prince",
   archetype: "scholar",
   resistance: 50,
+  resistanceCeiling: 50,
   corruption: 5,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.7,      // not a fighter, physically vulnerable
     psychological: 0.9, // guilt is his Achilles' heel
     magical: 0.3,       // moderate
     social: 0.6,        // his hidden identity, his duty
   },
+  // No DNA — Kael is not a council queen
   personality: {
     dominance: 0.3,
     warmth: 0.5,

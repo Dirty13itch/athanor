@@ -270,6 +270,10 @@ function normalizeWorldState(value: unknown): WorldState | null {
     plotFlags: normalizePlotFlags(record?.plotFlags),
     inventory: asStringArray(record?.inventory),
     contentIntensity: normalizeIntensity(record?.contentIntensity),
+    playMode: record?.playMode === "no_mercy" ? "no_mercy" : "blissful",
+    rivalryTensions: [],       // not needed by API routes
+    pendingPhoneMessages: [],  // not needed by API routes
+    legacyDaughters: [],       // not needed by API routes
   };
 }
 
@@ -302,7 +306,9 @@ function normalizeCharacter(value: unknown): Character | null {
     title: typeof record.title === "string" ? record.title : undefined,
     archetype: normalizeArchetype(record.archetype),
     resistance: clamp(asNumber(record.resistance, 50), 0, 100),
+    resistanceCeiling: clamp(asNumber(record.resistanceCeiling, 100), 0, 100),
     corruption: clamp(asNumber(record.corruption, 0), 0, 100),
+    awakeningFired: record.awakeningFired === true,
     vulnerabilities: normalizedVulnerabilities,
     personality: {
       dominance: clamp(asNumber(personality?.dominance, DEFAULT_PERSONALITY.dominance), 0, 1),
@@ -333,6 +339,19 @@ function normalizeCharacter(value: unknown): Character | null {
     speechStyle: asString(record.speechStyle, "Measured and deliberate."),
     visualDescription: asString(record.visualDescription, `${name}, dark fantasy portrait.`),
     boundaries: asStringArray(record.boundaries),
+    // Pass-through complex optional fields — validated by callers
+    dna: typeof record.dna === "object" && record.dna !== null
+      ? record.dna as import("@/types/game").SexualDNA
+      : undefined,
+    stripperArc: typeof record.stripperArc === "object" && record.stripperArc !== null
+      ? record.stripperArc as import("@/types/game").StripperArc
+      : undefined,
+    currentEndingPath: typeof record.currentEndingPath === "string"
+      ? record.currentEndingPath as import("@/types/game").QueenEndingType
+      : undefined,
+    haremRole: typeof record.haremRole === "string"
+      ? record.haremRole as import("@/types/game").Character["haremRole"]
+      : undefined,
   };
 }
 

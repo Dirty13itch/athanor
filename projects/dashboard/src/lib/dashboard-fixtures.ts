@@ -15,8 +15,19 @@ import type {
   ServicesSnapshot,
   WorkforceSnapshot,
 } from "@/lib/contracts";
-import { config } from "@/lib/config";
+import { config, joinUrl } from "@/lib/config";
 import { buildNavAttentionSignals } from "@/lib/nav-attention";
+
+/** Derive the DCGM exporter `host:port` instance string for a given node ID. */
+function dcgmInstance(nodeId: string): string {
+  const node = config.nodes.find((n) => n.id === nodeId);
+  return node ? `${node.ip}:9400` : `${nodeId}:9400`;
+}
+
+/** Look up a node IP by node ID from config. */
+function nodeIp(nodeId: string): string {
+  return config.nodes.find((n) => n.id === nodeId)?.ip ?? "";
+}
 
 export const FIXTURE_BASE_TIME = "2026-03-09T15:00:00.000Z";
 const ACTIVE_PROJECT_STATUSES = new Set(["active", "operational", "planning", "active_development"]);
@@ -201,7 +212,7 @@ const fixtureGpuSnapshot: GpuSnapshotResponse = {
       id: "node1::00000000:01:00.0",
       gpuName: "RTX 4090",
       gpuBusId: "00000000:01:00.0",
-      instance: "192.168.1.244:9400",
+      instance: dcgmInstance("node1"),
       nodeId: "node1",
       node: "Foundry",
       utilization: 92,
@@ -214,7 +225,7 @@ const fixtureGpuSnapshot: GpuSnapshotResponse = {
       id: "node1::00000000:02:00.0",
       gpuName: "RTX 4090",
       gpuBusId: "00000000:02:00.0",
-      instance: "192.168.1.244:9400",
+      instance: dcgmInstance("node1"),
       nodeId: "node1",
       node: "Foundry",
       utilization: 64,
@@ -227,7 +238,7 @@ const fixtureGpuSnapshot: GpuSnapshotResponse = {
       id: "node2::00000000:01:00.0",
       gpuName: "RTX 3090",
       gpuBusId: "00000000:01:00.0",
-      instance: "192.168.1.225:9400",
+      instance: dcgmInstance("node2"),
       nodeId: "node2",
       node: "Workshop",
       utilization: 58,
@@ -240,7 +251,7 @@ const fixtureGpuSnapshot: GpuSnapshotResponse = {
       id: "node2::00000000:02:00.0",
       gpuName: "RTX 3090",
       gpuBusId: "00000000:02:00.0",
-      instance: "192.168.1.225:9400",
+      instance: dcgmInstance("node2"),
       nodeId: "node2",
       node: "Workshop",
       utilization: 52,
@@ -253,7 +264,7 @@ const fixtureGpuSnapshot: GpuSnapshotResponse = {
       id: "dev::00000000:01:00.0",
       gpuName: "RTX 4090",
       gpuBusId: "00000000:01:00.0",
-      instance: "192.168.1.189:9400",
+      instance: dcgmInstance("dev"),
       nodeId: "dev",
       node: "DEV",
       utilization: 34,
@@ -1831,7 +1842,7 @@ const fixtureMemorySnapshot: MemorySnapshot = {
     {
       id: "recent-2",
       title: "EoBQ portrait direction pack",
-      url: "http://192.168.1.225:3002",
+      url: config.eoq.url,
       source: "eoq",
       category: "creative",
       subcategory: "reference",
@@ -1889,7 +1900,7 @@ const fixtureMonitoringSnapshot: MonitoringSnapshot = {
     {
       id: "node1",
       name: "Foundry",
-      ip: "192.168.1.244",
+      ip: nodeIp("node1"),
       role: "Coordinator inference and agent execution",
       cpuUsage: 68,
       memUsed: 73873436672,
@@ -1906,7 +1917,7 @@ const fixtureMonitoringSnapshot: MonitoringSnapshot = {
     {
       id: "node2",
       name: "Workshop",
-      ip: "192.168.1.225",
+      ip: nodeIp("node2"),
       role: "Worker inference, creative runtimes, and UI",
       cpuUsage: 41,
       memUsed: 25769803776,
@@ -1923,7 +1934,7 @@ const fixtureMonitoringSnapshot: MonitoringSnapshot = {
     {
       id: "vault",
       name: "VAULT",
-      ip: "192.168.1.203",
+      ip: nodeIp("vault"),
       role: "Routing, memory, media, home, and observability",
       cpuUsage: 17,
       memUsed: 11811160064,
@@ -1940,7 +1951,7 @@ const fixtureMonitoringSnapshot: MonitoringSnapshot = {
     {
       id: "dev",
       name: "DEV",
-      ip: "192.168.1.189",
+      ip: nodeIp("dev"),
       role: "Ops workstation and retrieval runtimes",
       cpuUsage: 64,
       memUsed: 0,
@@ -2071,10 +2082,10 @@ const fixtureMediaSnapshot: MediaSnapshot = {
     scenesDuration: 4893200,
   },
   launchLinks: [
-    { id: "plex", label: "Plex", url: "http://192.168.1.203:32400/web" },
-    { id: "sonarr", label: "Sonarr", url: "http://192.168.1.203:8989" },
-    { id: "radarr", label: "Radarr", url: "http://192.168.1.203:7878" },
-    { id: "stash", label: "Stash", url: "http://192.168.1.203:9999" },
+    { id: "plex", label: "Plex", url: joinUrl(config.plex.url, "/web") },
+    { id: "sonarr", label: "Sonarr", url: config.sonarr.url },
+    { id: "radarr", label: "Radarr", url: config.radarr.url },
+    { id: "stash", label: "Stash", url: config.stash.url },
   ],
 };
 
