@@ -126,7 +126,7 @@ def tick_readiness():
     # Only run readiness for services that have a specific readiness check
     # AND passed heartbeat
     readiness_services = [
-        "vllm_coordinator", "vllm_coder", "vllm_sovereign",
+        "vllm_coordinator", "vllm_coder", "ollama_sovereign",
         "litellm", "embedding", "governor",
     ]
 
