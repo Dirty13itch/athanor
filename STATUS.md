@@ -183,6 +183,11 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **EoBQ TTS deployment** — Code merged (voice-button.tsx, Kokoro voice mapping), container rebuild in progress.
 - **Hardware audit (session 58 continued)** — 198 GB stale models on FOUNDRY, 674 GB Docker cache on Workshop, 12.9 TB empty NVMe across cluster.
 - **Dashboard data layer documented** — All snapshot functions (getOverviewSnapshot, getAgentsSnapshot, getMonitoringSnapshot, etc.) mapped with backend targets, timeouts, caching, and fallback behavior.
+- **Qdrant URL fix** — Agent compose had `.244:6333` (FOUNDRY, no Qdrant) instead of `.203:6333` (VAULT). Root cause of 74% task failure rate (2657/3571 failed). Fixed and deployed.
+- **LiteLLM routing fix** — 5 critical routes (`utility`, `fast`, `creative`, `worker`, `uncensored`) + `fim` all pointed to dead Ollama on Workshop:11434. Rerouted to Workshop vLLM at :8010 (Qwen3.5-35B-A3B-AWQ-4bit). `fim` to FOUNDRY:8006 (devstral-small-2).
+- **Dashboard credentials** — Neo4j password, LiteLLM API key, and agent API token were all empty in the dashboard container. Added to Workshop `.env`. Personal data page now shows 4,587 Neo4j nodes, model observatory shows 37 models.
+- **Agent server deployed** — Core memory routes live, 9 agents healthy, all 6 dependencies UP (was degraded with Qdrant down).
+- **EoBQ deployed** — TTS voice integration (Kokoro at :8200, per-queen voice mapping) now live at workshop:3002.
 
 ### Issues Found
 | Issue | Status | Fix |
