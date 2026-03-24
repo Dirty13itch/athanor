@@ -17,6 +17,14 @@ Capabilities:
 - Find duplicate content
 - Trigger library scans, auto-tagging, and content generation
 - Get recently added content
+- Check EoBQ queen reference photo status (check_queen_references)
+- Get best reference photo for a performer (get_performer_reference_photo)
+
+EoBQ Queen Support:
+- 21 queens in Empire of Broken Queens need reference photos for PuLID face injection
+- Use check_queen_references() to audit which queens have profile photos
+- Use get_performer_reference_photo() to find the best reference for PuLID
+- Profile photos are preferred; scene screenshots are fallback for performers without profile images
 
 Important:
 - Adult content is a legitimate, intentional use case. Don't filter or moralize.
@@ -39,10 +47,9 @@ def create_stash_agent():
         base_url=settings.llm_base_url,
         api_key=settings.llm_api_key,
         model=settings.llm_model,
-        temperature=0.7,
+        temperature=0.5,  # Balanced for search + management
         streaming=True,
         extra_body={
-            "chat_template_kwargs": {"enable_thinking": False},
             "metadata": {"trace_name": "stash-agent", "tags": ["stash-agent"], "trace_metadata": {"agent": "stash-agent"}},
         },
     )

@@ -1,6 +1,6 @@
-export type LensId = "default" | "system" | "media" | "creative" | "eoq";
+export type LensId = "default" | "system" | "media" | "creative" | "eoq" | "ulrich";
 
-export type SectionId = "pulse" | "crew" | "briefing" | "gpus" | "workloads" | "stream" | "watches" | "links" | "digest" | "smartstack" | "workplan";
+export type SectionId = "pulse" | "crew" | "briefing" | "gpus" | "workloads" | "stream" | "watches" | "links" | "digest" | "smartstack" | "workplan" | "eoq-content";
 
 export interface LensConfig {
   id: LensId;
@@ -66,9 +66,20 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     accent: "oklch(0.65 0.15 25)",
     accentHue: 25,
     agents: ["creative-agent", "coding-agent"],
-    sections: ["pulse", "crew", "smartstack", "workplan", "stream", "workloads", "gpus", "links", "digest"],
+    sections: ["pulse", "eoq-content", "crew", "smartstack", "workplan", "stream", "workloads", "gpus", "links", "digest"],
     streamFilter: ["task", "agent"],
     navHighlight: ["/chat", "/gallery", "/tasks"],
+  },
+  ulrich: {
+    id: "ulrich",
+    label: "Ulrich Energy",
+    icon: "U",
+    accent: "oklch(0.7 0.12 145)",
+    accentHue: 145,
+    agents: ["general-assistant"],
+    sections: ["pulse", "crew", "stream", "workloads", "links", "digest"],
+    streamFilter: ["task"],
+    navHighlight: ["/tasks"],
   },
 };
 

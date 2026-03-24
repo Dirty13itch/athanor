@@ -21,7 +21,7 @@
 |--------|-------------|-------------|
 | **Agent toggle** | Turn agent on/off. Proactive agents stop their timer. Reactive agents stop accepting supervisor requests. | LangGraph API (Node 1:9000) |
 | **Agent config edit** | Change model endpoint, update tool list, change proactive schedule interval. Changes apply immediately if LangGraph supports hot reload, otherwise container restart. | LangGraph API |
-| **Model swap** | Load or unload a model on a specific vLLM instance. E.g., "Replace Qwen3-32B on Node 1:8000 with Qwen3-30B-A3B" | vLLM model management API |
+| **Model swap** | Load or unload a model on a specific vLLM instance. E.g., "Replace Qwen3.5-27B on Foundry:8000 with Qwen3.5-35B-A3B" | vLLM model management API |
 | **Inference queue** | View pending requests, cancel stuck requests, reprioritize | vLLM API |
 | **Creative queue** | Cancel queued ComfyUI generation, reprioritize | ComfyUI API (Node 2:8188) |
 | **Media actions** | Trigger Plex library scan, pause/resume Tdarr, manually add to *arr request queue | Tautulli/Sonarr/Radarr APIs |

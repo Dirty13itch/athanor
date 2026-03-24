@@ -1994,6 +1994,22 @@ export const homeSetupStepSchema = z.object({
   note: z.string().nullable(),
 });
 
+export const homeClimateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  state: z.string(),
+  temperature: z.number().nullable().optional(),
+  current_temperature: z.number().nullable().optional(),
+  hvac_action: z.string().nullable().optional(),
+});
+
+export const homeSensorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  state: z.string(),
+  unit: z.string().default(""),
+});
+
 export const homeSnapshotSchema = z.object({
   generatedAt: z.string(),
   online: z.boolean(),
@@ -2009,6 +2025,11 @@ export const homeSnapshotSchema = z.object({
       href: z.string(),
     })
   ),
+  entities: z.number().default(0),
+  automations: z.object({ total: z.number(), on: z.number() }).default({ total: 0, on: 0 }),
+  lights: z.object({ total: z.number(), on: z.number() }).default({ total: 0, on: 0 }),
+  climate: z.array(homeClimateSchema).default([]),
+  sensors: z.array(homeSensorSchema).default([]),
 });
 
 export type ServiceSnapshot = z.infer<typeof serviceSnapshotSchema>;

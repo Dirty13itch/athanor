@@ -68,7 +68,7 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 |---|--------|------|----------|-------|---------|-------------|
 | 1–7 | Samsung M393A4K40DB3-CWE (x7) | DDR4 ECC RDIMM | 224 GB (7x32GB) | 3200 MT/s | — | Node 1 (7/8 channels populated, channel H empty) |
 | 8–11 | Micron CP32G60C40U5B.M8B3 (x4) | DDR5 UDIMM | 128 GB (4x32GB) | 5600 MT/s | CL40 | VAULT |
-| 12–15 | Kingston KF556R28RBE2-32 (x4) | DDR5 ECC RDIMM | 128 GB (4x32GB) | 5600 MT/s (running 4800, EXPO not enabled) | CL28 | Node 2 |
+| 12–15 | Kingston KF556R28RBE2-32 (x4) | DDR5 ECC RDIMM | 128 GB (4x32GB) | 5600 MT/s (EXPO enabled) | CL28 | Node 2 |
 | 16–17 | G.Skill Ripjaws S5 F5-5600J4040D32GX2 (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5600 MT/s | CL40 | DEV (audit confirmed 5600/CL40) |
 | 18–19 | G.Skill F5-5200J3636D32G (x2) | DDR5 UDIMM | 64 GB (2x32GB) | 5200 MT/s | CL36 | Loose |
 | 20–21 | Crucial Ballistix BL32G32C16U4B (x2) | DDR4 UDIMM | 64 GB (2x32GB) | 3200 MT/s | CL16 | Loose |
@@ -87,10 +87,10 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 | # | Drive | Gen | Capacity | Currently In |
 |---|-------|-----|----------|-------------|
 | 1 | Crucial P3 (CT4000P3SSD8) | Gen3 | 4 TB | Node 1 (M.2_1, OS/system) |
-| 2 | Crucial P310 | Gen4 | 1 TB | Node 1 (M.2_2, mounted at /mnt/local-fast — audit confirmed P310, NOT Samsung 990 PRO) |
+| 2 | Crucial P310 | Gen4 | 1 TB | Node 1 (M.2_2, spare — replaced by Samsung 990 PRO 4TB as model store) |
 | 3–6 | Samsung 990 EVO Plus (x4) | Gen4 | 4 TB (4x1TB) | VAULT (X870E M.2 slots) |
 | 7 | Crucial T700 | Gen5 | 4 TB | Node 2 (M.2 Slot 1, OS/system) |
-| 8 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Loose (was listed as Node 1, audit found P310 1TB there — physical location unknown) |
+| 8 | Samsung 990 PRO (MZ-V9P4T0) | Gen4 | 4 TB | Node 1 (M.2_1, /mnt/local-fast — model store, PE8_SEL jumper moved to pins 1-2) |
 | 9 | Crucial P3 Plus (CT4000P3PSSD8) | Gen4 | 4 TB | Loose |
 | 10 | Crucial P310 (CT2000P310SSD8) | Gen4 | 2 TB | Loose |
 | 11 | Samsung 970 EVO | Gen3 | 250 GB | Loose |

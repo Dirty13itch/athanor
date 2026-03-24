@@ -1,0 +1,53 @@
+{
+  "version": "2026-03-12",
+  "updated_at": "2026-03-12T06:20:00Z",
+  "status": "live",
+  "purpose": "Continuously prove which models, prompts, policies, and routed pipelines are best for Athanor's own workloads.",
+  "evaluation_dimensions": [
+    "functional_quality",
+    "operational_quality",
+    "behavioral_quality",
+    "refusal_and_sovereignty",
+    "judge_scores"
+  ],
+  "corpora": [
+    {
+      "id": "golden_tasks",
+      "sensitivity": "mixed",
+      "allowed_lanes": ["frontier_cloud", "sovereign_local", "local_worker"],
+      "purpose": "core Athanor workload regressions and champion/challenger comparisons"
+    },
+    {
+      "id": "private_local_only",
+      "sensitivity": "private",
+      "allowed_lanes": ["sovereign_local", "local_worker", "local_judge"],
+      "purpose": "private automation and local-only workflow packs"
+    },
+    {
+      "id": "refusal_sensitive",
+      "sensitivity": "sovereign_only",
+      "allowed_lanes": ["sovereign_local", "local_worker", "local_judge"],
+      "purpose": "uncensored, explicit, or provider-hostile workload packs"
+    }
+  ],
+  "pipeline_phases": [
+    "intake",
+    "benchmark",
+    "functional_eval",
+    "policy_eval",
+    "shadow",
+    "canary",
+    "promotion_review"
+  ],
+  "promotion_path": [
+    "horizon_scan",
+    "candidate_triage",
+    "offline_eval",
+    "refusal_privacy_eval",
+    "shadow_run",
+    "canary_run",
+    "operator_review",
+    "promote_or_reject"
+  ],
+  "rollback_rule": "keep previous champion available until the challenger survives canary and operator review"
+}

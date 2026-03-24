@@ -1,0 +1,30 @@
+{
+  "version": "2026-03-12",
+  "updated_at": "2026-03-12T06:20:00Z",
+  "status": "live",
+  "cadence": {
+    "weekly_horizon_scan": "every Monday",
+    "weekly_candidate_triage": "every Tuesday",
+    "monthly_rebaseline": "first Saturday of the month",
+    "urgent_scan": "major model or inference-engine release"
+  },
+  "sources": [
+    "vendor release notes",
+    "LiteLLM release notes",
+    "vLLM release notes",
+    "Hugging Face watchlists",
+    "Athanor runtime traces",
+    "Athanor failure and correction patterns"
+  ],
+  "outputs": [
+    "candidate intake brief",
+    "champion challenger queue",
+    "promotion or retirement recommendation",
+    "operator review packet"
+  ],
+  "guardrails": [
+    "do not promote on public hype alone",
+    "refusal-sensitive candidates must be tested locally",
+    "keep the previous champion available for rollback"
+  ]
+}

@@ -66,7 +66,6 @@ def create_knowledge_agent():
         temperature=0.3,  # Low temp for factual retrieval
         streaming=True,
         extra_body={
-            "chat_template_kwargs": {"enable_thinking": False},
             "metadata": {"trace_name": "knowledge-agent", "tags": ["knowledge-agent"], "trace_metadata": {"agent": "knowledge-agent"}},
         },
     )

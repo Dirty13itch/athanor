@@ -3,11 +3,11 @@ import type {
   Character,
   DialogueTurn,
   GameSession,
+  PlayerStyle,
   WorldState,
-  RivalryTension,
-  PhoneMessage,
-  LegacyDaughter,
 } from "@/types/game";
+import { classifyChoiceStyle, DEFAULT_PLAYER_STYLE } from "@/types/game";
+import type { PlayerChoice } from "@/types/game";
 
 const SAVE_KEY = "eoq-save";
 
@@ -26,6 +26,8 @@ interface GameState {
   portraitUrl: string | null;
   /** Scenes the player has already visited (for intro tracking) */
   visitedScenes: Set<string>;
+  /** Queen selector mode — when set, shows queen picker UI for multi-queen scenes */
+  queenSelectorMode: "confrontation" | "banquet" | "duel" | null;
 
   // Actions
   setSession: (session: GameSession) => void;
@@ -43,22 +45,9 @@ interface GameState {
   attachChoicesToLastTurn: (choices: import("@/types/game").PlayerChoice[]) => void;
   addInventoryItem: (item: string) => void;
   markSceneVisited: (sceneId: string) => void;
-  /** Mark a character's Awakening as fired and apply resistance ceiling drop */
-  fireAwakening: (characterId: string, newResistanceCeiling: number) => void;
-  /** Trigger a character's stripper arc return */
-  triggerStripperArc: (characterId: string) => void;
-  /** Update rivalry tension between two queens */
-  updateRivalryTension: (queenAId: string, queenBId: string, delta: number) => void;
-  /** Mark a Harem Wars event as fired */
-  markHaremWarsEventFired: (queenAId: string, queenBId: string, eventId: string) => void;
-  /** Add a phone message to the pending queue */
-  addPhoneMessage: (message: PhoneMessage) => void;
-  /** Dismiss/read a phone message */
-  dismissPhoneMessage: (characterId: string, day: number) => void;
-  /** Add a Legacy daughter */
-  addLegacyDaughter: (daughter: LegacyDaughter) => void;
-  /** Toggle No Mercy mode */
-  togglePlayMode: () => void;
+  setQueenSelectorMode: (mode: "confrontation" | "banquet" | "duel" | null) => void;
+  trackChoice: (choice: PlayerChoice) => void;
+  setNoMercy: (active: boolean) => void;
   saveGame: () => void;
   loadGame: () => boolean;
   clearSave: () => void;
@@ -72,6 +61,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   backgroundUrl: null,
   portraitUrl: null,
   visitedScenes: new Set(),
+  queenSelectorMode: null,
 
   setSession: (session) => set({ session }),
 
@@ -191,177 +181,43 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { visitedScenes: visited };
     }),
 
-  fireAwakening: (characterId, newResistanceCeiling) =>
+  setQueenSelectorMode: (mode) => set({ queenSelectorMode: mode }),
+
+  trackChoice: (choice) =>
     set((state) => {
       if (!state.session) return state;
-      const char = state.session.characters[characterId];
-      if (!char) return state;
+      const style = { ...state.session.playerStyle };
+      const deltas = classifyChoiceStyle(choice);
+      const n = style.totalChoices + 1;
+      // Weighted running average — new choices blend into existing scores
+      const blend = (current: number, delta: number | undefined) => {
+        if (delta == null) return current;
+        const raw = current + (delta - current) / n;
+        return Math.max(0, Math.min(100, raw));
+      };
       return {
         session: {
           ...state.session,
-          characters: {
-            ...state.session.characters,
-            [characterId]: {
-              ...char,
-              awakeningFired: true,
-              resistanceCeiling: newResistanceCeiling,
-              // Cap current resistance at new ceiling
-              resistance: Math.min(char.resistance, newResistanceCeiling),
-              // Trigger stripper arc
-              stripperArc: char.stripperArc
-                ? { ...char.stripperArc, triggered: true }
-                : char.stripperArc,
-            },
+          playerStyle: {
+            mercyScore: blend(style.mercyScore, deltas.mercyScore != null ? style.mercyScore + deltas.mercyScore : undefined),
+            seductionScore: blend(style.seductionScore, deltas.seductionScore != null ? style.seductionScore + deltas.seductionScore : undefined),
+            manipulationScore: blend(style.manipulationScore, deltas.manipulationScore != null ? style.manipulationScore + deltas.manipulationScore : undefined),
+            dominanceScore: blend(style.dominanceScore, deltas.dominanceScore != null ? style.dominanceScore + deltas.dominanceScore : undefined),
+            diplomacyScore: blend(style.diplomacyScore, deltas.diplomacyScore != null ? style.diplomacyScore + deltas.diplomacyScore : undefined),
+            totalChoices: n,
           },
-          worldState: {
-            ...state.session.worldState,
-            plotFlags: {
-              ...state.session.worldState.plotFlags,
-              [`awakening_fired_${characterId}`]: true,
-            },
-          },
+          // Unlock No Mercy Mode when player is consistently cruel (10+ choices, mercy < 20)
+          noMercyUnlocked: state.session.noMercyUnlocked ||
+            (n >= 10 && blend(style.mercyScore, deltas.mercyScore != null ? style.mercyScore + deltas.mercyScore : undefined) < 20),
         },
       };
     }),
 
-  triggerStripperArc: (characterId) =>
+  setNoMercy: (active) =>
     set((state) => {
-      if (!state.session) return state;
-      const char = state.session.characters[characterId];
-      if (!char?.stripperArc) return state;
+      if (!state.session || !state.session.noMercyUnlocked) return state;
       return {
-        session: {
-          ...state.session,
-          characters: {
-            ...state.session.characters,
-            [characterId]: {
-              ...char,
-              stripperArc: { ...char.stripperArc, triggered: true },
-            },
-          },
-          worldState: {
-            ...state.session.worldState,
-            plotFlags: {
-              ...state.session.worldState.plotFlags,
-              [`stripper_arc_triggered_${characterId}`]: true,
-            },
-          },
-        },
-      };
-    }),
-
-  updateRivalryTension: (queenAId, queenBId, delta) =>
-    set((state) => {
-      if (!state.session) return state;
-      const tensions = [...state.session.worldState.rivalryTensions];
-      const idx = tensions.findIndex(
-        (t) =>
-          (t.queenAId === queenAId && t.queenBId === queenBId) ||
-          (t.queenAId === queenBId && t.queenBId === queenAId)
-      );
-      if (idx >= 0) {
-        tensions[idx] = {
-          ...tensions[idx],
-          tension: Math.max(0, Math.min(100, tensions[idx].tension + delta)),
-        };
-      } else {
-        tensions.push({
-          queenAId,
-          queenBId,
-          tension: Math.max(0, Math.min(100, delta)),
-          firedEvents: [],
-        });
-      }
-      return {
-        session: {
-          ...state.session,
-          worldState: { ...state.session.worldState, rivalryTensions: tensions },
-        },
-      };
-    }),
-
-  markHaremWarsEventFired: (queenAId, queenBId, eventId) =>
-    set((state) => {
-      if (!state.session) return state;
-      const tensions = state.session.worldState.rivalryTensions.map((t) => {
-        if (
-          (t.queenAId === queenAId && t.queenBId === queenBId) ||
-          (t.queenAId === queenBId && t.queenBId === queenAId)
-        ) {
-          return { ...t, firedEvents: [...t.firedEvents, eventId] };
-        }
-        return t;
-      });
-      return {
-        session: {
-          ...state.session,
-          worldState: { ...state.session.worldState, rivalryTensions: tensions },
-        },
-      };
-    }),
-
-  addPhoneMessage: (message) =>
-    set((state) => {
-      if (!state.session) return state;
-      return {
-        session: {
-          ...state.session,
-          worldState: {
-            ...state.session.worldState,
-            pendingPhoneMessages: [
-              ...state.session.worldState.pendingPhoneMessages,
-              message,
-            ],
-          },
-        },
-      };
-    }),
-
-  dismissPhoneMessage: (characterId, day) =>
-    set((state) => {
-      if (!state.session) return state;
-      return {
-        session: {
-          ...state.session,
-          worldState: {
-            ...state.session.worldState,
-            pendingPhoneMessages: state.session.worldState.pendingPhoneMessages.filter(
-              (m) => !(m.characterId === characterId && m.day === day)
-            ),
-          },
-        },
-      };
-    }),
-
-  addLegacyDaughter: (daughter) =>
-    set((state) => {
-      if (!state.session) return state;
-      return {
-        session: {
-          ...state.session,
-          worldState: {
-            ...state.session.worldState,
-            legacyDaughters: [
-              ...state.session.worldState.legacyDaughters,
-              daughter,
-            ],
-          },
-        },
-      };
-    }),
-
-  togglePlayMode: () =>
-    set((state) => {
-      if (!state.session) return state;
-      const current = state.session.worldState.playMode;
-      return {
-        session: {
-          ...state.session,
-          worldState: {
-            ...state.session.worldState,
-            playMode: current === "blissful" ? "no_mercy" : "blissful",
-          },
-        },
+        session: { ...state.session, noMercyActive: active },
       };
     }),
 
@@ -385,6 +241,14 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (!raw) return false;
       const data = JSON.parse(raw);
       if (!data.session) return false;
+      // Backfill for saves from before these features
+      if (!data.session.playerStyle) {
+        data.session.playerStyle = { ...DEFAULT_PLAYER_STYLE };
+      }
+      if (data.session.noMercyUnlocked === undefined) {
+        data.session.noMercyUnlocked = false;
+        data.session.noMercyActive = false;
+      }
       set({
         session: data.session,
         visitedScenes: new Set(data.visitedScenes ?? []),

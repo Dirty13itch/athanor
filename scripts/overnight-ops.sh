@@ -17,9 +17,9 @@ set -euo pipefail
 DRY_RUN="${1:-}"
 LOG_DIR="/var/log/athanor"
 LOG_FILE="$LOG_DIR/overnight-$(date +%Y-%m-%d).log"
-AGENT_URL="${ATHANOR_AGENT_SERVER_URL:-${AGENT_URL:-http://192.168.1.244:9000}}"
-QDRANT_URL="${ATHANOR_QDRANT_URL:-${QDRANT_URL:-http://192.168.1.244:6333}}"
-NEO4J_URL="${ATHANOR_NEO4J_URL:-${NEO4J_URL:-http://192.168.1.203:7474}}"
+AGENT_URL="${AGENT_SERVER_URL}"
+# QDRANT_URL from cluster_config.sh
+NEO4J_URL="${NEO4J_HTTP_URL}"
 NEO4J_USER="${ATHANOR_NEO4J_USER:-${NEO4J_USER:-neo4j}}"
 NEO4J_PASS="${ATHANOR_NEO4J_PASSWORD:-${NEO4J_PASSWORD:-}}"
 REPO_DIR="$HOME/repos/athanor"
@@ -39,6 +39,12 @@ run_or_skip() {
 }
 
 log "=== Overnight operations starting ==="
+
+# Signal governor: entering maintenance window
+curl -sf -X POST "$AGENT_URL/v1/governor/presence" \
+    -H "Content-Type: application/json" \
+    -d '{"mode":"manual","state":"maintenance","reason":"overnight-ops maintenance window","actor":"overnight-ops"}' \
+    2>/dev/null || log "WARN: Could not signal governor maintenance mode"
 
 # --- 1. Qdrant collection optimization ---
 log "Phase 1: Qdrant collection optimization"
@@ -135,5 +141,12 @@ else
 fi
 
 # --- Summary ---
+
+# Signal governor: exiting maintenance window
+curl -sf -X POST "$AGENT_URL/v1/governor/presence" \
+    -H "Content-Type: application/json" \
+    -d '{"mode":"auto","state":"auto","reason":"overnight-ops complete","actor":"overnight-ops"}' \
+    2>/dev/null || log "WARN: Could not signal governor auto mode"
+
 log "=== Overnight operations complete ==="
 log "Log: $LOG_FILE"

@@ -39,6 +39,10 @@ class Settings(BaseSettings):
         default="http://192.168.1.225:8000",
         validation_alias=AliasChoices("GPU_ORCH_VLLM_NODE2_URL", "ATHANOR_VLLM_WORKER_URL"),
     )
+    vllm_vision_url: str = Field(
+        default="http://192.168.1.225:8010",
+        validation_alias=AliasChoices("GPU_ORCH_VLLM_VISION_URL", "ATHANOR_VLLM_VISION_URL"),
+    )
 
     # DCGM-exporter endpoints (GPU metrics)
     dcgm_node1_url: str = Field(

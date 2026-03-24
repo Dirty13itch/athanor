@@ -33,46 +33,33 @@
 # Docker container (deployed manually or via community.docker.docker_container).
 # The systemd tasks below are skipped on VAULT.
 
+# Unraid's Python lacks 'requests' so community.docker modules fail.
+# Use raw docker CLI instead for VAULT deployments.
 - name: Deploy backup age exporter as Docker container
-  community.docker.docker_container:
-    name: backup-exporter
-    image: python:3.12-slim
-    state: started
-    restart_policy: unless-stopped
-    network_mode: host
-    volumes:
-      - /opt/athanor/scripts/backup-age-exporter.py:/app/exporter.py:ro
-      - "{{ qdrant_backup_dir }}:/backups/qdrant:ro"
-      - "{{ neo4j_backup_dir }}:/backups/neo4j:ro"
-      - "{{ appdata_backup_dir }}:/backups/appdata:ro"
-    env:
-      ATHANOR_QDRANT_BACKUP_DIR: /backups/qdrant
-      ATHANOR_QDRANT_BACKUP_FALLBACK_DIR: ""
-      ATHANOR_NEO4J_BACKUP_DIR: /backups/neo4j
-      ATHANOR_APPDATA_BACKUP_DIR: /backups/appdata
-      ATHANOR_APPDATA_BACKUP_FALLBACK_DIR: ""
-    command: python3 /app/exporter.py
+  ansible.builtin.raw: >
+    docker rm -f backup-exporter 2>/dev/null;
+    docker run -d
+    --name backup-exporter
+    --restart unless-stopped
+    --network host
+    -v /opt/athanor/scripts/backup-age-exporter.py:/app/exporter.py:ro
+    -v {{ qdrant_backup_dir }}:/backups/qdrant:ro
+    -v {{ neo4j_backup_dir }}:/backups/neo4j:ro
+    -v {{ appdata_backup_dir }}:/backups/appdata:ro
+    -e ATHANOR_QDRANT_BACKUP_DIR=/backups/qdrant
+    -e ATHANOR_QDRANT_BACKUP_FALLBACK_DIR=""
+    -e ATHANOR_NEO4J_BACKUP_DIR=/backups/neo4j
+    -e ATHANOR_APPDATA_BACKUP_DIR=/backups/appdata
+    -e ATHANOR_APPDATA_BACKUP_FALLBACK_DIR=""
+    python:3.12-slim python3 /app/exporter.py
+  changed_when: true
   when: not ansible_check_mode
 
 # --- Ensure Grafana has provisioning volume mounted ---
 # The vault-monitoring role creates the Grafana container without provisioning.
 # This task updates it to mount the provisioning directory so alert rules load.
 
-- name: Ensure Grafana container has provisioning volume
-  community.docker.docker_container:
-    name: grafana
-    image: "{{ grafana_image | default('grafana/grafana:latest') }}"
-    state: started
-    restart_policy: unless-stopped
-    ports:
-      - "{{ grafana_port | default('3000') }}:3000"
-    volumes:
-      - "{{ grafana_data_path }}:/var/lib/grafana"
-      - "{{ grafana_provisioning_path }}:/etc/grafana/provisioning:ro"
-    env:
-      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password | default('') }}"
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_UNIFIED_ALERTING_ENABLED: "true"
-      GF_ALERTING_ENABLED: "false"
-    restart: "{{ backup_alerts_config.changed | default(false) }}"
-  when: not ansible_check_mode
+# Restart Grafana to pick up new alert provisioning files
+- name: Restart Grafana to load alert rules
+  ansible.builtin.raw: docker restart grafana
+  when: backup_alerts_config.changed | default(false)

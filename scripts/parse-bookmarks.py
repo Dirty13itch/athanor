@@ -22,6 +22,8 @@ import sys
 import time
 from html.parser import HTMLParser
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
 # Default bookmark file locations
 DEFAULT_PATHS = [
@@ -33,9 +35,9 @@ def _host_env(name: str, default: str) -> str:
     return os.environ.get(name, default).strip()
 
 
-QDRANT_URL = os.environ.get("ATHANOR_QDRANT_URL", f"http://{_host_env('ATHANOR_NODE1_HOST', '192.168.1.244')}:6333")
+QDRANT_URL = get_url("qdrant")
 EMBEDDING_URL = (
-    os.environ.get("ATHANOR_LITELLM_URL", f"http://{_host_env('ATHANOR_VAULT_HOST', '192.168.1.203')}:4000").rstrip("/")
+    get_url("litellm")
     + "/v1"
 )
 EMBEDDING_KEY = (

@@ -1,6 +1,6 @@
 # Athanor Build Roadmap
 
-*Research phase complete. This is the build plan.*
+*Historical build plan from the initial deployment phase. Active work queue is now `BUILD-MANIFEST.md` (Tier-based).*
 
 Last updated: 2026-02-24 (Session 8: Post-deployment hardening, monitoring verified, git pushed)
 

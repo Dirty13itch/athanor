@@ -26,6 +26,33 @@ groups:
         annotations:
           summary: "{{ "{{" }} $labels.instance {{ "}}" }} root disk above 85%"
 
+      - alert: AppdataDiskWarning
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/mnt/appdatacache", instance=~"192.168.1.203.*"} / node_filesystem_size_bytes{mountpoint="/mnt/appdatacache", instance=~"192.168.1.203.*"}) > 0.85
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VAULT appdata NVMe above 85% ({{ "{{" }} $value | humanizePercentage {{ "}}" }})"
+          description: "All container configs and databases live on this drive. Consider migrating data to /mnt/fastdata."
+
+      - alert: AppdataDiskCritical
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/mnt/appdatacache", instance=~"192.168.1.203.*"} / node_filesystem_size_bytes{mountpoint="/mnt/appdatacache", instance=~"192.168.1.203.*"}) > 0.95
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "VAULT appdata NVMe above 95% — databases at risk ({{ "{{" }} $value | humanizePercentage {{ "}}" }})"
+          description: "Critical: Neo4j, Prometheus, Redis, and all container configs share this drive."
+
+      - alert: DockerDiskWarning
+        expr: (1 - node_filesystem_avail_bytes{mountpoint=~"/mnt/docker|/var/lib/docker", instance=~"192.168.1.203.*"} / node_filesystem_size_bytes{mountpoint=~"/mnt/docker|/var/lib/docker", instance=~"192.168.1.203.*"}) > 0.85
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "VAULT Docker NVMe above 85% ({{ "{{" }} $value | humanizePercentage {{ "}}" }})"
+          description: "Run docker system prune or check for image accumulation."
+
   - name: gpu
     rules:
       - alert: GpuTemperatureHigh
@@ -45,12 +72,14 @@ groups:
           summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} on {{ "{{" }} $labels.instance {{ "}}" }} CRITICAL {{ "{{" }} $value {{ "}}" }}C"
 
       - alert: GpuMemoryExhausted
-        expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) > 0.95
+        # vLLM pre-allocates KV cache at startup — normal steady-state is 95-99%.
+        # Only alert when VRAM is genuinely exhausted beyond vLLM's allocation.
+        expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) > 0.99
         for: 10m
         labels:
           severity: warning
         annotations:
-          summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} VRAM above 95% on {{ "{{" }} $labels.instance {{ "}}" }}"
+          summary: "GPU {{ "{{" }} $labels.gpu {{ "}}" }} VRAM above 99% on {{ "{{" }} $labels.instance {{ "}}" }}"
 
   - name: backups
     rules:
@@ -64,7 +93,8 @@ groups:
           description: "Prometheus cannot scrape the backup freshness exporter on VAULT :9199."
 
       - alert: BackupAgeCritical
-        expr: athanor_backup_age_seconds > 129600
+        # Exclude historical one-off snapshots (flash_config, field_inspect) that aren't recurring
+        expr: athanor_backup_age_seconds{target!~"flash_config|field_inspect"} > 129600
         for: 10m
         labels:
           severity: critical
@@ -73,7 +103,7 @@ groups:
           description: "Check cron jobs and backup scripts. Target: {{ "{{" }} $labels.target {{ "}}" }}"
 
       - alert: BackupAgeWarning
-        expr: athanor_backup_age_seconds > 100800
+        expr: athanor_backup_age_seconds{target!~"flash_config|field_inspect"} > 100800
         for: 10m
         labels:
           severity: warning
@@ -105,3 +135,86 @@ groups:
           severity: warning
         annotations:
           summary: "{{ "{{" }} $labels.instance {{ "}}" }} memory above 90%"
+
+  - name: blackbox
+    rules:
+      - alert: LiteLLMDown
+        expr: probe_success{service_id="litellm"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "LiteLLM is down"
+          description: "LiteLLM at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: CoordinatorVLLMDown
+        expr: probe_success{service_id="foundry-coordinator"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Coordinator vLLM is down"
+          description: "Coordinator vLLM at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: CoderVLLMDown
+        expr: probe_success{service_id="foundry-coder"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Coder vLLM is down"
+          description: "Coder vLLM at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: AgentServerDown
+        expr: probe_success{service_id="agent-server"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Agent Server is down"
+          description: "Agent Server at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: DashboardDown
+        expr: probe_success{service_id="dashboard"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dashboard is down"
+          description: "Dashboard at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: ComfyUIDown
+        expr: probe_success{service_id="comfyui"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ComfyUI is down"
+          description: "ComfyUI at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: GiteaDown
+        expr: probe_success{service_id="gitea"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Gitea is down"
+          description: "Gitea at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: MinifluxDown
+        expr: probe_success{service_id="miniflux"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Miniflux is down"
+          description: "Miniflux at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: N8nDown
+        expr: probe_success{service_id="n8n"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "n8n is down"
+          description: "n8n at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."

@@ -1,7 +1,7 @@
 # ADR-013: Security Architecture
 
 **Date:** 2026-02-24
-**Status:** Proposed
+**Status:** Accepted
 **Depends on:** ADR-002 (Network Architecture), ADR-001 (Base Platform)
 
 ---

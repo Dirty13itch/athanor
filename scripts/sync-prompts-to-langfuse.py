@@ -28,6 +28,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import NODES
 
 def _env_value(*names: str) -> str:
     for name in names:
@@ -38,7 +40,7 @@ def _env_value(*names: str) -> str:
 
 
 def _default_langfuse_host() -> str:
-    vault_host = os.getenv("ATHANOR_VAULT_HOST", "192.168.1.203").strip()
+    vault_host = NODES["vault"]
     return f"http://{vault_host}:3030"
 
 

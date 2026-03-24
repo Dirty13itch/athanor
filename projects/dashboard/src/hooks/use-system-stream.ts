@@ -24,6 +24,7 @@ export interface SystemSnapshot {
     currently_running: number;
     worker_running: boolean;
   } | null;
+  media: { streamCount: number; downloadCount: number; sessions: { title: string; state: string }[] } | null;
   timestamp: string;
 }
 

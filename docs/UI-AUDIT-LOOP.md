@@ -8,10 +8,10 @@ This is the permanent audit loop for the shipped operator surfaces:
 
 The audit truth lives in:
 
-- [tests/ui-audit/surface-registry.json](/Users/Shaun/dev/athanor-next/tests/ui-audit/surface-registry.json)
-- [tests/ui-audit/uncovered-surfaces.json](/Users/Shaun/dev/athanor-next/tests/ui-audit/uncovered-surfaces.json)
-- [tests/ui-audit/findings-ledger.json](/Users/Shaun/dev/athanor-next/tests/ui-audit/findings-ledger.json)
-- [tests/ui-audit/last-run.json](/Users/Shaun/dev/athanor-next/tests/ui-audit/last-run.json)
+- [tests/ui-audit/surface-registry.json](../tests/ui-audit/surface-registry.json)
+- [tests/ui-audit/uncovered-surfaces.json](../tests/ui-audit/uncovered-surfaces.json)
+- [tests/ui-audit/findings-ledger.json](../tests/ui-audit/findings-ledger.json)
+- [tests/ui-audit/last-run.json](../tests/ui-audit/last-run.json)
 
 ## Current Baseline
 - Two consecutive full audit runs are green with no actionable findings.

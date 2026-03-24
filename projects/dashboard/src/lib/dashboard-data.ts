@@ -36,7 +36,7 @@ import {
 } from "@/lib/dashboard-fixtures";
 import { average, formatTemperatureF } from "@/lib/format";
 import { buildNavAttentionSignals } from "@/lib/nav-attention";
-import { config, getNodeNameFromInstance, joinUrl, type MonitoredService } from "@/lib/config";
+import { agentServerHeaders, config, getNodeNameFromInstance, joinUrl, type MonitoredService } from "@/lib/config";
 import { getRangeStepSeconds, getTimeWindow, type TimeWindowId } from "@/lib/ranges";
 
 const prometheusInstantResponseSchema = z.object({
@@ -79,7 +79,7 @@ const rawAgentMetadataSchema = z.object({
   tools: z.array(z.string()).default([]),
   type: z.string().default("reactive"),
   status: z.string().default("planned"),
-  schedule: z.string().optional(),
+  schedule: z.string().nullable().optional(),
   status_note: z.string().nullable().optional(),
 });
 
@@ -466,6 +466,7 @@ async function fetchAgentJson<T>(path: string, schema: z.ZodSchema<T>, fallback:
   try {
     return await fetchJson(joinUrl(config.agentServer.url, path), schema, {
       cache: "no-store",
+      headers: agentServerHeaders(),
     });
   } catch {
     return fallback;
@@ -601,6 +602,7 @@ async function getAgentDescriptors(): Promise<Array<AgentInfo & { type: string }
   try {
     const result = await fetchJson(joinUrl(config.agentServer.url, "/v1/agents"), agentsResponseSchema, {
       cache: "no-store",
+      headers: agentServerHeaders(),
     });
     return result.agents.map((agent): AgentInfo & { type: string } => ({
       id: agent.name,
@@ -632,6 +634,7 @@ export async function getProjectsSnapshot(): Promise<ProjectsSnapshot> {
   try {
     const result = await fetchJson(joinUrl(config.agentServer.url, "/v1/projects"), projectsResponseSchema, {
       cache: "no-store",
+      headers: agentServerHeaders(),
     });
 
     const liveProjects = Object.entries(result.projects).map(([id, project]): ProjectSnapshot => {

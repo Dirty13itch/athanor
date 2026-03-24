@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { config, joinUrl } from "@/lib/config";
+import { agentServerHeaders, config, joinUrl } from "@/lib/config";
 import {
   FIXTURE_BASE_TIME,
   getFixtureAgentActivity,
@@ -3193,6 +3193,7 @@ export async function proxyAgentJson(
   try {
     const response = await fetch(joinUrl(config.agentServer.url, path), {
       ...init,
+      headers: { ...agentServerHeaders(), ...init?.headers },
       signal: init?.signal ?? AbortSignal.timeout(timeoutMs),
     });
 

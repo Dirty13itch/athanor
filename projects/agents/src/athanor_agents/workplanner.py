@@ -63,8 +63,12 @@ AGENT_CAPABILITIES = {
         "tools": "search_tv_shows, add_tv_show, search_movies, add_movie, get_plex_activity, get_watch_history",
     },
     "creative-agent": {
-        "can_do": "Generate images (Flux dev FP8 via ComfyUI), generate video (Wan2.x), check queue status",
-        "tools": "generate_image, generate_video, check_queue, get_comfyui_status",
+        "can_do": "Generate images (Flux), generate I2V video (Wan2.2 image-to-video), "
+                  "generate portraits with face injection (PuLID), check video inventory, "
+                  "evaluate quality, manage video content library",
+        "tools": "generate_image, generate_i2v_video, generate_with_likeness, "
+                 "check_video_inventory, update_video_inventory, evaluate_video_quality, "
+                 "poll_video_completion, check_queue, get_comfyui_status",
     },
     "research-agent": {
         "can_do": "Web search, fetch pages, search knowledge base, query infrastructure graph",
@@ -157,8 +161,8 @@ async def _gather_knowledge_context(focus: str = "") -> dict:
     try:
         from .goals import list_goals
         goals = await list_goals(active_only=True)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Goals fetch failed for work planner: %s", e)
 
     # Fetch completed task results (what has the system already produced?)
     completed_results = []
@@ -173,8 +177,8 @@ async def _gather_knowledge_context(focus: str = "") -> dict:
                     "prompt": t.get("prompt", "")[:200],
                     "result": t.get("result", "")[:500],
                 })
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Completed tasks fetch failed for work planner: %s", e)
 
     return {
         "knowledge": [
@@ -395,24 +399,23 @@ async def generate_work_plan(focus: str = "") -> dict:
         focus=focus,
     )
 
-    # Call LLM for planning. Use /no_think to skip extended reasoning
-    # (Qwen3 feature) since we want structured JSON output, not deliberation.
+    # Call LLM for planning. Disable thinking to get clean JSON output fast.
     try:
-        async with httpx.AsyncClient(timeout=300) as client:
+        async with httpx.AsyncClient(timeout=120) as client:
             resp = await client.post(
                 _LLM_URL,
                 json={
                     "model": _LLM_MODEL,
-                    "messages": [{"role": "user", "content": prompt + "\n\n/no_think"}],
+                    "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.7,
-                    "max_tokens": 8192,
+                    "max_tokens": 4096,
                 },
                 headers={"Authorization": f"Bearer {_LLM_KEY}"},
             )
             resp.raise_for_status()
             data = resp.json()
     except httpx.TimeoutException:
-        logger.error("Work planner LLM call timed out (180s)")
+        logger.error("Work planner LLM call timed out (120s)")
         return {"error": "LLM timeout", "tasks": [], "task_count": 0}
     except Exception as e:
         logger.error("Work planner LLM call failed: %s (type=%s)", e, type(e).__name__)
@@ -457,6 +460,18 @@ async def generate_work_plan(focus: str = "") -> dict:
             continue
 
         try:
+            from .governor import Governor
+            gov = Governor.get()
+            decision = await gov.gate_task_submission(
+                agent=agent, prompt=task_prompt, priority=priority,
+                metadata={
+                    "source": "work_planner",
+                    "plan_id": plan_id,
+                    "project": project,
+                    "rationale": rationale,
+                },
+                source="work_planner",
+            )
             task = await submit_task(
                 agent=agent,
                 prompt=task_prompt,
@@ -466,9 +481,13 @@ async def generate_work_plan(focus: str = "") -> dict:
                     "plan_id": plan_id,
                     "project": project,
                     "rationale": rationale,
-                    "requires_approval": agent in HIGH_IMPACT_AGENTS,
+                    "governor_decision": decision.reason,
                 },
             )
+            if decision.status_override == "pending_approval":
+                task.status = "pending_approval"
+                from .tasks import _update_task
+                await _update_task(task)
             submitted.append({
                 "task_id": task.id if hasattr(task, "id") else str(task),
                 "agent": agent,
@@ -612,8 +631,8 @@ async def get_current_plan() -> dict | None:
         raw = await r.get(WORKPLAN_KEY)
         if raw:
             return json.loads(raw.decode() if isinstance(raw, bytes) else raw)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Work plan load from Redis failed: %s", e)
     return None
 
 

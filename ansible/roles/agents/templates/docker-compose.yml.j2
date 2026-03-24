@@ -14,6 +14,8 @@ services:
       - /opt/athanor/agent-output:/output
       # Data curator: personal data synced from DEV (read-only)
       - /opt/athanor/personal-data:/data/personal:ro
+      # AUTO-002: Persistent audit log (90-day retention per CONSTITUTION.yaml)
+      - /var/log/athanor:/var/log/athanor
     environment:
       - ATHANOR_NODE1_HOST={{ agent_node1_host }}
       - ATHANOR_NODE2_HOST={{ agent_node2_host }}
@@ -32,6 +34,7 @@ services:
       - ATHANOR_DASHBOARD_URL={{ agent_dashboard_url }}
       - ATHANOR_QDRANT_URL={{ agent_qdrant_url }}
       - ATHANOR_REDIS_URL={{ agent_redis_url }}
+      - ATHANOR_REDIS_PASSWORD={{ agent_redis_password }}
       - ATHANOR_SUBSCRIPTION_POLICY_PATH={{ agent_subscription_policy_path }}
       - ATHANOR_NEO4J_URL={{ agent_neo4j_url }}
       - ATHANOR_NEO4J_USER={{ agent_neo4j_user }}
@@ -44,6 +47,7 @@ services:
       - ATHANOR_HOME_ASSISTANT_URL={{ agent_home_assistant_url }}
       - ATHANOR_HA_TOKEN={{ agent_ha_token }}
       - ATHANOR_SONARR_URL={{ agent_sonarr_url }}
+      - ATHANOR_AGENT_API_TOKEN={{ agent_api_token }}
       - ATHANOR_PORT={{ agent_port }}
       - ATHANOR_SONARR_API_KEY={{ agent_sonarr_api_key }}
       - ATHANOR_RADARR_URL={{ agent_radarr_url }}

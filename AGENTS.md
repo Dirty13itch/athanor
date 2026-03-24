@@ -7,30 +7,49 @@
 | **infra-auditor** | Opus | Audit hardware, topology, and runtime drift | Worktree |
 | **researcher** | Opus | Deep technical research with sources | Worktree, background |
 | **doc-writer** | Sonnet | Documentation creation and maintenance | Worktree |
-| **Local Coder** | Local | Dispatch coding to Athanor's local inference stack via MCP | MCP bridge |
+| **coder** | Opus | Dispatch boilerplate/refactor/test coding to local Qwen3.5-27B-FP8 via MCP | MCP bridge |
+| **debugger** | Inherit | Root cause analysis for errors, service failures, and performance issues | Project memory |
+| **node-inspector** | Haiku | Fast node health checks via SSH: GPU status, containers, disk, endpoints | Background |
 
 ## MCP Servers
 
-### Project-Scoped (`.mcp.json`)
+### Always-On (`.mcp.json`)
 
-| Server | Purpose | Status |
-|--------|---------|--------|
-| **grafana** | Query Grafana dashboards and Prometheus-backed observability | Active |
-| **docker** | Docker container management across Athanor nodes | Active |
-| **athanor-agents** | MCP bridge to 9 local agents and the task API | Active |
-| **smart-reader** | Enhanced file reading | Disabled |
+8 servers loaded every session:
+
+| Server | Purpose |
+|--------|---------|
+| **docker** | Docker container management across Athanor nodes |
+| **athanor-agents** | MCP bridge to 9 local agents and the task API |
+| **redis** | Redis state, heartbeats, workspace, scheduler |
+| **qdrant** | Vector DB collections, search, scroll |
+| **smart-reader** | Enhanced file reading, grep, diff, log |
+| **sequential-thinking** | Structured reasoning meta-tool |
+| **neo4j** | Direct Cypher queries to knowledge graph |
+| **postgres** | SQL access to VAULT databases |
+
+### Disabled by Default (enable per-session via `/mcp`)
+
+| Server | Purpose |
+|--------|---------|
+| **grafana** | Query Grafana dashboards and Prometheus-backed observability |
+| **langfuse** | Trace debugging and prompt management |
+| **miniflux** | RSS feed tools |
+| **n8n** | Workflow automation |
+| **gitea** | Repo/issue/PR management |
+| **context7** | Live library docs (resolve-library-id, query-docs) |
+| **github** | GitHub repo management (needs GITHUB_TOKEN) |
 
 ### Cloud Connectors (claude.ai)
 
 | Server | Purpose | Status |
 |--------|---------|--------|
-| **Context7** | Library and framework documentation lookup | Active |
 | **Gmail** | Email integration | Active |
 | **Google Calendar** | Calendar management | Active |
 
 ### Removed
 
-Previously used, removed from `.mcp.json`: sequential-thinking, local Context7 duplicate, filesystem, playwright.
+Previously used, removed from config: filesystem, playwright, local context7 duplicate.
 
 ---
 

@@ -1,7 +1,7 @@
 # ADR-009: Monitoring + Observability
 
 **Date:** 2026-02-15
-**Status:** Proposed
+**Status:** Accepted
 **Research:** [docs/research/2026-02-15-monitoring.md](../research/2026-02-15-monitoring.md)
 **Depends on:** ADR-004 (Node Roles)
 

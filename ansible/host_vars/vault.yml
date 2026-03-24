@@ -76,12 +76,12 @@ prometheus_probe_targets:
     node_id: node1
   - id: prometheus
     name: "Prometheus"
-    url: "http://localhost:9090/-/healthy"
+    url: "http://{{ vault_ip }}:9090/-/healthy"
     category: observability
     node_id: vault
   - id: grafana
     name: "Grafana"
-    url: "http://localhost:3000/api/health"
+    url: "http://{{ vault_ip }}:3000/api/health"
     category: observability
     node_id: vault
   - id: node1-node-exporter
@@ -166,9 +166,31 @@ prometheus_probe_targets:
     node_id: vault
   - id: home-assistant
     name: "Home Assistant"
-    url: "http://{{ vault_ip }}:8123/api/"
+    url: "http://{{ vault_ip }}:8123/"
     category: home
     node_id: vault
+  - id: gitea
+    name: "Gitea"
+    url: "http://{{ vault_ip }}:3033"
+    category: platform
+    node_id: vault
+  - id: miniflux
+    name: "Miniflux"
+    url: "http://{{ vault_ip }}:8070"
+    category: platform
+    node_id: vault
+  - id: n8n
+    name: "n8n"
+    url: "http://{{ vault_ip }}:5678"
+    category: platform
+    node_id: vault
+
+# cadvisor on non-standard port (8080 used by other services)
+cadvisor_port: 9880
+
+# Alloy log shipping — match existing container name
+alloy_container_name: ls-alloy
+alloy_config_path: "{{ vault_appdata_path }}/alloy"
 
 # Media services
 plex_port: 32400

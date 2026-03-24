@@ -10,10 +10,6 @@ Use these together:
 
 - [command-hierarchy-governance.md](./command-hierarchy-governance.md)
 - [system-constitution.md](./system-constitution.md)
-- [../atlas/COMMAND_HIERARCHY_ATLAS.md](../atlas/COMMAND_HIERARCHY_ATLAS.md)
-- [../atlas/MODEL_GOVERNANCE_ATLAS.md](../atlas/MODEL_GOVERNANCE_ATLAS.md)
-- [../atlas/OPERATIONS_ATLAS.md](../atlas/OPERATIONS_ATLAS.md)
-- [../operations/OPERATOR_RUNBOOKS.md](../operations/OPERATOR_RUNBOOKS.md)
 - [automation-backbone-execution-tracker.md](./automation-backbone-execution-tracker.md)
 
 ## Current implementation snapshot
@@ -575,6 +571,4 @@ Retired items should remain as history or reference, but stop competing with act
 - [command-hierarchy-governance.md](./command-hierarchy-governance.md)
 - [intelligence-layers.md](./intelligence-layers.md)
 - [agent-contracts.md](./agent-contracts.md)
-- [../atlas/COMMAND_HIERARCHY_ATLAS.md](../atlas/COMMAND_HIERARCHY_ATLAS.md)
-- [../atlas/MODEL_GOVERNANCE_ATLAS.md](../atlas/MODEL_GOVERNANCE_ATLAS.md)
 - [automation-backbone-execution-tracker.md](./automation-backbone-execution-tracker.md)

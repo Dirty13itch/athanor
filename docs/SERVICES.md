@@ -2,22 +2,41 @@
 
 *Live service inventory. Updated when services change.*
 
-Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-27B-FP8 TP=4 live on FOUNDRY)
+Last updated: 2026-03-16 (Added vLLM Vision model on Workshop 5060Ti :8010, vision LiteLLM route)
 
 ## Node 1 â€” Foundry (192.168.1.244)
 
 | Service | Port | Details |
 |---------|------|---------|
 | vLLM Coordinator (Qwen3.5-27B-FP8) | 8000 | TP=4 across GPUs 0,1,3,4 (4x RTX 5070 Ti), `--tool-call-parser qwen3_xml`, `--enforce-eager`, `--language-model-only` |
-| vLLM Coder (Qwen3-Coder-30B-A3B-Instruct-AWQ) | 8006 | GPU 2 (RTX 4090), dedicated coding and tool-heavy lane |
+| vLLM Coder (Qwen3.5-35B-A3B-AWQ-4bit) | 8006 | GPU 2 (RTX 4090), dedicated coding and tool-heavy lane |
 | Agent Server | 9000 | 9 agents + GWT workspace + escalation + activity/preferences + routing + diagnosis + semantic cache + circuit breakers + self-improvement + preference learning APIs |
 | Qdrant | 6333/6334 | Vector DB: knowledge (2484), personal_data (2304), conversations, activity, preferences (55), implicit_feedback, events |
 | GPU Orchestrator | 9200 | 4 zones, DCGM metrics, vLLM sleep/wake, TTL auto-sleep, Prometheus export |
 | wyoming-whisper | 10300 | STT for HA â€” faster-distil-whisper-large-v3 (float16), GPU 4 |
 | Speaches | 8200 | OpenAI-compatible STT+TTS API â€” Kokoro + faster-whisper, GPU 4 |
+| Docker Socket Proxy | 2375 | Read-only Docker socket proxy for MCP tools, /opt/athanor/docker-socket-proxy/ |
 | Grafana Alloy | â€” | Log/metric forwarding |
 | node_exporter | 9100 | Prometheus metrics |
 | dcgm-exporter | 9400 | GPU metrics |
+
+### Agent Server Endpoints (FOUNDRY:9000)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| /health | GET | Agent server health |
+| /v1/agents | GET | Agent registry |
+| /v1/tasks/* | GET/POST | Task submission, status, approval |
+| /v1/governor/* | GET/POST | Governor state, lanes, presence, pause/resume |
+| /v1/plans/* | GET/POST | Plan lifecycle (intent → plan → execute) |
+| /v1/projects/* | GET/POST | Project milestones, stalled detection, advancement |
+| /v1/models/local | GET | Live vLLM model health and status |
+| /v1/subscriptions/* | GET/POST | CLI status, routing log, provider status, quotas, leases |
+| /v1/goals/* | GET/POST | Goal tracking, trust scores |
+| /v1/workspace/* | GET/POST | GWT workspace state |
+| /v1/activity/* | GET | Activity feed |
+| /v1/events/* | GET/POST | Event stream |
+| /v1/metrics/* | GET | Agent and system metrics |
 
 ## Node 2 â€” Workshop (192.168.1.225)
 
@@ -26,7 +45,8 @@ Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-
 | vLLM (Qwen3.5-35B-A3B-AWQ-4bit) | 8000 | RTX 5090, vLLM nightly, `--tool-call-parser qwen3_xml`, `--kv-cache-dtype auto` |
 | Dashboard | 3001 | Next.js 16, PWA, 5 lens modes, SSE real-time, 17+ pages |
 | ws-pty Bridge | 3100 | WebSocket terminal bridge (node-pty + ws sidecar) |
-| ComfyUI | 8188 | Flux dev FP8 + Wan2.x T2V, RTX 5060 Ti, WanVideoWrapper + KJNodes |
+| vLLM Vision (Qwen3-VL-8B-Instruct-FP8) | 8010 | RTX 5060 Ti (GPU 1), multimodal vision-language model, FP8, 8K context |
+| ComfyUI | 8188 | Flux dev FP8 + Wan2.x T2V, RTX 5060 Ti (GPU 1, shared with vLLM Vision — cannot run simultaneously) |
 | EoBQ | 3002 | Empire of Broken Queens â€” Next.js game app |
 | Open WebUI | 3000 | Chat interface (Workshop-local, routes to Node 1 vLLM) |
 | Grafana Alloy | â€” | Log/metric forwarding |
@@ -39,7 +59,7 @@ Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-
 
 | Service | Port | Details |
 |---------|------|---------|
-| LiteLLM Proxy | 4000 | Routed local + cloud inference: reasoning, coding, coder, creative, utility, fast, worker, uncensored, embedding, reranker, Anthropic, OpenAI, Google, DeepSeek, Moonshot, Z.ai, OpenRouter. LangFuse callbacks. Auth is env-backed. |
+| LiteLLM Proxy | 4000 | Routed local + cloud inference: reasoning, coding, coder, creative, utility, fast, worker, uncensored, vision, embedding, reranker, Anthropic, OpenAI, Google, DeepSeek, Moonshot, Z.ai, OpenRouter. LangFuse callbacks. Auth is env-backed. |
 | Neo4j | 7474/7687 | Graph DB (3095 nodes, 4447 rels), auth is env-backed. |
 | Redis | 6379 | GWT workspace + GPU orchestrator state + scheduler |
 | Qdrant | 6333/6334 | VAULT-side vector DB instance |
@@ -75,6 +95,8 @@ Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-
 | Tautulli | 8181 | Plex analytics |
 | Stash | 9999 | Adult content management |
 | Tdarr | 8265-8266 | Media transcoding (server + node) |
+| qBittorrent | 8112 | Torrent client (via Gluetun VPN). Admin: `admin`. |
+| Gluetun | -- | VPN tunnel (NordVPN/Switzerland). qBittorrent routes through this. |
 
 ### Home + Voice
 
@@ -95,6 +117,9 @@ Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-
 | Spiderfoot | 5001 | OSINT tool |
 | ntfy | 8880 | Push notification server |
 | Field Inspect App | 3080 | Field inspection PWA (dedicated Postgres :5433, MinIO :9000-9001) |
+| Ulrich Energy Website | 8088 | Ulrich Energy business site |
+| backup-exporter | 9199 | Prometheus exporter for backup job status |
+| blackbox-exporter | 9115 | Prometheus blackbox exporter for endpoint probing |
 
 ## DEV (192.168.1.189)
 
@@ -104,7 +129,10 @@ Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-
 | claude-squad | â€” | Multi-session Claude Code manager (git worktrees, parallel sessions) |
 | Embedding (Qwen3-Embedding-0.6B) | 8001 | vLLM embedding model on RTX 5060 Ti |
 | Reranker | 8003 | Reranker model on RTX 5060 Ti |
+| node_exporter | 9100 | Prometheus metrics |
+| dcgm-exporter | 9400 | GPU metrics (nv-hostengine entrypoint for driver 590) |
 | Gitea Actions Runner | â€” | act_runner v0.2.11 (systemd service, self-hosted label) |
+| Multi-CLI Dispatch | â€” | Daemon polling dispatch queue, spawns CLIs (systemd user service) |
 
 ## LiteLLM Model Routes
 
@@ -112,12 +140,13 @@ Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-
 |-------|---------|-------|------|
 | `reasoning` / `gpt-4` | vLLM | Qwen3.5-27B-FP8 | Foundry :8000 (TP=4) |
 | `coding` | vLLM | Qwen3.5-27B-FP8 | Foundry :8000 (same coordinator lane, coding-oriented alias) |
-| `coder` | vLLM | Qwen3-Coder-30B-A3B-Instruct-AWQ | Foundry :8006 |
+| `coder` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Foundry :8006 |
 | `creative` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `utility` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `fast` / `gpt-3.5-turbo` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `worker` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
 | `uncensored` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
+| `vision` | vLLM | Qwen3-VL-8B-Instruct-FP8 | Workshop :8010 (5060Ti) |
 | `embedding` / `text-embedding-ada-002` | vLLM | Qwen3-Embedding-0.6B | DEV :8001 |
 | `reranker` | vLLM | Reranker model | DEV :8003 |
 | `claude` | Anthropic API | Claude | Cloud |
@@ -134,7 +163,8 @@ Last updated: 2026-03-08 (Session 42 â€” Phase 2 model correction: Qwen3.5-
 |-------|------|---------|
 | Qwen3.5-27B-FP8 | ~29G | Coordinator (LiteLLM: `reasoning`, `coding`) - Foundry TP=4 |
 | Qwen3.5-35B-A3B-AWQ-4bit | ~22G | Worker lane (LiteLLM: `fast`, `worker`, `creative`, `utility`, `uncensored`) - Workshop |
-| Qwen3-Coder-30B-A3B-Instruct-AWQ | ~16G | Coder lane (LiteLLM: `coder`) - Foundry GPU 2 (4090) |
+| Qwen3.5-35B-A3B-AWQ-4bit | ~16G | Coder lane (LiteLLM: `coder`) - Foundry GPU 2 (4090) |
+| Qwen3-VL-8B-Instruct-FP8 | ~10G | Vision-language model (LiteLLM: `vision`) - Workshop 5060Ti :8010 |
 | Qwen3-32B-AWQ | 19G | Previous reasoning model (replaced by Qwen3.5-27B-FP8) |
 | GLM-4.7-Flash-GPTQ-4bit | 16G | Previous local creative candidate (not currently loaded) |
 | Huihui-Qwen3.5-27B-abliterated | 52G | Abliterated 27B (available, not loaded) |

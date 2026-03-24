@@ -1,11 +1,13 @@
 "use client";
 
 import { useSystemStream } from "@/hooks/use-system-stream";
+import { useLens } from "@/hooks/use-lens";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function SystemPulse() {
+export function SystemPulse({ sticky = false }: { sticky?: boolean }) {
   const { data, connected } = useSystemStream();
+  const { config: lensConfig } = useLens();
 
   if (!data) {
     return (
@@ -28,13 +30,14 @@ export function SystemPulse() {
     : 0;
 
   const intensity = Math.min(1, avgUtil / 80);
+  const glowHue = lensConfig.accentHue || 65;
 
   return (
     <Card
-      className="transition-shadow duration-1000"
+      className={`transition-shadow duration-1000 ${sticky ? "sticky top-0 z-30" : ""}`}
       style={{
         boxShadow: intensity > 0.1
-          ? `0 0 ${Math.round(intensity * 20)}px oklch(0.77 ${(0.02 + intensity * 0.04).toFixed(3)} 205 / ${(intensity * 0.22).toFixed(2)})`
+          ? `0 0 ${Math.round(intensity * 20)}px oklch(0.77 ${(0.02 + intensity * 0.04).toFixed(3)} ${glowHue} / ${(intensity * 0.22).toFixed(2)})`
           : undefined,
       }}
     >
@@ -108,6 +111,26 @@ export function SystemPulse() {
                 {data.tasks.currently_running} running
                 {data.tasks.by_status.pending > 0 && `, ${data.tasks.by_status.pending} queued`}
               </span>
+            </div>
+          )}
+
+          {/* Media streams */}
+          {data.media && data.media.streamCount > 0 && (
+            <div className="text-xs">
+              <span className="text-muted-foreground">Playing</span>{" "}
+              <Badge variant="default" className="text-xs py-0 px-1.5">
+                {data.media.streamCount} stream{data.media.streamCount !== 1 ? "s" : ""}
+              </Badge>
+            </div>
+          )}
+
+          {/* Downloads */}
+          {data.media && data.media.downloadCount > 0 && (
+            <div className="text-xs">
+              <span className="text-muted-foreground">Downloads</span>{" "}
+              <Badge variant="outline" className="text-xs py-0 px-1.5 text-[color:var(--signal-warning)]">
+                {data.media.downloadCount}
+              </Badge>
             </div>
           )}
 

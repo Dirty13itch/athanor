@@ -1,0 +1,32 @@
+---
+- name: Run cadvisor container
+  community.docker.docker_container:
+    name: cadvisor
+    image: "{{ cadvisor_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ cadvisor_port }}:8080"
+    volumes:
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /:/rootfs:ro
+    read_only: true
+    privileged: true
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+  when: not ansible_check_mode
+
+- name: Wait for cadvisor to respond
+  ansible.builtin.uri:
+    url: "http://localhost:{{ cadvisor_port }}/healthz"
+    status_code: 200
+  register: cadvisor_health
+  retries: 5
+  delay: 3
+  until: cadvisor_health.status == 200
+  when: not ansible_check_mode

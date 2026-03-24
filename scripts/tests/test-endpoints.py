@@ -17,6 +17,8 @@ import sys
 import time
 from urllib.request import Request, urlopen
 from urllib.error import URLError
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, get_url
 
 def _host_env(name: str, default: str) -> str:
     return os.environ.get(name, default).strip()
@@ -24,7 +26,7 @@ def _host_env(name: str, default: str) -> str:
 
 LITELLM_URL = (
     os.environ.get("ATHANOR_LITELLM_URL")
-    or f"http://{_host_env('ATHANOR_VAULT_HOST', '192.168.1.203')}:4000"
+    or get_url("litellm")
 ).rstrip("/")
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
@@ -33,7 +35,7 @@ LITELLM_KEY = (
 )
 LANGFUSE_URL = (
     os.environ.get("ATHANOR_LANGFUSE_URL")
-    or f"http://{_host_env('ATHANOR_VAULT_HOST', '192.168.1.203')}:3030"
+    or get_url("langfuse")
 ).rstrip("/")
 
 # Test categories with representative prompts

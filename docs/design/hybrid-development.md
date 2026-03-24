@@ -2,7 +2,7 @@
 
 *How cloud AI (Claude Code) and local AI (Qwen3 on Athanor) work together.*
 
-Last updated: 2026-02-25
+Last updated: 2026-03-15
 
 ---
 
@@ -22,7 +22,7 @@ Claude Code (DEV/WSL2, Opus 4.6)
          │  MCP bridge (scripts/mcp-athanor-agents.py)
          │
          ▼
-Agent Server (Node 1:9000, Qwen3-32B-AWQ)
+Agent Server (Node 1:9000, Qwen3.5-27B-FP8)
   ├── Coding Agent: generates code, refactors, runs linters
   ├── Knowledge Agent: provides codebase context
   └── Research Agent: checks docs, searches for patterns
@@ -125,7 +125,7 @@ A new LangGraph agent on the agent server with tools for:
 - Generating code from specifications
 - Applying refactoring patterns
 
-Uses the `reasoning` model (Qwen3-32B-AWQ) with low temperature (0.3) for deterministic code generation.
+Uses the `reasoning` model (Qwen3.5-27B-FP8) with low temperature (0.3) for deterministic code generation.
 
 ### 4. Dispatch Skill (`.claude/skills/local-coding.md`)
 

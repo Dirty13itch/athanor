@@ -1,0 +1,32 @@
+---
+- name: Create alloy config directory
+  ansible.builtin.file:
+    path: "{{ alloy_config_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Deploy alloy config
+  ansible.builtin.template:
+    src: config.alloy.j2
+    dest: "{{ alloy_config_path }}/config.alloy"
+    mode: "0644"
+  register: alloy_config
+
+- name: Run alloy container
+  community.docker.docker_container:
+    name: "{{ alloy_container_name }}"
+    image: "{{ alloy_image }}"
+    state: started
+    restart_policy: unless-stopped
+    network_mode: host
+    volumes:
+      - "{{ alloy_config_path }}/config.alloy:/etc/alloy/config.alloy"
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    env:
+      ALLOY_DEPLOY_MODE: docker
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+    recreate: "{{ alloy_config.changed | default(false) }}"
+  when: not ansible_check_mode

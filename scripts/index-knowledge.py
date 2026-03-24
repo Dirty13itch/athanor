@@ -33,22 +33,27 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, get_url
 
 # --- Config ---
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DOCS_DIR = REPO_ROOT / "docs"
+RULES_DIR = REPO_ROOT / ".claude" / "rules"
 EXTRA_FILES = [
     REPO_ROOT / "CLAUDE.md",
     REPO_ROOT / "MEMORY.md",
     REPO_ROOT / "AGENTS.md",
+    REPO_ROOT / "CONSTITUTION.yaml",
+    REPO_ROOT / "STATUS.md",
     REPO_ROOT / "docs" / "VISION.md",
     REPO_ROOT / "docs" / "BUILD-MANIFEST.md",
     REPO_ROOT / "docs" / "SYSTEM-SPEC.md",
     REPO_ROOT / "docs" / "SERVICES.md",
 ]
 
-QDRANT_URL = os.environ.get("ATHANOR_QDRANT_URL") or os.environ.get("QDRANT_URL", "http://192.168.1.244:6333")
-LITELLM_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/") + "/v1"
+QDRANT_URL = get_url("qdrant")
+LITELLM_URL = get_url("litellm").rstrip("/") + "/v1"
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
     or os.environ.get("LITELLM_API_KEY")
@@ -57,7 +62,7 @@ LITELLM_KEY = (
 NEO4J_URL = (
     os.environ.get("ATHANOR_NEO4J_URL")
     or os.environ.get("NEO4J_URL")
-    or "http://192.168.1.203:7474"
+    or get_url("neo4j_http")
 ).rstrip("/")
 NEO4J_USER = os.environ.get("ATHANOR_NEO4J_USER") or os.environ.get("NEO4J_USER", "neo4j")
 NEO4J_PASSWORD = os.environ.get("ATHANOR_NEO4J_PASSWORD") or os.environ.get("NEO4J_PASSWORD", "")
@@ -126,6 +131,8 @@ def categorize_file(path: Path) -> str:
         return "design"
     if "projects/" in rel:
         return "project"
+    if ".claude/rules/" in rel:
+        return "rules"
     if "VISION" in rel:
         return "vision"
     if "BUILD" in rel or "ROADMAP" in rel:
@@ -245,6 +252,11 @@ def find_docs() -> list[Path]:
         if f.name == "CLAUDE.md" and f.parent != DOCS_DIR:
             continue
         files.add(f)
+
+    # Scan .claude/rules/ for operational rules
+    if RULES_DIR.exists():
+        for f in RULES_DIR.rglob("*.md"):
+            files.add(f)
 
     for f in EXTRA_FILES:
         if f.exists():

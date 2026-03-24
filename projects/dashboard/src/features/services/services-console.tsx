@@ -1,8 +1,8 @@
 "use client";
 
-import { useDeferredValue } from "react";
+import { useDeferredValue, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Copy, Download, ExternalLink, RefreshCcw, Search } from "lucide-react";
+import { ArrowUpRight, Copy, Download, ExternalLink, FileText, Power, RefreshCcw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { MetricChart } from "@/components/metric-chart";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
-import { getServices, getServicesHistory } from "@/lib/api";
+import { getServices, getServicesHistory, getContainers, restartContainer, getContainerLogs, type ContainerInfo } from "@/lib/api";
 import { type ServicesHistorySnapshot, type ServicesSnapshot } from "@/lib/contracts";
 import { config } from "@/lib/config";
 import { compactText, formatCategoryLabel, formatLatency, formatRelativeTime } from "@/lib/format";
@@ -26,6 +26,33 @@ import { useUrlState } from "@/lib/url-state";
 
 type StatusFilter = "all" | "healthy" | "degraded";
 type SortMode = "severity" | "latency" | "name";
+
+// Map service IDs to their known Docker container names and nodes
+const SERVICE_CONTAINER_MAP: Record<string, { container: string; node: string }> = {
+  "workshop-worker": { container: "vllm-node2", node: "workshop" },
+  "comfyui": { container: "comfyui", node: "workshop" },
+  "workshop-open-webui": { container: "open-webui", node: "workshop" },
+  "eoq": { container: "athanor-eoq", node: "workshop" },
+  "workshop-node-exporter": { container: "node-exporter", node: "workshop" },
+  "workshop-dcgm-exporter": { container: "dcgm-exporter", node: "workshop" },
+  "coordinator": { container: "vllm-coordinator", node: "foundry" },
+  "coder": { container: "vllm-coder", node: "foundry" },
+  "agent-server": { container: "athanor-agents", node: "foundry" },
+  "foundry-qdrant": { container: "qdrant", node: "foundry" },
+  "foundry-node-exporter": { container: "node-exporter", node: "foundry" },
+  "foundry-dcgm-exporter": { container: "dcgm-exporter", node: "foundry" },
+  "litellm": { container: "litellm", node: "vault" },
+  "langfuse": { container: "langfuse-web", node: "vault" },
+  "vault-neo4j": { container: "neo4j", node: "vault" },
+  "vault-redis": { container: "redis", node: "vault" },
+  "prometheus": { container: "prometheus", node: "vault" },
+  "grafana": { container: "grafana", node: "vault" },
+  "plex": { container: "plex", node: "vault" },
+  "sonarr": { container: "sonarr", node: "vault" },
+  "radarr": { container: "radarr", node: "vault" },
+  "stash": { container: "stash", node: "vault" },
+  "vault-node-exporter": { container: "node-exporter", node: "vault" },
+};
 
 function toPrometheusLink(serviceId: string) {
   const expr = `probe_success{service_id="${serviceId}"}`;
@@ -66,6 +93,11 @@ export function ServicesConsole({
   const window = isTimeWindow(windowValue) ? windowValue : "3h";
   const deferredSearch = useDeferredValue(search);
 
+  const [restarting, setRestarting] = useState<string | null>(null);
+  const [restartResult, setRestartResult] = useState<{ ok: boolean; error?: string } | null>(null);
+  const [logs, setLogs] = useState<string | null>(null);
+  const [logsLoading, setLogsLoading] = useState(false);
+
   const servicesQuery = useQuery({
     queryKey: queryKeys.services,
     queryFn: getServices,
@@ -78,6 +110,30 @@ export function ServicesConsole({
     initialData: window === initialHistory.window ? initialHistory : undefined,
     ...liveQueryOptions(LIVE_REFRESH_INTERVALS.telemetry),
   });
+  const containersQuery = useQuery({
+    queryKey: ["containers"],
+    queryFn: getContainers,
+    ...liveQueryOptions(60_000),
+  });
+
+  const handleRestart = useCallback(async (containerName: string, node: string) => {
+    setRestarting(containerName);
+    setRestartResult(null);
+    const result = await restartContainer(containerName, node);
+    setRestartResult(result);
+    setRestarting(null);
+    if (result.ok) {
+      setTimeout(() => void servicesQuery.refetch(), 3000);
+    }
+  }, [servicesQuery]);
+
+  const handleViewLogs = useCallback(async (containerName: string, node: string) => {
+    setLogsLoading(true);
+    setLogs(null);
+    const text = await getContainerLogs(containerName, 80, node);
+    setLogs(text);
+    setLogsLoading(false);
+  }, []);
 
   if (servicesQuery.isError) {
     return (
@@ -373,7 +429,10 @@ export function ServicesConsole({
         </CardContent>
       </Card>
 
-      <Sheet open={Boolean(activeService)} onOpenChange={(open) => setSearchValue("service", open && activeService ? activeService.id : null)}>
+      <Sheet open={Boolean(activeService)} onOpenChange={(open) => {
+        setSearchValue("service", open && activeService ? activeService.id : null);
+        if (!open) { setLogs(null); setRestartResult(null); }
+      }}>
         <SheetContent side="right" className="w-full max-w-xl overflow-y-auto border-l border-border/80 bg-background/95">
           {activeService ? (
             <>
@@ -453,6 +512,77 @@ export function ServicesConsole({
                     </Button>
                   </CardContent>
                 </Card>
+
+                {(() => {
+                  const mapped = SERVICE_CONTAINER_MAP[activeService.id];
+                  const containerName = mapped?.container
+                    ?? (containersQuery.data ?? []).find((c: ContainerInfo) =>
+                      c.name.includes(activeService.id.replace(/-/g, ""))
+                      || activeService.name.toLowerCase().includes(c.name.replace(/^athanor-/, ""))
+                    )?.name;
+                  const containerNode = mapped?.node
+                    ?? (containersQuery.data ?? []).find((c: ContainerInfo) => c.name === containerName)?.node
+                    ?? "workshop";
+                  const container = containerName
+                    ? (containersQuery.data ?? []).find((c: ContainerInfo) => c.name === containerName && c.node === containerNode)
+                    : null;
+                  const isProduction = containerNode === "foundry";
+
+                  if (!containerName) return null;
+
+                  return (
+                    <Card className={isProduction ? "border-red-500/30 bg-red-950/10" : "border-amber-500/30 bg-amber-950/10"}>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Container control</CardTitle>
+                        <CardDescription>
+                          Docker container: <code className="text-xs font-mono">{containerName}</code>
+                          <Badge variant="outline" className="ml-2">{containerNode}</Badge>
+                          {container && (
+                            <Badge variant="outline" className="ml-2" data-tone={container.state === "running" ? "success" : "danger"}>
+                              {container.state}
+                            </Badge>
+                          )}
+                          {isProduction && (
+                            <Badge variant="destructive" className="ml-2">Production — read-only</Badge>
+                          )}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {!isProduction && (
+                            <Button
+                              variant="outline"
+                              className="border-amber-500/30 text-amber-200 hover:bg-amber-900/30"
+                              disabled={restarting === containerName}
+                              onClick={() => void handleRestart(containerName, containerNode)}
+                            >
+                              <Power className="mr-2 h-4 w-4" />
+                              {restarting === containerName ? "Restarting..." : "Restart"}
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            disabled={logsLoading}
+                            onClick={() => void handleViewLogs(containerName, containerNode)}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            {logsLoading ? "Loading..." : "View logs"}
+                          </Button>
+                        </div>
+                        {restartResult && (
+                          <p className={`text-sm ${restartResult.ok ? "text-green-400" : "text-red-400"}`}>
+                            {restartResult.ok ? "Container restarted successfully." : restartResult.error}
+                          </p>
+                        )}
+                        {logs !== null && (
+                          <pre className="max-h-64 overflow-auto rounded-xl border border-border/50 bg-black/40 p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap">
+                            {logs || "(no output)"}
+                          </pre>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 <Card className="border-border/70 bg-card/70">
                   <CardHeader>

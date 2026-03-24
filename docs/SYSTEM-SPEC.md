@@ -2,7 +2,7 @@
 
 *The complete operational specification. If you could only read one document about how Athanor works, this is it.*
 
-Last updated: 2026-03-08
+Last updated: 2026-03-15
 
 ---
 
@@ -39,7 +39,7 @@ For the full philosophy, see `docs/VISION.md`. For the build history, see `docs/
 
 | Node | Role | CPU | RAM | GPUs | Key Services |
 |------|------|-----|-----|------|-------------|
-| **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=4 (Qwen3.5-27B-FP8), vLLM coder (Qwen3-Coder-30B-A3B-Instruct-AWQ), Agent Server, Qdrant |
+| **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=4 (Qwen3.5-27B-FP8), vLLM coder (Qwen3.5-35B-A3B-AWQ-4bit), Agent Server, Qdrant |
 | **Workshop** (.225) | Inference, creative, UI | TR 7960X 24C/48T | 128 GB DDR5 | 5090 + 5060 Ti | vLLM (Qwen3.5-35B-A3B-AWQ), ComfyUI, Dashboard, EoBQ, Open WebUI |
 | **VAULT** (.203) | Storage, routing, media, monitoring | Ryzen 9950X 16C/32T | 128 GB DDR5 | Arc A380 | LiteLLM, Neo4j, Prometheus, Grafana, Plex, *arr, HA |
 | **DEV** (.189) | Development, ops center | Ryzen 9 9900X 12C/24T | 64 GB DDR5 | RTX 5060 Ti 16GB | Claude Code (native Linux), Ansible control, Embedding, Reranker |
@@ -72,24 +72,24 @@ scripts/index-knowledge.py (DEV cron or manual)
   → Scans docs/ directory (81 files)
   → Chunks into segments
   → Embeds via LiteLLM → Qwen3-Embedding-0.6B (DEV:8001)
-  → Upserts to Qdrant (Node 1:6333) — 2547 vectors
+  → Upserts to Qdrant (Node 1:6333) — 3435 chunks (knowledge collection)
 ```
 
 ### Service Inventory
 
 Full inventory in `docs/SERVICES.md`. Summary:
 
-- **Node 1 (11 containers):** vLLM Qwen3.5-27B-FP8 (TP=4), vLLM Qwen3-Coder-30B-A3B-Instruct-AWQ, Agent Server, Qdrant, GPU Orchestrator, Speaches, wyoming-whisper, node_exporter, dcgm-exporter
-- **Node 2 (9 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Open WebUI, Alloy, node_exporter, dcgm-exporter
-- **VAULT (42 containers):** LiteLLM, LangFuse (6 services), Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, n8n, Gitea, Miniflux, ntfy, Meilisearch, and more
-- **DEV (2 services):** Embedding model (:8001), Reranker (:8003)
+- **Foundry (14 containers):** vLLM Qwen3.5-27B-FP8 (TP=4), vLLM Qwen3.5-35B-A3B-AWQ-4bit, Agent Server, Qdrant, GPU Orchestrator, Speaches, wyoming-whisper, Crucible AI Search (api, chromadb, ollama, searxng), Alloy, node_exporter, dcgm-exporter
+- **Workshop (10 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Ulrich Energy, Open WebUI, Alloy, node_exporter, dcgm-exporter
+- **VAULT (44 containers):** LiteLLM, LangFuse (6 services), Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, n8n, Gitea, Miniflux, ntfy, Meilisearch, field-inspect-app, ulrich-energy-website, blackbox-exporter, backup-exporter, and more
+- **DEV (4 services):** Embedding model (:8001), Reranker (:8003), node_exporter (:9100), dcgm-exporter (:9400)
 
 ### Model Inventory
 
 | Model | Size | Location | GPU(s) | Purpose | LiteLLM Alias |
 |-------|------|----------|--------|---------|---------------|
 | Qwen3.5-27B-FP8 | ~15.6 GB/GPU | Node 1:8000 | GPUs 0,1,3,4 (TP=4) | Reasoning, agents, coding alias | `reasoning`, `coding` |
-| Qwen3-Coder-30B-A3B-Instruct-AWQ | ~16 GB | Node 1:8006 | GPU 2 (4090) | Dedicated coding and tool-use lane | `coder` |
+| Qwen3.5-35B-A3B-AWQ-4bit | ~22 GB | Node 1:8006 | GPU 2 (4090) | Dedicated coding and tool-use lane | `coder` |
 | Qwen3.5-35B-A3B-AWQ | ~22 GB | Node 2:8000 | GPU 0 (5090) | Worker, utility, fast, creative local alias lane | `worker`, `fast`, `creative`, `utility`, `uncensored` |
 | Qwen3-Embedding-0.6B | 1.2 GB | DEV:8001 | GPU 0 (5060 Ti) | Embeddings | `embedding` |
 | Qwen3-Reranker-0.6B | — | DEV:8003 | GPU 0 (5060 Ti) | Reranking | `reranker` |
@@ -132,7 +132,7 @@ Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`
 - **Agent registry:** All 9 agents register capabilities in Redis on startup. Discovery via `GET /v1/agents/registry`.
 - **Event ingestion:** External events (HA state changes, cron, webhooks) converted to workspace items via `POST /v1/events` with priority mapping.
 - **Redis pub/sub:** Competition cycle publishes broadcast to `athanor:workspace:broadcast` channel.
-- **Conversation logging:** Every chat completion logged to Qdrant `conversations` collection (embedded for semantic search). Queryable via `GET /v1/conversations`.
+- **Conversation logging (deployed):** Every chat completion auto-embedded to Qdrant `conversations` collection (2293 entries) for semantic search. Queryable via `GET /v1/conversations`.
 
 ### Task Execution Engine (deployed Session 19)
 
@@ -228,7 +228,7 @@ Every agent action is visible. Nothing happens silently.
 | Tasks | Live | Task board — submit, monitor, cancel background agent tasks |
 | Workspace | Live | GWT workspace broadcasts, agent registry, competition state |
 | Conversations | Live | Logged agent conversations, filterable, expandable |
-| Insights | Planned | What agents learned, pattern detections |
+| Insights | Deployed | What agents learned, pattern detections |
 
 ### Feedback Mechanisms
 
@@ -331,12 +331,11 @@ Agents respond to requests. No memory between invocations beyond what's in the c
 
 ### Layer 2: Accumulated Knowledge (deployed)
 
-Knowledge base (2547 vectors), 8 Qdrant collections, preferences, activity logging, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (4447 relationships).
+Knowledge base (3435 vectors), 9 Qdrant collections (including `signals` — 102 intelligence signals from n8n pipeline), preferences, activity logging, conversation auto-embedding, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (7268 relationships, 4479 nodes).
 
-**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config).
+**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config), conversation auto-embedding (every chat completion auto-embedded to `conversations` collection since session 40), n8n signal pipeline (102 signals in Qdrant `signals` collection, daily digest integration via `goals.py`), eval suite (promptfoo — 19 tests × 2 providers, 100% pass rate, `grader` LiteLLM alias for deterministic scoring).
 
 **What's remaining for full Layer 2:**
-- Conversation history indexing (collection exists but isn't populated)
 - Proactive knowledge indexing (currently manual, should be cron)
 
 **Infrastructure:** Qdrant, Neo4j, embedding model, index scripts, Redis.
@@ -359,7 +358,7 @@ Agents recognize patterns in their own operation and user behavior:
 - Explicit: thumbs up/down, "remember this" statements, preference edits
 - Meta: which agent actions led to follow-up requests (indicating incomplete results)
 
-**Infrastructure:** Preference collection (deployed), activity logging (deployed), context injection (deployed), pattern detection jobs (not started).
+**Infrastructure:** Preference collection (deployed), activity logging (deployed), context injection (deployed), signal pipeline (deployed, n8n + Qdrant `signals`), pattern detection jobs (not started).
 **Verification:** Agent recommendations improve measurably over time. Media Agent stops suggesting genres Shaun ignores.
 
 ### Layer 4: Self-Optimization (future)
@@ -385,7 +384,7 @@ Full details in `docs/design/intelligence-layers.md`.
 |-----|------|------|-----------------|-------------|
 | GPU 0 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10-27% |
 | GPU 1 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10-27% |
-| GPU 2 (4090 ASUS) | Node 1 | 24 GB | Qwen3-Coder-30B-A3B-Instruct-AWQ | ~10% |
+| GPU 2 (4090 ASUS) | Node 1 | 24 GB | Qwen3.5-35B-A3B-AWQ-4bit | ~10% |
 | GPU 3 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10% |
 | GPU 4 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10% |
 | GPU 0 (5090) | Node 2 | 32 GB | vLLM Qwen3.5-35B-A3B-AWQ | ~10-15% |
@@ -410,9 +409,13 @@ Full details in `docs/design/intelligence-layers.md`.
 
 | Time | Job | Node | Description |
 |------|-----|------|-------------|
-| 03:00 | Qdrant backup | Node 1 | Snapshot API → NFS → VAULT |
-| 03:15 | Neo4j backup | VAULT | Cypher export to `/mnt/user/backups/` |
-| 03:30 | Appdata backup | VAULT | Tar 11 service appdatas |
+| 01:30 | Postgres backup | VAULT | `pg_dumpall` → gzip to `/mnt/user/data/backups/postgres/` |
+| 02:00 | Stash backup | VAULT | SQLite copy to `/mnt/user/data/backups/stash/` |
+| 03:00 | Qdrant backup | VAULT | Snapshot API per-collection to `/mnt/user/data/backups/qdrant/` |
+| 03:15 | Neo4j backup | VAULT | Cypher export to `/mnt/user/data/backups/neo4j/` |
+| 04:00 | Appdata backup | VAULT | Tar 11 service appdatas to `/mnt/user/data/backups/appdata/` |
+| */5 | Container watchdog | VAULT | Auto-restart crashed media/home containers |
+| 1st/mo | Docker prune | VAULT | Remove unused images older than 7 days + build cache |
 | Manual | Knowledge index | DEV | `python3 scripts/index-knowledge.py` |
 
 ### Storage
@@ -421,7 +424,13 @@ Full details in `docs/design/intelligence-layers.md`.
 |-------|--------|-------|---------|
 | `/mnt/vault/models` | VAULT NFS | Node 1, Node 2 | Shared model files |
 | `/mnt/vault/data` | VAULT NFS | Node 1, Node 2 | Shared data (backups, outputs) |
-| VAULT HDD array | Local | VAULT | 164 TB usable, 88% used (143T) |
+| VAULT HDD array | Local | VAULT | 164 TB usable, 85% used (139T) |
+| `/mnt/appdatacache` (nvme0) | Local NVMe | VAULT | Container configs + databases (66%) |
+| `/mnt/fastdata` (nvme4) | Local NVMe | VAULT | Backup staging, DB overflow (930G) |
+| `/mnt/vms` (nvme2) | Local NVMe | VAULT | Repurposed: overflow, model cache (930G) |
+| `/var/lib/docker` (nvme3) | Local NVMe | VAULT | Docker images/layers (13%) |
+
+Full NVMe layout: `docs/design/vault-storage-architecture.md`.
 
 **Gotcha:** NFS mounts go stale after VAULT reboots. The Ansible common role auto-recovers, but manual fix is `sudo umount -f /mnt/vault/models && sudo mount -a`.
 
@@ -461,7 +470,7 @@ Shaun (Owner / Alchemist)
 | Architecture & decisions | Claude (COO) | Shaun reviews | ADRs in `docs/decisions/` |
 | Infrastructure operations | Claude (COO) | General Assistant assists | Ansible, Prometheus |
 | Agent development & tuning | Claude (COO) | — | LangGraph, FastAPI |
-| Roadmap & work planning | Claude (COO) | — | BUILD-MANIFEST.md, TODO.md |
+| Roadmap & work planning | Claude (COO) | — | BUILD-MANIFEST.md |
 | Documentation accuracy | Claude (COO) | Knowledge Agent | Markdown, ADRs |
 | Knowledge management | Claude (COO) directs | Knowledge Agent executes | Qdrant, Neo4j |
 | Media operations | Claude (COO) plans | Media Agent executes | Sonarr, Radarr, Plex |

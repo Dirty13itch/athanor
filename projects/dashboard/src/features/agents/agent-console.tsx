@@ -34,6 +34,7 @@ import { RichText } from "@/components/rich-text";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
 import { getAgents } from "@/lib/api";
+import { requestJson } from "@/features/workforce/helpers";
 import {
   type AgentInfo,
   type AgentThread,
@@ -118,6 +119,16 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
+
+  const trustQuery = useQuery({
+    queryKey: ["trust-scores"],
+    queryFn: async () => {
+      const data = await requestJson("/api/agents/proxy?path=/v1/trust");
+      return (data?.agents ?? {}) as Record<string, { score: number; grade: string; feedback?: { up: number; down: number; total: number }; samples?: number }>;
+    },
+    refetchInterval: 60_000,
+  });
+  const trustData = trustQuery.data ?? {};
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -451,7 +462,14 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
                         <StatusDot tone={agent.status === "ready" ? "healthy" : "muted"} />
                       </div>
                       <p className="mt-1 text-sm text-muted-foreground">{agent.description}</p>
-                      <p className="mt-2 text-xs text-muted-foreground">{agent.tools.length} tools</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{agent.tools.length} tools</span>
+                        {trustData[agent.id] && (
+                          <Badge variant={trustData[agent.id].grade === "A" ? "default" : "outline"} className="text-[10px] px-1.5 py-0">
+                            Trust {trustData[agent.id].grade} ({Math.round(trustData[agent.id].score * 100)}%)
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </button>

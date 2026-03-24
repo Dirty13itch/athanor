@@ -40,6 +40,7 @@ class ActionCategory(str, Enum):
     ROUTINE = "routine"     # Routine adjustments (lights, temp ±1)
     CONTENT = "content"     # Content additions (add show/movie)
     DELETE = "delete"       # Deletions (remove content, disable automation)
+    PURGE = "purge"         # Memory tier purge (personal_data, conversations — never autonomous)
     CONFIG = "config"       # Configuration changes
     SECURITY = "security"   # Security-related actions
 
@@ -50,6 +51,7 @@ DEFAULT_THRESHOLDS: dict[ActionCategory, float] = {
     ActionCategory.ROUTINE: 0.5,    # Low-stakes adjustments
     ActionCategory.CONTENT: 0.8,    # Medium-stakes additions
     ActionCategory.DELETE: 0.95,    # High-stakes deletions
+    ActionCategory.PURGE: 1.0,      # Never autonomous (memory tier operations)
     ActionCategory.CONFIG: 0.95,    # High-stakes config changes
     ActionCategory.SECURITY: 1.0,   # Never autonomous
 }
@@ -80,9 +82,81 @@ class PendingAction:
     resolution: str = ""  # "approved" or "rejected"
 
 
-# In-memory notification queue (will be backed by Redis in Phase 4)
+# Redis-backed notification queue (persists across container restarts)
 _pending_actions: list[PendingAction] = []
 _notification_counter: int = 0
+_PENDING_REDIS_KEY = "athanor:escalation:pending"
+_PENDING_TTL = 86400  # 24 hours — auto-expire unresolved actions
+
+
+async def _persist_pending(pending: PendingAction):
+    """Save a pending action to Redis for persistence across restarts."""
+    try:
+        from .workspace import get_redis
+        r = await get_redis()
+        data = {
+            "id": pending.id,
+            "agent": pending.agent,
+            "action": pending.action,
+            "category": pending.category,
+            "confidence": str(pending.confidence),
+            "description": pending.description,
+            "tier": pending.tier,
+            "created_at": str(pending.created_at),
+            "resolved": "1" if pending.resolved else "0",
+            "resolution": pending.resolution,
+        }
+        import json
+        await r.hset(_PENDING_REDIS_KEY, pending.id, json.dumps(data))
+        await r.expire(_PENDING_REDIS_KEY, _PENDING_TTL)
+    except Exception as e:
+        logger.debug("Failed to persist pending action to Redis: %s", e)
+
+
+async def _remove_pending_from_redis(action_id: str):
+    """Remove a resolved action from Redis."""
+    try:
+        from .workspace import get_redis
+        r = await get_redis()
+        await r.hdel(_PENDING_REDIS_KEY, action_id)
+    except Exception as e:
+        logger.debug("Failed to remove pending action from Redis: %s", e)
+
+
+async def load_pending_from_redis():
+    """Reload pending actions from Redis on startup."""
+    global _pending_actions, _notification_counter
+    try:
+        from .workspace import get_redis
+        import json
+        r = await get_redis()
+        raw = await r.hgetall(_PENDING_REDIS_KEY)
+        loaded = 0
+        for key, val in raw.items():
+            val_str = val.decode() if isinstance(val, bytes) else val
+            data = json.loads(val_str)
+            if data.get("resolved") == "1":
+                continue
+            pending = PendingAction(
+                id=data["id"],
+                agent=data["agent"],
+                action=data["action"],
+                category=data["category"],
+                confidence=float(data["confidence"]),
+                description=data["description"],
+                tier=data["tier"],
+                created_at=float(data["created_at"]),
+            )
+            # Avoid duplicates
+            if not any(p.id == pending.id for p in _pending_actions):
+                _pending_actions.append(pending)
+                loaded += 1
+        if loaded:
+            # Update counter to avoid ID collisions
+            _notification_counter = max(_notification_counter, loaded + 100)
+            logger.info("Loaded %d pending actions from Redis", loaded)
+    except Exception as e:
+        logger.debug("Failed to load pending actions from Redis: %s", e)
 
 
 async def _send_push_notification(
@@ -222,8 +296,8 @@ def _fire_push(pending: "PendingAction") -> None:
         try:
             from .goals import increment_notification_count
             await increment_notification_count(pending.agent)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Notification count increment failed: %s", e)
 
     try:
         loop = asyncio.get_event_loop()
@@ -392,6 +466,14 @@ def queue_pending_action(
         pending.id, agent, action, confidence,
     )
 
+    # Persist to Redis for survival across restarts
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.ensure_future(_persist_pending(pending))
+    except RuntimeError:
+        pass
+
     # Fire push notification (async, fire-and-forget)
     _fire_push(pending)
 
@@ -462,6 +544,13 @@ def resolve_action(action_id: str, approved: bool) -> bool:
             p.resolved = True
             p.resolution = "approved" if approved else "rejected"
             logger.info("Resolved %s: %s", action_id, p.resolution)
+            # Remove from Redis
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.ensure_future(_remove_pending_from_redis(action_id))
+            except RuntimeError:
+                pass
             return True
     return False
 

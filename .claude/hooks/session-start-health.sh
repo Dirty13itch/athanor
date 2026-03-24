@@ -23,6 +23,16 @@ for s in d.get('sections', []):
         total = sum(i.get('unread', 0) for i in s['items'])
         print(f\"RSS: {total} unread\")
 " 2>/dev/null
+  # Cache health for per-prompt injection
+  REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  echo "$BRIEFING" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+for s in d.get('sections', []):
+    if s['title'] == 'Node Health':
+        for item in s['items']:
+            print(f\"{item['node']}: {item['status']}\")
+" 2>/dev/null > "$REPO_ROOT/.claude/.health-cache"
   echo "==========================="
   exit 0
 fi
@@ -69,5 +79,14 @@ kill $TIMER 2>/dev/null
 cat "$TMPDIR/n1" 2>/dev/null
 cat "$TMPDIR/n2" 2>/dev/null
 cat "$TMPDIR/vault" 2>/dev/null
+
+# Cache health summary for per-prompt injection (avoids SSH on every prompt)
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+HEALTH_CACHE="$REPO_ROOT/.claude/.health-cache"
+{
+  cat "$TMPDIR/n1" 2>/dev/null
+  cat "$TMPDIR/n2" 2>/dev/null
+  cat "$TMPDIR/vault" 2>/dev/null
+} | head -5 > "$HEALTH_CACHE" 2>/dev/null
 
 echo "==========================="

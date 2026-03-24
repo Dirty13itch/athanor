@@ -9,9 +9,12 @@ import os
 import urllib.error
 import urllib.request
 from pathlib import Path
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
 
-DEFAULT_BASE_URL = os.environ.get("ATHANOR_AGENT_SERVER_URL", "http://192.168.1.244:9000")
+DEFAULT_BASE_URL = get_url("agent_server")
 
 ENDPOINTS = [
     ("/health", "health"),

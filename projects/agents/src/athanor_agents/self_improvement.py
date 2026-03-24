@@ -99,7 +99,7 @@ class CapabilityBenchmarks:
             try:
                 import redis.asyncio as aioredis
                 from .config import settings
-                self._redis = aioredis.from_url(settings.redis_url, decode_responses=True)
+                self._redis = aioredis.from_url(settings.redis_url, password=settings.redis_password or None, decode_responses=True)
             except Exception:
                 return None
         return self._redis
@@ -111,8 +111,8 @@ class CapabilityBenchmarks:
                 data = await r.get("improvement:benchmarks")
                 if data:
                     self.results = [BenchmarkResult(**d) for d in json.loads(data)]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Improvement Redis load/save failed: %s", e)
 
     async def save(self):
         r = await self._get_redis()
@@ -126,8 +126,8 @@ class CapabilityBenchmarks:
                     json.dumps([asdict(r) for r in self.results]),
                     ex=86400 * 30,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Improvement Redis load/save failed: %s", e)
 
     async def run_benchmark(
         self, category: BenchmarkCategory, name: str, test_fn,
@@ -354,7 +354,7 @@ class SelfImprovementEngine:
             try:
                 import redis.asyncio as aioredis
                 from .config import settings
-                self._redis = aioredis.from_url(settings.redis_url, decode_responses=True)
+                self._redis = aioredis.from_url(settings.redis_url, password=settings.redis_password or None, decode_responses=True)
             except Exception:
                 return None
         return self._redis
@@ -372,8 +372,8 @@ class SelfImprovementEngine:
             data = await r.get("improvement:archive")
             if data:
                 self.archive = json.loads(data)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Improvement state load/save failed: %s", e)
 
     async def save(self):
         r = await self._get_redis()
@@ -390,8 +390,8 @@ class SelfImprovementEngine:
                 json.dumps(self.archive),
                 ex=86400 * 90,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Improvement state load/save failed: %s", e)
 
     async def run_benchmark_suite(self) -> dict[str, Any]:
         """Run full benchmark suite and compare to baseline."""
@@ -437,7 +437,9 @@ class SelfImprovementEngine:
         return proposal
 
     async def validate_proposal(self, proposal_id: str) -> dict[str, Any]:
-        """Validate a proposal (syntax check for Python, YAML validation)."""
+        """Validate a proposal (forbidden file check + syntax check)."""
+        from .constitution import check_forbidden_file
+
         proposal = next((p for p in self.proposals if p.id == proposal_id), None)
         if not proposal:
             return {"error": "Proposal not found"}
@@ -447,6 +449,37 @@ class SelfImprovementEngine:
         proposal.baseline_scores = self.benchmarks.get_baseline()
 
         results = {"valid": True, "checks": []}
+
+        # AUTO-003: Check all target files against forbidden modifications list
+        for target in proposal.target_files:
+            allowed, reason = check_forbidden_file(target, actor="self_improvement")
+            if not allowed:
+                proposal.status = ImprovementStatus.FAILED.value
+                results["valid"] = False
+                results["checks"].append({"file": target, "status": "forbidden", "error": reason})
+                await self.save()
+                return {
+                    "status": proposal.status,
+                    "proposal_id": proposal_id,
+                    "results": results,
+                    "auto_deploy": False,
+                    "ready_to_deploy": False,
+                }
+
+        for file_path in proposal.proposed_changes:
+            allowed, reason = check_forbidden_file(file_path, actor="self_improvement")
+            if not allowed:
+                proposal.status = ImprovementStatus.FAILED.value
+                results["valid"] = False
+                results["checks"].append({"file": file_path, "status": "forbidden", "error": reason})
+                await self.save()
+                return {
+                    "status": proposal.status,
+                    "proposal_id": proposal_id,
+                    "results": results,
+                    "auto_deploy": False,
+                    "ready_to_deploy": False,
+                }
 
         for file_path, content in proposal.proposed_changes.items():
             if file_path.endswith(".py"):
@@ -606,8 +639,8 @@ class SelfImprovementEngine:
                 data = await r.get("improvement:last_cycle")
                 if data:
                     last_cycle = json.loads(data)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Improvement state load/save failed: %s", e)
 
         return {
             "total_proposals": len(self.proposals),
@@ -706,5 +739,17 @@ def create_improvement_router():
         engine = get_improvement_engine()
         await engine.load()
         return await engine.get_improvement_summary()
+
+    @router.post("/trigger")
+    async def trigger_nightly():
+        """Trigger nightly prompt optimization cycle."""
+        from .prompt_optimizer import run_nightly_optimization
+        return await run_nightly_optimization()
+
+    @router.get("/optimization-status")
+    async def optimization_status():
+        """Get prompt optimization status."""
+        from .prompt_optimizer import get_optimization_status
+        return await get_optimization_status()
 
     return router

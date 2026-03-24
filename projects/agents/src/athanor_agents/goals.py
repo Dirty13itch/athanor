@@ -17,6 +17,8 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+import httpx
+
 from .config import settings
 
 logger = logging.getLogger(__name__)
@@ -327,11 +329,17 @@ async def compute_trust_scores() -> dict:
         es_score = es_approved / es_total if es_total > 0 else 0.5
 
         # Combined score (weighted: feedback 60%, escalation 40%)
-        # With sample penalty: scores regress to 0.5 with fewer samples
+        # With sample penalty: scores regress to baseline with fewer samples
         total_samples = fb_total + es_total
         confidence = min(1.0, total_samples / 20)  # Full confidence at 20+ samples
         raw_score = 0.6 * fb_score + 0.4 * es_score
-        trust_score = 0.5 + (raw_score - 0.5) * confidence
+
+        # Baseline trust: new agents start at 0.55 instead of 0.5 so pipeline
+        # tasks can execute at Level B without waiting for 20+ samples.
+        # This avoids the cold-start problem where the trust flywheel can't spin
+        # because nothing ever executes to generate trust data.
+        baseline = 0.55
+        trust_score = baseline + (raw_score - 0.5) * confidence
 
         # Trust grade
         if trust_score >= 0.8:
@@ -477,6 +485,22 @@ async def generate_digest_prompt() -> str:
         parts.append("")
         parts.append(f"## Warning: {trust['warning']}")
 
+    # Intelligence signals from last 24h
+    signals = _get_recent_signals(hours=24)
+    if signals:
+        parts.append("")
+        parts.append(f"## Intelligence Signals ({len(signals)} in last 24h)")
+        by_cat: dict[str, list] = {}
+        for s in signals:
+            cat = s.get("category", "uncategorized")
+            by_cat.setdefault(cat, []).append(s)
+        for cat, items in sorted(by_cat.items()):
+            parts.append(f"  **{cat}** ({len(items)}):")
+            for item in sorted(items, key=lambda x: x.get("relevance", 0), reverse=True)[:3]:
+                parts.append(f"    - [{item.get('relevance', '?')}] {item.get('title', '?')[:80]}")
+                if item.get("summary"):
+                    parts.append(f"      {item['summary'][:120]}")
+
     parts.extend([
         "",
         "Format this as a brief, scannable morning update. Highlight anything "
@@ -484,3 +508,41 @@ async def generate_digest_prompt() -> str:
     ])
 
     return "\n".join(parts)
+
+
+def _get_recent_signals(hours: int = 24) -> list[dict]:
+    """Fetch recent signals from Qdrant, filtered by ingestion time."""
+    try:
+        cutoff = datetime.now(timezone.utc).timestamp() - (hours * 3600)
+        cutoff_iso = datetime.fromtimestamp(cutoff, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        resp = httpx.post(
+            f"{settings.qdrant_url}/collections/signals/points/scroll",
+            json={
+                "limit": 50,
+                "with_payload": True,
+                "filter": {
+                    "must": [
+                        {"key": "ingested_at", "range": {"gte": cutoff_iso}}
+                    ]
+                },
+            },
+            timeout=10,
+        )
+        resp.raise_for_status()
+        points = resp.json().get("result", {}).get("points", [])
+        results = []
+        for p in points:
+            payload = p.get("payload", {})
+            clf = payload.get("classification", {})
+            if isinstance(clf, dict) and "error" not in clf:
+                results.append({
+                    "title": payload.get("title", ""),
+                    "category": clf.get("category", "uncategorized"),
+                    "relevance": clf.get("relevance", 0),
+                    "summary": clf.get("summary", ""),
+                    "url": payload.get("url", ""),
+                })
+        return results
+    except Exception as e:
+        logger.warning("Failed to fetch recent signals: %s", e)
+        return []

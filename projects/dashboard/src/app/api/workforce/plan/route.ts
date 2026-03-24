@@ -11,6 +11,6 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({ focus: body.focus ?? "" }),
     },
     "Failed to generate work plan",
-    15_000
+    120_000
   );
 }

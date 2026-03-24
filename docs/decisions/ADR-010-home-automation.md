@@ -1,7 +1,7 @@
 # ADR-010: Home Automation Integration
 
 **Date:** 2026-02-15
-**Status:** Proposed
+**Status:** Accepted
 **Research:** [docs/research/2026-02-15-home-automation.md](../research/2026-02-15-home-automation.md)
 **Depends on:** ADR-001 (Base Platform), ADR-007 (Dashboard)
 

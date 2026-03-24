@@ -2,8 +2,10 @@
 import os
 import sys
 import paramiko
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import NODES
 
-HOST = os.environ.get("ATHANOR_VAULT_HOST", "192.168.1.203")
+HOST = NODES["vault"]
 USER = os.environ.get("ATHANOR_VAULT_USER", "root")
 PASSWORD = os.environ.get("ATHANOR_VAULT_PASSWORD") or os.environ.get("VAULT_SSH_PASSWORD", "")
 KEY_PATH = os.environ.get("ATHANOR_VAULT_KEY_PATH") or os.environ.get("VAULT_SSH_KEY_PATH", "")

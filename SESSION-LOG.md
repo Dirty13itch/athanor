@@ -1,87 +1,68 @@
-# Session Log â€” 2026-03-08
+# Session Log
 
-## Environment Setup Verification
+## 2026-03-13 — Repair & Optimization Session
 
-Verified all items from the 11-part deployment checklist. Found that commit `d11942c` (same day, earlier session) already completed ~90% of the work:
+Tonight a simplified config was deployed over the real Athanor repo. The real repo was cloned back from GitHub. This session reconciles the environment.
 
-- MCP servers cleaned (sequential-thinking, context7 plugin, filesystem, playwright removed)
-- Deny list complete (10 patterns covering rm -rf, mkfs, dd, shutdown, reboot + sudo variants)
-- Settings correct (effort=high, model=opus, sandbox disabled)
-- Toolchain installed (aider 0.86.2, goose 1.27.2, claude-squad 1.0.16)
-- Launcher created (`~/bin/athanor`)
-- Recipes created (port-hydra-module, test-all-endpoints)
-- STATUS.md written with full ground truth
+### Phase 1: Cleanup
+- **`athanor-local-config` reconciled**: Only `settings.local.json` (enables disabled MCP servers) was unique. Copied to real repo. Old simplified rules/skills discarded (inferior to repo versions). Directory deleted.
+- **Global `~/.claude/settings.json`**: Already correct — `ENABLE_TOOL_SEARCH`, `DISABLE_TELEMETRY`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` all set.
+- **`~/.claude/mcp-vars.sh`**: Has real credentials. Added `GITHUB_TOKEN=""` placeholder.
+- **npm Claude binary removed**: `/usr/bin/claude` (npm symlink to stale v2.1.x). Native at `~/.local/bin/claude` v2.1.76.
+- **`.bashrc` PATH fixed**: Line 162 had corrupted Windows-style path (`C:\Users\Shaun/.local/bin:\`). Fixed to `$HOME/.local/bin:$PATH`.
 
-### Issues Found and Fixed
+### Phase 2: Config Integrity
+- **Hooks**: All 12 scripts present with bash shebangs. External deps (curl, docker, git, jq, notify-send, npx, python3) all installed.
+- **MCP Servers**: 13 existing all verified — Python scripts exist, npx/uvx/Go binaries present.
+- **Skills**: 13 total. 9 have proper YAML frontmatter, 4 are reference docs without frontmatter (comfyui-deploy, deploy-docker-service, gpu-placement, node-ssh).
+- **Rules**: 10 total, all valid. `session-continuity` intentionally has no `paths:` (global rule).
+- **Agents**: 6 total, all valid frontmatter.
+- **Commands**: 11 total, all present and non-empty.
 
-1. **Goose profiles.yaml invalid YAML** â€” had `[providers]` TOML syntax. Rewrote as valid YAML.
-2. **Goose env vars missing** â€” `OPENAI_BASE_URL` and `OPENAI_API_KEY` not set anywhere. Added to `~/.bashrc`.
-3. **Goose had wrong API key** â€” was `<ATHANOR_LITELLM_API_KEY>`, actual LiteLLM master key is `<ATHANOR_LITELLM_API_KEY>`.
+### Phase 3: New Additions
+- **3 MCP servers added** to `.mcp.json`: context7, github, playwright. All disabled by default, enabled via `settings.local.json`.
+- **Permissions added**: `mcp__context7__*`, `mcp__github__*`, `mcp__playwright__*` in project allow list.
+- **`ENABLE_TOOL_SEARCH=true`** added to project env block.
+- **Tools installed**: gh v2.88.1, pyright v1.1.408, pyright-lsp plugin, Playwright chromium, libnotify-bin.
 
-### Verified Working
+### Phase 4: Cluster Health
 
-- SessionStart hooks: both `session-start.sh` and `session-start-health.sh` run clean, no errors
-- Claude Code: native install v2.1.71 at `~/.local/share/claude/`, auto-updates
-- All 12 endpoints healthy (test harness run at 22:21 UTC)
+| Node | Status | Containers | Load | Notes |
+|------|--------|-----------|------|-------|
+| FOUNDRY .244 | UP (12d) | 14 | 4.08 | 4 new crucible-* containers. vllm-coordinator restarted 6h ago. All 9 agents healthy. |
+| WORKSHOP .225 | UP (12d) | 10 | 0.12 | Dashboard, EoBQ, ComfyUI, vLLM all running. |
+| VAULT .203 | Services UP, SSH BROKEN | ~42 | — | All TCP services reachable (Redis, Qdrant, Neo4j, Postgres, LangFuse, Grafana, LiteLLM). SSH keys rejected. |
+| DEV .189 | UP | 2 | 0.2 | Embedding + Reranker. |
 
-## Outstanding Items Executed
+### New Blockers for Shaun
 
-### 1. Goose env vars â†’ `.bashrc` â€” DONE
-Added `OPENAI_BASE_URL=http://vault:4000/v1` and `OPENAI_API_KEY=<ATHANOR_LITELLM_API_KEY>`.
+| Action | Unblocks |
+|--------|----------|
+| `gh auth login` on DEV terminal | GitHub CLI operations |
+| Generate GitHub PAT → `GITHUB_TOKEN` in `~/.claude/mcp-vars.sh` | GitHub MCP server (needs `repo`, `read:org` scopes from https://github.com/settings/tokens) |
+| Re-authorize SSH keys on VAULT (Unraid) | `vault-ssh.py`, direct SSH, Ansible to VAULT |
 
-### 2. Ansible vault-password â€” BLOCKED
-`ansible.cfg` expects `vault-password` file. File does not exist. `secrets.vault.yml` is encrypted. Shaun needs to provide the encryption password.
+### Observations
+1. FOUNDRY has 4 new `crucible-*` containers (crucible-api, crucible-ollama, crucible-chromadb, crucible-searxng) not in STATUS.md.
+2. Claude Code updated from v2.1.71 to v2.1.76.
+3. FOUNDRY hostname = `core`, WORKSHOP hostname = `interface`.
+4. FOUNDRY `vllm-coordinator` restarted recently (Up 6h vs 2-12d for others).
+5. VAULT has 97 pending apt upgrades.
 
-### 3. FOUNDRY GPU 4 â€” NOTED
-16 GB VRAM idle. No action taken â€” production node, requires explicit approval for new deployments.
+---
 
-### 4. Test harness â€” DONE
-Created `tests/harness.py` â€” validates all 12 endpoints across the cluster. Supports `--quick` (health only) and `--json` output. Logs to `logs/endpoint-tests/<timestamp>.json`. First run: 12/12 healthy.
+## 2026-03-08 — Environment Setup Verification
 
-### 5. Cloud connectors â€” NOTED
-Hugging Face and Vercel connectors on claude.ai are low value. Can only be disabled from claude.ai UI, not local config.
+Verified all items from the 11-part deployment checklist. ~90% was already done by commit d11942c.
 
-### 6. Loose scripts consolidated â€” DONE
-Moved 4 scripts from `~/dev/` to `~/repos/athanor/scripts/`:
-- `gen-switch.sh` â€” switch between ComfyUI and Wan2GP
-- `prepare-dataset.py` â€” automated LoRA dataset prep (face detection + cropping)
-- `prepare-dataset.sh` â€” shell wrapper for dataset prep
-- `train-lora.sh` â€” LoRA training launcher
+### Issues Fixed
+1. Goose profiles.yaml invalid YAML (TOML syntax). Rewrote.
+2. Goose env vars missing. Added to `~/.bashrc`.
+3. Ansible vault-password recovered from git history + running containers.
 
-### 7. EoBQ master doc consolidated â€” DONE
-Moved 81KB EoBQ master document from `~/dev/docs/` to `athanor/projects/eoq/docs/eoq-master-document.md`.
-
-### 8. Obsolete repos deleted â€” DONE
-- `~/Local-System/` â€” non-git fragment, all files already in `~/repos/reference/local-system/`
-- `~/dev/local-system-v4-old/` â€” abandoned 3-commit fork, no remote
-
-### 9. local-system-v4 CLAUDE.md fixed â€” DONE
-Replaced `/opt/reference/` paths with correct `~/repos/reference/` paths. Added athanor as successor reference.
-
-### 10. Local-System deduplication â€” DEFERRED
-`~/dev/local-system-v4` (commit 19e3c2e) is ahead of `~/repos/reference/local-system/` (commit 8a19946). Not true duplicates â€” dev copy is active, reference copy is snapshot. Left as-is.
-
-## Cluster State (verified live)
-
-| Node | Containers | GPUs Active | Health |
-|------|-----------|-------------|--------|
-| FOUNDRY (.244) | 11 | 4/5 (GPU 4 idle) | 12/12 OK |
-| WORKSHOP (.225) | 9 | 2/2 | All OK |
-| VAULT (.203) | 41 | 0 (storage) | All OK |
-| DEV (.189) | 2 | 1/1 | All OK |
-
-### 11. Ansible vault-password â€” DONE
-Vault file was encrypted with an unknown password. Recovered all secrets from:
-- Git history (commit f5ff2c4): Sonarr, Radarr, Tautulli API keys
-- Running containers: LangFuse secrets (pg password, encryption key, salt, nextauth secret, minio password)
-- Running containers: Grafana admin password
-- User-provided: VAULT SSH password
-
-Recreated `secrets.vault.yml` encrypted with the vault password provided by Shaun. Installed paramiko into ansible-core venv. Verified: `ansible vault -m ping` returns SUCCESS.
-
-## Remaining Blockers (require Shaun)
-
-- NordVPN credentials (qBittorrent)
-- Anthropic API key (cloud escalation)
-- Google Drive OAuth (personal data sync)
-- FOUNDRY GPU 4 workload decision
+### Completed
+- Test harness (12/12 endpoints healthy)
+- Loose scripts consolidated to `scripts/`
+- EoBQ master doc moved to `projects/eoq/docs/`
+- Obsolete repos deleted
+- local-system-v4 CLAUDE.md paths fixed

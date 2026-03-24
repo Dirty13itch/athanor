@@ -1,0 +1,47 @@
+services:
+  gluetun:
+    image: {{ gluetun_image }}
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      TZ: {{ vault_tz | default('America/Chicago') }}
+      VPN_SERVICE_PROVIDER: {{ vpn_service_provider }}
+      VPN_TYPE: {{ vpn_type }}
+      OPENVPN_USER: {{ nordvpn_user }}
+      OPENVPN_PASSWORD: {{ nordvpn_password }}
+      SERVER_COUNTRIES: {{ vpn_server_countries }}
+    ports:
+      - {{ qbittorrent_webui_port }}:{{ qbittorrent_webui_port }}
+    volumes:
+      - {{ vpn_torrent_path }}/gluetun:/gluetun
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  qbittorrent:
+    image: {{ qbittorrent_image }}
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      PUID: {{ qbittorrent_puid }}
+      PGID: {{ qbittorrent_pgid }}
+      TZ: {{ vault_tz | default('America/Chicago') }}
+      WEBUI_PORT: {{ qbittorrent_webui_port }}
+    volumes:
+      - {{ vpn_torrent_path }}/qbittorrent:/config
+      - {{ vpn_torrent_downloads_path }}:/downloads
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

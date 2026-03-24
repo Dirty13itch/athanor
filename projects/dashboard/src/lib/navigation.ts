@@ -32,6 +32,12 @@ export type RouteIconKey =
   | "home"
   | "terminal"
   | "more"
+  | "governor"
+  | "pipeline"
+  | "projects"
+  | "routing"
+  | "topology"
+  | "models"
   | "offline";
 
 export interface RouteDefinition {
@@ -156,11 +162,30 @@ export const ROUTES: RouteDefinition[] = [
     mobile: true,
   },
   {
+    href: "/governor",
+    label: "Governor",
+    description: "Runtime control plane — lanes, capacity, presence, and autonomy levels.",
+    family: "workforce",
+    icon: "governor",
+    primary: false,
+    mobile: true,
+  },
+  {
     href: "/goals",
     label: "Goals",
     description: "Agent goals, focus lanes, and project-aligned intent.",
     family: "workforce",
     icon: "goals",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/projects",
+    label: "Projects",
+    shortLabel: "Projects",
+    description: "Milestone tracking, autonomous continuation, and stall detection.",
+    family: "workforce",
+    icon: "projects",
     primary: false,
     mobile: true,
   },
@@ -179,6 +204,33 @@ export const ROUTES: RouteDefinition[] = [
     description: "Shared workspace state, subscriptions, and cross-agent coordination.",
     family: "workforce",
     icon: "workspace",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/pipeline",
+    label: "Pipeline",
+    description: "Work pipeline flow — intent mining, plan generation, task execution, and outcomes.",
+    family: "workforce",
+    icon: "pipeline",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/routing",
+    label: "Routing",
+    description: "Provider routing, cost tracking, and execution lane visibility.",
+    family: "intelligence",
+    icon: "routing",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/improvement",
+    label: "Improvement",
+    description: "Nightly optimization, prompt variants, benchmark health.",
+    family: "intelligence",
+    icon: "learning",
     primary: false,
     mobile: true,
   },
@@ -320,6 +372,52 @@ export const ROUTES: RouteDefinition[] = [
     icon: "offline",
     primary: false,
     mobile: false,
+  },
+  {
+    href: "/digest",
+    label: "Digest",
+    description: "Morning briefing — pending approvals, overnight results, stalled projects.",
+    family: "workforce",
+    icon: "notifications",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/operator",
+    label: "Operator",
+    description: "Meta-orchestrator chat and approval queue.",
+    family: "core",
+    icon: "chat",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/topology",
+    label: "Topology",
+    description: "Live system map — nodes, GPUs, models, agents, and service connections.",
+    family: "core",
+    icon: "topology",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/models",
+    label: "Models",
+    description: "Local models, subscription CLIs, routing intelligence, and assignment matrix.",
+    family: "intelligence",
+    icon: "models",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/agents/workbench",
+    label: "Agent Workbench",
+    shortLabel: "Workbench",
+    description: "Real-time agent control — live tasks, step traces, performance, and direct steering.",
+    family: "core",
+    icon: "agents",
+    primary: false,
+    mobile: true,
   },
 ];
 

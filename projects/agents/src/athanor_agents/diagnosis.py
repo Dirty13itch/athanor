@@ -10,6 +10,7 @@ Services: Athanor node names, vLLM, LiteLLM, Qdrant, Neo4j, Redis.
 
 import hashlib
 import json
+import logging
 import re
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
@@ -18,6 +19,8 @@ from enum import Enum
 from typing import Optional
 
 from .services import registry
+
+logger = logging.getLogger(__name__)
 
 
 class FailureCategory(Enum):
@@ -247,9 +250,11 @@ class SelfDiagnosisEngine:
                 from .config import settings
                 self._redis = aioredis.from_url(
                     settings.redis_url,
+                    password=settings.redis_password or None,
                     decode_responses=True,
                 )
-            except Exception:
+            except Exception as e:
+                logger.debug("Diagnosis Redis connect failed: %s", e)
                 return None
         return self._redis
 
@@ -270,8 +275,8 @@ class SelfDiagnosisEngine:
                     k: FailurePattern(**v)
                     for k, v in json.loads(patterns_data).items()
                 }
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Diagnosis load_from_redis failed: %s", e)
 
     async def _save_to_redis(self):
         """Persist state to Redis."""
@@ -293,8 +298,8 @@ class SelfDiagnosisEngine:
                 json.dumps({k: asdict(v) for k, v in self.patterns.items()}),
                 ex=86400 * 30,  # 30 day TTL
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Diagnosis save_to_redis failed: %s", e)
 
     def _generate_pattern_signature(self, error_message: str) -> str:
         normalized = re.sub(r"\d+\.\d+\.\d+\.\d+", "<IP>", error_message)

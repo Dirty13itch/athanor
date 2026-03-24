@@ -1,11 +1,16 @@
 """Knowledge tools — search, retrieve, and manage the Athanor knowledge base."""
 
 import hashlib
+import logging
+import time
+
 import httpx
 from langchain_core.tools import tool
 
 from ..config import settings
 from ..services import registry
+
+logger = logging.getLogger(__name__)
 
 _QDRANT_URL = settings.qdrant_url
 _EMBEDDING_URL = registry.litellm_openai_url
@@ -409,6 +414,145 @@ def search_signals(query: str, category: str = "", min_relevance: float = 0.0, l
         return f"Signal search error: {e}"
 
 
+def _chunk_text(text: str, chunk_size: int = 1500, overlap: int = 200) -> list[str]:
+    """Split text into overlapping chunks at paragraph/sentence boundaries."""
+    if len(text) <= chunk_size:
+        return [text]
+
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + chunk_size
+        if end < len(text):
+            para_break = text.rfind("\n\n", start + chunk_size // 2, end)
+            if para_break > start:
+                end = para_break
+            else:
+                for sep in [". ", ".\n", "\n"]:
+                    sent_break = text.rfind(sep, start + chunk_size // 2, end)
+                    if sent_break > start:
+                        end = sent_break + len(sep)
+                        break
+        chunks.append(text[start:end].strip())
+        start = end - overlap
+
+    return [c for c in chunks if len(c) > 50]
+
+
+def _get_sparse_vector(text: str) -> dict | None:
+    """Compute miniCOIL sparse vector if available."""
+    try:
+        from ..hybrid_search import _load_minicoil
+        model = _load_minicoil()
+        if model is None:
+            return None
+        embeddings = list(model.embed([text], batch_size=1))
+        if embeddings:
+            return {"indices": embeddings[0].indices.tolist(), "values": embeddings[0].values.tolist()}
+    except Exception as e:
+        logger.debug("Sparse vector computation failed: %s", e)
+    return None
+
+
+@tool
+def upload_document(text: str, title: str, category: str = "general", source: str = "") -> str:
+    """Upload a document to the Athanor knowledge base.
+
+    Chunks the text, embeds it, and stores it in both Qdrant (vectors) and
+    Neo4j (graph node). Use this to add new knowledge that should be
+    searchable and available for context injection.
+
+    Good for:
+    - Adding research notes, meeting notes, or summaries
+    - Indexing external documentation or articles
+    - Storing analysis results for future reference
+
+    Args:
+        text: The full document text to index
+        title: Document title (used in search results)
+        category: One of: research, adr, hardware, design, project, general
+        source: Source identifier (e.g. "user-upload/my-notes" or a URL). Auto-generated if empty.
+    """
+    if len(text.strip()) < 50:
+        return "Error: Document too short (minimum 50 characters)."
+
+    if not source:
+        source = f"user-upload/{_text_to_id(title)[:12]}"
+
+    indexed_at = time.strftime("%Y-%m-%dT%H:%M:%S")
+    file_hash = hashlib.md5(text.encode()).hexdigest()
+    chunks = _chunk_text(text)
+
+    if not chunks:
+        return "Error: No indexable content after chunking."
+
+    # Build points with dense + sparse vectors
+    points = []
+    for i, chunk in enumerate(chunks):
+        embed_text = f"{title}\n\n{chunk}" if i > 0 else chunk
+        point_id = _text_to_id(f"{source}:chunk:{i}")
+        # Format as UUID for Qdrant
+        pid = f"{point_id[:8]}-{point_id[8:12]}-{point_id[12:16]}-{point_id[16:20]}-{point_id[20:32]}"
+
+        try:
+            dense_vector = _get_embedding(embed_text)
+        except Exception as e:
+            return f"Error embedding chunk {i}: {e}"
+
+        vectors: dict = {"dense": dense_vector}
+        sparse = _get_sparse_vector(embed_text)
+        if sparse:
+            vectors["sparse"] = sparse
+
+        points.append({
+            "id": pid,
+            "vector": vectors,
+            "payload": {
+                "source": source,
+                "title": title,
+                "text": chunk,
+                "category": category,
+                "chunk_index": i,
+                "total_chunks": len(chunks),
+                "content_hash": file_hash,
+                "indexed_at": indexed_at,
+            },
+        })
+
+    # Upsert to Qdrant
+    try:
+        resp = httpx.put(
+            f"{_QDRANT_URL}/collections/knowledge/points",
+            json={"points": points},
+            timeout=30,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        return f"Error upserting to Qdrant: {e}"
+
+    # Create Neo4j Document node
+    try:
+        cypher = (
+            f"MERGE (d:Document {{source: '{source}'}}) "
+            f"SET d.title = '{title}', d.category = '{category}', "
+            f"d.doc_type = 'athanor', d.indexed_at = '{indexed_at}', "
+            f"d.qdrant_point_id = '{points[0]['id']}'"
+        )
+        _run_cypher(cypher)
+    except Exception as e:
+        logger.debug("Neo4j node creation failed (non-fatal): %s", e)
+
+    return (
+        f"Document indexed: '{title}'\n"
+        f"  Source: {source}\n"
+        f"  Category: {category}\n"
+        f"  Chunks: {len(chunks)}\n"
+        f"  Sparse vectors: {'yes' if sparse else 'no'}\n"
+        f"  Neo4j node: created\n"
+        f"  Indexed at: {indexed_at}"
+    )
+
+
 KNOWLEDGE_TOOLS = [
     search_knowledge,
     search_signals,
@@ -417,4 +561,5 @@ KNOWLEDGE_TOOLS = [
     query_knowledge_graph,
     find_related_docs,
     get_knowledge_stats,
+    upload_document,
 ]

@@ -2,6 +2,11 @@
 # Switch between ComfyUI (images) and Wan2GP (video)
 # Both need the GPU exclusively
 
+
+# Source cluster config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
 case "$1" in
   comfyui|images|img)
     echo "Stopping Wan2GP..."
@@ -10,7 +15,7 @@ case "$1" in
     echo "Starting ComfyUI on :8188..."
     sudo systemctl start comfyui
     sleep 3
-    echo "ComfyUI is running: http://192.168.1.189:8188"
+    echo "ComfyUI is running: ${COMFYUI_URL}"
     ;;
   wan2gp|video|vid)
     echo "Stopping ComfyUI..."
@@ -19,7 +24,7 @@ case "$1" in
     echo "Starting Wan2GP on :7860..."
     sudo systemctl start wan2gp
     sleep 5
-    echo "Wan2GP is running: http://192.168.1.189:7860"
+    echo "Wan2GP is running: http://${DEV_IP}:7860"
     ;;
   status)
     echo "=== ComfyUI ==="

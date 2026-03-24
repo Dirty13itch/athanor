@@ -10,6 +10,15 @@
 #   ansible-playbook playbooks/vault.yml --tags redis       # Redis only
 #   ansible-playbook playbooks/vault.yml --tags voice       # Voice (Piper + openWakeWord)
 #   ansible-playbook playbooks/vault.yml --tags alerts      # Grafana alerts + backup exporter
+#   ansible-playbook playbooks/vault.yml --tags gitea       # Gitea git forge
+#   ansible-playbook playbooks/vault.yml --tags miniflux    # Miniflux RSS reader
+#   ansible-playbook playbooks/vault.yml --tags n8n         # n8n workflow automation
+#   ansible-playbook playbooks/vault.yml --tags postgres     # Postgres DB
+#   ansible-playbook playbooks/vault.yml --tags ntfy        # ntfy notifications
+#   ansible-playbook playbooks/vault.yml --tags loki        # Loki log aggregation
+#   ansible-playbook playbooks/vault.yml --tags cadvisor    # Container metrics
+#   ansible-playbook playbooks/vault.yml --tags alloy       # Grafana Alloy log shipper
+#   ansible-playbook playbooks/vault.yml --tags vpn-torrent # qBittorrent + Gluetun VPN
 #   ansible-playbook playbooks/vault.yml --tags plex        # Single service
 #   ansible-playbook playbooks/vault.yml -e plex_claim_token=claim-xxxxx  # First Plex deploy
 #
@@ -40,3 +49,23 @@
       tags: [open-webui-vault]
     - role: vault-grafana-alerts
       tags: [alerts]
+    - role: vault-gitea
+      tags: [gitea]
+    - role: vault-miniflux
+      tags: [miniflux]
+    - role: vault-n8n
+      tags: [n8n]
+    - role: vault-postgres
+      tags: [postgres]
+    - role: vault-ntfy
+      tags: [ntfy]
+    - role: vault-loki
+      tags: [loki]
+    - role: cadvisor
+      tags: [cadvisor]
+    - role: alloy
+      tags: [alloy]
+    - role: vault-vpn-torrent
+      tags: [vpn-torrent]
+    - role: docker-socket-proxy
+      tags: [docker-proxy]

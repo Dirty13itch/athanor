@@ -608,6 +608,195 @@ export interface ChoiceEffects {
 }
 
 // ---------------------------------------------------------------------------
+// Queen DNA System (19-trait sexual personality matrix)
+// ---------------------------------------------------------------------------
+
+export type DesireType = "responsive" | "spontaneous" | "hybrid";
+
+export type GaggingResponse =
+  | "fights"
+  | "pushes-through"
+  | "enjoys"
+  | "breaks"
+  | "minimal"
+  | "legendary-pusher";
+
+export type AwakeningType =
+  | "always-knew"
+  | "total-surprise"
+  | "slow-realization"
+  | "denial-until-forced";
+
+export type BlackmailNeed =
+  | "none"
+  | "necessary"
+  | "heightens-it"
+  | "bored-without-it"
+  | "begs-for-it";
+
+export type AddictionSpeed = "very-slow" | "slow-burn" | "normal" | "fast" | "instant";
+
+export type JealousyType =
+  | "possessive"
+  | "competitive"
+  | "turns-her-on"
+  | "doesnt-care"
+  | "none";
+
+export type AftercareNeed = "none" | "light" | "medium" | "heavy";
+
+export type GroupSexAttitude =
+  | "hates"
+  | "tolerates"
+  | "curious"
+  | "craves"
+  | "initiates";
+
+/** 19-trait sexual personality DNA — makes every queen unique */
+export interface SexualDNA {
+  desireType: DesireType;
+  accelBrake: string;
+  painTolerance: number;        // 1-10
+  humiliationEnjoyment: number; // 1-10
+  exhibitionismLevel: number;   // 1-10
+  gaggingResponse: GaggingResponse;
+  moaningStyle: string;
+  tearTrigger: string;
+  orgasmStyle: string;
+  awakeningType: AwakeningType;
+  blackmailNeed: BlackmailNeed;
+  addictionSpeed: AddictionSpeed;
+  jealousyType: JealousyType;
+  aftercareNeed: AftercareNeed;
+  switchPotential: number;      // 1-10
+  groupSexAttitude: GroupSexAttitude;
+  roleplayAffinity: string;
+  betrayalThreshold: number;    // 1-10
+  voiceDNA: string;
+}
+
+/** Prime-era physical measurements for Flux prompt generation */
+export interface PhysicalBlueprint {
+  primeYear: string;
+  height: string;
+  weight: string;
+  measurements: string;
+  braCup: string;
+  implants: string;
+  hair: string;
+  eyes: string;
+  skin: string;
+  tattoos: string;
+  bodyType: string;
+  faceShape: string;
+  keyTrait: string;
+}
+
+/** Stripper backstory arc — triggers at 70% corruption */
+export interface StripperArc {
+  club: string;
+  stageName: string;
+  quitReason: string;
+  returnTrigger: string;
+  uniqueKink: string;
+}
+
+/** Queen — extends Character with performer DNA system */
+export interface Queen extends Character {
+  sexualDNA: SexualDNA;
+  physicalBlueprint: PhysicalBlueprint;
+  fluxPrompt: string;
+  stripperArc: StripperArc;
+  /** Real performer name for PuLID face reference injection */
+  performerReference: string;
+  /** Awakening cinematic description */
+  awakening: string;
+}
+
+// ---------------------------------------------------------------------------
+// Player Style Tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * Tracks the player's behavioral tendencies across choices.
+ * Used for adaptive gameplay — "No Mercy Mode" detection, NPC reactions,
+ * and tailoring future choice generation.
+ */
+export interface PlayerStyle {
+  /** Mercy vs cruelty tendency (0=cruel, 100=merciful) */
+  mercyScore: number;
+  /** Seduction/charm usage frequency (0-100) */
+  seductionScore: number;
+  /** Psychological manipulation frequency (0-100) */
+  manipulationScore: number;
+  /** Physical force/intimidation frequency (0-100) */
+  dominanceScore: number;
+  /** Diplomatic/relationship-building frequency (0-100) */
+  diplomacyScore: number;
+  /** Total choices made (for weighted averaging) */
+  totalChoices: number;
+}
+
+export const DEFAULT_PLAYER_STYLE: PlayerStyle = {
+  mercyScore: 50,
+  seductionScore: 0,
+  manipulationScore: 0,
+  dominanceScore: 0,
+  diplomacyScore: 0,
+  totalChoices: 0,
+};
+
+/**
+ * Classify a choice and return style deltas.
+ * Positive mercyScore = merciful, negative = cruel.
+ */
+export function classifyChoiceStyle(choice: PlayerChoice): Partial<PlayerStyle> {
+  const deltas: Partial<PlayerStyle> = {};
+  const intent = choice.intent?.toLowerCase() ?? "";
+  const method = choice.breakingMethod;
+
+  // Mercy/cruelty from effects
+  const eff = choice.effects;
+  if (eff) {
+    const resistanceDelta = eff.resistance ?? 0;
+    const corruptionDelta = eff.corruption ?? 0;
+    if (resistanceDelta < -10 || corruptionDelta > 5) deltas.mercyScore = -15;
+    else if (resistanceDelta < 0) deltas.mercyScore = -5;
+
+    if ((eff.trust ?? 0) > 5 && resistanceDelta >= 0) deltas.mercyScore = 10;
+    if ((eff.affection ?? 0) > 10 && resistanceDelta >= 0) deltas.mercyScore = 5;
+  }
+
+  // Intent classification
+  if (/compassion|tender|comfort|protective|honest|empathetic/i.test(intent)) {
+    deltas.mercyScore = (deltas.mercyScore ?? 0) + 10;
+    deltas.diplomacyScore = 10;
+  }
+  if (/manipulat|probing|knowing|transactional|calculating/i.test(intent)) {
+    deltas.manipulationScore = 15;
+    deltas.mercyScore = (deltas.mercyScore ?? 0) - 5;
+  }
+  if (/seduc|desire|charm|playful/i.test(intent)) {
+    deltas.seductionScore = 15;
+  }
+  if (/aggressive|intimidat|demanding|challenge|confrontat|ruthless/i.test(intent)) {
+    deltas.dominanceScore = 15;
+    deltas.mercyScore = (deltas.mercyScore ?? 0) - 10;
+  }
+  if (/diplomat|cautious|respectful|loyal|inspiring|hopeful/i.test(intent)) {
+    deltas.diplomacyScore = (deltas.diplomacyScore ?? 0) + 10;
+    deltas.mercyScore = (deltas.mercyScore ?? 0) + 5;
+  }
+
+  // Breaking method
+  if (method === "physical") deltas.dominanceScore = (deltas.dominanceScore ?? 0) + 10;
+  if (method === "psychological") deltas.manipulationScore = (deltas.manipulationScore ?? 0) + 10;
+  if (method === "social") deltas.seductionScore = (deltas.seductionScore ?? 0) + 5;
+
+  return deltas;
+}
+
+// ---------------------------------------------------------------------------
 // Session
 // ---------------------------------------------------------------------------
 
@@ -620,6 +809,12 @@ export interface GameSession {
   dialogueHistory: DialogueTurn[];
   /** Position in the current narrative arc */
   arcPosition: string;
+  /** Tracks player behavioral tendencies across choices */
+  playerStyle: PlayerStyle;
+  /** No Mercy Mode — unlocked when mercyScore drops below 20 after 10+ choices */
+  noMercyUnlocked: boolean;
+  /** Whether No Mercy Mode is actively enabled by the player */
+  noMercyActive: boolean;
 }
 
 /** Configuration for the LLM dialogue generation pipeline */

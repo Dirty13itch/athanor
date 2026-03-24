@@ -11,3 +11,10 @@ cluster_hosts:
   - { ip: "192.168.1.225", name: "workshop" }
   - { ip: "192.168.1.203", name: "vault" }
   - { ip: "192.168.1.189", name: "dev" }
+
+# Map vault-encrypted secrets to role-expected variable names
+athanor_sonarr_api_key: "{{ vault_agent_sonarr_api_key }}"
+athanor_radarr_api_key: "{{ vault_agent_radarr_api_key }}"
+athanor_tautulli_api_key: "{{ vault_agent_tautulli_api_key }}"
+athanor_neo4j_password: "{{ vault_neo4j_password }}"
+athanor_agent_api_token: "{{ vault_agent_api_token }}"

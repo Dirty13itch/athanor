@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { config } from "@/lib/config";
+import { agentServerHeaders, config } from "@/lib/config";
 
 interface ImplicitEvent {
   type: string;
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     try {
       const res = await fetch(`${config.agentServer.url}/v1/feedback/implicit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...agentServerHeaders() },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(5000),
       });

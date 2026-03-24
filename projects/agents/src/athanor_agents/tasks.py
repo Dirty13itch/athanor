@@ -13,6 +13,7 @@ Architecture:
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import time
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 TASKS_KEY = "athanor:tasks"
 TASKS_CHANNEL = "athanor:tasks:events"
 TASK_WORKER_INTERVAL = 5.0  # seconds between polls
-MAX_CONCURRENT_TASKS = 2
+MAX_CONCURRENT_TASKS = 6
 TASK_TIMEOUT = 600  # 10 min max per task
 MAX_TASK_RETRIES = 1  # Auto-retry failed tasks once with error context
 TASK_TTL_COMPLETED = 86400  # 24h — purge completed tasks
@@ -243,6 +244,34 @@ async def _get_redis():
     return await get_redis()
 
 
+def _task_dedup_key(agent: str, prompt: str) -> str:
+    """Generate a dedup key from agent + normalized prompt prefix."""
+    # Use first 200 chars of prompt for dedup (captures intent without exact match)
+    normalized = prompt.strip().lower()[:200]
+    h = hashlib.sha256(f"{agent}:{normalized}".encode()).hexdigest()[:16]
+    return h
+
+
+async def _has_duplicate_pending(agent: str, prompt: str) -> Task | None:
+    """Check if there's already a pending/in-progress task for the same agent+prompt."""
+    dedup_key = _task_dedup_key(agent, prompt)
+    r = await _get_redis()
+    all_tasks = await r.hgetall(TASKS_KEY)
+    for raw in all_tasks.values():
+        try:
+            task = Task.from_dict(json.loads(raw))
+            if task.status not in ("pending", "in_progress", "pending_approval"):
+                continue
+            if task.agent != agent:
+                continue
+            existing_key = _task_dedup_key(task.agent, task.prompt)
+            if existing_key == dedup_key:
+                return task
+        except Exception:
+            continue
+    return None
+
+
 async def submit_task(
     agent: str,
     prompt: str,
@@ -254,6 +283,8 @@ async def submit_task(
 
     Returns the created Task (status=pending). The background worker
     will pick it up and execute it through the specified agent.
+    Deduplicates: if a pending/in-progress task exists for the same
+    agent with a similar prompt, returns the existing task instead.
     """
     from .agents import list_agents
 
@@ -261,8 +292,17 @@ async def submit_task(
     if agent not in available:
         raise ValueError(f"Agent '{agent}' not found. Available: {available}")
 
+    # Dedup check — return existing task if duplicate found
+    existing = await _has_duplicate_pending(agent, prompt)
+    if existing:
+        logger.info(
+            "Task dedup: reusing existing task %s for agent=%s (prompt=%.80s)",
+            existing.id, agent, prompt,
+        )
+        return existing
+
     task_metadata = metadata or {}
-    if agent in {"coding-agent", "research-agent"}:
+    if agent in {"coding-agent", "research-agent", "general-assistant"}:
         from .subscriptions import attach_task_execution_lease
 
         try:
@@ -356,7 +396,7 @@ async def cancel_task(task_id: str) -> bool:
             return False
 
         task = Task.from_dict(json.loads(raw))
-        if task.status not in ("pending", "running"):
+        if task.status not in ("pending", "running", "pending_approval"):
             return False
 
         task.status = "cancelled"
@@ -414,6 +454,20 @@ async def approve_task(task_id: str) -> bool:
     return True
 
 
+async def reject_task(task_id: str, reason: str = "Rejected by operator") -> bool:
+    """Reject a pending_approval task."""
+    task = await get_task(task_id)
+    if not task:
+        return False
+    if task.status != "pending_approval":
+        return False
+    task.status = "cancelled"
+    task.result = reason
+    await _update_task(task)
+    logger.info("Task %s rejected (agent=%s): %s", task_id, task.agent, reason)
+    return True
+
+
 async def _record_skill_execution_for_task(task: Task, success: bool):
     """Fire-and-forget: record task outcome against the best matching skill.
 
@@ -437,6 +491,23 @@ async def _record_skill_execution_for_task(task: Task, success: bool):
             )
     except Exception as e:
         logger.debug("Skill recording skipped for task %s: %s", task.id, e)
+
+
+async def _auto_extract_skill(task: Task):
+    """Fire-and-forget: extract a reusable skill from a successful task's tool sequence."""
+    try:
+        from .skill_learning import extract_skill_from_task
+        skill_id = await extract_skill_from_task(
+            task_id=task.id,
+            agent=task.agent,
+            prompt=task.prompt,
+            steps=task.steps,
+            quality_score=0.8,  # default for completed tasks; overridden by judge if available
+        )
+        if skill_id:
+            logger.info("Auto-extracted skill %s from task %s", skill_id, task.id)
+    except Exception as e:
+        logger.debug("Skill extraction skipped for task %s: %s", task.id, e)
 
 
 async def _execute_task(task: Task):
@@ -481,8 +552,8 @@ async def _execute_task(task: Task):
         context_str = ""
         try:
             context_str = await enrich_context(task.agent, task.prompt) or ""
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Context enrichment failed, proceeding without: %s", e)
 
         task_prompt = _build_task_prompt(task)
         preamble_parts = []
@@ -603,6 +674,23 @@ async def _execute_task(task: Task):
         # Record skill execution outcome (learning feedback loop)
         asyncio.create_task(_record_skill_execution_for_task(task, success=True))
 
+        # Auto-extract skills from successful task traces (Layer 3)
+        asyncio.create_task(_auto_extract_skill(task))
+
+        # Notify on notable completions (skip routine health/home checks)
+        prompt_lower = (task.prompt or "").lower()
+        is_routine = any(kw in prompt_lower for kw in ["health check", "entities", "queue items", "check for any active"])
+        task_source = task.metadata.get("source", "")
+        if not is_routine and task_source not in ("scheduler", "auto_retry"):
+            from .escalation import add_notification
+            add_notification(
+                agent=task.agent,
+                action=f"Task completed ({task.duration_ms or 0}ms)",
+                category="routine",
+                confidence=1.0,
+                description=f"{task.prompt[:120]}\n\nResult: {result_text[:150]}",
+            )
+
         # Broadcast completion to GWT workspace
         asyncio.create_task(post_item(
             source_agent=task.agent,
@@ -633,6 +721,16 @@ async def _execute_task(task: Task):
             description=f"{task.prompt[:150]} — {str(e)[:100]}",
             data={"task_id": task.id, "error": str(e)[:500]},
         ))
+
+        # Notify on task failures (always — failures need attention)
+        from .escalation import add_notification
+        add_notification(
+            agent=task.agent,
+            action=f"Task failed (retry={task.retry_count})",
+            category="routine",
+            confidence=0.6,
+            description=f"{task.prompt[:120]}\n\nError: {str(e)[:150]}",
+        )
 
         # Broadcast failure
         from .workspace import post_item

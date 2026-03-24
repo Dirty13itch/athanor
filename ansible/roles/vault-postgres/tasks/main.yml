@@ -1,0 +1,41 @@
+---
+- name: Create Postgres data directory
+  ansible.builtin.file:
+    path: "{{ postgres_data_path }}"
+    state: directory
+    mode: "0700"
+
+- name: Run Postgres container
+  community.docker.docker_container:
+    name: postgres
+    image: "{{ postgres_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ postgres_port }}:5432"
+    volumes:
+      - "{{ postgres_data_path }}:/var/lib/postgresql/data"
+    env:
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+      POSTGRES_DB: "{{ postgres_db }}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+  when: not ansible_check_mode
+
+- name: Wait for Postgres to accept connections
+  ansible.builtin.command:
+    cmd: "docker exec postgres pg_isready -U {{ postgres_user }}"
+  register: pg_ready
+  retries: 10
+  delay: 3
+  until: pg_ready.rc == 0
+  changed_when: false
+  when: not ansible_check_mode

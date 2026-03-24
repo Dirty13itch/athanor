@@ -26,9 +26,11 @@ import sys
 import time
 import urllib.request
 import urllib.error
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
-QDRANT_URL = "http://192.168.1.244:6333"
-EMBEDDING_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/") + "/v1"
+QDRANT_URL = get_url("qdrant")
+EMBEDDING_URL = get_url("litellm").rstrip("/") + "/v1"
 EMBEDDING_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
     or os.environ.get("LITELLM_API_KEY")

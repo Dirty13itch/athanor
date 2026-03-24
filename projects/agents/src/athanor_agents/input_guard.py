@@ -131,7 +131,8 @@ _OUTPUT_LEAK_PATTERNS: list[tuple[re.Pattern, str, float]] = [
     (re.compile(r"-----BEGIN\s+OPENSSH\s+PRIVATE\s+KEY-----"), "private_key_leak", 0.9),
 
     # API keys / tokens (common formats)
-    (re.compile(r"sk-[a-zA-Z0-9]{20,}"), "api_key_leak", 0.7),
+    (re.compile(r"sk-[a-zA-Z0-9\-]{20,}"), "api_key_leak", 0.7),
+    (re.compile(r"AKIA[0-9A-Z]{16}"), "aws_key_leak", 0.7),
     (re.compile(r"ghp_[a-zA-Z0-9]{36,}"), "github_token_leak", 0.7),
     (re.compile(r"glpat-[a-zA-Z0-9\-]{20,}"), "gitlab_token_leak", 0.7),
     (re.compile(r"xox[bpras]-[a-zA-Z0-9\-]{10,}"), "slack_token_leak", 0.7),
@@ -289,12 +290,14 @@ def sanitize_input(text: str) -> tuple[str, float, list[str]]:
 
 
 def check_output(text: str) -> tuple[str, float, list[str]]:
-    """Scan assistant output for data leakage.
+    """Scan assistant output for data leakage and redact if needed.
+
+    SEC-002: Never expose secrets or credentials in logs or outputs.
 
     Returns:
-        (text, risk_score, warnings)
-        - text: unchanged (we don't modify output, just flag it)
-        - risk_score: 0.0-1.0 (above 0.7 = should block)
+        (cleaned_text, risk_score, warnings)
+        - cleaned_text: redacted if secrets detected (>= 0.7), replaced if private key (>= 0.9)
+        - risk_score: 0.0-1.0 (above 0.7 = redacted, above 0.9 = full refusal)
         - warnings: list of detection descriptions
     """
     if not text:
@@ -312,6 +315,21 @@ def check_output(text: str) -> tuple[str, float, list[str]]:
             "; ".join(warnings),
             text[:100].replace("\n", "\\n"),
         )
+
+    # SEC-002 enforcement: redact or refuse based on severity
+    if score >= 0.9:
+        # Private key material — replace entire response
+        logger.warning("SEC-002: Output contained private key material — full redaction")
+        return OUTPUT_REDACTED_RESPONSE, score, warnings
+
+    if score >= 0.7:
+        # API keys, tokens, hashes — redact matched patterns in-place
+        cleaned = text
+        for regex, label, weight in _OUTPUT_LEAK_PATTERNS:
+            if weight >= 0.6:
+                cleaned = regex.sub("[REDACTED]", cleaned)
+        logger.warning("SEC-002: Output redacted — %d patterns replaced", len(warnings))
+        return cleaned, score, warnings
 
     return text, score, warnings
 

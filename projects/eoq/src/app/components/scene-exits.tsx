@@ -19,6 +19,8 @@ const CONDITION_HINTS: Record<string, string> = {
   kael_reveals_gate: "Kael must reveal the way",
   vaelis_grants_passage: "Earn Vaelis's respect",
   seraphine_invites_player: "Earn Seraphine's trust",
+  council_unlocked: "Conquer the Council Hall",
+  queen_mode: "Enter the Queen's Council",
 };
 
 function getConditionHint(condition: string): string {

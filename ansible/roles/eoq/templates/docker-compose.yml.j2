@@ -18,3 +18,10 @@ services:
       - COMFYUI_URL={{ eoq_comfyui_url }}
       - QDRANT_URL={{ eoq_qdrant_url }}
       - DIALOGUE_MODEL={{ eoq_dialogue_model }}
+      - ATHANOR_SPEACHES_URL={{ eoq_speaches_url }}
+      - TZ=America/Chicago
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

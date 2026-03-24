@@ -21,6 +21,31 @@ async function savePersonas(personas: unknown[]) {
 }
 
 /**
+ * GET /api/references/[id]/photos?filename=xxx
+ * Serve a reference photo for thumbnail display.
+ */
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const url = new URL(req.url);
+  const filename = url.searchParams.get("filename");
+  if (!filename) return Response.json({ error: "filename required" }, { status: 400 });
+
+  const personas = await loadPersonas();
+  const persona = personas.find((p) => p.id === id);
+  if (!persona) return Response.json({ error: "Persona not found" }, { status: 404 });
+
+  const filepath = join(REFERENCES_DIR, persona.folder, filename.replace(/[^a-zA-Z0-9._-]/g, "_"));
+  try {
+    const data = await readFile(filepath);
+    const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
+    const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    return new Response(data, { headers: { "Content-Type": mime, "Cache-Control": "public, max-age=3600" } });
+  } catch {
+    return Response.json({ error: "Photo not found" }, { status: 404 });
+  }
+}
+
+/**
  * POST /api/references/[id]/photos
  * Upload a reference photo. Saves to VAULT references dir and forwards to ComfyUI input.
  * Accepts multipart/form-data with an "image" field.
