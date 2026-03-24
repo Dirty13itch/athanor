@@ -179,7 +179,7 @@ scrape_configs:
           service_category: "experience"
           node_id: "vault"
 
-      - targets: ["http://192.168.1.244:6333/collections"]
+      - targets: ["http://192.168.1.203:6333/collections"]
         labels:
           service_id: "qdrant"
           service_name: "Qdrant"
