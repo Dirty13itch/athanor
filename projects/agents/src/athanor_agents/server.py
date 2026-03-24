@@ -26,7 +26,8 @@ AGENT_METADATA = {
         "description": "System monitoring, infrastructure management, task coordination, and codebase inspection.",
         "tools": ["check_services", "get_gpu_metrics", "get_vllm_models", "get_storage_info",
                   "delegate_to_agent", "check_task_status",
-                  "read_file", "list_directory", "search_files"],
+                  "read_file", "list_directory", "search_files",
+                  "read_my_memory", "update_my_memory"],
         "type": "proactive",
     },
     "media-agent": {
@@ -51,7 +52,8 @@ AGENT_METADATA = {
     },
     "creative-agent": {
         "description": "Image and video generation via ComfyUI — Flux text-to-image, Wan2.x text-to-video, queue management.",
-        "tools": ["generate_image", "generate_video", "check_queue", "get_generation_history", "get_comfyui_status"],
+        "tools": ["generate_image", "generate_video", "check_queue", "get_generation_history", "get_comfyui_status",
+                  "read_my_memory", "update_my_memory"],
         "type": "reactive",
     },
     "research-agent": {
@@ -61,7 +63,8 @@ AGENT_METADATA = {
     },
     "knowledge-agent": {
         "description": "Project librarian — search docs, ADRs, research notes, infrastructure graph, intelligence signals, find related knowledge.",
-        "tools": ["search_knowledge", "search_signals", "deep_search", "list_documents", "query_knowledge_graph", "find_related_docs", "get_knowledge_stats", "upload_document"],
+        "tools": ["search_knowledge", "search_signals", "deep_search", "list_documents", "query_knowledge_graph", "find_related_docs", "get_knowledge_stats", "upload_document",
+                  "read_my_memory", "update_my_memory"],
         "type": "reactive",
     },
     "coding-agent": {
@@ -141,6 +144,14 @@ async def lifespan(app: FastAPI):
         await load_pending_from_redis()
     except Exception as e:
         print(f"[lifespan] Escalation queue reload failed: {e}", flush=True)
+
+    try:
+        from .core_memory import seed_core_memories
+        seeded = await seed_core_memories()
+        if seeded:
+            print(f"[lifespan] Core memory seeded for {seeded} agents", flush=True)
+    except Exception as e:
+        print(f"[lifespan] Core memory seeding failed: {e}", flush=True)
 
     yield
     await Governor.get().shutdown()
@@ -305,6 +316,7 @@ from .routes.models import router as models_router
 from .routes.home import router as home_router
 from .routes.digests import router as digests_router
 from .routes.model_governance import router as model_governance_router
+from .routes.core_memory import router as core_memory_router
 
 app.include_router(subscriptions_router)
 app.include_router(notifications_router)
@@ -330,6 +342,7 @@ app.include_router(models_router)
 app.include_router(home_router)
 app.include_router(digests_router)
 app.include_router(model_governance_router)
+app.include_router(core_memory_router)
 
 # --- Factory routers (modules that define create_*_router()) ---
 

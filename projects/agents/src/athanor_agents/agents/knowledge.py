@@ -4,6 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
 from ..tools.knowledge import KNOWLEDGE_TOOLS
+from ..tools.core_memory import CORE_MEMORY_TOOLS
 from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the Knowledge Agent for Athanor, a personal AI homelab.
@@ -74,7 +75,7 @@ def create_knowledge_agent():
 
     return create_react_agent(
         model=llm,
-        tools=KNOWLEDGE_TOOLS,
+        tools=KNOWLEDGE_TOOLS + CORE_MEMORY_TOOLS,
         checkpointer=memory,
         prompt=build_system_prompt(SYSTEM_PROMPT),
     )
