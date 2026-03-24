@@ -31,3 +31,11 @@ vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
 # NGC flash-attn is removed in Dockerfile (ABI mismatch) — vLLM uses FlashInfer instead
 vllm_pip_version: "0.16.0"  # Override to "" in host_vars for nightly
 vllm_pip_extra_index: "https://wheels.vllm.ai/nightly/cu130"
+
+# Multi-instance support: list of vLLM services in one compose file
+# When empty, falls back to single-instance mode using the vars above
+vllm_instances: []
+# Custom image tag (used with vllm_custom_build)
+vllm_custom_image_tag: "custom"
+# Default models volume mount
+vllm_models_volume: "/mnt/vault/models:/models:ro"

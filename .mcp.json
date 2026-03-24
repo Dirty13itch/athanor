@@ -1,89 +1,78 @@
 {
   "mcpServers": {
-    "grafana": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y @leval/mcp-grafana"],
-      "env": {},
-      "disabled": true
-    },
     "docker": {
       "type": "stdio",
       "command": "python3",
-      "args": ["scripts/mcp-docker.py"],
+      "args": [
+        "scripts/mcp-docker.py"
+      ],
       "env": {}
     },
     "athanor-agents": {
       "type": "stdio",
       "command": "python3",
-      "args": ["scripts/mcp-athanor-agents.py"],
+      "args": [
+        "scripts/mcp-athanor-agents.py"
+      ],
       "env": {
         "ATHANOR_AGENT_URL": "http://192.168.1.244:9000"
       }
     },
-    "redis": {
+    "context7": {
       "type": "stdio",
-      "command": "python3",
-      "args": ["scripts/mcp-redis.py"],
-      "env": {}
+      "command": "npx",
+      "args": [
+        "@upstash/context7-mcp@latest"
+      ]
     },
-    "qdrant": {
+    "github": {
       "type": "stdio",
-      "command": "python3",
-      "args": ["scripts/mcp-qdrant.py"],
-      "env": {}
-    },
-    "smart-reader": {
-      "type": "stdio",
-      "command": "python3",
-      "args": ["scripts/mcp-smart-reader.py"],
-      "env": {}
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "os.environ/GITHUB_TOKEN"
+      }
     },
     "sequential-thinking": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "args": [
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "qdrant": {
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "scripts/mcp-qdrant.py"
+      ],
       "env": {}
     },
-    "neo4j": {
+    "redis": {
       "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec uvx mcp-neo4j-cypher"],
+      "command": "python3",
+      "args": [
+        "scripts/mcp-redis.py"
+      ],
       "env": {}
     },
-    "postgres": {
+    "filesystem": {
       "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y @modelcontextprotocol/server-postgres \"$POSTGRES_URL\""],
-      "env": {}
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-filesystem",
+        "/home/shaun/repos/athanor",
+        "/home/shaun/.claude"
+      ]
     },
-    "langfuse": {
+    "memory": {
       "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec uvx langfuse-mcp"],
-      "env": {},
-      "disabled": true
-    },
-    "miniflux": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec npx -y miniflux-mcp"],
-      "env": {},
-      "disabled": true
-    },
-    "n8n": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec node ~/.local/node_modules/@illuminaresolutions/n8n-mcp-server/build/index.js"],
-      "env": {},
-      "disabled": true
-    },
-    "gitea": {
-      "type": "stdio",
-      "command": "bash",
-      "args": ["-c", "source ~/.claude/mcp-vars.sh && exec $HOME/go/bin/gitea-mcp -t stdio --host http://192.168.1.203:3033 --token \"$GITEA_TOKEN\""],
-      "env": {},
-      "disabled": true
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-memory"
+      ]
     }
   }
 }

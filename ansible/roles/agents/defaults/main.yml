@@ -1,6 +1,7 @@
 ---
 agent_deploy_dir: /opt/athanor/agents
 agent_port: 9000
+agent_api_token: "{{ athanor_agent_api_token | default('') }}"
 
 agent_node1_host: "{{ node1_ip | default('192.168.1.244') }}"
 agent_node2_host: "{{ node2_ip | default('192.168.1.225') }}"
@@ -25,6 +26,7 @@ agent_dashboard_url: "http://{{ agent_node2_host }}:3001"
 # Knowledge and state
 agent_qdrant_url: "http://{{ agent_node1_host }}:6333"
 agent_redis_url: "{{ athanor_redis_url | default('redis://' ~ agent_vault_host ~ ':6379/0') }}"
+agent_redis_password: "{{ athanor_redis_password | default('') }}"
 agent_subscription_policy_path: "/opt/athanor/agents/config/subscription-routing-policy.yaml"
 agent_neo4j_url: "http://{{ agent_vault_host }}:7474"
 agent_neo4j_user: "{{ athanor_neo4j_user | default('neo4j') }}"

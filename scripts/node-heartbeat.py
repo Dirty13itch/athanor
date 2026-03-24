@@ -19,13 +19,15 @@ import socket
 import subprocess
 import sys
 import time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
 # Node identity from hostname or env
 NODE_NAME = os.environ.get("ATHANOR_NODE", socket.gethostname())
 REDIS_URL = (
     os.environ.get("ATHANOR_REDIS_URL")
     or os.environ.get("REDIS_URL")
-    or f"redis://{os.environ.get('ATHANOR_VAULT_HOST', '192.168.1.203')}:6379/0"
+    or get_url("redis")
 )
 INTERVAL = int(os.environ.get("HEARTBEAT_INTERVAL", "10"))
 

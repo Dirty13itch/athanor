@@ -1,0 +1,15 @@
+language: "en"
+reviews:
+  profile: "assertive"
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "scripts/**"
+      instructions: "Focus on security, error handling, and efficiency"
+    - path: "projects/agents/**"
+      instructions: "Check for proper async patterns, error handling, and trust system compliance"
+    - path: "services/**"
+      instructions: "Verify systemd compatibility, health checks, and graceful shutdown"
+    - path: "ansible/**"
+      instructions: "Check for idempotency, proper variable usage, and security best practices"

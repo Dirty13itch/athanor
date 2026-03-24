@@ -1,0 +1,18 @@
+---
+# FOUNDRY playbook — deploys support services (not vLLM/agents, those use dedicated playbooks)
+#
+# Usage:
+#   ansible-playbook playbooks/foundry.yml                          # Full deploy
+#   ansible-playbook playbooks/foundry.yml --tags docker-proxy      # Docker socket proxy only
+#
+# Note: vLLM and agent deployments use their own playbooks.
+# This playbook is for ancillary services only.
+
+- name: Configure FOUNDRY (Inference)
+  hosts: node1
+  become: true
+  roles:
+    - role: docker-socket-proxy
+      tags: [docker-proxy]
+      vars:
+        docker_socket_proxy_post: "0"  # Read-only — FOUNDRY is production

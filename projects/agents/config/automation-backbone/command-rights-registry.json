@@ -1,0 +1,54 @@
+{
+  "version": "2026-03-12",
+  "updated_at": "2026-03-12T06:20:00Z",
+  "profiles": [
+    {
+      "subject": "Shaun",
+      "can": ["approve", "override", "change policy", "promote or retire models", "authorize destructive work"],
+      "cannot": [],
+      "approval_mode": "final_authority"
+    },
+    {
+      "subject": "Constitution + Policy",
+      "can": ["hard block", "soft block", "define no-go rules", "define approval classes"],
+      "cannot": ["execute tasks", "directly mutate runtime"],
+      "approval_mode": "immutable_non_human_authority"
+    },
+    {
+      "subject": "Athanor Governor",
+      "can": ["route work", "create durable tasks", "issue leases", "pause or resume automation", "choose fallback mode"],
+      "cannot": ["override constitution", "self-authorize forbidden work"],
+      "approval_mode": "policy_bound_runtime_control"
+    },
+    {
+      "subject": "Meta Lanes",
+      "can": ["plan", "decompose", "review", "recommend redirects", "suggest retries or escalations"],
+      "cannot": ["directly run tools", "issue leases", "schedule jobs", "mutate infrastructure outside governor"],
+      "approval_mode": "advisory_only"
+    },
+    {
+      "subject": "Specialist Agents",
+      "can": ["execute scoped domain work", "request resources through governor", "surface outputs"],
+      "cannot": ["expand their own scope", "set schedules", "change policy", "grant approvals"],
+      "approval_mode": "tool_and_policy_bound"
+    },
+    {
+      "subject": "Workers",
+      "can": ["generate and transform outputs"],
+      "cannot": ["approve, schedule, route, or escalate on their own"],
+      "approval_mode": "execution_only"
+    },
+    {
+      "subject": "Judges",
+      "can": ["score, gate, compare, and annotate outcomes"],
+      "cannot": ["execute production actions", "change source-of-truth state"],
+      "approval_mode": "verification_only"
+    },
+    {
+      "subject": "Tools and Infrastructure",
+      "can": ["serve requests and return results"],
+      "cannot": ["make discretionary decisions"],
+      "approval_mode": "resource_only"
+    }
+  ]
+}

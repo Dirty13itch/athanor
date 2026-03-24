@@ -12,4 +12,8 @@
     - vllm
     - qdrant
     - agents
+    - gpu-orchestrator
+    - voice
     - backup
+    - cadvisor
+    - alloy

@@ -10,6 +10,10 @@ import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import NODES, get_url
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -97,7 +101,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "projects/dashboard",
             "ansible/roles/dashboard/templates/docker-compose.yml.j2",
         ],
-        "liveEndpoint": "http://192.168.1.225:3001",
+        "liveEndpoint": get_url("dashboard"),
         "driftStatus": "aligned",
         "notes": [
             "Project-local dashboard manifests are the strongest source for the UI layer.",
@@ -112,7 +116,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "projects/dashboard",
             "ansible/roles/dashboard/templates/docker-compose.yml.j2",
         ],
-        "liveEndpoint": "http://192.168.1.225:3100",
+        "liveEndpoint": f"http://{NODES['workshop']}:3100",
         "driftStatus": "aligned",
         "notes": [
             "Owned by the dashboard deployment surface on Workshop.",
@@ -128,7 +132,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "projects/agents/src/athanor_agents",
             "ansible/roles/agents/templates/docker-compose.yml.j2",
         ],
-        "liveEndpoint": "http://192.168.1.244:9000/health",
+        "liveEndpoint": get_url("agent_server") + "/health",
         "driftStatus": "aligned",
         "notes": [
             "Project-local agent manifests and code own runtime behavior, and the live Foundry deployment now matches the repo-backed coder-era compose.",
@@ -143,7 +147,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "ansible/roles/vault-litellm/templates/litellm_config.yaml.j2",
             "ansible/roles/vault-litellm",
         ],
-        "liveEndpoint": "http://192.168.1.203:4000/health",
+        "liveEndpoint": get_url("litellm") + "/health",
         "driftStatus": "aligned",
         "notes": [
             "VAULT LiteLLM was reloaded from the repo-backed coder-era routing template and now exposes the subscription provider portfolio through the managed config.",
@@ -159,7 +163,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "ansible/roles/prometheus",
             "ansible/roles/grafana",
         ],
-        "liveEndpoint": "http://192.168.1.203:3000",
+        "liveEndpoint": get_url("grafana"),
         "driftStatus": "aligned",
         "notes": [
             "VAULT Prometheus, alert rules, and blackbox exporter were converged onto the Athanor monitoring model under /mnt/appdatacache/appdata.",
@@ -174,7 +178,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "ansible/roles/qdrant",
             "docs/SERVICES.md",
         ],
-        "liveEndpoint": "http://192.168.1.244:6333/collections",
+        "liveEndpoint": get_url("qdrant") + "/collections",
         "driftStatus": "aligned",
         "notes": [
             "Canonical vector store for the live runtime.",
@@ -189,7 +193,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "ansible/roles/vault-neo4j",
             "docs/SERVICES.md",
         ],
-        "liveEndpoint": "http://192.168.1.203:7474",
+        "liveEndpoint": get_url("neo4j_http"),
         "driftStatus": "aligned",
         "notes": [
             "Knowledge graph runtime on VAULT.",
@@ -204,7 +208,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "ansible/roles/redis",
             "docs/SERVICES.md",
         ],
-        "liveEndpoint": "redis://192.168.1.203:6379/0",
+        "liveEndpoint": get_url("redis"),
         "driftStatus": "aligned",
         "notes": [
             "Backs task queue, workspace, and scheduler state.",
@@ -219,7 +223,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "services/node2",
             "ansible/roles/vllm-worker",
         ],
-        "liveEndpoint": "http://192.168.1.225:8000/v1/models",
+        "liveEndpoint": get_url("vllm_vision") + "/v1/models",
         "driftStatus": "aligned",
         "notes": [
             "Service-level manifests currently match live better than some Ansible roles.",
@@ -234,7 +238,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "services/node1",
             "ansible/roles/vllm",
         ],
-        "liveEndpoint": "http://192.168.1.244:8000/v1/models",
+        "liveEndpoint": get_url("vllm_coordinator") + "/v1/models",
         "driftStatus": "aligned",
         "notes": [
             "Foundry coordinator runtime is represented best by node service manifests.",
@@ -249,7 +253,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "services/node2",
             "docs/SERVICES.md",
         ],
-        "liveEndpoint": "http://192.168.1.225:8188/system_stats",
+        "liveEndpoint": get_url("comfyui") + "/system_stats",
         "driftStatus": "aligned",
         "notes": [
             "Creative generation backend consumed by gallery/media surfaces.",
@@ -265,7 +269,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "projects/agents/config/subscription-routing-policy.yaml",
             "ansible/roles/agents/templates/docker-compose.yml.j2",
         ],
-        "liveEndpoint": "http://192.168.1.244:9000/v1/subscriptions/policy",
+        "liveEndpoint": get_url("agent_server") + "/v1/subscriptions/policy",
         "driftStatus": "aligned",
         "notes": [
             "Lives inside the agent server deployment boundary.",

@@ -11,6 +11,7 @@ export type ServiceCategory =
 
 export interface DashboardEndpoint {
   url: string;
+  token?: string;
 }
 
 export interface InferenceBackend extends DashboardEndpoint {
@@ -124,19 +125,11 @@ const prometheusUrl = env(
 );
 const grafanaUrl = env("ATHANOR_GRAFANA_URL", `http://${vaultHost}:3000`);
 const agentServerUrl = env("ATHANOR_AGENT_SERVER_URL", `http://${foundryHost}:9000`);
+const agentServerToken = process.env.ATHANOR_AGENT_API_TOKEN?.trim() || "";
 const litellmUrl = env("ATHANOR_LITELLM_URL", `http://${vaultHost}:4000`);
-const foundryCoordinatorUrl = env(
-  "ATHANOR_VLLM_COORDINATOR_URL",
-  process.env.ATHANOR_NODE1_VLLM_URL?.trim() || `http://${foundryHost}:8000`
-);
-const foundryCoderUrl = env(
-  "ATHANOR_VLLM_CODER_URL",
-  process.env.ATHANOR_VLLM_UTILITY_URL?.trim() || `http://${foundryHost}:8006`
-);
-const workshopWorkerUrl = env(
-  "ATHANOR_VLLM_WORKER_URL",
-  process.env.ATHANOR_NODE2_VLLM_URL?.trim() || `http://${workshopHost}:8000`
-);
+const foundryCoordinatorUrl = env("ATHANOR_VLLM_COORDINATOR_URL", `http://${foundryHost}:8000`);
+const foundryCoderUrl = env("ATHANOR_VLLM_CODER_URL", `http://${foundryHost}:8006`);
+const workshopWorkerUrl = env("ATHANOR_VLLM_WORKER_URL", `http://${workshopHost}:8000`);
 const devEmbeddingUrl = env("ATHANOR_VLLM_EMBEDDING_URL", `http://${devHost}:8001`);
 const devRerankerUrl = env("ATHANOR_VLLM_RERANKER_URL", `http://${devHost}:8003`);
 const comfyUiUrl = env("ATHANOR_COMFYUI_URL", `http://${workshopHost}:8188`);
@@ -171,6 +164,7 @@ export const config = {
   },
   agentServer: {
     url: agentServerUrl,
+    token: agentServerToken,
   },
   litellm: {
     url: litellmUrl,
@@ -242,15 +236,15 @@ export const config = {
       name: "Foundry Coder",
       nodeId: "node1",
       description: "Dedicated coding runtime for autonomous implementation and code-heavy tasks.",
-      primaryModel: "Qwen3-Coder-30B-A3B-Instruct-AWQ",
+      primaryModel: "Qwen3.5-35B-A3B-AWQ-4bit (qwen35-coder)",
       url: foundryCoderUrl,
     },
     {
       id: "workshop-worker",
       name: "Workshop Worker",
       nodeId: "node2",
-      description: "Interactive worker runtime for fast direct-chat and UI-adjacent inference.",
-      primaryModel: "Qwen3.5-35B-A3B-AWQ-4bit",
+      description: "Interactive worker runtime for fast direct-chat and UI-adjacent inference (currently offline).",
+      primaryModel: "Qwen3.5-35B-A3B",
       url: workshopWorkerUrl,
     },
     {
@@ -762,4 +756,9 @@ export function resolveChatModel(target: string | undefined, model: string | und
 
 export function getNodeNameFromInstance(instance: string): string {
   return config.nodes.find((node) => instance.includes(node.ip))?.name ?? instance;
+}
+
+export function agentServerHeaders(): Record<string, string> {
+  const token = config.agentServer.token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }

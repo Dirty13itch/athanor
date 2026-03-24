@@ -35,6 +35,7 @@ export function GameMenu({ open, onClose, onNewGame, onOpenInventory }: GameMenu
   const updateWorldState = useGameStore((s) => s.updateWorldState);
   const saveGame = useGameStore((s) => s.saveGame);
   const clearSave = useGameStore((s) => s.clearSave);
+  const setNoMercy = useGameStore((s) => s.setNoMercy);
 
   const [showControls, setShowControls] = useState(false);
   const intensity = session?.worldState.contentIntensity ?? 3;
@@ -139,6 +140,35 @@ export function GameMenu({ open, onClose, onNewGame, onOpenInventory }: GameMenu
                       {formatPlaytime(Date.now() - session.startedAt)}
                     </span>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* No Mercy Mode */}
+            {session?.noMercyUnlocked && (
+              <div className="mb-6 rounded border border-red-500/20 bg-red-900/10 p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-red-400">
+                      No Mercy Mode
+                    </h3>
+                    <p className="mt-1 text-[10px] text-red-400/50">
+                      Your cruelty has been noticed. Characters fear you more. Breaking is faster and more visceral.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setNoMercy(!session.noMercyActive);
+                      saveGame();
+                    }}
+                    className={`ml-3 rounded px-3 py-1.5 text-xs font-bold transition-colors ${
+                      session.noMercyActive
+                        ? "bg-red-500 text-white"
+                        : "border border-red-500/30 text-red-400/60 hover:bg-red-900/30"
+                    }`}
+                  >
+                    {session.noMercyActive ? "ON" : "OFF"}
+                  </button>
                 </div>
               </div>
             )}

@@ -88,44 +88,36 @@ Layer 1: INDEX      Parse, chunk, embed, store in Qdrant
 Layer 0: TRANSIT    Get data from sources to processing location
 ```
 
-### Layer 0: Data Transit
+### Layer 0: Data Transit (DEPLOYED)
 
-**Problem:** The Data Curator agent runs on Node 1 in Docker. It can only see mounted volumes. Personal data lives on DEV (WSL2) and Google Drive (cloud).
+**Problem:** The Data Curator agent runs on FOUNDRY in Docker. It can only see mounted volumes. Personal data lives on Google Drive (2 accounts).
 
 **Solution:** A two-stage sync pipeline.
 
 ```
-Google Drive ──rclone──→ DEV local dir
-                              │
-DEV C:/D: drives ─────────────┤
-                              │
-                        rsync over SSH
-                              │
-                              ▼
-                    VAULT /mnt/vault/data/personal/
-                              │
-                         NFS mount
-                              │
-                              ▼
-                    Node 1 container /data/personal/ (read-only)
-                              │
-                       Data Curator Agent
+Google Drive (2 accounts) ──rclone──→ DEV staging
+                                          │
+                                    rsync over SSH
+                                          │
+                                          ▼
+                                FOUNDRY /opt/athanor/personal-data/
+                                          │
+                                   Docker volume mount
+                                          │
+                                          ▼
+                                container /data/personal/ (read-only)
+                                          │
+                                   Data Curator Agent
 ```
 
 **Implementation:**
-- `scripts/sync-personal-data.sh` on DEV — rsyncs key dirs to VAULT
+- `scripts/sync-personal-data.sh` on DEV — rclone + rsync pipeline
 - Runs as cron on DEV: `0 */6 * * *` (every 6 hours, aligned with curator schedule)
-- rclone config on DEV for Google Drive (needs one-time Shaun OAuth)
-- rclone sync in the same script: `rclone sync gdrive: /mnt/c/Users/Shaun/GoogleDrive/ --transfers 4`
-- Then rsync Google Drive sync target to VAULT with everything else
+- Two rclone remotes: `personal-drive:` (30 GiB) + `uea-drive:` (7 GiB)
+- DEV staging at `/home/shaun/data/personal/{personal-drive,uea-drive}/`
+- rsync to FOUNDRY at `/opt/athanor/personal-data/`
 
-**What NOT to sync:**
-- Installers/ISOs (~5.5 GB of bloat on D: Downloads)
-- node_modules directories
-- Duplicate photo exports (keep one copy)
-- Empty directory trees (D: ChatGPT Files scaffolding)
-
-**Estimated transfer:** ~1.75 GB initial, <100 MB incremental.
+**Estimated transfer:** ~37 GiB initial, <500 MB incremental.
 
 ### Layer 1: Parse & Index (DEPLOYED)
 
@@ -164,11 +156,11 @@ The Data Curator agent handles this. Already deployed with 7 tools:
 
 **Implementation:** Add an `analyze_and_index` pipeline that:
 1. Parses the document
-2. Sends first 4000 chars to Qwen3-32B with a structured extraction prompt
+2. Sends first 4000 chars to the reasoning model with a structured extraction prompt
 3. Stores extracted metadata in Qdrant payload alongside the embedding
 4. Optionally creates Neo4j nodes (Layer 3)
 
-**Cost:** ~30 seconds per document at Qwen3-32B inference speed. For 200 unique documents: ~100 minutes total. Amortized over the 6-hour schedule cycle = negligible.
+**Cost:** ~30 seconds per document at local inference speed. For 200 unique documents: ~100 minutes total. Amortized over the 6-hour schedule cycle = negligible.
 
 ### Layer 3: Connect — The Entity Graph
 
@@ -464,7 +456,7 @@ This turns every photo into searchable text. "Find photos of ductwork problems" 
 
 ### Phase 6: Entity Extraction ✅ COMPLETE (2026-02-26)
 - ✅ `scripts/extract-entities.py` — LLM-powered extraction from all 793 Qdrant points (0 errors)
-- ✅ Qwen3-14B with thinking disabled (`enable_thinking: false`, `max_tokens: 2000`) for reliable JSON output
+- ✅ Qwen3.5-35B-A3B with thinking disabled (`enable_thinking: false`, `max_tokens: 2000`) for reliable JSON output
 - ✅ Neo4j final: 3,095 nodes (1055 Topics, 701 Documents, 391 Orgs, 97 People, 67 GitRepos, 24 Services, 18 Places)
 - ✅ 4,447 relationships (3139 MENTIONS, 685 CATEGORIZED_AS, 501 RELATES_TO, 77 SUBCATEGORY_OF)
 - ✅ Incremental support (skips already-extracted points)

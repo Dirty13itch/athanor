@@ -6,8 +6,6 @@ Use it with:
 
 - [automation-backbone-master-plan.md](./automation-backbone-master-plan.md)
 - [command-hierarchy-governance.md](./command-hierarchy-governance.md)
-- [../atlas/COMMAND_HIERARCHY_ATLAS.md](../atlas/COMMAND_HIERARCHY_ATLAS.md)
-- [../atlas/MODEL_GOVERNANCE_ATLAS.md](../atlas/MODEL_GOVERNANCE_ATLAS.md)
 
 ## Status meanings
 

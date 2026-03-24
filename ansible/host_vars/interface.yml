@@ -2,11 +2,11 @@
 # Node 2 (interface / Workshop) — host-specific vars
 
 vllm_model: /models/Qwen3.5-35B-A3B-AWQ-4bit
-vllm_quantization: awq  # Explicit AWQ required on Blackwell (sm_120)
+vllm_quantization: ""  # Model uses compressed-tensors quant — vLLM auto-detects from config.json
 vllm_tensor_parallel: 1
 vllm_port: 8000
 vllm_gpu_memory_util: "0.85"
-vllm_max_model_len: 32768
+vllm_max_model_len: 65536
 vllm_max_num_seqs: 32
 vllm_gpu_devices: "0"
 vllm_container_name: vllm-node2
@@ -19,13 +19,12 @@ vllm_extra_volumes:
   - /home/athanor/.cache/triton:/root/.cache/triton
 vllm_extra_args:
   - --language-model-only
+  - --enforce-eager  # Qwen3.5 DeltaNet Triton kernels OOM during CUDA graph capture
   - --enable-auto-tool-choice
   - --tool-call-parser
   - qwen3_xml
   - --kv-cache-dtype
   - auto
-  - --max-num-batched-tokens
-  - "2096"
   - --enable-prefix-caching
   # NFS optimization: eager loading converts random page faults to sequential reads
   - --safetensors-load-strategy
@@ -36,6 +35,7 @@ vllm_extra_args:
 vllm_custom_build: true
 vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
 vllm_pip_version: ""  # Empty = nightly (latest, unpinned) for Qwen3.5 qwen3_5 model type
+vllm_custom_image_tag: "qwen35"  # Match FOUNDRY image tag
 
 # Network interfaces — 10GbE primary + DHCP secondary
 network_interfaces:
@@ -48,6 +48,9 @@ network_interfaces:
     dhcp_overrides:
       route-metric: 200
     mtu: 1500
+
+# Alloy log shipping
+alloy_node_name: workshop
 
 comfyui_gpu_device: "1"
 comfyui_port: 8188

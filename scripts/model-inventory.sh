@@ -2,12 +2,17 @@
 # Athanor model inventory — scans NFS and reports what's available vs loaded
 # Usage: bash scripts/model-inventory.sh
 
+
+# Source cluster config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
 set -euo pipefail
 
-VAULT_HOST="${ATHANOR_VAULT_HOST:-192.168.1.203}"
-FOUNDRY_HOST="${ATHANOR_NODE1_HOST:-192.168.1.244}"
-WORKSHOP_HOST="${ATHANOR_NODE2_HOST:-192.168.1.225}"
-DEV_HOST="${ATHANOR_DEV_HOST:-192.168.1.189}"
+VAULT_HOST="${VAULT_IP}"
+FOUNDRY_HOST="${FOUNDRY_IP}"
+WORKSHOP_HOST="${WORKSHOP_IP}"
+DEV_HOST="${DEV_IP}"
 LITELLM_URL="${ATHANOR_LITELLM_URL:-http://${VAULT_HOST}:4000}"
 LITELLM_KEY="${ATHANOR_LITELLM_API_KEY:-${LITELLM_API_KEY:-${OPENAI_API_KEY:-}}}"
 COORDINATOR_URL="${ATHANOR_VLLM_COORDINATOR_URL:-http://${FOUNDRY_HOST}:8000}"

@@ -1,39 +1,56 @@
 #!/bin/bash
-# PostToolUse hook: Type-check dashboard files after Write/Edit
-# Catches TypeScript errors immediately instead of at deploy time
+# PostToolUse hook: Lint/typecheck after file edits
+# Catches errors immediately instead of at deploy time
+# Advisory only (exit 0) — never blocks
 
-# Only run for dashboard file modifications
-FILE_PATH="${CLAUDE_TOOL_INPUT_FILE_PATH:-${CLAUDE_TOOL_INPUT_file_path:-}}"
+INPUT=$(cat)
+
+# Extract file path from hook JSON input
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 if [ -z "$FILE_PATH" ]; then
   exit 0
 fi
 
-# Only check .ts/.tsx files in the dashboard project
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+# === TypeScript: Dashboard ===
 case "$FILE_PATH" in
   */projects/dashboard/src/*.ts|*/projects/dashboard/src/*.tsx)
-    ;;
-  *)
+    DASHBOARD_DIR="$REPO_ROOT/projects/dashboard"
+    if [ -d "$DASHBOARD_DIR/node_modules" ]; then
+      cd "$DASHBOARD_DIR" || exit 0
+      ERRORS=$(npx tsc --noEmit --pretty false 2>&1 | grep -E "^src/" | head -10)
+      if [ -n "$ERRORS" ]; then
+        echo "TypeScript errors in dashboard:"
+        echo "$ERRORS"
+      fi
+    fi
     exit 0
     ;;
 esac
 
-DASHBOARD_DIR="$(git rev-parse --show-toplevel 2>/dev/null)/projects/dashboard"
+# === TypeScript: EoBQ ===
+case "$FILE_PATH" in
+  */projects/eoq/src/*.ts|*/projects/eoq/src/*.tsx)
+    EOQ_DIR="$REPO_ROOT/projects/eoq"
+    if [ -d "$EOQ_DIR/node_modules" ]; then
+      cd "$EOQ_DIR" || exit 0
+      ERRORS=$(npx tsc --noEmit --pretty false 2>&1 | grep -E "^src/" | head -10)
+      if [ -n "$ERRORS" ]; then
+        echo "TypeScript errors in eoq:"
+        echo "$ERRORS"
+      fi
+    fi
+    exit 0
+    ;;
+esac
 
-# Quick check — only if npx/tsc is available and node_modules exists
-if [ ! -d "$DASHBOARD_DIR/node_modules" ]; then
-  exit 0
-fi
+# === Python: Syntax check ===
+case "$FILE_PATH" in
+  *.py)
+    python3 -m py_compile "$FILE_PATH" 2>&1 | head -5
+    exit 0
+    ;;
+esac
 
-# Run tsc --noEmit on just the changed file (fast, ~2-5s)
-cd "$DASHBOARD_DIR" || exit 0
-ERRORS=$(npx tsc --noEmit --pretty false 2>&1 | grep -E "^src/" | head -10)
-
-if [ -n "$ERRORS" ]; then
-  echo "TypeScript errors detected after editing $FILE_PATH:"
-  echo "$ERRORS"
-  echo ""
-  echo "Fix these before deploying."
-fi
-
-# Always exit 0 — this is advisory, not blocking
 exit 0

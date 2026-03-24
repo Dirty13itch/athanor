@@ -1,0 +1,7 @@
+---
+postgres_image: postgres:16-alpine
+postgres_port: 5432
+postgres_user: local_system
+postgres_password: "{{ vault_postgres_password | default('changeme') }}"
+postgres_db: local_system
+postgres_data_path: /mnt/user/databases/postgres

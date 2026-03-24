@@ -1,3 +1,5 @@
+import logging
+
 from .general import create_general_assistant
 from .media import create_media_agent
 from .research import create_research_agent
@@ -100,8 +102,8 @@ def get_agent_info() -> list[dict]:
                 bound = tool_node.bound
                 if hasattr(bound, "tools_by_name"):
                     tools = list(bound.tools_by_name.keys())
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger(__name__).debug("Tool introspection failed for %s: %s", agent_id, e)
         result.append({
             "id": agent_id,
             "name": meta["name"],

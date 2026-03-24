@@ -116,7 +116,7 @@
             SET s.port = 8000, s.model = 'Qwen3.5-27B-FP8', s.type = 'inference'
         - statement: >
             MERGE (s:Service {name: 'foundry-coder'})
-            SET s.port = 8006, s.model = 'Qwen3-Coder-30B-A3B-Instruct-AWQ', s.type = 'inference'
+            SET s.port = 8006, s.model = 'Qwen3.5-35B-A3B-AWQ-4bit', s.type = 'inference'
         - statement: >
             MERGE (s:Service {name: 'workshop-worker'})
             SET s.port = 8000, s.model = 'Qwen3.5-35B-A3B-AWQ-4bit', s.type = 'inference'

@@ -91,12 +91,7 @@ Core census and probe scripts:
 - `python scripts/probe-agent-runtime.py`
 - `python scripts/tests/live-dashboard-smoke.py`
 
-Run outputs land in:
-
-- [`../../reports/completion-audit/latest/summary.md`](../../reports/completion-audit/latest/summary.md)
-- [`../../reports/completion-audit/latest/release-readiness.json`](../../reports/completion-audit/latest/release-readiness.json)
-- [`../../reports/completion-audit/latest/remediation-backlog.json`](../../reports/completion-audit/latest/remediation-backlog.json)
-- timestamped runs under [`../../reports/completion-audit`](../../reports/completion-audit)
+Run outputs land in the `reports/completion-audit/` directory (created on first run).
 
 ### Current Gate State
 
@@ -123,8 +118,8 @@ These remain the main upstream sources the atlas reconciles:
 
 These older map documents remain useful as historical or planning context, but they are no longer the canonical map:
 
-- [`../planning/ATHANOR-MAP.md`](../planning/ATHANOR-MAP.md)
-- [`../planning/ATHANOR-MAP-ADDENDUM.md`](../planning/ATHANOR-MAP-ADDENDUM.md)
+- [`../archive/planning-era/ATHANOR-MAP.md`](../archive/planning-era/ATHANOR-MAP.md)
+- [`../archive/planning-era/ATHANOR-MAP-ADDENDUM.md`](../archive/planning-era/ATHANOR-MAP-ADDENDUM.md)
 - [`../hardware/ATHANOR-SYSTEM-MAP.md`](../hardware/ATHANOR-SYSTEM-MAP.md)
 - [`../hardware/COMPLETE-SYSTEM-BREAKDOWN.md`](../hardware/COMPLETE-SYSTEM-BREAKDOWN.md)
 

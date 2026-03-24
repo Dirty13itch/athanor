@@ -56,8 +56,8 @@ The atlas sits above those layers as the canonical cross-layer synthesis. It doe
 
 | Source | Classification | Still useful for | Why it is no longer canonical |
 | --- | --- | --- | --- |
-| [`../planning/ATHANOR-MAP.md`](../planning/ATHANOR-MAP.md) | legacy planning map | philosophy, earlier design synthesis, planning-era assumptions | mixes live facts, intentions, and sprint-era planning into one document |
-| [`../planning/ATHANOR-MAP-ADDENDUM.md`](../planning/ATHANOR-MAP-ADDENDUM.md) | legacy planning addendum | point-in-time corrections and late-session clarifications | tied to a specific planning session, not durable repo truth |
+| [`../archive/planning-era/ATHANOR-MAP.md`](../archive/planning-era/ATHANOR-MAP.md) | legacy planning map | philosophy, earlier design synthesis, planning-era assumptions | mixes live facts, intentions, and sprint-era planning into one document |
+| [`../archive/planning-era/ATHANOR-MAP-ADDENDUM.md`](../archive/planning-era/ATHANOR-MAP-ADDENDUM.md) | legacy planning addendum | point-in-time corrections and late-session clarifications | tied to a specific planning session, not durable repo truth |
 | [`../hardware/ATHANOR-SYSTEM-MAP.md`](../hardware/ATHANOR-SYSTEM-MAP.md) | hardware reference | rack, ports, hardware inventory, physical context | valuable hardware detail, but not the current system map |
 | [`../hardware/COMPLETE-SYSTEM-BREAKDOWN.md`](../hardware/COMPLETE-SYSTEM-BREAKDOWN.md) | exhaustive hardware reference | deep physical inventory and rack-level documentation | too hardware-heavy to serve as the primary cross-layer map |
 

@@ -2169,12 +2169,17 @@ const fixtureHomeSnapshot: HomeSnapshot = {
       href: "/home?panel=climate",
     },
     {
-      id: "presence",
-      label: "Presence",
-      description: "Who is home, presence rules, and automations.",
-      href: "/home?panel=presence",
+      id: "sensors",
+      label: "Sensors",
+      description: "Key sensor readings.",
+      href: "/home?panel=sensors",
     },
   ],
+  entities: 0,
+  automations: { total: 0, on: 0 },
+  lights: { total: 0, on: 0 },
+  climate: [],
+  sensors: [],
 };
 
 export function isDashboardFixtureMode() {

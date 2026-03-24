@@ -39,6 +39,7 @@ MAX_REACTIONS_PER_CYCLE = 2  # Max reactive tasks created per competition cycle
 
 _redis: aioredis.Redis | None = None
 _competition_task: asyncio.Task | None = None
+_last_broadcast_id: str | None = None  # Dedup: skip CST/history when broadcast unchanged
 
 
 class ItemPriority(str, Enum):
@@ -149,6 +150,7 @@ async def get_redis() -> aioredis.Redis:
     if _redis is None:
         _redis = aioredis.from_url(
             settings.redis_url,
+            password=settings.redis_password or None,
             decode_responses=True,
             socket_timeout=5,
             socket_connect_timeout=5,
@@ -171,6 +173,7 @@ _MODEL_ALIAS_MAP: dict[str, str] = {
     "worker": "workshop",
     "embedding": "dev",
     "reranker": "dev",
+    "vision": "workshop",
 }
 
 # Agent name → node where its backing model runs
@@ -407,6 +410,7 @@ async def _competition_cycle():
     7. Update CST + specialist inhibition
     8. Trigger reactive tasks for subscribed agents
     """
+    global _last_broadcast_id
     logger.info("GWT competition cycle started (interval=%.1fs)", COMPETITION_INTERVAL)
     reaction_counter = 0  # Only check reactions every 10 cycles (10s)
 
@@ -421,6 +425,8 @@ async def _competition_cycle():
                     len(items), len(broadcast),
                     broadcast[0].source_agent, broadcast[0].salience,
                 )
+            else:
+                _last_broadcast_id = None  # Reset so next item always triggers
 
             # --- Specialist competition ---
             winning_specialist = None
@@ -431,39 +437,46 @@ async def _competition_cycle():
                     logger.debug("Specialist competition failed: %s", e)
 
             # Archive history + publish broadcast via pub/sub
+            # Only push when the top broadcast item changes (prevents flooding
+            # working memory and history with the same alert every second)
             if broadcast:
-                r = await get_redis()
-                entry_data = {
-                    "timestamp": time.time(),
-                    "broadcast": [i.to_dict() for i in broadcast],
-                    "total_candidates": len(items),
-                }
-                if winning_specialist:
-                    entry_data["winning_specialist"] = winning_specialist
-                entry = json.dumps(entry_data)
-                await r.lpush(WORKSPACE_HISTORY_KEY, entry)
-                await r.ltrim(WORKSPACE_HISTORY_KEY, 0, 99)
+                top_id = broadcast[0].id
+                broadcast_changed = top_id != _last_broadcast_id
 
-                # Publish to subscribers
-                await r.publish(WORKSPACE_BROADCAST_CHANNEL, entry)
-
-                # Update Continuous State Tensor from broadcast + specialist
-                try:
-                    from .cst import update_cst_from_broadcast
-
-                    top = broadcast[0]
-                    cst_broadcast = {
-                        "specialist": winning_specialist or top.source_agent,
-                        "content": top.content[:200],
-                        "confidence": min(top.salience, 1.0),
-                        "urgency": 0.5 if top.priority in ("critical", "high") else 0.2,
-                        "topics": {top.source_agent: 0.3},
+                if broadcast_changed:
+                    _last_broadcast_id = top_id
+                    r = await get_redis()
+                    entry_data = {
+                        "timestamp": time.time(),
+                        "broadcast": [i.to_dict() for i in broadcast],
+                        "total_candidates": len(items),
                     }
                     if winning_specialist:
-                        cst_broadcast["topics"][winning_specialist] = 0.4
-                    await update_cst_from_broadcast(cst_broadcast)
-                except Exception as e:
-                    logger.debug("CST update failed: %s", e)
+                        entry_data["winning_specialist"] = winning_specialist
+                    entry = json.dumps(entry_data)
+                    await r.lpush(WORKSPACE_HISTORY_KEY, entry)
+                    await r.ltrim(WORKSPACE_HISTORY_KEY, 0, 99)
+
+                    # Publish to subscribers
+                    await r.publish(WORKSPACE_BROADCAST_CHANNEL, entry)
+
+                    # Update Continuous State Tensor from broadcast + specialist
+                    try:
+                        from .cst import update_cst_from_broadcast
+
+                        top = broadcast[0]
+                        cst_broadcast = {
+                            "specialist": winning_specialist or top.source_agent,
+                            "content": top.content[:200],
+                            "confidence": min(top.salience, 1.0),
+                            "urgency": 0.5 if top.priority in ("critical", "high") else 0.2,
+                            "topics": {top.source_agent: 0.3},
+                        }
+                        if winning_specialist:
+                            cst_broadcast["topics"][winning_specialist] = 0.4
+                        await update_cst_from_broadcast(cst_broadcast)
+                    except Exception as e:
+                        logger.debug("CST update failed: %s", e)
 
             # Trigger reactive tasks every 10 cycles (10s)
             reaction_counter += 1
@@ -554,24 +567,31 @@ DEFAULT_SUBSCRIPTIONS: dict[str, AgentSubscription] = {
     "media-agent": AgentSubscription(
         agent_name="media-agent",
         keywords=["movie", "show", "episode", "download", "plex", "sonarr", "radarr",
-                  "media", "tv", "film", "stream", "torrent", "transcode"],
+                  "media", "tv", "film", "stream", "torrent", "transcode",
+                  "new episode", "download complete", "grabbed"],
         source_filters=["event:sonarr", "event:radarr", "event:plex", "event:tdarr"],
         threshold=0.3,
         react_prompt_template=(
-            "A workspace broadcast is relevant to your domain: '{content}' "
-            "(from {source_agent}). Assess this and take appropriate action — "
-            "check media library status, update metadata, or report findings."
+            "Media event: '{content}' (from {source_agent}). "
+            "1. If this is a new download/grab: check the Sonarr/Radarr queue for status. "
+            "2. If this is a completion: verify it appeared in Plex. "
+            "3. Report only notable findings (new content, stuck downloads, quality issues). "
+            "Do NOT report 'all clear' — only report if something needs attention."
         ),
     ),
     "home-agent": AgentSubscription(
         agent_name="home-agent",
         keywords=["motion", "door", "light", "temperature", "humidity", "presence",
-                  "home", "room", "sensor", "automation", "climate", "power"],
+                  "home", "room", "sensor", "automation", "climate", "power",
+                  "anomaly", "offline", "unavailable"],
         source_filters=["event:home-assistant", "event:homeassistant"],
         threshold=0.3,
         react_prompt_template=(
-            "Home automation event detected: '{content}' (from {source_agent}). "
-            "Check relevant Home Assistant entities and take appropriate action."
+            "Home event: '{content}' (from {source_agent}). "
+            "1. If temperature anomaly: check all climate entities, report current vs expected. "
+            "2. If device offline: identify the device, check if it recovered. "
+            "3. If motion/presence: note the event but take no action unless unusual. "
+            "Only report findings that need owner attention."
         ),
     ),
     "research-agent": AgentSubscription(
@@ -579,10 +599,11 @@ DEFAULT_SUBSCRIPTIONS: dict[str, AgentSubscription] = {
         keywords=["research", "investigate", "analyze", "report", "benchmark",
                   "compare", "evaluate", "upgrade", "new version", "release"],
         source_filters=[],
-        threshold=0.4,
+        threshold=0.5,
         react_prompt_template=(
-            "A topic needs research: '{content}' (from {source_agent}). "
-            "Search for current information and produce a brief summary."
+            "Research request: '{content}' (from {source_agent}). "
+            "Search the web for current information. Produce a 3-5 bullet summary with sources. "
+            "Store findings in the knowledge base via store_knowledge tool."
         ),
     ),
     "coding-agent": AgentSubscription(
@@ -590,10 +611,11 @@ DEFAULT_SUBSCRIPTIONS: dict[str, AgentSubscription] = {
         keywords=["code", "bug", "test", "generate", "refactor", "implement",
                   "component", "function", "script", "fix"],
         source_filters=[],
-        threshold=0.4,
+        threshold=0.5,
         react_prompt_template=(
-            "A coding task is relevant: '{content}' (from {source_agent}). "
-            "Read relevant source files and generate the requested code."
+            "Coding task: '{content}' (from {source_agent}). "
+            "Read the relevant source files first. Write the implementation. "
+            "Output the complete file contents with changes clearly marked."
         ),
     ),
     "creative-agent": AgentSubscription(
@@ -603,19 +625,22 @@ DEFAULT_SUBSCRIPTIONS: dict[str, AgentSubscription] = {
         source_filters=[],
         threshold=0.4,
         react_prompt_template=(
-            "A creative request is in the workspace: '{content}' (from {source_agent}). "
-            "Craft an appropriate prompt and queue the generation."
+            "Creative request: '{content}' (from {source_agent}). "
+            "Use the generate_image tool with a detailed prompt. "
+            "Choose appropriate dimensions and model for the subject matter."
         ),
     ),
     "knowledge-agent": AgentSubscription(
         agent_name="knowledge-agent",
         keywords=["knowledge", "document", "index", "search", "qdrant",
-                  "docs", "wiki", "reference"],
+                  "docs", "wiki", "reference", "store", "remember"],
         source_filters=[],
         threshold=0.5,
         react_prompt_template=(
-            "Knowledge-related activity: '{content}' (from {source_agent}). "
-            "Check if knowledge base needs updating or can answer the query."
+            "Knowledge event: '{content}' (from {source_agent}). "
+            "1. If a query: search the knowledge base and return relevant results. "
+            "2. If new information: store it in the appropriate Qdrant collection. "
+            "3. If indexing needed: check which docs changed recently and re-index them."
         ),
     ),
 }
@@ -689,7 +714,8 @@ async def _check_reaction_cooldown(item_id: str, agent_name: str) -> bool:
         key = f"{WORKSPACE_REACTIONS_KEY}:{agent_name}:{item_id}"
         exists = await r.exists(key)
         return exists > 0
-    except Exception:
+    except Exception as e:
+        logger.debug("Reaction cooldown check failed: %s", e)
         return False
 
 
@@ -699,8 +725,8 @@ async def _set_reaction_cooldown(item_id: str, agent_name: str) -> None:
         r = await get_redis()
         key = f"{WORKSPACE_REACTIONS_KEY}:{agent_name}:{item_id}"
         await r.setex(key, REACTION_COOLDOWN, "1")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Reaction cooldown set failed: %s", e)
 
 
 async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
@@ -766,6 +792,17 @@ async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
             )
 
             try:
+                from .governor import Governor
+                gov = Governor.get()
+                decision = await gov.gate_task_submission(
+                    agent=agent_name, prompt=prompt, priority="normal",
+                    metadata={
+                        "source": "workspace_reaction",
+                        "workspace_item_id": item.id,
+                        "relevance_score": round(relevance, 3),
+                    },
+                    source="workspace_reaction",
+                )
                 task = await submit_task(
                     agent=agent_name,
                     prompt=prompt,
@@ -774,8 +811,13 @@ async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
                         "source": "workspace_reaction",
                         "workspace_item_id": item.id,
                         "relevance_score": round(relevance, 3),
+                        "governor_decision": decision.reason,
                     },
                 )
+                if decision.status_override == "pending_approval":
+                    task.status = "pending_approval"
+                    from .tasks import _update_task
+                    await _update_task(task)
                 await _set_reaction_cooldown(item.id, agent_name)
                 reactions_this_cycle += 1
                 logger.info(

@@ -2,6 +2,7 @@ import { config } from "@/lib/config";
 import { EOQ_FIXTURE_MODE } from "@/lib/fixture-mode";
 import { getFixtureChoices } from "@/lib/fixtures";
 import { parseChoicesRequest } from "@/lib/request-normalizers";
+import { QUEENS } from "@/data/queens";
 import { getBreakingStage } from "@/types/game";
 import type { Character, PlayerChoice, BreakingMethod } from "@/types/game";
 
@@ -16,7 +17,25 @@ export async function POST(req: Request) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { character, worldState, recentHistory } = parsed.data;
+  const { worldState, recentHistory } = parsed.data;
+  const noMercyActive = (rawBody as Record<string, unknown>)?.noMercyActive === true;
+  const playerStyle = (rawBody as Record<string, unknown>)?.playerStyle as {
+    mercyScore?: number; seductionScore?: number; manipulationScore?: number;
+    dominanceScore?: number; diplomacyScore?: number; totalChoices?: number;
+  } | undefined;
+  const knownQueen = QUEENS[parsed.data.character.id];
+  const character: Character = knownQueen
+    ? { ...knownQueen, ...parsed.data.character } as Character
+    : parsed.data.character;
+
+  // Collect other characters for multi-queen choice context
+  const otherCharacters = worldState.currentScene.presentCharacters
+    .filter((id: string) => id !== character.id)
+    .map((id: string) => {
+      const known = QUEENS[id];
+      return known ? { id, name: known.name, archetype: known.archetype, resistance: known.resistance } : null;
+    })
+    .filter(Boolean);
 
   if (EOQ_FIXTURE_MODE) {
     return Response.json({ choices: getFixtureChoices(character) });
@@ -32,6 +51,19 @@ Generate 3-4 player dialogue choices for the current situation. Each choice shou
 - Represent different approaches (diplomatic, aggressive, seductive, cunning, etc.)
 - Include at least one option that could lower the character's resistance (breaking path)
 - Include at least one option that builds genuine trust/respect (relationship path)
+${noMercyActive ? `
+NO MERCY MODE ACTIVE — The player is a TYRANT:
+- Include at least 2 aggressively cruel options (intimidation, humiliation, breaking)
+- Resistance reduction effects should be -8 to -15 (harsh)
+- Include emotional devastation effects (fear +15, despair +10, submission +10)
+- One option should reference a specific vulnerability of the character
+- The "kind" option should still exist but feel patronizing or conditional` : ""}
+${playerStyle && playerStyle.totalChoices && playerStyle.totalChoices > 5 ? `
+PLAYER TENDENCY PROFILE (adapt choices to their style):
+- Mercy tendency: ${playerStyle.mercyScore?.toFixed(0) ?? 50}/100 ${(playerStyle.mercyScore ?? 50) < 25 ? "(CRUEL — lean into darker choices)" : (playerStyle.mercyScore ?? 50) > 75 ? "(MERCIFUL — include more redemptive options)" : ""}
+- Seduction: ${playerStyle.seductionScore?.toFixed(0) ?? 0}/100, Manipulation: ${playerStyle.manipulationScore?.toFixed(0) ?? 0}/100
+- Dominance: ${playerStyle.dominanceScore?.toFixed(0) ?? 0}/100, Diplomacy: ${playerStyle.diplomacyScore?.toFixed(0) ?? 0}/100
+- Offer choices that match their preferred style, plus one that challenges their pattern.` : ""}
 
 CURRENT CHARACTER: ${character.name} (${character.archetype})
 - Resistance: ${character.resistance}/100 (stage: ${stage})
@@ -43,7 +75,12 @@ CURRENT CHARACTER: ${character.name} (${character.archetype})
 - Content intensity: ${worldState.contentIntensity}/5
 
 SCENE: ${worldState.currentScene.name}
-
+${otherCharacters.length > 0 ? `
+OTHER QUEENS PRESENT: ${(otherCharacters as Array<{ name: string; archetype: string; resistance: number }>).map((q) => `${q.name} (${q.archetype}, resistance ${q.resistance})`).join(", ")}
+- Include choices that exploit rivalry between queens (pit them against each other)
+- Include choices that address specific queens by name
+- Include choices that use one queen's weakness against another
+` : ""}
 Respond with ONLY a JSON array. Each element has:
 - "text": the player's dialogue (1-2 sentences, in character as the player)
 - "intent": brief description of what this signals (e.g., "intimidation", "genuine_concern", "manipulation")
@@ -89,13 +126,14 @@ Example format:
       body: JSON.stringify({
         model: config.dialogueModel,
         messages,
-        max_tokens: 300,
+        max_tokens: 800,
         temperature: 0.9,
         stream: false,
       }),
     });
 
     if (!response.ok) {
+      console.error("Choices LLM error:", response.status);
       return Response.json({ choices: getFixtureChoices(character) }, { status: 200 });
     }
 

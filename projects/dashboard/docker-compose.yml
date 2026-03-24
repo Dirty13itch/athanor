@@ -8,6 +8,10 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
+    group_add:
+      - "988"  # docker group GID on WORKSHOP — grants socket access
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       NEXT_PUBLIC_PROMETHEUS_URL: ${NEXT_PUBLIC_PROMETHEUS_URL:-http://192.168.1.203:9090}
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
@@ -43,6 +47,9 @@ services:
       ATHANOR_NEO4J_PASSWORD: ${ATHANOR_NEO4J_PASSWORD:-}
       ATHANOR_SPEACHES_URL: ${ATHANOR_SPEACHES_URL:-http://192.168.1.244:8200}
       ATHANOR_LITELLM_API_KEY: ${ATHANOR_LITELLM_API_KEY:-}
+      ATHANOR_AGENT_API_TOKEN: ${ATHANOR_AGENT_API_TOKEN:-}
+      ATHANOR_FOUNDRY_DOCKER_PROXY: ${ATHANOR_FOUNDRY_DOCKER_PROXY:-http://192.168.1.244:2375}
+      ATHANOR_VAULT_DOCKER_PROXY: ${ATHANOR_VAULT_DOCKER_PROXY:-http://192.168.1.203:2375}
 
   ws-pty-bridge:
     build:

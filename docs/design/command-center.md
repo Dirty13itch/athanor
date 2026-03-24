@@ -589,7 +589,7 @@ export async function GET() {
 3. **SSE backend source.** Does the SSE endpoint poll on behalf of clients (server-side aggregation) or subscribe to Redis pub/sub (GWT workspace already broadcasts there)? Recommendation: Redis pub/sub primary + 5s polling for metrics not on pub/sub.
 4. **Notification trigger location.** Where do push triggers live? Agent framework (Node 1:9000) sends to dashboard API (Node 2:3001) which sends to browser? Or agent framework sends directly via web-push? Recommendation: agent framework fires webhook to dashboard API, which manages subscriptions and sends pushes.
 5. **Auth.** No auth on LAN is fine for now. WebAuthn requires HTTPS. Defer until remote access is needed.
-6. **Vercel AI SDK + local models.** AI SDK supports any OpenAI-compatible endpoint. Wire to LiteLLM (VAULT:4000) for local model generative UI. Test quality with Qwen3-32B.
+6. **Vercel AI SDK + local models.** AI SDK supports any OpenAI-compatible endpoint. Wire to LiteLLM (VAULT:4000) for local model generative UI. Test quality with Qwen3.5-27B.
 
 ---
 

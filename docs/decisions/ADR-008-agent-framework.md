@@ -1,7 +1,7 @@
 # ADR-008: Agent Framework
 
 **Date:** 2026-02-15
-**Status:** Proposed
+**Status:** Accepted
 **Research:** [docs/research/2026-02-15-agent-framework.md](../research/2026-02-15-agent-framework.md)
 **Depends on:** ADR-005 (Inference Engine)
 

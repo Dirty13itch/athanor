@@ -14,6 +14,8 @@ services:
       - /opt/athanor/agent-output:/output
       # Data curator: personal data synced from DEV (read-only)
       - /opt/athanor/personal-data:/data/personal:ro
+      # AUTO-002: Persistent audit log (90-day retention per CONSTITUTION.yaml)
+      - /var/log/athanor:/var/log/athanor
     environment:
       - ATHANOR_NODE1_HOST=${ATHANOR_NODE1_HOST:-192.168.1.244}
       - ATHANOR_NODE2_HOST=${ATHANOR_NODE2_HOST:-192.168.1.225}
@@ -32,6 +34,7 @@ services:
       - ATHANOR_DASHBOARD_URL=${ATHANOR_DASHBOARD_URL:-http://192.168.1.225:3001}
       - ATHANOR_QDRANT_URL=${ATHANOR_QDRANT_URL:-http://192.168.1.244:6333}
       - ATHANOR_REDIS_URL=${ATHANOR_REDIS_URL:-redis://192.168.1.203:6379/0}
+      - ATHANOR_REDIS_PASSWORD=${ATHANOR_REDIS_PASSWORD:-}
       - ATHANOR_SUBSCRIPTION_POLICY_PATH=${ATHANOR_SUBSCRIPTION_POLICY_PATH:-/app/config/subscription-routing-policy.yaml}
       - ATHANOR_NEO4J_URL=${ATHANOR_NEO4J_URL:-http://192.168.1.203:7474}
       - ATHANOR_NEO4J_USER=${ATHANOR_NEO4J_USER:-neo4j}
@@ -58,6 +61,7 @@ services:
       - ATHANOR_MINIFLUX_PASS=${ATHANOR_MINIFLUX_PASS:-}
       - ATHANOR_NTFY_URL=${ATHANOR_NTFY_URL:-http://192.168.1.203:8880}
       - ATHANOR_NTFY_TOPIC=${ATHANOR_NTFY_TOPIC:-athanor}
+      - ATHANOR_AGENT_API_TOKEN=${ATHANOR_AGENT_API_TOKEN:-}
       - ATHANOR_PORT=9000
       - ATHANOR_SONARR_API_KEY=${ATHANOR_SONARR_API_KEY}
       - ATHANOR_RADARR_API_KEY=${ATHANOR_RADARR_API_KEY}

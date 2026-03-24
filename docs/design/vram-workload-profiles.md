@@ -26,9 +26,9 @@ Raw VRAM ≠ usable for model weights. Each GPU loses capacity to CUDA context, 
 
 | GPU | Node | Current Workload | VRAM Used |
 |-----|------|-----------------|-----------|
-| GPUs 0-3 (3x 5070 Ti + 4090) | Node 1 | vLLM TP=4, Qwen3-32B-AWQ | ~15.6 GB each |
+| GPUs 0-3 (3x 5070 Ti + 4090) | Node 1 | vLLM TP=4, Qwen3.5-27B-FP8 | ~15.6 GB each |
 | GPU 4 (5070 Ti) | Node 1 | vLLM Embedding, Qwen3-Embedding-0.6B | ~14.6 GB |
-| GPU 0 (RTX 5090) | Node 2 | vLLM, Qwen3-14B | ~28 GB |
+| GPU 0 (RTX 5090) | Node 2 | vLLM, Qwen3.5-35B-A3B-AWQ-4bit | ~28 GB |
 | GPU 1 (RTX 5060 Ti) | Node 2 | ComfyUI, Flux dev FP8 | ~12 GB (when loaded) |
 
 ---
@@ -38,9 +38,9 @@ Raw VRAM ≠ usable for model weights. Each GPU loses capacity to CUDA context, 
 ### Typical Evening (Shaun coding, home running)
 
 ```
-Node 1:8000 — vLLM TP=4, Qwen3-32B-AWQ serving agent requests
+Node 1:8000 — vLLM TP=4, Qwen3.5-27B-FP8 serving agent requests
 Node 1:8001 — Embedding model idle (used on-demand)
-Node 2:8000 — vLLM Qwen3-14B for fast interactive chat
+Node 2:8000 — vLLM Qwen3.5-35B-A3B-AWQ-4bit for fast interactive chat
 Node 2:8188 — ComfyUI idle or running Flux
 VAULT — NFS serving, Plex idle, HA running, Media Agent polling
 

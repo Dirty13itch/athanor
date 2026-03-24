@@ -18,7 +18,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AgentCrewBar } from "@/components/agent-crew-bar";
 import { DailyBriefing } from "@/components/daily-briefing";
+import { MediaGlance } from "@/components/media-glance";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { GovernorCard } from "@/components/governor-card";
@@ -33,6 +35,7 @@ import { SmartStack } from "@/components/smart-stack";
 import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
 import { SystemMapCard } from "@/components/system-map-card";
+import { SystemPulse } from "@/components/system-pulse";
 import { UnifiedStream } from "@/components/unified-stream";
 import { WorkPlan } from "@/components/work-plan";
 import { getOverview } from "@/lib/api";
@@ -46,6 +49,13 @@ import { formatTemperatureF } from "@/lib/format";
 import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
 import { queryKeys } from "@/lib/query-client";
 import { readJsonStorage, STORAGE_KEYS } from "@/lib/state";
+import { useLens } from "@/hooks/use-lens";
+import type { SectionId } from "@/lib/lens";
+import { QueenRosterCard } from "@/components/eoq/queen-roster-card";
+import { RecentDialogueCard } from "@/components/eoq/recent-dialogue-card";
+import { GenerationGalleryCard } from "@/components/eoq/generation-gallery-card";
+import { CharacterMemoryCard } from "@/components/eoq/character-memory-card";
+import { GameStatsCard } from "@/components/eoq/game-stats-card";
 
 function buildTrendData(snapshot: OverviewSnapshot) {
   const map = new Map<string, { timestamp: string; services: number | null; gpu: number | null }>();
@@ -79,7 +89,30 @@ function isActiveProject(status: string) {
   return ["active", "active_development", "operational", "planning"].includes(status);
 }
 
+/** Maps command center card groups to lens section IDs. */
+const CARD_SECTION_MAP: Record<string, SectionId[]> = {
+  operationalRow: ["briefing", "watches", "smartstack", "stream", "workplan"],
+  priorityLane: ["pulse"],
+  recentContext: ["links"],
+  workforceRow: ["workloads", "crew"],
+  projectPlatform: ["links"],
+  intelligenceRow: ["digest"],
+  clusterPosture: ["gpus"],
+  inferenceRow: ["links", "digest"],
+  eoqContent: ["eoq-content"],
+};
+
+function isCardVisible(cardGroup: string, sections: SectionId[]): boolean {
+  const mapped = CARD_SECTION_MAP[cardGroup];
+  if (!mapped) return true;
+  return mapped.some((s) => sections.includes(s));
+}
+
 export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSnapshot }) {
+  const { config: lensConfig } = useLens();
+  const show = (group: string) => isCardVisible(group, lensConfig.sections);
+  const [agentFilter, setAgentFilter] = useState<string | null>(null);
+
   const overviewQuery = useQuery({
     queryKey: queryKeys.overview,
     queryFn: getOverview,
@@ -145,6 +178,21 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
   return (
     <div className="space-y-8">
+      <SystemPulse sticky />
+      <AgentCrewBar onAgentFilter={setAgentFilter} />
+
+      {show("eoqContent") && (
+        <div className="space-y-4">
+          <QueenRosterCard />
+          <GameStatsCard />
+          <div className="grid gap-4 md:grid-cols-2">
+            <RecentDialogueCard />
+            <GenerationGalleryCard />
+          </div>
+          <CharacterMemoryCard />
+        </div>
+      )}
+
       <PageHeader
         eyebrow="Operations"
         title="Command Center"
@@ -218,8 +266,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         </div>
       </PageHeader>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <DailyBriefing />
+        <MediaGlance />
         <SmartStack />
         <Card className="surface-hero">
           <CardHeader>
@@ -232,13 +281,13 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <UnifiedStream limit={8} />
+            <UnifiedStream limit={8} showFilters agentFilter={agentFilter} />
           </CardContent>
         </Card>
         <WorkPlan />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+      {show("priorityLane") && <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card className="surface-hero">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -312,9 +361,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             )}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_1fr]">
+      {show("workforceRow") && <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_1fr]">
         <Card className="surface-hero">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -401,9 +450,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             ))}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+      {show("projectPlatform") && <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card className="surface-panel">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -470,16 +519,16 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
         <SystemMapCard />
         <GovernorCard compact />
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      {show("intelligenceRow") && <div className="grid gap-4 xl:grid-cols-2">
         <ModelGovernanceCard />
         <ProvingGroundCard compact />
         <JudgePlaneCard compact />
         <OperationsReadinessCard compact />
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+      {show("clusterPosture") && <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
         <Card className="surface-instrument">
           <CardHeader>
             <CardTitle className="text-lg">Cluster posture</CardTitle>
@@ -571,9 +620,9 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             )}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1fr]">
+      {show("inferenceRow") && <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1fr]">
         <Card className="surface-instrument">
           <CardHeader>
             <CardTitle className="text-lg">Inference posture</CardTitle>
@@ -695,7 +744,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div>}
     </div>
   );
 }

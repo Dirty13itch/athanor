@@ -1,0 +1,37 @@
+---
+- name: Create ntfy directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ ntfy_cache_path }}"
+    - "{{ ntfy_config_path }}"
+
+- name: Run ntfy container
+  community.docker.docker_container:
+    name: ntfy
+    image: "{{ ntfy_image }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "{{ ntfy_port }}:80"
+    volumes:
+      - "{{ ntfy_cache_path }}:/var/cache/ntfy"
+      - "{{ ntfy_config_path }}:/etc/ntfy"
+    command: serve
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+  when: not ansible_check_mode
+
+- name: Wait for ntfy to respond
+  ansible.builtin.uri:
+    url: "http://localhost:{{ ntfy_port }}/v1/health"
+    status_code: 200
+  register: ntfy_health
+  retries: 5
+  delay: 3
+  until: ntfy_health.status == 200
+  when: not ansible_check_mode

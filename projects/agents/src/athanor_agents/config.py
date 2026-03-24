@@ -103,6 +103,10 @@ class Settings(BaseSettings):
         default="http://192.168.1.189:8003",
         validation_alias=AliasChoices("ATHANOR_VLLM_RERANKER_URL"),
     )
+    vision_url: str = Field(
+        default="http://192.168.1.225:8010",
+        validation_alias=AliasChoices("ATHANOR_VLLM_VISION_URL"),
+    )
 
     agent_server_url: str = Field(
         default="http://192.168.1.244:9000",
@@ -127,6 +131,10 @@ class Settings(BaseSettings):
     redis_url: str = Field(
         default="redis://192.168.1.203:6379/0",
         validation_alias=AliasChoices("ATHANOR_REDIS_URL"),
+    )
+    redis_password: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_REDIS_PASSWORD"),
     )
     subscription_policy_path: str = Field(
         default="",
@@ -244,6 +252,11 @@ class Settings(BaseSettings):
     ntfy_topic: str = Field(
         default="athanor",
         validation_alias=AliasChoices("ATHANOR_NTFY_TOPIC"),
+    )
+
+    api_bearer_token: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_AGENT_API_TOKEN", "ATHANOR_API_BEARER_TOKEN"),
     )
 
     host: str = Field(default="0.0.0.0", validation_alias=AliasChoices("ATHANOR_HOST"))

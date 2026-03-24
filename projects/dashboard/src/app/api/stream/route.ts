@@ -1,5 +1,5 @@
 import { queryPrometheus, type PrometheusResult } from "@/lib/api";
-import { config, getNodeNameFromInstance } from "@/lib/config";
+import { agentServerHeaders, config, getNodeNameFromInstance } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,7 @@ interface StreamPayload {
   services: { up: number; total: number; down: string[] };
   tasks: Record<string, unknown> | null;
   notifications: { pending: number; total: number };
+  media: { streamCount: number; downloadCount: number; sessions: { title: string; state: string }[] } | null;
   timestamp: string;
 }
 
@@ -81,6 +82,7 @@ async function fetchSnapshot(): Promise<StreamPayload> {
   try {
     const res = await fetch(`${config.agentServer.url}/v1/status/services`, {
       signal: AbortSignal.timeout(5000),
+      headers: agentServerHeaders(),
     });
     if (res.ok) {
       const data = await res.json();
@@ -99,17 +101,39 @@ async function fetchSnapshot(): Promise<StreamPayload> {
   try {
     const res = await fetch(`${config.agentServer.url}/v1/tasks/stats`, {
       signal: AbortSignal.timeout(3000),
+      headers: agentServerHeaders(),
     });
     if (res.ok) {
       tasks = await res.json();
     }
   } catch { /* task stats unavailable */ }
 
+  // Media status
+  let media: StreamPayload["media"] = null;
+  try {
+    const res = await fetch(`${config.agentServer.url}/v1/status/media`, {
+      signal: AbortSignal.timeout(3000),
+      headers: agentServerHeaders(),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      media = {
+        streamCount: data.streamCount ?? 0,
+        downloadCount: (data.downloads ?? []).length,
+        sessions: (data.sessions ?? []).map((s: { title?: string; state?: string }) => ({
+          title: s.title ?? "Unknown",
+          state: s.state ?? "unknown",
+        })),
+      };
+    }
+  } catch { /* media status unavailable */ }
+
   // Workforce notification summary
   let notifications: StreamPayload["notifications"] = { pending: 0, total: 0 };
   try {
     const res = await fetch(`${config.agentServer.url}/v1/notifications?include_resolved=true`, {
       signal: AbortSignal.timeout(3000),
+      headers: agentServerHeaders(),
     });
     if (res.ok) {
       const data = await res.json();
@@ -126,6 +150,7 @@ async function fetchSnapshot(): Promise<StreamPayload> {
     services,
     tasks,
     notifications,
+    media,
     timestamp: new Date().toISOString(),
   };
 }

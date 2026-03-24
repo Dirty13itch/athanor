@@ -66,6 +66,19 @@
     recreate: "{{ 'always' if vllm_compose.changed else 'never' }}"
   when: not vllm_custom_build
 
+- name: Wait for vLLM instance health
+  ansible.builtin.uri:
+    url: "http://localhost:{{ item.port }}/health"
+    status_code: 200
+  register: vllm_instance_health
+  retries: 30
+  delay: 10
+  until: vllm_instance_health.status == 200
+  loop: "{{ vllm_instances }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: vllm_instances | default([]) | length > 0 and not ansible_check_mode
+
 - name: Wait for vLLM health
   ansible.builtin.uri:
     url: "http://localhost:{{ vllm_port }}/health"
@@ -74,4 +87,4 @@
   retries: 30
   delay: 10
   until: vllm_health.status == 200
-  when: not ansible_check_mode
+  when: vllm_instances | default([]) | length == 0 and not ansible_check_mode

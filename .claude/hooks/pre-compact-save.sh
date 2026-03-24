@@ -2,8 +2,8 @@
 # PreCompact hook: Save dynamic session state before context compaction
 # Captures real-time info that helps Claude recover context after compaction
 
-STATE_FILE="$HOME/.claude/projects/-home-shaun-repos-athanor/session-state.md"
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+STATE_FILE="$REPO_ROOT/.claude/.session-state.md"
 
 {
   echo "# Athanor Session State (Pre-Compaction Snapshot)"

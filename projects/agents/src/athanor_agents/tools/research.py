@@ -187,4 +187,6 @@ def query_infrastructure(cypher_query: str) -> str:
         return f"Graph query error: {e}"
 
 
-RESEARCH_TOOLS = [web_search, fetch_page, search_knowledge, query_infrastructure]
+from .knowledge import search_signals
+
+RESEARCH_TOOLS = [web_search, fetch_page, search_knowledge, query_infrastructure, search_signals]

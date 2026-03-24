@@ -241,7 +241,7 @@ Full architecture documented in **Section 11** (Projects). Summary:
 
 The 5090 (32GB) is time-shared between LLM inference and diffusion workloads. The swap pattern:
 
-1. **Idle state:** vLLM has an LLM loaded (e.g., abliterated Qwen3-32B). ComfyUI has no model loaded.
+1. **Idle state:** vLLM has an LLM loaded (e.g., abliterated Qwen3.5-27B). ComfyUI has no model loaded.
 2. **Creative request arrives:** ComfyUI loads diffusion model (Flux dev FP8 ~12GB). vLLM's model stays loaded if VRAM allows, or gets offloaded if combined exceeds 32GB.
 3. **Generation completes:** ComfyUI releases diffusion model VRAM. vLLM model reloads if offloaded (~2-5 sec from local NVMe).
 4. **Concurrent chat during generation:** Routes to the 4090 instead. The supervisor knows the 5090 is busy with creative workloads and diverts interactive chat to the 4090.
@@ -433,7 +433,7 @@ KV cache reserve explained: Each concurrent request consumes KV cache proportion
 
 ### Typical Evening (Shaun coding, home running)
 ```
-Node 1:8000 — vLLM TP=4, Qwen3-32B serving coding agent via LangGraph
+Node 1:8000 — vLLM TP=4, Qwen3.5-27B serving coding agent via LangGraph
 Node 2:8000 — vLLM on 5090, idle or running ComfyUI
 Node 2:8001 — vLLM on 4090, Qwen3-30B-A3B for fast interactive chat
 VAULT — NFS serving, Plex idle, HA running, Media Agent polling
@@ -1473,7 +1473,7 @@ Deployment
 **Direct Actions (click to do):**
 - **Agent toggle:** Turn an agent on/off. Proactive agents stop their timer. Reactive agents stop accepting requests from the supervisor.
 - **Agent config edit:** Change an agent's model endpoint (point Research Agent at a different vLLM instance), update tool list, change proactive schedule interval. Changes apply immediately — no restart needed if LangGraph supports hot config reload, otherwise restart the agent container.
-- **Model swap:** Load or unload a model on a specific vLLM instance. "Replace Qwen3-32B on Node 1:8000 with Qwen3-30B-A3B" — the dashboard calls vLLM's model management API.
+- **Model swap:** Load or unload a model on a specific vLLM instance. "Replace Qwen3.5-27B on Node 1:8000 with Qwen3-30B-A3B" — the dashboard calls vLLM's model management API.
 - **Inference queue management:** View pending requests, cancel a stuck request, reprioritize.
 - **Creative queue management:** Cancel a queued ComfyUI generation, reprioritize the queue.
 - **Media actions:** Trigger a manual Plex library scan, pause/resume Tdarr transcoding, manually add a movie/show to the *arr request queue.

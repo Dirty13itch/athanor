@@ -1,10 +1,109 @@
+{# vLLM Docker Compose — supports single-instance (legacy) and multi-instance modes #}
+{% if vllm_instances | default([]) | length > 0 %}
+{# ===== Multi-instance mode ===== #}
+services:
+{% for instance in vllm_instances %}
+  {{ instance.name }}:
+{% if vllm_custom_build and loop.first %}
+    build:
+      context: .
+      dockerfile: Dockerfile
+{% endif %}
+{% if vllm_custom_build %}
+    image: athanor/vllm:{{ vllm_custom_image_tag }}
+{% else %}
+    image: {{ vllm_image }}
+{% endif %}
+    container_name: {{ instance.container_name | default('vllm-' + instance.name) }}
+    restart: unless-stopped
+{% if instance.network_mode | default('') == 'host' %}
+    network_mode: host
+{% else %}
+    ports:
+      - "{{ instance.port }}:{{ instance.internal_port | default(instance.port) }}"
+{% endif %}
+    volumes:
+      - {{ instance.models_volume | default(vllm_models_volume) }}
+{% for vol in instance.extra_volumes | default([]) %}
+      - {{ vol }}
+{% endfor %}
+    environment:
+      - HF_HUB_OFFLINE=1
+      - VLLM_NO_USAGE_STATS=1
+      - VLLM_DO_NOT_TRACK=1
+      - DO_NOT_TRACK=1
+{% if '--enable-sleep-mode' not in instance.extra_args | default([]) %}
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+{% endif %}
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID
+{% if vllm_custom_build %}
+      - FLASHINFER_DISABLE_VERSION_CHECK=1
+{% endif %}
+{% for env in instance.extra_env | default([]) %}
+      - {{ env }}
+{% endfor %}
+{% if instance.network_mode | default('') == 'host' %}
+    ipc: host
+{% endif %}
+{% if instance.shm_size is defined %}
+    shm_size: "{{ instance.shm_size }}"
+{% endif %}
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+{% if instance.gpu_devices == 'all' %}
+              count: all
+{% else %}
+              device_ids: {{ instance.gpu_devices | to_json }}
+{% endif %}
+              capabilities: [gpu]
+    entrypoint: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+    command:
+      - --model
+      - {{ instance.model }}
+{% if instance.quantization | default('') %}
+      - --quantization
+      - {{ instance.quantization }}
+{% endif %}
+{% if instance.served_model_name is defined %}
+      - --served-model-name
+      - {{ instance.served_model_name }}
+{% endif %}
+      - --tensor-parallel-size
+      - "{{ instance.tensor_parallel | default(1) }}"
+      - --host
+      - 0.0.0.0
+      - --port
+      - "{{ instance.internal_port | default(instance.port) }}"
+      - --max-model-len
+      - "{{ instance.max_model_len | default(32768) }}"
+      - --gpu-memory-utilization
+      - "{{ instance.gpu_memory_util | default('0.85') }}"
+      - --max-num-seqs
+      - "{{ instance.max_num_seqs | default(64) }}"
+{% if instance.speculative_config | default('') %}
+      - --speculative-config
+      - '{{ instance.speculative_config }}'
+{% endif %}
+{% for arg in instance.extra_args | default([]) %}
+      - "{{ arg }}"
+{% endfor %}
+
+{% endfor %}
+{% else %}
+{# ===== Legacy single-instance mode ===== #}
 services:
   vllm:
 {% if vllm_custom_build %}
     build:
       context: .
       dockerfile: Dockerfile
-    image: athanor/vllm:custom
+    image: athanor/vllm:{{ vllm_custom_image_tag }}
 {% else %}
     image: {{ vllm_image }}
 {% endif %}
@@ -17,7 +116,7 @@ services:
     network_mode: host
 {% endif %}
     volumes:
-      - /mnt/vault/models:/models:ro
+      - {{ vllm_models_volume }}
 {% for vol in vllm_extra_volumes %}
       - {{ vol }}
 {% endfor %}
@@ -82,3 +181,4 @@ services:
 {% for arg in vllm_extra_args %}
       - "{{ arg }}"
 {% endfor %}
+{% endif %}

@@ -31,10 +31,12 @@ import sys
 import time
 import urllib.request
 from pathlib import Path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import LITELLM_KEY, get_url
 
 # --- Config ---
-QDRANT_URL = "http://192.168.1.244:6333"
-LITELLM_URL = (os.environ.get("ATHANOR_LITELLM_URL") or "http://192.168.1.203:4000").rstrip("/") + "/v1"
+QDRANT_URL = get_url("qdrant")
+LITELLM_URL = get_url("litellm").rstrip("/") + "/v1"
 LITELLM_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
     or os.environ.get("LITELLM_API_KEY")

@@ -19,6 +19,8 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 import httpx
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import NODES
 
 # Defaults — LangFuse on VAULT
 def env_value(*names: str) -> str:
@@ -30,7 +32,7 @@ def env_value(*names: str) -> str:
 
 
 def default_langfuse_host() -> str:
-    vault_host = os.environ.get("ATHANOR_VAULT_HOST", "192.168.1.203").strip()
+    vault_host = NODES["vault"]
     return f"http://{vault_host}:3030"
 
 

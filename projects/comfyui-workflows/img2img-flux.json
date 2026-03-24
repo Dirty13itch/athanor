@@ -1,0 +1,88 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input.png"
+    },
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "2": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["1", 0],
+      "vae": ["11", 2]
+    },
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "{{prompt}}",
+      "clip": ["11", 0]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Positive)"
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": ["11", 0]
+    },
+    "_meta": {
+      "title": "CLIP Text Encode (Negative)"
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["13", 0],
+      "vae": ["11", 2]
+    },
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "athanor_img2img",
+      "images": ["8", 0]
+    },
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "11": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "flux1-dev-fp8.safetensors"
+    },
+    "_meta": {
+      "title": "Load Checkpoint (Flux)"
+    }
+  },
+  "13": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 42,
+      "steps": 20,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 0.7,
+      "model": ["11", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["2", 0]
+    },
+    "_meta": {
+      "title": "KSampler"
+    }
+  }
+}

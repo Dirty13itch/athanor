@@ -81,10 +81,11 @@ function resolveAgentMeta(name: string): AgentMeta {
   return agentMeta[name] ?? { ...FALLBACK_AGENT_META, icon: name[0]?.toUpperCase() ?? "?", shortName: name };
 }
 
-export function AgentCrewBar() {
+export function AgentCrewBar({ onAgentFilter }: { onAgentFilter?: (agent: string | null) => void } = {}) {
   const { data } = useSystemStream();
   const { config } = useLens();
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [filteredAgent, setFilteredAgent] = useState<string | null>(null);
 
   const agents = data?.agents.names ?? [];
   const isOnline = data?.agents.online ?? false;
@@ -113,12 +114,22 @@ export function AgentCrewBar() {
             return (
               <button
                 key={name}
-                onClick={() => setSelectedAgent(name)}
+                onClick={() => {
+                  if (onAgentFilter) {
+                    const next = filteredAgent === name ? null : name;
+                    setFilteredAgent(next);
+                    onAgentFilter(next);
+                  } else {
+                    setSelectedAgent(name);
+                  }
+                }}
+                onDoubleClick={() => setSelectedAgent(name)}
                 className={cn(
                   "group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all",
                   "hover:scale-110 hover:ring-2 hover:ring-primary/50",
                   isOnline && !isDimmed ? "opacity-100" : "opacity-40",
-                  isLensHighlighted && "ring-2 ring-primary/60 animate-pulse"
+                  isLensHighlighted && "ring-2 ring-primary/60 animate-pulse",
+                  filteredAgent === name && "ring-2 ring-primary scale-110"
                 )}
                 style={{ backgroundColor: meta.color, color: meta.foreground }}
                 title={`${meta.shortName} - ${isOnline ? "online" : "offline"}`}

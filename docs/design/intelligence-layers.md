@@ -2,7 +2,7 @@
 
 *The self-improving loop. The furnace feeding itself. Extends ADR-008.*
 
-Last updated: 2026-02-26
+Last updated: 2026-03-14
 
 ---
 
@@ -30,17 +30,17 @@ Each agent responds to requests. No memory between invocations beyond what's in 
 
 Simple, debuggable, working.
 
-**What works:** 8 agents live, 25+ services healthy, all tools functional, streaming responses, tool call visualization in dashboard, escalation protocol, GWT workspace, task execution engine, proactive scheduler.
+**What works:** 9 agents live, 25+ services healthy, all tools functional, streaming responses, tool call visualization in dashboard, escalation protocol, GWT workspace, task execution engine, proactive scheduler.
 
 **What's evolved past:** Context injection now deployed (Layer 2). Agents receive preferences, activity history, knowledge docs, and active goals in every request. The "no memory" limitation is mitigated by the context enrichment pipeline.
 
 ---
 
-## Layer 2 — Accumulated Knowledge (deployed, incomplete)
+## Layer 2 — Accumulated Knowledge (deployed)
 
 ### What's Deployed
 
-1. **Knowledge base:** 2220 doc vectors in Qdrant `knowledge` collection, 30+ Neo4j graph nodes
+1. **Knowledge base:** 3435 doc vectors in Qdrant `knowledge` collection, 3095 Neo4j nodes (172 Document + 879 Entity), 4447 relationships
 2. **Preference storage:** `preferences` Qdrant collection (1024-dim, editable via dashboard)
    - Signal types: `thumbs_up`, `thumbs_down`, `remember_this`, `config_choice`
    - Semantic search — "I prefer dark themes" matches queries about UI colors
@@ -55,28 +55,21 @@ Simple, debuggable, working.
 
 6. **Context injection** (`context.py`): Every chat completion request is enriched before routing:
    - Single embedding call from user message, reused for all searches
-   - Three parallel Qdrant queries: preferences, recent activity, relevant knowledge docs
+   - Five parallel Qdrant queries: preferences (with time-decay), recent activity, knowledge (hybrid search), personal data, conversations
+   - Neo4j graph expansion: related documents from knowledge graph
+   - CST (Cognitive State Tracker), active goals, detected patterns, learned conventions, matched skills
    - Per-agent configuration: different agents get different context shapes and limits
    - Injected as SystemMessage prefix (before user messages, after agent's static prompt)
    - Graceful degradation: any failed query returns empty, never blocks the request
-   - 30-50ms typical latency, ~300-500 token budget
+   - Latency tracked via `GET /v1/metrics/context` (ring buffer with p50/p95/p99 per agent)
    - Opt-out: `skip_context: true` in request body
    - Diagnostic: `POST /v1/context/preview` to inspect injection without invoking agent
 
-### What's Missing for Full Layer 2
+### Layer 2 Completion Status
 
-**Conversation history:** The `conversations` collection exists in Qdrant but isn't populated.
+**Conversation history:** Deployed. The `conversations` collection is populated by `log_conversation()` in `activity.py`, wired since session 40. Conversations are embedded and stored after each agent interaction with agent, timestamp, and conversation content metadata.
 
-Implementation needed:
-- After each agent interaction, embed the conversation and store
-- Metadata: agent, timestamp, topic tags, user satisfaction signal (if provided)
-- Enables "here's what Shaun previously asked about X" context injection
-
-**Proactive indexing:** Knowledge indexing is currently manual (`python3 scripts/index-knowledge.py`).
-
-Implementation needed:
-- Cron job on DEV or Node 1 at 03:00 (after backups)
-- Incremental updates (only re-embed changed documents)
+**Proactive indexing:** Knowledge indexing is manual (`python3 scripts/index-knowledge.py`). A cron-based incremental re-index (only changed docs) would automate this. Low priority — manual runs after doc changes are sufficient for current scale (172 docs, ~3 min full re-index).
 
 ### Layer 2 Context Injection (deployed)
 
@@ -85,29 +78,46 @@ The agent server's request handler (`server.py`) calls `enrich_context()` from `
 ```
 Request arrives
   → Compute embedding from user message (1 call, ~30ms)
-  → asyncio.gather():
-      → Search preferences collection (agent-specific + global)
+  → asyncio.gather() — 5 parallel queries:
+      → Search preferences (agent-specific + global, time-decay weighted)
       → Scroll recent activity for this agent
-      → Search knowledge collection for relevant docs
+      → Hybrid search knowledge collection (dense + sparse)
+      → Hybrid search personal_data collection
+      → Search conversations collection (agent-filtered)
+  → Neo4j graph expansion (related docs from knowledge graph)
+  → Redis lookups:
+      → CST (Cognitive State Tracker) — current focus, emotional state
+      → Active goals for this agent
+      → Detected behavioral patterns
+      → Learned conventions
+  → Skill matching (find_matching_skill from skill_learning.py)
   → Format as SystemMessage with sections:
       ## Your Stored Preferences
       ## Recent Interactions ({agent})
       ## Relevant Documentation
+      ## Related Knowledge (graph)
+      ## Personal Context
+      ## Recent Conversations
+      ## Current Focus / Goals / Patterns / Conventions
+      ## Applicable Skills
+  → Budget enforcement (MAX_CONTEXT_CHARS = 6000)
   → Prepend to message list
   → Route to agent with enriched context
 ```
 
 Per-agent context configuration (`AGENT_CONTEXT_CONFIG`):
 
-| Agent | Prefs | Activity | Knowledge | Boost Terms |
-|-------|-------|----------|-----------|-------------|
-| general-assistant | 3 | 3 | 2 | monitoring, detail level |
-| media-agent | 5 | 5 | 0 | content, quality, genre |
-| home-agent | 5 | 5 | 0 | comfort, temperature, lighting |
-| research-agent | 3 | 3 | 3 | depth, format, citations |
-| creative-agent | 5 | 3 | 0 | style, visual, artistic |
-| knowledge-agent | 3 | 3 | 0 | format, detail |
-| coding-agent | 3 | 3 | 2 | conventions, style, stack |
+| Agent | Prefs | Activity | Knowledge | Personal | Convos | Boost Terms |
+|-------|-------|----------|-----------|----------|--------|-------------|
+| general-assistant | 3 | 3 | 2 | 3 | 3 | monitoring, detail level |
+| media-agent | 5 | 5 | 0 | 0 | 2 | content, quality, genre |
+| home-agent | 5 | 5 | 0 | 2 | 2 | comfort, temperature, lighting |
+| research-agent | 3 | 3 | 3 | 3 | 3 | depth, format, citations |
+| creative-agent | 5 | 3 | 0 | 0 | 2 | style, visual, artistic |
+| knowledge-agent | 3 | 3 | 0 | 5 | 2 | format, detail |
+| coding-agent | 3 | 3 | 2 | 0 | 2 | conventions, style, stack |
+| stash-agent | 5 | 3 | 0 | 0 | 2 | content, library, organization |
+| data-curator | 3 | 3 | 2 | 3 | 2 | data, indexing, quality |
 
 The more the system is used, the more knowledge accumulates, the better every agent performs.
 
@@ -202,8 +212,8 @@ This is where Athanor genuinely starts managing itself. The recursive nature of 
 |-------|----------|--------|
 | 0 (Meta Orchestration) | Claude as frontier lead, sovereign local meta lane, governor control path | **Deployed** — runtime command is now governor-mediated rather than Claude-only |
 | 1 (Reactive) | vLLM, LangGraph, LiteLLM, tool APIs | **Deployed** |
-| 2 (Knowledge) | Qdrant, Neo4j, embedding model, preferences, activity logging, context injection, goals | **Deployed** — context injection + goals live, conversation history not yet populated |
-| 3 (Patterns) | Conversation history, pattern detection jobs, context refinement | **Not started** |
+| 2 (Knowledge) | Qdrant, Neo4j, embedding model, preferences, activity logging, context injection, goals, conversations, skills | **Deployed** — full context pipeline live including conversations, graph expansion, CST, skills |
+| 3 (Patterns) | Pattern detection jobs, context refinement, insights dashboard | **Partial** — pattern detection engine deployed (`patterns.py`, daily 5AM schedule), skill learning live (8 skills, ~2K executions) |
 | 4 (Self-Optimization) | All above + metrics correlation + A/B testing + auto-evaluation | **Future** |
 
 ## Implementation Sequence (remaining)
@@ -212,10 +222,11 @@ This is where Athanor genuinely starts managing itself. The recursive nature of 
 2. ~~Add activity logging middleware~~ ✅ Deployed (fire-and-forget asyncio)
 3. ~~Add preference storage/retrieval~~ ✅ Deployed (REST API + dashboard)
 4. ~~Implement escalation protocol~~ ✅ Deployed (3-tier, per-agent thresholds)
-5. ~~Wire context injection~~ ✅ Deployed — `context.py` module, 1 embedding + 3 parallel Qdrant queries, ~30-50ms latency
-6. **Populate conversation history** — Post-interaction embedding + storage
-7. **Pattern detection jobs** — Hourly/daily analysis of activity logs
+5. ~~Wire context injection~~ ✅ Deployed — `context.py` module, 1 embedding + 5 parallel Qdrant queries + graph expansion + CST + goals + patterns + conventions + skills
+6. ~~Populate conversation history~~ ✅ Deployed — `log_conversation()` in `activity.py`, wired since session 40
+7. ~~Pattern detection jobs~~ ✅ Deployed — `patterns.py`, daily 5AM schedule, `GET /v1/patterns`
 8. ~~Dashboard integration — Activity Feed, Preferences~~ ✅ Deployed (Tier 7.12-7.14)
-9. **Dashboard Insights page** — Pattern detections, agent learning signals
+9. ~~Skill learning loop~~ ✅ Deployed — 8 seeded skills, automatic execution recording, `GET /v1/skills/stats`
+10. **Dashboard Insights page** — Pattern detections, agent learning signals, context latency metrics
 
 See `docs/BUILD-MANIFEST.md` for tracking.

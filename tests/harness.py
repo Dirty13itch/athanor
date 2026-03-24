@@ -47,7 +47,7 @@ ENDPOINTS = {
         env("ATHANOR_VLLM_CODER_URL", env("ATHANOR_VLLM_UTILITY_URL", f"http://{NODE1_HOST}:8006"))
     ): {
         "name": "vllm-coder",
-        "model": "Qwen3-Coder-30B-A3B-Instruct-AWQ",
+        "model": "Qwen3.5-35B-A3B-AWQ-4bit",
         "type": "vllm",
     },
     host_port_from_url(env("ATHANOR_AGENT_SERVER_URL", f"http://{NODE1_HOST}:9000")): {

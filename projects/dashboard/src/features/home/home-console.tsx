@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, Home, RefreshCcw } from "lucide-react";
+import { ArrowUpRight, Home, RefreshCcw, Thermometer } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { PageHeader } from "@/components/page-header";
@@ -72,13 +72,18 @@ export function HomeConsole({ initialSnapshot }: { initialSnapshot: HomeSnapshot
   const snapshot = homeQuery.data ?? initialSnapshot;
   const activePanel = snapshot.panels.find((entry) => entry.id === panel) ?? null;
   const completeSteps = snapshot.setupSteps.filter((step) => step.status === "complete").length;
+  const entities = snapshot.entities ?? 0;
+  const lights = snapshot.lights ?? { total: 0, on: 0 };
+  const automations = snapshot.automations ?? { total: 0, on: 0 };
+  const climate = snapshot.climate ?? [];
+  const sensors = snapshot.sensors ?? [];
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Domain Console"
         title="Home"
-        description="Home Assistant readiness, setup ladder, and focused panel launches without leaving the command center blind."
+        description="Home Assistant integration — live entity status, climate, lighting, and automation state."
         actions={
           <>
             <Button variant="outline" onClick={() => void homeQuery.refetch()} disabled={homeQuery.isFetching}>
@@ -95,68 +100,124 @@ export function HomeConsole({ initialSnapshot }: { initialSnapshot: HomeSnapshot
         }
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Runtime" value={snapshot.online ? "Reachable" : "Offline"} detail={snapshot.online ? "Probe succeeded." : "Probe failed or timed out."} tone={snapshot.online ? "success" : "warning"} />
-          <StatCard label="Configured" value={snapshot.configured ? "Yes" : "No"} detail={`${completeSteps}/${snapshot.setupSteps.length} setup steps complete.`} tone={snapshot.configured ? "success" : "warning"} />
-          <StatCard label="Featured project" value="Athanor" detail="Home remains a core domain lane inside the operator shell." />
-          <StatCard label="Last snapshot" value={formatRelativeTime(snapshot.generatedAt)} detail={snapshot.summary} detailVolatile />
+          <StatCard label="Runtime" value={snapshot.online ? "Online" : "Offline"} detail={snapshot.configured ? "Token active" : "No token"} tone={snapshot.online ? "success" : "warning"} />
+          <StatCard label="Entities" value={entities > 0 ? `${entities}` : "--"} detail={entities > 0 ? `${lights.total} lights, ${automations.total} automations` : "No entity data"} tone={entities > 0 ? "success" : "default"} />
+          <StatCard label="Lights" value={lights.total > 0 ? `${lights.on}/${lights.total}` : "--"} detail={lights.total > 0 ? `${lights.on} currently on` : "No lights found"} tone={lights.on > 0 ? "success" : "default"} />
+          <StatCard label="Automations" value={automations.total > 0 ? `${automations.on}/${automations.total}` : "--"} detail={automations.total > 0 ? `${automations.on} active` : "No automations found"} tone={automations.on > 0 ? "success" : "default"} />
         </div>
       </PageHeader>
 
-      <div className="grid gap-4 xl:grid-cols-[1.05fr_1fr]">
+      <div className="grid gap-4 xl:grid-cols-2">
+        {/* Climate */}
         <Card className="surface-panel border">
           <CardHeader>
-            <CardTitle className="text-lg">Setup ladder</CardTitle>
-            <CardDescription>Keep the home lane honest about what is complete, pending, or blocked.</CardDescription>
+            <CardTitle className="text-lg">Climate</CardTitle>
+            <CardDescription>HVAC zones and temperature readings.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {snapshot.setupSteps.map((step) => (
-              <div key={step.id} className={`rounded-2xl p-4 ${homeStepSurface(step.status)}`}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="status-badge" data-tone={homeStepTone(step.status)}>
-                    {step.status}
-                  </Badge>
-                  <p className="font-medium">{step.label}</p>
-                </div>
-                {step.note ? <p className="mt-2 text-sm text-muted-foreground">{step.note}</p> : null}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="surface-panel border">
-          <CardHeader>
-            <CardTitle className="text-lg">Focused panels</CardTitle>
-            <CardDescription>Drawer-based previews keep Home Assistant in the satellite role, not as a cloned in-dashboard app.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {snapshot.panels.length > 0 ? (
-              snapshot.panels.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => setSearchValue("panel", entry.id)}
-                  className="surface-instrument w-full rounded-2xl border p-4 text-left transition hover:bg-accent/40"
-                >
+            {climate.length > 0 ? (
+              climate.map((zone) => (
+                <div key={zone.id} className="surface-instrument flex items-center justify-between rounded-2xl border p-4">
                   <div className="flex items-center gap-3">
-                    <div
-                      className="surface-metric rounded-xl border p-2"
-                      style={{ color: "var(--domain-home)" }}
-                    >
-                      <Home className="h-4 w-4" />
+                    <div className="surface-metric rounded-xl border p-2" style={{ color: "var(--domain-home)" }}>
+                      <Thermometer className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="font-medium">{entry.label}</p>
-                      <p className="text-sm text-muted-foreground">{entry.description}</p>
+                      <p className="font-medium">{zone.name}</p>
+                      <p className="text-sm text-muted-foreground">{zone.hvac_action ?? zone.state}</p>
                     </div>
                   </div>
-                </button>
+                  <div className="text-right">
+                    {zone.current_temperature != null && (
+                      <p className="text-lg font-semibold tabular-nums">{zone.current_temperature}&deg;F</p>
+                    )}
+                    {zone.temperature != null && (
+                      <p className="text-xs text-muted-foreground">Target: {zone.temperature}&deg;F</p>
+                    )}
+                  </div>
+                </div>
               ))
             ) : (
-              <EmptyState title="No home panels yet" description="Panels appear here once the home lane is configured." />
+              <EmptyState title="No climate data" description="Climate entities will appear when HA is fully connected." />
             )}
           </CardContent>
         </Card>
+
+        {/* Setup + Panels */}
+        <div className="space-y-4">
+          <Card className="surface-panel border">
+            <CardHeader>
+              <CardTitle className="text-lg">Integration Status</CardTitle>
+              <CardDescription>{completeSteps}/{snapshot.setupSteps.length} steps complete.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {snapshot.setupSteps.map((step) => (
+                <div key={step.id} className={`rounded-2xl p-4 ${homeStepSurface(step.status)}`}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="status-badge" data-tone={homeStepTone(step.status)}>
+                      {step.status}
+                    </Badge>
+                    <p className="font-medium">{step.label}</p>
+                  </div>
+                  {step.note ? <p className="mt-2 text-sm text-muted-foreground">{step.note}</p> : null}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card className="surface-panel border">
+            <CardHeader>
+              <CardTitle className="text-lg">Focused panels</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {snapshot.panels.length > 0 ? (
+                snapshot.panels.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => setSearchValue("panel", entry.id)}
+                    className="surface-instrument w-full rounded-2xl border p-4 text-left transition hover:bg-accent/40"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="surface-metric rounded-xl border p-2" style={{ color: "var(--domain-home)" }}>
+                        <Home className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{entry.label}</p>
+                        <p className="text-sm text-muted-foreground">{entry.description}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <EmptyState title="No home panels yet" description="Panels appear here once the home lane is configured." />
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* Key sensors */}
+      {sensors.length > 0 && (
+        <Card className="surface-panel border">
+          <CardHeader>
+            <CardTitle className="text-lg">Key Sensors</CardTitle>
+            <CardDescription>Temperature, humidity, power, and energy sensors.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {sensors.map((sensor) => (
+                <div key={sensor.id} className="surface-instrument rounded-xl border px-3 py-2">
+                  <p className="text-xs text-muted-foreground truncate">{sensor.name}</p>
+                  <p className="text-sm font-semibold tabular-nums">
+                    {sensor.state} {sensor.unit}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Sheet open={Boolean(activePanel)} onOpenChange={(open) => setSearchValue("panel", open ? panel : null)}>
         <SheetContent side="right" className="w-full max-w-xl overflow-y-auto border-l border-border/80 bg-background/95">

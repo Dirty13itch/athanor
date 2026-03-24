@@ -1,0 +1,5 @@
+---
+ntfy_image: binwiederhier/ntfy
+ntfy_port: 8880
+ntfy_cache_path: /mnt/docker/ntfy/cache
+ntfy_config_path: /mnt/docker/ntfy/etc

@@ -7,6 +7,8 @@ Usage: python3 scripts/seed-miniflux-feeds.py [--miniflux-url URL] [--username U
 import argparse
 import os
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import get_url
 
 try:
     import requests
@@ -58,7 +60,7 @@ def main():
     parser = argparse.ArgumentParser(description="Seed Miniflux with intelligence feeds")
     parser.add_argument(
         "--miniflux-url",
-        default=os.environ.get("ATHANOR_MINIFLUX_URL") or os.environ.get("MINIFLUX_URL") or "http://192.168.1.203:8070",
+        default=get_url("miniflux"),
         help="Miniflux URL",
     )
     parser.add_argument(

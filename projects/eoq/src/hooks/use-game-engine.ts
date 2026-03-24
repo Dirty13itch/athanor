@@ -1,9 +1,14 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import { useGameStore } from "@/stores/game-store";
 import { CHARACTERS } from "@/data/characters";
-import { SCENES, STARTING_SCENE, SCENE_INTROS } from "@/data/scenes";
+import { QUEENS } from "@/data/queens";
+import {
+  SCENES, STARTING_SCENE, SCENE_INTROS,
+  QUEEN_AUDIENCE, QUEEN_COUNCIL_HALL,
+  QUEEN_CONFRONTATION, QUEEN_BANQUET, QUEEN_RIVALRY_DUEL,
+} from "@/data/scenes";
 import {
   getScriptedIntro,
   getTriggeredEvent,
@@ -11,12 +16,15 @@ import {
   checkRelationshipFlags,
   checkArcTransition,
 } from "@/data/narrative";
+import { DEFAULT_PLAYER_STYLE } from "@/types/game";
 import type { PlayerChoice, DialogueTurn, SceneExit, ChoiceEffects } from "@/types/game";
 import {
-  shouldFireAwakening,
-  resolveEndingPath,
-  computeRivalryTensionIncrease,
-} from "@/types/game";
+  storeChoiceMemory,
+  storeSceneMemory,
+  storeMemory as storeMemoryApi,
+  retrieveMemories,
+  formatMemoriesForPrompt,
+} from "@/lib/character-memory";
 
 /**
  * Game engine hook — manages dialogue flow, scene navigation,
@@ -26,6 +34,12 @@ export function useGameEngine() {
   const store = useGameStore();
   const scriptedQueueRef = useRef<DialogueTurn[]>([]);
   const scriptedIndexRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Cancel in-flight LLM requests on unmount
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   /** Start a new game */
   const startGame = useCallback(() => {
@@ -43,14 +57,13 @@ export function useGameEngine() {
         plotFlags: {},
         inventory: [],
         contentIntensity: 3 as const,
-        playMode: "blissful" as const,
-        rivalryTensions: [],
-        pendingPhoneMessages: [],
-        legacyDaughters: [],
       },
       characters: { ...CHARACTERS },
       dialogueHistory: [],
       arcPosition: "prologue",
+      playerStyle: { ...DEFAULT_PLAYER_STYLE },
+      noMercyUnlocked: false,
+      noMercyActive: false,
     };
 
     store.setSession(session);
@@ -66,11 +79,147 @@ export function useGameEngine() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** Start a queen freeform dialogue session */
+  const startQueenSession = useCallback((queenId: string) => {
+    const queen = QUEENS[queenId];
+    if (!queen) return;
+
+    // Create the audience scene with this queen
+    const audienceScene = {
+      ...QUEEN_AUDIENCE,
+      name: `${queen.name}'s Private Audience`,
+      presentCharacters: [queenId],
+    };
+
+    const session = {
+      id: crypto.randomUUID(),
+      startedAt: Date.now(),
+      lastPlayedAt: Date.now(),
+      worldState: {
+        currentScene: audienceScene,
+        timeOfDay: "evening" as const,
+        day: 1,
+        plotFlags: { queen_mode: true },
+        inventory: [],
+        contentIntensity: 3 as const,
+      },
+      characters: { [queenId]: queen },
+      dialogueHistory: [],
+      arcPosition: "audience",
+      playerStyle: { ...DEFAULT_PLAYER_STYLE },
+      noMercyUnlocked: false,
+      noMercyActive: false,
+    };
+
+    store.setSession(session);
+    store.markSceneVisited("queen-audience");
+
+    // Opening narration
+    setTimeout(() => {
+      playNarratorLine(
+        `The heavy door closes behind you. ${queen.name} — ${queen.title} — regards you from across the candlelit chamber. ${queen.archetype === "ice" ? "The air seems to cool." : queen.archetype === "seductress" ? "The warmth in the room intensifies." : queen.archetype === "shadow" ? "The shadows seem to deepen." : "The atmosphere shifts."} You are alone.`
+      );
+    }, 500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Start a council hall session — shows all queens, dynamic exits for navigation */
+  const startCouncilSession = useCallback(() => {
+    // Build characters map with all queens
+    const allQueens: Record<string, typeof QUEENS[string]> = {};
+    for (const [id, queen] of Object.entries(QUEENS)) {
+      allQueens[id] = queen;
+    }
+
+    // Build dynamic exits — one per queen for private audience, plus multi-queen options
+    const queenExits = Object.entries(QUEENS).map(([id, queen]) => ({
+      label: `Summon ${queen.name} — ${queen.title}`,
+      targetSceneId: `queen-audience:${id}`,
+    }));
+
+    const councilScene = {
+      ...QUEEN_COUNCIL_HALL,
+      presentCharacters: [],
+      exits: [
+        ...queenExits,
+        { label: "Call a Confrontation (2 queens)", targetSceneId: "queen-confrontation:select" },
+        { label: "Host a Banquet (3+ queens)", targetSceneId: "queen-banquet:select" },
+        { label: "Arrange a Rivalry Duel (2 queens)", targetSceneId: "queen-rivalry-duel:select" },
+      ],
+    };
+
+    const session = {
+      id: crypto.randomUUID(),
+      startedAt: Date.now(),
+      lastPlayedAt: Date.now(),
+      worldState: {
+        currentScene: councilScene,
+        timeOfDay: "evening" as const,
+        day: 1,
+        plotFlags: { queen_mode: true, council_unlocked: true },
+        inventory: [],
+        contentIntensity: 3 as const,
+      },
+      characters: allQueens,
+      dialogueHistory: [],
+      arcPosition: "council",
+      playerStyle: { ...DEFAULT_PLAYER_STYLE },
+      noMercyUnlocked: false,
+      noMercyActive: false,
+    };
+
+    store.setSession(session);
+    store.markSceneVisited("queen-council-hall");
+
+    setTimeout(() => {
+      playNarratorLine(SCENE_INTROS["queen-council-hall"] ??
+        "Twenty-one thrones. Twenty-one queens. All of them watching. Waiting to see what kind of conqueror you are.");
+    }, 500);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Start a multi-queen scene with specific queens */
+  const startMultiQueenScene = useCallback((queenIds: string[], sceneType: "confrontation" | "banquet" | "duel") => {
+    const sceneTemplates = {
+      confrontation: QUEEN_CONFRONTATION,
+      banquet: QUEEN_BANQUET,
+      duel: QUEEN_RIVALRY_DUEL,
+    };
+
+    const template = sceneTemplates[sceneType];
+    const queens = queenIds.map((id) => QUEENS[id]).filter(Boolean);
+    if (queens.length < 2) return;
+
+    const scene = {
+      ...template,
+      presentCharacters: queenIds,
+      exits: [
+        { label: "Return to the Council Hall", targetSceneId: "queen-council-hall" },
+        ...queenIds.map((id) => ({
+          label: `Take ${QUEENS[id]?.name ?? id} for a private audience`,
+          targetSceneId: `queen-audience:${id}`,
+        })),
+      ],
+    };
+
+    store.updateWorldState({ currentScene: scene });
+
+    const names = queens.map((q) => q.name).join(" and ");
+    const intro = SCENE_INTROS[`queen-${sceneType}`] ??
+      `${names} face each other. The tension is immediate.`;
+
+    store.addDialogue({ speaker: "narrator", text: intro });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /** Navigate to a different scene */
   const changeScene = useCallback(
     (exit: SceneExit) => {
       const { session } = useGameStore.getState();
       if (!session) return;
+
+      // Cancel any in-flight LLM requests from the previous scene
+      abortRef.current?.abort();
 
       // Check condition
       if (!checkCondition(exit.condition, session.worldState.plotFlags)) {
@@ -78,6 +227,23 @@ export function useGameEngine() {
           speaker: "narrator",
           text: "*The path is not yet open to you.*",
         });
+        return;
+      }
+
+      // Handle dynamic queen navigation targets
+      if (exit.targetSceneId.startsWith("queen-audience:")) {
+        const queenId = exit.targetSceneId.split(":")[1];
+        startQueenSession(queenId);
+        return;
+      }
+      if (exit.targetSceneId === "queen-council-hall") {
+        startCouncilSession();
+        return;
+      }
+      if (exit.targetSceneId.endsWith(":select")) {
+        // Multi-queen selection — trigger selector UI via store flag
+        const sceneType = exit.targetSceneId.replace("queen-", "").replace(":select", "") as "confrontation" | "banquet" | "duel";
+        store.setQueenSelectorMode(sceneType);
         return;
       }
 
@@ -152,6 +318,20 @@ export function useGameEngine() {
           playNarratorLine(sceneNarration);
         }
       }, 400);
+
+      // Store scene transition as memory for present characters (fire and forget)
+      const presentInTarget = targetScene.presentCharacters;
+      if (presentInTarget.length > 0) {
+        const { session: latestSession } = useGameStore.getState();
+        if (latestSession) {
+          storeSceneMemory(
+            presentInTarget,
+            latestSession.id,
+            targetScene.name,
+            `Player entered ${targetScene.name} at ${newTime.time}`,
+          );
+        }
+      }
 
       // Auto-save
       setTimeout(() => store.saveGame(), 1000);
@@ -237,6 +417,9 @@ export function useGameEngine() {
       // Record the player's choice
       store.addDialogue({ speaker: "player", text: choice.text });
 
+      // Track player style from this choice
+      store.trackChoice(choice);
+
       // Apply all effects
       if (choice.effects) {
         applyChoiceEffects(choice.effects, session.worldState.currentScene.presentCharacters);
@@ -279,10 +462,37 @@ export function useGameEngine() {
           Math.abs(choice.effects.affection ?? 0) +
           Math.abs(choice.effects.respect ?? 0) +
           Math.abs(choice.effects.resistance ?? 0);
-        if (totalImpact >= 10) {
+        if (totalImpact >= 2) {
+          const presentChars = session.worldState.currentScene.presentCharacters;
+          storeChoiceMemory(
+            presentChars,
+            session.id,
+            choice.text,
+            choice.intent,
+            session.worldState.currentScene.name,
+            totalImpact,
+            choice.breakingMethod,
+          );
+        }
+
+        // Track relationship changes as separate memory type
+        if (
+          Math.abs(choice.effects.trust ?? 0) >= 10 ||
+          Math.abs(choice.effects.resistance ?? 0) >= 8
+        ) {
           const presentChars = session.worldState.currentScene.presentCharacters;
           for (const charId of presentChars) {
-            storeMemory(charId, session.id, choice, session.worldState.currentScene.name);
+            const desc = [];
+            if (choice.effects.trust) desc.push(`trust ${choice.effects.trust > 0 ? "+" : ""}${choice.effects.trust}`);
+            if (choice.effects.resistance) desc.push(`resistance ${choice.effects.resistance > 0 ? "+" : ""}${choice.effects.resistance}`);
+            storeMemoryApi(
+              charId,
+              session.id,
+              `Relationship shift: ${desc.join(", ")} after "${choice.text}" in ${session.worldState.currentScene.name}`,
+              4,
+              "relationship_change",
+              { scene: session.worldState.currentScene.name },
+            );
           }
         }
       }
@@ -357,68 +567,12 @@ export function useGameEngine() {
         ];
       }
 
-      // Clamp resistance to character's ceiling
-      resistance = Math.min(resistance, char.resistanceCeiling);
-
-      // Update ending path tracking
-      const updatedChar = {
-        ...char,
-        relationship: rel,
-        resistance,
-        corruption,
-        emotionalProfile: ep,
-      };
-      const endingPath = resolveEndingPath(updatedChar, useGameStore.getState().session?.worldState.plotFlags ?? {});
-
       store.updateCharacter(charId, {
         relationship: rel,
         resistance,
         corruption,
         emotionalProfile: ep,
-        currentEndingPath: endingPath,
       });
-
-      // Check awakening trigger (corruption >= 70, not yet fired)
-      const afterUpdate = useGameStore.getState().session?.characters[charId];
-      if (afterUpdate && shouldFireAwakening(afterUpdate)) {
-        // Fire awakening: resistance ceiling drops to 30 (post-awakening range from GDD)
-        store.fireAwakening(charId, 30);
-        // Queue the awakening narration
-        setTimeout(() => {
-          store.addDialogue({
-            speaker: "narrator",
-            text: `*Something changes in ${char.name}. The resistance that defined her — the careful control, the walls she built — all of it cracks at once. She looks at you differently. As if she's seeing the truth of something she's been running from for a long time. Her voice, when she speaks, is different.*`,
-          });
-        }, 500);
-      }
-    }
-
-    // Update rivalry tensions: if player acted intimately with one queen
-    // while other queens exist, increase their rivalry tension
-    if (effects.corruption && effects.corruption > 0) {
-      const { session: currentSession } = useGameStore.getState();
-      if (currentSession) {
-        const allQueens = Object.values(currentSession.characters).filter(
-          (c) => c.dna !== undefined
-        );
-        const actedOn = presentCharacters;
-        for (const actedId of actedOn) {
-          const actedChar = currentSession.characters[actedId];
-          if (!actedChar?.dna) continue;
-          // Other queens experience rivalry tension
-          for (const other of allQueens) {
-            if (other.id === actedId) continue;
-            if (!other.dna) continue;
-            const tensionIncrease = computeRivalryTensionIncrease(
-              other.dna.jealousyType,
-              Math.min(10, Math.ceil(effects.corruption))
-            );
-            if (tensionIncrease !== 0) {
-              store.updateRivalryTension(actedId, other.id, tensionIncrease);
-            }
-          }
-        }
-      }
     }
 
     // Apply plot flag effects
@@ -439,6 +593,11 @@ export function useGameEngine() {
     const { session } = useGameStore.getState();
     if (!session) return;
 
+    // Cancel any previous in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     store.setGenerating(true);
     store.setStreamingText("");
 
@@ -452,6 +611,7 @@ export function useGameEngine() {
           const narResp = await fetch("/api/narrate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            signal: controller.signal,
             body: JSON.stringify({
               worldState: session.worldState,
               recentHistory: session.dialogueHistory.slice(-4),
@@ -508,15 +668,39 @@ export function useGameEngine() {
         .reverse()
         .find((t) => t.speaker === "player");
 
+      const playerInput = lastPlayerTurn?.text ?? "[The player approaches in silence.]";
+
+      // Retrieve relevant long-term memories for this character (non-blocking fetch)
+      // The chat API also fetches server-side, but client-side retrieval uses
+      // the new recency-decay scoring and typed memory system.
+      const memoriesPromise = retrieveMemories(currentCharId, playerInput, 5);
+      let memoryContext = "";
+      try {
+        const memories = await memoriesPromise;
+        memoryContext = formatMemoriesForPrompt(memories);
+      } catch {
+        // Memory retrieval is best-effort
+      }
+
+      // Collect other characters in the scene for multi-queen interactions
+      const otherCharacters = session.worldState.currentScene.presentCharacters
+        .filter((id) => id !== currentCharId)
+        .map((id) => session.characters[id])
+        .filter(Boolean);
+
       const resp = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           character,
           worldState: session.worldState,
           recentHistory,
-          playerInput:
-            lastPlayerTurn?.text ?? "[The player approaches in silence.]",
+          playerInput,
+          memoryContext,
+          playerStyle: session.playerStyle,
+          noMercyActive: session.noMercyActive,
+          ...(otherCharacters.length > 0 ? { otherCharacters } : {}),
         }),
       });
 
@@ -565,12 +749,28 @@ export function useGameEngine() {
         store.updateCharacter(currentCharId, { emotion: inferredEmotion });
       }
 
+      // Store the character's response as an interaction memory (fire and forget)
+      if (fullText.length > 20) {
+        const summary = `${character.name} said: "${fullText.length > 120 ? fullText.slice(0, 117) + "..." : fullText}" in ${session.worldState.currentScene.name}`;
+        storeMemoryApi(
+          currentCharId,
+          session.id,
+          summary,
+          2,
+          "interaction",
+          { scene: session.worldState.currentScene.name },
+        );
+      }
+
       // Generate contextual choices for the player (fire and forget into state)
-      fetchChoices(character, session.worldState, session.dialogueHistory.slice(-10));
+      const latestSess = useGameStore.getState().session;
+      fetchChoices(character, session.worldState, session.dialogueHistory.slice(-10), latestSess?.playerStyle, latestSess?.noMercyActive);
 
       // Auto-save periodically
       store.saveGame();
     } catch (err) {
+      // Aborted requests are expected (user navigated away) — don't show error
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("Dialogue generation failed:", err);
       store.addDialogue({
         speaker: "narrator",
@@ -616,6 +816,15 @@ export function useGameEngine() {
       // Record the player's message
       store.addDialogue({ speaker: "player", text });
 
+      // Persist player message to long-term memory (fire and forget)
+      const presentChars = session.worldState.currentScene.presentCharacters;
+      if (presentChars.length > 0 && text.length > 10) {
+        const sceneName = session.worldState.currentScene.name;
+        for (const charId of presentChars) {
+          storeMemoryApi(charId, session.id, `Player said to ${session.characters[charId]?.name ?? charId}: "${text}"`, 2, "interaction", { scene: sceneName, speaker: "player" });
+        }
+      }
+
       // Trigger LLM response after a short beat
       setTimeout(() => advanceLive(), 200);
     },
@@ -625,6 +834,9 @@ export function useGameEngine() {
 
   return {
     startGame,
+    startQueenSession,
+    startCouncilSession,
+    startMultiQueenScene,
     advanceDialogue,
     handleChoice,
     sendPlayerMessage,
@@ -639,12 +851,14 @@ export function useGameEngine() {
 function fetchChoices(
   character: import("@/types/game").Character,
   worldState: import("@/types/game").WorldState,
-  recentHistory: DialogueTurn[]
+  recentHistory: DialogueTurn[],
+  playerStyle?: import("@/types/game").PlayerStyle,
+  noMercyActive?: boolean,
 ) {
   fetch("/api/choices", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ character, worldState, recentHistory }),
+    body: JSON.stringify({ character, worldState, recentHistory, playerStyle, noMercyActive }),
   })
     .then((r) => r.json())
     .then((data) => {
@@ -655,32 +869,6 @@ function fetchChoices(
     .catch(() => {
       // Choice generation is best-effort — player can always type freeform
     });
-}
-
-/** Store a significant memory to Qdrant (fire and forget) */
-function storeMemory(
-  characterId: string,
-  sessionId: string,
-  choice: PlayerChoice,
-  sceneName: string
-) {
-  const text = `Player chose: "${choice.text}" (intent: ${choice.intent}) in ${sceneName}`;
-  fetch("/api/memory", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      characterId,
-      sessionId,
-      text,
-      metadata: {
-        intent: choice.intent,
-        breaking_method: choice.breakingMethod,
-        scene: sceneName,
-      },
-    }),
-  }).catch(() => {
-    // Memory storage is best-effort
-  });
 }
 
 function clamp(value: number, min: number, max: number): number {

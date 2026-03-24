@@ -8,8 +8,11 @@ import json
 import os
 import urllib.request
 from typing import Any
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from cluster_config import NODES
 
-DEFAULT_BASE_URL = os.environ.get("ATHANOR_EOQ_URL", "http://192.168.1.225:3002").rstrip("/")
+DEFAULT_BASE_URL = f"http://{NODES['workshop']}:3002"
 
 ROUTES = ["/", "/gallery", "/references"]
 

@@ -1,6 +1,6 @@
 # Blocked Tasks
 
-*Updated: 2026-03-07 (Session 37)*
+*Updated: 2026-03-14 (Session 56)*
 
 Tasks that cannot proceed without Shaun's physical presence, credentials, or browser access.
 
@@ -74,6 +74,7 @@ Tasks that cannot proceed without Shaun's physical presence, credentials, or bro
 | JetKVM ATX Power Cable | Session 3, 2026-02-16 | Reconnected during rack work |
 | HA Onboarding | Session 13, 2026-02-24 | Completed in browser, 38 entities discovered |
 | BMC Config (.216) | — | Deprioritized — SSH access sufficient for all current tasks |
+| VAULT SSH (root key auth) | Session 56, 2026-03-14 | DEV ed25519 key added to VAULT authorized_keys (runtime + persistent `/boot/config/ssh/`). `ssh root@192.168.1.203` and `vault-ssh.py` both working. Docker MCP for VAULT functional (44 containers visible). |
 
 ---
 

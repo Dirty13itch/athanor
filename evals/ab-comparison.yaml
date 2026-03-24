@@ -4,25 +4,48 @@
 
 description: "reasoning vs creative quality comparison"
 
-# Use fast (Huihui-8B abliterated) as grader — no think tags, clean JSON verdicts
+# Use reasoning (Qwen3.5-27B-FP8) as grader — reliable JSON output, temp=0 for determinism
+# Previous: fast (Qwen3-8B abliterated) failed 18/48 with "Could not extract JSON"
+# v2 fix: reasoning grader with temp=0 (better but thinking traces bloat grading input)
+# v3 fix: disable thinking for all providers + grader, increase grader max_tokens
 defaultTest:
   options:
     provider:
-      id: openai:chat:fast
+      id: openai:chat:reasoning
       config:
         apiBaseUrl: http://192.168.1.203:4000/v1
-    transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+        temperature: 0
+        max_tokens: 2048
+        extra_body:
+          chat_template_kwargs:
+            enable_thinking: false
+    # Strip <think> tags AND plain-text thinking traces from model output before grading
+    transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^Thinking Process:[\s\S]*?\n\n(?=[A-Z])/m, '').trim()
 
 providers:
   - id: openai:chat:reasoning
     label: "Qwen3.5-27B-FP8 (reasoning)"
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
   - id: openai:chat:creative
     label: "Qwen3.5-35B-A3B-AWQ (creative)"
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
+
+  - id: openai:chat:coder
+    label: "Qwen3.5-35B-A3B-AWQ (coder)"
+    config:
+      apiBaseUrl: http://192.168.1.203:4000/v1
+      extra_body:
+        chat_template_kwargs:
+          enable_thinking: false
 
 prompts:
   - "{{prompt}}"

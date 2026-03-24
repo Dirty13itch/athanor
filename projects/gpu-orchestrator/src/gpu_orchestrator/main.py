@@ -82,39 +82,39 @@ class Zone:
         }
 
 
-# Zone configuration from ADR-018
+# Zone configuration — updated 2026-03-16
 ZONES: dict[str, Zone] = {
-    "primary_inference": Zone(
-        name="primary_inference",
+    "coordinator": Zone(
+        name="coordinator",
         node="node1",
-        gpus=[0, 1, 2, 3],
+        gpus=[0, 1, 3, 4],
         vllm_url=settings.vllm_node1_url,
-        default_workload="vLLM Qwen3-32B-AWQ TP=4",
+        default_workload="vLLM Qwen3.5-27B-FP8 TP=4 (coordinator)",
         sleep_ttl=1800,  # 30 min
     ),
-    "flex_1": Zone(
-        name="flex_1",
+    "coder": Zone(
+        name="coder",
         node="node1",
-        gpus=[4],
-        vllm_url=settings.vllm_node1_embed_url,
-        default_workload="vLLM Embedding (Qwen3-Embedding-0.6B)",
-        sleep_ttl=600,  # 10 min
+        gpus=[2],
+        vllm_url=None,  # FOUNDRY GPU 2 (4090) — Qwen3.5-35B-A3B-AWQ-4bit
+        default_workload="vLLM Qwen3.5-35B-A3B-AWQ-4bit (coder)",
+        sleep_ttl=1800,  # 30 min
     ),
-    "flex_2": Zone(
-        name="flex_2",
+    "worker": Zone(
+        name="worker",
         node="node2",
         gpus=[0],
         vllm_url=settings.vllm_node2_url,
-        default_workload="vLLM Qwen3-14B",
+        default_workload="vLLM Qwen3.5-35B-A3B-AWQ (worker) / ComfyUI (time-shared)",
         sleep_ttl=1800,  # 30 min
     ),
-    "creative": Zone(
-        name="creative",
+    "vision": Zone(
+        name="vision",
         node="node2",
         gpus=[1],
-        vllm_url=None,  # ComfyUI, not vLLM
-        default_workload="ComfyUI Flux dev FP8",
-        sleep_ttl=900,  # 15 min
+        vllm_url=settings.vllm_vision_url,
+        default_workload="vLLM Qwen3-VL-8B-Instruct-FP8 (vision)",
+        sleep_ttl=3600,  # 1 hour — vision is always-on
     ),
 }
 

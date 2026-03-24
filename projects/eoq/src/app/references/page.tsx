@@ -26,6 +26,10 @@ export default function ReferencesPage() {
   const [generateTarget, setGenerateTarget] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTarget, setUploadTarget] = useState<string | null>(null);
+  const [creatingQueen, setCreatingQueen] = useState<string | null>(null);
+  const [queenGuidance, setQueenGuidance] = useState("");
+  const [queenResult, setQueenResult] = useState<{ id: string; profile: Record<string, unknown> } | null>(null);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
 
   const fetchPersonas = useCallback(async () => {
     setLoading(true);
@@ -63,18 +67,44 @@ export default function ReferencesPage() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadTarget) return;
-
-    const form = new FormData();
-    form.append("image", file);
-    const res = await fetch(`/api/references/${uploadTarget}/photos`, { method: "POST", body: form });
-    if (res.ok) {
-      await fetchPersonas();
+  const uploadFiles = async (personaId: string, files: FileList | File[]) => {
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
+      const form = new FormData();
+      form.append("image", file);
+      await fetch(`/api/references/${personaId}/photos`, { method: "POST", body: form });
     }
+    await fetchPersonas();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !uploadTarget) return;
+    await uploadFiles(uploadTarget, files);
     e.target.value = "";
     setUploadTarget(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, personaId: string) => {
+    e.preventDefault();
+    setDragTarget(null);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) await uploadFiles(personaId, files);
+  };
+
+  const createQueenProfile = async (persona: Persona) => {
+    setCreatingQueen(persona.id);
+    setQueenResult(null);
+    const res = await fetch(`/api/references/${persona.id}/create-queen`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ customPrompt: queenGuidance || undefined }),
+    });
+    if (res.ok) {
+      const profile = await res.json();
+      setQueenResult({ id: persona.id, profile });
+    }
+    setCreatingQueen(null);
   };
 
   const deletePhoto = async (personaId: string, filename: string) => {
@@ -109,6 +139,35 @@ export default function ReferencesPage() {
     setGenerating(null);
   };
 
+  const animatePortrait = async (persona: Persona) => {
+    if (!generateResult) {
+      alert("Generate a portrait first, then animate it.");
+      return;
+    }
+    setGenerating(persona.id);
+    const motionPrompt = generatePrompt
+      ? `${generatePrompt}, subtle breathing, blinking, looking at viewer, cinematic`
+      : "subtle breathing, blinking, looking at viewer, cinematic, photorealistic";
+
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "i2v",
+        prompt: motionPrompt,
+        referencePath: generateResult,
+        quality: "quick",
+        negativePrompt: "blurry, distorted face, morphing, identity change, static, watermark, cartoon",
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.imageUrl) setGenerateResult(data.imageUrl);
+    }
+    setGenerating(null);
+  };
+
   const filtered = personas.filter((p) => p.category === tab);
 
   return (
@@ -138,13 +197,24 @@ export default function ReferencesPage() {
       </div>
 
       {/* Generate prompt (shared) */}
-      <div className="mb-6 flex gap-3">
+      <div className="mb-4 flex gap-3">
         <input
           type="text"
           value={generatePrompt}
           onChange={(e) => setGeneratePrompt(e.target.value)}
           placeholder="Generation prompt — e.g. 'cinematic portrait, dark fantasy, ornate armor, candlelight'"
           className="flex-1 bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/20"
+        />
+      </div>
+
+      {/* Queen creation guidance */}
+      <div className="mb-6 flex gap-3">
+        <input
+          type="text"
+          value={queenGuidance}
+          onChange={(e) => setQueenGuidance(e.target.value)}
+          placeholder="Queen profile guidance (optional) — e.g. 'dominant ice archetype, high pain tolerance, French accent'"
+          className="flex-1 bg-white/5 border border-amber-400/10 rounded px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-amber-400/20"
         />
       </div>
 
@@ -179,7 +249,12 @@ export default function ReferencesPage() {
           {filtered.map((persona) => (
             <div
               key={persona.id}
-              className={`border rounded-lg bg-white/3 p-4 flex flex-col gap-3 ${CATEGORY_COLOR[persona.category]}`}
+              className={`border rounded-lg bg-white/3 p-4 flex flex-col gap-3 transition-colors ${
+                dragTarget === persona.id ? "border-amber-400/60 bg-amber-900/10" : CATEGORY_COLOR[persona.category]
+              }`}
+              onDragOver={(e) => { e.preventDefault(); setDragTarget(persona.id); }}
+              onDragLeave={() => setDragTarget(null)}
+              onDrop={(e) => handleDrop(e, persona.id)}
             >
               {/* Persona header */}
               <div className="flex items-center justify-between">
@@ -202,9 +277,12 @@ export default function ReferencesPage() {
                 <div className="flex gap-2 flex-wrap">
                   {persona.photos.map((photo) => (
                     <div key={photo} className="relative group">
-                      <div className="w-16 h-16 rounded bg-white/10 flex items-center justify-center overflow-hidden">
-                        <span className="text-gray-500 text-xs text-center px-1">{photo.split(".")[0].slice(0, 10)}</span>
-                      </div>
+                      <img
+                        src={`/api/references/${persona.id}/photos?filename=${encodeURIComponent(photo)}`}
+                        alt={photo}
+                        className="w-16 h-16 rounded bg-white/10 object-cover"
+                        loading="lazy"
+                      />
                       <button
                         onClick={() => deletePhoto(persona.id, photo)}
                         className="absolute -top-1 -right-1 w-4 h-4 bg-red-900 text-red-300 rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -233,14 +311,80 @@ export default function ReferencesPage() {
                 </button>
               </div>
 
+              {/* Create queen button */}
+              <button
+                onClick={() => createQueenProfile(persona)}
+                disabled={creatingQueen === persona.id}
+                className="px-3 py-1.5 bg-amber-900/30 hover:bg-amber-900/50 text-amber-300 text-xs rounded transition-colors disabled:opacity-40 border border-amber-400/20"
+              >
+                {creatingQueen === persona.id ? "Generating queen profile..." : "Create Queen Profile"}
+              </button>
+
+              {/* Queen profile result */}
+              {queenResult?.id === persona.id && (
+                <div className="mt-1 rounded border border-amber-400/20 bg-amber-900/10 p-3">
+                  <p className="text-xs font-medium text-amber-400">
+                    {(queenResult.profile as { name?: string }).name} — {(queenResult.profile as { title?: string }).title}
+                  </p>
+                  <p className="mt-1 text-[10px] text-white/40">
+                    Archetype: {(queenResult.profile as { archetype?: string }).archetype} · Queen profile saved to persona
+                  </p>
+                </div>
+              )}
+
               {/* Result preview */}
               {generateTarget === persona.id && generateResult && (
                 <div className="mt-2">
-                  <img
-                    src={generateResult}
-                    alt="Generated"
-                    className="w-full rounded border border-white/10"
-                  />
+                  {/\.(mp4|webm|mov)(\?|$)/i.test(generateResult) ? (
+                    <video
+                      src={generateResult}
+                      className="w-full rounded border border-white/10"
+                      autoPlay loop muted playsInline
+                    />
+                  ) : (
+                    <>
+                      <img
+                        src={generateResult}
+                        alt="Generated"
+                        className="w-full rounded border border-white/10"
+                      />
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          onClick={() => animatePortrait(persona)}
+                          disabled={generating === persona.id}
+                          className="flex-1 px-3 py-1.5 bg-violet-900/40 hover:bg-violet-900/60 text-violet-200 text-xs rounded transition-colors disabled:opacity-40 border border-violet-400/20"
+                        >
+                          {generating === persona.id ? "Animating..." : "Quick Video (~90s)"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            // Override quality to production for this call
+                            if (!generateResult) return;
+                            setGenerating(persona.id);
+                            const motionPrompt = generatePrompt
+                              ? `${generatePrompt}, subtle breathing, blinking, looking at viewer, cinematic`
+                              : "subtle breathing, blinking, looking at viewer, cinematic, photorealistic";
+                            fetch("/api/generate", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                type: "i2v", prompt: motionPrompt, referencePath: generateResult,
+                                quality: "production",
+                                negativePrompt: "blurry, distorted face, morphing, identity change, static, watermark, cartoon",
+                              }),
+                            }).then(r => r.ok ? r.json() : null).then(d => {
+                              if (d?.imageUrl) setGenerateResult(d.imageUrl);
+                              setGenerating(null);
+                            }).catch(() => setGenerating(null));
+                          }}
+                          disabled={generating === persona.id}
+                          className="flex-1 px-3 py-1.5 bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-200 text-xs rounded transition-colors disabled:opacity-40 border border-indigo-400/20"
+                        >
+                          HQ Video (~18min)
+                        </button>
+                      </div>
+                    </>
+                  )}
                   <a
                     href={generateResult}
                     target="_blank"
@@ -261,6 +405,7 @@ export default function ReferencesPage() {
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        multiple
         className="hidden"
         onChange={handleFileChange}
       />

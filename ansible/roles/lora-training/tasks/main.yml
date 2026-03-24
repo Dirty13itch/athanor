@@ -1,0 +1,50 @@
+---
+# LoRA Training Pipeline setup
+- name: Create training directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ lora_training_dir }}"
+    - "{{ lora_datasets_dir }}"
+    - "{{ lora_output_dir }}"
+
+- name: Copy training script
+  ansible.builtin.copy:
+    src: train-flux-lora.py
+    dest: "{{ lora_training_dir }}/train-flux-lora.py"
+    mode: "0755"
+
+- name: Copy dataset preparation script
+  ansible.builtin.copy:
+    src: prepare-dataset.py
+    dest: "{{ lora_training_dir }}/prepare-dataset.py"
+    mode: "0755"
+
+- name: Template training config
+  ansible.builtin.template:
+    src: flux-lora-config.toml.j2
+    dest: "{{ lora_training_dir }}/flux-lora-config.toml"
+    mode: "0644"
+
+- name: Template docker compose
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ lora_training_dir }}/docker-compose.yml"
+    mode: "0644"
+
+- name: Copy Dockerfile
+  ansible.builtin.copy:
+    src: Dockerfile
+    dest: "{{ lora_training_dir }}/Dockerfile"
+    mode: "0644"
+
+- name: Build training image
+  community.docker.docker_image:
+    name: athanor/lora-training
+    tag: latest
+    source: build
+    build:
+      path: "{{ lora_training_dir }}"
+    force_source: true

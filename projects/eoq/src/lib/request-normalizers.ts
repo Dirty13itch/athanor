@@ -75,6 +75,8 @@ type ChatRequestData = {
   worldState: WorldState;
   recentHistory: DialogueTurn[];
   playerInput: string;
+  /** Additional characters present in multi-queen scenes */
+  otherCharacters?: Character[];
 };
 
 type ChoicesRequestData = {
@@ -369,6 +371,15 @@ export function parseChatRequest(value: unknown): ParseResult<ChatRequestData> {
     return { ok: false, error: "worldState.currentScene.id and worldState.currentScene.name are required." };
   }
 
+  // Parse additional characters for multi-queen scenes
+  const otherCharacters: Character[] = [];
+  if (Array.isArray(body?.otherCharacters)) {
+    for (const raw of body.otherCharacters) {
+      const c = normalizeCharacter(raw);
+      if (c && c.id !== character.id) otherCharacters.push(c);
+    }
+  }
+
   return {
     ok: true,
     data: {
@@ -376,6 +387,7 @@ export function parseChatRequest(value: unknown): ParseResult<ChatRequestData> {
       worldState,
       recentHistory: normalizeDialogueTurns(body?.recentHistory),
       playerInput: asString(body?.playerInput, "[The player approaches in silence.]"),
+      ...(otherCharacters.length > 0 ? { otherCharacters } : {}),
     },
   };
 }

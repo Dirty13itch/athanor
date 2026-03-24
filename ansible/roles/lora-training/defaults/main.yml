@@ -1,0 +1,24 @@
+---
+# LoRA Training Pipeline defaults
+lora_training_dir: /opt/athanor/lora-training
+lora_datasets_dir: /data/training/datasets
+lora_output_dir: /data/training/output
+lora_comfyui_loras_dir: /mnt/vault/models/comfyui/loras
+
+# Base model for Flux LoRA training
+flux_model_path: /mnt/vault/models/comfyui/diffusion_models/flux1-dev-fp8.safetensors
+
+# Training defaults (tuned for 32GB 5090)
+lora_rank: 16
+lora_alpha: 16
+learning_rate: "1e-4"
+text_encoder_lr: "5e-5"
+train_steps: 1500
+train_batch_size: 1
+resolution: 1024
+gradient_accumulation_steps: 1
+save_every_n_steps: 500
+mixed_precision: bf16
+
+# GPU scheduling
+training_gpu: 0  # 5090

@@ -1,0 +1,351 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
+scrape_configs:
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "node1-node"
+    static_configs:
+      - targets: ["192.168.1.244:9100"]
+
+  - job_name: "node2-node"
+    static_configs:
+      - targets: ["192.168.1.225:9100"]
+
+  - job_name: "dev-node"
+    static_configs:
+      - targets: ["192.168.1.189:9100"]
+
+  - job_name: "node1-gpu"
+    static_configs:
+      - targets: ["192.168.1.244:9400"]
+
+  - job_name: "node2-gpu"
+    static_configs:
+      - targets: ["192.168.1.225:9400"]
+
+  - job_name: "dev-gpu"
+    static_configs:
+      - targets: ["192.168.1.189:9400"]
+
+  - job_name: "backup-exporter"
+    static_configs:
+      - targets: ["localhost:9199"]
+
+
+  - job_name: "blackbox-http"
+    metrics_path: /probe
+    params:
+      module: ["http_2xx"]
+    static_configs:
+
+      - targets: ["http://192.168.1.244:8000/v1/models"]
+        labels:
+          service_id: "foundry-coordinator"
+          service_name: "Foundry Coordinator"
+          service_category: "inference"
+          node_id: "node1"
+
+      - targets: ["http://192.168.1.244:8006/health"]
+        labels:
+          service_id: "foundry-coder"
+          service_name: "Foundry Coder"
+          service_category: "inference"
+          node_id: "node1"
+
+      - targets: ["http://192.168.1.225:8000/v1/models"]
+        labels:
+          service_id: "workshop-worker"
+          service_name: "Workshop Worker"
+          service_category: "inference"
+          node_id: "node2"
+
+      - targets: ["http://192.168.1.189:8001/health"]
+        labels:
+          service_id: "dev-embedding"
+          service_name: "DEV Embedding"
+          service_category: "knowledge"
+          node_id: "dev"
+
+      - targets: ["http://192.168.1.189:8003/health"]
+        labels:
+          service_id: "dev-reranker"
+          service_name: "DEV Reranker"
+          service_category: "knowledge"
+          node_id: "dev"
+
+      - targets: ["http://192.168.1.203:4000/health/readiness"]
+        labels:
+          service_id: "litellm"
+          service_name: "LiteLLM Proxy"
+          service_category: "inference"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.244:9000/health"]
+        labels:
+          service_id: "agent-server"
+          service_name: "Agent Server"
+          service_category: "platform"
+          node_id: "node1"
+
+      - targets: ["http://192.168.1.203:9090/-/healthy"]
+        labels:
+          service_id: "prometheus"
+          service_name: "Prometheus"
+          service_category: "observability"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.203:3000/api/health"]
+        labels:
+          service_id: "grafana"
+          service_name: "Grafana"
+          service_category: "observability"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.244:9100/metrics"]
+        labels:
+          service_id: "node1-node-exporter"
+          service_name: "Node Exporter (Node 1)"
+          service_category: "observability"
+          node_id: "node1"
+
+      - targets: ["http://192.168.1.225:9100/metrics"]
+        labels:
+          service_id: "node2-node-exporter"
+          service_name: "Node Exporter (Node 2)"
+          service_category: "observability"
+          node_id: "node2"
+
+      - targets: ["http://192.168.1.244:9400/metrics"]
+        labels:
+          service_id: "node1-dcgm-exporter"
+          service_name: "DCGM Exporter (Node 1)"
+          service_category: "observability"
+          node_id: "node1"
+
+      - targets: ["http://192.168.1.225:9400/metrics"]
+        labels:
+          service_id: "node2-dcgm-exporter"
+          service_name: "DCGM Exporter (Node 2)"
+          service_category: "observability"
+          node_id: "node2"
+
+      - targets: ["http://192.168.1.189:9100/metrics"]
+        labels:
+          service_id: "dev-node-exporter"
+          service_name: "Node Exporter (DEV)"
+          service_category: "observability"
+          node_id: "dev"
+
+      - targets: ["http://192.168.1.189:9400/metrics"]
+        labels:
+          service_id: "dev-dcgm-exporter"
+          service_name: "DCGM Exporter (DEV)"
+          service_category: "observability"
+          node_id: "dev"
+
+      - targets: ["http://192.168.1.225:8188/system_stats"]
+        labels:
+          service_id: "comfyui"
+          service_name: "ComfyUI"
+          service_category: "experience"
+          node_id: "node2"
+
+      - targets: ["http://192.168.1.225:3001"]
+        labels:
+          service_id: "dashboard"
+          service_name: "Dashboard"
+          service_category: "experience"
+          node_id: "node2"
+
+      - targets: ["http://192.168.1.225:3000"]
+        labels:
+          service_id: "workshop-open-webui"
+          service_name: "Open WebUI (Workshop)"
+          service_category: "experience"
+          node_id: "node2"
+
+      - targets: ["http://192.168.1.203:3090"]
+        labels:
+          service_id: "vault-open-webui"
+          service_name: "Open WebUI (VAULT)"
+          service_category: "experience"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.244:6333/collections"]
+        labels:
+          service_id: "qdrant"
+          service_name: "Qdrant"
+          service_category: "knowledge"
+          node_id: "node1"
+
+      - targets: ["http://192.168.1.203:7474"]
+        labels:
+          service_id: "neo4j"
+          service_name: "Neo4j"
+          service_category: "knowledge"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.203:8989/ping"]
+        labels:
+          service_id: "sonarr"
+          service_name: "Sonarr"
+          service_category: "media"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.203:7878/ping"]
+        labels:
+          service_id: "radarr"
+          service_name: "Radarr"
+          service_category: "media"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.203:8181"]
+        labels:
+          service_id: "tautulli"
+          service_name: "Tautulli"
+          service_category: "media"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.203:32400/identity"]
+        labels:
+          service_id: "plex"
+          service_name: "Plex"
+          service_category: "media"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.203:8123/"]
+        labels:
+          service_id: "home-assistant"
+          service_name: "Home Assistant"
+          service_category: "home"
+          node_id: "vault"
+
+      # --- Phase 2: Previously unmonitored services ---
+
+      - targets: ["http://192.168.1.244:9200/health"]
+        labels:
+          service_id: "gpu-orchestrator"
+          service_name: "GPU Orchestrator"
+          service_category: "platform"
+          node_id: "node1"
+
+
+      - targets: ["http://192.168.1.203:8880/v1/health"]
+        labels:
+          service_id: "ntfy"
+          service_name: "ntfy"
+          service_category: "platform"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.244:8200/docs"]
+        labels:
+          service_id: "speaches"
+          service_name: "Speaches (TTS/STT)"
+          service_category: "inference"
+          node_id: "node1"
+
+      - targets: ["http://192.168.1.225:3002"]
+        labels:
+          service_id: "eoq"
+          service_name: "EoBQ"
+          service_category: "experience"
+          node_id: "node2"
+
+      - targets: ["http://192.168.1.203:7700/health"]
+        labels:
+          service_id: "meilisearch"
+          service_name: "Meilisearch"
+          service_category: "knowledge"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.203:3030"]
+        labels:
+          service_id: "langfuse"
+          service_name: "LangFuse"
+          service_category: "observability"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.225:3003"]
+        labels:
+          service_id: "ulrich-energy"
+          service_name: "Ulrich Energy"
+          service_category: "experience"
+          node_id: "node2"
+
+      - targets: ["http://192.168.1.203:5678"]
+        labels:
+          service_id: "n8n"
+          service_name: "n8n"
+          service_category: "platform"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.203:3033"]
+        labels:
+          service_id: "gitea"
+          service_name: "Gitea"
+          service_category: "platform"
+          node_id: "vault"
+
+      - targets: ["http://192.168.1.203:8070"]
+        labels:
+          service_id: "miniflux"
+          service_name: "Miniflux"
+          service_category: "platform"
+          node_id: "vault"
+
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [service_name]
+        target_label: service_name
+      - source_labels: [service_id]
+        target_label: service_id
+      - source_labels: [service_category]
+        target_label: service_category
+      - source_labels: [node_id]
+        target_label: node_id
+      - target_label: __address__
+        replacement: "127.0.0.1:9115"
+
+  # TCP probes for non-HTTP services
+  - job_name: "blackbox-tcp"
+    metrics_path: /probe
+    params:
+      module: ["tcp_connect"]
+    static_configs:
+
+      - targets: ["192.168.1.203:6379"]
+        labels:
+          service_id: "redis"
+          service_name: "Redis"
+          service_category: "platform"
+          node_id: "vault"
+
+      - targets: ["192.168.1.203:5432"]
+        labels:
+          service_id: "postgres"
+          service_name: "Postgres"
+          service_category: "platform"
+          node_id: "vault"
+
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [service_name]
+        target_label: service_name
+      - source_labels: [service_id]
+        target_label: service_id
+      - source_labels: [service_category]
+        target_label: service_category
+      - source_labels: [node_id]
+        target_label: node_id
+      - target_label: __address__
+        replacement: "127.0.0.1:9115"

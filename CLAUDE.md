@@ -107,7 +107,7 @@ See `docs/SYSTEM-SPEC.md` for full operational state. `docs/BUILD-MANIFEST.md` f
 
 See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agents). Critical cross-cutting ones:
 
-- **Blackwell (sm_120):** NGC-based containers required. AWQ explicit (`--quantization awq`). `CUDA_DEVICE_ORDER=PCI_BUS_ID`.
+- **Blackwell (sm_120):** NGC-based containers required. `CUDA_DEVICE_ORDER=PCI_BUS_ID`. AWQ: check model's `config.json` — if `quant_method: "compressed-tensors"`, do NOT pass `--quantization awq`; let vLLM auto-detect.
 - **VAULT SSH:** Native hangs. Use `python3 scripts/vault-ssh.py`.
 - **NFS stale handles:** After VAULT reboots: `sudo umount -f /mnt/vault/models && sudo mount -a`.
 - **EPYC POST:** ~3 min (224 GB ECC RAM check).
@@ -119,13 +119,37 @@ See `.claude/rules/` for domain-specific gotchas (vllm, ansible, dashboard, agen
 
 | Action | Unblocks |
 |--------|----------|
-| NordVPN credentials | qBittorrent (6.5) |
-| Anthropic API key | Quality Cascade cloud escalation |
-| Node 2 EXPO (BIOS) | DDR5 5600 MT/s |
-| Samsung 990 PRO check | Node 1 4TB NVMe |
-| Google Drive rclone OAuth | Personal data Phase 3 (~40% of data) |
+| ~~NordVPN credentials~~ | ~~qBittorrent (6.5)~~ Done (session 60f) |
+| ~~Anthropic API key~~ | ~~Quality Cascade cloud escalation~~ Done (session 60f) |
+| ~~Node 2 EXPO (BIOS)~~ | ~~DDR5 5600 MT/s~~ Done (session 60g) |
+| ~~Google Drive rclone OAuth~~ | ~~Personal data Phase 3~~ Done (session 60f) |
+| ~~Samsung 990 PRO BIOS enable~~ | ~~Node 1 4TB NVMe~~ Done (session 60g) |
 
 ---
+
+## Cloud-First Subscription Utilization
+
+**Design principle:** Cloud subscriptions are the primary power source ($543/mo flat-rate). Local models are the UPS. Maximize every resetting limit.
+
+**Burn free tiers first:** Gemini CLI (1000/day), Mistral Codestral (free autocomplete), Cerebras GLM-4.7 (free), Groq GPT-OSS-20B (free).
+
+**Then use each paid sub for its strength:**
+- Claude Max (Opus): complex architecture, multi-file reasoning. Use Sonnet 80% of the time (3× less quota).
+- ChatGPT Pro (GPT-5.4): terminal workflows, computer-use tasks, o3-pro for hard math only.
+- Perplexity Pro: deep research sessions (Opus-backed, unlimited).
+- Z.ai GLM Pro: fact checking, verification (lowest hallucination rate).
+- Kimi Allegretto: Agent Swarm for massive breadth (100 parallel).
+- Copilot Pro+: IDE autocomplete, GitHub Spark, BYOK bridge.
+- Qwen Code: DashScope free third-party models.
+- Venice Pro: burn credits on uncensored API before July cancel.
+
+**When all cloud at capacity:** Local Qwen3.5 via LiteLLM ($0, unlimited).
+
+**Content routing:** NSFW/pen-test/sovereign → always local (JOSIEFIED, Dolphin). Never cloud.
+
+**Autonomous agents:** Start on local. As trust grows, can use cloud when limits are resetting and tokens would be wasted.
+
+See `docs/MASTER-PLAN.md` for full subscription utilization strategy and system architecture.
 
 ## Local Model Delegation
 
@@ -171,3 +195,23 @@ After modifying code, verify with the relevant checker:
 - Design closed systems
 - Let GPUs sit idle without a plan
 - Let docs go stale
+
+---
+
+## Available CLI Tools (DEV)
+
+| Tool | Command | Subscription | Use For |
+|------|---------|-------------|---------|
+| Claude Code | `claude` | Max 20x ($200) | Architecture, complex reasoning |
+| Codex | `codex` | ChatGPT Pro ($200) | Terminal debug, GPT-5.4 |
+| Gemini | `gemini` / `gc` | Advanced ($20) | Quick questions (FREE 1000/day) |
+| Kimi | `~/.local/bin/kimi` | Allegretto ($19) | Agent Swarm (100 parallel) |
+| Aider | `aider` | Local + Claude | Architect/editor pair coding |
+| Kilo Code | `kilo` | Multi-sub routing | 9-mode IDE agent |
+| GSD | `gsd` | Claude Max | Context rot prevention |
+| claude-squad | `~/.local/bin/claude-squad` | Any | Parallel agent sessions |
+| Greywall | `~/.local/bin/greywall` | N/A | Kernel sandbox enforcement |
+| OpenFang | `openfang` | Local Ollama | Telegram @athanor_ops_bot |
+| gh | `gh` | GitHub | PR/issue automation |
+
+**Rule:** Burn free tiers first (Gemini 1000/day, Codestral unlimited), then local ($0), then paid.

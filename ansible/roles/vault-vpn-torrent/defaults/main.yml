@@ -1,0 +1,18 @@
+---
+# qBittorrent + Gluetun VPN tunnel on VAULT
+vpn_torrent_path: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/vpn-torrent"
+vpn_torrent_downloads_path: "{{ vault_downloads_path | default('/mnt/user/data/downloads') }}"
+
+# Gluetun VPN settings
+gluetun_image: qmcgaw/gluetun:v3
+vpn_service_provider: nordvpn
+vpn_type: openvpn
+vpn_server_countries: Switzerland
+nordvpn_user: "{{ vault_nordvpn_service_user | default('') }}"
+nordvpn_password: "{{ vault_nordvpn_service_password | default('') }}"
+
+# qBittorrent
+qbittorrent_image: linuxserver/qbittorrent:latest
+qbittorrent_webui_port: 8112
+qbittorrent_puid: "{{ vault_puid | default('99') }}"
+qbittorrent_pgid: "{{ vault_pgid | default('100') }}"

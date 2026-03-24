@@ -14,6 +14,7 @@ Performance target: <300ms total enrichment time (1 embedding + 3 parallel queri
 import asyncio
 import logging
 import time
+from collections import deque
 
 import httpx
 
@@ -29,6 +30,10 @@ _EMBEDDING_KEY = settings.llm_api_key
 MAX_CONTEXT_CHARS = 6000
 QUERY_TIMEOUT = 3.0
 SCORE_THRESHOLD = 0.25  # minimum relevance for inclusion
+
+# Latency tracking — ring buffer of recent enrichment timings
+_LATENCY_BUFFER_SIZE = 500
+_latency_records: deque[dict] = deque(maxlen=_LATENCY_BUFFER_SIZE)
 
 # Time-decay constants for preference weighting (ADR-021 Phase 1)
 # Full weight for 7 days, linear decay to 25% at 90 days
@@ -483,7 +488,7 @@ def _build_context_message(
     return context
 
 
-async def enrich_context(agent_name: str, user_message: str) -> str:
+async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0) -> str:
     """Build context injection for a request.
 
     Computes one embedding from the user message, then queries preferences,
@@ -495,6 +500,7 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     Args:
         agent_name: Which agent is handling the request
         user_message: The user's message text
+        max_chars: Override MAX_CONTEXT_CHARS budget (0 = use default)
     """
     # Skip for very short messages (greetings, etc.)
     if len(user_message.strip()) < 5:
@@ -565,8 +571,8 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
             ]
             if sources:
                 graph_related = await expand_knowledge_graph(_async_client, sources, limit=3)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Graph expansion failed: %s", e)
 
     # Step 2c: Fetch CST state (Redis, fast)
     cst_line = ""
@@ -575,8 +581,8 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
         cst = await get_cst()
         if cst.cycle_count > 0:
             cst_line = cst.to_context_string()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("CST fetch failed: %s", e)
 
     # Step 2d: Fetch active goals + patterns (Redis, fast)
     goal_lines = []
@@ -584,31 +590,73 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
         from .goals import get_goals_for_agent
         goal_texts = await get_goals_for_agent(agent_name)
         goal_lines = [f"- {t}" for t in goal_texts]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Goals fetch failed: %s", e)
 
     pattern_lines = []
     try:
         from .patterns import get_agent_patterns
         agent_patterns = await get_agent_patterns(agent_name)
         pattern_lines = _format_patterns(agent_patterns)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Patterns fetch failed: %s", e)
 
     convention_lines = []
     try:
         from .conventions import get_agent_conventions
         convention_rules = await get_agent_conventions(agent_name)
         convention_lines = [f"- {rule}" for rule in convention_rules]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Conventions fetch failed: %s", e)
 
     skill_context = ""
     try:
         from .skill_learning import search_skills_for_context
         skill_context = await search_skills_for_context(agent_name, user_message, limit=3)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Skill search failed: %s", e)
+
+    # Step 2e: Deduplicate across collections
+    # Knowledge and personal_data can return overlapping content. Dedup by
+    # comparing the first 200 chars of text payloads.
+    if knowledge and personal_data:
+        seen_prefixes: set[str] = set()
+        for r in knowledge:
+            prefix = r.get("payload", {}).get("text", "")[:200].strip()
+            if prefix:
+                seen_prefixes.add(prefix)
+        deduped_personal: list[dict] = []
+        for r in personal_data:
+            prefix = r.get("payload", {}).get("text", "")[:200].strip()
+            if prefix and prefix in seen_prefixes:
+                continue
+            deduped_personal.append(r)
+        if len(deduped_personal) < len(personal_data):
+            logger.debug(
+                "Context dedup: removed %d duplicate(s) from personal_data",
+                len(personal_data) - len(deduped_personal),
+            )
+            personal_data = deduped_personal
+
+    # Conversations and activity can also overlap — dedup by user message prefix
+    if conversations and activity:
+        activity_prefixes: set[str] = set()
+        for p in activity:
+            prefix = p.get("payload", {}).get("input_summary", "")[:100].strip()
+            if prefix:
+                activity_prefixes.add(prefix)
+        deduped_convos: list[dict] = []
+        for r in conversations:
+            prefix = r.get("payload", {}).get("user_message", "")[:100].strip()
+            if prefix and prefix in activity_prefixes:
+                continue
+            deduped_convos.append(r)
+        if len(deduped_convos) < len(conversations):
+            logger.debug(
+                "Context dedup: removed %d duplicate(s) from conversations",
+                len(conversations) - len(deduped_convos),
+            )
+            conversations = deduped_convos
 
     # Step 3: Format
     pref_lines = _format_preferences(prefs)
@@ -621,6 +669,13 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
     elapsed_ms = int((time.monotonic() - start) * 1000)
     total_hits = len(pref_lines) + len(activity_lines) // 2 + len(knowledge_lines) + len(personal_data_lines) + len(conversation_lines) // 2
     skill_count = skill_context.count("###")
+
+    _latency_records.append({
+        "agent": agent_name,
+        "elapsed_ms": elapsed_ms,
+        "hits": total_hits,
+        "ts": time.time(),
+    })
 
     if total_hits > 0 or goal_lines or pattern_lines or convention_lines or skill_count:
         logger.info(
@@ -639,8 +694,49 @@ async def enrich_context(agent_name: str, user_message: str) -> str:
             elapsed_ms,
         )
 
-    return _build_context_message(
+    result = _build_context_message(
         pref_lines, activity_lines, knowledge_lines, agent_name,
         goal_lines, pattern_lines, convention_lines, personal_data_lines,
         conversation_lines, cst_line, graph_related_lines, skill_context,
     )
+
+    # Apply caller-specified budget override (e.g. task mode uses less context)
+    if max_chars > 0 and len(result) > max_chars:
+        result = result[:max_chars].rsplit("\n", 1)[0] + "\n\n[context truncated]"
+
+    return result
+
+
+def get_latency_stats() -> dict:
+    """Return context enrichment latency statistics from the ring buffer."""
+    if not _latency_records:
+        return {"count": 0}
+
+    latencies = [r["elapsed_ms"] for r in _latency_records]
+    latencies_sorted = sorted(latencies)
+    n = len(latencies_sorted)
+
+    per_agent: dict[str, list[int]] = {}
+    for r in _latency_records:
+        per_agent.setdefault(r["agent"], []).append(r["elapsed_ms"])
+
+    agent_stats = {}
+    for agent, vals in per_agent.items():
+        sv = sorted(vals)
+        agent_stats[agent] = {
+            "count": len(sv),
+            "avg_ms": round(sum(sv) / len(sv), 1),
+            "p50_ms": sv[len(sv) // 2],
+            "p95_ms": sv[int(len(sv) * 0.95)],
+            "max_ms": sv[-1],
+        }
+
+    return {
+        "count": n,
+        "avg_ms": round(sum(latencies) / n, 1),
+        "p50_ms": latencies_sorted[n // 2],
+        "p95_ms": latencies_sorted[int(n * 0.95)],
+        "p99_ms": latencies_sorted[int(n * 0.99)],
+        "max_ms": latencies_sorted[-1],
+        "by_agent": agent_stats,
+    }

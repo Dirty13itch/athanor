@@ -1,0 +1,42 @@
+---
+# VAULT VPN Torrent: Gluetun + qBittorrent
+# All qBittorrent traffic forced through Gluetun VPN tunnel
+
+- name: Create VPN torrent directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ vpn_torrent_path }}"
+    - "{{ vpn_torrent_path }}/gluetun"
+    - "{{ vpn_torrent_path }}/qbittorrent"
+
+- name: Deploy VPN torrent compose file
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ vpn_torrent_path }}/docker-compose.yml"
+    mode: "0644"
+  register: vpn_torrent_compose
+
+- name: Pull VPN torrent images
+  community.docker.docker_compose_v2_pull:
+    project_src: "{{ vpn_torrent_path }}"
+  when: not ansible_check_mode
+
+- name: Start VPN torrent stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ vpn_torrent_path }}"
+    state: present
+    recreate: "{{ 'always' if vpn_torrent_compose.changed else 'never' }}"
+  when: not ansible_check_mode
+
+- name: Wait for Gluetun VPN tunnel
+  ansible.builtin.uri:
+    url: "http://localhost:9999/v1/openvpn/status"
+    status_code: 200
+  register: gluetun_health
+  retries: 12
+  delay: 10
+  until: gluetun_health.status == 200
+  when: not ansible_check_mode

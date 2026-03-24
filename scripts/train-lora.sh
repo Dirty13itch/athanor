@@ -1,46 +1,62 @@
-#!/bin/bash
-# Quick LoRA training launcher
-# Usage: train-lora.sh [sdxl|flux] <trigger_word> <dataset_dir>
+#!/usr/bin/env bash
+# Flux LoRA training pipeline for EoBQ queen character consistency.
 #
-# PREPARATION:
-# 1. Create a folder with 15-20 high-quality photos of your subject
-# 2. All photos should be well-lit, varied poses/angles, tight crops
-# 3. Name the folder with repeats: e.g., "20_ohwx" (20 repeats, trigger word "ohwx")
-# 4. Place that folder under /data/training/current_dataset/
+# Usage:
+#   train-lora.sh <performer_name> [trigger_word] [steps]
+#
+# Examples:
+#   train-lora.sh "Ava Addams" ohwx_ava 1500
+#   train-lora.sh "Mia Malkova" ohwx_mia
+#
+# Prerequisites:
+#   - Ansible role deployed: ansible-playbook playbooks/workshop.yml --tags lora-training
+#   - Stash running on VAULT:9999 with performer photos
+#   - Workshop 5090 available (will stop vLLM worker during training)
 
-set -e
-MODEL_TYPE="${1:-sdxl}"
+set -euo pipefail
+
+PERFORMER="${1:?Usage: train-lora.sh <performer_name> [trigger_word] [steps]}"
 TRIGGER="${2:-ohwx}"
-DATASET="${3:-/data/training/current_dataset}"
+STEPS="${3:-1500}"
 
-cd ~/dev/sd-scripts
-source .venv/bin/activate
+WORKSHOP="workshop"
+TRAINING_DIR="/opt/athanor/lora-training"
+DATASETS_DIR="/data/training/datasets"
+OUTPUT_DIR="/data/training/output"
+LORAS_DIR="/mnt/vault/models/comfyui/loras"
 
-# Stop ComfyUI to free GPU memory
-echo "Stopping ComfyUI for training..."
-sudo systemctl stop comfyui 2>/dev/null || true
-sleep 2
+SAFE_NAME=$(echo "$PERFORMER" | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
 
-if [ "$MODEL_TYPE" == "flux" ]; then
-    echo "Training FLUX LoRA with trigger word: $TRIGGER"
-    echo "Dataset: $DATASET"
-    accelerate launch --mixed_precision bf16 flux_train_network.py \
-        --config_file training_configs/train_flux_lora.toml \
-        --train_data_dir "$DATASET"
-elif [ "$MODEL_TYPE" == "sdxl" ]; then
-    echo "Training SDXL LoRA with trigger word: $TRIGGER"
-    echo "Dataset: $DATASET"
-    accelerate launch --mixed_precision bf16 sdxl_train_network.py \
-        --config_file training_configs/train_sdxl_lora.toml \
-        --train_data_dir "$DATASET"
-else
-    echo "Usage: train-lora.sh [sdxl|flux] <trigger_word> <dataset_dir>"
-    exit 1
-fi
+echo "=== LoRA Training Pipeline ===" >&2
+echo "Performer: $PERFORMER" >&2
+echo "Trigger:   $TRIGGER" >&2
+echo "Steps:     $STEPS" >&2
+echo "" >&2
 
-echo "Training complete! LoRA saved to /data/training/output/"
-echo "Copy to /mnt/vault/models/comfyui/loras/ to use in ComfyUI"
+# 1. Prepare dataset from Stash
+echo "[1/5] Preparing dataset from Stash..." >&2
+ssh "$WORKSHOP" "cd $TRAINING_DIR && python3 prepare-dataset.py '$PERFORMER' --trigger '$TRIGGER' --repeats 20"
 
-# Restart ComfyUI
-echo "Restarting ComfyUI..."
-sudo systemctl start comfyui
+# 2. Stop vLLM worker to free 5090 VRAM
+echo "[2/5] Stopping vLLM worker to free GPU..." >&2
+ssh "$WORKSHOP" "docker stop vllm-worker 2>/dev/null || true"
+sleep 3
+
+# 3. Run training
+echo "[3/5] Starting LoRA training ($STEPS steps)..." >&2
+ssh "$WORKSHOP" "cd $TRAINING_DIR && docker compose --profile training run --rm \
+  -e MAX_TRAIN_STEPS=$STEPS \
+  lora-training"
+
+# 4. Copy output to ComfyUI loras directory
+echo "[4/5] Copying trained LoRA to ComfyUI..." >&2
+ssh "$WORKSHOP" "cp '$OUTPUT_DIR/${TRIGGER}.safetensors' '$LORAS_DIR/' 2>/dev/null || echo 'LoRA output not found at expected path'"
+
+# 5. Restart vLLM worker
+echo "[5/5] Restarting vLLM worker..." >&2
+ssh "$WORKSHOP" "docker start vllm-worker"
+
+echo "" >&2
+echo "=== Training Complete ===" >&2
+echo "LoRA: $LORAS_DIR/${TRIGGER}.safetensors" >&2
+echo "Use in ComfyUI with trigger word: $TRIGGER" >&2

@@ -1,0 +1,65 @@
+name: Agent Eval
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'evals/**'
+      - 'projects/agents/src/**'
+      - 'ansible/roles/vault-litellm/**'
+  schedule:
+    - cron: '0 8 * * 1'  # Weekly Monday 8 AM UTC
+  workflow_dispatch:
+
+jobs:
+  eval:
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run promptfoo eval
+        run: |
+          npx promptfoo eval \
+            -c evals/promptfooconfig.yaml \
+            --no-cache \
+            -o evals/results/ci-$(date +%Y%m%d-%H%M).json \
+            2>&1 | tee /tmp/eval-output.txt
+
+      - name: Report results
+        if: always()
+        run: |
+          # Find the most recent result file
+          RESULT=$(ls -t evals/results/ci-*.json 2>/dev/null | head -1)
+          if [ -z "$RESULT" ]; then
+            echo "No eval results found"
+            exit 0
+          fi
+          python3 -c "
+          import json, sys
+          with open('$RESULT') as f:
+              data = json.load(f)
+          results = data.get('results', {}).get('results', [])
+          total = len(results)
+          passed = sum(1 for r in results if r.get('gradingResult', {}).get('pass'))
+          failed = total - passed
+          print(f'=== EVAL RESULTS ===')
+          print(f'Total: {total} | Passed: {passed} | Failed: {failed}')
+          print(f'Pass rate: {passed/total*100:.0f}%' if total else 'No tests')
+          if failed > 0:
+              print()
+              print('Failed tests:')
+              for r in results:
+                  gr = r.get('gradingResult', {})
+                  if not gr.get('pass'):
+                      desc = r.get('vars', {}).get('prompt', '')[:70]
+                      reason = gr.get('reason', '')[:100]
+                      print(f'  FAIL: {desc}')
+                      print(f'        {reason}')
+          # Fail CI if pass rate drops below 50%
+          if total > 0 and passed/total < 0.5:
+              print()
+              print('WARN: Pass rate below 50% threshold')
+              sys.exit(1)
+          "

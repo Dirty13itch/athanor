@@ -51,8 +51,8 @@ export function DialogueBox() {
   const showShimmer = isGenerating && !streamingText;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 p-4">
-      <div ref={boxRef} className={`mx-auto max-w-4xl max-h-[40vh] overflow-y-auto rounded-t-lg bg-black/80 p-6 backdrop-blur-sm border border-white/10 ${showShimmer ? "shimmer" : ""}`}>
+    <div className="fixed bottom-0 left-0 right-0 z-30 p-2 md:p-4">
+      <div ref={boxRef} className={`mx-auto max-w-4xl max-h-[35vh] overflow-y-auto rounded-t-lg bg-black/80 p-3 backdrop-blur-sm border border-white/10 md:max-h-[40vh] md:p-6 ${showShimmer ? "shimmer" : ""}`}>
         {speakerLabel && speakerLabel !== "narrator" && speakerLabel !== "player" && speakerLabel !== "..." && (
           <div className="mb-2">
             <div className="flex items-center gap-2">

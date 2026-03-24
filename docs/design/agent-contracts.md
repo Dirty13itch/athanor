@@ -2,7 +2,7 @@
 
 *Formal specification for each agent: what it does, what it must ask about, what it learns from, and where it stops.*
 
-Last updated: 2026-02-26
+Last updated: 2026-03-15
 
 ---
 
@@ -44,7 +44,7 @@ Each agent contract defines:
 
 ```yaml
 name: general-assistant
-model: reasoning (Qwen3-32B-AWQ)
+model: reasoning (Qwen3.5-27B-FP8)
 temperature: 0.7
 mode: reactive
 
@@ -82,7 +82,7 @@ boundaries: |
 
 ```yaml
 name: media-agent
-model: reasoning (Qwen3-32B-AWQ)
+model: reasoning (Qwen3.5-27B-FP8)
 temperature: 0.7
 mode: reactive (planned: reactive + proactive)
 
@@ -145,7 +145,7 @@ boundaries: |
 
 ```yaml
 name: home-agent
-model: reasoning (Qwen3-32B-AWQ)
+model: reasoning (Qwen3.5-27B-FP8)
 temperature: 0.7
 mode: reactive (planned: reactive + proactive)
 
@@ -205,7 +205,7 @@ boundaries: |
 
 ```yaml
 name: research-agent
-model: reasoning (Qwen3-32B-AWQ)
+model: reasoning (Qwen3.5-27B-FP8)
 temperature: 0.7
 mode: reactive
 
@@ -253,7 +253,7 @@ output_format: |
 
 ```yaml
 name: creative-agent
-model: reasoning (Qwen3-32B-AWQ)
+model: reasoning (Qwen3.5-27B-FP8)
 temperature: 0.8
 mode: reactive
 
@@ -306,7 +306,7 @@ notes: |
 
 ```yaml
 name: knowledge-agent
-model: reasoning (Qwen3-32B-AWQ)
+model: reasoning (Qwen3.5-27B-FP8)
 temperature: 0.3
 mode: reactive
 
@@ -357,7 +357,7 @@ categories: |
 
 ```yaml
 name: coding-agent
-model: reasoning (Qwen3-32B-AWQ)
+model: reasoning (Qwen3.5-27B-FP8)
 temperature: 0.3
 mode: reactive
 status: deployed (Tier 7.6)
@@ -412,7 +412,7 @@ implementation_notes: |
 
 ```yaml
 name: stash-agent
-model: reasoning (Qwen3-32B-AWQ)
+model: reasoning (Qwen3.5-27B-FP8)
 temperature: 0.7
 mode: reactive
 status: deployed (Session 16, 2026-02-25)

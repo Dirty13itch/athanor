@@ -17,3 +17,5 @@
       tags: [eoq]
     - role: ulrich-energy
       tags: [ulrich-energy]
+    - cadvisor
+    - alloy

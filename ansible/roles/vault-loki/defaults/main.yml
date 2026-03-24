@@ -1,0 +1,4 @@
+---
+loki_image: grafana/loki:3.6.0
+loki_data_path: "{{ vault_appdata_path | default('/mnt/user/appdata') }}/loki"
+loki_retention: 168h  # 7 days
