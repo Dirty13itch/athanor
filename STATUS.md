@@ -1,6 +1,6 @@
 ﻿# Athanor System Status
 
-*Ground-truth assessment as of 2026-03-24. Updated by COO audit Session 59.*
+*Ground-truth assessment as of 2026-03-24. Updated by Session 60.*
 
 ---
 
@@ -189,20 +189,59 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **Agent server deployed** — Core memory routes live, 9 agents healthy, all 6 dependencies UP (was degraded with Qdrant down).
 - **EoBQ deployed** — TTS voice integration (Kokoro at :8200, per-queen voice mapping) now live at workshop:3002.
 
-### Issues Found
-| Issue | Status | Fix |
-|-------|--------|-----|
-| Core memory 404 via proxy | Deploying | Rebuild agent server on FOUNDRY |
-| EoBQ TTS not deployed | Deploying | Rebuild EoBQ on Workshop |
-| 3 stale worktree branches | Pending | git worktree remove |
-| 198 GB stale models on FOUNDRY | Pending | Delete unused models |
+- **Scheduler fix** — Scheduler loop died after first tick because `run_pipeline_cycle()` LLM call timed out (180s), killing the asyncio task. Added 120s timeout wrapper + BaseException catch. Agents now submitting tasks autonomously every 5-30 min.
+- **Prometheus vllm-worker** — Workshop vLLM at :8010 had no scrape job. Added to prometheus.yml, all 3 vLLM instances now monitored.
+- **FOUNDRY stale NFS mount** — `mnt-vault-appdata.mount` was failed (access denied). Masked — appdata not needed on FOUNDRY.
+- **qBittorrent misdiagnosis corrected** — Was listed as "DOWN, needs NordVPN". Actually UP on :8112 (not :8085), VPN via Gluetun connected to Zürich.
+
+### Issues Found & Resolved
+| Issue | Severity | Fix |
+|-------|----------|-----|
+| Qdrant URL .244→.203 | Critical | Fixed in compose, redeployed |
+| LiteLLM 6 dead Ollama routes | Critical | Rerouted to Workshop vLLM |
+| Scheduler dying after 1st tick | Critical | Timeout + BaseException catch |
+| Dashboard 3 missing credentials | High | Added to Workshop .env |
+| Core memory 404 via proxy | High | Agent server rebuilt |
+| Dashboard stale deploy file | Medium | Removed mission-control.tsx |
+| Prometheus missing vllm-worker | Medium | Added scrape job |
+| FOUNDRY stale NFS mount | Low | Masked |
+| qBittorrent "down" | Misdiagnosis | Actually UP on :8112, VPN healthy |
+
+### Remaining Low-Priority Items
+- Push notifications need VAPID key generation
+- Semantic cache (llm_cache) has 0 entries — feature may not be wired
+- 26 LiteLLM cloud endpoints unhealthy (missing API keys — expected)
+- VAULT HDD array at 83% (30 TB free — monitoring)
+- 9 stale Codex branches (firewall blocks `git branch -d`, need manual cleanup)
+
+---
+
+## Session 60 (2026-03-24) Summary — Cleanup & Autonomy Verification
+
+### Completed This Session
+- **Worktree cleanup** — Removed 13 stale Codex worktrees (7 named + 6 detached). Only `main` remains.
+- **Stale model cleanup** — Deleted 4 unused models from FOUNDRY `/mnt/local-fast/models/` (Huihui-27B, Huihui-8B, Qwen3-14B, Qwen3.5-9B-abliterated). Freed ~113 GB. Models directory now 71 GB (6 active models).
+- **Agent autonomy verified** — Scheduler active, tasks completing every 5 min. Home-agent doing full HA entity audits (21 tool calls per task). Media-agent, knowledge-agent, general-assistant, creative-agent all active. Recent completion rate ~100%.
+- **Cleared 14 stale coding-agent tasks** — All stuck in `pending_approval` (correct behavior for `propose_wait` posture). Cancelled to clean the queue.
+- **Circuit breakers healthy** — All 6 services closed. data-curator had opened earlier (connection refused during restart) but recovered.
+
+### Current System Health
+| Component | Status |
+|-----------|--------|
+| Agent server (foundry:9000) | 9 agents, 6/6 deps UP |
+| Scheduler | Active, ~5-min cycle |
+| Task success (recent) | ~100% (legacy failures inflate overall to 15%) |
+| Trust system | Cold start — all agents at C (0.55 default) |
+| Learning | Cold start — 0.289 health, 0 converged preferences |
+| Core memory | 9 agents with populated memories |
+| FOUNDRY NVMe | 71 GB used / 3.6 TB (was 184 GB) |
+| Dashboard | 35 pages, all 200 |
+| EoBQ | Live at workshop:3002 with TTS |
 
 ### Next Actions
-1. Verify core-memory endpoint after FOUNDRY rebuild completes
-2. Verify EoBQ TTS after Workshop rebuild completes
-3. Clean up stale worktrees and Codex branches (16 total)
-4. Delete stale models on FOUNDRY NVMe
-5. Continue with remaining open items (Backblaze backup, Continue.dev on DESK)
+1. Build Backblaze B2 offsite backup script (researching)
+2. Audit 24 dashboard test.fail() tests — which are fixable?
+3. Delete 9 stale Codex branches (manual or fix firewall pattern)
 
 ---
 
