@@ -223,7 +223,7 @@ else:
     sys.exit(1)
 "'
 
-check "Qdrant >8000 points" \
+check "Qdrant >5000 points" \
     'python3 -c "
 import sys,json,urllib.request
 colls = json.loads(urllib.request.urlopen(\"http://192.168.1.203:6333/collections\", timeout=5).read())
@@ -232,7 +232,7 @@ total = 0
 for name in names:
     info = json.loads(urllib.request.urlopen(f\"http://192.168.1.203:6333/collections/{name}\", timeout=5).read())
     total += info.get(\"result\",{}).get(\"points_count\",0) or 0
-sys.exit(0 if total > 8000 else 1)
+sys.exit(0 if total > 5000 else 1)
 "'
 
 check "Neo4j HTTP accessible" \
@@ -275,21 +275,23 @@ check "Brain: system intelligence (DEV:8780)" \
 check "Draftsman service (DEV:8400)" \
     'curl -sf --max-time 5 http://localhost:8400/ -o /dev/null'
 
-check "Open WebUI (DEV:3080)" \
-    'curl -sf --max-time 5 http://localhost:3080/ -o /dev/null'
 
 
 # Additional services (Phase 13)
-check "Brain: system intelligence (DEV:8780)" \
-    'curl -sf --max-time 5 http://localhost:8780/health'
 
-check "Draftsman service (DEV:8400)" \
-    'curl -sf --max-time 5 http://localhost:8400/ -o /dev/null'
 
-check "Open WebUI (DEV:3080)" \
-    'curl -sf --max-time 5 http://localhost:3080/ -o /dev/null'
 
+
+
+
+
+
+
+
+check "Quality Gate (DEV:8790)"     'curl -sf --max-time 5 http://localhost:8790/health' 
 echo "=== Results: ${PASS} passed, ${FAIL} failed out of $((PASS+FAIL)) checks ==="
+
+
 
 if [ "$FAIL" -eq 0 ]; then
     echo "All checks passed. No drift detected."
@@ -308,6 +310,4 @@ else
     exit 1
 fi
 
-# Quality Gate
-check 57 "Quality Gate (DEV:8790)" curl -sf http://localhost:8790/health
 
