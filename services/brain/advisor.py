@@ -58,7 +58,6 @@ def generate_briefing(resources: dict, predictions: dict, models: dict, costs: d
             "message": f"{len(idle)} models idle >2h: {', '.join(idle_names)}",
             "action": f"Consider unloading to free ~{vram_recoverable:.1f}GB VRAM",
         })
-        severity_counts["info"] += 1
 
     # Cost summary
     items.append({
@@ -67,6 +66,7 @@ def generate_briefing(resources: dict, predictions: dict, models: dict, costs: d
         "message": f"Monthly burn: ${costs.get('total_monthly', 0)}/mo, {costs.get('active_subs', 0)} active subscriptions",
         "action": None,
     })
+    severity_counts["info"] += 1
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
