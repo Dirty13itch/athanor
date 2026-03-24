@@ -39,6 +39,14 @@ RUN git clone https://github.com/kijai/ComfyUI-WanVideoWrapper.git ${COMFYUI_DIR
 RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git ${COMFYUI_DIR}/custom_nodes/ComfyUI-KJNodes && \
     pip install --no-cache-dir -r ${COMFYUI_DIR}/custom_nodes/ComfyUI-KJNodes/requirements.txt
 
+# LTX Video 2.3 nodes
+RUN git clone https://github.com/Lightricks/ComfyUI-LTXVideo.git ${COMFYUI_DIR}/custom_nodes/ComfyUI-LTXVideo && \
+    pip install --no-cache-dir -r ${COMFYUI_DIR}/custom_nodes/ComfyUI-LTXVideo/requirements.txt
+
+# GGUF support for quantized models
+RUN git clone https://github.com/city96/ComfyUI-GGUF.git ${COMFYUI_DIR}/custom_nodes/ComfyUI-GGUF && \
+    pip install --no-cache-dir -r ${COMFYUI_DIR}/custom_nodes/ComfyUI-GGUF/requirements.txt 2>/dev/null || true
+
 # Face/identity nodes for EoBQ creative pipeline
 RUN git clone https://github.com/Gourieff/ComfyUI-ReActor.git ${COMFYUI_DIR}/custom_nodes/ComfyUI-ReActor && \
     pip install --no-cache-dir -r ${COMFYUI_DIR}/custom_nodes/ComfyUI-ReActor/requirements.txt

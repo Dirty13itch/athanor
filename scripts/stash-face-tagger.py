@@ -36,7 +36,11 @@ logger = logging.getLogger("stash-face-tagger")
 # Configuration
 # ---------------------------------------------------------------------------
 
-STASH_URL = "http://192.168.1.203:9999"
+try:
+    from cluster_config import SERVICES
+    STASH_URL = SERVICES["stash"]["url"]
+except ImportError:
+    STASH_URL = "http://192.168.1.203:9999"
 REFS_DIR = Path("/mnt/vault/data/gen-subjects")
 EMBEDDINGS_CACHE = Path("/mnt/vault/data/gen-output/face_embeddings_cache.npz")
 RESULTS_LOG = Path("/mnt/vault/data/gen-output/face_tagger_results.json")
