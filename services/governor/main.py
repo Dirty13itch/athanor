@@ -28,10 +28,10 @@ active_agents: dict[str, dict] = {}
 SUBSCRIPTIONS = {
     "claude-max": {"name": "Claude Max 20x", "monthly_cost": 200, "cli_tool": "claude", "status": "active"},
     "chatgpt-pro": {"name": "ChatGPT Pro", "monthly_cost": 200, "cli_tool": "codex", "status": "active"},
-    "copilot-pro-plus": {"name": "Copilot Pro+", "monthly_cost": 39, "cli_tool": "copilot", "status": "needs_auth"},
+    "copilot-pro-plus": {"name": "Copilot Pro+", "monthly_cost": 39, "cli_tool": "copilot", "status": "active"},
     "kimi-code": {"name": "Kimi Code", "monthly_cost": 19, "cli_tool": "kimi", "status": "active"},
     "glm-zai": {"name": "GLM Z.ai Pro", "monthly_cost": 30, "cli_tool": "litellm", "status": "active"},
-    "gemini-advanced": {"name": "Gemini Advanced", "monthly_cost": 20, "cli_tool": "gemini", "status": "needs_auth"},
+    "gemini-advanced": {"name": "Gemini Advanced", "monthly_cost": 20, "cli_tool": "gemini", "status": "active"},
     "local-opencode": {"name": "Local OpenCode", "monthly_cost": 0, "cli_tool": "opencode", "status": "active"},
     "local-aider": {"name": "Local aider", "monthly_cost": 0, "cli_tool": "aider", "status": "active"},
     "local-goose": {"name": "Local Goose", "monthly_cost": 0, "cli_tool": "goose", "status": "active"},

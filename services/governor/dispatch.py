@@ -9,6 +9,15 @@ from datetime import datetime, timezone
 
 REPO_PATHS = {
     "athanor": "/home/shaun/repos/athanor",
+    "EoBQ": "/home/shaun/repos/EoBQ",
+    "Field_Inspect": "/home/shaun/repos/Field_Inspect",
+    "portfolio": "/home/shaun/repos/portfolio",
+    "ulrich-energy": "/home/shaun/repos/ulrich-energy",
+    "amanda-med-tracker": "/home/shaun/repos/amanda-med-tracker",
+    # Legacy aliases from older tasks
+    "eobq-soulforge": "/home/shaun/repos/EoBQ",
+    "field_inspect": "/home/shaun/repos/Field_Inspect",
+    "ulrich-energy-auditing": "/home/shaun/repos/ulrich-energy",
 }
 
 def create_worktree(repo, task_id):
