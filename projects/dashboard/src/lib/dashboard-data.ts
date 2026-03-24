@@ -533,7 +533,7 @@ async function checkService(service: MonitoredService): Promise<ServiceSnapshot>
       category: service.category,
       description: service.description,
       url: service.url,
-      healthy: response.ok,
+      healthy: response.ok || response.status === 401 || response.status === 403,
       latencyMs,
       checkedAt,
       state: deriveServiceState(response.ok, latencyMs),
@@ -1564,6 +1564,27 @@ export async function getModelsSnapshot(): Promise<ModelsSnapshot> {
   }
 
   const backends = await getBackendSnapshots();
+
+  // Cross-reference with LiteLLM health to get per-model availability
+  let healthyModels = new Set<string>();
+  try {
+    const litellmApiKey = process.env.ATHANOR_LITELLM_API_KEY?.trim() || "";
+    const litellmUrl = config.services.find(s => s.id === "litellm-proxy")?.url || config.inferenceBackends.find(b => b.id === "litellm-proxy")?.url;
+    if (litellmUrl) {
+      const resp = await fetch(joinUrl(litellmUrl, "/health"), {
+        headers: litellmApiKey ? { Authorization: `Bearer ${litellmApiKey}` } : undefined,
+        cache: "no-store",
+        signal: AbortSignal.timeout(5000),
+      });
+      if (resp.ok) {
+        const health = await resp.json();
+        for (const entry of health?.healthy_endpoints ?? []) {
+          if (entry?.model) healthyModels.add(entry.model);
+        }
+      }
+    }
+  } catch { /* health check optional */ }
+
   const models: ModelInventoryEntry[] = backends.flatMap((backend) =>
     backend.models.map((modelId) => ({
       id: modelId,
@@ -1571,7 +1592,7 @@ export async function getModelsSnapshot(): Promise<ModelsSnapshot> {
       backend: backend.name,
       target: backend.id,
       description: backend.description,
-      available: backend.reachable,
+      available: backend.reachable && (healthyModels.size === 0 || healthyModels.has(modelId)),
     }))
   );
 

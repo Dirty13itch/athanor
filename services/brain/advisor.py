@@ -29,17 +29,18 @@ def generate_briefing(resources: dict, predictions: dict, models: dict, costs: d
         })
         severity_counts["warning"] += 1
 
-    # Check GPU utilization
-    for node_name, node in resources.items():
-        for gpu in node.get("gpus", []):
-            if gpu.get("temperature", 0) > 80:
-                items.append({
-                    "severity": "warning",
-                    "category": "thermal",
-                    "message": f"{node_name} GPU {gpu['id']} at {gpu['temperature']}°C",
-                    "action": "Check cooling, consider reducing workload",
-                })
-                severity_counts["warning"] += 1
+    # Check GPU utilization (resources.gpu is flat: {"node:gpuN": {temp_c, ...}})
+    gpu_data = resources.get("gpu", {})
+    for gpu_key, gpu_info in gpu_data.items():
+        temp = gpu_info.get("temp_c", 0)
+        if temp > 80:
+            items.append({
+                "severity": "warning",
+                "category": "thermal",
+                "message": f"{gpu_key} at {temp}°C",
+                "action": "Check cooling, consider reducing workload",
+            })
+            severity_counts["warning"] += 1
 
     # Check idle models
     try:

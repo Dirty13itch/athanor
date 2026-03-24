@@ -38,7 +38,7 @@ const SERVICE_CONTAINER_MAP: Record<string, { container: string; node: string }>
   "coordinator": { container: "vllm-coordinator", node: "foundry" },
   "coder": { container: "vllm-coder", node: "foundry" },
   "agent-server": { container: "athanor-agents", node: "foundry" },
-  "foundry-qdrant": { container: "qdrant", node: "foundry" },
+  "vault-qdrant": { container: "qdrant", node: "vault" },
   "foundry-node-exporter": { container: "node-exporter", node: "foundry" },
   "foundry-dcgm-exporter": { container: "dcgm-exporter", node: "foundry" },
   "litellm": { container: "litellm", node: "vault" },
