@@ -1,6 +1,6 @@
 ﻿# Athanor System Status
 
-*Ground-truth assessment as of 2026-03-23. Updated by COO audit Session 58.*
+*Ground-truth assessment as of 2026-03-24. Updated by COO audit Session 59.*
 
 ---
 
@@ -173,6 +173,33 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - 8.4 Dedicated Coding Model (deferred)
 - 14.3 Home Assistant depth (needs Shaun)
 - 14.5 Kindred prototype (awaiting decision)
+
+## Session 59 (2026-03-24) Summary — Command Center Deep Audit
+
+### Completed This Session
+- **Full Command Center audit** — 35 pages, 90+ API routes, all smoke-tested live. Zero TODO/FIXME/HACK in codebase. Zod-validated data layer with graceful degradation.
+- **Live endpoint verification** — All 35 pages return 200. All backend services (foundry:9000, foundry:9200, workshop:3002, workshop:8188) healthy.
+- **Core memory 404 identified** — Route exists in repo but FOUNDRY container was built before merge. Rebuild deploying.
+- **EoBQ TTS deployment** — Code merged (voice-button.tsx, Kokoro voice mapping), container rebuild in progress.
+- **Hardware audit (session 58 continued)** — 198 GB stale models on FOUNDRY, 674 GB Docker cache on Workshop, 12.9 TB empty NVMe across cluster.
+- **Dashboard data layer documented** — All snapshot functions (getOverviewSnapshot, getAgentsSnapshot, getMonitoringSnapshot, etc.) mapped with backend targets, timeouts, caching, and fallback behavior.
+
+### Issues Found
+| Issue | Status | Fix |
+|-------|--------|-----|
+| Core memory 404 via proxy | Deploying | Rebuild agent server on FOUNDRY |
+| EoBQ TTS not deployed | Deploying | Rebuild EoBQ on Workshop |
+| 3 stale worktree branches | Pending | git worktree remove |
+| 198 GB stale models on FOUNDRY | Pending | Delete unused models |
+
+### Next Actions
+1. Verify core-memory endpoint after FOUNDRY rebuild completes
+2. Verify EoBQ TTS after Workshop rebuild completes
+3. Clean up stale worktrees and Codex branches (16 total)
+4. Delete stale models on FOUNDRY NVMe
+5. Continue with remaining open items (Backblaze backup, Continue.dev on DESK)
+
+---
 
 ## Session 58 (2026-03-23) Summary — System Recovery & COO Audit
 
