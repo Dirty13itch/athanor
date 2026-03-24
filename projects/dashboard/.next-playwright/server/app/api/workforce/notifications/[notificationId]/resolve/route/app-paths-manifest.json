@@ -1,0 +1,3 @@
+{
+  "/api/workforce/notifications/[notificationId]/resolve/route": "app/api/workforce/notifications/[notificationId]/resolve/route.js"
+}

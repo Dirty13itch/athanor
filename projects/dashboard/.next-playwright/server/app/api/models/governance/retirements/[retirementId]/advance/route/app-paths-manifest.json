@@ -1,0 +1,3 @@
+{
+  "/api/models/governance/retirements/[retirementId]/advance/route": "app/api/models/governance/retirements/[retirementId]/advance/route.js"
+}

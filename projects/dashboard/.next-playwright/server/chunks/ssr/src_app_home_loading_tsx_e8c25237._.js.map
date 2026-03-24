@@ -1,0 +1,1 @@
+{"version":3,"sources":["../../../../src/app/home/loading.tsx"],"sourcesContent":["import { RouteSkeleton } from \"@/components/route-skeleton\";\r\n\r\nexport default function Loading() {\r\n  return <RouteSkeleton />;\r\n}\r\n"],"names":[],"mappings":"sDAAA,EAAA,EAAA,CAAA,CAAA,OAEe,SAAS,IACtB,MAAO,CAAA,EAAA,EAAA,GAAA,EAAC,EAAA,aAAa,CAAA,CAAA,EACvB"}

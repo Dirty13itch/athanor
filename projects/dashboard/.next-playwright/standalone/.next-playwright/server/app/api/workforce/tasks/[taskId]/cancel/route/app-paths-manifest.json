@@ -1,0 +1,3 @@
+{
+  "/api/workforce/tasks/[taskId]/cancel/route": "app/api/workforce/tasks/[taskId]/cancel/route.js"
+}

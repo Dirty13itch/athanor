@@ -1,0 +1,3 @@
+{
+  "/api/workforce/conventions/[conventionId]/reject/route": "app/api/workforce/conventions/[conventionId]/reject/route.js"
+}

@@ -1,0 +1,3 @@
+{
+  "/api/subscriptions/execution/[executionId]/review/route": "app/api/subscriptions/execution/[executionId]/review/route.js"
+}

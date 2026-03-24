@@ -1,0 +1,3 @@
+{
+  "/api/models/governance/retirements/[retirementId]/rollback/route": "app/api/models/governance/retirements/[retirementId]/rollback/route.js"
+}

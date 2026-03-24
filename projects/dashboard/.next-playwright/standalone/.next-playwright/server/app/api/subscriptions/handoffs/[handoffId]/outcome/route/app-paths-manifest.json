@@ -1,0 +1,3 @@
+{
+  "/api/subscriptions/handoffs/[handoffId]/outcome/route": "app/api/subscriptions/handoffs/[handoffId]/outcome/route.js"
+}

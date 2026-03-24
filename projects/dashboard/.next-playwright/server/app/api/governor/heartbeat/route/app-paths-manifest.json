@@ -1,0 +1,3 @@
+{
+  "/api/governor/heartbeat/route": "app/api/governor/heartbeat/route.js"
+}

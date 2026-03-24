@@ -1,0 +1,3 @@
+{
+  "/api/models/governance/promotions/[promotionId]/rollback/route": "app/api/models/governance/promotions/[promotionId]/rollback/route.js"
+}

@@ -1,0 +1,3 @@
+{
+  "/api/workforce/conventions/[conventionId]/confirm/route": "app/api/workforce/conventions/[conventionId]/confirm/route.js"
+}
