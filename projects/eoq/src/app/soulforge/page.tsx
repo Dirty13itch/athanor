@@ -405,16 +405,15 @@ export default function SoulForgePage() {
               </h3>
               <div className="flex flex-wrap gap-2">
                 <DNATag label="Desire" value={daughter.dna.desireType} />
-                <DNATag label="Accelerator" value={daughter.dna.accelerator} />
-                <DNATag label="Brake" value={daughter.dna.brake} />
+                <DNATag label="Accel/Brake" value={daughter.dna.accelBrake ?? "—"} />
                 <DNATag label="Pain" value={daughter.dna.painTolerance} />
                 <DNATag label="Humiliation" value={daughter.dna.humiliationEnjoyment} />
                 <DNATag label="Exhibitionism" value={daughter.dna.exhibitionismLevel} />
-                <DNATag label="Gag" value={daughter.dna.gagResponse} />
+                <DNATag label="Gag" value={daughter.dna.gaggingResponse ?? "—"} />
                 <DNATag label="Awakening" value={daughter.dna.awakeningType} />
                 <DNATag label="Addiction" value={daughter.dna.addictionSpeed} />
                 <DNATag label="Jealousy" value={daughter.dna.jealousyType} />
-                <DNATag label="Aftercare" value={daughter.dna.afterCareNeed} />
+                <DNATag label="Aftercare" value={daughter.dna.aftercareNeed ?? "—"} />
                 <DNATag label="Switch" value={daughter.dna.switchPotential} />
                 <DNATag label="Group" value={daughter.dna.groupSexAttitude} />
                 <DNATag label="Blackmail" value={daughter.dna.blackmailNeed} />

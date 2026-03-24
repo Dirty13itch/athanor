@@ -90,7 +90,7 @@ function parseTasteDescriptor(descriptor: string): PlayerTaste {
   // Submission signals
   if (/submissive|surrender|obedient|yielding/.test(lower)) {
     taste.submissionBias = 3;
-    taste.awakeningBias = "slow_realization";
+    taste.awakeningBias = "slow-realization";
   }
 
   // Exhibitionism signals
@@ -112,16 +112,16 @@ function parseTasteDescriptor(descriptor: string): PlayerTaste {
   if (/instant|immediate|fast|quick|obsess/.test(lower)) {
     taste.addictionBias = "instant";
   } else if (/slow|gradual|patient/.test(lower)) {
-    taste.addictionBias = "slow";
+    taste.addictionBias = "slow-burn";
   }
 
   // Awakening type signals
   if (/surprise|shock|unexpected/.test(lower)) {
-    taste.awakeningBias = "total_surprise";
+    taste.awakeningBias = "total-surprise";
   } else if (/denial|forced|resist/.test(lower)) {
-    taste.awakeningBias = "denial_until_forced";
+    taste.awakeningBias = "denial-until-forced";
   } else if (/always knew|eager|ready/.test(lower)) {
-    taste.awakeningBias = "always_knew";
+    taste.awakeningBias = "always-knew";
   }
 
   return taste;

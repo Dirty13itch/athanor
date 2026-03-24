@@ -52,114 +52,8 @@ export type BreakingMethod = "physical" | "psychological" | "magical" | "social"
 export type ContentIntensity = 1 | 2 | 3 | 4 | 5;
 
 // ---------------------------------------------------------------------------
-// 19-Trait Sexual DNA System (from GDD master document)
+// 19-Trait Sexual DNA System — types defined below in Queen DNA System section
 // ---------------------------------------------------------------------------
-
-/**
- * How desire initiates — affects pacing of corruption arc.
- * Spontaneous: arousal fires readily without external stimulus.
- * Responsive: arousal only rises in reaction to player actions.
- * Hybrid: context-dependent, both modes active.
- * Responsive Switch: switches between dominant and submissive based on context.
- */
-export type DesireType = "spontaneous" | "responsive" | "hybrid" | "responsive_switch";
-
-/**
- * Gag response category — governs throat-play scene behavior and
- * how the LLM describes physical reactions during those acts.
- */
-export type GagResponse = "fights" | "pushes_through" | "enjoys" | "breaks" | "minimal" | "legendary_pusher";
-
-/**
- * How quickly the character becomes fixated/addicted once breaking begins.
- * Instant characters can cascade rapidly at high corruption.
- */
-export type AddictionSpeed = "very_slow" | "slow" | "normal" | "fast" | "instant";
-
-/**
- * How the character reacts to jealousy stimuli (harem rival scenes).
- * Governs available Harem Wars events for this character.
- */
-export type JealousyType = "possessive" | "competitive" | "turns_her_on" | "doesnt_care" | "none";
-
-/**
- * How much post-scene care the character needs to maintain stability.
- * Affects the dialogue tone in the aftermath phase of intimate scenes.
- */
-export type AfterCareNeed = "none" | "light" | "medium" | "heavy" | "craves_cuddles_while_crying";
-
-/**
- * The character's orientation toward group scenarios (harem scenes).
- */
-export type GroupSexAttitude = "hates" | "tolerates" | "curious" | "craves" | "initiates";
-
-/**
- * How the character first realizes/accepts their submissive nature.
- * Governs the shape of the Awakening cinematic event at 70% corruption.
- */
-export type AwakeningType =
-  | "always_knew"         // no surprise, slides in smoothly
-  | "total_surprise"      // dramatic, visible shock before surrender
-  | "slow_realization"    // gradual, builds over several scenes
-  | "denial_until_forced";// maximum resistance, breaks hardest and deepest
-
-/**
- * The character's relationship to blackmail/leverage mechanics.
- * Affects available manipulation-tactic dialogue choices.
- */
-export type BlackmailNeed =
-  | "necessary"      // won't break without leverage
-  | "heightens_it"   // leverage accelerates corruption
-  | "bored_without"  // becomes disinterested without stakes
-  | "begs_for_it"    // actively craves the power dynamic
-  | "none";          // blackmail has no effect or backfires
-
-/**
- * The full 19-trait Sexual DNA profile.
- * Every character (council queens + SoulForge daughters) carries this.
- * Drives LLM prompt enrichment, scene generation, and Awakening events.
- */
-export interface SexualDNA {
-  /** Trait 1: Base desire initiation mode */
-  desireType: DesireType;
-  /** Trait 2: Accel 0-10 / Brake 0-10 — arousal ramp speed vs. kill-switch sensitivity */
-  accelerator: number;   // 0-10
-  brake: number;         // 0-10
-  /** Trait 3: Pain tolerance (1-10) */
-  painTolerance: number;
-  /** Trait 4: Humiliation enjoyment (1-10) */
-  humiliationEnjoyment: number;
-  /** Trait 5: Exhibitionism level (1-10) */
-  exhibitionismLevel: number;
-  /** Trait 6: Gag response category */
-  gagResponse: GagResponse;
-  /** Trait 7: Unique moaning style description (verbatim from GDD) */
-  moaningStyle: string;
-  /** Trait 8: What triggers tears during intimate scenes */
-  tearTrigger: string;
-  /** Trait 9: Orgasm style description */
-  orgasmStyle: string;
-  /** Trait 10: Awakening type — shape of the corruption-peak cinematic */
-  awakeningType: AwakeningType;
-  /** Trait 11: Character's relationship to blackmail mechanics */
-  blackmailNeed: BlackmailNeed;
-  /** Trait 12: How fast addiction/obsession builds post-breaking */
-  addictionSpeed: AddictionSpeed;
-  /** Trait 13: Jealousy reaction in harem-rival scenarios */
-  jealousyType: JealousyType;
-  /** Trait 14: Post-scene aftercare need */
-  afterCareNeed: AfterCareNeed;
-  /** Trait 15: Switch potential (1-10) — capacity to flip dominant/submissive */
-  switchPotential: number;
-  /** Trait 16: Attitude toward group scenes */
-  groupSexAttitude: GroupSexAttitude;
-  /** Trait 17: Specific roleplay fantasy (e.g. "Corporate Power Reversal") */
-  roleplayAffinity: string;
-  /** Trait 18: Betrayal threshold (1-10) — how much it takes to trigger betrayal route */
-  betrayalThreshold: number;
-  /** Trait 19: Voice description (accent, breath, cadence) */
-  voiceDNA: string;
-}
 
 // ---------------------------------------------------------------------------
 // Struggle Meter (from GDD)
@@ -192,22 +86,22 @@ export interface StruggleMeter {
  * Higher = harder to deplete (more struggle before surrender).
  */
 export function computeStruggleMultiplier(dna: SexualDNA): number {
-  // Base: brake sensitivity + pain tolerance (high = more resistant)
-  const base = (dna.brake / 10) * 0.4 + (dna.painTolerance / 10) * 0.3;
-  // Awakening modifier: denial_until_forced is hardest, always_knew is easiest
+  // Base: pain tolerance (high = more resistant). accelBrake is a string, so use painTolerance only.
+  const base = (dna.painTolerance / 10) * 0.7;
+  // Awakening modifier: denial-until-forced is hardest, always-knew is easiest
   const awakeningMod: Record<AwakeningType, number> = {
-    always_knew: 0.0,
-    total_surprise: 0.1,
-    slow_realization: 0.15,
-    denial_until_forced: 0.3,
+    "always-knew": 0.0,
+    "total-surprise": 0.1,
+    "slow-realization": 0.15,
+    "denial-until-forced": 0.3,
   };
-  // Blackmail modifier: begs_for_it softens resistance
+  // Blackmail modifier: begs-for-it softens resistance
   const blackmailMod: Record<BlackmailNeed, number> = {
-    begs_for_it: -0.1,
-    heightens_it: -0.05,
-    necessary: 0.1,
-    bored_without: 0.05,
-    none: 0.0,
+    "begs-for-it": -0.1,
+    "heightens-it": -0.05,
+    "necessary": 0.1,
+    "bored-without-it": 0.05,
+    "none": 0.0,
   };
   return Math.max(0.1, Math.min(1.0, base + awakeningMod[dna.awakeningType] + blackmailMod[dna.blackmailNeed]));
 }
@@ -350,30 +244,8 @@ export interface PhoneMessage {
 }
 
 // ---------------------------------------------------------------------------
-// Stripper Arc Return (from GDD)
+// Stripper Arc — defined below in Queen DNA System section
 // ---------------------------------------------------------------------------
-
-/**
- * Each queen has a stripper past and a specific "return trigger" at 70% corruption.
- * This defines the club, stage name, and the unique kink scene.
- */
-export interface StripperArc {
-  characterId: string;
-  /** Club name (e.g., "Sapphire Elite") */
-  clubName: string;
-  /** Stage name (e.g., "Ice Princess") */
-  stageName: string;
-  /** Why she quit originally */
-  quitReason: string;
-  /** What triggers the return (e.g., "70% corruption + office pole scene") */
-  returnTrigger: string;
-  /** Unique physical kink for this queen's pole work */
-  uniqueKink: string;
-  /** Flux.2 scene prompt for the return scene */
-  scenePrompt: string;
-  /** Whether the return has been triggered */
-  triggered: boolean;
-}
 
 // ---------------------------------------------------------------------------
 // No Mercy Mode (from GDD)
@@ -922,11 +794,11 @@ export function computeRivalryTensionIncrease(
   playerActionIntensity: number // 1-10
 ): number {
   const multipliers: Record<JealousyType, number> = {
-    possessive: 2.0,
-    competitive: 1.5,
-    turns_her_on: -0.5,  // actually reduces tension, she enjoys it
-    doesnt_care: 0.1,
-    none: 0.0,
+    "possessive": 2.0,
+    "competitive": 1.5,
+    "turns-her-on": -0.5,  // actually reduces tension, she enjoys it
+    "doesnt-care": 0.1,
+    "none": 0.0,
   };
   return Math.round(playerActionIntensity * multipliers[witnessJealousyType]);
 }
@@ -942,11 +814,11 @@ export function computeRivalryTensionIncrease(
 export function buildDNAPromptFragment(dna: SexualDNA): string {
   return [
     `Desire: ${dna.desireType}`,
-    `Arousal ramp: accel ${dna.accelerator}/10, brake ${dna.brake}/10`,
+    `Arousal ramp: ${dna.accelBrake ?? "unknown"}`,
     `Pain tolerance: ${dna.painTolerance}/10`,
     `Humiliation enjoyment: ${dna.humiliationEnjoyment}/10`,
     `Exhibitionism: ${dna.exhibitionismLevel}/10`,
-    `Gagging: ${dna.gagResponse}`,
+    `Gagging: ${dna.gaggingResponse ?? "unknown"}`,
     `Moaning: ${dna.moaningStyle}`,
     `Tears from: ${dna.tearTrigger}`,
     `Orgasm: ${dna.orgasmStyle}`,
@@ -954,7 +826,7 @@ export function buildDNAPromptFragment(dna: SexualDNA): string {
     `Blackmail need: ${dna.blackmailNeed}`,
     `Addiction speed: ${dna.addictionSpeed}`,
     `Jealousy: ${dna.jealousyType}`,
-    `Aftercare: ${dna.afterCareNeed}`,
+    `Aftercare: ${dna.aftercareNeed ?? "unknown"}`,
     `Switch potential: ${dna.switchPotential}/10`,
     `Group scenes: ${dna.groupSexAttitude}`,
     `Roleplay fantasy: ${dna.roleplayAffinity}`,

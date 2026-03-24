@@ -129,9 +129,9 @@ export function CharacterStatus({
                   <span>Switch: <span className="text-white/60">{char.dna.switchPotential}/10</span></span>
                   <span>Groups: <span className="text-white/60">{char.dna.groupSexAttitude}</span></span>
                 </div>
-                {char.stripperArc?.triggered && (
+                {char.stripperArc && (
                   <p className="text-[9px] text-rose-300/60 mt-1">
-                    Stage: {char.stripperArc.stageName} · {char.stripperArc.clubName}
+                    Stage: {char.stripperArc.stageName} · {char.stripperArc.club}
                   </p>
                 )}
               </div>

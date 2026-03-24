@@ -1,4 +1,4 @@
-import type { Character, SexualDNA, StripperArc } from "@/types/game";
+import type { Character } from "@/types/game";
 
 /**
  * Empire of Broken Queens — Character Definitions
@@ -22,38 +22,34 @@ import type { Character, SexualDNA, StripperArc } from "@/types/game";
  * Slow burn, high brake, total surprise awakening, manipulation blackmail.
  * Based on GDD Profile 1 traits mapped to the fantasy dark-court context.
  */
-const ISOLDE_DNA: SexualDNA = {
-  desireType: "responsive",
-  accelerator: 3,  // slow to arouse
-  brake: 8,        // high kill-switch sensitivity
+const ISOLDE_DNA = {
+  desireType: "responsive" as const,
+  accelBrake: "Low Accel / High Brake",
   painTolerance: 4,
   humiliationEnjoyment: 8,
   exhibitionismLevel: 6,
-  gagResponse: "pushes_through",
+  gaggingResponse: "pushes-through" as const,
   moaningStyle: "Quiet breathy → sudden sharp gasp when caught off-guard",
   tearTrigger: "Humiliation combined with pleasure overload",
   orgasmStyle: "Hard to reach — requires total surrender of control",
-  awakeningType: "total_surprise",
-  blackmailNeed: "heightens_it",
-  addictionSpeed: "slow",
-  jealousyType: "possessive",
-  afterCareNeed: "craves_cuddles_while_crying",
+  awakeningType: "total-surprise" as const,
+  blackmailNeed: "heightens-it" as const,
+  addictionSpeed: "slow-burn" as const,
+  jealousyType: "possessive" as const,
+  aftercareNeed: "heavy" as const,
   switchPotential: 3,
-  groupSexAttitude: "curious",
+  groupSexAttitude: "curious" as const,
   roleplayAffinity: "Corporate/royal power reversal",
   betrayalThreshold: 2,
   voiceDNA: "Cold measured cadence, breath catches on 'Sir', voice drops to near-whisper when losing control",
 };
 
-const ISOLDE_STRIPPER_ARC: StripperArc = {
-  characterId: "isolde",
-  clubName: "The Gilded Spire",
+const ISOLDE_STRIPPER_ARC = {
+  club: "The Gilded Spire",
   stageName: "Ice Princess",
   quitReason: "Seized political power — abandoned the stage as beneath her station",
   returnTrigger: "Corruption >= 70 + throne room intimate scene played",
   uniqueKink: "Elegant controlled movements that shatter into desperate improvisation mid-dance",
-  scenePrompt: "4K hyperreal regal woman in torn court gown at ornate pole in throne room, ice-blue eyes dilating, porcelain skin flushing, dramatic side lighting, cinematic",
-  triggered: false,
 };
 
 /** Isolde — The Usurper Queen. Controls Ashenmoor Keep. */
@@ -112,24 +108,23 @@ export const ISOLDE: Character = {
   ],
 };
 
-const SERAPHINE_DNA: SexualDNA = {
-  desireType: "responsive",
-  accelerator: 5,
-  brake: 6,
+const SERAPHINE_DNA = {
+  desireType: "responsive" as const,
+  accelBrake: "Medium Accel / Medium Brake",
   painTolerance: 3,
   humiliationEnjoyment: 5,
   exhibitionismLevel: 4,
-  gagResponse: "fights",
+  gaggingResponse: "fights" as const,
   moaningStyle: "Barely audible whispers that build to sudden keening when overwhelmed by vision+sensation",
   tearTrigger: "Visions of the future colliding with physical sensation — grief and pleasure merging",
   orgasmStyle: "Rare, intense, dissociative — she slips into a vision state at the peak",
-  awakeningType: "slow_realization",
-  blackmailNeed: "none",
-  addictionSpeed: "slow",
-  jealousyType: "doesnt_care",
-  afterCareNeed: "heavy",
+  awakeningType: "slow-realization" as const,
+  blackmailNeed: "none" as const,
+  addictionSpeed: "slow-burn" as const,
+  jealousyType: "doesnt-care" as const,
+  aftercareNeed: "heavy" as const,
   switchPotential: 2,
-  groupSexAttitude: "hates",
+  groupSexAttitude: "hates" as const,
   roleplayAffinity: "Oracle/supplicant — she prophesies while being taken",
   betrayalThreshold: 7,
   voiceDNA: "Soft breathy cadence, fragments when distressed, sudden crystalline clarity at moments of surrender",
@@ -245,38 +240,34 @@ export const VAELIS: Character = {
   ],
 };
 
-const MIRA_DNA: SexualDNA = {
-  desireType: "hybrid",
-  accelerator: 6,
-  brake: 5,
+const MIRA_DNA = {
+  desireType: "hybrid" as const,
+  accelBrake: "Medium-High Accel / Medium Brake",
   painTolerance: 5,
   humiliationEnjoyment: 7,
   exhibitionismLevel: 8,
-  gagResponse: "enjoys",
+  gaggingResponse: "enjoys" as const,
   moaningStyle: "Low seductive hum that builds to breathless laughter when surrendering",
   tearTrigger: "Being truly seen — when the barmaid mask is stripped away",
   orgasmStyle: "Easy multiple — she's practiced control but lets go completely when she trusts",
-  awakeningType: "slow_realization",
-  blackmailNeed: "heightens_it",
-  addictionSpeed: "fast",
-  jealousyType: "competitive",
-  afterCareNeed: "light",
+  awakeningType: "slow-realization" as const,
+  blackmailNeed: "heightens-it" as const,
+  addictionSpeed: "fast" as const,
+  jealousyType: "competitive" as const,
+  aftercareNeed: "light" as const,
   switchPotential: 6,
-  groupSexAttitude: "curious",
+  groupSexAttitude: "curious" as const,
   roleplayAffinity: "Poisoner's daughter / information trade / power through knowledge",
   betrayalThreshold: 5,
   voiceDNA: "Warm tavern drawl, pet names (love/darling/sweet thing), drops to flat precision when the real Mira appears",
 };
 
-const MIRA_STRIPPER_ARC: StripperArc = {
-  characterId: "mira",
-  clubName: "The Black Vial",
+const MIRA_STRIPPER_ARC = {
+  club: "The Black Vial",
   stageName: "Poison Pen",
   quitReason: "The tavern pays better and the regulars are family",
   returnTrigger: "Corruption >= 70 + mira_confession_heard flag set",
   uniqueKink: "The vial around her neck swings against her skin during spins — she notices the player noticing",
-  scenePrompt: "4K hyperreal dark-skinned woman with curly hair at pole in underground speakeasy, warm brown eyes dilating, candlelight on skin, vial catching light, dark fantasy tavern, cinematic",
-  triggered: false,
 };
 
 /** Mira — The Poisoner's Daughter. Works the tavern in Ashenmoor. */

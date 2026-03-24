@@ -16,10 +16,10 @@ import type {
   PersonalityVector,
   LegacyDaughter,
   DesireType,
-  GagResponse,
+  GaggingResponse,
   AddictionSpeed,
   JealousyType,
-  AfterCareNeed,
+  AftercareNeed,
   GroupSexAttitude,
   AwakeningType,
   BlackmailNeed,
@@ -42,7 +42,7 @@ export interface PlayerTaste {
   submissionBias?: number;          // shifts desireType toward responsive
   painBias?: number;                // +/- 0-3
   humiliationBias?: number;         // +/- 0-3
-  addictionBias?: "slow" | "fast" | "instant";
+  addictionBias?: AddictionSpeed;
   awakeningBias?: AwakeningType;
 }
 
@@ -81,14 +81,14 @@ function inheritCategorical<T>(motherValue: T, options: T[]): T {
   return adjacent.length > 0 ? adjacent[Math.floor(Math.random() * adjacent.length)] : motherValue;
 }
 
-const DESIRE_TYPES: DesireType[] = ["spontaneous", "responsive", "hybrid", "responsive_switch"];
-const GAG_RESPONSES: GagResponse[] = ["fights", "pushes_through", "enjoys", "breaks", "minimal", "legendary_pusher"];
-const ADDICTION_SPEEDS: AddictionSpeed[] = ["very_slow", "slow", "normal", "fast", "instant"];
-const JEALOUSY_TYPES: JealousyType[] = ["possessive", "competitive", "turns_her_on", "doesnt_care", "none"];
-const AFTERCARE_NEEDS: AfterCareNeed[] = ["none", "light", "medium", "heavy", "craves_cuddles_while_crying"];
+const DESIRE_TYPES: DesireType[] = ["spontaneous", "responsive", "hybrid"];
+const GAG_RESPONSES: GaggingResponse[] = ["fights", "pushes-through", "enjoys", "breaks", "minimal", "legendary-pusher"];
+const ADDICTION_SPEEDS: AddictionSpeed[] = ["very-slow", "slow-burn", "normal", "fast", "instant"];
+const JEALOUSY_TYPES: JealousyType[] = ["possessive", "competitive", "turns-her-on", "doesnt-care", "none"];
+const AFTERCARE_NEEDS: AftercareNeed[] = ["none", "light", "medium", "heavy"];
 const GROUP_ATTITUDES: GroupSexAttitude[] = ["hates", "tolerates", "curious", "craves", "initiates"];
-const AWAKENING_TYPES: AwakeningType[] = ["always_knew", "total_surprise", "slow_realization", "denial_until_forced"];
-const BLACKMAIL_NEEDS: BlackmailNeed[] = ["necessary", "heightens_it", "bored_without", "begs_for_it", "none"];
+const AWAKENING_TYPES: AwakeningType[] = ["always-knew", "total-surprise", "slow-realization", "denial-until-forced"];
+const BLACKMAIL_NEEDS: BlackmailNeed[] = ["necessary", "heightens-it", "bored-without-it", "begs-for-it", "none"];
 
 /**
  * Generate a daughter's DNA from her mother's DNA with mutation.
@@ -97,12 +97,11 @@ const BLACKMAIL_NEEDS: BlackmailNeed[] = ["necessary", "heightens_it", "bored_wi
 export function inheritDNA(motherDNA: SexualDNA, taste?: PlayerTaste): SexualDNA {
   const base: SexualDNA = {
     desireType: inheritCategorical(motherDNA.desireType, DESIRE_TYPES),
-    accelerator: inheritNumeric(motherDNA.accelerator, 1, 10, 2),
-    brake: inheritNumeric(motherDNA.brake, 1, 10, 2),
+    accelBrake: motherDNA.accelBrake,
     painTolerance: inheritNumeric(motherDNA.painTolerance, 1, 10, 2),
     humiliationEnjoyment: inheritNumeric(motherDNA.humiliationEnjoyment, 1, 10, 2),
     exhibitionismLevel: inheritNumeric(motherDNA.exhibitionismLevel, 1, 10, 2),
-    gagResponse: inheritCategorical(motherDNA.gagResponse, GAG_RESPONSES),
+    gaggingResponse: motherDNA.gaggingResponse ? inheritCategorical(motherDNA.gaggingResponse, GAG_RESPONSES) : undefined,
     moaningStyle: mutateMoaningStyle(motherDNA.moaningStyle),
     tearTrigger: mutateTearTrigger(motherDNA.tearTrigger),
     orgasmStyle: mutateOrgasmStyle(motherDNA.orgasmStyle),
@@ -110,7 +109,7 @@ export function inheritDNA(motherDNA: SexualDNA, taste?: PlayerTaste): SexualDNA
     blackmailNeed: inheritCategorical(motherDNA.blackmailNeed, BLACKMAIL_NEEDS),
     addictionSpeed: inheritCategorical(motherDNA.addictionSpeed, ADDICTION_SPEEDS),
     jealousyType: inheritCategorical(motherDNA.jealousyType, JEALOUSY_TYPES),
-    afterCareNeed: inheritCategorical(motherDNA.afterCareNeed, AFTERCARE_NEEDS),
+    aftercareNeed: motherDNA.aftercareNeed ? inheritCategorical(motherDNA.aftercareNeed, AFTERCARE_NEEDS) : undefined,
     switchPotential: inheritNumeric(motherDNA.switchPotential, 1, 10, 2),
     groupSexAttitude: inheritCategorical(motherDNA.groupSexAttitude, GROUP_ATTITUDES),
     roleplayAffinity: mutateRoleplayAffinity(motherDNA.roleplayAffinity),
@@ -139,7 +138,6 @@ export function inheritDNA(motherDNA: SexualDNA, taste?: PlayerTaste): SexualDNA
       // Push toward responsive desire type if submission is desired
       if (taste.submissionBias > 0) {
         base.desireType = "responsive";
-        base.brake = Math.min(10, base.brake + 1);
       }
     }
   }

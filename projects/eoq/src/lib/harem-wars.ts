@@ -81,7 +81,7 @@ function selectEventType(instigator: Character, tension: number): HaremWarsEvent
 
   // Medium tension
   if (tension >= 40) {
-    if (dna.jealousyType === "turns_her_on") return "forced_kiss";
+    if (dna.jealousyType === "turns-her-on") return "forced_kiss";
     return "competition_dance";
   }
 
