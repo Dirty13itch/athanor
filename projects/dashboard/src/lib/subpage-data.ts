@@ -1233,20 +1233,46 @@ async function mergeWithDiskFiles(
   try {
     const { readdir, stat } = await import("fs/promises");
     const { join } = await import("path");
-    const dir = join("/opt/comfyui-output", "EoBQ");
-    const entries = await readdir(dir);
-    for (const entry of entries) {
-      if (knownFiles.has(entry)) continue;
-      const ext = entry.split(".").pop()?.toLowerCase() ?? "";
-      if (!["png", "jpg", "jpeg", "webp", "mp4", "webm", "mov"].includes(ext)) continue;
-      const info = await stat(join(dir, entry)).catch(() => null);
-      if (!info?.isFile()) continue;
-      diskFiles.push({
-        filename: entry,
-        subfolder: "EoBQ",
-        size: info.size,
-        mtime: Math.floor(info.mtimeMs / 1000),
-      });
+    // Scan EoBQ subfolder
+    const eoqDir = join("/opt/comfyui-output", "EoBQ");
+    try {
+      const entries = await readdir(eoqDir);
+      for (const entry of entries) {
+        if (knownFiles.has(entry)) continue;
+        const ext = entry.split(".").pop()?.toLowerCase() ?? "";
+        if (!["png", "jpg", "jpeg", "webp", "mp4", "webm", "mov"].includes(ext)) continue;
+        const info = await stat(join(eoqDir, entry)).catch(() => null);
+        if (!info?.isFile()) continue;
+        diskFiles.push({
+          filename: entry,
+          subfolder: "EoBQ",
+          size: info.size,
+          mtime: Math.floor(info.mtimeMs / 1000),
+        });
+      }
+    } catch {
+      // EoBQ dir may not exist
+    }
+
+    // Scan root output folder (older faceid_*, athanor_* generations)
+    const rootDir = "/opt/comfyui-output";
+    try {
+      const rootEntries = await readdir(rootDir);
+      for (const entry of rootEntries) {
+        if (knownFiles.has(entry)) continue;
+        const ext = entry.split(".").pop()?.toLowerCase() ?? "";
+        if (!["png", "jpg", "jpeg", "webp", "mp4", "webm", "mov"].includes(ext)) continue;
+        const info = await stat(join(rootDir, entry)).catch(() => null);
+        if (!info?.isFile()) continue;
+        diskFiles.push({
+          filename: entry,
+          subfolder: "",
+          size: info.size,
+          mtime: Math.floor(info.mtimeMs / 1000),
+        });
+      }
+    } catch {
+      // Root dir scan is best-effort
     }
   } catch {
     // Disk scan is best-effort — volume may not be mounted
