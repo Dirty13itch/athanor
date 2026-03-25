@@ -1,0 +1,12 @@
+[Unit]
+Description=Stash Face Tagger batch run
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory={{ face_tagger_deploy_dir }}
+ExecStart=/usr/bin/docker compose run --rm face-tagger --batch-size {{ face_tagger_batch_size }}
+TimeoutStartSec=1800
+StandardOutput=journal
+StandardError=journal

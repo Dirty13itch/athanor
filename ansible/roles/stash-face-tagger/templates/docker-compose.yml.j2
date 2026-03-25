@@ -1,0 +1,28 @@
+services:
+  face-tagger:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: athanor/face-tagger:latest
+    container_name: athanor-face-tagger
+    # One-shot: run, process batch, exit
+    restart: "no"
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["2"]  # 4090 — low utilization, best for InsightFace
+              capabilities: [gpu]
+    volumes:
+      # Reference images and embedding cache
+      - /mnt/vault/data/gen-subjects:/data/gen-subjects:ro
+      - /mnt/vault/data/gen-output:/data/gen-output
+      # Results log
+      - /var/log/athanor:/var/log/athanor
+    environment:
+      - STASH_URL=http://{{ stash_host }}:{{ stash_port }}
+      - TZ=America/Chicago
+      - NVIDIA_VISIBLE_DEVICES=2
+      - CUDA_DEVICE_ORDER=PCI_BUS_ID

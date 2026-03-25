@@ -1,0 +1,6 @@
+---
+# Stash Face Tagger defaults
+face_tagger_deploy_dir: /opt/athanor/face-tagger
+face_tagger_batch_size: 50
+stash_host: 192.168.1.203
+stash_port: 9999
