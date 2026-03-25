@@ -1156,9 +1156,85 @@ def _try_vision_evaluation(video_url: str, anchor_url: str, size_bytes: int | No
         return None  # Fall back to heuristic
 
 
+@tool
+def auto_grade_image(image_url: str, prompt_used: str, queen_name: str = "") -> str:
+    """Grade a generated image using cloud vision (Gemini via LiteLLM). Free tier, 1000/day.
+
+    Sends the image + original prompt to Gemini and asks for quality scores.
+    Use this after generating any image to evaluate quality before moving on.
+
+    Args:
+        image_url: URL of the generated image (ComfyUI output URL)
+        prompt_used: The prompt that generated this image
+        queen_name: Name of the queen (for context)
+
+    Returns:
+        JSON with scores: realism (0-1), anatomy (0-1), face_accuracy (0-1),
+        prompt_adherence (0-1), composite (0-1), and improvement_suggestions.
+    """
+    try:
+        from ..config import settings as _settings
+        litellm_url = _settings.llm_base_url + "/chat/completions"
+        litellm_key = _settings.llm_api_key
+
+        eval_prompt = (
+            f"You are an expert image quality evaluator for AI-generated portraits.\n"
+            f"Queen: {queen_name}\n"
+            f"Generation prompt: {prompt_used[:300]}\n\n"
+            f"Score this image on each dimension (0.0-1.0):\n"
+            f"1. realism: Does it look like a real photograph? No AI tells?\n"
+            f"2. anatomy: Are body proportions physically correct? No extra fingers, distorted limbs?\n"
+            f"3. face_accuracy: Does the face look natural and consistent?\n"
+            f"4. prompt_adherence: Does the image match the prompt description?\n"
+            f"5. aesthetic: Is the composition, lighting, and overall look appealing?\n\n"
+            f"Respond with ONLY JSON:\n"
+            f'{{"realism": 0.8, "anatomy": 0.7, "face_accuracy": 0.9, '
+            f'"prompt_adherence": 0.8, "aesthetic": 0.8, '
+            f'"composite": 0.8, "improvement_suggestions": "brief suggestion"}}'
+        )
+
+        resp = httpx.post(
+            litellm_url,
+            json={
+                "model": "gemini",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": eval_prompt},
+                            {"type": "image_url", "image_url": {"url": image_url}},
+                        ],
+                    }
+                ],
+                "max_tokens": 300,
+                "temperature": 0.1,
+            },
+            headers={"Authorization": f"Bearer {litellm_key}"},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        content = data["choices"][0]["message"]["content"]
+
+        # Try to parse JSON from the response
+        import re
+        json_match = re.search(r"\{[^}]+\}", content, re.DOTALL)
+        if json_match:
+            scores = json.loads(json_match.group())
+            return json.dumps(scores, indent=2)
+        return content
+
+    except Exception as e:
+        return json.dumps({
+            "error": str(e),
+            "method": "gemini_vision",
+            "fallback": "Use evaluate_video_quality for heuristic scoring",
+        })
+
+
 CREATIVE_TOOLS = [
     generate_image, generate_image_batch, generate_video, generate_video_ltx,
-    generate_character_portrait,
+    generate_character_portrait, auto_grade_image,
     check_queue, get_generation_history, get_comfyui_status,
     list_personas, generate_with_likeness,
     generate_i2v_video, poll_video_completion,
