@@ -21,9 +21,10 @@ export function RightNowCard({ snapshot }: { snapshot: OverviewSnapshot }) {
   const alerts = snapshot.alerts.filter((a) => a.tone === "degraded");
 
   const activeGpus = stream?.gpus.filter((g) => g.utilization > 10) ?? [];
-  const creativeGpu = activeGpus.find(
-    (g) => g.workload?.toLowerCase().includes("comfyui") || g.workload?.toLowerCase().includes("flux")
-  );
+  const creativeGpu = activeGpus.find((g) => {
+    const w = g.workload?.toLowerCase() ?? "";
+    return w.includes("comfyui") || w.includes("flux") || w.includes("ltx") || w.includes("wan") || w.includes("pulid");
+  });
 
   const hasActivity = runningTasks.length > 0 || creativeGpu || alerts.length > 0;
 

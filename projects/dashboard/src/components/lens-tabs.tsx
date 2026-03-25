@@ -23,7 +23,7 @@ export function LensTabs() {
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-background/50"
             )}
-            style={isActive ? { borderBottom: `2px solid ${activeConfig.accent}` } : undefined}
+            style={isActive ? { boxShadow: `inset 0 -2px 0 ${LENS_CONFIG[id as LensId].accent}` } : undefined}
           >
             <span
               className="flex h-5 w-5 items-center justify-center rounded text-xs font-bold"
