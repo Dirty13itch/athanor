@@ -53,7 +53,12 @@ async def ingest_gallery_rating(
     Returns:
         Dict with what was updated
     """
-    r = await _get_redis()
+    try:
+        r = await _get_redis()
+    except Exception as e:
+        logger.error("Feedback: Redis unavailable: %s", e)
+        return {"image_id": image_id, "updates": [], "error": "redis_unavailable"}
+
     updates = []
 
     # Store the rating
@@ -67,7 +72,10 @@ async def ingest_gallery_rating(
         "queen_name": queen_name,
         "timestamp": time.time(),
     }
-    await r.hset(FEEDBACK_KEY, image_id, json.dumps(rating_data))
+    try:
+        await r.hset(FEEDBACK_KEY, image_id, json.dumps(rating_data))
+    except Exception as e:
+        logger.warning("Feedback: failed to store rating: %s", e)
 
     # If approved or 4-5 stars: this prompt is an exemplar
     if approved or rating >= 4:
@@ -153,11 +161,21 @@ async def get_rejected_prompts(limit: int = 10) -> list[dict]:
 
 async def get_feedback_summary() -> dict:
     """Get a summary of all gallery feedback for the creative agent's context."""
-    r = await _get_redis()
+    try:
+        r = await _get_redis()
+    except Exception as e:
+        logger.warning("Feedback summary: Redis unavailable: %s", e)
+        return {"total_ratings": 0, "approved_count": 0, "rejected_count": 0,
+                "approved_keywords": [], "rejected_keywords": []}
 
-    approved = await r.lrange(FEEDBACK_PROMPTS_KEY, 0, -1)
-    rejected = await r.lrange(FEEDBACK_REJECTS_KEY, 0, -1)
-    total_ratings = await r.hlen(FEEDBACK_KEY)
+    try:
+        approved = await r.lrange(FEEDBACK_PROMPTS_KEY, 0, -1)
+        rejected = await r.lrange(FEEDBACK_REJECTS_KEY, 0, -1)
+        total_ratings = await r.hlen(FEEDBACK_KEY)
+    except Exception as e:
+        logger.warning("Feedback summary: Redis read failed: %s", e)
+        return {"total_ratings": 0, "approved_count": 0, "rejected_count": 0,
+                "approved_keywords": [], "rejected_keywords": []}
 
     # Extract patterns from approved prompts
     approved_keywords = set()
