@@ -646,13 +646,23 @@ async def _execute_task(task: Task):
                 if text:
                     collected_text.append(text)
 
-        # Task completed successfully — strip think tags from full result
+        # Task completed successfully — strip thinking artifacts from result
         import re
         result_text = "".join(collected_text)
         # Strip complete <think>...</think> blocks
         result_text = re.sub(r"<think>.*?</think>\s*", "", result_text, flags=re.DOTALL)
         # Strip orphaned think tags (model sometimes outputs incomplete blocks)
         result_text = re.sub(r"</?think>\s*", "", result_text)
+        # Strip chain-of-thought leakage (Qwen3.5 sometimes dumps reasoning without tags)
+        # Pattern: "The user wants me to..." or "Let me plan..." at the start
+        cot_patterns = [
+            r"^The user wants me to[^.]*\.\s*",
+            r"^Let me (?:plan|think|analyze|check|look)[^.]*\.\s*",
+            r"^I need to[^.]*\.\s*",
+            r"^This is a[^.]*task[^.]*\.\s*",
+        ]
+        for pattern in cot_patterns:
+            result_text = re.sub(pattern, "", result_text, flags=re.IGNORECASE)
         result_text = result_text.strip()
 
         task.status = "completed"
