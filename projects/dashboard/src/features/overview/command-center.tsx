@@ -41,7 +41,6 @@ import { StatusDot } from "@/components/status-dot";
 import { SystemMapCard } from "@/components/system-map-card";
 import { SubscriptionBurn } from "@/components/subscription-burn";
 import { SystemPulse } from "@/components/system-pulse";
-import { AttentionBanner } from "@/components/attention-banner";
 import { UnifiedStream } from "@/components/unified-stream";
 import { WorkPlan } from "@/components/work-plan";
 import { getOverview } from "@/lib/api";
@@ -126,9 +125,9 @@ function isCardVisible(cardGroup: string, sections: SectionId[]): boolean {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="surface-instrument rounded-xl border p-2.5">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-semibold">{value}</p>
+    <div className="surface-instrument rounded-xl p-2.5">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50">{label}</p>
+      <p className="mt-1 text-2xl font-mono font-bold tabular-nums">{value}</p>
     </div>
   );
 }
@@ -136,17 +135,19 @@ function Metric({ label, value }: { label: string; value: string }) {
 /** GPU utilization bar — thin horizontal fill with transition. */
 function GpuBar({ value }: { value: number | null }) {
   const pct = value ?? 0;
-  const color =
-    pct >= 80
-      ? "bg-[color:var(--signal-warning)]"
-      : pct >= 1
-        ? "bg-[color:var(--signal-success)]"
-        : "bg-muted-foreground/30";
   return (
-    <div className="h-1.5 w-full rounded-full bg-muted/40">
+    <div className="h-1 w-full rounded-full bg-muted/30">
       <div
-        className={cn("h-full rounded-full transition-all duration-700", color)}
-        style={{ width: `${Math.min(pct, 100)}%` }}
+        className="h-full rounded-full transition-all duration-700"
+        style={{
+          width: `${Math.min(pct, 100)}%`,
+          backgroundColor:
+            pct >= 80
+              ? "var(--signal-warning)"
+              : pct >= 1
+                ? "var(--signal-success)"
+                : "var(--text-disabled)",
+        }}
       />
     </div>
   );
@@ -160,21 +161,21 @@ function NodeGrid({ nodes }: { nodes: OverviewSnapshot["nodes"] }) {
         <Link
           key={node.id}
           href={`/services?node=${node.id}`}
-          className="surface-metric group flex flex-col gap-2 rounded-xl border p-3 transition hover:bg-accent/60"
+          className="group flex flex-col gap-1.5 rounded-xl bg-[color:var(--surface-metric)] p-3 transition hover:bg-accent/60"
         >
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <StatusDot
                 tone={node.degradedServices > 0 ? "warning" : "healthy"}
                 pulse={node.degradedServices > 0}
               />
-              <span className="text-sm font-semibold truncate">{node.name}</span>
+              <span className="text-xs font-semibold truncate">{node.name}</span>
             </div>
-            <span className="font-mono text-[10px] text-muted-foreground shrink-0">{node.ip}</span>
+            <span className="font-mono text-[10px] text-muted-foreground/40 shrink-0">{node.ip}</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground/50">
             <span>{node.healthyServices}/{node.totalServices} svc</span>
-            <span>{formatPercent(node.gpuUtilization, 0)} GPU</span>
+            <span className="font-mono tabular-nums">{formatPercent(node.gpuUtilization, 0)} GPU</span>
           </div>
           <GpuBar value={node.gpuUtilization} />
         </Link>
@@ -193,18 +194,27 @@ function InlineMetric({
   value: string;
   tone?: "default" | "success" | "warning" | "danger";
 }) {
-  const toneColor: Record<string, string> = {
-    default: "text-foreground",
-    success: "text-[color:var(--signal-success)]",
-    warning: "text-[color:var(--signal-warning)]",
-    danger: "text-[color:var(--signal-danger)]",
+  /** Tone: only use color when signaling state, otherwise neutral. */
+  const toneStyles: Record<string, { color?: string; borderLeft?: string }> = {
+    default: {},
+    success: { color: "var(--signal-success)" },
+    warning: { color: "var(--signal-warning)", borderLeft: "2px solid var(--signal-warning)" },
+    danger: { color: "var(--signal-danger)", borderLeft: "2px solid var(--signal-danger)" },
   };
+  const style = toneStyles[tone] ?? {};
   return (
-    <div className="flex flex-col items-center gap-0.5 px-3 py-2">
-      <span className={cn("text-lg font-bold tabular-nums tracking-tight", toneColor[tone])} data-volatile="true">
+    <div
+      className="flex flex-col items-center gap-0.5 px-4 py-2"
+      style={{ borderLeft: style.borderLeft }}
+    >
+      <span
+        className="text-2xl font-mono font-bold tabular-nums tracking-tight"
+        style={{ color: style.color }}
+        data-volatile="true"
+      >
         {value}
       </span>
-      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</span>
+      <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50">{label}</span>
     </div>
   );
 }
@@ -223,12 +233,12 @@ function DeepDiveSection({
 }) {
   return (
     <details className="group" open={defaultOpen || undefined}>
-      <summary className="surface-panel flex cursor-pointer items-center gap-3 rounded-2xl border px-5 py-4 transition hover:bg-accent/60 list-none [&::-webkit-details-marker]:hidden">
-        <span className="text-muted-foreground">{icon}</span>
-        <span className="text-sm font-semibold tracking-tight">{title}</span>
-        <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+      <summary className="flex cursor-pointer items-center gap-3 rounded-xl bg-[color:var(--surface-panel)] px-4 py-3 transition hover:bg-accent/60 list-none [&::-webkit-details-marker]:hidden">
+        <span className="text-muted-foreground/50">{icon}</span>
+        <span className="text-xs font-semibold tracking-tight uppercase">{title}</span>
+        <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground/40 transition-transform group-open:rotate-180" />
       </summary>
-      <div className="mt-3 space-y-4">{children}</div>
+      <div className="mt-3 space-y-3">{children}</div>
     </details>
   );
 }
@@ -320,43 +330,41 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       : snapshot.summary.averageGpuUtilization;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* ═══ ZONE 1: Status Bar (sticky) ═══ */}
       <SystemPulse sticky />
 
-      <AttentionBanner />
-
       {/* ═══ ZONE 2: Command Surface ═══ */}
-      <div className="surface-hero rounded-2xl border p-4 md:p-6">
+      <div className="surface-hero rounded-2xl border p-3 md:p-4">
         {/* Header row: title + lens tabs + live badge */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold tracking-tight md:text-2xl">ATHANOR</h1>
+            <h1 className="text-lg font-bold tracking-tight md:text-xl">ATHANOR</h1>
             <LensTabs />
           </div>
           <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.overview} />
         </div>
 
         {/* Metric strip — 4 key numbers in a tight row */}
-        <div className="mt-4 flex flex-wrap items-stretch justify-center gap-px rounded-xl border surface-instrument overflow-hidden">
+        <div className="mt-3 flex flex-wrap items-stretch justify-center gap-px rounded-xl bg-[color:var(--surface-instrument)] overflow-hidden">
           <InlineMetric
             label="Services"
             value={`${sseServicesUp}/${sseServicesTotal}`}
             tone={sseServicesDown.length > 0 ? "warning" : "success"}
           />
-          <div className="w-px self-stretch bg-border/40" />
+          <div className="w-px self-stretch bg-border/20" />
           <InlineMetric
             label="Agents"
             value={`${sseAgentCount}`}
             tone={sseAgentCount > 0 ? "success" : "warning"}
           />
-          <div className="w-px self-stretch bg-border/40" />
+          <div className="w-px self-stretch bg-border/20" />
           <InlineMetric
             label="GPU avg"
             value={formatPercent(sseGpuAvg, 0)}
             tone={sseGpuAvg !== null && sseGpuAvg >= 80 ? "warning" : "success"}
           />
-          <div className="w-px self-stretch bg-border/40" />
+          <div className="w-px self-stretch bg-border/20" />
           <InlineMetric
             label="Tasks"
             value={`${sseTasksToday}`}
@@ -365,28 +373,28 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         </div>
 
         {/* Main command surface: left = Right Now, right = Nodes + Agents */}
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
           {/* Left column: Right Now + alerts */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <RightNowCard snapshot={snapshot} />
 
             {/* Degraded alerts inline — pulsing red */}
             {snapshot.alerts.filter((a) => a.tone === "degraded").length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {snapshot.alerts
                   .filter((a) => a.tone === "degraded")
                   .map((alert) => (
                     <Link
                       key={alert.id}
                       href={alert.href}
-                      className="surface-tile flex items-center gap-3 rounded-xl border border-[color:var(--signal-danger)]/20 p-3 transition hover:bg-accent/60"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-accent/40 border-l-2 border-l-[color:var(--signal-danger)]"
                     >
                       <StatusDot tone="danger" pulse className="shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{alert.title}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">{alert.description}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground/60">{alert.description}</p>
                       </div>
-                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
                     </Link>
                   ))}
               </div>
@@ -394,7 +402,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           </div>
 
           {/* Right column: node grid + agent crew */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <NodeGrid nodes={snapshot.nodes} />
             <AgentCrewBar onAgentFilter={setAgentFilter} />
           </div>
@@ -403,10 +411,10 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
       {/* ═══ EoBQ Content (lens-gated) ═══ */}
       {show("eoqContent") && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <QueenRosterCard />
           <GameStatsCard />
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <RecentDialogueCard />
             <GenerationGalleryCard />
           </div>
@@ -415,12 +423,12 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       )}
 
       {/* ═══ ZONE 3: Operational Grid ═══ */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
         {/* Column 1: Activity Stream */}
         <Card className="surface-panel">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Radio className="h-4 w-4 text-primary" />
+              <Radio className="h-4 w-4 text-muted-foreground" />
               Activity
             </CardTitle>
           </CardHeader>
@@ -430,15 +438,17 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         </Card>
 
         {/* Column 2: Work Plan + Goals stacked */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <WorkPlan />
           <SmartStack />
         </div>
 
         {/* Column 3: Media + Furnace + Briefing stacked */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <MediaGlance />
-          <SubscriptionBurn />
+          <div className="rounded-xl bg-[color:var(--surface-instrument)] p-3">
+            <SubscriptionBurn />
+          </div>
           <DailyBriefing />
         </div>
       </div>
@@ -528,7 +538,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
             <Card className="surface-instrument">
               <CardHeader>
-                <CardTitle className="text-lg">Availability & GPU trend</CardTitle>
+                <CardTitle className="text-base">Availability & GPU trend</CardTitle>
                 <CardDescription>Service availability and GPU load over the history window.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -546,7 +556,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                     <div key={node.id} className="surface-tile rounded-2xl border p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-lg font-semibold">{node.name}</p>
+                          <p className="text-base font-semibold">{node.name}</p>
                           <p className="font-mono text-xs text-muted-foreground">{node.ip}</p>
                         </div>
                         <StatusDot
@@ -577,7 +587,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-instrument">
               <CardHeader>
-                <CardTitle className="text-lg">GPU hotspots</CardTitle>
+                <CardTitle className="text-base">GPU hotspots</CardTitle>
                 <CardDescription>Cards under the highest current demand.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -627,7 +637,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1fr]">
             <Card className="surface-instrument">
               <CardHeader>
-                <CardTitle className="text-lg">Inference posture</CardTitle>
+                <CardTitle className="text-base">Inference posture</CardTitle>
                 <CardDescription>Reachable backends, model inventory, and active launch paths.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -662,7 +672,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="text-lg">Agent capabilities</CardTitle>
+                <CardTitle className="text-base">Agent capabilities</CardTitle>
                 <CardDescription>Live agent roster and exposed tool counts.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -696,7 +706,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="text-lg">Launchpad</CardTitle>
+                <CardTitle className="text-base">Launchpad</CardTitle>
                 <CardDescription>External tools and quick paths.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -756,8 +766,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
             <Card className="surface-hero">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Zap className="h-5 w-5 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Zap className="h-4 w-4 text-muted-foreground" />
                   Incidents & attention
                 </CardTitle>
                 <CardDescription>Live attention areas across the cluster.</CardDescription>
@@ -792,8 +802,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <History className="h-5 w-5 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <History className="h-4 w-4 text-muted-foreground" />
                   Recent operator context
                 </CardTitle>
                 <CardDescription>Browser-local sessions and threads you touched most recently.</CardDescription>
@@ -837,8 +847,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_1fr]">
             <Card className="surface-hero">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Bot className="h-5 w-5 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Bot className="h-4 w-4 text-muted-foreground" />
                   Queue & approvals
                 </CardTitle>
                 <CardDescription>Queue pressure, approvals, and active work across the org.</CardDescription>
@@ -878,8 +888,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FolderKanban className="h-5 w-5 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FolderKanban className="h-4 w-4 text-muted-foreground" />
                   Active goals
                 </CardTitle>
                 <CardDescription>Steering constraints currently shaping the work planner.</CardDescription>
@@ -899,8 +909,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Clock3 className="h-5 w-5 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Clock3 className="h-4 w-4 text-muted-foreground" />
                   Workspace broadcast
                 </CardTitle>
                 <CardDescription>Top salience items moving through the shared workspace.</CardDescription>

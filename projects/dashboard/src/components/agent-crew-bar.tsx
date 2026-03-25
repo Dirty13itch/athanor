@@ -104,12 +104,17 @@ export function AgentCrewBar({ onAgentFilter }: { onAgentFilter?: (agent: string
   return (
     <>
       <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-        <span className="shrink-0 text-xs font-medium text-muted-foreground">Crew</span>
-        <div className="flex items-center gap-1.5">
+        <span className="shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground/50">Crew</span>
+        <div className="flex items-center gap-1">
           {agents.map((name) => {
             const meta = resolveAgentMeta(name);
             const isLensHighlighted = hasLensFilter && lensAgents.includes(name);
             const isDimmed = hasLensFilter && !lensAgents.includes(name);
+
+            // Status ring color: green=online, neutral=offline
+            const ringColor = isOnline && !isDimmed
+              ? "var(--signal-success)"
+              : "var(--text-disabled)";
 
             return (
               <button
@@ -125,20 +130,25 @@ export function AgentCrewBar({ onAgentFilter }: { onAgentFilter?: (agent: string
                 }}
                 onDoubleClick={() => setSelectedAgent(name)}
                 className={cn(
-                  "group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all",
-                  "hover:scale-110 hover:ring-2 hover:ring-primary/50",
-                  isOnline && !isDimmed ? "opacity-100" : "opacity-40",
-                  isLensHighlighted && "ring-2 ring-primary/60 animate-pulse",
-                  filteredAgent === name && "ring-2 ring-primary scale-110"
+                  "group relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all",
+                  "hover:scale-110",
+                  isOnline && !isDimmed ? "opacity-100" : "opacity-30",
+                  filteredAgent === name && "scale-110"
                 )}
-                style={{ backgroundColor: meta.color, color: meta.foreground }}
+                style={{
+                  backgroundColor: meta.color,
+                  color: meta.foreground,
+                  boxShadow: isLensHighlighted
+                    ? `0 0 0 1.5px ${meta.color}, 0 0 8px ${meta.color}`
+                    : filteredAgent === name
+                      ? `0 0 0 1.5px ${meta.color}`
+                      : `0 0 0 1px ${ringColor}`,
+                }}
                 title={`${meta.shortName} - ${isOnline ? "online" : "offline"}`}
               >
                 {meta.icon}
-                {isOnline && (
-                  <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-green-500" />
-                )}
-                <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-1.5 py-0.5 text-[10px] text-popover-foreground opacity-0 shadow transition-opacity group-hover:opacity-100">
+                {/* Tooltip on hover */}
+                <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-popover px-1.5 py-0.5 text-[9px] text-popover-foreground opacity-0 shadow-sm transition-opacity group-hover:opacity-100 z-10">
                   {meta.shortName}
                 </span>
               </button>

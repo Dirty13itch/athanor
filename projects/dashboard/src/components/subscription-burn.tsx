@@ -1,7 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame } from "lucide-react";
 import { useSystemStream } from "@/hooks/use-system-stream";
 
 interface SubTier {
@@ -37,21 +35,21 @@ export function SubscriptionBurn() {
       name: "Claude Max",
       cost: 200,
       limit: "~45 Opus/mo",
-      usage: `~${Math.min(45, Math.floor(estimatedCloudTasks / 3))} sessions`,
+      usage: `~${Math.min(45, Math.floor(estimatedCloudTasks / 3))}`,
       burnPercent: Math.min(100, Math.floor((estimatedCloudTasks / 3 / 45) * 100)),
     },
     {
       name: "Gemini",
       cost: 20,
       limit: "1000/day free",
-      usage: `~${Math.min(1000, tasksToday * 2)}/day`,
+      usage: `~${Math.min(1000, tasksToday * 2)}`,
       burnPercent: Math.min(100, Math.floor((tasksToday * 2 / 1000) * 100)),
     },
     {
-      name: "Local (Qwen3.5)",
+      name: "Local",
       cost: 0,
       limit: "Unlimited",
-      usage: `${tasksToday} tasks today`,
+      usage: `${tasksToday}`,
       burnPercent: tasksToday > 0 ? 100 : 0,
     },
   ];
@@ -59,70 +57,57 @@ export function SubscriptionBurn() {
   const totalMonthlyCost = 543;
   const estimatedUtilization = subs.reduce((sum, s) => sum + s.burnPercent * s.cost, 0) / totalMonthlyCost;
 
+  /** Gradient from red (low) through amber to green (high). */
+  function burnGradient(pct: number): string {
+    if (pct >= 60) return "linear-gradient(90deg, var(--signal-warning), var(--signal-success))";
+    if (pct >= 30) return "linear-gradient(90deg, var(--signal-danger), var(--signal-warning))";
+    return "var(--signal-danger)";
+  }
+
   return (
-    <Card className="surface-instrument border">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Flame className="h-5 w-5 text-primary" />
-          Furnace burn rate
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            ${totalMonthlyCost}/mo subscriptions
-          </span>
-          <span className="font-mono font-semibold">
-            {Math.round(estimatedUtilization)}% utilized
-          </span>
-        </div>
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50">Furnace burn</p>
+        <span className="font-mono text-xs font-bold tabular-nums">
+          {Math.round(estimatedUtilization)}%
+        </span>
+      </div>
 
-        <div className="h-2 rounded-full bg-muted overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{
-              width: `${Math.min(100, Math.round(estimatedUtilization))}%`,
-              backgroundColor:
-                estimatedUtilization >= 60
-                  ? "var(--signal-success)"
-                  : estimatedUtilization >= 30
-                    ? "var(--signal-warning)"
-                    : "var(--signal-danger)",
-            }}
-          />
-        </div>
+      {/* Main burn bar with gradient */}
+      <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{
+            width: `${Math.min(100, Math.round(estimatedUtilization))}%`,
+            background: burnGradient(estimatedUtilization),
+          }}
+        />
+      </div>
 
-        <div className="space-y-1.5">
-          {subs.map((sub) => (
-            <div key={sub.name} className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">{sub.name}</span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono">{sub.usage}</span>
-                <div className="h-1.5 w-12 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${sub.burnPercent}%`,
-                      backgroundColor:
-                        sub.burnPercent >= 60
-                          ? "var(--signal-success)"
-                          : sub.burnPercent >= 30
-                            ? "var(--signal-warning)"
-                            : "var(--signal-danger)",
-                    }}
-                  />
-                </div>
-              </div>
+      {/* Per-sub rows — compact */}
+      <div className="space-y-1">
+        {subs.map((sub) => (
+          <div key={sub.name} className="flex items-center gap-2 text-[11px]">
+            <span className="text-muted-foreground/60 w-16 truncate">{sub.name}</span>
+            <div className="flex-1 h-1 rounded-full bg-muted/20 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${sub.burnPercent}%`,
+                  background: burnGradient(sub.burnPercent),
+                }}
+              />
             </div>
-          ))}
-        </div>
+            <span className="font-mono tabular-nums text-muted-foreground/60 w-10 text-right">{sub.usage}</span>
+          </div>
+        ))}
+      </div>
 
-        {tasksRunning > 0 && (
-          <p className="text-xs text-muted-foreground pt-1">
-            {tasksRunning} task{tasksRunning !== 1 ? "s" : ""} actively burning tokens
-          </p>
-        )}
-      </CardContent>
-    </Card>
+      {tasksRunning > 0 && (
+        <p className="text-[10px] text-muted-foreground/40">
+          {tasksRunning} burning
+        </p>
+      )}
+    </div>
   );
 }

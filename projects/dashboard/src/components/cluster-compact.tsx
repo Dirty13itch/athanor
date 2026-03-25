@@ -1,50 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusDot } from "@/components/status-dot";
-import { Server } from "lucide-react";
-import { formatPercent, formatLatency } from "@/lib/format";
+import { formatPercent } from "@/lib/format";
 import type { OverviewSnapshot } from "@/lib/contracts";
 
 export function ClusterCompact({ nodes }: { nodes: OverviewSnapshot["nodes"] }) {
   return (
-    <Card className="surface-panel border">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Server className="h-5 w-5 text-primary" />
-          Cluster
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {nodes.map((node) => (
-            <Link
-              key={node.id}
-              href={`/monitoring?node=${node.id}`}
-              className="flex items-center gap-3 rounded-xl border px-3 py-2.5 surface-instrument transition hover:bg-accent/40"
-            >
-              <StatusDot
-                tone={node.degradedServices > 0 ? "warning" : "healthy"}
-                pulse={node.degradedServices > 0}
+    <div className="space-y-1.5">
+      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50">Cluster</p>
+      {nodes.map((node) => {
+        const gpuPct = node.gpuUtilization ?? 0;
+        return (
+          <Link
+            key={node.id}
+            href={`/monitoring?node=${node.id}`}
+            className="flex items-center gap-2.5 rounded-md px-2 py-1 transition hover:bg-accent/40"
+          >
+            <StatusDot
+              tone={node.degradedServices > 0 ? "warning" : "healthy"}
+              pulse={node.degradedServices > 0}
+            />
+            <span className="text-xs font-medium w-20 truncate">{node.name}</span>
+            <span className="font-mono text-[10px] text-muted-foreground/50 w-12">{node.ip}</span>
+            <span className="text-[10px] text-muted-foreground/50 w-14">{node.healthyServices}/{node.totalServices} svc</span>
+            {/* Thin inline GPU bar */}
+            <div className="flex-1 h-1 rounded-full bg-muted/30 overflow-hidden min-w-[40px] max-w-[80px]">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${Math.min(gpuPct, 100)}%`,
+                  backgroundColor:
+                    gpuPct >= 80
+                      ? "var(--signal-warning)"
+                      : gpuPct >= 1
+                        ? "var(--signal-success)"
+                        : "var(--text-disabled)",
+                }}
               />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold">{node.name}</p>
-                  <span className="font-mono text-xs text-muted-foreground">{node.ip}</span>
-                </div>
-                <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>{node.healthyServices}/{node.totalServices} svcs</span>
-                  <span>{formatLatency(node.averageLatencyMs)}</span>
-                  {node.gpuUtilization != null && (
-                    <span>GPU {formatPercent(node.gpuUtilization, 0)}</span>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            </div>
+            <span className="font-mono text-[10px] text-muted-foreground/50 w-8 text-right tabular-nums">
+              {formatPercent(node.gpuUtilization, 0)}
+            </span>
+          </Link>
+        );
+      })}
+    </div>
   );
 }

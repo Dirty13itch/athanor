@@ -5,18 +5,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ===================================================================
-   ATHANOR COMMAND CENTER - v2.0 "Sovereign"
-
-   Design language: Deep void backgrounds, electric cyan accent,
-   layered glass surfaces, purposeful glow. Every element serves
-   the operator. Data speaks; chrome whispers.
-
-   Color system: OKLCh throughout for perceptual uniformity.
-   Accent hue 192 (electric teal-cyan) replaces neutral white.
-   Signal colors tuned for instant readability on dark surfaces.
-   =================================================================== */
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -64,7 +52,6 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* --- Light mode (unused but kept for completeness) --- */
 :root {
   --radius: 0.625rem;
   --bg-app: oklch(0.985 0.004 255);
@@ -146,99 +133,53 @@
   --sidebar-ring: var(--line-focus);
 }
 
-/* ===================================================================
-   DARK MODE - "Sovereign" theme
-
-   Philosophy: The void is the canvas. Surfaces float in space
-   with subtle teal edge-light. Accent is electric teal-cyan
-   (oklch hue 192) - cold, precise, sovereign. Data glows;
-   chrome recedes. Status colors are vivid and unmistakable.
-   =================================================================== */
 .dark {
-  /* --- Void backgrounds ---
-     True deep blacks with trace blue undertone.
-     Three distinct depth tiers separated by 2-3% lightness. */
-  --bg-app: oklch(0.06 0.008 250);
-  --bg-atmosphere: oklch(0.14 0.02 195 / 0.08);
+  --bg-app: #161616;
+  --bg-atmosphere: rgb(255 255 255 / 0.03);
+  --surface-rail: #1a1a1a;
+  --surface-shell: #1f1f1f;
+  --surface-panel: #262626;
+  --surface-panel-2: #2d2d2d;
+  --surface-overlay: rgb(38 38 38 / 0.94);
+  --surface-hero: #212121;
+  --surface-metric: rgb(42 42 42 / 0.86);
+  --surface-instrument: #1f1f1f;
+  --line-soft: rgb(244 244 244 / 0.1);
+  --line-strong: #525252;
+  --line-focus: #c6c6c6;
+  --text-primary: #f4f4f4;
+  --text-secondary: #dde1e6;
+  --text-muted: #a8a8a8;
+  --text-disabled: #6f6f6f;
+  --accent-structural: #f4f4f4;
+  --accent-structural-soft: rgb(244 244 244 / 0.12);
+  --accent-structural-strong: #ffffff;
+  --signal-success: #42be65;
+  --signal-info: #dde1e6;
+  --signal-warning: #f1c21b;
+  --signal-danger: #fa4d56;
+  --signal-paused: #8d8d8d;
+  --signal-review: #be95ff;
+  --domain-core: #f4f4f4;
+  --domain-workforce: #3ddbd9;
+  --domain-intelligence: #be95ff;
+  --domain-memory: #42be65;
+  --domain-monitoring: #33b1ff;
+  --domain-media: #ff7eb6;
+  --domain-home: #82cfff;
+  --chart-cat-1: #78a9ff;
+  --chart-cat-2: #33b1ff;
+  --chart-cat-3: #42be65;
+  --chart-cat-4: #be95ff;
+  --chart-cat-5: #ff7eb6;
+  --chart-cat-6: #3ddbd9;
+  --chart-cat-7: #f1c21b;
+  --chart-cat-8: #8d8d8d;
+  --state-hover: rgb(255 255 255 / 0.05);
+  --state-pressed: rgb(255 255 255 / 0.08);
+  --state-selected: rgb(244 244 244 / 0.12);
+  --state-focus-ring: rgb(255 255 255 / 0.78);
 
-  /* --- Surface system ---
-     rail (deepest sidebar) < shell < panel < panel-2 (elevated)
-     Each step: +3-4% lightness, trace chroma toward accent hue */
-  --surface-rail: oklch(0.09 0.006 250);
-  --surface-shell: oklch(0.12 0.008 245);
-  --surface-panel: oklch(0.15 0.008 240);
-  --surface-panel-2: oklch(0.18 0.01 235);
-  --surface-overlay: oklch(0.14 0.01 240 / 0.96);
-  --surface-hero: oklch(0.13 0.014 220);
-  --surface-metric: oklch(0.17 0.012 230 / 0.9);
-  --surface-instrument: oklch(0.12 0.008 240);
-
-  /* --- Line system ---
-     Soft: barely visible panel separators
-     Strong: interactive borders, dividers with purpose
-     Focus: bright accent ring for keyboard nav */
-  --line-soft: oklch(0.9 0.01 220 / 0.08);
-  --line-strong: oklch(0.5 0.03 210 / 0.4);
-  --line-focus: oklch(0.78 0.12 192);
-
-  /* --- Text hierarchy ---
-     4 tiers: primary (bright) > secondary > muted > disabled
-     Primary has faint cool offset for sovereign feel */
-  --text-primary: oklch(0.94 0.006 220);
-  --text-secondary: oklch(0.72 0.012 220);
-  --text-muted: oklch(0.52 0.014 225);
-  --text-disabled: oklch(0.36 0.008 230);
-
-  /* --- Accent: Electric Teal-Cyan ---
-     The signature color. Hue 192 - between teal and cyan.
-     High chroma (0.14) for vibrancy without neon harshness.
-     Soft: for tinted backgrounds. Strong: for hover emphasis. */
-  --accent-structural: oklch(0.72 0.14 192);
-  --accent-structural-soft: oklch(0.72 0.14 192 / 0.12);
-  --accent-structural-strong: oklch(0.82 0.12 192);
-
-  /* --- Signal colors ---
-     Tuned for maximum distinctiveness on dark backgrounds.
-     Higher chroma than typical. Each is immediately identifiable. */
-  --signal-success: oklch(0.74 0.19 155);
-  --signal-info: oklch(0.72 0.14 192);
-  --signal-warning: oklch(0.82 0.16 80);
-  --signal-danger: oklch(0.68 0.22 25);
-  --signal-paused: oklch(0.48 0.012 240);
-  --signal-review: oklch(0.70 0.14 300);
-
-  /* --- Domain colors ---
-     Each domain gets a unique hue arc for instant recognition.
-     Core uses the accent. Others spread across the spectrum. */
-  --domain-core: oklch(0.72 0.14 192);
-  --domain-workforce: oklch(0.68 0.12 170);
-  --domain-intelligence: oklch(0.68 0.14 290);
-  --domain-memory: oklch(0.70 0.14 155);
-  --domain-monitoring: oklch(0.70 0.12 215);
-  --domain-media: oklch(0.72 0.15 335);
-  --domain-home: oklch(0.72 0.13 150);
-
-  /* --- Chart palette ---
-     8 distinct hues, all perceptually ~equal brightness.
-     Ordered for maximum adjacent contrast. */
-  --chart-cat-1: oklch(0.72 0.14 192);
-  --chart-cat-2: oklch(0.68 0.12 215);
-  --chart-cat-3: oklch(0.74 0.19 155);
-  --chart-cat-4: oklch(0.68 0.14 290);
-  --chart-cat-5: oklch(0.72 0.15 335);
-  --chart-cat-6: oklch(0.70 0.14 170);
-  --chart-cat-7: oklch(0.82 0.16 80);
-  --chart-cat-8: oklch(0.48 0.012 240);
-
-  /* --- Interactive states ---
-     Hover: subtle accent tint. Pressed: slightly more.
-     Selected: accent wash. Focus ring: bright accent. */
-  --state-hover: oklch(0.72 0.14 192 / 0.06);
-  --state-pressed: oklch(0.72 0.14 192 / 0.10);
-  --state-selected: oklch(0.72 0.14 192 / 0.14);
-  --state-focus-ring: oklch(0.78 0.12 192 / 0.9);
-
-  /* --- Shadcn mappings --- */
   --background: var(--bg-app);
   --foreground: var(--text-primary);
   --card: var(--surface-panel);
@@ -246,7 +187,7 @@
   --popover: var(--surface-overlay);
   --popover-foreground: var(--text-primary);
   --primary: var(--accent-structural);
-  --primary-foreground: oklch(0.06 0.008 250);
+  --primary-foreground: oklch(0.17 0.01 248);
   --secondary: var(--surface-shell);
   --secondary-foreground: var(--text-primary);
   --muted: var(--surface-panel-2);
@@ -265,28 +206,21 @@
   --sidebar: var(--surface-rail);
   --sidebar-foreground: var(--text-primary);
   --sidebar-primary: var(--accent-structural);
-  --sidebar-primary-foreground: oklch(0.06 0.008 250);
+  --sidebar-primary-foreground: oklch(0.17 0.01 248);
   --sidebar-accent: var(--state-hover);
   --sidebar-accent-foreground: var(--text-primary);
   --sidebar-border: var(--line-soft);
   --sidebar-ring: var(--line-focus);
 
-  /* --- Elevation shadows ---
-     Deep, diffused, with faint accent edge-light on top.
-     These give panels the floating-in-void feel. */
   --panel-shadow:
-    0 1px 0 oklch(0.72 0.14 192 / 0.04),
-    0 30px 80px -40px oklch(0 0 0 / 0.7),
-    0 16px 32px -20px oklch(0 0 0 / 0.5);
+    0 30px 90px -52px rgb(0 0 0 / 0.95),
+    0 18px 34px -24px rgb(0 0 0 / 0.82),
+    inset 0 1px 0 rgb(255 255 255 / 0.03);
   --chrome-shadow:
-    0 1px 0 oklch(0.72 0.14 192 / 0.03),
-    0 24px 60px -36px oklch(0 0 0 / 0.65);
+    0 24px 70px -46px rgb(0 0 0 / 0.94),
+    inset 0 1px 0 rgb(255 255 255 / 0.025);
 }
 
-
-/* ===================================================================
-   BASE LAYER
-   =================================================================== */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -296,9 +230,9 @@
     @apply bg-background text-foreground;
     color-scheme: dark;
     background-image:
-      radial-gradient(ellipse 60% 40% at 10% 0%, oklch(0.72 0.14 192 / 0.03) 0%, transparent 50%),
-      radial-gradient(ellipse 50% 35% at 85% 5%, oklch(0.68 0.14 290 / 0.015) 0%, transparent 40%),
-      radial-gradient(ellipse 100% 60% at 50% 100%, oklch(0 0 0 / 0.3) 0%, transparent 70%);
+      radial-gradient(circle at top left, var(--bg-atmosphere) 0%, transparent 28%),
+      radial-gradient(circle at 82% 8%, rgb(255 255 255 / 0.015) 0%, transparent 20%),
+      linear-gradient(180deg, color-mix(in srgb, var(--background) 80%, black) 0%, var(--background) 48%, color-mix(in srgb, var(--background) 88%, black) 100%);
     background-attachment: fixed;
     font-family: var(--font-system), sans-serif;
   }
@@ -312,8 +246,8 @@
   }
 
   ::selection {
-    background: oklch(0.72 0.14 192 / 0.3);
-    color: oklch(0.96 0.006 220);
+    background: color-mix(in oklab, var(--accent-structural-soft) 78%, transparent);
+    color: var(--foreground);
   }
 
   :focus-visible {
@@ -326,8 +260,6 @@
   }
 }
 
-
-/* --- Reduced motion --- */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -342,226 +274,141 @@
   }
 }
 
-
-/* --- Ambient system variables (SSE-driven in Phase 2) --- */
+/* Ambient system variables - driven by SSE in Phase 2 */
 :root {
   --system-intensity: 0;
   --breath-speed: 4s;
   --ambient-domain: var(--domain-core);
 }
 
-
-/* ===================================================================
-   COMPONENT LAYER - Surfaces, Navigation, Status
-   =================================================================== */
 @layer components {
-
-  /* --- Surface hierarchy ---
-     Each surface class gets a graduated background, faint top
-     edge-light (inset highlight), and deep shadow. The accent
-     hue bleeds through at ~2-4% opacity giving every panel
-     a subtle teal tint that unifies the design. */
-
   .surface-card {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.16 0.01 235 / 0.96) 0%,
-        oklch(0.13 0.008 240 / 0.94) 100%
-      );
-    border: 1px solid oklch(0.9 0.02 200 / 0.07);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-panel) 94%, white) 0%, color-mix(in srgb, var(--surface-shell) 90%, black) 100%);
+    border-color: var(--line-soft);
     box-shadow: var(--panel-shadow);
-    backdrop-filter: blur(16px);
-    transition: border-color 200ms ease, box-shadow 200ms ease;
-  }
-
-  .surface-card:hover {
-    border-color: oklch(0.72 0.14 192 / 0.12);
+    backdrop-filter: blur(14px);
   }
 
   .surface-panel {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.16 0.01 235 / 0.95) 0%,
-        oklch(0.12 0.008 240 / 0.93) 100%
-      );
-    border: 1px solid oklch(0.9 0.02 200 / 0.06);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-panel) 92%, white) 0%, color-mix(in srgb, var(--surface-shell) 92%, black) 100%);
+    border-color: var(--line-soft);
     box-shadow: var(--panel-shadow);
-    backdrop-filter: blur(16px);
-    transition: border-color 200ms ease;
+    backdrop-filter: blur(15px);
   }
 
   .surface-instrument {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.14 0.01 230 / 0.95) 0%,
-        oklch(0.10 0.006 240 / 0.93) 100%
-      );
-    border: 1px solid oklch(0.9 0.02 200 / 0.05);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-instrument) 92%, white) 0%, color-mix(in srgb, var(--surface-rail) 94%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 92%, transparent);
     box-shadow:
-      inset 0 1px 0 oklch(1 0 0 / 0.03),
-      0 16px 30px -24px oklch(0 0 0 / 0.6);
-    backdrop-filter: blur(14px);
+      inset 0 1px 0 rgb(255 255 255 / 0.025),
+      0 16px 30px -24px rgb(0 0 0 / 0.82);
+    backdrop-filter: blur(12px);
   }
 
   .surface-hero {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.16 0.016 210 / 0.97) 0%,
-        oklch(0.12 0.01 230 / 0.95) 100%
-      );
-    border: 1px solid oklch(0.72 0.14 192 / 0.10);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-hero) 92%, white) 0%, color-mix(in srgb, var(--surface-panel) 92%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-strong) 80%, var(--line-soft));
     box-shadow:
-      0 1px 0 oklch(0.72 0.14 192 / 0.06),
-      0 28px 70px -40px oklch(0 0 0 / 0.7),
-      inset 0 1px 0 oklch(1 0 0 / 0.04);
-    backdrop-filter: blur(18px);
+      0 28px 72px -42px rgb(0 0 0 / 0.96),
+      inset 0 1px 0 rgb(255 255 255 / 0.04),
+      inset 0 0 0 1px color-mix(in srgb, var(--accent-structural) 14%, transparent);
+    backdrop-filter: blur(16px);
   }
 
   .surface-chrome {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.14 0.008 240 / 0.96) 0%,
-        oklch(0.10 0.006 245 / 0.94) 100%
-      );
-    border: 1px solid oklch(0.9 0.02 200 / 0.06);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-overlay) 90%, white) 0%, color-mix(in srgb, var(--surface-rail) 95%, black) 100%);
+    border-color: var(--line-soft);
     box-shadow: var(--chrome-shadow);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(18px);
   }
 
   .surface-sidebar {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.10 0.008 240 / 0.98) 0%,
-        oklch(0.07 0.006 250 / 0.97) 100%
-      );
-    border: 1px solid oklch(0.9 0.02 200 / 0.05);
+      linear-gradient(180deg, color-mix(in srgb, var(--sidebar) 92%, white) 0%, color-mix(in srgb, var(--surface-rail) 96%, black) 100%);
+    border-color: var(--line-soft);
     box-shadow: var(--chrome-shadow);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(18px);
   }
 
   .surface-brand {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.15 0.018 200 / 0.97) 0%,
-        oklch(0.10 0.01 230 / 0.95) 100%
-      );
-    border: 1px solid oklch(0.72 0.14 192 / 0.14);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-hero) 90%, white) 0%, color-mix(in srgb, var(--surface-rail) 92%, black) 100%);
+    border-color: var(--line-strong);
     box-shadow:
-      0 1px 0 oklch(0.72 0.14 192 / 0.08),
-      0 28px 70px -40px oklch(0 0 0 / 0.7),
-      0 0 40px -20px oklch(0.72 0.14 192 / 0.06);
+      0 28px 72px -42px rgb(0 0 0 / 0.96),
+      inset 0 1px 0 rgb(255 255 255 / 0.04),
+      inset 0 0 0 1px color-mix(in srgb, var(--accent-structural) 12%, transparent);
   }
 
   .surface-tile {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.19 0.01 235 / 0.94) 0%,
-        oklch(0.15 0.008 240 / 0.92) 100%
-      );
-    border: 1px solid oklch(0.9 0.02 200 / 0.06);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-panel-2) 90%, white) 0%, color-mix(in srgb, var(--surface-panel) 94%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 90%, transparent);
     box-shadow:
-      0 18px 40px -30px oklch(0 0 0 / 0.55),
-      inset 0 1px 0 oklch(1 0 0 / 0.025);
-    transition: border-color 200ms ease, transform 200ms ease;
-  }
-
-  .surface-tile:hover {
-    border-color: oklch(0.72 0.14 192 / 0.10);
-    transform: translateY(-1px);
+      0 18px 40px -34px rgb(0 0 0 / 0.88),
+      inset 0 1px 0 rgb(255 255 255 / 0.025);
   }
 
   .surface-metric {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.18 0.012 225 / 0.92) 0%,
-        oklch(0.14 0.008 235 / 0.90) 100%
-      );
-    border: 1px solid oklch(0.9 0.02 200 / 0.06);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-metric) 88%, white) 0%, color-mix(in srgb, var(--surface-instrument) 96%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 90%, transparent);
     box-shadow:
-      inset 0 1px 0 oklch(1 0 0 / 0.02),
-      0 12px 24px -20px oklch(0 0 0 / 0.5);
+      inset 0 1px 0 rgb(255 255 255 / 0.02),
+      0 12px 24px -24px rgb(0 0 0 / 0.8);
   }
 
   .surface-stat {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.16 0.016 210 / 0.96) 0%,
-        oklch(0.13 0.01 230 / 0.94) 100%
-      );
-    border: 1px solid oklch(0.72 0.14 192 / 0.08);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-hero) 18%, var(--surface-panel)) 0%, color-mix(in srgb, var(--surface-panel) 92%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-strong) 50%, var(--line-soft));
     box-shadow:
-      0 1px 0 oklch(0.72 0.14 192 / 0.04),
-      0 26px 56px -38px oklch(0 0 0 / 0.6);
+      0 26px 60px -40px rgb(0 0 0 / 0.92),
+      inset 0 1px 0 rgb(255 255 255 / 0.03);
   }
 
   .chrome-chip {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.18 0.008 240 / 0.92) 0%,
-        oklch(0.14 0.006 245 / 0.90) 100%
-      );
-    border: 1px solid oklch(0.9 0.02 200 / 0.06);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-overlay) 90%, white) 0%, color-mix(in srgb, var(--surface-rail) 96%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 90%, transparent);
     box-shadow:
-      0 14px 30px -24px oklch(0 0 0 / 0.5),
-      inset 0 1px 0 oklch(1 0 0 / 0.025);
-    transition: border-color 180ms ease, background 180ms ease;
+      0 16px 34px -28px rgb(0 0 0 / 0.84),
+      inset 0 1px 0 rgb(255 255 255 / 0.025);
   }
-
-  .chrome-chip:hover {
-    border-color: oklch(0.72 0.14 192 / 0.12);
-  }
-
-
-  /* --- Navigation rail ---
-     Subtle glass links that light up with accent on active.
-     Hover reveals the border. Active gets a soft accent glow. */
 
   .nav-rail-link {
     border: 1px solid transparent;
-    background: oklch(0.12 0.006 240 / 0.6);
-    transition: all 180ms ease;
+    background: color-mix(in oklab, var(--surface-shell) 78%, transparent);
   }
 
   .nav-rail-link:hover {
-    border-color: oklch(0.9 0.02 200 / 0.1);
-    background: oklch(0.16 0.01 235 / 0.7);
+    border-color: color-mix(in oklab, var(--line-soft) 88%, transparent);
+    background: color-mix(in oklab, var(--surface-panel-2) 72%, transparent);
   }
 
   .nav-rail-link[data-active="true"] {
-    border-color: oklch(0.72 0.14 192 / 0.25);
+    border-color: color-mix(in srgb, var(--primary) 38%, var(--line-soft));
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.72 0.14 192 / 0.08) 0%,
-        oklch(0.18 0.012 230 / 0.9) 100%
-      );
+      linear-gradient(180deg, color-mix(in srgb, var(--primary) 8%, var(--surface-panel-2)) 0%, color-mix(in srgb, var(--surface-panel-2) 94%, black) 100%);
     box-shadow:
-      inset 0 1px 0 oklch(0.72 0.14 192 / 0.08),
-      0 0 20px -10px oklch(0.72 0.14 192 / 0.15);
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 14px 28px -24px color-mix(in srgb, var(--accent-structural) 18%, transparent);
   }
 
   .nav-rail-link[data-attention-tier="watch"]:not([data-active="true"]) {
-    border-color: oklch(0.9 0.02 200 / 0.06);
+    border-color: color-mix(in srgb, var(--line-soft) 92%, transparent);
   }
 
   .nav-rail-link[data-attention-tier="action"]:not([data-active="true"]),
   .nav-rail-link[data-attention-tier="urgent"]:not([data-active="true"]) {
-    border-color: oklch(0.5 0.03 210 / 0.3);
+    border-color: color-mix(in srgb, var(--line-strong) 68%, var(--line-soft));
   }
 
-
-  /* --- Attention system --- */
   .nav-attention-label {
     display: inline-flex;
     min-width: 0;
@@ -570,11 +417,12 @@
   }
 
   .nav-attention-label--watch {
-    color: var(--text-secondary);
+    color: color-mix(in srgb, var(--text-primary) 86%, var(--text-secondary));
   }
 
   .nav-attention-label--action {
     color: var(--text-primary);
+    text-shadow: 0 0 12px rgb(255 255 255 / 0.06);
   }
 
   .nav-attention-label--urgent {
@@ -583,14 +431,14 @@
 
   .nav-attention-char {
     display: inline-block;
-    animation: nav-spectral-sweep 2.4s ease-in-out infinite;
-    animation-delay: calc(var(--char-index, 0) * 90ms);
+    animation: nav-spectral-sweep 1.9s ease-in-out infinite;
+    animation-delay: calc(var(--char-index, 0) * 80ms);
     will-change: color, text-shadow, opacity;
   }
 
   .nav-attention-label--settled .nav-attention-char {
-    animation-duration: 4s;
-    opacity: 0.92;
+    animation-duration: 3.4s;
+    opacity: 0.94;
   }
 
   .nav-attention-indicator {
@@ -605,41 +453,44 @@
     font-weight: 700;
     line-height: 1;
     letter-spacing: 0.01em;
-    box-shadow: 0 0 0 1px oklch(0 0 0 / 0.2);
-    transition: all 200ms ease;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 0 0 1px rgb(0 0 0 / 0.16);
   }
 
   .nav-attention-indicator[data-tier="watch"] {
-    border-color: oklch(0.9 0.02 200 / 0.06);
-    background: oklch(0.18 0.01 235 / 0.8);
+    border-color: color-mix(in srgb, var(--line-soft) 94%, transparent);
+    background: color-mix(in srgb, var(--surface-panel-2) 92%, transparent);
     color: var(--text-secondary);
   }
 
   .nav-attention-indicator[data-tier="action"] {
-    border-color: oklch(0.82 0.16 80 / 0.4);
-    background: oklch(0.82 0.16 80 / 0.14);
-    color: oklch(0.88 0.14 80);
+    border-color: color-mix(in srgb, var(--signal-warning) 44%, transparent);
+    background: color-mix(in srgb, var(--signal-warning) 18%, var(--surface-panel-2));
+    color: color-mix(in srgb, var(--signal-warning) 88%, white);
     box-shadow:
-      0 0 0 1px oklch(0 0 0 / 0.2),
-      0 0 18px -8px oklch(0.82 0.16 80 / 0.3);
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 0 0 1px rgb(0 0 0 / 0.16),
+      0 0 22px -12px color-mix(in srgb, var(--signal-warning) 42%, transparent);
   }
 
   .nav-attention-indicator[data-tier="urgent"] {
-    border-color: oklch(0.68 0.22 25 / 0.4);
-    background: oklch(0.68 0.22 25 / 0.16);
-    color: oklch(0.80 0.18 25);
+    border-color: color-mix(in srgb, var(--signal-danger) 44%, transparent);
+    background: color-mix(in srgb, var(--signal-danger) 18%, var(--surface-panel-2));
+    color: color-mix(in srgb, var(--signal-danger) 88%, white);
     box-shadow:
-      0 0 0 1px oklch(0 0 0 / 0.2),
-      0 0 20px -8px oklch(0.68 0.22 25 / 0.35);
+      inset 0 1px 0 rgb(255 255 255 / 0.03),
+      0 0 0 1px rgb(0 0 0 / 0.16),
+      0 0 24px -12px color-mix(in srgb, var(--signal-danger) 42%, transparent);
   }
 
   .nav-attention-indicator--pulse {
-    animation: nav-attention-pulse 2s ease-in-out infinite;
+    animation: nav-attention-pulse 1.65s ease-in-out infinite;
   }
 
   .nav-attention-indicator--settled {
-    animation-duration: 3.6s;
-    opacity: 0.9;
+    animation-duration: 3.2s;
+    opacity: 0.92;
   }
 
   .nav-attention-marker {
@@ -647,68 +498,57 @@
     height: 0.42rem;
     width: 0.42rem;
     border-radius: 999px;
-    background: var(--text-muted);
-    box-shadow: 0 0 8px -4px oklch(0.72 0.14 192 / 0.3);
+    background: color-mix(in srgb, var(--text-secondary) 84%, transparent);
+    box-shadow: 0 0 10px -6px color-mix(in srgb, var(--text-secondary) 50%, transparent);
   }
 
   .nav-attention-marker[data-tier="watch"] {
-    background: var(--text-muted);
+    background: color-mix(in srgb, var(--text-secondary) 84%, transparent);
   }
-
-
-  /* --- Status badges ---
-     Clear semantic coloring with glow halos on warning/danger.
-     Each tone is immediately distinguishable at a glance. */
 
   .status-badge {
     border-width: 1px;
-    background: oklch(0.18 0.008 235 / 0.7);
+    background: color-mix(in oklab, var(--surface-panel-2) 84%, transparent);
     color: var(--text-secondary);
-    transition: all 180ms ease;
   }
 
   .status-badge[data-tone="success"] {
-    border-color: oklch(0.74 0.19 155 / 0.3);
-    background: oklch(0.74 0.19 155 / 0.10);
-    color: oklch(0.82 0.16 155);
-    box-shadow: 0 0 12px -6px oklch(0.74 0.19 155 / 0.2);
+    border-color: color-mix(in oklab, var(--signal-success) 34%, transparent);
+    background: color-mix(in oklab, var(--signal-success) 12%, transparent);
+    color: color-mix(in oklab, var(--signal-success) 80%, white);
   }
 
   .status-badge[data-tone="info"] {
-    border-color: oklch(0.72 0.14 192 / 0.3);
-    background: oklch(0.72 0.14 192 / 0.10);
-    color: oklch(0.80 0.12 192);
+    border-color: color-mix(in oklab, var(--signal-info) 34%, transparent);
+    background: color-mix(in oklab, var(--signal-info) 12%, transparent);
+    color: color-mix(in oklab, var(--signal-info) 72%, white);
   }
 
   .status-badge[data-tone="warning"] {
-    border-color: oklch(0.82 0.16 80 / 0.35);
-    background: oklch(0.82 0.16 80 / 0.12);
-    color: oklch(0.88 0.14 80);
-    box-shadow: 0 0 14px -6px oklch(0.82 0.16 80 / 0.25);
+    border-color: color-mix(in oklab, var(--signal-warning) 36%, transparent);
+    background: color-mix(in oklab, var(--signal-warning) 14%, transparent);
+    color: color-mix(in oklab, var(--signal-warning) 82%, white);
   }
 
   .status-badge[data-tone="danger"] {
-    border-color: oklch(0.68 0.22 25 / 0.35);
-    background: oklch(0.68 0.22 25 / 0.14);
-    color: oklch(0.80 0.18 25);
-    box-shadow: 0 0 16px -6px oklch(0.68 0.22 25 / 0.3);
+    border-color: color-mix(in oklab, var(--signal-danger) 36%, transparent);
+    background: color-mix(in oklab, var(--signal-danger) 14%, transparent);
+    color: color-mix(in oklab, var(--signal-danger) 86%, white);
   }
 
   .status-badge[data-tone="review"] {
-    border-color: oklch(0.70 0.14 300 / 0.3);
-    background: oklch(0.70 0.14 300 / 0.10);
-    color: oklch(0.80 0.12 300);
+    border-color: color-mix(in oklab, var(--signal-review) 34%, transparent);
+    background: color-mix(in oklab, var(--signal-review) 14%, transparent);
+    color: color-mix(in oklab, var(--signal-review) 80%, white);
   }
 
-
-  /* --- Typography utilities --- */
   .panel-heading {
     font-family: var(--font-display), sans-serif;
     letter-spacing: -0.025em;
   }
 
   .page-eyebrow {
-    color: oklch(0.72 0.14 192 / 0.7);
+    color: var(--text-secondary);
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.28em;
@@ -717,87 +557,50 @@
 
   .metric-strip {
     background:
-      linear-gradient(
-        180deg,
-        oklch(0.14 0.01 230 / 0.92) 0%,
-        oklch(0.10 0.006 240 / 0.90) 100%
-      );
-    border: 1px solid oklch(0.9 0.02 200 / 0.05);
+      linear-gradient(180deg, color-mix(in srgb, var(--surface-instrument) 90%, white) 0%, color-mix(in srgb, var(--surface-rail) 96%, black) 100%);
+    border-color: color-mix(in srgb, var(--line-soft) 92%, transparent);
     box-shadow:
-      inset 0 1px 0 oklch(1 0 0 / 0.02),
-      0 14px 28px -24px oklch(0 0 0 / 0.5);
+      inset 0 1px 0 rgb(255 255 255 / 0.02),
+      0 14px 28px -26px rgb(0 0 0 / 0.78);
   }
 }
 
-
-/* ===================================================================
-   KEYFRAME ANIMATIONS
-
-   Slower, smoother, more purposeful than v1. The spectral
-   sweep now flows through the accent hue family instead of
-   random signal colors. Pulse is gentler - a breath, not a beat.
-   =================================================================== */
-
 @keyframes nav-spectral-sweep {
-  0%, 100% {
+  0%,
+  100% {
     color: var(--text-primary);
-    opacity: 0.96;
+    opacity: 0.98;
     text-shadow: 0 0 0 transparent;
   }
-  25% {
-    color: oklch(0.80 0.12 192);
-    text-shadow: 0 0 14px oklch(0.72 0.14 192 / 0.25);
+  22% {
+    color: color-mix(in srgb, var(--signal-warning) 88%, white);
+    text-shadow: 0 0 16px color-mix(in srgb, var(--signal-warning) 34%, transparent);
   }
-  50% {
-    color: oklch(0.78 0.12 220);
-    text-shadow: 0 0 14px oklch(0.68 0.12 220 / 0.2);
+  46% {
+    color: color-mix(in srgb, var(--signal-review) 88%, white);
+    text-shadow: 0 0 16px color-mix(in srgb, var(--signal-review) 32%, transparent);
   }
-  75% {
-    color: oklch(0.76 0.10 260);
-    text-shadow: 0 0 12px oklch(0.70 0.10 260 / 0.15);
+  68% {
+    color: color-mix(in srgb, var(--signal-success) 88%, white);
+    text-shadow: 0 0 16px color-mix(in srgb, var(--signal-success) 28%, transparent);
+  }
+  84% {
+    color: color-mix(in srgb, var(--signal-info) 96%, white);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--signal-info) 22%, transparent);
   }
 }
 
 @keyframes nav-attention-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
-    opacity: 1;
+    filter: saturate(1);
   }
   50% {
-    transform: scale(1.04);
-    opacity: 0.92;
+    transform: scale(1.05);
+    filter: saturate(1.1);
   }
 }
-
-/* Subtle ambient breathing for hero surfaces */
-@keyframes surface-breathe {
-  0%, 100% {
-    box-shadow:
-      0 1px 0 oklch(0.72 0.14 192 / 0.05),
-      0 28px 70px -40px oklch(0 0 0 / 0.7);
-  }
-  50% {
-    box-shadow:
-      0 1px 0 oklch(0.72 0.14 192 / 0.08),
-      0 28px 70px -40px oklch(0 0 0 / 0.7),
-      0 0 30px -15px oklch(0.72 0.14 192 / 0.04);
-  }
-}
-
-/* Status dot pulse for live indicators */
-@keyframes status-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 oklch(0.74 0.19 155 / 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 4px oklch(0.74 0.19 155 / 0);
-  }
-}
-
-
-/* ===================================================================
-   UTILITY CLASSES
-   =================================================================== */
 
 /* Safe area for iPhone notch / gesture bar */
 .safe-area-bottom {
@@ -815,8 +618,38 @@
 /* Touch feedback for mobile */
 @media (pointer: coarse) {
   .tap-highlight {
-    -webkit-tap-highlight-color: oklch(0.72 0.14 192 / 0.15);
+    -webkit-tap-highlight-color: color-mix(in oklab, var(--accent-structural) 22%, transparent);
   }
+}
+
+/* Ambient system intensity effects */
+.ambient-glow {
+  transition: box-shadow 1.5s ease, filter 1.5s ease;
+  box-shadow:
+    0 0 calc(var(--system-intensity, 0) * 24px) oklch(0.77 calc(0.02 + var(--system-intensity, 0) * 0.06) 65 / calc(var(--system-intensity, 0) * 0.18));
+  filter: saturate(calc(1 + var(--system-intensity, 0) * 0.08));
+}
+
+/* Connection line animation */
+@keyframes connection-sweep {
+  0% { transform: scaleX(0); transform-origin: left; opacity: 0.6; }
+  50% { transform: scaleX(1); transform-origin: left; opacity: 1; }
+  50.01% { transform-origin: right; }
+  100% { transform: scaleX(0); transform-origin: right; opacity: 0.6; }
+}
+
+.connection-line {
+  animation: connection-sweep 2.4s ease-in-out infinite;
+}
+
+/* Pulsing dot for running tasks */
+@keyframes task-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.task-pulse-dot {
+  animation: task-pulse 1.6s ease-in-out infinite;
 }
 
 /* Hide scrollbar but keep scrolling */
@@ -829,34 +662,7 @@
   display: none;
 }
 
-/* Custom thin scrollbar for panels */
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: oklch(0.3 0.01 230 / 0.5) transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: oklch(0.3 0.01 230 / 0.5);
-  border-radius: 2px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.4 0.02 220 / 0.6);
-}
-
-
-/* ===================================================================
-   LENS / DOMAIN AMBIENT OVERRIDES
-   =================================================================== */
-
+/* Lens ambient overrides */
 [data-lens="system"] {
   --ambient-domain: var(--domain-core);
 }
@@ -871,9 +677,4 @@
 
 [data-lens="eoq"] {
   --ambient-domain: var(--domain-memory);
-}
-
-/* Hide empty-state cards on the command center overview — show only on dedicated pages */
-.command-center [data-empty-card="true"] {
-  display: none;
 }
