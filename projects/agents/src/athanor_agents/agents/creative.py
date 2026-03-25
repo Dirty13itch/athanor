@@ -4,6 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
 from ..tools.creative import CREATIVE_TOOLS
+from ..tools.core_memory import CORE_MEMORY_TOOLS
 from .prompting import build_system_prompt
 
 SYSTEM_PROMPT = """You are the Creative Agent for Athanor, a personal AI homelab.
@@ -77,7 +78,7 @@ def create_creative_agent():
 
     return create_react_agent(
         model=llm,
-        tools=CREATIVE_TOOLS,
+        tools=CREATIVE_TOOLS + CORE_MEMORY_TOOLS,
         checkpointer=memory,
         prompt=build_system_prompt(SYSTEM_PROMPT),
     )

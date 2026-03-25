@@ -25,7 +25,9 @@ export const EMILIE_EKSTROM: Queen = {
   title: "The Ice Heiress",
   archetype: "ice",
   resistance: 90,
+  resistanceCeiling: 90,
   corruption: 5,
+  awakeningFired: false,
   vulnerabilities: {
     physical: -0.3,
     psychological: 0.7,
@@ -111,7 +113,9 @@ export const JORDAN_NIGHT: Queen = {
   title: "The Nachtblume",
   archetype: "fire",
   resistance: 60,
+  resistanceCeiling: 60,
   corruption: 25,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.3,
     psychological: 0.4,
@@ -197,7 +201,9 @@ export const ALANAH_RAE: Queen = {
   title: "The Plastic Doll",
   archetype: "seductress",
   resistance: 50,
+  resistanceCeiling: 50,
   corruption: 20,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.5,
     psychological: 0.3,
@@ -283,7 +289,9 @@ export const NIKKI_BENZ: Queen = {
   title: "The Royal Brat",
   archetype: "defiant",
   resistance: 75,
+  resistanceCeiling: 75,
   corruption: 15,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.2,
     psychological: 0.5,
@@ -369,7 +377,9 @@ export const CHLOE_LAMOUR: Queen = {
   title: "The Surgeon's Shame",
   archetype: "shadow",
   resistance: 80,
+  resistanceCeiling: 80,
   corruption: 10,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.6,
     psychological: 0.7,
@@ -455,7 +465,9 @@ export const NICOLETTE_SHEA: Queen = {
   title: "The Tower",
   archetype: "sun",
   resistance: 55,
+  resistanceCeiling: 55,
   corruption: 20,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.4,
     psychological: 0.3,
@@ -541,7 +553,9 @@ export const PETA_JENSEN: Queen = {
   title: "The Nordic Fire",
   archetype: "priestess",
   resistance: 70,
+  resistanceCeiling: 70,
   corruption: 10,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.3,
     psychological: 0.6,
@@ -627,7 +641,9 @@ export const SANDEE_WESTGATE: Queen = {
   title: "The Exotic Flame",
   archetype: "seductress",
   resistance: 55,
+  resistanceCeiling: 55,
   corruption: 20,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.4,
     psychological: 0.5,
@@ -713,7 +729,9 @@ export const MARISOL_YOTTA: Queen = {
   title: "The Cam Queen",
   archetype: "fire",
   resistance: 40,
+  resistanceCeiling: 40,
   corruption: 30,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.5,
     psychological: 0.3,
@@ -799,7 +817,9 @@ export const TRINA_MICHAELS: Queen = {
   title: "The Pain Queen",
   archetype: "defiant",
   resistance: 45,
+  resistanceCeiling: 45,
   corruption: 30,
+  awakeningFired: false,
   vulnerabilities: {
     physical: -0.5,
     psychological: 0.3,
@@ -885,7 +905,9 @@ export const NIKKI_SEXX: Queen = {
   title: "The Throat GOAT",
   archetype: "warrior",
   resistance: 50,
+  resistanceCeiling: 50,
   corruption: 25,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.2,
     psychological: 0.4,
@@ -971,7 +993,9 @@ export const MADISON_IVY: Queen = {
   title: "The Tiny Destroyer",
   archetype: "innocent",
   resistance: 45,
+  resistanceCeiling: 45,
   corruption: 25,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.8,
     psychological: 0.3,
@@ -1057,7 +1081,9 @@ export const AMY_ANDERSSEN: Queen = {
   title: "The Monster Queen",
   archetype: "sun",
   resistance: 35,
+  resistanceCeiling: 35,
   corruption: 35,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.4,
     psychological: 0.3,
@@ -1143,7 +1169,9 @@ export const PUMA_SWEDE: Queen = {
   title: "The Ex-Domme",
   archetype: "warrior",
   resistance: 85,
+  resistanceCeiling: 85,
   corruption: 5,
+  awakeningFired: false,
   vulnerabilities: {
     physical: -0.3,
     psychological: 0.8,
@@ -1229,7 +1257,9 @@ export const AVA_ADDAMS: Queen = {
   title: "The MILF Boss",
   archetype: "seductress",
   resistance: 55,
+  resistanceCeiling: 55,
   corruption: 20,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.4,
     psychological: 0.5,
@@ -1315,7 +1345,9 @@ export const BROOKLYN_CHASE: Queen = {
   title: "The Good Girl Gone",
   archetype: "innocent",
   resistance: 70,
+  resistanceCeiling: 70,
   corruption: 10,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.5,
     psychological: 0.8,
@@ -1401,7 +1433,9 @@ export const ESPERANZA_GOMEZ: Queen = {
   title: "The Latina Fire",
   archetype: "fire",
   resistance: 50,
+  resistanceCeiling: 50,
   corruption: 25,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.3,
     psychological: 0.5,
@@ -1487,7 +1521,9 @@ export const SAVANNAH_BOND: Queen = {
   title: "The Aussie Bimbo",
   archetype: "sun",
   resistance: 35,
+  resistanceCeiling: 35,
   corruption: 30,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.5,
     psychological: 0.2,
@@ -1573,7 +1609,9 @@ export const SHYLA_STYLEZ: Queen = {
   title: "The Original Doll",
   archetype: "seductress",
   resistance: 40,
+  resistanceCeiling: 40,
   corruption: 25,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.5,
     psychological: 0.4,
@@ -1659,7 +1697,9 @@ export const BRIANNA_BANKS: Queen = {
   title: "The Golden Era",
   archetype: "seductress",
   resistance: 55,
+  resistanceCeiling: 55,
   corruption: 20,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.3,
     psychological: 0.6,
@@ -1745,7 +1785,9 @@ export const CLANDDI_JINKCEBO: Queen = {
   title: "The French Fetish Goddess",
   archetype: "shadow",
   resistance: 65,
+  resistanceCeiling: 65,
   corruption: 15,
+  awakeningFired: false,
   vulnerabilities: {
     physical: 0.4,
     psychological: 0.7,

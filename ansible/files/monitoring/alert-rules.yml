@@ -264,7 +264,7 @@ groups:
           severity: critical
         annotations:
           summary: "Qdrant vector database is down"
-          description: "Qdrant at 192.168.1.244:6333 is unreachable. Knowledge search, activity logging, context enrichment all impacted."
+          description: "Qdrant at 192.168.1.203:6333 is unreachable. Knowledge search, activity logging, context enrichment all impacted."
 
       - alert: Neo4jDown
         expr: probe_success{service_id="neo4j"} == 0
@@ -291,4 +291,4 @@ groups:
           severity: warning
         annotations:
           summary: "Workshop Worker vLLM is down"
-          description: "Worker vLLM at 192.168.1.225:8000 is unreachable. Tactical routing capacity reduced."
+          description: "Worker vLLM at 192.168.1.225:8010 is unreachable. Tactical routing capacity reduced."

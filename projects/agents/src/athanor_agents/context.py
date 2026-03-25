@@ -398,9 +398,14 @@ def _build_context_message(
     cst_line: str = "",
     graph_related_lines: list[str] | None = None,
     skill_context: str = "",
+    core_memory_context: str = "",
 ) -> str:
     """Assemble the final context injection string."""
     sections = []
+
+    # Core memory first — agent identity and directives
+    if core_memory_context:
+        sections.append(core_memory_context)
 
     if cst_line:
         sections.append(f"## Cognitive State\n{cst_line}")
@@ -616,6 +621,15 @@ async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0)
     except Exception as e:
         logger.debug("Skill search failed: %s", e)
 
+    # Step 2d-2: Fetch core memory (Redis, fast)
+    core_memory_context = ""
+    try:
+        from .core_memory import get_core_memory, format_core_memory_context
+        core_mem = await get_core_memory(agent_name)
+        core_memory_context = format_core_memory_context(core_mem)
+    except Exception as e:
+        logger.debug("Core memory fetch failed: %s", e)
+
     # Step 2e: Deduplicate across collections
     # Knowledge and personal_data can return overlapping content. Dedup by
     # comparing the first 200 chars of text payloads.
@@ -698,6 +712,7 @@ async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0)
         pref_lines, activity_lines, knowledge_lines, agent_name,
         goal_lines, pattern_lines, convention_lines, personal_data_lines,
         conversation_lines, cst_line, graph_related_lines, skill_context,
+        core_memory_context,
     )
 
     # Apply caller-specified budget override (e.g. task mode uses less context)

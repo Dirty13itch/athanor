@@ -4,6 +4,7 @@ import { useRef, useEffect } from "react";
 import { useGameStore } from "@/stores/game-store";
 import { useTypewriter } from "./use-typewriter";
 import { ProseText } from "./prose-text";
+import { VoiceButton } from "./voice-button";
 import { getBreakingStage } from "@/types/game";
 
 export function DialogueBox() {
@@ -69,14 +70,20 @@ export function DialogueBox() {
                   · {emotionLabel}
                 </span>
               )}
+              {!isGenerating && displayText && (
+                <VoiceButton characterId={speakerId} text={displayText} />
+              )}
             </div>
           </div>
         )}
         {speakerLabel === "narrator" && (
-          <div className="mb-2">
+          <div className="mb-2 flex items-center gap-2">
             <span className="text-[10px] uppercase tracking-widest text-white/20">
               &#x2756; Narrator
             </span>
+            {!isGenerating && displayText && (
+              <VoiceButton characterId="narrator" text={displayText} />
+            )}
           </div>
         )}
         <div className={`text-lg leading-relaxed whitespace-pre-wrap ${

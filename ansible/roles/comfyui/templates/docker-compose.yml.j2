@@ -14,7 +14,10 @@ services:
       - comfyui-custom-nodes:/opt/ComfyUI/custom_nodes
       - comfyui-user:/opt/ComfyUI/user
       - /mnt/vault/models:/mnt/vault/models:ro
+      - /mnt/fast2/comfyui:/mnt/fast2/comfyui:ro
       - {{ comfyui_deploy_dir }}/extra_model_paths.yaml:/opt/ComfyUI/extra_model_paths.yaml:ro
+      - /mnt/vault/appdata/eoq-references:/opt/ComfyUI/input/references:ro
+      - /mnt/vault/models/comfyui/insightface:/opt/ComfyUI/models/insightface:ro
     ipc: host
     ulimits:
       memlock: -1

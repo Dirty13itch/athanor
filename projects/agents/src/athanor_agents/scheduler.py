@@ -50,6 +50,12 @@ BENCHMARK_KEY = "athanor:scheduler:benchmark"
 BENCHMARK_INTERVAL = 21600  # 6 hours
 CACHE_CLEANUP_KEY = "athanor:scheduler:cache_cleanup"
 CACHE_CLEANUP_INTERVAL = 3600  # 1 hour
+
+# Quality cascades — chained multi-agent improvement loops
+CREATIVE_CASCADE_KEY = "athanor:scheduler:creative_cascade"
+CREATIVE_CASCADE_INTERVAL = 14400  # 4 hours
+CODE_CASCADE_KEY = "athanor:scheduler:code_cascade"
+CODE_CASCADE_INTERVAL = 21600  # 6 hours
 IMPROVEMENT_CYCLE_KEY = "athanor:scheduler:improvement_cycle"
 IMPROVEMENT_CYCLE_HOUR = 5
 IMPROVEMENT_CYCLE_MINUTE = 30
@@ -83,30 +89,53 @@ AGENT_SCHEDULES = {
     "general-assistant": {
         "interval": 1800,  # 30 min
         "prompt": (
-            "Run a system health check. Check all service health, GPU status, "
-            "and report anything that's down or degraded. Only report issues — "
-            "don't list services that are working fine unless everything is healthy."
+            "You are the general operations agent. Run a deep operational cycle:\n"
+            "1. Check ALL service health endpoints. For any degraded service: diagnose WHY it's "
+            "degraded (check logs, check upstream dependencies, check resource usage).\n"
+            "2. Check GPU utilization across all nodes. If any GPU is at 0% with a model loaded, "
+            "note it as wasted VRAM. If any GPU is >95% sustained, flag potential throttling.\n"
+            "3. Check recent task failure rates. If any agent has >20% failure rate in the last hour, "
+            "investigate the root cause (bad prompts? service down? timeout?).\n"
+            "4. If everything is healthy: pick ONE improvement from this list and do it:\n"
+            "   a. Check if any Redis keys have grown unexpectedly large\n"
+            "   b. Check Qdrant collection sizes — flag any >100K points for compaction review\n"
+            "   c. Review the last 10 completed tasks — which agent produced the best results?\n"
+            "Write a brief but specific status report. Never say 'all healthy' without evidence."
         ),
         "priority": "normal",
         "enabled": True,
     },
     "media-agent": {
-        "interval": 900,  # 15 min
+        "interval": 1800,  # 30 min
         "prompt": (
-            "Check for any active downloads, new additions, or queue items in "
-            "Sonarr and Radarr. Check Plex for current activity. Report only "
-            "notable items — active downloads, new content added, or streams in progress."
+            "You are the media operations agent. Run a deep media management cycle:\n"
+            "1. Check all download clients (Sonarr, Radarr, SABnzbd, qBittorrent). "
+            "Report active downloads with progress %, ETA, and any stalled items.\n"
+            "2. Check Plex for current streams and recently added content.\n"
+            "3. Look for media that needs attention:\n"
+            "   a. Recently added content missing subtitles\n"
+            "   b. Shows with missing episodes in monitored seasons\n"
+            "   c. Movies in the wanted queue for >7 days (maybe availability changed)\n"
+            "4. If nothing needs attention: check library stats and report total sizes, "
+            "recent growth rate, and any quality upgrade opportunities.\n"
+            "Be proactive — don't just report status, identify opportunities to improve the library."
         ),
         "priority": "low",
         "enabled": True,
     },
     "home-agent": {
-        "interval": 300,  # 5 min
+        "interval": 600,  # 10 min (was 5, reduced load)
         "prompt": (
-            "Check the current state of all Home Assistant entities. "
-            "Report any unusual states, recently triggered automations, "
-            "or entities that seem anomalous. If everything looks normal, "
-            "report a brief status summary."
+            "You are the home automation agent. Run a focused HA monitoring cycle:\n"
+            "1. Check ALL entity states. Flag any in 'unavailable' or 'unknown' state.\n"
+            "2. Check recently triggered automations — are they firing as expected?\n"
+            "3. Look for optimization opportunities:\n"
+            "   a. Lights left on in unoccupied rooms\n"
+            "   b. HVAC running inefficiently (heating AND cooling same zone)\n"
+            "   c. Devices with low battery (<20%)\n"
+            "   d. Automations that haven't fired in >30 days (may be broken or obsolete)\n"
+            "4. Check energy usage patterns if available.\n"
+            "Report only findings that need attention. If everything is normal, say so in ONE line."
         ),
         "priority": "low",
         "enabled": True,
@@ -114,9 +143,17 @@ AGENT_SCHEDULES = {
     "knowledge-agent": {
         "interval": 3600,  # 1 hour
         "prompt": (
-            "Check knowledge base health. Run get_knowledge_stats to see collection sizes. "
-            "If any docs were modified recently (check timestamps), note them for re-indexing. "
-            "Report collection sizes and any freshness issues."
+            "You are the knowledge management agent. Run a deep knowledge curation cycle:\n"
+            "1. Check all Qdrant collections — report sizes, recent growth, any anomalies.\n"
+            "2. Search for stale knowledge: find documents indexed >30 days ago that may need refreshing.\n"
+            "3. Check for knowledge gaps: search for topics mentioned in recent tasks that have "
+            "zero or very few matching documents in the knowledge base.\n"
+            "4. Pick ONE of these improvement actions:\n"
+            "   a. Find and index a new high-value document from /data/personal/ that hasn't been indexed\n"
+            "   b. Cross-reference bookmarks against indexed docs — find bookmarks not yet in the KB\n"
+            "   c. Search for duplicate or near-duplicate entries and flag them for consolidation\n"
+            "   d. Check semantic search quality — run 3 test queries and evaluate result relevance\n"
+            "Write a brief knowledge health report with specific numbers and any actions taken."
         ),
         "priority": "low",
         "enabled": True,
@@ -124,61 +161,108 @@ AGENT_SCHEDULES = {
     "research-agent": {
         "interval": 7200,  # 2 hours
         "prompt": (
-            "Check the intelligence signals pipeline. Search recent signals for "
-            "high-relevance items (min_relevance=0.7). If any are actionable for "
-            "Athanor (new model releases, vLLM updates, infrastructure tools), "
-            "summarize the key findings. Skip if no high-relevance signals."
+            "You are the research intelligence agent. Run a deep research cycle:\n"
+            "1. Check intelligence signals for high-relevance items (min_relevance=0.7).\n"
+            "2. For any actionable signals: research the full context. New vLLM release? "
+            "Read the changelog and assess impact on our stack. New model? Check benchmarks.\n"
+            "3. Pick ONE proactive research task:\n"
+            "   a. Search for newer/better quantizations of models we're running "
+            "(Qwen3.5-27B, Qwen3-Coder-30B, Flux dev). Is there a higher quality option?\n"
+            "   b. Research emerging video generation techniques — anything better than LTX 2.3 GGUF?\n"
+            "   c. Check ComfyUI custom nodes — new PuLID improvements, better face injection, "
+            "body pose control nodes we should install\n"
+            "   d. Research Ren'Py or Godot integration patterns for AI-driven visual novels\n"
+            "4. Write findings to your output. Include URLs, version numbers, and actionable conclusions.\n"
+            "Never report 'no signals found' without having actually searched and investigated."
         ),
         "priority": "low",
         "enabled": True,
     },
     "creative-agent": {
-        "interval": 14400,  # 4 hours
+        "interval": 7200,  # 2 hours
         "prompt": (
-            "Run a creative production cycle:\n"
-            "1. Check ComfyUI health (check_queue). If queue is busy, report and stop.\n"
-            "2. Check video inventory (check_video_inventory). Find queens missing 'defiant' stage videos.\n"
-            "3. For the first queen missing a video: generate an I2V video using generate_i2v_video "
-            "with their portrait URL as anchor and a stage-appropriate motion prompt "
-            "(e.g., 'cold stare at viewer, subtle breathing, imperious'). Use quality='quick'.\n"
-            "4. Poll for completion (poll_video_completion). If successful, update the inventory "
-            "(update_video_inventory) with the video URL.\n"
-            "5. Evaluate video quality (evaluate_video_quality). Report the result.\n"
-            "If no queens are missing defiant videos, check for other missing stages.\n"
-            "If all stages are covered, check for quick-preview videos that could be upgraded to production."
+            "You are the creative production agent. Run a quality cascade cycle:\n"
+            "1. Check ComfyUI health and queue status.\n"
+            "2. Check gallery generation history — how many images exist per queen?\n"
+            "3. Run a QUALITY CASCADE:\n"
+            "   a. Find the queen with the FEWEST high-quality assets\n"
+            "   b. Generate a new portrait using generate_with_likeness with her exact physical "
+            "blueprint from EOQB_CHARACTERS. Use photorealistic prompts — exact replica of the "
+            "performer, not stylized. Fit body, big fake round implants, studio lighting, 8K.\n"
+            "   c. After generation completes, evaluate: is the face accurate? Is the body realistic? "
+            "Are proportions correct? If not, regenerate with adjusted prompt (different seed, "
+            "tweaked descriptors).\n"
+            "4. If portrait quality is good, generate a SCENE for that queen using her character "
+            "context from the master doc. Explicit content is expected and encouraged.\n"
+            "5. Try generating a short LTX 2.3 video (generate_video_ltx) with a motion prompt "
+            "based on the queen's personality. 512x320, 41 frames, 6 steps.\n"
+            "6. Report what was generated, quality assessment, and what to prioritize next.\n"
+            "Always push for higher quality. Never generate generic content."
         ),
-        "priority": "low",
+        "priority": "normal",
         "enabled": True,
     },
     "coding-agent": {
         "interval": 10800,  # 3 hours
         "prompt": (
-            "Run a quick code health check. Verify the agent server is responding "
-            "at the /v1/agents endpoint. Check if any recent tasks had errors. "
-            "Report only issues found."
+            "You are the coding quality agent. Run a deep code improvement cycle:\n"
+            "Pick ONE of these tasks (rotate through them each cycle):\n\n"
+            "OPTION A — Dashboard audit:\n"
+            "1. Pick a dashboard subpage you haven't audited recently.\n"
+            "2. Read the page's source code and identify any issues:\n"
+            "   - Empty states that could show helpful content\n"
+            "   - API calls that might be failing silently\n"
+            "   - Missing error handling or loading states\n"
+            "3. Write a detailed review to /output/code-review-{page}-{date}.md\n\n"
+            "OPTION B — Agent server improvement:\n"
+            "1. Pick a Python file in the agents codebase\n"
+            "2. Check for: missing type hints, unused imports, error handling gaps, "
+            "logging that could be more informative\n"
+            "3. Write specific improvement suggestions to /output/code-quality-{file}-{date}.md\n\n"
+            "OPTION C — Configuration drift check:\n"
+            "1. Read docker-compose files and compare against what's actually running\n"
+            "2. Check for port mismatches, stale environment variables, or missing volumes\n"
+            "3. Document any drift found in /output/drift-report-{date}.md\n\n"
+            "Always produce a written artifact. Never just say 'everything looks good'."
         ),
         "priority": "low",
         "enabled": True,
     },
     "stash-agent": {
-        "interval": 21600,  # 6 hours
+        "interval": 14400,  # 4 hours
         "prompt": (
-            "Check Stash library stats. Look for recently added scenes that are "
-            "untagged or uncategorized. Report counts of unorganized content. "
-            "Only report if there are items needing attention."
+            "You are the Stash media management agent. Run a deep organization cycle:\n"
+            "1. Get library stats — total scenes, performers, studios, tags.\n"
+            "2. Find unorganized content:\n"
+            "   a. Scenes with 0 tags (need classification)\n"
+            "   b. Scenes with 0 performers (need identification)\n"
+            "   c. Performers without profile images\n"
+            "   d. Duplicate scenes (check by title similarity or phash)\n"
+            "3. For untagged scenes: use available metadata (filename, studio, path) to suggest tags. "
+            "Apply tags if confidence is high, queue for review if uncertain.\n"
+            "4. Check for scenes that could be auto-tagged based on studio or series patterns.\n"
+            "5. Report: X scenes organized, Y performers identified, Z items queued for review.\n"
+            "Be thorough. The goal is zero unorganized content."
         ),
         "priority": "low",
         "enabled": True,
     },
     "data-curator": {
-        "interval": 21600,  # 6 hours
+        "interval": 14400,  # 4 hours
         "prompt": (
-            "Run an autonomous data curation cycle. "
-            "1. Check what's already indexed (get_scan_status). "
-            "2. Scan accessible roots for new or changed files. "
-            "3. Parse and index any unindexed files, prioritizing recently modified "
-            "and files in high-value directories (energy audits, AI docs, finance). "
-            "4. Report a summary of what was found and indexed."
+            "You are the personal data curator. Run a deep data indexing cycle:\n"
+            "1. Check scan status — what directories have been scanned, when was the last scan?\n"
+            "2. Scan for NEW files since the last scan. Prioritize:\n"
+            "   a. Energy audit reports (HERS ratings, REScheck, energy models)\n"
+            "   b. AI research docs and notes\n"
+            "   c. Financial documents\n"
+            "   d. Personal documents and records\n"
+            "3. For each new file found: parse, extract key metadata, generate embeddings, "
+            "and index into the appropriate Qdrant collection.\n"
+            "4. Check data quality: search for entries with missing metadata, broken file paths, "
+            "or suspiciously low embedding confidence scores.\n"
+            "5. Report: X new files indexed, Y files updated, Z quality issues found.\n"
+            "The goal is a complete, searchable personal knowledge base."
         ),
         "priority": "low",
         "enabled": True,
@@ -595,7 +679,7 @@ async def _check_work_pipeline():
 
     logger.info("Scheduler: running work pipeline cycle (interval=%ds)", PIPELINE_INTERVAL)
     try:
-        result = await run_pipeline_cycle()
+        result = await asyncio.wait_for(run_pipeline_cycle(), timeout=120)
         r = await _get_redis()
         await r.set(PIPELINE_KEY, str(time.time()))
         logger.info(
@@ -770,6 +854,52 @@ async def _check_weekly_dpo_training():
         logger.warning("Scheduler: DPO training data collection failed: %s", e)
 
 
+async def _check_creative_cascade():
+    """Run creative quality cascade every CREATIVE_CASCADE_INTERVAL seconds."""
+    try:
+        r = await _get_redis()
+        last = await r.get(CREATIVE_CASCADE_KEY)
+        last_ts = float(last) if last else 0.0
+        if time.time() - last_ts < CREATIVE_CASCADE_INTERVAL:
+            return
+
+        logger.info("Scheduler: starting creative quality cascade")
+        from .cascade import run_creative_cascade
+        result = await asyncio.wait_for(run_creative_cascade(), timeout=CASCADE_TIMEOUT)
+        await r.set(CREATIVE_CASCADE_KEY, str(time.time()))
+        logger.info(
+            "Creative cascade completed: %d loops, quality=%.2f",
+            result.get("total_loops", 0), result.get("final_quality", 0),
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Creative cascade timed out after %ds", CASCADE_TIMEOUT)
+    except Exception as e:
+        logger.warning("Creative cascade failed: %s", e)
+
+
+async def _check_code_cascade():
+    """Run code quality cascade every CODE_CASCADE_INTERVAL seconds."""
+    try:
+        r = await _get_redis()
+        last = await r.get(CODE_CASCADE_KEY)
+        last_ts = float(last) if last else 0.0
+        if time.time() - last_ts < CODE_CASCADE_INTERVAL:
+            return
+
+        logger.info("Scheduler: starting code quality cascade")
+        from .cascade import run_code_quality_cascade
+        result = await asyncio.wait_for(run_code_quality_cascade(), timeout=CASCADE_TIMEOUT)
+        await r.set(CODE_CASCADE_KEY, str(time.time()))
+        logger.info(
+            "Code quality cascade completed: %d steps",
+            len(result.get("steps", [])),
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Code quality cascade timed out after %ds", CASCADE_TIMEOUT)
+    except Exception as e:
+        logger.warning("Code quality cascade failed: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -821,6 +951,10 @@ async def _scheduler_loop():
 
             # Semantic cache cleanup (every 1h)
             await _check_cache_cleanup()
+
+            # Quality cascades — multi-agent improvement loops
+            await _check_creative_cascade()
+            await _check_code_cascade()
 
             for agent, schedule in AGENT_SCHEDULES.items():
                 if not schedule.get("enabled", True):
@@ -875,7 +1009,10 @@ async def _scheduler_loop():
                     except Exception as e:
                         logger.warning("Scheduler: failed to submit task for %s: %s", agent, e)
 
-        except Exception as e:
+        except asyncio.CancelledError:
+            logger.warning("Scheduler loop cancelled — stopping")
+            return
+        except BaseException as e:
             logger.warning("Scheduler loop error: %s", e)
 
         await asyncio.sleep(SCHEDULER_INTERVAL)

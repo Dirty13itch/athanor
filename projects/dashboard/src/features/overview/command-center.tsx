@@ -4,30 +4,30 @@ import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Activity,
   ArrowUpRight,
   Bot,
+  ChevronDown,
   Clock3,
-  Cpu,
   ExternalLink,
   FolderKanban,
   Gauge,
   History,
+  Layers,
+  Radio,
+  Shield,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AgentCrewBar } from "@/components/agent-crew-bar";
 import { DailyBriefing } from "@/components/daily-briefing";
+import { LensTabs } from "@/components/lens-tabs";
 import { MediaGlance } from "@/components/media-glance";
+import { RightNowCard } from "@/components/right-now-card";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
-import { AttentionBanner } from "@/components/attention-banner";
-import { GovernorQueuePanel } from "@/components/governor-queue-panel";
-import { GoalsPanel } from "@/components/goals-panel";
-import { LiveActivityPanel } from "@/components/live-activity-panel";
-import { AgentWorkPanel } from "@/components/agent-work-panel";
 import { GovernorCard } from "@/components/governor-card";
 import { JudgePlaneCard } from "@/components/judge-plane-card";
 import { LiveBadge } from "@/components/live-badge";
@@ -37,10 +37,11 @@ import { OperationsReadinessCard } from "@/components/operations-readiness-card"
 import { PageHeader } from "@/components/page-header";
 import { ProvingGroundCard } from "@/components/proving-ground-card";
 import { SmartStack } from "@/components/smart-stack";
-import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
 import { SystemMapCard } from "@/components/system-map-card";
+import { SubscriptionBurn } from "@/components/subscription-burn";
 import { SystemPulse } from "@/components/system-pulse";
+import { AttentionBanner } from "@/components/attention-banner";
 import { UnifiedStream } from "@/components/unified-stream";
 import { WorkPlan } from "@/components/work-plan";
 import { getOverview } from "@/lib/api";
@@ -55,12 +56,18 @@ import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
 import { queryKeys } from "@/lib/query-client";
 import { readJsonStorage, STORAGE_KEYS } from "@/lib/state";
 import { useLens } from "@/hooks/use-lens";
+import { useSystemStream } from "@/hooks/use-system-stream";
 import type { SectionId } from "@/lib/lens";
+import { cn } from "@/lib/utils";
 import { QueenRosterCard } from "@/components/eoq/queen-roster-card";
 import { RecentDialogueCard } from "@/components/eoq/recent-dialogue-card";
 import { GenerationGalleryCard } from "@/components/eoq/generation-gallery-card";
 import { CharacterMemoryCard } from "@/components/eoq/character-memory-card";
 import { GameStatsCard } from "@/components/eoq/game-stats-card";
+
+/* ═══════════════════════════════════════════════════════════════════
+   Helpers
+   ═══════════════════════════════════════════════════════════════════ */
 
 function buildTrendData(snapshot: OverviewSnapshot) {
   const map = new Map<string, { timestamp: string; services: number | null; gpu: number | null }>();
@@ -113,10 +120,128 @@ function isCardVisible(cardGroup: string, sections: SectionId[]): boolean {
   return mapped.some((s) => sections.includes(s));
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   Inline sub-components
+   ═══════════════════════════════════════════════════════════════════ */
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="surface-instrument rounded-xl border p-2.5">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm font-semibold">{value}</p>
+    </div>
+  );
+}
+
+/** GPU utilization bar — thin horizontal fill with transition. */
+function GpuBar({ value }: { value: number | null }) {
+  const pct = value ?? 0;
+  const color =
+    pct >= 80
+      ? "bg-[color:var(--signal-warning)]"
+      : pct >= 1
+        ? "bg-[color:var(--signal-success)]"
+        : "bg-muted-foreground/30";
+  return (
+    <div className="h-1.5 w-full rounded-full bg-muted/40">
+      <div
+        className={cn("h-full rounded-full transition-all duration-700", color)}
+        style={{ width: `${Math.min(pct, 100)}%` }}
+      />
+    </div>
+  );
+}
+
+/** 2x2 node grid embedded in the command surface. */
+function NodeGrid({ nodes }: { nodes: OverviewSnapshot["nodes"] }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {nodes.map((node) => (
+        <Link
+          key={node.id}
+          href={`/services?node=${node.id}`}
+          className="surface-metric group flex flex-col gap-2 rounded-xl border p-3 transition hover:bg-accent/60"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <StatusDot
+                tone={node.degradedServices > 0 ? "warning" : "healthy"}
+                pulse={node.degradedServices > 0}
+              />
+              <span className="text-sm font-semibold truncate">{node.name}</span>
+            </div>
+            <span className="font-mono text-[10px] text-muted-foreground shrink-0">{node.ip}</span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <span>{node.healthyServices}/{node.totalServices} svc</span>
+            <span>{formatPercent(node.gpuUtilization, 0)} GPU</span>
+          </div>
+          <GpuBar value={node.gpuUtilization} />
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/** Inline metric pill for the command surface header row. */
+function InlineMetric({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "success" | "warning" | "danger";
+}) {
+  const toneColor: Record<string, string> = {
+    default: "text-foreground",
+    success: "text-[color:var(--signal-success)]",
+    warning: "text-[color:var(--signal-warning)]",
+    danger: "text-[color:var(--signal-danger)]",
+  };
+  return (
+    <div className="flex flex-col items-center gap-0.5 px-3 py-2">
+      <span className={cn("text-lg font-bold tabular-nums tracking-tight", toneColor[tone])} data-volatile="true">
+        {value}
+      </span>
+      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+/** Collapsible section for Zone 4 deep dive areas. */
+function DeepDiveSection({
+  title,
+  icon,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="group" open={defaultOpen || undefined}>
+      <summary className="surface-panel flex cursor-pointer items-center gap-3 rounded-2xl border px-5 py-4 transition hover:bg-accent/60 list-none [&::-webkit-details-marker]:hidden">
+        <span className="text-muted-foreground">{icon}</span>
+        <span className="text-sm font-semibold tracking-tight">{title}</span>
+        <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="mt-3 space-y-4">{children}</div>
+    </details>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Main export
+   ═══════════════════════════════════════════════════════════════════ */
+
 export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSnapshot }) {
   const { config: lensConfig } = useLens();
   const show = (group: string) => isCardVisible(group, lensConfig.sections);
   const [agentFilter, setAgentFilter] = useState<string | null>(null);
+  const { data: stream } = useSystemStream();
 
   const overviewQuery = useQuery({
     queryKey: queryKeys.overview,
@@ -124,6 +249,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
     initialData: initialSnapshot,
     ...liveQueryOptions(LIVE_REFRESH_INTERVALS.overview),
   });
+
   const [recentContext] = useState<
     Array<{ id: string; title: string; route: string; updatedAt: string; type: string }>
   >(() => {
@@ -181,11 +307,101 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const snapshot = overviewQuery.data ?? initialSnapshot;
   const trendData = buildTrendData(snapshot);
 
-  return (
-    <div className="command-center space-y-8">
-      <SystemPulse sticky />
-      <AgentCrewBar onAgentFilter={setAgentFilter} />
+  /* Derive live stats from SSE when available, fall back to snapshot */
+  const sseServicesUp = stream?.services.up ?? snapshot.summary.healthyServices;
+  const sseServicesTotal = stream?.services.total ?? snapshot.summary.totalServices;
+  const sseServicesDown = stream?.services.down ?? [];
+  const sseAgentCount = stream?.agents.count ?? snapshot.summary.readyAgents;
+  const sseTasksToday = stream?.tasks?.by_status.completed ?? snapshot.workforce.summary.completedTasks;
+  const sseRunning = stream?.tasks?.currently_running ?? snapshot.workforce.summary.runningTasks;
+  const sseGpuAvg =
+    stream && stream.gpus.length > 0
+      ? Math.round(stream.gpus.reduce((sum, g) => sum + g.utilization, 0) / stream.gpus.length)
+      : snapshot.summary.averageGpuUtilization;
 
+  return (
+    <div className="space-y-5">
+      {/* ═══ ZONE 1: Status Bar (sticky) ═══ */}
+      <SystemPulse sticky />
+
+      <AttentionBanner />
+
+      {/* ═══ ZONE 2: Command Surface ═══ */}
+      <div className="surface-hero rounded-2xl border p-4 md:p-6">
+        {/* Header row: title + lens tabs + live badge */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold tracking-tight md:text-2xl">ATHANOR</h1>
+            <LensTabs />
+          </div>
+          <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.overview} />
+        </div>
+
+        {/* Metric strip — 4 key numbers in a tight row */}
+        <div className="mt-4 flex flex-wrap items-stretch justify-center gap-px rounded-xl border surface-instrument overflow-hidden">
+          <InlineMetric
+            label="Services"
+            value={`${sseServicesUp}/${sseServicesTotal}`}
+            tone={sseServicesDown.length > 0 ? "warning" : "success"}
+          />
+          <div className="w-px self-stretch bg-border/40" />
+          <InlineMetric
+            label="Agents"
+            value={`${sseAgentCount}`}
+            tone={sseAgentCount > 0 ? "success" : "warning"}
+          />
+          <div className="w-px self-stretch bg-border/40" />
+          <InlineMetric
+            label="GPU avg"
+            value={formatPercent(sseGpuAvg, 0)}
+            tone={sseGpuAvg !== null && sseGpuAvg >= 80 ? "warning" : "success"}
+          />
+          <div className="w-px self-stretch bg-border/40" />
+          <InlineMetric
+            label="Tasks"
+            value={`${sseTasksToday}`}
+            tone={sseRunning > 0 ? "success" : "default"}
+          />
+        </div>
+
+        {/* Main command surface: left = Right Now, right = Nodes + Agents */}
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+          {/* Left column: Right Now + alerts */}
+          <div className="space-y-4">
+            <RightNowCard snapshot={snapshot} />
+
+            {/* Degraded alerts inline — pulsing red */}
+            {snapshot.alerts.filter((a) => a.tone === "degraded").length > 0 && (
+              <div className="space-y-2">
+                {snapshot.alerts
+                  .filter((a) => a.tone === "degraded")
+                  .map((alert) => (
+                    <Link
+                      key={alert.id}
+                      href={alert.href}
+                      className="surface-tile flex items-center gap-3 rounded-xl border border-[color:var(--signal-danger)]/20 p-3 transition hover:bg-accent/60"
+                    >
+                      <StatusDot tone="danger" pulse className="shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{alert.title}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{alert.description}</p>
+                      </div>
+                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    </Link>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right column: node grid + agent crew */}
+          <div className="space-y-4">
+            <NodeGrid nodes={snapshot.nodes} />
+            <AgentCrewBar onAgentFilter={setAgentFilter} />
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ EoBQ Content (lens-gated) ═══ */}
       {show("eoqContent") && (
         <div className="space-y-4">
           <QueenRosterCard />
@@ -198,567 +414,529 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         </div>
       )}
 
-      <PageHeader
-        eyebrow="Operations"
-        title="Command Center"
-        description="Athanor cluster posture, workforce state, first-class projects, and launch points for the operator workflow."
-        actions={
-          <>
-            <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.overview} />
-            <Button asChild variant="outline">
-              <Link href="/services?status=degraded">Open incidents</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/workplanner">Open work planner</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/agents">Resume agents</Link>
-            </Button>
-          </>
-        }
-      >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <StatCard
-            label="Cluster health"
-            value={`${snapshot.summary.healthyServices}/${snapshot.summary.totalServices}`}
-            detail={
-              snapshot.summary.degradedServices > 0
-                ? `${snapshot.summary.degradedServices} service issues need attention.`
-                : "All monitored endpoints are reachable."
-            }
-            tone={snapshot.summary.degradedServices > 0 ? "warning" : "success"}
-            icon={<Activity className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Average latency"
-            value={formatLatency(snapshot.summary.averageLatencyMs)}
-            detail={`Overview refreshed ${formatRelativeTime(snapshot.generatedAt)}.`}
-            detailVolatile
-            tone={
-              snapshot.summary.averageLatencyMs !== null &&
-              snapshot.summary.averageLatencyMs > 900
-                ? "warning"
-                : "default"
-            }
-            icon={<Gauge className="h-5 w-5" />}
-          />
-          <StatCard
-            label="GPU utilization"
-            value={formatPercent(snapshot.summary.averageGpuUtilization, 0)}
-            detail={`${snapshot.hotspots.length} GPUs surfaced in the hotspot lane.`}
-            tone={
-              snapshot.summary.averageGpuUtilization !== null &&
-              snapshot.summary.averageGpuUtilization >= 80
-                ? "warning"
-                : "success"
-            }
-            icon={<Cpu className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Agent readiness"
-            value={`${snapshot.summary.readyAgents}/${snapshot.summary.totalAgents}`}
-            detail={`${snapshot.summary.reachableBackends}/${snapshot.summary.totalBackends} inference backends reachable.`}
-            tone={snapshot.summary.readyAgents > 0 ? "success" : "warning"}
-            icon={<Bot className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Project platform"
-            value={`${snapshot.summary.activeProjects}/${snapshot.projects.length}`}
-            detail={`${snapshot.summary.firstClassProjects} first-class projects in the registry.`}
-            tone={snapshot.summary.firstClassProjects > 0 ? "success" : "warning"}
-            icon={<FolderKanban className="h-5 w-5" />}
-          />
-        </div>
-      </PageHeader>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <DailyBriefing />
-        <MediaGlance />
-        <SmartStack />
-        <Card className="surface-hero">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Clock3 className="h-5 w-5 text-primary" />
-              Unified stream
+      {/* ═══ ZONE 3: Operational Grid ═══ */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Column 1: Activity Stream */}
+        <Card className="surface-panel">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Radio className="h-4 w-4 text-primary" />
+              Activity
             </CardTitle>
-            <CardDescription>
-              Cross-route activity across tasks, agents, and operator feedback.
-            </CardDescription>
           </CardHeader>
           <CardContent>
             <UnifiedStream limit={8} showFilters agentFilter={agentFilter} />
           </CardContent>
         </Card>
-        <WorkPlan />
+
+        {/* Column 2: Work Plan + Goals stacked */}
+        <div className="space-y-4">
+          <WorkPlan />
+          <SmartStack />
+        </div>
+
+        {/* Column 3: Media + Furnace + Briefing stacked */}
+        <div className="space-y-4">
+          <MediaGlance />
+          <SubscriptionBurn />
+          <DailyBriefing />
+        </div>
       </div>
 
-      {show("priorityLane") && <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <Card className="surface-hero">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Priority lane
-            </CardTitle>
-            <CardDescription>Incidents and live attention areas across the cluster.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {snapshot.alerts.map((alert) => (
-              <Link
-                key={alert.id}
-                href={alert.href}
-                  className="surface-tile flex items-start gap-3 rounded-2xl border p-4 transition hover:bg-accent/60"
-              >
-                <StatusDot
-                  tone={
-                    alert.tone === "healthy"
-                      ? "healthy"
-                      : alert.tone === "degraded"
-                        ? "danger"
-                        : alert.tone
-                  }
-                  pulse={alert.tone === "degraded"}
-                  className="mt-1"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">{alert.title}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{alert.description}</p>
-                </div>
-                <ArrowUpRight className="mt-1 h-4 w-4 text-muted-foreground" />
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
+      {/* Quick actions bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link href="/services?status=degraded">Incidents</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/workplanner">Work planner</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/gallery">Gallery</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/chat">Chat</Link>
+        </Button>
+        <Button asChild size="sm">
+          <Link href="/agents">Agents</Link>
+        </Button>
+      </div>
 
-        <Card className="surface-panel">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <History className="h-5 w-5 text-primary" />
-              Recent operator context
-            </CardTitle>
-            <CardDescription>Browser-local sessions and threads you touched most recently.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {recentContext.length > 0 ? (
-              recentContext.map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.route}
-                  className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
-                >
-                  <div className="flex items-center justify-between gap-3">
+      {/* ═══ ZONE 4: Deep Dive (collapsible) ═══ */}
+
+      {/* Projects */}
+      {show("projectPlatform") && (
+        <DeepDiveSection title="Projects" icon={<FolderKanban className="h-4 w-4" />} defaultOpen>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="space-y-3">
+              {snapshot.projects.map((project) => (
+                <div key={project.id} className="surface-tile rounded-2xl border p-4">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{item.title}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                        {item.type}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{project.name}</p>
+                        {project.firstClass ? <Badge>First-class</Badge> : null}
+                        <Badge variant="outline">{project.kind}</Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{project.headline}</p>
                     </div>
-                    <Badge variant="outline" data-volatile="true">
-                      {formatRelativeTime(item.updatedAt)}
+                    <Badge variant={isActiveProject(project.status) ? "outline" : "secondary"}>
+                      {formatProjectStatus(project.status)}
                     </Badge>
                   </div>
-                </Link>
-              ))
-            ) : (
-              <EmptyState
-                title="No recent sessions yet"
-                description="Recent direct-chat sessions and agent threads will appear here once you start working through the console."
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>}
 
-      {show("workforceRow") && <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_1fr]">
-        <Card className="surface-hero">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Bot className="h-5 w-5 text-primary" />
-              Workforce pulse
-            </CardTitle>
-            <CardDescription>Queue pressure, approvals, and active work across the org.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <Metric label="Queued" value={`${snapshot.workforce.summary.pendingTasks + snapshot.workforce.summary.runningTasks}`} />
-              <Metric label="Approvals" value={`${snapshot.workforce.summary.pendingApprovals}`} />
-              <Metric label="Goals" value={`${snapshot.workforce.summary.activeGoals}`} />
-              <Metric
-                label="Trust"
-                value={
-                  snapshot.workforce.summary.avgTrustScore === null
-                    ? "--"
-                    : `${Math.round(snapshot.workforce.summary.avgTrustScore * 100)}%`
-                }
-              />
-            </div>
-            {snapshot.workforce.tasks.slice(0, 3).map((task) => (
-              <Link
-                key={task.id}
-                href="/workplanner"
-                className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={task.status === "pending_approval" ? "destructive" : "outline"}>
-                    {task.status.replace(/_/g, " ")}
-                  </Badge>
-                  <Badge variant="secondary">{task.agentId}</Badge>
-                  {task.projectId ? <Badge variant="outline">{task.projectId}</Badge> : null}
-                </div>
-                <p className="mt-2 text-sm">{compactText(task.prompt, 140)}</p>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="surface-panel">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FolderKanban className="h-5 w-5 text-primary" />
-              Active goals
-            </CardTitle>
-            <CardDescription>Steering constraints currently shaping the work planner.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {snapshot.workforce.goals.slice(0, 3).map((goal) => (
-              <div key={goal.id} className="surface-tile rounded-2xl border p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{goal.priority}</Badge>
-                  <Badge variant="secondary">{goal.agentId === "global" ? "All agents" : goal.agentId}</Badge>
-                </div>
-                <p className="mt-2 text-sm">{goal.text}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="surface-panel">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Clock3 className="h-5 w-5 text-primary" />
-              Workspace broadcast
-            </CardTitle>
-            <CardDescription>Top salience items moving through the shared workspace.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {snapshot.workforce.workspace.broadcast.slice(0, 3).map((item) => (
-              <div key={item.id} className="surface-tile rounded-2xl border p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium">{item.sourceAgent}</p>
-                  <Badge variant="outline">{item.priority}</Badge>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{compactText(item.content, 128)}</p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  salience {item.salience.toFixed(2)}
-                  {item.projectId ? ` · ${item.projectId}` : ""}
-                </p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>}
-
-      {show("projectPlatform") && <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <Card className="surface-panel">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FolderKanban className="h-5 w-5 text-primary" />
-              Project platform
-            </CardTitle>
-            <CardDescription>
-              Athanor core, first-class tenants, and scaffolded future projects surfaced in one place.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {snapshot.projects.map((project) => (
-              <div
-                key={project.id}
-              className="surface-tile rounded-2xl border p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium">{project.name}</p>
-                      {project.firstClass ? <Badge>First-class</Badge> : null}
-                      <Badge variant="outline">{project.kind}</Badge>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{project.headline}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge variant="secondary">{project.needsCount} open needs</Badge>
+                    <Badge variant="secondary">{project.agents.length} agents</Badge>
+                    <Badge variant="secondary">lens: {project.lens}</Badge>
                   </div>
-                  <Badge variant={isActiveProject(project.status) ? "outline" : "secondary"}>
-                    {formatProjectStatus(project.status)}
-                  </Badge>
-                </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="secondary">{project.needsCount} open needs</Badge>
-                  <Badge variant="secondary">{project.agents.length} mapped agents</Badge>
-                  <Badge variant="secondary">lens: {project.lens}</Badge>
-                </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    {project.operatorChain.map((operator) => (
+                      <span
+                        key={operator}
+                        className="surface-metric rounded-full border px-2 py-1"
+                      >
+                        {operator}
+                      </span>
+                    ))}
+                  </div>
 
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  {project.operatorChain.map((operator) => (
-                    <span
-                      key={operator}
-                    className="surface-metric rounded-full border px-2 py-1"
-                    >
-                      {operator}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={project.primaryRoute}>Open workspace</Link>
-                  </Button>
-                  {project.externalUrl ? (
-                    <Button asChild size="sm" variant="ghost">
-                      <a href={project.externalUrl} target="_blank" rel="noopener noreferrer">
-                        Open app
-                      </a>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={project.primaryRoute}>Open workspace</Link>
                     </Button>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <SystemMapCard />
-        <GovernorCard compact />
-      </div>}
-
-      {show("intelligenceRow") && <div className="grid gap-4 xl:grid-cols-2">
-        <ModelGovernanceCard />
-        <ProvingGroundCard compact />
-        <JudgePlaneCard compact />
-        <OperationsReadinessCard compact />
-      </div>}
-
-      {show("clusterPosture") && <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-        <Card className="surface-instrument">
-          <CardHeader>
-            <CardTitle className="text-lg">Cluster posture</CardTitle>
-            <CardDescription>Availability and GPU load over the current history window.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <MetricChart
-              data={trendData}
-              series={[
-                { dataKey: "services", label: "Service availability", color: "var(--chart-1)" },
-                { dataKey: "gpu", label: "GPU utilization", color: "var(--chart-2)" },
-              ]}
-              mode="line"
-              valueSuffix="%"
-            />
-            <div className="grid gap-4 md:grid-cols-3">
-              {snapshot.nodes.map((node) => (
-                <div key={node.id} className="surface-tile rounded-2xl border p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-semibold">{node.name}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{node.ip}</p>
-                    </div>
-                    <StatusDot
-                      tone={node.degradedServices > 0 ? "warning" : "healthy"}
-                      pulse={node.degradedServices > 0}
-                    />
-                  </div>
-                  <p className="mt-3 text-sm text-muted-foreground">{node.role}</p>
-                  <div className="mt-4 grid gap-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Services</span>
-                      <span>{node.healthyServices}/{node.totalServices}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Latency</span>
-                      <span>{formatLatency(node.averageLatencyMs)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">GPU load</span>
-                      <span>{formatPercent(node.gpuUtilization, 0)}</span>
-                    </div>
+                    {project.externalUrl ? (
+                      <Button asChild size="sm" variant="ghost">
+                        <a href={project.externalUrl} target="_blank" rel="noopener noreferrer">
+                          Open app
+                        </a>
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+            <SystemMapCard />
+          </div>
+        </DeepDiveSection>
+      )}
 
-        <Card className="surface-instrument">
-          <CardHeader>
-            <CardTitle className="text-lg">GPU hotspot summary</CardTitle>
-            <CardDescription>Cards under the highest current demand.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {snapshot.hotspots.length > 0 ? (
-              snapshot.hotspots.map((gpu) => (
-                <Link
-                  key={gpu.id}
-                  href={`/gpu?highlight=${encodeURIComponent(gpu.id)}`}
-                  className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{gpu.gpuName}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{gpu.node}</p>
+      {/* Cluster Posture */}
+      {show("clusterPosture") && (
+        <DeepDiveSection title="Cluster Posture" icon={<Gauge className="h-4 w-4" />}>
+          <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+            <Card className="surface-instrument">
+              <CardHeader>
+                <CardTitle className="text-lg">Availability & GPU trend</CardTitle>
+                <CardDescription>Service availability and GPU load over the history window.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <MetricChart
+                  data={trendData}
+                  series={[
+                    { dataKey: "services", label: "Service availability", color: "var(--chart-1)" },
+                    { dataKey: "gpu", label: "GPU utilization", color: "var(--chart-2)" },
+                  ]}
+                  mode="line"
+                  valueSuffix="%"
+                />
+                <div className="grid gap-4 md:grid-cols-3">
+                  {snapshot.nodes.map((node) => (
+                    <div key={node.id} className="surface-tile rounded-2xl border p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-lg font-semibold">{node.name}</p>
+                          <p className="font-mono text-xs text-muted-foreground">{node.ip}</p>
+                        </div>
+                        <StatusDot
+                          tone={node.degradedServices > 0 ? "warning" : "healthy"}
+                          pulse={node.degradedServices > 0}
+                        />
+                      </div>
+                      <p className="mt-3 text-sm text-muted-foreground">{node.role}</p>
+                      <div className="mt-4 grid gap-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Services</span>
+                          <span>{node.healthyServices}/{node.totalServices}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Latency</span>
+                          <span>{formatLatency(node.averageLatencyMs)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">GPU load</span>
+                          <span>{formatPercent(node.gpuUtilization, 0)}</span>
+                        </div>
+                      </div>
                     </div>
-                    <Badge variant="outline">{formatPercent(gpu.utilization, 0)}</Badge>
-                  </div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-                  <Metric label="Temp" value={formatTemperatureF(gpu.temperatureC)} />
-                    <Metric label="Power" value={gpu.powerW === null ? "--" : `${Math.round(gpu.powerW)}W`} />
-                    <Metric
-                      label="VRAM"
-                      value={
-                        gpu.memoryTotalMiB
-                          ? formatPercent(((gpu.memoryUsedMiB ?? 0) / gpu.memoryTotalMiB) * 100, 0)
-                          : "--"
-                      }
-                    />
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <EmptyState
-                title="No GPU telemetry"
-                description="Prometheus did not return any active GPU metrics for the overview snapshot."
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>}
-
-      {show("inferenceRow") && <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1fr]">
-        <Card className="surface-instrument">
-          <CardHeader>
-            <CardTitle className="text-lg">Inference posture</CardTitle>
-            <CardDescription>Reachable backends, model inventory, and active launch paths.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {snapshot.backends.map((backend) => (
-              <div key={backend.id} className="surface-tile rounded-2xl border p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <StatusDot tone={backend.reachable ? "healthy" : "danger"} pulse={!backend.reachable} />
-                      <p className="font-medium">{backend.name}</p>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{backend.description}</p>
-                  </div>
-                  <Badge variant={backend.reachable ? "outline" : "destructive"}>
-                    {backend.reachable ? `${backend.modelCount} models` : "offline"}
-                  </Badge>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {backend.models.slice(0, 4).map((model) => (
-                    <Badge key={model} variant="secondary" className="max-w-full truncate">
-                      {model.replace(/^\/models\//, "")}
-                    </Badge>
                   ))}
-                  {backend.models.length > 4 ? (
-                    <Badge variant="secondary">+{backend.models.length - 4} more</Badge>
-                  ) : null}
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        <Card className="surface-panel">
-          <CardHeader>
-            <CardTitle className="text-lg">Agent capability surface</CardTitle>
-            <CardDescription>Live agent roster and exposed tool counts.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {snapshot.agents.length > 0 ? (
-              snapshot.agents.map((agent) => (
-                <Link
-                  key={agent.id}
-                  href={`/agents?agent=${agent.id}`}
-                  className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{agent.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">{agent.description}</p>
+            <Card className="surface-instrument">
+              <CardHeader>
+                <CardTitle className="text-lg">GPU hotspots</CardTitle>
+                <CardDescription>Cards under the highest current demand.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {snapshot.hotspots.length > 0 ? (
+                  snapshot.hotspots.map((gpu) => (
+                    <Link
+                      key={gpu.id}
+                      href={`/gpu?highlight=${encodeURIComponent(gpu.id)}`}
+                      className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium">{gpu.gpuName}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{gpu.node}</p>
+                        </div>
+                        <Badge variant="outline">{formatPercent(gpu.utilization, 0)}</Badge>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                        <Metric label="Temp" value={formatTemperatureF(gpu.temperatureC)} />
+                        <Metric label="Power" value={gpu.powerW === null ? "--" : `${Math.round(gpu.powerW)}W`} />
+                        <Metric
+                          label="VRAM"
+                          value={
+                            gpu.memoryTotalMiB
+                              ? formatPercent(((gpu.memoryUsedMiB ?? 0) / gpu.memoryTotalMiB) * 100, 0)
+                              : "--"
+                          }
+                        />
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <EmptyState
+                    title="No GPU telemetry"
+                    description="Prometheus did not return any active GPU metrics for the overview snapshot."
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </DeepDiveSection>
+      )}
+
+      {/* Inference */}
+      {show("inferenceRow") && (
+        <DeepDiveSection title="Inference & Agent Capabilities" icon={<Layers className="h-4 w-4" />}>
+          <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1fr]">
+            <Card className="surface-instrument">
+              <CardHeader>
+                <CardTitle className="text-lg">Inference posture</CardTitle>
+                <CardDescription>Reachable backends, model inventory, and active launch paths.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {snapshot.backends.map((backend) => (
+                  <div key={backend.id} className="surface-tile rounded-2xl border p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <StatusDot tone={backend.reachable ? "healthy" : "danger"} pulse={!backend.reachable} />
+                          <p className="font-medium">{backend.name}</p>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">{backend.description}</p>
+                      </div>
+                      <Badge variant={backend.reachable ? "outline" : "destructive"}>
+                        {backend.reachable ? `${backend.modelCount} models` : "offline"}
+                      </Badge>
                     </div>
-                    <Badge variant={agent.status === "ready" ? "outline" : "secondary"}>
-                      {agent.status}
-                    </Badge>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {backend.models.slice(0, 4).map((model) => (
+                        <Badge key={model} variant="secondary" className="max-w-full truncate">
+                          {model.replace(/^\/models\//, "")}
+                        </Badge>
+                      ))}
+                      {backend.models.length > 4 ? (
+                        <Badge variant="secondary">+{backend.models.length - 4} more</Badge>
+                      ) : null}
+                    </div>
                   </div>
-                  <p className="mt-3 text-xs text-muted-foreground">{agent.tools.length} tools</p>
-                </Link>
-              ))
-            ) : (
-              <EmptyState
-                title="No agent metadata"
-                description="The live agent roster could not be loaded into the overview snapshot."
-              />
-            )}
-          </CardContent>
-        </Card>
+                ))}
+              </CardContent>
+            </Card>
 
-        <Card className="surface-panel">
-          <CardHeader>
-            <CardTitle className="text-lg">Launchpad</CardTitle>
-            <CardDescription>External tooling and common paths into the rest of the stack.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {snapshot.externalTools.map((tool) => (
-              <a
-                key={tool.id}
-                href={tool.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="surface-tile flex items-center justify-between rounded-2xl border p-4 transition hover:bg-accent/60"
-              >
-                <div>
-                  <p className="font-medium">{tool.label}</p>
-                  <p className="text-sm text-muted-foreground">{tool.description}</p>
+            <Card className="surface-panel">
+              <CardHeader>
+                <CardTitle className="text-lg">Agent capabilities</CardTitle>
+                <CardDescription>Live agent roster and exposed tool counts.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {snapshot.agents.length > 0 ? (
+                  snapshot.agents.map((agent) => (
+                    <Link
+                      key={agent.id}
+                      href={`/agents?agent=${agent.id}`}
+                      className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{agent.name}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{agent.description}</p>
+                        </div>
+                        <Badge variant={agent.status === "ready" ? "outline" : "secondary"}>
+                          {agent.status}
+                        </Badge>
+                      </div>
+                      <p className="mt-3 text-xs text-muted-foreground">{agent.tools.length} tools</p>
+                    </Link>
+                  ))
+                ) : (
+                  <EmptyState
+                    title="No agent metadata"
+                    description="The live agent roster could not be loaded into the overview snapshot."
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="surface-panel">
+              <CardHeader>
+                <CardTitle className="text-lg">Launchpad</CardTitle>
+                <CardDescription>External tools and quick paths.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {snapshot.externalTools.map((tool) => (
+                  <a
+                    key={tool.id}
+                    href={tool.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="surface-tile flex items-center justify-between rounded-2xl border p-4 transition hover:bg-accent/60"
+                  >
+                    <div>
+                      <p className="font-medium">{tool.label}</p>
+                      <p className="text-sm text-muted-foreground">{tool.description}</p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                  </a>
+                ))}
+
+                <div className="surface-tile rounded-2xl border p-4">
+                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Snapshot time</p>
+                  <p className="mt-2 font-medium" data-volatile="true">
+                    {formatTimestamp(snapshot.generatedAt)}
+                  </p>
+                  <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground" data-volatile="true">
+                    <Clock3 className="h-4 w-4" />
+                    <span>{formatRelativeTime(snapshot.generatedAt)}</span>
+                  </div>
                 </div>
-                <ExternalLink className="h-4 w-4 text-muted-foreground" />
-              </a>
-            ))}
 
-            <div className="surface-tile rounded-2xl border p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Snapshot time</p>
-              <p className="mt-2 font-medium" data-volatile="true">
-                {formatTimestamp(snapshot.generatedAt)}
-              </p>
-              <div className="mt-3 flex items-center gap-3 text-sm text-muted-foreground" data-volatile="true">
-                <Clock3 className="h-4 w-4" />
-                <span>{formatRelativeTime(snapshot.generatedAt)}</span>
-              </div>
-            </div>
+                <div className="surface-tile rounded-2xl border p-4">
+                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Quick links</p>
+                  <div className="mt-3 space-y-2">
+                    <Link href="/chat" className="flex items-center justify-between rounded-xl px-2 py-2 text-sm hover:bg-accent">
+                      Direct model chat
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                    </Link>
+                    <Link href="/gpu" className="flex items-center justify-between rounded-xl px-2 py-2 text-sm hover:bg-accent">
+                      GPU deep dive
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                    </Link>
+                    <Link href="/services" className="flex items-center justify-between rounded-xl px-2 py-2 text-sm hover:bg-accent">
+                      Service control surface
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DeepDiveSection>
+      )}
 
-            <div className="surface-tile rounded-2xl border p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Next actions</p>
-              <div className="mt-3 space-y-2">
-                <Link href="/chat" className="flex items-center justify-between rounded-xl px-2 py-2 text-sm hover:bg-accent">
-                  Direct model chat
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-                <Link href="/gpu" className="flex items-center justify-between rounded-xl px-2 py-2 text-sm hover:bg-accent">
-                  GPU deep dive
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-                <Link href="/services" className="flex items-center justify-between rounded-xl px-2 py-2 text-sm hover:bg-accent">
-                  Service control surface
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>}
-    </div>
-  );
-}
+      {/* Priority Lane + Recent Context */}
+      {show("priorityLane") && (
+        <DeepDiveSection title="Priority Lane & Recent Context" icon={<Sparkles className="h-4 w-4" />}>
+          <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+            <Card className="surface-hero">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Zap className="h-5 w-5 text-primary" />
+                  Incidents & attention
+                </CardTitle>
+                <CardDescription>Live attention areas across the cluster.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {snapshot.alerts.map((alert) => (
+                  <Link
+                    key={alert.id}
+                    href={alert.href}
+                    className="surface-tile flex items-start gap-3 rounded-2xl border p-4 transition hover:bg-accent/60"
+                  >
+                    <StatusDot
+                      tone={
+                        alert.tone === "healthy"
+                          ? "healthy"
+                          : alert.tone === "degraded"
+                            ? "danger"
+                            : alert.tone
+                      }
+                      pulse={alert.tone === "degraded"}
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{alert.title}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{alert.description}</p>
+                    </div>
+                    <ArrowUpRight className="mt-1 h-4 w-4 text-muted-foreground" />
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="surface-instrument rounded-xl border p-2.5">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-semibold">{value}</p>
+            <Card className="surface-panel">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <History className="h-5 w-5 text-primary" />
+                  Recent operator context
+                </CardTitle>
+                <CardDescription>Browser-local sessions and threads you touched most recently.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {recentContext.length > 0 ? (
+                  recentContext.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={item.route}
+                      className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{item.title}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                            {item.type}
+                          </p>
+                        </div>
+                        <Badge variant="outline" data-volatile="true">
+                          {formatRelativeTime(item.updatedAt)}
+                        </Badge>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <EmptyState
+                    title="No recent sessions yet"
+                    description="Recent direct-chat sessions and agent threads will appear here once you start working through the console."
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </DeepDiveSection>
+      )}
+
+      {/* Workforce */}
+      {show("workforceRow") && (
+        <DeepDiveSection title="Workforce Pulse" icon={<Bot className="h-4 w-4" />}>
+          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_1fr]">
+            <Card className="surface-hero">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Bot className="h-5 w-5 text-primary" />
+                  Queue & approvals
+                </CardTitle>
+                <CardDescription>Queue pressure, approvals, and active work across the org.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <Metric label="Queued" value={`${snapshot.workforce.summary.pendingTasks + snapshot.workforce.summary.runningTasks}`} />
+                  <Metric label="Approvals" value={`${snapshot.workforce.summary.pendingApprovals}`} />
+                  <Metric label="Goals" value={`${snapshot.workforce.summary.activeGoals}`} />
+                  <Metric
+                    label="Trust"
+                    value={
+                      snapshot.workforce.summary.avgTrustScore === null
+                        ? "--"
+                        : `${Math.round(snapshot.workforce.summary.avgTrustScore * 100)}%`
+                    }
+                  />
+                </div>
+                {snapshot.workforce.tasks.slice(0, 3).map((task) => (
+                  <Link
+                    key={task.id}
+                    href="/workplanner"
+                    className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={task.status === "pending_approval" ? "destructive" : "outline"}>
+                        {task.status.replace(/_/g, " ")}
+                      </Badge>
+                      <Badge variant="secondary">{task.agentId}</Badge>
+                      {task.projectId ? <Badge variant="outline">{task.projectId}</Badge> : null}
+                    </div>
+                    <p className="mt-2 text-sm">{compactText(task.prompt, 140)}</p>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="surface-panel">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FolderKanban className="h-5 w-5 text-primary" />
+                  Active goals
+                </CardTitle>
+                <CardDescription>Steering constraints currently shaping the work planner.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {snapshot.workforce.goals.slice(0, 3).map((goal) => (
+                  <div key={goal.id} className="surface-tile rounded-2xl border p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{goal.priority}</Badge>
+                      <Badge variant="secondary">{goal.agentId === "global" ? "All agents" : goal.agentId}</Badge>
+                    </div>
+                    <p className="mt-2 text-sm">{goal.text}</p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="surface-panel">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock3 className="h-5 w-5 text-primary" />
+                  Workspace broadcast
+                </CardTitle>
+                <CardDescription>Top salience items moving through the shared workspace.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {snapshot.workforce.workspace.broadcast.slice(0, 3).map((item) => (
+                  <div key={item.id} className="surface-tile rounded-2xl border p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium">{item.sourceAgent}</p>
+                      <Badge variant="outline">{item.priority}</Badge>
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">{compactText(item.content, 128)}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      salience {item.salience.toFixed(2)}
+                      {item.projectId ? ` · ${item.projectId}` : ""}
+                    </p>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </DeepDiveSection>
+      )}
+
+      {/* Governance */}
+      {show("intelligenceRow") && (
+        <DeepDiveSection title="Governance" icon={<Shield className="h-4 w-4" />}>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <GovernorCard compact />
+            <ModelGovernanceCard />
+            <ProvingGroundCard compact />
+            <JudgePlaneCard compact />
+            <OperationsReadinessCard compact />
+          </div>
+        </DeepDiveSection>
+      )}
     </div>
   );
 }

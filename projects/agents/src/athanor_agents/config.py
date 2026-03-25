@@ -89,7 +89,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("ATHANOR_VLLM_CODER_URL", "ATHANOR_VLLM_UTILITY_URL"),
     )
     worker_url: str = Field(
-        default="http://192.168.1.225:8000",
+        default="http://192.168.1.225:8010",
         validation_alias=AliasChoices(
             "ATHANOR_VLLM_WORKER_URL",
             "ATHANOR_VLLM_NODE2_URL",

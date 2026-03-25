@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-QDRANT_URL="http://localhost:6333"
+QDRANT_URL="${QDRANT_URL:-http://192.168.1.203:6333}"
 BACKUP_DIR="${BACKUP_DIR:-/mnt/user/data/backups/qdrant}"
 RETENTION_DAYS=7
 DATE=$(date +%Y-%m-%d)

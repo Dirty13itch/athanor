@@ -30,7 +30,7 @@ def _flux_workflow(prompt: str, width: int = 1024, height: int = 1024, steps: in
             "class_type": "CLIPTextEncode",
             "inputs": {
                 "text": prompt,
-                "clip": ["11", 0],
+                "clip": ["11", 1],
             },
         },
         "8": {
@@ -72,7 +72,7 @@ def _flux_workflow(prompt: str, width: int = 1024, height: int = 1024, steps: in
             "class_type": "CLIPTextEncode",
             "inputs": {
                 "text": "",
-                "clip": ["11", 0],
+                "clip": ["11", 1],
             },
         },
         "27": {
@@ -81,6 +81,110 @@ def _flux_workflow(prompt: str, width: int = 1024, height: int = 1024, steps: in
                 "width": width,
                 "height": height,
                 "batch_size": 1,
+            },
+        },
+    }
+
+
+def _ltx_t2v_workflow(
+    prompt: str,
+    width: int = 512,
+    height: int = 320,
+    num_frames: int = 41,
+    steps: int = 6,
+    seed: int | None = None,
+) -> dict:
+    """Build an LTX 2.3 text-to-video workflow for ComfyUI API.
+
+    Uses GGUF loader (ComfyUI-GGUF) + LTX2 VAE + Gemma text encoder.
+    Distilled model: 4-8 steps, fast generation. Verified on 5060 Ti 16 GB.
+    """
+    if seed is None:
+        seed = int(time.time()) % (2**31)
+
+    return {
+        # Load LTX 2.3 GGUF model
+        "1": {
+            "class_type": "UnetLoaderGGUF",
+            "inputs": {
+                "unet_name": "ltx-2.3-22b-distilled-Q4_K_M.gguf",
+            },
+        },
+        # Load LTX2 VAE
+        "2": {
+            "class_type": "VAELoader",
+            "inputs": {
+                "vae_name": "LTX2_video_vae_bf16.safetensors",
+            },
+        },
+        # Load Gemma text encoder for LTXV
+        "3": {
+            "class_type": "CLIPLoader",
+            "inputs": {
+                "clip_name": "gemma_3_12B_it_fp8_scaled.safetensors",
+                "type": "ltxv",
+            },
+        },
+        # Encode positive prompt
+        "4": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": prompt,
+                "clip": ["3", 0],
+            },
+        },
+        # Encode negative prompt
+        "5": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": "blurry, low quality, distorted, watermark",
+                "clip": ["3", 0],
+            },
+        },
+        # Empty LTX latent video
+        "6": {
+            "class_type": "EmptyLTXVLatentVideo",
+            "inputs": {
+                "width": width,
+                "height": height,
+                "length": num_frames,
+                "batch_size": 1,
+            },
+        },
+        # KSampler — distilled uses 4-8 steps, cfg 1.0
+        "7": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": seed,
+                "steps": steps,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "normal",
+                "denoise": 1.0,
+                "model": ["1", 0],
+                "positive": ["4", 0],
+                "negative": ["5", 0],
+                "latent_image": ["6", 0],
+            },
+        },
+        # VAE decode
+        "8": {
+            "class_type": "VAEDecode",
+            "inputs": {
+                "samples": ["7", 0],
+                "vae": ["2", 0],
+            },
+        },
+        # Save as animated WEBP
+        "9": {
+            "class_type": "SaveAnimatedWEBP",
+            "inputs": {
+                "filename_prefix": "EoBQ/ltx_video",
+                "fps": 24.0,
+                "lossless": False,
+                "quality": 85,
+                "method": "default",
+                "images": ["8", 0],
             },
         },
     }
@@ -240,6 +344,57 @@ def generate_video(prompt: str, width: int = 480, height: int = 320, num_frames:
         return f"ComfyUI rejected the video generation request: {e.response.status_code}\n{error_body}"
     except Exception as e:
         return f"Failed to queue video generation: {e}"
+
+
+@tool
+def generate_video_ltx(prompt: str, width: int = 512, height: int = 320, num_frames: int = 41, steps: int = 6) -> str:
+    """Generate a video clip using LTX 2.3 (22B distilled GGUF) on ComfyUI. Returns the prompt ID.
+
+    LTX 2.3 is faster and higher quality than Wan2.x for text-to-video. Use this as the primary
+    video generation tool. The distilled model needs only 4-8 steps.
+
+    Args:
+        prompt: Text description of the video. Be specific about motion, camera, and action.
+        width: Video width (default 512). Must be divisible by 32. Max 832 on 16 GB GPU.
+        height: Video height (default 320). Must be divisible by 32. Max 480 on 16 GB GPU.
+        num_frames: Number of frames (default 41, ~1.7s at 24fps). Max ~65 on 16 GB.
+        steps: Sampling steps (default 6). Distilled model: 4-8 optimal. More = diminishing returns.
+
+    Example prompts:
+        "Photorealistic woman with flowing hair, slow head turn, soft studio lighting, cinematic"
+        "Dark throne room, camera slowly pushing in, dramatic torch lighting, gothic atmosphere"
+    """
+    try:
+        width = (width // 32) * 32
+        height = (height // 32) * 32
+
+        workflow = _ltx_t2v_workflow(prompt, width, height, num_frames, steps)
+        client_id = str(uuid.uuid4())
+
+        resp = httpx.post(
+            f"{COMFYUI_URL}/prompt",
+            json={"prompt": workflow, "client_id": client_id},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        prompt_id = data.get("prompt_id", "unknown")
+        number = data.get("number", "?")
+
+        return (
+            f"LTX 2.3 video generation queued successfully.\n"
+            f"Prompt ID: {prompt_id}\n"
+            f"Queue position: {number}\n"
+            f"Settings: {width}x{height}, {num_frames} frames, {steps} steps, LTX 2.3 GGUF Q4_K_M\n"
+            f"Estimated time: ~30-60s\n"
+            f"Use check_queue to monitor progress."
+        )
+    except httpx.HTTPStatusError as e:
+        error_body = e.response.text[:500] if e.response else "No response"
+        return f"ComfyUI rejected LTX video generation: {e.response.status_code}\n{error_body}"
+    except Exception as e:
+        return f"Failed to queue LTX video generation: {e}"
 
 
 @tool
@@ -406,36 +561,40 @@ def get_comfyui_status() -> str:
 
 # --- EoBQ Character Portrait Generation ---
 
-# Character visual descriptions for consistent portrait generation
+# Per-queen Flux prompts from queens.ts — photorealistic baseline, prime-era accurate.
+# PuLID face injection adds the actual performer's face on top of these body/scene prompts.
 EOQB_CHARACTERS = {
-    # --- Act 1 Fantasy Characters ---
-    "isolde": "Regal woman in her 30s, sharp angular features, dark auburn hair in elaborate braids threaded with thin gold chains, pale porcelain skin, ice-blue eyes. Wears a fitted black and gold gown with high structured collar. A thin scar runs from her left ear to her jaw.",
-    "seraphine": "Young woman with an ethereal, fragile beauty. Silver-white hair falling past her shoulders, violet eyes with an otherworldly glow. Wears tattered white and lavender robes. Faint magical sigils trace patterns on her skin. Dark circles under her eyes from sleepless visions.",
-    "valeria": "Muscular woman in her late 20s, sun-bronzed skin, close-cropped dark hair with a streak of premature grey. Strong jaw, hawkish nose, amber eyes. Wears battered steel plate armor over chainmail. Multiple battle scars on her arms and face.",
-    "lilith": "Strikingly beautiful woman with an unsettling edge. Long black hair, blood-red lips, dark eyes with flecks of gold. Wears a deep crimson dress that seems to shift between liquid and fabric. Pale skin with a faint luminescence.",
-    "mireille": "Petite woman with sharp, fox-like features. Copper-red curls, freckled skin, bright green eyes that miss nothing. Wears practical dark leather with hidden pockets. Multiple rings and a thin dagger at her belt.",
-    # --- The 21 Council Queens ---
-    "emilie-ekstrom": "Lithe athletic woman, 5'10\", chestnut brown hair to mid-back, hazel-brown almond eyes, porcelain fair skin with subtle freckles on shoulders. 34DD high-set silicone teardrop implants. Elegant posture, toned legs, etched abs. High cheekbones, natural bow lips.",
-    "jordan-night": "Voluptuous hourglass, 5'8\", jet black hair, piercing ice blue eyes, pale olive skin. 34H heavy rounded silicone. Full floral sleeve left arm (roses/thorns), throat script 'Nachtblume', piercings. Heart-shaped face, full smirky lips.",
-    "alanah-rae": "Athletic hourglass, 5'7\", platinum long waves, blue eyes, golden California tan. 34F perfect bolt-on round implants with shine. Sharp jaw, full pouty lips. Tight waist, 2010-era perfection.",
-    "nikki-benz": "Athletic woman, 5'5\", blonde long waves, blue eyes with royal glare, golden tan. 34E enhanced silicone (500-700cc). Diamond high cheekbones, strong thighs. Royal posture.",
-    "chloe-lamour": "Curvy French hourglass, 5'6\", dark brunette to waist, warm brown eyes, tanned olive glow. 36DD with pronounced underboob. Throat tattoo 'freedom iron beach', forearm tattoos. Soft belly, flared hips.",
-    "nicolette-shea": "Amazonian, 5'11\", platinum long hair, blue eyes, golden tan. 36E implants on a perfect long-leg frame. Longest legs in porn. Sharp model face. Towering dominance.",
-    "peta-jensen": "Athletic Nordic, 5'7\", blonde long waves, ice blue eyes, pale skin. 34F perfect teardrop implants with pale areolas. Heart-shaped face, full lips. Toned legs.",
-    "sandee-westgate": "Exotic hourglass, 5'7\", dark brunette long hair, dark brown eyes, olive tan skin. 34DD implants with perfect integration. Mysterious almond face. Small lower back tattoo. Olive glow under lights.",
-    "marisol-yotta": "Thick Latina curves, 5'5\", dark brunette long hair, brown eyes, golden tan. 34H thick Colombian implants. Full lips, soft belly. Thick hip sway.",
-    "trina-michaels": "Voluptuous real weight, 5'5\", brunette long hair, brown eyes, tan. 36G heavy natural-to-enhanced implants. Round full cheeks. Heavy sway on drops.",
-    "nikki-sexx": "Athletic hips, 5'5\", blonde long hair, blue eyes, tan. 34F legendary implants. Sharp face. Throat bulge on gag.",
-    "madison-ivy": "Tiny frame massive contrast, 4'11\", platinum blonde, piercing green eyes, porcelain skin. 32F 800cc high profile teardrop implants. Sharp pixie face. Insane body-to-implant ratio.",
-    "amy-anderssen": "Cartoon proportions, 5'6\", jet black long hair, dark eyes, olive skin. 40HH 2000cc+ saline overfilled implants. Angular extreme face. Implants swing like wrecking balls.",
-    "puma-swede": "Towering Amazon, 6'1\", platinum long hair, ice blue eyes, pale skin. 32F silicone on tall frame. Strong jaw. Legs wrap entire pole.",
-    "ava-addams": "Ultimate MILF curves, 5'3\", dark brunette long hair, brown eyes, olive skin. 32G hourglass implants. Soft full face. Hourglass sway.",
-    "brooklyn-chase": "Soft curvy girl-next-door, 5'2\", brunette long hair, hazel eyes, tan skin. 32G curvy implants. Sweet face. Small lower back tattoo. Tears during first spin.",
-    "esperanza-gomez": "Ultimate Latina hourglass, 5'7\", dark brunette long hair, brown eyes, golden tan. 34DD perfect Colombian implants. Seductive full lips. Hips destroy the pole.",
-    "savannah-bond": "Perfect modern bimbo, 5'4\", platinum long hair, blue eyes, golden tan. 34G 2023 upgrade implants. Soft pretty face. Bimbo energy maxed.",
-    "shyla-stylez": "Perfect 2008 plastic, 5'3\", platinum long hair, blue eyes, tan. 36DD perfect bolt-on implants. Angelic face gone wrong.",
-    "brianna-banks": "Golden era glamour, 5'7\", blonde long hair, blue-green eyes, tanned skin. 34DD enhanced silicone. High cheekbones, classic features. Athletic with curves.",
-    "clanddi-jinkcebo": "Extreme European curves, 5'7\", brunette long with sharp styling, brown eyes, olive-pale skin. 34H+ extreme enhanced. Heart-shaped face turns filthy. Fetish goddess energy.",
+    # --- Act 1 Fantasy Characters (dark-court narrative overlay) ---
+    "isolde": "hyperreal 4K cinematic athletic Nordic woman 5'10\" 34DD high-set implants subsurface glow, hazel almond eyes longing, porcelain freckled skin, Arri Alexa color, volumetric office lighting.",
+    "seraphine": "hyperreal 4K ethereal fragile woman silver-white hair violet eyes, tattered white robes, magical sigils on skin, dark circles, Arri Alexa color, moonlit chamber lighting.",
+    "valeria": "hyperreal 4K muscular woman sun-bronzed skin close-cropped dark hair grey streak, amber eyes hawkish nose, battle scars, battered steel armor, Arri Alexa color, battlefield lighting.",
+    "lilith": "hyperreal 4K strikingly beautiful woman long black hair blood-red lips, dark eyes gold flecks, crimson liquid dress, pale luminescent skin, Arri Alexa color, candlelit chamber lighting.",
+    "mireille": "hyperreal 4K petite fox-like woman copper-red curls freckled skin, bright green eyes, dark leather outfit, multiple rings thin dagger, Arri Alexa color, tavern firelight.",
+    # --- The 21 Council Queens (real specs + tits-on-a-stick skew) ---
+    # Preference: slim/fit/toned + big fake round bolt-on implants. Skew curvy queens slimmer
+    # but keep their likeness. Most are already naturally this type.
+    # PuLID handles face accuracy from reference photos.
+    "emilie-ekstrom": "hyperreal 4K cinematic lithe athletic Nordic woman 5'10\" 34DD big fake round high-set silicone implants pale pink areolas upturned nipples, hazel-brown almond eyes epicanthic fold, chestnut brown long straight hair to mid-back, porcelain skin freckles on shoulders and nose, slim toned legs visible abs narrow waist, high cheekbones soft jaw natural bow lips, elegant posture, Arri Alexa color, volumetric office lighting.",
+    "jordan-night": "hyperreal 4K fit tattooed woman 5'8\" 34H big fake round silicone implants pronounced underboob crease, piercing ice blue eyes smirking, jet black long straight hair to mid-back, pale olive skin, full floral sleeve left arm roses thorns throat script Nachtblume navel piercing, toned body narrow waist, heart-shaped face full smirky lips, tattoo ripple on arch, Arri Alexa color, neon club lighting.",
+    "alanah-rae": "hyperreal 4K athletic woman 5'7\" 34F big fake round perfect bolt-on implants extreme shine, blue eyes, platinum long waves, golden California tan, tight waist toned body, sharp jaw full pouty lips, 2010-era bolt-on perfection, Arri Alexa color, mirror room lighting.",
+    "nikki-benz": "hyperreal 4K athletic woman 5'5\" 34E big fake round silicone 700cc implants, blue eyes royal glare, blonde long waves, golden tan, toned body narrow waist strong thighs, diamond cheekbones, royal posture, Arri Alexa color, throne lighting.",
+    "chloe-lamour": "hyperreal 4K fit French woman 5'6\" 36DD big fake round implants pronounced underboob, brown warm eyes, dark brunette long hair to waist, tanned olive skin, throat tattoo freedom iron beach forearm tattoos, narrow waist toned frame, oval face full lips, Arri Alexa color, medical lighting.",
+    "nicolette-shea": "hyperreal 4K tall athletic woman 5'11\" 36E big fake round high-profile silicone implants, blue eyes, blonde long hair, golden tan endless legs, slim runway body narrow waist, sharp bone structure, Arri Alexa color, helipad lighting.",
+    "peta-jensen": "hyperreal 4K athletic Nordic woman 5'7\" 34F big fake round silicone teardrop implants pale areolas, ice blue eyes, auburn red long waves, pale Nordic skin, slim toned body narrow waist, classic bone structure full lips, Arri Alexa color, fjord lighting.",
+    "sandee-westgate": "hyperreal 4K exotic fit woman 5'7\" 34DD big fake round silicone implants, dark brown almond eyes, dark brown long straight hair, olive tan skin, toned body narrow waist, oval face sculpted features, Arri Alexa color, island lighting.",
+    "marisol-yotta": "hyperreal 4K fit Latina woman 5'5\" 34H big fake round Colombian silicone implants massive on toned frame, brown eyes, dark brunette long waves, golden tan skin, narrow waist toned body with extreme implants, full lips, Arri Alexa color, cam room lighting.",
+    "trina-michaels": "hyperreal 4K fit woman 5'5\" 36G big fake round heavy silicone implants heavy sway on toned frame, brown eyes, blonde long hair, tan skin, narrow waist toned body, round cheeks, Arri Alexa color, casino lighting.",
+    "nikki-sexx": "hyperreal 4K athletic woman 5'5\" 34F big fake round legendary silicone implants, blue eyes intense, dark brunette hair, tan skin, slim toned body narrow waist, sharp features, Arri Alexa color, casino lighting.",
+    "madison-ivy": "hyperreal 4K tiny petite woman 4'11\" 32F massive big fake round silicone bolt-on implants insane ratio on tiny frame, green piercing eyes, brunette pixie-cut, porcelain skin, extremely petite slim frame impossibly narrow waist, Arri Alexa color, vegas lighting.",
+    "amy-anderssen": "hyperreal 4K woman 5'6\" 40HH massive big fake round overfilled silicone bolt-on implants spherical, dark eyes, brunette hair, olive skin, narrow waist extreme implant contrast, angular face, Arri Alexa color, monster showcase lighting.",
+    "puma-swede": "hyperreal 4K tall athletic Amazon woman 6'1\" 32F big fake round silicone implants on tall slim frame, ice blue eyes dominant, blonde pixie, pale Nordic skin, tall slim athletic body endless legs narrow waist, strong jaw, Arri Alexa color, tall dramatic lighting.",
+    "ava-addams": "hyperreal 4K fit MILF woman 5'3\" 32G big fake round silicone implants, brown eyes warm, dark brunette long waves, olive skin, toned body narrow waist, soft face high cheekbones, Arri Alexa color, vault lighting.",
+    "brooklyn-chase": "hyperreal 4K fit girl-next-door woman 5'2\" 32G big fake round silicone implants on petite frame, hazel eyes innocent, brunette long waves, tan skin, slim body narrow waist, girl-next-door face, lower back tattoo, Arri Alexa color, sweet bedroom lighting.",
+    "esperanza-gomez": "hyperreal 4K fit Latina woman 5'7\" 34DD big fake round Colombian silicone implants, brown eyes seductive, dark brunette long waves, golden tan skin, toned Latina body narrow waist, sharp features, Arri Alexa color, Latin villa lighting.",
+    "savannah-bond": "hyperreal 4K fit modern bimbo woman 5'4\" 34G big fake round silicone implants recent upgrade, blue eyes glazed bimbo, blonde long waves, golden Australian tan, toned bimbo body narrow waist, pretty face, Arri Alexa color, Aussie beach house lighting.",
+    "shyla-stylez": "hyperreal 4K fit perfect 2008 woman 5'3\" 36DD big fake round bolt-on silicone implants perfect shine, blue eyes, brunette long hair, tan skin, slim 2008-era perfect plastic body narrow waist, angelic face, Arri Alexa color, studio lighting.",
+    "brianna-banks": "hyperreal 4K athletic golden era glamour woman 5'7\" 34DD big fake round enhanced silicone implants, blue-green eyes classic, blonde long waves, tanned skin, slim athletic body narrow waist, high cheekbones classic bone structure, Arri Alexa color, golden hour lighting.",
+    "clanddi-jinkcebo": "hyperreal 4K fit European woman 5'7\" 34H+ big fake round enhanced silicone implants massive on toned frame, brown eyes filthy, dark brunette long hair, olive-pale skin, narrow waist extreme implant ratio, heart-shaped face, Arri Alexa color, fetish dungeon lighting.",
 }
 
 
@@ -998,7 +1157,8 @@ def _try_vision_evaluation(video_url: str, anchor_url: str, size_bytes: int | No
 
 
 CREATIVE_TOOLS = [
-    generate_image, generate_image_batch, generate_video, generate_character_portrait,
+    generate_image, generate_image_batch, generate_video, generate_video_ltx,
+    generate_character_portrait,
     check_queue, get_generation_history, get_comfyui_status,
     list_personas, generate_with_likeness,
     generate_i2v_video, poll_video_completion,

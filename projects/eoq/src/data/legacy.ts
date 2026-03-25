@@ -99,7 +99,9 @@ export function generateDaughter(
     title: `Daughter of ${mother.name}`,
     archetype,
     resistance: baseResistance,
+    resistanceCeiling: baseResistance,
     corruption: 0,
+    awakeningFired: false,
     vulnerabilities: {
       // Daughters are weak where their mothers were strong
       physical: -(mother.vulnerabilities.physical ?? 0) * 0.5 + Math.random() * 0.4,

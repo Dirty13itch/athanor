@@ -1,6 +1,6 @@
 # Athanor Session Memory
 
-*Read this first. Updated 2026-03-18.*
+*Read this first. Updated 2026-03-23.*
 
 ---
 
@@ -10,16 +10,18 @@
 | Node | IP | Role | GPUs | Key Services |
 |------|-----|------|------|-------------|
 | FOUNDRY | .244 | Heavy compute | 4x5070Ti (TP=4) + 4090 | vllm-coordinator:8000, vllm-coder:8006, agents:9000, gpu-orch:9200 |
-| WORKSHOP | .225 | Creative | 5090 (FREE) + 5060Ti | ComfyUI:8188, Ollama:11434 (JOSIEFIED), Scorer:8050, Dashboard:3001 |
+| WORKSHOP | .225 | Creative + Worker | 5090 (vLLM) + 5060Ti | vllm-node2:8010, ComfyUI:8188, Dashboard:3001, EoBQ:3002 |
 | DEV | .189 | Ops center | 5060Ti | Gateway:8700, Embedding:8001, Reranker:8003, all coding CLIs |
 | VAULT | .203 | Storage | ARC A380 | LiteLLM:4000, 51+ containers, Langfuse:3030, full media stack |
 | DESK | .50 | Windows | 3060 12GB | SSH terminal to DEV, VS Code Remote |
 
-### Models Running
-- FOUNDRY TP=4: Qwen3.5-27B-FP8 (reasoning, vision pending restart)
-- FOUNDRY 4090: Qwen3.5-35B-A3B-AWQ-4bit (coder, port 8006)
-- WORKSHOP 5060Ti: JOSIEFIED-Qwen3-8B via Ollama (uncensored, port 11434)
+### Models Running (verified 2026-03-23)
+- FOUNDRY TP=4: Qwen3.5-27B-FP8 (reasoning/coding, port 8000)
+- FOUNDRY 4090: devstral-small-2 (coder, port 8006)
+- WORKSHOP 5090: Qwen3.5-35B-A3B-AWQ-4bit (worker/fast/creative/utility/uncensored, port 8010)
+- WORKSHOP 5060Ti: ComfyUI (image gen)
 - DEV: Qwen3-Embedding-0.6B + Qwen3-Reranker-0.6B
+- **Ollama DISABLED on Workshop** (was conflicting with vLLM for GPU memory)
 
 ### Key Ports
 LiteLLM:4000 | Agents:9000 | GPU-Orch:9200 | Gateway:8700 | ComfyUI:8188
@@ -31,7 +33,25 @@ Scorer:8050 | Ollama:11434 | Dashboard:3001 | Seerr:5055 | Whisparr:6969
 - Tool parser: qwen3_xml (NOT hermes)
 - All Qwen3.5 models are natively multimodal VLMs
 
-## Last Session: 2026-03-18 (COO Architecture + Execution)
+## Last Session: 2026-03-23 (Session 58 — System Recovery + Git Convergence)
+
+### What happened
+1. Workshop vLLM was down — Ollama displaced it from both GPUs. Stopped Ollama, disabled from boot, restarted vLLM.
+2. GPU orchestrator crash-looping — Redis auth required but not configured. Fixed with password in URL.
+3. Merged 365 commits from origin/main into local main. Resolved 3 EoBQ conflicts (accepted origin).
+4. Re-applied Redis auth + Workshop port fixes on merged main.
+5. All 10 service endpoints verified healthy. Pushed to GitHub.
+
+### What's next
+- **LTX 2.3: BLOCKED on Blackwell sm_120** — CUDA kernel error "no kernel image available". Wan2.x works. Need GGUF path or upstream fix.
+- EoBQ SoulForge page built + TTS voice wired (Kokoro at :8200, 54 voices)
+- Core memory system deployed (465 LOC, Redis-backed)
+- ComfyUI models on Gen5 NVMe (208 GB), DEV models local
+- All blocked items need Shaun (credentials, decisions, physical)
+
+---
+
+## Prior Session: 2026-03-18 (COO Architecture + Execution)
 
 ### Executed (19 actions)
 1. Auto_gen LLM endpoint fixed (dead 12 days → 3 images generated)

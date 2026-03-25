@@ -16,7 +16,7 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 | 1 | AMD EPYC 7663 | SP3 | 56C/112T | 2.0/3.54 GHz | 240W | Zen 3 (Milan) | Node 1 |
 | 2 | AMD Ryzen 9 9950X | AM5 | 16C/32T | 4.3/5.75 GHz | 170W | Zen 5 | VAULT |
 | 3 | AMD Threadripper 7960X | sTR5 | 24C/48T | 4.2/5.665 GHz | 350W | Zen 4 | Node 2 |
-| 4 | Intel Core i7-13700K | LGA 1700 | 16C/24T (8P+8E) | 3.4 GHz | 253W | Raptor Lake | DEV |
+| 4 | AMD Ryzen 9 9900X | AM5 | 12C/24T | 4.4/5.6 GHz | 120W | Zen 5 | DEV |
 | 5 | Intel Core i7-12700K | LGA 1700 | 12C/20T (8P+4E) | 3.6 GHz | 190W | Alder Lake | Loose |
 | 6 | Intel Core i5-12600K | LGA 1700 | 10C/16T (6P+4E) | 3.7 GHz | 150W | Alder Lake | Loose |
 | 7 | Intel Core i7-9700K | LGA 1151 | 8C/8T | 3.6 GHz | 95W | Coffee Lake | Loose |
@@ -36,12 +36,14 @@ Last updated: 2026-02-25. (Corrections from deep hardware audits)
 | 5 | NVIDIA RTX 5090 (PNY) | 32 GB GDDR7 | PCIe 5.0 x16 | Yes | Yes | Node 2 (Slot 1, ComfyUI primary) |
 | 6 | NVIDIA RTX 4090 (ASUS) | 24 GB GDDR6X | PCIe 4.0 x16 | Yes | Yes | Node 1 (Slot 1, fast agent serving) |
 | 7 | NVIDIA RTX 5060 Ti | 16 GB GDDR7 | PCIe 5.0 x8 electrical | Yes | Yes | Node 2 (Slot 2, tool calling) |
-| 8 | NVIDIA RTX 3060 | 12 GB GDDR6 | PCIe 4.0 x16 | Yes | Yes | Loose (planned for Node 1, deferred — PSU budget) |
+| 8 | NVIDIA RTX 3060 | 12 GB GDDR6 | PCIe 4.0 x16 | Yes | Yes | Loose (×2 — one was in DEV before 5060 Ti upgrade) |
 | 9 | Intel Arc A380 | 6 GB GDDR6 | PCIe 4.0 x16 | No | No | VAULT (Plex transcoding) |
-| 10 | NVIDIA RTX 3060 | 12 GB GDDR6 | PCIe 4.0 x16 | Yes | Yes | DEV (display output) |
+| 10 | NVIDIA RTX 5060 Ti | 16 GB GDDR7 | PCIe 5.0 x8 electrical | Yes | Yes | DEV (embedding + reranker) |
 | 11 | ASUS ROG STRIX RX 5700 XT 8G | 8 GB GDDR6 | PCIe 4.0 x16 | No | No | Loose (was listed as DEV, audit confirmed RTX 3060 instead) |
 
-**Total NVIDIA VRAM: 152 GB** (9 cards, RTX 3060 in DEV + loose RTX 3060) | **Installed NVIDIA VRAM: 136 GB** (7 cards across Node 1 + Node 2) + 12 GB DEV | **Total all GPU VRAM: 166 GB** (11 cards including loose)
+**Installed NVIDIA VRAM: 152 GB** (8 cards: Node 1 88GB + Node 2 48GB + DEV 16GB) | **Loose NVIDIA: 12 GB** (1x RTX 3060) | **Total all GPU VRAM: 170 GB** (10 cards including loose + A380)
+
+**Note:** DEV upgraded from i7-13700K + RTX 3060 → Ryzen 9 9900X + RTX 5060 Ti (confirmed 2026-03-24). Previous i7-13700K is now loose.
 
 ---
 

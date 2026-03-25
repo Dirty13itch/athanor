@@ -4,27 +4,48 @@ import { QUEENS } from "@/data/queens";
 
 /**
  * Voice generation API route — converts character dialogue to speech
- * using Speaches (OpenAI-compatible TTS API) on FOUNDRY:8200.
+ * using Kokoro TTS via Speaches (OpenAI-compatible API) on FOUNDRY:8200.
  *
  * POST /api/voice
  * Body: { characterId: string, text: string, speed?: number }
  * Returns: audio/mpeg stream
  */
 
-/** Map queen archetypes to TTS voice presets */
+const KOKORO_MODEL = "speaches-ai/Kokoro-82M-v1.0-ONNX";
+
+/**
+ * Map queen archetypes to Kokoro voice presets.
+ * Kokoro has 54 voices — prefixes: af_ (American female), bf_ (British female),
+ * am_ (American male), bm_ (British male).
+ *
+ * Each archetype gets a voice that matches its personality:
+ */
 const ARCHETYPE_VOICES: Record<string, string> = {
-  ice: "nova",         // Cool, controlled
-  warrior: "onyx",     // Strong, commanding
-  seductress: "shimmer", // Warm, alluring
-  innocent: "alloy",   // Light, youthful
-  sorceress: "echo",   // Mysterious, resonant
-  priestess: "fable",  // Warm, authoritative
-  scholar: "nova",     // Clear, precise
-  merchant: "onyx",    // Confident, direct
-  defiant: "onyx",     // Fierce, powerful
-  fire: "shimmer",     // Passionate, intense
-  shadow: "echo",      // Quiet, cryptic
-  sun: "alloy",        // Bright, charismatic
+  ice:        "bf_emma",    // Cold, commanding — British female, crisp
+  warrior:    "af_nova",    // Fierce, powerful — American female, strong
+  seductress: "af_bella",   // Warm, alluring — American female, warm
+  innocent:   "af_sky",     // Light, youthful — American female, bright
+  sorceress:  "bf_lily",    // Mysterious, resonant — British female, dark
+  priestess:  "af_nicole",  // Warm, authoritative — American female, clear
+  scholar:    "bf_emma",    // Clear, precise — British female, measured
+  merchant:   "af_nicole",  // Confident, direct — American female
+  defiant:    "af_nova",    // Fierce, powerful — American female, bold
+  fire:       "af_bella",   // Passionate, intense — American female, warm
+  shadow:     "bf_lily",    // Quiet, cryptic — British female, low
+  sun:        "af_sky",     // Bright, charismatic — American female, upbeat
+};
+
+/** Narrator voice — distinguished male narrator */
+const NARRATOR_VOICE = "bm_george";
+
+/**
+ * Per-character voice overrides. When a specific queen has a voice assigned
+ * directly (e.g. via future UI), it takes priority over archetype mapping.
+ */
+const CHARACTER_VOICE_OVERRIDES: Record<string, string> = {
+  // Examples — uncomment or add as voice-fitting sessions happen:
+  // "emilie-ekstrom": "bf_emma",
+  // "jordan-night": "af_bella",
 };
 
 export async function POST(req: Request) {
@@ -44,20 +65,27 @@ export async function POST(req: Request) {
     });
   }
 
-  // Determine voice from character archetype
-  let voice = "nova";
-  if (characterId) {
-    const queen = QUEENS[characterId];
-    if (queen) {
-      voice = ARCHETYPE_VOICES[queen.archetype] ?? "nova";
+  // Determine voice: per-character override > archetype mapping > narrator > default
+  let voice = NARRATOR_VOICE;
+  if (characterId === "narrator") {
+    voice = NARRATOR_VOICE;
+  } else if (characterId) {
+    const override = CHARACTER_VOICE_OVERRIDES[characterId];
+    if (override) {
+      voice = override;
+    } else {
+      const queen = QUEENS[characterId];
+      if (queen) {
+        voice = ARCHETYPE_VOICES[queen.archetype] ?? "af_bella";
+      }
     }
   }
 
   // Strip markdown formatting from text for cleaner speech
   const cleanText = text
-    .replace(/\*([^*]+)\*/g, "$1")   // Remove italics markers
-    .replace(/\*\*([^*]+)\*\*/g, "$1") // Remove bold markers
-    .replace(/\[([^\]]+)\]/g, "$1")   // Remove bracket notation
+    .replace(/\*\*([^*]+)\*\*/g, "$1") // Remove bold markers (check first — greedy)
+    .replace(/\*([^*]+)\*/g, "$1")     // Remove italics markers
+    .replace(/\[([^\]]+)\]/g, "$1")    // Remove bracket notation
     .trim();
 
   try {
@@ -66,7 +94,7 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
       signal: AbortSignal.timeout(30_000),
       body: JSON.stringify({
-        model: "tts-1",
+        model: KOKORO_MODEL,
         input: cleanText.slice(0, 4096), // TTS API limit
         voice,
         speed,
@@ -76,7 +104,7 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const err = await response.text().catch(() => "unknown");
-      console.error("Speaches TTS error:", response.status, err);
+      console.error("Kokoro TTS error:", response.status, err);
       return Response.json(
         { error: "TTS generation failed", detail: err },
         { status: 502 },
