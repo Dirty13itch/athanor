@@ -1,0 +1,5 @@
+# Allowlisted findings — historical commits with secrets already rotated or internal-only
+# Format: <fingerprint>
+
+# ATHANOR_AGENT_API_TOKEN in STATUS.md morning auto-commit (internal cluster token, not public)
+64a5f40e82a292b1dff894c34802edef4bd6d755:STATUS.md:generic-api-key:21

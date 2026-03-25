@@ -1,26 +1,17 @@
 # Athanor Status
 
-**Last updated: 2026-03-24 07:00 PDT**
-**Session:** Morning Briefing
+**Last updated:** 2026-03-24 20:00 PDT
+**Session:** Evening Review
 
 ---
 
-## Morning Review — 2026-03-24
+## Evening Review — 2026-03-24
 
-### Overnight Summary
+### Score: 6/10 — Good build, same blockers as yesterday
 
-Quiet night. APScheduler fix did not produce pipeline output — pipeline routes appear unwired on the deployed image (`/v1/pipeline/status` returns 404). Scheduler is running (9 jobs, all governor lanes active) but Qdrant collections on FOUNDRY fail with "Connection refused" — agent container looks for local Qdrant instead of VAULT:6333. Activity logging is completely broken. Dashboard came back online overnight (was DOWN yesterday).
+Day's engineering output: **proactive attention system** for the dashboard. New `/api/attention/proactive/route.ts` (~300 lines) aggregates live signals from 6 sources (brain-advisor, sentinel, governor, quality-gate, capacity, improvement proposals), sorts by severity, feeds a rebuilt `attention-banner.tsx` (67→206 lines) with critical/warning/info severity styling. `AttentionBanner` wired into `command-center.tsx`. Solid production-quality TypeScript. Creative agent ran 8 autonomous image generation tasks (21:42–22:47). Activity logging recovered — 30 entries visible across 6 agents.
 
-### 401 Root Cause — Fully Diagnosed
-
-Three-layer problem:
-1. **MCP tools**: `mcp-athanor-agents.py` reads `ATHANOR_AGENT_API_TOKEN` but `.mcp.json` doesn't pass it
-2. **Dashboard**: Workshop container has `ATHANOR_AGENT_API_TOKEN=` (empty)
-3. **`/v1/status/services`**: ImportError (`SERVICES` symbol removed from `tools.system`) — 500 even with valid auth
-
-Token value confirmed: `OXydknsIRAC48gg0xv8t0J-iUnM0q4btx0t1GE-vQEw`
-
-With bearer auth, `/v1/agents` returns 9 agents, `/v1/governor` shows healthy state. The 401 is purely a client-side config gap.
+The gap: three P0s diagnosed yesterday morning remain unfixed. MCP still 401. Dashboard changes uncommitted/undeployed. Plan core modules (owner_model.py, intent_synthesizer.py) day 2 of not started.
 
 ---
 
@@ -32,24 +23,24 @@ With bearer auth, `/v1/agents` returns 9 agents, `/v1/governor` shows healthy st
 - Module 2: `intent_synthesizer.py` (~280 lines) — NOT YET BUILT
 - Module 3: quality evaluation via Gemini vision — NOT YET BUILT
 - Module 4: feedback loop endpoints — NOT YET BUILT
-- Prereqs done: System Brain, Sentinel, Governor, APScheduler fixed
+- Adjacent work done: proactive attention API + banner rebuild (dashboard)
 
 ---
 
 ## Cluster Health
 
-- FOUNDRY: Agents online (9/9), vLLM healthy (coordinator + coder). 401 diagnosed. Qdrant connection broken (local vs VAULT). GPUs: 89/96/118/116/98°F.
-- WORKSHOP: Dashboard **UP** (resolved). ComfyUI/EoBQ running. 5090 loaded (26.5/32GB), 5060Ti idle.
+- FOUNDRY: Agents online (9/9), vLLM healthy. 401 on MCP tools (`.mcp.json` missing token). GPUs: 4×5070Ti at 99%/24%/99%/99%, 4090 loaded (22/24GB). Temps OK (40–47°F).
+- WORKSHOP: Dashboard UP. ComfyUI/EoBQ running. 5090 at 99% utilization (30.5/32.6GB). 5060Ti idle. Temp: 49°F.
 - VAULT: Healthy. 55 containers. LiteLLM up, Qdrant OK, storage 83%.
 - DEV: Healthy. Embedding/Reranker OK.
+- Activity logging: RECOVERED — 30 entries in log across 6 agents.
 
 ---
 
-## Alerts (6 firing — 1 resolved, 2 real, 3 need cleanup)
+## Alerts (5 firing — 2 real, 3 need cleanup)
 
 | Alert | Status | Action |
 |-------|--------|--------|
-| DashboardDown | RESOLVED | Dashboard is UP on WORKSHOP:3001 |
 | BackupAgeCritical x2 | REAL | Blocked on Shaun (Backblaze B2 creds) |
 | BackupAgeWarning x2 | REAL | Same |
 | QdrantDown | FALSE POSITIVE | Fix alert rule (P2) |
@@ -57,40 +48,38 @@ With bearer auth, `/v1/agents` returns 9 agents, `/v1/governor` shows healthy st
 
 ---
 
-## Agent Activity (overnight)
+## Agent Activity (today)
 
-- **Activity log: EMPTY** — Qdrant connection refused breaks logging. Actual activity observed in container logs:
-  - home-agent: 3 completed, running normally
-  - media-agent: 1 completed
-  - general-assistant: 1 running
-  - **13 coding-agent tasks pending_approval** — scheduler-generated, need Shaun triage
-- Pipeline: no output (404 on pipeline status endpoint — routes not wired in deployed image)
-- Governor: active, 4 lanes running, scheduler 9 jobs enabled
+- creative-agent: 8 tasks — 7 likeness image generations + 1 video (autonomous scheduler)
+- general-assistant: 6 health checks (routine)
+- home-agent: 4 HA state checks
+- research-agent: 1 signal search + web fetch
+- media-agent: 3 queue/history tasks
+- knowledge-agent: 2 tasks
+- coding-agent: 1 (from earlier backlog)
 
 ---
 
 ## Next Actions
 
-### P0 — Fix auth (unblocks everything)
-1. Add `ATHANOR_AGENT_API_TOKEN` to `.mcp.json` env block — fixes MCP tools
-2. Add token to Dashboard docker-compose on Workshop, rebuild — fixes Dashboard 401
-3. Fix `SERVICES` ImportError in status route, redeploy agents — fixes 500
-4. Fix Qdrant connection (agent container uses VAULT:6333 not localhost) — fixes activity logging
+### P0 — Fix auth (30 min, unblocks everything) — DAY 3, DO THIS FIRST
+1. Add `ATHANOR_AGENT_API_TOKEN=<see .env or ask vault>` to `.mcp.json` env block
+2. Fix `SERVICES` ImportError in `/v1/status/services` route (check `services/agents/src/tools/system.py`)
+3. Commit dashboard changes → rsync to Workshop → rebuild container → verify
 
-### P1 — Active plan execution
-5. Build `owner_model.py` (~180 lines)
-6. Build `intent_synthesizer.py` (~280 lines)
-7. Wire synthesizer into `work_pipeline.py`
+### P1 — Plan execution (the actual deliverable)
+4. Build `owner_model.py` (~180 lines) — intent/preference model
+5. Build `intent_synthesizer.py` (~280 lines) — wire into `work_pipeline.py`
 
 ### P2 — Hygiene
-8. Fix QdrantDown false positive alert rule
-9. Fix WorkerVLLMDown stale alert rule
-10. Triage 13 pending coding-agent approval tasks
+6. Fix QdrantDown false positive alert rule
+7. Fix WorkerVLLMDown stale alert (worker migrated to Ollama)
+8. Triage 13 pending coding-agent approval tasks (approve safe, reject stale)
 
 ### Blocked on Shaun
-11. **13 coding-agent tasks pending_approval** — triage: approve safe, reject stale
-12. Backblaze B2 credentials (offsite backup alerts are real)
-13. VAULT storage decision (83%, trending up)
+- Backblaze B2 credentials (backup alerts real, firing for days)
+- VAULT storage decision (83%, trending up)
+- Coding-agent pending_approval tasks (13 items)
 
 ---
 
@@ -98,7 +87,8 @@ With bearer auth, `/v1/agents` returns 9 agents, `/v1/governor` shows healthy st
 
 | Date | Summary |
 |------|---------|
-| 2026-03-24 AM | Morning briefing. 401 fully diagnosed (3-layer: MCP env, Dashboard env, import error). Dashboard resolved overnight. Qdrant connection broken on FOUNDRY (activity logging dead). Pipeline still dormant (routes 404). 13 coding tasks pending approval. |
+| 2026-03-24 EVE | Evening review. Score 6/10. Proactive attention API + banner rebuilt (dashboard). Creative agent 8 autonomous tasks. Activity logging recovered. P0 auth gap day 3 unresolved. Plan modules still not started. |
+| 2026-03-24 AM | Morning briefing. 401 fully diagnosed (3-layer: MCP env, Dashboard env, import error). Dashboard resolved overnight. Activity logging dead. Pipeline 404. 13 coding tasks pending approval. |
 | 2026-03-23 EVE | Evening review. Score 6/10. APScheduler fix is the day's win. Dashboard P0 missed. Plan targets untouched. 401 unresolved. |
 | 2026-03-23 PM | Brain 7 layers, Sentinel 56/56, Governor hardened, APScheduler dormancy bug fixed. Dashboard still down. |
 | 2026-03-23 AM | Morning briefing. Dashboard DOWN, pipeline DORMANT (3 days), 7 alerts firing |
