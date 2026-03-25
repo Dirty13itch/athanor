@@ -344,6 +344,9 @@ app.include_router(digests_router)
 app.include_router(model_governance_router)
 app.include_router(core_memory_router)
 
+from .routes.feedback import router as feedback_router
+app.include_router(feedback_router)
+
 # --- Factory routers (modules that define create_*_router()) ---
 
 from .routing import create_routing_router

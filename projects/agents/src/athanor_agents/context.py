@@ -630,6 +630,16 @@ async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0)
     except Exception as e:
         logger.debug("Core memory fetch failed: %s", e)
 
+    # Step 2d-3: For creative-agent, inject feedback context (approved/rejected styles)
+    if agent_name == "creative-agent":
+        try:
+            from .feedback import format_feedback_context
+            feedback_ctx = await format_feedback_context()
+            if feedback_ctx:
+                core_memory_context = f"{core_memory_context}\n\n{feedback_ctx}" if core_memory_context else feedback_ctx
+        except Exception as e:
+            logger.debug("Feedback context failed: %s", e)
+
     # Step 2e: Deduplicate across collections
     # Knowledge and personal_data can return overlapping content. Dedup by
     # comparing the first 200 chars of text payloads.
