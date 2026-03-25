@@ -638,7 +638,11 @@ async def _execute_task(task: Task):
         # Task completed successfully — strip think tags from full result
         import re
         result_text = "".join(collected_text)
-        result_text = re.sub(r"<think>.*?</think>\s*", "", result_text, flags=re.DOTALL).strip()
+        # Strip complete <think>...</think> blocks
+        result_text = re.sub(r"<think>.*?</think>\s*", "", result_text, flags=re.DOTALL)
+        # Strip orphaned think tags (model sometimes outputs incomplete blocks)
+        result_text = re.sub(r"</?think>\s*", "", result_text)
+        result_text = result_text.strip()
 
         task.status = "completed"
         task.result = result_text
