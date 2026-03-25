@@ -50,6 +50,12 @@ BENCHMARK_KEY = "athanor:scheduler:benchmark"
 BENCHMARK_INTERVAL = 21600  # 6 hours
 CACHE_CLEANUP_KEY = "athanor:scheduler:cache_cleanup"
 CACHE_CLEANUP_INTERVAL = 3600  # 1 hour
+
+# Quality cascades — chained multi-agent improvement loops
+CREATIVE_CASCADE_KEY = "athanor:scheduler:creative_cascade"
+CREATIVE_CASCADE_INTERVAL = 14400  # 4 hours
+CODE_CASCADE_KEY = "athanor:scheduler:code_cascade"
+CODE_CASCADE_INTERVAL = 21600  # 6 hours
 IMPROVEMENT_CYCLE_KEY = "athanor:scheduler:improvement_cycle"
 IMPROVEMENT_CYCLE_HOUR = 5
 IMPROVEMENT_CYCLE_MINUTE = 30
@@ -848,6 +854,52 @@ async def _check_weekly_dpo_training():
         logger.warning("Scheduler: DPO training data collection failed: %s", e)
 
 
+async def _check_creative_cascade():
+    """Run creative quality cascade every CREATIVE_CASCADE_INTERVAL seconds."""
+    try:
+        r = await _get_redis()
+        last = await r.get(CREATIVE_CASCADE_KEY)
+        last_ts = float(last) if last else 0.0
+        if time.time() - last_ts < CREATIVE_CASCADE_INTERVAL:
+            return
+
+        logger.info("Scheduler: starting creative quality cascade")
+        from .cascade import run_creative_cascade
+        result = await asyncio.wait_for(run_creative_cascade(), timeout=CASCADE_TIMEOUT)
+        await r.set(CREATIVE_CASCADE_KEY, str(time.time()))
+        logger.info(
+            "Creative cascade completed: %d loops, quality=%.2f",
+            result.get("total_loops", 0), result.get("final_quality", 0),
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Creative cascade timed out after %ds", CASCADE_TIMEOUT)
+    except Exception as e:
+        logger.warning("Creative cascade failed: %s", e)
+
+
+async def _check_code_cascade():
+    """Run code quality cascade every CODE_CASCADE_INTERVAL seconds."""
+    try:
+        r = await _get_redis()
+        last = await r.get(CODE_CASCADE_KEY)
+        last_ts = float(last) if last else 0.0
+        if time.time() - last_ts < CODE_CASCADE_INTERVAL:
+            return
+
+        logger.info("Scheduler: starting code quality cascade")
+        from .cascade import run_code_quality_cascade
+        result = await asyncio.wait_for(run_code_quality_cascade(), timeout=CASCADE_TIMEOUT)
+        await r.set(CODE_CASCADE_KEY, str(time.time()))
+        logger.info(
+            "Code quality cascade completed: %d steps",
+            len(result.get("steps", [])),
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Code quality cascade timed out after %ds", CASCADE_TIMEOUT)
+    except Exception as e:
+        logger.warning("Code quality cascade failed: %s", e)
+
+
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
     from .tasks import submit_task
@@ -899,6 +951,10 @@ async def _scheduler_loop():
 
             # Semantic cache cleanup (every 1h)
             await _check_cache_cleanup()
+
+            # Quality cascades — multi-agent improvement loops
+            await _check_creative_cascade()
+            await _check_code_cascade()
 
             for agent, schedule in AGENT_SCHEDULES.items():
                 if not schedule.get("enabled", True):
