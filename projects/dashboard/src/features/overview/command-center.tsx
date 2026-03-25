@@ -260,11 +260,30 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         </Card>
       </div>
 
+      {/* Quick actions bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.overview} />
+        <Button asChild variant="outline" size="sm">
+          <Link href="/services?status=degraded">Incidents</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/workplanner">Work planner</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/gallery">Gallery</Link>
+        </Button>
+        <Button asChild size="sm">
+          <Link href="/agents">Agents</Link>
+        </Button>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-3">
         <DailyBriefing />
+        <MediaGlance />
         <SmartStack />
-        <WorkPlan />
       </div>
+
+      <WorkPlan />
 
       {show("priorityLane") && <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
         <Card className="surface-hero">
