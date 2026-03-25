@@ -251,12 +251,23 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **Gallery feedback system built** — Star rating (1-5), approve/reject/flag, notes, refine button. localStorage-backed with Redis upgrade path. Separate components: use-gallery-ratings.ts, rating-badge.tsx, rating-controls.tsx.
 - **Gallery UX improvements building** — Sorting (date, rating, name, type), character grouping, comparison mode, grid size control, better lightbox with navigation.
 
+### Session 60f — Research, Video Gen, Dashboard Hardening
+
+- **LTX 2.3 video gen UNBLOCKED** — GGUF models bypass sm_120 custom kernel issue. Downloaded `ltx-2.3-22b-distilled-Q4_K_M.gguf` (14 GB) from `unsloth/LTX-2.3-GGUF`. Installed ComfyUI-GGUF nodes. Test generation successful: 512x320x41 frames in <30s on RTX 5060 Ti. Also downloaded LTX2 VAE (2.3 GB) and embeddings connector (2.7 GB).
+- **Stash Face Tagger Ansible role built** — Docker container with InsightFace 0.7.3 + ONNX GPU. Runs on FOUNDRY 4090 (0% util). systemd timer daily at 02:00, batch 50. Two-tier threshold: 0.55 auto-tag, 0.40 review. 12,582 performers with photos. Committed + pushed.
+- **n8n Signal Pipeline designed** — Full research doc at `docs/research/2026-03-24-n8n-signal-pipeline.md`. Recommended: signal-cli-rest-api on VAULT:8082. 4 n8n workflows designed. One blocker: QR code scan to link device.
+- **Gallery rating routes fix** — Stale `gallery/gallery/` double-nested directory on Workshop caused `/api/gallery/ratings` and `/api/gallery/rate` to 404. Cleaned + rebuilt. All 19/19 API endpoints now pass.
+- **Dashboard smoke test** — 35/35 pages pass, 19/19 API endpoints pass. 28/29 services healthy (HA degraded — auth token needed).
+- **351+ EoBQ images generated** — Pipeline running at ~40/hr on 5060 Ti.
+- **113 GB freed on FOUNDRY** — 4 stale models deleted.
+
 ### Next Actions
-1. Shaun: Review gallery at workshop:3001/gallery — rate Wave 1 vs Wave 2 portraits
-2. Shaun: Create Backblaze B2 account + app key for offsite backup
-3. Gallery UX agent completing — merge and deploy when done
-4. Queue Wave 3 scene-specific generations (using master-doc scene Flux prompts)
-5. Video generation (Wan2.2 I2V) from best-rated still images as keyframes
+1. Shaun: Review gallery at workshop:3001/gallery — rate portraits, give feedback
+2. Deploy face tagger to FOUNDRY (ansible-playbook or manual)
+3. Test LTX 2.3 at higher resolution (832x480) for EoBQ character videos
+4. Wire LTX 2.3 into creative-agent for autonomous video generation
+5. Fix HA health check (add auth token to dashboard services config)
+6. Investigate VAULT null metrics in monitoring page
 
 ---
 
