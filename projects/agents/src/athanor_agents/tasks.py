@@ -30,7 +30,17 @@ TASKS_KEY = "athanor:tasks"
 TASKS_CHANNEL = "athanor:tasks:events"
 TASK_WORKER_INTERVAL = 5.0  # seconds between polls
 MAX_CONCURRENT_TASKS = 6
-TASK_TIMEOUT = 600  # 10 min max per task
+TASK_TIMEOUT = 600  # 10 min default per task
+
+# Deep work agents get longer timeouts — their prompts are multi-step cycles
+AGENT_TIMEOUTS = {
+    "creative-agent": 1800,   # 30 min — generate + evaluate + refine loops
+    "coding-agent": 1200,     # 20 min — code audit + review cycles
+    "data-curator": 1200,     # 20 min — scan + parse + index cycles
+    "research-agent": 900,    # 15 min — search + research + document
+    "stash-agent": 900,       # 15 min — library organization
+    "knowledge-agent": 900,   # 15 min — KB curation
+}
 MAX_TASK_RETRIES = 1  # Auto-retry failed tasks once with error context
 TASK_TTL_COMPLETED = 86400  # 24h — purge completed tasks
 TASK_TTL_FAILED = 604800  # 7d — keep failed tasks longer for debugging
@@ -595,10 +605,11 @@ async def _execute_task(task: Task):
                 logger.info("Task %s cancelled during execution", task.id)
                 return
 
-            # Check timeout
-            if time.time() - task.started_at > TASK_TIMEOUT:
+            # Check timeout (per-agent override for deep work agents)
+            agent_timeout = AGENT_TIMEOUTS.get(task.agent, TASK_TIMEOUT)
+            if time.time() - task.started_at > agent_timeout:
                 task.status = "failed"
-                task.error = f"Task timed out after {TASK_TIMEOUT}s"
+                task.error = f"Task timed out after {agent_timeout}s"
                 task.completed_at = time.time()
                 await _update_task(task)
                 return
