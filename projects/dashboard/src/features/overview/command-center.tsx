@@ -19,8 +19,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AgentCrewBar } from "@/components/agent-crew-bar";
+import { ClusterCompact } from "@/components/cluster-compact";
 import { DailyBriefing } from "@/components/daily-briefing";
+import { LensTabs } from "@/components/lens-tabs";
 import { MediaGlance } from "@/components/media-glance";
+import { RightNowCard } from "@/components/right-now-card";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { GovernorCard } from "@/components/governor-card";
@@ -177,10 +180,58 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const trendData = buildTrendData(snapshot);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* ═══ TIER 0: Pulse + Lens ═══ */}
       <SystemPulse sticky />
+      <LensTabs />
+
+      {/* ═══ TIER 1: Above the fold — "What's happening now?" ═══ */}
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <RightNowCard snapshot={snapshot} />
+        <div className="grid gap-4 grid-cols-2">
+          <StatCard
+            label="Services"
+            value={`${snapshot.summary.healthyServices}/${snapshot.summary.totalServices}`}
+            detail={
+              snapshot.summary.degradedServices > 0
+                ? `${snapshot.summary.degradedServices} degraded`
+                : "All healthy"
+            }
+            tone={snapshot.summary.degradedServices > 0 ? "warning" : "success"}
+            icon={<Activity className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Agents"
+            value={`${snapshot.summary.readyAgents}/${snapshot.summary.totalAgents}`}
+            detail={`${snapshot.workforce.summary.completedTasks} tasks today`}
+            tone={snapshot.summary.readyAgents > 0 ? "success" : "warning"}
+            icon={<Bot className="h-5 w-5" />}
+          />
+          <StatCard
+            label="GPU load"
+            value={formatPercent(snapshot.summary.averageGpuUtilization, 0)}
+            detail={`${snapshot.hotspots.length} active GPUs`}
+            tone={
+              snapshot.summary.averageGpuUtilization !== null &&
+              snapshot.summary.averageGpuUtilization >= 80
+                ? "warning"
+                : "success"
+            }
+            icon={<Cpu className="h-5 w-5" />}
+          />
+          <StatCard
+            label="Projects"
+            value={`${snapshot.summary.activeProjects}`}
+            detail={`${snapshot.summary.firstClassProjects} first-class`}
+            tone={snapshot.summary.firstClassProjects > 0 ? "success" : "warning"}
+            icon={<FolderKanban className="h-5 w-5" />}
+          />
+        </div>
+      </div>
+
       <AgentCrewBar onAgentFilter={setAgentFilter} />
 
+      {/* ═══ EoBQ Content (lens-gated) ═══ */}
       {show("eoqContent") && (
         <div className="space-y-4">
           <QueenRosterCard />
@@ -193,97 +244,25 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         </div>
       )}
 
-      <PageHeader
-        eyebrow="Operations"
-        title="Command Center"
-        description="Athanor cluster posture, workforce state, first-class projects, and launch points for the operator workflow."
-        actions={
-          <>
-            <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.overview} />
-            <Button asChild variant="outline">
-              <Link href="/services?status=degraded">Open incidents</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/workplanner">Open work planner</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/agents">Resume agents</Link>
-            </Button>
-          </>
-        }
-      >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <StatCard
-            label="Cluster health"
-            value={`${snapshot.summary.healthyServices}/${snapshot.summary.totalServices}`}
-            detail={
-              snapshot.summary.degradedServices > 0
-                ? `${snapshot.summary.degradedServices} service issues need attention.`
-                : "All monitored endpoints are reachable."
-            }
-            tone={snapshot.summary.degradedServices > 0 ? "warning" : "success"}
-            icon={<Activity className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Average latency"
-            value={formatLatency(snapshot.summary.averageLatencyMs)}
-            detail={`Overview refreshed ${formatRelativeTime(snapshot.generatedAt)}.`}
-            detailVolatile
-            tone={
-              snapshot.summary.averageLatencyMs !== null &&
-              snapshot.summary.averageLatencyMs > 900
-                ? "warning"
-                : "default"
-            }
-            icon={<Gauge className="h-5 w-5" />}
-          />
-          <StatCard
-            label="GPU utilization"
-            value={formatPercent(snapshot.summary.averageGpuUtilization, 0)}
-            detail={`${snapshot.hotspots.length} GPUs surfaced in the hotspot lane.`}
-            tone={
-              snapshot.summary.averageGpuUtilization !== null &&
-              snapshot.summary.averageGpuUtilization >= 80
-                ? "warning"
-                : "success"
-            }
-            icon={<Cpu className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Agent readiness"
-            value={`${snapshot.summary.readyAgents}/${snapshot.summary.totalAgents}`}
-            detail={`${snapshot.summary.reachableBackends}/${snapshot.summary.totalBackends} inference backends reachable.`}
-            tone={snapshot.summary.readyAgents > 0 ? "success" : "warning"}
-            icon={<Bot className="h-5 w-5" />}
-          />
-          <StatCard
-            label="Project platform"
-            value={`${snapshot.summary.activeProjects}/${snapshot.projects.length}`}
-            detail={`${snapshot.summary.firstClassProjects} first-class projects in the registry.`}
-            tone={snapshot.summary.firstClassProjects > 0 ? "success" : "warning"}
-            icon={<FolderKanban className="h-5 w-5" />}
-          />
-        </div>
-      </PageHeader>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <DailyBriefing />
-        <MediaGlance />
-        <SmartStack />
+      {/* ═══ TIER 2: Operational — cluster, activity, work ═══ */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ClusterCompact nodes={snapshot.nodes} />
         <Card className="surface-hero">
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Clock3 className="h-5 w-5 text-primary" />
-              Unified stream
+              Activity stream
             </CardTitle>
-            <CardDescription>
-              Cross-route activity across tasks, agents, and operator feedback.
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <UnifiedStream limit={8} showFilters agentFilter={agentFilter} />
+            <UnifiedStream limit={6} showFilters agentFilter={agentFilter} />
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <DailyBriefing />
+        <SmartStack />
         <WorkPlan />
       </div>
 
