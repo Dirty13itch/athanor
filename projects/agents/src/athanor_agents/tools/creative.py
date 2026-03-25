@@ -86,6 +86,110 @@ def _flux_workflow(prompt: str, width: int = 1024, height: int = 1024, steps: in
     }
 
 
+def _ltx_t2v_workflow(
+    prompt: str,
+    width: int = 512,
+    height: int = 320,
+    num_frames: int = 41,
+    steps: int = 6,
+    seed: int | None = None,
+) -> dict:
+    """Build an LTX 2.3 text-to-video workflow for ComfyUI API.
+
+    Uses GGUF loader (ComfyUI-GGUF) + LTX2 VAE + Gemma text encoder.
+    Distilled model: 4-8 steps, fast generation. Verified on 5060 Ti 16 GB.
+    """
+    if seed is None:
+        seed = int(time.time()) % (2**31)
+
+    return {
+        # Load LTX 2.3 GGUF model
+        "1": {
+            "class_type": "UnetLoaderGGUF",
+            "inputs": {
+                "unet_name": "ltx-2.3-22b-distilled-Q4_K_M.gguf",
+            },
+        },
+        # Load LTX2 VAE
+        "2": {
+            "class_type": "VAELoader",
+            "inputs": {
+                "vae_name": "LTX2_video_vae_bf16.safetensors",
+            },
+        },
+        # Load Gemma text encoder for LTXV
+        "3": {
+            "class_type": "CLIPLoader",
+            "inputs": {
+                "clip_name": "gemma_3_12B_it_fp8_scaled.safetensors",
+                "type": "ltxv",
+            },
+        },
+        # Encode positive prompt
+        "4": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": prompt,
+                "clip": ["3", 0],
+            },
+        },
+        # Encode negative prompt
+        "5": {
+            "class_type": "CLIPTextEncode",
+            "inputs": {
+                "text": "blurry, low quality, distorted, watermark",
+                "clip": ["3", 0],
+            },
+        },
+        # Empty LTX latent video
+        "6": {
+            "class_type": "EmptyLTXVLatentVideo",
+            "inputs": {
+                "width": width,
+                "height": height,
+                "length": num_frames,
+                "batch_size": 1,
+            },
+        },
+        # KSampler — distilled uses 4-8 steps, cfg 1.0
+        "7": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": seed,
+                "steps": steps,
+                "cfg": 1.0,
+                "sampler_name": "euler",
+                "scheduler": "normal",
+                "denoise": 1.0,
+                "model": ["1", 0],
+                "positive": ["4", 0],
+                "negative": ["5", 0],
+                "latent_image": ["6", 0],
+            },
+        },
+        # VAE decode
+        "8": {
+            "class_type": "VAEDecode",
+            "inputs": {
+                "samples": ["7", 0],
+                "vae": ["2", 0],
+            },
+        },
+        # Save as animated WEBP
+        "9": {
+            "class_type": "SaveAnimatedWEBP",
+            "inputs": {
+                "filename_prefix": "EoBQ/ltx_video",
+                "fps": 24.0,
+                "lossless": False,
+                "quality": 85,
+                "method": "default",
+                "images": ["8", 0],
+            },
+        },
+    }
+
+
 def _wan_t2v_workflow(
     prompt: str,
     width: int = 480,
@@ -240,6 +344,57 @@ def generate_video(prompt: str, width: int = 480, height: int = 320, num_frames:
         return f"ComfyUI rejected the video generation request: {e.response.status_code}\n{error_body}"
     except Exception as e:
         return f"Failed to queue video generation: {e}"
+
+
+@tool
+def generate_video_ltx(prompt: str, width: int = 512, height: int = 320, num_frames: int = 41, steps: int = 6) -> str:
+    """Generate a video clip using LTX 2.3 (22B distilled GGUF) on ComfyUI. Returns the prompt ID.
+
+    LTX 2.3 is faster and higher quality than Wan2.x for text-to-video. Use this as the primary
+    video generation tool. The distilled model needs only 4-8 steps.
+
+    Args:
+        prompt: Text description of the video. Be specific about motion, camera, and action.
+        width: Video width (default 512). Must be divisible by 32. Max 832 on 16 GB GPU.
+        height: Video height (default 320). Must be divisible by 32. Max 480 on 16 GB GPU.
+        num_frames: Number of frames (default 41, ~1.7s at 24fps). Max ~65 on 16 GB.
+        steps: Sampling steps (default 6). Distilled model: 4-8 optimal. More = diminishing returns.
+
+    Example prompts:
+        "Photorealistic woman with flowing hair, slow head turn, soft studio lighting, cinematic"
+        "Dark throne room, camera slowly pushing in, dramatic torch lighting, gothic atmosphere"
+    """
+    try:
+        width = (width // 32) * 32
+        height = (height // 32) * 32
+
+        workflow = _ltx_t2v_workflow(prompt, width, height, num_frames, steps)
+        client_id = str(uuid.uuid4())
+
+        resp = httpx.post(
+            f"{COMFYUI_URL}/prompt",
+            json={"prompt": workflow, "client_id": client_id},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        prompt_id = data.get("prompt_id", "unknown")
+        number = data.get("number", "?")
+
+        return (
+            f"LTX 2.3 video generation queued successfully.\n"
+            f"Prompt ID: {prompt_id}\n"
+            f"Queue position: {number}\n"
+            f"Settings: {width}x{height}, {num_frames} frames, {steps} steps, LTX 2.3 GGUF Q4_K_M\n"
+            f"Estimated time: ~30-60s\n"
+            f"Use check_queue to monitor progress."
+        )
+    except httpx.HTTPStatusError as e:
+        error_body = e.response.text[:500] if e.response else "No response"
+        return f"ComfyUI rejected LTX video generation: {e.response.status_code}\n{error_body}"
+    except Exception as e:
+        return f"Failed to queue LTX video generation: {e}"
 
 
 @tool
@@ -1002,7 +1157,8 @@ def _try_vision_evaluation(video_url: str, anchor_url: str, size_bytes: int | No
 
 
 CREATIVE_TOOLS = [
-    generate_image, generate_image_batch, generate_video, generate_character_portrait,
+    generate_image, generate_image_batch, generate_video, generate_video_ltx,
+    generate_character_portrait,
     check_queue, get_generation_history, get_comfyui_status,
     list_personas, generate_with_likeness,
     generate_i2v_video, poll_video_completion,
