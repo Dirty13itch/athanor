@@ -39,6 +39,7 @@ import { ProvingGroundCard } from "@/components/proving-ground-card";
 import { SmartStack } from "@/components/smart-stack";
 import { StatusDot } from "@/components/status-dot";
 import { SystemMapCard } from "@/components/system-map-card";
+import { SubscriptionBurn } from "@/components/subscription-burn";
 import { SystemPulse } from "@/components/system-pulse";
 import { UnifiedStream } from "@/components/unified-stream";
 import { WorkPlan } from "@/components/work-plan";
@@ -431,9 +432,10 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           <SmartStack />
         </div>
 
-        {/* Column 3: Media Glance + Daily Briefing stacked */}
+        {/* Column 3: Media + Furnace + Briefing stacked */}
         <div className="space-y-4">
           <MediaGlance />
+          <SubscriptionBurn />
           <DailyBriefing />
         </div>
       </div>
