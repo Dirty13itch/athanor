@@ -1279,7 +1279,7 @@ async function mergeWithDiskFiles(
 
   return merged
     .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, 100);
+    .slice(0, 500);
 }
 
 export async function getHomeSnapshot(): Promise<HomeSnapshot> {
