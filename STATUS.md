@@ -261,13 +261,26 @@ Tiers 1-21 tracked. 20 fully complete. Remaining open items are backlog or block
 - **351+ EoBQ images generated** — Pipeline running at ~40/hr on 5060 Ti.
 - **113 GB freed on FOUNDRY** — 4 stale models deleted.
 
+### Session 60g — Mission Control Redesign + Video Pipeline
+
+- **Command Center homepage v2** — Complete rewrite (937 lines). Unified cockpit instrument panel:
+  - Zone 1: SystemPulse (sticky GPU bar)
+  - Zone 2: Single surface-hero command panel with ATHANOR title + lens tabs, 4 SSE-driven live metrics, RightNowCard + alerts, 2x2 NodeGrid with animated GPU bars, AgentCrewBar
+  - Zone 3: 3-column operational grid (activity stream, work/stack, media/briefing)
+  - Zone 4: 6 collapsible `<details>` deep-dive sections (projects, cluster posture, inference, priority lane, workforce, governance)
+  - Verified via Chrome screenshot — all zones rendering with live data
+- **LTX 2.3 video tool added to creative-agent** — `generate_video_ltx()` function + `_ltx_t2v_workflow()`. Deployed to FOUNDRY.
+- **5 queen character videos queued** — LTX 2.3 GGUF, first EoBQ video content
+- **374 total generated assets** — up from 98 at start of session
+- **Deep codebase exploration** — Full audit of all 30+ components, CSS design system (8 surface tiers, OKLCH tokens, ambient glow), SSE data contracts, lens system
+
 ### Next Actions
-1. Shaun: Review gallery at workshop:3001/gallery — rate portraits, give feedback
-2. Deploy face tagger to FOUNDRY (ansible-playbook or manual)
-3. Test LTX 2.3 at higher resolution (832x480) for EoBQ character videos
-4. Wire LTX 2.3 into creative-agent for autonomous video generation
-5. Fix HA health check (add auth token to dashboard services config)
-6. Investigate VAULT null metrics in monitoring page
+1. Shaun: Review homepage at workshop:3001 — give feedback on mission control layout
+2. Shaun: Review gallery at workshop:3001/gallery — rate portraits
+3. Deploy face tagger to FOUNDRY
+4. Test LTX 2.3 video quality — review first generated videos
+5. Continue subpage audits (gallery, agents workbench, GPU metrics)
+6. Fix HA health check (add auth token)
 
 ---
 
