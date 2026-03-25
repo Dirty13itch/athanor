@@ -650,17 +650,30 @@ async def _execute_task(task: Task):
         import re
         result_text = "".join(collected_text)
 
-        # DEFINITIVE FIX: If </think> exists anywhere, everything before it is
-        # chain-of-thought. Strip it all. This handles:
-        # - Complete <think>...</think> blocks
-        # - Orphaned </think> (opening tag stripped by another layer)
-        # - CoT dumped without tags followed by </think>
+        # Layer 1: If </think> exists, everything before it is CoT
         last_think_close = result_text.rfind("</think>")
         if last_think_close >= 0:
             result_text = result_text[last_think_close + len("</think>"):]
 
-        # Also strip any remaining <think> tags (orphaned openers)
-        result_text = re.sub(r"<think>\s*", "", result_text)
+        # Layer 2: Strip orphaned <think> tags
+        result_text = re.sub(r"</?think>\s*", "", result_text)
+
+        # Layer 3: Strip untagged CoT preamble (Qwen3.5 dumps reasoning as plain text)
+        # Pattern: "The user wants...", "Let me...", "I need to..." followed by plan/analysis
+        # then the actual response. Look for the transition point.
+        cot_patterns = [
+            # "The user wants X. [analysis...] \n\n[actual response]"
+            r"^(?:The user (?:wants|is asking|asked).*?\n\n)",
+            # "Let me [think/plan/check]...\n\n[actual response]"
+            r"^(?:Let me (?:think|plan|check|analyze|look|start|review).*?\n\n)",
+            # "I need to [do X]...\n\n[actual response]"
+            r"^(?:I need to .*?\n\n)",
+            # "</think>\n" leftover
+            r"^</think>\s*",
+        ]
+        for pattern in cot_patterns:
+            result_text = re.sub(pattern, "", result_text, count=1, flags=re.DOTALL)
+
         result_text = result_text.strip()
 
         task.status = "completed"
