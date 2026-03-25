@@ -125,9 +125,9 @@ function isCardVisible(cardGroup: string, sections: SectionId[]): boolean {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="surface-instrument rounded-xl p-2.5">
-      <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50">{label}</p>
-      <p className="mt-1 text-2xl font-mono font-bold tabular-nums">{value}</p>
+    <div className="surface-instrument rounded-xl border p-2 sm:p-2.5">
+      <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground sm:text-[11px] sm:tracking-[0.18em]">{label}</p>
+      <p className="mt-0.5 text-xs font-semibold sm:mt-1 sm:text-sm">{value}</p>
     </div>
   );
 }
@@ -135,47 +135,45 @@ function Metric({ label, value }: { label: string; value: string }) {
 /** GPU utilization bar — thin horizontal fill with transition. */
 function GpuBar({ value }: { value: number | null }) {
   const pct = value ?? 0;
+  const color =
+    pct >= 80
+      ? "bg-[color:var(--signal-warning)]"
+      : pct >= 1
+        ? "bg-[color:var(--signal-success)]"
+        : "bg-muted-foreground/30";
   return (
-    <div className="h-1 w-full rounded-full bg-muted/30">
+    <div className="h-1.5 w-full rounded-full bg-muted/40">
       <div
-        className="h-full rounded-full transition-all duration-700"
-        style={{
-          width: `${Math.min(pct, 100)}%`,
-          backgroundColor:
-            pct >= 80
-              ? "var(--signal-warning)"
-              : pct >= 1
-                ? "var(--signal-success)"
-                : "var(--text-disabled)",
-        }}
+        className={cn("h-full rounded-full transition-all duration-700", color)}
+        style={{ width: `${Math.min(pct, 100)}%` }}
       />
     </div>
   );
 }
 
-/** 2x2 node grid embedded in the command surface. */
+/** Node grid — stacked on mobile, 2x2 on sm+. */
 function NodeGrid({ nodes }: { nodes: OverviewSnapshot["nodes"] }) {
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {nodes.map((node) => (
         <Link
           key={node.id}
           href={`/services?node=${node.id}`}
-          className="group flex flex-col gap-1.5 rounded-xl bg-[color:var(--surface-metric)] p-3 transition hover:bg-accent/60"
+          className="surface-metric group flex flex-col gap-1.5 rounded-xl border p-2.5 sm:p-3 transition hover:bg-accent/60 min-h-[44px]"
         >
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
               <StatusDot
                 tone={node.degradedServices > 0 ? "warning" : "healthy"}
                 pulse={node.degradedServices > 0}
               />
-              <span className="text-xs font-semibold truncate">{node.name}</span>
+              <span className="text-xs font-semibold truncate sm:text-sm">{node.name}</span>
             </div>
-            <span className="font-mono text-[10px] text-muted-foreground/40 shrink-0">{node.ip}</span>
+            <span className="font-mono text-[10px] text-muted-foreground shrink-0">{node.ip}</span>
           </div>
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground/50">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
             <span>{node.healthyServices}/{node.totalServices} svc</span>
-            <span className="font-mono tabular-nums">{formatPercent(node.gpuUtilization, 0)} GPU</span>
+            <span>{formatPercent(node.gpuUtilization, 0)} GPU</span>
           </div>
           <GpuBar value={node.gpuUtilization} />
         </Link>
@@ -194,27 +192,18 @@ function InlineMetric({
   value: string;
   tone?: "default" | "success" | "warning" | "danger";
 }) {
-  /** Tone: only use color when signaling state, otherwise neutral. */
-  const toneStyles: Record<string, { color?: string; borderLeft?: string }> = {
-    default: {},
-    success: { color: "var(--signal-success)" },
-    warning: { color: "var(--signal-warning)", borderLeft: "2px solid var(--signal-warning)" },
-    danger: { color: "var(--signal-danger)", borderLeft: "2px solid var(--signal-danger)" },
+  const toneColor: Record<string, string> = {
+    default: "text-foreground",
+    success: "text-[color:var(--signal-success)]",
+    warning: "text-[color:var(--signal-warning)]",
+    danger: "text-[color:var(--signal-danger)]",
   };
-  const style = toneStyles[tone] ?? {};
   return (
-    <div
-      className="flex flex-col items-center gap-0.5 px-4 py-2"
-      style={{ borderLeft: style.borderLeft }}
-    >
-      <span
-        className="text-2xl font-mono font-bold tabular-nums tracking-tight"
-        style={{ color: style.color }}
-        data-volatile="true"
-      >
+    <div className="flex flex-col items-center gap-0.5 px-2 py-1.5 sm:px-3 sm:py-2">
+      <span className={cn("text-base font-bold tabular-nums tracking-tight sm:text-lg", toneColor[tone])} data-volatile="true">
         {value}
       </span>
-      <span className="text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50">{label}</span>
+      <span className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground sm:text-[10px] sm:tracking-[0.2em]">{label}</span>
     </div>
   );
 }
@@ -233,12 +222,12 @@ function DeepDiveSection({
 }) {
   return (
     <details className="group" open={defaultOpen || undefined}>
-      <summary className="flex cursor-pointer items-center gap-3 rounded-xl bg-[color:var(--surface-panel)] px-4 py-3 transition hover:bg-accent/60 list-none [&::-webkit-details-marker]:hidden">
-        <span className="text-muted-foreground/50">{icon}</span>
-        <span className="text-xs font-semibold tracking-tight uppercase">{title}</span>
-        <ChevronDown className="ml-auto h-3.5 w-3.5 text-muted-foreground/40 transition-transform group-open:rotate-180" />
+      <summary className="surface-panel flex cursor-pointer items-center gap-2.5 rounded-2xl border px-3 py-3 sm:gap-3 sm:px-5 sm:py-4 transition hover:bg-accent/60 list-none [&::-webkit-details-marker]:hidden min-h-[44px]">
+        <span className="text-muted-foreground">{icon}</span>
+        <span className="text-xs font-semibold tracking-tight sm:text-sm">{title}</span>
+        <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
-      <div className="mt-3 space-y-3">{children}</div>
+      <div className="mt-3 space-y-4">{children}</div>
     </details>
   );
 }
@@ -330,41 +319,41 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       : snapshot.summary.averageGpuUtilization;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-5">
       {/* ═══ ZONE 1: Status Bar (sticky) ═══ */}
       <SystemPulse sticky />
 
       {/* ═══ ZONE 2: Command Surface ═══ */}
-      <div className="surface-hero rounded-2xl border p-3 md:p-4">
+      <div className="surface-hero rounded-2xl border p-3 sm:p-4 md:p-6">
         {/* Header row: title + lens tabs + live badge */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold tracking-tight md:text-xl">ATHANOR</h1>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <h1 className="text-lg font-bold tracking-tight sm:text-xl md:text-2xl">ATHANOR</h1>
             <LensTabs />
           </div>
           <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.overview} />
         </div>
 
-        {/* Metric strip — 4 key numbers in a tight row */}
-        <div className="mt-3 flex flex-wrap items-stretch justify-center gap-px rounded-xl bg-[color:var(--surface-instrument)] overflow-hidden">
+        {/* Metric strip — 4 key numbers, grid on mobile, flex row on sm+ */}
+        <div className="mt-3 grid grid-cols-2 items-stretch gap-px rounded-xl border surface-instrument overflow-hidden sm:mt-4 sm:flex sm:flex-wrap sm:justify-center">
           <InlineMetric
             label="Services"
             value={`${sseServicesUp}/${sseServicesTotal}`}
             tone={sseServicesDown.length > 0 ? "warning" : "success"}
           />
-          <div className="w-px self-stretch bg-border/20" />
+          <div className="hidden w-px self-stretch bg-border/40 sm:block" />
           <InlineMetric
             label="Agents"
             value={`${sseAgentCount}`}
             tone={sseAgentCount > 0 ? "success" : "warning"}
           />
-          <div className="w-px self-stretch bg-border/20" />
+          <div className="hidden w-px self-stretch bg-border/40 sm:block" />
           <InlineMetric
             label="GPU avg"
             value={formatPercent(sseGpuAvg, 0)}
             tone={sseGpuAvg !== null && sseGpuAvg >= 80 ? "warning" : "success"}
           />
-          <div className="w-px self-stretch bg-border/20" />
+          <div className="hidden w-px self-stretch bg-border/40 sm:block" />
           <InlineMetric
             label="Tasks"
             value={`${sseTasksToday}`}
@@ -373,28 +362,28 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         </div>
 
         {/* Main command surface: left = Right Now, right = Nodes + Agents */}
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="mt-4 grid gap-4 sm:mt-5 sm:gap-5 lg:grid-cols-[1.4fr_1fr]">
           {/* Left column: Right Now + alerts */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <RightNowCard snapshot={snapshot} />
 
             {/* Degraded alerts inline — pulsing red */}
             {snapshot.alerts.filter((a) => a.tone === "degraded").length > 0 && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {snapshot.alerts
                   .filter((a) => a.tone === "degraded")
                   .map((alert) => (
                     <Link
                       key={alert.id}
                       href={alert.href}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition hover:bg-accent/40 border-l-2 border-l-[color:var(--signal-danger)]"
+                      className="surface-tile flex items-center gap-2.5 rounded-xl border border-[color:var(--signal-danger)]/20 p-2.5 sm:gap-3 sm:p-3 transition hover:bg-accent/60 min-h-[44px]"
                     >
                       <StatusDot tone="danger" pulse className="shrink-0" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{alert.title}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground/60">{alert.description}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{alert.description}</p>
                       </div>
-                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                      <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     </Link>
                   ))}
               </div>
@@ -402,7 +391,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           </div>
 
           {/* Right column: node grid + agent crew */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <NodeGrid nodes={snapshot.nodes} />
             <AgentCrewBar onAgentFilter={setAgentFilter} />
           </div>
@@ -411,10 +400,10 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
       {/* ═══ EoBQ Content (lens-gated) ═══ */}
       {show("eoqContent") && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <QueenRosterCard />
           <GameStatsCard />
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             <RecentDialogueCard />
             <GenerationGalleryCard />
           </div>
@@ -423,12 +412,12 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       )}
 
       {/* ═══ ZONE 3: Operational Grid ═══ */}
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Column 1: Activity Stream */}
         <Card className="surface-panel">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
-              <Radio className="h-4 w-4 text-muted-foreground" />
+              <Radio className="h-4 w-4 text-primary" />
               Activity
             </CardTitle>
           </CardHeader>
@@ -438,23 +427,21 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         </Card>
 
         {/* Column 2: Work Plan + Goals stacked */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <WorkPlan />
           <SmartStack />
         </div>
 
         {/* Column 3: Media + Furnace + Briefing stacked */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <MediaGlance />
-          <div className="rounded-xl bg-[color:var(--surface-instrument)] p-3">
-            <SubscriptionBurn />
-          </div>
+          <SubscriptionBurn />
           <DailyBriefing />
         </div>
       </div>
 
       {/* Quick actions bar */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <Button asChild variant="outline" size="sm">
           <Link href="/services?status=degraded">Incidents</Link>
         </Button>
@@ -477,10 +464,10 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       {/* Projects */}
       {show("projectPlatform") && (
         <DeepDiveSection title="Projects" icon={<FolderKanban className="h-4 w-4" />} defaultOpen>
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
             <div className="space-y-3">
               {snapshot.projects.map((project) => (
-                <div key={project.id} className="surface-tile rounded-2xl border p-4">
+                <div key={project.id} className="surface-tile rounded-2xl border p-3 sm:p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -535,10 +522,10 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       {/* Cluster Posture */}
       {show("clusterPosture") && (
         <DeepDiveSection title="Cluster Posture" icon={<Gauge className="h-4 w-4" />}>
-          <div className="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+          <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1.5fr_1fr]">
             <Card className="surface-instrument">
               <CardHeader>
-                <CardTitle className="text-base">Availability & GPU trend</CardTitle>
+                <CardTitle className="text-lg">Availability & GPU trend</CardTitle>
                 <CardDescription>Service availability and GPU load over the history window.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -551,12 +538,12 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                   mode="line"
                   valueSuffix="%"
                 />
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {snapshot.nodes.map((node) => (
-                    <div key={node.id} className="surface-tile rounded-2xl border p-4">
+                    <div key={node.id} className="surface-tile rounded-2xl border p-3 sm:p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-base font-semibold">{node.name}</p>
+                          <p className="text-lg font-semibold">{node.name}</p>
                           <p className="font-mono text-xs text-muted-foreground">{node.ip}</p>
                         </div>
                         <StatusDot
@@ -587,7 +574,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-instrument">
               <CardHeader>
-                <CardTitle className="text-base">GPU hotspots</CardTitle>
+                <CardTitle className="text-lg">GPU hotspots</CardTitle>
                 <CardDescription>Cards under the highest current demand.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -596,7 +583,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                     <Link
                       key={gpu.id}
                       href={`/gpu?highlight=${encodeURIComponent(gpu.id)}`}
-                      className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
+                      className="surface-tile block rounded-2xl border p-3 sm:p-4 transition hover:bg-accent/60"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -605,7 +592,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                         </div>
                         <Badge variant="outline">{formatPercent(gpu.utilization, 0)}</Badge>
                       </div>
-                      <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                      <div className="mt-2 grid grid-cols-3 gap-1.5 text-xs sm:mt-3 sm:gap-2 sm:text-sm">
                         <Metric label="Temp" value={formatTemperatureF(gpu.temperatureC)} />
                         <Metric label="Power" value={gpu.powerW === null ? "--" : `${Math.round(gpu.powerW)}W`} />
                         <Metric
@@ -634,15 +621,15 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       {/* Inference */}
       {show("inferenceRow") && (
         <DeepDiveSection title="Inference & Agent Capabilities" icon={<Layers className="h-4 w-4" />}>
-          <div className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1fr]">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-[1.15fr_1fr_1fr]">
             <Card className="surface-instrument">
               <CardHeader>
-                <CardTitle className="text-base">Inference posture</CardTitle>
+                <CardTitle className="text-lg">Inference posture</CardTitle>
                 <CardDescription>Reachable backends, model inventory, and active launch paths.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {snapshot.backends.map((backend) => (
-                  <div key={backend.id} className="surface-tile rounded-2xl border p-4">
+                  <div key={backend.id} className="surface-tile rounded-2xl border p-3 sm:p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -672,7 +659,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="text-base">Agent capabilities</CardTitle>
+                <CardTitle className="text-lg">Agent capabilities</CardTitle>
                 <CardDescription>Live agent roster and exposed tool counts.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -681,7 +668,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                     <Link
                       key={agent.id}
                       href={`/agents?agent=${agent.id}`}
-                      className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
+                      className="surface-tile block rounded-2xl border p-3 sm:p-4 transition hover:bg-accent/60"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -706,7 +693,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="text-base">Launchpad</CardTitle>
+                <CardTitle className="text-lg">Launchpad</CardTitle>
                 <CardDescription>External tools and quick paths.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -716,7 +703,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                     href={tool.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="surface-tile flex items-center justify-between rounded-2xl border p-4 transition hover:bg-accent/60"
+                    className="surface-tile flex items-center justify-between rounded-2xl border p-3 sm:p-4 transition hover:bg-accent/60"
                   >
                     <div>
                       <p className="font-medium">{tool.label}</p>
@@ -726,7 +713,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                   </a>
                 ))}
 
-                <div className="surface-tile rounded-2xl border p-4">
+                <div className="surface-tile rounded-2xl border p-3 sm:p-4">
                   <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Snapshot time</p>
                   <p className="mt-2 font-medium" data-volatile="true">
                     {formatTimestamp(snapshot.generatedAt)}
@@ -737,7 +724,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                   </div>
                 </div>
 
-                <div className="surface-tile rounded-2xl border p-4">
+                <div className="surface-tile rounded-2xl border p-3 sm:p-4">
                   <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Quick links</p>
                   <div className="mt-3 space-y-2">
                     <Link href="/chat" className="flex items-center justify-between rounded-xl px-2 py-2 text-sm hover:bg-accent">
@@ -763,11 +750,11 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       {/* Priority Lane + Recent Context */}
       {show("priorityLane") && (
         <DeepDiveSection title="Priority Lane & Recent Context" icon={<Sparkles className="h-4 w-4" />}>
-          <div className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+          <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1.35fr_1fr]">
             <Card className="surface-hero">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Zap className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Zap className="h-5 w-5 text-primary" />
                   Incidents & attention
                 </CardTitle>
                 <CardDescription>Live attention areas across the cluster.</CardDescription>
@@ -777,7 +764,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                   <Link
                     key={alert.id}
                     href={alert.href}
-                    className="surface-tile flex items-start gap-3 rounded-2xl border p-4 transition hover:bg-accent/60"
+                    className="surface-tile flex items-start gap-3 rounded-2xl border p-3 sm:p-4 transition hover:bg-accent/60"
                   >
                     <StatusDot
                       tone={
@@ -802,8 +789,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <History className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <History className="h-5 w-5 text-primary" />
                   Recent operator context
                 </CardTitle>
                 <CardDescription>Browser-local sessions and threads you touched most recently.</CardDescription>
@@ -814,7 +801,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                     <Link
                       key={item.id}
                       href={item.route}
-                      className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
+                      className="surface-tile block rounded-2xl border p-3 sm:p-4 transition hover:bg-accent/60"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -844,11 +831,11 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       {/* Workforce */}
       {show("workforceRow") && (
         <DeepDiveSection title="Workforce Pulse" icon={<Bot className="h-4 w-4" />}>
-          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr_1fr]">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-[1.1fr_0.9fr_1fr]">
             <Card className="surface-hero">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Bot className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Bot className="h-5 w-5 text-primary" />
                   Queue & approvals
                 </CardTitle>
                 <CardDescription>Queue pressure, approvals, and active work across the org.</CardDescription>
@@ -871,7 +858,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                   <Link
                     key={task.id}
                     href="/workplanner"
-                    className="surface-tile block rounded-2xl border p-4 transition hover:bg-accent/60"
+                    className="surface-tile block rounded-2xl border p-3 sm:p-4 transition hover:bg-accent/60"
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant={task.status === "pending_approval" ? "destructive" : "outline"}>
@@ -888,15 +875,15 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FolderKanban className="h-5 w-5 text-primary" />
                   Active goals
                 </CardTitle>
                 <CardDescription>Steering constraints currently shaping the work planner.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {snapshot.workforce.goals.slice(0, 3).map((goal) => (
-                  <div key={goal.id} className="surface-tile rounded-2xl border p-4">
+                  <div key={goal.id} className="surface-tile rounded-2xl border p-3 sm:p-4">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{goal.priority}</Badge>
                       <Badge variant="secondary">{goal.agentId === "global" ? "All agents" : goal.agentId}</Badge>
@@ -909,15 +896,15 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
 
             <Card className="surface-panel">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Clock3 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Clock3 className="h-5 w-5 text-primary" />
                   Workspace broadcast
                 </CardTitle>
                 <CardDescription>Top salience items moving through the shared workspace.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {snapshot.workforce.workspace.broadcast.slice(0, 3).map((item) => (
-                  <div key={item.id} className="surface-tile rounded-2xl border p-4">
+                  <div key={item.id} className="surface-tile rounded-2xl border p-3 sm:p-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-medium">{item.sourceAgent}</p>
                       <Badge variant="outline">{item.priority}</Badge>
@@ -938,7 +925,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
       {/* Governance */}
       {show("intelligenceRow") && (
         <DeepDiveSection title="Governance" icon={<Shield className="h-4 w-4" />}>
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             <GovernorCard compact />
             <ModelGovernanceCard />
             <ProvingGroundCard compact />
