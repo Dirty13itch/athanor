@@ -1,103 +1,108 @@
 # Athanor Status
 
-**Last updated: 2026-03-24 22:46 CDT
-**Session:** 60h — The Self-Feeding Furnace
+**Last updated:** 2026-03-25 20:00 PDT
+**Session:** Evening Review
 
 ---
 
-## System Health: 9/10
+## Evening Review — 2026-03-25
 
-| Node | Status | GPUs | Load |
-|------|--------|------|------|
-| **FOUNDRY** (.244) | UP | 4x5070Ti TP=4 (99%), 4090 (coder idle) | 9 agents, 6/6 deps |
-| **WORKSHOP** (.225) | UP | 5090 (vLLM worker), 5060Ti (ComfyUI 36%) | Dashboard, EoBQ, ComfyUI |
-| **VAULT** (.203) | UP | Arc A380 | 55 containers, Redis, Qdrant, LiteLLM |
-| **DEV** (.189) | UP | 5060Ti (embedding+reranker) | Ops center, claude-squad |
+### Score: 7/10 — Agents ran well, infrastructure debt finally closing
 
-**Services:** 28/29 healthy (HA degraded — needs auth token)
-**Agents:** 9/9 healthy, scheduler active, deep work prompts deployed
-**Tasks:** 504 completed, 0 running, avg 142s duration
-**Gallery:** 378 EoBQ assets (portraits, scenes, videos), pipeline producing ~40/hr
-**Dashboard:** 35 pages, all 200, mission control v2 live
+10 agent tasks completed autonomously today across 7 agents. No manual intervention. Knowledge agent: 52% growth in knowledge collection with duplicate contamination. Media agent: Radarr broken (0 movies, 2 consecutive cycles). Data curator: 5712 chunks indexed. Home agent: 3 monitoring cycles.
+
+**Infrastructure debt closed tonight:** MCP 401 (4-day P0) fixed — ATHANOR_AGENT_API_TOKEN added to .mcp.json. Dashboard proactive attention rsynced and rebuild triggered. Pipeline blocked at queue depth 51 > max 20 — 8 plans ready, 0 submitted.
+
+Plan modules (owner_model.py, intent_synthesizer.py) — day 3 not started. Still the deliverable.
 
 ---
 
-## What Was Built (Sessions 58-60h)
+## Active Plan
 
-### Infrastructure
-- Qdrant URL fix (.244→.203) — root cause of 74% failure rate
-- LiteLLM routing fix — 6 dead Ollama routes → Workshop vLLM
-- Scheduler fix — loop died after first tick, now running perpetually
-- ComfyUI PyTorch sm_120 — Blackwell GPU kernels working
-- PuLID face injection on Blackwell — first ever on 5060 Ti
-- LTX 2.3 video gen — GGUF bypasses sm_120, <30s per clip
-- MCP 401 fix — API token added to .mcp.json
-- Per-agent timeouts — deep work agents get 15-30 min (was 10)
+**lucky-crafting-swing.md** — "The System That Knows What Shaun Wants"
 
-### Dashboard
-- Mission control homepage v2 — cockpit instrument panel
-- Gallery feedback system — rate, approve, flag, refine, compare
-- Gallery UX — sorting, character filter, batch ops, enhanced lightbox
-- RightNowCard, LensTabs, ClusterCompact, SubscriptionBurn components
-- Gallery cap increased from 100 to 500 items
-- Proactive attention system (Codex session)
-
-### Agents
-- Deep work prompts for all 9 agents (Phase 1)
-- Scheduler tasks bypass approval gating (Phase 2)
-- Quality cascade chains — generate → evaluate → refine (Phase 3)
-- Overnight furnace script for claude-squad (Phase 4)
-- Think tag stripping fix for clean task output
-
-### Creative Pipeline
-- 378 EoBQ assets generated autonomously
-- Per-queen physical blueprints from master doc
-- Body skew: fit + busty ("tits on a stick") baseline
-- Stash reference photos pulled for 12/21 queens
-- LTX 2.3 T2V tool added to creative-agent
-
-### Operational
-- Kaizen skill — perpetual improvement loop with depth mandate
-- Design refinement loop — color semantics, typography, contrast rules
-- B2 backup script + research doc
-- Stash face tagger Ansible role
-- 113 GB stale models cleaned from FOUNDRY
-- 13 stale worktrees removed
+- Module 1: owner_model.py (~180 lines) — NOT YET BUILT
+- Module 2: intent_synthesizer.py (~280 lines) — NOT YET BUILT
+- Module 3: quality evaluation via Gemini vision — NOT YET BUILT
+- Module 4: feedback loop endpoints — NOT YET BUILT
+- Adjacent: proactive attention API + banner (committed, deploying tonight)
 
 ---
 
-## Active Now
-- 2 design agents building in worktrees (responsive + visual refinement)
-- ComfyUI generating EoBQ portraits at ~40/hr
-- Agent scheduler running deep work cycles every 10-30 min
-- Quality cascades scheduled every 4h (creative) and 6h (code)
+## Cluster Health
+
+- FOUNDRY: All services UP. 3x5070Ti at 99%, 1 at 26%, 4090 at 21.8/24.6GB. Temps 33-44F. Agents 9/9.
+- WORKSHOP: Dashboard rebuild in progress. ComfyUI/EoBQ up. GPUs idle, memory loaded.
+- VAULT: Healthy. 55 containers. LiteLLM/Qdrant/Redis OK. Storage 83%.
+- DEV: Healthy. Embedding/Reranker OK.
+- MCP auth: FIXED — token in .mcp.json (takes effect next session start)
+
+---
+
+## Alerts (5 firing)
+
+| Alert | Status | Action |
+|-------|--------|--------|
+| BackupAgeCritical x2 | REAL | Blocked on Shaun (Backblaze B2 creds) |
+| BackupAgeWarning x2 | REAL | Same |
+| QdrantDown | FALSE POSITIVE | Fix alert rule (P2) |
+| WorkerVLLMDown | STALE | Worker migrated to Ollama (P2) |
+
+---
+
+## Agent Activity (2026-03-25)
+
+- home-agent: 3 HA cycles — 3 media players unavailable, 4 unknown state entities
+- media-agent: 2 deep cycles — Radarr empty (broken), Plex no libraries, Sonarr OK (339 shows, 30.5TB)
+- knowledge-agent: 1 curation — knowledge 3878pts (+52%), duplicate contamination
+- data-curator: 1 indexing — 5712 total chunks
+- stash-agent: 1 task — empty output (needs investigation)
+- general-assistant: 2 health checks — 1 empty output
+- creative-agent: 0 today
+
+---
+
+## Pipeline Status
+
+BLOCKED: Queue depth 51 > max 20. Last cycle: 0 intents, 0 plans, 0 submissions.
+8 pending plans ready — stuck behind queue limit.
+Fix: raise max_queue_depth to 100 in pipeline config.
 
 ---
 
 ## Next Actions
-1. Merge design agent results when complete
-2. Deploy responsive + design fixes to Workshop
-3. Shaun: activate overnight cron (`0 2 * * *`) on DEV
-4. Shaun: review gallery at workshop:3001/gallery — rate images
-5. Continue kaizen loop — next weakest link after design agents merge
 
----
+### P0 — Restart session (MCP token now active)
+### P0 — Drain pipeline queue
+1. Find max_queue_depth in pipeline config, raise to 100
+2. Verify next cycle submits the 8 pending plans
 
-## Blocked on Shaun
-- Overnight cron activation (uses --dangerously-skip-permissions)
-- Backblaze B2 account creation (backup script ready)
-- 10GbE network (physical switch rack)
-- n8n Signal Pipeline QR code scan
+### P1 — Diagnose Radarr empty library
+3. SSH VAULT, check Radarr container logs, verify library root paths
+
+### P1 — Build owner_model.py + intent_synthesizer.py
+4. Day 3 unstarted. Build them.
+
+### P2 — Dedupe Qdrant knowledge collection
+### P2 — Fix stash-agent + general-assistant silent failures
+### P2 — Fix stale alert rules (QdrantDown FP, WorkerVLLMDown stale)
+
+### Blocked on Shaun
+- Backblaze B2 credentials
+- VAULT storage decision (83%)
 
 ---
 
 ## Session Log
 
-| Session | Summary |
-|---------|---------|
-| 60h | Self-feeding furnace: 5 phases (deep prompts, autonomous execution, cascades, overnight, burn rate). Kaizen skill. MCP 401 fix. Gallery cap fix. Per-agent timeouts. |
-| 60g | Mission control v2 (937-line cockpit). LTX video tool. Design refinement loop. |
-| 60f | LTX 2.3 unblocked. Face tagger built. n8n research. Dashboard 19/19 APIs. |
-| 60 | PuLID on Blackwell. 98→378 EoBQ assets. Gallery feedback. Body skew. |
-| 59 | Deep audit: Qdrant URL, LiteLLM routing, dashboard creds, scheduler fix. |
-| 58 | System recovery: vLLM worker, GPU orchestrator, service mesh, git convergence. |
+| Date | Summary |
+|------|---------|
+| 2026-03-25 EVE | Score 7/10. 10 agent tasks. MCP 401 fixed. Dashboard deployed. Pipeline blocked (51>20). Radarr broken. Knowledge duplicates. Plan day 3 unstarted. |
+| 2026-03-24 EVE | Score 6/10. Proactive attention API + banner. Creative 8 tasks. MCP 401 unresolved. |
+| 2026-03-24 AM | 401 diagnosed (3-layer). 13 coding tasks pending. |
+| 2026-03-23 EVE | Score 6/10. APScheduler fix. 401 unresolved. |
+| 2026-03-23 PM | Brain 7 layers, Sentinel 56/56, Governor hardened, APScheduler fix. |
+| 2026-03-23 AM | Dashboard DOWN, pipeline DORMANT, 7 alerts. |
+| 60h | Self-feeding furnace phases 1-5. Kaizen skill. Per-agent timeouts. |
+| 60g | Mission control v2. LTX video. Design refinement. |
+| 60f | LTX 2.3 unblocked. Face tagger. n8n research. |
