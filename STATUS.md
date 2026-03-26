@@ -1,19 +1,25 @@
 # Athanor Status
 
-**Last updated:** 2026-03-25 20:00 PDT
-**Session:** Evening Review
+**Last updated:** 2026-03-26 07:00 PDT
+**Session:** Morning Review
 
 ---
 
-## Evening Review — 2026-03-25
+## Morning Review — 2026-03-26
 
-### Score: 7/10 — Agents ran well, infrastructure debt finally closing
+### Score: 5/10 — Pipeline broken for 4 days, agents mostly idle overnight
 
-10 agent tasks completed autonomously today across 7 agents. No manual intervention. Knowledge agent: 52% growth in knowledge collection with duplicate contamination. Media agent: Radarr broken (0 movies, 2 consecutive cycles). Data curator: 5712 chunks indexed. Home agent: 3 monitoring cycles.
+**Overnight:** Only home-agent ran (4 cycles — 22:10, 02:22, 11:18, 11:48, all reporting unavailable HA entities). Zero creative, media, stash, knowledge, research, or data-curator activity overnight. The system is healthy but not working.
 
-**Infrastructure debt closed tonight:** MCP 401 (4-day P0) fixed — ATHANOR_AGENT_API_TOKEN added to .mcp.json. Dashboard proactive attention rsynced and rebuild triggered. Pipeline blocked at queue depth 51 > max 20 — 8 plans ready, 0 submitted.
+**Root cause found:** Pipeline has been in a timeout-retry death spiral since March 22. The scheduler gave `run_pipeline_cycle()` only 120s, but with owner model + intent synthesis + plan generation (multiple LLM calls), it consistently times out. `asyncio.TimeoutError` has no message, so logs showed "work pipeline cycle failed: " (empty). On timeout, the cycle time wasn't recorded, so the scheduler retried every 30s — burning cycles but never completing. Additionally, `CASCADE_TIMEOUT` was referenced but never imported from `cascade.py`, breaking both creative and code quality cascades.
 
-Plan modules (owner_model.py, intent_synthesizer.py) — day 3 not started. Still the deliverable.
+**Fixes applied this session:**
+1. Pipeline timeout: 120s → 600s (10 min, matching cascade timeout)
+2. Added explicit `asyncio.TimeoutError` handler that records the attempt (prevents retry storm)
+3. Fixed `CASCADE_TIMEOUT` import in both cascade check functions
+4. Redis MCP: added `ATHANOR_REDIS_PASSWORD` to `.mcp.json` (takes effect next session restart)
+
+**Key discovery:** `owner_model.py` (425 lines) and `intent_synthesizer.py` (376 lines) ARE built and on main — committed as `6fe2c27`. The plan file is stale. However, the owner model has never successfully populated Redis (`athanor:owner:profile` missing) because the pipeline kept timing out before reaching synthesis.
 
 ---
 
@@ -21,21 +27,24 @@ Plan modules (owner_model.py, intent_synthesizer.py) — day 3 not started. Stil
 
 **lucky-crafting-swing.md** — "The System That Knows What Shaun Wants"
 
-- Module 1: owner_model.py (~180 lines) — NOT YET BUILT
-- Module 2: intent_synthesizer.py (~280 lines) — NOT YET BUILT
-- Module 3: quality evaluation via Gemini vision — NOT YET BUILT
-- Module 4: feedback loop endpoints — NOT YET BUILT
-- Adjacent: proactive attention API + banner (committed, deploying tonight)
+- Module 1: owner_model.py — BUILT (425 lines, on main, deployed)
+- Module 2: intent_synthesizer.py — BUILT (376 lines, on main, deployed)
+- Module 3: quality evaluation via Gemini vision — BUILT (auto_grade_image tool, commit 845bb52)
+- Module 4: feedback loop endpoints — BUILT (feedback.py, commit c68caf8)
+- **BLOCKER:** Pipeline timeout prevents all modules from running. Fix applied, needs deploy.
 
 ---
 
 ## Cluster Health
 
-- FOUNDRY: All services UP. 3x5070Ti at 99%, 1 at 26%, 4090 at 21.8/24.6GB. Temps 33-44F. Agents 9/9.
-- WORKSHOP: Dashboard rebuild in progress. ComfyUI/EoBQ up. GPUs idle, memory loaded.
-- VAULT: Healthy. 55 containers. LiteLLM/Qdrant/Redis OK. Storage 83%.
-- DEV: Healthy. Embedding/Reranker OK.
-- MCP auth: FIXED — token in .mcp.json (takes effect next session start)
+| Node | Status | GPUs | Temps |
+|------|--------|------|-------|
+| FOUNDRY | 25/25 UP | 3x5070Ti 99%, 1x5070Ti 24%, 4090 0% (coder loaded) | 91-122F |
+| WORKSHOP | UP | 5090 99% (worker), 5060Ti idle (ComfyUI loaded) | 95-126F |
+| VAULT | UP | 55 containers | — |
+| DEV | UP | Embedding + Reranker OK | — |
+
+All 25 services UP. GPUs loaded and serving.
 
 ---
 
@@ -43,52 +52,56 @@ Plan modules (owner_model.py, intent_synthesizer.py) — day 3 not started. Stil
 
 | Alert | Status | Action |
 |-------|--------|--------|
-| BackupAgeCritical x2 | REAL | Blocked on Shaun (Backblaze B2 creds) |
-| BackupAgeWarning x2 | REAL | Same |
-| QdrantDown | FALSE POSITIVE | Fix alert rule (P2) |
-| WorkerVLLMDown | STALE | Worker migrated to Ollama (P2) |
+| BackupAgeCritical (Qdrant) | REAL — 12 days stale | Blocked on Shaun (Backblaze B2 creds) |
+| BackupAgeWarning x3 (stash, athanor, postgres) | REAL — ~1 day stale | Same |
+| BackupAgeWarning (Qdrant) | REAL | Same |
+
+QdrantDown FP and WorkerVLLMDown stale alerts from yesterday are now gone — resolved.
 
 ---
 
-## Agent Activity (2026-03-25)
+## Agent Activity (overnight 2026-03-25 20:00 to 2026-03-26 07:00)
 
-- home-agent: 3 HA cycles — 3 media players unavailable, 4 unknown state entities
-- media-agent: 2 deep cycles — Radarr empty (broken), Plex no libraries, Sonarr OK (339 shows, 30.5TB)
-- knowledge-agent: 1 curation — knowledge 3878pts (+52%), duplicate contamination
-- data-curator: 1 indexing — 5712 total chunks
-- stash-agent: 1 task — empty output (needs investigation)
-- general-assistant: 2 health checks — 1 empty output
-- creative-agent: 0 today
+| Agent | Tasks | Notes |
+|-------|-------|-------|
+| home-agent | 4 | HA monitoring — unavailable entities recurring |
+| All others | 0 | Pipeline broken, no autonomous work generated |
 
 ---
 
 ## Pipeline Status
 
-BLOCKED: Queue depth 51 > max 20. Last cycle: 0 intents, 0 plans, 0 submissions.
-8 pending plans ready — stuck behind queue limit.
-Fix: raise max_queue_depth to 100 in pipeline config.
+**BROKEN — FIX APPLIED (not yet deployed)**
+
+- Queue depth: 0 (drained from 51)
+- Pending plans: 8 (from MCP, not being submitted)
+- Last successful cycle: March 22 (mined 160 intents, 0 plans, 0 tasks)
+- Owner model: never populated Redis
+- Root cause: 120s timeout on pipeline cycle (needs 300-600s for LLM calls)
+- Fix: timeout raised to 600s + explicit TimeoutError handler + CASCADE_TIMEOUT import
 
 ---
 
 ## Next Actions
 
-### P0 — Restart session (MCP token now active)
-### P0 — Drain pipeline queue
-1. Find max_queue_depth in pipeline config, raise to 100
-2. Verify next cycle submits the 8 pending plans
+### P0 — Deploy scheduler fix to FOUNDRY
+1. rsync + rebuild + verify pipeline cycle completes
+
+### P0 — Verify pipeline end-to-end
+2. After deploy, trigger manual cycle, confirm owner model in Redis + intents generated
 
 ### P1 — Diagnose Radarr empty library
 3. SSH VAULT, check Radarr container logs, verify library root paths
 
-### P1 — Build owner_model.py + intent_synthesizer.py
-4. Day 3 unstarted. Build them.
+### P1 — Raise MAX_QUEUE_DEPTH
+4. 20 is too low for a system generating cross-domain intents. Raise to 100.
 
 ### P2 — Dedupe Qdrant knowledge collection
 ### P2 — Fix stash-agent + general-assistant silent failures
-### P2 — Fix stale alert rules (QdrantDown FP, WorkerVLLMDown stale)
+### P2 — Update plan file (modules are built, plan says "NOT YET BUILT")
 
 ### Blocked on Shaun
-- Backblaze B2 credentials
+- Backblaze B2 credentials (5 backup alerts)
 - VAULT storage decision (83%)
 
 ---
@@ -97,12 +110,10 @@ Fix: raise max_queue_depth to 100 in pipeline config.
 
 | Date | Summary |
 |------|---------|
+| 2026-03-26 AM | Score 5/10. Pipeline broken 4 days (120s timeout death spiral). Fixed scheduler: 600s timeout, TimeoutError handler, CASCADE_TIMEOUT import. Redis MCP auth added. Owner model + synthesizer confirmed built but never ran. Deploy needed. |
 | 2026-03-25 EVE | Score 7/10. 10 agent tasks. MCP 401 fixed. Dashboard deployed. Pipeline blocked (51>20). Radarr broken. Knowledge duplicates. Plan day 3 unstarted. |
 | 2026-03-24 EVE | Score 6/10. Proactive attention API + banner. Creative 8 tasks. MCP 401 unresolved. |
 | 2026-03-24 AM | 401 diagnosed (3-layer). 13 coding tasks pending. |
 | 2026-03-23 EVE | Score 6/10. APScheduler fix. 401 unresolved. |
 | 2026-03-23 PM | Brain 7 layers, Sentinel 56/56, Governor hardened, APScheduler fix. |
 | 2026-03-23 AM | Dashboard DOWN, pipeline DORMANT, 7 alerts. |
-| 60h | Self-feeding furnace phases 1-5. Kaizen skill. Per-agent timeouts. |
-| 60g | Mission control v2. LTX video. Design refinement. |
-| 60f | LTX 2.3 unblocked. Face tagger. n8n research. |
