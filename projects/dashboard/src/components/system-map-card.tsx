@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSystemMap } from "@/lib/api";
 import type { SystemMapSnapshot } from "@/lib/contracts";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 
 function laneTone(status: string): "healthy" | "warning" {
@@ -28,12 +29,38 @@ function summarizeRights(snapshot: SystemMapSnapshot) {
 }
 
 export function SystemMapCard() {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const systemMapQuery = useQuery({
     queryKey: queryKeys.systemMap,
     queryFn: getSystemMap,
+    enabled: !locked,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
+
+  if (locked) {
+    return (
+      <Card className="surface-panel">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Shield className="h-5 w-5 text-primary" />
+            Command hierarchy
+          </CardTitle>
+          <CardDescription>
+            Unlock the operator session to inspect the live command hierarchy and governance snapshot.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="The command-hierarchy snapshot is intentionally hidden until the operator session is unlocked."
+            className="py-8"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (systemMapQuery.isError && !systemMapQuery.data) {
     return (

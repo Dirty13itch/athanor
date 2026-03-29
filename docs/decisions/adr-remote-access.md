@@ -3,7 +3,7 @@
 ## Status: Ready to implement
 
 ## Context
-Shaun needs always-on mobile access to the Command Center (workshop:3001) when away from home. Requirements:
+Shaun needs always-on mobile access to the Athanor Command Center (`https://athanor.local/`) when away from home. The canonical front door is now live on DEV behind Caddy; the remaining client-side gap is hostname rollout, so the temporary runtime fallback stays `http://dev.athanor.local:3001/` until every operator device resolves the canonical host. Requirements:
 - Zero maintenance — never turn anything on/off
 - Works as a phone app/shortcut
 - Self-hosted (no cloud dependency)
@@ -24,7 +24,8 @@ The UDM Pro already has a built-in WireGuard VPN server. No additional software 
    - Enable "Always On VPN" in phone OS settings:
      - Android: Settings → Network → VPN → WireGuard → Always On
      - iOS: Settings → VPN → WireGuard → Connect On Demand → enable for all networks
-3. **PWA**: Open `http://192.168.1.225:3001` in phone browser
+3. **PWA**: Open `https://athanor.local/` in phone browser
+   - If the current client still lacks the `athanor.local` host alias, use `http://dev.athanor.local:3001/` as the temporary runtime fallback
    - iOS: Share → Add to Home Screen
    - Android: Menu → Add to Home Screen / Install App
    - App installs with Athanor icon, opens standalone (no browser chrome)
@@ -43,7 +44,7 @@ UDM Pro is the clear winner — zero new software, auto-managed port forwarding,
 - UDM Pro handles NAT traversal and dynamic DNS automatically
 - UniFi's built-in DDNS: `*.ui.direct` (optional, or use custom domain)
 - WireGuard uses UDP 51820 (auto-opened by UDM Pro firewall)
-- All home services accessible through the tunnel: dashboard:3001, EoBQ:3002, Grafana:3000, ComfyUI:8188
+- All home services accessible through the tunnel: `athanor.local`, DEV command-center runtime `dev.athanor.local:3001`, EoBQ:3002, Grafana:3000, ComfyUI:8188
 
 ### Consequences
 - Phone always has secure, encrypted access to entire home LAN

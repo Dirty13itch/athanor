@@ -8,7 +8,7 @@ Athanor hosts multiple independent projects, each with their own UI, data, and a
 
 | Project | Stack | Port | Location | Status |
 |---------|-------|------|----------|--------|
-| Dashboard (Command Center) | Next.js 16 + React 19 | WORKSHOP:3001 | `projects/dashboard/` | Production |
+| Athanor Command Center | Next.js 16 + React 19 | `https://athanor.local/` (runtime `dev.athanor.local:3001`) | `projects/dashboard/` | Production |
 | Empire of Broken Queens (EoBQ) | Next.js + ComfyUI | WORKSHOP:3002 | `projects/eoq/` | Production |
 | Ulrich Energy | Next.js + LiteLLM | WORKSHOP:8088 | `projects/ulrich-energy/` | Scaffold |
 | Kindred | — | — | `projects/kindred/` | Concept only |
@@ -36,7 +36,7 @@ All projects share the LiteLLM routing layer (VAULT:4000). No project-specific m
 ## Agent Integration
 
 Projects interact with agents through:
-1. **Dashboard proxy** — `/api/agents/proxy` forwards to FOUNDRY:9000
+1. **Command Center proxy** — `/api/agents/proxy` forwards to FOUNDRY:9000
 2. **Direct API** — `POST /v1/tasks` with `project_id` in request body
 3. **Scheduled tasks** — `scheduler.py` can scope tasks to projects
 

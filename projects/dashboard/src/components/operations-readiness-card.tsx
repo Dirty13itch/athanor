@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOperationsReadiness } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/format";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 
 function compactLabel(value: string) {
@@ -33,14 +34,44 @@ export function OperationsReadinessCard({
 }: {
   compact?: boolean;
 }) {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const readinessQuery = useQuery({
     queryKey: queryKeys.operationsReadiness,
     queryFn: getOperationsReadiness,
+    enabled: !locked,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
+
+  if (locked) {
+    return (
+      <Card className="surface-panel">
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ShieldAlert className="h-5 w-5 text-primary" />
+                Operations readiness
+              </CardTitle>
+              <CardDescription>
+                Restore posture, release ladder, lifecycle governance, and synthetic operator tests unlock with the operator session.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="Operations-readiness evidence is hidden while the operator session is locked."
+            className="py-8"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   async function runOperatorTests() {
     setBusy(true);

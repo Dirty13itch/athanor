@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { joinUrl, getInferenceBackend, resolveChatModel, resolveChatTarget } from "@/lib/config";
+import {
+  agentServerHeaders,
+  joinUrl,
+  getInferenceBackend,
+  resolveChatModel,
+  resolveChatTarget,
+} from "@/lib/config";
 import { buildChatUpstreamHeaders } from "@/lib/chat-proxy";
 import { serverConfig } from "@/lib/server-config";
 import { toSseEvent } from "@/lib/sse";
@@ -195,6 +201,9 @@ export async function POST(req: NextRequest) {
   const { headers, error } = buildChatUpstreamHeaders(upstreamTarget, serverConfig.litellmApiKey);
   if (error) {
     return new Response(error, { status: 503 });
+  }
+  if (upstreamTarget === "agent-server") {
+    Object.assign(headers, agentServerHeaders());
   }
 
   let upstream: Response;

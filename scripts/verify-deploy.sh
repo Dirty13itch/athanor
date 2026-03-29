@@ -7,8 +7,12 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
 NOTIFY="${1:-}"
-NTFY_URL="http://192.168.1.203:8880/athanor"
+EOQ_URL="${EOQ_URL:-http://${WORKSHOP_IP}:3002}"
+ULRICH_URL="${ULRICH_URL:-http://${WORKSHOP_IP}:3003}"
 FAILURES=0
 CHECKS=0
 
@@ -43,31 +47,30 @@ echo "=== Athanor Deploy Verification ==="
 echo ""
 
 echo "Inference:"
-check_json "Coordinator" "http://192.168.1.244:8000/v1/models" "['data'][0]['id']"
-check_json "Coder"       "http://192.168.1.244:8006/v1/models" "['data'][0]['id']"
-check_json "Worker"      "http://192.168.1.225:8010/v1/models" "['data'][0]['id']"
-check_json "Embedding"   "http://192.168.1.189:8001/v1/models" "['data'][0]['id']"
-check_json "Reranker"    "http://192.168.1.189:8003/v1/models" "['data'][0]['id']"
+check_json "Coordinator" "${VLLM_COORDINATOR_URL}/v1/models" "['data'][0]['id']"
+check_json "Coder"       "${VLLM_CODER_URL}/v1/models" "['data'][0]['id']"
+check_json "Worker"      "${VLLM_WORKER_URL}/v1/models" "['data'][0]['id']"
+check_json "Embedding"   "${EMBEDDING_URL}/v1/models" "['data'][0]['id']"
+check_json "Reranker"    "${RERANKER_URL}/v1/models" "['data'][0]['id']"
 
 echo ""
 echo "Agents:"
-check_json "Agent Server" "http://192.168.1.244:9000/health" "['status']"
+check_json "Agent Server" "${AGENT_SERVER_URL}/health" "['status']"
 
 echo ""
 echo "Web Apps:"
-check "Dashboard"     "http://192.168.1.225:3001/"
-check "Dashboard API" "http://192.168.1.225:3001/api/gpu"  # SSE stream verified via gpu route
-check "EoBQ"          "http://192.168.1.225:3002/"
-check "ComfyUI"       "http://192.168.1.225:8188/system_stats"
-check "Ulrich"        "http://192.168.1.225:3003/"
+check "Command Center runtime fallback" "${DASHBOARD_URL}/api/operator/session"
+check "EoBQ"          "${EOQ_URL}/"
+check "ComfyUI"       "${COMFYUI_URL}/system_stats"
+check "Ulrich"        "${ULRICH_URL}/"
 
 echo ""
 echo "Infrastructure:"
-check_json "GPU Orchestrator" "http://192.168.1.244:9200/health" "['status']"
-check "Qdrant"     "http://192.168.1.203:6333/healthz"
-check "Prometheus" "http://192.168.1.203:9090/-/healthy"
-check "Grafana"    "http://192.168.1.203:3000/api/health"
-check "Kokoro TTS" "http://192.168.1.244:8200/v1/models"
+check_json "GPU Orchestrator" "${GPU_ORCHESTRATOR_URL}/health" "['status']"
+check "Qdrant"     "${QDRANT_URL}/healthz"
+check "Prometheus" "${PROMETHEUS_URL}/-/healthy"
+check "Grafana"    "${GRAFANA_URL}/api/health"
+check "Kokoro TTS" "${SPEACHES_URL}/v1/models"
 
 echo ""
 echo "=== Result: $CHECKS checks, $FAILURES failures ==="
@@ -75,7 +78,7 @@ echo "=== Result: $CHECKS checks, $FAILURES failures ==="
 if [ "$FAILURES" -gt 0 ]; then
     echo "⚠️  $FAILURES service(s) failed verification"
     if [ "$NOTIFY" = "--notify" ]; then
-        curl -s -d "Deploy verification: $FAILURES/$CHECKS failed" "$NTFY_URL" > /dev/null 2>&1
+        curl -s -d "Deploy verification: $FAILURES/$CHECKS failed" "${NTFY_TOPIC_URL}" > /dev/null 2>&1
     fi
     exit 1
 else

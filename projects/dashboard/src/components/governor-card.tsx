@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getGovernor } from "@/lib/api";
 import { formatRelativeTime } from "@/lib/format";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 
 function formatLabel(value: string) {
@@ -44,14 +45,38 @@ export function GovernorCard({
   description?: string;
   compact?: boolean;
 }) {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const governorQuery = useQuery({
     queryKey: queryKeys.governor,
     queryFn: getGovernor,
+    enabled: !locked,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
   const [busyScope, setBusyScope] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  if (locked) {
+    return (
+      <Card className="surface-panel">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            {title}
+          </CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="Governor posture and pause or resume controls stay locked until the operator session is unlocked."
+            className="py-8"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   async function toggleScope(scope: string, paused: boolean) {
     setBusyScope(scope);

@@ -1,6 +1,6 @@
 # Theme Sampler Notes
 
-This file accompanies the live sampler mounted at [http://192.168.1.225:3001/more](http://192.168.1.225:3001/more).
+This file accompanies the command-center theme sampler. The canonical operator URL is `https://athanor.local/`; if the current client still lacks hostname rollout for that alias, use the temporary DEV runtime fallback at [http://dev.athanor.local:3001/catalog](http://dev.athanor.local:3001/catalog).
 
 ## Purpose
 

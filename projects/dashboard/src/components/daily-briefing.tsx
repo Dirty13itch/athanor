@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 
 interface BriefingTask {
   id: string;
@@ -27,7 +29,7 @@ async function fetchLatestBriefing(
 ) {
   try {
     // Try the digest endpoint first (auto-generated from proactive task results)
-    const digestRes = await fetch("/api/agents/proxy?path=/v1/digests/latest", {
+    const digestRes = await fetch("/api/digests/latest", {
       signal: AbortSignal.timeout(8000),
     });
     if (digestRes.ok) {
@@ -122,6 +124,8 @@ function formatDate(iso: string): string {
 }
 
 export function DailyBriefing() {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const [state, setState] = useState<BriefingState>({
     content: null,
     timestamp: null,
@@ -129,12 +133,39 @@ export function DailyBriefing() {
   });
 
   useEffect(() => {
+    if (locked) {
+      setState({ content: null, timestamp: null, loading: false });
+      return;
+    }
+
     void fetchLatestBriefing(setState);
     const interval = setInterval(() => {
       void fetchLatestBriefing(setState);
     }, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [locked]);
+
+  if (locked) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <SunriseIcon className="h-4 w-4 text-primary" />
+              <CardTitle className="text-sm">Morning Briefing</CardTitle>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="Daily digests and briefing results stay hidden until the operator session is unlocked."
+            className="py-6"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

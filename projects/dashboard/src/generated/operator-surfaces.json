@@ -1,0 +1,355 @@
+{
+  "externalTools": [
+    {
+      "category": "ai",
+      "description": "Direct chat surface outside the command center. Hosted on VAULT as Open WebUI (VAULT).",
+      "id": "vault_open_webui",
+      "label": "Open WebUI (VAULT)",
+      "node": "VAULT",
+      "operatorRole": "chat",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:3090/"
+    },
+    {
+      "category": "ai",
+      "description": "Direct chat surface outside the command center. Hosted on Workshop as Open WebUI (WORKSHOP).",
+      "id": "workshop_open_webui",
+      "label": "Open WebUI (WORKSHOP)",
+      "node": "Workshop",
+      "operatorRole": "chat",
+      "status": "active_specialist",
+      "url": "http://interface.athanor.local:3000/"
+    },
+    {
+      "category": "creative",
+      "description": "Creative generation and workflow surface. Hosted on Workshop as ComfyUI.",
+      "id": "comfyui",
+      "label": "ComfyUI",
+      "node": "Workshop",
+      "operatorRole": "creative",
+      "status": "active_specialist",
+      "url": "http://interface.athanor.local:8188/"
+    },
+    {
+      "category": "creative",
+      "description": "Creative generation and workflow surface. Hosted on Foundry as Speaches.",
+      "id": "speaches",
+      "label": "Speaches",
+      "node": "Foundry",
+      "operatorRole": "creative",
+      "status": "active_specialist",
+      "url": "http://core.athanor.local:8200/"
+    },
+    {
+      "category": "project",
+      "description": "First-class domain product outside the core portal. Hosted on Workshop as Empire of Broken Queens.",
+      "id": "eoq",
+      "label": "Empire of Broken Queens",
+      "node": "Workshop",
+      "operatorRole": "domain_product",
+      "status": "active_specialist",
+      "url": "http://interface.athanor.local:3002/"
+    },
+    {
+      "category": "project",
+      "description": "First-class domain product outside the core portal. Hosted on Workshop as Ulrich Energy.",
+      "id": "ulrich_energy",
+      "label": "Ulrich Energy",
+      "node": "Workshop",
+      "operatorRole": "domain_product",
+      "status": "active_specialist",
+      "url": "http://interface.athanor.local:3003/"
+    },
+    {
+      "category": "home",
+      "description": "Home automation and state surface. Hosted on VAULT as Home Assistant.",
+      "id": "home_assistant",
+      "label": "Home Assistant",
+      "node": "VAULT",
+      "operatorRole": "home",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:8123/"
+    },
+    {
+      "category": "knowledge",
+      "description": "Knowledge and memory specialist surface. Hosted on VAULT as Miniflux.",
+      "id": "miniflux",
+      "label": "Miniflux",
+      "node": "VAULT",
+      "operatorRole": "knowledge",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:8070/"
+    },
+    {
+      "category": "knowledge",
+      "description": "Knowledge and memory specialist surface. Hosted on VAULT as Neo4j Browser.",
+      "id": "neo4j_browser",
+      "label": "Neo4j Browser",
+      "node": "VAULT",
+      "operatorRole": "knowledge",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:7474/"
+    },
+    {
+      "category": "media",
+      "description": "Media operations and library surface. Hosted on VAULT as Plex.",
+      "id": "plex",
+      "label": "Plex",
+      "node": "VAULT",
+      "operatorRole": "media",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:32400/web"
+    },
+    {
+      "category": "media",
+      "description": "Media operations and library surface. Hosted on VAULT as Prowlarr.",
+      "id": "prowlarr",
+      "label": "Prowlarr",
+      "node": "VAULT",
+      "operatorRole": "media",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:9696/"
+    },
+    {
+      "category": "media",
+      "description": "Media operations and library surface. Hosted on VAULT as Radarr.",
+      "id": "radarr",
+      "label": "Radarr",
+      "node": "VAULT",
+      "operatorRole": "media",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:7878/"
+    },
+    {
+      "category": "media",
+      "description": "Media operations and library surface. Hosted on VAULT as SABnzbd.",
+      "id": "sabnzbd",
+      "label": "SABnzbd",
+      "node": "VAULT",
+      "operatorRole": "media",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:8080/"
+    },
+    {
+      "category": "media",
+      "description": "Media operations and library surface. Hosted on VAULT as Sonarr.",
+      "id": "sonarr",
+      "label": "Sonarr",
+      "node": "VAULT",
+      "operatorRole": "media",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:8989/"
+    },
+    {
+      "category": "media",
+      "description": "Media operations and library surface. Hosted on VAULT as Stash.",
+      "id": "stash",
+      "label": "Stash",
+      "node": "VAULT",
+      "operatorRole": "media",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:9999/"
+    },
+    {
+      "category": "media",
+      "description": "Media operations and library surface. Hosted on VAULT as Tautulli.",
+      "id": "tautulli",
+      "label": "Tautulli",
+      "node": "VAULT",
+      "operatorRole": "media",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:8181/"
+    },
+    {
+      "category": "monitoring",
+      "description": "Observability drill-down and metrics analysis. Hosted on VAULT as Grafana.",
+      "id": "grafana",
+      "label": "Grafana",
+      "node": "VAULT",
+      "operatorRole": "observability",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:3000/"
+    },
+    {
+      "category": "monitoring",
+      "description": "Observability drill-down and metrics analysis. Hosted on VAULT as Langfuse.",
+      "id": "langfuse",
+      "label": "Langfuse",
+      "node": "VAULT",
+      "operatorRole": "observability",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:3030/"
+    },
+    {
+      "category": "monitoring",
+      "description": "Observability drill-down and metrics analysis. Hosted on VAULT as Prometheus.",
+      "id": "prometheus",
+      "label": "Prometheus",
+      "node": "VAULT",
+      "operatorRole": "observability",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:9090/"
+    },
+    {
+      "category": "monitoring",
+      "description": "Observability drill-down and metrics analysis. Hosted on VAULT as Uptime Kuma.",
+      "id": "uptime_kuma",
+      "label": "Uptime Kuma",
+      "node": "VAULT",
+      "operatorRole": "observability",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:3009/"
+    },
+    {
+      "category": "monitoring",
+      "description": "Observability drill-down and metrics analysis. Hosted on VAULT as ntfy.",
+      "id": "ntfy",
+      "label": "ntfy",
+      "node": "VAULT",
+      "operatorRole": "observability",
+      "status": "active_specialist",
+      "url": "http://vault.athanor.local:8880/"
+    }
+  ],
+  "frontDoor": {
+    "canonicalUrl": "https://athanor.local/",
+    "deploymentMode": "containerized_service_behind_caddy",
+    "description": "Canonical portal.",
+    "id": "athanor_command_center",
+    "label": "Athanor Command Center",
+    "node": "DEV",
+    "runtimeUrl": "http://dev.athanor.local:3001/",
+    "status": "degraded_production",
+    "targetDeploymentMode": "containerized_service_behind_caddy"
+  },
+  "generatedAt": "2026-03-29T21:32:20Z",
+  "quickLinks": [
+    {
+      "category": "ai",
+      "name": "Open WebUI (VAULT)",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:3090/"
+    },
+    {
+      "category": "ai",
+      "name": "Open WebUI (WORKSHOP)",
+      "node": "Workshop",
+      "url": "http://interface.athanor.local:3000/"
+    },
+    {
+      "category": "creative",
+      "name": "ComfyUI",
+      "node": "Workshop",
+      "url": "http://interface.athanor.local:8188/"
+    },
+    {
+      "category": "creative",
+      "name": "Speaches",
+      "node": "Foundry",
+      "url": "http://core.athanor.local:8200/"
+    },
+    {
+      "category": "project",
+      "name": "Empire of Broken Queens",
+      "node": "Workshop",
+      "url": "http://interface.athanor.local:3002/"
+    },
+    {
+      "category": "project",
+      "name": "Ulrich Energy",
+      "node": "Workshop",
+      "url": "http://interface.athanor.local:3003/"
+    },
+    {
+      "category": "home",
+      "name": "Home Assistant",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:8123/"
+    },
+    {
+      "category": "knowledge",
+      "name": "Miniflux",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:8070/"
+    },
+    {
+      "category": "knowledge",
+      "name": "Neo4j Browser",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:7474/"
+    },
+    {
+      "category": "media",
+      "name": "Plex",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:32400/web"
+    },
+    {
+      "category": "media",
+      "name": "Prowlarr",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:9696/"
+    },
+    {
+      "category": "media",
+      "name": "Radarr",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:7878/"
+    },
+    {
+      "category": "media",
+      "name": "SABnzbd",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:8080/"
+    },
+    {
+      "category": "media",
+      "name": "Sonarr",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:8989/"
+    },
+    {
+      "category": "media",
+      "name": "Stash",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:9999/"
+    },
+    {
+      "category": "media",
+      "name": "Tautulli",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:8181/"
+    },
+    {
+      "category": "monitoring",
+      "name": "Grafana",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:3000/"
+    },
+    {
+      "category": "monitoring",
+      "name": "Langfuse",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:3030/"
+    },
+    {
+      "category": "monitoring",
+      "name": "Prometheus",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:9090/"
+    },
+    {
+      "category": "monitoring",
+      "name": "Uptime Kuma",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:3009/"
+    },
+    {
+      "category": "monitoring",
+      "name": "ntfy",
+      "node": "VAULT",
+      "url": "http://vault.athanor.local:8880/"
+    }
+  ],
+  "sourceOfTruth": "config/automation-backbone/operator-surface-registry.json"
+}

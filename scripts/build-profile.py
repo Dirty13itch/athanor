@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-build-profile.sh (Python) - Gather user profile data and upsert to Qdrant preferences.
+build-profile.py - Gather user profile data and upsert to Qdrant preferences.
 Run from DEV (WSL2). Requires: gh CLI, git, and network access to Athanor services.
-Usage: python3 scripts/build-profile.sh
+Usage: python3 scripts/build-profile.py
 """
 
 import json
@@ -154,7 +154,7 @@ def main() -> int:
             "profile-interface",
             "work_pattern",
             "primary_interface",
-            "Command Center dashboard at Workshop:3001. Claude Code on DEV. Terminal fallback.",
+            "Athanor Command Center at https://athanor.local/ (temporary runtime fallback http://dev.athanor.local:3001 while hostname rollout finishes). Claude Code on DEV. Terminal fallback.",
         ),
         (
             "profile-style",

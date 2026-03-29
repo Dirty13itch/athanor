@@ -9,7 +9,8 @@ Quick health check. Run these in parallel and report as a compact table:
 1. **Nodes** — SSH ping to node1, node2. VAULT via `python3 scripts/vault-ssh.py "echo OK"`.
 2. **Key Services** — curl health endpoints:
    - Agent server: `curl -sf http://192.168.1.244:9000/health`
-   - Dashboard: `curl -sf -o /dev/null -w '%{http_code}' http://192.168.1.225:3001`
+   - Canonical front door: `curl -skf -o /dev/null -w '%{http_code}' https://athanor.local/api/operator/session`
+   - Command Center runtime fallback: `curl -sf -o /dev/null -w '%{http_code}' http://dev.athanor.local:3001/api/operator/session`
    - LiteLLM: `curl -sf http://192.168.1.203:4000/health`
 3. **GPUs** — `ssh node1 'nvidia-smi --query-gpu=index,utilization.gpu,memory.used,memory.total,temperature.gpu --format=csv,noheader'` and same for node2.
 

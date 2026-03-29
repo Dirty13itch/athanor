@@ -9,9 +9,9 @@
 
 ## Context
 
-The Athanor dashboard (Node 2:3001) is a 16-page Next.js app with 26 service health checks. It works as a monitoring surface — you can see what's happening but can't meaningfully steer the system. Shaun has clarified that the web interface (not the terminal) is the primary way he wants to interact with Athanor, including from his phone.
+The Athanor Command Center is now fronted canonically at `https://athanor.local/`, with the DEV runtime fallback still available at `http://dev.athanor.local:3001/` while hostname rollout finishes across operator clients. It is a 16-page Next.js app with 26 service health checks. It works as a monitoring surface — you can see what's happening but can't meaningfully steer the system. Shaun has clarified that the web interface (not the terminal) is the primary way he wants to interact with Athanor, including from his phone.
 
-Five research documents (totaling ~4,500 lines) were produced covering web-based development environments, command center UI patterns, human-in-the-loop design, mobile PWA architecture, and novel interface patterns. These inform the decisions below.
+Five research documents (totaling ~4,500 lines) were produced covering web-based development environments, command center UI patterns, human-in-the-loop design, mobile PWA architecture, and novel interface patterns. Those inputs now live under `docs/archive/research/` as historical design evidence. They inform the decisions below.
 
 Full design: `docs/design/command-center.md`
 
@@ -142,7 +142,7 @@ Full design: `docs/design/command-center.md`
 
 - `docs/design/command-center.md` — full design document
 - `docs/research/2026-02-25-web-development-environments.md`
-- `docs/research/2026-02-25-command-center-ui-design.md`
+- `docs/archive/research/2026-02-25-command-center-ui-design.md`
 - `docs/research/2026-02-25-human-in-the-loop-patterns.md`
 - `docs/research/2026-02-25-mobile-pwa-architecture.md`
 - `docs/research/2026-02-25-novel-interface-patterns.md`
