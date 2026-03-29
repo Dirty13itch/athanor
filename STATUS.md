@@ -1,23 +1,23 @@
 # Athanor Status
 
-**Last updated: 2026-03-27 20:02 PDT
+**Last updated: 2026-03-28 20:00 PDT**
 **Session:** Evening Review
 
 ---
 
-## Evening Review — 2026-03-27
+## Evening Review — 2026-03-28
 
-### Score: 4/10 — Pipeline dark day 6, general-assistant recovered, home-agent stuck loop
+### Score: 3/10 — Pipeline dark day 7, home-agent 12 stuck loops in 48h, stash silent fail repeats
 
-**What happened:** Day 6 with the scheduler fix undeployed. 9 agent tasks ran across 5 agents. The headline recovery: general-assistant ended its silent failure streak and produced a proper Deep Operational Cycle Report (quality 0.5). Creative and knowledge agents ran solid cycles. Home-agent ran 6 identical cycles with zero remediation — stuck loop burning capacity. All 4 modules of lucky-crafting-swing remain built but never executed in production.
+**What happened:** Day 7 with the scheduler fix sitting on main, undeployed. 10 tasks ran across 4 agents. General-assistant produced zero tasks today after yesterday's one-shot recovery — that recovery is now looking like a fluke. Home-agent ran 6 more identical stuck-loop cycles (12 in 48 hours), all reporting the same unavailable HA entities with zero remediation. Stash-agent silently failed again (3rd+ occurrence). Only real output: knowledge-agent (llama.cpp RSS ingest + deep curation cycle) and media-agent (deep cycle with critical issues flagged). All 4 lucky-crafting-swing modules remain built but unexecuted in production — blocked on the same undeployed fix.
 
 **What ran:**
-- coding-agent: Qdrant collection size check (20:16 PDT)
-- home-agent: 6 monitoring cycles — same unavailable entities every time, no remediation
-- creative-agent: quality cascade cycle (04:04 PDT) — first creative task since Mar 24
-- knowledge-agent: deep curation cycle (14:50 PDT)
-- general-assistant: deep operational cycle (17:32 PDT) — **RECOVERED**, quality 0.5, Task 0b113a3452d5
-- stash, research, data-curator, media: 0 tasks
+- home-agent: 6 monitoring cycles — same unavailable entities, no remediation (stuck loop day 3)
+- stash-agent: deep org cycle at 01:59 PDT → EMPTY (silent failure, repeat offense)
+- media-agent: deep media cycle at 06:01 PDT — critical issues identified
+- knowledge-agent: RSS ingestion (llama.cpp release) at 06:34 PDT — success
+- knowledge-agent: deep curation cycle at 19:14 PDT — Knowledge Health Report produced
+- general-assistant, creative, research, coding: 0 tasks
 
 **Infrastructure:** 25/25 services UP. All latencies healthy.
 
@@ -50,7 +50,7 @@
 
 | Alert | Status | Action |
 |-------|--------|--------|
-| BackupAgeCritical (Qdrant) | REAL — 14 days stale | Blocked on Shaun (Backblaze B2 creds) |
+| BackupAgeCritical (Qdrant) | REAL — 15 days stale | Blocked on Shaun (Backblaze B2 creds) |
 | BackupAgeWarning x3 (stash, athanor, postgres) | REAL | Same |
 | BackupAgeWarning (Qdrant) | REAL | Same |
 
@@ -58,7 +58,7 @@
 
 ## Pipeline Status
 
-**BROKEN — FIX CODED (DAY 2), NOT DEPLOYED**
+**BROKEN — FIX CODED (DAY 7), NOT DEPLOYED**
 
 - Queue depth: 0
 - Pending plans: 8 (sitting idle)
@@ -75,39 +75,41 @@
 
 ## Next Actions
 
-### P0 — Deploy scheduler fix (FIRST ACTION, no exceptions)
+### P0 — Deploy scheduler fix (FIRST ACTION, no exceptions, day 7)
 ```bash
 rsync -av projects/agents/src/ foundry:/opt/athanor/agents/src/
 ssh foundry "cd /opt/athanor/agents && docker compose build --no-cache && docker compose up -d"
 ssh foundry "docker logs athanor-agents --tail=100 | grep -E 'pipeline|timeout|cycle|owner'"
 ```
 
+### P0 — Raise MAX_QUEUE_DEPTH 20→100 before unfreezing
+- Pipeline will immediately reblock on 8 queued plans otherwise
+
 ### P0 — Verify pipeline end-to-end after deploy
 - Trigger manual cycle via MCP `trigger_pipeline_cycle`
 - Confirm `athanor:owner:profile` populates in Redis
 - Confirm intents generated → plans submitted → tasks run
 
-### P1 — Raise MAX_QUEUE_DEPTH from 20 → 100
-- Pipeline will flood queue once unblocked with 8 pending plans
-
 ### P1 — home-agent suppression logic
-- After 3+ identical cycles reporting same entities → suppress duplicates, flag for human review
-- Investigate: are the HA entities actually offline, or are tools broken?
-- 6 identical cycles today = not useful signal, just wasted capacity
+- After 3+ identical cycles reporting same entities → suppress, flag for human review
+- SSH VAULT, check HA entity state directly — are they genuinely offline or are tools broken?
+- 12 identical cycles in 48 hours = wasted capacity, zero signal
 
-### P1 — Diagnose what fixed general-assistant
-- Something changed between yesterday's empty response and today's quality 0.5 report
-- Identify the change so it's stable, not accidental
+### P1 — stash-agent diagnostic
+- Retry with minimal probe (single tool call: `get_performers`)
+- Check Stash API auth/connectivity separately
+- If deep cycle prompt is too aggressive, simplify it
 
-### P1 — Diagnose Radarr empty library
-- SSH VAULT, check container logs, verify library root paths
+### P1 — Investigate media-agent critical issues
+- Likely still Radarr empty library
+- SSH VAULT, check container logs and library root paths
 
-### P2 — Update lucky-crafting-swing plan file (all modules built, plan shows stale status)
+### P2 — Update lucky-crafting-swing.md (all 4 modules built, plan shows stale status)
 ### P2 — Dedupe Qdrant knowledge collection
-### P2 — Fix stash-agent silent failures
+### P2 — Diagnose general-assistant regression (1 good task Mar 27, 0 today)
 
 ### Blocked on Shaun
-- Backblaze B2 credentials (5 backup alerts, Qdrant 14 days stale)
+- Backblaze B2 credentials (5 backup alerts, Qdrant 15 days stale)
 - VAULT storage decision (83%)
 
 ---
@@ -116,6 +118,7 @@ ssh foundry "docker logs athanor-agents --tail=100 | grep -E 'pipeline|timeout|c
 
 | Date | Summary |
 |------|---------|
+| 2026-03-28 EVE | Score 3/10. Pipeline dark day 7 — fix still not deployed. home-agent 12x stuck loop in 48h. stash-agent silent fail (repeat). knowledge-agent solid (RSS + curation). media-agent ran with critical issues. general-assistant 0 tasks (regression). |
 | 2026-03-27 EVE | Score 4/10. Pipeline dark day 6 — fix still not deployed. general-assistant recovered (quality 0.5). creative + knowledge ran solid cycles. home-agent 6x stuck loop. 4 agents idle. |
 | 2026-03-26 EVE | Score 3/10. Fix not deployed — day 5 of dark pipeline. knowledge-agent ran (curation + 2 RSS). media-agent ran. home-agent 9 cycles (stuck loop). general-assistant silent failure. |
 | 2026-03-26 AM | Score 5/10. Pipeline broken 4 days (120s timeout death spiral). Fixed scheduler: 600s timeout, TimeoutError handler, CASCADE_TIMEOUT import. Redis MCP auth added. Owner model + synthesizer confirmed built but never ran. Deploy needed. |
