@@ -263,7 +263,7 @@ def _fire_push(pending: "PendingAction") -> None:
             )
             await _send_ntfy_notification(
                 title=f"[APPROVAL] {pending.agent}",
-                body=f"{pending.action}\n{pending.description[:200]}\n\nReview: workshop:3001/notifications",
+                body=f"{pending.action}\n{pending.description[:200]}\n\nReview: {settings.dashboard_url}/notifications",
                 priority="high",
                 tags=["bell", "rotating_light"],
             )
