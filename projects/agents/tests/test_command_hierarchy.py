@@ -33,13 +33,14 @@ class CommandHierarchyTest(unittest.TestCase):
         self.assertEqual("sovereign_local", classification["meta_lane"])
         self.assertFalse(classification["cloud_allowed"])
 
-    def test_governor_rights_keep_pause_control_without_task_ownership(self) -> None:
+    def test_governor_rights_remain_posture_only(self) -> None:
         governor = next(entry for entry in COMMAND_RIGHTS if entry["subject"] == "Athanor Governor")
+        self.assertIn("route work", governor["can"])
         self.assertIn("pause or resume automation", governor["can"])
         self.assertIn("choose fallback or degraded mode", governor["can"])
-        self.assertIn("create durable tasks", governor["cannot"])
-        self.assertIn("issue leases", governor["cannot"])
-        self.assertIn("own recurring schedules", governor["cannot"])
+        self.assertNotIn("create durable tasks", governor["can"])
+        self.assertNotIn("issue leases", governor["can"])
+        self.assertNotIn("own recurring schedules", governor["can"])
 
     def test_meta_lanes_remain_advisory(self) -> None:
         meta = next(entry for entry in COMMAND_RIGHTS if entry["subject"] == "Meta Lanes")
