@@ -150,3 +150,81 @@ def test_autonomy_activation_report_includes_next_phase_boundary() -> None:
     assert "- Next phase blocker count: `1`" in rendered
     assert "## Next Promotion Boundary" in rendered
     assert "| `vault_provider_auth_repair` | `pending` | `phase_2` | `docs/vault.md` |" in rendered
+
+
+def test_classify_vault_auth_failure_missing_env() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+    provider = {
+        "id": "anthropic_api",
+        "env_contracts": ["ANTHROPIC_API_KEY"],
+        "vault_runtime_contract": {"env_rules": [{"name": "ANTHROPIC_API_KEY", "role": "required"}]},
+        "evidence": {"proxy": {"alias": "claude"}},
+    }
+    capture = {
+        "requested_model": "claude",
+        "error_snippet": "Missing Anthropic API Key - no key is set either in the environment variables or via params.",
+    }
+    audit = {
+        "container_missing_env_names": ["ANTHROPIC_API_KEY"],
+        "container_present_env_names": [],
+    }
+
+    classification = module._classify_vault_auth_failure(provider, capture, audit)
+
+    assert classification["code"] == "missing_required_env"
+    assert "Restore `ANTHROPIC_API_KEY`" in classification["next_action"]
+
+
+def test_classify_vault_auth_failure_present_invalid_key() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+    provider = {
+        "id": "openai_api",
+        "env_contracts": ["OPENAI_API_KEY"],
+        "vault_runtime_contract": {"env_rules": [{"name": "OPENAI_API_KEY", "role": "required"}]},
+        "evidence": {"proxy": {"alias": "gpt"}},
+    }
+    capture = {
+        "requested_model": "gpt",
+        "error_snippet": "AuthenticationError: OpenAIException - Incorrect API key provided.",
+    }
+    audit = {
+        "container_missing_env_names": [],
+        "container_present_env_names": ["OPENAI_API_KEY"],
+    }
+
+    classification = module._classify_vault_auth_failure(provider, capture, audit)
+
+    assert classification["code"] == "present_key_invalid"
+    assert "Rotate `OPENAI_API_KEY`" in classification["next_action"]
+
+
+def test_classify_vault_auth_failure_auth_mode_mismatch() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+    provider = {
+        "id": "openrouter_api",
+        "env_contracts": ["OPENROUTER_API_KEY"],
+        "vault_runtime_contract": {"env_rules": [{"name": "OPENROUTER_API_KEY", "role": "required"}]},
+        "evidence": {"proxy": {"alias": "openrouter"}},
+    }
+    capture = {
+        "requested_model": "openrouter",
+        "error_snippet": 'AuthenticationError: OpenrouterException - {"error":{"message":"No cookie auth credentials found","code":401}}',
+    }
+    audit = {
+        "container_missing_env_names": ["OPENROUTER_API_KEY"],
+        "container_present_env_names": [],
+    }
+
+    classification = module._classify_vault_auth_failure(provider, capture, audit)
+
+    assert classification["code"] == "auth_mode_mismatch"
+    assert "Verify the upstream auth mode" in classification["next_action"]

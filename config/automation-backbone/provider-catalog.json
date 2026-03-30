@@ -301,6 +301,11 @@
         }
       ],
       "env_contracts": ["ANTHROPIC_API_KEY"],
+      "vault_runtime_contract": {
+        "env_rules": [
+          {"name": "ANTHROPIC_API_KEY", "role": "required"}
+        ]
+      },
       "litellm_aliases": ["claude", "claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -356,6 +361,11 @@
         }
       ],
       "env_contracts": ["OPENAI_API_KEY"],
+      "vault_runtime_contract": {
+        "env_rules": [
+          {"name": "OPENAI_API_KEY", "role": "required"}
+        ]
+      },
       "litellm_aliases": ["gpt", "gpt-5.4", "gpt-5-mini", "o4-mini"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -411,6 +421,12 @@
         }
       ],
       "env_contracts": ["MISTRAL_API_KEY", "CODESTRAL_API_KEY"],
+      "vault_runtime_contract": {
+        "env_rules": [
+          {"name": "CODESTRAL_API_KEY", "role": "required"},
+          {"name": "MISTRAL_API_KEY", "role": "optional_compat"}
+        ]
+      },
       "litellm_aliases": ["codestral", "mistral-large"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -474,6 +490,12 @@
         }
       ],
       "env_contracts": ["GOOGLE_API_KEY", "GEMINI_API_KEY"],
+      "vault_runtime_contract": {
+        "env_rules": [
+          {"name": "GOOGLE_API_KEY", "role": "required"},
+          {"name": "GEMINI_API_KEY", "role": "optional_compat"}
+        ]
+      },
       "litellm_aliases": ["gemini"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -587,6 +609,11 @@
         }
       ],
       "env_contracts": ["MOONSHOT_API_KEY"],
+      "vault_runtime_contract": {
+        "env_rules": [
+          {"name": "MOONSHOT_API_KEY", "role": "required"}
+        ]
+      },
       "litellm_aliases": ["kimi-k2.5"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -644,6 +671,11 @@
         }
       ],
       "env_contracts": ["DASHSCOPE_API_KEY"],
+      "vault_runtime_contract": {
+        "env_rules": [
+          {"name": "DASHSCOPE_API_KEY", "role": "required"}
+        ]
+      },
       "litellm_aliases": ["qwen-max", "qwen-plus"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -758,6 +790,11 @@
         }
       ],
       "env_contracts": ["ZAI_API_KEY"],
+      "vault_runtime_contract": {
+        "env_rules": [
+          {"name": "ZAI_API_KEY", "role": "required"}
+        ]
+      },
       "litellm_aliases": ["glm-4.7"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -813,6 +850,11 @@
         }
       ],
       "env_contracts": ["OPENROUTER_API_KEY"],
+      "vault_runtime_contract": {
+        "env_rules": [
+          {"name": "OPENROUTER_API_KEY", "role": "required"}
+        ]
+      },
       "litellm_aliases": ["openrouter"],
       "cli_commands": [],
       "observed_hosts": ["vault"],

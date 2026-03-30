@@ -413,15 +413,12 @@ def _provider_verification_steps(
     cli_summary = " or ".join(f"`{command} --version`" for command in cli_commands) if cli_commands else "the expected CLI"
     alias = litellm_aliases[0] if litellm_aliases else provider_label.lower().replace(" ", "_")
     if evidence_posture == "vault_provider_specific_auth_failed":
-        requested_model = str(provider_usage_capture.get("requested_model") or alias)
-        missing_names = _vault_env_names_for_provider(
-            provider,
-            dict(vault_litellm_env_audit or {}),
-            "container_missing_env_names",
-        )
+        classification = _classify_vault_auth_failure(provider, provider_usage_capture, vault_litellm_env_audit)
+        missing_names = [str(name).strip() for name in classification.get("missing_env_names", []) if str(name).strip()]
+        next_action = str(classification.get("next_action") or "").strip()
         missing_suffix = f" Missing env names: {list_or_none(missing_names)}." if missing_names else ""
         return [
-            f"Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `{provider_label}` on VAULT, then re-probe served model `{requested_model}`.{missing_suffix}",
+            f"Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `{provider_label}` on VAULT. Current auth classification: `{classification.get('label', 'unknown')}`. {next_action}{missing_suffix}",
             "Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.",
         ]
     if evidence_posture == "vault_provider_specific_request_failed":
@@ -590,11 +587,46 @@ def _provider_usage_capture_index(evidence_document: dict[str, Any]) -> dict[str
     return latest_by_provider
 
 
-def _vault_env_names_for_provider(provider: dict[str, Any], audit: dict[str, Any], field_name: str) -> list[str]:
+def _vault_runtime_contract(provider: dict[str, Any]) -> dict[str, Any]:
+    contract = dict(provider.get("vault_runtime_contract") or {})
+    env_rules: list[dict[str, str]] = []
+    for rule in contract.get("env_rules", []):
+        if not isinstance(rule, dict):
+            continue
+        name = str(rule.get("name") or "").strip()
+        role = str(rule.get("role") or "required").strip() or "required"
+        if name:
+            env_rules.append({"name": name, "role": role})
+    if not env_rules:
+        env_rules = [
+            {"name": str(name).strip(), "role": "required"}
+            for name in provider.get("env_contracts", [])
+            if str(name).strip()
+        ]
+    contract["env_rules"] = env_rules
+    return contract
+
+
+def _vault_env_contract_summary(provider: dict[str, Any]) -> str:
+    contract = _vault_runtime_contract(provider)
+    env_rules = list(contract.get("env_rules") or [])
+    if not env_rules:
+        return "none"
+    return ", ".join(f"`{rule['name']}` ({rule['role']})" for rule in env_rules)
+
+
+def _vault_env_names_for_provider(
+    provider: dict[str, Any],
+    audit: dict[str, Any],
+    field_name: str,
+    roles: set[str] | None = None,
+) -> list[str]:
+    contract = _vault_runtime_contract(provider)
     provider_envs = {
-        str(name).strip()
-        for name in provider.get("env_contracts", [])
-        if str(name).strip()
+        str(rule.get("name") or "").strip()
+        for rule in contract.get("env_rules", [])
+        if str(rule.get("name") or "").strip()
+        and (roles is None or str(rule.get("role") or "required").strip() in roles)
     }
     if not provider_envs:
         return []
@@ -603,6 +635,112 @@ def _vault_env_names_for_provider(provider: dict[str, Any], audit: dict[str, Any
         for name in audit.get(field_name, [])
         if str(name).strip() and str(name).strip() in provider_envs
     )
+
+
+def _classify_vault_auth_failure(
+    provider: dict[str, Any],
+    provider_usage_capture: dict[str, Any] | None,
+    vault_litellm_env_audit: dict[str, Any] | None,
+) -> dict[str, Any]:
+    provider_usage_capture = dict(provider_usage_capture or {})
+    vault_litellm_env_audit = dict(vault_litellm_env_audit or {})
+    requested_model = str(provider_usage_capture.get("requested_model") or "")
+    alias = str((dict(provider.get("evidence") or {}).get("proxy") or {}).get("alias") or "")
+    requested_model = requested_model or alias or str(provider.get("id") or "provider")
+    error_snippet = str(provider_usage_capture.get("error_snippet") or "")
+    error_lower = error_snippet.lower()
+    missing_required = _vault_env_names_for_provider(
+        provider,
+        vault_litellm_env_audit,
+        "container_missing_env_names",
+        {"required", "preferred"},
+    )
+    present_required = _vault_env_names_for_provider(
+        provider,
+        vault_litellm_env_audit,
+        "container_present_env_names",
+        {"required", "preferred"},
+    )
+    missing_all = _vault_env_names_for_provider(provider, vault_litellm_env_audit, "container_missing_env_names")
+    present_all = _vault_env_names_for_provider(provider, vault_litellm_env_audit, "container_present_env_names")
+    contract_names = [str(rule.get("name") or "").strip() for rule in _vault_runtime_contract(provider).get("env_rules", [])]
+    auth_mode_markers = ("cookie auth credentials", "user not found", "cookie auth")
+    missing_markers = (
+        "no key is set",
+        "api_key client option must be set",
+        "api key not found",
+        "missing ",
+        "environment variable",
+        "no key provided",
+    )
+    invalid_markers = (
+        "invalid authentication",
+        "incorrect api key",
+        "incorrect api key provided",
+        "api key not valid",
+        "invalid x-api-key",
+        "authentication fails",
+        "token expired",
+        "expired or incorrect",
+        "invalid_request_error",
+    )
+    if any(marker in error_lower for marker in auth_mode_markers):
+        repair_envs = missing_required or missing_all or contract_names
+        return {
+            "code": "auth_mode_mismatch",
+            "label": "auth mode mismatch",
+            "missing_env_names": missing_required or missing_all,
+            "present_env_names": present_required or present_all,
+            "next_action": (
+                f"Verify the upstream auth mode for served model `{requested_model}` and, if this lane should stay "
+                f"API-key backed, restore {list_or_none(repair_envs)} before recreating or redeploying `litellm`."
+            ),
+        }
+    if missing_required and any(marker in error_lower for marker in missing_markers):
+        return {
+            "code": "missing_required_env",
+            "label": "missing required env",
+            "missing_env_names": missing_required,
+            "present_env_names": present_required or present_all,
+            "next_action": (
+                f"Restore {list_or_none(missing_required)} in the managed VAULT secret source, recreate or redeploy "
+                f"`litellm`, then re-probe served model `{requested_model}`."
+            ),
+        }
+    if present_required and any(marker in error_lower for marker in invalid_markers):
+        rotate_envs = present_required or present_all or contract_names
+        return {
+            "code": "present_key_invalid",
+            "label": "present key invalid or expired",
+            "missing_env_names": missing_required or missing_all,
+            "present_env_names": rotate_envs,
+            "next_action": (
+                f"Rotate {list_or_none(rotate_envs)} in the managed VAULT secret source, recreate or redeploy "
+                f"`litellm`, then re-probe served model `{requested_model}`."
+            ),
+        }
+    if missing_required:
+        return {
+            "code": "missing_required_env",
+            "label": "missing required env",
+            "missing_env_names": missing_required,
+            "present_env_names": present_required or present_all,
+            "next_action": (
+                f"Restore {list_or_none(missing_required)} in the managed VAULT secret source, recreate or redeploy "
+                f"`litellm`, then re-probe served model `{requested_model}`."
+            ),
+        }
+    rotate_envs = present_required or present_all or contract_names
+    return {
+        "code": "credential_invalid_or_unknown",
+        "label": "credential invalid or unclassified auth failure",
+        "missing_env_names": missing_required or missing_all,
+        "present_env_names": rotate_envs,
+        "next_action": (
+            f"Rotate or restore the credential backing {list_or_none(rotate_envs)} in the managed VAULT secret "
+            f"source, recreate or redeploy `litellm`, then re-probe served model `{requested_model}`."
+        ),
+    }
 
 
 def render_hardware_report() -> str:
@@ -909,6 +1047,8 @@ def render_provider_report() -> str:
             provider_usage_capture=provider_usage_capture,
         )
         runtime_env_audit_line = None
+        auth_failure_line = None
+        env_semantics_line = None
         if str(dict(provider.get("evidence") or {}).get("kind") or "") == "vault_litellm_proxy" and vault_litellm_env_audit:
             runtime_env_audit_line = (
                 f"- Runtime env audit: missing "
@@ -916,6 +1056,13 @@ def render_provider_report() -> str:
                 f"present {list_or_none(_vault_env_names_for_provider(provider, vault_litellm_env_audit, 'container_present_env_names'))}, "
                 f"audit `{vault_litellm_env_audit.get('collected_at', 'unknown')}`"
             )
+            env_semantics_line = f"- Env semantics: {_vault_env_contract_summary(provider)}"
+            if evidence_posture == "vault_provider_specific_auth_failed":
+                classification = _classify_vault_auth_failure(provider, provider_usage_capture, vault_litellm_env_audit)
+                auth_failure_line = (
+                    f"- Auth failure classification: `{classification.get('code', 'unknown')}` "
+                    f"({classification.get('label', 'unknown')})"
+                )
         lines.extend(
             [
                 "",
@@ -939,6 +1086,8 @@ def render_provider_report() -> str:
                 f"- Observed runtime: {_observed_runtime_summary(observed_runtime, provider_usage_capture)}",
                 f"- Evidence contract: {_provider_evidence_summary(provider, provider_usage_capture)}",
                 *( [runtime_env_audit_line] if runtime_env_audit_line else [] ),
+                *( [env_semantics_line] if env_semantics_line else [] ),
+                *( [auth_failure_line] if auth_failure_line else [] ),
                 f"- Tool evidence: {_tooling_summary(tooling_entries)}",
                 f"- Next verification: {_provider_next_verification(provider, evidence_posture, provider_usage_capture, vault_litellm_env_audit)}",
                 f"- Verification steps: {list_or_none(_provider_verification_steps(provider, evidence_posture, provider_usage_capture, vault_litellm_env_audit))}",
@@ -2255,14 +2404,16 @@ def render_vault_litellm_repair_packet() -> str:
         provider_verified_at = str(dict(provider.get("observed_runtime") or {}).get("last_verified_at") or "")
         latest_activity = capture_observed_at or provider_verified_at or "unknown"
         if evidence_posture == "vault_provider_specific_auth_failed":
-            requested_model = str(provider_usage_capture.get("requested_model") or alias)
+            classification = _classify_vault_auth_failure(provider, provider_usage_capture, vault_litellm_env_audit)
             auth_failed_rows.append(
                 [
                     f"`{provider_id}`",
                     f"`{alias}`",
-                    list_or_none(missing_names),
+                    list_or_none(classification.get("missing_env_names", [])),
+                    list_or_none(classification.get("present_env_names", [])),
+                    f"`{classification.get('label', 'unknown')}`",
                     f"`{latest_activity}`",
-                    f"Restore {list_or_none(missing_names)} in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `{requested_model}`.",
+                    str(classification.get("next_action") or "Review the auth failure and re-probe the provider."),
                 ]
             )
             continue
@@ -2327,7 +2478,7 @@ def render_vault_litellm_repair_packet() -> str:
     if auth_failed_rows:
         lines.extend(
             _render_table(
-                ["Provider", "Served alias", "Missing env names", "Latest auth failure", "Next live action"],
+                ["Provider", "Served alias", "Missing env names", "Present env names", "Failure reason", "Latest auth failure", "Next live action"],
                 auth_failed_rows,
             )
         )

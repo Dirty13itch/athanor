@@ -33,15 +33,15 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 
 ## Auth-Failed Provider Lanes
 
-| Provider | Served alias | Missing env names | Latest auth failure | Next live action |
-| --- | --- | --- | --- | --- |
-| `anthropic_api` | `claude` | `ANTHROPIC_API_KEY` | `2026-03-30T02:29:32Z` | Restore `ANTHROPIC_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `claude`. |
-| `dashscope_qwen_api` | `qwen-max` | `DASHSCOPE_API_KEY` | `2026-03-30T02:29:33Z` | Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. |
-| `google_gemini_api` | `gemini` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | `2026-03-30T02:29:34Z` | Restore `GEMINI_API_KEY`, `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. |
-| `moonshot_api` | `kimi-k2.5` | `MOONSHOT_API_KEY` | `2026-03-30T02:29:35Z` | Restore `MOONSHOT_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `kimi-k2.5`. |
-| `openai_api` | `gpt` | none | `2026-03-30T02:29:35Z` | Restore none in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
-| `openrouter_api` | `openrouter` | `OPENROUTER_API_KEY` | `2026-03-30T02:29:36Z` | Restore `OPENROUTER_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `openrouter`. |
-| `zai_api` | `glm-4.7` | `ZAI_API_KEY` | `2026-03-30T02:29:36Z` | Restore `ZAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `glm-4.7`. |
+| Provider | Served alias | Missing env names | Present env names | Failure reason | Latest auth failure | Next live action |
+| --- | --- | --- | --- | --- | --- | --- |
+| `anthropic_api` | `claude` | `ANTHROPIC_API_KEY` | none | `missing required env` | `2026-03-30T02:29:32Z` | Restore `ANTHROPIC_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `claude`. |
+| `dashscope_qwen_api` | `qwen-max` | `DASHSCOPE_API_KEY` | none | `missing required env` | `2026-03-30T02:29:33Z` | Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. |
+| `google_gemini_api` | `gemini` | `GOOGLE_API_KEY` | none | `missing required env` | `2026-03-30T02:29:34Z` | Restore `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. |
+| `moonshot_api` | `kimi-k2.5` | `MOONSHOT_API_KEY` | none | `missing required env` | `2026-03-30T02:29:35Z` | Restore `MOONSHOT_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `kimi-k2.5`. |
+| `openai_api` | `gpt` | none | `OPENAI_API_KEY` | `present key invalid or expired` | `2026-03-30T02:29:35Z` | Rotate `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
+| `openrouter_api` | `openrouter` | `OPENROUTER_API_KEY` | none | `auth mode mismatch` | `2026-03-30T02:29:36Z` | Verify the upstream auth mode for served model `openrouter` and, if this lane should stay API-key backed, restore `OPENROUTER_API_KEY` before recreating or redeploying `litellm`. |
+| `zai_api` | `glm-4.7` | `ZAI_API_KEY` | none | `missing required env` | `2026-03-30T02:29:36Z` | Restore `ZAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `glm-4.7`. |
 
 ## Partial Contract Gaps Without Current Auth Failure
 
