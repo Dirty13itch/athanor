@@ -9,6 +9,7 @@ services:
     ports:
       - "{{ dashboard_port }}:3001"
     environment:
+      - ATHANOR_COMMAND_CENTER_URL={{ dashboard_command_center_url }}
       - NEXT_PUBLIC_PROMETHEUS_URL={{ dashboard_prometheus_url }}
       - NEXT_PUBLIC_VAPID_PUBLIC_KEY={{ dashboard_vapid_public_key }}
       - VAPID_PRIVATE_KEY={{ dashboard_vapid_private_key }}
@@ -16,6 +17,8 @@ services:
       - ATHANOR_NODE2_HOST={{ dashboard_node2_host }}
       - ATHANOR_VAULT_HOST={{ dashboard_vault_host }}
       - ATHANOR_DEV_HOST={{ dashboard_dev_host }}
+      - ATHANOR_WORKSHOP_LINK_HOST={{ dashboard_workshop_link_host }}
+      - ATHANOR_VAULT_LINK_HOST={{ dashboard_vault_link_host }}
       - ATHANOR_AGENT_SERVER_URL={{ dashboard_agent_server_url }}
       - ATHANOR_PROMETHEUS_URL={{ dashboard_prometheus_url }}
       - ATHANOR_GRAFANA_URL={{ dashboard_grafana_url }}
@@ -44,3 +47,7 @@ services:
       - ATHANOR_SPEACHES_URL={{ dashboard_speaches_url }}
       - ATHANOR_LITELLM_API_KEY={{ dashboard_litellm_api_key }}
       - ATHANOR_AGENT_API_TOKEN={{ dashboard_agent_api_token }}
+      - ATHANOR_DASHBOARD_OPERATOR_TOKEN={{ dashboard_operator_token }}
+      - ATHANOR_LANGFUSE_PUBLIC_KEY={{ dashboard_langfuse_public_key }}
+      - ATHANOR_LANGFUSE_SECRET_KEY={{ dashboard_langfuse_secret_key }}
+      - ATHANOR_WS_PTY_BRIDGE_ALLOWED_NODES={{ dashboard_ws_pty_bridge_allowed_nodes }}
