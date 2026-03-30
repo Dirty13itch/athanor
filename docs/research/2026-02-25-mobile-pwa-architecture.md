@@ -9,7 +9,7 @@
 
 ## Context
 
-The Athanor dashboard (Next.js 16, React 19, Tailwind CSS v4, shadcn/ui) runs at Node 2:3001 with 16 pages, 26+ service health checks, and real-time monitoring of 8 AI agents, 7 GPUs, and the full homelab infrastructure. Currently desktop-only with a fixed 224px sidebar and no mobile handling. The goal is to make it genuinely useful on a phone -- not just responsive, but designed for mobile interaction including push notifications, offline awareness, and touch-optimized controls.
+The Athanor dashboard (Next.js 16, React 19, Tailwind CSS v4, shadcn/ui) runs at DEV via athanor.local (runtime fallback dev.athanor.local:3001) with 16 pages, 26+ service health checks, and real-time monitoring of 8 AI agents, 7 GPUs, and the full homelab infrastructure. Currently desktop-only with a fixed 224px sidebar and no mobile handling. The goal is to make it genuinely useful on a phone -- not just responsive, but designed for mobile interaction including push notifications, offline awareness, and touch-optimized controls.
 
 ---
 
@@ -385,7 +385,7 @@ Agent API (Node 1:9000)
   |-- Event occurs (agent failure, task complete, GPU alert)
   |
   v
-Dashboard API Route (Node 2:3001/api/push)
+Dashboard API Route (https://athanor.local/api/push, runtime fallback http://dev.athanor.local:3001/api/push)
   |
   |-- Looks up push subscriptions in storage
   |-- Signs payload with VAPID private key
@@ -950,7 +950,7 @@ WebAuthn requires a secure context (HTTPS or localhost). Options for the homelab
 1. **Icon design.** The Athanor PWA icons need to be designed. The current favicon is the Next.js default. Need a custom icon that reads well at 192x192 and works as a maskable icon.
 2. **Which 5 tabs for mobile bottom nav?** Proposed: Home, GPUs, Agents, Chat, More. But "Services" and "Tasks" might be more useful than "Chat" on mobile.
 3. **SSE endpoint backend.** The SSE endpoint needs a source of real-time events. Currently the dashboard polls individual service APIs. Need to decide: does the SSE endpoint poll on behalf of clients (server-side aggregation) or does it subscribe to Redis pub/sub (the GWT workspace already broadcasts there)?
-4. **Notification trigger integration.** Where do push notification triggers live? In the agent framework (Node 1:9000)? In the dashboard API routes (Node 2:3001)? Or in a separate notification service?
+4. **Notification trigger integration.** Where do push notification triggers live? In the agent framework (Node 1:9000)? In the dashboard API routes (DEV via athanor.local (runtime fallback dev.athanor.local:3001))? Or in a separate notification service?
 
 ---
 

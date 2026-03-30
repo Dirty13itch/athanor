@@ -9,7 +9,7 @@
 
 ## Context
 
-The Athanor dashboard is a Next.js app (React 19, Next.js 16, shadcn/ui, Tailwind CSS v4, Radix) deployed at Node 2:3001 with 16 pages and 26 service health checks. It currently works as a monitoring surface -- you can see what is happening, but you cannot steer the system from it in any meaningful way.
+The Athanor dashboard is a Next.js app (React 19, Next.js 16, shadcn/ui, Tailwind CSS v4, Radix) deployed at DEV via athanor.local (runtime fallback dev.athanor.local:3001) with 16 pages and 26 service health checks. It currently works as a monitoring surface -- you can see what is happening, but you cannot steer the system from it in any meaningful way.
 
 The goal is to evolve it into a true command center: the single surface through which the human operator sees, steers, and interacts with the entire autonomous system. This means displaying real-time state of 4 nodes, 7 GPUs, 8 AI agents, 26+ services, media management, home automation, creative tools, and game development infrastructure -- and providing controls for all of them.
 

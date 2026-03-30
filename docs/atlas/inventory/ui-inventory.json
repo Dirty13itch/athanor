@@ -8,7 +8,7 @@
     "source_of_truth": "app-shell component",
     "status_tag": "live",
     "repo_source": ["projects/dashboard/src/components/app-shell.tsx"],
-    "runtime_source": ["Workshop dashboard shell"],
+    "runtime_source": ["DEV dashboard shell"],
     "depends_on": ["api.family.dashboard.overview"],
     "backed_by": ["desktop sidebar", "mobile sheet nav", "top header"],
     "entrypoints": ["all dashboard routes"],

@@ -10,7 +10,7 @@ This runbook now serves as the completed 2026-03-29 cutover record for the Athan
 - Current runtime fallback: `http://dev.athanor.local:3001/`
 - Canonical production host: `DEV`
 - Reverse proxy target: Caddy on `DEV`
-- Retired shadow portal reference: `http://192.168.1.225:3001/`
+- Retired shadow portal reference: `http://interface.athanor.local:3001/`
 
 ## Current State
 

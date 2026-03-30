@@ -3,7 +3,7 @@
 *Extends ADR-007. This is the detailed spec for what the dashboard shows, how it gets data, and the information hierarchy.*
 
 **Stack:** Next.js 16 + shadcn/ui + Tailwind CSS + TypeScript
-**Deployed to:** Node 2:3001
+**Deployed to:** DEV via `https://athanor.local/` (runtime fallback `http://dev.athanor.local:3001/`)
 **Design:** Dark theme, Cormorant Garabmond typography, warm amber accents (#d4a574)
 
 ---

@@ -284,7 +284,7 @@ The command center optionally embeds development tools rather than replacing the
 An embedded terminal page in the dashboard for Claude Code access:
 
 ```
-Command Center runtime (DEV:3001)
+Command Center runtime fallback (`dev.athanor.local:3001`)
   └── /terminal page
         └── react-xtermjs (dynamic import, ssr: false)
               └── WebSocket → Terminal Backend (DEV)
@@ -331,7 +331,7 @@ Phone / Desktop Browser
   │     ├── Service Worker (push handler, offline fallback)
   │     └── VAPID push subscription → Dashboard API
   │
-└── Command Center (DEV:3001, Next.js 16)
+└── Command Center (`https://athanor.local/`, runtime `dev.athanor.local:3001`, Next.js 16)
         │
         ├── Layout (persistent)
         │     ├── Pulse Strip (SSE-driven, always visible)

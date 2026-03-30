@@ -8,7 +8,7 @@
 
 ## Context
 
-Athanor's current development workflow: Claude Code CLI running in WSL2 tmux sessions on DEV (.215/.167), accessed via phone or local terminal. Shaun is an orchestrator, not a coder -- AI agents write code, Shaun reviews and steers. The question is whether a web-based interface could improve this workflow, enable mobile access, or be embedded into the Athanor dashboard (Next.js, Node 2:3001).
+Athanor's current development workflow: Claude Code CLI running in WSL2 tmux sessions on DEV (.215/.167), accessed via phone or local terminal. Shaun is an orchestrator, not a coder -- AI agents write code, Shaun reviews and steers. The question is whether a web-based interface could improve this workflow, enable mobile access, or be embedded into the Athanor dashboard (Next.js, DEV via athanor.local (runtime fallback dev.athanor.local:3001)).
 
 Existing relevant docs:
 - `docs/research/2026-02-13-claude-code-ecosystem.md` -- MCP servers, tools, orchestrators
@@ -451,7 +451,7 @@ Tested indirectly via Claudeman and claude-code-web, both of which report full c
 The most viable approach for the Athanor dashboard:
 
 ```
-Dashboard (Next.js, Node 2:3001)
+Dashboard (Next.js, DEV via athanor.local (runtime fallback dev.athanor.local:3001))
   |-- Terminal Page
   |     |-- react-xtermjs component
   |     |-- WebSocket connection to backend
@@ -684,7 +684,7 @@ Claudeman is LAN-accessible. Remote access via Tailscale was evaluated but cance
 Add an xterm.js terminal page to the Athanor dashboard. This is the first step toward the orchestrator's workbench.
 
 ```
-Athanor Dashboard (Node 2:3001)
+Athanor Dashboard (DEV via athanor.local (runtime fallback dev.athanor.local:3001))
   |-- New page: /terminal
   |     |-- react-xtermjs component (dynamic import, ssr: false)
   |     |-- WebSocket to terminal backend

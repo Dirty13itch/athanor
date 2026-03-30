@@ -170,7 +170,7 @@ What engine or framework should Empire of Broken Queens use for its interactive 
 
 **Solo dev complexity:**
 - React/TypeScript is the language AI assistants (including Claude) generate most fluently
-- Next.js is already deployed on Athanor (dashboard at Node 2:3001)
+- Next.js is already deployed on Athanor (dashboard at DEV via athanor.local (runtime fallback dev.athanor.local:3001))
 - Shaun's orchestrator workflow maps perfectly: describe what you want, AI writes the React components
 - VN presentation layer is ~500-1000 lines of React + CSS:
   - Full-screen background image (CSS `background-image`)

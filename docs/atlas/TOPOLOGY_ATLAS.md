@@ -7,9 +7,9 @@ This atlas maps the live Athanor estate by node, service plane, model route, sto
 | Node | Role | Primary live surfaces | Core services | Primary truth anchors | Status |
 | --- | --- | --- | --- | --- | --- |
 | `FOUNDRY` (`.244`) | Heavy inference and agent execution plane | vLLM coordinator, coder model, agent server, Qdrant, GPU orchestration | `vLLM`, `Agent Server`, `Qdrant`, `GPU Orchestrator`, `Speaches`, `wyoming-whisper` | [`../SERVICES.md`](../SERVICES.md), [`../SYSTEM-SPEC.md`](../SYSTEM-SPEC.md), `ansible/`, `services/node1/` | `live` |
-| `WORKSHOP` (`.225`) | UI, creative, and worker-inference plane | Dashboard PWA, ws-pty bridge, ComfyUI, EoBQ, worker vLLM | `Dashboard`, `ws-pty`, `ComfyUI`, `EoBQ`, `Open WebUI`, `vLLM` | [`../SERVICES.md`](../SERVICES.md), [`../../projects/dashboard`](../../projects/dashboard), `projects/`, `services/node2/` | `live` |
+| `WORKSHOP` (`.225`) | Creative, terminal-bridge, and worker-inference plane | ws-pty bridge, ComfyUI, EoBQ, worker vLLM | `ws-pty`, `ComfyUI`, `EoBQ`, `Open WebUI`, `vLLM` | [`../SERVICES.md`](../SERVICES.md), `projects/`, `services/node2/` | `live` |
 | `VAULT` (`.203`) | Routing, storage, observability, and domain-services plane | LiteLLM, Neo4j, Redis, Prometheus, Grafana, media stack, Home Assistant | `LiteLLM`, `Neo4j`, `Redis`, `Prometheus`, `Grafana`, `Plex`, `Sonarr`, `Radarr`, `Home Assistant` | [`../SERVICES.md`](../SERVICES.md), [`../SYSTEM-SPEC.md`](../SYSTEM-SPEC.md), `ansible/roles/vault-*` | `live` |
-| `DEV` (`.189`) | Development, operations, embedding, and reranking plane | Claude Code, claude-squad, embedding, reranker, runner tooling | `Embedding`, `Reranker`, `Claude Code`, `Gitea Actions Runner` | [`../SERVICES.md`](../SERVICES.md), [`../BUILD-MANIFEST.md`](../BUILD-MANIFEST.md) | `live` |
+| `DEV` (`.189`) | Development, operations, command-center, embedding, and reranking plane | Athanor Command Center, Claude Code, claude-squad, embedding, reranker, runner tooling | `Dashboard`, `Embedding`, `Reranker`, `Claude Code`, `Gitea Actions Runner` | [`../SERVICES.md`](../SERVICES.md), [`../../projects/dashboard`](../../projects/dashboard), [`../BUILD-MANIFEST.md`](../BUILD-MANIFEST.md), `ansible/` | `live` |
 
 ## Operator Surfaces
 
@@ -24,7 +24,7 @@ This atlas maps the live Athanor estate by node, service plane, model route, sto
 | Plane | Placement | Responsibilities | Status |
 | --- | --- | --- | --- |
 | Inference plane | `FOUNDRY`, `WORKSHOP`, `DEV`, routed through `VAULT` | local reasoning, worker, creative, embedding, and reranking paths under LiteLLM aliases | `live` |
-| Interface plane | `WORKSHOP` | dashboard PWA, terminal bridge, ComfyUI, EoBQ, Open WebUI | `live` |
+| Interface plane | `DEV`, `WORKSHOP` | command center portal on DEV, terminal bridge and creative specialist apps on WORKSHOP | `live` |
 | Orchestration plane | `FOUNDRY` | agent server, task engine, scheduler, workspace, goals, subscriptions, outputs | `live` |
 | Knowledge plane | `FOUNDRY`, `VAULT`, `DEV` | Qdrant collections, Neo4j graph, indexing, retrieval, preference storage | `live` |
 | Observability plane | `VAULT` plus exporters on compute nodes | Prometheus, Grafana, Loki, Alloy, service history, GPU history | `live` |
@@ -73,7 +73,7 @@ This atlas maps the live Athanor estate by node, service plane, model route, sto
 | --- | --- | --- | --- |
 | `ansible/` | desired deployment baseline | infrastructure shape, service defaults, host intent, canonical deployment model | authoritative baseline, but not every live app-layer manifest is fully converged |
 | `services/` | node-scoped service manifests | service stacks that already match live node behavior better than some Ansible roles | authoritative for parts of `FOUNDRY` and `WORKSHOP` service layout |
-| `projects/` | project-local compose truth | app-local deployment surfaces such as dashboard and agents when the project folder is the real owner | authoritative for several app surfaces on `WORKSHOP` |
+| `projects/` | project-local compose truth | app-local deployment surfaces such as dashboard and agents when the project folder is the real owner | authoritative for several app surfaces on `DEV` and `WORKSHOP` |
 | live node manifests | actual runtime evidence | tie-breaker for what is running now when repo layers disagree | evidence, not long-term canonical source |
 
 ## Current Drift Notes

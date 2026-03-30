@@ -9,7 +9,7 @@
 
 ## Context
 
-Athanor's current development workflow runs through Claude Code CLI in WSL2 tmux sessions on DEV. Shaun is an orchestrator, not a coder -- AI writes code, Shaun reviews and steers. The Command Center is a Next.js PWA at Node 2:3001 with 17 pages, 5 lens modes, SSE streaming, a command palette, and bottom nav on mobile. Claudeman (multi-session Claude Code web UI) is at DEV:3000. Eight AI agents on Node 1:9000 do autonomous work.
+Athanor's current development workflow runs through Claude Code CLI in WSL2 tmux sessions on DEV. Shaun is an orchestrator, not a coder -- AI writes code, Shaun reviews and steers. The Command Center is a Next.js PWA at DEV via athanor.local (runtime fallback dev.athanor.local:3001) with 17 pages, 5 lens modes, SSE streaming, a command palette, and bottom nav on mobile. Claudeman (multi-session Claude Code web UI) is at DEV:3000. Eight AI agents on Node 1:9000 do autonomous work.
 
 The existing research (`2026-02-25-web-development-environments.md`) comprehensively covers the tool landscape: code-server, Cursor/Windsurf, Claude Code web/remote-control, Claudeman, claude-code-web, OpenHands, xterm.js, ttyd, Jupyter, and the orchestrator's workbench concept. That research is not repeated here. This document addresses the questions that research left open:
 
@@ -99,7 +99,7 @@ Source: https://coolify.io/docs/get-started/introduction
 **How this maps to Athanor:**
 
 ```
-Command Center (Node 2:3001) -- THE HUB
+Command Center (DEV via athanor.local (runtime fallback dev.athanor.local:3001)) -- THE HUB
   |
   |-- Layers 0-4: Native pages in the dashboard
   |     |-- Home (ambient), GPUs, Services, Agents (monitoring)
@@ -594,7 +594,7 @@ What would make it dangerous:
 ```
 Phone / Desktop Browser
   |
-  +-- Command Center PWA (Node 2:3001, Next.js 16)
+  +-- Command Center PWA (DEV via athanor.local (runtime fallback dev.athanor.local:3001), Next.js 16)
   |     |
   |     +-- LAYER 0-1: Ambient + Monitor
   |     |     |-- Home (Furnace surface, agent constellation, Smart Stack)
@@ -673,7 +673,7 @@ Based on this research, the recommended build order -- sorted by impact per effo
 
 ### 6.1 What Is Already Built
 
-The Command Center (Node 2:3001) already implements significant portions of the interaction architecture:
+The Command Center (DEV via athanor.local (runtime fallback dev.athanor.local:3001)) already implements significant portions of the interaction architecture:
 
 | Asset | Status | Maps to Layer |
 |-------|--------|---------------|

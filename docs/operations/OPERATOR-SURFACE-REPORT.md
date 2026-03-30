@@ -108,7 +108,7 @@ No shadow portals are currently registered.
 | Surface | Kind | Node | Status | Navigation | Canonical URL | Runtime URL | Runtime probe |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `athanor_command_center` | `portal` | `dev` | `active_production` | `front_door` | `https://athanor.local/` | `http://dev.athanor.local:3001/` | `200` |
-| `workshop_shadow_command_center` | `retired` | `workshop` | `retired` | `hidden` | `https://athanor.local/` | `http://192.168.1.225:3001/` | `URLError: [WinError 10061] No connection could b` |
+| `workshop_shadow_command_center` | `retired` | `workshop` | `retired` | `hidden` | `https://athanor.local/` | `http://interface.athanor.local:3001/` | `URLError: [WinError 10061] No connection could b` |
 | `quality_gate` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `200` |
 | `semantic_router` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8060/health` | `http://192.168.1.189:8060/health` | `200` |
 | `subscription_burn` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8065/health` | `http://192.168.1.189:8065/health` | `200` |

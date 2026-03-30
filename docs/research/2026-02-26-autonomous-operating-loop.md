@@ -64,8 +64,8 @@ Before designing anything new, here is what Athanor already has that this system
 | **Knowledge Base** | Node 1:6333 | Live | 2220 vectors in Qdrant, 30+ Neo4j nodes |
 | **Preference Store** | Node 1:6333 | Live | Qdrant `preferences` collection, 17 profile points |
 | **Daily Digest** | Scheduler | Live | 6:55 AM, compiles overnight summary via general-assistant |
-| **Command Center** | Node 2:3001 | Live | PWA, 17 pages, 5 lenses, SSE, generative UI, crew bar |
-| **Push Notifications** | Node 2:3001 | Live (infra) | VAPID keys deployed, SW handler, `/api/push` endpoint |
+| **Command Center** | https://athanor.local/ (runtime dev.athanor.local:3001) | Live | PWA, 17 pages, 5 lenses, SSE, generative UI, crew bar |
+| **Push Notifications** | https://athanor.local/ (runtime dev.athanor.local:3001) | Live (infra) | VAPID keys deployed, SW handler, `/api/push` endpoint |
 | **MCP Bridge** | DEV | Live | 14 tools connecting Claude Code to local agents |
 | **Rubber-stamp Detection** | Node 1:9000 | Live | Warns if >20 approvals with 0 rejections |
 

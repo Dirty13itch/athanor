@@ -94,7 +94,7 @@
       "surface_kind": "retired",
       "node": "workshop",
       "canonical_url": "https://athanor.local/",
-      "runtime_url": "http://192.168.1.225:3001/",
+      "runtime_url": "http://interface.athanor.local:3001/",
       "auth_class": "operator",
       "deployment_mode": "retired_shadow",
       "navigation_role": "hidden",
