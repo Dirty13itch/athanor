@@ -25,12 +25,12 @@ Morning standup for Athanor. Run through this sequence:
 3. **Prometheus Alerts**:
    - `curl -s 'http://192.168.1.203:9090/api/v1/alerts' | python3 -c "import json,sys; [print(f'  {a[\"labels\"][\"alertname\"]}: {a[\"state\"]}') for a in json.load(sys.stdin).get('data',{}).get('alerts',[])]"`
 
-4. **State Review** — Read MEMORY.md and BUILD-MANIFEST.md for context
+4. **State Review** — Read MEMORY.md, STATUS.md, and CONTINUOUS-COMPLETION-BACKLOG.md for context
 
 5. **Report** — Summarize in a compact table:
    - Infrastructure status (up/down/degraded)
    - GPU utilization summary
    - Overnight task results (completed/failed)
    - Active alerts
-   - Next unblocked work items from BUILD-MANIFEST.md
+   - Next unblocked work items from CONTINUOUS-COMPLETION-BACKLOG.md
    - Blockers requiring Shaun

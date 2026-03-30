@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: Auto-route tasks to the optimal tool, model, and subscription. Cloud-first with local backbone. Content governance enforced.
+description: Auto-route tasks to the optimal tool, model, and subscription. Registry-backed provider and model truth only. Content governance enforced.
 triggers:
   - "delegate"
   - "local model"
@@ -27,46 +27,30 @@ Automatically pick the best tool, model, and subscription for any task. The user
 
 If refusal_sensitive or sovereign_only → skip to Step 3 (local routing).
 
-## Step 2: Cloud Subscription Routing (burn free tiers first)
+## Step 2: Cloud Subscription Routing (follow current registry truth)
 
-| Task Pattern | Best Tool | Subscription |
-|---|---|---|
-| Quick factual question | Gemini CLI | FREE (1000/day) |
-| IDE autocomplete | Codestral | FREE (Mistral) |
-| Complex architecture | Claude Code (Opus) | Max 20x |
-| Multi-file reasoning | Claude Code Agent Teams | Max 20x |
-| Terminal debugging | Codex CLI | ChatGPT Pro |
-| Computer-use/visual | Codex CLI | ChatGPT Pro (GPT-5.4) |
-| Hard math/algorithm | o3-pro via ChatGPT | ChatGPT Pro |
-| Deep research report | Perplexity Deep Research | Perplexity Pro |
-| Massive breadth search | Kimi Agent Swarm | Kimi Allegretto |
-| Fact checking | Z.ai GLM | GLM Pro |
-| Visual dev (IDE) | Roo Code | Per-mode routing |
-| Structured file edits | Aider | LiteLLM → local ($0) |
-| PR review | CodeRabbit | FREE |
-| Repeatable recipe | Goose | LiteLLM → local ($0) |
+Do not route from a hardcoded subscription table. Use the current truth sources:
 
-Use Sonnet 80% of the time in Claude Code (3x less quota than Opus).
+- Provider inventory and confidence: `config/automation-backbone/provider-catalog.json`
+- Subscription and provider routing policy: `projects/agents/config/subscription-routing-policy.yaml`
+- Operator-facing provider evidence: `docs/operations/PROVIDER-CATALOG-REPORT.md`
+
+Choose the lowest-cost lane that still matches the task, current confidence, and live availability. Keep `refusal_sensitive` and `sovereign_only` work off cloud lanes even if a provider looks healthy.
 
 ## Step 3: Local Model Routing ($0, unlimited)
 
-| Task Type | Tool | Model | Endpoint |
-|---|---|---|---|
-| General/reasoning | LiteLLM | Qwen3.5-27B-FP8 | FOUNDRY:8000 |
-| Code generation | LiteLLM | Qwen3.5-35B-A3B | FOUNDRY:8006 |
-| NSFW/uncensored | LiteLLM | JOSIEFIED-Qwen3-8B | WORKSHOP:11434 |
-| Embedding/search | Direct | Qwen3-Embedding-0.6B | DEV:8001 |
-| Image scoring | Direct | Aesthetic Predictor V2.5 | WORKSHOP:8050 |
-| Image generation | ComfyUI | FLUX + PuLID | WORKSHOP:8188 |
+Do not route from stale endpoint tables. Use the current truth sources:
+
+- Local model deployments: `config/automation-backbone/model-deployment-registry.json`
+- Operator-facing local model summary: `docs/operations/MODEL-DEPLOYMENT-REPORT.md`
+- Hardware capability and ownership: `config/automation-backbone/hardware-inventory.json`
+
+Keep `refusal_sensitive` and `sovereign_only` work local-only. Choose the local lane that matches the task class and current deployment status.
 
 ## Step 4: Autonomous Agent Routing
 
-For background/autonomous tasks, route to LangGraph agents via MCP:
-- `mcp__athanor-agents__coding_generate` — code tasks
-- `mcp__athanor-agents__coding_review` — review
-- `mcp__athanor-agents__deep_research` — research
-- Health/monitoring → general-assistant agent (runs on schedule)
+For background or autonomous tasks, route through the current live control-plane surfaces and agent roster. Do not rely on archived MCP command examples or stale local endpoint notes. Use the active operator and routing truth in the current registries and reports before delegating work.
 
 ## Quality Gate (always)
 
-Review all delegated output before accepting. Check: correctness, style, security, completeness.
+Review all delegated output before accepting. Check correctness, style, security, completeness, and that the chosen provider or model lane still matches the current registry-backed truth.

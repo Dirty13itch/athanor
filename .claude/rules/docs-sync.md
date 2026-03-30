@@ -12,13 +12,15 @@ paths:
 After any operational change, update all affected docs atomically (same commit).
 
 ## After Deploying a Service
-- `docs/SERVICES.md` - add/update entry
+- `docs/SERVICES.md` - add or update entry
 - `docs/SYSTEM-SPEC.md` - update service inventory
-- `docs/BUILD-MANIFEST.md` - mark item complete if applicable
+- `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` - update the live execution order if priorities changed
 - `STATUS.md` - update cluster state
 
 ## After GPU Reassignment
-- `docs/archive/hardware/hardware-inventory.md` - archival hardware ledger, update only with operator confirmation
+- `config/automation-backbone/hardware-inventory.json` - active hardware truth
+- `docs/operations/HARDWARE-REPORT.md` - regenerate the summary after inventory changes
+- `docs/archive/hardware/hardware-inventory.md` - update only if the historical owned-hardware ledger itself changed
 - `.claude/rules/vllm.md` - update deployment section
 - `.claude/skills/gpu-placement.md` - update placement table
 - `docs/SYSTEM-SPEC.md` - update model inventory table

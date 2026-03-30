@@ -54,7 +54,8 @@ STATE_FILE="$REPO_ROOT/.claude/.session-state.md"
   echo "## Re-read After Compaction"
   echo "- CLAUDE.md (role, state, gotchas)"
   echo "- MEMORY.md (session continuity)"
-  echo "- docs/BUILD-MANIFEST.md (work queue)"
+  echo "- STATUS.md (current truth)"
+  echo "- docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md (live work queue)"
   echo "- The plan file if one exists"
 } > "$STATE_FILE" 2>/dev/null
 
