@@ -1,4 +1,6 @@
 import { NextRequest } from "next/server";
+import { proxyAgentOperatorJson } from "@/lib/operator-actions";
+import { requireOperatorMutationAccess } from "@/lib/operator-auth";
 import { proxyAgentJson } from "@/lib/server-agent";
 
 export async function GET(request: NextRequest) {
@@ -8,15 +10,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.text();
-  return proxyAgentJson(
-    "/v1/subscriptions/execution",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    },
-    "Failed to execute provider request",
-    120_000
-  );
+  const gate = requireOperatorMutationAccess(request);
+  if (gate) {
+    return gate;
+  }
+
+  return proxyAgentOperatorJson(request, "/v1/subscriptions/execution", "Failed to execute provider request", {
+    privilegeClass: "admin",
+    defaultActor: "dashboard-operator",
+    defaultReason: "Executed provider request",
+    timeoutMs: 120_000,
+  });
 }
