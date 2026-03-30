@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-30T06:49:19.696521+00:00",
+  "generated_at": "2026-03-30T07:16:34.565228+00:00",
   "lane": "contract_healer",
   "action_class": "drift_report_generation",
   "success": true,
@@ -12,7 +12,7 @@
       "returncode": 0,
       "stdout": "Platform contract OK: 5 nodes, 34 services, 11 projects, 105 doc lifecycle entries.",
       "stderr": "",
-      "duration_seconds": 3.924
+      "duration_seconds": 1.183
     },
     {
       "command": [
@@ -23,7 +23,7 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.081
+      "duration_seconds": 0.042
     },
     {
       "command": [
@@ -34,7 +34,7 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.096
+      "duration_seconds": 0.042
     }
   ],
   "operator_visible_summary": "Contract healer regenerated drift evidence successfully.",
