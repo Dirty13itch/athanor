@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 import { proxyAgentJson } from "@/lib/server-agent";
 
 export async function GET() {
@@ -10,14 +11,13 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.text();
-  return proxyAgentJson(
+  return proxyAgentOperatorJson(
+    request,
     "/v1/governor/operator-tests/run",
+    "Failed to run synthetic operator tests",
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    },
-    "Failed to run synthetic operator tests"
+      privilegeClass: "admin",
+      defaultReason: "Manual operator test run from dashboard",
+    }
   );
 }

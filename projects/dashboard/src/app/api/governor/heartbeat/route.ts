@@ -1,15 +1,15 @@
 import { NextRequest } from "next/server";
-import { proxyAgentJson } from "@/lib/server-agent";
+import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 
 export async function POST(request: NextRequest) {
-  const body = await request.text();
-  return proxyAgentJson(
+  return proxyAgentOperatorJson(
+    request,
     "/v1/governor/heartbeat",
+    "Failed to update operator heartbeat",
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
+      privilegeClass: "operator",
+      defaultActor: "dashboard-heartbeat",
+      defaultReason: "Dashboard heartbeat acknowledgement",
     },
-    "Failed to update operator heartbeat"
   );
 }
