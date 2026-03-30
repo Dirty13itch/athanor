@@ -201,7 +201,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=claude`, `host=vault`, `preferred_model=claude`, `provider_specific_status=pending`
-- Runtime env audit: missing `ANTHROPIC_API_KEY`, present none, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing `ANTHROPIC_API_KEY`, present none, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM served model `claude` and record the timestamp. Current probe alias: `claude`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id anthropic_api`.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM served model `claude` and record the timestamp. Current probe alias: `claude`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id anthropic_api`.`, `Capture evidence that the request exercised `Anthropic API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
@@ -222,7 +222,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=gpt`, `host=vault`, `preferred_model=gpt`, `provider_specific_status=pending`
-- Runtime env audit: missing `OPENAI_API_KEY`, present none, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing `OPENAI_API_KEY`, present none, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM served model `gpt` and record the timestamp. Current probe alias: `gpt`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id openai_api`.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM served model `gpt` and record the timestamp. Current probe alias: `gpt`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id openai_api`.`, `Capture evidence that the request exercised `OpenAI API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
@@ -243,7 +243,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=True`, `last_verified_at=2026-03-29T03:46:16Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=codestral`, `host=vault`, `preferred_model=codestral`, `provider_specific_status=observed`
-- Runtime env audit: missing `MISTRAL_API_KEY`, present `CODESTRAL_API_KEY`, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing `MISTRAL_API_KEY`, present `CODESTRAL_API_KEY`, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM alias `codestral` and record the timestamp.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM alias `codestral` and record the timestamp.`, `Capture evidence that the request exercised `Codestral API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
@@ -264,7 +264,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=gemini`, `host=vault`, `preferred_model=gemini`, `provider_specific_status=pending`
-- Runtime env audit: missing `GEMINI_API_KEY`, `GOOGLE_API_KEY`, present none, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing `GEMINI_API_KEY`, `GOOGLE_API_KEY`, present none, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM served model `gemini` and record the timestamp. Current probe alias: `gemini`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id google_gemini_api`.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM served model `gemini` and record the timestamp. Current probe alias: `gemini`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id google_gemini_api`.`, `Capture evidence that the request exercised `Gemini API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
@@ -285,7 +285,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=True`, `last_verified_at=2026-03-29T03:46:16Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=deepseek`, `host=vault`, `preferred_model=deepseek`, `provider_specific_status=observed`
-- Runtime env audit: missing none, present `DEEPSEEK_API_KEY`, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing none, present `DEEPSEEK_API_KEY`, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM served model `deepseek` and record the timestamp.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM served model `deepseek` and record the timestamp.`, `Capture evidence that the request exercised `DeepSeek API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
@@ -306,7 +306,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=kimi-k2.5`, `host=vault`, `preferred_model=kimi-k2.5`, `provider_specific_status=pending`
-- Runtime env audit: missing `MOONSHOT_API_KEY`, present none, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing `MOONSHOT_API_KEY`, present none, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM served model `kimi-k2.5` and record the timestamp. Current probe alias: `kimi-k2.5`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id moonshot_api`.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM served model `kimi-k2.5` and record the timestamp. Current probe alias: `kimi-k2.5`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id moonshot_api`.`, `Capture evidence that the request exercised `Moonshot API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
@@ -327,7 +327,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=qwen-max`, `host=vault`, `preferred_model=qwen-max`, `provider_specific_status=pending`
-- Runtime env audit: missing `DASHSCOPE_API_KEY`, present none, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing `DASHSCOPE_API_KEY`, present none, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM served model `qwen-max` and record the timestamp. Current probe alias: `qwen-max`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id dashscope_qwen_api`.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM served model `qwen-max` and record the timestamp. Current probe alias: `qwen-max`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id dashscope_qwen_api`.`, `Capture evidence that the request exercised `DashScope Qwen API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
@@ -348,7 +348,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=True`, `last_verified_at=2026-03-29T03:46:17Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=venice-uncensored`, `host=vault`, `preferred_model=venice-uncensored`, `provider_specific_status=observed`
-- Runtime env audit: missing none, present `VENICE_API_KEY`, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing none, present `VENICE_API_KEY`, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM served model `venice-uncensored` and record the timestamp.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM served model `venice-uncensored` and record the timestamp.`, `Capture evidence that the request exercised `Venice API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
@@ -369,7 +369,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=glm-4.7`, `host=vault`, `preferred_model=glm-4.7`, `provider_specific_status=pending`
-- Runtime env audit: missing `ZAI_API_KEY`, present none, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing `ZAI_API_KEY`, present none, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM served model `glm-4.7` and record the timestamp. Current probe alias: `glm-4.7`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id zai_api`.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM served model `glm-4.7` and record the timestamp. Current probe alias: `glm-4.7`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id zai_api`.`, `Capture evidence that the request exercised `Z.ai API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
@@ -390,7 +390,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=openrouter`, `host=vault`, `preferred_model=openrouter`, `provider_specific_status=pending`
-- Runtime env audit: missing `OPENROUTER_API_KEY`, present none, audit `2026-03-30T01:38:14Z`
+- Runtime env audit: missing `OPENROUTER_API_KEY`, present none, audit `2026-03-30T01:40:59Z`
 - Tool evidence: none
 - Next verification: Run a provider-specific request through the VAULT LiteLLM served model `openrouter` and record the timestamp. Current probe alias: `openrouter`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id openrouter_api`.
 - Verification steps: `Run a provider-specific request through the VAULT LiteLLM served model `openrouter` and record the timestamp. Current probe alias: `openrouter`. Then record or refresh the proof with `python scripts/probe_provider_usage_evidence.py --provider-id openrouter_api`.`, `Capture evidence that the request exercised `OpenRouter API` upstream specifically, not just generic proxy activity.`, `If provider-specific evidence cannot be captured, demote the lane to configured-only.`
