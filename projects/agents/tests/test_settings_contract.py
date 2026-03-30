@@ -89,6 +89,8 @@ class SettingsContractTest(unittest.TestCase):
             },
         )
         self.assertEqual(registry.neo4j_auth, ("neo4j", "graph-secret"))
+        self.assertEqual("VAULT", registry.qdrant.node)
+        self.assertEqual("DEV", registry.dashboard.node)
 
         service_ids = {service.id for service in registry.service_checks}
         self.assertIn("litellm-proxy", service_ids)

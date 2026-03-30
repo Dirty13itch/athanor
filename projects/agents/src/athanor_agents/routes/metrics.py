@@ -1,7 +1,7 @@
 """Metrics routes — learning, agent performance, inference, context."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter
@@ -140,7 +140,7 @@ async def learning_metrics():
         metrics["tasks"] = None
 
     return {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "metrics": metrics,
         "summary": _compute_learning_summary(metrics),
     }
@@ -236,9 +236,13 @@ async def agent_metrics():
     # Get task stats per agent
     task_by_agent = {}
     try:
-        from ..tasks import get_stats
-        tstats = await get_stats()
-        task_by_agent = tstats.get("by_agent", {})
+        from ..tasks import get_task_stats
+
+        tstats = await get_task_stats()
+        task_by_agent = {
+            str(agent_id): {"total": int(total or 0)}
+            for agent_id, total in dict(tstats.get("by_agent") or {}).items()
+        }
     except Exception as e:
         logger.debug("Agent status task stats failed: %s", e)
 
