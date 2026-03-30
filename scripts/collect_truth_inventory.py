@@ -18,6 +18,7 @@ from urllib.request import Request, urlopen
 
 from truth_inventory import (
     CONFIG_DIR,
+    IMPLEMENTATION_AUTHORITY_ROOT,
     PROVIDER_USAGE_EVIDENCE_PATH,
     REPO_ROOT,
     TRUTH_SNAPSHOT_PATH,
@@ -111,7 +112,7 @@ def _annotate_governor_facade_probe(
     for caller_path in implementation_ready_callers:
         caller_spec = caller_specs.get(caller_path, {})
         runtime_record = runtime_records_by_path.get(caller_path, {})
-        implementation_path = REPO_ROOT / caller_path
+        implementation_path = IMPLEMENTATION_AUTHORITY_ROOT / caller_path
         implementation_exists = implementation_path.is_file()
         implementation_sha256 = _file_sha256(implementation_path)
         runtime_exists = bool(runtime_record.get("exists"))
@@ -1143,6 +1144,7 @@ async def build_snapshot() -> dict[str, Any]:
     return {
         "collected_at": datetime.now(timezone.utc).isoformat(),
         "repo_root": str(REPO_ROOT),
+        "implementation_authority_root": str(IMPLEMENTATION_AUTHORITY_ROOT),
         "registry_dir": str(CONFIG_DIR),
         "hostname": os.environ.get("COMPUTERNAME") or socket.gethostname(),
         "provider_index": provider_index(providers),

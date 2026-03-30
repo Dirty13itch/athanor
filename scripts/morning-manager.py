@@ -4,7 +4,7 @@
 Runs at 07:00 via cron (DEV). Uses Claude Code CLI (`-p`, Opus) via 20x Max subscription.
 
 Workflow:
-1. Read STATUS.md and BUILD-MANIFEST.md
+1. Read STATUS.md and the live execution backlog
 2. Fetch pipeline status and overnight results
 3. Review pending approval plans
 4. Decompose complex items into milestones and execution leases
@@ -25,8 +25,11 @@ import time
 from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import URLError
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cluster_config import get_url
+
+try:
+    from scripts._cluster_config import get_url
+except ModuleNotFoundError:
+    from _cluster_config import get_url
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -71,7 +74,7 @@ def read_file(path: str) -> str:
 def build_morning_prompt() -> str:
     """Build the morning planning prompt from live system state."""
     status = read_file("STATUS.md")
-    manifest = read_file("docs/BUILD-MANIFEST.md")
+    backlog = read_file("docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md")
 
     pipeline = fetch_json("/v1/pipeline/status")
     pending_tasks = fetch_json("/v1/tasks?status=pending_approval&limit=20")
@@ -85,8 +88,8 @@ def build_morning_prompt() -> str:
 ## Current STATUS.md
 {status}
 
-## BUILD-MANIFEST.md (first 4000 chars)
-{manifest[:4000]}
+## Live Execution Backlog (first 4000 chars)
+{backlog[:4000]}
 
 ## Governor State
 {json.dumps(governor, indent=2)[:2000]}
@@ -111,7 +114,7 @@ def build_morning_prompt() -> str:
 2. Review pending approval tasks — approve safe ones, note risky ones for Shaun
 3. Review pending plans — approve low-risk, flag high-risk for operator review
 4. Check stalled projects — identify blockers, suggest remediation
-5. Identify the top 3 priorities for today based on BUILD-MANIFEST and STATUS
+5. Identify the top 3 priorities for today based on the live backlog and STATUS
 6. Update STATUS.md with morning review notes and today's priorities
 
 Output a structured morning briefing with:

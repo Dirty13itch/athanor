@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-03-30T06:33:21.308992+00:00",
+  "lane": "contract_healer",
+  "action_class": "drift_report_generation",
+  "success": false,
+  "checks": [
+    {
+      "command": [
+        "C:\\Program Files\\Python313\\python.exe",
+        "scripts/validate_platform_contract.py"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "FAIL: Generated doc is stale: docs/operations/PROVIDER-CATALOG-REPORT.md (docs/operations/PROVIDER-CATALOG-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/OPERATOR-SURFACE-REPORT.md (docs/operations/OPERATOR-SURFACE-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/OPERATOR-SURFACE-REPORT.md (docs/operations/OPERATOR-SURFACE-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/RUNTIME-MIGRATION-REPORT.md (docs/operations/RUNTIME-MIGRATION-REPORT.md is stale)",
+      "duration_seconds": 1.412
+    },
+    {
+      "command": [
+        "C:\\Program Files\\Python313\\python.exe",
+        "scripts/generate_documentation_index.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "duration_seconds": 0.047
+    },
+    {
+      "command": [
+        "C:\\Program Files\\Python313\\python.exe",
+        "scripts/generate_project_maturity_report.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "duration_seconds": 0.046
+    }
+  ],
+  "operator_visible_summary": "Contract healer detected drift or generator failures.",
+  "automation_record_persisted": true,
+  "automation_record_error": null
+}

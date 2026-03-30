@@ -26,8 +26,9 @@ DASHBOARD_HOOKS = DASHBOARD_SRC / "hooks"
 AGENTS_ROOT = REPO_ROOT / "projects" / "agents"
 AGENTS_SRC = AGENTS_ROOT / "src" / "athanor_agents"
 AGENT_SERVER = AGENTS_SRC / "server.py"
-ATLAS_COMPLETION_DIR = REPO_ROOT / "docs" / "atlas" / "inventory" / "completion"
+RUNTIME_SUBSYSTEM_REGISTRY = REPO_ROOT / "config" / "automation-backbone" / "runtime-subsystem-registry.json"
 REPORTS_DIR = REPO_ROOT / "reports" / "completion-audit"
+COMPLETION_AUDIT_DIR = REPORTS_DIR / "latest" / "inventory"
 UI_AUDIT_DIR = REPO_ROOT / "tests" / "ui-audit"
 
 TS_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".mts")
@@ -89,6 +90,7 @@ ROUTE_PAGE_FILES = {
     "default.tsx",
 }
 ENTRY_ROOT_FILES = ROUTE_PAGE_FILES | {"route.ts"}
+FRAMEWORK_ENTRY_ROOTS = {"proxy.ts"}
 
 DEPLOYMENT_SERVICE_MATRIX = [
     {
@@ -389,8 +391,8 @@ def _parse_route_object(block: str) -> dict[str, Any]:
     }
 
 
-@lru_cache(maxsize=1)
-def load_surface_registry() -> dict[str, dict[str, Any]]:
+@lru_cache(maxsize=None)
+def load_surface_registry(product: str = "dashboard") -> dict[str, dict[str, Any]]:
     registry_path = UI_AUDIT_DIR / "surface-registry.json"
     if not registry_path.exists():
         return {"routes": {}, "apis": {}}
@@ -398,6 +400,8 @@ def load_surface_registry() -> dict[str, dict[str, Any]]:
     routes: dict[str, dict[str, Any]] = {}
     apis: dict[str, dict[str, Any]] = {}
     for surface in payload.get("surfaces", []):
+        if surface.get("product") != product:
+            continue
         route_path = surface.get("routePath")
         api_path = surface.get("apiPath")
         if route_path:
@@ -459,6 +463,7 @@ def list_dashboard_source_files() -> list[Path]:
         path
         for path in DASHBOARD_SRC.rglob("*")
         if path.is_file() and path.suffix in TS_EXTENSIONS
+        and not path.name.endswith(".d.ts")
     ]
 
 
@@ -468,10 +473,12 @@ def list_dashboard_ui_files() -> list[Path]:
         for path in DASHBOARD_SRC.rglob("*")
         if path.is_file()
         and path.suffix in TS_EXTENSIONS
+        and not path.name.endswith(".d.ts")
         and "app\\api" not in str(path)
         and "/app/api/" not in path.as_posix()
         and ".stories." not in path.name
         and ".test." not in path.name
+        and path.relative_to(DASHBOARD_SRC).as_posix() != "proxy.ts"
     ]
 
 
@@ -483,7 +490,11 @@ def discover_page_roots() -> list[Path]:
         if path.name not in ENTRY_ROOT_FILES:
             continue
         roots.append(path)
-    return sorted(roots)
+    for relative_path in FRAMEWORK_ENTRY_ROOTS:
+        framework_root = DASHBOARD_SRC / relative_path
+        if framework_root.exists():
+            roots.append(framework_root)
+    return sorted({path.resolve() for path in roots})
 
 
 def parse_http_methods(path: Path) -> list[str]:
@@ -636,6 +647,8 @@ def parse_agent_metadata() -> dict[str, Any]:
 
 def classify_mount_status(file_path: Path, reachable_roots: set[str]) -> str:
     basename = file_path.name
+    if file_path.relative_to(DASHBOARD_SRC).as_posix() in FRAMEWORK_ENTRY_ROOTS:
+        return "mounted"
     if basename in DEPRECATED_UI_BASENAMES:
         return "deprecated"
     if "/components/gen-ui/" in file_path.as_posix() and basename != "feedback-buttons.tsx":
@@ -652,23 +665,46 @@ def classify_mount_status(file_path: Path, reachable_roots: set[str]) -> str:
 def match_surface_api(surface_api: str, api_path: str) -> bool:
     if "[" in surface_api and "]" in surface_api:
         surface_api = normalize_api_path(surface_api)
+    if "[" in api_path and "]" in api_path:
+        api_path = normalize_api_path(api_path)
     if surface_api == api_path:
         return True
-    if "*" in surface_api:
-        pattern = "^" + re.escape(surface_api).replace(r"\*", r".*") + "$"
-        return re.match(pattern, api_path) is not None
-    if ":" not in surface_api:
-        return False
-    pattern = re.escape(surface_api)
-    pattern = pattern.replace(r"\:taskId", r"[^/]+")
-    pattern = pattern.replace(r"\:goalId", r"[^/]+")
-    pattern = pattern.replace(r"\:notificationId", r"[^/]+")
-    pattern = pattern.replace(r"\:itemId", r"[^/]+")
-    pattern = pattern.replace(r"\:conventionId", r"[^/]+")
-    pattern = "^" + pattern + "$"
-    return re.match(pattern, api_path) is not None
+    surface_parts = [part for part in surface_api.strip("/").split("/") if part]
+    api_parts = [part for part in api_path.strip("/").split("/") if part]
+    surface_index = 0
+    api_index = 0
+
+    while surface_index < len(surface_parts):
+        surface_part = surface_parts[surface_index]
+        if surface_part.startswith(":") and surface_part.endswith("*"):
+            return True
+        if api_index >= len(api_parts):
+            return False
+        api_part = api_parts[api_index]
+
+        if surface_part.startswith(":"):
+            surface_index += 1
+            api_index += 1
+            continue
+
+        if "*" in surface_part:
+            pattern = "^" + re.escape(surface_part).replace(r"\*", r".*") + "$"
+            if re.match(pattern, api_part) is None:
+                return False
+        elif surface_part != api_part:
+            return False
+
+        surface_index += 1
+        api_index += 1
+
+    return api_index == len(api_parts)
 
 
-def load_runtime_inventory() -> dict[str, dict[str, Any]]:
-    inventory = safe_json_load(REPO_ROOT / "docs" / "atlas" / "inventory" / "runtime-inventory.json", [])
-    return {item["id"]: item for item in inventory}
+def load_runtime_subsystem_registry() -> dict[str, dict[str, Any]]:
+    payload = safe_json_load(RUNTIME_SUBSYSTEM_REGISTRY, {})
+    entries = payload.get("subsystems", []) if isinstance(payload, dict) else []
+    return {
+        str(entry["id"]): entry
+        for entry in entries
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }

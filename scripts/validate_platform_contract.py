@@ -206,13 +206,15 @@ REQUIRED_STARTUP_DOC_CONTRACT = {
 }
 ALLOWED_PROVIDER_CATEGORIES = {"local", "subscription", "api"}
 ALLOWED_PROVIDER_ROUTING_POSTURES = {"ordinary_auto", "governed_handoff_only", "disabled"}
-ALLOWED_PROVIDER_EVIDENCE_KINDS = {"cli_subscription", "vault_litellm_proxy"}
+ALLOWED_PROVIDER_EVIDENCE_KINDS = {"cli_subscription", "coding_tool_subscription", "vault_litellm_proxy"}
 ALLOWED_PROVIDER_CLI_PROBE_STATUSES = {"installed", "missing", "degraded", "mixed"}
+ALLOWED_PROVIDER_TOOLING_PROBE_STATUSES = {"supported_tools_present", "supported_tools_missing", "degraded", "mixed"}
 ALLOWED_PROVIDER_BILLING_STATUSES = {
     "verified",
     "operator_visible_tier_unverified",
     "published_tiers_known_subscribed_tier_unverified",
 }
+ALLOWED_PROVIDER_INTEGRATION_STATUSES = {"verified", "unverified", "degraded"}
 ALLOWED_PROVIDER_SPECIFIC_USAGE_STATUSES = {"pending", "observed", "verified", "not_supported"}
 ALLOWED_PROVIDER_USAGE_CAPTURE_STATUSES = {"observed", "verified", "not_supported", "auth_failed", "request_failed"}
 ALLOWED_PROVIDER_STATES = {
@@ -921,6 +923,45 @@ def main() -> int:
                 errors.append(f"provider-catalog.json provider {provider_id} cli_probe is missing last_verified_at")
             if not str(cli_probe.get("source") or "").strip():
                 errors.append(f"provider-catalog.json provider {provider_id} cli_probe is missing source")
+            if "cost-unverified" in pricing_status:
+                billing_status = str(billing.get("status") or "")
+                if billing_status not in ALLOWED_PROVIDER_BILLING_STATUSES:
+                    errors.append(
+                        f"provider-catalog.json provider {provider_id} has invalid billing.status {billing_status!r}"
+                    )
+                if not str(billing.get("last_verified_at") or "").strip():
+                    errors.append(f"provider-catalog.json provider {provider_id} billing is missing last_verified_at")
+                if not str(billing.get("source") or "").strip():
+                    errors.append(f"provider-catalog.json provider {provider_id} billing is missing source")
+                if billing_status == "verified" and billing.get("verified_monthly_cost_usd") is None:
+                    errors.append(
+                        f"provider-catalog.json provider {provider_id} billing.status verified requires verified_monthly_cost_usd"
+                    )
+        if evidence_kind == "coding_tool_subscription":
+            tooling_probe = dict(evidence.get("tooling_probe") or {})
+            billing = dict(evidence.get("billing") or {})
+            tooling_status = str(tooling_probe.get("status") or "")
+            if tooling_status not in ALLOWED_PROVIDER_TOOLING_PROBE_STATUSES:
+                errors.append(
+                    f"provider-catalog.json provider {provider_id} has invalid tooling_probe.status {tooling_status!r}"
+                )
+            if not list(tooling_probe.get("expected_hosts", [])):
+                errors.append(f"provider-catalog.json provider {provider_id} tooling_probe must declare expected_hosts")
+            if not list(tooling_probe.get("supported_commands", [])):
+                errors.append(
+                    f"provider-catalog.json provider {provider_id} tooling_probe must declare supported_commands"
+                )
+            integration_status = str(tooling_probe.get("integration_status") or "")
+            if integration_status not in ALLOWED_PROVIDER_INTEGRATION_STATUSES:
+                errors.append(
+                    f"provider-catalog.json provider {provider_id} has invalid tooling_probe.integration_status {integration_status!r}"
+                )
+            if not str(tooling_probe.get("last_verified_at") or "").strip():
+                errors.append(
+                    f"provider-catalog.json provider {provider_id} tooling_probe is missing last_verified_at"
+                )
+            if not str(tooling_probe.get("source") or "").strip():
+                errors.append(f"provider-catalog.json provider {provider_id} tooling_probe is missing source")
             if "cost-unverified" in pricing_status:
                 billing_status = str(billing.get("status") or "")
                 if billing_status not in ALLOWED_PROVIDER_BILLING_STATUSES:

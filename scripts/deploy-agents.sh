@@ -9,10 +9,10 @@ source "${SCRIPT_DIR}/cluster_config.sh"
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-FOUNDRY="foundry"
+FOUNDRY="${ATHANOR_FOUNDRY_SSH_HOST:-foundry}"
 REMOTE_DIR="/opt/athanor/agents"
 SRC_DIR="${REPO_DIR}/projects/agents"
-AGENT_URL="${AGENT_SERVER_URL}"
+AGENT_URL="${ATHANOR_AGENT_SERVER_URL:-${AGENT_SERVER_URL}}"
 
 echo "=== Deploying Athanor Agent Server to FOUNDRY ==="
 

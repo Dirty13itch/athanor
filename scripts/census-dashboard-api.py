@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 from completion_audit_common import (
-    ATLAS_COMPLETION_DIR,
+    COMPLETION_AUDIT_DIR,
     DASHBOARD_APP,
     DASHBOARD_SRC,
     detect_response_mode,
@@ -25,7 +25,7 @@ from completion_audit_common import (
 )
 
 
-OUTPUT_PATH = ATLAS_COMPLETION_DIR / "dashboard-api-census.json"
+OUTPUT_PATH = COMPLETION_AUDIT_DIR / "dashboard-api-census.json"
 
 
 SUPPORT_ONLY_PREFIXES = (
@@ -35,8 +35,36 @@ SUPPORT_ONLY_PREFIXES = (
     "/api/push",
 )
 SUPPORT_ONLY_PATHS = {
+    "/api/agents/proxy",
+    "/api/governor/tool-permissions",
+    "/api/gpu/swap",
+    "/api/operator/session",
     "/api/stash/stats",
 }
+ACTION_WILDCARD_SEGMENTS = {
+    "advance",
+    "approve",
+    "cancel",
+    "confirm",
+    "endorse",
+    "execute",
+    "hold",
+    "reject",
+    "resolve",
+    "rollback",
+    "run",
+}
+
+
+def detect_access_class(route_file: Path) -> str:
+    text = read_text(route_file)
+    if "requireSameOriginOperatorSessionAccess" in text:
+        return "same-origin-operator-session"
+    if "requireOperatorSessionAccess" in text:
+        return "operator-session"
+    if "requireOperatorMutationAccess" in text:
+        return "operator-mutation"
+    return "public"
 
 
 def api_dir_to_api_path(directory: Path) -> str:
@@ -63,17 +91,20 @@ def family_for_api_path(api_path: str) -> str:
 
 def source_consumers(api_path: str) -> list[str]:
     consumers: set[str] = set()
-    source_pattern = re.compile(_api_path_to_source_pattern(api_path))
+    source_patterns = [
+        re.compile(pattern)
+        for pattern in _api_path_to_source_patterns(api_path)
+    ]
     for file_path in list_dashboard_source_files():
         if "/app/api/" in file_path.as_posix():
             continue
         text = read_text(file_path)
-        if api_path in text or source_pattern.search(text):
+        if api_path in text or any(pattern.search(text) for pattern in source_patterns):
             consumers.add(file_path.relative_to(DASHBOARD_SRC.parents[1]).as_posix())
     return sorted(consumers)
 
 
-def _api_path_to_source_pattern(api_path: str) -> str:
+def _api_path_to_source_patterns(api_path: str) -> list[str]:
     pattern = re.escape(api_path)
     pattern = re.sub(
         r"/:([A-Za-z0-9_]+)\*",
@@ -85,7 +116,29 @@ def _api_path_to_source_pattern(api_path: str) -> str:
         r"/(?:\\$\\{[^}]+\\}|[^/`\"'\\s)]+)",
         pattern,
     )
-    return pattern
+    patterns = [pattern]
+
+    parts = [part for part in api_path.split("/") if part]
+    if len(parts) >= 2 and parts[-1] in ACTION_WILDCARD_SEGMENTS and any(part.startswith(":") for part in parts):
+        action_wildcard = re.escape(api_path)
+        action_wildcard = re.sub(
+            r"/:([A-Za-z0-9_]+)\*",
+            r"/(?:\\$\\{[^}]+\\}|[^/`\"'\\s)]+(?:/[^`\"'\\s)]*)*)",
+            action_wildcard,
+        )
+        action_wildcard = re.sub(
+            r"/:([A-Za-z0-9_]+)",
+            r"/(?:\\$\\{[^}]+\\}|[^/`\"'\\s)]+)",
+            action_wildcard,
+        )
+        action_wildcard = re.sub(
+            rf"/{parts[-1]}$",
+            r"/(?:\\$\\{[^}]+\\}|[^/`\"'\\s)]+)",
+            action_wildcard,
+        )
+        patterns.append(action_wildcard)
+
+    return patterns
 
 
 def completion_status(consumer_status: str, coverage_status: str | None) -> str:
@@ -110,6 +163,7 @@ def main() -> int:
     records: list[dict] = []
     for route_file in sorted((DASHBOARD_APP / "api").rglob("route.ts")):
         api_path = normalize_api_path(api_dir_to_api_path(route_file.parent))
+        access_class = detect_access_class(route_file)
         title = api_path.replace("/api/", "").replace("/", " ").replace(":", "").replace("*", " wildcard ").strip()
         consumer_surfaces = [
             surface
@@ -138,12 +192,20 @@ def main() -> int:
         local_checks = sorted(
             {
                 check
+                for check in (api_surface.get("localChecks", []) if api_surface else [])
+            }
+            | {
+                check
                 for surface in consumer_surfaces
                 for check in surface.get("localChecks", [])
             }
         )
         live_checks = sorted(
             {
+                check
+                for check in (api_surface.get("liveChecks", []) if api_surface else [])
+            }
+            | {
                 check
                 for surface in consumer_surfaces
                 for check in surface.get("liveChecks", [])
@@ -158,12 +220,13 @@ def main() -> int:
         records.append(
             {
                 "id": f"dashboard.api.{slugify(api_path)}",
-                "title": title.title() or api_path,
+                "title": (api_surface.get("title") if api_surface else None) or title.title() or api_path,
                 "apiPath": api_path,
                 "family": family_for_api_path(api_path),
                 "sourceFile": route_file.relative_to(DASHBOARD_SRC.parents[1]).as_posix(),
                 "methods": parse_http_methods(route_file),
                 "responseMode": detect_response_mode(route_file),
+                "accessClass": access_class,
                 "consumerStatus": consumer_status,
                 "likelyConsumers": sorted(set(consumer_surface_ids + source_files)),
                 "coverage": {

@@ -5,14 +5,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
+import socket
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from completion_audit_common import (
-    ATLAS_COMPLETION_DIR,
+    COMPLETION_AUDIT_DIR,
     REPORTS_DIR,
     safe_json_load,
     write_json,
@@ -27,15 +29,54 @@ def npm_command() -> str:
     return shutil.which("npm.cmd") or shutil.which("npm") or "npm"
 
 
-def run_job(label: str, command: list[str], cwd: Path | None = None) -> dict[str, object]:
-    completed = subprocess.run(
-        command,
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+def agents_python_command() -> str:
+    candidates = [
+        ROOT / "projects" / "agents" / ".venv" / "Scripts" / "python.exe",
+        ROOT / "projects" / "agents" / ".venv" / "Scripts" / "python",
+        ROOT / "projects" / "agents" / ".venv" / "bin" / "python",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return sys.executable
+
+
+def find_free_local_port() -> str:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return str(sock.getsockname()[1])
+
+
+def run_job(
+    label: str,
+    command: list[str],
+    cwd: Path | None = None,
+    *,
+    extra_env: dict[str, str] | None = None,
+    timeout_seconds: int | None = None,
+) -> dict[str, object]:
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env={**os.environ, **(extra_env or {})},
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        return {
+            "label": label,
+            "cwd": str(cwd or ROOT),
+            "command": command,
+            "returncode": 124,
+            "stdout": exc.stdout or "",
+            "stderr": exc.stderr or "",
+            "timed_out": True,
+            "timeout_seconds": timeout_seconds,
+        }
     return {
         "label": label,
         "cwd": str(cwd or ROOT),
@@ -43,6 +84,8 @@ def run_job(label: str, command: list[str], cwd: Path | None = None) -> dict[str
         "returncode": completed.returncode,
         "stdout": completed.stdout,
         "stderr": completed.stderr,
+        "timed_out": False,
+        "timeout_seconds": timeout_seconds,
     }
 
 
@@ -152,13 +195,13 @@ def build_backlog(
 
 
 def build_release_report(jobs: list[dict]) -> dict:
-    routes = safe_json_load(ATLAS_COMPLETION_DIR / "dashboard-route-census.json", [])
-    support_surfaces = safe_json_load(ATLAS_COMPLETION_DIR / "dashboard-support-surface-census.json", [])
-    apis = safe_json_load(ATLAS_COMPLETION_DIR / "dashboard-api-census.json", [])
-    mounts = safe_json_load(ATLAS_COMPLETION_DIR / "dashboard-mount-graph.json", [])
-    runtime_subsystems = safe_json_load(ATLAS_COMPLETION_DIR / "runtime-subsystem-census.json", [])
-    envs = safe_json_load(ATLAS_COMPLETION_DIR / "env-contract-census.json", [])
-    deployments = safe_json_load(ATLAS_COMPLETION_DIR / "deployment-ownership-matrix.json", [])
+    routes = safe_json_load(COMPLETION_AUDIT_DIR / "dashboard-route-census.json", [])
+    support_surfaces = safe_json_load(COMPLETION_AUDIT_DIR / "dashboard-support-surface-census.json", [])
+    apis = safe_json_load(COMPLETION_AUDIT_DIR / "dashboard-api-census.json", [])
+    mounts = safe_json_load(COMPLETION_AUDIT_DIR / "dashboard-mount-graph.json", [])
+    runtime_subsystems = safe_json_load(COMPLETION_AUDIT_DIR / "runtime-subsystem-census.json", [])
+    envs = safe_json_load(COMPLETION_AUDIT_DIR / "env-contract-census.json", [])
+    deployments = safe_json_load(COMPLETION_AUDIT_DIR / "deployment-ownership-matrix.json", [])
 
     blockers = []
     warnings = []
@@ -225,13 +268,13 @@ def build_release_report(jobs: list[dict]) -> dict:
         "warnings": sorted(warnings),
         "jobs": jobs,
         "inventories": {
-            "routes": str(ATLAS_COMPLETION_DIR / "dashboard-route-census.json"),
-            "supportSurfaces": str(ATLAS_COMPLETION_DIR / "dashboard-support-surface-census.json"),
-            "apis": str(ATLAS_COMPLETION_DIR / "dashboard-api-census.json"),
-            "mountGraph": str(ATLAS_COMPLETION_DIR / "dashboard-mount-graph.json"),
-            "runtimeSubsystems": str(ATLAS_COMPLETION_DIR / "runtime-subsystem-census.json"),
-            "envContracts": str(ATLAS_COMPLETION_DIR / "env-contract-census.json"),
-            "deploymentOwnership": str(ATLAS_COMPLETION_DIR / "deployment-ownership-matrix.json"),
+            "routes": str(COMPLETION_AUDIT_DIR / "dashboard-route-census.json"),
+            "supportSurfaces": str(COMPLETION_AUDIT_DIR / "dashboard-support-surface-census.json"),
+            "apis": str(COMPLETION_AUDIT_DIR / "dashboard-api-census.json"),
+            "mountGraph": str(COMPLETION_AUDIT_DIR / "dashboard-mount-graph.json"),
+            "runtimeSubsystems": str(COMPLETION_AUDIT_DIR / "runtime-subsystem-census.json"),
+            "envContracts": str(COMPLETION_AUDIT_DIR / "env-contract-census.json"),
+            "deploymentOwnership": str(COMPLETION_AUDIT_DIR / "deployment-ownership-matrix.json"),
         },
         "remediationBacklog": backlog,
     }
@@ -272,6 +315,8 @@ def main() -> int:
     args = parser.parse_args()
 
     npm = npm_command()
+    agents_python = agents_python_command()
+    dashboard_e2e_port = find_free_local_port()
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = REPORTS_DIR / timestamp
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -284,20 +329,24 @@ def main() -> int:
         run_job("find-mounted-ui", [sys.executable, str(ROOT / "scripts" / "find-mounted-ui.py")], ROOT),
         run_job("map-agent-endpoints", [sys.executable, str(ROOT / "scripts" / "map-agent-endpoints.py")], ROOT),
         run_job("census-env-contracts", [sys.executable, str(ROOT / "scripts" / "census-env-contracts.py")], ROOT),
-        run_job("validate-atlas", [sys.executable, str(ROOT / "scripts" / "validate-atlas.py")], ROOT),
-        run_job("check-doc-refs", [sys.executable, str(ROOT / "scripts" / "check-doc-refs.py"), "docs/atlas"], ROOT),
-        run_job("dashboard:test", [npm, "run", "test"], ROOT / "projects" / "dashboard"),
-        run_job("dashboard:e2e", [npm, "run", "test:e2e"], ROOT / "projects" / "dashboard"),
-        run_job("agents:tests", [sys.executable, "-m", "unittest", "discover", "-s", str(ROOT / "projects" / "agents" / "tests"), "-p", "test_*.py"], ROOT),
-        run_job("deployment-ownership", [sys.executable, str(ROOT / "scripts" / "audit-deployment-ownership.py")], ROOT),
+        run_job("dashboard:test", [npm, "run", "test"], ROOT / "projects" / "dashboard", timeout_seconds=300),
+        run_job(
+            "dashboard:e2e:audit",
+            [npm, "run", "test:e2e:audit"],
+            ROOT / "projects" / "dashboard",
+            extra_env={"PLAYWRIGHT_PORT": dashboard_e2e_port},
+            timeout_seconds=600,
+        ),
+        run_job("agents:tests", [agents_python, "-m", "pytest", "tests", "-q"], ROOT / "projects" / "agents", timeout_seconds=300),
+        run_job("deployment-ownership", [sys.executable, str(ROOT / "scripts" / "audit-deployment-ownership.py")], ROOT, timeout_seconds=300),
     ]
 
     if not args.skip_live:
         jobs.extend(
             [
-                run_job("live-dashboard-smoke", [sys.executable, str(ROOT / "scripts" / "tests" / "live-dashboard-smoke.py")], ROOT),
-                run_job("agent-runtime-probe", [sys.executable, str(ROOT / "scripts" / "probe-agent-runtime.py"), "--output", str(run_dir / "agent-runtime-probe.json")], ROOT),
-                run_job("endpoint-harness", [sys.executable, str(ROOT / "tests" / "harness.py"), "--json"], ROOT),
+                run_job("live-dashboard-smoke", [sys.executable, str(ROOT / "scripts" / "tests" / "live-dashboard-smoke.py")], ROOT, timeout_seconds=300),
+                run_job("agent-runtime-probe", [sys.executable, str(ROOT / "scripts" / "probe-agent-runtime.py"), "--output", str(run_dir / "agent-runtime-probe.json")], ROOT, timeout_seconds=300),
+                run_job("endpoint-harness", [sys.executable, str(ROOT / "tests" / "harness.py"), "--json"], ROOT, timeout_seconds=300),
             ]
         )
 

@@ -1,12 +1,34 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = REPO_ROOT / "config" / "automation-backbone"
+_implementation_authority_override = os.environ.get("ATHANOR_IMPLEMENTATION_AUTHORITY", "").strip()
+IMPLEMENTATION_AUTHORITY_ROOT = Path(_implementation_authority_override or REPO_ROOT)
+
+_repo_roots_registry_path = CONFIG_DIR / "repo-roots-registry.json"
+if not _implementation_authority_override and _repo_roots_registry_path.exists():
+    try:
+        _repo_roots_registry = json.loads(_repo_roots_registry_path.read_text(encoding="utf-8"))
+        _implementation_root = next(
+            (
+                str(root.get("path") or "").strip()
+                for root in _repo_roots_registry.get("roots", [])
+                if str(root.get("authority_level") or "") == "implementation-authority"
+                and str(root.get("status") or "active") == "active"
+                and str(root.get("path") or "").strip()
+            ),
+            "",
+        )
+        if _implementation_root:
+            IMPLEMENTATION_AUTHORITY_ROOT = Path(_implementation_root)
+    except json.JSONDecodeError:
+        pass
 
 REPORT_PATHS = {
     "hardware": REPO_ROOT / "docs" / "operations" / "HARDWARE-REPORT.md",
