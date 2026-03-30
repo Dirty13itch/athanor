@@ -89,8 +89,9 @@ test("registers the service worker and completes the push subscription round-tri
     )
     .toBe("/sw.js");
 
+  const pushControls = page.getByText("Push Notifications").locator("..");
   const subscribeRequest = page.waitForRequest("**/api/push/subscribe");
-  await page.getByRole("button", { name: "Enable" }).click();
+  await pushControls.getByRole("button", { name: "Enable" }).last().click();
   const request = await subscribeRequest;
 
   expect(request.method()).toBe("POST");
