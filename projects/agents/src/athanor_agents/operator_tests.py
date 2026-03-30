@@ -201,10 +201,19 @@ async def _run_pause_resume_flow() -> OperatorTestFlowRecord:
             {},
         )
         rights = set(governor_profile.get("can", []))
-        if {"issue leases", "pause or resume automation", "create durable tasks"} <= rights:
+        denied = set(governor_profile.get("cannot", []))
+        if {
+            "pause or resume automation",
+            "choose fallback or degraded mode",
+            "arbitrate capacity posture",
+        } <= rights and {
+            "create durable tasks",
+            "issue leases",
+            "own recurring schedules",
+        } <= denied:
             checks_passed += 1
         else:
-            notes.append("Governor rights profile is missing one or more control rights.")
+            notes.append("Governor rights profile no longer matches the current pause/resume authority split.")
 
         paused = await pause_automation(
             scope="maintenance",

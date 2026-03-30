@@ -296,41 +296,52 @@ def _normalize_audit_payload(remote_payload: dict[str, Any], expected_env_names:
     }
 
 
+def _failed_audit_payload(expected_env_names: list[str], error: str) -> dict[str, Any]:
+    observed_at = utc_now()
+    expected = sorted({str(name).strip() for name in expected_env_names if str(name).strip()})
+    return {
+        "version": AUDIT_VERSION,
+        "surface_id": "vault-litellm-container-env",
+        "service_id": "litellm",
+        "host": "vault",
+        "source": "vault-ssh docker inspect env-name audit",
+        "observed_at": observed_at,
+        "collected_at": observed_at,
+        "ok": False,
+        "container_name": VAULT_LITELLM_CONTAINER_NAME,
+        "expected_env_names": expected,
+        "container_present_env_names": [],
+        "container_missing_env_names": expected,
+        "host_shell_present_env_names": [],
+        "host_shell_missing_env_names": expected,
+        "container_image": "",
+        "container_entrypoint": [],
+        "container_args": [],
+        "container_restart_policy": "",
+        "container_started_at": "",
+        "env_change_boundary": "container_recreate_or_redeploy",
+        "config_only_boundary": "docker_restart_litellm",
+        "runtime_owner_surface": "standalone_docker_container",
+        "container_has_compose_labels": False,
+        "container_label_keys": [],
+        "docker_template_matches": [],
+        "compose_manager_matches": [],
+        "boot_config_reference_files": [],
+        "appdata_files": [],
+        "container_mounts": [],
+        "error": error,
+    }
+
+
 def collect_vault_litellm_env_audit(expected_env_names: list[str] | None = None) -> dict[str, Any]:
     expected = expected_env_names or _vault_expected_env_names()
     ok, output = _run_remote_probe(_build_remote_probe_script(VAULT_LITELLM_CONTAINER_NAME, expected))
     if not ok:
-        observed_at = utc_now()
-        return {
-            "version": AUDIT_VERSION,
-            "surface_id": "vault-litellm-container-env",
-            "service_id": "litellm",
-            "host": "vault",
-            "source": "vault-ssh docker inspect env-name audit",
-            "observed_at": observed_at,
-            "collected_at": observed_at,
-            "ok": False,
-            "container_name": VAULT_LITELLM_CONTAINER_NAME,
-            "expected_env_names": expected,
-            "error": output,
-        }
+        return _failed_audit_payload(expected, output)
     try:
         remote_payload = json.loads(output)
     except json.JSONDecodeError:
-        observed_at = utc_now()
-        return {
-            "version": AUDIT_VERSION,
-            "surface_id": "vault-litellm-container-env",
-            "service_id": "litellm",
-            "host": "vault",
-            "source": "vault-ssh docker inspect env-name audit",
-            "observed_at": observed_at,
-            "collected_at": observed_at,
-            "ok": False,
-            "container_name": VAULT_LITELLM_CONTAINER_NAME,
-            "expected_env_names": expected,
-            "error": "invalid json from vault probe",
-        }
+        return _failed_audit_payload(expected, "invalid json from vault probe")
     return _normalize_audit_payload(remote_payload, expected)
 
 

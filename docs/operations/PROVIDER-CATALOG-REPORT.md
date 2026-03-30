@@ -24,10 +24,10 @@ Do not edit manually.
 
 | Evidence posture | Count |
 | --- | --- |
-| `cli_configured_without_observed_tool` | 1 |
 | `live_burn_observed` | 3 |
 | `live_burn_observed_cost_unverified` | 1 |
 | `local_runtime_available` | 1 |
+| `supported_tool_subscription_unverified` | 1 |
 | `vault_provider_specific_api_observed` | 3 |
 | `vault_provider_specific_auth_failed` | 7 |
 
@@ -36,14 +36,14 @@ Do not edit manually.
 | Provider | Evidence posture | Pricing truth | Next verification |
 | --- | --- | --- | --- |
 | `moonshot_kimi` | `live_burn_observed_cost_unverified` | `flat_rate_unverified` | Verify the subscribed monthly tier or billing surface for `Kimi Code` from a current operator-visible source. |
-| `zai_glm_coding` | `cli_configured_without_observed_tool` | `flat_rate_unverified` | Restore or verify `glm --version` or `zai --version` on the expected host before promoting `Z.ai GLM Coding` back into live routing. |
-| `anthropic_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Anthropic API` on VAULT. Current auth classification: `missing required env`. Restore `ANTHROPIC_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `claude`. Missing env names: `ANTHROPIC_API_KEY`. |
-| `dashscope_qwen_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `DashScope Qwen API` on VAULT. Current auth classification: `missing required env`. Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. Missing env names: `DASHSCOPE_API_KEY`. |
-| `google_gemini_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Gemini API` on VAULT. Current auth classification: `missing required env`. Restore `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. Missing env names: `GOOGLE_API_KEY`. |
-| `moonshot_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Moonshot API` on VAULT. Current auth classification: `missing required env`. Restore `MOONSHOT_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `kimi-k2.5`. Missing env names: `MOONSHOT_API_KEY`. |
-| `openai_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `OpenAI API` on VAULT. Current auth classification: `present key invalid or expired`. Rotate `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
-| `openrouter_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `OpenRouter API` on VAULT. Current auth classification: `auth mode mismatch`. Verify the upstream auth mode for served model `openrouter` and, if this lane should stay API-key backed, restore `OPENROUTER_API_KEY` before recreating or redeploying `litellm`. Missing env names: `OPENROUTER_API_KEY`. |
-| `zai_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Z.ai API` on VAULT. Current auth classification: `missing required env`. Restore `ZAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `glm-4.7`. Missing env names: `ZAI_API_KEY`. |
+| `zai_glm_coding` | `supported_tool_subscription_unverified` | `flat_rate_unverified` | Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing. |
+| `anthropic_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Anthropic API` on VAULT, then re-probe served model `claude`. Missing env names: `ANTHROPIC_API_KEY`. |
+| `dashscope_qwen_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `DashScope Qwen API` on VAULT, then re-probe served model `qwen-max`. Missing env names: `DASHSCOPE_API_KEY`. |
+| `google_gemini_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Gemini API` on VAULT, then re-probe served model `gemini`. Missing env names: `GEMINI_API_KEY`, `GOOGLE_API_KEY`. |
+| `moonshot_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Moonshot API` on VAULT, then re-probe served model `kimi-k2.5`. Missing env names: `MOONSHOT_API_KEY`. |
+| `openai_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `OpenAI API` on VAULT, then re-probe served model `gpt`. |
+| `openrouter_api` | `vault_provider_specific_auth_failed` | `metered_api` | Verify the upstream auth mode for served model `openrouter` before re-probing `OpenRouter API`. Ensure `OPENROUTER_API_KEY` is delivered to `litellm`. |
+| `zai_api` | `vault_provider_specific_auth_failed` | `metered_api` | Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Z.ai API` on VAULT, then re-probe served model `glm-4.7`. Missing env names: `ZAI_API_KEY`. |
 
 ## Providers
 
@@ -54,7 +54,7 @@ Do not edit manually.
 | `openai_codex` | subscription | cli | `active-routing`, `active-burn` | `chatgpt_pro` | $200 | official_verified | live_burn_observed |
 | `google_gemini` | subscription | cli | `active-routing`, `active-burn` | `gemini_advanced` | $20 | official_verified | live_burn_observed |
 | `moonshot_kimi` | subscription | cli | `active-routing`, `active-burn` | `kimi_allegretto` | unverified or metered | official-source-present-cost-unverified | live_burn_observed_cost_unverified |
-| `zai_glm_coding` | subscription | cli | `configured-unused` | none | unverified or metered | official-source-present-cost-unverified | cli_configured_without_observed_tool |
+| `zai_glm_coding` | subscription | cli | `configured-unused` | none | unverified or metered | official-source-present-cost-unverified | supported_tool_subscription_unverified |
 | `anthropic_api` | api | api | `active-api`, `configured-unused` | none | unverified or metered | metered | vault_provider_specific_auth_failed |
 | `openai_api` | api | api | `active-api`, `configured-unused` | none | unverified or metered | metered | vault_provider_specific_auth_failed |
 | `mistral_codestral_api` | api | api | `active-api`, `configured-unused` | none | unverified or metered | metered | vault_provider_specific_api_observed |
@@ -172,19 +172,19 @@ Do not edit manually.
 - Pricing truth: `flat_rate_unverified`, `unverified or metered`
 - Execution modes: `direct_cli`, `handoff_bundle`
 - State classes: `configured-unused`
-- Evidence posture: `cli_configured_without_observed_tool`
+- Evidence posture: `supported_tool_subscription_unverified`
 - Burn lanes: none
 - Burn windows: none
 - Observed hosts: none
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `last_verified_at=2026-03-29T06:17:44Z`
-- Evidence contract: `kind=cli_subscription`, `cli_status=missing`, `hosts=desk,dev`, `commands=glm,zai`, `billing_status=published_tiers_known_subscribed_tier_unverified`, `public_prices=lite:10,pro:30`
-- Tool evidence: `desk:glm:missing`, `desk:zai:missing`, `dev:glm:missing`, `dev:zai:missing`
-- Next verification: Restore or verify `glm --version` or `zai --version` on the expected host before promoting `Z.ai GLM Coding` back into live routing.
-- Verification steps: `Restore or verify `glm --version` or `zai --version` on the expected host before promoting `Z.ai GLM Coding` back into live routing.`, `Verify which public GLM Coding Plan tier is actually subscribed before treating any published USD price as this lane's monthly cost.`, `If the CLI cannot be restored, keep this lane configured-unused and out of ordinary auto-routing.`
+- Evidence contract: `kind=coding_tool_subscription`, `tooling_status=supported_tools_present`, `hosts=desk,dev`, `supported_tools=claude,codex,gemini`, `integration_status=unverified`, `billing_status=published_tiers_known_subscribed_tier_unverified`, `public_prices=lite:10,pro:30`
+- Tool evidence: none
+- Next verification: Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.
+- Verification steps: `Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.`, `Verify which public GLM Coding Plan tier is actually subscribed before treating any published USD price as this lane's monthly cost.`, `Until supported-tool integration is proven, keep this lane configured-unused and out of ordinary auto-routing.`
 - Official sources: [Z.ai GLM-5 overview](https://docs.z.ai/guides/llm), [Z.ai devpack overview](https://docs.z.ai/devpack/overview), [Z.ai pricing](https://docs.z.ai/guides/overview/pricing)
 - Env contracts: `ZAI_API_KEY`, `ZAI_CODING_API_KEY`
 - CLI commands: `glm`, `zai`
-- Notes: `Official Z.ai docs publish GLM Coding Plan floor prices starting at USD 10 per month for Lite and USD 30 per month for Pro.`, `The same docs describe 5-hour rolling and 7-day quota windows, and separate metered API pricing outside the coding plan.`, `No working GLM or Z.ai CLI was observed on DESK or DEV during the 2026-03-29 verification pass.`, `This lane was demoted out of live routing on 2026-03-28 until CLI evidence is restored.`
+- Notes: `Official Z.ai docs publish GLM Coding Plan floor prices starting at USD 10 per month for Lite and USD 30 per month for Pro.`, `The same docs describe 5-hour rolling and 7-day quota windows, and separate metered API pricing outside the coding plan.`, `Live routing remains disabled until a supported coding tool can prove GLM Coding Plan execution on DESK or DEV.`, `This lane was demoted out of live routing on 2026-03-28 until supported-tool integration evidence is restored.`
 
 ## Anthropic API (`anthropic_api`)
 
@@ -198,12 +198,10 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`, `provider_usage_capture_status=auth_failed`, `provider_usage_capture_at=2026-03-30T02:29:32Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=claude`, `host=vault`, `preferred_model=claude`, `provider_specific_status=pending`, `capture_status=auth_failed`, `captured_at=2026-03-30T02:29:32Z`, `requested_model=claude`, `matched_by=preferred_exact`
-- Runtime env audit: missing `ANTHROPIC_API_KEY`, present none, audit `2026-03-30T02:43:41Z`
-- Env semantics: `ANTHROPIC_API_KEY` (required)
-- Auth failure classification: `missing_required_env` (missing required env)
+- Runtime env audit: missing `ANTHROPIC_API_KEY`, present none, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
-- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Anthropic API` on VAULT. Current auth classification: `missing required env`. Restore `ANTHROPIC_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `claude`. Missing env names: `ANTHROPIC_API_KEY`.
-- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Anthropic API` on VAULT. Current auth classification: `missing required env`. Restore `ANTHROPIC_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `claude`. Missing env names: `ANTHROPIC_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
+- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Anthropic API` on VAULT, then re-probe served model `claude`. Missing env names: `ANTHROPIC_API_KEY`.
+- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Anthropic API` on VAULT, then re-probe served model `claude`. Missing env names: `ANTHROPIC_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
 - Official sources: [Anthropic pricing](https://www.anthropic.com/pricing)
 - Env contracts: `ANTHROPIC_API_KEY`
 - CLI commands: none
@@ -221,12 +219,10 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`, `provider_usage_capture_status=auth_failed`, `provider_usage_capture_at=2026-03-30T02:29:35Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=gpt`, `host=vault`, `preferred_model=gpt`, `provider_specific_status=pending`, `capture_status=auth_failed`, `captured_at=2026-03-30T02:29:35Z`, `requested_model=gpt`, `matched_by=preferred_exact`
-- Runtime env audit: missing none, present `OPENAI_API_KEY`, audit `2026-03-30T02:43:41Z`
-- Env semantics: `OPENAI_API_KEY` (required)
-- Auth failure classification: `present_key_invalid` (present key invalid or expired)
+- Runtime env audit: missing none, present `OPENAI_API_KEY`, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
-- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `OpenAI API` on VAULT. Current auth classification: `present key invalid or expired`. Rotate `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`.
-- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `OpenAI API` on VAULT. Current auth classification: `present key invalid or expired`. Rotate `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
+- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `OpenAI API` on VAULT, then re-probe served model `gpt`.
+- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `OpenAI API` on VAULT, then re-probe served model `gpt`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
 - Official sources: [OpenAI API pricing](https://openai.com/api/pricing/)
 - Env contracts: `OPENAI_API_KEY`
 - CLI commands: none
@@ -244,8 +240,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=True`, `last_verified_at=2026-03-29T03:46:16Z`, `provider_usage_capture_status=observed`, `provider_usage_capture_at=2026-03-30T02:29:35Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=codestral`, `host=vault`, `preferred_model=codestral`, `provider_specific_status=observed`, `capture_status=observed`, `captured_at=2026-03-30T02:29:35Z`, `requested_model=codestral`, `response_model=codestral`, `matched_by=preferred_exact`
-- Runtime env audit: missing `MISTRAL_API_KEY`, present `CODESTRAL_API_KEY`, audit `2026-03-30T02:43:41Z`
-- Env semantics: `CODESTRAL_API_KEY` (required), `MISTRAL_API_KEY` (optional_compat)
+- Runtime env audit: missing `MISTRAL_API_KEY`, present `CODESTRAL_API_KEY`, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
 - Next verification: No immediate verification gap recorded.
 - Verification steps: `No immediate verification gap recorded.`
@@ -266,12 +261,10 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`, `provider_usage_capture_status=auth_failed`, `provider_usage_capture_at=2026-03-30T02:29:34Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=gemini`, `host=vault`, `preferred_model=gemini`, `provider_specific_status=pending`, `capture_status=auth_failed`, `captured_at=2026-03-30T02:29:34Z`, `requested_model=gemini`, `matched_by=preferred_exact`
-- Runtime env audit: missing `GEMINI_API_KEY`, `GOOGLE_API_KEY`, present none, audit `2026-03-30T02:43:41Z`
-- Env semantics: `GOOGLE_API_KEY` (required), `GEMINI_API_KEY` (optional_compat)
-- Auth failure classification: `missing_required_env` (missing required env)
+- Runtime env audit: missing `GEMINI_API_KEY`, `GOOGLE_API_KEY`, present none, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
-- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Gemini API` on VAULT. Current auth classification: `missing required env`. Restore `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. Missing env names: `GOOGLE_API_KEY`.
-- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Gemini API` on VAULT. Current auth classification: `missing required env`. Restore `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. Missing env names: `GOOGLE_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
+- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Gemini API` on VAULT, then re-probe served model `gemini`. Missing env names: `GEMINI_API_KEY`, `GOOGLE_API_KEY`.
+- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Gemini API` on VAULT, then re-probe served model `gemini`. Missing env names: `GEMINI_API_KEY`, `GOOGLE_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
 - Official sources: [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing), [Gemini API billing](https://ai.google.dev/gemini-api/docs/billing/), [Gemini API quota docs](https://ai.google.dev/gemini-api/docs/quota)
 - Env contracts: `GOOGLE_API_KEY`, `GEMINI_API_KEY`
 - CLI commands: none
@@ -289,8 +282,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=True`, `last_verified_at=2026-03-29T03:46:16Z`, `provider_usage_capture_status=observed`, `provider_usage_capture_at=2026-03-30T02:29:34Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=deepseek`, `host=vault`, `preferred_model=deepseek`, `provider_specific_status=observed`, `capture_status=observed`, `captured_at=2026-03-30T02:29:34Z`, `requested_model=deepseek`, `response_model=deepseek`, `matched_by=preferred_exact`
-- Runtime env audit: missing none, present `DEEPSEEK_API_KEY`, audit `2026-03-30T02:43:41Z`
-- Env semantics: `DEEPSEEK_API_KEY` (required)
+- Runtime env audit: missing none, present `DEEPSEEK_API_KEY`, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
 - Next verification: No immediate verification gap recorded.
 - Verification steps: `No immediate verification gap recorded.`
@@ -311,12 +303,10 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`, `provider_usage_capture_status=auth_failed`, `provider_usage_capture_at=2026-03-30T02:29:35Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=kimi-k2.5`, `host=vault`, `preferred_model=kimi-k2.5`, `provider_specific_status=pending`, `capture_status=auth_failed`, `captured_at=2026-03-30T02:29:35Z`, `requested_model=kimi-k2.5`, `matched_by=preferred_exact`
-- Runtime env audit: missing `MOONSHOT_API_KEY`, present none, audit `2026-03-30T02:43:41Z`
-- Env semantics: `MOONSHOT_API_KEY` (required)
-- Auth failure classification: `missing_required_env` (missing required env)
+- Runtime env audit: missing `MOONSHOT_API_KEY`, present none, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
-- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Moonshot API` on VAULT. Current auth classification: `missing required env`. Restore `MOONSHOT_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `kimi-k2.5`. Missing env names: `MOONSHOT_API_KEY`.
-- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Moonshot API` on VAULT. Current auth classification: `missing required env`. Restore `MOONSHOT_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `kimi-k2.5`. Missing env names: `MOONSHOT_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
+- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Moonshot API` on VAULT, then re-probe served model `kimi-k2.5`. Missing env names: `MOONSHOT_API_KEY`.
+- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Moonshot API` on VAULT, then re-probe served model `kimi-k2.5`. Missing env names: `MOONSHOT_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
 - Official sources: [Moonshot API pricing update](https://platform.moonshot.ai/blog/posts/Kimi_API_Newsletter)
 - Env contracts: `MOONSHOT_API_KEY`
 - CLI commands: none
@@ -334,12 +324,10 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`, `provider_usage_capture_status=auth_failed`, `provider_usage_capture_at=2026-03-30T02:29:33Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=qwen-max`, `host=vault`, `preferred_model=qwen-max`, `provider_specific_status=pending`, `capture_status=auth_failed`, `captured_at=2026-03-30T02:29:33Z`, `requested_model=qwen-max`, `matched_by=preferred_exact`
-- Runtime env audit: missing `DASHSCOPE_API_KEY`, present none, audit `2026-03-30T02:43:41Z`
-- Env semantics: `DASHSCOPE_API_KEY` (required)
-- Auth failure classification: `missing_required_env` (missing required env)
+- Runtime env audit: missing `DASHSCOPE_API_KEY`, present none, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
-- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `DashScope Qwen API` on VAULT. Current auth classification: `missing required env`. Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. Missing env names: `DASHSCOPE_API_KEY`.
-- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `DashScope Qwen API` on VAULT. Current auth classification: `missing required env`. Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. Missing env names: `DASHSCOPE_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
+- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `DashScope Qwen API` on VAULT, then re-probe served model `qwen-max`. Missing env names: `DASHSCOPE_API_KEY`.
+- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `DashScope Qwen API` on VAULT, then re-probe served model `qwen-max`. Missing env names: `DASHSCOPE_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
 - Official sources: [Alibaba Model Studio pricing](https://www.alibabacloud.com/help/en/model-studio/model-pricing)
 - Env contracts: `DASHSCOPE_API_KEY`
 - CLI commands: none
@@ -357,8 +345,7 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=True`, `last_verified_at=2026-03-29T03:46:17Z`, `provider_usage_capture_status=observed`, `provider_usage_capture_at=2026-03-30T02:29:36Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=venice-uncensored`, `host=vault`, `preferred_model=venice-uncensored`, `provider_specific_status=observed`, `capture_status=observed`, `captured_at=2026-03-30T02:29:36Z`, `requested_model=venice-uncensored`, `response_model=venice-uncensored`, `matched_by=preferred_exact`
-- Runtime env audit: missing none, present `VENICE_API_KEY`, audit `2026-03-30T02:43:41Z`
-- Env semantics: `VENICE_API_KEY` (required)
+- Runtime env audit: missing none, present `VENICE_API_KEY`, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
 - Next verification: No immediate verification gap recorded.
 - Verification steps: `No immediate verification gap recorded.`
@@ -379,12 +366,10 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`, `provider_usage_capture_status=auth_failed`, `provider_usage_capture_at=2026-03-30T02:29:36Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=glm-4.7`, `host=vault`, `preferred_model=glm-4.7`, `provider_specific_status=pending`, `capture_status=auth_failed`, `captured_at=2026-03-30T02:29:36Z`, `requested_model=glm-4.7`, `matched_by=preferred_exact`
-- Runtime env audit: missing `ZAI_API_KEY`, present none, audit `2026-03-30T02:43:41Z`
-- Env semantics: `ZAI_API_KEY` (required)
-- Auth failure classification: `missing_required_env` (missing required env)
+- Runtime env audit: missing `ZAI_API_KEY`, present none, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
-- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Z.ai API` on VAULT. Current auth classification: `missing required env`. Restore `ZAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `glm-4.7`. Missing env names: `ZAI_API_KEY`.
-- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Z.ai API` on VAULT. Current auth classification: `missing required env`. Restore `ZAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `glm-4.7`. Missing env names: `ZAI_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
+- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Z.ai API` on VAULT, then re-probe served model `glm-4.7`. Missing env names: `ZAI_API_KEY`.
+- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `Z.ai API` on VAULT, then re-probe served model `glm-4.7`. Missing env names: `ZAI_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
 - Official sources: [Z.ai pricing](https://docs.z.ai/guides/overview/pricing)
 - Env contracts: `ZAI_API_KEY`
 - CLI commands: none
@@ -402,12 +387,10 @@ Do not edit manually.
 - Observed hosts: `vault`
 - Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=False`, `last_verified_at=2026-03-28T06:00:00Z`, `provider_usage_capture_status=auth_failed`, `provider_usage_capture_at=2026-03-30T02:29:36Z`, `provider_usage_capture_source=vault-litellm-live-probe`
 - Evidence contract: `kind=vault_litellm_proxy`, `alias=openrouter`, `host=vault`, `preferred_model=openrouter`, `provider_specific_status=pending`, `capture_status=auth_failed`, `captured_at=2026-03-30T02:29:36Z`, `requested_model=openrouter`, `matched_by=preferred_exact`
-- Runtime env audit: missing `OPENROUTER_API_KEY`, present none, audit `2026-03-30T02:43:41Z`
-- Env semantics: `OPENROUTER_API_KEY` (required)
-- Auth failure classification: `auth_mode_mismatch` (auth mode mismatch)
+- Runtime env audit: missing `OPENROUTER_API_KEY`, present none, audit `2026-03-30T06:08:39Z`
 - Tool evidence: none
-- Next verification: Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `OpenRouter API` on VAULT. Current auth classification: `auth mode mismatch`. Verify the upstream auth mode for served model `openrouter` and, if this lane should stay API-key backed, restore `OPENROUTER_API_KEY` before recreating or redeploying `litellm`. Missing env names: `OPENROUTER_API_KEY`.
-- Verification steps: `Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `OpenRouter API` on VAULT. Current auth classification: `auth mode mismatch`. Verify the upstream auth mode for served model `openrouter` and, if this lane should stay API-key backed, restore `OPENROUTER_API_KEY` before recreating or redeploying `litellm`. Missing env names: `OPENROUTER_API_KEY`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
+- Next verification: Verify the upstream auth mode for served model `openrouter` before re-probing `OpenRouter API`. Ensure `OPENROUTER_API_KEY` is delivered to `litellm`.
+- Verification steps: `Verify the upstream auth mode for served model `openrouter` before re-probing `OpenRouter API`. Ensure `OPENROUTER_API_KEY` is delivered to `litellm`.`, `Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.`
 - Official sources: [OpenRouter pricing](https://openrouter.ai/pricing)
 - Env contracts: `OPENROUTER_API_KEY`
 - CLI commands: none

@@ -248,11 +248,12 @@
         "last_verified_at": "2026-03-29T06:17:44Z"
       },
       "evidence": {
-        "kind": "cli_subscription",
-        "cli_probe": {
-          "status": "missing",
+        "kind": "coding_tool_subscription",
+        "tooling_probe": {
+          "status": "supported_tools_present",
           "expected_hosts": ["desk", "dev"],
-          "required_commands": ["glm", "zai"],
+          "supported_commands": ["claude", "codex", "gemini"],
+          "integration_status": "unverified",
           "last_verified_at": "2026-03-29T06:17:44Z",
           "source": "config/automation-backbone/tooling-inventory.json"
         },
@@ -270,15 +271,15 @@
         }
       },
       "verification_steps": [
-        "Restore or verify `glm --version` or `zai --version` on the expected host before promoting `Z.ai GLM Coding` back into live routing.",
+        "Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.",
         "Verify which public GLM Coding Plan tier is actually subscribed before treating any published USD price as this lane's monthly cost.",
-        "If the CLI cannot be restored, keep this lane configured-unused and out of ordinary auto-routing."
+        "Until supported-tool integration is proven, keep this lane configured-unused and out of ordinary auto-routing."
       ],
       "notes": [
         "Official Z.ai docs publish GLM Coding Plan floor prices starting at USD 10 per month for Lite and USD 30 per month for Pro.",
         "The same docs describe 5-hour rolling and 7-day quota windows, and separate metered API pricing outside the coding plan.",
-        "No working GLM or Z.ai CLI was observed on DESK or DEV during the 2026-03-29 verification pass.",
-        "This lane was demoted out of live routing on 2026-03-28 until CLI evidence is restored."
+        "Live routing remains disabled until a supported coding tool can prove GLM Coding Plan execution on DESK or DEV.",
+        "This lane was demoted out of live routing on 2026-03-28 until supported-tool integration evidence is restored."
       ]
     },
     {
@@ -301,11 +302,6 @@
         }
       ],
       "env_contracts": ["ANTHROPIC_API_KEY"],
-      "vault_runtime_contract": {
-        "env_rules": [
-          {"name": "ANTHROPIC_API_KEY", "role": "required"}
-        ]
-      },
       "litellm_aliases": ["claude", "claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -361,11 +357,6 @@
         }
       ],
       "env_contracts": ["OPENAI_API_KEY"],
-      "vault_runtime_contract": {
-        "env_rules": [
-          {"name": "OPENAI_API_KEY", "role": "required"}
-        ]
-      },
       "litellm_aliases": ["gpt", "gpt-5.4", "gpt-5-mini", "o4-mini"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -421,12 +412,6 @@
         }
       ],
       "env_contracts": ["MISTRAL_API_KEY", "CODESTRAL_API_KEY"],
-      "vault_runtime_contract": {
-        "env_rules": [
-          {"name": "CODESTRAL_API_KEY", "role": "required"},
-          {"name": "MISTRAL_API_KEY", "role": "optional_compat"}
-        ]
-      },
       "litellm_aliases": ["codestral", "mistral-large"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -490,12 +475,6 @@
         }
       ],
       "env_contracts": ["GOOGLE_API_KEY", "GEMINI_API_KEY"],
-      "vault_runtime_contract": {
-        "env_rules": [
-          {"name": "GOOGLE_API_KEY", "role": "required"},
-          {"name": "GEMINI_API_KEY", "role": "optional_compat"}
-        ]
-      },
       "litellm_aliases": ["gemini"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -609,11 +588,6 @@
         }
       ],
       "env_contracts": ["MOONSHOT_API_KEY"],
-      "vault_runtime_contract": {
-        "env_rules": [
-          {"name": "MOONSHOT_API_KEY", "role": "required"}
-        ]
-      },
       "litellm_aliases": ["kimi-k2.5"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -671,11 +645,6 @@
         }
       ],
       "env_contracts": ["DASHSCOPE_API_KEY"],
-      "vault_runtime_contract": {
-        "env_rules": [
-          {"name": "DASHSCOPE_API_KEY", "role": "required"}
-        ]
-      },
       "litellm_aliases": ["qwen-max", "qwen-plus"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -790,11 +759,6 @@
         }
       ],
       "env_contracts": ["ZAI_API_KEY"],
-      "vault_runtime_contract": {
-        "env_rules": [
-          {"name": "ZAI_API_KEY", "role": "required"}
-        ]
-      },
       "litellm_aliases": ["glm-4.7"],
       "cli_commands": [],
       "observed_hosts": ["vault"],
@@ -850,11 +814,6 @@
         }
       ],
       "env_contracts": ["OPENROUTER_API_KEY"],
-      "vault_runtime_contract": {
-        "env_rules": [
-          {"name": "OPENROUTER_API_KEY", "role": "required"}
-        ]
-      },
       "litellm_aliases": ["openrouter"],
       "cli_commands": [],
       "observed_hosts": ["vault"],

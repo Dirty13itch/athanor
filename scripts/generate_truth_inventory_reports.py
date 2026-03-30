@@ -233,6 +233,7 @@ def _provider_evidence_posture(
     monthly_cost_usd = provider.get("monthly_cost_usd")
     evidence_kind = str(evidence.get("kind") or "")
     cli_probe = dict(evidence.get("cli_probe") or {})
+    tooling_probe = dict(evidence.get("tooling_probe") or {})
     billing = dict(evidence.get("billing") or {})
     proxy_evidence = dict(evidence.get("proxy") or {})
     provider_specific_usage = dict(evidence.get("provider_specific_usage") or {})
@@ -249,6 +250,11 @@ def _provider_evidence_posture(
     proxy_activity_observed = bool(observed_runtime.get("proxy_activity_observed"))
     provider_specific_usage_observed = bool(observed_runtime.get("provider_specific_usage_observed"))
 
+    if evidence_kind == "coding_tool_subscription":
+        integration_status = str(tooling_probe.get("integration_status") or evidence.get("integration_status") or "")
+        if integration_status in {"verified", "observed"}:
+            return "tool_installed_no_recent_burn"
+        return "supported_tool_subscription_unverified"
     if access_mode == "local" and routing_policy_enabled:
         return "local_runtime_available"
     if active_burn_observed:
@@ -331,7 +337,40 @@ def _provider_evidence_summary(provider: dict[str, Any], provider_usage_capture:
     kind = str(evidence.get("kind") or "unknown")
     parts = [f"`kind={kind}`"]
     provider_usage_capture = dict(provider_usage_capture or {})
-    if kind == "cli_subscription":
+    if kind == "coding_tool_subscription":
+        billing = dict(evidence.get("billing") or {})
+        tooling_probe = dict(evidence.get("tooling_probe") or {})
+        tooling_status = str(tooling_probe.get("status") or evidence.get("tooling_status") or "")
+        expected_hosts = [
+            str(host)
+            for host in tooling_probe.get("expected_hosts", []) or evidence.get("expected_hosts", [])
+            if str(host).strip()
+        ]
+        supported_tools = [
+            str(tool)
+            for tool in tooling_probe.get("supported_commands", []) or evidence.get("supported_tools", [])
+            if str(tool).strip()
+        ]
+        integration_status = str(tooling_probe.get("integration_status") or evidence.get("integration_status") or "")
+        if tooling_status:
+            parts.append(f"`tooling_status={tooling_status}`")
+        if expected_hosts:
+            parts.append(f"`hosts={','.join(expected_hosts)}`")
+        if supported_tools:
+            parts.append(f"`supported_tools={','.join(supported_tools)}`")
+        if integration_status:
+            parts.append(f"`integration_status={integration_status}`")
+        billing_status = str(billing.get("status") or "")
+        if billing_status:
+            parts.append(f"`billing_status={billing_status}`")
+        public_plan_prices = dict(billing.get("public_plan_prices_usd") or {})
+        if public_plan_prices:
+            rendered_prices = ",".join(
+                f"{plan}:{price}"
+                for plan, price in sorted((str(plan), price) for plan, price in public_plan_prices.items())
+            )
+            parts.append(f"`public_prices={rendered_prices}`")
+    elif kind == "cli_subscription":
         cli_probe = dict(evidence.get("cli_probe") or {})
         billing = dict(evidence.get("billing") or {})
         cli_status = str(cli_probe.get("status") or "")
@@ -413,12 +452,25 @@ def _provider_verification_steps(
     cli_summary = " or ".join(f"`{command} --version`" for command in cli_commands) if cli_commands else "the expected CLI"
     alias = litellm_aliases[0] if litellm_aliases else provider_label.lower().replace(" ", "_")
     if evidence_posture == "vault_provider_specific_auth_failed":
-        classification = _classify_vault_auth_failure(provider, provider_usage_capture, vault_litellm_env_audit)
-        missing_names = [str(name).strip() for name in classification.get("missing_env_names", []) if str(name).strip()]
-        next_action = str(classification.get("next_action") or "").strip()
+        classification = _classify_vault_auth_failure(
+            provider,
+            provider_usage_capture,
+            dict(vault_litellm_env_audit or {}),
+        )
+        requested_model = str(provider_usage_capture.get("requested_model") or alias)
+        missing_names = _vault_env_names_for_provider(
+            provider,
+            dict(vault_litellm_env_audit or {}),
+            "container_missing_env_names",
+        )
         missing_suffix = f" Missing env names: {list_or_none(missing_names)}." if missing_names else ""
+        if classification["code"] != "auth_mode_mismatch":
+            return [
+                f"Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `{provider_label}` on VAULT, then re-probe served model `{requested_model}`.{missing_suffix}",
+                "Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.",
+            ]
         return [
-            f"Use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) to repair `{provider_label}` on VAULT. Current auth classification: `{classification.get('label', 'unknown')}`. {next_action}{missing_suffix}",
+            classification["next_action"],
             "Do not treat this lane as provider-specifically proven until the auth failure is gone and a successful completion is recorded.",
         ]
     if evidence_posture == "vault_provider_specific_request_failed":
@@ -462,6 +514,12 @@ def _provider_verification_steps(
         return [
             f"Restore or verify {cli_summary} on {host_summary} before promoting `{provider_label}` back into live routing.",
             "If the CLI cannot be restored, keep this lane configured-unused and out of ordinary auto-routing.",
+        ]
+    if evidence_posture == "supported_tool_subscription_unverified":
+        return [
+            f"Verify {provider_label} execution through a supported coding tool on DESK or DEV before promoting `{provider_label}` back into live routing.",
+            f"Verify which public {provider.get('subscription_product') or provider_label} tier is actually subscribed before treating any published USD price as this lane's monthly cost.",
+            "Until supported-tool integration is proven, keep this lane configured-unused and out of ordinary auto-routing.",
         ]
     if evidence_posture == "vault_provider_specific_api_observed":
         return ["No immediate verification gap recorded."]
@@ -508,6 +566,8 @@ def _provider_verification_priority(evidence_posture: str, pricing_truth_label: 
     if evidence_posture == "live_burn_observed_cost_unverified":
         return 0
     if evidence_posture == "cli_configured_without_observed_tool":
+        return 1
+    if evidence_posture == "supported_tool_subscription_unverified":
         return 1
     if evidence_posture == "routing_enabled_without_observed_tool":
         return 2
@@ -587,46 +647,11 @@ def _provider_usage_capture_index(evidence_document: dict[str, Any]) -> dict[str
     return latest_by_provider
 
 
-def _vault_runtime_contract(provider: dict[str, Any]) -> dict[str, Any]:
-    contract = dict(provider.get("vault_runtime_contract") or {})
-    env_rules: list[dict[str, str]] = []
-    for rule in contract.get("env_rules", []):
-        if not isinstance(rule, dict):
-            continue
-        name = str(rule.get("name") or "").strip()
-        role = str(rule.get("role") or "required").strip() or "required"
-        if name:
-            env_rules.append({"name": name, "role": role})
-    if not env_rules:
-        env_rules = [
-            {"name": str(name).strip(), "role": "required"}
-            for name in provider.get("env_contracts", [])
-            if str(name).strip()
-        ]
-    contract["env_rules"] = env_rules
-    return contract
-
-
-def _vault_env_contract_summary(provider: dict[str, Any]) -> str:
-    contract = _vault_runtime_contract(provider)
-    env_rules = list(contract.get("env_rules") or [])
-    if not env_rules:
-        return "none"
-    return ", ".join(f"`{rule['name']}` ({rule['role']})" for rule in env_rules)
-
-
-def _vault_env_names_for_provider(
-    provider: dict[str, Any],
-    audit: dict[str, Any],
-    field_name: str,
-    roles: set[str] | None = None,
-) -> list[str]:
-    contract = _vault_runtime_contract(provider)
+def _vault_env_names_for_provider(provider: dict[str, Any], audit: dict[str, Any], field_name: str) -> list[str]:
     provider_envs = {
-        str(rule.get("name") or "").strip()
-        for rule in contract.get("env_rules", [])
-        if str(rule.get("name") or "").strip()
-        and (roles is None or str(rule.get("role") or "required").strip() in roles)
+        str(name).strip()
+        for name in provider.get("env_contracts", [])
+        if str(name).strip()
     }
     if not provider_envs:
         return []
@@ -639,107 +664,80 @@ def _vault_env_names_for_provider(
 
 def _classify_vault_auth_failure(
     provider: dict[str, Any],
-    provider_usage_capture: dict[str, Any] | None,
-    vault_litellm_env_audit: dict[str, Any] | None,
-) -> dict[str, Any]:
-    provider_usage_capture = dict(provider_usage_capture or {})
-    vault_litellm_env_audit = dict(vault_litellm_env_audit or {})
-    requested_model = str(provider_usage_capture.get("requested_model") or "")
-    alias = str((dict(provider.get("evidence") or {}).get("proxy") or {}).get("alias") or "")
-    requested_model = requested_model or alias or str(provider.get("id") or "provider")
-    error_snippet = str(provider_usage_capture.get("error_snippet") or "")
-    error_lower = error_snippet.lower()
-    missing_required = _vault_env_names_for_provider(
-        provider,
-        vault_litellm_env_audit,
-        "container_missing_env_names",
-        {"required", "preferred"},
+    capture: dict[str, Any] | None,
+    audit: dict[str, Any] | None,
+) -> dict[str, str]:
+    capture = dict(capture or {})
+    audit = dict(audit or {})
+    provider_label = str(provider.get("label") or provider.get("id") or "provider")
+    requested_model = str(
+        capture.get("requested_model")
+        or (dict(dict(provider.get("evidence") or {}).get("proxy") or {}).get("alias") or provider_label)
     )
-    present_required = _vault_env_names_for_provider(
-        provider,
-        vault_litellm_env_audit,
-        "container_present_env_names",
-        {"required", "preferred"},
+    error_snippet = str(capture.get("error_snippet") or "").strip()
+    lowered_error = error_snippet.lower()
+    missing_names = _vault_env_names_for_provider(provider, audit, "container_missing_env_names")
+    present_names = _vault_env_names_for_provider(provider, audit, "container_present_env_names")
+    required_envs = sorted(
+        {
+            str(rule.get("name") or "").strip()
+            for rule in dict(provider.get("vault_runtime_contract") or {}).get("env_rules", [])
+            if str(rule.get("name") or "").strip() and str(rule.get("role") or "").strip() == "required"
+        }
     )
-    missing_all = _vault_env_names_for_provider(provider, vault_litellm_env_audit, "container_missing_env_names")
-    present_all = _vault_env_names_for_provider(provider, vault_litellm_env_audit, "container_present_env_names")
-    contract_names = [str(rule.get("name") or "").strip() for rule in _vault_runtime_contract(provider).get("env_rules", [])]
-    auth_mode_markers = ("cookie auth credentials", "user not found", "cookie auth")
-    missing_markers = (
-        "no key is set",
-        "api_key client option must be set",
-        "api key not found",
-        "missing ",
-        "environment variable",
-        "no key provided",
-    )
-    invalid_markers = (
-        "invalid authentication",
-        "incorrect api key",
-        "incorrect api key provided",
-        "api key not valid",
-        "invalid x-api-key",
-        "authentication fails",
-        "token expired",
-        "expired or incorrect",
-        "invalid_request_error",
-    )
-    if any(marker in error_lower for marker in auth_mode_markers):
-        repair_envs = missing_required or missing_all or contract_names
+    if not missing_names and required_envs:
+        missing_names = [name for name in required_envs if name not in present_names]
+    if not present_names and required_envs:
+        present_names = [name for name in required_envs if name not in missing_names]
+
+    if "cookie auth" in lowered_error:
+        env_names = missing_names or required_envs or list(present_names)
+        env_suffix = f" Ensure {list_or_none(env_names)} is delivered to `litellm`." if env_names else ""
         return {
             "code": "auth_mode_mismatch",
-            "label": "auth mode mismatch",
-            "missing_env_names": missing_required or missing_all,
-            "present_env_names": present_required or present_all,
             "next_action": (
-                f"Verify the upstream auth mode for served model `{requested_model}` and, if this lane should stay "
-                f"API-key backed, restore {list_or_none(repair_envs)} before recreating or redeploying `litellm`."
+                f"Verify the upstream auth mode for served model `{requested_model}` before re-probing `{provider_label}`."
+                f"{env_suffix}"
             ),
         }
-    if missing_required and any(marker in error_lower for marker in missing_markers):
+    if missing_names and any(
+        marker in lowered_error
+        for marker in (
+            "missing",
+            "no key is set",
+            "api key",
+            "auth token",
+        )
+    ):
         return {
             "code": "missing_required_env",
-            "label": "missing required env",
-            "missing_env_names": missing_required,
-            "present_env_names": present_required or present_all,
             "next_action": (
-                f"Restore {list_or_none(missing_required)} in the managed VAULT secret source, recreate or redeploy "
-                f"`litellm`, then re-probe served model `{requested_model}`."
+                f"Restore {list_or_none(missing_names)} in the managed VAULT secret source, recreate or redeploy `litellm`, "
+                f"then re-probe served model `{requested_model}`."
             ),
         }
-    if present_required and any(marker in error_lower for marker in invalid_markers):
-        rotate_envs = present_required or present_all or contract_names
+    if present_names and any(
+        marker in lowered_error
+        for marker in (
+            "incorrect api key",
+            "invalid api key",
+            "authenticationerror",
+            "unauthorized",
+            "invalid x-api-key",
+        )
+    ):
         return {
             "code": "present_key_invalid",
-            "label": "present key invalid or expired",
-            "missing_env_names": missing_required or missing_all,
-            "present_env_names": rotate_envs,
             "next_action": (
-                f"Rotate {list_or_none(rotate_envs)} in the managed VAULT secret source, recreate or redeploy "
-                f"`litellm`, then re-probe served model `{requested_model}`."
+                f"Rotate {list_or_none(present_names)} in the managed VAULT secret source, recreate or redeploy `litellm`, "
+                f"then re-probe served model `{requested_model}`."
             ),
         }
-    if missing_required:
-        return {
-            "code": "missing_required_env",
-            "label": "missing required env",
-            "missing_env_names": missing_required,
-            "present_env_names": present_required or present_all,
-            "next_action": (
-                f"Restore {list_or_none(missing_required)} in the managed VAULT secret source, recreate or redeploy "
-                f"`litellm`, then re-probe served model `{requested_model}`."
-            ),
-        }
-    rotate_envs = present_required or present_all or contract_names
+    env_names = missing_names or present_names or required_envs
+    env_suffix = f" Check {list_or_none(env_names)} while reconciling the auth path." if env_names else ""
     return {
-        "code": "credential_invalid_or_unknown",
-        "label": "credential invalid or unclassified auth failure",
-        "missing_env_names": missing_required or missing_all,
-        "present_env_names": rotate_envs,
-        "next_action": (
-            f"Rotate or restore the credential backing {list_or_none(rotate_envs)} in the managed VAULT secret "
-            f"source, recreate or redeploy `litellm`, then re-probe served model `{requested_model}`."
-        ),
+        "code": "auth_failed_unknown",
+        "next_action": f"Inspect the latest auth failure for served model `{requested_model}` and reconcile `{provider_label}` on VAULT.{env_suffix}",
     }
 
 
@@ -1047,8 +1045,6 @@ def render_provider_report() -> str:
             provider_usage_capture=provider_usage_capture,
         )
         runtime_env_audit_line = None
-        auth_failure_line = None
-        env_semantics_line = None
         if str(dict(provider.get("evidence") or {}).get("kind") or "") == "vault_litellm_proxy" and vault_litellm_env_audit:
             runtime_env_audit_line = (
                 f"- Runtime env audit: missing "
@@ -1056,13 +1052,6 @@ def render_provider_report() -> str:
                 f"present {list_or_none(_vault_env_names_for_provider(provider, vault_litellm_env_audit, 'container_present_env_names'))}, "
                 f"audit `{vault_litellm_env_audit.get('collected_at', 'unknown')}`"
             )
-            env_semantics_line = f"- Env semantics: {_vault_env_contract_summary(provider)}"
-            if evidence_posture == "vault_provider_specific_auth_failed":
-                classification = _classify_vault_auth_failure(provider, provider_usage_capture, vault_litellm_env_audit)
-                auth_failure_line = (
-                    f"- Auth failure classification: `{classification.get('code', 'unknown')}` "
-                    f"({classification.get('label', 'unknown')})"
-                )
         lines.extend(
             [
                 "",
@@ -1086,8 +1075,6 @@ def render_provider_report() -> str:
                 f"- Observed runtime: {_observed_runtime_summary(observed_runtime, provider_usage_capture)}",
                 f"- Evidence contract: {_provider_evidence_summary(provider, provider_usage_capture)}",
                 *( [runtime_env_audit_line] if runtime_env_audit_line else [] ),
-                *( [env_semantics_line] if env_semantics_line else [] ),
-                *( [auth_failure_line] if auth_failure_line else [] ),
                 f"- Tool evidence: {_tooling_summary(tooling_entries)}",
                 f"- Next verification: {_provider_next_verification(provider, evidence_posture, provider_usage_capture, vault_litellm_env_audit)}",
                 f"- Verification steps: {list_or_none(_provider_verification_steps(provider, evidence_posture, provider_usage_capture, vault_litellm_env_audit))}",
@@ -1986,12 +1973,18 @@ def render_runtime_cutover_packet() -> str:
             list(migration.get("callers", [])),
             key=lambda caller: (int(caller.get("sync_order") or 9999), str(caller.get("path") or "")),
         )
+        def packet_sync_decision(caller: dict[str, Any], live_record: dict[str, Any]) -> str:
+            if migration_retired and str(caller.get("runtime_cutover_state") or "") == "cutover_verified":
+                return "already_synced"
+            return str(live_record.get("sync_decision") or "unknown")
+
         sync_required = sum(
             1
             for caller in callers
-            if str(live_content_records.get(str(caller.get("path") or ""), {}).get("sync_decision") or "").startswith(
-                ("backup_", "create_")
-            )
+            if packet_sync_decision(
+                caller,
+                live_content_records.get(str(caller.get("path") or ""), {}),
+            ).startswith(("backup_", "create_"))
         )
         lines.extend(
             [
@@ -2037,7 +2030,7 @@ def render_runtime_cutover_packet() -> str:
         for caller in callers:
             caller_path = str(caller.get("path") or "")
             live_record = live_content_records.get(caller_path, {})
-            sync_decision = str(live_record.get("sync_decision") or "unknown")
+            sync_decision = packet_sync_decision(caller, live_record)
             runtime_target = str(live_record.get("runtime_owner_path") or caller.get("runtime_owner_path") or "")
             implementation_source = _slash_path(str(live_record.get("implementation_path") or (REPO_ROOT / caller_path)))
             rollback_target = str(live_record.get("rollback_target") or caller.get("rollback_target") or "")
@@ -2404,16 +2397,18 @@ def render_vault_litellm_repair_packet() -> str:
         provider_verified_at = str(dict(provider.get("observed_runtime") or {}).get("last_verified_at") or "")
         latest_activity = capture_observed_at or provider_verified_at or "unknown"
         if evidence_posture == "vault_provider_specific_auth_failed":
-            classification = _classify_vault_auth_failure(provider, provider_usage_capture, vault_litellm_env_audit)
+            classification = _classify_vault_auth_failure(
+                provider,
+                provider_usage_capture,
+                vault_litellm_env_audit,
+            )
             auth_failed_rows.append(
                 [
                     f"`{provider_id}`",
                     f"`{alias}`",
-                    list_or_none(classification.get("missing_env_names", [])),
-                    list_or_none(classification.get("present_env_names", [])),
-                    f"`{classification.get('label', 'unknown')}`",
+                    list_or_none(missing_names),
                     f"`{latest_activity}`",
-                    str(classification.get("next_action") or "Review the auth failure and re-probe the provider."),
+                    classification["next_action"],
                 ]
             )
             continue
@@ -2478,7 +2473,7 @@ def render_vault_litellm_repair_packet() -> str:
     if auth_failed_rows:
         lines.extend(
             _render_table(
-                ["Provider", "Served alias", "Missing env names", "Present env names", "Failure reason", "Latest auth failure", "Next live action"],
+                ["Provider", "Served alias", "Missing env names", "Latest auth failure", "Next live action"],
                 auth_failed_rows,
             )
         )
