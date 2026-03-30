@@ -92,7 +92,7 @@ export function ImprovementConsole() {
     queryKey: ["improvement-benchmarks"],
     queryFn: async (): Promise<BenchmarkEntry[]> => {
       const data = await requestJson(
-        "/api/agents/proxy?path=/v1/improvement/benchmarks/history"
+        "/api/improvement/benchmarks/history"
       );
       return (data?.entries ?? data ?? []) as BenchmarkEntry[];
     },
@@ -116,7 +116,7 @@ export function ImprovementConsole() {
     setTriggeringCycle(true);
     try {
       await postWithoutBody(
-        "/api/agents/proxy?path=/v1/improvement/trigger"
+        "/api/improvement/trigger"
       );
       void queryClient.invalidateQueries({
         queryKey: ["improvement-summary"],

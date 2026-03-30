@@ -32,29 +32,45 @@ import {
   type JsonObject,
 } from "@/components/runtime-panel-utils";
 
-/* ---------- cost metadata (static for now, could come from policy) ---------- */
-
-const SUBSCRIPTION_COSTS: Record<string, { monthly: number; label: string }> = {
-  anthropic_claude_code: { monthly: 200, label: "Claude Code Max" },
-  openai_codex: { monthly: 200, label: "ChatGPT Pro" },
-  google_gemini: { monthly: 0, label: "Gemini (free tier)" },
-  moonshot_kimi: { monthly: 8, label: "Kimi K2" },
-  zai_glm_coding: { monthly: 0, label: "Z.ai GLM (free tier)" },
-  aider_local: { monthly: 0, label: "Aider (local)" },
-  athanor_local: { monthly: 0, label: "Athanor (local)" },
-};
-
-const TOTAL_MONTHLY = Object.values(SUBSCRIPTION_COSTS).reduce((s, c) => s + c.monthly, 0);
-
 /* ---------- query key ---------- */
 const QUERY_KEY = ["subscriptions-console"] as const;
 const REFRESH_MS = 30_000;
+
+function getCatalogMonthlyCost(summary: JsonObject, providerStatus: JsonObject | undefined): number | null {
+  const summaryValue = asObject(summary)?.catalog_monthly_cost_usd;
+  if (typeof summaryValue === "number") {
+    return summaryValue;
+  }
+  const statusValue = providerStatus?.monthly_cost;
+  return typeof statusValue === "number" ? statusValue : null;
+}
+
+function getCatalogPricingStatus(summary: JsonObject, providerStatus: JsonObject | undefined): string | null {
+  const summaryValue = getOptionalString(asObject(summary)?.catalog_pricing_status);
+  if (summaryValue) {
+    return summaryValue;
+  }
+  return getOptionalString(providerStatus?.pricing_status) ?? null;
+}
+
+function formatMonthlyCost(monthlyCost: number | null, pricingStatus: string | null): string {
+  if (typeof monthlyCost === "number") {
+    return monthlyCost > 0 ? `$${monthlyCost}` : "$0";
+  }
+  if (pricingStatus?.includes("unverified")) {
+    return "Unverified";
+  }
+  if (pricingStatus === "metered") {
+    return "Metered";
+  }
+  return "--";
+}
 
 /* ---------- data fetcher ---------- */
 async function fetchSubscriptionData() {
   const [summary, providers, quotas, leases, execution, handoffs, policy] = await Promise.all([
     fetchJson<JsonObject>("/api/subscriptions/summary"),
-    fetchJson<JsonObject>("/api/subscriptions/providers"),
+    fetchJson<JsonObject>("/api/subscriptions/provider-status"),
     fetchJson<JsonObject>("/api/subscriptions/quotas"),
     fetchJson<JsonObject>("/api/subscriptions/leases"),
     fetchJson<JsonObject>("/api/subscriptions/execution"),
@@ -96,10 +112,26 @@ export function SubscriptionsConsole() {
 
   const data = query.data;
   const providerSummaries = asArray<JsonObject>(asObject(data.summary)?.provider_summaries);
+  const providerStatusEntries = asArray<JsonObject>(asObject(data.providers)?.providers);
+  const providerStatusById = new Map(
+    providerStatusEntries.map((entry) => [getString(entry.id), entry] as const)
+  );
   const providerQuotaMap = asObject(asObject(data.quotas)?.providers) ?? {};
   const quotaEvents = asArray<JsonObject>(asObject(data.quotas)?.recent_events);
   const leases = asArray<JsonObject>(asObject(data.leases)?.leases);
   const handoffs = asArray<JsonObject>(asObject(data.handoffs)?.handoffs);
+  const verifiedMonthlySpend = providerSummaries.reduce((sum, summary) => {
+    const providerStatus = providerStatusById.get(getString(summary.provider));
+    const monthlyCost = getCatalogMonthlyCost(summary, providerStatus);
+    return typeof monthlyCost === "number" && monthlyCost > 0 ? sum + monthlyCost : sum;
+  }, 0);
+  const unverifiedMonthlyLanes = providerSummaries.filter((summary) => {
+    const providerStatus = providerStatusById.get(getString(summary.provider));
+    return (
+      getCatalogMonthlyCost(summary, providerStatus) == null &&
+      getCatalogPricingStatus(summary, providerStatus)?.includes("unverified")
+    );
+  }).length;
 
   const directReadyCount = providerSummaries.filter((s) =>
     getBoolean(s.direct_execution_ready)
@@ -140,8 +172,12 @@ export function SubscriptionsConsole() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Monthly spend"
-            value={`$${TOTAL_MONTHLY}`}
-            detail="Active subscriptions total."
+            value={verifiedMonthlySpend > 0 ? `$${verifiedMonthlySpend}${unverifiedMonthlyLanes > 0 ? "+" : ""}` : "$0"}
+            detail={
+              unverifiedMonthlyLanes > 0
+                ? `${unverifiedMonthlyLanes} provider lane${unverifiedMonthlyLanes === 1 ? "" : "s"} still cost-unverified.`
+                : "Catalog-backed fixed subscription total."
+            }
             icon={<DollarSign className="h-5 w-5" />}
           />
           <StatCard
@@ -177,8 +213,9 @@ export function SubscriptionsConsole() {
           {providerSummaries.length > 0 ? (
             providerSummaries.map((summary) => {
               const providerId = getString(summary.provider);
-              const costInfo = SUBSCRIPTION_COSTS[providerId];
-              const monthly = costInfo?.monthly ?? 0;
+              const providerStatus = providerStatusById.get(providerId);
+              const monthly = getCatalogMonthlyCost(summary, providerStatus);
+              const pricingStatus = getCatalogPricingStatus(summary, providerStatus);
               const quotaData = asObject(providerQuotaMap[providerId]);
               const leasesIssued = getNumber(quotaData?.leases_issued, 0);
               const providerState = getString(
@@ -200,10 +237,13 @@ export function SubscriptionsConsole() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium">
-                        {getString(summary.label, formatKey(providerId))}
+                        {getString(summary.label, getOptionalString(providerStatus?.name) ?? formatKey(providerId))}
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {costInfo?.label ?? formatKey(providerId)}
+                        {getString(
+                          summary.subscription_product,
+                          getOptionalString(providerStatus?.subscription) ?? formatKey(providerId)
+                        )}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -225,7 +265,7 @@ export function SubscriptionsConsole() {
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     <Metric
                       label="Monthly"
-                      value={monthly > 0 ? `$${monthly}` : "Free"}
+                      value={formatMonthlyCost(monthly, pricingStatus)}
                       icon={<DollarSign className="h-3.5 w-3.5" />}
                     />
                     <Metric
@@ -249,6 +289,11 @@ export function SubscriptionsConsole() {
                     <p className="text-xs text-muted-foreground">
                       Lane: {formatKey(getString(summary.lane, "unassigned"))}
                     </p>
+                    {pricingStatus ? (
+                      <p className="text-xs text-muted-foreground">
+                        Pricing posture: {formatKey(pricingStatus)}
+                      </p>
+                    ) : null}
                     <p className="text-xs text-muted-foreground">
                       Slots: {getNumber(summary.occupied_slots, 0)}/{getNumber(summary.slot_limit, 0)} occupied
                       {" | "}

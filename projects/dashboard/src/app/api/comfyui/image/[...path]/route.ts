@@ -1,4 +1,5 @@
 import { config } from "@/lib/config";
+import { isDashboardFixtureMode } from "@/lib/dashboard-fixtures";
 
 function guessContentType(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase();
@@ -13,6 +14,24 @@ function guessContentType(filename: string): string {
   }
 }
 
+function buildFixturePlaceholder(filename: string) {
+  const label = filename.replace(/[<>&"]/g, "");
+  const body = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="960" viewBox="0 0 1280 960">
+      <rect width="1280" height="960" fill="#111318"/>
+      <rect x="48" y="48" width="1184" height="864" rx="32" fill="#1d2330" stroke="#384358" stroke-width="4"/>
+      <text x="96" y="120" fill="#f4f6fb" font-family="ui-monospace, SFMono-Regular, monospace" font-size="32">Athanor fixture media</text>
+      <text x="96" y="176" fill="#9aa6bd" font-family="ui-monospace, SFMono-Regular, monospace" font-size="24">${label}</text>
+    </svg>
+  `.trim();
+  return new Response(body, {
+    headers: {
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "public, max-age=300",
+    },
+  });
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ path: string[] }> }
@@ -21,6 +40,10 @@ export async function GET(
   // ComfyUI expects separate filename and subfolder params
   const filename = path[path.length - 1];
   const subfolder = path.length > 1 ? path.slice(0, -1).join("/") : "";
+
+  if (isDashboardFixtureMode()) {
+    return buildFixturePlaceholder(filename);
+  }
 
   try {
     const url = new URL(`${config.comfyui.url}/view`);
@@ -33,7 +56,7 @@ export async function GET(
     });
 
     if (!res.ok) {
-      return new Response("Image not found", { status: 404 });
+      return buildFixturePlaceholder(filename);
     }
 
     const contentType = res.headers.get("content-type") ?? guessContentType(filename);
@@ -50,6 +73,6 @@ export async function GET(
 
     return new Response(body, { headers });
   } catch {
-    return new Response("Failed to fetch image", { status: 502 });
+    return buildFixturePlaceholder(filename);
   }
 }

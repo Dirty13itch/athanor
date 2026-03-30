@@ -13,6 +13,7 @@ export interface GalleryRating {
 const STORAGE_KEY = "athanor-gallery-ratings";
 
 type Ratings = Record<string, GalleryRating>;
+const EMPTY_RATINGS: Ratings = {};
 
 // ---------------------------------------------------------------------------
 // Tiny external-store wrapper around localStorage so all mounted components
@@ -51,7 +52,7 @@ function getSnapshot(): Ratings {
 }
 
 function getServerSnapshot(): Ratings {
-  return {};
+  return EMPTY_RATINGS;
 }
 
 // ---------------------------------------------------------------------------

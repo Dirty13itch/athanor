@@ -61,7 +61,7 @@ export function DigestConsole() {
     queryKey: PENDING_QUERY_KEY,
     queryFn: async (): Promise<DigestTask[]> => {
       const data = await requestJson(
-        "/api/agents/proxy?path=/v1/tasks?status=pending_approval"
+        "/api/workforce/tasks?status=pending_approval"
       );
       return (data?.tasks ?? data ?? []) as DigestTask[];
     },
@@ -73,7 +73,7 @@ export function DigestConsole() {
     queryKey: COMPLETED_QUERY_KEY,
     queryFn: async (): Promise<DigestTask[]> => {
       const data = await requestJson(
-        "/api/agents/proxy?path=/v1/tasks?status=completed&limit=20"
+        "/api/workforce/tasks?status=completed&limit=20"
       );
       const tasks = (data?.tasks ?? data ?? []) as DigestTask[];
       const cutoff = Date.now() - 12 * 60 * 60 * 1000;
@@ -116,7 +116,7 @@ export function DigestConsole() {
 
   const approveMutation = useMutation({
     mutationFn: async (taskId: string) => {
-      await postWithoutBody(`/api/agents/proxy?path=/v1/tasks/${taskId}/approve`);
+      await postWithoutBody(`/api/workforce/tasks/${taskId}/approve`);
     },
     onSuccess: () => {
       checkRubberStamp();
@@ -126,7 +126,7 @@ export function DigestConsole() {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ taskId, reason }: { taskId: string; reason: string }) => {
-      await postJson(`/api/agents/proxy?path=/v1/tasks/${taskId}/reject`, { reason });
+      await postJson(`/api/workforce/tasks/${taskId}/reject`, { reason });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_QUERY_KEY });
@@ -136,7 +136,7 @@ export function DigestConsole() {
   const batchApproveMutation = useMutation({
     mutationFn: async (taskIds: string[]) => {
       for (const id of taskIds) {
-        await postWithoutBody(`/api/agents/proxy?path=/v1/tasks/${id}/approve`);
+        await postWithoutBody(`/api/workforce/tasks/${id}/approve`);
       }
     },
     onSuccess: () => {

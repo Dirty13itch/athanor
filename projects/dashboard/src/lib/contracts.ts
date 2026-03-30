@@ -782,12 +782,16 @@ export const operatorStreamEventSchema = z.object({
 
 export const quotaLeaseProviderSchema = z.object({
   provider: z.string(),
+  label: z.string().optional(),
   lane: z.string(),
   availability: z.string(),
   provider_state: z.string().optional(),
   state_reasons: z.array(z.string()).optional(),
   reserve_state: z.string(),
   privacy: z.string().optional(),
+  subscription_product: z.string().optional(),
+  catalog_monthly_cost_usd: z.number().nullable().optional(),
+  catalog_pricing_status: z.string().optional(),
   limit: z.number().int().nonnegative(),
   remaining: z.number().int().nonnegative(),
   throttle_events: z.number().int().nonnegative(),

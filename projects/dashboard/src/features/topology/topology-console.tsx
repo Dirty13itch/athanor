@@ -248,7 +248,7 @@ export function TopologyConsole({ nodes, models, nodeServices }: TopologyProps) 
 
   const agentsQuery = useQuery<AgentsResponse>({
     queryKey: [...queryKeys.agents, "topology"],
-    queryFn: () => requestJson("/api/agents/proxy?path=/v1/agents") as Promise<AgentsResponse>,
+    queryFn: () => requestJson("/api/agents") as Promise<AgentsResponse>,
     ...liveQueryOptions(30_000),
   });
 

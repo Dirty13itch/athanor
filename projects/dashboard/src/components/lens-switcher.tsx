@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useLens } from "@/hooks/use-lens";
 import { LENS_IDS, LENS_CONFIG } from "@/lib/lens";
 import { useQuery } from "@tanstack/react-query";
@@ -14,6 +15,11 @@ const LENS_HEALTH: Partial<Record<string, string>> = {
 
 export function LensSwitcher() {
   const { lens, setLens } = useLens();
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   // Quick health check for each lens (lightweight, infrequent)
   const healthQuery = useQuery({
@@ -36,7 +42,7 @@ export function LensSwitcher() {
     staleTime: 30_000,
   });
 
-  const health = healthQuery.data ?? {};
+  const health = hydrated ? healthQuery.data ?? {} : {};
 
   return (
     <div className="flex items-center gap-1.5 px-4 py-2">

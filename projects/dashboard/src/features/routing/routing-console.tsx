@@ -32,8 +32,15 @@ interface RoutingLogEntry {
 }
 
 interface ProviderStatus {
+  id?: string;
   name: string;
+  subscription?: string;
+  monthly_cost?: number | null;
+  pricing_status?: string;
+  category?: string;
   status?: string;
+  provider_state?: string;
+  execution_mode?: string;
   tasks_today?: number;
   avg_latency_ms?: number;
 }
@@ -67,14 +74,18 @@ function statusDot(status: string | undefined) {
   return "bg-muted-foreground";
 }
 
-const COST_LINES = [
-  { name: "Claude 20x Max", monthly: 150 },
-  { name: "ChatGPT Pro", monthly: 200 },
-  { name: "Gemini Pro", monthly: 35 },
-  { name: "Local Inference", monthly: 0 },
-];
-
-const TOTAL_FIXED = COST_LINES.reduce((sum, line) => sum + line.monthly, 0);
+function formatMonthlyCost(monthlyCost: number | null | undefined, pricingStatus: string | undefined) {
+  if (typeof monthlyCost === "number") {
+    return monthlyCost > 0 ? `$${monthlyCost}/mo` : "$0";
+  }
+  if (pricingStatus?.includes("unverified")) {
+    return "Cost unverified";
+  }
+  if (pricingStatus === "metered") {
+    return "Metered";
+  }
+  return "--";
+}
 
 export function RoutingConsole() {
   const logQuery = useQuery({
@@ -99,6 +110,15 @@ export function RoutingConsole() {
 
   const logEntries = logQuery.data ?? [];
   const providers = providersQuery.data ?? [];
+  const subscriptionProviders = providers.filter((provider) => provider.category === "subscription");
+  const verifiedFixedMonthly = subscriptionProviders.reduce((sum, provider) => {
+    return typeof provider.monthly_cost === "number" && provider.monthly_cost > 0
+      ? sum + provider.monthly_cost
+      : sum;
+  }, 0);
+  const unverifiedMonthlyCount = subscriptionProviders.filter((provider) => {
+    return provider.monthly_cost == null && provider.pricing_status?.includes("unverified");
+  }).length;
 
   const totalRouted = logEntries.length;
   const localOnly = logEntries.filter(
@@ -167,8 +187,18 @@ export function RoutingConsole() {
           />
           <StatCard
             label="Monthly Cost"
-            value={`$${TOTAL_FIXED}`}
-            detail="Fixed subscriptions"
+            value={
+              verifiedFixedMonthly > 0
+                ? `$${verifiedFixedMonthly}${unverifiedMonthlyCount > 0 ? "+" : ""}`
+                : unverifiedMonthlyCount > 0
+                  ? "Unverified"
+                  : "$0"
+            }
+            detail={
+              unverifiedMonthlyCount > 0
+                ? `${unverifiedMonthlyCount} catalog-backed lane${unverifiedMonthlyCount === 1 ? "" : "s"} still cost-unverified`
+                : "Catalog-backed fixed subscriptions"
+            }
             icon={<DollarSign className="h-5 w-5" />}
           />
         </div>
@@ -281,21 +311,24 @@ export function RoutingConsole() {
         <CardHeader>
           <CardTitle className="text-lg">Cost Summary</CardTitle>
           <CardDescription>
-            Fixed monthly subscription costs and variable inference spend.
+            Catalog-backed fixed subscription costs and variable inference spend.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {COST_LINES.map((line) => (
+            {subscriptionProviders.map((provider) => (
               <div
-                key={line.name}
+                key={provider.id ?? provider.name}
                 className="surface-instrument flex items-center justify-between rounded-xl border px-4 py-3"
               >
-                <span className="text-sm font-medium">{line.name}</span>
+                <div>
+                  <span className="text-sm font-medium">{provider.name}</span>
+                  <p className="text-xs text-muted-foreground">
+                    {provider.subscription ?? provider.execution_mode ?? "Subscription lane"}
+                  </p>
+                </div>
                 <span className="text-sm tabular-nums text-muted-foreground">
-                  {line.monthly === 0
-                    ? "Free"
-                    : `~$${line.monthly}/mo`}
+                  {formatMonthlyCost(provider.monthly_cost, provider.pricing_status)}
                 </span>
               </div>
             ))}
@@ -308,7 +341,11 @@ export function RoutingConsole() {
             <div className="flex items-center justify-between rounded-xl border border-border/70 bg-background/30 px-4 py-3">
               <span className="text-sm font-semibold">Total</span>
               <span className="text-sm font-semibold tabular-nums">
-                ~${TOTAL_FIXED}/mo fixed
+                {verifiedFixedMonthly > 0
+                  ? `$${verifiedFixedMonthly}${unverifiedMonthlyCount > 0 ? "+" : ""}/mo fixed`
+                  : unverifiedMonthlyCount > 0
+                    ? "Cost unverified"
+                    : "$0/mo fixed"}
               </span>
             </div>
           </div>

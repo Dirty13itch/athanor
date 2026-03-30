@@ -80,7 +80,7 @@ export function OperatorConsole() {
     queryKey: PENDING_TASKS_KEY,
     queryFn: async (): Promise<PendingTask[]> => {
       const data = await requestJson(
-        "/api/agents/proxy?path=/v1/tasks?status=pending_approval"
+        "/api/workforce/tasks?status=pending_approval"
       );
       return (data?.tasks ?? data ?? []) as PendingTask[];
     },
@@ -106,7 +106,7 @@ export function OperatorConsole() {
 
   const approveMutation = useMutation({
     mutationFn: async (taskId: string) => {
-      await postWithoutBody(`/api/agents/proxy?path=/v1/tasks/${taskId}/approve`);
+      await postWithoutBody(`/api/workforce/tasks/${taskId}/approve`);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_TASKS_KEY });
@@ -115,7 +115,7 @@ export function OperatorConsole() {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ taskId, reason }: { taskId: string; reason: string }) => {
-      await postJson(`/api/agents/proxy?path=/v1/tasks/${taskId}/reject`, { reason });
+      await postJson(`/api/workforce/tasks/${taskId}/reject`, { reason });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_TASKS_KEY });
@@ -160,16 +160,13 @@ export function OperatorConsole() {
     abortRef.current = controller;
 
     try {
-      const response = await fetch("/api/agents/proxy", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          path: "/v1/chat/completions",
-          body: {
-            model: "meta-orchestrator",
-            messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
-            stream: true,
-          },
+          target: "agent-server",
+          model: "meta-orchestrator",
+          messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
         signal: controller.signal,
       });
