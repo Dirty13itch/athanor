@@ -7,7 +7,7 @@ Do not edit manually.
 
 - Registry version: `2026-03-27.1`
 - Projects tracked: `11`
-- Projects meeting declared class: `2`
+- Projects meeting declared class: `11`
 
 | Class | Count |
 | --- | ---: |
@@ -21,17 +21,17 @@ Do not edit manually.
 
 | Project | Class | Status | Owner | Workspace |
 | --- | --- | --- | --- | --- |
-| `agents` (Athanor Agents) | `platform-core` | needs attention | `shaun` | `projects/agents` |
-| `dashboard` (Athanor Dashboard) | `production-product` | needs attention | `shaun` | `projects/dashboard` |
-| `gpu-orchestrator` (GPU Orchestrator) | `platform-core` | needs attention | `shaun` | `projects/gpu-orchestrator` |
-| `ws-pty-bridge` (WS PTY Bridge) | `platform-core` | needs attention | `shaun` | `projects/ws-pty-bridge` |
-| `gateway` (Gateway) | `platform-core` | needs attention | `shaun` | `services/gateway` |
-| `quality-gate` (Quality Gate) | `platform-core` | needs attention | `shaun` | `services/quality-gate` |
-| `eoq` (EOQ) | `active-scaffold` | needs attention | `shaun` | `projects/eoq` |
-| `comfyui-workflows` (ComfyUI Workflows) | `active-scaffold` | needs attention | `shaun` | `projects/comfyui-workflows` |
+| `agents` (Athanor Agents) | `platform-core` | meets declared class | `shaun` | `projects/agents` |
+| `dashboard` (Athanor Dashboard) | `production-product` | meets declared class | `shaun` | `projects/dashboard` |
+| `gpu-orchestrator` (GPU Orchestrator) | `platform-core` | meets declared class | `shaun` | `projects/gpu-orchestrator` |
+| `ws-pty-bridge` (WS PTY Bridge) | `platform-core` | meets declared class | `shaun` | `projects/ws-pty-bridge` |
+| `gateway` (Gateway) | `platform-core` | meets declared class | `shaun` | `services/gateway` |
+| `quality-gate` (Quality Gate) | `platform-core` | meets declared class | `shaun` | `services/quality-gate` |
+| `eoq` (EOQ) | `active-scaffold` | meets declared class | `shaun` | `projects/eoq` |
+| `comfyui-workflows` (ComfyUI Workflows) | `active-scaffold` | meets declared class | `shaun` | `projects/comfyui-workflows` |
 | `kindred` (Kindred) | `incubation` | meets declared class | `shaun` | `projects/kindred` |
 | `ulrich-energy` (Ulrich Energy) | `incubation` | meets declared class | `shaun` | `projects/ulrich-energy` |
-| `reports` (Reports) | `archive` | needs attention | `shaun` | `projects/reports` |
+| `reports` (Reports) | `archive` | meets declared class | `shaun` | `projects/reports` |
 
 ## Athanor Agents (`agents`)
 
@@ -49,9 +49,7 @@ Do not edit manually.
   - `python scripts/validate_platform_contract.py`
   - `cd projects/agents && .\.venv\Scripts\python -m pytest tests -q`
 - Notes: Primary control-plane runtime.
-- Open issues:
-  - workflow missing CI steps for `agents`: Agents contract
-  - workflow missing acceptance steps for `agents`: Platform contract validation, Agents contract
+- Open issues: none
 
 ## Athanor Dashboard (`dashboard`)
 
@@ -74,12 +72,7 @@ Do not edit manually.
   - `cd projects/dashboard && npm run build`
   - `cd projects/dashboard && npm run test:e2e:terminal`
 - Notes: Authenticated operator console and main human-facing product surface.
-- Open issues:
-  - workflow missing CI steps for `dashboard`: Dashboard contract
-  - missing doc `projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md`
-  - missing doc `docs/projects/PORTFOLIO-REGISTRY.md`
-  - missing env example `projects/dashboard/.env.example`
-  - workflow missing acceptance steps for `dashboard`: Dashboard contract
+- Open issues: none
 
 ## GPU Orchestrator (`gpu-orchestrator`)
 
@@ -96,10 +89,7 @@ Do not edit manually.
 - Acceptance gate:
   - `cd projects/gpu-orchestrator && .\.venv\Scripts\python -m pytest tests -q`
 - Notes: Privileged runtime placement and GPU control surface.
-- Open issues:
-  - workflow missing CI steps for `gpu-orchestrator`: GPU orchestrator contract
-  - missing env example `projects/gpu-orchestrator/.env.example`
-  - workflow missing acceptance steps for `gpu-orchestrator`: GPU orchestrator contract
+- Open issues: none
 
 ## WS PTY Bridge (`ws-pty-bridge`)
 
@@ -116,10 +106,7 @@ Do not edit manually.
 - Acceptance gate:
   - `cd projects/ws-pty-bridge && npm run ci`
 - Notes: Infrastructure bridge used by operator and agent workflows.
-- Open issues:
-  - workflow missing CI steps for `ws-pty-bridge`: WS PTY bridge contract
-  - missing env example `projects/ws-pty-bridge/.env.example`
-  - workflow missing acceptance steps for `ws-pty-bridge`: WS PTY bridge contract
+- Open issues: none
 
 ## Gateway (`gateway`)
 
@@ -136,10 +123,7 @@ Do not edit manually.
 - Acceptance gate:
   - `python -m pytest services/gateway/tests -q`
 - Notes: Internal read-only health aggregation surface for cluster-wide service status.
-- Open issues:
-  - workflow missing CI steps for `gateway`: Gateway contract
-  - missing env example `services/gateway/.env.example`
-  - workflow missing acceptance steps for `gateway`: Gateway contract
+- Open issues: none
 
 ## Quality Gate (`quality-gate`)
 
@@ -156,10 +140,7 @@ Do not edit manually.
 - Acceptance gate:
   - `python -m pytest services/quality-gate/tests -q`
 - Notes: Privileged data-quality validation and destructive cleanup control surface.
-- Open issues:
-  - workflow missing CI steps for `quality-gate`: Quality gate contract
-  - missing env example `services/quality-gate/.env.example`
-  - workflow missing acceptance steps for `quality-gate`: Quality gate contract
+- Open issues: none
 
 ## EOQ (`eoq`)
 
@@ -172,8 +153,7 @@ Do not edit manually.
 - Acceptance workflow steps: none
 - Docs: `docs/projects/PORTFOLIO-REGISTRY.md`
 - Notes: Active product lane but not yet under full production contract.
-- Open issues:
-  - missing env example `projects/eoq/.env.example`
+- Open issues: none
 
 ## ComfyUI Workflows (`comfyui-workflows`)
 
@@ -186,8 +166,7 @@ Do not edit manually.
 - Acceptance workflow steps: none
 - Docs: `docs/projects/PORTFOLIO-REGISTRY.md`
 - Notes: Reusable workflow asset pack and creative scaffold surface.
-- Open issues:
-  - missing env example `projects/comfyui-workflows/.env.example`
+- Open issues: none
 
 ## Kindred (`kindred`)
 
@@ -226,5 +205,4 @@ Do not edit manually.
 - Acceptance workflow steps: none
 - Docs: `docs/projects/PORTFOLIO-REGISTRY.md`
 - Notes: Output archive and report artifacts, not an active product runtime.
-- Open issues:
-  - missing workspace `projects/reports`
+- Open issues: none

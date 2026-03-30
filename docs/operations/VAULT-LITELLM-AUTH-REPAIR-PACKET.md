@@ -7,8 +7,8 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 
 - Credential surface version: `2026-03-29.2`
 - Provider catalog version: `2026-03-29.1`
-- Cached truth snapshot: `2026-03-30T01:30:47.049589+00:00`
-- Cached env audit: `2026-03-30T01:30:47Z`
+- Cached truth snapshot: `2026-03-30T01:38:14.805108+00:00`
+- Cached env audit: `2026-03-30T01:38:14Z`
 - Surface id: `vault-litellm-container-env`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
@@ -33,21 +33,20 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 
 ## Auth-Failed Provider Lanes
 
-| Provider | Served alias | Missing env names | Latest auth failure | Next live action |
-| --- | --- | --- | --- | --- |
-| `anthropic_api` | `claude` | `ANTHROPIC_API_KEY` | `2026-03-29T03:46:15Z` | Restore `ANTHROPIC_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `claude`. |
-| `dashscope_qwen_api` | `qwen-max` | `DASHSCOPE_API_KEY` | `2026-03-29T03:46:15Z` | Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. |
-| `google_gemini_api` | `gemini` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | `2026-03-29T03:46:16Z` | Restore `GEMINI_API_KEY`, `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. |
-| `moonshot_api` | `kimi-k2.5` | `MOONSHOT_API_KEY` | `2026-03-29T03:46:16Z` | Restore `MOONSHOT_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `kimi-k2.5`. |
-| `openai_api` | `gpt` | `OPENAI_API_KEY` | `2026-03-29T03:46:16Z` | Restore `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
-| `openrouter_api` | `openrouter` | `OPENROUTER_API_KEY` | `2026-03-29T03:46:17Z` | Restore `OPENROUTER_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `openrouter`. |
-| `zai_api` | `glm-4.7` | `ZAI_API_KEY` | `2026-03-29T03:46:17Z` | Restore `ZAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `glm-4.7`. |
+No VAULT LiteLLM providers are currently classified as `vault_provider_specific_auth_failed`.
 
 ## Partial Contract Gaps Without Current Auth Failure
 
 | Provider | Served alias | Present env names | Missing env names | Current posture | Latest verification |
 | --- | --- | --- | --- | --- | --- |
+| `anthropic_api` | `claude` | none | `ANTHROPIC_API_KEY` | `vault_proxy_active_no_provider_specific_evidence` | `2026-03-28T06:00:00Z` |
+| `dashscope_qwen_api` | `qwen-max` | none | `DASHSCOPE_API_KEY` | `vault_proxy_active_no_provider_specific_evidence` | `2026-03-28T06:00:00Z` |
+| `google_gemini_api` | `gemini` | none | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | `vault_proxy_active_no_provider_specific_evidence` | `2026-03-28T06:00:00Z` |
 | `mistral_codestral_api` | `codestral` | `CODESTRAL_API_KEY` | `MISTRAL_API_KEY` | `vault_provider_specific_api_observed` | `2026-03-29T03:46:16Z` |
+| `moonshot_api` | `kimi-k2.5` | none | `MOONSHOT_API_KEY` | `vault_proxy_active_no_provider_specific_evidence` | `2026-03-28T06:00:00Z` |
+| `openai_api` | `gpt` | none | `OPENAI_API_KEY` | `vault_proxy_active_no_provider_specific_evidence` | `2026-03-28T06:00:00Z` |
+| `openrouter_api` | `openrouter` | none | `OPENROUTER_API_KEY` | `vault_proxy_active_no_provider_specific_evidence` | `2026-03-28T06:00:00Z` |
+| `zai_api` | `glm-4.7` | none | `ZAI_API_KEY` | `vault_proxy_active_no_provider_specific_evidence` | `2026-03-28T06:00:00Z` |
 
 ## Already Proven Provider Lanes
 
