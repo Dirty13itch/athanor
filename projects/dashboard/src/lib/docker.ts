@@ -1,4 +1,9 @@
 import http from "node:http";
+import {
+  getFoundryDockerProxyUrl,
+  getVaultDockerProxyUrl,
+  getWorkshopDockerProxyUrl,
+} from "@/lib/runtime-hosts";
 
 export interface DockerHost {
   name: string;
@@ -22,19 +27,23 @@ export interface DockerContainerWithNode extends DockerContainer {
 }
 
 const DOCKER_HOSTS: DockerHost[] = [
-  {
-    name: "workshop",
-    socketPath: "/var/run/docker.sock",
-    allowRestart: true,
-  },
+  ...(getWorkshopDockerProxyUrl()
+    ? [
+        {
+          name: "workshop",
+          host: getWorkshopDockerProxyUrl()!,
+          allowRestart: true,
+        },
+      ]
+    : []),
   {
     name: "foundry",
-    host: process.env.ATHANOR_FOUNDRY_DOCKER_PROXY || `http://${process.env.ATHANOR_NODE1_HOST || "192.168.1.244"}:2375`,
+    host: getFoundryDockerProxyUrl(),
     allowRestart: false,
   },
   {
     name: "vault",
-    host: process.env.ATHANOR_VAULT_DOCKER_PROXY || `http://${process.env.ATHANOR_VAULT_HOST || "192.168.1.203"}:2375`,
+    host: getVaultDockerProxyUrl(),
     allowRestart: true,
   },
 ];
@@ -46,7 +55,7 @@ function dockerRequest<T>(method: string, path: string, host: DockerHost): Promi
 
     if (host.socketPath) {
       options = { socketPath: host.socketPath, path, method, headers: { "Content-Type": "application/json" } };
-    } else {
+    } else if (host.host) {
       const url = new URL(path, host.host);
       options = {
         hostname: url.hostname,
@@ -55,6 +64,9 @@ function dockerRequest<T>(method: string, path: string, host: DockerHost): Promi
         method,
         headers: { "Content-Type": "application/json" },
       };
+    } else {
+      reject(new Error(`Docker host unavailable on ${host.name}`));
+      return;
     }
 
     const req = http.request(options, (res) => {
@@ -85,9 +97,12 @@ function getContainerLogsFromHost(host: DockerHost, idOrName: string, tail = 100
 
     if (host.socketPath) {
       options = { socketPath: host.socketPath, path, method: "GET" };
-    } else {
+    } else if (host.host) {
       const url = new URL(path, host.host);
       options = { hostname: url.hostname, port: url.port, path: url.pathname + url.search, method: "GET" };
+    } else {
+      reject(new Error(`Docker host unavailable on ${host.name}`));
+      return;
     }
 
     const req = http.request(options, (res) => {
@@ -153,12 +168,7 @@ export async function getContainerLogs(nodeName: string, idOrName: string, tail 
 }
 
 export function isDockerAvailable(): boolean {
-  try {
-    require("node:fs").accessSync("/var/run/docker.sock");
-    return true;
-  } catch {
-    return false;
-  }
+  return Boolean(getWorkshopDockerProxyUrl());
 }
 
 export function getDockerHosts(): DockerHost[] {

@@ -39,6 +39,10 @@ class Settings(BaseSettings):
             "ATHANOR_VLLM_EMBEDDING_URL",
         ),
     )
+    vllm_node2_url: str = Field(
+        default="http://192.168.1.225:8000",
+        validation_alias=AliasChoices("GPU_ORCH_VLLM_NODE2_URL", "ATHANOR_VLLM_WORKER_URL"),
+    )
 
     # Ollama endpoint (WORKSHOP — replaces vLLM for worker zone)
     ollama_url: str = Field(

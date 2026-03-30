@@ -4,7 +4,9 @@
   "description": "WebSocket-to-PTY bridge for Athanor terminal page",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --check server.js",
+    "ci": "npm run test"
   },
   "dependencies": {
     "node-pty": "^1.0.0",
