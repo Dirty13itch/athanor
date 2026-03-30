@@ -1,10 +1,19 @@
 import { NextRequest } from "next/server";
-import { proxyAgentJson } from "@/lib/server-agent";
+import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ goalId: string }> }
 ) {
   const { goalId } = await context.params;
-  return proxyAgentJson(`/v1/goals/${goalId}`, { method: "DELETE" }, "Failed to delete goal");
+  return proxyAgentOperatorJson(
+    request,
+    `/v1/goals/${goalId}`,
+    "Failed to delete goal",
+    {
+      privilegeClass: "admin",
+      defaultActor: "dashboard-operator",
+      defaultReason: `Deleted goal ${goalId}`,
+    }
+  );
 }

@@ -1,10 +1,18 @@
 import { NextRequest } from "next/server";
-import { proxyAgentJson } from "@/lib/server-agent";
+import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ taskId: string }> }
 ) {
   const { taskId } = await context.params;
-  return proxyAgentJson(`/v1/tasks/${taskId}/approve`, { method: "POST" }, "Failed to approve task");
+  return proxyAgentOperatorJson(
+    request,
+    `/v1/tasks/${taskId}/approve`,
+    "Failed to approve task",
+    {
+      privilegeClass: "admin",
+      defaultReason: `Approved pending task ${taskId} from dashboard`,
+    }
+  );
 }

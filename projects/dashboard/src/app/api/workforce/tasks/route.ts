@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 import { proxyAgentJson } from "@/lib/server-agent";
 
 export async function GET(request: NextRequest) {
@@ -8,20 +9,22 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  return proxyAgentJson(
+  const body = await request.json().catch(() => ({}));
+  return proxyAgentOperatorJson(
+    request,
     "/v1/tasks",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        agent: body.agent ?? "general-assistant",
-        prompt: body.prompt ?? "",
-        priority: body.priority ?? "normal",
-        metadata: body.metadata ?? {},
-      }),
-    },
     "Failed to submit task",
-    15_000
+    {
+      privilegeClass: "operator",
+      defaultReason: "Manual task submission from dashboard",
+      bodyOverride: {
+        agent: (body as { agent?: unknown }).agent ?? "general-assistant",
+        prompt: (body as { prompt?: unknown }).prompt ?? "",
+        priority: (body as { priority?: unknown }).priority ?? "normal",
+        metadata: (body as { metadata?: unknown }).metadata ?? {},
+        reason: (body as { reason?: unknown }).reason ?? "Manual task submission from dashboard",
+      },
+      timeoutMs: 15_000,
+    }
   );
 }
