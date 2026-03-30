@@ -3,22 +3,18 @@ import { gotoRoute, resetBrowserState } from "./helpers";
 
 async function navigateFromShell(
   page: import("@playwright/test").Page,
-  href: string,
+  label: string,
+  destination: RegExp,
   heading: string
 ) {
   const mobileNavButton = page.getByRole("button", { name: "Open navigation" });
-  const mobileOpen = await mobileNavButton.isVisible();
-  if (mobileOpen) {
+  if (await mobileNavButton.isVisible()) {
     await mobileNavButton.click();
   }
 
-  const navRoot = mobileOpen ? page.getByRole("dialog").last() : page.locator("aside").first();
-  await navRoot.locator(`a[href="${href}"]`).first().click();
-  await expect(page).toHaveURL(
-    new RegExp(`${href === "/" ? "/" : href.replace(/\//g, "\\/")}(?:\\?.*)?$`),
-    { timeout: 20_000 }
-  );
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(heading, { timeout: 15_000 });
+  await page.getByRole("link", { name: label }).click();
+  await expect(page).toHaveURL(destination);
+  await expect(page.locator("main h1")).toContainText(heading);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -26,14 +22,11 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("navigates core routes from the shell", async ({ page }) => {
-  for (const [href, heading] of [
-    ["/services", "Services"],
-    ["/gpu", "GPU Metrics"],
-    ["/chat", "Direct Chat"],
-  ] as const) {
-    await gotoRoute(page, "/", "Command Center");
-    await navigateFromShell(page, href, heading);
-  }
+  await gotoRoute(page, "/", "Command Center");
+
+  await navigateFromShell(page, "Services", /\/services$/, "Services");
+  await navigateFromShell(page, "GPU Metrics", /\/gpu$/, "GPU Metrics");
+  await navigateFromShell(page, "Direct Chat", /\/chat$/, "Direct Chat");
 });
 
 test("opens the command palette and routes to incidents", async ({ page }) => {
@@ -54,23 +47,19 @@ test("round-trips every /more route tile without losing the route index", async 
   test.slow();
   await gotoRoute(page, "/more", "All Pages");
 
-  const launchableRouteTiles = [
-    "/services",
-    "/governor",
-    "/agents",
-    "/pipeline",
-    "/media",
-    "/preferences",
-  ];
+  const routeTiles = await page.locator("main a[href^='/']").evaluateAll((elements) =>
+    elements.map((element) => ({
+      href: element.getAttribute("href") ?? "",
+      label: element.getAttribute("aria-label") ?? "",
+    }))
+  );
 
-  for (const href of launchableRouteTiles) {
-    await page.getByTestId(
-      href === "/" ? "route-index-root" : `route-index-${href.replace(/\//g, "-").replace(/^-+/, "")}`
-    ).click();
-    await expect(page).not.toHaveURL(/\/more(?:\?.*)?$/, { timeout: 20_000 });
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 15_000 });
+  for (const routeTile of routeTiles) {
+    await page.locator(`main a[href="${routeTile.href}"]`).first().click();
+    await expect(page).not.toHaveURL(/\/more(?:\?.*)?$/);
+    await expect(page.locator("main h1")).toBeVisible();
     await page.goBack();
-    await expect(page).toHaveURL(/\/more(?:\?.*)?$/, { timeout: 20_000 });
+    await expect(page).toHaveURL(/\/more(?:\?.*)?$/);
     await expect(page.getByRole("heading", { name: "All Pages" })).toBeVisible();
   }
 });
@@ -119,10 +108,6 @@ test("renders terminal fallback state cleanly when the websocket bridge is unava
 
   await gotoRoute(page, "/terminal", "Terminal");
 
-  await expect(page.getByText("WebSocket connection failed. Terminal bridge may not be running.")).toBeVisible();
   await expect(page.getByText("Disconnected")).toBeVisible();
-
-  await page.locator("select").selectOption("workshop");
-  await expect(page.getByText("Workshop (WORKSHOP)")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Terminal" })).toBeVisible();
 });

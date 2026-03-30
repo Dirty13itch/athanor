@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTerminalBridgeBaseUrl } from "@/lib/runtime-hosts";
+import { buildOperatorActionRequest, emitOperatorAuditEvent } from "@/lib/operator-actions";
 import { requireSameOriginOperatorSessionAccess } from "@/lib/operator-auth";
 import { getBridgeTicketSecret, issueBridgeAccessTicket, type BridgeAccessResponse } from "@/lib/bridge-ticket";
 import { isDashboardFixtureMode } from "@/lib/dashboard-fixtures";
@@ -32,6 +33,10 @@ function parseAllowedNodes(): string[] {
   return nodes.length > 0 ? Array.from(new Set(nodes)) : DEFAULT_ALLOWED_NODES;
 }
 
+function getBridgeUrl(): string {
+  return getTerminalBridgeBaseUrl();
+}
+
 async function probeBridgeReachability(bridgeUrl: string): Promise<boolean> {
   try {
     const endpoint = new URL(bridgeUrl);
@@ -52,7 +57,16 @@ export async function GET(request: NextRequest) {
     return gate;
   }
 
-  const bridgeUrl = getTerminalBridgeBaseUrl();
+  const prepared = buildOperatorActionRequest(request, {}, {
+    privilegeClass: "operator",
+    defaultActor: "dashboard-operator",
+    defaultReason: "Manual terminal bridge session issuance from dashboard",
+  });
+  if (prepared instanceof NextResponse) {
+    return prepared;
+  }
+
+  const bridgeUrl = getBridgeUrl();
   const bridgeTicketSecret = getBridgeTicketSecret();
   const authMode =
     bridgeTicketSecret || process.env.NODE_ENV === "production" ? "required" : "optional";
@@ -65,7 +79,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const issuedTicket = authMode === "required" ? issueBridgeAccessTicket(allowedNodes) : null;
+  const issuedTicket =
+    authMode === "required"
+      ? issueBridgeAccessTicket(allowedNodes, { action: prepared.action })
+      : null;
   const bridgeReachable = isDashboardFixtureMode()
     ? await probeBridgeReachability(bridgeUrl)
     : undefined;
@@ -77,6 +94,23 @@ export async function GET(request: NextRequest) {
     expiresAt: issuedTicket?.expiresAt ?? null,
     ...(bridgeReachable === undefined ? {} : { bridgeReachable }),
   };
+
+  await emitOperatorAuditEvent({
+    service: "dashboard",
+    route: "/api/operator/terminal-bridge",
+    action_class: "operator",
+    decision: "accepted",
+    status_code: 200,
+    detail: issuedTicket ? "Issued bridge access ticket" : "Returned optional bridge access metadata",
+    target: "ws-pty-bridge",
+    metadata: {
+      allowed_nodes: allowedNodes,
+      auth_mode: authMode,
+      expires_at: response.expiresAt,
+      bridge_reachable: bridgeReachable ?? null,
+    },
+    action: prepared.action,
+  });
 
   return NextResponse.json(response);
 }
