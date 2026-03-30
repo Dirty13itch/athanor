@@ -1,4 +1,4 @@
-"""Digest endpoints — auto-generated summaries from proactive task results."""
+"""Digest endpoints â€” auto-generated summaries from proactive task results."""
 
 import json
 import logging
@@ -6,8 +6,15 @@ import time
 from collections import Counter
 from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from starlette.responses import JSONResponse
 
+from ..operator_contract import (
+    build_operator_action,
+    emit_operator_audit_event,
+    require_operator_action,
+)
+from ..task_store import read_task_records_by_statuses
 from ..workspace import get_redis
 
 logger = logging.getLogger(__name__)
@@ -16,6 +23,38 @@ router = APIRouter(prefix="/v1", tags=["digests"])
 
 DIGESTS_KEY = "athanor:digests"
 MAX_DIGESTS = 30
+TERMINAL_DIGEST_STATUSES = ("completed", "failed")
+
+
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    candidate = build_operator_action(body, default_reason=default_reason)
+    try:
+        action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
 
 
 @router.get("/digests")
@@ -35,50 +74,67 @@ async def latest_digest():
     if raw:
         digest = json.loads(raw[0] if isinstance(raw[0], str) else raw[0].decode())
         return digest
-    # Auto-generate from recent task history
     return await _generate_digest_from_tasks(r)
 
 
 @router.post("/digests/generate")
-async def generate_digest():
+async def generate_digest(request: Request):
     """Generate and store a digest from recent completed tasks."""
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/digests/generate",
+        action_class="operator",
+        default_reason="Generated digest",
+    )
+    if denial:
+        return denial
+
     r = await get_redis()
     digest = await _generate_digest_from_tasks(r)
     if digest.get("task_count", 0) > 0:
         await r.lpush(DIGESTS_KEY, json.dumps(digest))
         await r.ltrim(DIGESTS_KEY, 0, MAX_DIGESTS - 1)
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/digests/generate",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Generated digest",
+        metadata={"task_count": digest.get("task_count", 0), "requested_period": body.get("period", "24h")},
+    )
     return digest
 
 
 async def _generate_digest_from_tasks(r) -> dict:
     """Build a digest from completed tasks in the last 24 hours."""
-    # Fetch recent tasks from Redis — stored as JSON in hash "athanor:tasks"
-    TASKS_KEY = "athanor:tasks"
-    all_tasks_raw = await r.hgetall(TASKS_KEY)
     now = time.time()
-    cutoff = now - 86400  # 24 hours
+    cutoff = now - 86400
 
     completed = []
     failed = []
     agents = Counter()
     categories = Counter()
 
-    for _task_id, task_json in all_tasks_raw.items():
+    for task in await read_task_records_by_statuses(r, *TERMINAL_DIGEST_STATUSES):
         try:
-            raw = task_json.decode() if isinstance(task_json, bytes) else task_json
-            task = json.loads(raw)
-
-            created = float(task.get("created_at", 0))
-            if created < cutoff:
+            terminal_at = float(
+                task.get("completed_at")
+                or task.get("updated_at")
+                or task.get("started_at")
+                or task.get("created_at")
+                or 0
+            )
+            if terminal_at < cutoff:
                 continue
 
             status = task.get("status", "")
-            agent = task.get("agent_id", "unknown")
+            agent = task.get("agent", "unknown")
             prompt = task.get("prompt", task.get("description", ""))
 
             agents[agent] += 1
 
-            # Categorize by prompt keywords
             prompt_lower = (prompt or "").lower()
             if "home assistant" in prompt_lower or "entities" in prompt_lower:
                 categories["home_checks"] += 1
@@ -97,21 +153,24 @@ async def _generate_digest_from_tasks(r) -> dict:
 
             if status == "completed":
                 result_preview = (task.get("result", "") or "")[:200]
-                completed.append({
-                    "agent": agent,
-                    "prompt": (prompt or "")[:120],
-                    "result_preview": result_preview,
-                })
+                completed.append(
+                    {
+                        "agent": agent,
+                        "prompt": (prompt or "")[:120],
+                        "result_preview": result_preview,
+                    }
+                )
             elif status in ("failed", "error"):
-                failed.append({
-                    "agent": agent,
-                    "prompt": (prompt or "")[:120],
-                    "error": (task.get("error", "") or "")[:200],
-                })
+                failed.append(
+                    {
+                        "agent": agent,
+                        "prompt": (prompt or "")[:120],
+                        "error": (task.get("error", "") or "")[:200],
+                    }
+                )
         except Exception:
             continue
 
-    # Build summary text
     parts = []
     total = len(completed) + len(failed)
     if total == 0:

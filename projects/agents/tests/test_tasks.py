@@ -3,20 +3,14 @@
 Covers Task dataclass, prompt building, priority ordering, and Redis-backed CRUD.
 """
 
+import asyncio
 import json
 import os
 import sys
 import time
+import types
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
-
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SRC_ROOT = PROJECT_ROOT / "src"
-
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
 
 # Mock langchain_core before importing tasks.py — not installed on DEV
 if "langchain_core" not in sys.modules:
@@ -308,10 +302,18 @@ class TestTaskConstants(unittest.TestCase):
 def _mock_redis():
     """Create a mock Redis instance with async methods."""
     mock = AsyncMock()
+    mock.set = AsyncMock(return_value=True)
+    mock.delete = AsyncMock(return_value=1)
     mock.hset = AsyncMock()
     mock.hget = AsyncMock(return_value=None)
     mock.hgetall = AsyncMock(return_value={})
     mock.hdel = AsyncMock(return_value=1)
+    mock.smembers = AsyncMock(return_value=set())
+    mock.sadd = AsyncMock(return_value=1)
+    mock.srem = AsyncMock(return_value=1)
+    mock.zadd = AsyncMock(return_value=1)
+    mock.zrevrange = AsyncMock(return_value=[])
+    mock.zrem = AsyncMock(return_value=1)
     mock.publish = AsyncMock()
     return mock
 
@@ -351,14 +353,16 @@ class TestListTasks(unittest.IsolatedAsyncioTestCase):
     async def test_returns_all_tasks(self):
         from athanor_agents.tasks import list_tasks, Task
 
-        tasks = {
-            "t1": json.dumps(Task(id="t1", agent="a", status="pending", created_at=1000).to_dict()),
-            "t2": json.dumps(Task(id="t2", agent="b", status="completed", created_at=1001).to_dict()),
-        }
+        records = [
+            Task(id="t1", agent="a", status="pending", created_at=1000).to_dict(),
+            Task(id="t2", agent="b", status="completed", created_at=1001).to_dict(),
+        ]
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
 
-        with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+        ):
             result = await list_tasks()
 
         self.assertEqual(len(result), 2)
@@ -366,12 +370,9 @@ class TestListTasks(unittest.IsolatedAsyncioTestCase):
     async def test_filters_by_status(self):
         from athanor_agents.tasks import list_tasks, Task
 
-        tasks = {
-            "t1": json.dumps(Task(id="t1", status="pending", created_at=1000).to_dict()),
-            "t2": json.dumps(Task(id="t2", status="completed", created_at=1001).to_dict()),
-        }
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
+        mock_r.smembers = AsyncMock(return_value={"t1"})
+        mock_r.hget = AsyncMock(return_value=json.dumps(Task(id="t1", status="pending", created_at=1000).to_dict()))
 
         with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
             result = await list_tasks(status="pending")
@@ -382,31 +383,72 @@ class TestListTasks(unittest.IsolatedAsyncioTestCase):
     async def test_filters_by_agent(self):
         from athanor_agents.tasks import list_tasks, Task
 
-        tasks = {
-            "t1": json.dumps(Task(id="t1", agent="coding-agent", status="pending", created_at=1000).to_dict()),
-            "t2": json.dumps(Task(id="t2", agent="research-agent", status="pending", created_at=1001).to_dict()),
-        }
+        records = [
+            Task(id="t1", agent="coding-agent", status="pending", created_at=1000).to_dict(),
+            Task(id="t2", agent="research-agent", status="pending", created_at=1001).to_dict(),
+        ]
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
 
-        with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+        ):
             result = await list_tasks(agent="coding-agent")
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["agent"], "coding-agent")
 
+    async def test_filters_by_multiple_statuses(self):
+        from athanor_agents.tasks import list_tasks, Task
+
+        records = [
+            Task(id="t1", agent="coding-agent", status="pending", created_at=1000).to_dict(),
+            Task(id="t2", agent="coding-agent", status="running", created_at=1001, started_at=1001).to_dict(),
+        ]
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)) as read_by_statuses,
+        ):
+            result = await list_tasks(statuses=["pending", "running"], limit=None)
+
+        read_by_statuses.assert_awaited_once_with(mock_r, "pending", "running", limit=None)
+        self.assertEqual(2, len(result))
+
+    async def test_agent_filter_does_not_push_limit_into_store_reads(self):
+        from athanor_agents.tasks import list_tasks, Task
+
+        records = [
+            Task(id="t1", agent="other-agent", status="pending", created_at=1000).to_dict(),
+            Task(id="t2", agent="coding-agent", status="pending", created_at=1001).to_dict(),
+        ]
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_status", AsyncMock(return_value=records)) as read_by_status,
+        ):
+            result = await list_tasks(status="pending", agent="coding-agent", limit=1)
+
+        read_by_status.assert_awaited_once_with(mock_r, "pending", limit=None)
+        self.assertEqual(1, len(result))
+        self.assertEqual("coding-agent", result[0]["agent"])
+
     async def test_pending_sorted_by_priority_then_created(self):
         from athanor_agents.tasks import list_tasks, Task
 
-        tasks = {
-            "t1": json.dumps(Task(id="t1", status="pending", priority="low", created_at=1000).to_dict()),
-            "t2": json.dumps(Task(id="t2", status="pending", priority="critical", created_at=1002).to_dict()),
-            "t3": json.dumps(Task(id="t3", status="pending", priority="high", created_at=1001).to_dict()),
-        }
+        records = [
+            Task(id="t1", status="pending", priority="low", created_at=1000).to_dict(),
+            Task(id="t2", status="pending", priority="critical", created_at=1002).to_dict(),
+            Task(id="t3", status="pending", priority="high", created_at=1001).to_dict(),
+        ]
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
 
-        with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+        ):
             result = await list_tasks()
 
         # Should be: critical, high, low
@@ -417,14 +459,13 @@ class TestListTasks(unittest.IsolatedAsyncioTestCase):
     async def test_respects_limit(self):
         from athanor_agents.tasks import list_tasks, Task
 
-        tasks = {
-            f"t{i}": json.dumps(Task(id=f"t{i}", status="pending", created_at=1000 + i).to_dict())
-            for i in range(10)
-        }
+        records = [Task(id=f"t{i}", status="pending", created_at=1000 + i).to_dict() for i in range(10)]
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
 
-        with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+        ):
             result = await list_tasks(limit=3)
 
         self.assertEqual(len(result), 3)
@@ -507,13 +548,14 @@ class TestGetNextPending(unittest.IsolatedAsyncioTestCase):
     async def test_picks_highest_priority(self):
         from athanor_agents.tasks import _get_next_pending, Task
 
-        tasks = {
-            "t1": json.dumps(Task(id="t1", status="pending", priority="low", created_at=1000).to_dict()),
-            "t2": json.dumps(Task(id="t2", status="pending", priority="high", created_at=1001).to_dict()),
-            "t3": json.dumps(Task(id="t3", status="completed", priority="critical", created_at=999).to_dict()),
-        }
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
+        mock_r.smembers = AsyncMock(return_value={"t1", "t2"})
+        mock_r.hget = AsyncMock(
+            side_effect=[
+                json.dumps(Task(id="t1", status="pending", priority="low", created_at=1000).to_dict()),
+                json.dumps(Task(id="t2", status="pending", priority="high", created_at=1001).to_dict()),
+            ]
+        )
 
         with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
             result = await _get_next_pending()
@@ -524,13 +566,15 @@ class TestGetNextPending(unittest.IsolatedAsyncioTestCase):
     async def test_fifo_within_same_priority(self):
         from athanor_agents.tasks import _get_next_pending, Task
 
-        tasks = {
-            "t1": json.dumps(Task(id="t1", status="pending", priority="normal", created_at=1002).to_dict()),
-            "t2": json.dumps(Task(id="t2", status="pending", priority="normal", created_at=1000).to_dict()),
-            "t3": json.dumps(Task(id="t3", status="pending", priority="normal", created_at=1001).to_dict()),
-        }
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
+        mock_r.smembers = AsyncMock(return_value={"t1", "t2", "t3"})
+        mock_r.hget = AsyncMock(
+            side_effect=[
+                json.dumps(Task(id="t1", status="pending", priority="normal", created_at=1002).to_dict()),
+                json.dumps(Task(id="t2", status="pending", priority="normal", created_at=1000).to_dict()),
+                json.dumps(Task(id="t3", status="pending", priority="normal", created_at=1001).to_dict()),
+            ]
+        )
 
         with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
             result = await _get_next_pending()
@@ -540,11 +584,8 @@ class TestGetNextPending(unittest.IsolatedAsyncioTestCase):
     async def test_returns_none_when_no_pending(self):
         from athanor_agents.tasks import _get_next_pending, Task
 
-        tasks = {
-            "t1": json.dumps(Task(id="t1", status="completed").to_dict()),
-        }
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
+        mock_r.smembers = AsyncMock(return_value=set())
 
         with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
             result = await _get_next_pending()
@@ -568,16 +609,28 @@ class TestMaybeRetry(unittest.IsolatedAsyncioTestCase):
             retry_count=0,
         )
         mock_r = _mock_redis()
+        decision = types.SimpleNamespace(
+            status_override="pending",
+            autonomy_level="B",
+            reason="Retry allowed inside autonomy phase",
+        )
+        governor = types.SimpleNamespace(gate_task_submission=AsyncMock(return_value=decision))
 
-        with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.governor.Governor.get", return_value=governor),
+        ):
             await _maybe_retry(task)
 
         # Should have stored a new retry task
         mock_r.hset.assert_called_once()
+        mock_r.publish.assert_awaited_once()
         stored = json.loads(mock_r.hset.call_args[0][2])
         self.assertEqual(stored["retry_count"], 1)
         self.assertEqual(stored["agent"], "coding-agent")
         self.assertIn("OOM on GPU", stored["previous_error"])
+        self.assertEqual("pending", stored["status"])
+        self.assertEqual("Retry allowed inside autonomy phase", stored["metadata"]["governor_decision"])
 
     async def test_does_not_retry_when_exhausted(self):
         from athanor_agents.tasks import _maybe_retry, Task, MAX_TASK_RETRIES
@@ -597,6 +650,234 @@ class TestMaybeRetry(unittest.IsolatedAsyncioTestCase):
 
         mock_r.hset.assert_not_called()
 
+    async def test_retry_hold_respects_governor_phase_gate(self):
+        from athanor_agents.tasks import _maybe_retry, Task
+
+        task = Task(
+            id="fail3",
+            agent="coding-agent",
+            prompt="Retry the pipeline step",
+            status="failed",
+            error="Needs operator review",
+            retry_count=0,
+        )
+        mock_r = _mock_redis()
+        decision = types.SimpleNamespace(
+            status_override="pending_approval",
+            autonomy_level="D",
+            reason="Autonomy phase software_core_phase_1 is not enabled",
+        )
+        governor = types.SimpleNamespace(gate_task_submission=AsyncMock(return_value=decision))
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.governor.Governor.get", return_value=governor),
+        ):
+            await _maybe_retry(task)
+
+        stored = json.loads(mock_r.hset.call_args[0][2])
+        self.assertEqual("pending_approval", stored["status"])
+        self.assertTrue(stored["metadata"]["requires_approval"])
+        self.assertEqual("D", stored["metadata"]["governor_autonomy_level"])
+
+
+class TestSubmitTask(unittest.IsolatedAsyncioTestCase):
+    async def test_submit_task_persists_and_publishes_event(self):
+        from athanor_agents.tasks import submit_task
+
+        mock_r = _mock_redis()
+        subscriptions_stub = types.SimpleNamespace(
+            attach_task_execution_lease=AsyncMock(return_value={"source": "task_api"})
+        )
+        agents_stub = types.SimpleNamespace(list_agents=lambda: ["coding-agent"])
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks._has_duplicate_pending", AsyncMock(return_value=None)),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+            patch("athanor_agents.tasks.publish_task_event", AsyncMock()) as publish_task_event,
+            patch.dict(
+                sys.modules,
+                {
+                    "athanor_agents.agents": agents_stub,
+                    "athanor_agents.subscriptions": subscriptions_stub,
+                },
+            ),
+        ):
+            task = await submit_task("coding-agent", "Write a contract test")
+
+        self.assertEqual(task.agent, "coding-agent")
+        persist_task_state.assert_awaited_once()
+        publish_task_event.assert_awaited_once()
+        published = publish_task_event.await_args.args[0]
+        self.assertEqual("task_submitted", published["event"])
+        self.assertEqual("coding-agent", published["agent"])
+
+    async def test_submit_governed_task_records_governor_context(self):
+        from athanor_agents.tasks import Task, submit_governed_task
+
+        decision = types.SimpleNamespace(
+            status_override="pending",
+            autonomy_level="B",
+            reason="Level B - execute with notification",
+        )
+        task = Task(id="gov1", agent="coding-agent", prompt="Write a contract test")
+        governor = types.SimpleNamespace(gate_task_submission=AsyncMock(return_value=decision))
+
+        with (
+            patch("athanor_agents.governor.Governor.get", return_value=governor),
+            patch("athanor_agents.tasks.submit_task", AsyncMock(return_value=task)) as submit_task_mock,
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+        ):
+            submission = await submit_governed_task(
+                "coding-agent",
+                "Write a contract test",
+                priority="high",
+                metadata={"source": "manual", "project": "core"},
+                source="manual",
+            )
+
+        submit_metadata = submit_task_mock.await_args.kwargs["metadata"]
+        self.assertEqual("Level B - execute with notification", submit_metadata["governor_decision"])
+        self.assertEqual("B", submit_metadata["governor_autonomy_level"])
+        self.assertEqual("pending", submit_metadata["governor_status_override"])
+        self.assertNotIn("requires_approval", submit_metadata)
+        persist_task_state.assert_not_awaited()
+        self.assertEqual("gov1", submission.task.id)
+        self.assertIs(submission.decision, decision)
+        self.assertFalse(submission.held_for_approval)
+
+    async def test_submit_governed_task_persists_pending_approval_override(self):
+        from athanor_agents.tasks import Task, submit_governed_task
+
+        decision = types.SimpleNamespace(
+            status_override="pending_approval",
+            autonomy_level="D",
+            reason="Requires approval",
+        )
+        task = Task(
+            id="gov2",
+            agent="general-assistant",
+            prompt="Generate digest",
+            status="pending",
+            metadata={"source": "scheduler"},
+        )
+        governor = types.SimpleNamespace(gate_task_submission=AsyncMock(return_value=decision))
+
+        with (
+            patch("athanor_agents.governor.Governor.get", return_value=governor),
+            patch("athanor_agents.tasks.submit_task", AsyncMock(return_value=task)) as submit_task_mock,
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+        ):
+            submission = await submit_governed_task(
+                "general-assistant",
+                "Generate digest",
+                metadata={"source": "scheduler", "date": "2026-03-27"},
+                source="scheduler",
+            )
+
+        submit_metadata = submit_task_mock.await_args.kwargs["metadata"]
+        self.assertTrue(submit_metadata["requires_approval"])
+        self.assertEqual("D", submit_metadata["governor_autonomy_level"])
+        self.assertEqual("pending_approval", submit_metadata["governor_status_override"])
+        persist_task_state.assert_awaited_once_with(task)
+        self.assertEqual("pending_approval", task.status)
+        self.assertTrue(submission.held_for_approval)
+
+    async def test_submit_governed_task_stamps_governor_metadata_and_requires_approval(self):
+        from athanor_agents.tasks import GovernedTaskSubmission, Task, submit_governed_task
+
+        decision = types.SimpleNamespace(
+            autonomy_level="B",
+            reason="Needs operator review",
+            status_override="pending_approval",
+        )
+        task = Task(id="gov-1", agent="coding-agent", prompt="Review", status="pending_approval")
+        governor = types.SimpleNamespace(gate_task_submission=AsyncMock(return_value=decision))
+
+        with (
+            patch("athanor_agents.governor.Governor.get", return_value=governor),
+            patch("athanor_agents.tasks.submit_task", AsyncMock(return_value=task)) as submit_task_mock,
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+        ):
+            result = await submit_governed_task(
+                "coding-agent",
+                "Review contract",
+                priority="high",
+                metadata={"project": "athanor"},
+                source="manual",
+            )
+
+        self.assertIsInstance(result, GovernedTaskSubmission)
+        self.assertIs(result.task, task)
+        self.assertIs(result.decision, decision)
+        self.assertTrue(result.held_for_approval)
+        submit_kwargs = submit_task_mock.await_args.kwargs
+        self.assertEqual("manual", submit_kwargs["metadata"]["source"])
+        self.assertEqual("Needs operator review", submit_kwargs["metadata"]["governor_decision"])
+        self.assertTrue(submit_kwargs["metadata"]["requires_approval"])
+        self.assertEqual("athanor", submit_kwargs["metadata"]["project"])
+        persist_task_state.assert_not_awaited()
+
+    async def test_submit_governed_task_persists_override_when_submitter_bypasses_pending_state(self):
+        from athanor_agents.tasks import Task, submit_governed_task
+
+        decision = types.SimpleNamespace(
+            autonomy_level="B",
+            reason="Scheduler-held for approval",
+            status_override="pending_approval",
+        )
+        task = Task(id="gov-2", agent="general-assistant", prompt="Digest", status="pending")
+        governor = types.SimpleNamespace(gate_task_submission=AsyncMock(return_value=decision))
+
+        with (
+            patch("athanor_agents.governor.Governor.get", return_value=governor),
+            patch("athanor_agents.tasks.submit_task", AsyncMock(return_value=task)),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+        ):
+            result = await submit_governed_task(
+                "general-assistant",
+                "Generate digest",
+                metadata={"source": "daily_digest"},
+                source="scheduler",
+            )
+
+        self.assertTrue(result.held_for_approval)
+        self.assertEqual("pending_approval", task.status)
+        persist_task_state.assert_awaited_once_with(task)
+
+
+class TestTaskClaiming(unittest.IsolatedAsyncioTestCase):
+    async def test_claim_pending_task_sets_running_state(self):
+        from athanor_agents.tasks import Task, _claim_pending_task
+
+        task_data = Task(id="claim1", agent="coding-agent", prompt="Fix drift", status="pending").to_dict()
+        mock_r = _mock_redis()
+        mock_r.hget = AsyncMock(return_value=json.dumps(task_data))
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+        ):
+            claimed = await _claim_pending_task("claim1", trigger="worker")
+
+        self.assertIsNotNone(claimed)
+        self.assertEqual("running", claimed.status)
+        self.assertIn("execution_claim", claimed.metadata)
+        mock_r.set.assert_awaited_once()
+        persist_task_state.assert_awaited_once()
+
+    async def test_claim_pending_task_returns_none_when_already_claimed(self):
+        from athanor_agents.tasks import _claim_pending_task
+
+        mock_r = _mock_redis()
+        mock_r.set = AsyncMock(return_value=False)
+
+        with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
+            claimed = await _claim_pending_task("claim2", trigger="dashboard")
+
+        self.assertIsNone(claimed)
+
 
 class TestCleanupOldTasks(unittest.IsolatedAsyncioTestCase):
     """Test _cleanup_old_tasks() TTL enforcement."""
@@ -611,9 +892,14 @@ class TestCleanupOldTasks(unittest.IsolatedAsyncioTestCase):
         )
         tasks = {"old1": json.dumps(old_task.to_dict())}
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
 
-        with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch(
+                "athanor_agents.tasks.read_task_records_by_statuses",
+                AsyncMock(return_value=[old_task.to_dict()]),
+            ),
+        ):
             await _cleanup_old_tasks()
 
         mock_r.hdel.assert_called_once()
@@ -628,12 +914,68 @@ class TestCleanupOldTasks(unittest.IsolatedAsyncioTestCase):
         )
         tasks = {"recent1": json.dumps(recent_task.to_dict())}
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
 
-        with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=[recent_task.to_dict()])),
+        ):
             await _cleanup_old_tasks()
 
         mock_r.hdel.assert_not_called()
+
+
+class TestRecoverStaleTasks(unittest.IsolatedAsyncioTestCase):
+    """Test restart recovery for in-flight tasks."""
+
+    async def test_marks_running_tasks_stale_and_retries(self):
+        from athanor_agents.tasks import Task, _recover_stale_tasks
+
+        mock_r = _mock_redis()
+        running = Task(
+            id="stale1",
+            agent="coding-agent",
+            prompt="Write tests",
+            status="running",
+            retry_count=0,
+        ).to_dict()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_status", AsyncMock(return_value=[running])),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+            patch("athanor_agents.tasks._maybe_retry", AsyncMock()) as mock_retry,
+        ):
+            await _recover_stale_tasks()
+
+        recovered_task = persist_task_state.await_args.args[0]
+        self.assertEqual(recovered_task.status, "stale_lease")
+        self.assertEqual(recovered_task.error, "Execution lease expired during server restart")
+        self.assertEqual(recovered_task.metadata["recovery"]["event"], "stale_lease_recovered")
+        mock_retry.assert_awaited_once()
+
+    async def test_does_not_retry_exhausted_stale_task(self):
+        from athanor_agents.tasks import Task, _recover_stale_tasks, MAX_TASK_RETRIES
+
+        mock_r = _mock_redis()
+        running = Task(
+            id="stale2",
+            agent="coding-agent",
+            prompt="Write tests",
+            status="running",
+            retry_count=MAX_TASK_RETRIES,
+        ).to_dict()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_status", AsyncMock(return_value=[running])),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+            patch("athanor_agents.tasks._maybe_retry", AsyncMock()) as mock_retry,
+        ):
+            await _recover_stale_tasks()
+
+        recovered_task = persist_task_state.await_args.args[0]
+        self.assertEqual(recovered_task.status, "stale_lease")
+        mock_retry.assert_not_awaited()
 
     async def test_keeps_pending_tasks_regardless_of_age(self):
         from athanor_agents.tasks import _cleanup_old_tasks, Task
@@ -645,12 +987,151 @@ class TestCleanupOldTasks(unittest.IsolatedAsyncioTestCase):
         )
         tasks = {"pending1": json.dumps(old_pending.to_dict())}
         mock_r = _mock_redis()
-        mock_r.hgetall = AsyncMock(return_value=tasks)
 
-        with patch("athanor_agents.tasks._get_redis", return_value=mock_r):
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=[])),
+        ):
             await _cleanup_old_tasks()
 
         mock_r.hdel.assert_not_called()
+
+
+class TestTaskStats(unittest.IsolatedAsyncioTestCase):
+    async def test_get_task_stats_includes_flattened_status_counts(self):
+        from athanor_agents.tasks import Task, get_task_stats
+
+        records = [
+            Task(id="p1", status="pending", agent="coding-agent", created_at=1000).to_dict(),
+            Task(id="r1", status="running", agent="coding-agent", created_at=1001, started_at=1001).to_dict(),
+            Task(
+                id="c1",
+                status="completed",
+                agent="research-agent",
+                created_at=1000,
+                started_at=1001,
+                completed_at=1003,
+            ).to_dict(),
+        ]
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+        ):
+            stats = await get_task_stats()
+
+        self.assertEqual(1, stats["pending"])
+        self.assertEqual(1, stats["running"])
+        self.assertEqual(1, stats["completed"])
+        self.assertEqual(0, stats["failed"])
+        self.assertEqual(0, stats["pending_approval"])
+        self.assertEqual(0, stats["cancelled"])
+        self.assertEqual(0, stats["stale_lease"])
+        self.assertEqual(1, stats["by_status"]["pending"])
+
+
+class TestListRecentTasks(unittest.IsolatedAsyncioTestCase):
+    async def test_list_recent_tasks_uses_updated_index_order(self):
+        from athanor_agents.tasks import Task, list_recent_tasks
+
+        mock_r = _mock_redis()
+        mock_r.zrevrange = AsyncMock(return_value=["t3", "t2", "t1"])
+        records = {
+            "t1": Task(id="t1", agent="coding-agent", status="completed", updated_at=1001, created_at=1000).to_dict(),
+            "t2": Task(id="t2", agent="coding-agent", status="running", updated_at=1003, created_at=1002).to_dict(),
+            "t3": Task(id="t3", agent="research-agent", status="pending", updated_at=1005, created_at=1004).to_dict(),
+        }
+
+        async def _read_task_record(_redis, task_id):
+            return records.get(task_id)
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_record", AsyncMock(side_effect=_read_task_record)),
+        ):
+            result = await list_recent_tasks(limit=3)
+
+        self.assertEqual(["t3", "t2", "t1"], [task["id"] for task in result])
+
+    async def test_list_recent_tasks_filters_agent_and_status(self):
+        from athanor_agents.tasks import Task, list_recent_tasks
+
+        mock_r = _mock_redis()
+        mock_r.zrevrange = AsyncMock(return_value=["t3", "t2", "t1"])
+        records = {
+            "t1": Task(id="t1", agent="coding-agent", status="completed", updated_at=1001, created_at=1000).to_dict(),
+            "t2": Task(id="t2", agent="coding-agent", status="running", updated_at=1003, created_at=1002).to_dict(),
+            "t3": Task(id="t3", agent="research-agent", status="pending", updated_at=1005, created_at=1004).to_dict(),
+        }
+
+        async def _read_task_record(_redis, task_id):
+            return records.get(task_id)
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_record", AsyncMock(side_effect=_read_task_record)),
+        ):
+            result = await list_recent_tasks(agent="coding-agent", statuses=["running", "completed"], limit=5)
+
+        self.assertEqual(["t2", "t1"], [task["id"] for task in result])
+
+
+class TestManualDispatch(unittest.TestCase):
+    """Test manual dispatch through the canonical task engine."""
+
+    def test_dispatch_next_pending_task_returns_empty_when_no_tasks_exist(self):
+        from athanor_agents.tasks import dispatch_next_pending_task
+
+        with patch("athanor_agents.tasks._get_next_pending", AsyncMock(return_value=None)):
+            result = asyncio.run(dispatch_next_pending_task())
+
+        self.assertEqual("empty", result["status"])
+
+    def test_dispatch_next_pending_task_persists_and_schedules_task(self):
+        from athanor_agents.tasks import Task, dispatch_next_pending_task
+
+        task = Task(id="task-123", agent="coding-agent", prompt="Fix the contract drift")
+        claimed_task = Task(
+            id="task-123",
+            agent="coding-agent",
+            prompt="Fix the contract drift",
+            status="running",
+            started_at=1000.0,
+            last_heartbeat=1000.0,
+        )
+
+        with (
+            patch("athanor_agents.tasks._get_next_pending", AsyncMock(return_value=task)),
+            patch("athanor_agents.tasks._evaluate_dispatch_gate", AsyncMock(return_value=(True, ""))),
+            patch("athanor_agents.tasks._claim_pending_task", AsyncMock(return_value=claimed_task)) as claim_task,
+            patch("athanor_agents.tasks.asyncio.create_task") as create_task,
+            patch("athanor_agents.tasks._execute_task", AsyncMock()),
+        ):
+            result = asyncio.run(dispatch_next_pending_task(trigger="dashboard"))
+            scheduled = create_task.call_args.args[0]
+            scheduled.close()
+
+        self.assertEqual("dispatched", result["status"])
+        self.assertEqual("running", claimed_task.status)
+        self.assertEqual("task-123", result["task"]["id"])
+        claim_task.assert_awaited_once_with("task-123", trigger="dashboard")
+        create_task.assert_called_once()
+
+    def test_dispatch_next_pending_task_reports_claimed_elsewhere(self):
+        from athanor_agents.tasks import Task, dispatch_next_pending_task
+
+        task = Task(id="task-123", agent="coding-agent", prompt="Fix the contract drift")
+
+        with (
+            patch("athanor_agents.tasks._get_next_pending", AsyncMock(return_value=task)),
+            patch("athanor_agents.tasks._evaluate_dispatch_gate", AsyncMock(return_value=(True, ""))),
+            patch("athanor_agents.tasks._claim_pending_task", AsyncMock(return_value=None)),
+        ):
+            result = asyncio.run(dispatch_next_pending_task(trigger="dashboard"))
+
+        self.assertEqual("claimed_elsewhere", result["status"])
+        self.assertEqual("task-123", result["task"]["id"])
 
 
 if __name__ == "__main__":
