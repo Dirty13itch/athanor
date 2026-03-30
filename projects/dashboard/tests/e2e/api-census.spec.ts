@@ -11,6 +11,12 @@ const SAFE_GET_APIS = loadApiAuditRecords().filter((api) => {
   if (api.responseMode !== "json") {
     return false;
   }
+  if (api.accessClass !== "public") {
+    return false;
+  }
+  if (api.completionStatus !== "live_complete") {
+    return false;
+  }
   return api.consumerStatus !== "orphan-candidate";
 });
 

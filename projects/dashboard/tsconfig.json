@@ -32,15 +32,26 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "**/*.mts",
+    ".next/types/routes.d.ts",
+    ".next/types/validator.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts",
-    ".next-playwright-3019/types/**/*.ts",
-    ".next-playwright-3019/dev/types/**/*.ts",
-    ".next-playwright-3020/types/**/*.ts",
-    ".next-playwright-3020/dev/types/**/*.ts"
+    ".next-playwright-*/types/**/*.ts",
+    ".next-playwright-*/dev/types/**/*.ts",
+    ".next-playwright-39572/types/**/*.ts",
+    ".next-playwright-39572/dev/types/**/*.ts",
+    ".next-playwright-50935/types/**/*.ts",
+    ".next-playwright-50935/dev/types/**/*.ts",
+    ".next-playwright-39688/types/**/*.ts",
+    ".next-playwright-39688/dev/types/**/*.ts",
+    ".next-playwright-39392/types/**/*.ts",
+    ".next-playwright-39392/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next-playwright-*",
+    "playwright-report",
+    "test-results"
   ]
 }
