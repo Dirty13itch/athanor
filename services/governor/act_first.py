@@ -1,77 +1,79 @@
 """Upgrade Governor to act-first-report-after behavior.
-- Auto-report completed/failed tasks via ntfy
+- Auto-report completed or failed tasks via ntfy
 - Auto-retry failures with different agent
 - Auto-escalate sovereign tasks that fail on cloud
 """
-import requests
-import subprocess
-from datetime import datetime
 
-import os
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from cluster_config import NTFY_URL as _CLUSTER_NTFY_URL
-NTFY_URL = os.environ.get("NTFY_URL", _CLUSTER_NTFY_URL)
+from __future__ import annotations
+
+import subprocess
+
+import requests
+
+from _imports import AGENT_SERVER_URL, NTFY_URL
+
+
 NTFY_TOPIC = "athanor"
-GOVERNOR = "http://localhost:8760"
+AGENT_SERVER = AGENT_SERVER_URL
+
 
 def notify(title, message, priority="default", tags="robot"):
     try:
-        subprocess.run([
-            "curl", "-sf", "-X", "POST", f"{NTFY_URL}/{NTFY_TOPIC}",
-            "-H", f"Title: {title}",
-            "-H", f"Priority: {priority}",
-            "-H", f"Tags: {tags}",
-            "-d", message
-        ], capture_output=True, timeout=5)
-    except:
+        subprocess.run(
+            [
+                "curl",
+                "-sf",
+                "-X",
+                "POST",
+                f"{NTFY_URL}/{NTFY_TOPIC}",
+                "-H",
+                f"Title: {title}",
+                "-H",
+                f"Priority: {priority}",
+                "-H",
+                f"Tags: {tags}",
+                "-d",
+                message,
+            ],
+            capture_output=True,
+            timeout=5,
+        )
+    except Exception:
         pass
 
+
 def report_completed_tasks():
-    """Check for newly completed tasks and report them."""
+    """Report recent completed or failed canonical tasks.
+
+    This helper no longer reads or mutates the legacy governor-local queue.
+    """
     try:
-        r = requests.get(f"{GOVERNOR}/queue", timeout=5)
+        r = requests.get(f"{AGENT_SERVER}/v1/tasks?limit=50", timeout=5)
         if r.status_code != 200:
             return
 
         tasks = r.json().get("tasks", [])
         for task in tasks:
-            if task["status"] == "done" and not task.get("reported"):
+            prompt_preview = str(task.get("prompt", "")).strip()[:50] or str(task.get("id", "task"))
+            if task.get("status") == "completed":
                 notify(
-                    f"Task Done: {task['title'][:50]}",
-                    f"Completed by {task.get('assigned_to', '?')}. Check results.",
+                    f"Task Done: {prompt_preview}",
+                    f"Completed by {task.get('assigned_runtime', '?')}. Check canonical task results.",
                     priority="default",
-                    tags="white_check_mark,athanor"
+                    tags="white_check_mark,athanor",
                 )
-                task["reported"] = True
 
-            if task["status"] == "failed" and not task.get("retried"):
-                # Auto-retry with a different agent
-                task["retried"] = True
-                original_agent = task.get("assigned_to", "")
-
-                # Pick a different agent
-                if original_agent.startswith("local-"):
-                    retry_agent = "claude-max"  # Escalate to cloud
-                elif original_agent == "claude-max":
-                    retry_agent = "local-opencode"  # Try local
-                else:
-                    retry_agent = "local-aider"
-
+            if task.get("status") == "failed":
                 notify(
-                    f"Task Failed: {task['title'][:50]}",
-                    f"Failed on {original_agent}. Auto-retrying on {retry_agent}.",
+                    f"Task Failed: {prompt_preview}",
+                    f"Failed on {task.get('assigned_runtime', '?')}. Review canonical task state before retrying.",
                     priority="high",
-                    tags="warning,athanor"
+                    tags="warning,athanor",
                 )
 
-                # Re-queue
-                task["status"] = "queued"
-                task["assigned_to"] = None
-                task["result"] = f"Auto-retry after failure on {original_agent}"
-
-    except Exception as e:
+    except Exception:
         pass
+
 
 if __name__ == "__main__":
     report_completed_tasks()

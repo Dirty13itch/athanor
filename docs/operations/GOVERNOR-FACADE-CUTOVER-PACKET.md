@@ -6,7 +6,7 @@ Do not edit manually.
 This packet is retained as the verified record of the completed DEV `:8760` cutover. Use it to audit what was backed up, replaced, and verified, and only rerun the commands if drift reopens the seam.
 
 - Registry version: `2026-03-29.2`
-- Cached truth snapshot: `2026-03-30T00:04:37.657861+00:00`
+- Cached truth snapshot: `2026-03-30T01:30:47.049589+00:00`
 - Migrations included: `1`
 
 ## dev-governor-facade-8760-callers
@@ -16,7 +16,7 @@ This packet is retained as the verified record of the completed DEV `:8760` cuto
 - Runtime owner: `/home/shaun/repos/athanor on DEV`
 - Runtime listener: `http://127.0.0.1:8760`
 - Observed runtime repo head: `075490f`
-- Sync-required callers: `9`
+- Sync-required callers: `3`
 - Runbook: [`docs/runbooks/governor-facade-retirement.md`](/C:/Athanor/docs/runbooks/governor-facade-retirement.md)
 - Companion report: [`docs/operations/RUNTIME-MIGRATION-REPORT.md`](/C:/Athanor/docs/operations/RUNTIME-MIGRATION-REPORT.md)
 
@@ -45,7 +45,7 @@ ssh dev 'journalctl -u athanor-governor.service -n 400 --no-pager > "/home/shaun
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/scripts"'
 ssh dev 'cp "/home/shaun/repos/athanor/scripts/drift-check.sh" "/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh"'
-scp "C:/Athanor/.worktrees/truth-backbone/scripts/drift-check.sh" "dev:/home/shaun/repos/athanor/scripts/drift-check.sh"
+scp "C:/Athanor/.worktrees/control-plane/scripts/drift-check.sh" "dev:/home/shaun/repos/athanor/scripts/drift-check.sh"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/scripts/drift-check.sh")
@@ -68,7 +68,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/scripts"'
 ssh dev 'cp "/home/shaun/repos/athanor/scripts/smoke-test.sh" "/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh"'
-scp "C:/Athanor/.worktrees/truth-backbone/scripts/smoke-test.sh" "dev:/home/shaun/repos/athanor/scripts/smoke-test.sh"
+scp "C:/Athanor/.worktrees/control-plane/scripts/smoke-test.sh" "dev:/home/shaun/repos/athanor/scripts/smoke-test.sh"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/scripts/smoke-test.sh")
@@ -91,7 +91,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services"'
 ssh dev 'cp "/home/shaun/repos/athanor/services/cluster_config.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py"'
-scp "C:/Athanor/.worktrees/truth-backbone/services/cluster_config.py" "dev:/home/shaun/repos/athanor/services/cluster_config.py"
+scp "C:/Athanor/.worktrees/control-plane/services/cluster_config.py" "dev:/home/shaun/repos/athanor/services/cluster_config.py"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/cluster_config.py")
@@ -105,7 +105,7 @@ PY'
 #### services/gateway/main.py
 
 - Sync order: `4`
-- Sync decision: `backup_then_replace_runtime_copy`
+- Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/gateway/main.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py`
 - Rollback ready: `True`
@@ -113,8 +113,7 @@ PY'
 
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway"'
-ssh dev 'cp "/home/shaun/repos/athanor/services/gateway/main.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py"'
-scp "C:/Athanor/.worktrees/truth-backbone/services/gateway/main.py" "dev:/home/shaun/repos/athanor/services/gateway/main.py"
+# services/gateway/main.py already matches implementation authority; no file copy required.
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/gateway/main.py")
@@ -128,7 +127,7 @@ PY'
 #### services/governor/status_report.py
 
 - Sync order: `5`
-- Sync decision: `backup_then_replace_runtime_copy`
+- Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/governor/status_report.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py`
 - Rollback ready: `True`
@@ -136,8 +135,7 @@ PY'
 
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor"'
-ssh dev 'cp "/home/shaun/repos/athanor/services/governor/status_report.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py"'
-scp "C:/Athanor/.worktrees/truth-backbone/services/governor/status_report.py" "dev:/home/shaun/repos/athanor/services/governor/status_report.py"
+# services/governor/status_report.py already matches implementation authority; no file copy required.
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/governor/status_report.py")
@@ -151,7 +149,7 @@ PY'
 #### services/governor/overnight.py
 
 - Sync order: `6`
-- Sync decision: `backup_then_replace_runtime_copy`
+- Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/governor/overnight.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py`
 - Rollback ready: `True`
@@ -159,8 +157,7 @@ PY'
 
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor"'
-ssh dev 'cp "/home/shaun/repos/athanor/services/governor/overnight.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py"'
-scp "C:/Athanor/.worktrees/truth-backbone/services/governor/overnight.py" "dev:/home/shaun/repos/athanor/services/governor/overnight.py"
+# services/governor/overnight.py already matches implementation authority; no file copy required.
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/governor/overnight.py")
@@ -174,7 +171,7 @@ PY'
 #### services/governor/act_first.py
 
 - Sync order: `7`
-- Sync decision: `backup_then_replace_runtime_copy`
+- Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/governor/act_first.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py`
 - Rollback ready: `True`
@@ -182,8 +179,7 @@ PY'
 
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor"'
-ssh dev 'cp "/home/shaun/repos/athanor/services/governor/act_first.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py"'
-scp "C:/Athanor/.worktrees/truth-backbone/services/governor/act_first.py" "dev:/home/shaun/repos/athanor/services/governor/act_first.py"
+# services/governor/act_first.py already matches implementation authority; no file copy required.
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/governor/act_first.py")
@@ -197,7 +193,7 @@ PY'
 #### services/governor/self_improve.py
 
 - Sync order: `8`
-- Sync decision: `backup_then_replace_runtime_copy`
+- Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/governor/self_improve.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py`
 - Rollback ready: `True`
@@ -205,8 +201,7 @@ PY'
 
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor"'
-ssh dev 'cp "/home/shaun/repos/athanor/services/governor/self_improve.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py"'
-scp "C:/Athanor/.worktrees/truth-backbone/services/governor/self_improve.py" "dev:/home/shaun/repos/athanor/services/governor/self_improve.py"
+# services/governor/self_improve.py already matches implementation authority; no file copy required.
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/governor/self_improve.py")
@@ -220,7 +215,7 @@ PY'
 #### services/sentinel/checks.py
 
 - Sync order: `9`
-- Sync decision: `backup_then_replace_runtime_copy`
+- Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/sentinel/checks.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py`
 - Rollback ready: `True`
@@ -228,8 +223,7 @@ PY'
 
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel"'
-ssh dev 'cp "/home/shaun/repos/athanor/services/sentinel/checks.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py"'
-scp "C:/Athanor/.worktrees/truth-backbone/services/sentinel/checks.py" "dev:/home/shaun/repos/athanor/services/sentinel/checks.py"
+# services/sentinel/checks.py already matches implementation authority; no file copy required.
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/sentinel/checks.py")

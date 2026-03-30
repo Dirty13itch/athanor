@@ -1,28 +1,33 @@
-"""Status Report Generator — shows exactly what the system is doing and has done.
-Run manually or via cron to see full system state at a glance.
+"""Canonical status report helper.
+Run manually or via cron to summarize current state from live control-plane surfaces.
 """
-import requests
-import json
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from cluster_config import AGENT_SERVER_URL, DASHBOARD_URL, GOVERNOR_URL, DEV_HOST
+
+from __future__ import annotations
+
 from datetime import datetime
 
+import requests
+
+from _imports import AGENT_SERVER_URL, DASHBOARD_URL
+
+
 AGENT_SERVER = AGENT_SERVER_URL
-GOVERNOR = "http://localhost:8760"
-DASHBOARD = "http://localhost:3001"
+DASHBOARD = DASHBOARD_URL
+
 
 def generate_report():
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     report = []
     report.append(f"=== ATHANOR STATUS REPORT - {now} ===\n")
 
-    # 1. Goals — what YOU want the system working on
     try:
         goals = requests.get(f"{AGENT_SERVER}/v1/goals", timeout=10).json().get("goals", [])
         active = [g for g in goals if g.get("active")]
         report.append(f"YOUR GOALS ({len(active)} active):")
-        for g in sorted(active, key=lambda x: {"high":0,"medium":1,"normal":2}.get(x.get("priority","normal"),3)):
+        for g in sorted(
+            active,
+            key=lambda x: {"high": 0, "medium": 1, "normal": 2}.get(x.get("priority", "normal"), 3),
+        ):
             pri = g.get("priority", "?")
             agent = g.get("agent", "global")
             text = g.get("text", "")[:85]
@@ -30,15 +35,21 @@ def generate_report():
     except Exception as e:
         report.append(f"  Goals: unavailable ({e})")
 
-    # 2. Governor task queue — what's queued across ALL projects
     try:
-        stats = requests.get(f"{GOVERNOR}/stats", timeout=10).json()
-        report.append(f"\nTASK QUEUE:")
-        report.append(f"  Queued: {stats.get('queued',0)} | Running: {stats.get('running',0)} | Done: {stats.get('done',0)} | Failed: {stats.get('failed',0)}")
+        stats = requests.get(f"{AGENT_SERVER}/v1/tasks/stats", timeout=10).json()
+        report.append("\nTASK ENGINE:")
+        report.append(
+            "  "
+            f"Pending: {stats.get('pending', 0)} | "
+            f"Pending approval: {stats.get('pending_approval', 0)} | "
+            f"Running: {stats.get('running', 0)} | "
+            f"Completed: {stats.get('completed', 0)} | "
+            f"Failed: {stats.get('failed', 0)} | "
+            f"Cancelled: {stats.get('cancelled', 0)}"
+        )
     except Exception as e:
-        report.append(f"  Governor: unavailable ({e})")
+        report.append(f"  Task engine: unavailable ({e})")
 
-    # 3. Self-improvement proposals (system-generated)
     try:
         proposals = requests.get(f"{AGENT_SERVER}/v1/improvement/proposals", timeout=10).json().get("proposals", [])
         pending = [p for p in proposals if p.get("status") == "proposed"]
@@ -51,7 +62,6 @@ def generate_report():
     except Exception as e:
         report.append(f"  Proposals: unavailable ({e})")
 
-    # 4. Agent health
     try:
         health = requests.get(f"{AGENT_SERVER}/health", timeout=10).json()
         agents = health.get("agents", [])
@@ -59,35 +69,37 @@ def generate_report():
     except Exception as e:
         report.append(f"  Agents: unavailable ({e})")
 
-    # 5. Subscription burn
     try:
         subs = requests.get(f"{DASHBOARD}/api/subscriptions/summary", timeout=10).json()
         providers = subs.get("provider_summaries", [])
         if providers:
             ready = [p for p in providers if p.get("direct_execution_ready")]
             handoff = [p for p in providers if p.get("governed_handoff_ready")]
-            report.append(f"\nSUBSCRIPTIONS: {len(providers)} providers | {len(ready)} direct-ready | {len(handoff)} handoff-ready")
+            report.append(
+                f"\nSUBSCRIPTIONS: {len(providers)} providers | {len(ready)} direct-ready | {len(handoff)} handoff-ready"
+            )
     except Exception as e:
         report.append(f"  Subscriptions: unavailable ({e})")
 
-    # 6. Skills learned
     try:
         skills = requests.get(f"{AGENT_SERVER}/v1/skills", timeout=10).json()
         skill_list = skills.get("skills", skills) if isinstance(skills, dict) else skills
         if isinstance(skill_list, list):
             report.append(f"\nLEARNED SKILLS: {len(skill_list)}")
-    except:
+    except Exception:
         pass
 
-    # 7. Drift check
-    report.append(f"\nSYSTEM HEALTH: Run 'bash ~/repos/athanor/scripts/drift-check.sh' for full 37-check verification")
-
-    report.append(f"\n{'='*60}")
+    report.append(
+        "\nSYSTEM HEALTH: Run 'bash scripts/drift-check.sh' for registry-backed drift verification and "
+        "'python scripts/run_service_contract_tests.py' for the service contract bundle"
+    )
+    report.append(f"\n{'=' * 60}")
     report.append(f"Dashboard: {DASHBOARD_URL}")
     report.append(f"Subscriptions: {DASHBOARD_URL}/subscriptions")
     report.append(f"Agents: {DASHBOARD_URL}/agents")
-    report.append(f"Governor: {GOVERNOR_URL}/status")
+    report.append(f"Governor: {DASHBOARD_URL}/governor")
     return "\n".join(report)
+
 
 if __name__ == "__main__":
     print(generate_report())

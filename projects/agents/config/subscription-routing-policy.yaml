@@ -1,10 +1,12 @@
 version: 1
-updated: 2026-03-11
+updated: 2026-03-28
 
 providers:
   athanor_local:
     enabled: true
     category: local
+    routing_posture: ordinary_auto
+    routing_reason: verified_local_runtime
     role: default_machine_lane
     strengths:
       - privacy_sensitive
@@ -17,6 +19,8 @@ providers:
   anthropic_claude_code:
     enabled: true
     category: subscription
+    routing_posture: ordinary_auto
+    routing_reason: verified_cli_or_recent_burn
     role: lead_interactive_coder
     strengths:
       - architecture
@@ -29,6 +33,8 @@ providers:
   openai_codex:
     enabled: true
     category: subscription
+    routing_posture: ordinary_auto
+    routing_reason: verified_cli_or_recent_burn
     role: async_cloud_executor
     strengths:
       - backlog_execution
@@ -41,6 +47,8 @@ providers:
   google_gemini:
     enabled: true
     category: subscription
+    routing_posture: ordinary_auto
+    routing_reason: verified_cli_or_recent_burn
     role: large_context_auditor
     strengths:
       - repo_wide_analysis
@@ -52,6 +60,8 @@ providers:
   moonshot_kimi:
     enabled: true
     category: subscription
+    routing_posture: ordinary_auto
+    routing_reason: verified_cli_recent_burn_cost_pending
     role: planning_alternative
     strengths:
       - architecture_alternatives
@@ -63,7 +73,9 @@ providers:
   zai_glm_coding:
     enabled: true
     category: subscription
-    role: high_throughput_overflow
+    routing_posture: governed_handoff_only
+    routing_reason: missing_cli_evidence
+    role: standby_bulk_overflow
     strengths:
       - bulk_implementation
       - repeated_fix_loops
@@ -86,14 +98,12 @@ task_classes:
       - anthropic_claude_code
     fallback:
       - openai_codex
-      - zai_glm_coding
       - athanor_local
 
   async_backlog_execution:
     primary:
       - openai_codex
     fallback:
-      - zai_glm_coding
       - athanor_local
 
   repo_wide_audit:
@@ -105,10 +115,10 @@ task_classes:
 
   cheap_bulk_transform:
     primary:
-      - zai_glm_coding
-    fallback:
       - google_gemini
+    fallback:
       - athanor_local
+      - openai_codex
 
   search_heavy_planning:
     primary:
@@ -132,7 +142,6 @@ agents:
       - openai_codex
       - google_gemini
       - moonshot_kimi
-      - zai_glm_coding
 
   research-agent:
     default_task_class: search_heavy_planning
