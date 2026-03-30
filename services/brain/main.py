@@ -7,11 +7,13 @@ Port 8780 on DEV, 30s resource refresh, 5min capacity refresh.
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 import logging
-import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from auth import build_contract
+from operator_contract import build_operator_action, emit_operator_audit_event, require_operator_action
 from registry import CLUSTER, MODELS, can_fit, get_cluster_state
 from capacity import predict_disk_full, detect_memory_leaks, get_capacity_report
 from lifecycle import (
@@ -26,6 +28,8 @@ from advisor import generate_briefing
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("brain")
+SERVICE_STARTED_AT = datetime.now(timezone.utc).isoformat()
+AUTH_CONTRACT = build_contract(service_name="brain")
 
 # ── Cached state ───────────────────────────────────────────────────────
 _state: dict = {
@@ -33,32 +37,79 @@ _state: dict = {
     "predictions": {},
     "updated_at": None,
 }
+_health_state: dict[str, str | None] = {
+    "resource_last_checked_at": None,
+    "resource_error": None,
+    "capacity_last_checked_at": None,
+    "capacity_error": None,
+}
 
 scheduler = BackgroundScheduler()
 
 
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    candidate = build_operator_action(body, default_reason=default_reason)
+    try:
+        action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
+
+
 def refresh_state():
     """Periodic refresh of cluster resource state (every 30s)."""
+    checked_at = datetime.now(timezone.utc).isoformat()
     try:
         _state["resources"] = get_cluster_state()
         _state["updated_at"] = datetime.now(timezone.utc).isoformat()
+        _health_state["resource_last_checked_at"] = checked_at
+        _health_state["resource_error"] = None
         gpu_count = len(_state["resources"].get("gpu", {}))
         logger.info("State refreshed: %d GPUs tracked", gpu_count)
     except Exception as e:
+        _health_state["resource_last_checked_at"] = checked_at
+        _health_state["resource_error"] = str(e)
         logger.error("State refresh failed: %s", e)
 
 
 def refresh_capacity():
     """Periodic capacity trend analysis (every 5min)."""
+    checked_at = datetime.now(timezone.utc).isoformat()
     try:
         _state["predictions"] = get_capacity_report()
+        _health_state["capacity_last_checked_at"] = checked_at
+        _health_state["capacity_error"] = None
         logger.info("Capacity report refreshed")
     except Exception as e:
+        _health_state["capacity_last_checked_at"] = checked_at
+        _health_state["capacity_error"] = str(e)
         logger.error("Capacity refresh failed: %s", e)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    AUTH_CONTRACT.validate_startup()
     refresh_state()
     refresh_capacity()
     scheduler.add_job(refresh_state, "interval", seconds=30, id="refresh_state")
@@ -72,11 +123,61 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Athanor System Brain", version="0.1.0", lifespan=lifespan)
 
 
+@app.middleware("http")
+async def bearer_auth_middleware(request: Request, call_next):
+    denial = AUTH_CONTRACT.authorize(request)
+    if denial is not None:
+        return denial
+    return await call_next(request)
+
+
 # ── Layer 1-2: Resource Registry + Capacity Planner ────────────────────
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "brain", "port": 8780}
+    dependencies = [
+        {
+            "id": "resource-refresh",
+            "status": "down" if _health_state["resource_error"] else "healthy",
+            "required": True,
+            "last_checked_at": _health_state["resource_last_checked_at"] or SERVICE_STARTED_AT,
+            "detail": _health_state["resource_error"] or f"{len(_state.get('resources', {}).get('gpu', {}))} GPUs tracked",
+        },
+        {
+            "id": "capacity-refresh",
+            "status": "down" if _health_state["capacity_error"] else "healthy",
+            "required": True,
+            "last_checked_at": _health_state["capacity_last_checked_at"] or SERVICE_STARTED_AT,
+            "detail": _health_state["capacity_error"] or "Capacity report cached",
+        },
+        {
+            "id": "scheduler",
+            "status": "healthy" if getattr(scheduler, "running", False) else "down",
+            "required": True,
+            "last_checked_at": datetime.now(timezone.utc).isoformat(),
+            "detail": "30s state refresh / 5m capacity refresh",
+        },
+    ]
+    degraded = any(dependency["status"] != "healthy" for dependency in dependencies if dependency["required"])
+    last_error = next(
+        (dependency["detail"] for dependency in dependencies if dependency["status"] != "healthy"),
+        None,
+    )
+    return {
+        "service": "brain",
+        "version": app.version,
+        "status": "degraded" if degraded else "healthy",
+        "auth_class": "admin",
+        "dependencies": dependencies,
+        "last_error": last_error,
+        "started_at": SERVICE_STARTED_AT,
+        "actions_allowed": [
+            "lifecycle.load",
+            "lifecycle.unload",
+            "lifecycle.swap-for-comfyui",
+        ],
+        "port": 8780,
+    }
 
 
 @app.get("/status")
@@ -142,15 +243,79 @@ async def lifecycle_loaded():
 
 
 @app.post("/lifecycle/load")
-async def lifecycle_load(model: str, keep_alive: str = "5m"):
+async def lifecycle_load(request: Request, model: str, keep_alive: str = "5m"):
     """Load a model into Ollama VRAM."""
-    return await async_load_model(model, keep_alive)
+    _body, action, denial = await _load_operator_body(
+        request,
+        route="/lifecycle/load",
+        action_class="admin",
+        default_reason="",
+    )
+    if denial:
+        return denial
+
+    try:
+        result = await async_load_model(model, keep_alive)
+    except Exception as exc:
+        await emit_operator_audit_event(
+            route="/lifecycle/load",
+            action_class="admin",
+            decision="denied",
+            status_code=500,
+            action=action,
+            detail=str(exc)[:160],
+            target=model,
+            metadata={"keep_alive": keep_alive},
+        )
+        raise
+
+    await emit_operator_audit_event(
+        route="/lifecycle/load",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        target=model,
+        metadata={"keep_alive": keep_alive},
+    )
+    return result
 
 
 @app.post("/lifecycle/unload")
-async def lifecycle_unload(model: str):
+async def lifecycle_unload(request: Request, model: str):
     """Unload a model from Ollama VRAM."""
-    return await async_unload_model(model)
+    _body, action, denial = await _load_operator_body(
+        request,
+        route="/lifecycle/unload",
+        action_class="admin",
+        default_reason="",
+    )
+    if denial:
+        return denial
+
+    try:
+        result = await async_unload_model(model)
+    except Exception as exc:
+        await emit_operator_audit_event(
+            route="/lifecycle/unload",
+            action_class="admin",
+            decision="denied",
+            status_code=500,
+            action=action,
+            detail=str(exc)[:160],
+            target=model,
+        )
+        raise
+
+    await emit_operator_audit_event(
+        route="/lifecycle/unload",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        target=model,
+    )
+    return result
 
 
 @app.get("/lifecycle/idle")
@@ -160,9 +325,42 @@ async def lifecycle_idle(minutes: int = 30):
 
 
 @app.post("/lifecycle/swap-for-comfyui")
-async def lifecycle_swap():
+async def lifecycle_swap(request: Request):
     """Unload sovereign model to free VRAM for ComfyUI on WORKSHOP GPU 0."""
-    return await swap_models("huihui_ai/qwen3.5-abliterated:35b", "none")
+    from_model = "huihui_ai/qwen3.5-abliterated:35b"
+    to_model = "none"
+    _body, action, denial = await _load_operator_body(
+        request,
+        route="/lifecycle/swap-for-comfyui",
+        action_class="admin",
+        default_reason="",
+    )
+    if denial:
+        return denial
+
+    try:
+        result = await swap_models(from_model, to_model)
+    except Exception as exc:
+        await emit_operator_audit_event(
+            route="/lifecycle/swap-for-comfyui",
+            action_class="admin",
+            decision="denied",
+            status_code=500,
+            action=action,
+            detail=str(exc)[:160],
+            target=f"{from_model}->{to_model}",
+        )
+        raise
+
+    await emit_operator_audit_event(
+        route="/lifecycle/swap-for-comfyui",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        target=f"{from_model}->{to_model}",
+    )
+    return result
 
 
 # ── Layer 4: Workload Placer ───────────────────────────────────────────

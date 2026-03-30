@@ -1,9 +1,8 @@
 """Resource Registry — knows what the cluster HAS and what models NEED."""
 import httpx
 import logging
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from cluster_config import NODES, PROMETHEUS_URL
+
+from _imports import NODES, PROMETHEUS_URL
 
 logger = logging.getLogger("brain.registry")
 
@@ -27,7 +26,7 @@ CLUSTER = {
     "workshop": {
         "ip": NODES["workshop"],
         "gpus": [
-            {"id": 0, "name": "RTX 5090", "vram_gb": 32.6, "shared": ["ollama_sovereign", "comfyui"]},
+            {"id": 0, "name": "RTX 5090", "vram_gb": 32.6, "shared": ["ollama_workshop", "comfyui"]},
             {"id": 1, "name": "RTX 5060 Ti", "vram_gb": 16.3, "shared": ["ollama_fim", "aesthetic_scorer"]},
         ],
         "ram_gb": 128,
