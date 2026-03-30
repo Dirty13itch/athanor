@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { joinUrl } from "@/lib/config";
+import { getWhisperBaseUrl } from "@/lib/runtime-hosts";
 
 // Proxy to Wyoming Whisper STT on FOUNDRY:10300
 export async function POST(request: NextRequest) {
@@ -14,7 +16,7 @@ export async function POST(request: NextRequest) {
     whisperForm.append("file", file);
     whisperForm.append("model", "whisper-large-v3");
 
-    const res = await fetch("http://192.168.1.244:10300/v1/audio/transcriptions", {
+    const res = await fetch(joinUrl(getWhisperBaseUrl(), "/v1/audio/transcriptions"), {
       method: "POST",
       body: whisperForm,
       signal: AbortSignal.timeout(30000),

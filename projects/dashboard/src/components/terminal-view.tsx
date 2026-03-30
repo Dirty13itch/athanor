@@ -9,12 +9,16 @@ import "@xterm/xterm/css/xterm.css";
 interface TerminalViewProps {
   nodeId: string;
   host: string;
+  bridgeUrl: string;
+  bridgeTicket?: string | null;
   onConnectionChange: (connected: boolean) => void;
 }
 
 export default function TerminalView({
   nodeId,
   host,
+  bridgeUrl,
+  bridgeTicket,
   onConnectionChange,
 }: TerminalViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,6 +29,7 @@ export default function TerminalView({
 
   const connect = useEffectEvent(() => {
     if (!containerRef.current) return;
+    if (!bridgeUrl) return;
 
     // Clean up previous
     wsRef.current?.close();
@@ -69,8 +74,14 @@ export default function TerminalView({
     fitRef.current = fit;
 
     // WebSocket connection to PTY bridge
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//192.168.1.225:3100/ws?node=${nodeId}`;
+    const bridgeEndpoint = new URL(bridgeUrl);
+    bridgeEndpoint.protocol = bridgeEndpoint.protocol === "https:" ? "wss:" : "ws:";
+    bridgeEndpoint.pathname = `${bridgeEndpoint.pathname.replace(/\/+$/, "")}/ws`;
+    bridgeEndpoint.searchParams.set("node", nodeId);
+    if (bridgeTicket) {
+      bridgeEndpoint.searchParams.set("ticket", bridgeTicket);
+    }
+    const wsUrl = bridgeEndpoint.toString();
 
     term.writeln(`\x1b[90mConnecting to ${host}...\x1b[0m`);
     setError(null);
@@ -151,7 +162,7 @@ export default function TerminalView({
       wsRef.current?.close();
       term?.dispose();
     };
-  }, [host, nodeId]);
+  }, [bridgeTicket, bridgeUrl, host, nodeId]);
 
   return (
     <div className="relative h-full">

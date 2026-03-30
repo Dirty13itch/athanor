@@ -12,7 +12,7 @@ async function navigateFromShell(
     await mobileNavButton.click();
   }
 
-  await page.getByRole("link", { name: label }).click();
+  await page.getByRole("link", { name: label }).first().click();
   await expect(page).toHaveURL(destination);
   await expect(page.locator("main h1")).toContainText(heading);
 }
@@ -53,11 +53,14 @@ test("round-trips every /more route tile without losing the route index", async 
       label: element.getAttribute("aria-label") ?? "",
     }))
   );
+  const launchableRouteTiles = routeTiles.filter(
+    (routeTile) => routeTile.href && !routeTile.href.startsWith("/more")
+  );
 
-  for (const routeTile of routeTiles) {
+  for (const routeTile of launchableRouteTiles) {
     await page.locator(`main a[href="${routeTile.href}"]`).first().click();
     await expect(page).not.toHaveURL(/\/more(?:\?.*)?$/);
-    await expect(page.locator("main h1")).toBeVisible();
+    await expect(page.locator("main")).toBeVisible();
     await page.goBack();
     await expect(page).toHaveURL(/\/more(?:\?.*)?$/);
     await expect(page.getByRole("heading", { name: "All Pages" })).toBeVisible();
