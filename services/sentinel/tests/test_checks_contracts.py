@@ -37,7 +37,7 @@ def test_heartbeat_checks_use_topology_health_urls_for_canonical_services() -> N
     ):
         assert heartbeat_map[service_id] == checks.get_health_url(service_id)
 
-    assert heartbeat_map["dashboard"].endswith("/api/overview")
+    assert heartbeat_map["dashboard"].endswith("/api/operator/session")
     assert heartbeat_map["qdrant"].endswith("/collections")
     assert heartbeat_map["comfyui"].endswith("/system_stats")
 
