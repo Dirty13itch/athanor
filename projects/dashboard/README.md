@@ -1,6 +1,10 @@
-# Athanor Dashboard
+# Athanor Command Center
 
-Desktop-first operator console for the Athanor homelab. The dashboard now includes:
+Desktop-first operator console for the Athanor cluster. The user-facing product is the Athanor Command Center; `dashboard` remains the internal package and service name during the transition.
+
+The canonical front door is `https://athanor.local/`. The current transitional runtime target is DEV `:3001`, and the production deployment artifact is the containerized build defined by the local `Dockerfile`.
+
+The command center includes:
 
 - a full command center shell with global status, quick actions, and command palette
 - typed dashboard-owned APIs for overview, services, GPU telemetry, models, and agents
@@ -14,7 +18,7 @@ Desktop-first operator console for the Athanor homelab. The dashboard now includ
 
 | Route | Purpose |
 |-------|---------|
-| `/` | Command center with cluster posture, alerts, trends, hotspots, and launch paths |
+| `/` | Command center with cluster posture, alerts, blockers, approvals, recent work, and launch paths |
 | `/services` | Service operations surface with URL-persisted filters, probe history, and detail drawer |
 | `/gpu` | Fleet telemetry with node trends, hotspot triage, drill-down charts, and comparison |
 | `/chat` | Persisted direct-model chat sessions with export/copy/abort controls |
@@ -45,9 +49,11 @@ Local QA commands:
 
 ```bash
 npm test
+npm run typecheck
 npm run lint
 npm run build
 npm run test:e2e
+npm run test:e2e:terminal
 npm run storybook:build
 ```
 
@@ -89,6 +95,13 @@ Secrets are env-only:
 - `VAPID_PRIVATE_KEY`
 
 The remaining media and UI endpoints fall back to sensible defaults derived from the host variables.
+
+Front-door-specific variables:
+
+- `ATHANOR_COMMAND_CENTER_URL`
+- `ATHANOR_WORKSHOP_LINK_HOST`
+- `ATHANOR_VAULT_LINK_HOST`
+- `ATHANOR_ULRICH_LINK_URL`
 
 ## Notes
 
