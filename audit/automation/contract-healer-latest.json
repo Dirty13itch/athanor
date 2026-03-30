@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-03-30T06:33:21.308992+00:00",
+  "generated_at": "2026-03-30T06:49:19.696521+00:00",
   "lane": "contract_healer",
   "action_class": "drift_report_generation",
-  "success": false,
+  "success": true,
   "checks": [
     {
       "command": [
         "C:\\Program Files\\Python313\\python.exe",
         "scripts/validate_platform_contract.py"
       ],
-      "returncode": 1,
-      "stdout": "",
-      "stderr": "FAIL: Generated doc is stale: docs/operations/PROVIDER-CATALOG-REPORT.md (docs/operations/PROVIDER-CATALOG-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/OPERATOR-SURFACE-REPORT.md (docs/operations/OPERATOR-SURFACE-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/OPERATOR-SURFACE-REPORT.md (docs/operations/OPERATOR-SURFACE-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/RUNTIME-MIGRATION-REPORT.md (docs/operations/RUNTIME-MIGRATION-REPORT.md is stale)",
-      "duration_seconds": 1.412
+      "returncode": 0,
+      "stdout": "Platform contract OK: 5 nodes, 34 services, 11 projects, 105 doc lifecycle entries.",
+      "stderr": "",
+      "duration_seconds": 3.924
     },
     {
       "command": [
@@ -23,7 +23,7 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.047
+      "duration_seconds": 0.081
     },
     {
       "command": [
@@ -34,10 +34,10 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.046
+      "duration_seconds": 0.096
     }
   ],
-  "operator_visible_summary": "Contract healer detected drift or generator failures.",
+  "operator_visible_summary": "Contract healer regenerated drift evidence successfully.",
   "automation_record_persisted": true,
   "automation_record_error": null
 }
