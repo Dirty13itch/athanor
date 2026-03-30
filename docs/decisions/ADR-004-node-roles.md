@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-15
 **Status:** Accepted
-**Research:** [docs/research/2026-02-15-node-roles.md](../research/2026-02-15-node-roles.md)
+**Research:** [docs/archive/research/2026-02-15-node-roles.md](../archive/research/2026-02-15-node-roles.md)
 **Depends on:** ADR-001 (Base Platform), ADR-002 (Network), ADR-003 (Storage)
 
 ---
@@ -139,7 +139,7 @@ Six GPUs, four machines, all working. No resource conflicts.
 
 ## Sources
 
-- Hardware specs from [docs/hardware/inventory.md](../hardware/inventory.md) and per-node audits
+- Hardware specs from [docs/operations/HARDWARE-REPORT.md](../operations/HARDWARE-REPORT.md), [config/automation-backbone/hardware-inventory.json](../../config/automation-backbone/hardware-inventory.json), and per-node audits
 - GPU allocation logic from [vLLM parallelism docs](https://docs.vllm.ai/en/stable/serving/parallelism_scaling/)
 - NVIDIA container toolkit GPU isolation: `NVIDIA_VISIBLE_DEVICES` environment variable
 - Unraid Docker for always-on services: established community practice

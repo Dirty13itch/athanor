@@ -12,7 +12,7 @@
 
 ## Hardware Context (Corrected)
 
-The Feb 16 research docs had incorrect GPU assignments. Corrected inventory from `docs/hardware/inventory.md`:
+The Feb 16 research docs had incorrect GPU assignments. Corrected inventory from `docs/archive/hardware/hardware-inventory.md` and the current hardware report:
 
 | Node | CPU | RAM | GPUs | VRAM | Bandwidth per GPU |
 |------|-----|-----|------|------|-------------------|

@@ -9,9 +9,10 @@ This document is the program-level north star above:
 
 - `docs/VISION.md`
 - `docs/SYSTEM-SPEC.md`
-- `docs/BUILD-MANIFEST.md`
+- `STATUS.md`
+- `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
 
-`BUILD-MANIFEST.md` remains the tactical queue. This document defines what that queue is for.
+`STATUS.md` and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` are the live current-state and execution queue layers. This document defines what that queue is for.
 
 ## Target State
 
