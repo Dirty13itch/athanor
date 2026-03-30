@@ -147,14 +147,28 @@ async def delegate_to_agent(agent_name: str, prompt: str, priority: str = "norma
         priority: Task priority — "critical", "high", "normal", or "low"
     """
     try:
-        from ..tasks import submit_task
+        from ..tasks import submit_governed_task
 
-        task = await submit_task(
+        submission = await submit_governed_task(
             agent=agent_name,
             prompt=prompt,
             priority=priority,
-            metadata={"source": "delegation"},
+            metadata={
+                "source": "delegation",
+                "delegation": {
+                    "submitted_via": "delegate_to_agent",
+                    "target_agent": agent_name,
+                },
+            },
+            source="delegation",
         )
+        task = submission.task
+        if submission.held_for_approval or task.status == "pending_approval":
+            return (
+                f"Task delegated to {agent_name} (task_id={task.id}, priority={priority}) "
+                "but it is currently held for approval. "
+                f"Check status at GET /v1/tasks/{task.id}"
+            )
         return (
             f"Task delegated to {agent_name} (task_id={task.id}, priority={priority}). "
             f"The task is queued for background execution. "

@@ -28,16 +28,28 @@ async def _get_redis():
     return await get_redis()
 
 
-async def _submit_and_wait(agent: str, prompt: str, timeout: int = 300) -> dict:
+async def _submit_and_wait(
+    agent: str,
+    prompt: str,
+    timeout: int = 300,
+    *,
+    autonomy_managed: bool = False,
+) -> dict:
     """Submit a task and wait for completion. Returns the task dict."""
-    from .tasks import submit_task, get_task
+    from .tasks import get_task, submit_governed_task
 
-    task = await submit_task(
+    submission = await submit_governed_task(
         agent=agent,
         prompt=prompt,
         priority="normal",
-        metadata={"source": "cascade", "cascade_timeout": timeout},
+        metadata={
+            "source": "cascade",
+            "cascade_timeout": timeout,
+            "_autonomy_managed": autonomy_managed,
+        },
+        source="cascade",
     )
+    task = submission.task
 
     start = time.time()
     while time.time() - start < timeout:
@@ -49,7 +61,7 @@ async def _submit_and_wait(agent: str, prompt: str, timeout: int = 300) -> dict:
     return {"id": task.id, "status": "timeout", "error": f"Cascade task timed out after {timeout}s"}
 
 
-async def run_creative_cascade() -> dict:
+async def run_creative_cascade(*, autonomy_managed: bool = False) -> dict:
     """Run a creative quality cascade: generate → evaluate → refine → loop.
 
     1. Creative agent generates an image for the queen with fewest assets
@@ -88,7 +100,12 @@ async def run_creative_cascade() -> dict:
                     f"Focus on fixing the specific issues mentioned."
                 )
 
-            gen_task = await _submit_and_wait("creative-agent", gen_prompt, timeout=180)
+            gen_task = await _submit_and_wait(
+                "creative-agent",
+                gen_prompt,
+                timeout=180,
+                autonomy_managed=autonomy_managed,
+            )
             loop_result["generate"] = {
                 "task_id": gen_task.get("id"),
                 "status": gen_task.get("status"),
@@ -112,7 +129,12 @@ async def run_creative_cascade() -> dict:
                 "Be critical — generic 'looks good' is not helpful."
             )
 
-            eval_task = await _submit_and_wait("general-assistant", eval_prompt, timeout=120)
+            eval_task = await _submit_and_wait(
+                "general-assistant",
+                eval_prompt,
+                timeout=120,
+                autonomy_managed=autonomy_managed,
+            )
             loop_result["evaluate"] = {
                 "task_id": eval_task.get("id"),
                 "status": eval_task.get("status"),
@@ -152,7 +174,7 @@ async def run_creative_cascade() -> dict:
     return results
 
 
-async def run_code_quality_cascade() -> dict:
+async def run_code_quality_cascade(*, autonomy_managed: bool = False) -> dict:
     """Run a code quality cascade: audit → fix → verify.
 
     1. Coding agent audits a component
@@ -182,7 +204,12 @@ async def run_code_quality_cascade() -> dict:
             "Write a detailed review. Be specific — cite line numbers and exact issues."
         )
 
-        audit_task = await _submit_and_wait("coding-agent", audit_prompt, timeout=180)
+        audit_task = await _submit_and_wait(
+            "coding-agent",
+            audit_prompt,
+            timeout=180,
+            autonomy_managed=autonomy_managed,
+        )
         results["steps"].append({
             "step": "audit",
             "task_id": audit_task.get("id"),
@@ -200,7 +227,12 @@ async def run_code_quality_cascade() -> dict:
                 f"Flag any findings that seem incorrect."
             )
 
-            verify_task = await _submit_and_wait("general-assistant", verify_prompt, timeout=120)
+            verify_task = await _submit_and_wait(
+                "general-assistant",
+                verify_prompt,
+                timeout=120,
+                autonomy_managed=autonomy_managed,
+            )
             results["steps"].append({
                 "step": "verify",
                 "task_id": verify_task.get("id"),

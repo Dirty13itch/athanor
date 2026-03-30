@@ -85,6 +85,78 @@ DPO_TRAINING_HOUR = 2
 DPO_TRAINING_MINUTE = 0
 DPO_TRAINING_WEEKDAY = 5  # Saturday (Monday=0)
 
+SCHEDULED_AGENT_WORKLOADS = {
+    "general-assistant": "private_automation",
+    "media-agent": "background_transform",
+    "home-agent": "private_automation",
+    "knowledge-agent": "private_automation",
+    "research-agent": "research_synthesis",
+    "creative-agent": "refusal_sensitive_creative",
+    "coding-agent": "coding_implementation",
+    "stash-agent": "private_automation",
+}
+
+
+def _load_autonomy_policy():
+    try:
+        from .model_governance import get_current_autonomy_policy
+
+        return get_current_autonomy_policy()
+    except Exception:
+        return None
+
+
+def _autonomy_allows_workload(
+    workload_class: str,
+    *,
+    agent: str = "",
+    loop_id: str = "",
+) -> bool:
+    policy = _load_autonomy_policy()
+    if policy is None:
+        return True
+
+    phase_id = str(policy.phase_id or "unset")
+    label = loop_id or agent or workload_class or "autonomy_loop"
+    if not policy.is_active:
+        logger.info(
+            "Scheduler: skipping %s while autonomy activation is %s/%s",
+            label,
+            policy.phase_status,
+            policy.activation_state,
+        )
+        return False
+
+    if policy.unmet_prerequisite_ids:
+        unmet_ids = ", ".join(policy.unmet_prerequisite_ids)
+        logger.info(
+            "Scheduler: skipping %s because autonomy phase %s has unmet prerequisites: %s",
+            label,
+            phase_id,
+            unmet_ids,
+        )
+        return False
+
+    enabled_agents = set(policy.enabled_agents)
+    if agent and enabled_agents and agent not in enabled_agents:
+        logger.info("Scheduler: skipping %s because agent %s is outside phase %s", label, agent, phase_id)
+        return False
+
+    allowed_workloads = set(policy.allowed_workload_classes)
+    blocked_workloads = set(policy.blocked_workload_classes)
+    if workload_class in blocked_workloads:
+        logger.info("Scheduler: skipping %s because workload %s is blocked in %s", label, workload_class, phase_id)
+        return False
+    if allowed_workloads and workload_class not in allowed_workloads:
+        logger.info(
+            "Scheduler: skipping %s because workload %s is outside autonomy phase %s",
+            label,
+            workload_class,
+            phase_id,
+        )
+        return False
+    return True
+
 AGENT_SCHEDULES = {
     "general-assistant": {
         "interval": 1800,  # 30 min
@@ -296,8 +368,14 @@ async def _set_last_run(agent: str, timestamp: float):
 
 async def _check_daily_digest():
     """Check if it's time to run the daily digest (6:55 AM local)."""
-    from .tasks import submit_task
     from .goals import generate_digest_prompt
+
+    if not _autonomy_allows_workload(
+        "briefing_digest",
+        agent="general-assistant",
+        loop_id="daily_digest",
+    ):
+        return
 
     now = datetime.now()
     if now.hour != DIGEST_HOUR or now.minute != DIGEST_MINUTE:
@@ -317,24 +395,20 @@ async def _check_daily_digest():
     logger.info("Scheduler: generating daily digest")
     try:
         prompt = await generate_digest_prompt()
-        from .governor import Governor
-        gov = Governor.get()
-        decision = await gov.gate_task_submission(
-            agent="general-assistant", prompt=prompt, priority="normal",
-            metadata={"source": "daily_digest", "date": now.strftime("%Y-%m-%d")},
-            source="scheduler",
-        )
-        task = await submit_task(
+        from .tasks import submit_governed_task
+
+        submission = await submit_governed_task(
             agent="general-assistant",
             prompt=prompt,
             priority="normal",
-            metadata={"source": "daily_digest", "date": now.strftime("%Y-%m-%d"),
-                       "governor_decision": decision.reason},
+            metadata={
+                "source": "daily_digest",
+                "date": now.strftime("%Y-%m-%d"),
+                "task_class": "briefing_digest",
+            },
+            source="scheduler",
         )
-        if decision.status_override == "pending_approval":
-            task.status = "pending_approval"
-            from .tasks import _update_task
-            await _update_task(task)
+        task = submission.task
         r = await _get_redis()
         await r.set(DAILY_DIGEST_KEY, now.strftime("%Y-%m-%d"))
         logger.info("Daily digest submitted for %s", now.strftime("%Y-%m-%d"))
@@ -345,6 +419,9 @@ async def _check_daily_digest():
 async def _check_consolidation():
     """Check if it's time to run memory consolidation (3:00 AM local)."""
     from .consolidation import run_consolidation
+
+    if not _autonomy_allows_workload("private_automation", loop_id="consolidation"):
+        return
 
     now = datetime.now()
     if now.hour != CONSOLIDATION_HOUR or now.minute != CONSOLIDATION_MINUTE:
@@ -378,6 +455,9 @@ async def _check_consolidation():
 async def _check_pattern_detection():
     """Check if it's time to run daily pattern detection (5:00 AM local)."""
     from .patterns import run_pattern_detection
+
+    if not _autonomy_allows_workload("private_automation", loop_id="pattern_detection"):
+        return
 
     now = datetime.now()
     if now.hour != PATTERN_HOUR or now.minute != PATTERN_MINUTE:
@@ -425,6 +505,9 @@ async def _check_morning_plan():
     """Check if it's time to run the morning work plan (7:00 AM local)."""
     from .workplanner import generate_work_plan
 
+    if not _autonomy_allows_workload("workplan_generation", loop_id="morning_plan"):
+        return
+
     now = datetime.now()
     if now.hour != WORKPLAN_HOUR or now.minute != WORKPLAN_MINUTE:
         return
@@ -442,7 +525,10 @@ async def _check_morning_plan():
 
     logger.info("Scheduler: generating morning work plan")
     try:
-        plan = await generate_work_plan(focus="morning planning — review all active projects, prioritize highest-impact unblocked work")
+        plan = await generate_work_plan(
+            focus="morning planning — review all active projects, prioritize highest-impact unblocked work",
+            autonomy_managed=True,
+        )
         r = await _get_redis()
         await r.set(WORKPLAN_MORNING_KEY, now.strftime("%Y-%m-%d"))
         logger.info(
@@ -457,6 +543,9 @@ async def _check_morning_plan():
 async def _check_workplan_refill():
     """Check if the task queue needs refilling (every 2 hours)."""
     from .workplanner import should_refill, generate_work_plan
+
+    if not _autonomy_allows_workload("workplan_generation", loop_id="workplan_refill"):
+        return
 
     try:
         r = await _get_redis()
@@ -476,7 +565,10 @@ async def _check_workplan_refill():
             return
 
         logger.info("Scheduler: task queue low, generating refill work plan")
-        plan = await generate_work_plan(focus="queue refill — pick up where we left off")
+        plan = await generate_work_plan(
+            focus="queue refill — pick up where we left off",
+            autonomy_managed=True,
+        )
         r = await _get_redis()
         await r.set(WORKPLAN_REFILL_KEY, str(time.time()))
         logger.info(
@@ -491,6 +583,9 @@ async def _check_workplan_refill():
 async def _check_alerts():
     """Check Prometheus alerts every 5 minutes."""
     from .alerts import check_prometheus_alerts
+
+    if not _autonomy_allows_workload("private_automation", loop_id="alerts"):
+        return
 
     try:
         r = await _get_redis()
@@ -518,10 +613,17 @@ async def _check_alerts():
 
 async def _check_research_jobs():
     """Check for autonomous research jobs that need to run."""
+    if not _autonomy_allows_workload(
+        "research_synthesis",
+        agent="research-agent",
+        loop_id="research_scheduler",
+    ):
+        return
+
     try:
         from .research_jobs import check_scheduled_jobs
 
-        triggered = await check_scheduled_jobs()
+        triggered = await check_scheduled_jobs(autonomy_managed=True)
         if triggered > 0:
             logger.info("Scheduler: triggered %d research job(s)", triggered)
     except Exception as e:
@@ -530,6 +632,9 @@ async def _check_research_jobs():
 
 async def _check_benchmarks():
     """Run self-improvement benchmarks every 6 hours."""
+    if not _autonomy_allows_workload("judge_verification", loop_id="benchmarks"):
+        return
+
     try:
         r = await _get_redis()
         last = await r.get(BENCHMARK_KEY)
@@ -571,6 +676,9 @@ async def _check_owner_model():
     """Check if it's time to run the owner model full rebuild (4:00 AM local)."""
     from .owner_model import rebuild_full
 
+    if not _autonomy_allows_workload("background_transform", loop_id="owner_model"):
+        return
+
     now = datetime.now()
     if now.hour != OWNER_MODEL_HOUR or now.minute != OWNER_MODEL_MINUTE:
         return
@@ -606,6 +714,9 @@ async def _check_improvement_cycle():
     """
     from .self_improvement import get_improvement_engine
 
+    if not _autonomy_allows_workload("background_transform", loop_id="improvement_cycle"):
+        return
+
     now = datetime.now()
     if now.hour != IMPROVEMENT_CYCLE_HOUR or now.minute != IMPROVEMENT_CYCLE_MINUTE:
         return
@@ -639,6 +750,9 @@ async def _check_improvement_cycle():
 
 async def _check_cache_cleanup():
     """Clean expired semantic cache entries every hour."""
+    if not _autonomy_allows_workload("private_automation", loop_id="cache_cleanup"):
+        return
+
     try:
         r = await _get_redis()
         last = await r.get(CACHE_CLEANUP_KEY)
@@ -665,6 +779,9 @@ async def _check_cache_cleanup():
 async def _check_work_pipeline():
     """Check if it's time to run the work pipeline (every 2 hours)."""
     from .work_pipeline import run_pipeline_cycle
+
+    if not _autonomy_allows_workload("workplan_generation", loop_id="work_pipeline"):
+        return
 
     # Interval-based: check if enough time has passed since last run
     try:
@@ -706,6 +823,9 @@ async def _check_nightly_optimization():
     """Check if it's time to run nightly prompt optimization (22:00 local)."""
     from .prompt_optimizer import run_nightly_optimization
 
+    if not _autonomy_allows_workload("background_transform", loop_id="nightly_optimization"):
+        return
+
     now = datetime.now()
     if now.hour != NIGHTLY_OPTIMIZATION_HOUR or now.minute != NIGHTLY_OPTIMIZATION_MINUTE:
         return
@@ -738,6 +858,9 @@ async def _check_nightly_optimization():
 async def _check_knowledge_refresh():
     """Check if it's time to run nightly knowledge refresh (00:00 local)."""
     from .knowledge_refresh import run_knowledge_refresh
+
+    if not _autonomy_allows_workload("private_automation", loop_id="knowledge_refresh"):
+        return
 
     now = datetime.now()
     if now.hour != KNOWLEDGE_REFRESH_HOUR or now.minute != KNOWLEDGE_REFRESH_MINUTE:
@@ -776,6 +899,9 @@ async def _check_weekly_dpo_training():
     Actual LoRA fine-tuning requires stopping vllm-coder — this creates the
     dataset and submits a task for the coding-agent to orchestrate the training.
     """
+    if not _autonomy_allows_workload("background_transform", loop_id="weekly_dpo_training"):
+        return
+
     now = datetime.now()
     if now.weekday() != DPO_TRAINING_WEEKDAY:
         return
@@ -833,9 +959,9 @@ async def _check_weekly_dpo_training():
             len(pairs), dataset_key,
         )
 
-        # Submit a coding-agent task to orchestrate the training
-        from .tasks import submit_task
-        await submit_task(
+        # Submit a governed coding task so phase gates can hold this background transform
+        from .tasks import submit_governed_task
+        await submit_governed_task(
             agent="coding-agent",
             prompt=(
                 f"Weekly DPO training dataset is ready at Redis key '{dataset_key}' "
@@ -848,7 +974,14 @@ async def _check_weekly_dpo_training():
                 "Report dataset stats and readiness status."
             ),
             priority="low",
-            metadata={"source": "dpo_training", "pairs": len(pairs), "date": now.strftime("%Y-%m-%d")},
+            metadata={
+                "source": "dpo_training",
+                "pairs": len(pairs),
+                "date": now.strftime("%Y-%m-%d"),
+                "task_class": "background_transform",
+                "requires_runtime_mutation": True,
+            },
+            source="scheduler",
         )
     except Exception as e:
         logger.warning("Scheduler: DPO training data collection failed: %s", e)
@@ -856,6 +989,13 @@ async def _check_weekly_dpo_training():
 
 async def _check_creative_cascade():
     """Run creative quality cascade every CREATIVE_CASCADE_INTERVAL seconds."""
+    if not _autonomy_allows_workload(
+        "refusal_sensitive_creative",
+        agent="creative-agent",
+        loop_id="creative_cascade",
+    ):
+        return
+
     try:
         r = await _get_redis()
         last = await r.get(CREATIVE_CASCADE_KEY)
@@ -865,7 +1005,10 @@ async def _check_creative_cascade():
 
         logger.info("Scheduler: starting creative quality cascade")
         from .cascade import run_creative_cascade
-        result = await asyncio.wait_for(run_creative_cascade(), timeout=CASCADE_TIMEOUT)
+        result = await asyncio.wait_for(
+            run_creative_cascade(autonomy_managed=True),
+            timeout=CASCADE_TIMEOUT,
+        )
         await r.set(CREATIVE_CASCADE_KEY, str(time.time()))
         logger.info(
             "Creative cascade completed: %d loops, quality=%.2f",
@@ -879,6 +1022,13 @@ async def _check_creative_cascade():
 
 async def _check_code_cascade():
     """Run code quality cascade every CODE_CASCADE_INTERVAL seconds."""
+    if not _autonomy_allows_workload(
+        "coding_implementation",
+        agent="coding-agent",
+        loop_id="code_cascade",
+    ):
+        return
+
     try:
         r = await _get_redis()
         last = await r.get(CODE_CASCADE_KEY)
@@ -888,7 +1038,10 @@ async def _check_code_cascade():
 
         logger.info("Scheduler: starting code quality cascade")
         from .cascade import run_code_quality_cascade
-        result = await asyncio.wait_for(run_code_quality_cascade(), timeout=CASCADE_TIMEOUT)
+        result = await asyncio.wait_for(
+            run_code_quality_cascade(autonomy_managed=True),
+            timeout=CASCADE_TIMEOUT,
+        )
         await r.set(CODE_CASCADE_KEY, str(time.time()))
         logger.info(
             "Code quality cascade completed: %d steps",
@@ -902,7 +1055,6 @@ async def _check_code_cascade():
 
 async def _scheduler_loop():
     """Background scheduler — checks agent schedules and submits tasks."""
-    from .tasks import submit_task
 
     logger.info("Proactive scheduler started (interval=%.0fs)", SCHEDULER_INTERVAL)
 
@@ -964,6 +1116,14 @@ async def _scheduler_loop():
                 last_run = await _get_last_run(agent)
 
                 if now - last_run >= interval:
+                    workload_class = SCHEDULED_AGENT_WORKLOADS.get(agent, "private_automation")
+                    if not _autonomy_allows_workload(
+                        workload_class,
+                        agent=agent,
+                        loop_id=f"schedule:{agent}",
+                    ):
+                        continue
+
                     # INFRA-003: Skip infrastructure tasks during peak hours
                     if schedule.get("infrastructure", False) and is_peak_hours():
                         logger.info(
@@ -977,25 +1137,20 @@ async def _scheduler_loop():
                         agent, interval,
                     )
                     try:
-                        from .governor import Governor
-                        gov = Governor.get()
-                        decision = await gov.gate_task_submission(
-                            agent=agent, prompt=schedule["prompt"],
-                            priority=schedule["priority"],
-                            metadata={"source": "scheduler", "interval": interval},
-                            source="scheduler",
-                        )
-                        task = await submit_task(
+                        from .tasks import submit_governed_task
+
+                        submission = await submit_governed_task(
                             agent=agent,
                             prompt=schedule["prompt"],
                             priority=schedule["priority"],
-                            metadata={"source": "scheduler", "interval": interval,
-                                       "governor_decision": decision.reason},
+                            metadata={
+                                "source": "scheduler",
+                                "interval": interval,
+                                "task_class": workload_class,
+                            },
+                            source="scheduler",
                         )
-                        if decision.status_override == "pending_approval":
-                            task.status = "pending_approval"
-                            from .tasks import _update_task
-                            await _update_task(task)
+                        task = submission.task
                         await _set_last_run(agent, now)
 
                         # Log schedule_run event for pattern detection
@@ -1157,12 +1312,139 @@ async def get_scheduler_health() -> dict:
 
 from typing import Any
 
+BUILTIN_JOB_SCOPES: dict[str, str] = {
+    "daily-digest": "scheduler",
+    "pattern-detection": "scheduler",
+    "consolidation": "scheduler",
+    "morning-plan": "scheduler",
+    "workplan-refill": "scheduler",
+    "alert-check": "alerts",
+    "benchmark-cycle": "benchmark_cycle",
+    "cache-cleanup": "maintenance",
+    "improvement-cycle": "scheduler",
+}
+
 def get_schedule_control_scope(job_id: str) -> str | None:
     if job_id.startswith("agent-schedule:"):
         return "scheduler"
     if job_id.startswith("research:"):
         return "research_jobs"
     return BUILTIN_JOB_SCOPES.get(job_id)
+
+
+async def get_model_intelligence_cadence() -> list[dict[str, Any]]:
+    """Return the modeled cadence records for the model-intelligence lane.
+
+    This is a compatibility/export seam used by model governance snapshots and
+    the dashboard read model. The records are registry-backed, but they still
+    inherit current governor posture so the UI does not report a schedule as
+    runnable when the control plane would defer it.
+    """
+
+    from .model_governance import get_model_intelligence_lane
+
+    cadence = dict(get_model_intelligence_lane().get("cadence") or {})
+    definitions = [
+        {
+            "id": "model-intelligence:weekly-horizon-scan",
+            "cadence_key": "weekly_horizon_scan",
+            "title": "Weekly horizon scan",
+            "job_family": "research_job",
+            "owner_agent": "research-agent",
+            "control_scope": "research_jobs",
+            "trigger_mode": "weekly",
+            "deep_link": "/learning",
+        },
+        {
+            "id": "model-intelligence:weekly-candidate-triage",
+            "cadence_key": "weekly_candidate_triage",
+            "title": "Weekly candidate triage",
+            "job_family": "research_job",
+            "owner_agent": "research-agent",
+            "control_scope": "research_jobs",
+            "trigger_mode": "weekly",
+            "deep_link": "/learning",
+        },
+        {
+            "id": "model-intelligence:monthly-rebaseline",
+            "cadence_key": "monthly_rebaseline",
+            "title": "Monthly rebaseline",
+            "job_family": "benchmarks",
+            "owner_agent": "system",
+            "control_scope": "benchmark_cycle",
+            "trigger_mode": "monthly",
+            "deep_link": "/learning",
+        },
+        {
+            "id": "model-intelligence:urgent-scan",
+            "cadence_key": "urgent_scan",
+            "title": "Urgent model scan",
+            "job_family": "research_job",
+            "owner_agent": "research-agent",
+            "control_scope": "research_jobs",
+            "trigger_mode": "manual",
+            "deep_link": "/learning",
+        },
+    ]
+
+    try:
+        from .governor_backbone import build_capacity_snapshot, evaluate_job_governance
+
+        capacity_snapshot = await build_capacity_snapshot()
+    except Exception as exc:
+        logger.debug("Model intelligence cadence using degraded posture fallback: %s", exc)
+        capacity_snapshot = None
+        evaluate_job_governance = None
+
+    records: list[dict[str, Any]] = []
+    for definition in definitions:
+        governance: dict[str, Any] = {}
+        allowed = True
+
+        if evaluate_job_governance is not None:
+            try:
+                governance = await evaluate_job_governance(
+                    job_id=definition["id"],
+                    job_family=definition["job_family"],
+                    control_scope=definition["control_scope"],
+                    owner_agent=definition["owner_agent"],
+                    capacity_snapshot=capacity_snapshot,
+                )
+                allowed = bool(governance.get("allowed"))
+            except Exception as exc:
+                logger.debug(
+                    "Model intelligence cadence governance degraded for %s: %s",
+                    definition["id"],
+                    exc,
+                )
+                governance = {"reason": str(exc), "status": "degraded"}
+                allowed = False
+
+        records.append(
+            {
+                "id": definition["id"],
+                "cadence_key": definition["cadence_key"],
+                "title": definition["title"],
+                "cadence": str(cadence.get(definition["cadence_key"]) or "manual"),
+                "trigger_mode": definition["trigger_mode"],
+                "job_family": definition["job_family"],
+                "owner_agent": definition["owner_agent"],
+                "control_scope": definition["control_scope"],
+                "current_state": "scheduled" if allowed else "deferred",
+                "can_run_now": allowed,
+                "can_override_now": not allowed,
+                "governor_reason": None if allowed else str(governance.get("reason") or "") or None,
+                "presence_state": str(governance.get("presence_state") or ""),
+                "release_tier": str(governance.get("release_tier") or ""),
+                "capacity_posture": str(governance.get("capacity_posture") or ""),
+                "queue_posture": str(governance.get("queue_posture") or ""),
+                "provider_posture": str(governance.get("provider_posture") or ""),
+                "active_window_ids": list(governance.get("active_window_ids") or []),
+                "deep_link": definition["deep_link"],
+            }
+        )
+
+    return records
 
 
 async def _governor_allows(
@@ -1172,7 +1454,7 @@ async def _governor_allows(
     owner_agent: str,
     capacity_snapshot: dict[str, Any] | None = None,
 ) -> bool:
-    from .governor import evaluate_job_governance
+    from .governor_backbone import evaluate_job_governance
 
     decision = await evaluate_job_governance(
         job_id=job_id,
@@ -1256,7 +1538,7 @@ async def run_scheduled_job(
     *,
     force: bool = False,
 ) -> dict[str, Any]:
-    from .governor import build_capacity_snapshot, evaluate_job_governance
+    from .governor_backbone import build_capacity_snapshot, evaluate_job_governance
 
     job_family, owner_agent = _manual_job_governance_context(job_id)
     capacity_snapshot = await build_capacity_snapshot()
