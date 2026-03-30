@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    ".next/types/routes.d.ts",
+    ".next/types/validator.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next-playwright-*",
+    "playwright-report",
+    "test-results"
+  ]
+}

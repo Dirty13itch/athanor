@@ -1,50 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { agentServerHeaders, config, joinUrl } from "@/lib/config";
+import { proxyAgentJson } from "@/lib/server-agent";
+import { requireOperatorMutationAccess, requireOperatorSessionAccess } from "@/lib/operator-auth";
 
-export async function GET(request: NextRequest) {
-  const path = request.nextUrl.searchParams.get("path");
+function getValidatedAgentProxyPath(request: NextRequest): string | NextResponse {
+  const path = request.nextUrl.searchParams.get("path")?.trim();
   if (!path) {
     return NextResponse.json({ error: "Missing path parameter" }, { status: 400 });
   }
 
-  try {
-    const url = joinUrl(config.agentServer.url, path);
-    const resp = await fetch(url, {
-      headers: agentServerHeaders(),
-      signal: AbortSignal.timeout(10_000),
-    });
-    const data = await resp.json();
-    return NextResponse.json(data, { status: resp.status });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Agent server request failed";
-    return NextResponse.json({ error: message }, { status: 502 });
+  if (!path.startsWith("/")) {
+    return NextResponse.json({ error: "Proxy path must be absolute" }, { status: 400 });
   }
+
+  if (!(path === "/health" || path.startsWith("/v1/"))) {
+    return NextResponse.json({ error: "Unsupported agent proxy path" }, { status: 400 });
+  }
+
+  return path;
+}
+
+export async function GET(request: NextRequest) {
+  const gate = requireOperatorSessionAccess(request);
+  if (gate) {
+    return gate;
+  }
+
+  const path = getValidatedAgentProxyPath(request);
+  if (path instanceof NextResponse) {
+    return path;
+  }
+
+  return proxyAgentJson(path, undefined, "Agent server request failed");
 }
 
 export async function POST(request: NextRequest) {
-  const path = request.nextUrl.searchParams.get("path");
-  if (!path) {
-    return NextResponse.json({ error: "Missing path parameter" }, { status: 400 });
+  const gate = requireOperatorMutationAccess(request);
+  if (gate) {
+    return gate;
   }
 
-  try {
-    const url = joinUrl(config.agentServer.url, path);
-    const contentType = request.headers.get("content-type") ?? "";
-    const hasBody = contentType.includes("application/json");
-    const resp = await fetch(url, {
-      method: "POST",
-      headers: {
-        ...agentServerHeaders(),
-        ...(hasBody ? { "Content-Type": "application/json" } : {}),
-      },
-      body: hasBody ? await request.text() : undefined,
-      signal: AbortSignal.timeout(10_000),
-    });
-    const text = await resp.text();
-    const data = text ? JSON.parse(text) : null;
-    return NextResponse.json(data, { status: resp.status });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Agent server request failed";
-    return NextResponse.json({ error: message }, { status: 502 });
+  const path = getValidatedAgentProxyPath(request);
+  if (path instanceof NextResponse) {
+    return path;
   }
+
+  const contentType = request.headers.get("content-type") ?? "";
+  const hasBody = contentType.includes("application/json");
+  return proxyAgentJson(
+    path,
+    {
+      method: "POST",
+      headers: hasBody ? { "Content-Type": "application/json" } : undefined,
+      body: hasBody ? await request.text() : undefined,
+    },
+    "Agent server request failed"
+  );
 }

@@ -44,47 +44,31 @@ function isoMinutesAfter(base: string, minutesAfter: number) {
   return new Date(new Date(base).getTime() + minutesAfter * 60_000).toISOString();
 }
 
-const fixtureNodeMetrics: Record<
+const fixtureNodeTelemetry: Record<
   string,
   Pick<
     OverviewSnapshot["nodes"][number],
-    "totalServices" | "healthyServices" | "degradedServices" | "averageLatencyMs" | "gpuUtilization"
+    | "averageLatencyMs"
+    | "gpuUtilization"
   >
 > = {
   node1: {
-    totalServices: 7,
-    healthyServices: 6,
-    degradedServices: 1,
     averageLatencyMs: 211,
     gpuUtilization: 74,
   },
   node2: {
-    totalServices: 6,
-    healthyServices: 6,
-    degradedServices: 0,
     averageLatencyMs: 176,
     gpuUtilization: 57,
   },
   vault: {
-    totalServices: 14,
-    healthyServices: 13,
-    degradedServices: 1,
     averageLatencyMs: 129,
     gpuUtilization: null,
   },
   dev: {
-    totalServices: 2,
-    healthyServices: 2,
-    degradedServices: 0,
     averageLatencyMs: 141,
     gpuUtilization: 34,
   },
 };
-
-const fixtureNodes: OverviewSnapshot["nodes"] = config.nodes.map((node) => ({
-  ...node,
-  ...fixtureNodeMetrics[node.id],
-}));
 
 const fixtureServiceHealth: Record<
   string,
@@ -93,7 +77,7 @@ const fixtureServiceHealth: Record<
   "litellm-proxy": { healthy: true, latencyMs: 82, state: "healthy" },
   "foundry-coordinator": { healthy: true, latencyMs: 364, state: "healthy" },
   "foundry-coder": { healthy: true, latencyMs: 642, state: "healthy" },
-  "workshop-worker": { healthy: true, latencyMs: 218, state: "healthy" },
+  "workshop-worker": { healthy: true, latencyMs: 1218, state: "warning" },
   "dev-embedding": { healthy: true, latencyMs: 134, state: "healthy" },
   "dev-reranker": { healthy: true, latencyMs: 147, state: "healthy" },
   "agent-server": { healthy: true, latencyMs: 141, state: "healthy" },
@@ -121,11 +105,312 @@ const fixtureServiceHealth: Record<
   stash: { healthy: true, latencyMs: 173, state: "healthy" },
 };
 
+const fixtureServiceContracts: Record<
+  string,
+  Pick<
+    ServicesSnapshot["services"][number],
+    "authClass" | "actionsAllowed" | "lastError" | "startedAt" | "dependencies" | "healthSnapshot"
+  >
+> = {
+  "litellm-proxy": {
+    authClass: "operator",
+    actionsAllowed: ["model.route"],
+    lastError: null,
+    startedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 18),
+    dependencies: [
+      {
+        id: "redis",
+        status: "healthy",
+        required: true,
+        last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+        detail: "latency_ms=3",
+      },
+      {
+        id: "provider_catalog",
+        status: "healthy",
+        required: true,
+        last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+        detail: "catalog version loaded",
+      },
+    ],
+    healthSnapshot: {
+      service: "litellm-proxy",
+      version: "fixture-2026.03",
+      status: "healthy",
+      auth_class: "operator",
+      dependencies: [
+        {
+          id: "redis",
+          status: "healthy",
+          required: true,
+          last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+          detail: "latency_ms=3",
+        },
+        {
+          id: "provider_catalog",
+          status: "healthy",
+          required: true,
+          last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+          detail: "catalog version loaded",
+        },
+      ],
+      last_error: null,
+      started_at: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 18),
+      actions_allowed: ["model.route"],
+    },
+  },
+  "agent-server": {
+    authClass: "admin",
+    actionsAllowed: [
+      "governor.pause",
+      "governor.resume",
+      "governor.presence",
+      "governor.release_tier",
+      "tasks.approve",
+      "tasks.reject",
+    ],
+    lastError: null,
+    startedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 14),
+    dependencies: [
+      {
+        id: "redis",
+        status: "healthy",
+        required: true,
+        last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+        detail: "latency_ms=0",
+      },
+      {
+        id: "qdrant",
+        status: "healthy",
+        required: true,
+        last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+        detail: "latency_ms=41",
+      },
+      {
+        id: "litellm",
+        status: "healthy",
+        required: true,
+        last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+        detail: "latency_ms=88",
+      },
+    ],
+    healthSnapshot: {
+      service: "agent-server",
+      version: "0.3.0-fixture",
+      status: "healthy",
+      auth_class: "admin",
+      dependencies: [
+        {
+          id: "redis",
+          status: "healthy",
+          required: true,
+          last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+          detail: "latency_ms=0",
+        },
+        {
+          id: "qdrant",
+          status: "healthy",
+          required: true,
+          last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+          detail: "latency_ms=41",
+        },
+        {
+          id: "litellm",
+          status: "healthy",
+          required: true,
+          last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+          detail: "latency_ms=88",
+        },
+      ],
+      last_error: null,
+      started_at: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 14),
+      actions_allowed: [
+        "governor.pause",
+        "governor.resume",
+        "governor.presence",
+        "governor.release_tier",
+        "tasks.approve",
+        "tasks.reject",
+      ],
+    },
+  },
+  "foundry-coordinator": {
+    authClass: "admin",
+    actionsAllowed: ["zone.touch", "zone.sleep", "zone.wake"],
+    lastError: null,
+    startedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 22),
+    dependencies: [
+      {
+        id: "zone:coordinator",
+        status: "healthy",
+        required: true,
+        last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+        detail: "runtime=vllm; state=active",
+      },
+    ],
+    healthSnapshot: {
+      service: "gpu-orchestrator",
+      version: "0.2.0-fixture",
+      status: "healthy",
+      auth_class: "admin",
+      dependencies: [
+        {
+          id: "zone:coordinator",
+          status: "healthy",
+          required: true,
+          last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+          detail: "runtime=vllm; state=active",
+        },
+      ],
+      last_error: null,
+      started_at: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 22),
+      actions_allowed: ["zone.touch", "zone.sleep", "zone.wake"],
+    },
+  },
+  "foundry-coder": {
+    authClass: "admin",
+    actionsAllowed: ["zone.touch", "zone.sleep", "zone.wake"],
+    lastError: null,
+    startedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 22),
+    dependencies: [
+      {
+        id: "zone:coder",
+        status: "healthy",
+        required: true,
+        last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+        detail: "runtime=vllm; state=active",
+      },
+    ],
+    healthSnapshot: {
+      service: "gpu-orchestrator",
+      version: "0.2.0-fixture",
+      status: "healthy",
+      auth_class: "admin",
+      dependencies: [
+        {
+          id: "zone:coder",
+          status: "healthy",
+          required: true,
+          last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+          detail: "runtime=vllm; state=active",
+        },
+      ],
+      last_error: null,
+      started_at: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 22),
+      actions_allowed: ["zone.touch", "zone.sleep", "zone.wake"],
+    },
+  },
+  "workshop-worker": {
+    authClass: "admin",
+    actionsAllowed: ["zone.touch", "zone.sleep", "zone.wake"],
+    lastError: null,
+    startedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 22),
+    dependencies: [
+      {
+        id: "zone:worker",
+        status: "healthy",
+        required: true,
+        last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+        detail: "runtime=ollama; state=active",
+      },
+    ],
+    healthSnapshot: {
+      service: "gpu-orchestrator",
+      version: "0.2.0-fixture",
+      status: "healthy",
+      auth_class: "admin",
+      dependencies: [
+        {
+          id: "zone:worker",
+          status: "healthy",
+          required: true,
+          last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+          detail: "runtime=ollama; state=active",
+        },
+      ],
+      last_error: null,
+      started_at: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 22),
+      actions_allowed: ["zone.touch", "zone.sleep", "zone.wake"],
+    },
+  },
+  qdrant: {
+    authClass: "read-only",
+    actionsAllowed: [],
+    lastError: null,
+    startedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 48),
+    dependencies: [
+      {
+        id: "storage",
+        status: "healthy",
+        required: true,
+        last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+        detail: "vault array online",
+      },
+    ],
+    healthSnapshot: {
+      service: "qdrant",
+      version: "fixture-2026.03",
+      status: "healthy",
+      auth_class: "read-only",
+      dependencies: [
+        {
+          id: "storage",
+          status: "healthy",
+          required: true,
+          last_checked_at: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
+          detail: "vault array online",
+        },
+      ],
+      last_error: null,
+      started_at: isoMinutesBefore(FIXTURE_BASE_TIME, 60 * 48),
+      actions_allowed: [],
+    },
+  },
+};
+
 const fixtureServices: ServicesSnapshot["services"] = config.services.map((service) => ({
   ...service,
   ...(fixtureServiceHealth[service.id] ?? { healthy: true, latencyMs: 150, state: "healthy" }),
+  ...(fixtureServiceContracts[service.id] ?? {}),
   checkedAt: isoMinutesBefore(FIXTURE_BASE_TIME, 2),
 }));
+
+function summarizeFixtureServiceStates(services: ServicesSnapshot["services"]) {
+  return services.reduce(
+    (summary, service) => {
+      if (service.state === "healthy") {
+        summary.healthy += 1;
+      } else if (service.state === "warning") {
+        summary.warning += 1;
+      } else {
+        summary.degraded += 1;
+      }
+      return summary;
+    },
+    {
+      healthy: 0,
+      warning: 0,
+      degraded: 0,
+    }
+  );
+}
+
+const fixtureServiceStateSummary = summarizeFixtureServiceStates(fixtureServices);
+
+const fixtureNodes: OverviewSnapshot["nodes"] = config.nodes.map((node) => {
+  const nodeServices = fixtureServices.filter((service) => service.nodeId === node.id);
+  const summary = summarizeFixtureServiceStates(nodeServices);
+
+  return {
+    ...node,
+    totalServices: nodeServices.length,
+    healthyServices: summary.healthy,
+    warningServices: summary.warning,
+    degradedServices: summary.degraded,
+    averageLatencyMs: fixtureNodeTelemetry[node.id]?.averageLatencyMs ?? null,
+    gpuUtilization: fixtureNodeTelemetry[node.id]?.gpuUtilization ?? null,
+  };
+});
 
 const fixtureServiceAggregate: ServicesHistorySnapshot["aggregate"] = [
   { timestamp: isoMinutesBefore(FIXTURE_BASE_TIME, 180), value: 91 },
@@ -358,8 +643,8 @@ const fixtureBackendModels: Record<string, string[]> = {
     "reranker",
   ],
   "foundry-coordinator": ["qwen3-32b", "deepseek-r1-distill-qwen-32b"],
-  "foundry-coder": ["qwen3-coder"],
-  "workshop-worker": ["qwen3-35b-a3b-awq", "phi-4-mini"],
+  "foundry-coder": ["devstral-small-2"],
+  "workshop-worker": ["/models/Qwen3.5-35B-A3B-AWQ-4bit", "phi-4-mini"],
   "dev-embedding": ["qwen3-embedding-0.6b"],
   "dev-reranker": ["qwen3-reranker-0.6b"],
 };
@@ -377,8 +662,8 @@ const fixtureModelDescriptions: Record<string, string> = {
   reranker: "LiteLLM alias for DEV-hosted reranking.",
   "qwen3-32b": "Primary large-model runtime on Foundry.",
   "deepseek-r1-distill-qwen-32b": "Reasoning-heavy local coordinator model.",
-  "qwen3-coder": "Dedicated coding runtime on Foundry GPU 2.",
-  "qwen3-35b-a3b-awq": "Interactive worker runtime on Workshop.",
+  "devstral-small-2": "Dedicated coding runtime on Foundry GPU 2.",
+  "/models/Qwen3.5-35B-A3B-AWQ-4bit": "Interactive worker runtime on Workshop.",
   "phi-4-mini": "Smaller interactive model for lightweight tasks.",
   "qwen3-embedding-0.6b": "Canonical embedding runtime on DEV.",
   "qwen3-reranker-0.6b": "Canonical reranker runtime on DEV.",
@@ -1371,8 +1656,9 @@ const fixtureOverview: OverviewSnapshot = {
   generatedAt: FIXTURE_BASE_TIME,
   summary: {
     totalServices: fixtureServices.length,
-    healthyServices: fixtureServices.filter((service) => service.healthy).length,
-    degradedServices: fixtureServices.filter((service) => !service.healthy).length,
+    healthyServices: fixtureServiceStateSummary.healthy,
+    warningServices: fixtureServiceStateSummary.warning,
+    degradedServices: fixtureServiceStateSummary.degraded,
     averageLatencyMs: fixtureAverageLatencyMs,
     averageGpuUtilization: fixtureGpuSnapshot.summary.averageUtilization,
     readyAgents: fixtureAgents.agents.filter((agent) => agent.status === "ready").length,
@@ -1440,8 +1726,9 @@ const fixtureServicesSnapshot: ServicesSnapshot = {
   generatedAt: FIXTURE_BASE_TIME,
   summary: {
     total: fixtureServices.length,
-    healthy: fixtureServices.filter((service) => service.healthy).length,
-    degraded: fixtureServices.filter((service) => !service.healthy).length,
+    healthy: fixtureServiceStateSummary.healthy,
+    warning: fixtureServiceStateSummary.warning,
+    degraded: fixtureServiceStateSummary.degraded,
     averageLatencyMs: fixtureAverageLatencyMs,
     slowestServiceId: fixtureSlowestService?.id ?? null,
     slowestServiceName: fixtureSlowestService?.name ?? null,
@@ -2328,6 +2615,46 @@ export function getFixtureAgentOutputs() {
       href: output.href,
     }))
   );
+}
+
+export function getFixtureAgentConversations(options?: { agent?: string | null; limit?: number | null }) {
+  const agent = options?.agent?.trim() || null;
+  const limit = options?.limit ?? null;
+  const conversations = fixtureHistorySnapshot.conversations
+    .filter((conversation) => !agent || conversation.agentId === agent)
+    .map((conversation) => ({
+      agent: conversation.agentId,
+      user_message: conversation.userMessage,
+      assistant_response: conversation.assistantResponse,
+      tools_used: conversation.toolsUsed,
+      duration_ms: conversation.durationMs,
+      thread_id: conversation.threadId,
+      timestamp: conversation.timestamp,
+    }));
+
+  return cloneFixture(limit ? conversations.slice(0, limit) : conversations);
+}
+
+export function getFixtureAutonomyAdjustments() {
+  const report = fixtureIntelligenceSnapshot.report;
+  if (!report) {
+    return cloneFixture({
+      adjustments: {},
+      max_adjustment: 0.15,
+    });
+  }
+
+  const adjustments = Object.fromEntries(
+    report.autonomyAdjustments.map((adjustment) => [
+      `${adjustment.agentId}:${adjustment.category}`,
+      adjustment.next,
+    ])
+  );
+
+  return cloneFixture({
+    adjustments,
+    max_adjustment: 0.15,
+  });
 }
 
 export function getFixtureAgentPatterns(options?: { agent?: string | null }) {

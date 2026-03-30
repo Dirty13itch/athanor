@@ -1,4 +1,5 @@
 import type { LensId } from "@/lib/lens";
+import dashboardOperatorSurfaces from "@/generated/operator-surfaces.json";
 
 export type ServiceCategory =
   | "inference"
@@ -41,6 +42,18 @@ export interface QuickLink extends DashboardEndpoint {
   name: string;
   node: string;
   category: string;
+}
+
+export interface CommandCenterFrontDoor {
+  id: string;
+  label: string;
+  canonicalUrl: string;
+  runtimeUrl: string;
+  node: string;
+  status: string;
+  deploymentMode: string;
+  targetDeploymentMode: string;
+  description: string;
 }
 
 export interface ClusterNode {
@@ -93,6 +106,7 @@ export interface DashboardConfig {
   inferenceBackends: InferenceBackend[];
   services: MonitoredService[];
   nodes: ClusterNode[];
+  frontDoor: CommandCenterFrontDoor;
   externalTools: ExternalTool[];
   quickLinks: QuickLink[];
   projectRegistry: ProjectRegistryEntry[];
@@ -119,6 +133,8 @@ const foundryHost = hostEnv("ATHANOR_NODE1_HOST", "192.168.1.244");
 const workshopHost = hostEnv("ATHANOR_NODE2_HOST", "192.168.1.225");
 const vaultHost = hostEnv("ATHANOR_VAULT_HOST", "192.168.1.203");
 const devHost = hostEnv("ATHANOR_DEV_HOST", "192.168.1.189");
+const workshopLinkHost = hostEnv("ATHANOR_WORKSHOP_LINK_HOST", "interface.athanor.local");
+const vaultLinkHost = hostEnv("ATHANOR_VAULT_LINK_HOST", "vault.athanor.local");
 
 const prometheusUrl = env(
   "ATHANOR_PROMETHEUS_URL",
@@ -130,7 +146,7 @@ const agentServerToken = process.env.ATHANOR_AGENT_API_TOKEN?.trim() || "";
 const litellmUrl = env("ATHANOR_LITELLM_URL", `http://${vaultHost}:4000`);
 const foundryCoordinatorUrl = env("ATHANOR_VLLM_COORDINATOR_URL", `http://${foundryHost}:8000`);
 const foundryCoderUrl = env("ATHANOR_VLLM_CODER_URL", `http://${foundryHost}:8006`);
-const workshopWorkerUrl = env("ATHANOR_VLLM_WORKER_URL", `http://${workshopHost}:11434`);
+const workshopWorkerUrl = env("ATHANOR_VLLM_WORKER_URL", `http://${workshopHost}:8010`);
 const devEmbeddingUrl = env("ATHANOR_VLLM_EMBEDDING_URL", `http://${devHost}:8001`);
 const devRerankerUrl = env("ATHANOR_VLLM_RERANKER_URL", `http://${devHost}:8003`);
 const comfyUiUrl = env("ATHANOR_COMFYUI_URL", `http://${workshopHost}:8188`);
@@ -151,6 +167,47 @@ const speachesUrl = env("ATHANOR_SPEACHES_URL", `http://${foundryHost}:8200`);
 const langfuseUrl = env("ATHANOR_LANGFUSE_URL", `http://${vaultHost}:3030`);
 const langfusePublicKey = process.env.ATHANOR_LANGFUSE_PUBLIC_KEY?.trim() || "pk-lf-athanor";
 const langfuseSecretKey = process.env.ATHANOR_LANGFUSE_SECRET_KEY?.trim() || "sk-lf-athanor";
+const commandCenterLinkUrl = env("ATHANOR_COMMAND_CENTER_URL", "https://athanor.local");
+const grafanaLinkUrl = env("ATHANOR_GRAFANA_LINK_URL", `http://${vaultLinkHost}:3000/`);
+const prometheusLinkUrl = env("ATHANOR_PROMETHEUS_LINK_URL", `http://${vaultLinkHost}:9090/`);
+const comfyUiLinkUrl = env("ATHANOR_COMFYUI_LINK_URL", `http://${workshopLinkHost}:8188/`);
+const workshopOpenWebUiLinkUrl = env("ATHANOR_WORKSHOP_OPEN_WEBUI_LINK_URL", `http://${workshopLinkHost}:3000/`);
+const vaultOpenWebUiLinkUrl = env("ATHANOR_VAULT_OPEN_WEBUI_LINK_URL", `http://${vaultLinkHost}:3090/`);
+const homeAssistantLinkUrl = env("ATHANOR_HOME_ASSISTANT_LINK_URL", `http://${vaultLinkHost}:8123/`);
+const plexLinkUrl = env("ATHANOR_PLEX_LINK_URL", `http://${vaultLinkHost}:32400/web`);
+const eoqLinkUrl = env("ATHANOR_EOQ_LINK_URL", `http://${workshopLinkHost}:3002/`);
+const ulrichLinkUrl = env("ATHANOR_ULRICH_LINK_URL", `http://${workshopLinkHost}:3003/`);
+const sonarrLinkUrl = env("ATHANOR_SONARR_LINK_URL", `http://${vaultLinkHost}:8989/`);
+const radarrLinkUrl = env("ATHANOR_RADARR_LINK_URL", `http://${vaultLinkHost}:7878/`);
+const prowlarrLinkUrl = env("ATHANOR_PROWLARR_LINK_URL", `http://${vaultLinkHost}:9696/`);
+const sabnzbdLinkUrl = env("ATHANOR_SABNZBD_LINK_URL", `http://${vaultLinkHost}:8080/`);
+const stashLinkUrl = env("ATHANOR_STASH_LINK_URL", `http://${vaultLinkHost}:9999/`);
+
+const frontDoor: CommandCenterFrontDoor = {
+  id: dashboardOperatorSurfaces.frontDoor.id,
+  label: dashboardOperatorSurfaces.frontDoor.label,
+  canonicalUrl: dashboardOperatorSurfaces.frontDoor.canonicalUrl,
+  runtimeUrl: dashboardOperatorSurfaces.frontDoor.runtimeUrl,
+  node: dashboardOperatorSurfaces.frontDoor.node,
+  status: dashboardOperatorSurfaces.frontDoor.status,
+  deploymentMode: dashboardOperatorSurfaces.frontDoor.deploymentMode,
+  targetDeploymentMode: dashboardOperatorSurfaces.frontDoor.targetDeploymentMode,
+  description: dashboardOperatorSurfaces.frontDoor.description,
+};
+
+const launchpadExternalTools: ExternalTool[] = dashboardOperatorSurfaces.externalTools.map((tool) => ({
+  id: tool.id,
+  label: tool.label,
+  description: tool.description,
+  url: tool.url,
+}));
+
+const launchpadQuickLinks: QuickLink[] = dashboardOperatorSurfaces.quickLinks.map((link) => ({
+  name: link.name,
+  url: link.url,
+  node: link.node,
+  category: link.category,
+}));
 
 const legacyChatTargetAliases: Record<string, string> = {
   "node1-vllm": "foundry-coordinator",
@@ -245,15 +302,15 @@ export const config = {
       name: "Foundry Coder",
       nodeId: "node1",
       description: "Dedicated coding runtime for autonomous implementation and code-heavy tasks.",
-      primaryModel: "Qwen3.5-35B-A3B-AWQ-4bit (qwen35-coder)",
+      primaryModel: "devstral-small-2",
       url: foundryCoderUrl,
     },
     {
       id: "workshop-worker",
       name: "Workshop Worker",
       nodeId: "node2",
-      description: "Interactive worker runtime for fast direct-chat and UI-adjacent inference (currently offline).",
-      primaryModel: "Qwen3.5-35B-A3B",
+      description: "Interactive worker runtime for fast local chat, utility-class inference, and sovereign workloads.",
+      primaryModel: "/models/Qwen3.5-35B-A3B-AWQ-4bit",
       url: workshopWorkerUrl,
     },
     {
@@ -304,7 +361,7 @@ export const config = {
     {
       id: "workshop-worker",
       name: "Workshop Worker",
-      url: joinUrl(workshopWorkerUrl, "/api/tags"),
+      url: joinUrl(workshopWorkerUrl, "/health"),
       nodeId: "node2",
       node: "Workshop",
       category: "inference",
@@ -542,77 +599,9 @@ export const config = {
     { id: "vault", name: "VAULT", ip: vaultHost, role: "Routing, memory, media, home, and observability" },
     { id: "dev", name: "DEV", ip: devHost, role: "Ops workstation and retrieval runtimes" },
   ],
-  externalTools: [
-    {
-      id: "grafana",
-      label: "Grafana",
-      description: "Dashboards, alerting, and drill-downs.",
-      url: grafanaUrl,
-    },
-    {
-      id: "prometheus",
-      label: "Prometheus",
-      description: "Raw metrics and PromQL exploration.",
-      url: prometheusUrl,
-    },
-    {
-      id: "agent-server",
-      label: "Agent Server",
-      description: "Live agent metadata, task APIs, and workforce health.",
-      url: agentServerUrl,
-    },
-    {
-      id: "comfyui",
-      label: "ComfyUI",
-      description: "Creative workflows and generation queues.",
-      url: comfyUiUrl,
-    },
-    {
-      id: "workshop-open-webui",
-      label: "Open WebUI (Workshop)",
-      description: "Direct raw chat against the workshop surface.",
-      url: openWebUiUrl,
-    },
-    {
-      id: "vault-open-webui",
-      label: "Open WebUI (VAULT)",
-      description: "LiteLLM-routed chat surface on the storage plane.",
-      url: vaultOpenWebUiUrl,
-    },
-    {
-      id: "home-assistant",
-      label: "Home Assistant",
-      description: "Home state, devices, and automation control.",
-      url: homeAssistantUrl,
-    },
-    {
-      id: "plex",
-      label: "Plex",
-      description: "Media library and playback control.",
-      url: joinUrl(plexUrl, "/web"),
-    },
-    {
-      id: "eoq",
-      label: "EoBQ",
-      description: "First-class tenant proving the project platform.",
-      url: eoqUrl,
-    },
-  ],
-  quickLinks: [
-    { name: "Grafana", url: grafanaUrl, node: "VAULT", category: "monitoring" },
-    { name: "Prometheus", url: prometheusUrl, node: "VAULT", category: "monitoring" },
-    { name: "ComfyUI", url: comfyUiUrl, node: "Workshop", category: "creative" },
-    { name: "Open WebUI", url: openWebUiUrl, node: "Workshop", category: "ai" },
-    { name: "VAULT Open WebUI", url: vaultOpenWebUiUrl, node: "VAULT", category: "ai" },
-    { name: "Home Assistant", url: homeAssistantUrl, node: "VAULT", category: "home" },
-    { name: "Plex", url: joinUrl(plexUrl, "/web"), node: "VAULT", category: "media" },
-    { name: "Sonarr", url: sonarrUrl, node: "VAULT", category: "media" },
-    { name: "Radarr", url: radarrUrl, node: "VAULT", category: "media" },
-    { name: "Prowlarr", url: prowlarrUrl, node: "VAULT", category: "media" },
-    { name: "SABnzbd", url: sabnzbdUrl, node: "VAULT", category: "media" },
-    { name: "Stash", url: stashUrl, node: "VAULT", category: "media" },
-    { name: "EoBQ", url: eoqUrl, node: "Workshop", category: "project" },
-  ],
+  frontDoor,
+  externalTools: launchpadExternalTools,
+  quickLinks: launchpadQuickLinks,
   projectRegistry: [
     {
       id: "athanor",
@@ -635,7 +624,7 @@ export const config = {
       firstClass: true,
       lens: "eoq",
       primaryRoute: "/workplanner?project=eoq",
-      externalUrl: eoqUrl,
+      externalUrl: eoqLinkUrl,
       operators: ["Claude", "creative-agent", "coding-agent"],
     },
     {
@@ -659,7 +648,7 @@ export const config = {
       firstClass: false,
       lens: "default",
       primaryRoute: "/workplanner?project=ulrich-energy",
-      externalUrl: null,
+      externalUrl: ulrichLinkUrl,
       operators: ["Claude", "coding-agent", "research-agent"],
     },
     {
@@ -671,7 +660,7 @@ export const config = {
       firstClass: false,
       lens: "media",
       primaryRoute: "/media",
-      externalUrl: joinUrl(plexUrl, "/web"),
+      externalUrl: plexLinkUrl,
       operators: ["media-agent"],
     },
   ],
@@ -772,6 +761,7 @@ export function resolveChatTarget(target: string | undefined): DashboardEndpoint
 
 export function resolveChatModel(target: string | undefined, model: string | undefined): string {
   const normalizedModel = model?.trim();
+  const backend = getInferenceBackend(target ?? "");
   if (target === "agent-server") {
     return normalizedModel && normalizedModel !== "default"
       ? normalizedModel
@@ -782,15 +772,14 @@ export function resolveChatModel(target: string | undefined, model: string | und
     return normalizedModel && normalizedModel !== "default" ? normalizedModel : "reasoning";
   }
 
-  const normalizeDirectModelId = (value: string) =>
-    value.startsWith("/models/") ? value : `/models/${value.replace(/^\/+/, "")}`;
-
   if (normalizedModel && normalizedModel !== "default") {
-    return normalizeDirectModelId(normalizedModel);
+    if (backend?.primaryModel.startsWith("/models/") && !normalizedModel.startsWith("/models/")) {
+      return `/models/${normalizedModel.replace(/^\/+/, "")}`;
+    }
+    return normalizedModel;
   }
 
-  const backend = getInferenceBackend(target ?? "");
-  return backend ? normalizeDirectModelId(backend.primaryModel) : "reasoning";
+  return backend ? backend.primaryModel : "reasoning";
 }
 
 export function getNodeNameFromInstance(instance: string): string {

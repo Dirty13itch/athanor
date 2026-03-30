@@ -11,6 +11,13 @@ export const STORAGE_KEYS = {
   navAttention: "athanor-nav-attention-state",
 } as const;
 
+export const LEGACY_STORAGE_KEYS = {
+  uiPreferences: "athanor-ui-preferences",
+  directChatSessions: "athanor-direct-chat-sessions",
+  agentThreads: "athanor-agent-threads",
+  navAttention: "athanor-nav-attention-state",
+} as const;
+
 export function readJsonStorage<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") {
     return fallback;
@@ -30,6 +37,14 @@ export function writeJsonStorage<T>(key: string, value: T) {
   }
 
   window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+export function removeStorageKey(key: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(key);
 }
 
 export function usePersistentState<T>(key: string, fallback: T) {
