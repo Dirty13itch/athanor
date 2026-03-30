@@ -7,7 +7,7 @@ Do not edit manually.
 
 - Registry version: `2026-03-29.2`
 - Surfaces tracked: `4`
-- VAULT LiteLLM env audit: `2026-03-30T11:41:22Z`
+- VAULT LiteLLM env audit: `2026-03-30T11:50:20Z`
 
 ### Remediation states
 
@@ -64,7 +64,7 @@ Do not edit manually.
 - Evidence sources: `VAULT LiteLLM template and appdata layout review 2026-03-25`, `VAULT live docker inspect env-presence audit 2026-03-29`, `VAULT provider-specific LiteLLM probe 2026-03-29`, `VAULT LiteLLM implementation-authority role parity review 2026-03-29`
 - Recommended actions: `Keep LiteLLM provider keys in the managed VAULT container env surface or an equivalent host-local secret source.`, `Keep the live VAULT container env aligned with every provider key referenced by ansible/roles/vault-litellm/templates/litellm_config.yaml.j2.`, `Use the generated VAULT auth-repair packet to decide whether a lane needs missing-key restoration, present-key rotation, or auth-mode review before recreating or redeploying the container.`, `Keep repo truth focused on env contracts, delivery boundaries, and repair sequencing rather than freezing point-in-time live env presence into this registry.`, `Do not move provider keys into tracked source or ad hoc shell history during future routing changes.`
 - Notes: `Backed by the current LiteLLM template and runtime appdata layout.`, `Implementation-authority LiteLLM env-contract parity is already fixed and validator-enforced; the remaining work is runtime-only and should be driven by the current env-audit plus provider-probe artifacts.`, `This registry tracks contract names, delivery surface, and remediation posture; the generated reports own point-in-time present or missing env observations.`, `The running VAULT LiteLLM surface currently appears as a standalone Docker container with a config bind mount, not a discovered compose-managed env source.`, `This registry tracks contract names only, not secret material.`
-- Latest live env audit: `2026-03-30T11:41:22Z`
+- Latest live env audit: `2026-03-30T11:50:20Z`
 - Audit status: `ok`
 - Runtime owner surface: `standalone_docker_container`
 - Container image: `ghcr.io/berriai/litellm:main-v1.81.9-stable`
