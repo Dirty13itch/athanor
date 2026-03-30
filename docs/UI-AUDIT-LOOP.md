@@ -14,12 +14,12 @@ The audit truth lives in:
 - [tests/ui-audit/last-run.json](../tests/ui-audit/last-run.json)
 
 ## Current Baseline
-- Two consecutive full audit runs are green with no actionable findings.
-- The registry currently tracks 99 surfaces with 0 uncovered surfaces.
-- All tracked surfaces are now covered by automated or live checks.
+- The local matrix is green from implementation authority, and the live dashboard smoke should now be green against the DEV command center. Remaining front-door drift is operator-desktop hostname resolution for `athanor.local`, not WORKSHOP split-brain or missing `/_next/static` assets.
+- The registry currently tracks 111 surfaces with 0 uncovered surfaces.
+- All tracked surfaces are covered by automated or live checks; the current live failures are runtime/operator-surface drift, not uncovered UI.
 - Coverage split:
-  - `covered-automated`: 29
-  - `covered-live`: 70
+  - `covered-automated`: 39
+  - `covered-live`: 72
 
 ## Loop
 1. Regenerate the surface registry and uncovered list.
@@ -46,7 +46,8 @@ The audit truth lives in:
   - `python scripts/tests/check-ui-coverage.py`
 
 ## Notes
-- Dashboard live smoke defaults to the canonical front door at `https://athanor.local/`; use `ATHANOR_COMMAND_CENTER_URL`, `ATHANOR_DASHBOARD_URL`, or `--base-url` to target the runtime fallback or another command-center path explicitly.
+- Dashboard live smoke should be pointed at the current topology-owned dashboard deployment through `ATHANOR_COMMAND_CENTER_URL`, `ATHANOR_DASHBOARD_URL`, or `--base-url`; do not treat any older WORKSHOP-hosted URL as canonical truth.
+- The live dashboard smoke is front-door focused: sampled `/_next/static` failures, missing safe operator-context/session APIs, and broken live chat or handoff lanes are failures; expected locked-session write gating is not.
 - EoBQ live smoke defaults to `http://interface.athanor.local:3002/` unless `ATHANOR_EOQ_LINK_URL` or `--base-url` overrides it.
 - Ulrich live smoke defaults to `http://interface.athanor.local:3003/` unless `ATHANOR_ULRICH_LINK_URL` or `--base-url` overrides it.
 - EoBQ generation and Ulrich mutation smokes are opt-in in the live runners so the default cycle stays low-impact.
