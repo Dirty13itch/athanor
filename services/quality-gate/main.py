@@ -1,18 +1,22 @@
 """Athanor Data Quality Gate — unified write validation for all data stores."""
-from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 import httpx
 import hashlib
 import logging
+import os
 
-import sys, os as _os
-sys.path.insert(0, _os.path.join(_os.path.dirname(__file__), ".."))
-from cluster_config import QDRANT_URL as _QDRANT_URL, EMBEDDING_URL as _EMBEDDING_URL
+from auth import build_contract
+from _imports import EMBEDDING_URL as _EMBEDDING_URL, QDRANT_URL as _QDRANT_URL
+from operator_contract import build_operator_action, emit_operator_audit_event, require_operator_action
 
 logger = logging.getLogger("quality-gate")
+SERVICE_STARTED_AT = datetime.now(timezone.utc).isoformat()
 
-app = FastAPI(title="Athanor Quality Gate", version="0.1.0")
+AUTH_CONTRACT = build_contract(service_name="quality-gate")
 
 QDRANT_URL = _QDRANT_URL
 EMBEDDING_URL = f"{_EMBEDDING_URL}/v1/embeddings"
@@ -26,6 +30,7 @@ REQUIRED_METADATA = {"source"}
 TEST_SOURCES = {"e2e-test", "coo-verification", "coo:scan", "chaos-test",
                 "fixture-session", "smoke-test", "unit-test", "debug",
                 "audit", "probe", "wave2", "integration-test"}
+TRUTHY_VALUES = {"1", "true", "yes", "on"}
 
 
 class StoreRequest(BaseModel):
@@ -49,20 +54,104 @@ class ValidationResult(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
-# Startup: create httpx client
-@app.on_event("startup")
-async def startup():
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    candidate = build_operator_action(body, default_reason=default_reason)
+    try:
+        action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    AUTH_CONTRACT.validate_startup()
     app.state.http = httpx.AsyncClient(timeout=30)
+    try:
+        yield
+    finally:
+        await app.state.http.aclose()
 
 
-@app.on_event("shutdown")
-async def shutdown():
-    await app.state.http.aclose()
+app = FastAPI(title="Athanor Quality Gate", version="0.1.0", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def bearer_auth_middleware(request: Request, call_next):
+    denial = AUTH_CONTRACT.authorize(request)
+    if denial is not None:
+        return denial
+    return await call_next(request)
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "quality-gate", "port": 8790}
+    checked_at = datetime.now(timezone.utc).isoformat()
+    dependencies = []
+    last_error = None
+
+    for dependency_id, url in (
+        ("qdrant", f"{QDRANT_URL}/collections"),
+        ("embedding", EMBEDDING_URL),
+    ):
+        status = "healthy"
+        detail = "reachable"
+        try:
+            response = await app.state.http.get(url)
+            response.raise_for_status()
+        except Exception as exc:
+            status = "down"
+            detail = str(exc)[:120]
+            last_error = detail
+
+        dependencies.append(
+            {
+                "id": dependency_id,
+                "status": status,
+                "required": True,
+                "last_checked_at": checked_at,
+                "detail": detail,
+            }
+        )
+
+    degraded = any(dependency["status"] != "healthy" for dependency in dependencies)
+    return {
+        "service": "quality-gate",
+        "version": app.version,
+        "status": "degraded" if degraded else "healthy",
+        "auth_class": "admin",
+        "dependencies": dependencies,
+        "last_error": last_error,
+        "started_at": SERVICE_STARTED_AT,
+        "actions_allowed": [
+            "validate",
+            "store",
+            "batch_dedup",
+            "cleanup_junk",
+        ],
+        "port": 8790,
+    }
 
 
 @app.post("/validate", response_model=ValidationResult)
@@ -90,50 +179,56 @@ async def store(req: StoreRequest):
             "model": EMBEDDING_MODEL,
             "input": req.content[:8000],  # truncate for embedding
         })
-        embedding = embed_resp.json()["data"][0]["embedding"]
+        embedding_payload = _safe_result(embed_resp, operation="embedding generation")
+        embedding = embedding_payload["data"][0]["embedding"]
+        if not isinstance(embedding, list) or not embedding:
+            raise HTTPException(status_code=502, detail="Embedding service returned an invalid vector")
+        if not all(isinstance(value, (int, float)) for value in embedding):
+            raise HTTPException(status_code=502, detail="Embedding service returned a non-numeric vector")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Embedding failed: %s", e)
         raise HTTPException(500, f"Embedding service error: {e}")
 
     # Step 4: Dedup check (unless skipped)
     if not req.skip_dedup:
-        try:
-            search_resp = await http.post(
-                f"{QDRANT_URL}/collections/{req.collection}/points/search",
-                json={
-                    "vector": embedding,
-                    "limit": 3,
-                    "score_threshold": DEDUP_THRESHOLD,
-                    "with_payload": True,
-                }
-            )
-            matches = search_resp.json().get("result", [])
-            if matches:
-                best = matches[0]
-                if best["score"] >= 0.99:
-                    return StoreResponse(
-                        action="DUPLICATE",
-                        similar_to=str(best["id"]),
-                        reason=f"Exact semantic duplicate (score={best['score']:.3f})"
-                    )
-                elif best["score"] >= DEDUP_THRESHOLD:
-                    # Near-duplicate — enrich existing point's metadata
-                    existing_payload = best.get("payload", {})
-                    merged = _merge_metadata(existing_payload, req.metadata)
-                    await http.put(
-                        f"{QDRANT_URL}/collections/{req.collection}/points/payload",
-                        json={
-                            "payload": merged,
-                            "points": [best["id"]],
-                        }
-                    )
-                    return StoreResponse(
-                        action="ENRICHED",
-                        point_id=str(best["id"]),
-                        reason=f"Near-duplicate enriched (score={best['score']:.3f})"
-                    )
-        except Exception as e:
-            logger.warning("Dedup check failed, storing anyway: %s", e)
+        search_resp = await http.post(
+            f"{QDRANT_URL}/collections/{req.collection}/points/search",
+            json={
+                "vector": embedding,
+                "limit": 3,
+                "score_threshold": DEDUP_THRESHOLD,
+                "with_payload": True,
+            }
+        )
+        search_payload = _safe_result(search_resp, operation="dedup search")
+        matches = search_payload.get("result", [])
+        if matches:
+            best = matches[0]
+            if best["score"] >= 0.99:
+                return StoreResponse(
+                    action="DUPLICATE",
+                    similar_to=str(best["id"]),
+                    reason=f"Exact semantic duplicate (score={best['score']:.3f})"
+                )
+            if best["score"] >= DEDUP_THRESHOLD:
+                # Near-duplicate — enrich existing point's metadata
+                existing_payload = best.get("payload", {})
+                merged = _merge_metadata(existing_payload, req.metadata)
+                enrich_resp = await http.put(
+                    f"{QDRANT_URL}/collections/{req.collection}/points/payload",
+                    json={
+                        "payload": merged,
+                        "points": [best["id"]],
+                    }
+                )
+                _raise_for_status(enrich_resp, operation="dedup enrichment")
+                return StoreResponse(
+                    action="ENRICHED",
+                    point_id=str(best["id"]),
+                    reason=f"Near-duplicate enriched (score={best['score']:.3f})"
+                )
 
     # Step 5: Compute quality score
     quality_score = _compute_quality_score(req.content, req.metadata)
@@ -152,7 +247,7 @@ async def store(req: StoreRequest):
         "source_env": req.source_env,
     }
 
-    await http.put(
+    store_resp = await http.put(
         f"{QDRANT_URL}/collections/{req.collection}/points",
         json={
             "points": [{
@@ -162,6 +257,7 @@ async def store(req: StoreRequest):
             }]
         }
     )
+    _raise_for_status(store_resp, operation="point storage")
 
     return StoreResponse(
         action="STORED",
@@ -171,8 +267,23 @@ async def store(req: StoreRequest):
 
 
 @app.post("/batch-dedup")
-async def batch_dedup(collection: str, threshold: float = 0.95, dry_run: bool = True):
+async def batch_dedup(request: Request, collection: str, threshold: float = 0.95, dry_run: bool = True):
     """Scan a collection and find/remove near-duplicates."""
+    action_class = "destructive-admin" if not dry_run else "admin"
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/batch-dedup",
+        action_class=action_class,
+        default_reason="",
+    )
+    if denial:
+        return denial
+    dry_run = action.dry_run or dry_run
+    threshold = float(body.get("threshold", threshold)) if isinstance(body.get("threshold"), (int, float, str)) else threshold
+    collection = str(body.get("collection") or collection)
+    if not dry_run:
+        _require_destructive_cleanup_allowed()
+
     http = app.state.http
     duplicates = []
     seen_hashes = set()
@@ -186,7 +297,7 @@ async def batch_dedup(collection: str, threshold: float = 0.95, dry_run: bool = 
             f"{QDRANT_URL}/collections/{collection}/points/scroll",
             json=body
         )
-        result = resp.json().get("result", {})
+        result = _safe_result(resp, operation="batch dedup scroll").get("result", {})
         points = result.get("points", [])
         if not points:
             break
@@ -210,23 +321,49 @@ async def batch_dedup(collection: str, threshold: float = 0.95, dry_run: bool = 
 
     if not dry_run and duplicates:
         ids = [d["id"] for d in duplicates]
-        await http.post(
+        delete_resp = await http.post(
             f"{QDRANT_URL}/collections/{collection}/points/delete",
             json={"points": ids}
         )
+        _raise_for_status(delete_resp, operation="batch dedup delete")
 
-    return {
+    result = {
         "collection": collection,
         "scanned": len(seen_hashes) + len(duplicates),
         "duplicates_found": len(duplicates),
         "dry_run": dry_run,
         "deleted": not dry_run,
     }
+    await emit_operator_audit_event(
+        route="/batch-dedup",
+        action_class=action_class,
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Batch dedup completed for {collection}",
+        target=collection,
+        metadata={"duplicates_found": len(duplicates), "dry_run": dry_run, "threshold": threshold},
+    )
+    return result
 
 
 @app.post("/cleanup-junk")
-async def cleanup_junk(collection: str, dry_run: bool = True):
+async def cleanup_junk(request: Request, collection: str, dry_run: bool = True):
     """Remove test/fixture/debug data from a collection."""
+    action_class = "destructive-admin" if not dry_run else "admin"
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/cleanup-junk",
+        action_class=action_class,
+        default_reason="",
+    )
+    if denial:
+        return denial
+    dry_run = action.dry_run or dry_run
+    collection = str(body.get("collection") or collection)
+    if not dry_run:
+        _require_destructive_cleanup_allowed()
+
     http = app.state.http
     junk_ids = []
     total_scanned = 0
@@ -240,7 +377,7 @@ async def cleanup_junk(collection: str, dry_run: bool = True):
             f"{QDRANT_URL}/collections/{collection}/points/scroll",
             json=body
         )
-        result = resp.json().get("result", {})
+        result = _safe_result(resp, operation="junk cleanup scroll").get("result", {})
         points = result.get("points", [])
         if not points:
             break
@@ -260,18 +397,30 @@ async def cleanup_junk(collection: str, dry_run: bool = True):
         # Delete in batches of 100
         for i in range(0, len(junk_ids), 100):
             batch = junk_ids[i:i+100]
-            await http.post(
+            delete_resp = await http.post(
                 f"{QDRANT_URL}/collections/{collection}/points/delete",
                 json={"points": batch}
             )
+            _raise_for_status(delete_resp, operation="junk cleanup delete")
 
-    return {
+    result = {
         "collection": collection,
         "scanned_total": total_scanned,
         "junk_found": len(junk_ids),
         "dry_run": dry_run,
         "deleted": not dry_run,
     }
+    await emit_operator_audit_event(
+        route="/cleanup-junk",
+        action_class=action_class,
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Cleanup junk completed for {collection}",
+        target=collection,
+        metadata={"junk_found": len(junk_ids), "dry_run": dry_run},
+    )
+    return result
 
 
 @app.get("/stats")
@@ -279,12 +428,13 @@ async def stats():
     """Quality statistics across all collections."""
     http = app.state.http
     resp = await http.get(f"{QDRANT_URL}/collections")
-    collections = resp.json().get("result", {}).get("collections", [])
+    collections = _safe_result(resp, operation="collection listing").get("result", {}).get("collections", [])
 
     result_stats = {}
     for c in collections:
         name = c["name"]
-        info = (await http.get(f"{QDRANT_URL}/collections/{name}")).json().get("result", {})
+        info_resp = await http.get(f"{QDRANT_URL}/collections/{name}")
+        info = _safe_result(info_resp, operation=f"collection stats for {name}").get("result", {})
         result_stats[name] = {
             "points": info.get("points_count", 0),
             "vectors_count": info.get("vectors_count", 0),
@@ -302,6 +452,42 @@ def _extract_text(payload: dict) -> str:
         if val:
             return str(val)
     return ""
+
+
+def _destructive_cleanup_enabled() -> bool:
+    if os.getenv("QUALITY_GATE_ALLOW_DESTRUCTIVE_CLEANUP", "").strip().lower() in TRUTHY_VALUES:
+        return True
+    return os.getenv("QUALITY_GATE_ENV", "").strip().lower() in {"dev", "development", "local", "fixture", "test", "testing", "ci"}
+
+
+def _require_destructive_cleanup_allowed() -> None:
+    if _destructive_cleanup_enabled():
+        return
+    raise HTTPException(
+        status_code=403,
+        detail="Destructive cleanup is disabled. Set QUALITY_GATE_ALLOW_DESTRUCTIVE_CLEANUP=1 in a dev or admin context.",
+    )
+
+
+def _raise_for_status(response: httpx.Response, *, operation: str) -> None:
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"{operation} failed upstream: {exc.response.status_code}",
+        ) from exc
+
+
+def _safe_result(response: httpx.Response, *, operation: str) -> dict:
+    _raise_for_status(response, operation=operation)
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=f"{operation} returned invalid JSON") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=502, detail=f"{operation} returned unexpected payload")
+    return payload
 
 
 def _validate(req: StoreRequest) -> ValidationResult:
