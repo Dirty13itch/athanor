@@ -150,8 +150,6 @@ def test_autonomy_activation_report_includes_next_phase_boundary() -> None:
     assert "- Next phase blocker count: `1`" in rendered
     assert "## Next Promotion Boundary" in rendered
     assert "| `vault_provider_auth_repair` | `pending` | `phase_2` | `docs/vault.md` |" in rendered
-
-
 def test_classify_vault_auth_failure_missing_env() -> None:
     module = _load_module(
         f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
