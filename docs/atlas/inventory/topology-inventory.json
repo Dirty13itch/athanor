@@ -61,20 +61,18 @@
       "topology.service.litellm"
     ],
     "backed_by": [
-      "dashboard pwa",
       "ws-pty bridge",
       "ComfyUI",
       "worker vLLM"
     ],
     "entrypoints": [
-      "192.168.1.225:3001",
       "192.168.1.225:3100",
       "192.168.1.225:8188",
       "192.168.1.225:8010"
     ],
     "notes": [
-      "Primary UI and creative plane.",
-      "Several live app-layer manifests align more closely with project or services folders than current Ansible templates."
+      "Primary creative plane and Workshop specialist-app runtime.",
+      "The command center is no longer hosted on WORKSHOP."
     ]
   },
   {
@@ -138,18 +136,21 @@
       "topology.service.litellm"
     ],
     "backed_by": [
+      "command center",
       "embedding model",
       "reranker model",
       "Claude Code",
       "claude-squad"
     ],
     "entrypoints": [
+      "https://athanor.local",
+      "192.168.1.189:3001",
       "192.168.1.189:8001",
       "192.168.1.189:8003"
     ],
     "notes": [
       "Development and operations plane.",
-      "Carries embedding and reranking, not the main dashboard."
+      "Carries the command center runtime plus embedding and reranking services."
     ]
   },
   {
@@ -158,14 +159,14 @@
     "title": "Command Center dashboard",
     "kind": "service",
     "owner": "dashboard",
-    "source_of_truth": "dashboard project and workshop manifests",
+    "source_of_truth": "dashboard project and dev deployment manifests",
     "status_tag": "live",
     "repo_source": [
       "projects/dashboard",
       "projects/dashboard/README.md"
     ],
     "runtime_source": [
-      "Workshop dashboard deployment"
+      "DEV command-center deployment"
     ],
     "depends_on": [
       "topology.service.agent-server",
@@ -178,10 +179,11 @@
       "typed contracts"
     ],
     "entrypoints": [
-      "192.168.1.225:3001"
+      "https://athanor.local",
+      "192.168.1.189:3001"
     ],
     "notes": [
-      "Primary operator shell.",
+      "Primary operator shell on DEV.",
       "Owns normalization between browser and raw cluster services."
     ]
   },

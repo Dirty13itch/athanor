@@ -241,7 +241,7 @@ VAULT (NFS Server):
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        CLIENT LAYER                                 │
-│  Browser → Dashboard (Node 2:3001) → vLLM API (Node 1:8000)        │
+│  Browser → Command Center (athanor.local → DEV:3001) → vLLM API    │
 │  Browser → Open WebUI (Node 2:3000) → vLLM API (Node 1:8000)       │
 │  Browser → ComfyUI (Node 2:8188) → RTX 5090 (Flux gen)             │
 │  API calls → Agent Server (Node 1:9000) → vLLM tool calling        │

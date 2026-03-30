@@ -10,11 +10,11 @@
     "reverse_proxy": "caddy",
     "runtime_target": "http://dev.athanor.local:3001/",
     "deployment_goal": "containerized_command_center_behind_reverse_proxy",
-    "notes": [
-      "https://athanor.local/ is the only canonical human front door.",
-      "DEV now serves the command center from the containerized dashboard runtime behind Caddy.",
-      "Operator desktops still need athanor.local hostname resolution before the canonical URL is universally reachable."
-    ]
+      "notes": [
+        "https://athanor.local/ is the only canonical human front door.",
+        "DEV serves the command center from the containerized dashboard runtime behind Caddy.",
+        "DESK hostname resolution is now verified locally through the scripted hosts-file rollout."
+      ]
   },
   "front_door_contract": {
     "canonical_portal_id": "athanor_command_center",
@@ -24,7 +24,7 @@
     "current_runtime_mode": "containerized_service_behind_caddy",
     "target_runtime_mode": "containerized_service_behind_caddy",
     "allow_multiple_active_portals": false,
-    "phase_promotion_gate": "Canonical DEV command center is reachable from operator desktops at athanor.local, the WORKSHOP shadow portal stays retired, and browser smoke is green."
+    "phase_promotion_gate": "Canonical DEV command center remains reachable from operator desktops at athanor.local, the WORKSHOP shadow portal stays retired, and browser smoke stays green."
   },
   "host_aliases": [
     {
@@ -32,35 +32,35 @@
       "node": "dev",
       "hostname": "athanor.local",
       "role": "canonical_front_door",
-      "status": "dev_live_desktop_rollout_pending"
+      "status": "desk_verified_manual_hosts"
     },
     {
       "id": "dev_athanor_local",
       "node": "dev",
       "hostname": "dev.athanor.local",
       "role": "node_host",
-      "status": "planned"
+      "status": "desk_verified_manual_hosts"
     },
     {
       "id": "vault_athanor_local",
       "node": "vault",
       "hostname": "vault.athanor.local",
       "role": "node_host",
-      "status": "planned"
+      "status": "desk_verified_manual_hosts"
     },
     {
       "id": "interface_athanor_local",
       "node": "workshop",
       "hostname": "interface.athanor.local",
       "role": "node_host",
-      "status": "planned"
+      "status": "desk_verified_manual_hosts"
     },
     {
       "id": "core_athanor_local",
       "node": "foundry",
       "hostname": "core.athanor.local",
       "role": "node_host",
-      "status": "planned"
+      "status": "desk_verified_manual_hosts"
     }
   ],
   "surfaces": [
@@ -77,14 +77,14 @@
       "deployment_mode": "containerized_service_behind_caddy",
       "navigation_role": "front_door",
       "operator_role": "command_center",
-      "status": "degraded_production",
+      "status": "active_production",
       "owner": "shaun",
       "retirement_state": "keep",
       "target_deployment_mode": "containerized_service_behind_caddy",
       "notes": [
         "Canonical portal.",
-        "DEV now runs the dashboard as a containerized service behind Caddy on athanor.local.",
-        "The remaining blocker is client-side hostname rollout on operator desktops, not broken runtime assets."
+        "DEV runs the dashboard as a containerized service behind Caddy on athanor.local.",
+        "DESK hostname resolution is verified through the scripted hosts-file rollout."
       ]
     },
     {
@@ -694,8 +694,15 @@
       "id": "desk-operator-hostname-resolution-gap",
       "surface": "athanor_command_center",
       "severity": "high",
+      "status": "retired",
+      "description": "Resolved on 2026-03-29 by rolling the scripted DESK hosts-file aliases for athanor.local plus the node-host deep links."
+    },
+    {
+      "id": "additional-operator-clients-hostname-rollout-gap",
+      "surface": "athanor_command_center",
+      "severity": "low",
       "status": "active",
-      "description": "DEV now serves the command center cleanly through Caddy, but operator desktops still need athanor.local hostname resolution before the canonical URL is reachable without host overrides."
+      "description": "DESK now resolves the canonical command-center and node-host aliases, but any additional operator clients still need the same scripted hosts-file rollout or internal DNS before athanor.local and the *.athanor.local deep links work there."
     },
     {
       "id": "dev-command-center-static-asset-breakage",
@@ -723,7 +730,7 @@
       "surface": "operator_surface_contract",
       "severity": "high",
       "status": "retired",
-      "description": "The active monitoring, Ansible, helper, and documentation surfaces have been rewritten away from WORKSHOP:3001. Remaining front-door drift is now client-side hostname rollout, not repo-certified split-brain."
+      "description": "Resolved on 2026-03-29 by rewriting the active monitoring, Ansible, helper, and documentation surfaces away from WORKSHOP:3001."
     }
   ]
 }

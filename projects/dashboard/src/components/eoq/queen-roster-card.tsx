@@ -11,6 +11,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { getProjectById } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 interface QueenTrait {
@@ -148,6 +149,7 @@ export function QueenRosterCard() {
 
 function QueenDetail({ queen, colors }: { queen: Queen; colors: Record<string, string> }) {
   const bg = archetypeColor(queen.archetype, colors);
+  const eoqUrl = getProjectById("eoq")?.externalUrl ?? "http://interface.athanor.local:3002/";
 
   return (
     <>
@@ -254,7 +256,7 @@ function QueenDetail({ queen, colors }: { queen: Queen; colors: Record<string, s
         )}
 
         <a
-          href={`http://192.168.1.225:3002`}
+          href={eoqUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/20"

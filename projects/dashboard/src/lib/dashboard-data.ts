@@ -759,7 +759,7 @@ export async function getProjectsSnapshot(): Promise<ProjectsSnapshot> {
         firstClass: project.first_class ?? registry?.firstClass ?? false,
         lens: (project.lens as ProjectSnapshot["lens"] | undefined) ?? registry?.lens ?? "default",
         primaryRoute: project.primary_route ?? registry?.primaryRoute ?? "/workplanner",
-        externalUrl: project.external_url ?? registry?.externalUrl ?? null,
+        externalUrl: registry?.externalUrl ?? project.external_url ?? null,
         agents: project.agents,
         needsCount: project.needs_count,
         constraints: project.constraints,

@@ -72,7 +72,7 @@ Mutable facts policy: service ids, nodes, ports, auth classes, and health paths 
 
 | Service id | Node | Auth | Health | Role |
 |------------|------|------|--------|------|
-| `dashboard` | `dev` | `operator` | `/api/overview` | Main authenticated operator console |
+| `dashboard` | `dev` | `operator` | `/api/operator/session` | Main authenticated operator console |
 | `speaches` | `foundry` | `operator` | none | Speech/STT/TTS surface |
 | `miniflux` | `vault` | `operator` | `/healthcheck` | RSS and signal intake product surface |
 | `stash` | `vault` | `operator` | none | Adult-content management surface |

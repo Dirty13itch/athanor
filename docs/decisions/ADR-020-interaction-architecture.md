@@ -9,7 +9,7 @@
 
 ## Context
 
-Athanor's Command Center now has a live canonical front door at `https://athanor.local/`, with the DEV runtime fallback still available at `http://dev.athanor.local:3001/` while hostname rollout finishes across operator clients. It has 17 pages, 5 lens modes, SSE streaming, push notifications, and generative UI. But it lacks a coherent interaction model — there's no clear mapping from "what does Shaun want to do right now?" to "which interface surface handles it." The system needs a layered architecture that:
+Athanor's Command Center now has a live canonical front door at `https://athanor.local/`, with the DEV runtime fallback still available at `http://dev.athanor.local:3001/` for clients that have not yet adopted the local alias or internal DNS rollout. It has 17 pages, 5 lens modes, SSE streaming, push notifications, and generative UI. But it lacks a coherent interaction model — there's no clear mapping from "what does Shaun want to do right now?" to "which interface surface handles it." The system needs a layered architecture that:
 
 1. Serves mobile and desktop equally (not responsive-as-afterthought — designed for both)
 2. Ranges from passive glancing to active system development

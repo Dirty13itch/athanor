@@ -46,7 +46,7 @@ The audit truth lives in:
   - `python scripts/tests/check-ui-coverage.py`
 
 ## Notes
-- Dashboard live smoke defaults to the DEV runtime fallback at `http://dev.athanor.local:3001` unless `ATHANOR_DASHBOARD_URL` or `--base-url` overrides it.
-- EoBQ live smoke defaults to `http://192.168.1.225:3002` unless `ATHANOR_EOQ_URL` overrides it.
-- Ulrich live smoke defaults to `http://192.168.1.225:3003` unless `ATHANOR_ULRICH_URL` overrides it.
+- Dashboard live smoke defaults to the canonical front door at `https://athanor.local/`; use `ATHANOR_COMMAND_CENTER_URL`, `ATHANOR_DASHBOARD_URL`, or `--base-url` to target the runtime fallback or another command-center path explicitly.
+- EoBQ live smoke defaults to `http://interface.athanor.local:3002/` unless `ATHANOR_EOQ_LINK_URL` or `--base-url` overrides it.
+- Ulrich live smoke defaults to `http://interface.athanor.local:3003/` unless `ATHANOR_ULRICH_LINK_URL` or `--base-url` overrides it.
 - EoBQ generation and Ulrich mutation smokes are opt-in in the live runners so the default cycle stays low-impact.

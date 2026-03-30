@@ -13,7 +13,7 @@
 
 ## What This Is
 
-The Athanor Command Center is the evolution of the existing dashboard (now fronted canonically at `https://athanor.local/`, with the DEV runtime fallback still available at `http://dev.athanor.local:3001/` while hostname rollout finishes, Next.js 16 + React 19 + shadcn/ui + Tailwind v4) from a monitoring surface into the **primary interface** for the entire system. It replaces the terminal as the default way Shaun interacts with Athanor.
+The Athanor Command Center is the evolution of the existing dashboard (now fronted canonically at `https://athanor.local/`, with the DEV runtime fallback still available at `http://dev.athanor.local:3001/` for clients that have not yet adopted the local alias or internal DNS rollout, Next.js 16 + React 19 + shadcn/ui + Tailwind v4) from a monitoring surface into the **primary interface** for the entire system. It replaces the terminal as the default way Shaun interacts with Athanor.
 
 It is:
 - A **PWA** that works equally well on desktop and phone — both are first-class

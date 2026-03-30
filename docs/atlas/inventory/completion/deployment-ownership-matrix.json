@@ -2,17 +2,17 @@
   {
     "serviceId": "dashboard",
     "title": "Command Center dashboard",
-    "node": "WORKSHOP",
+    "node": "DEV",
     "ownerLayer": "project",
     "repoSources": [
       "projects/dashboard/docker-compose.yml",
       "projects/dashboard",
       "ansible/roles/dashboard/templates/docker-compose.yml.j2"
     ],
-    "liveEndpoint": "http://192.168.1.225:3001",
+    "liveEndpoint": "https://athanor.local/",
     "driftStatus": "aligned",
     "notes": [
-      "Project-local dashboard manifests are the strongest source for the UI layer."
+      "Project-local dashboard manifests are the strongest source for the UI layer, and the canonical portal is now the DEV command center fronted by Caddy."
     ],
     "liveStatus": "reachable",
     "completionStatus": "live_complete"

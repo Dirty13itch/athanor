@@ -7,7 +7,7 @@ Do not edit manually.
 
 - Registry version: `2026-03-29.2`
 - Surfaces tracked: `4`
-- VAULT LiteLLM env audit: `2026-03-30T01:46:14Z`
+- VAULT LiteLLM env audit: `2026-03-30T02:43:41Z`
 
 ### Remediation states
 
@@ -64,22 +64,22 @@ Do not edit manually.
 - Evidence sources: `VAULT LiteLLM template and appdata layout review 2026-03-25`, `VAULT live docker inspect env-presence audit 2026-03-29`, `VAULT provider-specific LiteLLM probe 2026-03-29`, `VAULT LiteLLM implementation-authority role parity review 2026-03-29`
 - Recommended actions: `Keep LiteLLM provider keys in the managed VAULT container env surface or an equivalent host-local secret source.`, `Keep the live VAULT container env aligned with every provider key referenced by ansible/roles/vault-litellm/templates/litellm_config.yaml.j2.`, `Locate or restore the actual missing provider-key secret material in the managed VAULT secret source, then repopulate the missing upstream provider env vars in the standalone `litellm` container surface before recreating or redeploying the container.`, `Do not spend more repo-side effort on LiteLLM env-contract wiring for this lane unless the runtime contract changes again; the remaining blocker is missing secret-source material at runtime.`, `Do not move provider keys into tracked source or ad hoc shell history during future routing changes.`
 - Notes: `Backed by the current LiteLLM template and runtime appdata layout.`, `The 2026-03-29 runtime probe saw only CODESTRAL_API_KEY, DEEPSEEK_API_KEY, VENICE_API_KEY, and LITELLM_MASTER_KEY present in the running container env.`, `The same audit found ANTHROPIC_API_KEY, DASHSCOPE_API_KEY, GEMINI_API_KEY, GOOGLE_API_KEY, MISTRAL_API_KEY, MOONSHOT_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY, and ZAI_API_KEY missing from the running container env.`, `The 2026-03-29 host-env check also found the VAULT shell env missing the provider-key set entirely, so the live blocker is missing secret-source material rather than another repo-side wiring gap.`, `The running VAULT LiteLLM surface currently appears as a standalone Docker container with a config bind mount, not a discovered compose-managed env source.`, `Implementation-authority LiteLLM env-contract parity is already fixed and validator-enforced; the remaining repair is runtime-only.`, `This registry tracks contract names only, not secret material.`
-- Latest live env audit: `2026-03-30T01:46:14Z`
+- Latest live env audit: `2026-03-30T02:43:41Z`
 - Audit status: `ok`
 - Runtime owner surface: `standalone_docker_container`
 - Container image: `ghcr.io/berriai/litellm:main-v1.81.9-stable`
 - Restart policy: `unless-stopped`
 - Env-change boundary: `container_recreate_or_redeploy`
 - Config-only boundary: `docker_restart_litellm`
-- Container envs present: `CODESTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `VENICE_API_KEY`
-- Container envs missing: `ANTHROPIC_API_KEY`, `DASHSCOPE_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `ZAI_API_KEY`
+- Container envs present: `CODESTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`, `VENICE_API_KEY`
+- Container envs missing: `ANTHROPIC_API_KEY`, `DASHSCOPE_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `ZAI_API_KEY`
 - Host shell envs present: none
 - Host shell envs missing: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `VENICE_API_KEY`, `ZAI_API_KEY`
 - dockerMan template matches: none
 - Compose-manager matches: none
 - Boot-config references: `/boot/config/plugins/dynamix.my.servers/configs/docker.config.json`
 - Container launch command: `docker/prod_entrypoint.sh --config /app/config.yaml --port 4000 --num_workers 4`
-- Appdata files: `/mnt/user/appdata/litellm/config.yaml`, `/mnt/user/appdata/litellm/config.yaml.bak`, `/mnt/user/appdata/litellm/config.yaml.bak-20260318-2354`, `/mnt/user/appdata/litellm/config.yaml.bak-20260319-0936`, `/mnt/user/appdata/litellm/config.yaml.bak-tier24`, `/mnt/user/appdata/litellm/config.yaml.bak.1344`, `/mnt/user/appdata/litellm/config.yaml.bak.1772921405`, `/mnt/user/appdata/litellm/config.yaml.bak.1773047728`, `/mnt/user/appdata/litellm/config.yaml.bak.1773469196`, `/mnt/user/appdata/litellm/config.yaml.bak.1773546264`, `/mnt/user/appdata/litellm/config.yaml.broken`, `/mnt/user/appdata/litellm/config.yaml.pre-reroute`
+- Appdata files: `/mnt/user/appdata/litellm/backups/config.yaml.20260329-191944.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260329-192005.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260330-022430.bak`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260329-191944.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022430.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.rollback-source.20260330-022725.json`, `/mnt/user/appdata/litellm/config.yaml`, `/mnt/user/appdata/litellm/config.yaml.bak`, `/mnt/user/appdata/litellm/config.yaml.bak-20260318-2354`, `/mnt/user/appdata/litellm/config.yaml.bak-20260319-0936`, `/mnt/user/appdata/litellm/config.yaml.bak-tier24`, `/mnt/user/appdata/litellm/config.yaml.bak.1344`, `/mnt/user/appdata/litellm/config.yaml.bak.1772921405`, `/mnt/user/appdata/litellm/config.yaml.bak.1773047728`, `/mnt/user/appdata/litellm/config.yaml.bak.1773469196`, `/mnt/user/appdata/litellm/config.yaml.bak.1773546264`, `/mnt/user/appdata/litellm/config.yaml.broken`, `/mnt/user/appdata/litellm/config.yaml.pre-reroute`
 - Repair packet: [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md)
 
 ## script-lane-redis-auth

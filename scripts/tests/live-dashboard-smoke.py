@@ -12,14 +12,30 @@ from pathlib import Path
 from typing import Any
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cluster_config import get_url
 
-DEFAULT_BASE_URL = get_url("dashboard")
+DEFAULT_BASE_URL = (
+    os.environ.get("ATHANOR_COMMAND_CENTER_URL")
+    or os.environ.get("ATHANOR_DASHBOARD_URL")
+    or "https://athanor.local"
+).rstrip("/")
 ROOT = Path(__file__).resolve().parents[2]
 COMPLETION_DIR = ROOT / "docs" / "atlas" / "inventory" / "completion"
+UI_AUDIT_REGISTRY = ROOT / "tests" / "ui-audit" / "surface-registry.json"
 
 
 def load_routes() -> list[str]:
+    if UI_AUDIT_REGISTRY.exists():
+        payload = json.loads(UI_AUDIT_REGISTRY.read_text(encoding="utf-8"))
+        routes = [
+            record["routePath"]
+            for record in payload.get("surfaces", [])
+            if record.get("product") == "dashboard"
+            and record.get("surfaceType") == "route"
+            and record.get("routePath")
+        ]
+        if routes:
+            return routes
+
     path = COMPLETION_DIR / "dashboard-route-census.json"
     if not path.exists():
         return [
@@ -54,6 +70,36 @@ def load_routes() -> list[str]:
 
 
 def load_apis() -> list[str]:
+    if UI_AUDIT_REGISTRY.exists():
+        payload = json.loads(UI_AUDIT_REGISTRY.read_text(encoding="utf-8"))
+        owned_api_paths = {
+            path
+            for record in payload.get("surfaces", [])
+            if record.get("product") == "dashboard" and record.get("surfaceType") == "route"
+            for path in (record.get("ownedApis", []) or [])
+        }
+        path = COMPLETION_DIR / "dashboard-api-census.json"
+        if path.exists():
+            census = json.loads(path.read_text(encoding="utf-8"))
+            api_paths: list[str] = ["/api/operator/session"]
+            seen = {"/api/operator/session"}
+            for record in census:
+                api_path = record.get("apiPath", "")
+                if api_path not in owned_api_paths:
+                    continue
+                if "GET" not in record.get("methods", []):
+                    continue
+                if record.get("responseMode") == "sse":
+                    continue
+                if ":" in api_path or "[" in api_path:
+                    continue
+                if api_path in seen:
+                    continue
+                seen.add(api_path)
+                api_paths.append(api_path)
+            if api_paths:
+                return api_paths
+
     path = COMPLETION_DIR / "dashboard-api-census.json"
     if not path.exists():
         return [

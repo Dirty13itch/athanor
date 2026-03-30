@@ -9,12 +9,12 @@ Do not edit manually.
 
 | Severity | Count |
 | --- | --- |
-| `high` | 1 |
+| `low` | 1 |
 | `medium` | 1 |
 
 ## Drift Items
 
-- `desk-operator-hostname-resolution-gap` on `athanor_command_center`: DEV now serves the command center cleanly through Caddy, but operator desktops still need athanor.local hostname resolution before the canonical URL is reachable without host overrides.
+- `additional-operator-clients-hostname-rollout-gap` on `athanor_command_center`: DESK now resolves the canonical command-center and node-host aliases, but any additional operator clients still need the same scripted hosts-file rollout or internal DNS before athanor.local and the *.athanor.local deep links work there.
 - `implementation-runtime-split` on `authority model`: Implementation truth and runtime authority still live in different roots. Drift must reconcile from DEV back into C:/Athanor until deployment becomes a strict mirror.
 
 ## Retired Runtime Migration Seams

@@ -339,7 +339,7 @@ This is where Athanor genuinely starts managing itself. The Knowledge Agent beco
 
 **Stack:** Next.js + shadcn/ui (custom-built, not third-party)
 **Design:** Dark theme, Cormorant Garamond typography, warm amber accents (alchemical aesthetic)
-**Deployed to:** Node 2:3001
+**Deployed to:** DEV via `https://athanor.local/` (runtime fallback `http://dev.athanor.local:3001/`)
 
 ### What the Dashboard Shows
 

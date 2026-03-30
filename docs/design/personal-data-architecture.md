@@ -463,7 +463,7 @@ This turns every photo into searchable text. "Find photos of ductwork problems" 
 - ✅ Constraints: Person, Organization, Place name uniqueness; Document doc_id uniqueness; Topic name index
 
 ### Phase 7: Dashboard Page ✅ COMPLETE (2026-02-26)
-- ✅ `/personal-data` page deployed to Node 2:3001
+- ✅ `/personal-data` page deployed on the Athanor Command Center at `https://athanor.local/` (runtime fallback `http://dev.athanor.local:3001/`)
 - ✅ Semantic search (LiteLLM embedding → Qdrant vector search)
 - ✅ Category overview with subcategory breakdown and percentage bars
 - ✅ Knowledge graph summary (Neo4j: node/relationship counts, labels, top topics)
@@ -505,7 +505,7 @@ This turns every photo into searchable text. "Find photos of ductwork problems" 
 | Duplicate groups identified | 0 | 20+ |
 | Semantic search accuracy | **Working** (bookmarks + GitHub + file content, cross-domain) ✅ | All personal docs |
 | Agent context quality | **Deployed** (6 agents get personal data) ✅ | All relevant agents |
-| Dashboard page | **Live** (Node 2:3001/personal-data) ✅ | Full entity explorer |
+| Dashboard page | **Live** (`https://athanor.local/personal-data`) ✅ | Full entity explorer |
 | Data Curator file access | **Working** (/data/personal/ read-only) ✅ | Auto-index on schedule |
 
 ---

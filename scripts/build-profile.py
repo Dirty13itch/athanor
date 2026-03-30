@@ -154,7 +154,7 @@ def main() -> int:
             "profile-interface",
             "work_pattern",
             "primary_interface",
-            "Athanor Command Center at https://athanor.local/ (temporary runtime fallback http://dev.athanor.local:3001 while hostname rollout finishes). Claude Code on DEV. Terminal fallback.",
+            "Athanor Command Center at https://athanor.local/ (runtime fallback http://dev.athanor.local:3001 for clients that still need the local alias or internal DNS rollout). Claude Code on DEV. Terminal fallback.",
         ),
         (
             "profile-style",

@@ -10,9 +10,11 @@ import urllib.request
 from typing import Any
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cluster_config import NODES
 
-DEFAULT_BASE_URL = f"http://{NODES['workshop']}:3002"
+DEFAULT_BASE_URL = (
+    os.environ.get("ATHANOR_EOQ_LINK_URL")
+    or "http://interface.athanor.local:3002/"
+).rstrip("/")
 
 ROUTES = ["/", "/gallery", "/references"]
 
