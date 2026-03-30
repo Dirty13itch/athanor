@@ -21,7 +21,7 @@ import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 import yaml
