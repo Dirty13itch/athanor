@@ -25,10 +25,62 @@ These are the plain-language operating runbooks for the Athanor backbone.
 3. Defer quota-harvesting and noncritical cloud review before touching interactive reserves.
 4. If no safe fallback exists, keep the task pending and notify rather than silently downgrading quality.
 
-## Stuck queue recovery
+## Provider evidence capture
+
+1. Use the provider catalog report first to identify whether the lane is blocked on billing proof, CLI proof, or provider-specific LiteLLM proof.
+2. For Vault LiteLLM API lanes, start with `python scripts/probe_provider_usage_evidence.py --provider-id <provider-id>` so the proof uses the catalog-owned served model contract instead of a guessed alias.
+3. If the probe returns `auth_failed`, switch to [vault-litellm-provider-auth-repair.md](/C:/Athanor/docs/runbooks/vault-litellm-provider-auth-repair.md) instead of forcing a manual evidence write.
+4. Keep source labels concrete enough that later review can find the same log or request surface again.
+5. Regenerate the truth reports immediately after recording the proof so the provider report and verification queue update.
+
+## VAULT LiteLLM provider auth repair
+
+1. Start from the provider catalog report, secret-surface report, and [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md), not guesswork.
+2. Refresh `reports/truth-inventory/vault-litellm-env-audit.json` with `python scripts/vault_litellm_env_audit.py --write reports/truth-inventory/vault-litellm-env-audit.json` before changing anything.
+3. Treat the `litellm` container env surface as the owner of upstream provider-key delivery on VAULT.
+4. Repair missing provider env vars in the managed host-local secret surface only; do not place values in tracked source.
+5. Recreate or redeploy only the `litellm` container after the env surface is repaired.
+6. Re-run `python scripts/probe_provider_usage_evidence.py --all-vault-proxy`.
+7. Regenerate the truth collector and truth reports before closing the maintenance pass.
+8. Use [vault-litellm-provider-auth-repair.md](/C:/Athanor/docs/runbooks/vault-litellm-provider-auth-repair.md) for mutation boundaries and rollback notes, and use [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md) for the generated provider-by-provider repair checklist.
+
+## Local runtime env bootstrap
+
+1. Treat `~/.athanor/runtime.env` as the preferred DESK-local secret surface for script lanes.
+2. Keep only env names and path references in repo truth; never track the values.
+3. Verify the surface with `python scripts/runtime_env.py --check ATHANOR_REDIS_URL ATHANOR_REDIS_PASSWORD`.
+4. If the managed env file is missing, let Redis-backed automation scripts fail closed instead of silently downgrading auth.
+
+## DEV secret-delivery normalization
+
+1. Review the generated secret-surface and truth-drift reports before touching live runtime state.
+2. Audit DEV user crontab and Athanor systemd units read-only first.
+3. Keep user-crontab secret delivery on the `BASH_ENV` plus `/home/shaun/.athanor/runtime.env` contract instead of reintroducing inline assignments.
+4. Keep reviewed Athanor systemd units on `EnvironmentFile` where secrets or runtime config are required, and keep envless units deliberate.
+5. Treat this as an ask-first maintenance action and rerun the truth collectors immediately after the live pass.
+
+## Governor facade rollback and audit
+
+1. Treat `athanor-governor` on DEV as a retired compatibility surface, not canonical task or posture truth.
+2. Confirm `/v1/governor` and `/v1/tasks/stats` are healthy before touching `:8760`.
+3. Start from the latest truth collector evidence; the 2026-03-29 cutover proves the live listener is gone, observed `:8760` references are zero, and all 9 mapped callers are synced.
+4. Audit the saved unit, journal, and listener evidence read-only first, then use [RUNTIME-MIGRATION-REPORT.md](/C:/Athanor/docs/operations/RUNTIME-MIGRATION-REPORT.md) plus [GOVERNOR-FACADE-CUTOVER-PACKET.md](/C:/Athanor/docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md) as rollback and audit references instead of a forward migration checklist.
+5. Treat any future systemd reactivation or `:8760` listener return as an explicit rollback or drift investigation, not as part of the normal operator path.
+6. After any rollback or audit pass, rerun the truth collector and confirm the runtime checks stay green with no new `/queue` or `/health` traffic.
+
+## Software-core autonomy operations
+
+1. Start from [AUTONOMY-ACTIVATION-REPORT.md](/C:/Athanor/docs/operations/AUTONOMY-ACTIVATION-REPORT.md), not `STATUS.md` prose alone.
+2. Keep the current post-cutover scope at software-core only: coding, research, knowledge, general-assistant, and governed backlog or self-maintenance loops.
+3. Treat `expanded_core_phase_2` as the next promotion boundary and keep it blocked until `vault_provider_auth_repair` is cleared in the registry-backed report layer.
+4. Keep runtime mutations approval-gated even while software-core autonomy is active.
+5. Confirm provider posture still excludes auth-failed, configured-unused, or governed-handoff-only lanes from ordinary auto-routing.
+6. If you need to widen scope, update the autonomy-activation registry first, then regenerate reports and rerun validators before treating the change as real.
+
+## Stuck task-engine recovery
 
 1. Inspect scheduled jobs, task runs, and operator stream events.
-2. Check whether the issue is routing, queue depth, worker failure, or an upstream dependency.
+2. Check whether the issue is routing posture, pending-task backlog, worker failure, or an upstream dependency.
 3. Retry bounded failed tasks before re-enabling whole lanes.
 4. If the same task storms repeatedly, pause the affected lane and inspect the retry policy.
 
@@ -46,7 +98,8 @@ These are the plain-language operating runbooks for the Athanor backbone.
 3. Verify the most recent backup exists and is readable before any destructive restore step.
 4. Restore in documented recovery order.
 5. Validate the restored service before reconnecting dependent automation.
-6. Record the result and any gaps in the operator stream or experiment ledger.
+6. Generate the current rehearsal artifact with `python scripts/generate_recovery_evidence.py`.
+7. Record the result and any gaps in the operator stream or experiment ledger, and confirm the artifact did not write credential-bearing URLs.
 
 ## Incident review
 

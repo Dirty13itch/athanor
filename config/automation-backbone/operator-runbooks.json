@@ -1,6 +1,6 @@
 {
-  "version": "2026-03-12",
-  "updated_at": "2026-03-12T18:15:00Z",
+  "version": "2026-03-29.2",
+  "updated_at": "2026-03-29T06:40:00Z",
   "status": "live_partial",
   "runbooks": [
     {
@@ -26,6 +26,54 @@
       "cadence": "as-needed",
       "related_surface": "/agents",
       "evidence_flow_ids": ["provider_fallback", "economic_governance"]
+    },
+    {
+      "id": "provider-evidence-capture",
+      "label": "Provider Evidence Capture",
+      "description": "Use the automated Vault LiteLLM probe or explicit CLI evidence paths to convert weak provider lanes into concrete observed, auth-failed, or unsupported states.",
+      "cadence": "as-needed",
+      "related_surface": "/subscriptions",
+      "evidence_flow_ids": ["provider_fallback", "economic_governance", "runtime_secret_delivery"]
+    },
+    {
+      "id": "vault-litellm-provider-auth-repair",
+      "label": "VAULT LiteLLM Provider Auth Repair",
+      "description": "Use the live provider probe, secret-surface report, and VAULT runtime checks to restore missing upstream provider env delivery for auth-failed LiteLLM API lanes.",
+      "cadence": "as-needed",
+      "related_surface": "/subscriptions",
+      "evidence_flow_ids": ["provider_fallback", "runtime_secret_delivery"]
+    },
+    {
+      "id": "local-runtime-env-bootstrap",
+      "label": "Local Runtime Env Bootstrap",
+      "description": "Verify DESK-local runtime env delivery for Redis-backed script lanes and keep the secret-bearing env file out of tracked source.",
+      "cadence": "as-needed",
+      "related_surface": "/operator",
+      "evidence_flow_ids": ["runtime_secret_delivery", "automation_records"]
+    },
+    {
+      "id": "dev-secret-delivery-normalization",
+      "label": "DEV Secret-Delivery Normalization",
+      "description": "Audit DEV cron and systemd credential delivery read-only first, then normalize runtime.env and envfile-backed surfaces during an intentional maintenance pass.",
+      "cadence": "as-needed",
+      "related_surface": "/operator",
+      "evidence_flow_ids": ["runtime_secret_delivery", "runtime_ownership"]
+    },
+    {
+      "id": "governor-facade-retirement",
+      "label": "Governor Facade Rollback and Audit",
+      "description": "Use the runtime migration report, cutover packet, and retirement runbook to audit the completed DEV cutover and preserve rollback evidence for the retired :8760 surface.",
+      "cadence": "as-needed",
+      "related_surface": "/governor",
+      "evidence_flow_ids": ["runtime_ownership", "task_engine", "governor_facade_retirement"]
+    },
+    {
+      "id": "software-core-autonomy-activation",
+      "label": "Software-Core Autonomy Operations",
+      "description": "Use the autonomy activation report, governor posture, and provider evidence to operate and audit post-cutover software-core autonomy, with `expanded_core_phase_2` still blocked by `vault_provider_auth_repair` until the broader phase is explicitly promoted.",
+      "cadence": "as-needed",
+      "related_surface": "/governor",
+      "evidence_flow_ids": ["presence_tier", "scheduled_job_governance", "provider_fallback", "tool_permissions"]
     },
     {
       "id": "stuck-queue-recovery",

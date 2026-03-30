@@ -42,6 +42,7 @@ This is the live execution backlog for the Athanor truth-convergence program. It
 - The follow-up autonomy-enforcement tranche wired that contract into the governor runtime and retry path, so `scheduler`, `pipeline`, and `auto-retry` now respect the software-core phase gate instead of auto-executing only because they are operational sources.
 - The newest autonomy-policy tranche centralizes active phase facts in `projects/agents/src/athanor_agents/model_governance.py`, so governor runtime, scheduler, work planner, workspace reactions, and plan generation now consume one shared policy view instead of duplicating active-state literals, enabled-agent allowlists, workload allowlists, blocked workloads, and prerequisite evaluation across five modules.
 - The newest autonomy-activation checkpoint promoted `software_core_phase_1` from `ready_for_operator_enable` to active after the agents, services, dashboard, collector, and validator checkpoints all passed, while keeping `broad_autonomy_enabled=false` so first-wave autonomy is live without pretending the whole system is already unconstrained.
+- The newest clean-main acceptance tranche restored the documented matrix itself: dashboard `test:e2e:terminal` now points at the real navigation spec, the full dashboard `test:e2e:audit` bundle is green on clean `main`, `gpu-orchestrator` again exposes the legacy and canonical worker-lane env aliases expected by its config contract, `ws-pty-bridge` now has a real `npm run ci` script (`node --check server.js`), and `collect_truth_inventory.py` now compares runtime-owned caller drift against `C:\Athanor` implementation authority instead of incorrectly treating the current worktree as the canonical source.
 - The newest autonomy-planning tranche made autonomy-managed plans phase-aware before task submission: `plan_generator.py` now filters assigned agents against the current active phase, `decompose_plan_to_tasks()` rechecks that scope before emitting tasks, and `work_pipeline.py` now marks pipeline plan generation as autonomy-managed without constraining manual/operator plan creation.
 - The newest autonomy-visibility tranche now exposes the next promotion boundary in live snapshots and dashboard fixtures: `next_phase_id`, `next_phase_status`, `next_phase_scope`, `next_phase_blocker_count`, and `next_phase_blocker_ids` are now explicit contract fields instead of implied registry-only knowledge.
 - The newest autonomy-report tranche brings that same next-phase boundary into the generated operator report, so `docs/operations/AUTONOMY-ACTIVATION-REPORT.md` now carries the current phase scope, next phase, next-phase blocker count, and an explicit blocker table instead of stopping at current-phase prose.
@@ -59,13 +60,14 @@ This is the live execution backlog for the Athanor truth-convergence program. It
 
 ## Current Order
 
-1. Keep the repo-safe VAULT auth-classification tranche current on clean `main`, including the generated repair packet, provider report, and secret-surface report, before crossing the live maintenance boundary.
-2. Run the approved VAULT LiteLLM repair pass from `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, then re-run `scripts/vault_litellm_env_audit.py --write reports/truth-inventory/vault-litellm-env-audit.json` plus `scripts/probe_provider_usage_evidence.py --all-vault-proxy`, now that provider-specific evidence capture is automated, the env-name gap is artifact-backed, and the failures are classified as real credential/runtime gaps instead of missing probe plumbing.
-3. Verify the subscribed Kimi billing tier from an operator-visible surface and restore or explicitly keep GLM CLI evidence demoted, since those are now the remaining weak non-API provider lanes.
-4. Use the active software-core autonomy phase and generated report to keep first-wave autonomy bounded until the VAULT repair and remaining weak-lane verification are complete, then promote the next phase explicitly instead of by drift.
-5. Keep dashboard work in sidecar mode for lower-risk breadth and keep pruning reference docs that still preserve retired standalone-governor or pre-contract script-service narratives.
-6. After that, return to the next control-plane seam that still bypasses shared health/action or durable truth.
-7. Keep the runbook, cutover packet, and backup root as rollback evidence only; do not recreate a standalone governor facade in implementation authority.
+1. Close the remaining clean-main `projects/agents` convergence tranche so the acceptance matrix can go fully green from `main`, not just the dashboard, service-contract, GPU, and terminal-bridge lanes.
+2. Keep the repo-safe VAULT auth-classification tranche current on clean `main`, including the generated repair packet, provider report, and secret-surface report, before crossing the live maintenance boundary.
+3. Run the approved VAULT LiteLLM repair pass from `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, then re-run `scripts/vault_litellm_env_audit.py --write reports/truth-inventory/vault-litellm-env-audit.json` plus `scripts/probe_provider_usage_evidence.py --all-vault-proxy`, now that provider-specific evidence capture is automated, the env-name gap is artifact-backed, and the failures are classified as real credential/runtime gaps instead of missing probe plumbing.
+4. Verify the subscribed Kimi billing tier from an operator-visible surface and restore or explicitly keep GLM CLI evidence demoted, since those are now the remaining weak non-API provider lanes.
+5. Use the active software-core autonomy phase and generated report to keep first-wave autonomy bounded until the VAULT repair and remaining weak-lane verification are complete, then promote the next phase explicitly instead of by drift.
+6. Keep dashboard work in sidecar mode for lower-risk breadth and keep pruning reference docs that still preserve retired standalone-governor or pre-contract script-service narratives.
+7. After that, return to the next control-plane seam that still bypasses shared health/action or durable truth.
+8. Keep the runbook, cutover packet, and backup root as rollback evidence only; do not recreate a standalone governor facade in implementation authority.
 
 ## Acceptance Matrix
 
@@ -78,8 +80,10 @@ This is the live execution backlog for the Athanor truth-convergence program. It
 - `cd projects/dashboard && npm test`
 - `cd projects/dashboard && npm run typecheck`
 - `cd projects/dashboard && npm run build`
-- `cd projects/agents && .\\.venv\\Scripts\\python -m pytest tests -q`
-- `cd projects/gpu-orchestrator && .\\.venv\\Scripts\\python -m pytest tests -q`
+- `cd projects/dashboard && npm run test:e2e:terminal`
+- `cd projects/dashboard && npm run test:e2e:audit`
+- `cd projects/agents && C:\Athanor\projects\agents\.venv\Scripts\python.exe -m pytest tests -q`
+- `cd projects/gpu-orchestrator && C:\Athanor\projects\gpu-orchestrator\.venv\Scripts\python.exe -m pytest tests -q`
 - `cd projects/ws-pty-bridge && npm run ci`
 - `python scripts/run_contract_healer.py`
 - `python scripts/generate_recovery_evidence.py`

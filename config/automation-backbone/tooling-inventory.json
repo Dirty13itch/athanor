@@ -48,20 +48,6 @@
           ]
         },
         {
-          "tool_id": "glm",
-          "provider_id": "zai_glm_coding",
-          "command": "glm",
-          "status": "missing",
-          "version": null
-        },
-        {
-          "tool_id": "zai",
-          "provider_id": "zai_glm_coding",
-          "command": "zai",
-          "status": "missing",
-          "version": null
-        },
-        {
           "tool_id": "claude-squad",
           "provider_id": null,
           "command": "claude-squad",
@@ -116,20 +102,6 @@
           "command": "aider",
           "status": "installed",
           "version": "0.86.2"
-        },
-        {
-          "tool_id": "glm",
-          "provider_id": "zai_glm_coding",
-          "command": "glm",
-          "status": "missing",
-          "version": null
-        },
-        {
-          "tool_id": "zai",
-          "provider_id": "zai_glm_coding",
-          "command": "zai",
-          "status": "missing",
-          "version": null
         },
         {
           "tool_id": "claude-squad",

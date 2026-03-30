@@ -281,7 +281,7 @@ Rationale:
 
 5. **Free.** The Personal plan covers everything needed. No VPS, no domain name, no subscription.
 
-6. **Web dashboard access.** Connect to Tailscale on phone/laptop, then browse to `192.168.1.203:3000` (Grafana), `https://athanor.local/` or `http://dev.athanor.local:3001` (Athanor Command Center runtime fallback), etc. With MagicDNS + split DNS, these can resolve cleanly through `athanor.local` and the node-host aliases.
+6. **Web dashboard access.** Connect to Tailscale on phone/laptop, then browse to `192.168.1.203:3000` (Grafana), `192.168.1.225:3001` (Dashboard), etc. With MagicDNS + split DNS, these could become `grafana.athanor.local`, `dashboard.athanor.local`, etc.
 
 7. **One-person operable.** Setup is 15-30 minutes. No keys to rotate manually, no certificates to renew, no VPS to maintain. If something breaks, `tailscale status` tells you what. The debugging surface is small.
 

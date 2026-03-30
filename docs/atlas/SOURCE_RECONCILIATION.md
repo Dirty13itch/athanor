@@ -12,18 +12,19 @@ When sources disagree, resolve them in this order:
 4. Tactical planning and build-queue documents
 5. Older map documents and historical planning bundles
 
-The atlas sits above those layers as the canonical cross-layer synthesis. It does not outrank code or live-defining config. It reconciles them.
+The atlas is a reference synthesis layer and completion-audit scaffold. It does not outrank code, registry truth, or live-defining config. It reconciles them.
 
-## Canonical Atlas Layer
+## Atlas Synthesis Layer
 
 | Source | Classification | What it owns now | What it does not own |
 | --- | --- | --- | --- |
-| [`README.md`](./README.md) | canonical atlas index | authority model, atlas layout, status taxonomy, source anchors | detailed service, route, or endpoint truth |
-| [`TOPOLOGY_ATLAS.md`](./TOPOLOGY_ATLAS.md) | canonical synthesized map | nodes, services, model lanes, stores, flows, deployment-source precedence | low-level deployment implementation details |
-| [`RUNTIME_ATLAS.md`](./RUNTIME_ATLAS.md) | canonical synthesized map | agent roster, orchestration subsystems, task/workspace loops, subscription layer | source code internals beyond the mapped runtime surface |
-| [`UI_ATLAS.md`](./UI_ATLAS.md) | canonical synthesized map | dashboard shell, route families, route-by-route inventory, shared consoles, dormant UI systems | component implementation details that belong in code |
-| [`API_ATLAS.md`](./API_ATLAS.md) | canonical synthesized map | dashboard API families, agent-server boundary, consumer matrix, ownership | endpoint implementation logic |
-| [`inventory/*.json`](./inventory/atlas-record.schema.json) | canonical machine-readable atlas | systematic inventory records that back the prose atlas | product-facing runtime contracts |
+| [`README.md`](./README.md) | atlas index | authority model, atlas layout, status taxonomy, source anchors | detailed service, route, or endpoint truth |
+| [`RUNTIME_ATLAS.md`](./RUNTIME_ATLAS.md) | synthesized reference map | agent roster, orchestration subsystems, task/workspace loops, subscription layer | source code internals beyond the mapped runtime surface |
+| [`COMMAND_HIERARCHY_ATLAS.md`](./COMMAND_HIERARCHY_ATLAS.md) | synthesized reference map | command and execution-path narrative across the control plane | exact route or service inventory truth |
+| [`MODEL_GOVERNANCE_ATLAS.md`](./MODEL_GOVERNANCE_ATLAS.md) | synthesized reference map | governance-stage narrative and decision flow | live proving-ground or promotion state |
+| [`OPERATIONS_ATLAS.md`](./OPERATIONS_ATLAS.md) | synthesized reference map | operating-loop narrative and human-readable synthesis | current backlog, live health, or deployment placement |
+
+Archived atlas material that no longer owns live truth now lives under [`../archive/atlas/`](../archive/atlas/).
 
 ## Code and Config Sources That Still Own Truth
 
@@ -35,6 +36,7 @@ The atlas sits above those layers as the canonical cross-layer synthesis. It doe
 | `projects/dashboard/src/components/**` | canonical code source | shell systems, shared widgets, dormant UI capability | code may exist without being mounted; atlas status tags handle that distinction |
 | `projects/agents/src/athanor_agents/server.py` | canonical runtime code source | agent-server endpoint surface and agent roster | strongest source for runtime API shape |
 | `projects/agents/src/athanor_agents/*.py` | canonical runtime code source | task engine, workspace, goals, notifications, subscriptions, memory, learning | runtime atlas should follow these modules when behavior changes |
+| `config/automation-backbone/runtime-subsystem-registry.json` | canonical control-plane registry | runtime subsystem ids, status tags, and dashboard touchpoints used by the completion-audit lane | replaces atlas runtime inventory as an active completion-audit input |
 | `ansible/` | deployment source | intended deployment shape when templates are current | not always the strongest source when service or project manifests match live better |
 | `services/` | deployment source | node-scoped service manifests, especially for compute nodes | currently stronger than some Ansible roles for parts of FOUNDRY and WORKSHOP |
 | `projects/*/docker-compose*` | deployment source | app-local deployment truth for dashboard, agents, and similar app surfaces | especially relevant when the project owns its own runtime stack |
@@ -45,12 +47,13 @@ The atlas sits above those layers as the canonical cross-layer synthesis. It doe
 | --- | --- | --- | --- |
 | [`../SYSTEM-SPEC.md`](../SYSTEM-SPEC.md) | current operational spec | overall architecture, runtime responsibilities, flow descriptions | strongest prose source for system behavior when it matches code/runtime |
 | [`../SERVICES.md`](../SERVICES.md) | current operational spec | node placement, model routing, and service location | strongest prose source for deployment topology short of manifests |
-| [`../design/agent-contracts.md`](../design/agent-contracts.md) | design contract doc | agent roles, operating boundaries, and expectations | authoritative for intent, subordinate to live code for actual agent roster |
+| [`../design/agent-contracts.md`](../design/agent-contracts.md) | legacy design contract doc | historical per-agent role summaries and boundaries | no longer authoritative for tasks, leases, schedules, or governor ownership; use command-hierarchy governance instead |
+| [`../design/command-hierarchy-governance.md`](../design/command-hierarchy-governance.md) | current design contract doc | current command hierarchy, governor posture, and subsystem ownership | subordinate to live code for exact runtime state, but the right prose source for authority split |
 | [`../design/athanor-next.md`](../design/athanor-next.md) | strategic design doc | north-star design direction and strategic intent | not a topology or route source of truth |
 | [`../design/command-center.md`](../design/command-center.md) | design doc | dashboard intent and operator-experience goals | subordinate to mounted dashboard code and route definitions |
 | [`../../projects/dashboard/README.md`](../../projects/dashboard/README.md) | product support doc | dashboard architecture and local development context | useful support source, not the canonical UI map |
 | [`../../projects/dashboard/docs/UI_AUDIT.md`](../../projects/dashboard/docs/UI_AUDIT.md) | support audit doc | route quality baseline and UI observations | useful for verification, not the main atlas |
-| [`../BUILD-MANIFEST.md`](../BUILD-MANIFEST.md) | tactical queue | current execution priorities and historical build notes | must not be used as topology or secrets truth |
+| [`../archive/BUILD-MANIFEST.md`](../archive/BUILD-MANIFEST.md) | archived tactical queue | historical build notes and backlog lineage | replaced by `STATUS.md` and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` for live execution priorities |
 
 ## Reconciled But Non-Canonical Map Docs
 
@@ -58,8 +61,9 @@ The atlas sits above those layers as the canonical cross-layer synthesis. It doe
 | --- | --- | --- | --- |
 | [`../archive/planning-era/ATHANOR-MAP.md`](../archive/planning-era/ATHANOR-MAP.md) | legacy planning map | philosophy, earlier design synthesis, planning-era assumptions | mixes live facts, intentions, and sprint-era planning into one document |
 | [`../archive/planning-era/ATHANOR-MAP-ADDENDUM.md`](../archive/planning-era/ATHANOR-MAP-ADDENDUM.md) | legacy planning addendum | point-in-time corrections and late-session clarifications | tied to a specific planning session, not durable repo truth |
-| [`../hardware/ATHANOR-SYSTEM-MAP.md`](../hardware/ATHANOR-SYSTEM-MAP.md) | hardware reference | rack, ports, hardware inventory, physical context | valuable hardware detail, but not the current system map |
-| [`../hardware/COMPLETE-SYSTEM-BREAKDOWN.md`](../hardware/COMPLETE-SYSTEM-BREAKDOWN.md) | exhaustive hardware reference | deep physical inventory and rack-level documentation | too hardware-heavy to serve as the primary cross-layer map |
+| [`../archive/atlas/COMPLETION_AUDIT_PLAN.md`](../archive/atlas/COMPLETION_AUDIT_PLAN.md) | archived audit program | completion criteria, audit scope, and historical execution context | the audit program is implemented and now lives in generated outputs and live scripts instead of a planning doc |
+| [`../archive/ATHANOR-SYSTEM-MAP.md`](../archive/ATHANOR-SYSTEM-MAP.md) | hardware reference | rack, ports, hardware inventory, physical context | valuable hardware detail, but not the current system map |
+| [`../archive/COMPLETE-SYSTEM-BREAKDOWN.md`](../archive/COMPLETE-SYSTEM-BREAKDOWN.md) | exhaustive hardware reference | deep physical inventory and rack-level documentation | too hardware-heavy to serve as the primary cross-layer map |
 
 ## Reconciliation Rules For Known Divergence Zones
 
@@ -75,9 +79,8 @@ The atlas sits above those layers as the canonical cross-layer synthesis. It doe
 
 1. Change the real source first: code, route definition, operational doc, or deployment manifest.
 2. Update the relevant atlas prose doc and inventory JSON so the synthesis matches the real source.
-3. Run `python scripts/validate-atlas.py`.
-4. Run `python scripts/check-doc-refs.py docs/atlas`.
-5. If a formerly important document lost authority, add or update its atlas note instead of deleting its historical value.
+3. Run `python scripts/check-doc-refs.py docs/atlas`.
+4. If a formerly important document lost authority, move it under `docs/archive/atlas/` and update the atlas notes instead of leaving it in the active reference lane.
 
 ## Reading Guidance
 

@@ -1,6 +1,6 @@
 # Command Hierarchy Atlas
 
-This atlas page is the canonical map of who commands Athanor, how work is routed, and where sovereignty is enforced.
+This atlas page is a reference map of who commands Athanor, how work is routed, and where sovereignty is enforced. Live authority remains in the registry-backed control plane and current operating docs.
 
 For the design rationale and research anchors, see [../design/command-hierarchy-governance.md](../design/command-hierarchy-governance.md). For the formal decision, see [../decisions/ADR-023-command-hierarchy-and-governance.md](../decisions/ADR-023-command-hierarchy-and-governance.md). For the model-role, workload, and proving-ground layer beneath this hierarchy, see [MODEL_GOVERNANCE_ATLAS.md](./MODEL_GOVERNANCE_ATLAS.md).
 
@@ -27,7 +27,7 @@ flowchart TD
 | --- | --- | --- | --- |
 | 1 | Shaun | final approvals, vision, overrides | `live` |
 | 2 | Constitution + policy registry | hard constraints, approval bands, cloud boundaries | `live` |
-| 3 | Athanor governor | durable tasks, leases, schedules, fallback, low-risk automation control | `live` |
+| 3 | Athanor governor | posture, fallback, release-tier, and low-risk automation control | `live` |
 | 4 | Meta strategy layer | planning, critique, review, decomposition | `live` |
 | 5 | Orchestrator control stack | routing, execution control, shared attention, escalation | `live` |
 | 6 | Specialist agents | domain-scoped execution | `live` |
@@ -59,7 +59,7 @@ flowchart TD
 
 | Layer | Allowed | Not allowed |
 | --- | --- | --- |
-| Governor | route work, create tasks, issue leases, own schedules, choose fallback | override constitution |
+| Governor | route work, choose fallback, enforce posture, and pause or resume controlled execution | override constitution, own durable tasks, issue leases directly, own schedules |
 | Meta lanes | plan, review, critique, decompose, suggest redirects | direct tool execution, direct schedule ownership, direct lease issuance |
 | Specialists | scoped tool use inside policy bounds | self-expanding authority |
 | Workers | generate or transform outputs | approvals, routing, schedules |
@@ -102,12 +102,14 @@ These runtime and dashboard surfaces now expose command-hierarchy truth:
 | `/v1/tasks/runs` | normalized execution run ledger | `live` |
 | `/v1/tasks/scheduled` | normalized scheduled job records | `live` |
 | `/v1/subscriptions/summary` | provider posture + recent lease outcomes | `live` |
+| `/v1/subscriptions/execution` | execution adapter posture, recent handoffs, and direct-vs-handoff readiness | `live` |
+| `/v1/subscriptions/handoffs`, `/v1/subscriptions/leases` | governed handoff bundle and lease lifecycle | `live` |
 | `/api/system-map` | dashboard proxy for hierarchy snapshot | `live` |
 | `/api/governor`, `/api/governor/pause`, `/api/governor/resume`, `/api/governor/heartbeat` | dashboard posture, operator controls, and automatic presence signal path | `live` |
 | `/api/activity/operator-stream` | dashboard proxy for operator stream | `live` |
 | `/api/workforce/runs` | dashboard proxy for run ledger | `live` |
 | `/api/workforce/scheduled` | dashboard proxy for scheduled jobs | `live` |
-| `/api/subscriptions/summary` | dashboard proxy for provider posture | `live` |
+| `/api/subscriptions/summary`, `/api/subscriptions/execution`, `/api/subscriptions/handoffs`, `/api/subscriptions/leases` | dashboard proxies for provider posture and governed execution lifecycle | `live` |
 | Command Center system-map card | operator-facing simplified hierarchy | `live` |
 | Governor cards in Command Center, Agents, Tasks, and Workplanner | operator-facing pause/resume, effective presence, and capacity posture | `live` |
 

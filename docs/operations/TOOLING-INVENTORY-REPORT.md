@@ -7,7 +7,7 @@ Do not edit manually.
 
 - Registry version: `2026-03-29.1`
 - Hosts tracked: `2`
-- Tool entries tracked: `18`
+- Tool entries tracked: `14`
 
 ## DESK (`desk`)
 
@@ -20,8 +20,6 @@ Do not edit manually.
 | `gemini` | `google_gemini` | `gemini` | `installed` | `0.34.0` |
 | `kimi` | `moonshot_kimi` | `kimi` | `installed` | `1.18.0` |
 | `aider` | none | `aider` | `degraded` | unset |
-| `glm` | `zai_glm_coding` | `glm` | `missing` | unset |
-| `zai` | `zai_glm_coding` | `zai` | `missing` | unset |
 | `claude-squad` | none | `claude-squad` | `missing` | unset |
 | `claudeman` | none | `claudeman` | `missing` | unset |
 
@@ -36,7 +34,5 @@ Do not edit manually.
 | `gemini` | `google_gemini` | `gemini` | `installed` | `0.34.0` |
 | `kimi` | `moonshot_kimi` | `kimi` | `installed` | `1.24.0` |
 | `aider` | none | `aider` | `installed` | `0.86.2` |
-| `glm` | `zai_glm_coding` | `glm` | `missing` | unset |
-| `zai` | `zai_glm_coding` | `zai` | `missing` | unset |
 | `claude-squad` | none | `claude-squad` | `missing` | unset |
 | `claudeman` | none | `claudeman` | `missing` | unset |

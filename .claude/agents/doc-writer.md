@@ -29,18 +29,19 @@ Write, update, and maintain documentation that is useful to both humans and LLMs
 - Prose for reasoning and architecture decisions
 
 ## Structure Awareness
-- `docs/hardware/` — Physical inventory (LOCKED), audits, rack sessions
-- `docs/research/` — Deep technical research with dates
-- `docs/decisions/` — ADRs (Architecture Decision Records)
-- `docs/plans/` — Implementation plans
-- `docs/` — BUILD-ROADMAP.md, VISION.md, BLOCKED.md
-- `projects/` — Empire of Broken Queens, agents, services
-- `services/` — Docker service configs
-- `scripts/` — Automation scripts
-- `ansible/` — Infrastructure automation
+- `docs/archive/hardware/hardware-inventory.md` - Historical owned-hardware ledger (LOCKED archival record)
+- `docs/hardware/` - Current audits, rack sessions, and active hardware reports
+- `docs/research/` - Deep technical research with dates
+- `docs/decisions/` - ADRs (Architecture Decision Records)
+- `docs/plans/` - Implementation plans
+- `docs/` - BUILD-ROADMAP.md, VISION.md, BLOCKED.md
+- `projects/` - Empire of Broken Queens, agents, services
+- `services/` - Docker service configs
+- `scripts/` - Automation scripts
+- `ansible/` - Infrastructure automation
 
 ## Rules
-1. Never modify `docs/hardware/inventory.md` without explicit operator confirmation.
+1. Never modify `docs/archive/hardware/hardware-inventory.md` without explicit operator confirmation.
 2. When creating new files, follow existing naming conventions in that directory.
 3. Cross-reference related documents with relative links.
-4. Hardware changes require operator confirmation — flag, don't auto-update.
+4. Hardware changes require operator confirmation - flag, don't auto-update.

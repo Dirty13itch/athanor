@@ -162,13 +162,14 @@
 
 ## Immediate Order
 
-1. Finish the repo-safe VAULT credential-truth tightening tranche, keep the generated repair packet and reports current, and hold the live boundary at ask-first.
-2. Run the approved VAULT LiteLLM auth-repair packet, then re-probe the blocked provider lanes and refresh provider plus secret-surface truth.
-3. Verify the subscribed Kimi billing tier and restore or explicitly keep GLM CLI evidence demoted so the remaining weak non-API lanes stop living in ambiguity.
-4. Keep dashboard in sidecar mode for lower-risk breadth such as `activity`, `agents`, `chat`, `conversations`, `goals`, `gpu`, `home`, `insights`, `learning`, `media`, `notifications`, `outputs`, `personal-data`, `preferences`, and `review` now that `tasks`, `workplanner`, `terminal`, `monitoring`, `pipeline`, and `catalog` are green.
-5. Continue pruning stale reference docs that still preserve retired standalone governor, pre-registry service, or old rack-layout narratives.
-6. Keep the live software-core autonomy phase bounded while provider evidence and VAULT auth repair catch up, then promote the next phase explicitly instead of by drift.
-7. Return to the next remaining control-plane seam that still bypasses shared health/action or durable truth.
+1. Close the remaining clean-main `projects/agents` convergence tranche so the documented acceptance matrix can go fully green from `main`, not just the dashboard and service-contract lanes.
+2. Keep the repo-safe VAULT credential-truth tightening tranche current, keep the generated repair packet and reports current, and hold the live boundary at ask-first.
+3. Run the approved VAULT LiteLLM auth-repair packet, then re-probe the blocked provider lanes and refresh provider plus secret-surface truth.
+4. Verify the subscribed Kimi billing tier and restore or explicitly keep GLM CLI evidence demoted so the remaining weak non-API lanes stop living in ambiguity.
+5. Keep dashboard in sidecar mode for lower-risk breadth such as `activity`, `agents`, `chat`, `conversations`, `goals`, `gpu`, `home`, `insights`, `learning`, `media`, `notifications`, `outputs`, `personal-data`, `preferences`, and `review` now that the clean-main `terminal` plus `audit` E2E bundles are green.
+6. Continue pruning stale reference docs that still preserve retired standalone governor, pre-registry service, or old rack-layout narratives.
+7. Keep the live software-core autonomy phase bounded while provider evidence and VAULT auth repair catch up, then promote the next phase explicitly instead of by drift.
+8. Return to the next remaining control-plane seam that still bypasses shared health/action or durable truth.
 
 ## Required Verification
 
@@ -181,6 +182,11 @@
 - `cd projects/dashboard && npm test`
 - `cd projects/dashboard && npm run typecheck`
 - `cd projects/dashboard && npm run build`
+- `cd projects/dashboard && npm run test:e2e:terminal`
+- `cd projects/dashboard && npm run test:e2e:audit`
+- `cd projects/agents && C:\Athanor\projects\agents\.venv\Scripts\python.exe -m pytest tests -q`
+- `cd projects/gpu-orchestrator && C:\Athanor\projects\gpu-orchestrator\.venv\Scripts\python.exe -m pytest tests -q`
+- `cd projects/ws-pty-bridge && npm run ci`
 
 ## Current Open Risks
 

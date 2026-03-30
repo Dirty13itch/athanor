@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-15
 **Status:** Accepted
-**Research:** [docs/research/2026-02-15-inference-engine.md](../research/2026-02-15-inference-engine.md)
+**Research:** [docs/archive/research/2026-02-15-inference-engine.md](../archive/research/2026-02-15-inference-engine.md)
 **Depends on:** ADR-004 (Node Roles + Hardware Allocation)
 
 ---

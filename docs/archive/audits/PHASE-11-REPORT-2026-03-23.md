@@ -141,7 +141,7 @@ New checks added:
 | 3 | Governor headless dispatch | Tasks stuck in queue, no browser-free dispatch | Headless execution proven end-to-end |
 | 4 | Governor SQLite locking | WAL mode not enforced | WAL mode confirmed, concurrent reads safe |
 | 5 | Governor task_monitor | Stalled tasks ran indefinitely | 20-minute timeout kill implemented |
-| 6 | LiteLLM virtual key broken | sk-athanor-litellm-2026 non-functional (no DATABASE_URL) | Master key deployed to all 10+ consumers |
+| 6 | LiteLLM virtual key broken | Legacy test key literal was non-functional (no DATABASE_URL) | Master key deployed to all 10+ consumers |
 | 7 | Drift check coverage gaps | 37 checks, blind spots on vLLM/agents/memory | 50 checks, full stack coverage |
 
 ---

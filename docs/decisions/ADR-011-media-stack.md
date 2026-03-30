@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-15
 **Status:** Accepted
-**Research:** [docs/research/2026-02-15-media-stack.md](../research/2026-02-15-media-stack.md)
+**Research:** [docs/archive/research/2026-02-15-media-stack.md](../archive/research/2026-02-15-media-stack.md)
 **Depends on:** ADR-001 (Base Platform), ADR-003 (Storage Architecture)
 
 ---

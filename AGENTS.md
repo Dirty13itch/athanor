@@ -51,8 +51,9 @@ Prefer runtime truth and current registries over historical analysis.
 - `cd projects/dashboard && npm run typecheck`
 - `cd projects/dashboard && npm run build`
 - `cd projects/dashboard && npm run test:e2e:terminal`
-- `cd projects/agents && .\.venv\Scripts\python -m pytest tests -q`
-- `cd projects/gpu-orchestrator && .\.venv\Scripts\python -m pytest tests -q`
+- `cd projects/dashboard && npm run test:e2e:audit`
+- `cd projects/agents && C:\Athanor\projects\agents\.venv\Scripts\python.exe -m pytest tests -q`
+- `cd projects/gpu-orchestrator && C:\Athanor\projects\gpu-orchestrator\.venv\Scripts\python.exe -m pytest tests -q`
 - `cd projects/ws-pty-bridge && npm run ci`
 
 ## Live Agent Roster

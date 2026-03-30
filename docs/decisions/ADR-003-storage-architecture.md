@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-15
 **Status:** Accepted
-**Research:** [docs/research/2026-02-15-storage-architecture.md](../research/2026-02-15-storage-architecture.md)
+**Research:** [docs/archive/research/2026-02-15-storage-architecture.md](../archive/research/2026-02-15-storage-architecture.md)
 **Depends on:** ADR-001 (Base Platform), ADR-002 (Network Architecture)
 
 ---
