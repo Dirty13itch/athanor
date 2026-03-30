@@ -1,14 +1,5 @@
-import sys
 import unittest
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
-
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SRC_ROOT = PROJECT_ROOT / "src"
-
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
 
 from athanor_agents.judge import build_judge_plane_snapshot
 
@@ -49,8 +40,8 @@ class JudgeTests(unittest.IsolatedAsyncioTestCase):
                 AsyncMock(return_value=runs),
             ),
             patch(
-                "athanor_agents.tasks.list_tasks",
-                AsyncMock(return_value=[{"id": "approval-1"}]),
+                "athanor_agents.tasks.get_task_stats",
+                AsyncMock(return_value={"pending_approval": 7}),
             ),
             patch(
                 "athanor_agents.model_governance.get_model_role_registry",
@@ -78,7 +69,7 @@ class JudgeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(1, snapshot["summary"]["accept_count"])
         self.assertEqual(1, snapshot["summary"]["reject_count"])
         self.assertEqual(1, snapshot["summary"]["review_required"])
-        self.assertEqual(1, snapshot["summary"]["pending_review_queue"])
+        self.assertEqual(7, snapshot["summary"]["pending_review_queue"])
         self.assertEqual("accept", snapshot["recent_verdicts"][0]["verdict"])
         self.assertEqual("reject", snapshot["recent_verdicts"][1]["verdict"])
 

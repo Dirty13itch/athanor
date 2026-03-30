@@ -43,7 +43,7 @@ from .scheduler import (
     get_schedule_status,
 )
 from .subscriptions import get_policy_snapshot, list_execution_leases
-from .tasks import list_tasks
+from .tasks import list_recent_tasks
 
 
 def _iso_from_unix(value: Any) -> str | None:
@@ -187,7 +187,7 @@ def _build_run_lineage(
 
 async def build_execution_run_records(agent: str = "", limit: int = 50) -> list[dict[str, Any]]:
     task_limit = max(limit * 3, 50)
-    tasks = await list_tasks(agent=agent, limit=task_limit)
+    tasks = await list_recent_tasks(agent=agent, limit=task_limit)
     runs: list[dict[str, Any]] = []
 
     for task in tasks:
@@ -401,7 +401,7 @@ async def _read_schedule_marker(key: str) -> str | None:
 
 async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
     schedule_status = await get_schedule_status()
-    from .governor import build_capacity_snapshot, evaluate_job_governance, get_governor_state
+    from .governor_backbone import build_capacity_snapshot, evaluate_job_governance, get_governor_state
 
     governor_state = await get_governor_state()
     capacity_snapshot = await build_capacity_snapshot()

@@ -1,14 +1,5 @@
-import sys
 import unittest
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
-
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SRC_ROOT = PROJECT_ROOT / "src"
-
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
 
 from athanor_agents.backbone import (
     build_execution_run_records,
@@ -35,7 +26,7 @@ class BackboneOperatorFlowTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("athanor_agents.governor._get_redis", AsyncMock(return_value=fake_redis)),
             patch(
-                "athanor_agents.governor.build_capacity_snapshot",
+                "athanor_agents.governor_backbone.build_capacity_snapshot",
                 AsyncMock(
                     return_value={
                         "posture": "healthy",
@@ -133,7 +124,7 @@ class BackboneOperatorFlowTests(unittest.IsolatedAsyncioTestCase):
             },
         }
         with (
-            patch("athanor_agents.backbone.list_tasks", AsyncMock(return_value=[task])),
+            patch("athanor_agents.backbone.list_recent_tasks", AsyncMock(return_value=[task])),
             patch("athanor_agents.backbone.list_handoff_bundles", AsyncMock(return_value=[])),
         ):
             runs = await build_execution_run_records(limit=5)
