@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 
 const TerminalView = dynamic(() => import("@/components/terminal-view"), {
   ssr: false,
@@ -31,6 +32,8 @@ type BridgeAccess = {
 };
 
 export function TerminalConsole() {
+  const operatorSession = useOperatorSessionStatus();
+  const sessionLocked = isOperatorSessionLocked(operatorSession);
   const [selectedNode, setSelectedNode] = useState(NODES[0]);
   const [connected, setConnected] = useState(false);
   const [bridgeAccess, setBridgeAccess] = useState<BridgeAccess | null>(null);
@@ -39,6 +42,23 @@ export function TerminalConsole() {
 
   useEffect(() => {
     let cancelled = false;
+
+    if (operatorSession.isPending) {
+      setLoadingBridgeAccess(true);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (sessionLocked) {
+      setLoadingBridgeAccess(false);
+      setBridgeAccess(null);
+      setBridgeError("Operator session required. Unlock the operator session before opening the terminal.");
+      setConnected(false);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     async function loadBridgeAccess() {
       setLoadingBridgeAccess(true);
@@ -113,7 +133,7 @@ export function TerminalConsole() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [operatorSession.isPending, sessionLocked]);
 
   const availableNodes =
     bridgeAccess?.allowedNodes.length

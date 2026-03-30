@@ -3,6 +3,34 @@ import { NextResponse } from "next/server";
 import { buildOperatorActionRequest } from "./operator-actions";
 
 describe("operator actions", () => {
+  it("backfills an operator session id when no operator token is configured", () => {
+    const env = process.env as Record<string, string | undefined>;
+    const originalToken = env.ATHANOR_DASHBOARD_OPERATOR_TOKEN;
+    delete env.ATHANOR_DASHBOARD_OPERATOR_TOKEN;
+
+    try {
+      const result = buildOperatorActionRequest(
+        new Request("http://localhost/api/operator/terminal-bridge"),
+        { reason: "Open terminal bridge" },
+        { privilegeClass: "operator" }
+      );
+
+      expect(result).not.toBeInstanceOf(NextResponse);
+      if (result instanceof NextResponse) {
+        return;
+      }
+
+      expect(result.action.session_id).toMatch(/^dashboard-session-/);
+      expect(result.payload.session_id).toBe(result.action.session_id);
+    } finally {
+      if (originalToken === undefined) {
+        delete env.ATHANOR_DASHBOARD_OPERATOR_TOKEN;
+      } else {
+        env.ATHANOR_DASHBOARD_OPERATOR_TOKEN = originalToken;
+      }
+    }
+  });
+
   it("builds an operator action envelope from the session cookie", () => {
     const result = buildOperatorActionRequest(
       new Request("http://localhost/api/governor/pause", {

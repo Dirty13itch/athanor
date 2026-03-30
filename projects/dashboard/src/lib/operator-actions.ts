@@ -75,7 +75,11 @@ function resolveOperatorEnvelopeSessionId(request: Request, body: ParsedMutation
   }
 
   const configuredToken = getOperatorMutationToken();
-  if (!configuredToken || !hasValidOperatorSession(request)) {
+  if (!configuredToken) {
+    return `dashboard-session-${randomUUID()}`;
+  }
+
+  if (!hasValidOperatorSession(request)) {
     return "";
   }
 

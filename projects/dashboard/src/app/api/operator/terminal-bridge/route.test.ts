@@ -112,6 +112,31 @@ describe("GET /api/operator/terminal-bridge", () => {
     expect(ticketPayload.action?.correlation_id).toEqual(expect.any(String));
   });
 
+  it("returns optional bridge access details when no operator session token is configured", async () => {
+    env.NODE_ENV = "development";
+    delete env.ATHANOR_DASHBOARD_OPERATOR_TOKEN;
+    delete env.ATHANOR_WS_PTY_BRIDGE_TICKET_SECRET;
+    delete env.ATHANOR_WS_PTY_BRIDGE_AUTH_TOKEN;
+    env.ATHANOR_WS_PTY_BRIDGE_URL = "http://terminal.internal:3100";
+    env.ATHANOR_WS_PTY_BRIDGE_ALLOWED_NODES = "dev,workshop";
+
+    const request = new NextRequest("http://localhost/api/operator/terminal-bridge", {
+      headers: {
+        origin: "http://localhost",
+      },
+    });
+
+    const response = await GET(request);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      bridgeUrl: "http://terminal.internal:3100",
+      authMode: "optional",
+      allowedNodes: ["dev", "workshop"],
+      ticket: null,
+      expiresAt: null,
+    });
+  });
+
   it("denies requests without an operator session", async () => {
     env.NODE_ENV = "production";
     env.ATHANOR_DASHBOARD_OPERATOR_TOKEN = "operator-secret";
