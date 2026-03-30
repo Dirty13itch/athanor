@@ -1,24 +1,17 @@
-import sys
 import unittest
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
-
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SRC_ROOT = PROJECT_ROOT / "src"
-
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
 
 from athanor_agents.provider_execution import (
     build_provider_execution_snapshot,
     create_handoff_bundle,
     execute_provider_request,
+    record_handoff_outcome,
 )
 from athanor_agents.proving_ground import (
     build_proving_ground_snapshot,
     run_proving_ground,
 )
+from athanor_agents.subscriptions import list_execution_leases
 
 
 class FakeRedis:
@@ -121,6 +114,8 @@ class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("abstracted", bundle["prompt_mode"])
         self.assertTrue(bundle["abstract_prompt"])
         self.assertEqual("repo_audit", bundle["plan_packet"]["workload_class"])
+        self.assertTrue(any("routing posture" in note for note in bundle["notes"]))
+        self.assertIsInstance(bundle["created_at"], str)
 
     async def test_provider_execution_snapshot_reports_all_configured_adapters(self) -> None:
         fake_redis = FakeRedis()
@@ -143,7 +138,71 @@ class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("local_runtime", local_entry["execution_mode"])
         self.assertIn("provider_posture", snapshot)
         self.assertIn("provider_state_counts", snapshot)
-        self.assertGreaterEqual(snapshot["provider_state_counts"].get("handoff_only", 0), 1)
+        self.assertIn("catalog_version", snapshot)
+        self.assertIn("catalog_source", snapshot)
+        glm_posture = next(entry for entry in snapshot["provider_posture"] if entry["provider"] == "zai_glm_coding")
+        self.assertEqual("governed_handoff_only", glm_posture["routing_posture"])
+        self.assertIn("policy_governed_handoff_only", glm_posture["state_reasons"])
+        self.assertGreaterEqual(
+            snapshot["provider_state_counts"].get("handoff_only", 0)
+            + snapshot["provider_state_counts"].get("degraded", 0),
+            1,
+        )
+
+    async def test_bridge_execution_respects_catalog_allowed_execution_modes(self) -> None:
+        fake_redis = FakeRedis()
+        catalog = {
+            "version": "test-catalog",
+            "source_of_truth": "test-provider-catalog",
+            "providers": [
+                {
+                    "id": "google_gemini",
+                    "label": "Gemini CLI",
+                    "access_mode": "cli",
+                    "execution_modes": ["direct_cli", "handoff_bundle"],
+                    "state_classes": ["active-routing"],
+                    "cli_commands": ["gemini"],
+                    "notes": ["Catalog keeps Gemini direct-or-handoff only."],
+                }
+            ],
+        }
+        with (
+            patch("athanor_agents.provider_execution._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.subscriptions._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.provider_execution._resolve_command", return_value=None),
+            patch("athanor_agents.provider_execution._bridge_enabled", return_value=True),
+            patch("athanor_agents.provider_execution.get_provider_catalog_snapshot", return_value=catalog),
+            patch(
+                "athanor_agents.provider_execution._fetch_bridge_provider_snapshot",
+                AsyncMock(
+                    return_value={
+                        "providers": {
+                            "google_gemini": {
+                                "provider": "google_gemini",
+                                "adapter_available": True,
+                                "probe_detail": "Bridge claimed Gemini was directly executable.",
+                            }
+                        },
+                        "bridge_status": "available",
+                        "detail": "Bridge ok.",
+                        "bridge_url": "http://desk:9011",
+                    }
+                ),
+            ),
+            patch("athanor_agents.provider_execution.list_handoff_bundles", AsyncMock(return_value=[])),
+            patch("athanor_agents.provider_execution.list_handoff_events", AsyncMock(return_value=[])),
+            patch("athanor_agents.provider_execution.list_execution_leases", AsyncMock(return_value=[])),
+        ):
+            snapshot = await build_provider_execution_snapshot(limit=5)
+
+        gemini = next(entry for entry in snapshot["adapters"] if entry["provider"] == "google_gemini")
+        self.assertEqual("handoff_bundle", gemini["execution_mode"])
+        self.assertFalse(gemini["adapter_available"])
+        self.assertIn("handoff_bundle", gemini["catalog_execution_modes"])
+        self.assertIn(
+            "provider catalog keeps this lane handoff-only",
+            " ".join(gemini["notes"]).lower(),
+        )
 
     async def test_execute_provider_request_uses_bridge_when_bridge_reports_provider(self) -> None:
         fake_redis = FakeRedis()
@@ -152,6 +211,31 @@ class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
             patch("athanor_agents.subscriptions._get_redis", AsyncMock(return_value=fake_redis)),
             patch("athanor_agents.provider_execution._resolve_command", return_value=None),
             patch("athanor_agents.provider_execution._bridge_enabled", return_value=True),
+            patch(
+                "athanor_agents.provider_execution.get_provider_catalog_snapshot",
+                return_value={
+                    "version": "catalog-v1",
+                    "source_of_truth": "provider-catalog.json",
+                    "providers": [
+                        {
+                            "id": "anthropic_claude_code",
+                            "access_mode": "cli",
+                            "execution_modes": ["direct_cli", "bridge_cli", "handoff_bundle"],
+                            "state_classes": ["active-routing"],
+                            "cli_commands": ["claude"],
+                            "notes": [],
+                        },
+                        {
+                            "id": "openai_codex",
+                            "access_mode": "cli",
+                            "execution_modes": ["direct_cli", "bridge_cli", "handoff_bundle"],
+                            "state_classes": ["active-routing"],
+                            "cli_commands": ["codex"],
+                            "notes": [],
+                        },
+                    ],
+                },
+            ),
             patch(
                 "athanor_agents.provider_execution._fetch_bridge_provider_snapshot",
                 AsyncMock(
@@ -276,6 +360,36 @@ class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("direct_cli", result["handoff"]["fallback_from_execution_mode"])
         self.assertIn("simulated failure", result["handoff"]["fallback_reason"])
         self.assertIn("downgraded to handoff mode", " ".join(result["handoff"]["notes"]))
+
+    async def test_record_handoff_outcome_serializes_timestamps_and_updates_linked_lease(self) -> None:
+        fake_redis = FakeRedis()
+        with (
+            patch("athanor_agents.provider_execution._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.subscriptions._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.provider_execution._resolve_command", return_value=None),
+        ):
+            bundle = await create_handoff_bundle(
+                requester="coding-agent",
+                prompt="Review the next implementation batch.",
+                task_class="multi_file_implementation",
+                serialize=False,
+            )
+            updated = await record_handoff_outcome(
+                handoff_id=str(bundle["id"]),
+                outcome="completed",
+                result_summary="Provider execution completed.",
+                execution_details={
+                    "ok": True,
+                    "summary": "Provider execution completed.",
+                    "duration_ms": 123,
+                },
+            )
+            leases = await list_execution_leases(limit=5)
+
+        self.assertEqual("completed", updated["status"])
+        self.assertIsInstance(updated["completed_at"], str)
+        self.assertEqual("Provider execution completed.", updated["last_execution"]["summary"])
+        self.assertEqual("completed", leases[0]["outcome"])
 
 
 class ProvingGroundTests(unittest.IsolatedAsyncioTestCase):

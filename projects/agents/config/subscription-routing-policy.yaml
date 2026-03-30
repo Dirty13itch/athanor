@@ -74,7 +74,7 @@ providers:
     enabled: true
     category: subscription
     routing_posture: governed_handoff_only
-    routing_reason: supported_tool_integration_unverified
+    routing_reason: missing_cli_evidence
     role: standby_bulk_overflow
     strengths:
       - bulk_implementation

@@ -1166,7 +1166,7 @@ class RepoContractsTest(unittest.TestCase):
         policy_text = read_text(REPO_ROOT / "projects" / "agents" / "config" / "subscription-routing-policy.yaml")
         self.assertIn("zai_glm_coding:", policy_text)
         self.assertIn("routing_posture: governed_handoff_only", policy_text)
-        self.assertIn("routing_reason: supported_tool_integration_unverified", policy_text)
+        self.assertIn("routing_reason: missing_cli_evidence", policy_text)
 
     def test_subscription_policy_no_longer_uses_builtin_fallback_policy(self) -> None:
         subscriptions_text = read_text(REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "subscriptions.py")
