@@ -4,14 +4,19 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .model_governance import (
+    get_autonomy_activation_registry,
     get_backup_restore_readiness,
     get_capacity_governor_registry,
     get_command_rights_registry,
     get_data_lifecycle_registry,
+    get_docs_lifecycle_registry,
     get_economic_governance_registry,
     get_operator_presence_model,
+    get_platform_topology,
     get_policy_class_registry,
+    get_program_operating_system,
     get_release_ritual_registry,
+    get_project_maturity_registry,
     get_system_constitution,
     get_tool_permission_registry,
     get_workload_class_registry,
@@ -35,8 +40,8 @@ AUTHORITY_ORDER = [
     {
         "id": "governor",
         "label": "Athanor Governor",
-        "role": "runtime_commander",
-        "summary": "Owns durable tasks, schedule control, execution leases, degraded-mode choice, and low-risk automation decisions.",
+        "role": "runtime_posture_and_fallback_authority",
+        "summary": "Controls runtime posture, fallback choice, capacity posture, and pause or resume decisions inside policy bounds. Durable tasks belong to the task engine, leases to the subscription broker, and schedules to the scheduler.",
     },
     {
         "id": "meta_strategy",
@@ -269,6 +274,35 @@ MODEL_PLANES = [
 ]
 
 
+def _build_autonomy_activation_summary(live_presence: dict[str, Any]) -> dict[str, Any]:
+    from .model_governance import get_current_autonomy_phase, get_next_autonomy_phase, get_unmet_autonomy_prerequisites
+
+    activation, current_phase = get_current_autonomy_phase()
+    current_phase_id = str(activation.get("current_phase_id") or "")
+    next_phase = get_next_autonomy_phase(activation, phase_id=current_phase_id)
+    next_phase_id = str(next_phase.get("id") or "").strip() or None
+    next_phase_blockers = get_unmet_autonomy_prerequisites(activation, phase_id=next_phase_id) if next_phase_id else []
+    return {
+        "status": str(activation.get("status") or "configured"),
+        "activation_state": str(activation.get("activation_state") or "unknown"),
+        "current_phase_id": current_phase_id or None,
+        "current_phase_status": str(current_phase.get("status") or "unknown"),
+        "current_phase_scope": str(current_phase.get("scope") or "") or None,
+        "next_phase_id": next_phase_id,
+        "next_phase_status": str(next_phase.get("status") or "complete") if next_phase_id else None,
+        "next_phase_scope": str(next_phase.get("scope") or "") or None,
+        "next_phase_blocker_count": len(next_phase_blockers),
+        "next_phase_blocker_ids": [str(item.get("id") or "").strip() for item in next_phase_blockers if str(item.get("id") or "").strip()],
+        "broad_autonomy_enabled": bool(activation.get("broad_autonomy_enabled")),
+        "runtime_mutations_approval_gated": bool(activation.get("runtime_mutations_approval_gated", True)),
+        "enabled_agents": list(current_phase.get("enabled_agents", [])),
+        "allowed_workload_classes": list(current_phase.get("allowed_workload_classes", [])),
+        "blocked_workload_classes": list(current_phase.get("blocked_workload_classes", [])),
+        "presence_state": live_presence.get("state"),
+        "presence_reason": live_presence.get("effective_reason"),
+    }
+
+
 def _build_constitution_snapshot() -> dict[str, Any]:
     constitution = get_system_constitution()
     return {
@@ -291,8 +325,16 @@ async def _build_operational_governance() -> dict[str, Any]:
     release_ritual = get_release_ritual_registry()
     from .governor import build_governor_snapshot, build_operations_readiness_snapshot
 
-    governor_snapshot = await build_governor_snapshot()
-    readiness_snapshot = await build_operations_readiness_snapshot()
+    runtime_status = "live"
+    runtime_error = ""
+    try:
+        governor_snapshot = await build_governor_snapshot()
+        readiness_snapshot = await build_operations_readiness_snapshot()
+    except Exception as exc:
+        governor_snapshot = {}
+        readiness_snapshot = {}
+        runtime_status = "degraded"
+        runtime_error = str(exc)[:160]
     capacity_snapshot = dict(governor_snapshot.get("capacity") or {})
     live_economic = dict(readiness_snapshot.get("economic_governance") or {})
     live_lifecycle = dict(readiness_snapshot.get("data_lifecycle") or {})
@@ -300,10 +342,33 @@ async def _build_operational_governance() -> dict[str, Any]:
     live_tool_permissions = dict(readiness_snapshot.get("tool_permissions") or {})
     live_release_ritual = dict(readiness_snapshot.get("release_ritual") or {})
     live_presence = dict(governor_snapshot.get("presence") or {})
+    live_autonomy = dict(readiness_snapshot.get("autonomy_activation") or {})
+    autonomy_summary = _build_autonomy_activation_summary(live_presence)
+    if live_autonomy:
+        autonomy_summary.update(
+            {
+                "status": str(live_autonomy.get("status") or autonomy_summary["status"]),
+                "activation_state": str(
+                    live_autonomy.get("activation_state") or autonomy_summary["activation_state"]
+                ),
+                "current_phase_id": live_autonomy.get("current_phase_id") or autonomy_summary["current_phase_id"],
+                "current_phase_status": str(
+                    live_autonomy.get("current_phase_status") or autonomy_summary["current_phase_status"]
+                ),
+                "current_phase_scope": live_autonomy.get("current_phase_scope") or autonomy_summary["current_phase_scope"],
+                "enabled_agents": list(live_autonomy.get("enabled_agents", autonomy_summary["enabled_agents"])),
+                "allowed_workload_classes": list(
+                    live_autonomy.get("allowed_workload_classes", autonomy_summary["allowed_workload_classes"])
+                ),
+                "blocked_workload_classes": list(
+                    live_autonomy.get("blocked_workload_classes", autonomy_summary["blocked_workload_classes"])
+                ),
+            }
+        )
 
     return {
         "capacity_governor": {
-            "status": "live" if capacity_snapshot else capacity.get("status", "configured"),
+            "status": runtime_status if capacity_snapshot else capacity.get("status", runtime_status),
             "arbitration_order": list(capacity.get("priority_order", [])),
             "time_window_count": len(capacity.get("time_windows", [])),
             "posture": capacity_snapshot.get("posture"),
@@ -354,6 +419,11 @@ async def _build_operational_governance() -> dict[str, Any]:
             "active_promotion_count": live_release_ritual.get("active_promotion_count"),
             "last_rehearsal_at": live_release_ritual.get("last_rehearsal_at"),
         },
+        "autonomy_activation": autonomy_summary,
+        "runtime_state": {
+            "status": runtime_status,
+            "error": runtime_error or None,
+        },
     }
 
 
@@ -369,6 +439,11 @@ def _build_registry_versions() -> dict[str, str]:
         "tool_permissions": get_tool_permission_registry().get("version", "unknown"),
         "backup_restore": get_backup_restore_readiness().get("version", "unknown"),
         "release_ritual": get_release_ritual_registry().get("version", "unknown"),
+        "autonomy_activation": get_autonomy_activation_registry().get("version", "unknown"),
+        "platform_topology": get_platform_topology().get("version", "unknown"),
+        "project_maturity": get_project_maturity_registry().get("version", "unknown"),
+        "docs_lifecycle": get_docs_lifecycle_registry().get("version", "unknown"),
+        "program_operating_system": get_program_operating_system().get("version", "unknown"),
     }
 
 
@@ -424,14 +499,14 @@ async def build_system_map_snapshot(agent_metadata: dict[str, dict[str, Any]]) -
         "constitution": _build_constitution_snapshot(),
         "governor": {
             "label": "Athanor governor",
-            "role": "runtime commander of record",
+            "role": "runtime posture and fallback authority",
             "status": "live",
             "rights": [
-                "create durable tasks",
-                "issue execution leases",
-                "schedule recurring jobs",
+                "route work",
                 "pause or resume automation",
                 "choose fallback or degraded mode",
+                "arbitrate capacity posture",
+                "enforce release-tier posture",
             ],
         },
         "authority_order": AUTHORITY_ORDER,
@@ -445,6 +520,10 @@ async def build_system_map_snapshot(agent_metadata: dict[str, dict[str, Any]]) -
         "workload_guidance": WORKLOAD_GUIDANCE,
         "registry_versions": _build_registry_versions(),
         "policy_source": policy.get("policy_source", "unknown"),
+        "platform_topology": get_platform_topology(),
+        "project_portfolio": get_project_maturity_registry(),
+        "docs_lifecycle": get_docs_lifecycle_registry(),
+        "program_operating_system": get_program_operating_system(),
     }
 
 

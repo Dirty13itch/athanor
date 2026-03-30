@@ -628,11 +628,48 @@ def get_preference_learner(user_id: str = "default") -> PreferenceLearner:
 
 def create_preference_router():
     """Create FastAPI router for preference learning endpoints."""
-    from fastapi import APIRouter, HTTPException
+    from fastapi import APIRouter, HTTPException, Request
     from pydantic import BaseModel
+    from starlette.responses import JSONResponse
+
+    from .operator_contract import (
+        build_operator_action,
+        emit_operator_audit_event,
+        require_operator_action,
+    )
 
     router = APIRouter(prefix="/v1/preferences/learning", tags=["preference-learning"])
     learner = get_preference_learner()
+
+    async def _load_operator_body(
+        request: Request,
+        *,
+        route: str,
+        action_class: str,
+        default_reason: str,
+    ):
+        body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+        if not isinstance(body, dict):
+            body = {}
+
+        candidate = build_operator_action(body, default_reason=default_reason)
+        try:
+            action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+        except Exception as exc:
+            detail = getattr(exc, "detail", str(exc))
+            status_code = getattr(exc, "status_code", 400)
+            await emit_operator_audit_event(
+                service="agent-server",
+                route=route,
+                action_class=action_class,
+                decision="denied",
+                status_code=status_code,
+                action=candidate,
+                detail=str(detail),
+            )
+            return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+        return body, action, None
 
     # ── Request models ─────────────────────────────────────────────
 
@@ -682,8 +719,16 @@ def create_preference_router():
     # ── Endpoints ──────────────────────────────────────────────────
 
     @router.post("/interaction")
-    async def record_interaction(req: InteractionRequest):
+    async def record_interaction(request: Request, req: InteractionRequest):
         """Record an interaction for preference learning."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/preferences/learning/interaction",
+            action_class="operator",
+            default_reason="Record preference-learning interaction",
+        )
+        if denial:
+            return denial
         interaction = await learner.record_interaction(
             prompt=req.prompt,
             model=req.model,
@@ -693,14 +738,54 @@ def create_preference_router():
             agent=req.agent,
             metadata=req.metadata,
         )
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/preferences/learning/interaction",
+            action_class="operator",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Recorded preference-learning interaction {interaction.id}",
+            target=interaction.id,
+            metadata={"model": req.model, "task_type": interaction.task_type},
+        )
         return {"id": interaction.id, "task_type": interaction.task_type}
 
     @router.post("/feedback")
-    async def record_feedback(req: FeedbackRequest):
+    async def record_feedback(request: Request, req: FeedbackRequest):
         """Record feedback for a previous interaction."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/preferences/learning/feedback",
+            action_class="operator",
+            default_reason="Record preference-learning feedback",
+        )
+        if denial:
+            return denial
         success = await learner.record_feedback(req.interaction_id, req.feedback)
         if not success:
+            await emit_operator_audit_event(
+                service="agent-server",
+                route="/v1/preferences/learning/feedback",
+                action_class="operator",
+                decision="denied",
+                status_code=404,
+                action=action,
+                detail="Interaction not found",
+                target=req.interaction_id,
+            )
             raise HTTPException(status_code=404, detail="Interaction not found")
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/preferences/learning/feedback",
+            action_class="operator",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Recorded preference feedback for {req.interaction_id}",
+            target=req.interaction_id,
+            metadata={"feedback": req.feedback},
+        )
         return {"status": "recorded"}
 
     @router.post("/recommend")
@@ -720,11 +805,29 @@ def create_preference_router():
         return learner.export_preferences()
 
     @router.post("/import")
-    async def import_prefs(req: ImportRequest):
+    async def import_prefs(request: Request, req: ImportRequest):
         """Import preferences from a dictionary."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/preferences/learning/import",
+            action_class="admin",
+            default_reason="",
+        )
+        if denial:
+            return denial
         success = learner.import_preferences(req.data)
         if success:
             await learner._persist_preferences()
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/preferences/learning/import",
+            action_class="admin",
+            decision="accepted" if success else "denied",
+            status_code=200 if success else 400,
+            action=action,
+            detail="Imported preference snapshot" if success else "Failed to import preference snapshot",
+            metadata={"key_count": len(req.data)},
+        )
         return {"status": "imported" if success else "failed"}
 
     @router.get("/style")
@@ -733,15 +836,52 @@ def create_preference_router():
         return await learner.get_style_preferences()
 
     @router.put("/style")
-    async def set_style(req: StylePreferenceRequest):
+    async def set_style(request: Request, req: StylePreferenceRequest):
         """Set a style preference."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/preferences/learning/style",
+            action_class="admin",
+            default_reason="",
+        )
+        if denial:
+            return denial
         await learner.set_style_preference(req.key, req.value)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/preferences/learning/style",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Updated preference style key {req.key}",
+            target=req.key,
+        )
         return {"status": "updated"}
 
     @router.put("/preferred-model")
-    async def set_preferred_model(req: PreferredModelRequest):
+    async def set_preferred_model(request: Request, req: PreferredModelRequest):
         """Explicitly set preferred model for a task type."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/preferences/learning/preferred-model",
+            action_class="admin",
+            default_reason="",
+        )
+        if denial:
+            return denial
         await learner.set_preferred_model(req.task_type, req.model)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/preferences/learning/preferred-model",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Updated preferred model for task_type={req.task_type}",
+            target=req.task_type,
+            metadata={"model": req.model},
+        )
         return {"status": "updated"}
 
     @router.get("/agent/{agent_id}")
@@ -753,8 +893,16 @@ def create_preference_router():
         return {"agent_id": agent_id, "preferences": asdict(prefs)}
 
     @router.put("/agent")
-    async def set_agent_prefs(req: AgentPreferencesRequest):
+    async def set_agent_prefs(request: Request, req: AgentPreferencesRequest):
         """Set preferences for a specific agent."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/preferences/learning/agent",
+            action_class="admin",
+            default_reason="",
+        )
+        if denial:
+            return denial
         await learner.set_agent_preferences(
             req.agent_id,
             {
@@ -763,6 +911,16 @@ def create_preference_router():
                 "max_tokens": req.max_tokens,
                 "system_prompt_overrides": req.system_prompt_overrides or {},
             },
+        )
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/preferences/learning/agent",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Updated preference-learning agent profile {req.agent_id}",
+            target=req.agent_id,
         )
         return {"status": "updated"}
 
@@ -773,10 +931,29 @@ def create_preference_router():
         return asdict(style)
 
     @router.put("/creative-style")
-    async def set_creative(req: CreativeStyleRequest):
+    async def set_creative(request: Request, req: CreativeStyleRequest):
         """Update creative style preferences."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/preferences/learning/creative-style",
+            action_class="admin",
+            default_reason="",
+        )
+        if denial:
+            return denial
         kwargs = {k: v for k, v in req.model_dump().items() if v is not None}
         await learner.set_creative_style(**kwargs)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/preferences/learning/creative-style",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail="Updated creative style preferences",
+            target="creative-style",
+            metadata={"fields": sorted(kwargs.keys())},
+        )
         return {"status": "updated"}
 
     @router.get("/stats")

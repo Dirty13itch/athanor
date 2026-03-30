@@ -6,7 +6,44 @@ import os
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from ..operator_contract import (
+    build_operator_action,
+    emit_operator_audit_event,
+    require_operator_action,
+)
+
 router = APIRouter(prefix="/v1", tags=["planning"])
+
+
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    candidate = build_operator_action(body, default_reason=default_reason)
+    try:
+        action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
 
 
 @router.get("/workplan")
@@ -30,10 +67,27 @@ async def trigger_workplan(request: Request):
     """Manually trigger work plan generation."""
     from ..workplanner import generate_work_plan
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/workplan/generate",
+        action_class="admin",
+        default_reason="Generated work plan",
+    )
+    if denial:
+        return denial
     focus = body.get("focus", "")
 
     plan = await generate_work_plan(focus=focus)
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/workplan/generate",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Generated work plan",
+        metadata={"focus": focus, "task_count": int(plan.get("task_count", 0))},
+    )
     return plan
 
 
@@ -43,10 +97,26 @@ async def redirect_workplan(request: Request):
     from ..activity import store_preference
     from ..workplanner import generate_work_plan
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/workplan/redirect",
+        action_class="operator",
+        default_reason="Redirected work plan",
+    )
+    if denial:
+        return denial
     direction = body.get("direction", "")
 
     if not direction:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/workplan/redirect",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="direction is required",
+        )
         return JSONResponse(status_code=400, content={"error": "direction is required"})
 
     await store_preference(
@@ -57,6 +127,16 @@ async def redirect_workplan(request: Request):
     )
 
     asyncio.create_task(generate_work_plan(focus=direction))
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/workplan/redirect",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Redirected work plan",
+        metadata={"direction": direction},
+    )
     return {"status": "redirected", "direction": direction, "message": "Preference saved, plan generating in background"}
 
 

@@ -178,7 +178,7 @@ AGENT_SCHEDULES = {
         "enabled": True,
     },
     "media-agent": {
-        "interval": 1800,  # 30 min
+        "interval": 900,  # 15 min
         "prompt": (
             "You are the media operations agent. Run a deep media management cycle:\n"
             "1. Check all download clients (Sonarr, Radarr, SABnzbd, qBittorrent). "

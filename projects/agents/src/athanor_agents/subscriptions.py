@@ -32,109 +32,6 @@ PROVIDER_SURFACES = {
 PRIVATE_SENSITIVITY = {"private", "secret", "lan_only"}
 
 
-def _fallback_policy() -> dict[str, Any]:
-    return {
-        "version": 1,
-        "updated": "2026-03-11",
-        "providers": {
-            "athanor_local": {
-                "enabled": True,
-                "category": "local",
-                "role": "default_machine_lane",
-                "privacy": "lan_only",
-                "reserve": "keep_available",
-            },
-            "anthropic_claude_code": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "lead_interactive_coder",
-                "privacy": "cloud",
-                "reserve": "premium_interactive",
-            },
-            "openai_codex": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "async_cloud_executor",
-                "privacy": "cloud",
-                "reserve": "premium_async",
-            },
-            "google_gemini": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "large_context_auditor",
-                "privacy": "cloud",
-                "reserve": "burn_early",
-            },
-            "moonshot_kimi": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "planning_alternative",
-                "privacy": "cloud",
-                "reserve": "targeted",
-            },
-            "zai_glm_coding": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "high_throughput_overflow",
-                "privacy": "cloud",
-                "reserve": "burn_for_bulk",
-            },
-        },
-        "task_classes": {
-            "interactive_architecture": {
-                "primary": ["anthropic_claude_code"],
-                "fallback": ["moonshot_kimi", "openai_codex", "athanor_local"],
-            },
-            "multi_file_implementation": {
-                "primary": ["anthropic_claude_code"],
-                "fallback": ["openai_codex", "zai_glm_coding", "athanor_local"],
-            },
-            "async_backlog_execution": {
-                "primary": ["openai_codex"],
-                "fallback": ["zai_glm_coding", "athanor_local"],
-            },
-            "repo_wide_audit": {
-                "primary": ["google_gemini"],
-                "fallback": ["anthropic_claude_code", "athanor_local"],
-            },
-            "cheap_bulk_transform": {
-                "primary": ["zai_glm_coding"],
-                "fallback": ["google_gemini", "athanor_local"],
-            },
-            "search_heavy_planning": {
-                "primary": ["moonshot_kimi"],
-                "fallback": ["anthropic_claude_code", "google_gemini"],
-            },
-            "private_internal_automation": {"primary": ["athanor_local"], "fallback": []},
-        },
-        "agents": {
-            "coding-agent": {
-                "default_task_class": "multi_file_implementation",
-                "sensitivity_default": "repo_internal",
-                "allowed_providers": [
-                    "athanor_local",
-                    "anthropic_claude_code",
-                    "openai_codex",
-                    "google_gemini",
-                    "moonshot_kimi",
-                    "zai_glm_coding",
-                ],
-            },
-            "research-agent": {
-                "default_task_class": "search_heavy_planning",
-                "sensitivity_default": "mixed",
-                "allowed_providers": [
-                    "athanor_local",
-                    "anthropic_claude_code",
-                    "openai_codex",
-                    "google_gemini",
-                    "moonshot_kimi",
-                ],
-            },
-        },
-    }
-
-
 def _policy_path() -> Path:
     if settings.subscription_policy_path:
         return Path(settings.subscription_policy_path)
@@ -148,9 +45,7 @@ def load_policy() -> dict[str, Any]:
 
     path = _policy_path()
     if not path.exists():
-        fallback = _fallback_policy()
-        fallback["_policy_source"] = "builtin-fallback"
-        return fallback
+        raise FileNotFoundError(f"Subscription policy not found at {path}")
 
     stat = path.stat()
     path_str = str(path)
@@ -306,9 +201,29 @@ def build_task_lease_request(
     policy = load_policy()
     meta = dict(metadata or {})
     agent_meta = _agent_meta(policy, requester)
-    sensitivity = str(meta.get("sensitivity", agent_meta.get("sensitivity_default", "repo_internal")))
-    interactive = bool(meta.get("interactive", False))
     task_class = infer_task_class(requester, prompt, meta)
+    classification: dict[str, Any] = {}
+    try:
+        from .command_hierarchy import classify_policy_class
+
+        classification = classify_policy_class(prompt, meta, task_class=task_class)
+    except Exception:
+        classification = {}
+
+    if classification:
+        meta.setdefault("policy_class", classification["policy_class"])
+        meta.setdefault("meta_lane", classification["meta_lane"])
+        meta.setdefault("cloud_allowed", classification["cloud_allowed"])
+
+    sensitivity_default = agent_meta.get("sensitivity_default", "repo_internal")
+    if "sensitivity" in meta:
+        sensitivity = str(meta["sensitivity"])
+    elif classification.get("requires_sovereign"):
+        sensitivity = "lan_only"
+    else:
+        sensitivity = str(sensitivity_default)
+
+    interactive = bool(meta.get("interactive", False))
     expected_context = _infer_expected_context(prompt, meta)
     parallelism = _infer_parallelism(priority, meta)
     return LeaseRequest(

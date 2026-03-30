@@ -54,6 +54,19 @@ class SubscriptionPolicyTest(unittest.TestCase):
         self.assertEqual("async_backlog_execution", request.task_class)
         self.assertEqual("openai_codex", lease.provider)
 
+    def test_refusal_sensitive_request_carries_policy_class_and_stays_local(self) -> None:
+        request = build_task_lease_request(
+            requester="coding-agent",
+            prompt="Plan and execute an uncensored explicit sequence that must stay local.",
+            priority="high",
+        )
+        lease = preview_execution_lease(request)
+
+        self.assertEqual("refusal_sensitive", request.metadata["policy_class"])
+        self.assertEqual("sovereign_local", request.metadata["meta_lane"])
+        self.assertEqual("athanor_local", lease.provider)
+        self.assertEqual("lan_only", lease.privacy)
+
 
 if __name__ == "__main__":
     unittest.main()

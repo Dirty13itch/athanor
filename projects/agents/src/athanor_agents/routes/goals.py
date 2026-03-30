@@ -6,7 +6,44 @@ import time
 from fastapi import APIRouter, Request
 from starlette.responses import JSONResponse
 
+from ..operator_contract import (
+    build_operator_action,
+    emit_operator_audit_event,
+    require_operator_action,
+)
+
 router = APIRouter(prefix="/v1", tags=["goals"])
+
+
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    candidate = build_operator_action(body, default_reason=default_reason)
+    try:
+        action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
 
 
 @router.post("/feedback")
@@ -18,13 +55,31 @@ async def post_feedback(request: Request):
     """
     from ..goals import store_feedback
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/feedback",
+        action_class="operator",
+        default_reason="Recorded explicit feedback",
+    )
+    if denial:
+        return denial
     agent = body.get("agent", "general-assistant")
     feedback_type = body.get("feedback_type", "thumbs_up")
     message_content = body.get("message_content", "")
     response_content = body.get("response_content", "")
 
     if feedback_type not in ("thumbs_up", "thumbs_down"):
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/feedback",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="feedback_type must be 'thumbs_up' or 'thumbs_down'",
+            target=str(agent),
+            metadata={"feedback_type": str(feedback_type)},
+        )
         return JSONResponse(
             status_code=400,
             content={"error": "feedback_type must be 'thumbs_up' or 'thumbs_down'"},
@@ -64,6 +119,17 @@ async def post_feedback(request: Request):
         current_adj = current.get(key, 0.0)
         asyncio.create_task(set_autonomy_adjustment(agent, "routine", current_adj + 0.03))
 
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/feedback",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Recorded explicit feedback {feedback_type}",
+        target=str(agent),
+        metadata={"feedback_type": feedback_type},
+    )
     return result
 
 
@@ -79,17 +145,59 @@ async def post_implicit_feedback(request: Request):
     """
     from ..activity import store_implicit_events
 
-    body = await request.json()
-    session_id = body.get("session_id", "")
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/feedback/implicit",
+        action_class="operator",
+        default_reason="Recorded implicit feedback batch",
+    )
+    if denial:
+        return denial
+    session_id = body.get("feedback_session_id") or body.get("session_id", "")
     events = body.get("events", [])
 
     if not events:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/feedback/implicit",
+            action_class="operator",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail="No implicit feedback events to store",
+            target=str(session_id or ""),
+            metadata={"received": 0, "stored": 0},
+        )
         return {"stored": 0}
 
     if not session_id:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/feedback/implicit",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="session_id is required",
+            metadata={"received": len(events) if isinstance(events, list) else 0},
+        )
         return JSONResponse(status_code=400, content={"error": "session_id is required"})
 
     stored = await store_implicit_events(session_id=session_id, events=events)
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/feedback/implicit",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Stored implicit feedback batch for {session_id}",
+        target=str(session_id),
+        metadata={
+            "received": len(events) if isinstance(events, list) else 0,
+            "stored": int(stored),
+        },
+    )
     return {"stored": stored, "received": len(events)}
 
 
@@ -124,25 +232,81 @@ async def create_goal_endpoint(request: Request):
     """
     from ..goals import create_goal
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/goals",
+        action_class="operator",
+        default_reason="Created steering goal",
+    )
+    if denial:
+        return denial
     text = body.get("text", "")
     agent = body.get("agent", "global")
     priority = body.get("priority", "normal")
 
     if not text:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/goals",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="text is required",
+        )
         return JSONResponse(status_code=400, content={"error": "text is required"})
 
     goal = await create_goal(text=text, agent=agent, priority=priority)
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/goals",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Created steering goal {goal.get('id', '')}",
+        target=str(goal.get("id", "")),
+        metadata={"agent": agent, "priority": priority},
+    )
     return {"status": "created", "goal": goal}
 
 
 @router.delete("/goals/{goal_id}")
-async def delete_goal_endpoint(goal_id: str):
+async def delete_goal_endpoint(goal_id: str, request: Request):
     """Delete a steering goal."""
     from ..goals import delete_goal
 
+    _, action, denial = await _load_operator_body(
+        request,
+        route="/v1/goals/{goal_id}",
+        action_class="admin",
+        default_reason=f"Deleted goal {goal_id}",
+    )
+    if denial:
+        return denial
+
     if await delete_goal(goal_id):
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/goals/{goal_id}",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Deleted goal {goal_id}",
+            target=goal_id,
+        )
         return {"status": "deleted", "id": goal_id}
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/goals/{goal_id}",
+        action_class="admin",
+        decision="denied",
+        status_code=404,
+        action=action,
+        detail=f"Goal {goal_id} not found",
+        target=goal_id,
+    )
     return JSONResponse(status_code=404, content={"error": f"Goal '{goal_id}' not found"})
 
 
@@ -185,10 +349,26 @@ async def steer_system(request: Request):
     """
     from ..intent_capture import inject_steering_intent
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/steer",
+        action_class="operator",
+        default_reason="Injected steering intent",
+    )
+    if denial:
+        return denial
     text = body.get("text", "")
 
     if not text:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/steer",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="text is required",
+        )
         return JSONResponse(status_code=400, content={"error": "text is required"})
 
     result = await inject_steering_intent(
@@ -196,6 +376,17 @@ async def steer_system(request: Request):
         priority=body.get("priority", 0.9),
         source=body.get("source", "dashboard"),
         trigger_cycle=body.get("trigger_now", False),
+    )
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/steer",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Injected steering intent",
+        target=str(result.get("intent_id", "")),
+        metadata={"trigger_cycle": bool(result.get("pipeline_triggered", False))},
     )
     return result
 
@@ -214,12 +405,38 @@ async def clear_steering_intent(request: Request):
     """Remove a specific intent from the pending queue."""
     from ..intent_capture import clear_intent
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/steer",
+        action_class="admin",
+        default_reason="Cleared steering intent",
+    )
+    if denial:
+        return denial
     text = body.get("text", "")
     if not text:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/steer",
+            action_class="admin",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="text is required",
+        )
         return JSONResponse(status_code=400, content={"error": "text is required"})
 
     removed = await clear_intent(text)
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/steer",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Cleared steering intent" if removed else "Steering intent not found",
+        metadata={"removed": bool(removed), "text": text[:120]},
+    )
     return {"removed": removed}
 
 
@@ -237,11 +454,28 @@ async def react_to_intent(request: Request):
     """
     from ..owner_model import record_reaction
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/react",
+        action_class="operator",
+        default_reason="Recorded intent reaction",
+    )
+    if denial:
+        return denial
     intent_id = body.get("intent_id", "")
     reaction = body.get("reaction", "")
 
     if reaction not in ("more", "less", "love", "wrong"):
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/react",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="reaction must be 'more', 'less', 'love', or 'wrong'",
+            target=intent_id,
+        )
         return JSONResponse(
             status_code=400,
             content={"error": "reaction must be 'more', 'less', 'love', or 'wrong'"},
@@ -251,6 +485,16 @@ async def react_to_intent(request: Request):
         intent_id=intent_id,
         reaction=reaction,
         intent_metadata=body.get("intent_metadata", {}),
+    )
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/react",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Recorded reaction {reaction}",
+        target=intent_id,
     )
     return result
 
@@ -263,17 +507,44 @@ async def boost_domain(request: Request):
     """
     from ..owner_model import record_reaction
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/steer/boost",
+        action_class="admin",
+        default_reason="Boosted steering domain",
+    )
+    if denial:
+        return denial
     domain = body.get("domain", "")
     amount = min(0.3, max(0.05, body.get("amount", 0.15)))
 
     if not domain:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/steer/boost",
+            action_class="admin",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="domain is required",
+        )
         return JSONResponse(status_code=400, content={"error": "domain is required"})
 
     await record_reaction(
         intent_id=f"boost-{domain}-{int(time.time())}",
         reaction="more",
         intent_metadata={"domain": domain, "domain_delta_override": amount},
+    )
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/steer/boost",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Boosted domain {domain}",
+        target=domain,
+        metadata={"amount": amount},
     )
     return {"status": "boosted", "domain": domain, "amount": amount}
 
@@ -286,17 +557,44 @@ async def suppress_domain(request: Request):
     """
     from ..workspace import get_redis
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/steer/suppress",
+        action_class="admin",
+        default_reason="Suppressed steering domain",
+    )
+    if denial:
+        return denial
     domain = body.get("domain", "")
     hours = min(168, max(1, body.get("duration_hours", 24)))
 
     if not domain:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/steer/suppress",
+            action_class="admin",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="domain is required",
+        )
         return JSONResponse(status_code=400, content={"error": "domain is required"})
 
     r = await get_redis()
     key = f"athanor:owner:suppress:{domain}"
     await r.set(key, "1", ex=int(hours * 3600))
 
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/steer/suppress",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Suppressed domain {domain}",
+        target=domain,
+        metadata={"duration_hours": hours},
+    )
     return {"status": "suppressed", "domain": domain, "duration_hours": hours}
 
 
@@ -322,7 +620,14 @@ async def approve_preview(request: Request):
         "trigger_cycle": true       // trigger pipeline cycle with approved intents
     }
     """
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/pipeline/preview/approve",
+        action_class="admin",
+        default_reason="Approved pipeline preview",
+    )
+    if denial:
+        return denial
     approved_indices = body.get("approve", [])
     trigger = body.get("trigger_cycle", False)
 
@@ -340,6 +645,20 @@ async def approve_preview(request: Request):
         except Exception as e:
             result["error"] = str(e)
 
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/pipeline/preview/approve",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Processed pipeline preview approval",
+        metadata={
+            "approved": len(approved_indices),
+            "rejected": len(body.get("reject", [])),
+            "pipeline_triggered": bool(result.get("pipeline_triggered", False)),
+        },
+    )
     return result
 
 
@@ -352,7 +671,14 @@ async def reset_autonomy(request: Request):
     from ..workspace import get_redis
     from ..escalation import AUTONOMY_ADJUSTMENTS_KEY, refresh_adjustment_cache
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/autonomy/reset",
+        action_class="admin",
+        default_reason="Reset autonomy adjustments",
+    )
+    if denial:
+        return denial
     agent = body.get("agent", "")
 
     r = await get_redis()
@@ -366,8 +692,29 @@ async def reset_autonomy(request: Request):
                 await r.hdel(AUTONOMY_ADJUSTMENTS_KEY, key)
                 removed += 1
         await refresh_adjustment_cache()
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/autonomy/reset",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Reset autonomy adjustments for {agent}",
+            target=agent,
+            metadata={"removed": removed},
+        )
         return {"status": "reset", "agent": agent, "removed": removed}
     else:
         await r.delete(AUTONOMY_ADJUSTMENTS_KEY)
         await refresh_adjustment_cache()
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/autonomy/reset",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail="Reset autonomy adjustments for all agents",
+            target="all",
+        )
         return {"status": "reset", "agent": "all"}

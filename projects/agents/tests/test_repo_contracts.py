@@ -1082,22 +1082,22 @@ class RepoContractsTest(unittest.TestCase):
                     violations.append(relative)
             self.assertEqual([], violations, f"Non-archive docs still reference stale active path {stale_reference}: {violations}")
 
-    def test_provider_catalog_report_flags_configured_cli_lane_without_observed_tool(self) -> None:
+    def test_provider_catalog_report_flags_supported_tool_subscription_without_verified_integration(self) -> None:
         report_text = read_text(PROVIDER_CATALOG_REPORT)
         self.assertIn("## Z.ai GLM Coding (`zai_glm_coding`)", report_text)
         self.assertIn("- State classes: `configured-unused`", report_text)
-        self.assertIn("- Evidence posture: `cli_configured_without_observed_tool`", report_text)
+        self.assertIn("- Evidence posture: `supported_tool_subscription_unverified`", report_text)
         self.assertIn(
-            "- Evidence contract: `kind=cli_subscription`, `cli_status=missing`, `hosts=desk,dev`, `commands=glm,zai`, `billing_status=published_tiers_known_subscribed_tier_unverified`, `public_prices=lite:10,pro:30`",
+            "- Evidence contract: `kind=coding_tool_subscription`, `tooling_status=supported_tools_present`, `hosts=desk,dev`, `supported_tools=claude,codex,gemini`, `integration_status=unverified`, `billing_status=published_tiers_known_subscribed_tier_unverified`, `public_prices=lite:10,pro:30`",
             report_text,
         )
-        self.assertIn("- Tool evidence: `desk:glm:missing`, `desk:zai:missing`, `dev:glm:missing`, `dev:zai:missing`", report_text)
+        self.assertIn("- Tool evidence: none", report_text)
         self.assertIn(
-            "- Next verification: Restore or verify `glm --version` or `zai --version` on the expected host before promoting `Z.ai GLM Coding` back into live routing.",
+            "- Next verification: Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.",
             report_text,
         )
         self.assertIn(
-            "- Verification steps: `Restore or verify `glm --version` or `zai --version` on the expected host before promoting `Z.ai GLM Coding` back into live routing.`, `Verify which public GLM Coding Plan tier is actually subscribed before treating any published USD price as this lane's monthly cost.`, `If the CLI cannot be restored, keep this lane configured-unused and out of ordinary auto-routing.`",
+            "- Verification steps: `Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.`, `Verify which public GLM Coding Plan tier is actually subscribed before treating any published USD price as this lane's monthly cost.`, `Until supported-tool integration is proven, keep this lane configured-unused and out of ordinary auto-routing.`",
             report_text,
         )
 
@@ -1166,8 +1166,9 @@ class RepoContractsTest(unittest.TestCase):
         policy_text = read_text(REPO_ROOT / "projects" / "agents" / "config" / "subscription-routing-policy.yaml")
         self.assertIn("zai_glm_coding:", policy_text)
         self.assertIn("routing_posture: governed_handoff_only", policy_text)
-        self.assertIn("routing_reason: missing_cli_evidence", policy_text)
+        self.assertIn("routing_reason: supported_tool_integration_unverified", policy_text)
 
+    def test_subscription_policy_no_longer_uses_builtin_fallback_policy(self) -> None:
         subscriptions_text = read_text(REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "subscriptions.py")
         self.assertNotIn("_fallback_policy", subscriptions_text)
         self.assertNotIn('builtin-fallback', subscriptions_text)

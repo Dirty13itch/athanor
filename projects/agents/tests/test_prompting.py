@@ -42,9 +42,14 @@ _spec = importlib.util.spec_from_file_location(
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 build_system_prompt = _mod.build_system_prompt
+PREFERENCE_PREAMBLE = _mod.PREFERENCE_PREAMBLE
 
 
 class BuildSystemPromptTests(unittest.TestCase):
+    @staticmethod
+    def _expected_prompt(prompt: str) -> str:
+        return prompt + "\n" + PREFERENCE_PREAMBLE
+
     def test_prepends_system_prompt_to_existing_messages(self):
         prompt = build_system_prompt("System first")
 
@@ -52,7 +57,7 @@ class BuildSystemPromptTests(unittest.TestCase):
 
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], SystemMessage)
-        self.assertEqual(result[0].content, "System first")
+        self.assertEqual(result[0].content, self._expected_prompt("System first"))
         self.assertEqual(result[1].content, "hello")
 
     def test_strips_rehydrated_system_messages(self):
@@ -72,7 +77,7 @@ class BuildSystemPromptTests(unittest.TestCase):
             [type(message).__name__ for message in result],
             ["SystemMessage", "HumanMessage", "HumanMessage"],
         )
-        self.assertEqual(result[0].content, "Canonical system")
+        self.assertEqual(result[0].content, self._expected_prompt("Canonical system"))
         self.assertEqual(result[1].content, "older user")
         self.assertEqual(result[2].content, "latest user")
 

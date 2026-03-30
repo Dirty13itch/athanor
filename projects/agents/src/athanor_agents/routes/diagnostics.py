@@ -1,12 +1,51 @@
-"""Diagnostic & utility routes — context preview, routing, cognitive state,
+"""Diagnostic & utility routes â€” context preview, routing, cognitive state,
 scheduling, preference models, consolidation, briefing."""
+
+from __future__ import annotations
 
 import time
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from ..operator_contract import (
+    build_operator_action,
+    emit_operator_audit_event,
+    require_operator_action,
+)
+
 router = APIRouter(prefix="/v1", tags=["diagnostics"])
+
+
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    candidate = build_operator_action(body, default_reason=default_reason)
+    try:
+        action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
 
 
 @router.post("/context/preview")
@@ -14,7 +53,14 @@ async def preview_context(request: Request):
     """Preview what context would be injected for a given agent + message."""
     from ..context import enrich_context
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/context/preview",
+        action_class="operator",
+        default_reason="Previewed routed context",
+    )
+    if denial:
+        return denial
     agent_name = body.get("agent", "general-assistant")
     message = body.get("message", "")
 
@@ -22,7 +68,7 @@ async def preview_context(request: Request):
     context_str = await enrich_context(agent_name, message)
     duration_ms = int(time.time() * 1000) - start_ms
 
-    return {
+    response = {
         "agent": agent_name,
         "message": message,
         "context": context_str,
@@ -30,6 +76,21 @@ async def preview_context(request: Request):
         "context_tokens_est": len(context_str) // 4,
         "duration_ms": duration_ms,
     }
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/context/preview",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Previewed routed context",
+        target=agent_name,
+        metadata={
+            "context_chars": response["context_chars"],
+            "duration_ms": duration_ms,
+        },
+    )
+    return response
 
 
 @router.post("/routing/classify")
@@ -37,16 +98,48 @@ async def classify_route(request: Request):
     """Classify a prompt without invoking an agent. Diagnostic endpoint."""
     from ..router import classify_request
 
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/routing/classify",
+        action_class="operator",
+        default_reason="Classified routing diagnostics",
+    )
+    if denial:
+        return denial
     prompt = body.get("prompt", "")
     agent_name = body.get("agent", "")
     conversation_length = body.get("conversation_length", 0)
 
     if not prompt:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/routing/classify",
+            action_class="operator",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="prompt is required",
+        )
         return JSONResponse(status_code=400, content={"error": "prompt is required"})
 
     routing = classify_request(prompt, agent_name, conversation_length)
-    return routing.to_dict()
+    response = routing.to_dict()
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/routing/classify",
+        action_class="operator",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Classified routing diagnostics",
+        target=agent_name or "routing",
+        metadata={
+            "task_type": response.get("task_type"),
+            "policy_class": response.get("policy_class"),
+            "meta_lane": response.get("meta_lane"),
+        },
+    )
+    return response
 
 
 @router.get("/cognitive/cst")
@@ -64,10 +157,7 @@ async def get_specialist_state():
     from ..specialist import get_specialists
 
     specialists = get_specialists()
-    return {
-        name: s.to_dict()
-        for name, s in specialists.items()
-    }
+    return {name: s.to_dict() for name, s in specialists.items()}
 
 
 @router.get("/scheduling/status")
@@ -87,11 +177,35 @@ async def get_model_preferences():
 
 
 @router.post("/consolidate")
-async def run_consolidation_endpoint():
+async def run_consolidation_endpoint(request: Request):
     """Run memory consolidation pipeline on demand."""
     from ..consolidation import run_consolidation
 
+    _, action, denial = await _load_operator_body(
+        request,
+        route="/v1/consolidate",
+        action_class="admin",
+        default_reason="Ran consolidation",
+    )
+    if denial:
+        return denial
+
     results = await run_consolidation()
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/consolidate",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Ran consolidation pipeline",
+        metadata={
+            "activity": int(results.get("activity", 0) or 0),
+            "conversations": int(results.get("conversations", 0) or 0),
+            "implicit_feedback": int(results.get("implicit_feedback", 0) or 0),
+            "events": int(results.get("events", 0) or 0),
+        },
+    )
     return results
 
 

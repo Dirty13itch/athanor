@@ -1,6 +1,6 @@
 {
-  "version": "2026-03-12",
-  "updated_at": "2026-03-12T06:20:00Z",
+  "version": "2026-03-27",
+  "updated_at": "2026-03-27T19:05:00Z",
   "profiles": [
     {
       "subject": "Shaun",
@@ -16,8 +16,20 @@
     },
     {
       "subject": "Athanor Governor",
-      "can": ["route work", "create durable tasks", "issue leases", "pause or resume automation", "choose fallback mode"],
-      "cannot": ["override constitution", "self-authorize forbidden work"],
+      "can": [
+        "route work",
+        "pause or resume automation",
+        "choose fallback or degraded mode",
+        "arbitrate capacity posture",
+        "enforce release-tier posture"
+      ],
+      "cannot": [
+        "override constitution",
+        "self-authorize forbidden work",
+        "create durable tasks",
+        "issue leases",
+        "own recurring schedules"
+      ],
       "approval_mode": "policy_bound_runtime_control"
     },
     {

@@ -17,6 +17,7 @@ import httpx
 
 from .command_hierarchy import build_command_decision_record, build_plan_packet
 from .config import settings
+from .model_governance import get_provider_catalog_registry
 from .subscriptions import (
     LeaseRequest,
     get_quota_summary,
@@ -110,13 +111,14 @@ _PROVIDER_ADAPTERS: dict[str, dict[str, Any]] = {
     "zai_glm_coding": {
         "meta_lane": "frontier_cloud",
         "execution_mode": "handoff_bundle",
-        "command_names": ["glm", "zai"],
+        "command_names": [],
         "probe_args": ["--help"],
         "supports_handoff": True,
-        "direct_supported": True,
+        "direct_supported": False,
         "notes": [
             "Overflow high-throughput coding lane.",
-            "Defaults to structured handoff unless a CLI or bridge adapter is available.",
+            "Current Z.ai docs describe this as a supported-tool subscription lane rather than a standalone Athanor CLI.",
+            "Keep it governed handoff only until supported-tool integration evidence is captured.",
         ],
     },
 }
@@ -631,6 +633,12 @@ def _next_action_for_provider_state(
 
 async def build_provider_posture_records(limit: int = 25) -> list[dict[str, Any]]:
     policy = get_policy_snapshot()
+    provider_catalog = get_provider_catalog_registry()
+    provider_catalog_index = {
+        str(entry.get("id") or "").strip(): dict(entry)
+        for entry in provider_catalog.get("providers", [])
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }
     quotas = await get_quota_summary()
     raw_provider_stats = dict(quotas.get("providers") or {})
     raw_handoffs = await list_handoff_bundles(limit=max(limit * 2, 25))
@@ -642,6 +650,7 @@ async def build_provider_posture_records(limit: int = 25) -> list[dict[str, Any]
 
     records: list[dict[str, Any]] = []
     for provider_id, provider_meta in dict(policy.get("providers") or {}).items():
+        catalog_entry = provider_catalog_index.get(provider_id, {})
         adapter = await _build_adapter_record(provider_id, dict(provider_meta))
         stats = dict(raw_provider_stats.get(provider_id) or {})
         provider_handoffs = handoffs_by_provider.get(provider_id, [])
@@ -684,6 +693,14 @@ async def build_provider_posture_records(limit: int = 25) -> list[dict[str, Any]
         records.append(
             {
                 "provider": provider_id,
+                "label": str(catalog_entry.get("label") or provider_id),
+                "vendor": str(catalog_entry.get("vendor") or ""),
+                "subscription_product": str(catalog_entry.get("subscription_product") or ""),
+                "catalog_monthly_cost_usd": catalog_entry.get("monthly_cost_usd"),
+                "catalog_pricing_status": str(catalog_entry.get("official_pricing_status") or "unknown"),
+                "category": str(catalog_entry.get("category") or provider_meta.get("category") or ""),
+                "access_mode": str(catalog_entry.get("access_mode") or ""),
+                "evidence_kind": str(dict(catalog_entry.get("evidence") or {}).get("kind") or ""),
                 "lane": str(provider_meta.get("role") or "unclassified"),
                 "availability": provider_state,
                 "provider_state": provider_state,
@@ -1004,7 +1021,7 @@ def _build_direct_cli_command(
         command = [command_hint, "exec", prompt]
         return command, workspace_dir, None
 
-    if provider_id in {"google_gemini", "zai_glm_coding"}:
+    if provider_id == "google_gemini":
         command = [command_hint, prompt]
         return command, workspace_dir, None
 

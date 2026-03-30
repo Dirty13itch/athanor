@@ -5,18 +5,58 @@ import asyncio
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from ..operator_contract import (
+    build_operator_action,
+    emit_operator_audit_event,
+    require_operator_action,
+)
+
 router = APIRouter(prefix="/v1", tags=["notifications"])
+
+
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    candidate = build_operator_action(body, default_reason=default_reason)
+    try:
+        action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
 
 
 @router.get("/notifications")
 async def get_notifications(include_resolved: bool = False):
     """Get pending agent actions and notifications."""
     from ..escalation import get_pending, get_unread_count
-    from ..tasks import list_tasks
+    from ..tasks import get_task_stats, list_tasks
 
     items = get_pending(include_resolved=include_resolved)
 
-    pending_tasks = await list_tasks(status="pending_approval", limit=50)
+    preview_limit = 50
+    pending_tasks = await list_tasks(status="pending_approval", limit=preview_limit)
+    stats = await get_task_stats()
+    pending_review_queue = int(stats.get("pending_approval", 0) or 0)
     for t in pending_tasks:
         meta = t.get("metadata", {})
         category = meta.get("category", "routine")
@@ -37,14 +77,25 @@ async def get_notifications(include_resolved: bool = False):
     return {
         "notifications": items,
         "count": len(items),
-        "unread": get_unread_count() + len(pending_tasks),
+        "approval_preview_count": len(pending_tasks),
+        "approval_preview_limit": preview_limit,
+        "approval_total_count": pending_review_queue,
+        "approval_preview_truncated": pending_review_queue > len(pending_tasks),
+        "unread": get_unread_count() + pending_review_queue,
     }
 
 
 @router.post("/notifications/{action_id}/resolve")
 async def resolve_notification(action_id: str, request: Request):
     """Approve or reject a pending agent action or task."""
-    body = await request.json()
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/notifications/{action_id}/resolve",
+        action_class="admin",
+        default_reason=f"Resolved notification {action_id}",
+    )
+    if denial:
+        return denial
     approved = body.get("approved", False)
 
     if action_id.startswith("task-"):
@@ -56,7 +107,29 @@ async def resolve_notification(action_id: str, request: Request):
         else:
             ok = await cancel_task(task_id)
         if ok:
+            await emit_operator_audit_event(
+                service="agent-server",
+                route="/v1/notifications/{action_id}/resolve",
+                action_class="admin",
+                decision="accepted",
+                status_code=200,
+                action=action,
+                detail=f"Resolved task notification {action_id}",
+                target=action_id,
+                metadata={"approved": bool(approved)},
+            )
             return {"status": "resolved", "id": action_id, "approved": approved}
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/notifications/{action_id}/resolve",
+            action_class="admin",
+            decision="denied",
+            status_code=404,
+            action=action,
+            detail=f"Task {task_id} not found or not awaiting approval",
+            target=action_id,
+            metadata={"approved": bool(approved)},
+        )
         return JSONResponse(
             status_code=404,
             content={"error": f"Task '{task_id}' not found or not awaiting approval"},
@@ -65,7 +138,29 @@ async def resolve_notification(action_id: str, request: Request):
     from ..escalation import resolve_action
 
     if resolve_action(action_id, approved):
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/notifications/{action_id}/resolve",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Resolved escalation action {action_id}",
+            target=action_id,
+            metadata={"approved": bool(approved)},
+        )
         return {"status": "resolved", "id": action_id, "approved": approved}
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/notifications/{action_id}/resolve",
+        action_class="admin",
+        decision="denied",
+        status_code=404,
+        action=action,
+        detail=f"Action {action_id} not found or already resolved",
+        target=action_id,
+        metadata={"approved": bool(approved)},
+    )
     return JSONResponse(
         status_code=404,
         content={"error": f"Action '{action_id}' not found or already resolved"},

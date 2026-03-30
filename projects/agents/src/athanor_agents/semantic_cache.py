@@ -324,10 +324,47 @@ async def cached_completion(
 
 # FastAPI router
 def create_cache_router():
-    from fastapi import APIRouter
+    from fastapi import APIRouter, Request
     from pydantic import BaseModel
+    from starlette.responses import JSONResponse
+
+    from .operator_contract import (
+        build_operator_action,
+        emit_operator_audit_event,
+        require_operator_action,
+    )
 
     router = APIRouter(prefix="/v1/cache", tags=["semantic-cache"])
+
+    async def _load_operator_body(
+        request: Request,
+        *,
+        route: str,
+        action_class: str,
+        default_reason: str,
+    ):
+        body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+        if not isinstance(body, dict):
+            body = {}
+
+        candidate = build_operator_action(body, default_reason=default_reason)
+        try:
+            action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+        except Exception as exc:
+            detail = getattr(exc, "detail", str(exc))
+            status_code = getattr(exc, "status_code", 400)
+            await emit_operator_audit_event(
+                service="agent-server",
+                route=route,
+                action_class=action_class,
+                decision="denied",
+                status_code=status_code,
+                action=candidate,
+                detail=str(detail),
+            )
+            return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+        return body, action, None
 
     class LookupRequest(BaseModel):
         query: str
@@ -350,9 +387,28 @@ def create_cache_router():
         return {"hit": False}
 
     @router.post("/store")
-    async def store(req: StoreRequest):
+    async def store(request: Request, req: StoreRequest):
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/cache/store",
+            action_class="operator",
+            default_reason="Store semantic cache entry",
+        )
+        if denial:
+            return denial
         cache = get_semantic_cache()
         ok = await cache.store(req.query, req.response, req.model, req.tokens_used, req.context_hash)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/cache/store",
+            action_class="operator",
+            decision="accepted" if ok else "denied",
+            status_code=200 if ok else 500,
+            action=action,
+            detail="Stored semantic cache entry" if ok else "Failed to store semantic cache entry",
+            target=req.model,
+            metadata={"context_hash": req.context_hash or "", "tokens_used": req.tokens_used},
+        )
         return {"stored": ok}
 
     @router.get("/stats")
@@ -361,9 +417,28 @@ def create_cache_router():
         return await cache.get_stats()
 
     @router.post("/cleanup")
-    async def cleanup():
+    async def cleanup(request: Request):
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/cache/cleanup",
+            action_class="admin",
+            default_reason="",
+        )
+        if denial:
+            return denial
         cache = get_semantic_cache()
         deleted = await cache.cleanup_expired()
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/cache/cleanup",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Cleaned up {deleted} expired semantic cache entries",
+            target=cache.collection_name,
+            metadata={"deleted": deleted},
+        )
         return {"deleted": deleted}
 
     return router

@@ -1,6 +1,6 @@
 """Intent Miner — discovers actionable intent from 15 sources.
 
-Mines BUILD-MANIFEST, STATUS.md, project registry, active goals,
+Mines the live execution backlog, STATUS.md, project registry, active goals,
 Qdrant signals, patterns, self-improvement proposals, diagnosis issues,
 recent task outcomes, git TODOs, design docs, operator chat,
 content completeness, creative quality, and infrastructure drift.
@@ -43,7 +43,7 @@ async def mine_all_sources() -> list[RawIntent]:
     import asyncio
 
     miners = [
-        _mine_build_manifest,
+        _mine_continuous_completion_backlog,
         _mine_status,
         _mine_project_needs,
         _mine_active_goals,
@@ -76,26 +76,38 @@ async def mine_all_sources() -> list[RawIntent]:
     return intents
 
 
-async def _mine_build_manifest() -> list[RawIntent]:
-    """Parse BUILD-MANIFEST.md for unchecked items."""
+async def _mine_continuous_completion_backlog() -> list[RawIntent]:
+    """Parse the live execution backlog for the next ordered work items."""
     intents = []
-    manifest_path = os.path.join(REPO_ROOT, "docs", "BUILD-MANIFEST.md")
-    if not os.path.exists(manifest_path):
+    backlog_path = os.path.join(REPO_ROOT, "docs", "operations", "CONTINUOUS-COMPLETION-BACKLOG.md")
+    if not os.path.exists(backlog_path):
         return intents
 
-    with open(manifest_path) as f:
+    with open(backlog_path) as f:
         content = f.read()
 
+    in_current_order = False
     for line in content.splitlines():
         stripped = line.strip()
-        if stripped.startswith("- [ ]"):
-            text = stripped[5:].strip()
-            if text:
-                intents.append(RawIntent(
-                    source="build_manifest",
+        if stripped.lower() == "## current order":
+            in_current_order = True
+            continue
+        if not in_current_order:
+            continue
+        if stripped.startswith("## "):
+            break
+        match = re.match(r"^\d+\.\s+(.*)$", stripped)
+        if not match:
+            continue
+        text = match.group(1).strip()
+        if text:
+            intents.append(
+                RawIntent(
+                    source="continuous_completion_backlog",
                     text=text,
-                    priority_hint=0.7,
-                ))
+                    priority_hint=0.75,
+                )
+            )
 
     return intents
 

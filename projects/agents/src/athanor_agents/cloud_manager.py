@@ -266,25 +266,54 @@ async def trigger_consensus_review(task_id: str, description: str, files_changed
 
 async def get_provider_status() -> list[dict]:
     """Get provider status for the routing/models dashboard."""
+    from .model_governance import get_provider_catalog_registry
+    from .provider_execution import build_provider_posture_records
+    from .subscriptions import get_policy_snapshot
+
     cli_stats = await get_cli_status()
-    providers = []
-
-    provider_info = {
-        "claude_code": {"name": "Claude Code", "subscription": "20x Max", "monthly_cost": 150, "role": "Lead Architect + Code Supervisor"},
-        "codex_cli": {"name": "Codex CLI", "subscription": "ChatGPT Pro", "monthly_cost": 200, "role": "Reviewer + Debugger"},
-        "gemini_cli": {"name": "Gemini CLI", "subscription": "Gemini Pro", "monthly_cost": 35, "role": "Universal Auditor + Research"},
-        "aider": {"name": "Aider", "subscription": "Free (local)", "monthly_cost": 0, "role": "Bulk Editor"},
+    policy = get_policy_snapshot()
+    provider_catalog = get_provider_catalog_registry()
+    catalog_index = {
+        str(entry.get("id") or "").strip(): dict(entry)
+        for entry in provider_catalog.get("providers", [])
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
     }
-
-    for cli_id, info in provider_info.items():
-        stats = cli_stats.get(cli_id, {})
+    posture_records = {
+        str(entry.get("provider") or "").strip(): dict(entry)
+        for entry in await build_provider_posture_records(limit=max(len(policy.get("providers", {})), 10))
+        if isinstance(entry, dict)
+    }
+    cli_stat_keys = {
+        "anthropic_claude_code": "claude_code",
+        "openai_codex": "codex_cli",
+        "google_gemini": "gemini_cli",
+        "moonshot_kimi": "moonshot_kimi",
+        "zai_glm_coding": "zai_glm_coding",
+    }
+    providers = []
+    for provider_id, provider_meta in dict(policy.get("providers") or {}).items():
+        catalog_entry = catalog_index.get(provider_id, {})
+        posture = posture_records.get(provider_id, {})
+        stats = cli_stats.get(cli_stat_keys.get(provider_id, provider_id), {})
         providers.append({
-            "id": cli_id,
-            **info,
-            "available": stats.get("available", False),
+            "id": provider_id,
+            "name": str(catalog_entry.get("label") or provider_id),
+            "subscription": str(catalog_entry.get("subscription_product") or ""),
+            "monthly_cost": catalog_entry.get("monthly_cost_usd"),
+            "pricing_status": str(catalog_entry.get("official_pricing_status") or "unknown"),
+            "role": str(provider_meta.get("role") or posture.get("lane") or ""),
+            "category": str(catalog_entry.get("category") or provider_meta.get("category") or ""),
+            "status": str(posture.get("provider_state") or posture.get("availability") or "unknown"),
+            "provider_state": str(posture.get("provider_state") or posture.get("availability") or "unknown"),
+            "state_reasons": list(posture.get("state_reasons") or []),
+            "execution_mode": str(posture.get("execution_mode") or ""),
+            "direct_execution_ready": bool(posture.get("direct_execution_ready")),
+            "governed_handoff_ready": bool(posture.get("governed_handoff_ready")),
+            "available": str(posture.get("provider_state") or posture.get("availability") or "") == "available",
             "tasks_today": stats.get("tasks_today", 0),
             "quota_remaining": stats.get("quota_remaining"),
             "last_used": stats.get("last_used"),
+            "avg_latency_ms": None,
         })
-
+    providers.sort(key=lambda item: str(item.get("name") or item.get("id") or ""))
     return providers
