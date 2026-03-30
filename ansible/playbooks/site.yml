@@ -30,7 +30,6 @@
     - { role: vllm, tags: [vllm] }
     - { role: comfyui, tags: [comfyui] }
     - { role: open-webui, tags: [open-webui] }
-    - { role: dashboard, tags: [dashboard] }
     - { role: eoq, tags: [eoq] }
     - { role: ulrich-energy, tags: [ulrich-energy] }
     - { role: cadvisor, tags: [cadvisor] }

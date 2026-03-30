@@ -1,0 +1,13 @@
+---
+caddy_manage_package: true
+caddy_manage_service: true
+caddy_package_name: caddy
+caddy_config_dir: /etc/caddy
+caddy_config_path: /etc/caddy/Caddyfile
+caddy_service_name: caddy
+caddy_front_door_hostname: "athanor.local"
+caddy_front_door_additional_hostnames: []
+caddy_front_door_upstream: "127.0.0.1:3001"
+caddy_front_door_tls_mode: "internal"
+caddy_verify_front_door: true
+caddy_front_door_verify_count: 4

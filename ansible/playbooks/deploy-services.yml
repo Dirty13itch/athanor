@@ -22,7 +22,6 @@
         vllm_container_name: vllm-node2
         vllm_dir: vllm-node2
     - comfyui
-    - dashboard
     - open-webui
 
 - name: Deploy DEV retrieval services

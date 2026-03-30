@@ -1,0 +1,10 @@
+---
+- name: Ensure cluster hostnames in /etc/hosts for front-door resolution
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '.*\b{{ item.name }}\b'
+    line: >-
+      {{ item.ip }} {{ item.name }}{% if (item.aliases | default([])) | length > 0 %}
+      {{ item.aliases | join(' ') }}{% endif %}
+    state: present
+  loop: "{{ cluster_hosts }}"

@@ -120,10 +120,10 @@ prometheus_probe_targets:
     category: experience
     node_id: node2
   - id: dashboard
-    name: "Dashboard"
-    url: "http://{{ node2_ip }}:3001"
+    name: "Athanor Command Center"
+    url: "https://athanor.local/"
     category: experience
-    node_id: node2
+    node_id: dev
   - id: workshop-open-webui
     name: "Open WebUI (Workshop)"
     url: "http://{{ node2_ip }}:3000"

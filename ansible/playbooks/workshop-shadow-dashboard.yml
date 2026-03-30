@@ -1,0 +1,12 @@
+---
+# WORKSHOP command-center shadow lane
+# Usage: ansible-playbook playbooks/workshop-shadow-dashboard.yml --tags dashboard
+# Recovery-only: this is not the production command-center deployment path.
+
+- name: Deploy WORKSHOP shadow command center
+  hosts: interface
+  roles:
+    - role: dashboard
+      tags: [dashboard, shadow]
+      vars:
+        dashboard_surface_mode: shadow_recovery
