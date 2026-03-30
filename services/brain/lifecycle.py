@@ -6,15 +6,16 @@ Provides both sync helpers (for internal use) and async endpoint handlers
 import httpx
 import time
 import logging
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from cluster_config import (
-    OLLAMA_WORKSHOP_URL, VLLM_COORDINATOR_URL, VLLM_CODER_URL,
-    EMBEDDING_URL, RERANKER_URL,
-)
 from datetime import datetime, timezone
 
 from registry import CLUSTER, MODELS, query_prometheus
+from _imports import (
+    EMBEDDING_URL,
+    OLLAMA_WORKSHOP_URL,
+    RERANKER_URL,
+    VLLM_CODER_URL,
+    VLLM_COORDINATOR_URL,
+)
 
 logger = logging.getLogger("brain.lifecycle")
 

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Athanor Subscription Burn Scheduler
-====================================
+Athanor Subscription Burn
+=========================
 Actively consumes rolling-window AI subscription quotas before they expire.
 Runs as a FastAPI service on DEV:8065.
 
-$543/mo in AI subscriptions with use-it-or-lose-it windows.
 This service schedules automated burn sessions to maximize utilization.
+Provider pricing truth now comes from the provider catalog when available;
+legacy hardcoded schedule metadata is not treated as authoritative cost truth.
 """
 
 import asyncio
@@ -14,37 +15,67 @@ import importlib
 import json
 import logging
 import os
+import shutil
 import subprocess
 import sys
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
 import httpx
 import yaml
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from operator_contract import (
+    build_operator_action,
+    emit_operator_audit_event,
+    require_operator_action,
+)
+from service_contract import build_health_snapshot, dependency_record
 
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
     from backports.zoneinfo import ZoneInfo
-# Import CLI Router (hyphenated filename requires importlib)
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cluster_config import get_url
-_cli_router_mod = importlib.import_module("cli-router")
+
+try:
+    from scripts._cluster_config import get_url
+except ModuleNotFoundError:
+    from _cluster_config import get_url
+
+_CLI_ROUTER_PATH = Path(__file__).resolve().with_name("cli-router.py")
+_cli_router_spec = importlib.util.spec_from_file_location("athanor_cli_router", _CLI_ROUTER_PATH)
+if _cli_router_spec is None or _cli_router_spec.loader is None:
+    raise RuntimeError(f"Unable to load CLI router from {_CLI_ROUTER_PATH}")
+_cli_router_mod = importlib.util.module_from_spec(_cli_router_spec)
+_cli_router_spec.loader.exec_module(_cli_router_mod)
 CLIRouter = _cli_router_mod.CLIRouter
 register_router_endpoints = _cli_router_mod.register_router_endpoints
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-TZ = ZoneInfo("America/Los_Angeles")
+DEFAULT_TIMEZONE = os.environ.get("ATHANOR_TIMEZONE", "America/Chicago")
+TZ = ZoneInfo(DEFAULT_TIMEZONE)
 TASKS_DIR = Path.home() / ".athanor" / "subscription-tasks"
 LOG_DIR = Path("/var/log/athanor")
 USAGE_LOG = LOG_DIR / "subscription-usage.log"
 STATE_FILE = Path.home() / ".athanor" / "subscription-burn-state.json"
 NTFY_URL = get_url("ntfy_topic")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+PROVIDER_CATALOG_PATH = REPO_ROOT / "config" / "automation-backbone" / "provider-catalog.json"
+BURN_REGISTRY_PATH = REPO_ROOT / "config" / "automation-backbone" / "subscription-burn-registry.json"
+SERVICE_STARTED_AT = datetime.now(timezone.utc).isoformat()
+SERVICE_NAME = "subscription-burn"
+DEFAULT_WORKING_DIR = Path(
+    os.environ.get("ATHANOR_RUNTIME_REPO_ROOT", "").strip() or str(REPO_ROOT)
+)
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -75,80 +106,193 @@ async def ntfy(title: str, message: str, priority: str = "default", tags: str = 
     except Exception as e:
         log.warning(f"ntfy send failed: {e}")
 
-# ---------------------------------------------------------------------------
-# Subscription definitions
-# ---------------------------------------------------------------------------
-SUBSCRIPTIONS: dict[str, dict[str, Any]] = {
-    "claude_max": {
-        "type": "rolling_window",
-        "window_hours": 5,
-        "tokens_per_window": 220000,
-        "cost_per_month": 200,
-        "cli": "/home/shaun/.local/bin/claude",
-        "cli_args": ["-p", "--dangerously-skip-permissions"],
-        "task_file": "claude-tasks.yaml",
-    },
-    "chatgpt_pro": {
-        "type": "daily_reset",
-        "daily_limit": 200,
-        "reset_time": "00:00",
-        "cost_per_month": 200,
-        "cli": "codex",
-        "task_file": "codex-tasks.yaml",
-    },
-    "gemini_advanced": {
-        "type": "daily_reset",
-        "daily_limit": 100,
-        "reset_time": "00:00",
-        "cost_per_month": 20,
-        "cli": "gemini",
-        "task_file": "gemini-tasks.yaml",
-    },
-    "kimi_allegretto": {
-        "type": "rolling_window",
-        "window_hours": 5,
-        "max_concurrent": 30,
-        "cost_per_month": 19,
-        "cli": "kimi",
-        "task_file": "kimi-tasks.yaml",
-    },
-    "copilot_pro": {
-        "type": "monthly_reset",
-        "monthly_limit": 300,
-        "cost_per_month": 33,
-    },
-    "perplexity_pro": {
-        "type": "mixed",
-        "weekly_searches": 200,
-        "monthly_deep_research": 20,
-        "cost_per_month": 20,
-    },
-    "zai_glm_pro": {
-        "type": "rolling_window",
-        "window_hours": 5,
-        "cost_per_month": 30,
-    },
-    "venice_pro": {
-        "type": "depleting",
-        "credits_remaining": 312,
-        "auto_cancel": "2026-07-01",
-        "cost_per_month": 12,
-    },
-}
+
+def _resolve_cli_command(env_name: str, command_name: str, legacy_path: str | None = None) -> str:
+    override = os.environ.get(env_name, "").strip()
+    if override:
+        return override
+    discovered = shutil.which(command_name)
+    if discovered:
+        return discovered
+    if legacy_path and Path(legacy_path).exists():
+        return legacy_path
+    return command_name
+
+
+def _operator_action_payload(body: dict[str, Any]) -> dict[str, Any]:
+    payload = body.get("operator_action")
+    if isinstance(payload, dict):
+        return dict(payload)
+    return body
+
+
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    payload = _operator_action_payload(body)
+    candidate = build_operator_action(payload, default_reason=default_reason)
+    try:
+        action = require_operator_action(payload, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            service=SERVICE_NAME,
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
+
+
+def _resolve_working_dir(raw_value: Any) -> str:
+    candidate = str(raw_value or "").strip()
+    if candidate:
+        resolved = Path(os.path.expanduser(candidate))
+        if resolved.exists():
+            return str(resolved)
+    return str(DEFAULT_WORKING_DIR)
 
 # ---------------------------------------------------------------------------
-# Burn schedule (times in PDT / America/Los_Angeles)
+# Registry-backed subscription definitions
 # ---------------------------------------------------------------------------
-BURN_SCHEDULE = [
-    {"hour": 7,  "minute": 0, "label": "Window 1 - Morning",   "subs": ["claude_max", "gemini_advanced", "kimi_allegretto"]},
-    {"hour": 12, "minute": 0, "label": "Window 2 - Midday",    "subs": ["claude_max", "chatgpt_pro"]},
-    {"hour": 17, "minute": 0, "label": "Window 3 - Evening",   "subs": ["claude_max", "kimi_allegretto"]},
-    {"hour": 22, "minute": 0, "label": "Window 4 - Overnight", "subs": ["claude_max", "chatgpt_pro"]},
-]
+def load_subscription_burn_registry() -> dict[str, Any]:
+    if not BURN_REGISTRY_PATH.exists():
+        log.warning("Burn registry unavailable at %s", BURN_REGISTRY_PATH)
+        return {}
+    try:
+        payload = json.loads(BURN_REGISTRY_PATH.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("subscription-burn-registry.json must be a mapping")
+        return payload
+    except Exception as exc:
+        log.warning("Failed to load burn registry from %s: %s", BURN_REGISTRY_PATH, exc)
+        return {}
 
-# ---------------------------------------------------------------------------
-# Runtime state
-# ---------------------------------------------------------------------------
+
+def build_runtime_subscriptions_from_registry(registry: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    runtime: dict[str, dict[str, Any]] = {}
+    for entry in registry.get("subscriptions", []):
+        if not isinstance(entry, dict):
+            continue
+        sub_id = str(entry.get("id") or "").strip()
+        if not sub_id:
+            continue
+        cli_env = str(entry.get("cli_env") or "").strip()
+        cli_command = str(entry.get("cli_command") or "").strip()
+        if not cli_env or not cli_command:
+            continue
+        runtime[sub_id] = {
+            "provider_id": str(entry.get("provider_id") or "").strip(),
+            "stats_key": str(entry.get("stats_key") or "").strip(),
+            "type": str(entry.get("type") or "").strip(),
+            "window_hours": entry.get("window_hours"),
+            "tokens_per_window": entry.get("tokens_per_window"),
+            "daily_limit": entry.get("daily_limit"),
+            "reset_time": str(entry.get("reset_time") or "").strip() or None,
+            "monthly_limit": entry.get("monthly_limit"),
+            "credits_remaining": entry.get("credits_remaining"),
+            "auto_cancel": entry.get("auto_cancel"),
+            "max_concurrent": entry.get("max_concurrent"),
+            "task_file": str(entry.get("task_file") or "").strip(),
+            "cli_env": cli_env,
+            "cli_command": cli_command,
+            "cli_args": list(entry.get("cli_args") or []),
+            "legacy_path": str(entry.get("legacy_path") or "").strip() or None,
+            "cli": _resolve_cli_command(
+                cli_env,
+                cli_command,
+                legacy_path=str(entry.get("legacy_path") or "").strip() or None,
+            ),
+        }
+    return runtime
+
+
+def build_burn_schedule_from_registry(registry: dict[str, Any]) -> list[dict[str, Any]]:
+    schedule: list[dict[str, Any]] = []
+    for entry in registry.get("windows", []):
+        if not isinstance(entry, dict):
+            continue
+        schedule.append(
+            {
+                "id": str(entry.get("id") or "").strip(),
+                "hour": int(entry.get("hour") or 0),
+                "minute": int(entry.get("minute") or 0),
+                "label": str(entry.get("label") or "").strip() or "Unnamed window",
+                "subs": [str(item) for item in entry.get("subscriptions", []) if str(item).strip()],
+            }
+        )
+    return schedule
+
+
+def apply_burn_registry(registry: dict[str, Any] | None = None) -> dict[str, Any]:
+    global BURN_REGISTRY
+    global SUBSCRIPTIONS
+    global BURN_SCHEDULE
+
+    BURN_REGISTRY = dict(registry or load_subscription_burn_registry())
+    SUBSCRIPTIONS = build_runtime_subscriptions_from_registry(BURN_REGISTRY)
+    BURN_SCHEDULE = build_burn_schedule_from_registry(BURN_REGISTRY)
+    return BURN_REGISTRY
+
+
+def load_provider_catalog_index() -> dict[str, dict[str, Any]]:
+    if not PROVIDER_CATALOG_PATH.exists():
+        return {}
+    try:
+        payload = json.loads(PROVIDER_CATALOG_PATH.read_text(encoding="utf-8"))
+        providers = payload.get("providers", [])
+        if not isinstance(providers, list):
+            return {}
+        return {
+            entry["id"]: entry
+            for entry in providers
+            if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+        }
+    except Exception as exc:
+        log.warning("Failed to load provider catalog from %s: %s", PROVIDER_CATALOG_PATH, exc)
+        return {}
+
+
+PROVIDER_CATALOG = load_provider_catalog_index()
+BURN_REGISTRY: dict[str, Any] = {}
+SUBSCRIPTIONS: dict[str, dict[str, Any]] = {}
+BURN_SCHEDULE: list[dict[str, Any]] = []
+apply_burn_registry()
+
+
+def get_subscription_truth(sub_name: str) -> dict[str, Any]:
+    provider_id = str(SUBSCRIPTIONS.get(sub_name, {}).get("provider_id") or "").strip() or None
+    provider = PROVIDER_CATALOG.get(provider_id) if provider_id else None
+    monthly_cost = provider.get("monthly_cost_usd") if provider else None
+    if not isinstance(monthly_cost, (int, float)):
+        monthly_cost = None
+    pricing_status = (
+        provider.get("official_pricing_status")
+        if provider and isinstance(provider.get("official_pricing_status"), str)
+        else "missing_provider_catalog_entry"
+    )
+    return {
+        "provider_id": provider_id,
+        "label": provider.get("label") if provider else sub_name,
+        "subscription_product": provider.get("subscription_product") if provider else sub_name,
+        "known_monthly_cost": monthly_cost,
+        "pricing_status": pricing_status,
+    }
+
 class BurnState:
     """Track subscription usage and active processes."""
 
@@ -363,7 +507,7 @@ async def execute_burn(sub_name: str, manual: bool = False) -> dict:
         return {"error": f"No pending tasks for {sub_name}", "skipped": True}
 
     prompt = task.get("prompt", task.get("description", "")) if isinstance(task, dict) else str(task)
-    working_dir = task.get("working_dir", str(Path.home() / "repos" / "athanor")) if isinstance(task, dict) else str(Path.home() / "repos" / "athanor")
+    working_dir = _resolve_working_dir(task.get("working_dir") if isinstance(task, dict) else None)
 
     if not prompt:
         return {"error": f"Empty task for {sub_name}", "skipped": True}
@@ -449,24 +593,36 @@ async def daily_summary():
     now = datetime.now(TZ)
     lines = [f"Subscription utilization for {now.strftime('%Y-%m-%d')}:"]
     total_waste = 0.0
-    total_cost = 0.0
+    total_known_cost = 0.0
+    pricing_gaps = 0
 
     for sub_name, sub in SUBSCRIPTIONS.items():
         util = state.get_utilization(sub_name)
-        cost = sub.get("cost_per_month", 0)
-        daily_cost = cost / 30
-        total_cost += daily_cost
+        truth = get_subscription_truth(sub_name)
+        cost = truth["known_monthly_cost"]
+        daily_cost = (cost / 30) if isinstance(cost, (int, float)) else None
+        if daily_cost is not None:
+            total_known_cost += daily_cost
+        else:
+            pricing_gaps += 1
 
         pct = util.get("utilization_pct", 0)
-        waste = daily_cost * (1 - pct / 100)
-        total_waste += waste
-        if "utilization_pct" in util:
-            lines.append(f"  {sub_name}: {pct}% utilized (${waste:.1f}/day wasted)")
+        waste = (daily_cost * (1 - pct / 100)) if daily_cost is not None else None
+        if waste is not None:
+            total_waste += waste
+        if "utilization_pct" in util and waste is not None:
+            lines.append(
+                f"  {sub_name}: {pct}% utilized (${waste:.1f}/day wasted, pricing={truth['pricing_status']})"
+            )
+        elif "utilization_pct" in util:
+            lines.append(f"  {sub_name}: {pct}% utilized (pricing={truth['pricing_status']})")
         else:
             lines.append(f"  {sub_name}: {util.get('burns_today', 0)} burns")
 
-    lines.append(f"\nDaily: ${total_cost:.0f}/day cost, ~${total_waste:.1f}/day wasted")
-    lines.append(f"Monthly projection: ~${total_waste * 30:.0f}/mo waste")
+    lines.append(f"\nKnown flat-rate burn: ${total_known_cost:.0f}/day, ~${total_waste:.1f}/day wasted")
+    lines.append(f"Known monthly waste projection: ~${total_waste * 30:.0f}/mo")
+    if pricing_gaps:
+        lines.append(f"Pricing gaps still present for {pricing_gaps} scheduler lanes.")
 
     summary = "\n".join(lines)
     log.info(summary)
@@ -476,6 +632,8 @@ async def daily_summary():
 # Scheduler loop (simple async — no APScheduler dependency needed)
 # ---------------------------------------------------------------------------
 _scheduler_running = True
+_scheduler_task: asyncio.Task | None = None
+_reaper_task: asyncio.Task | None = None
 
 # CLI Router instance (lifecycle managed in lifespan)
 _cli_router = CLIRouter()
@@ -581,10 +739,25 @@ async def scheduler_loop():
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _scheduler_running
-    log.info("Subscription Burn Scheduler starting...")
-    total = sum(s["cost_per_month"] for s in SUBSCRIPTIONS.values())
-    log.info(f"Tracking {len(SUBSCRIPTIONS)} subscriptions, ${total}/mo total")
+    global _scheduler_running, _scheduler_task, _reaper_task
+    _scheduler_running = True
+    log.info("Subscription Burn starting...")
+    known_total = sum(
+        truth["known_monthly_cost"]
+        for truth in (get_subscription_truth(name) for name in SUBSCRIPTIONS)
+        if isinstance(truth["known_monthly_cost"], (int, float))
+    )
+    pricing_gaps = sum(
+        1
+        for name in SUBSCRIPTIONS
+        if not isinstance(get_subscription_truth(name)["known_monthly_cost"], (int, float))
+    )
+    log.info(
+        "Tracking %s subscriptions, known flat-rate total=$%s/mo, pricing_gaps=%s",
+        len(SUBSCRIPTIONS),
+        int(known_total),
+        pricing_gaps,
+    )
     log.info(f"Task dir: {TASKS_DIR}")
     TASKS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -595,47 +768,141 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.warning(f"CLI Router index build failed (non-fatal): {e}")
 
-    sched_task = asyncio.create_task(scheduler_loop())
-    reaper_task = asyncio.create_task(reaper_loop())
-    await ntfy("Burn Scheduler Online", f"Tracking {len(SUBSCRIPTIONS)} subscriptions", tags="rocket")
+    _scheduler_task = asyncio.create_task(scheduler_loop())
+    _reaper_task = asyncio.create_task(reaper_loop())
+    await ntfy("Subscription Burn Online", f"Tracking {len(SUBSCRIPTIONS)} subscriptions", tags="rocket")
     yield
 
     _scheduler_running = False
-    sched_task.cancel()
-    reaper_task.cancel()
+    if _scheduler_task is not None:
+        _scheduler_task.cancel()
+    if _reaper_task is not None:
+        _reaper_task.cancel()
     try:
-        await sched_task
+        if _scheduler_task is not None:
+            await _scheduler_task
     except asyncio.CancelledError:
         pass
     try:
-        await reaper_task
+        if _reaper_task is not None:
+            await _reaper_task
     except asyncio.CancelledError:
         pass
+    _scheduler_task = None
+    _reaper_task = None
     await _cli_router.close()
     state.save()
-    log.info("Subscription Burn Scheduler stopped.")
+    log.info("Subscription Burn stopped.")
 
 
 app = FastAPI(
-    title="Athanor Subscription Burn Scheduler",
+    title="Athanor Subscription Burn",
     description="Actively consumes rolling-window AI subscription quotas before they expire.",
     version="1.0.0",
     lifespan=lifespan,
 )
 
+
+def build_subscription_burn_health_snapshot() -> dict[str, Any]:
+    checked_at = datetime.now(timezone.utc).isoformat()
+    dependencies = [
+        dependency_record(
+            "scheduler_loop",
+            status="healthy" if _scheduler_task is not None and not _scheduler_task.done() else "degraded",
+            detail=(
+                "Subscription burn scheduler loop active"
+                if _scheduler_task is not None and not _scheduler_task.done()
+                else "Subscription burn scheduler loop is not active"
+            ),
+            last_checked_at=checked_at,
+        ),
+        dependency_record(
+            "reaper_loop",
+            status="healthy" if _reaper_task is not None and not _reaper_task.done() else "degraded",
+            detail=(
+                "Subscription burn process reaper active"
+                if _reaper_task is not None and not _reaper_task.done()
+                else "Subscription burn process reaper is not active"
+            ),
+            last_checked_at=checked_at,
+        ),
+        dependency_record(
+            "task_directory",
+            status="healthy" if TASKS_DIR.exists() else "degraded",
+            detail=f"Task directory at {TASKS_DIR}",
+            last_checked_at=checked_at,
+        ),
+        dependency_record(
+            "provider_catalog",
+            status="healthy" if PROVIDER_CATALOG else "degraded",
+            detail=(
+                f"Loaded {len(PROVIDER_CATALOG)} provider entries from {PROVIDER_CATALOG_PATH.name}"
+                if PROVIDER_CATALOG
+                else f"Provider catalog unavailable at {PROVIDER_CATALOG_PATH}"
+            ),
+            last_checked_at=checked_at,
+        ),
+        dependency_record(
+            "burn_registry",
+            status="healthy" if BURN_REGISTRY else "degraded",
+            detail=(
+                f"Loaded {len(SUBSCRIPTIONS)} burn subscriptions and {len(BURN_SCHEDULE)} windows from {BURN_REGISTRY_PATH.name}"
+                if BURN_REGISTRY
+                else f"Burn registry unavailable at {BURN_REGISTRY_PATH}"
+            ),
+            last_checked_at=checked_at,
+        ),
+        dependency_record(
+            "cli_router_index",
+            status="healthy" if _cli_router.index.ready else "degraded",
+            detail=(
+                f"Embedding index ready for {len(_cli_router.index.centroids)} task types"
+                if _cli_router.index.ready
+                else "CLI router index not ready; dispatch will fall back to slower classification"
+            ),
+            required=False,
+            last_checked_at=checked_at,
+        ),
+        dependency_record(
+            "ntfy_topic",
+            status="healthy" if NTFY_URL else "degraded",
+            detail=NTFY_URL or "Notification topic URL is not configured",
+            required=False,
+            last_checked_at=checked_at,
+        ),
+    ]
+
+    return build_health_snapshot(
+        service=SERVICE_NAME,
+        version=app.version,
+        auth_class="internal_only",
+        dependencies=dependencies,
+        started_at=SERVICE_STARTED_AT,
+        actions_allowed=[
+            "burn.execute",
+            "router.dispatch",
+            "router.learning.record",
+            "router.cache.invalidate",
+        ],
+        subscriptions_tracked=len(SUBSCRIPTIONS),
+        burn_registry_version=str(BURN_REGISTRY.get("version") or ""),
+        burn_registry_source=str(BURN_REGISTRY.get("source_of_truth") or ""),
+        windows_tracked=len(BURN_SCHEDULE),
+        scheduler_running=_scheduler_running,
+        task_directory=str(TASKS_DIR),
+    )
+
+
 # Register CLI Router endpoints (/route, /dispatch, /classify, /router-stats)
-register_router_endpoints(app, _cli_router)
+register_router_endpoints(app, _cli_router, service_name=SERVICE_NAME)
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 @app.get("/health")
 async def health():
-    return {
-        "status": "ok",
-        "service": "subscription-burn",
-        "subscriptions_tracked": len(SUBSCRIPTIONS),
-        "timestamp": datetime.now(TZ).isoformat(),
-    }
+    snapshot = build_subscription_burn_health_snapshot()
+    snapshot["timestamp"] = datetime.now(TZ).isoformat()
+    return snapshot
 
 
 @app.get("/status")
@@ -643,10 +910,31 @@ async def get_status():
     now = datetime.now(TZ)
     subs = {}
     for name, sub in SUBSCRIPTIONS.items():
-        subs[name] = {"cost_per_month": sub["cost_per_month"], **state.get_utilization(name)}
+        truth = get_subscription_truth(name)
+        subs[name] = {
+            "cost_per_month": truth["known_monthly_cost"],
+            "pricing_status": truth["pricing_status"],
+            "provider_id": truth["provider_id"],
+            "label": truth["label"],
+            "subscription_product": truth["subscription_product"],
+            **state.get_utilization(name),
+        }
+    known_total = sum(
+        truth["known_monthly_cost"]
+        for truth in (get_subscription_truth(name) for name in SUBSCRIPTIONS)
+        if isinstance(truth["known_monthly_cost"], (int, float))
+    )
     return {
         "timestamp": now.isoformat(),
-        "total_monthly_cost": sum(s["cost_per_month"] for s in SUBSCRIPTIONS.values()),
+        "burn_registry_version": str(BURN_REGISTRY.get("version") or ""),
+        "burn_registry_source": str(BURN_REGISTRY.get("source_of_truth") or ""),
+        "total_monthly_cost": known_total,
+        "known_flat_rate_monthly_cost": known_total,
+        "pricing_gap_count": sum(
+            1
+            for name in SUBSCRIPTIONS
+            if not isinstance(get_subscription_truth(name)["known_monthly_cost"], (int, float))
+        ),
         "subscriptions": subs,
     }
 
@@ -658,33 +946,96 @@ async def waste_report():
     total_waste_daily = 0.0
     for name, sub in SUBSCRIPTIONS.items():
         util = state.get_utilization(name)
-        cost = sub["cost_per_month"]
-        daily_cost = cost / 30
+        truth = get_subscription_truth(name)
+        cost = truth["known_monthly_cost"]
+        daily_cost = (cost / 30) if isinstance(cost, (int, float)) else None
         pct = util.get("utilization_pct", 0)
-        dw = daily_cost * (1 - pct / 100)
-        total_waste_daily += dw
+        dw = (daily_cost * (1 - pct / 100)) if daily_cost is not None else None
+        if dw is not None:
+            total_waste_daily += dw
         report[name] = {
             "cost_per_month": cost,
+            "pricing_status": truth["pricing_status"],
+            "provider_id": truth["provider_id"],
             "utilization_pct": pct,
-            "daily_waste_est": round(dw, 2),
-            "monthly_waste_est": round(dw * 30, 2),
+            "daily_waste_est": round(dw, 2) if dw is not None else None,
+            "monthly_waste_est": round(dw * 30, 2) if dw is not None else None,
         }
+    known_total = sum(
+        truth["known_monthly_cost"]
+        for truth in (get_subscription_truth(name) for name in SUBSCRIPTIONS)
+        if isinstance(truth["known_monthly_cost"], (int, float))
+    )
     return {
         "timestamp": now.isoformat(),
-        "total_monthly_cost": sum(s["cost_per_month"] for s in SUBSCRIPTIONS.values()),
+        "burn_registry_version": str(BURN_REGISTRY.get("version") or ""),
+        "total_monthly_cost": known_total,
+        "known_flat_rate_monthly_cost": known_total,
         "total_daily_waste_est": round(total_waste_daily, 2),
         "total_monthly_waste_est": round(total_waste_daily * 30, 2),
+        "pricing_gap_count": sum(
+            1
+            for name in SUBSCRIPTIONS
+            if not isinstance(get_subscription_truth(name)["known_monthly_cost"], (int, float))
+        ),
         "subscriptions": report,
     }
 
 
 @app.post("/burn/{subscription}")
-async def manual_burn(subscription: str):
+async def manual_burn(subscription: str, request: Request):
+    route = "/burn/{subscription}"
+    _body, action, denial = await _load_operator_body(
+        request,
+        route=route,
+        action_class="admin",
+        default_reason=f"Executed manual subscription burn for {subscription}",
+    )
+    if denial:
+        return denial
     if subscription not in SUBSCRIPTIONS:
+        await emit_operator_audit_event(
+            service=SERVICE_NAME,
+            route=route,
+            action_class="admin",
+            decision="denied",
+            status_code=404,
+            action=action,
+            detail=f"Unknown subscription: {subscription}",
+            target=subscription,
+        )
         raise HTTPException(status_code=404, detail=f"Unknown subscription: {subscription}")
     result = await execute_burn(subscription, manual=True)
     if "error" in result and not result.get("skipped"):
+        await emit_operator_audit_event(
+            service=SERVICE_NAME,
+            route=route,
+            action_class="admin",
+            decision="denied",
+            status_code=500,
+            action=action,
+            detail=str(result["error"]),
+            target=subscription,
+        )
         raise HTTPException(status_code=500, detail=result["error"])
+    await emit_operator_audit_event(
+        service=SERVICE_NAME,
+        route=route,
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=(
+            f"Triggered manual burn for {subscription}"
+            if "pid" in result
+            else str(result.get("error") or "Manual burn request skipped")
+        ),
+        target=subscription,
+        metadata={
+            "skipped": bool(result.get("skipped")),
+            "pid": result.get("pid"),
+        },
+    )
     return result
 
 
@@ -698,6 +1049,7 @@ async def get_schedule():
             target += timedelta(days=1)
         hours_until = (target - now).total_seconds() / 3600
         upcoming.append({
+            "id": w.get("id"),
             "label": w["label"],
             "time": target.strftime("%H:%M %Z"),
             "subscriptions": w["subs"],
@@ -705,7 +1057,11 @@ async def get_schedule():
             "next_fire": target.isoformat(),
         })
     upcoming.sort(key=lambda x: x["hours_until"])
-    return {"timestamp": now.isoformat(), "windows": upcoming}
+    return {
+        "timestamp": now.isoformat(),
+        "burn_registry_version": str(BURN_REGISTRY.get("version") or ""),
+        "windows": upcoming,
+    }
 
 
 @app.get("/tasks/{subscription}")

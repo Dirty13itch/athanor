@@ -11,6 +11,7 @@ Prometheus metrics + ntfy alerting on consecutive failures.
 import time
 import threading
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Response
 from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST
@@ -18,6 +19,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from checks import (
     HEARTBEAT_CHECKS,
+    READINESS_SERVICES,
     CheckResult,
     run_heartbeat,
     run_readiness,
@@ -41,6 +43,7 @@ tier1_passed: set[str] = set()
 tier2_passed: set[str] = set()
 
 STARTED_AT = time.time()
+SERVICE_STARTED_AT = datetime.now(timezone.utc).isoformat()
 
 # ---------------------------------------------------------------------------
 # Prometheus metrics
@@ -95,6 +98,55 @@ def _update_tier_rate(tier: str):
     prom_tier_pass_rate.labels(tier=tier).set(round(rate, 4))
 
 
+def _build_status_snapshot() -> tuple[dict[str, dict[str, int]], dict[str, list[dict[str, object]]]]:
+    with results_lock:
+        snapshot = dict(results)
+
+    tiers: dict[str, list[dict[str, object]]] = {}
+    for (tier, _service), result in snapshot.items():
+        tiers.setdefault(tier, []).append(
+            {
+                "service": result.service,
+                "passed": result.passed,
+                "latency_ms": result.latency_ms,
+                "detail": result.detail,
+                "timestamp": result.timestamp,
+            }
+        )
+
+    summary: dict[str, dict[str, int]] = {}
+    for tier in ("heartbeat", "readiness", "integration"):
+        checks = tiers.get(tier, [])
+        total = len(checks)
+        passed = sum(1 for check in checks if check["passed"])
+        summary[tier] = {"total": total, "passed": passed, "failed": total - passed}
+
+    return summary, tiers
+
+
+def _tier_dependency(tier: str, summary: dict[str, dict[str, int]], checked_at: str) -> dict[str, object]:
+    counts = summary[tier]
+    total = counts["total"]
+    failed = counts["failed"]
+    passed = counts["passed"]
+    if total == 0:
+        status = "unknown"
+        detail = "no checks recorded yet"
+    elif failed > 0:
+        status = "degraded"
+        detail = f"{failed}/{total} checks failing"
+    else:
+        status = "healthy"
+        detail = f"{passed}/{total} checks passing"
+    return {
+        "id": f"tier:{tier}",
+        "status": status,
+        "required": tier == "heartbeat",
+        "last_checked_at": checked_at,
+        "detail": detail,
+    }
+
+
 def tick_heartbeat():
     """Tier 1: run every 60 seconds."""
     global tier1_passed
@@ -125,12 +177,7 @@ def tick_readiness():
 
     # Only run readiness for services that have a specific readiness check
     # AND passed heartbeat
-    readiness_services = [
-        "vllm_coordinator", "vllm_coder", "ollama_sovereign",
-        "litellm", "embedding", "governor",
-    ]
-
-    for name in readiness_services:
+    for name in READINESS_SERVICES:
         if name not in tier1_passed:
             # Circuit breaker: skip if heartbeat failed
             _record(CheckResult(
@@ -190,30 +237,38 @@ app = FastAPI(title="Athanor Sentinel", version="1.0.0", lifespan=lifespan)
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "uptime_s": round(time.time() - STARTED_AT, 1)}
+    checked_at = datetime.now(timezone.utc).isoformat()
+    summary, _ = _build_status_snapshot()
+    dependencies = [
+        _tier_dependency("heartbeat", summary, checked_at),
+        _tier_dependency("readiness", summary, checked_at),
+        _tier_dependency("integration", summary, checked_at),
+    ]
+    degraded = any(dependency["status"] != "healthy" for dependency in dependencies)
+    last_error = next(
+        (
+            f"{dependency['id']} {dependency['detail']}"
+            for dependency in dependencies
+            if dependency["status"] != "healthy"
+        ),
+        None,
+    )
+    return {
+        "service": "sentinel",
+        "version": app.version,
+        "status": "degraded" if degraded else "healthy",
+        "auth_class": "read-only",
+        "dependencies": dependencies,
+        "last_error": last_error,
+        "started_at": SERVICE_STARTED_AT,
+        "actions_allowed": [],
+        "uptime_s": round(time.time() - STARTED_AT, 1),
+    }
 
 
 @app.get("/status")
 def status():
-    with results_lock:
-        snapshot = dict(results)
-
-    tiers = {}
-    for (tier, service), result in snapshot.items():
-        tiers.setdefault(tier, []).append({
-            "service": result.service,
-            "passed": result.passed,
-            "latency_ms": result.latency_ms,
-            "detail": result.detail,
-            "timestamp": result.timestamp,
-        })
-
-    # Summary counts
-    summary = {}
-    for tier, checks in tiers.items():
-        total = len(checks)
-        passed = sum(1 for c in checks if c["passed"])
-        summary[tier] = {"total": total, "passed": passed, "failed": total - passed}
+    summary, tiers = _build_status_snapshot()
 
     return {
         "uptime_s": round(time.time() - STARTED_AT, 1),
