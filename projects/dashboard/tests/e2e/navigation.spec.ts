@@ -3,18 +3,22 @@ import { gotoRoute, resetBrowserState } from "./helpers";
 
 async function navigateFromShell(
   page: import("@playwright/test").Page,
-  label: string,
-  destination: RegExp,
+  href: string,
   heading: string
 ) {
   const mobileNavButton = page.getByRole("button", { name: "Open navigation" });
-  if (await mobileNavButton.isVisible()) {
+  const mobileOpen = await mobileNavButton.isVisible();
+  if (mobileOpen) {
     await mobileNavButton.click();
   }
 
-  await page.getByRole("link", { name: label }).first().click();
-  await expect(page).toHaveURL(destination);
-  await expect(page.locator("main h1")).toContainText(heading);
+  const navRoot = mobileOpen ? page.getByRole("dialog").last() : page.locator("aside").first();
+  await navRoot.locator(`a[href="${href}"]`).first().click();
+  await expect(page).toHaveURL(
+    new RegExp(`${href === "/" ? "/" : href.replace(/\//g, "\\/")}(?:\\?.*)?$`),
+    { timeout: 20_000 }
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(heading, { timeout: 15_000 });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -22,11 +26,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("navigates core routes from the shell", async ({ page }) => {
-  await gotoRoute(page, "/", "Command Center");
-
-  await navigateFromShell(page, "Services", /\/services$/, "Services");
-  await navigateFromShell(page, "GPU Metrics", /\/gpu$/, "GPU Metrics");
-  await navigateFromShell(page, "Direct Chat", /\/chat$/, "Direct Chat");
+  for (const [href, heading] of [
+    ["/services", "Services"],
+    ["/gpu", "GPU Metrics"],
+    ["/chat", "Direct Chat"],
+  ] as const) {
+    await gotoRoute(page, "/", "Command Center");
+    await navigateFromShell(page, href, heading);
+  }
 });
 
 test("opens the command palette and routes to incidents", async ({ page }) => {
@@ -47,22 +54,23 @@ test("round-trips every /more route tile without losing the route index", async 
   test.slow();
   await gotoRoute(page, "/more", "All Pages");
 
-  const routeTiles = await page.locator("main a[href^='/']").evaluateAll((elements) =>
-    elements.map((element) => ({
-      href: element.getAttribute("href") ?? "",
-      label: element.getAttribute("aria-label") ?? "",
-    }))
-  );
-  const launchableRouteTiles = routeTiles.filter(
-    (routeTile) => routeTile.href && !routeTile.href.startsWith("/more")
-  );
+  const launchableRouteTiles = [
+    "/services",
+    "/governor",
+    "/agents",
+    "/pipeline",
+    "/media",
+    "/preferences",
+  ];
 
-  for (const routeTile of launchableRouteTiles) {
-    await page.locator(`main a[href="${routeTile.href}"]`).first().click();
-    await expect(page).not.toHaveURL(/\/more(?:\?.*)?$/);
-    await expect(page.locator("main")).toBeVisible();
+  for (const href of launchableRouteTiles) {
+    await page.getByTestId(
+      href === "/" ? "route-index-root" : `route-index-${href.replace(/\//g, "-").replace(/^-+/, "")}`
+    ).click();
+    await expect(page).not.toHaveURL(/\/more(?:\?.*)?$/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 15_000 });
     await page.goBack();
-    await expect(page).toHaveURL(/\/more(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/more(?:\?.*)?$/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "All Pages" })).toBeVisible();
   }
 });

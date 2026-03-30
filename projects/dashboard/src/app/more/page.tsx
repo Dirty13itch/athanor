@@ -6,13 +6,20 @@ import { ArrowUpRight } from "lucide-react";
 import { LensSwitcher } from "@/components/lens-switcher";
 import { PageHeader } from "@/components/page-header";
 import { RouteIcon } from "@/components/route-icon";
-import { ThemeSampler } from "@/components/theme-sampler";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useLens } from "@/hooks/use-lens";
 import { getRouteFamiliesWithRoutes } from "@/lib/navigation";
 
 const ROUTE_FAMILIES = getRouteFamiliesWithRoutes();
+
+function routeIndexTestId(href: string) {
+  if (href === "/") {
+    return "route-index-root";
+  }
+
+  return `route-index-${href.replace(/\//g, "-").replace(/^-+/, "")}`;
+}
 
 export default function MorePage() {
   const pathname = usePathname();
@@ -39,9 +46,7 @@ export default function MorePage() {
         </CardContent>
       </Card>
 
-      <ThemeSampler />
-
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="route-index-families">
         {ROUTE_FAMILIES.map((family) => (
           <Card key={family.id} className="border-border/70 bg-card/70">
             <CardHeader>
@@ -59,6 +64,7 @@ export default function MorePage() {
                     key={route.href}
                     href={`${route.href}${lensQuery}`}
                     aria-label={routeLabel}
+                    data-testid={routeIndexTestId(route.href)}
                     className={cn(
                       "rounded-2xl border border-border/70 bg-background/20 p-4 transition hover:bg-accent/40",
                       active && "border-primary/60 bg-primary/5"

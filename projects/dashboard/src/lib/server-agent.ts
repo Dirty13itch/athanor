@@ -73,6 +73,7 @@ const FIXTURE_PRESENCE_PROFILES = {
 } as const;
 
 const FIXTURE_SESSION_COOKIE = "athanor_fixture_session";
+const FIXTURE_GOVERNOR_STATE_COOKIE = "athanor_fixture_governor_state";
 
 type FixtureGovernorState = {
   global_mode: string;
@@ -210,6 +211,52 @@ async function getFixtureSessionId() {
   }
 }
 
+function parseFixtureGovernorStateCookie(
+  value: string | undefined
+): FixtureGovernorState | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(decodeURIComponent(value)) as Partial<FixtureGovernorState>;
+    return {
+      ...DEFAULT_FIXTURE_GOVERNOR_STATE,
+      ...parsed,
+      paused_lanes: Array.isArray(parsed.paused_lanes)
+        ? parsed.paused_lanes.filter((lane): lane is string => typeof lane === "string")
+        : [...DEFAULT_FIXTURE_GOVERNOR_STATE.paused_lanes],
+      operator_presence:
+        typeof parsed.operator_presence === "string" &&
+        parsed.operator_presence in FIXTURE_PRESENCE_PROFILES
+          ? (parsed.operator_presence as keyof typeof FIXTURE_PRESENCE_PROFILES)
+          : DEFAULT_FIXTURE_GOVERNOR_STATE.operator_presence,
+      presence_mode:
+        parsed.presence_mode === "auto" || parsed.presence_mode === "manual"
+          ? parsed.presence_mode
+          : DEFAULT_FIXTURE_GOVERNOR_STATE.presence_mode,
+      presence_signal_state:
+        typeof parsed.presence_signal_state === "string" &&
+        parsed.presence_signal_state in FIXTURE_PRESENCE_PROFILES
+          ? (parsed.presence_signal_state as keyof typeof FIXTURE_PRESENCE_PROFILES)
+          : DEFAULT_FIXTURE_GOVERNOR_STATE.presence_signal_state,
+      release_tier:
+        typeof parsed.release_tier === "string" &&
+        ["offline_eval", "shadow", "sandbox", "canary", "production"].includes(
+          parsed.release_tier
+        )
+          ? parsed.release_tier
+          : DEFAULT_FIXTURE_GOVERNOR_STATE.release_tier,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function serializeFixtureGovernorState(state: FixtureGovernorState) {
+  return encodeURIComponent(JSON.stringify(state));
+}
+
 function createFixtureGovernorState(): FixtureGovernorState {
   return {
     ...DEFAULT_FIXTURE_GOVERNOR_STATE,
@@ -223,6 +270,17 @@ async function getFixtureGovernorState() {
   if (existing) {
     return existing;
   }
+
+  try {
+    const cookieStore = await cookies();
+    const cookieState = parseFixtureGovernorStateCookie(
+      cookieStore.get(FIXTURE_GOVERNOR_STATE_COOKIE)?.value
+    );
+    if (cookieState) {
+      FIXTURE_GOVERNOR_STATES.set(sessionId, cookieState);
+      return cookieState;
+    }
+  } catch {}
   const created = createFixtureGovernorState();
   FIXTURE_GOVERNOR_STATES.set(sessionId, created);
   return created;
@@ -2733,7 +2791,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
       governorState.paused_lanes.push(scope);
       governorState.paused_lanes.sort();
     }
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "POST" && basePath === "/v1/governor/resume") {
@@ -2749,7 +2807,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
         (lane) => lane !== scope
       );
     }
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "POST" && basePath === "/v1/governor/presence") {
@@ -2778,7 +2836,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     }
     governorState.updated_at = timestamp;
     governorState.updated_by = actor;
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "POST" && basePath === "/v1/governor/heartbeat") {
@@ -2806,7 +2864,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     }
     governorState.updated_at = timestamp;
     governorState.updated_by = actor;
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "POST" && basePath === "/v1/governor/release-tier") {
@@ -2822,7 +2880,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     governorState.tier_updated_by = actor;
     governorState.updated_at = timestamp;
     governorState.updated_by = actor;
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "GET" && basePath === "/v1/review/judges") {
@@ -3570,7 +3628,19 @@ export async function proxyAgentJson(
   if (isDashboardFixtureMode()) {
     const fixtureResponse = await buildFixtureAgentResponse(path, init);
     if (fixtureResponse) {
-      return NextResponse.json(fixtureResponse);
+      const response = NextResponse.json(fixtureResponse);
+      if (path === "/v1/governor" || path.startsWith("/v1/governor/")) {
+        response.cookies.set(
+          FIXTURE_GOVERNOR_STATE_COOKIE,
+          serializeFixtureGovernorState(await getFixtureGovernorState()),
+          {
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+          }
+        );
+      }
+      return response;
     }
   }
 

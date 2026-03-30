@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-03-30T02:44:34.087291+00:00",
+  "generatedAt": "2026-03-30T07:30:57.370010+00:00",
   "coverageStates": [
     "covered-automated",
     "covered-live",
     "covered-manual",
     "uncovered"
   ],
-  "surfaceCount": 99,
+  "surfaceCount": 111,
   "surfaces": [
     {
       "id": "dashboard.route.command-center",
@@ -301,6 +301,73 @@
       "manualChecklist": [],
       "coverageStatus": "covered-live",
       "notes": null
+    },
+    {
+      "id": "dashboard.route.workforce",
+      "title": "Workforce Overview",
+      "product": "dashboard",
+      "surfaceType": "route",
+      "routePath": "/workforce",
+      "apiPath": null,
+      "ownedApis": [
+        "/api/workforce"
+      ],
+      "primaryControls": [
+        "task summary",
+        "goal summary",
+        "trust snapshot",
+        "schedule posture"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts",
+        "projects/dashboard/tests/e2e/audit-capture.spec.ts",
+        "projects/dashboard/tests/e2e/navigation.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ],
+      "manualChecklist": [],
+      "coverageStatus": "covered-live",
+      "notes": "Aggregate workforce landing page surfaced through the route index and audited via browser capture."
+    },
+    {
+      "id": "dashboard.route.pipeline",
+      "title": "Pipeline",
+      "product": "dashboard",
+      "surfaceType": "route",
+      "routePath": "/pipeline",
+      "apiPath": null,
+      "ownedApis": [
+        "/api/pipeline/status",
+        "/api/pipeline/outcomes",
+        "/api/pipeline/plans",
+        "/api/pipeline/preview",
+        "/api/pipeline/react",
+        "/api/pipeline/boost",
+        "/api/pipeline/suppress",
+        "/api/pipeline/cycle",
+        "/api/pipeline/plans/:planId/approve",
+        "/api/pipeline/plans/:planId/reject"
+      ],
+      "primaryControls": [
+        "status snapshot",
+        "plan preview",
+        "cycle trigger",
+        "proposal reactions",
+        "plan approve",
+        "plan reject"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/smoke-routes.spec.ts",
+        "projects/dashboard/tests/e2e/audit-capture.spec.ts",
+        "projects/dashboard/tests/e2e/navigation.spec.ts"
+      ],
+      "liveChecks": [
+        "scripts/tests/live-dashboard-smoke.py::routes"
+      ],
+      "manualChecklist": [],
+      "coverageStatus": "covered-live",
+      "notes": "Route render and browser audit coverage are live; steering and approval APIs are tracked explicitly below."
     },
     {
       "id": "dashboard.route.activity",
@@ -1759,6 +1826,198 @@
       ],
       "manualChecklist": [],
       "coverageStatus": "covered-live",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-status",
+      "title": "Pipeline Status API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/status",
+      "ownedApis": [],
+      "primaryControls": [
+        "pipeline status snapshot"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/smoke-api.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-outcomes",
+      "title": "Pipeline Outcomes API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/outcomes",
+      "ownedApis": [],
+      "primaryControls": [
+        "recent pipeline outcomes"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/smoke-api.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-plans",
+      "title": "Pipeline Plans API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/plans",
+      "ownedApis": [],
+      "primaryControls": [
+        "pending plan inventory"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/smoke-api.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-preview",
+      "title": "Pipeline Preview API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/preview",
+      "ownedApis": [],
+      "primaryControls": [
+        "pipeline preview",
+        "preview approval"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/smoke-api.spec.ts",
+        "projects/dashboard/tests/e2e/mutations.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-cycle",
+      "title": "Pipeline Cycle API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/cycle",
+      "ownedApis": [],
+      "primaryControls": [
+        "manual pipeline cycle"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/mutations.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-react",
+      "title": "Pipeline Reaction API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/react",
+      "ownedApis": [],
+      "primaryControls": [
+        "proposal reaction"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/mutations.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-boost",
+      "title": "Pipeline Boost API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/boost",
+      "ownedApis": [],
+      "primaryControls": [
+        "domain boost"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/mutations.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-suppress",
+      "title": "Pipeline Suppress API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/suppress",
+      "ownedApis": [],
+      "primaryControls": [
+        "domain suppress"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/mutations.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-plan-approve",
+      "title": "Pipeline Plan Approve API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/plans/:planId/approve",
+      "ownedApis": [],
+      "primaryControls": [
+        "approve plan"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/mutations.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
+      "notes": null
+    },
+    {
+      "id": "dashboard.api.pipeline-plan-reject",
+      "title": "Pipeline Plan Reject API",
+      "product": "dashboard",
+      "surfaceType": "api",
+      "routePath": null,
+      "apiPath": "/api/pipeline/plans/:planId/reject",
+      "ownedApis": [],
+      "primaryControls": [
+        "reject plan"
+      ],
+      "localChecks": [
+        "projects/dashboard/tests/e2e/mutations.spec.ts"
+      ],
+      "liveChecks": [],
+      "manualChecklist": [],
+      "coverageStatus": "covered-automated",
       "notes": null
     },
     {

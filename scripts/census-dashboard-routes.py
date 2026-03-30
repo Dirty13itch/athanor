@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 from completion_audit_common import (
-    ATLAS_COMPLETION_DIR,
+    COMPLETION_AUDIT_DIR,
     DASHBOARD_APP,
     ROUTE_PAGE_FILES,
     app_dir_to_route_path,
@@ -24,8 +24,8 @@ from completion_audit_common import (
 )
 
 
-ROUTE_OUTPUT = ATLAS_COMPLETION_DIR / "dashboard-route-census.json"
-SUPPORT_OUTPUT = ATLAS_COMPLETION_DIR / "dashboard-support-surface-census.json"
+ROUTE_OUTPUT = COMPLETION_AUDIT_DIR / "dashboard-route-census.json"
+SUPPORT_OUTPUT = COMPLETION_AUDIT_DIR / "dashboard-support-surface-census.json"
 SUPPORT_SURFACE_TEST = "projects/dashboard/src/app/support-surfaces.test.tsx"
 SUPPORT_COMPLETE_STATUSES = {"covered-automated", "covered-manual", "covered-live"}
 AUTOMATED_SUPPORT_ROUTE_PATHS = {"/offline"}

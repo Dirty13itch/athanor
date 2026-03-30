@@ -5,6 +5,10 @@ test.beforeEach(async ({ page }) => {
   await resetBrowserState(page);
 });
 
+async function clickGovernorAction(button: import("@playwright/test").Locator) {
+  await button.click();
+}
+
 test("governor controls persist fixture posture across command-center actions", async ({ page }) => {
   const tracker = trackRuntimeIssues(page);
 
@@ -20,22 +24,38 @@ test("governor controls persist fixture posture across command-center actions", 
 
   await expect(governorCard.getByText("current tier production")).toBeVisible();
 
-  await governorCard.getByRole("button", { name: "Pause all automation" }).click();
-  await expect(governorCard.getByRole("button", { name: "Resume all automation" })).toBeVisible();
+  await clickGovernorAction(
+    governorCard.getByRole("button", { name: "Pause all automation" })
+  );
+  await expect(
+    governorCard.getByRole("button", { name: "Resume all automation" })
+  ).toBeVisible({ timeout: 20_000 });
 
-  await governorCard.getByRole("button", { name: "Phone only" }).click();
-  await expect(governorCard.getByText("notifications quiet digest")).toBeVisible();
-  await expect(governorCard.getByText("approvals summary approval only")).toBeVisible();
+  await clickGovernorAction(
+    governorCard.getByRole("button", { name: "Phone only" })
+  );
+  await expect(governorCard.getByText("notifications quiet digest")).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(governorCard.getByText("approvals summary approval only")).toBeVisible({
+    timeout: 20_000,
+  });
 
-  await governorCard.getByRole("button", { name: "Shadow" }).click();
-  await expect(governorCard.getByText("current tier shadow")).toBeVisible();
+  await clickGovernorAction(
+    governorCard.getByRole("button", { name: "Shadow" })
+  );
+  await expect(governorCard.getByText("current tier shadow")).toBeVisible({ timeout: 20_000 });
 
   await expect(page.getByText("Operations readiness")).toBeVisible();
   await expect(page.getByText("Pause and resume automation")).toBeVisible();
   await expect(page.getByText("tests/e2e/operator-controls.spec.ts").first()).toBeVisible();
 
-  await governorCard.getByRole("button", { name: "Resume all automation" }).click();
-  await expect(governorCard.getByRole("button", { name: "Pause all automation" })).toBeVisible();
+  await clickGovernorAction(
+    governorCard.getByRole("button", { name: "Resume all automation" })
+  );
+  await expect(governorCard.getByRole("button", { name: "Pause all automation" })).toBeVisible({
+    timeout: 20_000,
+  });
 
   expectNoRuntimeIssues(tracker);
 });

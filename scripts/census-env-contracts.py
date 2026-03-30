@@ -10,7 +10,7 @@ from pathlib import Path
 
 from completion_audit_common import (
     AGENTS_ROOT,
-    ATLAS_COMPLETION_DIR,
+    COMPLETION_AUDIT_DIR,
     DASHBOARD_ROOT,
     ENV_PATTERNS,
     REPO_ROOT,
@@ -20,7 +20,7 @@ from completion_audit_common import (
 )
 
 
-OUTPUT_PATH = ATLAS_COMPLETION_DIR / "env-contract-census.json"
+OUTPUT_PATH = COMPLETION_AUDIT_DIR / "env-contract-census.json"
 SCAN_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".sh", ".ps1", ".yml", ".yaml", ".j2", ".env", ".example", ".toml"}
 AGENT_CONFIG_PATH = AGENTS_ROOT / "src" / "athanor_agents" / "config.py"
 
@@ -69,6 +69,8 @@ def should_mark_broken(env_name: str, consumer_sources: list[str], export_source
         "ATHANOR_EOBQ_URL",
         "ATHANOR_NODE1_VLLM_URL",
         "ATHANOR_NODE2_VLLM_URL",
+        "ATHANOR_REPORTS_DIR",
+        "ATHANOR_TOPOLOGY_PATH",
     }
     return env_name not in legacy_aliases
 

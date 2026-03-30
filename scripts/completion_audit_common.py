@@ -41,6 +41,7 @@ ENV_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"validation_alias=AliasChoices\(([^)]*)\)"),
     re.compile(r"-\s+([A-Z0-9_]+)="),
     re.compile(r"\$\{([A-Z0-9_]+)(?::-[^}]*)?\}"),
+    re.compile(r"(?m)^([A-Z_][A-Z0-9_]*)="),
 )
 VALID_ENV_NAME_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 HTTP_METHOD_RE = re.compile(r"export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\b")
@@ -96,7 +97,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
     {
         "serviceId": "dashboard",
         "title": "Command Center dashboard",
-        "node": "WORKSHOP",
+        "node": "DEV",
         "ownerLayer": "project",
         "repoSources": [
             "projects/dashboard/docker-compose.yml",
@@ -104,9 +105,10 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "ansible/roles/dashboard/templates/docker-compose.yml.j2",
         ],
         "liveEndpoint": get_url("dashboard"),
-        "driftStatus": "aligned",
+        "driftStatus": "degraded",
         "notes": [
             "Project-local dashboard manifests are the strongest source for the UI layer.",
+            "DEV is the canonical production host; the WORKSHOP dashboard container is retired and no longer part of the production portal path.",
         ],
     },
     {
@@ -121,7 +123,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
         "liveEndpoint": f"http://{NODES['workshop']}:3100",
         "driftStatus": "aligned",
         "notes": [
-            "Owned by the dashboard deployment surface on Workshop.",
+            "Owned by the command-center deployment surface; Workshop hosts the bridge, but not the canonical portal.",
         ],
     },
     {
@@ -174,7 +176,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
     {
         "serviceId": "qdrant",
         "title": "Canonical Qdrant store",
-        "node": "FOUNDRY",
+        "node": "VAULT",
         "ownerLayer": "ansible",
         "repoSources": [
             "ansible/roles/qdrant",
@@ -225,10 +227,11 @@ DEPLOYMENT_SERVICE_MATRIX = [
             "services/node2",
             "ansible/roles/vllm-worker",
         ],
-        "liveEndpoint": get_url("vllm_vision") + "/v1/models",
+        "liveEndpoint": get_url("vllm_worker") + "/v1/models",
         "driftStatus": "aligned",
         "notes": [
             "Service-level manifests currently match live better than some Ansible roles.",
+            "Current topology binds the worker lane to workshop:8010; the separate vision lane remains on :8000.",
         ],
     },
     {
@@ -610,6 +613,16 @@ def safe_json_load(path: Path, default: Any) -> Any:
     return json.loads(read_text(path))
 
 
+def load_runtime_subsystem_registry() -> dict[str, dict[str, Any]]:
+    payload = safe_json_load(RUNTIME_SUBSYSTEM_REGISTRY, {})
+    entries = payload.get("subsystems", []) if isinstance(payload, dict) else []
+    return {
+        str(entry["id"]): entry
+        for entry in entries
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }
+
+
 def extract_env_names(text: str) -> set[str]:
     envs: set[str] = set()
     for pattern in ENV_PATTERNS:
@@ -700,11 +713,3 @@ def match_surface_api(surface_api: str, api_path: str) -> bool:
     return api_index == len(api_parts)
 
 
-def load_runtime_subsystem_registry() -> dict[str, dict[str, Any]]:
-    payload = safe_json_load(RUNTIME_SUBSYSTEM_REGISTRY, {})
-    entries = payload.get("subsystems", []) if isinstance(payload, dict) else []
-    return {
-        str(entry["id"]): entry
-        for entry in entries
-        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
-    }

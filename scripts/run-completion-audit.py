@@ -29,16 +29,98 @@ def npm_command() -> str:
     return shutil.which("npm.cmd") or shutil.which("npm") or "npm"
 
 
+def repo_root_candidates() -> list[Path]:
+    candidates = [ROOT]
+    if ROOT.parent.name == ".worktrees":
+        for sibling in sorted(ROOT.parent.iterdir()):
+            if sibling == ROOT or not sibling.is_dir():
+                continue
+            candidates.append(sibling)
+        candidates.append(ROOT.parent.parent)
+
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique.append(resolved)
+    return unique
+
+
 def agents_python_command() -> str:
-    candidates = [
-        ROOT / "projects" / "agents" / ".venv" / "Scripts" / "python.exe",
-        ROOT / "projects" / "agents" / ".venv" / "Scripts" / "python",
-        ROOT / "projects" / "agents" / ".venv" / "bin" / "python",
-    ]
+    candidates: list[Path] = []
+    for repo_root in repo_root_candidates():
+        candidates.extend(
+            [
+                repo_root / "projects" / "agents" / ".venv" / "Scripts" / "python.exe",
+                repo_root / "projects" / "agents" / ".venv" / "Scripts" / "python",
+                repo_root / "projects" / "agents" / ".venv" / "bin" / "python",
+            ]
+        )
     for candidate in candidates:
         if candidate.exists():
             return str(candidate)
     return sys.executable
+
+
+def dashboard_install_valid(node_modules: Path) -> bool:
+    return (
+        (node_modules / "next" / "package.json").exists()
+        and (node_modules / "@testing-library" / "jest-dom" / "vitest.js").exists()
+    )
+
+
+def dashboard_install_is_reparse(node_modules: Path) -> bool:
+    try:
+        return bool(getattr(node_modules.lstat(), "st_reparse_tag", 0))
+    except OSError:
+        return False
+
+
+def dashboard_dependency_env() -> dict[str, str]:
+    for repo_root in repo_root_candidates():
+        node_modules = repo_root / "projects" / "dashboard" / "node_modules"
+        bin_dir = node_modules / ".bin"
+        if not dashboard_install_valid(node_modules) or not bin_dir.exists():
+            continue
+        path_entries = [str(bin_dir)]
+        existing_path = os.environ.get("PATH", "")
+        if existing_path:
+            path_entries.append(existing_path)
+        node_path_entries = [str(node_modules)]
+        existing_node_path = os.environ.get("NODE_PATH", "")
+        if existing_node_path:
+            node_path_entries.append(existing_node_path)
+        return {
+            "PATH": os.pathsep.join(path_entries),
+            "NODE_PATH": os.pathsep.join(node_path_entries),
+        }
+    return {}
+
+
+def ensure_dashboard_node_modules() -> None:
+    dashboard_root = ROOT / "projects" / "dashboard"
+    target = dashboard_root / "node_modules"
+    if dashboard_install_valid(target) and not dashboard_install_is_reparse(target):
+        return
+    if target.exists() or dashboard_install_is_reparse(target):
+        if dashboard_install_is_reparse(target) and os.name == "nt":
+            subprocess.run(["cmd", "/c", "rmdir", str(target)], check=True, capture_output=True, text=True)
+        elif target.is_symlink():
+            target.unlink()
+        else:
+            shutil.rmtree(target, ignore_errors=True)
+
+    subprocess.run(
+        [npm_command(), "ci", "--no-audit", "--no-fund"],
+        cwd=dashboard_root,
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "CI": "1"},
+    )
 
 
 def find_free_local_port() -> str:
@@ -316,6 +398,8 @@ def main() -> int:
 
     npm = npm_command()
     agents_python = agents_python_command()
+    ensure_dashboard_node_modules()
+    dashboard_env = dashboard_dependency_env()
     dashboard_e2e_port = find_free_local_port()
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_dir = REPORTS_DIR / timestamp
@@ -329,12 +413,24 @@ def main() -> int:
         run_job("find-mounted-ui", [sys.executable, str(ROOT / "scripts" / "find-mounted-ui.py")], ROOT),
         run_job("map-agent-endpoints", [sys.executable, str(ROOT / "scripts" / "map-agent-endpoints.py")], ROOT),
         run_job("census-env-contracts", [sys.executable, str(ROOT / "scripts" / "census-env-contracts.py")], ROOT),
-        run_job("dashboard:test", [npm, "run", "test"], ROOT / "projects" / "dashboard", timeout_seconds=300),
+        run_job(
+            "provider-usage-evidence",
+            [sys.executable, str(ROOT / "scripts" / "probe_provider_usage_evidence.py"), "--all-vault-proxy"],
+            ROOT,
+            timeout_seconds=300,
+        ),
+        run_job(
+            "dashboard:test",
+            [npm, "run", "test"],
+            ROOT / "projects" / "dashboard",
+            extra_env=dashboard_env,
+            timeout_seconds=300,
+        ),
         run_job(
             "dashboard:e2e:audit",
             [npm, "run", "test:e2e:audit"],
             ROOT / "projects" / "dashboard",
-            extra_env={"PLAYWRIGHT_PORT": dashboard_e2e_port},
+            extra_env={**dashboard_env, "PLAYWRIGHT_PORT": dashboard_e2e_port},
             timeout_seconds=600,
         ),
         run_job("agents:tests", [agents_python, "-m", "pytest", "tests", "-q"], ROOT / "projects" / "agents", timeout_seconds=300),

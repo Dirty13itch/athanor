@@ -11,10 +11,10 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from completion_audit_common import ATLAS_COMPLETION_DIR, DEPLOYMENT_SERVICE_MATRIX, write_json
+from completion_audit_common import COMPLETION_AUDIT_DIR, DEPLOYMENT_SERVICE_MATRIX, write_json
 
 
-OUTPUT_PATH = ATLAS_COMPLETION_DIR / "deployment-ownership-matrix.json"
+OUTPUT_PATH = COMPLETION_AUDIT_DIR / "deployment-ownership-matrix.json"
 
 
 def probe_endpoint(endpoint: str) -> str:

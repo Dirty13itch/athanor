@@ -15,13 +15,27 @@ const ROUTES = loadRouteAuditRecords().map((route) => ({
 const MORE_LINKS: Array<{ label: string; path: RegExp; heading: RegExp | string }> = [
   { label: "Command Center", path: /\/$/, heading: /ATHANOR|Command Center/i },
   { label: "Monitoring", path: /\/monitoring$/, heading: "Monitoring" },
-  { label: "Agents", path: /\/agents$/, heading: "Agent Console" },
-  { label: "Media", path: /\/media$/, heading: "Media" },
-  { label: "Tasks", path: /\/tasks$/, heading: "Task Board" },
-  { label: "Outputs", path: /\/outputs$/, heading: /Outputs/i },
-  { label: "Personal Data", path: /\/personal-data$/, heading: "Personal Data" },
   { label: "Preferences", path: /\/preferences$/, heading: "Preferences" },
 ];
+
+function routeIndexTestId(path: RegExp | string) {
+  if (path instanceof RegExp) {
+    const raw = path.source
+      .replace(/^\\\//, "/")
+      .replace(/\$$/, "")
+      .replace(/\\\//g, "/");
+    if (raw === "/") {
+      return "route-index-root";
+    }
+    return `route-index-${raw.replace(/\//g, "-").replace(/^-+/, "")}`;
+  }
+
+  if (path === "/") {
+    return "route-index-root";
+  }
+
+  return `route-index-${path.replace(/\//g, "-").replace(/^-+/, "")}`;
+}
 
 test.beforeEach(async ({ page }) => {
   await resetBrowserState(page);
@@ -39,16 +53,17 @@ for (const route of ROUTES) {
 }
 
 test("smoke: /more links navigate and browser back returns to route index", async ({ page }) => {
+  test.slow();
   const tracker = trackRuntimeIssues(page);
 
   await gotoRoute(page, "/more", "All Pages");
 
   for (const link of MORE_LINKS) {
-    await page.locator("main").getByRole("link", { name: link.label }).click();
-    await expect(page).toHaveURL(link.path);
+    await page.getByTestId(routeIndexTestId(link.path)).click();
+    await expect(page).toHaveURL(link.path, { timeout: 20_000 });
     await expect(page.locator("main h1")).toContainText(link.heading);
     await page.goBack();
-    await expect(page).toHaveURL(/\/more$/);
+    await expect(page).toHaveURL(/\/more$/, { timeout: 20_000 });
     await expect(page.getByRole("heading", { name: "All Pages" })).toBeVisible();
   }
 

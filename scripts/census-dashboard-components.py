@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from completion_audit_common import (
-    ATLAS_COMPLETION_DIR,
+    COMPLETION_AUDIT_DIR,
     DASHBOARD_COMPONENTS,
     DASHBOARD_FEATURES,
     DEPRECATED_UI_BASENAMES,
@@ -21,7 +21,7 @@ from completion_audit_common import (
 )
 
 
-OUTPUT_PATH = ATLAS_COMPLETION_DIR / "dashboard-component-census.json"
+OUTPUT_PATH = COMPLETION_AUDIT_DIR / "dashboard-component-census.json"
 
 SHELL_COMPONENTS = {
     "app-shell.tsx",
