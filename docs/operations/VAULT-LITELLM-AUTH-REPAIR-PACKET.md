@@ -35,27 +35,27 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 
 | Provider | Served alias | Missing env names | Latest auth failure | Next live action |
 | --- | --- | --- | --- | --- |
-| `anthropic_api` | `claude` | `ANTHROPIC_API_KEY` | `2026-03-30T07:15:25Z` | Restore `ANTHROPIC_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `claude`. |
-| `dashscope_qwen_api` | `qwen-max` | `DASHSCOPE_API_KEY` | `2026-03-30T07:15:26Z` | Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. |
-| `google_gemini_api` | `gemini` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | `2026-03-30T07:15:27Z` | Restore `GEMINI_API_KEY`, `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. |
-| `moonshot_api` | `kimi-k2.5` | `MOONSHOT_API_KEY` | `2026-03-30T07:15:28Z` | Inspect the latest auth failure for served model `kimi-k2.5` and reconcile `Moonshot API` on VAULT. Check `MOONSHOT_API_KEY` while reconciling the auth path. |
-| `openai_api` | `gpt` | none | `2026-03-30T07:15:28Z` | Rotate `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
-| `openrouter_api` | `openrouter` | `OPENROUTER_API_KEY` | `2026-03-30T07:15:28Z` | Verify the upstream auth mode for served model `openrouter` before re-probing `OpenRouter API`. Ensure `OPENROUTER_API_KEY` is delivered to `litellm`. |
-| `zai_api` | `glm-4.7` | `ZAI_API_KEY` | `2026-03-30T07:15:29Z` | Inspect the latest auth failure for served model `glm-4.7` and reconcile `Z.ai API` on VAULT. Check `ZAI_API_KEY` while reconciling the auth path. |
+| `anthropic_api` | `claude` | `ANTHROPIC_API_KEY` | `2026-03-30T09:00:02Z` | Restore `ANTHROPIC_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `claude`. |
+| `dashscope_qwen_api` | `qwen-max` | `DASHSCOPE_API_KEY` | `2026-03-30T09:00:03Z` | Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. |
+| `google_gemini_api` | `gemini` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | `2026-03-30T09:00:06Z` | Restore `GEMINI_API_KEY`, `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. |
+| `moonshot_api` | `kimi-k2.5` | `MOONSHOT_API_KEY` | `2026-03-30T09:00:06Z` | Inspect the latest auth failure for served model `kimi-k2.5` and reconcile `Moonshot API` on VAULT. Check `MOONSHOT_API_KEY` while reconciling the auth path. |
+| `openai_api` | `gpt` | none | `2026-03-30T09:00:06Z` | Rotate `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
+| `openrouter_api` | `openrouter` | `OPENROUTER_API_KEY` | `2026-03-30T09:00:07Z` | Verify the upstream auth mode for served model `openrouter` before re-probing `OpenRouter API`. Ensure `OPENROUTER_API_KEY` is delivered to `litellm`. |
+| `zai_api` | `glm-4.7` | `ZAI_API_KEY` | `2026-03-30T09:00:08Z` | Inspect the latest auth failure for served model `glm-4.7` and reconcile `Z.ai API` on VAULT. Check `ZAI_API_KEY` while reconciling the auth path. |
 
 ## Partial Contract Gaps Without Current Auth Failure
 
 | Provider | Served alias | Present env names | Missing env names | Current posture | Latest verification |
 | --- | --- | --- | --- | --- | --- |
-| `mistral_codestral_api` | `codestral` | `CODESTRAL_API_KEY` | `MISTRAL_API_KEY` | `vault_provider_specific_api_observed` | `2026-03-30T07:15:28Z` |
+| `mistral_codestral_api` | `codestral` | `CODESTRAL_API_KEY` | `MISTRAL_API_KEY` | `vault_provider_specific_api_observed` | `2026-03-30T09:00:06Z` |
 
 ## Already Proven Provider Lanes
 
 | Provider | Served alias | Present env names | Latest proof |
 | --- | --- | --- | --- |
-| `deepseek_api` | `deepseek` | `DEEPSEEK_API_KEY` | `2026-03-30T07:15:27Z` |
-| `mistral_codestral_api` | `codestral` | `CODESTRAL_API_KEY` | `2026-03-30T07:15:28Z` |
-| `venice_api` | `venice-uncensored` | `VENICE_API_KEY` | `2026-03-30T07:15:28Z` |
+| `deepseek_api` | `deepseek` | `DEEPSEEK_API_KEY` | `2026-03-30T09:00:06Z` |
+| `mistral_codestral_api` | `codestral` | `CODESTRAL_API_KEY` | `2026-03-30T09:00:06Z` |
+| `venice_api` | `venice-uncensored` | `VENICE_API_KEY` | `2026-03-30T09:00:07Z` |
 
 ## Approved Maintenance Sequence
 
