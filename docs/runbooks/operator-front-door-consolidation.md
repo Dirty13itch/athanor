@@ -17,7 +17,7 @@ This runbook now serves as the completed 2026-03-29 cutover record for the Athan
 - DEV serves the command center from the containerized dashboard runtime behind Caddy.
 - `https://athanor.local/` returns `200` from DEV when the hostname is resolvable.
 - DEV `:3001` returns `200`, and sampled `/_next/static` assets are clean in the live runtime.
-- `python scripts/tests/live-dashboard-smoke.py --base-url http://192.168.1.189:3001` is green again after the 2026-03-29 runtime refresh.
+- `python scripts/tests/live-dashboard-smoke.py --base-url http://dev.athanor.local:3001` is green again after the 2026-03-29 runtime refresh.
 - WORKSHOP `:3001` no longer serves the command center.
 - The live dashboard container now runs from `/opt/athanor/dashboard` with `/opt/athanor/dashboard/docker-compose.yml` as the active compose config.
 - The remaining operator-facing gap is desktop hostname resolution for `athanor.local`.
