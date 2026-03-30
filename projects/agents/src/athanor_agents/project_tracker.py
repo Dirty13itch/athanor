@@ -84,17 +84,22 @@ async def create_milestone(
     project_id: str,
     title: str,
     description: str,
-    criteria: list[str],
-    agents: list[str],
+    acceptance_criteria: list[str] | None = None,
+    assigned_agents: list[str] | None = None,
+    *,
+    criteria: list[str] | None = None,
+    agents: list[str] | None = None,
 ) -> Milestone:
     """Create a new milestone for a project."""
+    resolved_criteria = acceptance_criteria if acceptance_criteria is not None else (criteria or [])
+    resolved_agents = assigned_agents if assigned_agents is not None else (agents or [])
     milestone = Milestone(
         id=uuid.uuid4().hex[:12],
         project_id=project_id,
         title=title,
         description=description,
-        acceptance_criteria=criteria,
-        assigned_agents=agents,
+        acceptance_criteria=resolved_criteria,
+        assigned_agents=resolved_agents,
     )
 
     r = await _get_redis()
