@@ -21,6 +21,7 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { requestJson, postWithoutBody, postJson } from "@/features/workforce/helpers";
 import { formatRelativeTime } from "@/lib/format";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 
 interface DigestTask {
   id: string;
@@ -54,6 +55,8 @@ const STALLED_QUERY_KEY = ["digest-stalled-projects"] as const;
 
 export function DigestConsole() {
   const queryClient = useQueryClient();
+  const operatorSession = useOperatorSessionStatus();
+  const privilegedReadEnabled = !operatorSession.isPending && !isOperatorSessionLocked(operatorSession);
   const approvalTimestamps = useRef<number[]>([]);
   const [rubberStampWarning, setRubberStampWarning] = useState(false);
 
@@ -90,8 +93,9 @@ export function DigestConsole() {
     queryKey: STALLED_QUERY_KEY,
     queryFn: async (): Promise<StalledProject[]> => {
       const data = await requestJson("/api/projects/stalled");
-      return (data?.projects ?? data ?? []) as StalledProject[];
+      return (data?.stalled ?? data?.projects ?? data ?? []) as StalledProject[];
     },
+    enabled: privilegedReadEnabled,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });

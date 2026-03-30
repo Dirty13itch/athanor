@@ -16,6 +16,7 @@ import { StatusDot } from "@/components/status-dot";
 import { getAgents } from "@/lib/api";
 import { type AgentInfo, type ChatStreamEvent } from "@/lib/contracts";
 import { compactText, formatRelativeTime } from "@/lib/format";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 import { requestJson } from "@/features/workforce/helpers";
 import { readChatEventStream } from "@/lib/sse";
@@ -225,6 +226,8 @@ function AgentRosterItem({
 export function AgentWorkbench() {
   const { getSearchValue, setSearchValue } = useUrlState();
   const selectedAgentId = getSearchValue("agent", "general-assistant");
+  const operatorSession = useOperatorSessionStatus();
+  const liveReadEnabled = !operatorSession.isPending && !isOperatorSessionLocked(operatorSession);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -258,7 +261,7 @@ export function AgentWorkbench() {
       );
       return (data?.tasks ?? data ?? []) as AgentTask[];
     },
-    enabled: !!selectedAgentId,
+    enabled: !!selectedAgentId && liveReadEnabled,
     refetchInterval: 5_000,
     refetchIntervalInBackground: false,
   });
@@ -271,7 +274,7 @@ export function AgentWorkbench() {
       );
       return (data?.tasks ?? data ?? []) as AgentTask[];
     },
-    enabled: !!selectedAgentId,
+    enabled: !!selectedAgentId && liveReadEnabled,
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
   });

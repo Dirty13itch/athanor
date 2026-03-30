@@ -20,6 +20,7 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { requestJson } from "@/features/workforce/helpers";
 
 interface RoutingLogEntry {
@@ -88,12 +89,16 @@ function formatMonthlyCost(monthlyCost: number | null | undefined, pricingStatus
 }
 
 export function RoutingConsole() {
+  const operatorSession = useOperatorSessionStatus();
+  const sessionLocked = isOperatorSessionLocked(operatorSession);
+  const routingReadEnabled = !operatorSession.isPending && !sessionLocked;
   const logQuery = useQuery({
     queryKey: ["routing-log"],
     queryFn: async (): Promise<RoutingLogEntry[]> => {
       const data = await requestJson("/api/routing/log?limit=30");
       return (data?.entries ?? data ?? []) as RoutingLogEntry[];
     },
+    enabled: routingReadEnabled,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
@@ -148,7 +153,7 @@ export function RoutingConsole() {
               void logQuery.refetch();
               void providersQuery.refetch();
             }}
-            disabled={logQuery.isFetching || providersQuery.isFetching}
+            disabled={sessionLocked || logQuery.isFetching || providersQuery.isFetching}
           >
             <RefreshCcw
               className={`mr-2 h-4 w-4 ${

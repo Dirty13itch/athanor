@@ -70,7 +70,7 @@ function formatMonthlyCost(monthlyCost: number | null, pricingStatus: string | n
 async function fetchSubscriptionData() {
   const [summary, providers, quotas, leases, execution, handoffs, policy] = await Promise.all([
     fetchJson<JsonObject>("/api/subscriptions/summary"),
-    fetchJson<JsonObject>("/api/subscriptions/provider-status"),
+    fetchJson<JsonObject>("/api/routing/providers"),
     fetchJson<JsonObject>("/api/subscriptions/quotas"),
     fetchJson<JsonObject>("/api/subscriptions/leases"),
     fetchJson<JsonObject>("/api/subscriptions/execution"),

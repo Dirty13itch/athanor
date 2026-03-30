@@ -17,6 +17,7 @@ import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
 import { getGpuSnapshot } from "@/lib/api";
 import { type GpuSnapshotResponse } from "@/lib/contracts";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 import { requestJson } from "@/features/workforce/helpers";
 
@@ -168,6 +169,8 @@ function policyClass(entry: RoutingLogEntry): string {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ModelObservatory({ localModels }: ModelObservatoryProps) {
+  const operatorSession = useOperatorSessionStatus();
+  const routingReadEnabled = !operatorSession.isPending && !isOperatorSessionLocked(operatorSession);
   const gpuQuery = useQuery({
     queryKey: queryKeys.gpuSnapshot,
     queryFn: getGpuSnapshot,
@@ -193,6 +196,7 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
       );
       return (data?.entries ?? data ?? []) as RoutingLogEntry[];
     },
+    enabled: routingReadEnabled,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });

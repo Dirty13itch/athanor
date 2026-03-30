@@ -24,8 +24,9 @@ import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { MetricChartClient } from "@/components/metric-chart-client";
 import { formatRelativeTime } from "@/lib/format";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { requestJson, postWithoutBody } from "@/features/workforce/helpers";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface CycleSummary {
   last_cycle?: string;
@@ -65,8 +66,16 @@ function proposalBadgeVariant(status: string | undefined) {
 
 export function ImprovementConsole() {
   const queryClient = useQueryClient();
+  const operatorSession = useOperatorSessionStatus();
+  const sessionLocked = isOperatorSessionLocked(operatorSession);
+  const liveReadEnabled = !operatorSession.isPending && !sessionLocked;
+  const [hydrated, setHydrated] = useState(false);
   const [triggeringCycle, setTriggeringCycle] = useState(false);
   const [triggeringBenchmarks, setTriggeringBenchmarks] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const summaryQuery = useQuery({
     queryKey: ["improvement-summary"],
@@ -74,6 +83,7 @@ export function ImprovementConsole() {
       const data = await requestJson("/api/improvement/summary");
       return (data ?? {}) as CycleSummary;
     },
+    enabled: liveReadEnabled,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
@@ -84,6 +94,7 @@ export function ImprovementConsole() {
       const data = await requestJson("/api/improvement/proposals");
       return (data?.proposals ?? data ?? []) as Proposal[];
     },
+    enabled: liveReadEnabled,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
@@ -96,6 +107,7 @@ export function ImprovementConsole() {
       );
       return (data?.entries ?? data ?? []) as BenchmarkEntry[];
     },
+    enabled: liveReadEnabled,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
@@ -103,6 +115,7 @@ export function ImprovementConsole() {
   const summary = summaryQuery.data ?? {};
   const proposals = proposalsQuery.data ?? [];
   const benchmarks = benchmarksQuery.data ?? [];
+  const refreshing = hydrated && (summaryQuery.isFetching || proposalsQuery.isFetching || benchmarksQuery.isFetching);
 
   const deployedCount = proposals.filter((p) => p.status === "deployed").length;
   const passRate =
@@ -182,20 +195,10 @@ export function ImprovementConsole() {
                 void proposalsQuery.refetch();
                 void benchmarksQuery.refetch();
               }}
-              disabled={
-                summaryQuery.isFetching ||
-                proposalsQuery.isFetching ||
-                benchmarksQuery.isFetching
-              }
+              disabled={refreshing}
             >
               <RefreshCcw
-                className={`mr-2 h-4 w-4 ${
-                  summaryQuery.isFetching ||
-                  proposalsQuery.isFetching ||
-                  benchmarksQuery.isFetching
-                    ? "animate-spin"
-                    : ""
-                }`}
+                className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
               />
               Refresh
             </Button>
