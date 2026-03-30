@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { useLens } from "@/hooks/use-lens";
 import { getRouteFamiliesWithRoutes } from "@/lib/navigation";
 
-const ROUTE_FAMILIES = getRouteFamiliesWithRoutes().filter((family) => family.id !== "support");
+const ROUTE_FAMILIES = getRouteFamiliesWithRoutes();
 
 export default function MorePage() {
   const pathname = usePathname();
@@ -51,7 +51,9 @@ export default function MorePage() {
             <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {family.routes.map((route) => {
                 const active = pathname === route.href;
-                const routeLabel = route.shortLabel ?? route.label;
+                const routeLabel = route.href === "/" ? route.label : route.shortLabel ?? route.label;
+                const showsAlias = route.label !== routeLabel;
+
                 return (
                   <Link
                     key={route.href}
@@ -71,7 +73,7 @@ export default function MorePage() {
                           <div>
                             <p className="font-medium">{routeLabel}</p>
                             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                              {route.label !== routeLabel ? `${family.label} · ${route.label}` : family.label}
+                              {showsAlias ? `${family.label} - ${route.label}` : family.label}
                             </p>
                           </div>
                         </div>

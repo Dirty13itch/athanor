@@ -12,10 +12,26 @@ export const serviceCategorySchema = z.enum([
 
 export const statusToneSchema = z.enum(["healthy", "warning", "degraded", "muted"]);
 export const taskPrioritySchema = z.enum(["critical", "high", "normal", "low"]);
+export const operatorAuthClassSchema = z.enum([
+  "read-only",
+  "operator",
+  "admin",
+  "destructive-admin",
+]);
+export const operatorActionRequestSchema = z.object({
+  actor: z.string().min(1),
+  session_id: z.string().min(1),
+  correlation_id: z.string().min(1),
+  reason: z.string(),
+  dry_run: z.boolean(),
+  protected_mode: z.boolean(),
+});
+export const serviceDependencyStatusSchema = z.enum(["healthy", "degraded", "down", "unknown"]);
 export const taskStatusSchema = z.enum([
   "pending",
   "pending_approval",
   "running",
+  "stale_lease",
   "completed",
   "failed",
   "cancelled",
@@ -39,9 +55,29 @@ export const clusterNodeSchema = z.object({
   role: z.string(),
   totalServices: z.number().int().nonnegative(),
   healthyServices: z.number().int().nonnegative(),
+  warningServices: z.number().int().nonnegative(),
   degradedServices: z.number().int().nonnegative(),
   averageLatencyMs: z.number().nullable(),
   gpuUtilization: z.number().nullable(),
+});
+
+export const serviceDependencySchema = z.object({
+  id: z.string(),
+  status: serviceDependencyStatusSchema,
+  required: z.boolean(),
+  last_checked_at: z.string().nullable(),
+  detail: z.string().nullable(),
+});
+
+export const serviceHealthSnapshotSchema = z.object({
+  service: z.string(),
+  version: z.string(),
+  status: serviceDependencyStatusSchema,
+  auth_class: operatorAuthClassSchema,
+  dependencies: z.array(serviceDependencySchema),
+  last_error: z.string().nullable(),
+  started_at: z.string(),
+  actions_allowed: z.array(z.string()),
 });
 
 export const serviceSnapshotSchema = z.object({
@@ -56,6 +92,12 @@ export const serviceSnapshotSchema = z.object({
   latencyMs: z.number().nullable(),
   checkedAt: z.string(),
   state: statusToneSchema,
+  authClass: operatorAuthClassSchema.optional(),
+  startedAt: z.string().nullable().optional(),
+  actionsAllowed: z.array(z.string()).optional(),
+  lastError: z.string().nullable().optional(),
+  dependencies: z.array(serviceDependencySchema).optional(),
+  healthSnapshot: serviceHealthSnapshotSchema.optional(),
 });
 
 export const serviceHistorySeriesSchema = z.object({
@@ -547,6 +589,28 @@ export const governanceLayersSchema = z.object({
     asset_classes: z.array(z.string()),
     stages: z.array(z.string()),
     rule: z.string(),
+  }),
+  autonomy_activation: z.object({
+    version: z.string(),
+    status: z.string(),
+    activation_state: z.string(),
+    current_phase_id: z.string().nullable().optional(),
+    current_phase_status: z.string(),
+    current_phase_scope: z.string().nullable().optional(),
+    phase_count: z.number().int().nonnegative(),
+    enabled_agent_count: z.number().int().nonnegative(),
+    allowed_workload_count: z.number().int().nonnegative(),
+    blocked_workload_count: z.number().int().nonnegative(),
+    approval_gate_count: z.number().int().nonnegative(),
+    verified_prerequisite_count: z.number().int().nonnegative(),
+    prerequisite_count: z.number().int().nonnegative(),
+    next_phase_id: z.string().nullable().optional(),
+    next_phase_status: z.string().nullable().optional(),
+    next_phase_scope: z.string().nullable().optional(),
+    next_phase_blocker_count: z.number().int().nonnegative(),
+    next_phase_blocker_ids: z.array(z.string()),
+    broad_autonomy_enabled: z.boolean(),
+    runtime_mutations_approval_gated: z.boolean(),
   }),
   operator_runbooks: z.object({
     version: z.string(),
@@ -1050,6 +1114,25 @@ export const operationsReadinessSnapshotSchema = z.object({
     last_outcome: z.string().nullable().optional(),
     subjects: z.array(toolPermissionSubjectSchema),
   }),
+  autonomy_activation: z
+      .object({
+        status: z.string(),
+        activation_state: z.string(),
+        current_phase_id: z.string().nullable().optional(),
+        current_phase_status: z.string(),
+        current_phase_scope: z.string().nullable().optional(),
+        next_phase_id: z.string().nullable().optional(),
+        next_phase_status: z.string().nullable().optional(),
+        next_phase_scope: z.string().nullable().optional(),
+        next_phase_blocker_count: z.number().int().nonnegative(),
+        next_phase_blocker_ids: z.array(z.string()),
+        broad_autonomy_enabled: z.boolean(),
+        runtime_mutations_approval_gated: z.boolean(),
+        enabled_agents: z.array(z.string()),
+        allowed_workload_classes: z.array(z.string()),
+        blocked_workload_classes: z.array(z.string()),
+    })
+    .optional(),
   synthetic_operator_tests: z.object({
     status: z.string(),
     last_outcome: z.string(),
@@ -1156,6 +1239,27 @@ export const systemMapSnapshotSchema = z.object({
         status: z.string(),
         tiers: z.array(z.string()),
       }),
+      autonomy_activation: z
+        .object({
+          status: z.string(),
+          activation_state: z.string(),
+          current_phase_id: z.string().nullable().optional(),
+          current_phase_status: z.string(),
+          current_phase_scope: z.string().nullable().optional(),
+          next_phase_id: z.string().nullable().optional(),
+          next_phase_status: z.string().nullable().optional(),
+          next_phase_scope: z.string().nullable().optional(),
+          next_phase_blocker_count: z.number().int().nonnegative(),
+          next_phase_blocker_ids: z.array(z.string()),
+          broad_autonomy_enabled: z.boolean(),
+          runtime_mutations_approval_gated: z.boolean(),
+          enabled_agents: z.array(z.string()),
+          allowed_workload_classes: z.array(z.string()),
+          blocked_workload_classes: z.array(z.string()),
+          presence_state: z.string().nullable().optional(),
+          presence_reason: z.string().nullable().optional(),
+        })
+        .optional(),
     })
     .optional(),
   registry_versions: z.object({
@@ -1169,6 +1273,7 @@ export const systemMapSnapshotSchema = z.object({
     tool_permissions: z.string().optional(),
     backup_restore: z.string().optional(),
     release_ritual: z.string().optional(),
+    autonomy_activation: z.string().optional(),
   }),
   workload_guidance: z.array(
     z.object({
@@ -1442,6 +1547,7 @@ export const overviewSnapshotSchema = z.object({
   summary: z.object({
     totalServices: z.number().int().nonnegative(),
     healthyServices: z.number().int().nonnegative(),
+    warningServices: z.number().int().nonnegative(),
     degradedServices: z.number().int().nonnegative(),
     averageLatencyMs: z.number().nullable(),
     averageGpuUtilization: z.number().nullable(),
@@ -1471,6 +1577,7 @@ export const servicesSnapshotSchema = z.object({
   summary: z.object({
     total: z.number().int().nonnegative(),
     healthy: z.number().int().nonnegative(),
+    warning: z.number().int().nonnegative(),
     degraded: z.number().int().nonnegative(),
     averageLatencyMs: z.number().nullable(),
     slowestServiceId: z.string().nullable(),
@@ -1623,11 +1730,53 @@ export const agentThreadSchema = z.object({
   messages: z.array(transcriptMessageSchema),
 });
 
+export const navAttentionPersistenceRecordSchema = z.object({
+  signature: z.string(),
+  firstSeenAt: z.string(),
+  acknowledgedAt: z.string().nullable(),
+});
+
+export const navAttentionPersistenceStateSchema = z.record(
+  z.string(),
+  navAttentionPersistenceRecordSchema
+);
+
+export const operatorContextItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  route: z.string(),
+  updatedAt: z.string(),
+  type: z.enum(["direct_chat_session", "agent_thread"]),
+});
+
+export const operatorContextSnapshotSchema = z.object({
+  source: z.string(),
+  updatedAt: z.string(),
+  sessionCount: z.number().int().nonnegative(),
+  threadCount: z.number().int().nonnegative(),
+  recentContext: z.array(operatorContextItemSchema),
+  sessions: z.array(directChatSessionSchema),
+  threads: z.array(agentThreadSchema),
+});
+
+export const navAttentionSnapshotSchema = z.object({
+  source: z.string(),
+  updatedAt: z.string(),
+  routeCount: z.number().int().nonnegative(),
+  state: navAttentionPersistenceStateSchema,
+});
+
 export const uiPreferencesSchema = z.object({
   density: z.enum(["comfortable", "compact"]).default("comfortable"),
   lastSelectedAgentId: z.string().nullable().default(null),
   lastSelectedModelKey: z.string().nullable().default(null),
   dismissedHints: z.array(z.string()).default([]),
+});
+
+export const operatorUiPreferencesSnapshotSchema = z.object({
+  source: z.string(),
+  updatedAt: z.string(),
+  preferences: uiPreferencesSchema,
 });
 
 export const historyActivityItemSchema = z.object({
@@ -1987,6 +2136,22 @@ export const galleryHistoryItemSchema = z.object({
   outputImages: z.array(galleryImageSchema),
 });
 
+export const galleryRatingSchema = z.object({
+  rating: z.number().int().min(0).max(5).nullable(),
+  approved: z.boolean(),
+  flagged: z.boolean(),
+  notes: z.string(),
+  timestamp: z.string(),
+});
+
+export const galleryRatingsResponseSchema = z.object({
+  source: z.string(),
+  filter: z.string(),
+  updatedAt: z.string(),
+  count: z.number().int().nonnegative(),
+  ratings: z.record(z.string(), galleryRatingSchema),
+});
+
 export const gallerySnapshotSchema = z.object({
   generatedAt: z.string(),
   queueRunning: z.number().int().nonnegative(),
@@ -2043,6 +2208,9 @@ export const homeSnapshotSchema = z.object({
 });
 
 export type ServiceSnapshot = z.infer<typeof serviceSnapshotSchema>;
+export type ServiceDependencySnapshot = z.infer<typeof serviceDependencySchema>;
+export type ServiceHealthSnapshot = z.infer<typeof serviceHealthSnapshotSchema>;
+export type OperatorActionRequest = z.infer<typeof operatorActionRequestSchema>;
 export type ServiceHistorySeries = z.infer<typeof serviceHistorySeriesSchema>;
 export type ChartPoint = z.infer<typeof chartPointSchema>;
 export type GpuSnapshot = z.infer<typeof gpuSnapshotSchema>;
@@ -2128,7 +2296,13 @@ export type ChatStreamEvent = z.infer<typeof chatStreamEventSchema>;
 export type TranscriptMessage = z.infer<typeof transcriptMessageSchema>;
 export type DirectChatSession = z.infer<typeof directChatSessionSchema>;
 export type AgentThread = z.infer<typeof agentThreadSchema>;
+export type NavAttentionPersistenceRecord = z.infer<typeof navAttentionPersistenceRecordSchema>;
+export type NavAttentionPersistenceState = z.infer<typeof navAttentionPersistenceStateSchema>;
+export type OperatorContextItem = z.infer<typeof operatorContextItemSchema>;
+export type OperatorContextSnapshot = z.infer<typeof operatorContextSnapshotSchema>;
+export type NavAttentionSnapshot = z.infer<typeof navAttentionSnapshotSchema>;
 export type UiPreferences = z.infer<typeof uiPreferencesSchema>;
+export type OperatorUiPreferencesSnapshot = z.infer<typeof operatorUiPreferencesSnapshotSchema>;
 export type HistoryActivityItem = z.infer<typeof historyActivityItemSchema>;
 export type HistoryConversationItem = z.infer<typeof historyConversationItemSchema>;
 export type HistoryOutputItem = z.infer<typeof historyOutputItemSchema>;
@@ -2137,6 +2311,8 @@ export type IntelligencePattern = z.infer<typeof intelligencePatternSchema>;
 export type IntelligenceReport = z.infer<typeof intelligenceReportSchema>;
 export type LearningSnapshot = z.infer<typeof learningSnapshotSchema>;
 export type IntelligenceSnapshot = z.infer<typeof intelligenceSnapshotSchema>;
+export type GalleryRating = z.infer<typeof galleryRatingSchema>;
+export type GalleryRatingsResponse = z.infer<typeof galleryRatingsResponseSchema>;
 export type MemoryPreference = z.infer<typeof memoryPreferenceSchema>;
 export type MemoryRecentItem = z.infer<typeof memoryRecentItemSchema>;
 export type MemorySnapshot = z.infer<typeof memorySnapshotSchema>;

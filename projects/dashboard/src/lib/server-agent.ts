@@ -1003,6 +1003,8 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
   const method = (init?.method ?? "GET").toUpperCase();
   const payload = parseFixtureBody(init?.body);
   const timestamp = FIXTURE_BASE_TIME;
+  const isoMinutesBefore = (minutesBefore: number) =>
+    new Date(new Date(timestamp).getTime() - minutesBefore * 60_000).toISOString();
   const requestUrl = new URL(`http://fixture${path}`);
   const limitParam = Number.parseInt(requestUrl.searchParams.get("limit") ?? "", 10);
   const limit = Number.isNaN(limitParam) ? null : limitParam;
@@ -2829,6 +2831,168 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
       ],
       count: 2,
       history: [],
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/trust") {
+    return {
+      generated_at: timestamp,
+      agents: {
+        "general-assistant": {
+          score: 0.94,
+          grade: "A",
+          feedback: {
+            up: 28,
+            down: 1,
+            total: 29,
+          },
+          escalation: {
+            approved: 12,
+            rejected: 1,
+            total: 13,
+          },
+          samples: 29,
+        },
+        "coding-agent": {
+          score: 0.91,
+          grade: "A",
+          feedback: {
+            up: 17,
+            down: 2,
+            total: 19,
+          },
+          escalation: {
+            approved: 7,
+            rejected: 1,
+            total: 8,
+          },
+          samples: 19,
+        },
+      },
+      scores: [
+        {
+          agent_id: "general-assistant",
+          score: 0.94,
+          grade: "A",
+        },
+        {
+          agent_id: "coding-agent",
+          score: 0.91,
+          grade: "A",
+        },
+      ],
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/digests/latest") {
+    return {
+      type: "auto",
+      generated_at: timestamp,
+      period: "24h",
+      task_count: 6,
+      completed_count: 4,
+      failed_count: 1,
+      recent_completions: [
+        {
+          id: "task-ath-1",
+          title: "Refresh command-center route taxonomy",
+          completed_at: isoMinutesBefore(18),
+        },
+        {
+          id: "task-eoq-2",
+          title: "Queue new portrait generations",
+          completed_at: isoMinutesBefore(43),
+        },
+      ],
+      recent_failures: [
+        {
+          id: "task-home-1",
+          title: "Validate overnight lighting automation",
+          failed_at: isoMinutesBefore(61),
+        },
+      ],
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/pipeline/status") {
+    return {
+      recent_cycles: [
+        {
+          id: "cycle-2026-03-12T14:45:00Z",
+          status: "completed",
+          started_at: isoMinutesBefore(22),
+          completed_at: isoMinutesBefore(18),
+          proposal_count: 3,
+        },
+      ],
+      pending_plans: 1,
+      recent_outcomes_count: 5,
+      avg_quality: 0.92,
+      last_cycle: {
+        id: "cycle-2026-03-12T14:45:00Z",
+        status: "completed",
+        completed_at: isoMinutesBefore(18),
+      },
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/pipeline/outcomes") {
+    const limit = Math.max(Number.parseInt(requestUrl.searchParams.get("limit") ?? "20", 10) || 20, 1);
+    const outcomes = [
+      {
+        id: "outcome-ath-1",
+        plan_id: "plan-ath-1",
+        status: "accepted",
+        quality: 0.94,
+        recorded_at: isoMinutesBefore(12),
+      },
+      {
+        id: "outcome-ath-2",
+        plan_id: "plan-ath-2",
+        status: "review_required",
+        quality: 0.81,
+        recorded_at: isoMinutesBefore(36),
+      },
+    ].slice(0, limit);
+    return {
+      outcomes,
+      count: outcomes.length,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/pipeline/plans") {
+    const statusFilter = requestUrl.searchParams.get("status");
+    const plans = [
+      {
+        id: "plan-ath-1",
+        title: "Promote command-center IA slice to trunk",
+        status: "pending",
+        created_at: isoMinutesBefore(30),
+      },
+      {
+        id: "plan-ath-2",
+        title: "Queue runtime-deploy ansible slice",
+        status: "queued",
+        created_at: isoMinutesBefore(55),
+      },
+    ].filter((plan) => !statusFilter || plan.status === statusFilter);
+    return {
+      plans,
+      count: plans.length,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/pipeline/preview") {
+    return {
+      proposals: [
+        {
+          id: "proposal-ath-1",
+          title: "Commit command-center IA lane",
+          confidence: 0.88,
+          requires_approval: true,
+        },
+      ],
+      count: 1,
     };
   }
 
