@@ -2,7 +2,7 @@
 
 This atlas page is the canonical map of Athanor's model-role registry, workload registry, and proving-ground/update program.
 
-For the broader future-state program, see [../design/automation-backbone-master-plan.md](../design/automation-backbone-master-plan.md).
+For the broader future-state program, see [../archive/design/automation-backbone-master-plan.md](../archive/design/automation-backbone-master-plan.md).
 
 ## Plain-language map
 

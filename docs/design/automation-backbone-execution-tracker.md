@@ -4,7 +4,7 @@ This is the implementation-status tracker for the full Athanor automation-backbo
 
 Use it with:
 
-- [automation-backbone-master-plan.md](./automation-backbone-master-plan.md)
+- [../archive/design/automation-backbone-master-plan.md](../archive/design/automation-backbone-master-plan.md)
 - [command-hierarchy-governance.md](./command-hierarchy-governance.md)
 
 ## Status meanings

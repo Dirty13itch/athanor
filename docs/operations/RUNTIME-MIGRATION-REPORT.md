@@ -21,7 +21,7 @@ Do not edit manually.
 | --- | --- |
 | `cutover_verified` | 9 |
 
-- Latest live content evidence snapshot: `2026-03-30T11:54:56.891870+00:00`
+- Latest live content evidence snapshot: `2026-03-30T16:38:35.432861+00:00`
 - Observed live `:8760` references: `0`
 - Planned callers no longer observed in the live runtime grep scan: `9`
 - Sync-required callers: `2`
@@ -48,7 +48,7 @@ Do not edit manually.
 - Observed at: `2026-03-29T02:48:53Z`
 - Observed runtime repo head: `075490f`
 - Runbook: [`docs/runbooks/governor-facade-retirement.md`](/C:/Athanor/docs/runbooks/governor-facade-retirement.md)
-- Live content evidence snapshot: `2026-03-30T11:54:56.891870+00:00`
+- Live content evidence snapshot: `2026-03-30T16:38:35.432861+00:00`
 - Live observed `:8760` references: `0`
 
 ### Acceptance Criteria
