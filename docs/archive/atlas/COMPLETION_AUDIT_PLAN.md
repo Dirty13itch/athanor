@@ -14,15 +14,15 @@ Canonical command:
 
 Stable canonical outputs:
 
-- `docs/atlas/inventory/completion/dashboard-route-census.json`
-- `docs/atlas/inventory/completion/dashboard-support-surface-census.json`
-- `docs/atlas/inventory/completion/dashboard-api-census.json`
-- `docs/atlas/inventory/completion/dashboard-component-census.json`
-- `docs/atlas/inventory/completion/dashboard-mount-graph.json`
-- `docs/atlas/inventory/completion/agent-endpoint-census.json`
-- `docs/atlas/inventory/completion/runtime-subsystem-census.json`
-- `docs/atlas/inventory/completion/env-contract-census.json`
-- `docs/atlas/inventory/completion/deployment-ownership-matrix.json`
+- `reports/completion-audit/latest/inventory/dashboard-route-census.json`
+- `reports/completion-audit/latest/inventory/dashboard-support-surface-census.json`
+- `reports/completion-audit/latest/inventory/dashboard-api-census.json`
+- `reports/completion-audit/latest/inventory/dashboard-component-census.json`
+- `reports/completion-audit/latest/inventory/dashboard-mount-graph.json`
+- `reports/completion-audit/latest/inventory/agent-endpoint-census.json`
+- `reports/completion-audit/latest/inventory/runtime-subsystem-census.json`
+- `reports/completion-audit/latest/inventory/env-contract-census.json`
+- `reports/completion-audit/latest/inventory/deployment-ownership-matrix.json`
 
 Run-specific evidence:
 
