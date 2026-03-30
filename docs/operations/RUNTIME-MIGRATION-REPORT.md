@@ -21,7 +21,7 @@ Do not edit manually.
 | --- | --- |
 | `cutover_verified` | 9 |
 
-- Latest live content evidence snapshot: `2026-03-30T01:44:35.713099+00:00`
+- Latest live content evidence snapshot: `2026-03-30T01:46:14.089788+00:00`
 - Observed live `:8760` references: `0`
 - Planned callers no longer observed in the live runtime grep scan: `9`
 - Sync-required callers: `9`
@@ -47,7 +47,7 @@ Do not edit manually.
 - Observed at: `2026-03-29T02:48:53Z`
 - Observed runtime repo head: `075490f`
 - Runbook: [`docs/runbooks/governor-facade-retirement.md`](/C:/Athanor/docs/runbooks/governor-facade-retirement.md)
-- Live content evidence snapshot: `2026-03-30T01:44:35.713099+00:00`
+- Live content evidence snapshot: `2026-03-30T01:46:14.089788+00:00`
 - Live observed `:8760` references: `0`
 
 ### Acceptance Criteria
@@ -81,15 +81,15 @@ Do not edit manually.
 
 | Order | Caller | Sync decision | Implementation source | Runtime target | Backup target | Rollback ready |
 | --- | --- | --- | --- | --- | --- | --- |
-| `1` | `scripts/drift-check.sh` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\front-door-cleanup\scripts\drift-check.sh` | `/home/shaun/repos/athanor/scripts/drift-check.sh` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh` | `True` |
-| `2` | `scripts/smoke-test.sh` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\front-door-cleanup\scripts\smoke-test.sh` | `/home/shaun/repos/athanor/scripts/smoke-test.sh` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh` | `True` |
-| `3` | `services/cluster_config.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\front-door-cleanup\services\cluster_config.py` | `/home/shaun/repos/athanor/services/cluster_config.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py` | `True` |
-| `4` | `services/gateway/main.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\front-door-cleanup\services\gateway\main.py` | `/home/shaun/repos/athanor/services/gateway/main.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py` | `True` |
-| `5` | `services/governor/status_report.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\front-door-cleanup\services\governor\status_report.py` | `/home/shaun/repos/athanor/services/governor/status_report.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py` | `True` |
-| `6` | `services/governor/overnight.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\front-door-cleanup\services\governor\overnight.py` | `/home/shaun/repos/athanor/services/governor/overnight.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py` | `True` |
-| `7` | `services/governor/act_first.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\front-door-cleanup\services\governor\act_first.py` | `/home/shaun/repos/athanor/services/governor/act_first.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py` | `True` |
-| `8` | `services/governor/self_improve.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\front-door-cleanup\services\governor\self_improve.py` | `/home/shaun/repos/athanor/services/governor/self_improve.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py` | `True` |
-| `9` | `services/sentinel/checks.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\front-door-cleanup\services\sentinel\checks.py` | `/home/shaun/repos/athanor/services/sentinel/checks.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py` | `True` |
+| `1` | `scripts/drift-check.sh` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\main-integration\scripts\drift-check.sh` | `/home/shaun/repos/athanor/scripts/drift-check.sh` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh` | `True` |
+| `2` | `scripts/smoke-test.sh` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\main-integration\scripts\smoke-test.sh` | `/home/shaun/repos/athanor/scripts/smoke-test.sh` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh` | `True` |
+| `3` | `services/cluster_config.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\main-integration\services\cluster_config.py` | `/home/shaun/repos/athanor/services/cluster_config.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py` | `True` |
+| `4` | `services/gateway/main.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\main-integration\services\gateway\main.py` | `/home/shaun/repos/athanor/services/gateway/main.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py` | `True` |
+| `5` | `services/governor/status_report.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\main-integration\services\governor\status_report.py` | `/home/shaun/repos/athanor/services/governor/status_report.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py` | `True` |
+| `6` | `services/governor/overnight.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\main-integration\services\governor\overnight.py` | `/home/shaun/repos/athanor/services/governor/overnight.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py` | `True` |
+| `7` | `services/governor/act_first.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\main-integration\services\governor\act_first.py` | `/home/shaun/repos/athanor/services/governor/act_first.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py` | `True` |
+| `8` | `services/governor/self_improve.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\main-integration\services\governor\self_improve.py` | `/home/shaun/repos/athanor/services/governor/self_improve.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py` | `True` |
+| `9` | `services/sentinel/checks.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\.worktrees\main-integration\services\sentinel\checks.py` | `/home/shaun/repos/athanor/services/sentinel/checks.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py` | `True` |
 
 #### scripts/drift-check.sh
 
@@ -109,7 +109,7 @@ Do not edit manually.
 - Runtime file: `/home/shaun/repos/athanor/scripts/drift-check.sh`
 - Runtime file exists: `True`
 - Runtime target matches registry: `True`
-- Implementation file: `C:\Athanor\.worktrees\front-door-cleanup\scripts\drift-check.sh`
+- Implementation file: `C:\Athanor\.worktrees\main-integration\scripts\drift-check.sh`
 - Implementation file exists: `True`
 - Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`
@@ -139,7 +139,7 @@ Do not edit manually.
 - Runtime file: `/home/shaun/repos/athanor/scripts/smoke-test.sh`
 - Runtime file exists: `True`
 - Runtime target matches registry: `True`
-- Implementation file: `C:\Athanor\.worktrees\front-door-cleanup\scripts\smoke-test.sh`
+- Implementation file: `C:\Athanor\.worktrees\main-integration\scripts\smoke-test.sh`
 - Implementation file exists: `True`
 - Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`
@@ -169,7 +169,7 @@ Do not edit manually.
 - Runtime file: `/home/shaun/repos/athanor/services/cluster_config.py`
 - Runtime file exists: `True`
 - Runtime target matches registry: `True`
-- Implementation file: `C:\Athanor\.worktrees\front-door-cleanup\services\cluster_config.py`
+- Implementation file: `C:\Athanor\.worktrees\main-integration\services\cluster_config.py`
 - Implementation file exists: `True`
 - Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`
@@ -199,7 +199,7 @@ Do not edit manually.
 - Runtime file: `/home/shaun/repos/athanor/services/gateway/main.py`
 - Runtime file exists: `True`
 - Runtime target matches registry: `True`
-- Implementation file: `C:\Athanor\.worktrees\front-door-cleanup\services\gateway\main.py`
+- Implementation file: `C:\Athanor\.worktrees\main-integration\services\gateway\main.py`
 - Implementation file exists: `True`
 - Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`
@@ -229,7 +229,7 @@ Do not edit manually.
 - Runtime file: `/home/shaun/repos/athanor/services/governor/status_report.py`
 - Runtime file exists: `True`
 - Runtime target matches registry: `True`
-- Implementation file: `C:\Athanor\.worktrees\front-door-cleanup\services\governor\status_report.py`
+- Implementation file: `C:\Athanor\.worktrees\main-integration\services\governor\status_report.py`
 - Implementation file exists: `True`
 - Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`
@@ -259,7 +259,7 @@ Do not edit manually.
 - Runtime file: `/home/shaun/repos/athanor/services/governor/overnight.py`
 - Runtime file exists: `True`
 - Runtime target matches registry: `True`
-- Implementation file: `C:\Athanor\.worktrees\front-door-cleanup\services\governor\overnight.py`
+- Implementation file: `C:\Athanor\.worktrees\main-integration\services\governor\overnight.py`
 - Implementation file exists: `True`
 - Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`
@@ -289,7 +289,7 @@ Do not edit manually.
 - Runtime file: `/home/shaun/repos/athanor/services/governor/act_first.py`
 - Runtime file exists: `True`
 - Runtime target matches registry: `True`
-- Implementation file: `C:\Athanor\.worktrees\front-door-cleanup\services\governor\act_first.py`
+- Implementation file: `C:\Athanor\.worktrees\main-integration\services\governor\act_first.py`
 - Implementation file exists: `True`
 - Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`
@@ -319,7 +319,7 @@ Do not edit manually.
 - Runtime file: `/home/shaun/repos/athanor/services/governor/self_improve.py`
 - Runtime file exists: `True`
 - Runtime target matches registry: `True`
-- Implementation file: `C:\Athanor\.worktrees\front-door-cleanup\services\governor\self_improve.py`
+- Implementation file: `C:\Athanor\.worktrees\main-integration\services\governor\self_improve.py`
 - Implementation file exists: `True`
 - Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`
@@ -349,7 +349,7 @@ Do not edit manually.
 - Runtime file: `/home/shaun/repos/athanor/services/sentinel/checks.py`
 - Runtime file exists: `True`
 - Runtime target matches registry: `True`
-- Implementation file: `C:\Athanor\.worktrees\front-door-cleanup\services\sentinel\checks.py`
+- Implementation file: `C:\Athanor\.worktrees\main-integration\services\sentinel\checks.py`
 - Implementation file exists: `True`
 - Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`

@@ -6,7 +6,7 @@ Do not edit manually.
 This packet is retained as the verified record of the completed DEV `:8760` cutover. Use it to audit what was backed up, replaced, and verified, and only rerun the commands if drift reopens the seam.
 
 - Registry version: `2026-03-29.2`
-- Cached truth snapshot: `2026-03-30T01:44:35.713099+00:00`
+- Cached truth snapshot: `2026-03-30T01:46:14.089788+00:00`
 - Migrations included: `1`
 
 ## dev-governor-facade-8760-callers
@@ -45,7 +45,7 @@ ssh dev 'journalctl -u athanor-governor.service -n 400 --no-pager > "/home/shaun
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/scripts"'
 ssh dev 'cp "/home/shaun/repos/athanor/scripts/drift-check.sh" "/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh"'
-scp "C:/Athanor/.worktrees/front-door-cleanup/scripts/drift-check.sh" "dev:/home/shaun/repos/athanor/scripts/drift-check.sh"
+scp "C:/Athanor/.worktrees/main-integration/scripts/drift-check.sh" "dev:/home/shaun/repos/athanor/scripts/drift-check.sh"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/scripts/drift-check.sh")
@@ -68,7 +68,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/scripts"'
 ssh dev 'cp "/home/shaun/repos/athanor/scripts/smoke-test.sh" "/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh"'
-scp "C:/Athanor/.worktrees/front-door-cleanup/scripts/smoke-test.sh" "dev:/home/shaun/repos/athanor/scripts/smoke-test.sh"
+scp "C:/Athanor/.worktrees/main-integration/scripts/smoke-test.sh" "dev:/home/shaun/repos/athanor/scripts/smoke-test.sh"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/scripts/smoke-test.sh")
@@ -91,7 +91,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services"'
 ssh dev 'cp "/home/shaun/repos/athanor/services/cluster_config.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py"'
-scp "C:/Athanor/.worktrees/front-door-cleanup/services/cluster_config.py" "dev:/home/shaun/repos/athanor/services/cluster_config.py"
+scp "C:/Athanor/.worktrees/main-integration/services/cluster_config.py" "dev:/home/shaun/repos/athanor/services/cluster_config.py"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/cluster_config.py")
@@ -114,7 +114,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway"'
 ssh dev 'cp "/home/shaun/repos/athanor/services/gateway/main.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py"'
-scp "C:/Athanor/.worktrees/front-door-cleanup/services/gateway/main.py" "dev:/home/shaun/repos/athanor/services/gateway/main.py"
+scp "C:/Athanor/.worktrees/main-integration/services/gateway/main.py" "dev:/home/shaun/repos/athanor/services/gateway/main.py"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/gateway/main.py")
@@ -137,7 +137,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor"'
 ssh dev 'cp "/home/shaun/repos/athanor/services/governor/status_report.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py"'
-scp "C:/Athanor/.worktrees/front-door-cleanup/services/governor/status_report.py" "dev:/home/shaun/repos/athanor/services/governor/status_report.py"
+scp "C:/Athanor/.worktrees/main-integration/services/governor/status_report.py" "dev:/home/shaun/repos/athanor/services/governor/status_report.py"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/governor/status_report.py")
@@ -160,7 +160,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor"'
 ssh dev 'cp "/home/shaun/repos/athanor/services/governor/overnight.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py"'
-scp "C:/Athanor/.worktrees/front-door-cleanup/services/governor/overnight.py" "dev:/home/shaun/repos/athanor/services/governor/overnight.py"
+scp "C:/Athanor/.worktrees/main-integration/services/governor/overnight.py" "dev:/home/shaun/repos/athanor/services/governor/overnight.py"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/governor/overnight.py")
@@ -183,7 +183,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor"'
 ssh dev 'cp "/home/shaun/repos/athanor/services/governor/act_first.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py"'
-scp "C:/Athanor/.worktrees/front-door-cleanup/services/governor/act_first.py" "dev:/home/shaun/repos/athanor/services/governor/act_first.py"
+scp "C:/Athanor/.worktrees/main-integration/services/governor/act_first.py" "dev:/home/shaun/repos/athanor/services/governor/act_first.py"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/governor/act_first.py")
@@ -206,7 +206,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor"'
 ssh dev 'cp "/home/shaun/repos/athanor/services/governor/self_improve.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py"'
-scp "C:/Athanor/.worktrees/front-door-cleanup/services/governor/self_improve.py" "dev:/home/shaun/repos/athanor/services/governor/self_improve.py"
+scp "C:/Athanor/.worktrees/main-integration/services/governor/self_improve.py" "dev:/home/shaun/repos/athanor/services/governor/self_improve.py"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/governor/self_improve.py")
@@ -229,7 +229,7 @@ PY'
 ```bash
 ssh dev 'mkdir -p "/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel"'
 ssh dev 'cp "/home/shaun/repos/athanor/services/sentinel/checks.py" "/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py"'
-scp "C:/Athanor/.worktrees/front-door-cleanup/services/sentinel/checks.py" "dev:/home/shaun/repos/athanor/services/sentinel/checks.py"
+scp "C:/Athanor/.worktrees/main-integration/services/sentinel/checks.py" "dev:/home/shaun/repos/athanor/services/sentinel/checks.py"
 ssh dev 'python3 - <<'"'"'PY'"'"'
 from pathlib import Path
 path = Path("/home/shaun/repos/athanor/services/sentinel/checks.py")
