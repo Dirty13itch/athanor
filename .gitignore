@@ -71,17 +71,25 @@ evals/results/
 # Test logs
 logs/endpoint-tests/
 /reports/
-/projects/reports/
+/projects/reports/*
+!/projects/reports/README.md
+/projects/reports/completion-audit/
 
 # Claude Code
 .claude/settings.local.json
 .claude/CLAUDE.local.md
+.claude/.health-cache
+.claude/.session-state.md
 .claude/worktrees/
 .claude/plans/
 .claude/agent-memory/
+.venv-services-ci/
 scripts/.venv-router/
 
-# Generated audit/census data (regenerate with scripts/validate-atlas.py)
+# Local MCP overrides
+.mcp.local.json
+
+# Generated audit/census data
 /docs/atlas/inventory/completion/
 /tests/ui-audit/
 projects/eoq/.next/
