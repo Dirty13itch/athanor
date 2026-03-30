@@ -24,8 +24,11 @@ import time
 from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import URLError
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cluster_config import get_url
+
+try:
+    from scripts._cluster_config import get_url
+except ModuleNotFoundError:
+    from _cluster_config import get_url
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)

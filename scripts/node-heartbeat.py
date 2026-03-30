@@ -19,8 +19,11 @@ import socket
 import subprocess
 import sys
 import time
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cluster_config import get_url
+
+try:
+    from scripts._cluster_config import get_url
+except ModuleNotFoundError:
+    from _cluster_config import get_url
 
 # Node identity from hostname or env
 NODE_NAME = os.environ.get("ATHANOR_NODE", socket.gethostname())
