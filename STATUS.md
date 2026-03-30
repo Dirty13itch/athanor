@@ -1,7 +1,7 @@
 # Athanor Status
 
 **Last updated:** 2026-03-30  
-**Program:** Truth convergence, inventory, and aggressive prune
+**Program:** Truth convergence, mainline synthesis, and aggressive prune
 
 ## Program Health
 
@@ -9,6 +9,7 @@
 |------|--------|-------|
 | Authority model | In progress | `C:\Athanor` is being locked as implementation authority, DEV runtime state is being classified explicitly, and `athanor-next` remains incubation-only. |
 | Startup docs | In progress | Top-entry docs are being rewritten to stop routing humans and agents to stale truth layers. |
+| Mainline synthesis | Completed | The clean synthesis lane has landed the 2026-03-29 through 2026-03-30 Athanor-core integrator train plus the remaining script-service contract slice onto `main`, refreshed generated operations reports on trunk, and left `main` as the only active integration line. The remaining branch and worktree sprawl is now cleanup debt rather than pending merge work: the targeted Athanor-core `codex/extract-*` and `codex/finish-*` pool is already patch-equivalent to trunk or otherwise subsumed, while older historical branches remain hold-only for manual salvage. |
 | Truth inventories | In progress | Hardware, model, provider, subscription-burn, tooling, credential, repo-root, and routing-taxonomy registries are now present under `config/automation-backbone`, and the credential surface registry now carries remediation intent. |
 | Generated reports | In progress | Truth inventory reports generate and freshness-check cleanly; collector depth now includes repo-safe DEV runtime and DESK runtime-env evidence, service probes now honor topology-owned non-default health paths and classify `bolt://` plus `redis://` planes by TCP-connect truth instead of fake broken HTTP requests, the collector now captures live and retired `athanor-governor` evidence instead of relying on repo inference alone, the generated runtime-migration report carries the caller-by-caller `:8760` cutover map, the live collector cross-checks the observed DEV caller set against that migration map with zero unmapped callers, persists a cached truth snapshot under `reports/truth-inventory/latest.json`, hashes each observed runtime-owned caller against implementation authority, and now proves the retired listener is absent with all 9 mapped callers already synced. `docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md` now serves as audit and rollback evidence for the completed 2026-03-29 maintenance window, and the report generator now treats live snapshot and VAULT env-audit timestamp churn as non-stale when the underlying report content is otherwise unchanged so the validator stays green under active collectors. The platform validator still fails if any migration-registry caller marked `migrated` carries `:8760`, `/queue`, `/dispatch-and-run`, or `ATHANOR_GOVERNOR_URL` residue in implementation authority. |
 | Operator front door | Completed | `config/automation-backbone/operator-surface-registry.json` and `docs/operations/OPERATOR-SURFACE-REPORT.md` own human-facing surface truth, the dashboard IA is regrouped into command-center/operate/build/domains/catalog, the DEV command center runs as a containerized dashboard behind Caddy at `https://athanor.local/`, WORKSHOP `:3001` is retired as a command-center surface, the live container is standardized onto `/opt/athanor/dashboard`, DESK now resolves `athanor.local` plus the node-host aliases through the scripted hosts-file rollout, and both canonical browser verification plus runtime fallback smoke are green. The topology-owned dashboard health probe uses `/api/operator/session`, so the generic service-health lane no longer reports a false red from the heavyweight `/api/overview` aggregate. |
@@ -162,12 +163,12 @@
 
 ## Immediate Order
 
-1. Close the remaining clean-main `projects/agents` convergence tranche so the documented acceptance matrix can go fully green from `main`, not just the dashboard and service-contract lanes.
+1. Treat `main` as the only Athanor-core integration line now that the synthesized branch train is landed, and keep the remaining subsumed `codex/extract-*` plus `codex/finish-*` branches in approval-gated cleanup rather than re-merging them.
 2. Keep the repo-safe VAULT credential-truth tightening tranche current, keep the generated repair packet and reports current, and hold the live boundary at ask-first.
 3. Run the approved VAULT LiteLLM auth-repair packet, then re-probe the blocked provider lanes and refresh provider plus secret-surface truth.
 4. Verify the subscribed Kimi billing tier and restore or explicitly keep GLM CLI evidence demoted so the remaining weak non-API lanes stop living in ambiguity.
 5. Keep dashboard in sidecar mode for lower-risk breadth such as `activity`, `agents`, `chat`, `conversations`, `goals`, `gpu`, `home`, `insights`, `learning`, `media`, `notifications`, `outputs`, `personal-data`, `preferences`, and `review` now that the clean-main `terminal` plus `audit` E2E bundles are green.
-6. Continue pruning stale reference docs that still preserve retired standalone governor, pre-registry service, or old rack-layout narratives.
+6. Continue pruning stale reference docs that still preserve retired standalone governor, pre-registry service, or old rack-layout narratives, and prepare the merged worktree and branch cleanup packet for explicit approval instead of deleting blind.
 7. Keep the live software-core autonomy phase bounded while provider evidence and VAULT auth repair catch up, then promote the next phase explicitly instead of by drift.
 8. Return to the next remaining control-plane seam that still bypasses shared health/action or durable truth.
 
@@ -191,6 +192,7 @@
 ## Current Open Risks
 
 - Some runtime ownership facts still live outside the registries in DEV systemd, cron, `/opt/athanor`, and `/home/shaun/.athanor`, even though the collector can now audit them and the reviewed secret-delivery surfaces are normalized.
+- Local branch and worktree sprawl can still obscure real drift: `main` now carries the synthesized Athanor-core line, but many obsolete worktrees remain pinned to subsumed branches until the approval-gated cleanup tranche is executed.
 - The operator front door is now operationally coherent on DESK through the scripted hosts-file rollout. Additional operator desktops would still need the same helper or internal DNS before they can rely on `athanor.local` without local aliasing.
 - A few reference docs still describe obsolete hardware, provider, or repo topology and should be deleted after report generation; the biggest stale archive-era guide, context, atlas, planning, and active-root audit duplicates are gone, but other stale reference narratives still need the same treatment.
 - Shared health/action rollout is still incomplete beyond the now-aligned task, feedback, preference, event-ingestion, and related mutation routes.
