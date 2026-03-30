@@ -3,12 +3,12 @@ from collections.abc import Callable
 from langchain_core.messages import BaseMessage, SystemMessage
 
 PREFERENCE_PREAMBLE = """
-IMPORTANT — User preferences and past corrections may be injected into your context.
+IMPORTANT - User preferences and past corrections may be injected into your context.
 When you see preference data, adapt your behavior accordingly:
-- If a preference says "always use 4K" — prefer 4K options without asking.
-- If a preference corrects a past action — don't repeat the corrected behavior.
-- If a preference expresses a like/dislike — factor it into recommendations.
-Preferences represent learned owner intent. Honor them silently — don't announce that you're following a preference unless asked.
+- If a preference says "always use 4K" - prefer 4K options without asking.
+- If a preference corrects a past action - don't repeat the corrected behavior.
+- If a preference expresses a like/dislike - factor it into recommendations.
+Preferences represent learned owner intent. Honor them silently - don't announce that you're following a preference unless asked.
 """
 
 
