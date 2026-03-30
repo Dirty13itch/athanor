@@ -2,10 +2,30 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+
+AUTONOMY_ACTIVE_STATES: frozenset[str] = frozenset(
+    {"software_core_active", "expanded_core_active", "full_system_active"}
+)
+
+
+@dataclass(frozen=True)
+class AutonomyPhasePolicy:
+    phase_id: str | None
+    is_active: bool
+    activation_state: str
+    phase_status: str
+    enabled_agents: frozenset[str]
+    allowed_workload_classes: frozenset[str]
+    blocked_workload_classes: frozenset[str]
+    unmet_prerequisite_ids: tuple[str, ...]
+    broad_autonomy_enabled: bool
+    runtime_mutations_approval_gated: bool
 
 
 def _repo_root() -> Path:
@@ -33,6 +53,24 @@ def _candidate_registry_dirs() -> list[Path]:
     return candidates
 
 
+def _candidate_reports_dirs() -> list[Path]:
+    candidates: list[Path] = []
+    env_dir = os.getenv("ATHANOR_REPORTS_DIR")
+    if env_dir:
+        candidates.append(Path(env_dir))
+
+    repo_root = _repo_root()
+    candidates.extend(
+        [
+            repo_root / "reports" / "truth-inventory",
+            Path.cwd() / "reports" / "truth-inventory",
+            Path("/app/reports/truth-inventory"),
+            Path("/opt/athanor/reports/truth-inventory"),
+        ]
+    )
+    return candidates
+
+
 def _registry_dir(filename: str) -> Path:
     for candidate in _candidate_registry_dirs():
         if (candidate / filename).exists():
@@ -43,9 +81,25 @@ def _registry_dir(filename: str) -> Path:
     )
 
 
+def _reports_path(filename: str) -> Path:
+    for candidate in _candidate_reports_dirs():
+        if (candidate / filename).exists():
+            return candidate / filename
+    checked = ", ".join(str(path) for path in _candidate_reports_dirs())
+    raise FileNotFoundError(
+        f"Unable to resolve report artifact {filename!r}. Checked: {checked}"
+    )
+
+
 @lru_cache(maxsize=None)
 def _load_registry(filename: str) -> dict[str, Any]:
     path = _registry_dir(filename) / filename
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+@lru_cache(maxsize=None)
+def _load_report_artifact(filename: str) -> dict[str, Any]:
+    path = _reports_path(filename)
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -125,6 +179,180 @@ def get_operator_runbooks_registry() -> dict[str, Any]:
     return _load_registry("operator-runbooks.json")
 
 
+def get_autonomy_activation_registry() -> dict[str, Any]:
+    return _load_registry("autonomy-activation-registry.json")
+
+
+def get_current_autonomy_phase(registry: dict[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, Any]]:
+    activation = dict(registry or get_autonomy_activation_registry())
+    phases = {
+        str(item.get("id")): dict(item)
+        for item in activation.get("phases", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    current_phase_id = str(activation.get("current_phase_id") or "")
+    return activation, dict(phases.get(current_phase_id) or {})
+
+
+def get_next_autonomy_phase(
+    registry: dict[str, Any] | None = None,
+    *,
+    phase_id: str | None = None,
+) -> dict[str, Any]:
+    activation = dict(registry or get_autonomy_activation_registry())
+    phase_entries = [
+        dict(item)
+        for item in activation.get("phases", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    ]
+    phase_order = [str(item.get("id") or "").strip() for item in phase_entries if str(item.get("id") or "").strip()]
+    current_phase_id = str(phase_id or activation.get("current_phase_id") or "").strip()
+    try:
+        current_index = phase_order.index(current_phase_id)
+    except ValueError:
+        return {}
+    next_index = current_index + 1
+    if next_index >= len(phase_entries):
+        return {}
+    return dict(phase_entries[next_index])
+
+
+def get_unmet_autonomy_prerequisites(
+    registry: dict[str, Any] | None = None,
+    *,
+    phase_id: str | None = None,
+) -> list[dict[str, Any]]:
+    activation = dict(registry or get_autonomy_activation_registry())
+    phase_entries = [
+        dict(item)
+        for item in activation.get("phases", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    ]
+    phase_order = {str(item.get("id") or ""): index for index, item in enumerate(phase_entries)}
+    target_phase_id = str(phase_id or activation.get("current_phase_id") or "").strip()
+    target_index = phase_order.get(target_phase_id)
+    if target_index is None:
+        return []
+
+    unmet: list[dict[str, Any]] = []
+    for item in activation.get("prerequisites", []):
+        if not isinstance(item, dict):
+            continue
+        status = str(item.get("status") or "").strip()
+        if status == "verified":
+            continue
+        scope = str(item.get("phase_scope") or "").strip()
+        if not scope:
+            unmet.append(dict(item))
+            continue
+        scope_index = phase_order.get(scope)
+        if scope_index is None or scope_index <= target_index:
+            unmet.append(dict(item))
+    return unmet
+
+
+def get_current_autonomy_policy(
+    registry: dict[str, Any] | None = None,
+) -> AutonomyPhasePolicy:
+    activation, current_phase = get_current_autonomy_phase(registry)
+    phase_id = str(current_phase.get("id") or "").strip() or None
+    activation_state = str(activation.get("activation_state") or "blocked").strip() or "blocked"
+    phase_status = str(current_phase.get("status") or "planned").strip() or "planned"
+    enabled_agents = frozenset(
+        str(item).strip()
+        for item in current_phase.get("enabled_agents", [])
+        if str(item).strip()
+    )
+    allowed_workload_classes = frozenset(
+        str(item).strip()
+        for item in current_phase.get("allowed_workload_classes", [])
+        if str(item).strip()
+    )
+    blocked_workload_classes = frozenset(
+        str(item).strip()
+        for item in current_phase.get("blocked_workload_classes", [])
+        if str(item).strip()
+    )
+    unmet_prerequisite_ids = tuple(
+        str(item.get("id") or "unknown")
+        for item in get_unmet_autonomy_prerequisites(activation, phase_id=phase_id)
+    )
+    is_active = (
+        activation_state in AUTONOMY_ACTIVE_STATES
+        and phase_status == "active"
+        and not unmet_prerequisite_ids
+    )
+    return AutonomyPhasePolicy(
+        phase_id=phase_id,
+        is_active=is_active,
+        activation_state=activation_state,
+        phase_status=phase_status,
+        enabled_agents=enabled_agents,
+        allowed_workload_classes=allowed_workload_classes,
+        blocked_workload_classes=blocked_workload_classes,
+        unmet_prerequisite_ids=unmet_prerequisite_ids,
+        broad_autonomy_enabled=bool(activation.get("broad_autonomy_enabled")),
+        runtime_mutations_approval_gated=bool(
+            activation.get("runtime_mutations_approval_gated", True)
+        ),
+    )
+
+
+def get_platform_topology() -> dict[str, Any]:
+    return _load_registry("platform-topology.json")
+
+
+def get_hardware_inventory() -> dict[str, Any]:
+    return _load_registry("hardware-inventory.json")
+
+
+def get_model_deployment_registry() -> dict[str, Any]:
+    return _load_registry("model-deployment-registry.json")
+
+
+def get_provider_catalog_registry() -> dict[str, Any]:
+    return _load_registry("provider-catalog.json")
+
+
+def get_subscription_burn_registry() -> dict[str, Any]:
+    return _load_registry("subscription-burn-registry.json")
+
+
+def get_tooling_inventory_registry() -> dict[str, Any]:
+    return _load_registry("tooling-inventory.json")
+
+
+def get_credential_surface_registry() -> dict[str, Any]:
+    return _load_registry("credential-surface-registry.json")
+
+
+def get_repo_roots_registry() -> dict[str, Any]:
+    return _load_registry("repo-roots-registry.json")
+
+
+def get_routing_taxonomy_map() -> dict[str, Any]:
+    return _load_registry("routing-taxonomy-map.json")
+
+
+def get_project_maturity_registry() -> dict[str, Any]:
+    return _load_registry("project-maturity-registry.json")
+
+
+def get_docs_lifecycle_registry() -> dict[str, Any]:
+    return _load_registry("docs-lifecycle-registry.json")
+
+
+def get_program_operating_system() -> dict[str, Any]:
+    return _load_registry("program-operating-system.json")
+
+
+def get_provider_usage_evidence_artifact() -> dict[str, Any]:
+    try:
+        return _load_report_artifact("provider-usage-evidence.json")
+    except FileNotFoundError:
+        return {"version": "unknown", "updated_at": None, "captures": []}
+
+
 def _build_registry_versions() -> dict[str, str]:
     return {
         "constitution": get_system_constitution().get("version", "unknown"),
@@ -146,6 +374,19 @@ def _build_registry_versions() -> dict[str, str]:
         "experiment_ledger": get_experiment_ledger_policy().get("version", "unknown"),
         "deprecation_retirement": get_deprecation_retirement_policy().get("version", "unknown"),
         "operator_runbooks": get_operator_runbooks_registry().get("version", "unknown"),
+        "autonomy_activation": get_autonomy_activation_registry().get("version", "unknown"),
+        "platform_topology": get_platform_topology().get("version", "unknown"),
+        "hardware_inventory": get_hardware_inventory().get("version", "unknown"),
+        "model_deployments": get_model_deployment_registry().get("version", "unknown"),
+        "provider_catalog": get_provider_catalog_registry().get("version", "unknown"),
+        "subscription_burn": get_subscription_burn_registry().get("version", "unknown"),
+        "tooling_inventory": get_tooling_inventory_registry().get("version", "unknown"),
+        "credential_surfaces": get_credential_surface_registry().get("version", "unknown"),
+        "repo_roots": get_repo_roots_registry().get("version", "unknown"),
+        "routing_taxonomy": get_routing_taxonomy_map().get("version", "unknown"),
+        "project_maturity": get_project_maturity_registry().get("version", "unknown"),
+        "docs_lifecycle": get_docs_lifecycle_registry().get("version", "unknown"),
+        "program_operating_system": get_program_operating_system().get("version", "unknown"),
     }
 
 
@@ -253,6 +494,48 @@ def _build_deprecation_retirement_snapshot(
     }
 
 
+def _build_autonomy_activation_snapshot() -> dict[str, Any]:
+    activation = get_autonomy_activation_registry()
+    phases = [
+        dict(item)
+        for item in activation.get("phases", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    ]
+    phase_index = {str(item.get("id")): item for item in phases}
+    current_phase_id = str(activation.get("current_phase_id") or "")
+    current_phase = dict(phase_index.get(current_phase_id) or {})
+    next_phase = get_next_autonomy_phase(activation, phase_id=current_phase_id)
+    next_phase_id = str(next_phase.get("id") or "").strip() or None
+    next_phase_blockers = get_unmet_autonomy_prerequisites(activation, phase_id=next_phase_id) if next_phase_id else []
+    verified_prerequisites = sum(
+        1
+        for item in activation.get("prerequisites", [])
+        if isinstance(item, dict) and str(item.get("status") or "") == "verified"
+    )
+    return {
+        "version": activation.get("version", "unknown"),
+        "status": activation.get("status", "configured"),
+        "activation_state": str(activation.get("activation_state") or "unknown"),
+        "current_phase_id": current_phase_id or None,
+        "current_phase_status": str(current_phase.get("status") or "unknown"),
+        "current_phase_scope": str(current_phase.get("scope") or "") or None,
+        "phase_count": len(phases),
+        "enabled_agent_count": len(list(current_phase.get("enabled_agents", []))),
+        "allowed_workload_count": len(list(current_phase.get("allowed_workload_classes", []))),
+        "blocked_workload_count": len(list(current_phase.get("blocked_workload_classes", []))),
+        "approval_gate_count": len(list(activation.get("approval_gates", []))),
+        "verified_prerequisite_count": verified_prerequisites,
+        "prerequisite_count": len(list(activation.get("prerequisites", []))),
+        "next_phase_id": next_phase_id,
+        "next_phase_status": str(next_phase.get("status") or "complete") if next_phase_id else None,
+        "next_phase_scope": str(next_phase.get("scope") or "") or None,
+        "next_phase_blocker_count": len(next_phase_blockers),
+        "next_phase_blocker_ids": [str(item.get("id") or "").strip() for item in next_phase_blockers if str(item.get("id") or "").strip()],
+        "broad_autonomy_enabled": bool(activation.get("broad_autonomy_enabled")),
+        "runtime_mutations_approval_gated": bool(activation.get("runtime_mutations_approval_gated", True)),
+    }
+
+
 def _build_governance_layers_snapshot(
     *,
     proving_ground_snapshot: dict[str, Any] | None = None,
@@ -275,6 +558,7 @@ def _build_governance_layers_snapshot(
             promotion_controls=promotion_controls,
         ),
         "deprecation_retirement": _build_deprecation_retirement_snapshot(retirement_controls),
+        "autonomy_activation": _build_autonomy_activation_snapshot(),
         "operator_runbooks": {
             "version": runbooks.get("version", "unknown"),
             "runbook_count": len(runbooks.get("runbooks", [])),

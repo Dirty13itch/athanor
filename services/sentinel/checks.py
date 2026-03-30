@@ -2,16 +2,24 @@
 
 import time
 import httpx
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from cluster_config import (
-    VAULT_HOST, FOUNDRY_HOST, WORKSHOP_HOST,
-    LITELLM_URL, QDRANT_URL, PROMETHEUS_URL, NTFY_URL,
-    AGENT_SERVER_URL, VLLM_COORDINATOR_URL, VLLM_CODER_URL,
-    OLLAMA_WORKSHOP_URL, COMFYUI_URL,
-)
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from _imports import (
+    AGENT_SERVER_URL,
+    FOUNDRY_HOST,
+    LITELLM_URL,
+    NTFY_URL,
+    OLLAMA_WORKSHOP_URL,
+    PROMETHEUS_URL,
+    QDRANT_URL,
+    SERVICE_DEFINITIONS,
+    VAULT_HOST,
+    VLLM_CODER_URL,
+    VLLM_COORDINATOR_URL,
+    WORKSHOP_HOST,
+    get_health_url,
+)
 
 # ---------------------------------------------------------------------------
 # Auth
@@ -47,35 +55,41 @@ def _get_agent_key() -> str:
 # Tier 1: Heartbeat -- is it alive?
 # ---------------------------------------------------------------------------
 
+HEARTBEAT_SERVICE_IDS = (
+    "gateway",
+    "memory",
+    "quality_gate",
+    "dashboard",
+    "embedding",
+    "reranker",
+    "semantic_router",
+    "subscription_burn",
+    "litellm",
+    "qdrant",
+    "prometheus",
+    "agent_server",
+    "vllm_coordinator",
+    "vllm_coder",
+    "ollama_workshop",
+    "comfyui",
+)
+
 HEARTBEAT_CHECKS = [
-    ("gateway", "http://localhost:8700/health"),
-    ("mind", "http://localhost:8710/health"),
-    ("memory", "http://localhost:8720/health"),
-    ("governor", "http://localhost:8760/health"),
-    ("classifier", "http://localhost:8740/health"),
-    ("dashboard", "http://localhost:3001/"),
-    ("embedding", "http://localhost:8001/v1/models"),
-    ("reranker", "http://localhost:8003/v1/models"),
-    ("semantic_router", "http://localhost:8060/health"),
-    ("burn_scheduler", "http://localhost:8065/health"),
-    ("litellm", f"{LITELLM_URL}/health"),
-    ("qdrant", f"{QDRANT_URL}/healthz"),
-    ("prometheus", f"{PROMETHEUS_URL}/-/healthy"),
-    ("ntfy", f"{NTFY_URL}/v1/health"),
-    ("agent_server", f"{AGENT_SERVER_URL}/health"),
-    ("vllm_coordinator", f"{VLLM_COORDINATOR_URL}/health"),
-    ("vllm_coder", f"{VLLM_CODER_URL}/health"),
-    ("ollama_sovereign", f"{OLLAMA_WORKSHOP_URL}/api/tags"),
-    ("comfyui", f"{COMFYUI_URL}/system_stats"),
-    ("ollama", f"{OLLAMA_WORKSHOP_URL}/api/tags"),
-    ("brain", "http://localhost:8780/health"),
-    ("quality_gate", "http://localhost:8790/health"),
-    ("draftsman", "http://localhost:8400/"),
-    ("open_webui", "http://localhost:3080/"),
+    (service_id, get_health_url(service_id))
+    for service_id in HEARTBEAT_SERVICE_IDS
+    if str(SERVICE_DEFINITIONS[service_id].get("health_path") or "")
 ]
 
 # Services that need Authorization header
 AUTH_SERVICES = {"litellm", "agent_server"}
+
+READINESS_SERVICES = (
+    "vllm_coordinator",
+    "vllm_coder",
+    "ollama_workshop",
+    "litellm",
+    "embedding",
+)
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -127,11 +141,11 @@ def run_readiness(name: str) -> CheckResult:
     """Tier 2: functional probe per service type."""
     start = time.monotonic()
     try:
-        if name in ("vllm_coordinator", "vllm_coder", "ollama_sovereign"):
+        if name in ("vllm_coordinator", "vllm_coder", "ollama_workshop"):
             port_map = {
                 "vllm_coordinator": (FOUNDRY_HOST, 8000, "/models/Qwen3.5-27B-FP8"),
                 "vllm_coder": (FOUNDRY_HOST, 8006, "devstral-small-2"),
-                "ollama_sovereign": (WORKSHOP_HOST, 11434, "huihui_ai/qwen3.5-abliterated:35b"),
+                "ollama_workshop": (WORKSHOP_HOST, 11434, "huihui_ai/qwen3.5-abliterated:35b"),
             }
             host, port, model_name = port_map[name]
             if port == 11434:  # Ollama
@@ -169,11 +183,6 @@ def run_readiness(name: str) -> CheckResult:
                 timeout=15.0,
             )
             passed = r.status_code == 200 and "data" in r.text
-            detail = f"HTTP {r.status_code}"
-
-        elif name == "governor":
-            r = httpx.get("http://localhost:8760/health", timeout=10.0)
-            passed = r.status_code == 200
             detail = f"HTTP {r.status_code}"
 
         else:
@@ -217,10 +226,11 @@ def run_integration() -> list[CheckResult]:
         passed=passed, latency_ms=round(latency, 1), detail=detail,
     ))
 
-    # Dashboard -> Governor queue
+    # Dashboard -> canonical task engine
     start = time.monotonic()
     try:
-        r = httpx.get("http://localhost:8760/queue", timeout=10.0)
+        agent_headers = {"Authorization": f"Bearer {_get_agent_key()}"} if _get_agent_key() else {}
+        r = httpx.get(f"{AGENT_SERVER_URL}/v1/tasks/stats", headers=agent_headers, timeout=10.0)
         latency = (time.monotonic() - start) * 1000
         passed = r.status_code == 200
         detail = f"HTTP {r.status_code}"
@@ -229,7 +239,7 @@ def run_integration() -> list[CheckResult]:
         passed = False
         detail = str(exc)[:200]
     results.append(CheckResult(
-        service="governor_queue", tier="integration",
+        service="task_engine_stats", tier="integration",
         passed=passed, latency_ms=round(latency, 1), detail=detail,
     ))
 

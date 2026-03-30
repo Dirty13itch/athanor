@@ -38,6 +38,17 @@
       LANGFUSE_SECRET_KEY: "{{ litellm_langfuse_secret_key }}"
       LANGFUSE_HOST: "{{ litellm_langfuse_host }}"
       ANTHROPIC_API_KEY: "{{ litellm_anthropic_api_key }}"
+      OPENAI_API_KEY: "{{ litellm_openai_api_key }}"
+      MISTRAL_API_KEY: "{{ litellm_mistral_api_key }}"
+      CODESTRAL_API_KEY: "{{ litellm_codestral_api_key }}"
+      GEMINI_API_KEY: "{{ litellm_gemini_api_key }}"
+      GOOGLE_API_KEY: "{{ litellm_google_api_key }}"
+      DEEPSEEK_API_KEY: "{{ litellm_deepseek_api_key }}"
+      MOONSHOT_API_KEY: "{{ litellm_moonshot_api_key }}"
+      DASHSCOPE_API_KEY: "{{ litellm_dashscope_api_key }}"
+      VENICE_API_KEY: "{{ litellm_venice_api_key }}"
+      ZAI_API_KEY: "{{ litellm_zai_api_key }}"
+      OPENROUTER_API_KEY: "{{ litellm_openrouter_api_key }}"
     restart: "{{ litellm_config.changed | default(false) }}"
   when: not ansible_check_mode
 

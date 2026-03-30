@@ -1,32 +1,34 @@
-"""Self-Improvement Loop \u2014 connects Agent Server proposals to Governor dispatch.
-Runs periodically to check for new improvement proposals and create tasks from them.
+"""Compatibility helper that turns improvement proposals into canonical tasks.
+Runs periodically to fetch proposals from the agent server and create durable tasks.
 """
-import requests
-import json
+
+from __future__ import annotations
+
 from datetime import datetime
+import uuid
 
 import os
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
-from cluster_config import AGENT_SERVER_URL
+import requests
+
+from _imports import AGENT_SERVER_URL
+
+
 AGENT_SERVER = AGENT_SERVER_URL
-
-GOVERNOR = "http://localhost:8760"
 
 
 def _read_secret(fpath: str) -> str:
     try:
-        return open(fpath).read().strip()
+        with open(fpath, encoding="utf-8") as handle:
+            return handle.read().strip()
     except (OSError, IOError):
         return ""
 
 
 def _agent_headers():
     """Read Agent Server auth token from secrets file or env."""
-    key = (
-        os.environ.get("ATHANOR_AGENT_API_TOKEN")
-        or _read_secret("/home/shaun/.secrets/agent-server-api-key")
+    key = os.environ.get("ATHANOR_AGENT_API_TOKEN") or _read_secret(
+        "/home/shaun/.secrets/agent-server-api-key"
     )
     if key:
         return {"Authorization": f"Bearer {key}"}
@@ -45,15 +47,14 @@ def get_proposals():
             print(f"  Warning: Agent Server returned {r.status_code}: {r.text[:200]}")
             return []
         data = r.json()
-        proposals = data.get("proposals", [])
-        return proposals
+        return data.get("proposals", [])
     except requests.RequestException as e:
         print(f"  Error fetching proposals: {e}")
         return []
 
 
 def mark_proposal_processed(proposal_id: str):
-    """Mark a proposal as processed on the Agent Server so it is not re-queued."""
+    """Mark a proposal as processed on the Agent Server so it is not submitted twice."""
     try:
         r = requests.patch(
             f"{AGENT_SERVER}/v1/improvement/proposals/{proposal_id}",
@@ -70,27 +71,50 @@ def mark_proposal_processed(proposal_id: str):
 
 
 def create_task_from_proposal(proposal):
-    """Convert an improvement proposal to a Governor task."""
+    """Convert an improvement proposal to a canonical task-engine task."""
     proposal_id = proposal.get("id", "unknown")
     desc = proposal.get("description", "")
     cat = proposal.get("category", "unknown")
+    agent = "research-agent" if cat in {"research", "analysis", "evaluation"} else "coding-agent"
+    priority = "high" if cat in {"architecture", "safety", "security"} else "normal"
     task = {
-        "title": proposal.get("title", "Improvement proposal")[:100],
-        "description": desc + "\nCategory: " + cat + "\nProposal ID: " + proposal_id,
-        "repo": "athanor",
-        "complexity": "medium" if cat == "prompt" else "low",
-        "content_class": "cloud_safe",
+        "agent": agent,
+        "prompt": (
+            "Review and execute this improvement proposal.\n"
+            f"Title: {proposal.get('title', 'Improvement proposal')[:100]}\n"
+            f"Description: {desc}\n"
+            f"Category: {cat}\n"
+            f"Proposal ID: {proposal_id}"
+        ),
+        "priority": priority,
+        "metadata": {
+            "source": "self_improve_loop",
+            "proposal_id": proposal_id,
+            "proposal_category": cat,
+            "requires_approval": cat in {"architecture", "safety", "security"},
+        },
+        "actor": "self-improve-loop",
+        "session_id": "self-improve-loop",
+        "correlation_id": uuid.uuid4().hex,
+        "reason": f"Submitted improvement proposal {proposal_id}",
     }
     try:
-        r = requests.post(f"{GOVERNOR}/tasks", json=task, timeout=30)
+        r = requests.post(
+            f"{AGENT_SERVER}/v1/tasks",
+            json=task,
+            headers=_agent_headers(),
+            timeout=30,
+        )
         if r.status_code == 200:
             result = r.json()
-            print(f"  Created task: {result.get('id')} from proposal {proposal_id}")
+            task_id = (result.get("task") or {}).get("id")
+            print(f"  Created task: {task_id} from proposal {proposal_id}")
             mark_proposal_processed(proposal_id)
             return result
-        else:
-            print(f"  Failed to create task from proposal {proposal_id}: {r.status_code} {r.text[:200]}")
-            return None
+        print(
+            f"  Failed to create task from proposal {proposal_id}: {r.status_code} {r.text[:200]}"
+        )
+        return None
     except requests.RequestException as e:
         print(f"  Error creating task from proposal {proposal_id}: {e}")
         return None
@@ -108,7 +132,7 @@ def get_goals():
 
 
 def run_self_improvement_cycle():
-    """Main loop: proposals -> tasks -> dispatch."""
+    """Main loop: proposals -> canonical tasks."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     print(f"[{timestamp}] Self-improvement cycle starting...")
 
@@ -123,14 +147,13 @@ def run_self_improvement_cycle():
     print(f"  Found {len(new_proposals)} pending proposals (of {len(proposals)} total)")
 
     created = 0
-    for proposal in new_proposals[:5]:  # Max 5 per cycle
+    for proposal in new_proposals[:5]:
         result = create_task_from_proposal(proposal)
         if result:
             created += 1
 
     print(f"  Created {created} tasks from {len(new_proposals)} proposals")
 
-    # Also check goals and create maintenance tasks
     goals = get_goals()
     high_priority = [g for g in goals if g.get("priority") == "high" and g.get("active")]
     print(f"  {len(high_priority)} high-priority active goals")

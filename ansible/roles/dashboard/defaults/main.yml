@@ -3,6 +3,19 @@ dashboard_deploy_dir: /opt/athanor/dashboard
 dashboard_port: 3001
 dashboard_prometheus_url: "{{ prometheus_url }}"
 dashboard_image: "athanor/dashboard:latest"
+dashboard_surface_mode: "canonical_production"
+dashboard_legacy_systemd_service_name: "athanor-dashboard.service"
+dashboard_disable_legacy_systemd_service: "{{ dashboard_surface_mode == 'canonical_production' }}"
+dashboard_verify_runtime_contract: true
+dashboard_static_asset_verify_count: 4
+dashboard_expected_api_paths:
+  - /api/operator/context
+  - /api/operator/session
+  - /api/operator/nav-attention
+  - /api/operator/ui-preferences
+dashboard_command_center_url: "https://athanor.local"
+dashboard_workshop_link_host: "interface.athanor.local"
+dashboard_vault_link_host: "vault.athanor.local"
 dashboard_vapid_public_key: ""
 dashboard_vapid_private_key: ""
 
@@ -31,10 +44,14 @@ dashboard_stash_url: "http://{{ vault_ip | default('192.168.1.203') }}:{{ stash_
 dashboard_prowlarr_url: "http://{{ vault_ip | default('192.168.1.203') }}:{{ prowlarr_port | default('9696') }}"
 dashboard_sabnzbd_url: "http://{{ vault_ip | default('192.168.1.203') }}:{{ sabnzbd_port | default('8080') }}"
 dashboard_home_assistant_url: "http://{{ vault_ip | default('192.168.1.203') }}:{{ home_assistant_port | default('8123') }}"
-dashboard_qdrant_url: "http://{{ node1_ip | default('192.168.1.244') }}:6333"
+dashboard_qdrant_url: "http://{{ vault_ip | default('192.168.1.203') }}:6333"
 dashboard_neo4j_url: "http://{{ vault_ip | default('192.168.1.203') }}:7474"
 dashboard_neo4j_user: "neo4j"
 dashboard_neo4j_password: "{{ athanor_neo4j_password | default(neo4j_password | default('')) }}"
 dashboard_speaches_url: "http://{{ node1_ip | default('192.168.1.244') }}:8200"
 dashboard_litellm_api_key: "{{ athanor_litellm_api_key | default(agent_litellm_api_key | default('')) }}"
 dashboard_agent_api_token: "{{ athanor_agent_api_token | default('') }}"
+dashboard_operator_token: "{{ athanor_dashboard_operator_token | default('') }}"
+dashboard_langfuse_public_key: "{{ athanor_langfuse_public_key | default('') }}"
+dashboard_langfuse_secret_key: "{{ athanor_langfuse_secret_key | default('') }}"
+dashboard_ws_pty_bridge_allowed_nodes: "workshop,foundry,dev"
