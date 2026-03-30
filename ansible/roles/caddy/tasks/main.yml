@@ -1,0 +1,85 @@
+---
+- name: Install Caddy
+  ansible.builtin.apt:
+    name: "{{ caddy_package_name }}"
+    state: present
+    update_cache: true
+  when: caddy_manage_package
+
+- name: Ensure Caddy config directory exists
+  ansible.builtin.file:
+    path: "{{ caddy_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy Caddy front-door config
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ caddy_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: caddy_config
+
+- name: Ensure Caddy service is enabled and restarted
+  ansible.builtin.service:
+    name: "{{ caddy_service_name }}"
+    enabled: true
+    state: restarted
+  when: caddy_manage_service and caddy_config.changed
+
+- name: Ensure Caddy service is running
+  ansible.builtin.service:
+    name: "{{ caddy_service_name }}"
+    enabled: true
+    state: started
+  when: caddy_manage_service and not caddy_config.changed
+
+- name: Verify Caddy front door root
+  ansible.builtin.uri:
+    url: "https://{{ caddy_front_door_hostname }}/"
+    status_code: 200
+    validate_certs: false
+  register: caddy_front_door_health
+  retries: 12
+  delay: 5
+  until: caddy_front_door_health.status == 200
+  when:
+    - not ansible_check_mode
+    - caddy_verify_front_door | bool
+
+- name: Verify Caddy front door proxies static assets
+  ansible.builtin.shell: |
+    python3 - <<'PY'
+    import re
+    import ssl
+    import urllib.request
+
+    context = ssl._create_unverified_context()
+    root = "https://{{ caddy_front_door_hostname }}/"
+    html = urllib.request.urlopen(root, timeout=10, context=context).read().decode("utf-8", "replace")
+    patterns = (
+        r'href="([^"]*?_next/static/[^"]+)"',
+        r'src="([^"]*?_next/static/[^"]+)"',
+    )
+    assets = []
+    for pattern in patterns:
+        for match in re.findall(pattern, html):
+            if match.startswith("/_next/static/") and match not in assets:
+                assets.append(match)
+    sample = assets[: {{ caddy_front_door_verify_count }}]
+    if not sample:
+        raise SystemExit("No sampled Next.js assets discovered through Caddy front door")
+    for path in sample:
+        response = urllib.request.urlopen(f"https://{{ caddy_front_door_hostname }}{path}", timeout=10, context=context)
+        if response.status != 200:
+            raise SystemExit(f"Front-door asset probe failed for {path}: {response.status}")
+    PY
+  args:
+    executable: /bin/bash
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - caddy_verify_front_door | bool

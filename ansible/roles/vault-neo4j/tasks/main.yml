@@ -268,7 +268,7 @@
             MATCH (s:Service {name: 'comfyui'}), (n:Node {name: 'Workshop'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
-            MATCH (s:Service {name: 'dashboard'}), (n:Node {name: 'Workshop'})
+            MATCH (s:Service {name: 'dashboard'}), (n:Node {name: 'DEV'})
             MERGE (s)-[:RUNS_ON]->(n)
         - statement: >
             MATCH (s:Service {name: 'workshop-open-webui'}), (n:Node {name: 'Workshop'})

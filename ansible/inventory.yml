@@ -29,7 +29,7 @@ all:
               vram_total_gb: 48
               extra_firewall:
                 - { port: 3000, proto: tcp, comment: "Open WebUI" }
-                - { port: 3001, proto: tcp, comment: "Dashboard" }
+                - { port: 3001, proto: tcp, comment: "Command Center recovery-only shadow lane" }
                 - { port: 3002, proto: tcp, comment: "EoBQ" }
                 - { port: 8188, proto: tcp, comment: "ComfyUI" }
 
@@ -43,6 +43,8 @@ all:
           gpu_type: "RTX 5060 Ti"
           vram_total_gb: 16
           extra_firewall:
+            - { port: 443, proto: tcp, comment: "Athanor Command Center front door" }
+            - { port: 3001, proto: tcp, comment: "Athanor Command Center runtime" }
             - { port: 8001, proto: tcp, comment: "vLLM Embedding API" }
             - { port: 8003, proto: tcp, comment: "vLLM Reranker API" }
 

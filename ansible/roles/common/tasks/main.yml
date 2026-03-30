@@ -70,7 +70,9 @@
   ansible.builtin.lineinfile:
     path: /etc/hosts
     regexp: '.*\b{{ item.name }}\b'
-    line: "{{ item.ip }} {{ item.name }}"
+    line: >-
+      {{ item.ip }} {{ item.name }}{% if (item.aliases | default([])) | length > 0 %}
+      {{ item.aliases | join(' ') }}{% endif %}
     state: present
   loop: "{{ cluster_hosts }}"
 

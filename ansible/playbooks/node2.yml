@@ -12,7 +12,6 @@
     - vllm
     - comfyui
     - open-webui
-    - dashboard
     - role: eoq
       tags: [eoq]
     - role: ulrich-energy
