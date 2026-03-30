@@ -12,7 +12,7 @@ When sources disagree, resolve them in this order:
 4. Tactical planning and build-queue documents
 5. Older map documents and historical planning bundles
 
-The atlas is a reference synthesis layer and completion-audit scaffold. It does not outrank code, registry truth, or live-defining config. It reconciles them.
+The atlas is a reference synthesis layer. It does not outrank code, registry truth, or live-defining config. It reconciles them.
 
 ## Atlas Synthesis Layer
 
@@ -78,7 +78,7 @@ Archived atlas material that no longer owns live truth now lives under [`../arch
 ## How To Update The Atlas
 
 1. Change the real source first: code, route definition, operational doc, or deployment manifest.
-2. Update the relevant atlas prose doc and inventory JSON so the synthesis matches the real source.
+2. Update the relevant atlas prose doc so the synthesis matches the real source.
 3. Run `python scripts/check-doc-refs.py docs/atlas`.
 4. If a formerly important document lost authority, move it under `docs/archive/atlas/` and update the atlas notes instead of leaving it in the active reference lane.
 

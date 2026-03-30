@@ -32,11 +32,8 @@ The atlas keeps older docs as source material, but it no longer lets them compet
 - [`OPERATIONS_ATLAS.md`](./OPERATIONS_ATLAS.md) - operational loops and governance synthesis.
 - [`SOURCE_RECONCILIATION.md`](./SOURCE_RECONCILIATION.md) - which sources still own truth and which atlas surfaces are archived.
 
-Retired atlas inventory artifacts now live under [`../archive/atlas/`](../archive/atlas/):
-
-- atlas inventory JSON/schema files
-- historical completion-audit schemas
-- earlier atlas planning leftovers retained only for archive review
+Retired atlas planning leftovers now live under [`../archive/atlas/`](../archive/atlas/).
+The old atlas inventory JSON/schema bundle and completion-audit schemas were deleted once the repo-native audit outputs became authoritative.
 
 ## Current Truth Layer
 
@@ -47,7 +44,7 @@ Use these instead of the retired atlas inventory layer:
 - [`../../config/automation-backbone/model-deployment-registry.json`](../../config/automation-backbone/model-deployment-registry.json)
 - [`../../projects/dashboard/src/lib/navigation.ts`](../../projects/dashboard/src/lib/navigation.ts)
 - [`../../projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md`](../../projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md)
-- [`../../reports/completion-audit/latest/inventory/`](../../reports/completion-audit/latest/inventory/)
+- `reports/completion-audit/latest/inventory/`
 
 ## Validation
 
@@ -82,7 +79,7 @@ Run outputs land in the `reports/completion-audit/` directory (created on first 
 
 The old atlas-owned gate snapshot is retired. For current readiness, use:
 
-- [`../../reports/completion-audit/latest/summary.md`](../../reports/completion-audit/latest/summary.md)
+- `reports/completion-audit/latest/summary.md`
 - `python scripts/run-completion-audit.py`
 
 ## Source Anchors

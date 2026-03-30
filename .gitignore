@@ -90,6 +90,5 @@ scripts/.venv-router/
 .mcp.local.json
 
 # Generated audit/census data
-/docs/atlas/inventory/completion/
 /tests/ui-audit/
 projects/eoq/.next/
