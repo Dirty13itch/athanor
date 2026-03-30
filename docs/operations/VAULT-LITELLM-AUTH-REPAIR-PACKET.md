@@ -7,8 +7,8 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 
 - Credential surface version: `2026-03-29.2`
 - Provider catalog version: `2026-03-29.1`
-- Cached truth snapshot: `2026-03-30T07:02:56.915325+00:00`
-- Cached env audit: `2026-03-30T07:02:56Z`
+- Cached truth snapshot: `2026-03-30T11:41:22.116022+00:00`
+- Cached env audit: `2026-03-30T11:41:22Z`
 - Surface id: `vault-litellm-container-env`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
