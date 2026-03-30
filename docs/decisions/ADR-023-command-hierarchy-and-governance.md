@@ -49,7 +49,7 @@ Canonical authority order:
 Hard rules:
 
 - The constitution is the highest non-human authority.
-- The Athanor governor is the only runtime layer allowed to create durable work, issue execution leases, own recurring schedules, pause or resume automation, and choose fallback mode.
+- The Athanor governor is the policy and posture authority for routing, pause or resume automation, release tiers, presence posture, and degraded-mode choice; durable work, execution leases, and recurring schedules belong to the canonical task engine, subscription broker, and scheduler.
 - Meta lanes may plan, decompose, critique, review, and recommend redirects, but may not directly mutate runtime or bypass governor policy.
 - The system keeps two co-equal meta lanes under governor control:
   - frontier cloud meta lane
@@ -61,7 +61,7 @@ Hard rules:
 
 - Shaun remains final authority.
 - Claude remains the named frontier strategic lead, but no longer acts as the sole direct commander of the runtime.
-- The governor becomes the runtime commander of record.
+- The governor becomes the runtime posture and fallback authority over the control stack rather than a duplicate durable-task store.
 - The orchestrator is explicitly treated as a control stack:
   - server
   - router

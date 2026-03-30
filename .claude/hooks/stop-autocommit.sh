@@ -15,7 +15,7 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || exit 0
 STATE_PATHS=(
   "STATUS.md"
   "CLAUDE.md"
-  "docs/BUILD-MANIFEST.md"
+  "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md"
   "docs/VISION.md"
   "docs/SYSTEM-SPEC.md"
   "docs/SERVICES.md"
