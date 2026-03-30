@@ -4,7 +4,7 @@
 **Status**: Research complete
 **Purpose**: Comprehensive catalog of EVERY coding-specialized model released or significantly updated in the 90-day window (Dec 2025 - Feb 2026), with deployment feasibility for Athanor's GPU fleet.
 **Supersedes**: `2026-02-16-frontier-coding-models-local-inference.md`, `2026-02-16-tool-calling-coding-models.md`, `2026-02-25-local-coding-models-update.md`
-**Related**: `ADR-005-inference-engine.md`, `docs/hardware/inventory.md`
+**Related**: `ADR-005-inference-engine.md`, `docs/archive/hardware/hardware-inventory.md`, `docs/operations/HARDWARE-REPORT.md`
 
 ---
 

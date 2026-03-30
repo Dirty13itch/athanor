@@ -23,7 +23,7 @@ All reference repos: `~/repos/reference/`
 **Reference only (patterns, not code):**
 - Operational runbooks: `docs/runbooks/` (performance-tuning, backup-restore, model-management, maintenance, service-recovery)
 - Observability configs: `config/prometheus/prometheus.yml` (40+ targets), `config/loki/`, `config/alertmanager/`
-- LiteLLM cascade routing: `config/litellm/config.yaml`
+- LiteLLM cascade routing: `config/litellm/config.yaml` -- historical Hydra-only reference; current provider truth lives in `config/automation-backbone/provider-catalog.json` and `docs/operations/PROVIDER-CATALOG-REPORT.md`
 - Command center design (35+ React components): `design/hydra-command-center/`
 - Docker compose (60+ services): `docker-compose/hydra-stack.yml`
 - Home Assistant config: `homeassistant/configuration.yaml`
@@ -85,7 +85,7 @@ Docker Compose architecture (same as Athanor), LangGraph agents, 6-tier memory, 
 Structured as 7 numbered chapters. Only chapter 02 (hardware) was completed. Everything else is outlines. The hardware inventory was physically verified item-by-item.
 
 **Worth preserving:**
-- Component-level hardware inventory (LOCKED, verified Feb 6 2026): `02-hardware/inventory.md` — every GPU, CPU, motherboard, RAM stick, PSU, NVMe, HDD with specs
+- Component-level hardware inventory (historical system-bible ledger, verified Feb 6 2026): `docs/archive/hardware/hardware-inventory.md` — preserved as a detailed owned-hardware record; current hardware truth now lives in `config/automation-backbone/hardware-inventory.json` and `docs/operations/HARDWARE-REPORT.md`
 - Power budget analysis (PSU→node mapping): `02-hardware/power-budget.md` — NEXUS at 9% headroom warning, transient spike analysis
 - Pending acquisitions (RTX PRO 6000, InfiniBand): `02-hardware/pending-acquisitions.md`
 - AI archetype properties (10 beloved fictional AIs): `README.md` — properties derived from JARVIS, TARS, Culture Minds, etc.

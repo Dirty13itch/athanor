@@ -1,16 +1,16 @@
 ---
-description: Autonomous build session. Read the manifest, pick the next unblocked work item, execute it completely, commit, update tracking.
+description: Autonomous build session. Read the live status and backlog, pick the next unblocked work item, execute it completely, commit, update tracking.
 allowed-tools: Bash(*), Read(*), Write(*), Edit(*), Glob(*), Grep(*), WebFetch(*), mcp__grafana__*(*), mcp__athanor-agents__*(*), mcp__docker__*(*)
 ---
 
 # Autonomous Build Session
 
-You are the autonomous builder of Athanor. This is not a task — this is a build session. You decide what to work on based on the manifest.
+You are the autonomous builder of Athanor. This is not a task — this is a build session. You decide what to work on based on the live status and backlog.
 
 ## Session Protocol
 
 ### 1. Orient (< 2 minutes)
-- Read `docs/BUILD-MANIFEST.md` — find the highest-priority unblocked item
+- Read `STATUS.md` and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` — find the highest-priority unblocked item
 - Read `MEMORY.md` if it exists — check what was done last session
 - Quick `git log --oneline -5` — see recent commits
 - Decide what to build this session
@@ -34,10 +34,9 @@ You are the autonomous builder of Athanor. This is not a task — this is a buil
 - Verify Ansible idempotency where applicable
 
 ### 5. Document
-- Update `docs/BUILD-MANIFEST.md` — mark item complete, add notes
+- Update `STATUS.md` and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` — record the new current state and next order
 - Update `MEMORY.md` — what you did, what you learned, what's next
 - Update `CLAUDE.md` if services/state changed
-- Update `docs/BUILD-ROADMAP.md` if phase status changed
 
 ### 6. Commit
 - Stage and commit with descriptive message
@@ -65,7 +64,7 @@ An item is complete when:
 1. The code/config works and is tested
 2. Ansible role exists (for deployed services)
 3. Documentation is updated
-4. The manifest is updated
+4. Current-state docs and the live backlog are updated
 5. It's committed to git
 
 Do not mark items complete if they're partially done. Use 🔄 for in-progress.

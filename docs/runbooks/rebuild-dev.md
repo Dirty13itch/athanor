@@ -1,62 +1,82 @@
 # DEV Node Rebuild Runbook
 
-If DEV dies, rebuild in this order:
+Source of truth: `config/automation-backbone/platform-topology.json`, `docs/RECOVERY.md`
+Validated against registry version: `platform-topology.json@2026-03-27.1`, `program-operating-system.json@2026-03-25.1`
+Mutable facts policy: DEV host responsibilities, service placement, and port ownership come from the topology registry. This runbook covers the rebuild order for the current DEV role, not historical service layouts.
 
-## 1. Base OS
-- Ubuntu 24.04 LTS, kernel 6.17+
-- NVIDIA driver (for 5060 Ti)
-- Docker with nvidia-container-toolkit
+---
 
-## 2. User Setup
-- Create user shaun, add to docker group
-- Copy ~/.ssh/ from backup
-- Copy ~/.secrets/ from backup (ALL API keys)
+## DEV Role In The Current Topology
 
-## 3. Core Services (systemd)
-```bash
-# Clone repo
-git clone git@github.com:Dirty13itch/athanor.git ~/repos/athanor
+`dev` is the ops-center host. At the current registry version it owns:
 
-# Create venvs for each service
-for svc in gateway mind memory perception classifier governor; do
-    cd ~/repos/athanor/services/$svc
-    python3 -m venv .venv
-    .venv/bin/pip install -r requirements.txt  # if exists
-done
+- `dashboard` (`3001`)
+- `quality_gate` (`8790`)
+- `semantic_router` (`8060`)
+- `gateway` (`8700`)
+- `embedding` (`8001`)
+- `reranker` (`8003`)
+- `memory` (`8720`)
+- `subscription_burn` (`8065`, scaffold)
+- `openfang` (`4200`, scaffold)
 
-# Install systemd units
-sudo cp ~/repos/athanor/scripts/*.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now local-system-gateway local-system-mind local-system-memory local-system-perception athanor-classifier athanor-governor openfang
-```
+If that list changes, update the topology registry first.
 
-## 4. Docker Services
-```bash
-# Embedding + Reranker
-docker run -d --name vllm-embedding --gpus all --restart unless-stopped ...
-docker run -d --name vllm-reranker --gpus all --restart unless-stopped ...
+## Rebuild Order
 
-# Open WebUI
-docker run -d --name open-webui --restart unless-stopped -p 3080:8080 ...
+### 1. Base host
 
-# Arize Phoenix
-docker run -d --name arize-phoenix --restart unless-stopped -p 6006:6006 ...
-```
+- Install the current supported OS image for DEV.
+- Restore SSH access and the operator account.
+- Restore Docker, Python, Node, and any GPU/runtime prerequisites needed for embedding and reranker services.
+- Restore host-local secrets without committing them into the repo.
 
-## 5. Shell Tools
-```bash
-# See Phase 6 of the plan: ~/.claude/plans/twinkling-dancing-pony.md
-# Or just source the .bashrc from backup
-```
+### 2. Repo and toolchain
 
-## 6. CLI Tools
-```bash
-npm install -g @anthropic-ai/claude-code @openai/codex @github/copilot @google/gemini-cli @kilocode/cli @opencode-ai/opencode @composio/ao @biomejs/biome
-pip install --user ruff basedpyright agentbudget
-# See Phase 4 of the plan for full list
-```
+1. Clone the Athanor repo.
+2. Restore Python virtual environments or recreate them for DEV-owned services.
+3. Restore Node dependencies for the dashboard and any DEV-owned JS surfaces.
+4. Verify the local operator toolchain needed to run the core acceptance commands.
 
-## 7. Verify
-```bash
-bash ~/repos/athanor/scripts/drift-check.sh  # Should be 37/37
-```
+### 3. Shared dependencies
+
+Before bringing DEV services online, confirm these upstreams are already healthy:
+
+- `redis`
+- `qdrant`
+- `neo4j`
+- `litellm`
+
+DEV should not come back “green” while disconnected from its state and routing dependencies.
+
+### 4. Restore DEV services
+
+Bring back the services in this order:
+
+1. `embedding`
+2. `reranker`
+3. `semantic_router`
+4. `gateway`
+5. `memory`
+6. `quality_gate`
+7. `dashboard`
+9. scaffold surfaces only if needed for the current incident (`subscription_burn`, `openfang`)
+
+The first healthy human-facing check should happen only after `quality_gate` and `dashboard` are connected to their upstreams and the canonical agent-server task/governor surfaces are healthy.
+
+### 5. Verify
+
+Run the smallest useful checks in order:
+
+- `python scripts/validate_platform_contract.py`
+- dashboard acceptance contract
+- focused service health checks for the canonical agent-server task/governor surfaces, `quality_gate`, `embedding`, and `reranker`
+- any incident-specific read/write check required by the restore
+
+## What This Runbook Excludes
+
+- historical `mind`, `perception`, `classifier`, or legacy `ui` rebuild steps
+- ad hoc shell-tool restoration from old personal notes
+- non-registry service sprawl unless it is explicitly promoted back into the topology
+
+If a host-level tool matters operationally but is not in the topology registry, treat it as reference-only until the registry is updated.

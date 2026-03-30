@@ -1,542 +1,197 @@
 # Athanor System Specification
 
-*The complete operational specification. If you could only read one document about how Athanor works, this is it.*
-
-Last updated: 2026-03-15
-
----
-
-## 1. System Overview
-
-Athanor is a 4-node homelab that unifies AI inference, media management, home automation, creative tools, and game development under one coherent system. It is owned by Shaun Ulrich and operationally managed by Claude (COO / Meta Orchestrator). Every design decision passes a single filter: **can one person understand, operate, debug, and fix this alone?**
-
-The system runs 8 GPUs (152 GB VRAM) across 4 nodes, 9 AI agents, 55+ services, and serves a unified Command Center dashboard. All inference routes through a central proxy. All configuration is managed by Ansible. All decisions are documented as ADRs.
-
-**What makes it more than a homelab:** The orchestration layer. Claude (cloud AI) operates as COO, directing 9 specialized local AI agents that do real work — managing media, controlling the home, generating images, searching the web, writing code, curating data, managing content libraries, and answering questions about the system itself. They share a knowledge base (Qdrant vector store + Neo4j graph), route through a unified inference layer (LiteLLM), and are all accessible through a Command Center PWA with chat, monitoring, and task management.
-
-**Where it's going:** From reactive to proactive to self-optimizing. The task execution engine and proactive scheduler are deployed. A GWT-inspired workspace (ADR-017, Phase 2 deployed) enables inter-agent coordination. A GPU orchestrator (ADR-018) manages hardware utilization. Preference learning, activity logging, goals API, and trust scoring are live — pattern recognition and dynamic autonomy are next.
-
-For the full philosophy, see `docs/VISION.md`. For the build history, see `docs/BUILD-MANIFEST.md`.
+Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/project-maturity-registry.json`, `config/automation-backbone/program-operating-system.json`
+Validated against registry version: `platform-topology.json@2026-03-27.1`, `project-maturity-registry.json@2026-03-27.1`, `program-operating-system.json@2026-03-25.1`
+Mutable facts policy: node membership, service placement, endpoints, auth classes, project maturity, and review cadence live in the registry set under `config/automation-backbone`. This document keeps architecture, operating boundaries, and stable contracts only.
 
 ---
 
-## 2. Architecture Map
-
-### Node Topology
-
-```
-                    ┌──────────────────────────────────────────────┐
-                    │              Network (5GbE)                  │
-                    │  USW Pro XG 10 PoE (192.168.1.31)            │
-                    └──┬──────────┬──────────┬──────────┬──────────┘
-                       │          │          │          │
-              ┌────────┴───┐ ┌───┴────────┐ ┌┴─────────┐ ┌┴────────┐
-              │  Foundry   │ │  Workshop  │ │  VAULT   │ │   DEV   │
-              │  Node 1    │ │  Node 2    │ │  NAS     │ │  Ops    │
-              │  .244      │ │  .225      │ │  .203    │ │  .189   │
-              └────────────┘ └────────────┘ └──────────┘ └─────────┘
-```
-
-| Node | Role | CPU | RAM | GPUs | Key Services |
-|------|------|-----|-----|------|-------------|
-| **Foundry** (.244) | Heavy inference, agents | EPYC 7663 56C/112T | 224 GB DDR4 ECC | 4x 5070 Ti + 4090 | vLLM TP=4 (Qwen3.5-27B-FP8), vLLM coder (Qwen3.5-35B-A3B-AWQ-4bit), Agent Server, Qdrant |
-| **Workshop** (.225) | Inference, creative, UI | TR 7960X 24C/48T | 128 GB DDR5 | 5090 + 5060 Ti | vLLM (Qwen3.5-35B-A3B-AWQ), ComfyUI, Dashboard, EoBQ, Open WebUI |
-| **VAULT** (.203) | Storage, routing, media, monitoring | Ryzen 9950X 16C/32T | 128 GB DDR5 | Arc A380 | LiteLLM, Neo4j, Prometheus, Grafana, Plex, *arr, HA |
-| **DEV** (.189) | Development, ops center | Ryzen 9 9900X 12C/24T | 64 GB DDR5 | RTX 5060 Ti 16GB | Claude Code (native Linux), Ansible control, Embedding, Reranker |
-
-### Data Flows
-
-**User request → Agent response:**
-```
-User (Dashboard/Chat)
-  → Dashboard API (Node 2:3001)
-    → Agent Server (Node 1:9000)
-      → LiteLLM Proxy (VAULT:4000)
-        → vLLM (Node 1:8000 or Node 2:8000)
-      ← Response streams back through same path
-```
-
-**Agent using tools:**
-```
-Agent Server receives request
-  → LangGraph routes to correct agent
-    → Agent calls tool (e.g., Sonarr API, HA API, Qdrant)
-    → Tool returns result
-    → Agent generates response via LiteLLM → vLLM
-  ← Streams response to client
-```
-
-**Knowledge indexing (daily at 03:00):**
-```
-scripts/index-knowledge.py (DEV cron or manual)
-  → Scans docs/ directory (81 files)
-  → Chunks into segments
-  → Embeds via LiteLLM → Qwen3-Embedding-0.6B (DEV:8001)
-  → Upserts to Qdrant (Node 1:6333) — 3435 chunks (knowledge collection)
-```
-
-### Service Inventory
-
-Full inventory in `docs/SERVICES.md`. Summary:
-
-- **Foundry (14 containers):** vLLM Qwen3.5-27B-FP8 (TP=4), vLLM Qwen3.5-35B-A3B-AWQ-4bit, Agent Server, Qdrant, GPU Orchestrator, Speaches, wyoming-whisper, Crucible AI Search (api, chromadb, ollama, searxng), Alloy, node_exporter, dcgm-exporter
-- **Workshop (10 containers):** vLLM Qwen3.5-35B-A3B-AWQ, Dashboard, ws-pty Bridge, ComfyUI, EoBQ, Ulrich Energy, Open WebUI, Alloy, node_exporter, dcgm-exporter
-- **VAULT (44 containers):** LiteLLM, LangFuse (6 services), Neo4j, Redis, Qdrant, Prometheus, Grafana, Loki, Alloy, Plex, Sonarr, Radarr, Prowlarr, SABnzbd, Tautulli, Stash, Home Assistant, Open WebUI, n8n, Gitea, Miniflux, ntfy, Meilisearch, field-inspect-app, ulrich-energy-website, blackbox-exporter, backup-exporter, and more
-- **DEV (4 services):** Embedding model (:8001), Reranker (:8003), node_exporter (:9100), dcgm-exporter (:9400)
-
-### Model Inventory
-
-| Model | Size | Location | GPU(s) | Purpose | LiteLLM Alias |
-|-------|------|----------|--------|---------|---------------|
-| Qwen3.5-27B-FP8 | ~15.6 GB/GPU | Node 1:8000 | GPUs 0,1,3,4 (TP=4) | Reasoning, agents, coding alias | `reasoning`, `coding` |
-| Qwen3.5-35B-A3B-AWQ-4bit | ~22 GB | Node 1:8006 | GPU 2 (4090) | Dedicated coding and tool-use lane | `coder` |
-| Qwen3.5-35B-A3B-AWQ | ~22 GB | Node 2:8000 | GPU 0 (5090) | Worker, utility, fast, creative local alias lane | `worker`, `fast`, `creative`, `utility`, `uncensored` |
-| Qwen3-Embedding-0.6B | 1.2 GB | DEV:8001 | GPU 0 (5060 Ti) | Embeddings | `embedding` |
-| Qwen3-Reranker-0.6B | — | DEV:8003 | GPU 0 (5060 Ti) | Reranking | `reranker` |
-| Flux dev FP8 | 17 GB | Node 2 ComfyUI | GPU 1 (5060 Ti) | Image generation | — |
-
-All inference routes through LiteLLM at VAULT:4000. Agents and dashboard use model aliases (`reasoning`, `coding`, `coder`, `creative`, `utility`, `fast`, `worker`, `uncensored`, `embedding`, `reranker`), never direct backend URLs.
-
----
-
-## 3. Agent System
-
-### Agent Roster
-
-All 9 agents report to Claude (COO) and are coordinated via the task API and MCP bridge.
-
-| Agent | Model | Temperature | Mode | Tools | Status |
-|-------|-------|-------------|------|-------|--------|
-| General Assistant | reasoning | 0.7 | Reactive + Proactive (30min) | 9 (4 system + 2 delegation + 3 filesystem) | Live |
-| Media Agent | reasoning | 0.7 | Reactive + Proactive (15min) | 13 (Sonarr + Radarr + Plex) | Live |
-| Home Agent | reasoning | 0.7 | Reactive + Proactive (5min) | 8 (HA control) | Live |
-| Research Agent | reasoning | 0.7 | Reactive | 4 (web search + knowledge) | Live |
-| Creative Agent | reasoning | 0.8 | Reactive | 5 (ComfyUI image + video) | Live |
-| Knowledge Agent | reasoning | 0.3 | Reactive | 5 (Qdrant + Neo4j) | Live |
-| Coding Agent | reasoning | 0.3 | Reactive | 9 (4 coding + 5 execution) | Live |
-| Stash Agent | reasoning | 0.7 | Reactive | 12 (Stash GraphQL) | Live |
-| Data Curator | reasoning | 0.5 | Reactive | 7 (data processing) | Live |
-
-All agents are LangGraph `create_react_agent` instances with tool-calling and in-memory conversation checkpointing. They expose an OpenAI-compatible chat completions API at Node 1:9000. Claude coordinates them via the MCP bridge (`scripts/mcp-athanor-agents.py`) and task API (`POST /v1/tasks`).
-
-Formal behavior contracts for each agent are in `docs/design/agent-contracts.md`.
-
-### Inter-Agent Coordination
-
-**GWT Workspace (ADR-017, Phase 2 deployed):** Redis-backed shared workspace. Agents compete to broadcast information. A 1Hz competition cycle selects the most salient items (capacity: 7) and broadcasts them via Redis pub/sub. REST API at Node 1:9000/v1/workspace. This enables:
-- Media Agent detects new episode → broadcasts to workspace → Home Agent dims lights
-- Research Agent finds relevant info → broadcasts → Knowledge Agent indexes it
-- Home Agent detects Shaun left → broadcasts → Media Agent pauses Plex
-
-**Phase 2 additions (Session 18):**
-- **Agent registry:** All 9 agents register capabilities in Redis on startup. Discovery via `GET /v1/agents/registry`.
-- **Event ingestion:** External events (HA state changes, cron, webhooks) converted to workspace items via `POST /v1/events` with priority mapping.
-- **Redis pub/sub:** Competition cycle publishes broadcast to `athanor:workspace:broadcast` channel.
-- **Conversation logging (deployed):** Every chat completion auto-embedded to Qdrant `conversations` collection (2293 entries) for semantic search. Queryable via `GET /v1/conversations`.
-
-### Task Execution Engine (deployed Session 19)
-
-Transforms agents from reactive chat endpoints to autonomous workers. Tasks are Redis-backed, executed by a background worker loop, with step logging and progress broadcasting via GWT workspace.
-
-- **Task queue:** `POST /v1/tasks` submits tasks for background execution. Redis-backed (`athanor:tasks`).
-- **Background worker:** Polls every 5s, picks highest-priority pending task, executes via agent's ReAct loop.
-- **Step logging:** Each tool call captured as a step with input/output. Queryable via `GET /v1/tasks/{id}`.
-- **Concurrency:** Max 2 simultaneous tasks (configurable). Priority ordering: critical > high > normal > low.
-- **Delegation tools:** `delegate_to_agent` and `check_task_status` tools enable inter-agent task routing.
-- **Recovery:** Stale "running" tasks auto-failed on server restart.
-- **Broadcasting:** Task completion/failure broadcast to GWT workspace.
-- **Proactive scheduler:** Asyncio-based, per-agent intervals (general-assistant 30min, media-agent 15min, home-agent 5min). `GET /v1/tasks/schedules`.
-- **Execution tools:** `read_file`, `write_file`, `list_directory`, `search_files`, `run_command`. Path-scoped security (read /workspace, write /output). Shell with timeout + blocklist.
-- **Volume mounts:** `/opt/athanor:/workspace:ro` (codebase), `/opt/athanor/agent-output:/output` (staging).
-- **Coding agent:** 9 tools (4 coding + 5 execution). Autonomous loop: read → generate → write → test → self-correct.
-- **API:** `POST /v1/tasks`, `GET /v1/tasks`, `GET /v1/tasks/{id}`, `GET /v1/tasks/stats`, `GET /v1/tasks/schedules`, `POST /v1/tasks/{id}/cancel`.
-
-### Agent Lifecycle
-
-**Current:** All agents initialize at server startup, register capabilities in Redis, and stay loaded in memory. Task worker starts automatically.
-
-**Planned:**
-1. **Registration** — Agent declares capabilities, tools, activation thresholds
-2. **Activation** — Agent is loaded and ready to receive requests
-3. **Sleep** — Agent stays registered but releases resources (future, tied to GPU orchestrator)
-4. **Deactivation** — Agent removed from rotation (manual, for maintenance)
-
-### Escalation Protocol (deployed)
-
-Three-tier confidence-based escalation with per-agent/per-action thresholds:
-
-| Confidence | Action | Notification |
-|------------|--------|-------------|
-| > 0.8 | Act autonomously | Log to activity feed |
-| 0.5 – 0.8 | Act but notify | Dashboard notification (non-blocking) |
-| < 0.5 | Ask before acting | Chat panel / push notification / hold in queue |
-
-Thresholds are per-agent and per-action-type:
-- **Low-stakes** (check status, search, report): act at 0.5+
-- **Medium-stakes** (add media, adjust lights): notify at 0.6+
-- **High-stakes** (delete content, change settings, spend money): ask below 0.95
-
----
-
-## 4. User Interaction Model
-
-### How the System is Operated
-
-| Interface | Operator | Use Case |
-|-----------|----------|----------|
-| **Command Center** (Node 2:3001) | Shaun (primary) | System overview, agent chat, monitoring, task management, goals |
-| **Claude Code** (DEV) | Claude (COO) | Architecture, builds, infrastructure, agent coordination |
-| **claude-squad** (DEV) | Claude (COO) | Multi-session autonomous operations, overnight builds |
-| **Task API** (Node 1:9000) | Claude → Agents | Automated task routing and execution |
-| **Open WebUI** (Node 2:3000) | Shaun | Direct model chat (no agents, legacy) |
-| **Voice** | Shaun | STT/TTS/wake word via HA Wyoming integration |
-| **Mobile** | Shaun | Command Center PWA (responsive), Claudeman (HTTPS) |
-
-The Command Center is the primary dashboard — a Next.js PWA with dark theme, 5 lens modes, live system metrics, generative UI, and chat to any of the 9 agents. Claude operates through Claude Code / claude-squad, directing the local agent workforce via the task API and MCP bridge.
-
-### Transparency Model
-
-Every agent action is visible. Nothing happens silently.
-
-| Event Type | Where | When | Urgency |
-|------------|-------|------|---------|
-| Agent took autonomous action | Activity feed | Real-time | Low |
-| Agent needs input | Notification bell + chat | Real-time | Medium |
-| Background job completed | Activity feed | Batched (hourly) | Low |
-| System health issue | Alert banner + push | Real-time | High |
-| Agent learned something | Insights section | Daily digest | Low |
-| Build session completed | Activity feed + terminal | After completion | Medium |
+## Purpose
 
-**Activity log:** All agent actions are logged to a structured `activity` Qdrant collection — browsable, searchable, filterable by agent/time/type. The dashboard Activity Feed page renders this log.
+Athanor is a registry-governed sovereign AI cluster operated by one person. The system is no longer defined by scattered narrative docs; it is defined by executable contracts:
 
-### Dashboard Pages
+- topology and service truth
+- project maturity truth
+- docs lifecycle truth
+- operating cadence and lens truth
 
-| Page | Status | Purpose |
-|------|--------|---------|
-| Home | Live | System overview, quick links, health summary |
-| GPUs | Live | GPU utilization, VRAM, temperature, orchestrator status |
-| Monitoring | Live | Per-node CPU/memory/disk/network metrics |
-| Agents | Live | Agent roster, status, capabilities |
-| Chat | Live | Talk to any agent, tool call visualization |
-| Gallery | Live | Image generation history from ComfyUI |
-| Media | Live | Sonarr/Radarr/Plex integration |
-| Home | Live | Home Assistant entity overview |
-| Services | Live | Service health checks across all nodes |
-| Activity Feed | Live | Every agent action, searchable, filterable |
-| Notifications | Live | Escalation alerts, agent requests |
-| Preferences | Live | Stored preferences, editable |
-| Tasks | Live | Task board — submit, monitor, cancel background agent tasks |
-| Workspace | Live | GWT workspace broadcasts, agent registry, competition state |
-| Conversations | Live | Logged agent conversations, filterable, expandable |
-| Insights | Deployed | What agents learned, pattern detections |
+This document explains how those contracts fit together and what the cluster is supposed to optimize for.
 
-### Feedback Mechanisms
+## Validated Snapshot
 
-How agents learn what Shaun wants (three layers, progressively deeper):
+At registry version `2026-03-25.1`, Athanor is operating with:
 
-**1. Explicit preferences (immediate)**
-A `preferences` Qdrant collection stores explicit signals:
-- Thumbs up/down on agent outputs
-- "Remember I like X" statements
-- Configuration choices
-- Agents query this collection before acting
-- Stored as embeddings + metadata for semantic retrieval
+- 5 nodes: `dev`, `foundry`, `workshop`, `vault`, `desk`
+- 36 registry-managed services
+- 9 tracked projects in the maturity registry
+- 12 standing review lenses and 6 standing cadence buckets
 
-**2. Behavioral patterns (accumulated)**
-Over time, agents observe patterns:
-- Which recommendations get accepted vs rejected
-- Which shows get watched to completion vs abandoned
-- What time of day certain agents are used
-- What generation parameters produce kept vs regenerated images
-- This feeds intelligence layers 2→3 (see Section 6)
+If those numbers change, the registry changes first.
 
-**3. Codified conventions (permanent)**
-Patterns confirmed across multiple interactions get promoted to:
-- Skill files (`.claude/skills/`)
-- Agent system prompts
-- Config defaults
-- This is the permanent memory — persists even if Qdrant is wiped
+## System Objective
 
----
+The operating objective comes from `program-operating-system.json`:
 
-## 5. Development Model
+- secure enough to trust on the LAN
+- coherent enough to reason about from one source of truth
+- testable enough that velocity is real
+- modular enough that each project can mature independently
+- measurable enough that autonomy and feature growth can be governed
 
-### Operating Model
+## Node Roles
 
-Athanor runs as a three-tier organization:
+| Node | Role | What it owns |
+|------|------|--------------|
+| `dev` | Ops center | Dashboard, quality gate, semantic router, embedding/reranker, local operator tooling |
+| `foundry` | Heavy compute | Agent server, GPU orchestrator, heavy inference lanes |
+| `workshop` | Creative compute | WS PTY bridge, interactive inference lanes, ComfyUI, creative/operator adjunct surfaces |
+| `vault` | Storage + observability | Redis, Qdrant, Neo4j, LiteLLM, metrics, logs, shared stateful services |
+| `desk` | Workstation | Operator desktop and optional compatibility provider-bridge host when explicitly enabled |
 
-1. **Shaun (Owner)** — Sets vision, reviews results, makes judgment calls, handles physical tasks and credential provisioning. His time is the scarcest resource.
-2. **Claude (COO / Meta Orchestrator)** — Makes operational decisions, designs architecture, builds infrastructure, directs the agent workforce, maintains documentation, and drives the roadmap. Claude operates autonomously within scope, escalating to Shaun only for vision-level decisions, credentials, or physical tasks.
-3. **Local Agents (Workforce)** — 8 specialized AI agents execute domain-specific work: monitoring, media management, home automation, research, creative generation, knowledge management, coding, and content curation.
+The registry is authoritative for host/IP mapping. This table only describes roles.
 
-This is not "Shaun codes with AI assistance." It's "Claude runs the system, agents do the work, Shaun steers."
+## Architecture Layers
 
-### Cloud/Local Hybrid
+### 1. Registry-backed control plane
 
-**Cloud AI (Claude Code — COO role):**
-- Operational decision-making and coordination
-- Architecture design, ADRs, system engineering
-- Cross-codebase reasoning and novel problem solving
-- Agent workforce management and task routing
-- Documentation and roadmap maintenance
+The control plane begins in `config/automation-backbone`.
 
-**Local AI (Qwen3.5-27B-FP8, Qwen3.5-35B-A3B-AWQ — Agent workforce):**
-- Domain-specific autonomous operations
-- Boilerplate generation and code transformation
-- Background task execution (proactive scheduler)
-- Real-time system monitoring and response
-- Uncensored inference and private data handling
+- `platform-topology.json` defines nodes, services, runtime class, auth class, and health path.
+- `project-maturity-registry.json` defines what each project must satisfy before it can claim its class.
+- `docs-lifecycle-registry.json` defines which docs are canonical, generated, reference, or archive.
+- `program-operating-system.json` defines the standing review lenses, cadence, and program roles.
 
-**MCP bridge** (`scripts/mcp-athanor-agents.py`) connects Claude to the local agent workforce — 14 tools including task submission, status monitoring, knowledge search, and `deep_research` (offloads heavy research to local Qwen3.5-27B-FP8).
+Every helper, env default, CI gate, and canonical doc should flow from that layer.
 
-The full hybrid development architecture is specified in `docs/design/hybrid-development.md`.
+### 2. Core platform runtimes
 
-### Build Workflow
+The current `platform-core` set is:
 
-**Interactive sessions:** Shaun opens Claude Code, describes what to build, Claude Code implements it. Most current work happens this way.
+- `projects/agents`
+- `projects/gpu-orchestrator`
+- `projects/ws-pty-bridge`
 
-**Autonomous builds (`/build`):** Claude Code reads `BUILD-MANIFEST.md`, picks the next unblocked item, executes it completely (research → implement → test → document → commit), updates tracking files, continues to next item.
+These runtimes carry control-plane obligations. They are expected to pass full acceptance gates from a clean checkout and to fail closed when auth or topology is misconfigured.
 
-**Session continuity:** `MEMORY.md` tracks what happened and what's next. Claude Code reads it at session start to pick up where the last session left off.
+### 3. Production product surface
 
-### Project Organization
+The current `production-product` surface is:
 
-Each project lives in `projects/{name}/` with its own:
-- Source code and build config
-- Docker and Ansible deployment
-- Project-specific documentation in `docs/projects/{name}/`
+- `projects/dashboard`
 
-Projects share Athanor's infrastructure (GPU, storage, networking, inference) but don't interfere with each other. Adding a new project means creating a directory and an Ansible role.
+It is an authenticated operator console, not a public LAN page and not a browser-local prototype. Its mutation paths must prove operator session validity and upstream auth together.
 
-| Project | Directory | Status | Deployed |
-|---------|-----------|--------|----------|
-| Agent Server | `projects/agents/` | Live | Node 1:9000 |
-| Dashboard | `projects/dashboard/` | Live | Node 2:3001 |
-| Empire of Broken Queens | `projects/eoq/` | Live (mock) | Node 2:3002 |
-| Kindred | `projects/kindred/` | Concept only | — |
-| Ulrich Energy | `projects/ulrich-energy/` | Placeholder | — |
+### 4. Non-core portfolio
 
----
+Everything else is explicitly classed as `active-scaffold`, `incubation`, or `archive`. That matters because Athanor is run as a portfolio, not as one undifferentiated repo blob. Non-core work may proceed, but it does not gain production obligations by accident.
 
-## 6. Intelligence Progression
+## Stable Contracts
 
-The system evolves through four layers. Each layer builds on the previous and has specific infrastructure requirements.
+### Topology contract
 
-### Layer 1: Reactive Intelligence (current)
+`platform-topology.json` is authoritative for:
 
-Agents respond to requests. No memory between invocations beyond what's in the conversation thread. The agent server classifies input by model name and routes to the correct agent. Agents call tools, get results, generate responses.
+- node ids and default hosts
+- service ids, nodes, schemes, ports, and health paths
+- runtime class
+- auth class
 
-**Infrastructure:** vLLM, LangGraph, LiteLLM, tool APIs.
-**Verification:** Agent responds correctly to direct questions. Tools return accurate data.
+No code, doc, compose file, or operator runbook should hardcode a conflicting placement.
 
-### Layer 2: Accumulated Knowledge (deployed)
+### Project maturity contract
 
-Knowledge base (3435 vectors), 9 Qdrant collections (including `signals` — 102 intelligence signals from n8n pipeline), preferences, activity logging, conversation auto-embedding, escalation protocol, and context injection are all deployed. Neo4j stores structural relationships (7268 relationships, 4479 nodes).
+`project-maturity-registry.json` is authoritative for:
 
-**What's deployed:** Knowledge indexing, preference storage + retrieval (REST API + dashboard), activity logging (fire-and-forget on every chat completion), escalation protocol (3-tier confidence), context injection (`context.py` — 1 embedding + 3 parallel Qdrant queries, ~30-50ms, per-agent config), conversation auto-embedding (every chat completion auto-embedded to `conversations` collection since session 40), n8n signal pipeline (102 signals in Qdrant `signals` collection, daily digest integration via `goals.py`), eval suite (promptfoo — 19 tests × 2 providers, 100% pass rate, `grader` LiteLLM alias for deterministic scoring).
+- project class
+- owner
+- workspace
+- env example
+- CI and acceptance gates
+- monitoring hooks
 
-**What's remaining for full Layer 2:**
-- Proactive knowledge indexing (currently manual, should be cron)
+Promotion, demotion, and archive decisions happen through that registry.
 
-**Infrastructure:** Qdrant, Neo4j, embedding model, index scripts, Redis.
-**Verification:** Agent cites relevant ADRs/research when answering questions about past decisions. Preferences are stored, queryable, and injected into agent context at request time.
+### Docs lifecycle contract
 
-### Layer 3: Pattern Recognition (planned)
+`docs-lifecycle-registry.json` is authoritative for whether a document is:
 
-Agents recognize patterns in their own operation and user behavior:
+- canonical
+- generated
+- reference
+- archive
 
-| Agent | Pattern Source | What It Learns |
-|-------|---------------|----------------|
-| Media Agent | Watch history, add/ignore signals | Content preferences, genre weights |
-| Home Agent | Occupancy sensors, time patterns | Daily routines, seasonal adjustments |
-| Research Agent | Source acceptance/rejection | Preferred sources, useful formats |
-| Creative Agent | Kept vs regenerated images | Style preferences, parameter defaults |
-| Knowledge Agent | Query patterns, retrieval success | What docs are most useful, gaps in coverage |
+Canonical docs must stay current. Generated docs must be regenerable and freshness-checked. Reference docs may lag but must not override runtime truth.
 
-**Feedback signals:**
-- Implicit: media watched to completion, image kept, automation not overridden
-- Explicit: thumbs up/down, "remember this" statements, preference edits
-- Meta: which agent actions led to follow-up requests (indicating incomplete results)
+### Auth and privilege contract
 
-**Infrastructure:** Preference collection (deployed), activity logging (deployed), context injection (deployed), signal pipeline (deployed, n8n + Qdrant `signals`), pattern detection jobs (not started).
-**Verification:** Agent recommendations improve measurably over time. Media Agent stops suggesting genres Shaun ignores.
+Privileged surfaces are expected to converge on shared auth and privilege classes:
 
-### Layer 4: Self-Optimization (future)
+- `read-only`
+- `operator`
+- `admin`
+- `destructive-admin`
 
-The system monitors its own performance and optimizes:
-- Which models produce the best results for which tasks
-- Which GPU allocation minimizes latency for the current workload
-- When to auto-evaluate new model releases against baseline
-- When knowledge accumulation shows diminishing returns → trigger summarization
+The registry currently records service auth classes at the platform level (`operator`, `admin`, `internal_only`). The implementation program is responsible for mapping mutation behavior onto the stronger shared privilege envelope without reopening services to unauthenticated LAN access.
 
-**Infrastructure:** All of the above + metrics correlation + A/B testing framework.
-**Verification:** System makes a recommendation to change its own configuration that improves measured performance.
+### Governor and task contract
 
-Full details in `docs/design/intelligence-layers.md`.
+Redis remains the authoritative runtime store for task-engine and adjacent runtime coordination state in this cycle. Durable task truth is formalized around the existing `athanor:tasks` namespace, while governor posture stays separate from alternate queue ownership.
 
----
+## Operating Model
 
-## 7. Resource Management
+### Standing lenses
 
-### GPU Allocation
+All subsystem review rotates through the same lenses:
 
-| GPU | Node | VRAM | Current Workload | Utilization |
-|-----|------|------|-----------------|-------------|
-| GPU 0 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10-27% |
-| GPU 1 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10-27% |
-| GPU 2 (4090 ASUS) | Node 1 | 24 GB | Qwen3.5-35B-A3B-AWQ-4bit | ~10% |
-| GPU 3 (5070 Ti Gigabyte) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10% |
-| GPU 4 (5070 Ti MSI) | Node 1 | 16 GB | vLLM TP=4 shard (Qwen3.5-27B-FP8) | ~10% |
-| GPU 0 (5090) | Node 2 | 32 GB | vLLM Qwen3.5-35B-A3B-AWQ | ~10-15% |
-| GPU 1 (5060 Ti) | Node 2 | 16 GB | ComfyUI Flux | <5% (idle unless generating) |
-| GPU 0 (5060 Ti) | DEV | 16 GB | Embedding + Reranker (~2 GB used) | <5% |
-
-**Total:** 152 GB VRAM across 8 GPUs (4 nodes), ~15% average compute utilization.
-
-**Planned optimization (ADR-018):** Custom GPU orchestrator with vLLM Sleep Mode integration. Priority-based scheduling: Interactive > Agent > Creative > Batch > Training. Sleep-level 1 frees ~80% VRAM (wake <1s), level 2 frees ~100% (wake ~5-10s).
-
-### Model Lifecycle
+- security
+- truth
+- reliability
+- developer velocity
+- product integrity
+- architecture
+- observability
+- evaluation
+- portfolio discipline
+- economic efficiency
+- knowledge quality
+- autonomy governance
 
-**Current:** All models are always loaded. No sleep/wake, no swapping.
+### Standing cadence
 
-**Planned states:**
-1. **Active** — Model loaded in VRAM, ready for requests
-2. **Sleeping L1** — KV cache offloaded to CPU RAM, model weights in VRAM, wake <1s
-3. **Sleeping L2** — Weights offloaded to CPU RAM, VRAM freed, wake ~5-10s
-4. **Stopped** — Container stopped, VRAM completely free
-
-### Background Job Schedule
-
-| Time | Job | Node | Description |
-|------|-----|------|-------------|
-| 01:30 | Postgres backup | VAULT | `pg_dumpall` → gzip to `/mnt/user/data/backups/postgres/` |
-| 02:00 | Stash backup | VAULT | SQLite copy to `/mnt/user/data/backups/stash/` |
-| 03:00 | Qdrant backup | VAULT | Snapshot API per-collection to `/mnt/user/data/backups/qdrant/` |
-| 03:15 | Neo4j backup | VAULT | Cypher export to `/mnt/user/data/backups/neo4j/` |
-| 04:00 | Appdata backup | VAULT | Tar 11 service appdatas to `/mnt/user/data/backups/appdata/` |
-| */5 | Container watchdog | VAULT | Auto-restart crashed media/home containers |
-| 1st/mo | Docker prune | VAULT | Remove unused images older than 7 days + build cache |
-| Manual | Knowledge index | DEV | `python3 scripts/index-knowledge.py` |
-
-### Storage
+The operating cadence is registry-backed:
 
-| Mount | Source | Nodes | Purpose |
-|-------|--------|-------|---------|
-| `/mnt/vault/models` | VAULT NFS | Node 1, Node 2 | Shared model files |
-| `/mnt/vault/data` | VAULT NFS | Node 1, Node 2 | Shared data (backups, outputs) |
-| VAULT HDD array | Local | VAULT | 164 TB usable, 85% used (139T) |
-| `/mnt/appdatacache` (nvme0) | Local NVMe | VAULT | Container configs + databases (66%) |
-| `/mnt/fastdata` (nvme4) | Local NVMe | VAULT | Backup staging, DB overflow (930G) |
-| `/mnt/vms` (nvme2) | Local NVMe | VAULT | Repurposed: overflow, model cache (930G) |
-| `/var/lib/docker` (nvme3) | Local NVMe | VAULT | Docker images/layers (13%) |
-
-Full NVMe layout: `docs/design/vault-storage-architecture.md`.
-
-**Gotcha:** NFS mounts go stale after VAULT reboots. The Ansible common role auto-recovers, but manual fix is `sudo umount -f /mnt/vault/models && sudo mount -a`.
-
----
-
-## 8. Organizational Structure
-
-Athanor operates as a three-tier hierarchy: Owner → COO → Agent Workforce.
-
-### Operating Hierarchy
-
-```
-Shaun (Owner / Alchemist)
-│  Sets vision, reviews results, makes judgment calls,
-│  provides credentials, handles physical tasks
-│
-└── Claude (COO / Meta Orchestrator / Lead Engineer)
-    │  Makes operational decisions, designs architecture,
-    │  directs agents, maintains infrastructure, keeps docs accurate,
-    │  drives the roadmap, monitors system health
-    │
-    ├── General Assistant — system monitoring, health checks, delegation hub
-    ├── Media Agent — Sonarr/Radarr/Plex operations, content management
-    ├── Home Agent — Home Assistant control, automation patterns
-    ├── Research Agent — web search, knowledge synthesis, reports
-    ├── Creative Agent — ComfyUI image/video generation
-    ├── Knowledge Agent — Qdrant/Neo4j institutional memory
-    ├── Coding Agent — code generation, review, transformation
-    └── Stash Agent — adult content library management
-```
-
-### Responsibility Map
-
-| Responsibility | Owner | Executor | Tooling |
-|----------------|-------|----------|---------|
-| Vision & direction | Shaun | — | VISION.md |
-| Architecture & decisions | Claude (COO) | Shaun reviews | ADRs in `docs/decisions/` |
-| Infrastructure operations | Claude (COO) | General Assistant assists | Ansible, Prometheus |
-| Agent development & tuning | Claude (COO) | — | LangGraph, FastAPI |
-| Roadmap & work planning | Claude (COO) | — | BUILD-MANIFEST.md |
-| Documentation accuracy | Claude (COO) | Knowledge Agent | Markdown, ADRs |
-| Knowledge management | Claude (COO) directs | Knowledge Agent executes | Qdrant, Neo4j |
-| Media operations | Claude (COO) plans | Media Agent executes | Sonarr, Radarr, Plex |
-| Home automation | Claude (COO) designs | Home Agent executes | Home Assistant |
-| Creative production | Claude (COO) briefs | Creative Agent executes | ComfyUI, Flux |
-| System monitoring | Prometheus + Grafana | Claude (COO) responds | Dashboard, alerting |
-| Research | Claude (COO) directs | Research Agent executes | Web search, Qdrant |
-| Backup & recovery | Cron scripts | Claude (COO) verifies | Automated daily |
-
-### Decision Process
-
-```
-Claude identifies need
-  → Research (Claude + Research Agent)
-    → Document findings in docs/research/
-      → Evaluate options against one-person-scale filter
-        → Write ADR in docs/decisions/
-          → Shaun reviews if architectural significance warrants it
-            → Claude builds, tests, deploys
-              → Claude updates tracking files
-```
-
-21 ADRs documented to date. Every technology choice has a rationale and evaluated alternatives.
-
-### Incident Process (planned)
-
-```
-Alert (Prometheus/Grafana)
-  → Investigate (agent or Claude Code)
-    → Fix (Ansible re-converge or manual)
-      → Postmortem (if significant)
-        → Update docs/gotchas or create ADR
-```
-
-### Feedback Loop
-
-```
-Agent acts
-  → User responds (explicit or implicit)
-    → Signal stored in preferences collection
-      → Agent queries preferences next time
-        → Better action
-```
-
----
-
-## Appendix: Key File Paths
-
-| File | Purpose |
-|------|---------|
-| `CLAUDE.md` | Claude COO role, principles, project structure |
-| `MEMORY.md` | Session continuity between Claude Code sessions |
-| `docs/VISION.md` | Philosophy, identity, non-negotiables |
-| `docs/BUILD-MANIFEST.md` | Build plan with priorities and status |
-| `docs/SERVICES.md` | Live service inventory |
-| `docs/SYSTEM-SPEC.md` | This document |
-| `docs/design/agent-contracts.md` | Per-agent behavior specifications |
-| `docs/design/hybrid-development.md` | Cloud/local coding architecture |
-| `docs/design/intelligence-layers.md` | Intelligence progression details |
-| `docs/design/command-center.md` | Command Center design |
-| `docs/hardware/inventory.md` | Complete hardware inventory |
-| `docs/decisions/ADR-*.md` | Architecture Decision Records (21 total) |
-| `docs/research/*.md` | Research notes (20+ from Session 19 sweep) |
-| `projects/agents/` | Agent server source |
-| `projects/dashboard/` | Dashboard / Command Center source |
-| `projects/eoq/` | Empire of Broken Queens source |
-| `projects/gpu-orchestrator/` | GPU Orchestrator source |
-| `ansible/` | Infrastructure as Code |
-| `scripts/` | Utility scripts (vault-ssh, build-profile, index-knowledge, MCP bridge) |
+- daily: health, CI, auth drift, queue backlog, artifact cleanup
+- twice weekly: one rotating lens audit per subsystem
+- weekly: architecture review, portfolio review, dependency review, docs freshness
+- biweekly: project maturity review
+- monthly: security review, recovery drill review, topology drift review, artifact purge
+- quarterly: platform reset and dead-system removal
+
+### Standing roles
+
+The operating system currently assumes these role lanes:
+
+- program manager
+- security auditor
+- runtime architect
+- frontend curator
+- DX enforcer
+- data and knowledge curator
+- eval lead
+- infra/SRE
+- research scout
+- portfolio curator
+
+They are operating roles, not separate sources of truth.
+
+## What This Document Will Not Do
+
+This document does not own:
+
+- exact host/IP values
+- exact port lists
+- generated service inventories
+- per-project acceptance commands
+- historical build narrative
+
+Those belong in the registry, generated reports, or reference/archive docs.

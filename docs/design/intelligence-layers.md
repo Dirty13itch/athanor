@@ -10,17 +10,17 @@ Last updated: 2026-03-14
 
 This hierarchy is now governed rather than Claude-only. The authoritative command model lives in [command-hierarchy-governance.md](./command-hierarchy-governance.md) and [ADR-023](../decisions/ADR-023-command-hierarchy-and-governance.md).
 
-Above the agent layer sits a governed strategy layer. Claude remains the frontier strategic lead for allowed cloud workloads, but Athanor now acts as the runtime governor and a sovereign local meta lane is the co-equal strategic path for refusal-sensitive, uncensored, private, or sovereign-only work.
+Above the agent layer sits a governed strategy layer. Claude remains the frontier strategic lead for allowed cloud workloads, but it does not directly own runtime command flow. Athanor governs posture and fallback, while a sovereign local meta lane is the co-equal strategic path for refusal-sensitive, uncensored, private, or sovereign-only work.
 
 ```
-Claude (COO) — cloud intelligence, operational decisions
-  ↓ directs via task API + chat
+Frontier cloud meta lane — allowed cloud strategy and synthesis
+  ↓ informs via governed prompts and routed tasks
 Local Agents — domain expertise, autonomous execution
   ↓ act on
 Infrastructure — GPUs, services, storage, networking
 ```
 
-Claude directs agent work, monitors quality (trust scores, feedback), adjusts schedules and escalation thresholds, and escalates to Shaun only when human judgment is required. This meta-orchestration layer is what transforms a collection of reactive agents into a coordinated workforce.
+The governed hierarchy routes work through the task engine, scheduler, subscription broker, and governor posture controls. Cloud strategy can inform work selection and synthesis, but durable task ownership, leases, and schedules stay with the canonical runtime subsystems.
 
 ---
 
@@ -229,4 +229,4 @@ This is where Athanor genuinely starts managing itself. The recursive nature of 
 9. ~~Skill learning loop~~ ✅ Deployed — 8 seeded skills, automatic execution recording, `GET /v1/skills/stats`
 10. **Dashboard Insights page** — Pattern detections, agent learning signals, context latency metrics
 
-See `docs/BUILD-MANIFEST.md` for tracking.
+See `STATUS.md` and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` for current tracking.
