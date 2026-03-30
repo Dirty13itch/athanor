@@ -25,7 +25,7 @@ SSH ACCESS:
 CRITICAL SERVICES:
   vLLM (TP=4):     http://192.168.1.244:8000  (Node 1 - Qwen3-32B-AWQ)
   Agent Server:    http://192.168.1.244:9000  (Node 1 - General + Media)
-  Dashboard:       http://192.168.1.225:3001  (Node 2)
+  Command Center:  https://athanor.local/  (DEV via Caddy; runtime fallback http://dev.athanor.local:3001)
   ComfyUI:         http://192.168.1.225:8188  (Node 2 - Flux dev FP8)
   Open WebUI:      http://192.168.1.225:3000  (Node 2)
   Grafana:         http://192.168.1.203:3000  (VAULT)
@@ -260,7 +260,7 @@ VAULT (NFS Server):
 ┌─────────────────────────────────────────────────────────────────────┐
 │                   INTERFACE LAYER (Node 2)                          │
 │  ComfyUI (8188):        Flux dev FP8 on RTX 5090 (32 GB)           │
-│  Dashboard (3001):      Next.js monitoring UI                       │
+│  Command Center:        https://athanor.local/ (DEV via Caddy)      │
 │  Open WebUI (3000):     Chat frontend for vLLM                      │
 │  Metrics (9100):        node_exporter → Prometheus                  │
 │  GPU Metrics (9400):    dcgm-exporter → Prometheus                  │
