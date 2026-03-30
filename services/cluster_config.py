@@ -1,76 +1,113 @@
-"""Shared cluster configuration for services — single source of truth for node addresses.
+"""Shared cluster configuration for services from the platform topology contract."""
 
-Import in any service:
-    from cluster_config import NODES, SERVICES, get_url
+from __future__ import annotations
 
-Or use individual constants:
-    from cluster_config import VAULT_HOST, DEV_HOST, FOUNDRY_HOST, WORKSHOP_HOST
-
-This mirrors scripts/cluster_config.py but lives in services/ so that
-services can import it without sys.path hacks.
-"""
+import json
 import os
+from pathlib import Path
+from typing import Any
 
-# ── Node addresses (override via env vars) ─────────────────────────────
-DEV_HOST = os.environ.get("ATHANOR_DEV_IP", "192.168.1.189")
-VAULT_HOST = os.environ.get("ATHANOR_VAULT_IP", "192.168.1.203")
-FOUNDRY_HOST = os.environ.get("ATHANOR_FOUNDRY_IP", "192.168.1.244")
-WORKSHOP_HOST = os.environ.get("ATHANOR_WORKSHOP_IP", "192.168.1.225")
-DESK_HOST = os.environ.get("ATHANOR_DESK_IP", "192.168.1.50")
+
+def _candidate_topology_paths() -> list[Path]:
+    candidates: list[Path] = []
+    env_path = os.environ.get("ATHANOR_TOPOLOGY_PATH")
+    if env_path:
+        candidates.append(Path(env_path))
+
+    repo_root = Path(__file__).resolve().parents[1]
+    candidates.extend(
+        [
+            repo_root / "config" / "automation-backbone" / "platform-topology.json",
+            Path("/app/config/automation-backbone/platform-topology.json"),
+            Path("/opt/athanor/config/automation-backbone/platform-topology.json"),
+        ]
+    )
+    return candidates
+
+
+def _load_topology() -> dict[str, Any]:
+    for path in _candidate_topology_paths():
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    checked = ", ".join(str(path) for path in _candidate_topology_paths())
+    raise FileNotFoundError(f"Unable to resolve platform topology. Checked: {checked}")
+
+
+def _first_env(names: list[str], default: str = "") -> str:
+    for name in names:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return default
+
+
+def _default_url_env(service_id: str) -> str:
+    return f"ATHANOR_{service_id.upper().replace('-', '_')}_URL"
+
+
+def _build_url(service: dict[str, Any], node_hosts: dict[str, str]) -> str:
+    override = _first_env([str(service.get("url_env") or _default_url_env(str(service["id"])))])
+    if override:
+        return override
+
+    node_id = str(service["node"])
+    scheme = str(service["scheme"])
+    port = int(service["port"])
+    path = str(service.get("path") or "")
+    return f"{scheme}://{node_hosts[node_id]}:{port}{path}"
+
+
+TOPOLOGY = _load_topology()
+NODE_DEFINITIONS = {str(node["id"]): dict(node) for node in TOPOLOGY.get("nodes", [])}
+SERVICE_DEFINITIONS = {str(service["id"]): dict(service) for service in TOPOLOGY.get("services", [])}
 
 NODES = {
-    "dev": DEV_HOST,
-    "foundry": FOUNDRY_HOST,
-    "workshop": WORKSHOP_HOST,
-    "vault": VAULT_HOST,
-    "desk": DESK_HOST,
+    node_id: _first_env(list(node.get("host_envs", [])), str(node.get("default_host") or ""))
+    for node_id, node in NODE_DEFINITIONS.items()
 }
 
-# ── Common service URLs ────────────────────────────────────────────────
-QDRANT_URL = os.environ.get("ATHANOR_QDRANT_URL", f"http://{VAULT_HOST}:6333")
-LITELLM_URL = os.environ.get("ATHANOR_LITELLM_URL", f"http://{VAULT_HOST}:4000")
-NEO4J_URL = os.environ.get("ATHANOR_NEO4J_URL", f"bolt://{VAULT_HOST}:7687")
-NEO4J_HTTP_URL = os.environ.get("ATHANOR_NEO4J_HTTP_URL", f"http://{VAULT_HOST}:7474")
-PROMETHEUS_URL = os.environ.get("ATHANOR_PROMETHEUS_URL", f"http://{VAULT_HOST}:9090")
-GRAFANA_URL = os.environ.get("ATHANOR_GRAFANA_URL", f"http://{VAULT_HOST}:3000")
-EMBEDDING_URL = os.environ.get("ATHANOR_EMBEDDING_URL", f"http://{DEV_HOST}:8001")
-RERANKER_URL = os.environ.get("ATHANOR_RERANKER_URL", f"http://{DEV_HOST}:8003")
-AGENT_SERVER_URL = os.environ.get("ATHANOR_AGENT_SERVER_URL", f"http://{FOUNDRY_HOST}:9000")
-GOVERNOR_URL = os.environ.get("ATHANOR_GOVERNOR_URL", f"http://{DEV_HOST}:8760")
-NTFY_URL = os.environ.get("ATHANOR_NTFY_URL", f"http://{VAULT_HOST}:8880")
-LANGFUSE_URL = os.environ.get("ATHANOR_LANGFUSE_URL", f"http://{VAULT_HOST}:3030")
-REDIS_URL = os.environ.get("ATHANOR_REDIS_URL", f"redis://{VAULT_HOST}:6379/0")
-DASHBOARD_URL = os.environ.get("ATHANOR_DASHBOARD_URL", f"http://{DEV_HOST}:3001")
-COMFYUI_URL = os.environ.get("ATHANOR_COMFYUI_URL", f"http://{WORKSHOP_HOST}:8188")
-OLLAMA_WORKSHOP_URL = os.environ.get("ATHANOR_OLLAMA_WORKSHOP_URL", f"http://{WORKSHOP_HOST}:11434")
-VLLM_COORDINATOR_URL = os.environ.get("ATHANOR_VLLM_COORDINATOR_URL", f"http://{FOUNDRY_HOST}:8000")
-VLLM_CODER_URL = os.environ.get("ATHANOR_VLLM_CODER_URL", f"http://{FOUNDRY_HOST}:8006")
-STASH_URL = os.environ.get("ATHANOR_STASH_URL", f"http://{VAULT_HOST}:9999")
-SPEACHES_URL = os.environ.get("ATHANOR_SPEACHES_URL", f"http://{FOUNDRY_HOST}:8200")
+DEV_HOST = NODES["dev"]
+VAULT_HOST = NODES["vault"]
+FOUNDRY_HOST = NODES["foundry"]
+WORKSHOP_HOST = NODES["workshop"]
+DESK_HOST = NODES["desk"]
 
-# Convenience lookup
 SERVICES = {
-    "qdrant": QDRANT_URL,
-    "litellm": LITELLM_URL,
-    "neo4j": NEO4J_URL,
-    "neo4j_http": NEO4J_HTTP_URL,
-    "prometheus": PROMETHEUS_URL,
-    "grafana": GRAFANA_URL,
-    "embedding": EMBEDDING_URL,
-    "reranker": RERANKER_URL,
-    "agent_server": AGENT_SERVER_URL,
-    "governor": GOVERNOR_URL,
-    "ntfy": NTFY_URL,
-    "langfuse": LANGFUSE_URL,
-    "redis": REDIS_URL,
-    "dashboard": DASHBOARD_URL,
-    "comfyui": COMFYUI_URL,
-    "ollama_workshop": OLLAMA_WORKSHOP_URL,
-    "vllm_coordinator": VLLM_COORDINATOR_URL,
-    "vllm_coder": VLLM_CODER_URL,
-    "stash": STASH_URL,
-    "speaches": SPEACHES_URL,
+    service_id: _build_url(service, NODES)
+    for service_id, service in SERVICE_DEFINITIONS.items()
 }
+
+QDRANT_URL = SERVICES["qdrant"]
+LITELLM_URL = SERVICES["litellm"]
+NEO4J_URL = SERVICES["neo4j"]
+NEO4J_HTTP_URL = SERVICES["neo4j_http"]
+PROMETHEUS_URL = SERVICES["prometheus"]
+GRAFANA_URL = SERVICES["grafana"]
+EMBEDDING_URL = SERVICES["embedding"]
+RERANKER_URL = SERVICES["reranker"]
+AGENT_SERVER_URL = SERVICES["agent_server"]
+GPU_ORCHESTRATOR_URL = SERVICES["gpu_orchestrator"]
+WS_PTY_BRIDGE_URL = SERVICES["ws_pty_bridge"]
+QUALITY_GATE_URL = SERVICES["quality_gate"]
+NTFY_URL = SERVICES["ntfy"]
+NTFY_TOPIC_URL = SERVICES["ntfy_topic"]
+LANGFUSE_URL = SERVICES["langfuse"]
+REDIS_URL = SERVICES["redis"]
+DASHBOARD_URL = SERVICES["dashboard"]
+COMFYUI_URL = SERVICES["comfyui"]
+OLLAMA_WORKSHOP_URL = SERVICES["ollama_workshop"]
+VLLM_COORDINATOR_URL = SERVICES["vllm_coordinator"]
+VLLM_CODER_URL = SERVICES["vllm_coder"]
+VLLM_WORKER_URL = SERVICES["vllm_worker"]
+STASH_URL = SERVICES["stash"]
+SPEACHES_URL = SERVICES["speaches"]
+SPEECHES_URL = SPEACHES_URL
+GATEWAY_URL = SERVICES["gateway"]
+MEMORY_URL = SERVICES["memory"]
+SEMANTIC_ROUTER_URL = SERVICES["semantic_router"]
+UPTIME_KUMA_URL = SERVICES["uptime_kuma"]
+MINIFLUX_URL = SERVICES["miniflux"]
+OPENFANG_URL = SERVICES["openfang"]
 
 
 def get_url(service_name: str) -> str:
@@ -79,3 +116,23 @@ def get_url(service_name: str) -> str:
     if url is not None:
         return url
     raise KeyError(f"Unknown service: {service_name}")
+
+
+def get_service_definition(service_name: str) -> dict[str, Any]:
+    """Return the topology definition for a known service."""
+    service = SERVICE_DEFINITIONS.get(service_name)
+    if service is not None:
+        return service
+    raise KeyError(f"Unknown service: {service_name}")
+
+
+def get_health_url(service_name: str) -> str:
+    """Return the canonical health/readiness URL owned by the topology registry."""
+    service = get_service_definition(service_name)
+    health_path = str(service.get("health_path") or "")
+    base_url = get_url(service_name)
+    if not health_path:
+        return base_url
+    if base_url.endswith(health_path):
+        return base_url
+    return f"{base_url}{health_path}"

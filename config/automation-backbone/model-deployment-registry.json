@@ -1,0 +1,147 @@
+{
+  "version": "2026-03-26.1",
+  "updated_at": "2026-03-26T12:00:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/model-deployment-registry.json",
+  "lanes": [
+    {
+      "id": "foundry-coordinator",
+      "service_id": "vllm_coordinator",
+      "node_id": "foundry",
+      "endpoint": "http://192.168.1.244:8000/v1/models",
+      "health_path": "/v1/models",
+      "runtime_class": "text_generation",
+      "state_class": "deployed",
+      "expected_model_id": "Qwen3.5-27B-FP8",
+      "observed_model_id": "Qwen3.5-27B-FP8",
+      "source_repo": "/home/shaun/repos/athanor",
+      "verified_at": "2026-03-25T18:00:00Z",
+      "drift_status": "aligned",
+      "evidence_source": "live /v1/models probe",
+      "notes": [
+        "Current coordinator lane is aligned with runtime evidence."
+      ]
+    },
+    {
+      "id": "foundry-coder",
+      "service_id": "vllm_coder",
+      "node_id": "foundry",
+      "endpoint": "http://192.168.1.244:8006/v1/models",
+      "health_path": "/v1/models",
+      "runtime_class": "text_generation",
+      "state_class": "deployed",
+      "expected_model_id": "devstral-small-2",
+      "observed_model_id": "devstral-small-2",
+      "source_repo": "/home/shaun/repos/athanor",
+      "verified_at": "2026-03-26T12:00:00Z",
+      "drift_status": "aligned",
+      "evidence_source": "live /v1/models probe",
+      "notes": [
+        "Runtime truth is devstral-small-2.",
+        "Active control-plane consumers were updated on 2026-03-26 to stop treating this lane as a Qwen coder runtime."
+      ]
+    },
+    {
+      "id": "dev-embedding",
+      "service_id": "embedding",
+      "node_id": "dev",
+      "endpoint": "http://192.168.1.189:8001/v1/models",
+      "health_path": "/v1/models",
+      "runtime_class": "embedding",
+      "state_class": "deployed",
+      "expected_model_id": "Qwen3-Embedding-0.6B",
+      "observed_model_id": "Qwen3-Embedding-0.6B",
+      "source_repo": "/home/shaun/repos/athanor",
+      "verified_at": "2026-03-25T17:45:00Z",
+      "drift_status": "aligned",
+      "evidence_source": "live /v1/models probe",
+      "notes": []
+    },
+    {
+      "id": "dev-reranker",
+      "service_id": "reranker",
+      "node_id": "dev",
+      "endpoint": "http://192.168.1.189:8003/v1/models",
+      "health_path": "/v1/models",
+      "runtime_class": "reranking",
+      "state_class": "deployed",
+      "expected_model_id": "Qwen3-Reranker-0.6B",
+      "observed_model_id": "Qwen3-Reranker-0.6B",
+      "source_repo": "/home/shaun/repos/athanor",
+      "verified_at": "2026-03-25T17:45:00Z",
+      "drift_status": "aligned",
+      "evidence_source": "live /v1/models probe",
+      "notes": []
+    },
+    {
+      "id": "workshop-worker",
+      "service_id": "vllm_worker",
+      "node_id": "workshop",
+      "endpoint": "http://192.168.1.225:8010/v1/models",
+      "health_path": "/v1/models",
+      "runtime_class": "text_generation",
+      "state_class": "deployed",
+      "expected_model_id": "/models/Qwen3.5-35B-A3B-AWQ-4bit",
+      "observed_model_id": "/models/Qwen3.5-35B-A3B-AWQ-4bit",
+      "source_repo": "/home/shaun/repos/athanor",
+      "verified_at": "2026-03-26T12:00:00Z",
+      "drift_status": "aligned",
+      "evidence_source": "live /v1/models probe",
+      "notes": [
+        "Topology binds vllm_worker to workshop:8010.",
+        "Runtime truth is a live vLLM worker lane serving /models/Qwen3.5-35B-A3B-AWQ-4bit.",
+        "Active dashboard and gateway consumers were updated on 2026-03-26 to stop treating this lane as Ollama or an unresolved degraded surface."
+      ]
+    },
+    {
+      "id": "workshop-vision",
+      "service_id": "vllm_vision",
+      "node_id": "workshop",
+      "endpoint": "http://192.168.1.225:8000",
+      "health_path": "/health",
+      "runtime_class": "vision_generation",
+      "state_class": "configured",
+      "expected_model_id": null,
+      "observed_model_id": null,
+      "source_repo": "/home/shaun/repos/athanor",
+      "verified_at": "2026-03-25T18:05:00Z",
+      "drift_status": "unverified-runtime",
+      "evidence_source": "topology and current docs",
+      "notes": [
+        "Vision lane still needs an explicit observed model binding in the truth layer."
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "foundry-store-qwen35-35b-a3b-awq",
+      "model_id": "Qwen3.5-35B-A3B-AWQ-4bit",
+      "node_id": "foundry",
+      "state_class": "stored_local",
+      "verified_at": "2026-03-25T18:00:00Z",
+      "evidence_source": "observed model directory listing",
+      "notes": []
+    },
+    {
+      "id": "foundry-store-qwen3-coder-30b-a3b-awq",
+      "model_id": "Qwen3-Coder-30B-A3B-Instruct-AWQ",
+      "node_id": "foundry",
+      "state_class": "stored_local",
+      "verified_at": "2026-03-25T18:00:00Z",
+      "evidence_source": "observed model directory listing",
+      "notes": []
+    },
+    {
+      "id": "foundry-store-qwen25-vl",
+      "model_id": "Qwen2.5-VL-*",
+      "node_id": "foundry",
+      "state_class": "stored_local",
+      "verified_at": "2026-03-25T18:00:00Z",
+      "evidence_source": "observed model directory listing",
+      "notes": [
+        "Current truth layer tracks the family generically until the vision lane is rebound to an explicit served model."
+      ]
+    }
+  ],
+  "known_drifts": []
+}

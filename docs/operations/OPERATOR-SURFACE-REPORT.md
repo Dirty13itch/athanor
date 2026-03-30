@@ -6,7 +6,7 @@ Do not edit manually.
 ## Front Door Contract
 
 - Registry version: `2026-03-29.1`
-- Cached truth snapshot: `2026-03-29T23:22:27.606066+00:00`
+- Cached truth snapshot: `2026-03-30T00:04:37.657861+00:00`
 - Canonical portal id: `athanor_command_center`
 - Canonical operator URL: `https://athanor.local/`
 - Canonical node: `dev`
@@ -52,13 +52,13 @@ Do not edit manually.
 - Deployment mode: `containerized_service_behind_caddy`
 - Target deployment mode: `containerized_service_behind_caddy`
 - Canonical probe: `URLError: [Errno 11001] getaddrinfo failed`
-- Runtime probe: `200`
-- Runtime Next.js asset probe: `200` root, `0` failing sampled asset(s)
+- Runtime probe: `URLError: [Errno 11001] getaddrinfo failed`
+- Runtime Next.js asset probe: `unknown` root, `0` failing sampled asset(s)
 - Sampled failing assets: none
 - DEV runtime probe target: `dev`
 - DEV deployment mode observed: `containerized_service_behind_caddy`
 - Dashboard container running: `True`
-- Dashboard container status: `Up 12 minutes`
+- Dashboard container status: `Up 54 minutes`
 - Dashboard container image: `athanor/dashboard:latest`
 - Dashboard container ports: `0.0.0.0:3001->3001/tcp, [::]:3001->3001/tcp`
 - Dashboard compose working dir: `/opt/athanor/dashboard`
@@ -107,7 +107,7 @@ No shadow portals are currently registered.
 
 | Surface | Kind | Node | Status | Navigation | Canonical URL | Runtime URL | Runtime probe |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `athanor_command_center` | `portal` | `dev` | `degraded_production` | `front_door` | `https://athanor.local/` | `http://dev.athanor.local:3001/` | `200` |
+| `athanor_command_center` | `portal` | `dev` | `degraded_production` | `front_door` | `https://athanor.local/` | `http://dev.athanor.local:3001/` | `URLError: [Errno 11001] getaddrinfo failed` |
 | `workshop_shadow_command_center` | `retired` | `workshop` | `retired` | `hidden` | `https://athanor.local/` | `http://192.168.1.225:3001/` | `URLError: [WinError 10061] No connection could b` |
 | `quality_gate` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `200` |
 | `semantic_router` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8060/health` | `http://192.168.1.189:8060/health` | `200` |

@@ -1,0 +1,206 @@
+{
+  "version": "2026-03-27.1",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/project-maturity-registry.json",
+  "classes": [
+    {
+      "id": "platform-core",
+      "requirements": ["owner", "workspace", "ci", "env_example", "monitoring", "acceptance_gate"]
+    },
+    {
+      "id": "production-product",
+      "requirements": ["owner", "workspace", "ci", "docs", "env_example", "monitoring", "acceptance_gate"]
+    },
+    {
+      "id": "active-scaffold",
+      "requirements": ["owner", "workspace", "env_example", "explicit_status"]
+    },
+    {
+      "id": "incubation",
+      "requirements": ["owner", "workspace", "explicit_status"]
+    },
+    {
+      "id": "archive",
+      "requirements": ["workspace", "archive_note"]
+    }
+  ],
+  "projects": [
+    {
+      "id": "agents",
+      "label": "Athanor Agents",
+      "class": "platform-core",
+      "owner": "shaun",
+      "workspace": "projects/agents",
+      "env_example": "projects/agents/.env.example",
+      "ci": [
+        "cd projects/agents && .\\.venv\\Scripts\\python -m pytest tests\\test_platform_contract.py tests\\test_backbone.py tests\\test_operator_tests.py tests\\test_command_hierarchy.py tests\\test_config_topology_defaults.py tests\\test_scheduler.py -q"
+      ],
+      "ci_workflow_steps": ["Agents contract"],
+      "monitoring": ["agent_server"],
+      "acceptance_gate": [
+        "python scripts/validate_platform_contract.py",
+        "cd projects/agents && .\\.venv\\Scripts\\python -m pytest tests -q"
+      ],
+      "acceptance_workflow_steps": ["Platform contract validation", "Agents contract"],
+      "docs": ["docs/operations/ATHANOR-OPERATING-SYSTEM.md"],
+      "notes": "Primary control-plane runtime."
+    },
+    {
+      "id": "dashboard",
+      "label": "Athanor Dashboard",
+      "class": "production-product",
+      "owner": "shaun",
+      "workspace": "projects/dashboard",
+      "env_example": "projects/dashboard/.env.example",
+      "ci": [
+        "cd projects/dashboard && npm test",
+        "cd projects/dashboard && npm run typecheck",
+        "cd projects/dashboard && npm run build",
+        "cd projects/dashboard && npm run test:e2e:terminal"
+      ],
+      "ci_workflow_steps": ["Dashboard contract"],
+      "monitoring": ["dashboard"],
+      "acceptance_gate": [
+        "cd projects/dashboard && npm test",
+        "cd projects/dashboard && npm run typecheck",
+        "cd projects/dashboard && npm run build",
+        "cd projects/dashboard && npm run test:e2e:terminal"
+      ],
+      "acceptance_workflow_steps": ["Dashboard contract"],
+      "docs": [
+        "projects/dashboard/README.md",
+        "projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md",
+        "docs/projects/PORTFOLIO-REGISTRY.md"
+      ],
+      "notes": "Authenticated operator console and main human-facing product surface."
+    },
+    {
+      "id": "gpu-orchestrator",
+      "label": "GPU Orchestrator",
+      "class": "platform-core",
+      "owner": "shaun",
+      "workspace": "projects/gpu-orchestrator",
+      "env_example": "projects/gpu-orchestrator/.env.example",
+      "ci": [
+        "cd projects/gpu-orchestrator && .\\.venv\\Scripts\\python -m pytest tests -q"
+      ],
+      "ci_workflow_steps": ["GPU orchestrator contract"],
+      "monitoring": ["gpu_orchestrator"],
+      "acceptance_gate": [
+        "cd projects/gpu-orchestrator && .\\.venv\\Scripts\\python -m pytest tests -q"
+      ],
+      "acceptance_workflow_steps": ["GPU orchestrator contract"],
+      "docs": ["docs/operations/ATHANOR-OPERATING-SYSTEM.md"],
+      "notes": "Privileged runtime placement and GPU control surface."
+    },
+    {
+      "id": "ws-pty-bridge",
+      "label": "WS PTY Bridge",
+      "class": "platform-core",
+      "owner": "shaun",
+      "workspace": "projects/ws-pty-bridge",
+      "env_example": "projects/ws-pty-bridge/.env.example",
+      "ci": [
+        "cd projects/ws-pty-bridge && npm run ci"
+      ],
+      "ci_workflow_steps": ["WS PTY bridge contract"],
+      "monitoring": ["ws_pty_bridge"],
+      "acceptance_gate": [
+        "cd projects/ws-pty-bridge && npm run ci"
+      ],
+      "acceptance_workflow_steps": ["WS PTY bridge contract"],
+      "docs": ["docs/projects/PORTFOLIO-REGISTRY.md"],
+      "notes": "Infrastructure bridge used by operator and agent workflows."
+    },
+    {
+      "id": "gateway",
+      "label": "Gateway",
+      "class": "platform-core",
+      "owner": "shaun",
+      "workspace": "services/gateway",
+      "env_example": "services/gateway/.env.example",
+      "ci": [
+        "python -m pytest services/gateway/tests -q"
+      ],
+      "ci_workflow_steps": ["Gateway contract"],
+      "monitoring": ["gateway"],
+      "acceptance_gate": [
+        "python -m pytest services/gateway/tests -q"
+      ],
+      "acceptance_workflow_steps": ["Gateway contract"],
+      "docs": ["docs/operations/ATHANOR-OPERATING-SYSTEM.md"],
+      "notes": "Internal read-only health aggregation surface for cluster-wide service status."
+    },
+    {
+      "id": "quality-gate",
+      "label": "Quality Gate",
+      "class": "platform-core",
+      "owner": "shaun",
+      "workspace": "services/quality-gate",
+      "env_example": "services/quality-gate/.env.example",
+      "ci": [
+        "python -m pytest services/quality-gate/tests -q"
+      ],
+      "ci_workflow_steps": ["Quality gate contract"],
+      "monitoring": ["quality_gate"],
+      "acceptance_gate": [
+        "python -m pytest services/quality-gate/tests -q"
+      ],
+      "acceptance_workflow_steps": ["Quality gate contract"],
+      "docs": ["docs/operations/ATHANOR-OPERATING-SYSTEM.md"],
+      "notes": "Privileged data-quality validation and destructive cleanup control surface."
+    },
+    {
+      "id": "eoq",
+      "label": "EOQ",
+      "class": "active-scaffold",
+      "owner": "shaun",
+      "workspace": "projects/eoq",
+      "env_example": "projects/eoq/.env.example",
+      "explicit_status": "active-scaffold",
+      "docs": ["docs/projects/PORTFOLIO-REGISTRY.md"],
+      "notes": "Active product lane but not yet under full production contract."
+    },
+    {
+      "id": "comfyui-workflows",
+      "label": "ComfyUI Workflows",
+      "class": "active-scaffold",
+      "owner": "shaun",
+      "workspace": "projects/comfyui-workflows",
+      "env_example": "projects/comfyui-workflows/.env.example",
+      "explicit_status": "active-scaffold",
+      "docs": ["docs/projects/PORTFOLIO-REGISTRY.md"],
+      "notes": "Reusable workflow asset pack and creative scaffold surface."
+    },
+    {
+      "id": "kindred",
+      "label": "Kindred",
+      "class": "incubation",
+      "owner": "shaun",
+      "workspace": "projects/kindred",
+      "explicit_status": "incubation",
+      "docs": ["docs/projects/PORTFOLIO-REGISTRY.md"],
+      "notes": "Incubating product concept."
+    },
+    {
+      "id": "ulrich-energy",
+      "label": "Ulrich Energy",
+      "class": "incubation",
+      "owner": "shaun",
+      "workspace": "projects/ulrich-energy",
+      "explicit_status": "incubation",
+      "docs": ["docs/projects/PORTFOLIO-REGISTRY.md"],
+      "notes": "Incubating product concept."
+    },
+    {
+      "id": "reports",
+      "label": "Reports",
+      "class": "archive",
+      "owner": "shaun",
+      "workspace": "projects/reports",
+      "archive_note": "Generated output archive and historical report artifacts.",
+      "docs": ["docs/projects/PORTFOLIO-REGISTRY.md"],
+      "notes": "Output archive and report artifacts, not an active product runtime."
+    }
+  ]
+}

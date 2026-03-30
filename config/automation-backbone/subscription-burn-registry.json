@@ -1,0 +1,105 @@
+{
+  "version": "2026-03-28.1",
+  "updated_at": "2026-03-28T23:15:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/subscription-burn-registry.json",
+  "service": "subscription-burn",
+  "default_timezone": "America/Chicago",
+  "subscriptions": [
+    {
+      "id": "claude_max",
+      "provider_id": "anthropic_claude_code",
+      "stats_key": "claude_code",
+      "type": "rolling_window",
+      "window_hours": 5,
+      "tokens_per_window": 220000,
+      "cli_env": "ATHANOR_CLAUDE_CLI",
+      "cli_command": "claude",
+      "legacy_path": "/home/shaun/.local/bin/claude",
+      "cli_args": [
+        "-p",
+        "--dangerously-skip-permissions"
+      ],
+      "task_file": "claude-tasks.yaml"
+    },
+    {
+      "id": "chatgpt_pro",
+      "provider_id": "openai_codex",
+      "stats_key": "codex_cli",
+      "type": "daily_reset",
+      "daily_limit": 200,
+      "reset_time": "00:00",
+      "cli_env": "ATHANOR_CODEX_CLI",
+      "cli_command": "codex",
+      "cli_args": [],
+      "task_file": "codex-tasks.yaml"
+    },
+    {
+      "id": "gemini_advanced",
+      "provider_id": "google_gemini",
+      "stats_key": "gemini_cli",
+      "type": "daily_reset",
+      "daily_limit": 100,
+      "reset_time": "00:00",
+      "cli_env": "ATHANOR_GEMINI_CLI",
+      "cli_command": "gemini",
+      "cli_args": [],
+      "task_file": "gemini-tasks.yaml"
+    },
+    {
+      "id": "kimi_allegretto",
+      "provider_id": "moonshot_kimi",
+      "stats_key": "kimi_code",
+      "type": "rolling_window",
+      "window_hours": 5,
+      "max_concurrent": 30,
+      "cli_env": "ATHANOR_KIMI_CLI",
+      "cli_command": "kimi",
+      "cli_args": [],
+      "task_file": "kimi-tasks.yaml"
+    }
+  ],
+  "windows": [
+    {
+      "id": "window_1_morning",
+      "hour": 7,
+      "minute": 0,
+      "label": "Window 1 - Morning",
+      "subscriptions": [
+        "claude_max",
+        "gemini_advanced",
+        "kimi_allegretto"
+      ]
+    },
+    {
+      "id": "window_2_midday",
+      "hour": 12,
+      "minute": 0,
+      "label": "Window 2 - Midday",
+      "subscriptions": [
+        "claude_max",
+        "chatgpt_pro"
+      ]
+    },
+    {
+      "id": "window_3_evening",
+      "hour": 17,
+      "minute": 0,
+      "label": "Window 3 - Evening",
+      "subscriptions": [
+        "claude_max",
+        "kimi_allegretto"
+      ]
+    },
+    {
+      "id": "window_4_overnight",
+      "hour": 22,
+      "minute": 0,
+      "label": "Window 4 - Overnight",
+      "subscriptions": [
+        "claude_max",
+        "chatgpt_pro"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "version": "2026-03-29.2",
+  "updated_at": "2026-03-29T04:20:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/runtime-subsystem-registry.json",
+  "known_drifts": [
+    {
+      "id": "dev-governor-facade-cutover-complete",
+      "status": "retired",
+      "severity": "high",
+      "surface": "runtime.subsystem.task-engine",
+      "description": "Runtime evidence from the 2026-03-29 cutover confirms DEV no longer runs `athanor-governor.service` on :8760, the live listener is gone, and canonical task ownership is served only through the agent server."
+    }
+  ],
+  "subsystems": [
+    {
+      "id": "runtime.catalog",
+      "title": "Health and model inventory",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/", "/agents", "/models", "/services"],
+      "notes": [
+        "Covers health, agent registry, and model catalog reads consumed by the operator product."
+      ]
+    },
+    {
+      "id": "runtime.chat",
+      "title": "Chat completions",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/chat", "/agents"],
+      "notes": [
+        "Interactive chat and agent conversation surface."
+      ]
+    },
+    {
+      "id": "runtime.history-outputs",
+      "title": "History and outputs",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/activity", "/conversations", "/outputs", "/digest"],
+      "notes": [
+        "Operator-visible activity, outputs, and digest history."
+      ]
+    },
+    {
+      "id": "runtime.memory",
+      "title": "Preferences and memory",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/preferences", "/personal-data", "/operator"],
+      "notes": [
+        "Preferences, learned taste, and operator memory surfaces."
+      ]
+    },
+    {
+      "id": "runtime.routing-context",
+      "title": "Routing and context",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/routing", "/chat", "/agents"],
+      "notes": [
+        "Context preview, routing classification, cache, and circuit state."
+      ]
+    },
+    {
+      "id": "runtime.status",
+      "title": "Service and operator status",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/services", "/gpu", "/home", "/topology", "/operator", "/media"],
+      "notes": [
+        "Status, home summary, operator audit stream, and system posture surfaces."
+      ]
+    },
+    {
+      "id": "runtime.subsystem.goals-workplan",
+      "title": "Goals, workplan, and projects",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/goals", "/workplanner", "/projects", "/pipeline", "/tasks"],
+      "notes": [
+        "Work steering, planning, and project execution control."
+      ]
+    },
+    {
+      "id": "runtime.subsystem.model-governance",
+      "title": "Model governance and proving ground",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/models", "/learning", "/review"],
+      "notes": [
+        "Promotion, retirement, and proving-ground controls for model roles."
+      ]
+    },
+    {
+      "id": "runtime.subsystem.notifications-escalation",
+      "title": "Notifications, trust, and escalation",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/notifications", "/review", "/tasks"],
+      "notes": [
+        "Notification review, trust, and operator approval posture."
+      ]
+    },
+    {
+      "id": "runtime.subsystem.patterns-learning",
+      "title": "Patterns, learning, and improvement",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/insights", "/learning", "/improvement", "/review"],
+      "notes": [
+        "Metrics, diagnoses, patterns, and improvement surfaces."
+      ]
+    },
+    {
+      "id": "runtime.subsystem.skills-research-consolidation",
+      "title": "Skills, research jobs, and consolidation",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/learning", "/workplanner", "/personal-data"],
+      "notes": [
+        "Skill execution, research jobs, workflows, and consolidation tools."
+      ]
+    },
+    {
+      "id": "runtime.subsystem.subscriptions",
+      "title": "Subscription control layer",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/subscriptions", "/tasks", "/agents"],
+      "notes": [
+        "Provider policy, leases, and handoff/execution control."
+      ]
+    },
+    {
+      "id": "runtime.subsystem.task-engine",
+      "title": "Task engine and governor posture",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/tasks", "/governor", "/workplanner", "/review"],
+      "notes": [
+        "Durable task lifecycle and canonical stats belong to the task engine.",
+        "Governor surfaces own posture and emergency controls through canonical agent-server routes.",
+        "The retired standalone governor facade and its implementation-authority shim are gone; any future :8760 evidence is rollback-only drift."
+      ]
+    },
+    {
+      "id": "runtime.subsystem.workspace",
+      "title": "Workspace and competition state",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/workspace", "/activity", "/review", "/agents/workbench"],
+      "notes": [
+        "Shared workspace, conventions, events, and agent workbench state."
+      ]
+    }
+  ]
+}
