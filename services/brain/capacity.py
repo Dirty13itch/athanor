@@ -2,10 +2,9 @@
 import httpx
 import numpy as np
 import logging
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from cluster_config import NODES, PROMETHEUS_URL
 from datetime import datetime, timezone, timedelta
+
+from _imports import NODES, PROMETHEUS_URL
 
 logger = logging.getLogger("brain.capacity")
 
