@@ -29,9 +29,9 @@ export default function MorePage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Route Index"
+        eyebrow="Catalog"
         title="All Pages"
-        description="Family-aware route launcher for mobile use, deep links, and console discovery."
+        description="Complete route index for every command-center page when you need the full map instead of the curated launchpad."
       />
 
       <Card className="border-border/70 bg-card/70">

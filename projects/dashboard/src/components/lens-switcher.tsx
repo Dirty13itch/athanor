@@ -40,6 +40,7 @@ export function LensSwitcher() {
     },
     refetchInterval: 60_000,
     staleTime: 30_000,
+    enabled: hydrated,
   });
 
   const health = hydrated ? healthQuery.data ?? {} : {};
