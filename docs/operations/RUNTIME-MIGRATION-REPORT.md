@@ -21,17 +21,17 @@ Do not edit manually.
 | --- | --- |
 | `cutover_verified` | 9 |
 
-- Latest live content evidence snapshot: `2026-03-30T17:17:18.927801+00:00`
+- Latest live content evidence snapshot: `2026-03-31T00:12:36.555929+00:00`
 - Observed live `:8760` references: `0`
 - Planned callers no longer observed in the live runtime grep scan: `9`
-- Sync-required callers: `2`
-- Already-synced callers: `7`
+- Sync-required callers: `3`
+- Already-synced callers: `6`
 - Blocked callers: `0`
 
 | Live content state | Count |
 | --- | --- |
-| `content_drift` | 2 |
-| `content_match` | 7 |
+| `content_drift` | 3 |
+| `content_match` | 6 |
 
 ## dev-governor-facade-8760-callers
 
@@ -48,7 +48,7 @@ Do not edit manually.
 - Observed at: `2026-03-29T02:48:53Z`
 - Observed runtime repo head: `075490f`
 - Runbook: [`docs/runbooks/governor-facade-retirement.md`](/C:/Athanor/docs/runbooks/governor-facade-retirement.md)
-- Live content evidence snapshot: `2026-03-30T17:17:18.927801+00:00`
+- Live content evidence snapshot: `2026-03-31T00:12:36.555929+00:00`
 - Live observed `:8760` references: `0`
 
 ### Acceptance Criteria
@@ -70,7 +70,7 @@ Do not edit manually.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `1` | `scripts/drift-check.sh` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/scripts/drift-check.sh` | `content_drift` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh` | `False` | `True` |
 | `2` | `scripts/smoke-test.sh` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/scripts/smoke-test.sh` | `content_drift` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh` | `False` | `True` |
-| `3` | `services/cluster_config.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/cluster_config.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py` | `False` | `True` |
+| `3` | `services/cluster_config.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/cluster_config.py` | `content_drift` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py` | `False` | `True` |
 | `4` | `services/gateway/main.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/gateway/main.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py` | `False` | `True` |
 | `5` | `services/governor/status_report.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/status_report.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py` | `False` | `True` |
 | `6` | `services/governor/overnight.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/overnight.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py` | `False` | `True` |
@@ -84,7 +84,7 @@ Do not edit manually.
 | --- | --- | --- | --- | --- | --- | --- |
 | `1` | `scripts/drift-check.sh` | `backup_then_replace_runtime_copy` | `C:\Athanor\scripts\drift-check.sh` | `/home/shaun/repos/athanor/scripts/drift-check.sh` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh` | `True` |
 | `2` | `scripts/smoke-test.sh` | `backup_then_replace_runtime_copy` | `C:\Athanor\scripts\smoke-test.sh` | `/home/shaun/repos/athanor/scripts/smoke-test.sh` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh` | `True` |
-| `3` | `services/cluster_config.py` | `already_synced` | `C:\Athanor\services\cluster_config.py` | `/home/shaun/repos/athanor/services/cluster_config.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py` | `True` |
+| `3` | `services/cluster_config.py` | `backup_then_replace_runtime_copy` | `C:\Athanor\services\cluster_config.py` | `/home/shaun/repos/athanor/services/cluster_config.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py` | `True` |
 | `4` | `services/gateway/main.py` | `already_synced` | `C:\Athanor\services\gateway\main.py` | `/home/shaun/repos/athanor/services/gateway/main.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py` | `True` |
 | `5` | `services/governor/status_report.py` | `already_synced` | `C:\Athanor\services\governor\status_report.py` | `/home/shaun/repos/athanor/services/governor/status_report.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py` | `True` |
 | `6` | `services/governor/overnight.py` | `already_synced` | `C:\Athanor\services\governor\overnight.py` | `/home/shaun/repos/athanor/services/governor/overnight.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py` | `True` |
@@ -161,10 +161,10 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/services/cluster_config.py`
 - Canonical replacement: Use platform-topology-backed service resolution and remove any runtime-local governor URL fallback.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `already_synced`
+- Sync decision: `backup_then_replace_runtime_copy`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py`
 - Rollback ready: `True`
-- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
+- Next action: Unexpected post-cutover drift; resync the runtime-owned file from implementation authority and reopen the migration seam.
 - Cutover check: DEV runtime repo no longer exports or defaults any localhost:8760 governor URL.
 - Repo-side gates: `projects/agents/tests/test_repo_contracts.py::test_legacy_governor_local_helper_scripts_match_live_runtime_truth`, `python scripts/validate_platform_contract.py`
 - Runtime file: `/home/shaun/repos/athanor/services/cluster_config.py`
@@ -172,13 +172,13 @@ Do not edit manually.
 - Runtime target matches registry: `True`
 - Implementation file: `C:\Athanor\services\cluster_config.py`
 - Implementation file exists: `True`
-- Live content sync: `content_match`
+- Live content sync: `content_drift`
 - Live `:8760` reference observed: `False`
 - Runtime hash: `af150099834b`
 - Runtime size: `4584` bytes
 - Runtime lines: `138`
-- Implementation hash: `af150099834b`
-- Implementation size: `4584` bytes
+- Implementation hash: `a4a1987f6cc4`
+- Implementation size: `4722` bytes
 - Implementation lines: `138`
 - Notes: `This is the shared replacement seam for helper scripts that should consume topology-owned service URLs.`
 

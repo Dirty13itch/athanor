@@ -1,7 +1,7 @@
 # Athanor Status
 
 **Last updated:** 2026-03-30  
-**Program:** Truth convergence, mainline synthesis, and aggressive prune
+**Program:** Truth convergence, branch normalization, and aggressive prune
 
 ## Program Health
 
@@ -9,7 +9,7 @@
 |------|--------|-------|
 | Authority model | In progress | `C:\Athanor` is being locked as implementation authority, DEV runtime state is being classified explicitly, and `athanor-next` remains incubation-only. |
 | Startup docs | In progress | Top-entry docs are being rewritten to stop routing humans and agents to stale truth layers. |
-| Mainline synthesis | Completed | The clean synthesis lane has landed the 2026-03-29 through 2026-03-30 Athanor-core integrator train plus the remaining script-service contract slice onto `main`, refreshed generated operations reports on trunk, and left `main` as the only active integration line. The remaining branch and worktree sprawl is now cleanup debt rather than pending merge work: the targeted Athanor-core `codex/extract-*` and `codex/finish-*` pool is already patch-equivalent to trunk or otherwise subsumed, while older historical branches remain hold-only for manual salvage. |
+| Mainline synthesis | Completed | The clean synthesis lane landed the 2026-03-29 through 2026-03-30 Athanor-core integrator train plus the remaining script-service contract slice onto `main`, and the follow-on normalization tranche collapsed the repo to one live branch, one live remote ref, and one registered worktree. The deleted branch and worktree state is preserved under `C:\Athanor_cleanup_archive\2026-03-30-branch-normalization`, so branch sprawl is no longer active repo debt. |
 | Truth inventories | In progress | Hardware, model, provider, subscription-burn, tooling, credential, repo-root, and routing-taxonomy registries are now present under `config/automation-backbone`, and the credential surface registry now carries remediation intent. |
 | Generated reports | In progress | Truth inventory reports generate and freshness-check cleanly; collector depth now includes repo-safe DEV runtime and DESK runtime-env evidence, service probes now honor topology-owned non-default health paths and classify `bolt://` plus `redis://` planes by TCP-connect truth instead of fake broken HTTP requests, the collector now captures live and retired `athanor-governor` evidence instead of relying on repo inference alone, the generated runtime-migration report carries the caller-by-caller `:8760` cutover map, the live collector cross-checks the observed DEV caller set against that migration map with zero unmapped callers, persists a cached truth snapshot under `reports/truth-inventory/latest.json`, hashes each observed runtime-owned caller against implementation authority, and now proves the retired listener is absent with all 9 mapped callers already synced. `docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md` now serves as audit and rollback evidence for the completed 2026-03-29 maintenance window, and the report generator now treats live snapshot and VAULT env-audit timestamp churn as non-stale when the underlying report content is otherwise unchanged so the validator stays green under active collectors. The platform validator still fails if any migration-registry caller marked `migrated` carries `:8760`, `/queue`, `/dispatch-and-run`, or `ATHANOR_GOVERNOR_URL` residue in implementation authority. |
 | Operator front door | Completed | `config/automation-backbone/operator-surface-registry.json` and `docs/operations/OPERATOR-SURFACE-REPORT.md` own human-facing surface truth, the dashboard IA is regrouped into command-center/operate/build/domains/catalog, the DEV command center runs as a containerized dashboard behind Caddy at `https://athanor.local/`, WORKSHOP `:3001` is retired as a command-center surface, the live container is standardized onto `/opt/athanor/dashboard`, DESK now resolves `athanor.local` plus the node-host aliases through the scripted hosts-file rollout, and both canonical browser verification plus runtime fallback smoke are green. The topology-owned dashboard health probe uses `/api/operator/session`, so the generic service-health lane no longer reports a false red from the heavyweight `/api/overview` aggregate. |
@@ -23,6 +23,7 @@
 ## What Is True Now
 
 - `C:\Athanor` is the durable code and control-plane home.
+- `main` is the only live local branch, `origin/main` is the only remaining remote ref, and `C:\Athanor` is the only registered worktree; the deleted branch/worktree state is preserved under `C:\Athanor_cleanup_archive\2026-03-30-branch-normalization`.
 - `/home/shaun/repos/athanor` on DEV is still the runtime and deployment authority until deployment becomes mirror-clean and broader runtime-authority convergence is complete.
 - `C:\Users\Shaun\dev\athanor-next` is an incubation lane and cannot silently become primary.
 - Mutable control-plane truth belongs in `config/automation-backbone`, not in historical prose.
