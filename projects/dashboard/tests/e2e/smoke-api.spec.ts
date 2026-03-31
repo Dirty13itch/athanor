@@ -97,6 +97,36 @@ test("smoke: operator catalog endpoints return inventories", async ({ request })
   expect(projectsResponse.ok()).toBeTruthy();
   const projects = await expectJsonKeys(projectsResponse, ["generatedAt", "projects"]);
   expect(Array.isArray(projects.projects)).toBeTruthy();
+
+  const subscriptionSummaryResponse = await request.get("/api/subscriptions/summary");
+  expect(subscriptionSummaryResponse.ok()).toBeTruthy();
+  const subscriptionSummary = await expectJsonKeys(subscriptionSummaryResponse, [
+    "policy_source",
+    "provider_summaries",
+    "recent_leases",
+    "count",
+  ]);
+  expect(Array.isArray(subscriptionSummary.provider_summaries)).toBeTruthy();
+
+  const governorOperationsResponse = await request.get("/api/governor/operations");
+  expect(governorOperationsResponse.ok()).toBeTruthy();
+  await expectJsonKeys(governorOperationsResponse, [
+    "generated_at",
+    "status",
+    "runbooks",
+    "backup_restore",
+    "synthetic_operator_tests",
+  ]);
+
+  const governorOperatorTestsResponse = await request.get("/api/governor/operator-tests");
+  expect(governorOperatorTestsResponse.ok()).toBeTruthy();
+  await expectJsonKeys(governorOperatorTestsResponse, [
+    "generated_at",
+    "status",
+    "last_outcome",
+    "flow_count",
+    "flows",
+  ]);
 });
 
 test("smoke: workforce snapshot endpoint returns the expected sections", async ({ request }) => {
@@ -124,6 +154,33 @@ test("smoke: workforce snapshot endpoint returns the expected sections", async (
   expect(Array.isArray(json.goals)).toBeTruthy();
   expect(Array.isArray(json.notifications)).toBeTruthy();
   expect(Array.isArray(json.projects)).toBeTruthy();
+});
+
+test("smoke: pipeline endpoints return the expected shape", async ({ request }) => {
+  const statusResponse = await request.get("/api/pipeline/status");
+  expect(statusResponse.ok()).toBeTruthy();
+  await expectJsonKeys(statusResponse, [
+    "recent_cycles",
+    "pending_plans",
+    "recent_outcomes_count",
+    "avg_quality",
+    "last_cycle",
+  ]);
+
+  const outcomesResponse = await request.get("/api/pipeline/outcomes?limit=5");
+  expect(outcomesResponse.ok()).toBeTruthy();
+  const outcomes = await expectJsonKeys(outcomesResponse, ["outcomes", "count"]);
+  expect(Array.isArray(outcomes.outcomes)).toBeTruthy();
+
+  const plansResponse = await request.get("/api/pipeline/plans?status=pending");
+  expect(plansResponse.ok()).toBeTruthy();
+  const plans = await expectJsonKeys(plansResponse, ["plans", "count"]);
+  expect(Array.isArray(plans.plans)).toBeTruthy();
+
+  const previewResponse = await request.get("/api/pipeline/preview");
+  expect(previewResponse.ok()).toBeTruthy();
+  const preview = await expectJsonKeys(previewResponse, ["proposals", "count"]);
+  expect(Array.isArray(preview.proposals)).toBeTruthy();
 });
 
 test("smoke: family snapshot endpoints return the expected shape", async ({ request }) => {

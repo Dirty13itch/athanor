@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 
 const HEARTBEAT_INTERVAL_MS = 45_000;
 const MIN_REPEAT_INTERVAL_MS = 10_000;
@@ -32,12 +33,17 @@ function postHeartbeat(state: HeartbeatState, reason: string) {
 }
 
 export function OperatorPresenceHeartbeat() {
+  const session = useOperatorSessionStatus();
   const lastSentRef = useRef<{ state: HeartbeatState | null; timestamp: number }>({
     state: null,
     timestamp: 0,
   });
 
   useEffect(() => {
+    if (!session.isFetched || isOperatorSessionLocked(session)) {
+      return;
+    }
+
     let intervalId: number | null = null;
 
     const send = (state: HeartbeatState, reason: string, force = false) => {
@@ -97,7 +103,7 @@ export function OperatorPresenceHeartbeat() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("pagehide", handlePageHide);
     };
-  }, []);
+  }, [session.isFetched, session.requiresSession, session.unlocked]);
 
   return null;
 }

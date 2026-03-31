@@ -18,13 +18,13 @@ Config file on VAULT: `/mnt/user/appdata/litellm/config.yaml`
 | Alias | Backend Model | Location | Use |
 |-------|---------------|----------|-----|
 | `reasoning` | Qwen3.5-27B-FP8 TP=4 | FOUNDRY:8000 | Complex reasoning, architecture, agents |
-| `fast` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Quick responses, low-latency |
-| `coder` | Qwen3.5-35B-A3B-AWQ-4bit | FOUNDRY:8006 | Code generation |
-| `grader` | Qwen3.5-35B-A3B-AWQ | WORKSHOP:8000 | Eval grading — thinking disabled at routing layer |
+| `fast` | /models/Qwen3.5-35B-A3B-AWQ-4bit | WORKSHOP:8010 | Quick responses, low-latency |
+| `coder` | devstral-small-2 | FOUNDRY:8006 | Code generation |
+| `grader` | /models/Qwen3.5-35B-A3B-AWQ-4bit | WORKSHOP:8010 | Eval grading - thinking disabled at routing layer |
 | `embedding` | Qwen3-Embedding-0.6B | DEV:8001 | 1024-dim vectors |
 | `reranker` | Qwen3-Reranker-0.6B | DEV:8003 | Cross-encoder scoring |
 
-Additional aliases on WORKSHOP (`worker`, `utility`, `creative`, `uncensored`) all route to the same 35B-A3B-AWQ backend.
+Additional aliases on WORKSHOP (`worker`, `utility`, `creative`, `uncensored`) all route to the same 35B-A3B worker backend on `:8010`. Ollama on `:11434` is a separate workshop-local surface and not the canonical worker lane.
 
 ## Config Changes
 

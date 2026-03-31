@@ -16,6 +16,7 @@ import { StatusDot } from "@/components/status-dot";
 import { getAgents } from "@/lib/api";
 import { type AgentInfo, type ChatStreamEvent } from "@/lib/contracts";
 import { compactText, formatRelativeTime } from "@/lib/format";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 import { requestJson } from "@/features/workforce/helpers";
 import { readChatEventStream } from "@/lib/sse";
@@ -225,6 +226,8 @@ function AgentRosterItem({
 export function AgentWorkbench() {
   const { getSearchValue, setSearchValue } = useUrlState();
   const selectedAgentId = getSearchValue("agent", "general-assistant");
+  const operatorSession = useOperatorSessionStatus();
+  const liveReadEnabled = !operatorSession.isPending && !isOperatorSessionLocked(operatorSession);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -243,7 +246,7 @@ export function AgentWorkbench() {
   const trustQuery = useQuery({
     queryKey: ["workbench-trust-scores"],
     queryFn: async (): Promise<TrustScore[]> => {
-      const data = await requestJson("/api/agents/proxy?path=/v1/trust");
+      const data = await requestJson("/api/trust");
       return (data?.scores ?? data ?? []) as TrustScore[];
     },
     refetchInterval: 60_000,
@@ -254,11 +257,11 @@ export function AgentWorkbench() {
     queryKey: ["workbench-running", selectedAgentId],
     queryFn: async (): Promise<AgentTask[]> => {
       const data = await requestJson(
-        `/api/agents/proxy?path=/v1/tasks?agent=${encodeURIComponent(selectedAgentId)}&status=running`
+          `/api/workforce/tasks?agent=${encodeURIComponent(selectedAgentId)}&status=running`
       );
       return (data?.tasks ?? data ?? []) as AgentTask[];
     },
-    enabled: !!selectedAgentId,
+    enabled: !!selectedAgentId && liveReadEnabled,
     refetchInterval: 5_000,
     refetchIntervalInBackground: false,
   });
@@ -267,11 +270,11 @@ export function AgentWorkbench() {
     queryKey: ["workbench-pending", selectedAgentId],
     queryFn: async (): Promise<AgentTask[]> => {
       const data = await requestJson(
-        `/api/agents/proxy?path=/v1/tasks?agent=${encodeURIComponent(selectedAgentId)}&status=pending`
+          `/api/workforce/tasks?agent=${encodeURIComponent(selectedAgentId)}&status=pending`
       );
       return (data?.tasks ?? data ?? []) as AgentTask[];
     },
-    enabled: !!selectedAgentId,
+    enabled: !!selectedAgentId && liveReadEnabled,
     refetchInterval: 10_000,
     refetchIntervalInBackground: false,
   });
@@ -280,7 +283,7 @@ export function AgentWorkbench() {
     queryKey: ["workbench-activity", selectedAgentId],
     queryFn: async (): Promise<AgentActivity[]> => {
       const data = await requestJson(
-        `/api/agents/proxy?path=/v1/activity?agent=${encodeURIComponent(selectedAgentId)}&limit=10`
+          `/api/activity?agent=${encodeURIComponent(selectedAgentId)}&limit=10`
       );
       return (data?.activity ?? data ?? []) as AgentActivity[];
     },
@@ -293,7 +296,7 @@ export function AgentWorkbench() {
     queryKey: ["workbench-stats", selectedAgentId],
     queryFn: async (): Promise<AgentStats | null> => {
       const data = await requestJson(
-        `/api/agents/proxy?path=/v1/activity/stats?agent=${encodeURIComponent(selectedAgentId)}&window=24h`
+          `/api/activity/stats?agent=${encodeURIComponent(selectedAgentId)}&window=24h`
       );
       return (data?.stats ?? data ?? null) as AgentStats | null;
     },

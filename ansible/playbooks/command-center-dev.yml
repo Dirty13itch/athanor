@@ -1,0 +1,12 @@
+---
+# DEV command-center cutover lane
+# Usage: ansible-playbook playbooks/command-center-dev.yml --tags dashboard
+# Approval-gated: this stages the containerized DEV command-center runtime on the canonical host.
+
+- name: Deploy DEV command center runtime
+  hosts: dev
+  become: true
+  roles:
+    - { role: front-door-prereqs, tags: [front-door-prereqs, command-center] }
+    - { role: docker, tags: [docker] }
+    - { role: dashboard, tags: [dashboard, command-center] }

@@ -47,10 +47,15 @@ EXTRA_FILES = [
     REPO_ROOT / "CONSTITUTION.yaml",
     REPO_ROOT / "STATUS.md",
     REPO_ROOT / "docs" / "VISION.md",
-    REPO_ROOT / "docs" / "BUILD-MANIFEST.md",
+    REPO_ROOT / "docs" / "operations" / "CONTINUOUS-COMPLETION-BACKLOG.md",
     REPO_ROOT / "docs" / "SYSTEM-SPEC.md",
     REPO_ROOT / "docs" / "SERVICES.md",
 ]
+EXCLUDED_DOCS = {
+    REPO_ROOT / "docs" / "BUILD-MANIFEST.md",
+    REPO_ROOT / "docs" / "archive" / "BUILD-MANIFEST.md",
+    REPO_ROOT / "docs" / "archive" / "hardware-inventory.md",
+}
 
 QDRANT_URL = get_url("qdrant")
 LITELLM_URL = get_url("litellm").rstrip("/") + "/v1"
@@ -258,6 +263,8 @@ def find_docs() -> list[Path]:
 
     for f in DOCS_DIR.rglob("*.md"):
         if f.name == "CLAUDE.md" and f.parent != DOCS_DIR:
+            continue
+        if f in EXCLUDED_DOCS:
             continue
         files.add(f)
 

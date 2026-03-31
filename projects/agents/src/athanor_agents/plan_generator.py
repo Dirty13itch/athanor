@@ -43,6 +43,9 @@ class ExecutionPlan:
     approved_by: str | None = None
     rejection_reason: str | None = None
     priority_score: float = 0.5
+    autonomy_managed: bool = False
+    autonomy_phase_id: str | None = None
+    autonomy_scope_note: str | None = None
 
     def __post_init__(self):
         if not self.created_at:
@@ -76,6 +79,8 @@ async def generate_plan_from_intent(
 
     # Determine agent assignments based on intent content
     agents = _suggest_agents(intent_text, metadata)
+    autonomy_managed = _is_autonomy_managed_plan(metadata)
+    agents, autonomy_phase_id, autonomy_scope_note = _apply_autonomy_scope_to_agents(agents, metadata)
 
     # Estimate task count from complexity
     est_tasks = _estimate_task_count(intent_text)
@@ -98,6 +103,9 @@ async def generate_plan_from_intent(
         risk_level=risk,
         status="pending_approval" if risk != "low" else "draft",
         priority_score=priority_hint,
+        autonomy_managed=autonomy_managed,
+        autonomy_phase_id=autonomy_phase_id,
+        autonomy_scope_note=autonomy_scope_note,
     )
 
     # Try LLM-enhanced plan generation (non-blocking)
@@ -110,6 +118,10 @@ async def generate_plan_from_intent(
             plan.risk_level = enhanced.get("risk_level", plan.risk_level)
     except Exception as e:
         logger.debug("LLM plan enhancement failed, using heuristics: %s", e)
+
+    if autonomy_scope_note:
+        plan.research_summary = f"{plan.research_summary.rstrip()} Autonomy scope: {autonomy_scope_note}".strip()
+        plan.approach = f"{plan.approach.rstrip()} Autonomy scope: {autonomy_scope_note}".strip()
 
     # Store in Redis
     await _store_plan(plan)
@@ -290,13 +302,26 @@ async def decompose_plan_to_tasks(plan: ExecutionPlan) -> list[dict]:
     if plan.status != "approved":
         return []
 
+    assigned_agents = list(plan.assigned_agents)
+    if plan.autonomy_managed:
+        assigned_agents, autonomy_phase_id, autonomy_scope_note = _apply_autonomy_scope_to_agents(
+            assigned_agents,
+            {"_autonomy_managed": True},
+        )
+        if autonomy_phase_id:
+            plan.autonomy_phase_id = autonomy_phase_id
+        if autonomy_scope_note:
+            plan.autonomy_scope_note = autonomy_scope_note
+            if autonomy_scope_note not in plan.approach:
+                plan.approach = f"{plan.approach.rstrip()} Autonomy scope: {autonomy_scope_note}".strip()
+
     plan.status = "executing"
     r = await _get_redis()
     await r.hset(PLANS_ACTIVE_KEY, plan.id, json.dumps(plan.to_dict()))
 
     tasks = []
     # Simple decomposition: one task per agent assignment
-    for i, agent in enumerate(plan.assigned_agents):
+    for i, agent in enumerate(assigned_agents):
         task_spec = {
             "agent": agent,
             "prompt": f"{plan.approach}\n\nContext: {plan.intent_text[:500]}",
@@ -311,9 +336,9 @@ async def decompose_plan_to_tasks(plan: ExecutionPlan) -> list[dict]:
         tasks.append(task_spec)
 
     # If more tasks estimated than agents, create additional task specs
-    remaining = plan.estimated_tasks - len(plan.assigned_agents)
-    if remaining > 0 and plan.assigned_agents:
-        primary = plan.assigned_agents[0]
+    remaining = plan.estimated_tasks - len(assigned_agents)
+    if remaining > 0 and assigned_agents:
+        primary = assigned_agents[0]
         for i in range(remaining):
             tasks.append({
                 "agent": primary,
@@ -323,7 +348,7 @@ async def decompose_plan_to_tasks(plan: ExecutionPlan) -> list[dict]:
                     "source": "pipeline",
                     "plan_id": plan.id,
                     "plan_title": plan.title,
-                    "task_index": len(plan.assigned_agents) + i,
+                    "task_index": len(assigned_agents) + i,
                 },
             })
 
@@ -377,6 +402,56 @@ async def is_duplicate_intent(intent_text: str) -> bool:
 
 
 # --- Heuristic helpers ---
+
+def _is_autonomy_managed_plan(metadata: dict | None) -> bool:
+    return bool(dict(metadata or {}).get("_autonomy_managed"))
+
+
+def _load_active_autonomy_phase_scope() -> tuple[str | None, list[str]]:
+    from .model_governance import get_current_autonomy_policy
+
+    policy = get_current_autonomy_policy()
+    if not policy.is_active:
+        return None, []
+    return policy.phase_id, sorted(policy.enabled_agents)
+
+
+def _apply_autonomy_scope_to_agents(
+    agents: list[str],
+    metadata: dict | None,
+) -> tuple[list[str], str | None, str | None]:
+    if not _is_autonomy_managed_plan(metadata):
+        return list(agents), None, None
+
+    phase_id, enabled_agents = _load_active_autonomy_phase_scope()
+    if not enabled_agents:
+        return list(agents), phase_id, None
+
+    requested_agents = [str(agent).strip() for agent in agents if str(agent).strip()]
+    filtered_agents = [agent for agent in requested_agents if agent in enabled_agents]
+    blocked_agents = [agent for agent in requested_agents if agent not in enabled_agents]
+
+    if filtered_agents:
+        if not blocked_agents:
+            return filtered_agents, phase_id, None
+        note = (
+            f"Filtered blocked agents {blocked_agents} under autonomy phase "
+            f"{phase_id or 'unknown'}; kept {filtered_agents}."
+        )
+        return filtered_agents, phase_id, note
+
+    fallback_agent = "general-assistant" if "general-assistant" in enabled_agents else enabled_agents[0]
+    if blocked_agents:
+        note = (
+            f"Filtered blocked agents {blocked_agents} under autonomy phase "
+            f"{phase_id or 'unknown'}; fell back to {fallback_agent}."
+        )
+    else:
+        note = (
+            f"No eligible autonomous agent matched under autonomy phase "
+            f"{phase_id or 'unknown'}; fell back to {fallback_agent}."
+        )
+    return [fallback_agent], phase_id, note
 
 def _suggest_agents(text: str, metadata: dict) -> list[str]:
     """Suggest agents based on intent content."""

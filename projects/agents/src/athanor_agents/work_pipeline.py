@@ -148,7 +148,11 @@ async def run_pipeline_cycle() -> CycleResult:
                 intent_source=intent.source,
                 intent_text=intent.text,
                 priority_hint=intent.priority_hint,
-                metadata=intent.metadata,
+                metadata={
+                    **dict(intent.metadata or {}),
+                    "_autonomy_managed": True,
+                    "_autonomy_source": "pipeline",
+                },
             )
             plans.append(plan)
             await record_intent_hash(intent.text, plan.id)
@@ -171,10 +175,14 @@ async def run_pipeline_cycle() -> CycleResult:
                     agent=plan.assigned_agents[0] if plan.assigned_agents else "general-assistant",
                     prompt=plan.title,
                     priority="normal",
-                    metadata={"source": "pipeline", "plan_id": plan.id},
+                    metadata={
+                        "source": "pipeline",
+                        "plan_id": plan.id,
+                        "task_class": "workplan_generation",
+                    },
                     source="pipeline",
                 )
-                if decision.autonomy_level == "A":
+                if decision.allowed or decision.status_override == "pending":
                     approved = await approve_plan(plan.id, actor="auto")
                     if approved:
                         plan = approved
@@ -189,27 +197,17 @@ async def run_pipeline_cycle() -> CycleResult:
                 # 7. Submit through governor
                 for spec in task_specs:
                     try:
-                        decision = await gov.gate_task_submission(
+                        from .tasks import submit_governed_task
+
+                        submission = await submit_governed_task(
                             agent=spec["agent"],
                             prompt=spec["prompt"],
                             priority=spec.get("priority", "normal"),
                             metadata=spec.get("metadata", {}),
                             source="pipeline",
                         )
-
-                        from .tasks import submit_task, _update_task
-                        task = await submit_task(
-                            agent=spec["agent"],
-                            prompt=spec["prompt"],
-                            priority=spec.get("priority", "normal"),
-                            metadata={
-                                **spec.get("metadata", {}),
-                                "governor_decision": decision.reason,
-                            },
-                        )
-                        if decision.status_override == "pending_approval":
-                            task.status = "pending_approval"
-                            await _update_task(task)
+                        task = submission.task
+                        if submission.held_for_approval:
                             result.tasks_held += 1
                         else:
                             result.tasks_submitted += 1
@@ -335,10 +333,10 @@ async def _check_starvation():
         # Auto-recovery: publish starvation event and submit a general-assistant
         # planning task to review the starved project
         if starved:
-            from .tasks import submit_task
+            from .tasks import publish_task_event, submit_governed_task
             for pid in starved[:2]:  # Max 2 recovery tasks per cycle
                 try:
-                    await submit_task(
+                    await submit_governed_task(
                         agent="general-assistant",
                         prompt=(
                             f"Project '{pid}' has had no activity for over 24 hours. "
@@ -346,17 +344,25 @@ async def _check_starvation():
                             f"the next actionable step. Be specific and practical."
                         ),
                         priority="low",
-                        metadata={"source": "pipeline", "trigger": "starvation_recovery", "project": pid},
+                        metadata={
+                            "source": "pipeline",
+                            "trigger": "starvation_recovery",
+                            "project": pid,
+                            "task_class": "workplan_generation",
+                        },
+                        source="pipeline",
                     )
                     logger.info("Starvation recovery task submitted for project %s", pid)
                 except Exception as e:
                     logger.warning("Failed to submit recovery task for %s: %s", pid, e)
 
             # Publish event for dashboard visibility
-            await r.publish("athanor:tasks:events", json.dumps({
-                "event": "starvation_detected",
-                "projects": starved,
-                "timestamp": now,
-            }))
+            await publish_task_event(
+                {
+                    "event": "starvation_detected",
+                    "projects": starved,
+                    "timestamp": now,
+                }
+            )
     except Exception as e:
         logger.debug("Starvation check failed: %s", e)

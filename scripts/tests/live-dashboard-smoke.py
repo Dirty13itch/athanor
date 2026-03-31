@@ -8,80 +8,132 @@ import json
 import sys
 import urllib.error
 import urllib.request
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cluster_config import get_url
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR.parent))
 
-DEFAULT_BASE_URL = get_url("dashboard")
-ROOT = Path(__file__).resolve().parents[2]
-COMPLETION_DIR = ROOT / "docs" / "atlas" / "inventory" / "completion"
+DEFAULT_BASE_URL = "https://athanor.local/"
+ROOT = SCRIPT_DIR.parents[1]
+COMPLETION_DIR = ROOT / "reports" / "completion-audit" / "latest" / "inventory"
+UI_AUDIT_REGISTRY = ROOT / "tests" / "ui-audit" / "surface-registry.json"
+
+FALLBACK_ROUTES = [
+    "/",
+    "/services",
+    "/gpu",
+    "/chat",
+    "/agents",
+    "/tasks",
+    "/goals",
+    "/notifications",
+    "/workplanner",
+    "/workspace",
+    "/workforce",
+    "/pipeline",
+    "/activity",
+    "/conversations",
+    "/gallery",
+    "/home",
+    "/insights",
+    "/learning",
+    "/media",
+    "/monitoring",
+    "/models",
+    "/operator",
+    "/outputs",
+    "/personal-data",
+    "/preferences",
+    "/review",
+    "/terminal",
+]
+
+FALLBACK_APIS = [
+    "/api/overview",
+    "/api/services",
+    "/api/services/history",
+    "/api/gpu",
+    "/api/gpu/history",
+    "/api/models",
+    "/api/projects",
+    "/api/workforce",
+    "/api/history",
+    "/api/intelligence",
+    "/api/memory",
+    "/api/monitoring",
+    "/api/media/overview",
+    "/api/gallery/overview",
+    "/api/home/overview",
+    "/api/personal-data/search",
+]
+
+SAFE_OPERATOR_APIS = [
+    "/api/operator/context",
+    "/api/operator/session",
+    "/api/operator/nav-attention",
+    "/api/operator/ui-preferences",
+]
+
+
+class NextStaticAssetParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.asset_paths: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        for key, value in attrs:
+            if key not in {"href", "src"} or not value:
+                continue
+            if value.startswith("/_next/static/"):
+                self.asset_paths.append(value)
 
 
 def load_routes() -> list[str]:
+    if UI_AUDIT_REGISTRY.exists():
+        payload = json.loads(UI_AUDIT_REGISTRY.read_text(encoding="utf-8"))
+        routes = [
+            str(record["routePath"])
+            for record in payload.get("surfaces", [])
+            if record.get("product") == "dashboard"
+            and record.get("surfaceType") == "route"
+            and record.get("coverageStatus") == "covered-live"
+            and record.get("routePath")
+        ]
+        if routes:
+            return routes
+
     path = COMPLETION_DIR / "dashboard-route-census.json"
     if not path.exists():
-        return [
-            "/",
-            "/services",
-            "/gpu",
-            "/chat",
-            "/agents",
-            "/tasks",
-            "/goals",
-            "/notifications",
-            "/workplanner",
-            "/workspace",
-            "/activity",
-            "/conversations",
-            "/gallery",
-            "/home",
-            "/insights",
-            "/learning",
-            "/media",
-            "/monitoring",
-            "/more",
-            "/outputs",
-            "/personal-data",
-            "/preferences",
-            "/review",
-            "/terminal",
-            "/offline",
-        ]
+        return FALLBACK_ROUTES
     payload = json.loads(path.read_text(encoding="utf-8"))
     return [record["routePath"] for record in payload if record.get("kind") == "route"]
 
 
 def load_apis() -> list[str]:
+    if UI_AUDIT_REGISTRY.exists():
+        payload = json.loads(UI_AUDIT_REGISTRY.read_text(encoding="utf-8"))
+        apis = [
+            str(record["apiPath"])
+            for record in payload.get("surfaces", [])
+            if record.get("product") == "dashboard"
+            and record.get("surfaceType") == "api"
+            and record.get("coverageStatus") == "covered-live"
+            and record.get("apiPath")
+            and ":" not in str(record.get("apiPath"))
+            and str(record.get("apiPath")) not in POST_APIS
+        ]
+        if apis:
+            ordered = apis + SAFE_OPERATOR_APIS
+            unique_paths: list[str] = []
+            for path in ordered:
+                if path not in unique_paths:
+                    unique_paths.append(path)
+            return unique_paths
+
     path = COMPLETION_DIR / "dashboard-api-census.json"
     if not path.exists():
-        return [
-            "/api/overview",
-            "/api/services",
-            "/api/gpu",
-            "/api/models",
-            "/api/projects",
-            "/api/workforce",
-            "/api/history",
-            "/api/intelligence",
-            "/api/memory",
-            "/api/monitoring",
-            "/api/media/overview",
-            "/api/gallery/overview",
-            "/api/home/overview",
-            "/api/activity",
-            "/api/conversations",
-            "/api/outputs",
-            "/api/preferences",
-            "/api/personal-data/stats",
-            "/api/insights",
-            "/api/learning/metrics",
-            "/api/learning/improvement",
-            "/api/stash/stats",
-            "/api/services/history",
-            "/api/gpu/history",
-        ]
+        return FALLBACK_APIS + SAFE_OPERATOR_APIS
     payload = json.loads(path.read_text(encoding="utf-8"))
     return [
         record["apiPath"]
@@ -92,9 +144,7 @@ def load_apis() -> list[str]:
         and record.get("responseMode") != "sse"
     ]
 
-POST_APIS = {
-    "/api/personal-data/search": {"query": "EoBQ", "limit": 3},
-}
+POST_APIS = {"/api/personal-data/search": {"query": "EoBQ", "limit": 3}}
 
 CHAT_PAYLOADS = [
     (
@@ -143,6 +193,16 @@ def fetch(base_url: str, path: str, method: str = "GET", payload: Any = None, he
         return response.status, dict(response.headers), response.read()
 
 
+def sample_next_static_assets(root_html: str) -> list[str]:
+    parser = NextStaticAssetParser()
+    parser.feed(root_html)
+    unique_paths: list[str] = []
+    for asset_path in parser.asset_paths:
+        if asset_path not in unique_paths:
+            unique_paths.append(asset_path)
+    return unique_paths[:6]
+
+
 def read_sse(base_url: str, path: str, payload: dict[str, Any]) -> list[dict[str, Any]]:
     request = urllib.request.Request(
         f"{base_url}{path}",
@@ -182,6 +242,11 @@ def read_sse(base_url: str, path: str, payload: dict[str, Any]) -> list[dict[str
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Dashboard base URL.")
+    parser.add_argument(
+        "--skip-next-static-check",
+        action="store_true",
+        help="Skip validation of sampled /_next/static assets referenced by the root HTML.",
+    )
     args = parser.parse_args()
     routes = load_routes()
     apis = load_apis()
@@ -193,10 +258,24 @@ def main() -> int:
     for path in routes:
         try:
             status, _, body = fetch(args.base_url, path)
-            if status != 200 or "<html" not in body.decode("utf-8", errors="replace").lower():
+            decoded_body = body.decode("utf-8", errors="replace")
+            if status != 200 or "<html" not in decoded_body.lower():
                 failures.append(f"route {path} unexpected status/content: {status}")
             else:
                 summary[path] = "ok"
+                if path == "/" and not args.skip_next_static_check:
+                    asset_failures: list[str] = []
+                    for asset_path in sample_next_static_assets(decoded_body):
+                        try:
+                            asset_status, _, _ = fetch(args.base_url, asset_path)
+                            if asset_status != 200:
+                                asset_failures.append(f"{asset_path} -> {asset_status}")
+                        except Exception as exc:  # pragma: no cover - live smoke only
+                            asset_failures.append(f"{asset_path} -> {exc}")
+                    if asset_failures:
+                        failures.append("root /_next/static assets failed: " + "; ".join(asset_failures))
+                    else:
+                        summary["/_next/static"] = "ok"
         except Exception as exc:  # pragma: no cover - live smoke only
             failures.append(f"route {path} failed: {exc}")
 

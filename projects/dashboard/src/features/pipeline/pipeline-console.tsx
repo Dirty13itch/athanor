@@ -32,42 +32,13 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { requestJson, postJson, postWithoutBody } from "@/features/workforce/helpers";
-
-interface PipelineStatus {
-  recent_cycles: number;
-  pending_plans: number;
-  recent_outcomes_count: number;
-  avg_quality: number;
-  last_cycle: string | null;
-}
-
-interface PipelineOutcome {
-  task_id: string;
-  agent: string;
-  prompt: string;
-  quality_score: number;
-  success: boolean;
-  ts: string;
-}
-
-interface PipelinePlan {
-  id: string;
-  title: string;
-  intent_source: string;
-  approach: string;
-  risk_level: string;
-  status: string;
-}
-
-interface SynthesisProposal {
-  text: string;
-  priority: number;
-  project: string;
-  agent: string;
-  twelve_word: string;
-  explore: boolean;
-  reasoning: string;
-}
+import {
+  normalizePipelineOutcomes,
+  normalizePipelinePlans,
+  normalizePipelineProposals,
+  normalizePipelineStatus,
+  type PipelineStatus,
+} from "@/features/pipeline/pipeline-normalization";
 
 const pipelineKeys = {
   status: ["pipeline", "status"] as const,
@@ -123,34 +94,25 @@ export function PipelineConsole() {
 
   const statusQuery = useQuery({
     queryKey: pipelineKeys.status,
-    queryFn: () => requestJson("/api/pipeline/status") as Promise<PipelineStatus>,
+    queryFn: async () => normalizePipelineStatus(await requestJson("/api/pipeline/status")),
     refetchInterval: 20_000,
   });
 
   const outcomesQuery = useQuery({
     queryKey: pipelineKeys.outcomes,
-    queryFn: async () => {
-      const data = await requestJson("/api/pipeline/outcomes?limit=20");
-      return (data as { outcomes: PipelineOutcome[] }).outcomes ?? [];
-    },
+    queryFn: async () => normalizePipelineOutcomes(await requestJson("/api/pipeline/outcomes?limit=20")),
     refetchInterval: 30_000,
   });
 
   const plansQuery = useQuery({
     queryKey: pipelineKeys.plans,
-    queryFn: async () => {
-      const data = await requestJson("/api/pipeline/plans?status=pending");
-      return (data as { plans: PipelinePlan[] }).plans ?? [];
-    },
+    queryFn: async () => normalizePipelinePlans(await requestJson("/api/pipeline/plans?status=pending")),
     refetchInterval: 20_000,
   });
 
   const previewQuery = useQuery({
     queryKey: pipelineKeys.preview,
-    queryFn: async () => {
-      const data = await requestJson("/api/pipeline/preview");
-      return (data as { proposals: SynthesisProposal[]; count: number }).proposals ?? [];
-    },
+    queryFn: async () => normalizePipelineProposals(await requestJson("/api/pipeline/preview")),
     enabled: false, // Only fetch on demand
   });
 

@@ -7,9 +7,9 @@ It freezes ad hoc palette churn and replaces it with a research-first, implement
 ## Program status
 
 - Research phase: `locked`
-- Implementation phase: `stages 1-8 completed; WORKSHOP rollout smoke-verified`
+- Implementation phase: `stages 1-8 completed; DEV command-center rollout verified on the live runtime`
 - Current repo UI posture: operator-first, coherent, and systemized across the active cockpit
-- Current live UI posture: rebuilt on WORKSHOP and smoke-verified against the refreshed repo baselines
+- Current live UI posture: running on the DEV command center behind Caddy; direct DEV runtime smoke is green, while canonical desktop `athanor.local` access still depends on hostname rollout
 - Left-rail attention posture: `live`; urgent/action/watch route signals now derive from overview state and calm down after acknowledgment
 
 ## Direction
@@ -67,8 +67,8 @@ This pack is grounded in:
   - `projects/dashboard/src/components/app-shell.tsx`
   - `projects/dashboard/src/features/overview/command-center.tsx`
 - the current UI route inventory:
-  - `docs/atlas/UI_ATLAS.md`
-  - `docs/atlas/inventory/ui-inventory.json`
+  - `projects/dashboard/src/lib/navigation.ts`
+  - `projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md`
 - current route snapshots:
   - `projects/dashboard/tests/e2e/visual.spec.ts-snapshots/*.png`
 

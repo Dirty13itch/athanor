@@ -7,6 +7,18 @@
     group: athanor
     mode: "0755"
 
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Stop legacy standalone dashboard service before container cutover
+  ansible.builtin.systemd_service:
+    name: "{{ dashboard_legacy_systemd_service_name }}"
+    state: stopped
+    enabled: false
+  when:
+    - dashboard_disable_legacy_systemd_service | bool
+    - dashboard_legacy_systemd_service_name in ansible_facts.services
+
 - name: Sync dashboard source code
   ansible.posix.synchronize:
     src: "{{ playbook_dir }}/../../projects/dashboard/"
@@ -48,3 +60,47 @@
   delay: 5
   until: dashboard_health.status == 200
   when: not ansible_check_mode
+
+- name: Verify dashboard runtime assets and safe operator APIs
+  ansible.builtin.shell: |
+    python3 - <<'PY'
+    import re
+    import urllib.error
+    import urllib.request
+
+    root = "http://127.0.0.1:{{ dashboard_port }}/"
+    html = urllib.request.urlopen(root, timeout=10).read().decode("utf-8", "replace")
+    patterns = (
+        r'href="([^"]*?_next/static/[^"]+)"',
+        r'src="([^"]*?_next/static/[^"]+)"',
+    )
+    assets = []
+    for pattern in patterns:
+        for match in re.findall(pattern, html):
+            if match.startswith("/_next/static/") and match not in assets:
+                assets.append(match)
+    sample = assets[: {{ dashboard_static_asset_verify_count }}]
+    if not sample:
+        raise SystemExit("No sampled Next.js static assets discovered in dashboard shell")
+    for path in sample:
+        response = urllib.request.urlopen(f"http://127.0.0.1:{{ dashboard_port }}{path}", timeout=10)
+        if response.status != 200:
+            raise SystemExit(f"Static asset probe failed for {path}: {response.status}")
+    for api_path in {{ dashboard_expected_api_paths | to_json }}:
+        try:
+            response = urllib.request.urlopen(
+                f"http://127.0.0.1:{{ dashboard_port }}{api_path}",
+                timeout=10,
+            )
+            status = response.status
+        except urllib.error.HTTPError as exc:
+            status = exc.code
+        if status == 404:
+            raise SystemExit(f"Expected live dashboard API missing: {api_path}")
+    PY
+  args:
+    executable: /bin/bash
+  changed_when: false
+  when:
+    - not ansible_check_mode
+    - dashboard_verify_runtime_contract | bool

@@ -36,10 +36,10 @@ def _host_env(name: str, default: str) -> str:
 
 
 QDRANT_URL = get_url("qdrant")
-EMBEDDING_URL = (
-    get_url("litellm")
-    + "/v1"
-)
+LITELLM_URL = get_url("litellm")
+QDRANT_URL = _host_env("ATHANOR_QDRANT_URL", QDRANT_URL)
+LITELLM_URL = _host_env("ATHANOR_LITELLM_URL", LITELLM_URL)
+EMBEDDING_URL = LITELLM_URL.rstrip("/") + "/v1"
 EMBEDDING_KEY = (
     os.environ.get("ATHANOR_LITELLM_API_KEY")
     or os.environ.get("LITELLM_API_KEY")

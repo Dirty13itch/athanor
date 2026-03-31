@@ -180,8 +180,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Dashboard is down"
-          description: "Dashboard at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+          summary: "Athanor Command Center is down"
+          description: "The Athanor Command Center runtime at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
 
       - alert: ComfyUIDown
         expr: probe_success{service_id="comfyui"} == 0

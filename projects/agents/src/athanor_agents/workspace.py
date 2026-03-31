@@ -42,6 +42,19 @@ _competition_task: asyncio.Task | None = None
 _last_broadcast_id: str | None = None  # Dedup: skip CST/history when broadcast unchanged
 
 
+def _load_autonomy_enabled_agents() -> tuple[set[str], str]:
+    try:
+        from .model_governance import get_current_autonomy_policy
+
+        policy = get_current_autonomy_policy()
+    except Exception:
+        return set(), ""
+
+    if not policy.is_active:
+        return set(), str(policy.phase_id or "")
+    return set(policy.enabled_agents), str(policy.phase_id or "")
+
+
 class ItemPriority(str, Enum):
     CRITICAL = "critical"   # System alerts, failures
     HIGH = "high"           # User requests, interactive
@@ -735,11 +748,12 @@ async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
     Called each competition cycle. Max MAX_REACTIONS_PER_CYCLE tasks per cycle
     to avoid overwhelming the task queue.
     """
-    from .tasks import submit_task
+    from .tasks import submit_governed_task
 
     subs = await get_subscriptions()
     if not subs:
         return
+    autonomy_enabled_agents, autonomy_phase_id = _load_autonomy_enabled_agents()
 
     reactions_this_cycle = 0
 
@@ -750,6 +764,8 @@ async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
         for agent_name, sub in subs.items():
             if reactions_this_cycle >= MAX_REACTIONS_PER_CYCLE:
                 break
+            if autonomy_enabled_agents and agent_name not in autonomy_enabled_agents:
+                continue
 
             relevance = compute_keyword_relevance(item, sub)
             if relevance < sub.threshold:
@@ -792,18 +808,7 @@ async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
             )
 
             try:
-                from .governor import Governor
-                gov = Governor.get()
-                decision = await gov.gate_task_submission(
-                    agent=agent_name, prompt=prompt, priority="normal",
-                    metadata={
-                        "source": "workspace_reaction",
-                        "workspace_item_id": item.id,
-                        "relevance_score": round(relevance, 3),
-                    },
-                    source="workspace_reaction",
-                )
-                task = await submit_task(
+                submission = await submit_governed_task(
                     agent=agent_name,
                     prompt=prompt,
                     priority="normal",
@@ -811,13 +816,12 @@ async def _trigger_reactive_tasks(broadcast: list[WorkspaceItem]) -> None:
                         "source": "workspace_reaction",
                         "workspace_item_id": item.id,
                         "relevance_score": round(relevance, 3),
-                        "governor_decision": decision.reason,
+                        "_autonomy_managed": True,
+                        "autonomy_phase_id": autonomy_phase_id or None,
                     },
+                    source="workspace_reaction",
                 )
-                if decision.status_override == "pending_approval":
-                    task.status = "pending_approval"
-                    from .tasks import _update_task
-                    await _update_task(task)
+                task = submission.task
                 await _set_reaction_cooldown(item.id, agent_name)
                 reactions_this_cycle += 1
                 logger.info(

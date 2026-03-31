@@ -50,7 +50,7 @@ def _score_run(run: dict[str, Any]) -> dict[str, Any]:
 async def build_judge_plane_snapshot(limit: int = 12) -> dict[str, Any]:
     from .backbone import build_execution_run_records
     from .model_governance import get_model_role_registry
-    from .tasks import list_tasks
+    from .tasks import get_task_stats
 
     role_registry = get_model_role_registry()
     judge_role = next(
@@ -67,7 +67,8 @@ async def build_judge_plane_snapshot(limit: int = 12) -> dict[str, Any]:
 
     runs = await build_execution_run_records(limit=max(limit * 2, 20))
     verdicts = [_score_run(run) for run in runs[:limit]]
-    pending_reviews = await list_tasks(status="pending_approval", limit=limit)
+    stats = await get_task_stats()
+    pending_reviews = int(stats.get("pending_approval", 0) or 0)
 
     accept_count = sum(1 for verdict in verdicts if verdict["verdict"] == "accept")
     reject_count = sum(1 for verdict in verdicts if verdict["verdict"] == "reject")
@@ -88,7 +89,7 @@ async def build_judge_plane_snapshot(limit: int = 12) -> dict[str, Any]:
             "reject_count": reject_count,
             "review_required": review_required,
             "acceptance_rate": acceptance_rate,
-            "pending_review_queue": len(pending_reviews),
+            "pending_review_queue": pending_reviews,
         },
         "guardrails": [
             "Judge lanes score and gate; they do not execute production actions.",

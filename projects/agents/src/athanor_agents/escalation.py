@@ -228,6 +228,14 @@ async def _send_ntfy_notification(
         return False
 
 
+def _notifications_review_hint() -> str:
+    runtime_url = settings.dashboard_url.rstrip("/")
+    return (
+        "Review: https://athanor.local/notifications "
+        f"(fallback {runtime_url}/notifications)"
+    )
+
+
 def _fire_push(pending: "PendingAction") -> None:
     """Fire-and-forget push notification for an escalation event.
 
@@ -263,7 +271,7 @@ def _fire_push(pending: "PendingAction") -> None:
             )
             await _send_ntfy_notification(
                 title=f"[APPROVAL] {pending.agent}",
-                body=f"{pending.action}\n{pending.description[:200]}\n\nReview: workshop:3001/notifications",
+                body=f"{pending.action}\n{pending.description[:200]}\n\n{_notifications_review_hint()}",
                 priority="high",
                 tags=["bell", "rotating_light"],
             )

@@ -1,11 +1,55 @@
 import { expect, type Page } from "@playwright/test";
 
-export async function resetBrowserState(page: Page) {
+interface ResetBrowserStateOptions {
+  unlockOperator?: boolean;
+}
+
+function getPlaywrightBaseUrl() {
+  return process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3905";
+}
+
+export async function unlockOperatorSession(page: Page) {
+  const token = process.env.PLAYWRIGHT_OPERATOR_TOKEN?.trim();
+  if (!token) {
+    return;
+  }
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const response = await page.context().request.post(`${getPlaywrightBaseUrl()}/api/operator/session`, {
+        data: { token },
+      });
+      expect(response.ok(), "Failed to unlock operator session for Playwright").toBeTruthy();
+      return;
+    } catch (error) {
+      lastError = error;
+      await page.waitForTimeout(250 * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+}
+
+export async function lockOperatorSession(page: Page) {
+  await page.context().request.delete(`${getPlaywrightBaseUrl()}/api/operator/session`);
+}
+
+export async function resetBrowserState(page: Page, options: ResetBrowserStateOptions = {}) {
+  const { unlockOperator = true } = options;
+  await page.context().clearCookies();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(() => {
-    window.localStorage.clear();
-    window.sessionStorage.clear();
+    try {
+      window.localStorage.clear();
+    } catch {}
+    try {
+      window.sessionStorage.clear();
+    } catch {}
   });
+  if (unlockOperator) {
+    await unlockOperatorSession(page);
+  }
 }
 
 export async function gotoRoute(page: Page, path: string, heading: RegExp | string) {
@@ -39,6 +83,8 @@ export interface RuntimeIssueTracker {
   consoleErrors: string[];
   failedRequests: string[];
   failedExternalRequests: string[];
+  clientErrors: string[];
+  externalClientErrors: string[];
   pageErrors: string[];
   serverErrors: string[];
 }
@@ -70,10 +116,13 @@ function isIgnorableLoopbackAssetFailure(url: string, errorText: string) {
 }
 
 export function trackRuntimeIssues(page: Page): RuntimeIssueTracker {
+  const baseUrl = getPlaywrightBaseUrl();
   const tracker: RuntimeIssueTracker = {
     consoleErrors: [],
     failedRequests: [],
     failedExternalRequests: [],
+    clientErrors: [],
+    externalClientErrors: [],
     pageErrors: [],
     serverErrors: [],
   };
@@ -83,7 +132,12 @@ export function trackRuntimeIssues(page: Page): RuntimeIssueTracker {
       if (/^Failed to load resource: net::ERR_CONNECTION_FAILED/.test(message.text())) {
         return;
       }
-      tracker.consoleErrors.push(message.text());
+      const location = message.location();
+      const suffix =
+        location.url && location.url !== "about:blank"
+          ? ` @ ${location.url}${location.lineNumber ? `:${location.lineNumber}` : ""}`
+          : "";
+      tracker.consoleErrors.push(`${message.text()}${suffix}`);
     }
   });
 
@@ -102,7 +156,7 @@ export function trackRuntimeIssues(page: Page): RuntimeIssueTracker {
     }
 
     const entry = `${request.method()} ${request.url()}: ${errorText}`;
-    if (request.url().startsWith("http://127.0.0.1:3005")) {
+    if (request.url().startsWith(baseUrl)) {
       tracker.failedRequests.push(entry);
     } else {
       tracker.failedExternalRequests.push(entry);
@@ -110,11 +164,21 @@ export function trackRuntimeIssues(page: Page): RuntimeIssueTracker {
   });
 
   page.on("response", (response) => {
-    if (
-      response.url().startsWith("http://127.0.0.1:3005") &&
-      response.status() >= 500
-    ) {
-      tracker.serverErrors.push(`${response.status()} ${response.url()}`);
+    const entry = `${response.status()} ${response.request().method()} ${response.url()}`;
+    if (!response.url().startsWith(baseUrl)) {
+      if (response.status() >= 400) {
+        tracker.externalClientErrors.push(entry);
+      }
+      return;
+    }
+
+    if (response.status() >= 500) {
+      tracker.serverErrors.push(entry);
+      return;
+    }
+
+    if (response.status() >= 400) {
+      tracker.clientErrors.push(entry);
     }
   });
 
@@ -137,6 +201,14 @@ export function expectNoRuntimeIssues(tracker: RuntimeIssueTracker) {
   expect(
     tracker.failedExternalRequests,
     `Unexpected failed external requests:\n${tracker.failedExternalRequests.join("\n")}`
+  ).toEqual([]);
+  expect(
+    tracker.clientErrors,
+    `Unexpected same-origin 4xx responses:\n${tracker.clientErrors.join("\n")}`
+  ).toEqual([]);
+  expect(
+    tracker.externalClientErrors,
+    `Unexpected external 4xx responses:\n${tracker.externalClientErrors.join("\n")}`
   ).toEqual([]);
   expect(
     tracker.serverErrors,

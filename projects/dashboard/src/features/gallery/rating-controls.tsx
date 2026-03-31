@@ -92,7 +92,7 @@ export function RatingControls({
   async function handleRefine() {
     setRefining(true);
     try {
-      await fetch("/api/agents/proxy?path=v1/tasks", {
+      await fetch("/api/workforce/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -13,17 +13,7 @@
 
 **System status:** 24/25 services UP. Dashboard [Workshop] still DOWN. All FOUNDRY services healthy. ComfyUI UP. EoBQ UP.
 
----
-
-## [Previous: Morning Review — 2026-03-30]
-
-### Score: 3/10 — Pipeline dark day 9, Dashboard MISSING, media-agent runaway (6 cycles), home-agent stuck (day 5)
-
-**Overnight:** Low activity. 5 agent runs since last evening review. media-agent ran 2 more identical "CRITICAL ISSUES" cycles (10:57, 11:25 — now 6 total identical cycles). knowledge-agent completed a successful curation cycle (09:23). home-agent ran 2 more stuck-loop cycles (08:04, 09:04 — day 5). coding-agent did its routine Qdrant check (01:42). Zero tasks dispatched. Pipeline still completely dark.
-
-**Dashboard diagnosis:** Container doesn't exist on Workshop — not stopped, not exited, completely absent. Compose file and project dir intact at `/opt/athanor/dashboard/`. Fix: `cd /opt/athanor/dashboard && docker compose up -d`.
-
-**FOUNDRY health:** All 9 agents healthy, all 6 dependencies up (Redis, Qdrant, LiteLLM, coordinator, worker, embedding). 5 GPUs loaded, 0% utilization (models hot, no work). No errors in logs.
+**DESK activity:** Significant work committed from C:\Athanor — operator surface registry, provider catalog truth cleanup, shared health/action rollout, governor facade retirement, dashboard route coverage expansion. 94 commits landed while DEV was behind. Synthesized work is now on main.
 
 ---
 
@@ -67,6 +57,7 @@
 - Queue depth: 0
 - Pending plans: 14 (sitting idle)
 - Last successful cycle: March 22
+- Last cycle: mined=148 plans=8 tasks=0
 - Owner model: never populated Redis (`athanor:owner:profile` missing)
 - MAX_QUEUE_DEPTH: already raised to 100 in work_pipeline.py (was 20)
 - Fix ready: `projects/agents/src/athanor_agents/scheduler.py` — timeout 120s->600s, TimeoutError handler, CASCADE_TIMEOUT import
@@ -99,7 +90,7 @@ ssh workshop "cd /opt/athanor/dashboard && docker compose up -d"
 - Confirm `athanor:owner:profile` populates in Redis
 - Confirm intents generated -> plans submitted -> tasks dispatched
 
-### P1 — Break media-agent runaway loop (6 identical cycles)
+### P1 — Break media-agent runaway loop (7+ identical cycles)
 - Root cause: likely Radarr library root path config
 - SSH VAULT, check Radarr container logs
 - Add suppression: after 3 identical critical-issue cycles -> suppress, flag for human review
@@ -110,7 +101,7 @@ ssh workshop "cd /opt/athanor/dashboard && docker compose up -d"
 
 ### P1 — Stash-agent diagnostic (silent fail since March 28)
 
-### P2 — Update lucky-crafting-swing plan status
+### P2 — Sync DEV local with remote (94 commits from DESK landed)
 ### P2 — Dedupe Qdrant knowledge collection
 ### P2 — General-assistant scheduling reliability
 
@@ -125,7 +116,7 @@ ssh workshop "cd /opt/athanor/dashboard && docker compose up -d"
 
 | Date | Summary |
 |------|---------|
-| 2026-03-30 EVE | Score 3/10. Pipeline dark day 10. Dashboard still DOWN (24/25 services). coding-agent 2 quality cycles, creative cascade, data-curator indexing. home-agent stuck day 5 (2 more cycles). media-agent 7th+ identical cycle. 14 plans queued, tasks=0. Fix coded day 2, undeployed day 10. |
+| 2026-03-30 EVE | Score 3/10. Pipeline dark day 10. Dashboard still DOWN (24/25 services). coding-agent 2 quality cycles, creative cascade, data-curator indexing. home-agent stuck day 5 (2 more cycles). media-agent 7th+ identical cycle. 14 plans queued, tasks=0. Fix coded day 2, undeployed day 10. 94 DESK commits landed on remote (operator surface, provider catalog, governor retirement, dashboard coverage). |
 | 2026-03-30 AM | Score 3/10. Pipeline dark day 9. Dashboard container MISSING on Workshop (not stopped — absent). media-agent runaway loop now 6 identical cycles. home-agent stuck day 5. FOUNDRY healthy (9 agents, all deps up, GPUs loaded idle). 14 plans queued, 0 dispatched. Awaiting Shaun approval for FOUNDRY deploy. |
 | 2026-03-29 EVE | Score 4/10. Pipeline dark day 8 — fix still not deployed. Dashboard DOWN (new). media-agent runaway loop (3x critical issues, 0 resolution). home-agent stuck loop day 4. general-assistant + research-agent recovered. knowledge-agent solid (4 tasks). 14 plans queued, 0 dispatched. |
 | 2026-03-28 EVE | Score 3/10. Pipeline dark day 7 — fix still not deployed. home-agent 12x stuck loop in 48h. stash-agent silent fail (repeat). knowledge-agent solid (RSS + curation). media-agent ran with critical issues. general-assistant 0 tasks (regression). |

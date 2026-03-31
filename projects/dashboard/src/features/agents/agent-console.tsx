@@ -123,7 +123,7 @@ export function AgentConsole({ initialAgents }: { initialAgents: AgentsSnapshot 
   const trustQuery = useQuery({
     queryKey: ["trust-scores"],
     queryFn: async () => {
-      const data = await requestJson("/api/agents/proxy?path=/v1/trust");
+      const data = await requestJson("/api/trust");
       return (data?.agents ?? {}) as Record<string, { score: number; grade: string; feedback?: { up: number; down: number; total: number }; samples?: number }>;
     },
     refetchInterval: 60_000,

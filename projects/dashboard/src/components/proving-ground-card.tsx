@@ -20,6 +20,7 @@ import {
   type JsonObject,
 } from "@/components/runtime-panel-utils";
 import { formatRelativeTime } from "@/lib/format";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 
 export function ProvingGroundCard({
   title = "Model proving ground",
@@ -30,15 +31,39 @@ export function ProvingGroundCard({
   description?: string;
   compact?: boolean;
 }) {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const provingGroundQuery = useQuery({
     queryKey: ["operator-panel", "models", "proving-ground"],
     queryFn: () => fetchJson<JsonObject>("/api/models/proving-ground"),
+    enabled: !locked,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
+
+  if (locked) {
+    return (
+      <Card className="surface-panel">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Beaker className="h-5 w-5 text-primary" />
+            {title}
+          </CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="The proving-ground benchmark and evaluation snapshot stays hidden until the operator session is unlocked."
+            className="py-8"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   async function runProvingGround() {
     setBusy(true);

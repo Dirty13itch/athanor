@@ -10,6 +10,9 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
 UDM_HOST="https://192.168.1.1"
 UDM_USER="${1:?Usage: $0 <username> <password>}"
 UDM_PASS="${2:?Usage: $0 <username> <password>}"
@@ -165,6 +168,6 @@ echo "=== Next Steps ==="
 echo "1. Copy the WireGuard config above (or scan QR from UDM Pro UI)"
 echo "2. Import into WireGuard app on your phone"
 echo "3. Enable 'Always On VPN' in phone settings"
-echo "4. Open http://192.168.1.225:3001 and add to home screen"
+echo "4. Open ${COMMAND_CENTER_URL} and add to home screen"
 echo ""
 echo "Direct connect domain: $(curl -sk $UDM_HOST/api/system 2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin).get(\"directConnectDomain\",\"unknown\"))' 2>/dev/null)"

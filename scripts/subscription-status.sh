@@ -4,7 +4,10 @@
 
 set -euo pipefail
 
-API="http://localhost:8065"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
+API="${SUBSCRIPTION_BURN_URL}"
 BOLD='\033[1m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -16,7 +19,7 @@ cmd="${1:-status}"
 
 check_service() {
     if ! curl -sf "$API/health" > /dev/null 2>&1; then
-        echo -e "${RED}Burn scheduler not running on :8065${NC}"
+        echo -e "${RED}Subscription Burn not running on :8065${NC}"
         echo ""
         echo "Falling back to process check..."
         echo ""

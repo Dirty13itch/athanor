@@ -21,10 +21,10 @@ agent_vllm_worker_url: "http://{{ agent_node2_host }}:8000"
 agent_vllm_embedding_url: "http://{{ agent_dev_host }}:8001"
 agent_vllm_reranker_url: "http://{{ agent_dev_host }}:8003"
 agent_agent_server_url: "http://{{ agent_node1_host }}:9000"
-agent_dashboard_url: "http://{{ agent_node2_host }}:3001"
+agent_dashboard_url: "http://dev.athanor.local:3001"
 
 # Knowledge and state
-agent_qdrant_url: "http://{{ agent_node1_host }}:6333"
+agent_qdrant_url: "http://{{ agent_vault_host }}:6333"
 agent_redis_url: "{{ athanor_redis_url | default('redis://' ~ agent_vault_host ~ ':6379/0') }}"
 agent_redis_password: "{{ athanor_redis_password | default('') }}"
 agent_subscription_policy_path: "/opt/athanor/agents/config/subscription-routing-policy.yaml"

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requestJson } from "@/features/workforce/helpers";
 import { getModelGovernance } from "@/lib/api";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 
 function toneForStatus(status: string): "healthy" | "warning" {
@@ -23,14 +24,40 @@ function compactLabel(value: string) {
 }
 
 export function ModelGovernanceCard() {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const governanceQuery = useQuery({
     queryKey: queryKeys.modelGovernance,
     queryFn: getModelGovernance,
+    enabled: !locked,
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
+
+  if (locked) {
+    return (
+      <Card className="surface-panel">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Beaker className="h-5 w-5 text-primary" />
+            Model governance
+          </CardTitle>
+          <CardDescription>
+            Champion lanes, promotion posture, and autonomy-governance detail unlock with the operator session.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="Model-governance posture is hidden while the operator session is locked."
+            className="py-8"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   async function stagePromotion(roleId: string, candidate: string, targetTier = "canary") {
     setBusy(`stage:${roleId}:${candidate}`);
@@ -114,6 +141,7 @@ export function ModelGovernanceCard() {
   const evalCorpora = governanceLayers.eval_corpora;
   const experimentLedger = governanceLayers.experiment_ledger;
   const retirementGovernance = governanceLayers.deprecation_retirement;
+  const autonomyActivation = governanceLayers.autonomy_activation;
 
   return (
     <Card className="surface-panel">
@@ -238,6 +266,49 @@ export function ModelGovernanceCard() {
                   classes
                 </li>
               </ul>
+            </div>
+
+            <div className="surface-metric rounded-xl border px-3 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                Autonomy activation
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="secondary">{compactLabel(autonomyActivation.activation_state)}</Badge>
+                <Badge variant="outline">{autonomyActivation.current_phase_id ?? "no active phase"}</Badge>
+                <Badge variant="outline">{compactLabel(autonomyActivation.current_phase_status)}</Badge>
+              </div>
+              <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
+                <li>
+                  Current scope: {compactLabel(autonomyActivation.current_phase_scope ?? "unscoped")} |{" "}
+                  {autonomyActivation.enabled_agent_count} enabled agents
+                </li>
+                <li>
+                  Allowed workloads: {autonomyActivation.allowed_workload_count} | blocked workloads:{" "}
+                  {autonomyActivation.blocked_workload_count}
+                </li>
+                <li>
+                  Approval gates: {autonomyActivation.approval_gate_count} | prerequisites:{" "}
+                  {autonomyActivation.verified_prerequisite_count}/{autonomyActivation.prerequisite_count}
+                </li>
+                <li>
+                  Next phase: {autonomyActivation.next_phase_id ?? "none"} |{" "}
+                  {compactLabel(autonomyActivation.next_phase_status ?? "unknown")}
+                </li>
+              </ul>
+              {autonomyActivation.next_phase_blocker_count > 0 ? (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                    Promotion blockers
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {autonomyActivation.next_phase_blocker_ids.map((blockerId) => (
+                      <Badge key={blockerId} variant="secondary">
+                        {blockerId}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="surface-metric rounded-xl border px-3 py-3">

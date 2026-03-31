@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 
 interface PlanTask {
   agent: string;
@@ -72,6 +74,8 @@ function agentColor(agent: string): string {
 }
 
 export function WorkPlan() {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const [data, setData] = useState<WorkPlanData | null>(null);
   const [outputs, setOutputs] = useState<OutputFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +84,13 @@ export function WorkPlan() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (locked) {
+      setData(null);
+      setOutputs([]);
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     async function fetchData() {
@@ -141,7 +152,27 @@ export function WorkPlan() {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [locked]);
+
+  if (locked) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <span className="font-mono text-xs text-primary/70">WP</span>
+            <span>Work Plan</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="The active work plan stays hidden until the operator session is unlocked."
+            className="py-6"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   async function handleRedirect() {
     const direction = inputRef.current?.value?.trim();

@@ -14,15 +14,17 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/cluster_config.sh"
+
 DRY_RUN="${1:-}"
 LOG_DIR="/var/log/athanor"
 LOG_FILE="$LOG_DIR/overnight-$(date +%Y-%m-%d).log"
-AGENT_URL="${AGENT_SERVER_URL:-http://192.168.1.244:9000}"
-# QDRANT_URL from cluster_config.sh
-QDRANT_URL="${QDRANT_URL:-http://192.168.1.203:6333}"
-NEO4J_URL="${NEO4J_HTTP_URL:-http://192.168.1.203:7474}"
+AGENT_URL="${ATHANOR_AGENT_SERVER_URL:-${AGENT_SERVER_URL:-}}"
+QDRANT_URL="${ATHANOR_QDRANT_URL:-${QDRANT_URL:-}}"
+NEO4J_URL="${ATHANOR_NEO4J_URL:-${NEO4J_HTTP_URL:-}}"
 NEO4J_USER="${ATHANOR_NEO4J_USER:-${NEO4J_USER:-neo4j}}"
-NEO4J_PASS="${ATHANOR_NEO4J_PASSWORD:-${NEO4J_PASSWORD:-athanor2026}}"
+NEO4J_PASS="${ATHANOR_NEO4J_PASSWORD:-${NEO4J_PASSWORD:-}}"
 REPO_DIR="$HOME/repos/athanor"
 
 mkdir -p "$LOG_DIR"

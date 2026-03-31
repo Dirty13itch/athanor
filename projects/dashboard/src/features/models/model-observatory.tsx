@@ -17,6 +17,7 @@ import { StatCard } from "@/components/stat-card";
 import { StatusDot } from "@/components/status-dot";
 import { getGpuSnapshot } from "@/lib/api";
 import { type GpuSnapshotResponse } from "@/lib/contracts";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 import { requestJson } from "@/features/workforce/helpers";
 
@@ -35,52 +36,18 @@ export interface ModelObservatoryProps {
   localModels: LocalModelDef[];
 }
 
-interface CliToolDef {
-  name: string;
-  subscription: string;
-  monthlyCost: string;
-  role: string;
-  model: string;
+interface ProviderStatus {
   id: string;
+  name: string;
+  subscription?: string;
+  monthly_cost?: number | null;
+  pricing_status?: string;
+  category?: string;
+  status?: string;
+  provider_state?: string;
+  execution_mode?: string;
+  tasks_today?: number;
 }
-
-const CLI_TOOLS: CliToolDef[] = [
-  {
-    id: "claude",
-    name: "Claude Code",
-    subscription: "20x Max",
-    monthlyCost: "~$100-200/mo",
-    role: "Lead Architect + Code Supervisor",
-    model: "Opus/Sonnet",
-  },
-  {
-    id: "codex",
-    name: "Codex CLI",
-    subscription: "ChatGPT Pro",
-    monthlyCost: "~$200/mo",
-    role: "Reviewer + Debugger",
-    model: "GPT-5.4",
-  },
-  {
-    id: "gemini",
-    name: "Gemini CLI",
-    subscription: "Gemini Pro",
-    monthlyCost: "~$20-50/mo",
-    role: "Universal Auditor",
-    model: "Gemini 2.5 Pro",
-  },
-  {
-    id: "aider",
-    name: "Aider",
-    subscription: "Free (local)",
-    monthlyCost: "$0",
-    role: "Bulk Editor",
-    model: "Qwen3.5 via LiteLLM",
-  },
-];
-
-const MONTHLY_FIXED_MIN = 320;
-const MONTHLY_FIXED_MAX = 450;
 
 // ── Assignment matrix ────────────────────────────────────────────────────────
 
@@ -122,12 +89,6 @@ const MATRIX_COLUMNS = [
 ];
 
 // ── Live data types ──────────────────────────────────────────────────────────
-
-interface CliStatus {
-  id: string;
-  status?: string;
-  usage_today?: number;
-}
 
 interface RoutingLogEntry {
   task_id?: string;
@@ -191,6 +152,16 @@ function cliStatusDot(status: string | undefined): "healthy" | "warning" | "mute
   return "muted";
 }
 
+function formatMonthlyCost(monthlyCost: number | null | undefined, pricingStatus: string | undefined): string {
+  if (typeof monthlyCost === "number") {
+    return monthlyCost > 0 ? `$${monthlyCost}/mo` : "$0";
+  }
+  if (pricingStatus?.includes("unverified")) {
+    return "Cost unverified";
+  }
+  return "--";
+}
+
 function policyClass(entry: RoutingLogEntry): string {
   return entry.policy_class ?? "local_only";
 }
@@ -198,6 +169,8 @@ function policyClass(entry: RoutingLogEntry): string {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ModelObservatory({ localModels }: ModelObservatoryProps) {
+  const operatorSession = useOperatorSessionStatus();
+  const routingReadEnabled = !operatorSession.isPending && !isOperatorSessionLocked(operatorSession);
   const gpuQuery = useQuery({
     queryKey: queryKeys.gpuSnapshot,
     queryFn: getGpuSnapshot,
@@ -205,13 +178,11 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
     refetchIntervalInBackground: false,
   });
 
-  const cliQuery = useQuery({
-    queryKey: ["cli-status"],
-    queryFn: async (): Promise<CliStatus[]> => {
-      const data = await requestJson(
-        "/api/agents/proxy?path=/v1/subscriptions/cli-status"
-      );
-      return (data?.tools ?? data ?? []) as CliStatus[];
+  const providerQuery = useQuery({
+    queryKey: ["routing-providers-models"],
+    queryFn: async (): Promise<ProviderStatus[]> => {
+      const data = await requestJson("/api/routing/providers");
+      return (data?.providers ?? data ?? []) as ProviderStatus[];
     },
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
@@ -221,20 +192,24 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
     queryKey: ["routing-log-models"],
     queryFn: async (): Promise<RoutingLogEntry[]> => {
       const data = await requestJson(
-        "/api/agents/proxy?path=/v1/subscriptions/routing-log?limit=20"
+        "/api/routing/log?limit=20"
       );
       return (data?.entries ?? data ?? []) as RoutingLogEntry[];
     },
+    enabled: routingReadEnabled,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
 
   const snapshot = gpuQuery.data;
-  const cliStatuses = cliQuery.data ?? [];
+  const providerStatuses = providerQuery.data ?? [];
+  const subscriptionProviders = providerStatuses.filter(
+    (provider) => provider.category === "subscription"
+  );
   const routingEntries = routingQuery.data ?? [];
 
   const isFetching =
-    gpuQuery.isFetching || cliQuery.isFetching || routingQuery.isFetching;
+    gpuQuery.isFetching || providerQuery.isFetching || routingQuery.isFetching;
 
   // Routing split
   const total = routingEntries.length;
@@ -251,6 +226,14 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
   const localPct = total > 0 ? (localCount / total) * 100 : 0;
   const cliReviewPct = total > 0 ? (cliReviewCount / total) * 100 : 0;
   const cliExecPct = total > 0 ? (cliExecCount / total) * 100 : 0;
+  const verifiedFixedMonthly = subscriptionProviders.reduce((sum, provider) => {
+    return typeof provider.monthly_cost === "number" && provider.monthly_cost > 0
+      ? sum + provider.monthly_cost
+      : sum;
+  }, 0);
+  const unverifiedSubscriptionCount = subscriptionProviders.filter((provider) => {
+    return provider.monthly_cost == null && provider.pricing_status?.includes("unverified");
+  }).length;
 
   return (
     <div className="space-y-8">
@@ -264,7 +247,7 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
             variant="outline"
             onClick={() => {
               void gpuQuery.refetch();
-              void cliQuery.refetch();
+              void providerQuery.refetch();
               void routingQuery.refetch();
             }}
             disabled={isFetching}
@@ -286,8 +269,8 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
           />
           <StatCard
             label="Subscription CLIs"
-            value={`${CLI_TOOLS.length}`}
-            detail="Fixed cost, zero marginal"
+            value={`${subscriptionProviders.length}`}
+            detail="Catalog-backed CLI subscriptions"
             icon={<Server className="h-5 w-5" />}
           />
           <StatCard
@@ -299,8 +282,18 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
           />
           <StatCard
             label="Monthly Fixed"
-            value={`$${MONTHLY_FIXED_MIN}-${MONTHLY_FIXED_MAX}`}
-            detail="Variable cost: $0"
+            value={
+              verifiedFixedMonthly > 0
+                ? `$${verifiedFixedMonthly}${unverifiedSubscriptionCount > 0 ? "+" : ""}`
+                : unverifiedSubscriptionCount > 0
+                  ? "Unverified"
+                  : "$0"
+            }
+            detail={
+              unverifiedSubscriptionCount > 0
+                ? `${unverifiedSubscriptionCount} lane${unverifiedSubscriptionCount === 1 ? "" : "s"} cost-unverified`
+                : "Variable cost: $0"
+            }
             icon={<Server className="h-5 w-5" />}
           />
         </div>
@@ -393,7 +386,9 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
         <CardHeader>
           <CardTitle className="text-lg">Subscription CLIs</CardTitle>
           <CardDescription>
-            Fixed-cost tools with zero marginal API calls. Monthly fixed: ~${MONTHLY_FIXED_MIN}-{MONTHLY_FIXED_MAX} &middot; Variable cost: $0
+            {`Catalog-backed CLI subscriptions. Verified fixed monthly: $${verifiedFixedMonthly}${unverifiedSubscriptionCount > 0 ? "+" : ""}`}
+            {" \u00b7 "}
+            Variable cost: $0
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -402,38 +397,38 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
             <div className="surface-tile grid grid-cols-5 gap-2 rounded-xl px-4 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <span>Tool</span>
               <span>Subscription</span>
-              <span className="col-span-2">Role</span>
+              <span>Pricing</span>
+              <span>Execution</span>
               <span className="text-right">Status</span>
             </div>
 
-            {CLI_TOOLS.map((tool) => {
-              const live = cliStatuses.find((s) => s.id === tool.id);
-              const dotTone = cliStatusDot(live?.status);
+            {subscriptionProviders.map((provider) => {
+              const dotTone = cliStatusDot(provider.provider_state ?? provider.status);
               return (
                 <div
-                  key={tool.id}
+                  key={provider.id}
                   className="surface-tile grid grid-cols-5 items-center gap-2 rounded-xl px-4 py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium">{tool.name}</p>
+                    <p className="text-sm font-medium">{provider.name}</p>
                     <p className="text-xs text-muted-foreground font-mono">
-                      {tool.model}
+                      {provider.id}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm">{tool.subscription}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {tool.monthlyCost}
-                    </p>
-                  </div>
-                  <span className="col-span-2 text-sm text-muted-foreground">
-                    {tool.role}
+                  <p className="text-sm text-muted-foreground">
+                    {provider.subscription ?? "CLI subscription"}
+                  </p>
+                  <span className="text-sm text-muted-foreground">
+                    {formatMonthlyCost(provider.monthly_cost, provider.pricing_status)}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {provider.execution_mode ?? "--"}
                   </span>
                   <div className="flex items-center justify-end gap-2">
                     <StatusDot tone={dotTone} />
                     <span className="text-xs text-muted-foreground tabular-nums">
-                      {live?.usage_today != null
-                        ? `${live.usage_today} today`
+                      {provider.tasks_today != null
+                        ? `${provider.tasks_today} today`
                         : "--"}
                     </span>
                   </div>

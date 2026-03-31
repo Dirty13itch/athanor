@@ -5,7 +5,7 @@ Tasks are Redis-backed, executed by a background worker, with step
 logging and progress broadcasting via GWT workspace.
 
 Architecture:
-    - Tasks stored in Redis hash (athanor:tasks:{id})
+    - Tasks stored in Redis hash (athanor:tasks -> task_id => JSON record)
     - Background worker polls every 5s, picks highest-priority pending task
     - Worker streams agent execution via astream_events() to capture tool call steps
     - Completion/failure broadcast to GWT workspace
@@ -23,14 +23,25 @@ from dataclasses import asdict, dataclass, field
 from langchain_core.messages import HumanMessage
 
 from .config import settings
+from .task_store import (
+    TASKS_UPDATED_KEY,
+    TASK_STATUS_VALUES,
+    backfill_task_store_indexes,
+    delete_task_record,
+    read_task_records_by_status,
+    read_task_records_by_statuses,
+    read_task_record,
+    write_task_record,
+)
 
 logger = logging.getLogger(__name__)
 
-TASKS_KEY = "athanor:tasks"
 TASKS_CHANNEL = "athanor:tasks:events"
 TASK_WORKER_INTERVAL = 5.0  # seconds between polls
 MAX_CONCURRENT_TASKS = 6
 TASK_TIMEOUT = 600  # 10 min default per task
+TASK_HEARTBEAT_INTERVAL = 5.0
+TASK_CLAIM_TTL_SECONDS = 30
 
 # Deep work agents get longer timeouts — their prompts are multi-step cycles
 AGENT_TIMEOUTS = {
@@ -57,20 +68,43 @@ class Task:
     agent: str = ""
     prompt: str = ""
     priority: str = "normal"  # critical, high, normal, low
-    status: str = "pending"   # pending, pending_approval, running, completed, failed, cancelled
+    status: str = "pending"   # pending, pending_approval, running, stale_lease, completed, failed, cancelled
+    source: str = "task_api"
+    lane: str = ""
     result: str = ""
     error: str = ""
     steps: list[dict] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
     started_at: float = 0.0
     completed_at: float = 0.0
+    updated_at: float = field(default_factory=time.time)
+    lease: dict = field(default_factory=dict)
+    retry_lineage: list[str] = field(default_factory=list)
+    assigned_runtime: str = ""
+    last_heartbeat: float = 0.0
+    session_id: str = ""
     metadata: dict = field(default_factory=dict)
     parent_task_id: str = ""  # For delegated sub-tasks
     retry_count: int = 0  # How many times this task has been retried
     previous_error: str = ""  # Error from previous attempt (for retry context)
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        payload = asdict(self)
+        if self.status not in TASK_STATUS_VALUES:
+            payload["status"] = "pending"
+        if not payload.get("lane"):
+            payload["lane"] = self.lane or self.agent or self.source or "task"
+        if not payload.get("lease") and isinstance(self.metadata, dict):
+            payload["lease"] = self.metadata.get("execution_lease", {}) or {}
+        if not payload.get("assigned_runtime") and isinstance(payload.get("lease"), dict):
+            payload["assigned_runtime"] = payload["lease"].get("provider", "")
+        if not payload.get("session_id") and isinstance(self.metadata, dict):
+            payload["session_id"] = self.metadata.get("session_id", "")
+        if not payload.get("updated_at"):
+            payload["updated_at"] = self.completed_at or self.started_at or self.created_at or time.time()
+        if not payload.get("last_heartbeat"):
+            payload["last_heartbeat"] = self.started_at or 0.0
+        return payload
 
     @classmethod
     def from_dict(cls, data: dict) -> "Task":
@@ -83,7 +117,17 @@ class Task:
         return None
 
 
+@dataclass
+class GovernedTaskSubmission:
+    """Canonical result for a governor-mediated task submission."""
+
+    task: Task
+    decision: object
+    held_for_approval: bool = False
+
+
 PRIORITY_ORDER = {"critical": 0, "high": 1, "normal": 2, "low": 3}
+ACTIVE_TASK_STATUSES = ("pending", "pending_approval", "running", "stale_lease")
 
 # Agent-specific task capabilities for system prompt
 _AGENT_TASK_HINTS = {
@@ -191,31 +235,55 @@ async def _maybe_retry(task: Task):
         return
 
     try:
+        from .governor import Governor
+
+        retry_metadata = {**task.metadata, "retry_of": task.id, "source": "auto-retry"}
+        decision = await Governor.get().gate_task_submission(
+            agent=task.agent,
+            prompt=task.prompt,
+            priority=task.priority,
+            metadata=retry_metadata,
+            source="auto-retry",
+        )
+        retry_metadata["governor_decision"] = decision.reason
+        retry_metadata["governor_autonomy_level"] = decision.autonomy_level
+        retry_metadata["governor_status_override"] = decision.status_override
+        if decision.status_override == "pending_approval":
+            retry_metadata["requires_approval"] = True
+
         retry = Task(
             agent=task.agent,
             prompt=task.prompt,
             priority=task.priority,
-            metadata={**task.metadata, "retry_of": task.id, "source": "auto-retry"},
+            status=decision.status_override if decision.status_override in {"pending", "pending_approval"} else "pending",
+            metadata=retry_metadata,
             parent_task_id=task.parent_task_id,
             retry_count=task.retry_count + 1,
             previous_error=task.error[:2000],
+            source="auto-retry",
+            lane=task.lane or task.agent,
+            retry_lineage=[*task.retry_lineage, task.id],
+            lease=task.lease,
+            assigned_runtime=task.assigned_runtime,
+            session_id=task.session_id,
         )
 
-        r = await _get_redis()
-        await r.hset(TASKS_KEY, retry.id, json.dumps(retry.to_dict()))
+        await persist_task_state(retry)
 
         logger.info(
             "Task %s auto-retry submitted as %s (attempt %d/%d)",
             task.id, retry.id, retry.retry_count, MAX_TASK_RETRIES,
         )
 
-        await r.publish(TASKS_CHANNEL, json.dumps({
-            "event": "task_retried",
-            "task_id": retry.id,
-            "original_task_id": task.id,
-            "retry_count": retry.retry_count,
-            "timestamp": time.time(),
-        }))
+        await publish_task_event(
+            {
+                "event": "task_retried",
+                "task_id": retry.id,
+                "original_task_id": task.id,
+                "retry_count": retry.retry_count,
+                "timestamp": time.time(),
+            }
+        )
 
     except Exception as e:
         logger.warning("Failed to auto-retry task %s: %s", task.id, e)
@@ -225,21 +293,24 @@ async def _cleanup_old_tasks():
     """Purge completed/failed tasks past their TTL."""
     try:
         r = await _get_redis()
-        raw = await r.hgetall(TASKS_KEY)
         now = time.time()
         removed = 0
+        seen_task_ids: set[str] = set()
 
-        for task_id, v in raw.items():
-            t = Task.from_dict(json.loads(v))
+        for record in await read_task_records_by_statuses(r, "completed", "failed", "cancelled"):
+            t = Task.from_dict(record)
+            if t.id in seen_task_ids:
+                continue
+            seen_task_ids.add(t.id)
             if not t.completed_at:
                 continue
 
             age = now - t.completed_at
             if t.status == "completed" and age > TASK_TTL_COMPLETED:
-                await r.hdel(TASKS_KEY, task_id)
+                await delete_task_record(r, t.id)
                 removed += 1
             elif t.status in ("failed", "cancelled") and age > TASK_TTL_FAILED:
-                await r.hdel(TASKS_KEY, task_id)
+                await delete_task_record(r, t.id)
                 removed += 1
 
         if removed:
@@ -254,6 +325,101 @@ async def _get_redis():
     return await get_redis()
 
 
+def _task_claim_key(task_id: str) -> str:
+    return f"athanor:tasks:claim:{task_id}"
+
+
+async def _release_task_claim(task_id: str) -> None:
+    try:
+        r = await _get_redis()
+        await r.delete(_task_claim_key(task_id))
+    except Exception as e:
+        logger.debug("Task claim release skipped for %s: %s", task_id, e)
+
+
+async def _claim_pending_task(task_id: str, *, trigger: str) -> Task | None:
+    try:
+        r = await _get_redis()
+        claim_key = _task_claim_key(task_id)
+        claimed = await r.set(claim_key, trigger, ex=TASK_CLAIM_TTL_SECONDS, nx=True)
+        if not claimed:
+            return None
+
+        record = await read_task_record(r, task_id)
+        if not record:
+            await r.delete(claim_key)
+            return None
+
+        task = Task.from_dict(record)
+        if task.status != "pending":
+            await r.delete(claim_key)
+            return None
+
+        claimed_at = time.time()
+        existing_metadata = task.metadata if isinstance(task.metadata, dict) else {}
+        task.status = "running"
+        task.started_at = claimed_at
+        task.last_heartbeat = claimed_at
+        task.updated_at = claimed_at
+        task.metadata = {
+            **existing_metadata,
+            "execution_claim": {
+                "trigger": trigger,
+                "claimed_at": claimed_at,
+            },
+        }
+        if trigger != "worker":
+            task.metadata["manual_dispatch"] = {
+                "trigger": trigger,
+                "dispatched_at": claimed_at,
+            }
+        await persist_task_state(task)
+        return task
+    except Exception as e:
+        logger.warning("Failed to claim task %s for %s: %s", task_id, trigger, e)
+        await _release_task_claim(task_id)
+        return None
+
+
+async def _publish_task_event(payload: dict[str, object]) -> None:
+    try:
+        r = await _get_redis()
+        await r.publish(TASKS_CHANNEL, json.dumps(payload))
+    except Exception as e:
+        logger.debug("Task event publish skipped: %s", e)
+
+
+async def publish_task_event(payload: dict[str, object]) -> None:
+    """Publish a task event through the canonical task-event seam."""
+    await _publish_task_event(payload)
+
+
+def _derive_task_source(metadata: dict | None) -> str:
+    metadata = metadata if isinstance(metadata, dict) else {}
+    return str(metadata.get("source") or "task_api")
+
+
+def _derive_task_lane(agent: str, metadata: dict | None) -> str:
+    metadata = metadata if isinstance(metadata, dict) else {}
+    return str(
+        metadata.get("lane")
+        or metadata.get("job_family")
+        or metadata.get("control_scope")
+        or metadata.get("domain")
+        or agent
+        or _derive_task_source(metadata)
+    )
+
+
+async def _record_task_heartbeat(task: Task, *, force: bool = False):
+    now = time.time()
+    if not force and task.last_heartbeat and now - task.last_heartbeat < TASK_HEARTBEAT_INTERVAL:
+        return
+    task.last_heartbeat = now
+    task.updated_at = now
+    await persist_task_state(task)
+
+
 def _task_dedup_key(agent: str, prompt: str) -> str:
     """Generate a dedup key from agent + normalized prompt prefix."""
     # Use first 200 chars of prompt for dedup (captures intent without exact match)
@@ -266,12 +432,9 @@ async def _has_duplicate_pending(agent: str, prompt: str) -> Task | None:
     """Check if there's already a pending/in-progress task for the same agent+prompt."""
     dedup_key = _task_dedup_key(agent, prompt)
     r = await _get_redis()
-    all_tasks = await r.hgetall(TASKS_KEY)
-    for raw in all_tasks.values():
+    for record in await read_task_records_by_statuses(r, *ACTIVE_TASK_STATUSES):
         try:
-            task = Task.from_dict(json.loads(raw))
-            if task.status not in ("pending", "in_progress", "pending_approval"):
-                continue
+            task = Task.from_dict(record)
             if task.agent != agent:
                 continue
             existing_key = _task_dedup_key(task.agent, task.prompt)
@@ -314,9 +477,8 @@ async def submit_task(
     task_metadata = metadata or {}
     is_scheduler_task = task_metadata.get("source") == "scheduler"
 
-    # Only attach execution leases for non-scheduler tasks.
-    # Scheduler tasks run on local inference (free, unlimited, no approval needed).
-    # The scheduler IS the approval — Claude (COO) designed the prompts.
+    # Scheduler-tagged tasks usually stay on local inference to avoid unnecessary lease churn.
+    # Approval and phase scope still belong to the governor-mediated submission path.
     if not is_scheduler_task and agent in {"coding-agent", "research-agent", "general-assistant"}:
         from .subscriptions import attach_task_execution_lease
 
@@ -336,15 +498,22 @@ async def submit_task(
         priority=priority if priority in PRIORITY_ORDER else "normal",
         metadata=task_metadata,
         parent_task_id=parent_task_id,
+        source=_derive_task_source(task_metadata),
+        lane=_derive_task_lane(agent, task_metadata),
+        lease=task_metadata.get("execution_lease", {}) if isinstance(task_metadata, dict) else {},
+        assigned_runtime=(
+            (task_metadata.get("execution_lease", {}) or {}).get("provider", "")
+            if isinstance(task_metadata, dict)
+            else ""
+        ),
+        session_id=task_metadata.get("session_id", "") if isinstance(task_metadata, dict) else "",
     )
 
-    # Work-planner tasks for high-impact agents require morning approval
-    # But scheduler tasks bypass this — they're pre-approved by design.
-    if task_metadata.get("requires_approval") and not is_scheduler_task:
+    # Any governed caller can force an approval hold via metadata.
+    if task_metadata.get("requires_approval"):
         task.status = "pending_approval"
 
-    r = await _get_redis()
-    await r.hset(TASKS_KEY, task.id, json.dumps(task.to_dict()))
+    await persist_task_state(task)
 
     logger.info(
         "Task %s submitted: agent=%s priority=%s prompt=%.80s",
@@ -352,23 +521,72 @@ async def submit_task(
     )
 
     # Publish event for any listeners
-    await r.publish(TASKS_CHANNEL, json.dumps({
-        "event": "task_submitted",
-        "task_id": task.id,
-        "agent": agent,
-        "timestamp": time.time(),
-    }))
+    await publish_task_event(
+        {
+            "event": "task_submitted",
+            "task_id": task.id,
+            "agent": agent,
+            "timestamp": time.time(),
+        }
+    )
 
     return task
+
+
+async def submit_governed_task(
+    agent: str,
+    prompt: str,
+    *,
+    priority: str = "normal",
+    metadata: dict | None = None,
+    source: str,
+    parent_task_id: str = "",
+) -> GovernedTaskSubmission:
+    """Gate and submit a task through the canonical governor-mediated path."""
+    from .governor import Governor
+
+    task_metadata = dict(metadata or {})
+    task_metadata.setdefault("source", source)
+
+    decision = await Governor.get().gate_task_submission(
+        agent=agent,
+        prompt=prompt,
+        priority=priority,
+        metadata=task_metadata,
+        source=source,
+    )
+    task_metadata["governor_decision"] = decision.reason
+    task_metadata["governor_autonomy_level"] = decision.autonomy_level
+    task_metadata["governor_status_override"] = decision.status_override
+    if decision.status_override == "pending_approval":
+        task_metadata["requires_approval"] = True
+
+    task = await submit_task(
+        agent=agent,
+        prompt=prompt,
+        priority=priority,
+        metadata=task_metadata,
+        parent_task_id=parent_task_id,
+    )
+    held_for_approval = decision.status_override == "pending_approval"
+    if held_for_approval and task.status != "pending_approval":
+        task.status = "pending_approval"
+        await persist_task_state(task)
+
+    return GovernedTaskSubmission(
+        task=task,
+        decision=decision,
+        held_for_approval=held_for_approval,
+    )
 
 
 async def get_task(task_id: str) -> Task | None:
     """Get a task by ID."""
     try:
         r = await _get_redis()
-        raw = await r.hget(TASKS_KEY, task_id)
-        if raw:
-            return Task.from_dict(json.loads(raw))
+        record = await read_task_record(r, task_id)
+        if record:
+            return Task.from_dict(record)
     except Exception as e:
         logger.warning("Failed to get task %s: %s", task_id, e)
     return None
@@ -378,15 +596,29 @@ async def list_tasks(
     status: str = "",
     agent: str = "",
     limit: int = 50,
+    statuses: list[str] | tuple[str, ...] | set[str] | None = None,
 ) -> list[dict]:
     """List tasks with optional filters."""
     try:
         r = await _get_redis()
-        raw = await r.hgetall(TASKS_KEY)
-        tasks = [Task.from_dict(json.loads(v)) for v in raw.values()]
-
+        normalized_statuses = [
+            str(item).strip()
+            for item in (statuses or [])
+            if str(item).strip()
+        ]
         if status:
-            tasks = [t for t in tasks if t.status == status]
+            normalized_statuses.insert(0, str(status).strip())
+        query_statuses = list(dict.fromkeys(normalized_statuses))
+        store_limit = None if agent else limit
+
+        if not query_statuses:
+            records = await read_task_records_by_statuses(r, *TASK_STATUS_VALUES, limit=store_limit)
+        elif len(query_statuses) == 1:
+            records = await read_task_records_by_status(r, query_statuses[0], limit=store_limit)
+        else:
+            records = await read_task_records_by_statuses(r, *query_statuses, limit=store_limit)
+        tasks = [Task.from_dict(record) for record in records]
+
         if agent:
             tasks = [t for t in tasks if t.agent == agent]
 
@@ -397,27 +629,117 @@ async def list_tasks(
             return (1, 0, -t.created_at)
 
         tasks.sort(key=sort_key)
-        return [t.to_dict() for t in tasks[:limit]]
+        if limit is None:
+            return [t.to_dict() for t in tasks]
+        return [t.to_dict() for t in tasks[: max(int(limit), 0)]]
     except Exception as e:
         logger.warning("Failed to list tasks: %s", e)
         return []
+
+
+async def list_recent_tasks(
+    *,
+    agent: str = "",
+    limit: int | None = 50,
+    statuses: list[str] | tuple[str, ...] | set[str] | None = None,
+) -> list[dict]:
+    """List tasks by recent activity using the canonical updated index."""
+    try:
+        r = await _get_redis()
+        normalized_statuses = {
+            str(item).strip()
+            for item in (statuses or [])
+            if str(item).strip() in TASK_STATUS_VALUES
+        }
+        if limit is not None and int(limit) <= 0:
+            return []
+
+        target = None if limit is None else max(int(limit), 0)
+        batch_size = 100 if target is None else max(target * 3, 100)
+        start = 0
+        tasks: list[Task] = []
+        seen_ids: set[str] = set()
+
+        while True:
+            raw_ids = await r.zrevrange(TASKS_UPDATED_KEY, start, start + batch_size - 1)
+            if not raw_ids:
+                break
+
+            for raw_task_id in raw_ids:
+                task_id = raw_task_id.decode() if isinstance(raw_task_id, bytes) else str(raw_task_id)
+                if not task_id or task_id in seen_ids:
+                    continue
+                seen_ids.add(task_id)
+
+                record = await read_task_record(r, task_id)
+                if not record:
+                    await r.zrem(TASKS_UPDATED_KEY, task_id)
+                    continue
+
+                task = Task.from_dict(record)
+                if normalized_statuses and task.status not in normalized_statuses:
+                    continue
+                if agent and task.agent != agent:
+                    continue
+
+                tasks.append(task)
+                if target is not None and len(tasks) >= target:
+                    break
+
+            if target is not None and len(tasks) >= target:
+                break
+            if len(raw_ids) < batch_size:
+                break
+            start += len(raw_ids)
+
+        tasks.sort(
+            key=lambda task: (
+                task.updated_at or task.completed_at or task.started_at or task.created_at,
+                task.id,
+            ),
+            reverse=True,
+        )
+        if target is None:
+            return [task.to_dict() for task in tasks]
+        return [task.to_dict() for task in tasks[:target]]
+    except Exception as e:
+        logger.warning("Failed to list recent tasks: %s", e)
+        return []
+
+
+async def get_active_task_counts_by_agent() -> dict[str, int]:
+    """Return active task counts per agent from canonical active-status indexes."""
+    try:
+        r = await _get_redis()
+        counts: dict[str, int] = {}
+        for record in await read_task_records_by_statuses(r, *ACTIVE_TASK_STATUSES):
+            task = Task.from_dict(record)
+            if not task.agent:
+                continue
+            counts[task.agent] = counts.get(task.agent, 0) + 1
+        return counts
+    except Exception as e:
+        logger.warning("Failed to get active task counts by agent: %s", e)
+        return {}
 
 
 async def cancel_task(task_id: str) -> bool:
     """Cancel a pending or running task."""
     try:
         r = await _get_redis()
-        raw = await r.hget(TASKS_KEY, task_id)
-        if not raw:
+        record = await read_task_record(r, task_id)
+        if not record:
             return False
 
-        task = Task.from_dict(json.loads(raw))
-        if task.status not in ("pending", "running", "pending_approval"):
+        task = Task.from_dict(record)
+        if task.status not in ACTIVE_TASK_STATUSES:
             return False
 
         task.status = "cancelled"
         task.completed_at = time.time()
-        await r.hset(TASKS_KEY, task_id, json.dumps(task.to_dict()))
+        task.updated_at = task.completed_at
+        await persist_task_state(task)
+        await _release_task_claim(task_id)
 
         logger.info("Task %s cancelled", task_id)
         return True
@@ -426,11 +748,13 @@ async def cancel_task(task_id: str) -> bool:
         return False
 
 
-async def _update_task(task: Task):
-    """Persist task state to Redis."""
+async def persist_task_state(task: Task):
+    """Persist task state through the canonical durable task store."""
     try:
         r = await _get_redis()
-        await r.hset(TASKS_KEY, task.id, json.dumps(task.to_dict()))
+        task.updated_at = time.time()
+        stored = await write_task_record(r, task.to_dict())
+        task.__dict__.update(Task.from_dict(stored).__dict__)
     except Exception as e:
         logger.warning("Failed to update task %s: %s", task.id, e)
 
@@ -439,12 +763,7 @@ async def _get_next_pending() -> Task | None:
     """Get the highest-priority pending task."""
     try:
         r = await _get_redis()
-        raw = await r.hgetall(TASKS_KEY)
-        pending = []
-        for v in raw.values():
-            t = Task.from_dict(json.loads(v))
-            if t.status == "pending":
-                pending.append(t)
+        pending = [Task.from_dict(record) for record in await read_task_records_by_status(r, "pending")]
 
         if not pending:
             return None
@@ -465,7 +784,7 @@ async def approve_task(task_id: str) -> bool:
     if task.status != "pending_approval":
         return False
     task.status = "pending"
-    await _update_task(task)
+    await persist_task_state(task)
     logger.info("Task %s approved for execution (agent=%s)", task_id, task.agent)
     return True
 
@@ -479,7 +798,7 @@ async def reject_task(task_id: str, reason: str = "Rejected by operator") -> boo
         return False
     task.status = "cancelled"
     task.result = reason
-    await _update_task(task)
+    await persist_task_state(task)
     logger.info("Task %s rejected (agent=%s): %s", task_id, task.agent, reason)
     return True
 
@@ -541,16 +860,18 @@ async def _execute_task(task: Task):
     _agent_breaker = _breakers.get_or_create(task.agent)
 
     try:
-        task.status = "running"
-        task.started_at = time.time()
-        await _update_task(task)
+        if task.status != "running" or not task.started_at or not task.last_heartbeat:
+            task.status = "running"
+            task.started_at = task.started_at or time.time()
+            task.last_heartbeat = task.started_at
+            await persist_task_state(task)
 
         agent = get_agent(task.agent)
         if agent is None:
             task.status = "failed"
             task.error = f"Agent '{task.agent}' not available"
             task.completed_at = time.time()
-            await _update_task(task)
+            await persist_task_state(task)
             return
 
         # Circuit breaker check — if this agent has failed too many times recently, skip
@@ -558,7 +879,7 @@ async def _execute_task(task: Task):
             task.status = "failed"
             task.error = f"Circuit breaker open for {task.agent} — cooling down after repeated failures"
             task.completed_at = time.time()
-            await _update_task(task)
+            await persist_task_state(task)
             logger.warning("Task %s skipped — circuit open for %s", task.id, task.agent)
             return
 
@@ -611,8 +932,10 @@ async def _execute_task(task: Task):
                 task.status = "failed"
                 task.error = f"Task timed out after {agent_timeout}s"
                 task.completed_at = time.time()
-                await _update_task(task)
+                await persist_task_state(task)
                 return
+
+            await _record_task_heartbeat(task)
 
             kind = event["event"]
 
@@ -629,7 +952,7 @@ async def _execute_task(task: Task):
                 })
                 step_index += 1
                 # Persist steps after every tool call for real-time visibility
-                await _update_task(task)
+                await persist_task_state(task)
 
             elif kind == "on_tool_end":
                 name = event.get("name", "unknown")
@@ -679,7 +1002,7 @@ async def _execute_task(task: Task):
         task.status = "completed"
         task.result = result_text
         task.completed_at = time.time()
-        await _update_task(task)
+        await persist_task_state(task)
         await _agent_breaker.record_success()
 
         logger.info(
@@ -751,7 +1074,7 @@ async def _execute_task(task: Task):
         task.status = "failed"
         task.error = str(e)
         task.completed_at = time.time()
-        await _update_task(task)
+        await persist_task_state(task)
         await _agent_breaker.record_failure()
         logger.error("Task %s failed: %s", task.id, e, exc_info=True)
 
@@ -791,31 +1114,127 @@ async def _execute_task(task: Task):
         await _maybe_retry(task)
 
     finally:
+        await _release_task_claim(task.id)
         _running_count -= 1
 
 
 async def _recover_stale_tasks():
-    """On startup, cancel any tasks stuck in 'running' state (from prior crash).
+    """On startup, convert any in-flight tasks into durable stale-lease records.
 
-    Uses 'cancelled' status (not 'failed') so server restarts don't pollute
-    failure metrics. These aren't real agent failures.
+    Stale running tasks remain queryable and may spawn one bounded retry with
+    explicit lineage instead of silently disappearing into a server restart.
     """
     try:
         r = await _get_redis()
-        raw = await r.hgetall(TASKS_KEY)
         recovered = 0
-        for v in raw.values():
-            t = Task.from_dict(json.loads(v))
-            if t.status == "running":
-                t.status = "cancelled"
-                t.error = "Server restarted during execution"
-                t.completed_at = time.time()
-                await r.hset(TASKS_KEY, t.id, json.dumps(t.to_dict()))
-                recovered += 1
+        retried = 0
+        for record in await read_task_records_by_status(r, "running"):
+            t = Task.from_dict(record)
+            now = time.time()
+            t.status = "stale_lease"
+            t.error = "Execution lease expired during server restart"
+            t.completed_at = now
+            t.updated_at = now
+            t.metadata = {
+                **t.metadata,
+                "recovery": {
+                    "event": "stale_lease_recovered",
+                    "recovered_at": now,
+                    "reason": "server_restart",
+                },
+            }
+            await persist_task_state(t)
+            recovered += 1
+            if t.retry_count < MAX_TASK_RETRIES:
+                await _maybe_retry(t)
+                retried += 1
         if recovered:
-            logger.info("Recovered %d stale tasks from prior crash", recovered)
+            logger.info(
+                "Recovered %d stale tasks from prior crash (%d queued for retry)",
+                recovered,
+                retried,
+            )
     except Exception as e:
         logger.warning("Failed to recover stale tasks: %s", e)
+
+
+async def _evaluate_dispatch_gate(task: Task) -> tuple[bool, str]:
+    """Check whether a pending task should execute right now."""
+    try:
+        from .scheduling import get_inference_load, should_execute_task
+
+        load = await get_inference_load()
+        allowed, reason = should_execute_task(task.agent, load)
+        if not allowed:
+            logger.info(
+                "Task %s deferred (agent=%s): %s",
+                task.id,
+                task.agent,
+                reason,
+            )
+        return allowed, reason
+    except Exception as e:
+        logger.debug("Scheduling check failed, allowing task: %s", e)
+        return True, ""
+
+
+async def dispatch_next_pending_task(*, trigger: str = "manual") -> dict:
+    """Dispatch the next pending task immediately through the canonical task engine."""
+    if _running_count >= MAX_CONCURRENT_TASKS:
+        return {
+            "status": "busy",
+            "message": "Task engine is already at max concurrency",
+            "currently_running": _running_count,
+            "max_concurrent": MAX_CONCURRENT_TASKS,
+            "worker_running": _worker_task is not None and not _worker_task.done(),
+        }
+
+    task = await _get_next_pending()
+    if not task:
+        return {
+            "status": "empty",
+            "message": "No pending tasks available for dispatch",
+            "currently_running": _running_count,
+            "max_concurrent": MAX_CONCURRENT_TASKS,
+            "worker_running": _worker_task is not None and not _worker_task.done(),
+        }
+
+    allowed, reason = await _evaluate_dispatch_gate(task)
+    if not allowed:
+        return {
+            "status": "deferred",
+            "message": reason,
+            "task": task.to_dict(),
+            "currently_running": _running_count,
+            "max_concurrent": MAX_CONCURRENT_TASKS,
+            "worker_running": _worker_task is not None and not _worker_task.done(),
+        }
+
+    claimed_task = await _claim_pending_task(task.id, trigger=trigger)
+    if claimed_task is None:
+        return {
+            "status": "claimed_elsewhere",
+            "message": "Task was claimed before dispatch could reserve it",
+            "task": task.to_dict(),
+            "currently_running": _running_count,
+            "max_concurrent": MAX_CONCURRENT_TASKS,
+            "worker_running": _worker_task is not None and not _worker_task.done(),
+        }
+
+    asyncio.create_task(_execute_task(claimed_task))
+    logger.info(
+        "Task %s manually dispatched (agent=%s trigger=%s)",
+        claimed_task.id,
+        claimed_task.agent,
+        trigger,
+    )
+    return {
+        "status": "dispatched",
+        "task": claimed_task.to_dict(),
+        "currently_running": _running_count + 1,
+        "max_concurrent": MAX_CONCURRENT_TASKS,
+        "worker_running": _worker_task is not None and not _worker_task.done(),
+    }
 
 
 async def _task_worker_loop():
@@ -837,27 +1256,15 @@ async def _task_worker_loop():
             if _running_count < MAX_CONCURRENT_TASKS:
                 task = await _get_next_pending()
                 if task:
-                    # Inference-aware scheduling check
-                    should_run = True
-                    try:
-                        from .scheduling import get_inference_load, should_execute_task
-                        load = await get_inference_load()
-                        allowed, reason = should_execute_task(task.agent, load)
-                        if not allowed:
+                    allowed, _ = await _evaluate_dispatch_gate(task)
+                    if allowed:
+                        claimed_task = await _claim_pending_task(task.id, trigger="worker")
+                        if claimed_task:
+                            asyncio.create_task(_execute_task(claimed_task))
                             logger.info(
-                                "Task %s deferred (agent=%s): %s",
-                                task.id, task.agent, reason,
+                                "Task %s picked up by worker (agent=%s, running=%d)",
+                                claimed_task.id, claimed_task.agent, _running_count + 1,
                             )
-                            should_run = False
-                    except Exception as e:
-                        logger.debug("Scheduling check failed, allowing task: %s", e)
-
-                    if should_run:
-                        asyncio.create_task(_execute_task(task))
-                        logger.info(
-                            "Task %s picked up by worker (agent=%s, running=%d)",
-                            task.id, task.agent, _running_count + 1,
-                        )
 
             # Periodic cleanup of expired tasks
             if time.time() - last_cleanup > CLEANUP_INTERVAL:
@@ -878,6 +1285,10 @@ async def start_task_worker():
         return
 
     try:
+        r = await _get_redis()
+        indexed = await backfill_task_store_indexes(r)
+        if indexed:
+            logger.info("Task store index backfill complete for %d tasks", indexed)
         await _recover_stale_tasks()
         _worker_task = asyncio.create_task(_task_worker_loop())
         logger.info("Task execution engine started")
@@ -902,8 +1313,7 @@ async def get_task_stats() -> dict:
     """Get task execution statistics."""
     try:
         r = await _get_redis()
-        raw = await r.hgetall(TASKS_KEY)
-        tasks = [Task.from_dict(json.loads(v)) for v in raw.values()]
+        tasks = [Task.from_dict(record) for record in await read_task_records_by_statuses(r, *TASK_STATUS_VALUES)]
 
         by_status = {}
         for t in tasks:
@@ -923,6 +1333,7 @@ async def get_task_stats() -> dict:
             "total": len(tasks),
             "by_status": by_status,
             "by_agent": by_agent,
+            **{status: int(by_status.get(status, 0) or 0) for status in TASK_STATUS_VALUES},
             "currently_running": _running_count,
             "max_concurrent": MAX_CONCURRENT_TASKS,
             "avg_duration_ms": int(avg_duration),

@@ -45,15 +45,13 @@ import { UnifiedStream } from "@/components/unified-stream";
 import { WorkPlan } from "@/components/work-plan";
 import { getOverview } from "@/lib/api";
 import {
-  agentThreadSchema,
-  directChatSessionSchema,
   type OverviewSnapshot,
 } from "@/lib/contracts";
 import { compactText, formatLatency, formatPercent, formatRelativeTime, formatTimestamp } from "@/lib/format";
 import { formatTemperatureF } from "@/lib/format";
 import { LIVE_REFRESH_INTERVALS, liveQueryOptions } from "@/lib/live-updates";
+import { useOperatorContext } from "@/lib/operator-context";
 import { queryKeys } from "@/lib/query-client";
-import { readJsonStorage, STORAGE_KEYS } from "@/lib/state";
 import { useLens } from "@/hooks/use-lens";
 import { useSystemStream } from "@/hooks/use-system-stream";
 import type { SectionId } from "@/lib/lens";
@@ -164,15 +162,19 @@ function NodeGrid({ nodes }: { nodes: OverviewSnapshot["nodes"] }) {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <StatusDot
-                tone={node.degradedServices > 0 ? "warning" : "healthy"}
-                pulse={node.degradedServices > 0}
+                tone={node.degradedServices > 0 ? "danger" : node.warningServices > 0 ? "warning" : "healthy"}
+                pulse={node.degradedServices > 0 || node.warningServices > 0}
               />
               <span className="text-xs font-semibold truncate sm:text-sm">{node.name}</span>
             </div>
             <span className="font-mono text-[10px] text-muted-foreground shrink-0">{node.ip}</span>
           </div>
           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-            <span>{node.healthyServices}/{node.totalServices} svc</span>
+            <span>
+              {node.warningServices > 0 || node.degradedServices > 0
+                ? `${node.healthyServices} ok · ${node.warningServices} warn · ${node.degradedServices} deg`
+                : `${node.healthyServices}/${node.totalServices} svc`}
+            </span>
             <span>{formatPercent(node.gpuUtilization, 0)} GPU</span>
           </div>
           <GpuBar value={node.gpuUtilization} />
@@ -241,47 +243,13 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const show = (group: string) => isCardVisible(group, lensConfig.sections);
   const [agentFilter, setAgentFilter] = useState<string | null>(null);
   const { data: stream } = useSystemStream();
+  const { recentContext } = useOperatorContext();
 
   const overviewQuery = useQuery({
     queryKey: queryKeys.overview,
     queryFn: getOverview,
     initialData: initialSnapshot,
     ...liveQueryOptions(LIVE_REFRESH_INTERVALS.overview),
-  });
-
-  const [recentContext] = useState<
-    Array<{ id: string; title: string; route: string; updatedAt: string; type: string }>
-  >(() => {
-    const directSessions = directChatSessionSchema
-      .array()
-      .safeParse(readJsonStorage(STORAGE_KEYS.directChatSessions, []));
-    const agentThreads = agentThreadSchema
-      .array()
-      .safeParse(readJsonStorage(STORAGE_KEYS.agentThreads, []));
-
-    const nextContext = [
-      ...(directSessions.success
-        ? directSessions.data.map((session) => ({
-            id: session.id,
-            title: session.title,
-            route: `/chat?session=${session.id}`,
-            updatedAt: session.updatedAt,
-            type: "model session",
-          }))
-        : []),
-      ...(agentThreads.success
-        ? agentThreads.data.map((thread) => ({
-            id: thread.id,
-            title: thread.title,
-            route: `/agents?thread=${thread.id}&agent=${thread.agentId}`,
-            updatedAt: thread.updatedAt,
-            type: "agent thread",
-          }))
-        : []),
-    ]
-      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-      .slice(0, 5);
-    return nextContext;
   });
 
   if (overviewQuery.isError) {
@@ -310,6 +278,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const sseServicesUp = stream?.services.up ?? snapshot.summary.healthyServices;
   const sseServicesTotal = stream?.services.total ?? snapshot.summary.totalServices;
   const sseServicesDown = stream?.services.down ?? [];
+  const degradedServices = snapshot.summary.degradedServices;
+  const warningServices = snapshot.summary.warningServices;
   const sseAgentCount = stream?.agents.count ?? snapshot.summary.readyAgents;
   const sseTasksToday = stream?.tasks?.by_status.completed ?? snapshot.workforce.summary.completedTasks;
   const sseRunning = stream?.tasks?.currently_running ?? snapshot.workforce.summary.runningTasks;
@@ -328,7 +298,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         {/* Header row: title + lens tabs + live badge */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <h1 className="text-lg font-bold tracking-tight sm:text-xl md:text-2xl">ATHANOR</h1>
+            <h1 className="text-lg font-bold tracking-tight sm:text-xl md:text-2xl">Athanor Command Center</h1>
             <LensTabs />
           </div>
           <LiveBadge updatedAt={snapshot.generatedAt} intervalMs={LIVE_REFRESH_INTERVALS.overview} />
@@ -339,7 +309,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           <InlineMetric
             label="Services"
             value={`${sseServicesUp}/${sseServicesTotal}`}
-            tone={sseServicesDown.length > 0 ? "warning" : "success"}
+            tone={degradedServices > 0 ? "danger" : warningServices > 0 || sseServicesDown.length > 0 ? "warning" : "success"}
           />
           <div className="hidden w-px self-stretch bg-border/40 sm:block" />
           <InlineMetric
@@ -359,6 +329,51 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             value={`${sseTasksToday}`}
             tone={sseRunning > 0 ? "success" : "default"}
           />
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:mt-5 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="surface-panel rounded-2xl border p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>Canonical front door</Badge>
+              <Badge variant={degradedServices > 0 ? "destructive" : "outline"}>
+                {degradedServices > 0 ? "attention required" : "stable posture"}
+              </Badge>
+            </div>
+            <p className="mt-3 text-xl font-semibold tracking-tight">One portal, then deep links.</p>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              Use the command center for posture, approvals, autonomy blockers, drift, and internal
+              operating loops. Jump out only when a specialist tool is the right surface.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button asChild size="sm">
+                <Link href="/catalog">Open launchpad</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/services?status=degraded">View incidents</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/operator">Operator controls</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            {snapshot.externalTools.slice(0, 4).map((tool) => (
+              <a
+                key={tool.id}
+                href={tool.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="surface-tile flex min-h-[44px] items-start justify-between gap-3 rounded-xl border p-3 transition hover:bg-accent/60"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{tool.label}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{compactText(tool.description, 84)}</p>
+                </div>
+                <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </a>
+            ))}
+          </div>
         </div>
 
         {/* Main command surface: left = Right Now, right = Nodes + Agents */}
@@ -547,15 +562,15 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                           <p className="font-mono text-xs text-muted-foreground">{node.ip}</p>
                         </div>
                         <StatusDot
-                          tone={node.degradedServices > 0 ? "warning" : "healthy"}
-                          pulse={node.degradedServices > 0}
+                          tone={node.degradedServices > 0 ? "danger" : node.warningServices > 0 ? "warning" : "healthy"}
+                          pulse={node.degradedServices > 0 || node.warningServices > 0}
                         />
                       </div>
                       <p className="mt-3 text-sm text-muted-foreground">{node.role}</p>
                       <div className="mt-4 grid gap-2 text-sm">
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Services</span>
-                          <span>{node.healthyServices}/{node.totalServices}</span>
+                          <span>{node.healthyServices} ok / {node.warningServices + node.degradedServices} watch</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Latency</span>
@@ -793,11 +808,11 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                   <History className="h-5 w-5 text-primary" />
                   Recent operator context
                 </CardTitle>
-                <CardDescription>Browser-local sessions and threads you touched most recently.</CardDescription>
+                <CardDescription>Server-backed sessions and threads you touched most recently.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {recentContext.length > 0 ? (
-                  recentContext.map((item) => (
+                  recentContext.slice(0, 5).map((item) => (
                     <Link
                       key={item.id}
                       href={item.route}
@@ -807,7 +822,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                         <div className="min-w-0">
                           <p className="truncate font-medium">{item.title}</p>
                           <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                            {item.type}
+                            {item.type === "direct_chat_session" ? "model session" : "agent thread"}
                           </p>
                         </div>
                         <Badge variant="outline" data-volatile="true">

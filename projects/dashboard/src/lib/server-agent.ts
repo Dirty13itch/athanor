@@ -73,6 +73,7 @@ const FIXTURE_PRESENCE_PROFILES = {
 } as const;
 
 const FIXTURE_SESSION_COOKIE = "athanor_fixture_session";
+const FIXTURE_GOVERNOR_STATE_COOKIE = "athanor_fixture_governor_state";
 
 type FixtureGovernorState = {
   global_mode: string;
@@ -210,6 +211,52 @@ async function getFixtureSessionId() {
   }
 }
 
+function parseFixtureGovernorStateCookie(
+  value: string | undefined
+): FixtureGovernorState | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(decodeURIComponent(value)) as Partial<FixtureGovernorState>;
+    return {
+      ...DEFAULT_FIXTURE_GOVERNOR_STATE,
+      ...parsed,
+      paused_lanes: Array.isArray(parsed.paused_lanes)
+        ? parsed.paused_lanes.filter((lane): lane is string => typeof lane === "string")
+        : [...DEFAULT_FIXTURE_GOVERNOR_STATE.paused_lanes],
+      operator_presence:
+        typeof parsed.operator_presence === "string" &&
+        parsed.operator_presence in FIXTURE_PRESENCE_PROFILES
+          ? (parsed.operator_presence as keyof typeof FIXTURE_PRESENCE_PROFILES)
+          : DEFAULT_FIXTURE_GOVERNOR_STATE.operator_presence,
+      presence_mode:
+        parsed.presence_mode === "auto" || parsed.presence_mode === "manual"
+          ? parsed.presence_mode
+          : DEFAULT_FIXTURE_GOVERNOR_STATE.presence_mode,
+      presence_signal_state:
+        typeof parsed.presence_signal_state === "string" &&
+        parsed.presence_signal_state in FIXTURE_PRESENCE_PROFILES
+          ? (parsed.presence_signal_state as keyof typeof FIXTURE_PRESENCE_PROFILES)
+          : DEFAULT_FIXTURE_GOVERNOR_STATE.presence_signal_state,
+      release_tier:
+        typeof parsed.release_tier === "string" &&
+        ["offline_eval", "shadow", "sandbox", "canary", "production"].includes(
+          parsed.release_tier
+        )
+          ? parsed.release_tier
+          : DEFAULT_FIXTURE_GOVERNOR_STATE.release_tier,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function serializeFixtureGovernorState(state: FixtureGovernorState) {
+  return encodeURIComponent(JSON.stringify(state));
+}
+
 function createFixtureGovernorState(): FixtureGovernorState {
   return {
     ...DEFAULT_FIXTURE_GOVERNOR_STATE,
@@ -223,6 +270,17 @@ async function getFixtureGovernorState() {
   if (existing) {
     return existing;
   }
+
+  try {
+    const cookieStore = await cookies();
+    const cookieState = parseFixtureGovernorStateCookie(
+      cookieStore.get(FIXTURE_GOVERNOR_STATE_COOKIE)?.value
+    );
+    if (cookieState) {
+      FIXTURE_GOVERNOR_STATES.set(sessionId, cookieState);
+      return cookieState;
+    }
+  } catch {}
   const created = createFixtureGovernorState();
   FIXTURE_GOVERNOR_STATES.set(sessionId, created);
   return created;
@@ -1003,6 +1061,8 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
   const method = (init?.method ?? "GET").toUpperCase();
   const payload = parseFixtureBody(init?.body);
   const timestamp = FIXTURE_BASE_TIME;
+  const isoMinutesBefore = (minutesBefore: number) =>
+    new Date(new Date(timestamp).getTime() - minutesBefore * 60_000).toISOString();
   const requestUrl = new URL(`http://fixture${path}`);
   const limitParam = Number.parseInt(requestUrl.searchParams.get("limit") ?? "", 10);
   const limit = Number.isNaN(limitParam) ? null : limitParam;
@@ -1044,11 +1104,11 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
   if (method === "GET" && basePath === "/v1/subscriptions/providers") {
     return {
       providers: [
-        { id: "anthropic_claude", name: "Anthropic Claude", default_task_class: "repo_wide_audit" },
+        { id: "anthropic_claude_code", name: "Claude Code", default_task_class: "repo_wide_audit" },
         { id: "openai_codex", name: "OpenAI Codex", default_task_class: "async_backlog_execution" },
-        { id: "google_gemini", name: "Google Gemini", default_task_class: "repo_wide_audit" },
-        { id: "moonshot_kimi", name: "Moonshot Kimi", default_task_class: "search_heavy_planning" },
-        { id: "zai_glm_coding", name: "Z.ai GLM", default_task_class: "cheap_bulk_transform" },
+        { id: "google_gemini", name: "Gemini CLI", default_task_class: "repo_wide_audit" },
+        { id: "moonshot_kimi", name: "Kimi Code", default_task_class: "search_heavy_planning" },
+        { id: "zai_glm_coding", name: "Z.ai GLM Coding", default_task_class: "cheap_bulk_transform" },
       ],
       count: 5,
       policy_source: "fixture-policy",
@@ -1060,12 +1120,12 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
       version: "fixture-policy-v1",
       updated: timestamp,
       policy_source: "fixture-policy",
-      providers: ["anthropic_claude", "openai_codex", "google_gemini", "moonshot_kimi", "zai_glm_coding"],
+      providers: ["anthropic_claude_code", "openai_codex", "google_gemini", "moonshot_kimi", "zai_glm_coding"],
       task_classes: {
         async_backlog_execution: { primary: "openai_codex" },
         repo_wide_audit: { primary: "google_gemini" },
         search_heavy_planning: { primary: "moonshot_kimi" },
-        multi_file_implementation: { primary: "anthropic_claude" },
+        multi_file_implementation: { primary: "anthropic_claude_code" },
         cheap_bulk_transform: { primary: "zai_glm_coding" },
       },
       agents: {
@@ -1081,7 +1141,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
         {
           id: "lease-fixture-coding",
           requester: "coding-agent",
-          provider: "anthropic_claude",
+          provider: "anthropic_claude_code",
           task_class: "multi_file_implementation",
           expires_at: "2026-03-11T18:00:00Z",
         },
@@ -1102,7 +1162,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
       lease: {
         id: "lease-fixture-new",
         requester: typeof payload?.requester === "string" ? payload.requester : "coding-agent",
-        provider: "anthropic_claude",
+        provider: "anthropic_claude_code",
         task_class: typeof payload?.task_class === "string" ? payload.task_class : "multi_file_implementation",
         expires_at: "2026-03-11T20:00:00Z",
       },
@@ -1115,7 +1175,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     return {
       policy_source: "fixture-policy",
       providers: {
-        anthropic_claude: { status: "available", remaining: 18, limit: 25 },
+        anthropic_claude_code: { status: "available", remaining: 18, limit: 25 },
         openai_codex: { status: "available", remaining: 9, limit: 12 },
         google_gemini: { status: "available", remaining: 23, limit: 30 },
         moonshot_kimi: { status: "available", remaining: 11, limit: 15 },
@@ -1128,15 +1188,151 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     };
   }
 
+  if (method === "GET" && basePath === "/v1/subscriptions/provider-status") {
+    return {
+      providers: [
+        {
+          id: "athanor_local",
+          name: "Athanor Local",
+          subscription: "Sovereign local cluster",
+          monthly_cost: 0,
+          pricing_status: "not_applicable",
+          role: "default_local_execution",
+          category: "local",
+          status: "available",
+          provider_state: "available",
+          state_reasons: ["direct_or_local_path_ready"],
+          execution_mode: "local_runtime",
+          direct_execution_ready: true,
+          governed_handoff_ready: false,
+          available: true,
+          tasks_today: 14,
+          quota_remaining: null,
+          last_used: "2026-03-11T18:58:00Z",
+          avg_latency_ms: null,
+        },
+        {
+          id: "anthropic_claude_code",
+          name: "Claude Code",
+          subscription: "Claude Max",
+          monthly_cost: 200,
+          pricing_status: "official_verified",
+          role: "frontier_supervisor",
+          category: "subscription",
+          status: "available",
+          provider_state: "available",
+          state_reasons: ["direct_or_local_path_ready"],
+          execution_mode: "direct_cli",
+          direct_execution_ready: true,
+          governed_handoff_ready: true,
+          available: true,
+          tasks_today: 9,
+          quota_remaining: null,
+          last_used: "2026-03-11T18:47:00Z",
+          avg_latency_ms: 1800,
+        },
+        {
+          id: "google_gemini",
+          name: "Gemini CLI",
+          subscription: "Google AI Pro / Gemini CLI",
+          monthly_cost: 20,
+          pricing_status: "official_verified",
+          role: "repo_audit_supervisor",
+          category: "subscription",
+          status: "available",
+          provider_state: "available",
+          state_reasons: ["direct_or_local_path_ready"],
+          execution_mode: "handoff_bundle",
+          direct_execution_ready: false,
+          governed_handoff_ready: true,
+          available: true,
+          tasks_today: 6,
+          quota_remaining: 23,
+          last_used: "2026-03-11T17:33:00Z",
+          avg_latency_ms: 2400,
+        },
+        {
+          id: "moonshot_kimi",
+          name: "Kimi Code",
+          subscription: "Kimi Membership / Kimi Code",
+          monthly_cost: null,
+          pricing_status: "official-source-present-cost-unverified",
+          role: "search_heavy_planning",
+          category: "subscription",
+          status: "available",
+          provider_state: "available",
+          state_reasons: ["direct_or_local_path_ready"],
+          execution_mode: "direct_cli",
+          direct_execution_ready: true,
+          governed_handoff_ready: true,
+          available: true,
+          tasks_today: 3,
+          quota_remaining: null,
+          last_used: "2026-03-11T16:10:00Z",
+          avg_latency_ms: 2100,
+        },
+        {
+          id: "openai_codex",
+          name: "OpenAI Codex",
+          subscription: "ChatGPT Pro",
+          monthly_cost: 200,
+          pricing_status: "official_verified",
+          role: "async_backlog_execution",
+          category: "subscription",
+          status: "available",
+          provider_state: "available",
+          state_reasons: ["direct_or_local_path_ready"],
+          execution_mode: "direct_cli",
+          direct_execution_ready: true,
+          governed_handoff_ready: true,
+          available: true,
+          tasks_today: 4,
+          quota_remaining: null,
+          last_used: "2026-03-11T18:02:00Z",
+          avg_latency_ms: 1900,
+        },
+        {
+          id: "zai_glm_coding",
+          name: "Z.ai GLM Coding",
+          subscription: "GLM Coding Plan",
+          monthly_cost: null,
+          pricing_status: "official-source-present-cost-unverified",
+          role: "cheap_bulk_transform",
+          category: "subscription",
+          status: "handoff_only",
+          provider_state: "handoff_only",
+          state_reasons: ["handoff_only_execution_path"],
+          execution_mode: "handoff_bundle",
+          direct_execution_ready: false,
+          governed_handoff_ready: true,
+          available: false,
+          tasks_today: 0,
+          quota_remaining: null,
+          last_used: null,
+          avg_latency_ms: null,
+        },
+      ],
+      count: 6,
+    };
+  }
+
   if (method === "GET" && basePath === "/v1/subscriptions/summary") {
     return {
       policy_source: "fixture-policy",
       provider_summaries: [
         {
-          provider: "anthropic_claude",
+          provider: "anthropic_claude_code",
+          label: "Claude Code",
+          subscription_product: "Claude Max",
+          catalog_monthly_cost_usd: 200,
+          catalog_pricing_status: "official_verified",
           lane: "frontier_supervisor",
           availability: "available",
+          provider_state: "available",
           reserve_state: "interactive_reserve",
+          execution_mode: "direct_cli",
+          direct_execution_ready: true,
+          governed_handoff_ready: true,
           limit: 25,
           remaining: 18,
           throttle_events: 0,
@@ -1148,10 +1344,41 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           last_outcome_at: "2026-03-11T18:47:00Z",
         },
         {
+          provider: "openai_codex",
+          label: "OpenAI Codex",
+          subscription_product: "ChatGPT Pro",
+          catalog_monthly_cost_usd: 200,
+          catalog_pricing_status: "official_verified",
+          lane: "async_backlog_execution",
+          availability: "available",
+          provider_state: "available",
+          reserve_state: "async_reserve",
+          execution_mode: "direct_cli",
+          direct_execution_ready: true,
+          governed_handoff_ready: true,
+          limit: 12,
+          remaining: 9,
+          throttle_events: 0,
+          recent_outcomes: [
+            { outcome: "success", count: 4 },
+            { outcome: "review", count: 1 },
+          ],
+          last_issued_at: "2026-03-11T18:00:00Z",
+          last_outcome_at: "2026-03-11T18:02:00Z",
+        },
+        {
           provider: "google_gemini",
+          label: "Gemini CLI",
+          subscription_product: "Google AI Pro / Gemini CLI",
+          catalog_monthly_cost_usd: 20,
+          catalog_pricing_status: "official_verified",
           lane: "repo_audit_supervisor",
           availability: "available",
+          provider_state: "available",
           reserve_state: "analysis_reserve",
+          execution_mode: "handoff_bundle",
+          direct_execution_ready: false,
+          governed_handoff_ready: true,
           limit: 30,
           remaining: 23,
           throttle_events: 0,
@@ -1163,10 +1390,63 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           last_outcome_at: "2026-03-11T17:33:00Z",
         },
         {
+          provider: "moonshot_kimi",
+          label: "Kimi Code",
+          subscription_product: "Kimi Membership / Kimi Code",
+          catalog_monthly_cost_usd: null,
+          catalog_pricing_status: "official-source-present-cost-unverified",
+          lane: "search_heavy_planning",
+          availability: "available",
+          provider_state: "available",
+          reserve_state: "research_reserve",
+          execution_mode: "direct_cli",
+          direct_execution_ready: true,
+          governed_handoff_ready: true,
+          limit: 15,
+          remaining: 11,
+          throttle_events: 0,
+          recent_outcomes: [
+            { outcome: "success", count: 3 },
+            { outcome: "review", count: 1 },
+          ],
+          last_issued_at: "2026-03-11T16:00:00Z",
+          last_outcome_at: "2026-03-11T16:10:00Z",
+        },
+        {
+          provider: "zai_glm_coding",
+          label: "Z.ai GLM Coding",
+          subscription_product: "GLM Coding Plan",
+          catalog_monthly_cost_usd: null,
+          catalog_pricing_status: "official-source-present-cost-unverified",
+          lane: "cheap_bulk_transform",
+          availability: "handoff_only",
+          provider_state: "handoff_only",
+          reserve_state: "bulk_reserve",
+          execution_mode: "handoff_bundle",
+          direct_execution_ready: false,
+          governed_handoff_ready: true,
+          limit: 160,
+          remaining: 120,
+          throttle_events: 0,
+          recent_outcomes: [
+            { outcome: "queued", count: 2 },
+          ],
+          last_issued_at: null,
+          last_outcome_at: null,
+        },
+        {
           provider: "athanor_local",
+          label: "Athanor Local",
+          subscription_product: "Sovereign local cluster",
+          catalog_monthly_cost_usd: 0,
+          catalog_pricing_status: "not_applicable",
           lane: "default_local_execution",
           availability: "available",
+          provider_state: "available",
           reserve_state: "sovereign_default",
+          execution_mode: "local_runtime",
+          direct_execution_ready: true,
+          governed_handoff_ready: false,
           limit: 0,
           remaining: 0,
           throttle_events: 0,
@@ -1214,7 +1494,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           summary: "private implementation stayed local",
         },
       ],
-      count: 3,
+      count: 6,
     };
   }
 
@@ -1224,7 +1504,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
         policy_source: "fixture-policy",
         adapters: [
           {
-            provider: "anthropic_claude",
+            provider: "anthropic_claude_code",
             execution_mode: "direct_cli",
             adapter_available: true,
             supports_handoff: true,
@@ -1268,7 +1548,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           prompt: "Audit the repo and summarize the next implementation batch.",
           prompt_mode: "raw",
           abstract_prompt: null,
-          fallback: ["anthropic_claude", "athanor_local"],
+          fallback: ["anthropic_claude_code", "athanor_local"],
           command_decision: {
             id: "decision-fixture-frontier",
             decided_by: "Athanor Governor",
@@ -1311,12 +1591,12 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
   if (method === "POST" && basePath === "/v1/subscriptions/execution") {
     return {
       status: "completed",
-      provider: "anthropic_claude",
+      provider: "anthropic_claude_code",
       message: "Fixture provider execution completed.",
       handoff: {
         id: "handoff-fixture-execution",
         requester: typeof payload?.requester === "string" ? payload.requester : "coding-agent",
-        provider: "anthropic_claude",
+        provider: "anthropic_claude_code",
         task_class: typeof payload?.task_class === "string" ? payload.task_class : "multi_file_implementation",
         policy_class: "private_but_cloud_allowed",
         meta_lane: "frontier_cloud",
@@ -1341,7 +1621,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
         summary: "Fixture direct provider execution succeeded.",
       },
       adapter: {
-        provider: "anthropic_claude",
+        provider: "anthropic_claude_code",
         execution_mode: "direct_cli",
         adapter_available: true,
         supports_handoff: true,
@@ -1368,7 +1648,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           prompt: "Audit the repo and summarize the next implementation batch.",
           prompt_mode: "raw",
           abstract_prompt: null,
-          fallback: ["anthropic_claude", "athanor_local"],
+          fallback: ["anthropic_claude_code", "athanor_local"],
           command_decision: {
             id: "decision-fixture-frontier",
             decided_by: "Athanor Governor",
@@ -1404,7 +1684,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
       handoff: {
         id: "handoff-fixture-new",
         requester: typeof payload?.requester === "string" ? payload.requester : "coding-agent",
-        provider: "anthropic_claude",
+        provider: "anthropic_claude_code",
         task_class: typeof payload?.task_class === "string" ? payload.task_class : "multi_file_implementation",
         policy_class: "private_but_cloud_allowed",
         meta_lane: "frontier_cloud",
@@ -2064,7 +2344,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           default_for: ["cloud_safe", "private_but_cloud_allowed", "hybrid_abstractable"],
           cloud_allowed: true,
           status: "live",
-          examples: ["anthropic_claude", "google_gemini", "openai_codex"],
+          examples: ["anthropic_claude_code", "google_gemini", "openai_codex"],
         },
         {
           id: "sovereign_local",
@@ -2511,7 +2791,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
       governorState.paused_lanes.push(scope);
       governorState.paused_lanes.sort();
     }
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "POST" && basePath === "/v1/governor/resume") {
@@ -2527,7 +2807,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
         (lane) => lane !== scope
       );
     }
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "POST" && basePath === "/v1/governor/presence") {
@@ -2556,7 +2836,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     }
     governorState.updated_at = timestamp;
     governorState.updated_by = actor;
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "POST" && basePath === "/v1/governor/heartbeat") {
@@ -2584,7 +2864,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     }
     governorState.updated_at = timestamp;
     governorState.updated_by = actor;
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "POST" && basePath === "/v1/governor/release-tier") {
@@ -2600,7 +2880,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     governorState.tier_updated_by = actor;
     governorState.updated_at = timestamp;
     governorState.updated_by = actor;
-    return buildFixtureGovernorStateResponse(governorState, timestamp);
+    return buildFixtureGovernorSnapshot(governorState, timestamp);
   }
 
   if (method === "GET" && basePath === "/v1/review/judges") {
@@ -2829,6 +3109,168 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
       ],
       count: 2,
       history: [],
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/trust") {
+    return {
+      generated_at: timestamp,
+      agents: {
+        "general-assistant": {
+          score: 0.94,
+          grade: "A",
+          feedback: {
+            up: 28,
+            down: 1,
+            total: 29,
+          },
+          escalation: {
+            approved: 12,
+            rejected: 1,
+            total: 13,
+          },
+          samples: 29,
+        },
+        "coding-agent": {
+          score: 0.91,
+          grade: "A",
+          feedback: {
+            up: 17,
+            down: 2,
+            total: 19,
+          },
+          escalation: {
+            approved: 7,
+            rejected: 1,
+            total: 8,
+          },
+          samples: 19,
+        },
+      },
+      scores: [
+        {
+          agent_id: "general-assistant",
+          score: 0.94,
+          grade: "A",
+        },
+        {
+          agent_id: "coding-agent",
+          score: 0.91,
+          grade: "A",
+        },
+      ],
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/digests/latest") {
+    return {
+      type: "auto",
+      generated_at: timestamp,
+      period: "24h",
+      task_count: 6,
+      completed_count: 4,
+      failed_count: 1,
+      recent_completions: [
+        {
+          id: "task-ath-1",
+          title: "Refresh command-center route taxonomy",
+          completed_at: isoMinutesBefore(18),
+        },
+        {
+          id: "task-eoq-2",
+          title: "Queue new portrait generations",
+          completed_at: isoMinutesBefore(43),
+        },
+      ],
+      recent_failures: [
+        {
+          id: "task-home-1",
+          title: "Validate overnight lighting automation",
+          failed_at: isoMinutesBefore(61),
+        },
+      ],
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/pipeline/status") {
+    return {
+      recent_cycles: [
+        {
+          id: "cycle-2026-03-12T14:45:00Z",
+          status: "completed",
+          started_at: isoMinutesBefore(22),
+          completed_at: isoMinutesBefore(18),
+          proposal_count: 3,
+        },
+      ],
+      pending_plans: 1,
+      recent_outcomes_count: 5,
+      avg_quality: 0.92,
+      last_cycle: {
+        id: "cycle-2026-03-12T14:45:00Z",
+        status: "completed",
+        completed_at: isoMinutesBefore(18),
+      },
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/pipeline/outcomes") {
+    const limit = Math.max(Number.parseInt(requestUrl.searchParams.get("limit") ?? "20", 10) || 20, 1);
+    const outcomes = [
+      {
+        id: "outcome-ath-1",
+        plan_id: "plan-ath-1",
+        status: "accepted",
+        quality: 0.94,
+        recorded_at: isoMinutesBefore(12),
+      },
+      {
+        id: "outcome-ath-2",
+        plan_id: "plan-ath-2",
+        status: "review_required",
+        quality: 0.81,
+        recorded_at: isoMinutesBefore(36),
+      },
+    ].slice(0, limit);
+    return {
+      outcomes,
+      count: outcomes.length,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/pipeline/plans") {
+    const statusFilter = requestUrl.searchParams.get("status");
+    const plans = [
+      {
+        id: "plan-ath-1",
+        title: "Promote command-center IA slice to trunk",
+        status: "pending",
+        created_at: isoMinutesBefore(30),
+      },
+      {
+        id: "plan-ath-2",
+        title: "Queue runtime-deploy ansible slice",
+        status: "queued",
+        created_at: isoMinutesBefore(55),
+      },
+    ].filter((plan) => !statusFilter || plan.status === statusFilter);
+    return {
+      plans,
+      count: plans.length,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/pipeline/preview") {
+    return {
+      proposals: [
+        {
+          id: "proposal-ath-1",
+          title: "Commit command-center IA lane",
+          confidence: 0.88,
+          requires_approval: true,
+        },
+      ],
+      count: 1,
     };
   }
 
@@ -3186,7 +3628,19 @@ export async function proxyAgentJson(
   if (isDashboardFixtureMode()) {
     const fixtureResponse = await buildFixtureAgentResponse(path, init);
     if (fixtureResponse) {
-      return NextResponse.json(fixtureResponse);
+      const response = NextResponse.json(fixtureResponse);
+      if (path === "/v1/governor" || path.startsWith("/v1/governor/")) {
+        response.cookies.set(
+          FIXTURE_GOVERNOR_STATE_COOKIE,
+          serializeFixtureGovernorState(await getFixtureGovernorState()),
+          {
+            path: "/",
+            httpOnly: true,
+            sameSite: "lax",
+          }
+        );
+      }
+      return response;
     }
   }
 

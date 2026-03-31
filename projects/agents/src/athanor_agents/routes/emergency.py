@@ -1,10 +1,16 @@
-"""Emergency protocol routes — CONSTITUTION.yaml kill switch, resume, status."""
+"""Emergency protocol routes â€” CONSTITUTION.yaml kill switch, resume, status."""
 
 import logging
 from datetime import datetime
 
 from fastapi import APIRouter, Request
 from starlette.responses import JSONResponse
+
+from ..operator_contract import (
+    build_operator_action,
+    emit_operator_audit_event,
+    require_operator_action,
+)
 
 logger = logging.getLogger("athanor.emergency")
 
@@ -19,13 +25,52 @@ def is_autonomous_enabled() -> bool:
     return _autonomous_operations_enabled
 
 
-@router.post("/stop")
-async def emergency_stop():
-    """Kill switch — halt all autonomous operations immediately.
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
 
-    CONSTITUTION emergency.kill_switch: halt_all_autonomous_operations
-    """
+    candidate = build_operator_action(body, default_reason=default_reason)
+    try:
+        action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+            target="all",
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
+
+
+@router.post("/stop")
+async def emergency_stop(request: Request):
+    """Kill switch â€” halt all autonomous operations immediately."""
     global _autonomous_operations_enabled
+
+    _, action, denial = await _load_operator_body(
+        request,
+        route="/v1/emergency/stop",
+        action_class="destructive-admin",
+        default_reason="Activated emergency stop",
+    )
+    if denial:
+        return denial
+
     _autonomous_operations_enabled = False
 
     from ..scheduler import stop_scheduler
@@ -43,6 +88,7 @@ async def emergency_stop():
 
     try:
         from ..escalation import _send_ntfy_notification
+
         await _send_ntfy_notification(
             title="EMERGENCY STOP",
             body="All autonomous operations halted. Scheduler stopped. Circuit breakers opened.",
@@ -53,15 +99,26 @@ async def emergency_stop():
         pass
 
     from ..constitution import _log_audit
+
     _log_audit(
         operation_type="emergency_stop",
         target_resource="all",
-        actor="operator",
+        actor=action.actor,
         result="halted",
         constraint_checked="EMERGENCY",
     )
 
-    logger.warning("EMERGENCY STOP activated — all autonomous operations halted")
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/emergency/stop",
+        action_class="destructive-admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Activated emergency stop",
+        target="all",
+    )
+    logger.warning("EMERGENCY STOP activated â€” all autonomous operations halted")
     return {
         "status": "halted",
         "timestamp": datetime.now().isoformat(),
@@ -72,20 +129,32 @@ async def emergency_stop():
 
 @router.post("/resume")
 async def emergency_resume(request: Request):
-    """Resume autonomous operations after emergency stop.
-
-    Requires confirmation token in body: {"confirm": "RESUME"}
-    """
+    """Resume autonomous operations after emergency stop."""
     global _autonomous_operations_enabled
 
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/emergency/resume",
+        action_class="admin",
+        default_reason="Resumed autonomous operations",
+    )
+    if denial:
+        return denial
+
     if body.get("confirm") != "RESUME":
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/emergency/resume",
+            action_class="admin",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail='Must provide {"confirm": "RESUME"} to resume operations',
+            target="all",
+        )
         return JSONResponse(
             status_code=400,
-            content={"error": "Must provide {\"confirm\": \"RESUME\"} to resume operations"},
+            content={"error": 'Must provide {"confirm": "RESUME"} to resume operations'},
         )
 
     _autonomous_operations_enabled = True
@@ -105,6 +174,7 @@ async def emergency_resume(request: Request):
 
     try:
         from ..escalation import _send_ntfy_notification
+
         await _send_ntfy_notification(
             title="EMERGENCY RESUME",
             body="Autonomous operations resumed. Scheduler restarted. Circuit breakers reset.",
@@ -115,15 +185,26 @@ async def emergency_resume(request: Request):
         pass
 
     from ..constitution import _log_audit
+
     _log_audit(
         operation_type="emergency_resume",
         target_resource="all",
-        actor="operator",
+        actor=action.actor,
         result="resumed",
         constraint_checked="EMERGENCY",
     )
 
-    logger.info("Emergency resume — autonomous operations restored")
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/emergency/resume",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail="Resumed autonomous operations",
+        target="all",
+    )
+    logger.info("Emergency resume â€” autonomous operations restored")
     return {
         "status": "resumed",
         "timestamp": datetime.now().isoformat(),
@@ -136,6 +217,7 @@ async def emergency_resume(request: Request):
 async def emergency_status():
     """Check whether autonomous operations are enabled."""
     from ..scheduler import _scheduler_task
+
     return {
         "autonomous_operations_enabled": _autonomous_operations_enabled,
         "scheduler_running": _scheduler_task is not None and not _scheduler_task.done(),

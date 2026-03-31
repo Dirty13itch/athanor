@@ -1,49 +1,48 @@
-import { NextRequest } from "next/server";
+import { galleryRatingSchema } from "@/lib/contracts";
+import { requireOperatorMutationAccess } from "@/lib/operator-auth";
+import { saveGalleryRating } from "../store";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
- * POST /api/gallery/rate — Submit a rating for an image.
- *
- * Body: { imageId, rating, approved, flagged, notes? }
- *
- * Currently stores in localStorage on the client side (no agent server route yet).
- * This endpoint validates and echoes back the rating for future agent-server persistence.
+ * POST /api/gallery/rate - Persist a rating for an image.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { imageId, rating, approved, flagged, notes } = body as {
-      imageId: string;
-      rating: number;
-      approved: boolean;
-      flagged: boolean;
-      notes?: string;
-    };
+export async function POST(request: Request) {
+  const gate = requireOperatorMutationAccess(request);
+  if (gate) {
+    return gate;
+  }
 
-    if (!imageId || typeof imageId !== "string") {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const imageId = typeof body.imageId === "string" ? body.imageId.trim() : "";
+
+    if (!imageId) {
       return Response.json({ error: "imageId is required" }, { status: 400 });
     }
 
-    if (typeof rating !== "number" || rating < 0 || rating > 5) {
-      return Response.json({ error: "rating must be 0-5" }, { status: 400 });
+    const ratingResult = galleryRatingSchema.safeParse({
+      rating: body.rating ?? null,
+      approved: body.approved,
+      flagged: body.flagged,
+      notes: typeof body.notes === "string" ? body.notes : "",
+      timestamp: typeof body.timestamp === "string" ? body.timestamp : new Date().toISOString(),
+    });
+
+    if (!ratingResult.success) {
+      return Response.json(
+        { error: "Invalid rating payload", issues: ratingResult.error.flatten() },
+        { status: 400 }
+      );
     }
 
-    // TODO: Persist to agent server when POST foundry:9000/v1/gallery/ratings is available
-    // const agentUrl = process.env.AGENT_SERVER_URL ?? "http://foundry:9000";
-    // const token = process.env.ATHANOR_AGENT_API_TOKEN;
-    // await fetch(`${agentUrl}/v1/gallery/ratings`, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    //   body: JSON.stringify({ imageId, rating, approved, flagged, notes }),
-    // });
-
+    const saved = await saveGalleryRating(imageId, ratingResult.data);
     return Response.json({
       ok: true,
       imageId,
-      rating,
-      approved,
-      flagged,
-      notes: notes ?? null,
-      timestamp: new Date().toISOString(),
+      ...saved,
+      rating: saved.ratings[imageId],
     });
   } catch (err) {
     return Response.json(

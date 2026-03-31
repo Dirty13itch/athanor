@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getJudgePlane } from "@/lib/api";
 import { compactText } from "@/lib/format";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 
 function formatLabel(value: string) {
@@ -35,12 +36,36 @@ export function JudgePlaneCard({
   limit?: number;
   compact?: boolean;
 }) {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const judgeQuery = useQuery({
     queryKey: queryKeys.judgePlane(limit),
     queryFn: () => getJudgePlane(limit),
+    enabled: !locked,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
+
+  if (locked) {
+    return (
+      <Card className="surface-panel">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Gavel className="h-5 w-5 text-primary" />
+            {title}
+          </CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="Judge-plane verdicts and challenger posture stay hidden until the operator session is unlocked."
+            className="py-8"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (judgeQuery.isError && !judgeQuery.data) {
     return (

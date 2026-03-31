@@ -329,6 +329,47 @@ def _humanize_registry_id(raw: str) -> str:
     return raw.replace("_", " ").replace("-", " ").strip().title()
 
 
+def _autonomy_activation_summary() -> dict[str, Any]:
+    from .model_governance import (
+        get_current_autonomy_phase,
+        get_next_autonomy_phase,
+        get_unmet_autonomy_prerequisites,
+    )
+
+    activation, current_phase = get_current_autonomy_phase()
+    current_phase_id = str(activation.get("current_phase_id") or "")
+    next_phase = get_next_autonomy_phase(activation, phase_id=current_phase_id)
+    next_phase_id = str(next_phase.get("id") or "").strip() or None
+    next_phase_blockers = (
+        get_unmet_autonomy_prerequisites(activation, phase_id=next_phase_id)
+        if next_phase_id
+        else []
+    )
+    return {
+        "status": str(activation.get("status") or "configured"),
+        "activation_state": str(activation.get("activation_state") or "unknown"),
+        "current_phase_id": current_phase_id or None,
+        "current_phase_status": str(current_phase.get("status") or "unknown"),
+        "current_phase_scope": str(current_phase.get("scope") or "") or None,
+        "next_phase_id": next_phase_id,
+        "next_phase_status": str(next_phase.get("status") or "complete") if next_phase_id else None,
+        "next_phase_scope": str(next_phase.get("scope") or "") or None,
+        "next_phase_blocker_count": len(next_phase_blockers),
+        "next_phase_blocker_ids": [
+            str(item.get("id") or "").strip()
+            for item in next_phase_blockers
+            if str(item.get("id") or "").strip()
+        ],
+        "broad_autonomy_enabled": bool(activation.get("broad_autonomy_enabled")),
+        "runtime_mutations_approval_gated": bool(
+            activation.get("runtime_mutations_approval_gated", True)
+        ),
+        "enabled_agents": list(current_phase.get("enabled_agents", [])),
+        "allowed_workload_classes": list(current_phase.get("allowed_workload_classes", [])),
+        "blocked_workload_classes": list(current_phase.get("blocked_workload_classes", [])),
+    }
+
+
 def _release_registry() -> dict[str, Any]:
     return get_release_ritual_registry()
 
@@ -1023,6 +1064,7 @@ async def build_operations_readiness_snapshot() -> dict[str, Any]:
     promotion_controls = await build_promotion_controls_snapshot(limit=12)
     retirement_controls = await build_retirement_controls_snapshot(limit=12)
     tool_permissions = await build_tool_permissions_snapshot(operator_tests=synthetic_operator_tests)
+    autonomy_activation = _autonomy_activation_summary()
     flow_status_map = {
         str(flow.get("id")): str(flow.get("status") or "configured")
         for flow in synthetic_operator_tests.get("flows", [])
@@ -1144,12 +1186,15 @@ async def build_operations_readiness_snapshot() -> dict[str, Any]:
     if lifecycle_flow_status == "degraded":
         lifecycle_status = "degraded"
 
+    autonomy_status = str(autonomy_activation.get("status", "configured"))
+
     statuses = {
         backup_restore_status,
         release_ritual_status,
         economic_status,
         lifecycle_status,
         retirement_status,
+        autonomy_status,
         str(tool_permissions.get("status", "configured")),
         runbooks_status,
         str(synthetic_operator_tests.get("status", "configured")),
@@ -1229,6 +1274,7 @@ async def build_operations_readiness_snapshot() -> dict[str, Any]:
             "last_outcome": tool_permissions.get("last_outcome") or tool_permissions_flow.get("last_outcome"),
             "subjects": list(tool_permissions.get("subjects", [])),
         },
+        "autonomy_activation": autonomy_activation,
         "synthetic_operator_tests": synthetic_operator_tests,
     }
 

@@ -1,0 +1,79 @@
+{
+  "version": "2026-03-25.1",
+  "updated_at": "2026-03-25T19:15:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/routing-taxonomy-map.json",
+  "mappings": [
+    {
+      "task_class": "interactive_architecture",
+      "workload_class": "architecture_planning",
+      "policy_class": "cloud_safe",
+      "presence_states": ["at_desk", "away", "phone_only"],
+      "release_tiers": ["offline_eval", "shadow", "sandbox", "canary", "production"],
+      "allowed_provider_categories": ["local", "subscription"],
+      "notes": [
+        "Protect premium interactive reserve."
+      ]
+    },
+    {
+      "task_class": "multi_file_implementation",
+      "workload_class": "coding_implementation",
+      "policy_class": "private_but_cloud_allowed",
+      "presence_states": ["at_desk", "away", "phone_only"],
+      "release_tiers": ["offline_eval", "shadow", "sandbox", "canary", "production"],
+      "allowed_provider_categories": ["local", "subscription"],
+      "notes": []
+    },
+    {
+      "task_class": "async_backlog_execution",
+      "workload_class": "background_transform",
+      "policy_class": "private_but_cloud_allowed",
+      "presence_states": ["away", "asleep"],
+      "release_tiers": ["shadow", "sandbox", "canary", "production"],
+      "allowed_provider_categories": ["local", "subscription"],
+      "notes": [
+        "Prefer async reserves and quota-harvest windows over premium interactive capacity."
+      ]
+    },
+    {
+      "task_class": "repo_wide_audit",
+      "workload_class": "repo_audit",
+      "policy_class": "cloud_safe",
+      "presence_states": ["at_desk", "away", "asleep", "phone_only"],
+      "release_tiers": ["offline_eval", "shadow", "sandbox", "canary", "production"],
+      "allowed_provider_categories": ["local", "subscription"],
+      "notes": [
+        "Large-context and broad-audit flows belong here."
+      ]
+    },
+    {
+      "task_class": "cheap_bulk_transform",
+      "workload_class": "background_transform",
+      "policy_class": "private_but_cloud_allowed",
+      "presence_states": ["away", "asleep"],
+      "release_tiers": ["shadow", "sandbox", "canary", "production"],
+      "allowed_provider_categories": ["local", "subscription"],
+      "notes": []
+    },
+    {
+      "task_class": "search_heavy_planning",
+      "workload_class": "research_synthesis",
+      "policy_class": "cloud_safe",
+      "presence_states": ["at_desk", "away", "phone_only"],
+      "release_tiers": ["offline_eval", "shadow", "sandbox", "canary", "production"],
+      "allowed_provider_categories": ["local", "subscription"],
+      "notes": []
+    },
+    {
+      "task_class": "private_internal_automation",
+      "workload_class": "private_automation",
+      "policy_class": "sovereign_only",
+      "presence_states": ["at_desk", "away", "asleep", "phone_only"],
+      "release_tiers": ["offline_eval", "shadow", "sandbox", "canary", "production"],
+      "allowed_provider_categories": ["local"],
+      "notes": [
+        "Never leave the local cluster."
+      ]
+    }
+  ]
+}

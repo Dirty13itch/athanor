@@ -1,15 +1,6 @@
-import sys
 import unittest
 from asyncio import run
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
-
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-SRC_ROOT = PROJECT_ROOT / "src"
-
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
 
 from athanor_agents.command_hierarchy import (
     AUTHORITY_ORDER,
@@ -42,11 +33,14 @@ class CommandHierarchyTest(unittest.TestCase):
         self.assertEqual("sovereign_local", classification["meta_lane"])
         self.assertFalse(classification["cloud_allowed"])
 
-    def test_governor_rights_include_task_schedule_and_lease_control(self) -> None:
+    def test_governor_rights_remain_posture_only(self) -> None:
         governor = next(entry for entry in COMMAND_RIGHTS if entry["subject"] == "Athanor Governor")
-        self.assertIn("create durable tasks", governor["can"])
-        self.assertIn("issue leases", governor["can"])
+        self.assertIn("route work", governor["can"])
         self.assertIn("pause or resume automation", governor["can"])
+        self.assertIn("choose fallback or degraded mode", governor["can"])
+        self.assertNotIn("create durable tasks", governor["can"])
+        self.assertNotIn("issue leases", governor["can"])
+        self.assertNotIn("own recurring schedules", governor["can"])
 
     def test_meta_lanes_remain_advisory(self) -> None:
         meta = next(entry for entry in COMMAND_RIGHTS if entry["subject"] == "Meta Lanes")
@@ -97,6 +91,20 @@ class CommandHierarchyTest(unittest.TestCase):
                             "active_promotion_count": 0,
                             "last_rehearsal_at": "2026-03-12T21:20:19Z",
                         },
+                        "autonomy_activation": {
+                            "status": "live_partial",
+                            "activation_state": "ready_for_operator_enable",
+                            "current_phase_id": "software_core_phase_1",
+                            "current_phase_status": "ready",
+                            "next_phase_id": "expanded_core_phase_2",
+                            "next_phase_status": "blocked",
+                            "next_phase_scope": "bounded_plus_domain_sidecars",
+                            "next_phase_blocker_count": 1,
+                            "next_phase_blocker_ids": ["vault_provider_auth_repair"],
+                            "enabled_agents": ["coding-agent", "research-agent"],
+                            "allowed_workload_classes": ["coding_implementation"],
+                            "blocked_workload_classes": ["explicit_dialogue"],
+                        },
                     }
                 ),
             ),
@@ -125,6 +133,18 @@ class CommandHierarchyTest(unittest.TestCase):
         self.assertIn(
             snapshot["operational_governance"]["backup_restore"]["status"],
             {"configured", "live_partial", "live"},
+        )
+        self.assertEqual(
+            "software_core_phase_1",
+            snapshot["operational_governance"]["autonomy_activation"]["current_phase_id"],
+        )
+        self.assertEqual(
+            "expanded_core_phase_2",
+            snapshot["operational_governance"]["autonomy_activation"]["next_phase_id"],
+        )
+        self.assertEqual(
+            ["vault_provider_auth_repair"],
+            snapshot["operational_governance"]["autonomy_activation"]["next_phase_blocker_ids"],
         )
 
     def test_subscription_task_classes_normalize_to_governance_workloads(self) -> None:

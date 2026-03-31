@@ -16,7 +16,7 @@ How to update Athanor state files after any change to infrastructure, services, 
 | `docs/SYSTEM-SPEC.md` | Complete operational specification | When architecture, services, or agents change |
 | `docs/SERVICES.md` | Live service inventory | When services are deployed, removed, or change ports |
 | `docs/VISION.md` | High-level vision and current state | When major milestones change |
-| `docs/hardware/inventory.md` | Hardware allocation and specs | When hardware moves between nodes |
+| `docs/archive/hardware/hardware-inventory.md` | Archival hardware allocation ledger | Only when the archival hardware ledger must be corrected with operator approval |
 | `docs/design/agent-contracts.md` | Agent behavior contracts | When agent tools, escalation, or boundaries change |
 | `docs/design/intelligence-layers.md` | Intelligence layer status | When layers are deployed or extended |
 | `MEMORY.md` (auto-memory) | Session continuity, patterns, decisions | After every session with significant findings |

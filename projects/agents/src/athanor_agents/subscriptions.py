@@ -10,6 +10,14 @@ from typing import Any
 import yaml
 
 from .config import settings
+from .model_governance import (
+    get_credential_surface_registry,
+    get_provider_catalog_registry,
+    get_provider_usage_evidence_artifact,
+    get_routing_taxonomy_map,
+    get_subscription_burn_registry,
+    get_tooling_inventory_registry,
+)
 
 LEASES_KEY = "athanor:subscriptions:leases"
 PROVIDER_STATS_KEY = "athanor:subscriptions:provider-stats"
@@ -32,109 +40,6 @@ PROVIDER_SURFACES = {
 PRIVATE_SENSITIVITY = {"private", "secret", "lan_only"}
 
 
-def _fallback_policy() -> dict[str, Any]:
-    return {
-        "version": 1,
-        "updated": "2026-03-11",
-        "providers": {
-            "athanor_local": {
-                "enabled": True,
-                "category": "local",
-                "role": "default_machine_lane",
-                "privacy": "lan_only",
-                "reserve": "keep_available",
-            },
-            "anthropic_claude_code": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "lead_interactive_coder",
-                "privacy": "cloud",
-                "reserve": "premium_interactive",
-            },
-            "openai_codex": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "async_cloud_executor",
-                "privacy": "cloud",
-                "reserve": "premium_async",
-            },
-            "google_gemini": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "large_context_auditor",
-                "privacy": "cloud",
-                "reserve": "burn_early",
-            },
-            "moonshot_kimi": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "planning_alternative",
-                "privacy": "cloud",
-                "reserve": "targeted",
-            },
-            "zai_glm_coding": {
-                "enabled": True,
-                "category": "subscription",
-                "role": "high_throughput_overflow",
-                "privacy": "cloud",
-                "reserve": "burn_for_bulk",
-            },
-        },
-        "task_classes": {
-            "interactive_architecture": {
-                "primary": ["anthropic_claude_code"],
-                "fallback": ["moonshot_kimi", "openai_codex", "athanor_local"],
-            },
-            "multi_file_implementation": {
-                "primary": ["anthropic_claude_code"],
-                "fallback": ["openai_codex", "zai_glm_coding", "athanor_local"],
-            },
-            "async_backlog_execution": {
-                "primary": ["openai_codex"],
-                "fallback": ["zai_glm_coding", "athanor_local"],
-            },
-            "repo_wide_audit": {
-                "primary": ["google_gemini"],
-                "fallback": ["anthropic_claude_code", "athanor_local"],
-            },
-            "cheap_bulk_transform": {
-                "primary": ["zai_glm_coding"],
-                "fallback": ["google_gemini", "athanor_local"],
-            },
-            "search_heavy_planning": {
-                "primary": ["moonshot_kimi"],
-                "fallback": ["anthropic_claude_code", "google_gemini"],
-            },
-            "private_internal_automation": {"primary": ["athanor_local"], "fallback": []},
-        },
-        "agents": {
-            "coding-agent": {
-                "default_task_class": "multi_file_implementation",
-                "sensitivity_default": "repo_internal",
-                "allowed_providers": [
-                    "athanor_local",
-                    "anthropic_claude_code",
-                    "openai_codex",
-                    "google_gemini",
-                    "moonshot_kimi",
-                    "zai_glm_coding",
-                ],
-            },
-            "research-agent": {
-                "default_task_class": "search_heavy_planning",
-                "sensitivity_default": "mixed",
-                "allowed_providers": [
-                    "athanor_local",
-                    "anthropic_claude_code",
-                    "openai_codex",
-                    "google_gemini",
-                    "moonshot_kimi",
-                ],
-            },
-        },
-    }
-
-
 def _policy_path() -> Path:
     if settings.subscription_policy_path:
         return Path(settings.subscription_policy_path)
@@ -148,9 +53,7 @@ def load_policy() -> dict[str, Any]:
 
     path = _policy_path()
     if not path.exists():
-        fallback = _fallback_policy()
-        fallback["_policy_source"] = "builtin-fallback"
-        return fallback
+        raise FileNotFoundError(f"Subscription policy not found at {path}")
 
     stat = path.stat()
     path_str = str(path)
@@ -228,8 +131,246 @@ def _provider_meta(policy: dict[str, Any], provider_id: str) -> dict[str, Any]:
     return dict(policy.get("providers", {}).get(provider_id, {}))
 
 
+def _provider_catalog_index() -> dict[str, dict[str, Any]]:
+    catalog = get_provider_catalog_registry()
+    return {
+        str(entry.get("id") or ""): dict(entry)
+        for entry in catalog.get("providers", [])
+        if str(entry.get("id") or "").strip()
+    }
+
+
+def _tooling_provider_index() -> dict[str, list[dict[str, str]]]:
+    tooling = get_tooling_inventory_registry()
+    indexed: dict[str, list[dict[str, str]]] = {}
+    for host in tooling.get("hosts", []):
+        host_id = str(host.get("id") or host.get("host") or "unknown")
+        for tool in host.get("tools", []):
+            provider_id = str(tool.get("provider_id") or "").strip()
+            if not provider_id:
+                continue
+            indexed.setdefault(provider_id, []).append(
+                {
+                    "host": host_id,
+                    "tool_id": str(tool.get("tool_id") or tool.get("command") or "unknown"),
+                    "status": str(tool.get("status") or "unknown"),
+                    "version": str(tool.get("version") or ""),
+                }
+            )
+    return indexed
+
+
+def _credential_env_names() -> set[str]:
+    return {
+        str(env_name)
+        for surface in get_credential_surface_registry().get("surfaces", [])
+        for env_name in surface.get("env_var_names", [])
+        if str(env_name).strip()
+    }
+
+
+def _provider_usage_capture_index() -> dict[str, dict[str, Any]]:
+    evidence_artifact = get_provider_usage_evidence_artifact()
+    captures = evidence_artifact.get("captures", [])
+    if not isinstance(captures, list):
+        return {}
+    latest_by_provider: dict[str, dict[str, Any]] = {}
+    for capture in captures:
+        if not isinstance(capture, dict):
+            continue
+        provider_id = str(capture.get("provider_id") or "").strip()
+        observed_at = str(capture.get("observed_at") or "").strip()
+        if not provider_id or not observed_at:
+            continue
+        current = latest_by_provider.get(provider_id)
+        current_observed_at = str((current or {}).get("observed_at") or "")
+        if not current or observed_at >= current_observed_at:
+            latest_by_provider[provider_id] = dict(capture)
+    return latest_by_provider
+
+
+def _provider_evidence_posture(
+    provider: dict[str, Any],
+    *,
+    tooling_entries: list[dict[str, str]] | None = None,
+    credential_env_names: set[str] | None = None,
+    provider_usage_capture: dict[str, Any] | None = None,
+) -> str:
+    observed_runtime = dict(provider.get("observed_runtime") or {})
+    evidence = dict(provider.get("evidence") or {})
+    access_mode = str(provider.get("access_mode") or "")
+    active_burn_observed = bool(observed_runtime.get("active_burn_observed"))
+    routing_policy_enabled = bool(observed_runtime.get("routing_policy_enabled"))
+    api_configured = bool(observed_runtime.get("api_configured"))
+    pricing_status = str(provider.get("official_pricing_status") or "")
+    monthly_cost = provider.get("monthly_cost_usd")
+    evidence_kind = str(evidence.get("kind") or "")
+    cli_probe = dict(evidence.get("cli_probe") or {})
+    billing = dict(evidence.get("billing") or {})
+    proxy_evidence = dict(evidence.get("proxy") or {})
+    provider_specific_usage = dict(evidence.get("provider_specific_usage") or {})
+    provider_usage_capture = dict(provider_usage_capture or {})
+    cli_probe_status = str(cli_probe.get("status") or "")
+    billing_status = str(billing.get("status") or "")
+    provider_specific_status = str(provider_specific_usage.get("status") or "")
+    capture_status = str(provider_usage_capture.get("status") or "")
+    installed_tools = [
+        entry for entry in (tooling_entries or []) if str(entry.get("status") or "") == "installed"
+    ]
+    degraded_tools = [
+        entry for entry in (tooling_entries or []) if str(entry.get("status") or "") == "degraded"
+    ]
+    provider_envs = {str(item) for item in provider.get("env_contracts", []) if str(item).strip()}
+    credential_surface_present = bool(provider_envs & (credential_env_names or set()))
+    observed_hosts = {
+        str(host).strip().lower()
+        for host in provider.get("observed_hosts", [])
+        if str(host).strip()
+    }
+    execution_modes = {
+        str(item).strip()
+        for item in provider.get("execution_modes", [])
+        if str(item).strip()
+    }
+    proxy_activity_observed = bool(observed_runtime.get("proxy_activity_observed"))
+    provider_specific_usage_observed = bool(observed_runtime.get("provider_specific_usage_observed"))
+
+    if access_mode == "local" and routing_policy_enabled:
+        return "local_runtime_available"
+    if active_burn_observed:
+        if monthly_cost is None and (
+            "cost-unverified" in pricing_status
+            or billing_status in {"operator_visible_tier_unverified", "official_docs_only_cost_unverified"}
+        ):
+            return "live_burn_observed_cost_unverified"
+        return "live_burn_observed"
+    if routing_policy_enabled and installed_tools:
+        return "routing_enabled_cli_ready"
+    if routing_policy_enabled and evidence_kind == "cli_subscription" and cli_probe_status == "installed":
+        return "routing_enabled_cli_ready"
+    if access_mode == "cli" and routing_policy_enabled:
+        return "routing_enabled_without_observed_tool"
+    if access_mode == "cli" and installed_tools:
+        return "tool_installed_no_recent_burn"
+    if access_mode == "cli" and evidence_kind == "cli_subscription" and cli_probe_status == "installed":
+        return "tool_installed_no_recent_burn"
+    if access_mode == "cli" and degraded_tools:
+        return "tool_degraded_no_recent_burn"
+    if access_mode == "cli" and evidence_kind == "cli_subscription" and cli_probe_status == "degraded":
+        return "tool_degraded_no_recent_burn"
+    if access_mode == "cli" and credential_surface_present:
+        return "cli_configured_without_observed_tool"
+    if access_mode == "api" and api_configured and "litellm_proxy" in execution_modes and "vault" in observed_hosts:
+        if provider_specific_usage_observed or provider_specific_status in {"observed", "verified"} or capture_status in {"observed", "verified"}:
+            return "vault_provider_specific_api_observed"
+        if capture_status == "auth_failed":
+            return "vault_provider_specific_auth_failed"
+        if capture_status == "request_failed":
+            return "vault_provider_specific_request_failed"
+        if capture_status == "not_supported":
+            return "vault_provider_specific_not_supported"
+        if proxy_activity_observed or str(proxy_evidence.get("last_verified_at") or "").strip():
+            return "vault_proxy_active_no_provider_specific_evidence"
+        return "vault_litellm_configured_no_recent_proxy_activity"
+    if access_mode == "api" and api_configured and "litellm_proxy" in execution_modes and credential_surface_present:
+        return "litellm_proxy_configured_no_recent_burn"
+    if access_mode == "api" and api_configured and "litellm_proxy" in execution_modes:
+        return "litellm_proxy_configured_no_credential_surface"
+    if api_configured and credential_surface_present:
+        return "api_configured_no_recent_burn"
+    if api_configured:
+        return "api_configured_no_credential_surface"
+    if credential_surface_present:
+        return "credential_surface_present_no_runtime_observation"
+    return "catalog_only"
+
+
+def _provider_pricing_truth_label(provider: dict[str, Any]) -> str:
+    pricing_status = str(provider.get("official_pricing_status") or "")
+    monthly_cost = provider.get("monthly_cost_usd")
+    if pricing_status == "not_applicable":
+        return "not_applicable"
+    if pricing_status == "metered":
+        return "metered_api"
+    if pricing_status == "official_verified" and monthly_cost is not None:
+        return "verified_flat_rate"
+    if pricing_status == "official-source-present-cost-unverified":
+        return "flat_rate_unverified"
+    if monthly_cost is None:
+        return "unverified_or_metered"
+    return pricing_status or "unknown"
+
+
+def _enrich_provider_catalog_entry(
+    provider: dict[str, Any],
+    *,
+    tooling_entries: list[dict[str, str]] | None = None,
+    credential_env_names: set[str] | None = None,
+    provider_usage_capture: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    enriched = dict(provider)
+    enriched["evidence_posture"] = _provider_evidence_posture(
+        provider,
+        tooling_entries=tooling_entries,
+        credential_env_names=credential_env_names,
+        provider_usage_capture=provider_usage_capture,
+    )
+    enriched["pricing_truth_label"] = _provider_pricing_truth_label(provider)
+    if provider_usage_capture:
+        enriched["provider_usage_capture"] = dict(provider_usage_capture)
+    return enriched
+
+
 def _agent_meta(policy: dict[str, Any], requester: str) -> dict[str, Any]:
     return dict(policy.get("agents", {}).get(requester, {}))
+
+
+def _provider_selection_context(
+    provider_id: str,
+    *,
+    provider_meta: dict[str, Any],
+    provider_catalog_index: dict[str, dict[str, Any]],
+    tooling_by_provider: dict[str, list[dict[str, str]]],
+    credential_env_names: set[str],
+) -> dict[str, Any]:
+    catalog_entry = dict(provider_catalog_index.get(provider_id) or {})
+    tooling_entries = tooling_by_provider.get(provider_id, [])
+    enriched = (
+        _enrich_provider_catalog_entry(
+            catalog_entry,
+            tooling_entries=tooling_entries,
+            credential_env_names=credential_env_names,
+        )
+        if catalog_entry
+        else {}
+    )
+    evidence_posture = str(enriched.get("evidence_posture") or "")
+    execution_modes = {
+        str(item).strip()
+        for item in list(catalog_entry.get("execution_modes") or [])
+        if str(item).strip()
+    }
+    routing_posture = str(provider_meta.get("routing_posture") or "ordinary_auto")
+    routing_reason = str(provider_meta.get("routing_reason") or "")
+    ordinary_routing_ready = evidence_posture in {
+        "local_runtime_available",
+        "live_burn_observed",
+        "live_burn_observed_cost_unverified",
+        "routing_enabled_cli_ready",
+        "tool_installed_no_recent_burn",
+    } and routing_posture == "ordinary_auto"
+    return {
+        "catalog": catalog_entry,
+        "enriched": enriched,
+        "evidence_posture": evidence_posture,
+        "pricing_truth_label": str(enriched.get("pricing_truth_label") or ""),
+        "routing_posture": routing_posture,
+        "routing_reason": routing_reason,
+        "policy_handoff_only": routing_posture == "governed_handoff_only",
+        "ordinary_routing_ready": ordinary_routing_ready,
+        "governed_handoff_ready": routing_posture in {"ordinary_auto", "governed_handoff_only"}
+        and "handoff_bundle" in execution_modes,
+    }
 
 
 def _is_cloud_provider(policy: dict[str, Any], provider_id: str) -> bool:
@@ -309,6 +450,14 @@ def build_task_lease_request(
     sensitivity = str(meta.get("sensitivity", agent_meta.get("sensitivity_default", "repo_internal")))
     interactive = bool(meta.get("interactive", False))
     task_class = infer_task_class(requester, prompt, meta)
+    if "policy_class" not in meta or "meta_lane" not in meta:
+        # Keep request metadata aligned with the command hierarchy so preview flows,
+        # operator tests, and downstream routing all read the same governance hints.
+        from .command_hierarchy import classify_policy_class
+
+        classification = classify_policy_class(prompt, meta, task_class=task_class)
+        meta.setdefault("policy_class", str(classification.get("policy_class") or "cloud_safe"))
+        meta.setdefault("meta_lane", str(classification.get("meta_lane") or "frontier_cloud"))
     expected_context = _infer_expected_context(prompt, meta)
     parallelism = _infer_parallelism(priority, meta)
     return LeaseRequest(
@@ -328,11 +477,16 @@ def _score_provider(
     policy: dict[str, Any],
     provider_id: str,
     position: int,
+    selection_context: dict[str, Any] | None = None,
 ) -> tuple[int, list[str]]:
     score = 100 - (position * 10)
     reasons = [f"base_order={position + 1}"]
     provider_meta = _provider_meta(policy, provider_id)
     reserve = provider_meta.get("reserve", "")
+    context = dict(selection_context or {})
+    evidence_posture = str(context.get("evidence_posture") or "")
+    ordinary_routing_ready = bool(context.get("ordinary_routing_ready"))
+    governed_handoff_ready = bool(context.get("governed_handoff_ready"))
 
     if request.sensitivity in PRIVATE_SENSITIVITY:
         if _is_cloud_provider(policy, provider_id):
@@ -382,6 +536,20 @@ def _score_provider(
         score += 4
         reasons.append("local_safety_bonus")
 
+    if not ordinary_routing_ready:
+        if governed_handoff_ready:
+            score -= 30
+            reasons.append("handoff_only_penalty")
+        else:
+            score -= 120
+            reasons.append("no_verified_execution_path_penalty")
+    elif evidence_posture in {"live_burn_observed", "live_burn_observed_cost_unverified"}:
+        score += 6
+        reasons.append("observed_lane_bonus")
+    elif evidence_posture == "tool_installed_no_recent_burn":
+        score += 2
+        reasons.append("installed_tool_bonus")
+
     return score, reasons
 
 
@@ -392,9 +560,62 @@ def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
     if not candidates:
         candidates = ["athanor_local"]
 
+    provider_catalog_index = _provider_catalog_index()
+    tooling_by_provider = _tooling_provider_index()
+    credential_env_names = _credential_env_names()
+    selection_contexts = {
+        provider_id: _provider_selection_context(
+            provider_id,
+            provider_meta=_provider_meta(policy, provider_id),
+            provider_catalog_index=provider_catalog_index,
+            tooling_by_provider=tooling_by_provider,
+            credential_env_names=credential_env_names,
+        )
+        for provider_id in candidates
+    }
+    allow_handoff_only = bool((request.metadata or {}).get("allow_handoff_only"))
+    policy_handoff_only_candidates = [
+        provider_id
+        for provider_id, context in selection_contexts.items()
+        if bool(context.get("policy_handoff_only"))
+    ]
+    evidence_unready_candidates = [
+        provider_id
+        for provider_id, context in selection_contexts.items()
+        if not bool(context.get("ordinary_routing_ready")) and not bool(context.get("governed_handoff_ready"))
+    ]
+    excluded_candidates = [
+        provider_id
+        for provider_id, context in selection_contexts.items()
+        if (
+            (bool(context.get("policy_handoff_only")) and not allow_handoff_only)
+            or (
+                not bool(context.get("ordinary_routing_ready"))
+                and not allow_handoff_only
+                and not bool(context.get("policy_handoff_only"))
+            )
+            or (
+                allow_handoff_only
+                and not bool(context.get("ordinary_routing_ready"))
+                and not bool(context.get("governed_handoff_ready"))
+            )
+        )
+    ]
+    eligible_candidates = [provider_id for provider_id in candidates if provider_id not in excluded_candidates]
+    if eligible_candidates:
+        candidates = eligible_candidates
+    else:
+        excluded_candidates = []
+
     scored = []
     for index, provider_id in enumerate(candidates):
-        score, reasons = _score_provider(request, policy, provider_id, index)
+        score, reasons = _score_provider(
+            request,
+            policy,
+            provider_id,
+            index,
+            selection_context=selection_contexts.get(provider_id),
+        )
         scored.append((score, provider_id, reasons))
 
     scored.sort(key=lambda item: item[0], reverse=True)
@@ -402,6 +623,7 @@ def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
     fallback = [candidate for _, candidate, _ in scored[1:]]
 
     provider_meta = _provider_meta(policy, provider_id)
+    selected_context = dict(selection_contexts.get(provider_id) or {})
     created_at = time.time()
     max_parallel_children = 1
     if request.parallelism == "medium":
@@ -432,6 +654,14 @@ def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
             "expected_context": request.expected_context,
             "parallelism": request.parallelism,
             "policy_source": policy.get("_policy_source", "unknown"),
+            "provider_evidence_posture": str(selected_context.get("evidence_posture") or ""),
+            "provider_pricing_truth_label": str(selected_context.get("pricing_truth_label") or ""),
+            "provider_routing_posture": str(selected_context.get("routing_posture") or ""),
+            "provider_routing_reason": str(selected_context.get("routing_reason") or ""),
+            "provider_governed_handoff_ready": bool(selected_context.get("governed_handoff_ready")),
+            "provider_ordinary_routing_ready": bool(selected_context.get("ordinary_routing_ready")),
+            "excluded_handoff_only_providers": policy_handoff_only_candidates if not allow_handoff_only else [],
+            "excluded_unready_providers": evidence_unready_candidates,
         },
     )
 
@@ -572,19 +802,53 @@ async def get_quota_summary() -> dict[str, Any]:
     stats = {provider: json.loads(value) for provider, value in raw_stats.items()}
     raw_events = await redis.lrange(EVENTS_KEY, 0, 49)
     events = [json.loads(item) for item in raw_events]
+    burn_registry = get_subscription_burn_registry()
     return {
         "policy_source": load_policy().get("_policy_source", "unknown"),
+        "burn_registry_version": str(burn_registry.get("version") or ""),
+        "burn_registry_source": str(burn_registry.get("source_of_truth") or ""),
         "providers": stats,
         "recent_events": events,
     }
 
 
+def get_provider_catalog_snapshot(*, policy_only: bool = False) -> dict[str, Any]:
+    catalog = get_provider_catalog_registry()
+    tooling_by_provider = _tooling_provider_index()
+    credential_env_names = _credential_env_names()
+    provider_usage_capture_index = _provider_usage_capture_index()
+    providers = [
+        _enrich_provider_catalog_entry(
+            dict(entry),
+            tooling_entries=tooling_by_provider.get(str(entry.get("id") or ""), []),
+            credential_env_names=credential_env_names,
+            provider_usage_capture=provider_usage_capture_index.get(str(entry.get("id") or "")),
+        )
+        for entry in catalog.get("providers", [])
+        if isinstance(entry, dict)
+    ]
+    if policy_only:
+        allowed = {str(item) for item in dict(load_policy().get("providers") or {}).keys()}
+        providers = [entry for entry in providers if str(entry.get("id") or "") in allowed]
+    return {
+        "version": str(catalog.get("version") or ""),
+        "official_verified_at": str(catalog.get("official_verified_at") or ""),
+        "providers": providers,
+        "count": len(providers),
+        "source_of_truth": str(catalog.get("source_of_truth") or ""),
+    }
+
+
 def get_policy_snapshot() -> dict[str, Any]:
     policy = load_policy()
+    provider_catalog = get_provider_catalog_registry()
+    routing_taxonomy = get_routing_taxonomy_map()
     return {
         "version": policy.get("version", 1),
         "updated": policy.get("updated", ""),
         "policy_source": policy.get("_policy_source", "unknown"),
+        "provider_catalog_version": provider_catalog.get("version", ""),
+        "routing_taxonomy_version": routing_taxonomy.get("version", ""),
         "providers": policy.get("providers", {}),
         "task_classes": policy.get("task_classes", {}),
         "agents": policy.get("agents", {}),

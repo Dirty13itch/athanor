@@ -57,7 +57,20 @@ describe("buildNavAttentionSignals", () => {
   it("marks /services urgent when a core service is degraded", () => {
     const services = getFixtureServicesSnapshot().services.map((service) =>
       service.id === "litellm-proxy"
-        ? { ...service, healthy: false, state: "degraded" as const, latencyMs: null }
+        ? {
+            ...service,
+            healthy: false,
+            state: "degraded" as const,
+            latencyMs: null,
+            lastError: "Provider routing unavailable",
+            healthSnapshot: service.healthSnapshot
+              ? {
+                  ...service.healthSnapshot,
+                  status: "degraded" as const,
+                  last_error: "Provider routing unavailable",
+                }
+              : undefined,
+          }
         : service
     );
 

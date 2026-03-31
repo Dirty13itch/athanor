@@ -187,3 +187,11 @@ class TestThresholds:
     def test_get_threshold_agent_override(self):
         threshold = escalation.get_threshold("home-agent", escalation.ActionCategory.ROUTINE)
         assert threshold == 0.4
+
+
+class TestNotificationLinks:
+    def test_notifications_review_hint_prefers_canonical_front_door(self):
+        assert escalation._notifications_review_hint() == (
+            "Review: https://athanor.local/notifications "
+            "(fallback http://localhost:3001/notifications)"
+        )

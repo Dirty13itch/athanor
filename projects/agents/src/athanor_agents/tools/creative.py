@@ -8,6 +8,7 @@ import uuid
 import httpx
 from langchain_core.tools import tool
 
+from ..config import settings
 from ..services import registry
 
 COMFYUI_URL = registry.comfyui.base_url
@@ -18,6 +19,15 @@ WAN_UNET_HIGH = "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors"
 WAN_UNET_LOW = "wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors"
 WAN_VAE = "wan_2.1_vae.safetensors"
 WAN_CLIP = "umt5-xxl-enc-fp8_e4m3fn.safetensors"
+
+
+def _connect_inventory_redis():
+    import redis
+
+    return redis.Redis.from_url(
+        settings.redis_url,
+        password=settings.redis_password or None,
+    )
 
 
 def _flux_workflow(prompt: str, width: int = 1024, height: int = 1024, steps: int = 20, seed: int | None = None) -> dict:
@@ -941,8 +951,7 @@ def check_video_inventory(queen_id: str = "") -> str:
         queen_id: Optional queen ID to check (e.g., "isolde", "jordan-night"). If empty, shows all.
     """
     try:
-        import redis
-        r = redis.Redis(host="192.168.1.203", port=6379, db=0)
+        r = _connect_inventory_redis()
 
         if queen_id:
             stages = ["defiant", "struggling", "conflicted", "yielding", "surrendered", "broken"]
@@ -1005,8 +1014,7 @@ def update_video_inventory(queen_id: str, stage: str, video_url: str, quality: s
         return f"Invalid stage '{stage}'. Must be one of: {', '.join(sorted(valid_stages))}"
 
     try:
-        import redis
-        r = redis.Redis(host="192.168.1.203", port=6379, db=0)
+        r = _connect_inventory_redis()
 
         inv_key = f"athanor:eoq:video_inventory:{queen_id}:{stage}"
         quality_key = f"athanor:eoq:video_quality:{queen_id}:{stage}"

@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 import { proxyAgentJson } from "@/lib/server-agent";
 
 export async function GET() {
@@ -6,18 +7,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  return proxyAgentJson(
-    "/v1/goals",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        text: body.text ?? "",
-        agent: body.agent ?? "global",
-        priority: body.priority ?? "normal",
-      }),
-    },
-    "Failed to create goal"
-  );
+  return proxyAgentOperatorJson(request, "/v1/goals", "Failed to create goal", {
+    privilegeClass: "operator",
+    defaultActor: "dashboard-operator",
+    defaultReason: "Created steering goal",
+  });
 }

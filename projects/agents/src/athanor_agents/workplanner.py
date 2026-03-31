@@ -97,6 +97,19 @@ AGENT_CAPABILITIES = {
 HIGH_IMPACT_AGENTS = {"home-agent"}  # coding-agent writes to /agent-output/, not production
 
 
+def _load_autonomy_submission_scope() -> tuple[set[str], str]:
+    try:
+        from .model_governance import get_current_autonomy_policy
+
+        policy = get_current_autonomy_policy()
+    except Exception:
+        return set(), ""
+
+    if not policy.is_active:
+        return set(), str(policy.phase_id or "")
+    return set(policy.enabled_agents), str(policy.phase_id or "")
+
+
 async def _gather_knowledge_context(focus: str = "") -> dict:
     """Query Qdrant for relevant TODO items, project docs, and preferences.
 
@@ -167,8 +180,8 @@ async def _gather_knowledge_context(focus: str = "") -> dict:
     # Fetch completed task results (what has the system already produced?)
     completed_results = []
     try:
-        from .tasks import list_tasks
-        completed = await list_tasks(status="completed", limit=10)
+        from .tasks import list_recent_tasks
+        completed = await list_recent_tasks(statuses=["completed"], limit=10)
         for t in completed:
             if t.get("metadata", {}).get("source") == "work_planner" and t.get("result"):
                 completed_results.append({
@@ -211,6 +224,9 @@ def _build_planner_prompt(
     time_context: str,
     knowledge_context: dict,
     focus: str = "",
+    *,
+    allowed_agents: list[str] | None = None,
+    autonomy_phase_id: str = "",
 ) -> str:
     """Build the LLM prompt for work plan generation."""
     projects_text = ""
@@ -230,10 +246,40 @@ def _build_planner_prompt(
 {constraints_text}
 """
 
+    capability_items = [
+        (name, info)
+        for name, info in AGENT_CAPABILITIES.items()
+        if not allowed_agents or name in set(allowed_agents)
+    ]
     capabilities_text = "\n".join(
         f"  - {name}: {info['can_do']} (tools: {info['tools']})"
-        for name, info in AGENT_CAPABILITIES.items()
+        for name, info in capability_items
     )
+    allowed_agents_text = ", ".join(allowed_agents or []) or "all registered agents"
+    autonomy_constraints = ""
+    if allowed_agents:
+        autonomy_constraints = f"""
+
+AUTONOMY PHASE CONSTRAINTS:
+- Current active autonomy phase: {autonomy_phase_id or "active_phase"}
+- Use ONLY these agents: {allowed_agents_text}
+- Do NOT assign work to any agent outside that allowlist.
+- Ignore any default distribution rule that references blocked agents outside the current phase.
+"""
+
+    distribution_requirements = """DISTRIBUTION REQUIREMENTS:
+- At least 3 tasks for EoBQ (highest priority project â€” needs constant momentum)
+- At least 2 different agents must be used
+- Spread work across agents that are available â€” don't let any agent sit idle
+- creative-agent should ALWAYS have at least 1 image generation task
+- coding-agent should ALWAYS have at least 1 code/content creation task"""
+    if allowed_agents:
+        distribution_requirements = """DISTRIBUTION REQUIREMENTS:
+- At least 3 tasks for EoBQ (highest priority project â€” keep momentum using only allowed agents)
+- At least 2 different allowed agents must be used when the allowlist contains 2 or more agents
+- Spread work across the allowed agents instead of the full live roster
+- coding-agent should ALWAYS have at least 1 code/content creation task when it is in the allowed list
+- If creative-agent is not in the allowed list, do NOT manufacture creative-agent tasks or image-generation obligations"""
 
     recent_text = "None" if not recent_tasks else "\n".join(
         f"  - [{t.get('status','?')}] {t.get('agent','?')}: {t.get('prompt','')[:100]}"
@@ -311,7 +357,7 @@ RECENT TASKS (last 24h):
 {recent_text}
 
 CURRENTLY PENDING:
-{pending_text}
+{pending_text}{autonomy_constraints}
 
 INSTRUCTIONS:
 Generate 7-12 specific, actionable tasks. You MUST generate at least 7. Each task MUST:
@@ -321,12 +367,7 @@ Generate 7-12 specific, actionable tasks. You MUST generate at least 7. Each tas
 4. Be something the agent can actually accomplish with its available tools
 5. Create tangible output — code, content, images, research, not just "check" or "review"
 
-DISTRIBUTION REQUIREMENTS:
-- At least 3 tasks for EoBQ (highest priority project — needs constant momentum)
-- At least 2 different agents must be used
-- Spread work across agents that are available — don't let any agent sit idle
-- creative-agent should ALWAYS have at least 1 image generation task
-- coding-agent should ALWAYS have at least 1 code/content creation task
+{distribution_requirements}
 
 PRIORITIZE:
 - EoBQ content creation (characters, scenes, art, code) — HIGHEST PRIORITY, always the biggest chunk of tasks
@@ -355,7 +396,11 @@ Respond with ONLY a JSON array (no markdown, no code blocks, no explanation). Ea
 }}"""
 
 
-async def generate_work_plan(focus: str = "") -> dict:
+async def generate_work_plan(
+    focus: str = "",
+    *,
+    autonomy_managed: bool = False,
+) -> dict:
     """Generate a work plan using the reasoning model.
 
     Args:
@@ -363,12 +408,13 @@ async def generate_work_plan(focus: str = "") -> dict:
 
     Returns: {plan_id, tasks, generated_at, task_count}
     """
-    from .tasks import submit_task, list_tasks
+    from .tasks import list_recent_tasks, submit_governed_task
 
     # Gather context
-    recent = await list_tasks(limit=20)
+    recent = await list_recent_tasks(limit=20)
     recent_dicts = [t if isinstance(t, dict) else t for t in recent]
-    pending = [t for t in recent_dicts if isinstance(t, dict) and t.get("status") == "pending"]
+    pending = await list_recent_tasks(statuses=["pending", "pending_approval"], limit=20)
+    pending_dicts = [t if isinstance(t, dict) else t for t in pending]
 
     now = datetime.now()
     hour = now.hour
@@ -391,12 +437,28 @@ async def generate_work_plan(focus: str = "") -> dict:
         len(knowledge_context.get("completed_outputs", [])),
     )
 
+    allowed_agents: list[str] | None = None
+    autonomy_phase_id = ""
+    if autonomy_managed:
+        enabled_agents, phase_id = _load_autonomy_submission_scope()
+        if not enabled_agents:
+            logger.warning("Autonomy-managed work planner requested without an active allowlist")
+            return {
+                "error": "Autonomy phase allowlist unavailable",
+                "tasks": [],
+                "task_count": 0,
+            }
+        allowed_agents = sorted(enabled_agents)
+        autonomy_phase_id = phase_id
+
     prompt = _build_planner_prompt(
         recent_tasks=recent_dicts,
-        pending_tasks=pending,
+        pending_tasks=pending_dicts,
         time_context=time_context,
         knowledge_context=knowledge_context,
         focus=focus,
+        allowed_agents=allowed_agents,
+        autonomy_phase_id=autonomy_phase_id,
     )
 
     # Call LLM for planning. Disable thinking to get clean JSON output fast.
@@ -430,6 +492,21 @@ async def generate_work_plan(focus: str = "") -> dict:
 
     # Parse JSON from response
     task_proposals = _parse_proposals(clean_text)
+    if allowed_agents:
+        allowed_set = set(allowed_agents)
+        filtered_proposals = [
+            proposal
+            for proposal in task_proposals
+            if str(proposal.get("agent") or "").strip() in allowed_set
+        ]
+        filtered_count = len(task_proposals) - len(filtered_proposals)
+        if filtered_count:
+            logger.info(
+                "Work planner dropped %d proposal(s) outside autonomy phase %s",
+                filtered_count,
+                autonomy_phase_id or "active_phase",
+            )
+        task_proposals = filtered_proposals
 
     if not task_proposals:
         logger.warning(
@@ -460,19 +537,7 @@ async def generate_work_plan(focus: str = "") -> dict:
             continue
 
         try:
-            from .governor import Governor
-            gov = Governor.get()
-            decision = await gov.gate_task_submission(
-                agent=agent, prompt=task_prompt, priority=priority,
-                metadata={
-                    "source": "work_planner",
-                    "plan_id": plan_id,
-                    "project": project,
-                    "rationale": rationale,
-                },
-                source="work_planner",
-            )
-            task = await submit_task(
+            submission = await submit_governed_task(
                 agent=agent,
                 prompt=task_prompt,
                 priority=priority,
@@ -481,13 +546,12 @@ async def generate_work_plan(focus: str = "") -> dict:
                     "plan_id": plan_id,
                     "project": project,
                     "rationale": rationale,
-                    "governor_decision": decision.reason,
+                    "_autonomy_managed": autonomy_managed,
+                    "autonomy_phase_id": autonomy_phase_id or None,
                 },
+                source="work_planner",
             )
-            if decision.status_override == "pending_approval":
-                task.status = "pending_approval"
-                from .tasks import _update_task
-                await _update_task(task)
+            task = submission.task
             submitted.append({
                 "task_id": task.id if hasattr(task, "id") else str(task),
                 "agent": agent,
@@ -650,11 +714,11 @@ async def get_plan_history(limit: int = 10) -> list[dict]:
 
 async def should_refill() -> bool:
     """Check if the task queue needs refilling."""
-    from .tasks import list_tasks
+    from .tasks import get_task_stats
 
     try:
-        tasks = await list_tasks(status="pending", limit=10)
-        pending_count = len(tasks)
+        stats = await get_task_stats()
+        pending_count = int(stats.get("pending", 0) + stats.get("pending_approval", 0))
 
         # Don't refill if we have enough pending work
         if pending_count >= MIN_PENDING_TASKS:

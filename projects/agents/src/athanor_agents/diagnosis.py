@@ -665,10 +665,47 @@ def get_diagnosis_engine() -> SelfDiagnosisEngine:
 
 # FastAPI router
 def create_diagnosis_router():
-    from fastapi import APIRouter, HTTPException
+    from fastapi import APIRouter, HTTPException, Request
     from pydantic import BaseModel
+    from starlette.responses import JSONResponse
+
+    from .operator_contract import (
+        build_operator_action,
+        emit_operator_audit_event,
+        require_operator_action,
+    )
 
     router = APIRouter(prefix="/v1/diagnosis", tags=["diagnosis"])
+
+    async def _load_operator_body(
+        request: Request,
+        *,
+        route: str,
+        action_class: str,
+        default_reason: str,
+    ):
+        body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+        if not isinstance(body, dict):
+            body = {}
+
+        candidate = build_operator_action(body, default_reason=default_reason)
+        try:
+            action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+        except Exception as exc:
+            detail = getattr(exc, "detail", str(exc))
+            status_code = getattr(exc, "status_code", 400)
+            await emit_operator_audit_event(
+                service="agent-server",
+                route=route,
+                action_class=action_class,
+                decision="denied",
+                status_code=status_code,
+                action=candidate,
+                detail=str(detail),
+            )
+            return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+        return body, action, None
 
     class FailureInput(BaseModel):
         service: str
@@ -776,17 +813,66 @@ def create_diagnosis_router():
         }
 
     @router.post("/auto-remediate/{event_id}")
-    async def auto_remediate_event(event_id: str):
+    async def auto_remediate_event(event_id: str, request: Request):
         """Execute auto-remediation for a specific event."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/diagnosis/auto-remediate/{event_id}",
+            action_class="destructive-admin",
+            default_reason=f"Execute diagnosis auto-remediation for {event_id}",
+        )
+        if denial:
+            return denial
         event = next((e for e in _engine.events if e.id == event_id), None)
         if not event:
+            await emit_operator_audit_event(
+                service="agent-server",
+                route="/v1/diagnosis/auto-remediate/{event_id}",
+                action_class="destructive-admin",
+                decision="denied",
+                status_code=404,
+                action=action,
+                detail="Event not found",
+                target=event_id,
+            )
             raise HTTPException(404, "Event not found")
-        return await _engine.execute_auto_remediation(event)
+
+        result = await _engine.execute_auto_remediation(event)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/diagnosis/auto-remediate/{event_id}",
+            action_class="destructive-admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Executed diagnosis auto-remediation for {event.service}",
+            target=event_id,
+            metadata={"result_status": str(result.get("status", ""))},
+        )
+        return result
 
     @router.post("/auto-remediate")
-    async def auto_remediate_recent(hours: int = 1):
+    async def auto_remediate_recent(request: Request, hours: int = 1):
         """Auto-remediate all safe unresolved failures from last N hours."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/diagnosis/auto-remediate",
+            action_class="destructive-admin",
+            default_reason="Execute diagnosis auto-remediation sweep",
+        )
+        if denial:
+            return denial
         results = await _engine.auto_remediate_recent(hours=hours)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/diagnosis/auto-remediate",
+            action_class="destructive-admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Executed diagnosis auto-remediation sweep for hours={hours}",
+            metadata={"hours": hours, "remediated": len(results)},
+        )
         return {"remediated": len(results), "results": results}
 
     return router

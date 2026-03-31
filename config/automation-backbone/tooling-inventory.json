@@ -1,0 +1,123 @@
+{
+  "version": "2026-03-29.1",
+  "updated_at": "2026-03-29T06:17:44Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/tooling-inventory.json",
+  "hosts": [
+    {
+      "id": "desk",
+      "host": "DESK",
+      "verified_at": "2026-03-29T06:17:44Z",
+      "tools": [
+        {
+          "tool_id": "claude",
+          "provider_id": "anthropic_claude_code",
+          "command": "claude",
+          "status": "installed",
+          "version": "2.1.76"
+        },
+        {
+          "tool_id": "codex",
+          "provider_id": "openai_codex",
+          "command": "codex",
+          "status": "installed",
+          "version": "0.116.0"
+        },
+        {
+          "tool_id": "gemini",
+          "provider_id": "google_gemini",
+          "command": "gemini",
+          "status": "installed",
+          "version": "0.34.0"
+        },
+        {
+          "tool_id": "kimi",
+          "provider_id": "moonshot_kimi",
+          "command": "kimi",
+          "status": "installed",
+          "version": "1.18.0"
+        },
+        {
+          "tool_id": "aider",
+          "provider_id": null,
+          "command": "aider",
+          "status": "degraded",
+          "version": null,
+          "notes": [
+            "Command exists but --version failed during the 2026-03-25 probe."
+          ]
+        },
+        {
+          "tool_id": "claude-squad",
+          "provider_id": null,
+          "command": "claude-squad",
+          "status": "missing",
+          "version": null
+        },
+        {
+          "tool_id": "claudeman",
+          "provider_id": null,
+          "command": "claudeman",
+          "status": "missing",
+          "version": null
+        }
+      ]
+    },
+    {
+      "id": "dev",
+      "host": "DEV",
+      "verified_at": "2026-03-29T06:17:44Z",
+      "tools": [
+        {
+          "tool_id": "claude",
+          "provider_id": "anthropic_claude_code",
+          "command": "claude",
+          "status": "installed",
+          "version": "2.1.77"
+        },
+        {
+          "tool_id": "codex",
+          "provider_id": "openai_codex",
+          "command": "codex",
+          "status": "installed",
+          "version": "0.116.0"
+        },
+        {
+          "tool_id": "gemini",
+          "provider_id": "google_gemini",
+          "command": "gemini",
+          "status": "installed",
+          "version": "0.34.0"
+        },
+        {
+          "tool_id": "kimi",
+          "provider_id": "moonshot_kimi",
+          "command": "kimi",
+          "status": "installed",
+          "version": "1.24.0"
+        },
+        {
+          "tool_id": "aider",
+          "provider_id": null,
+          "command": "aider",
+          "status": "installed",
+          "version": "0.86.2"
+        },
+        {
+          "tool_id": "claude-squad",
+          "provider_id": null,
+          "command": "claude-squad",
+          "status": "missing",
+          "version": null
+        },
+        {
+          "tool_id": "claudeman",
+          "provider_id": null,
+          "command": "claudeman",
+          "status": "missing",
+          "version": null
+        }
+      ]
+    }
+  ]
+}

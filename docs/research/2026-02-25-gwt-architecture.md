@@ -466,7 +466,7 @@ Phase 4 is the most complex, but it's also optional. Phases 1-3 deliver the core
 
 ### Dashboard Integration
 
-The existing Next.js dashboard (Node 2:3001) gains:
+The existing Next.js dashboard, now exposed as the Athanor Command Center on DEV via `https://athanor.local/`, gains:
 - **Workspace widget**: Live view of 7 active workspace items, color-coded by salience
 - **Broadcast feed**: Scrolling log of broadcasts and agent responses
 - **Coalition graph**: Visual showing which agents are collaborating on which items

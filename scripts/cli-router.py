@@ -3,7 +3,7 @@
 Athanor CLI Router — Intelligent task->subscription CLI matching.
 ================================================================
 Routes tasks to the best subscription CLI based on task type, available
-quota, and learned performance. Imported by subscription-burn.py.
+quota, and learned performance. Imported by Subscription Burn.
 
 Classification approach (zero cloud spend):
   1. Embedding similarity via local Qwen3-Embedding-0.6B (~10ms)
@@ -20,6 +20,8 @@ Author: Athanor autonomous system
 import asyncio
 import json
 import logging
+import os
+import sys
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -28,26 +30,47 @@ from typing import Any, Optional
 
 import httpx
 import numpy as np
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cluster_config import LITELLM_KEY, get_url
+import yaml
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+REPO_ROOT = SCRIPT_DIR.parent
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+from operator_contract import (
+    build_operator_action,
+    emit_operator_audit_event,
+    require_operator_action,
+)
+
+try:
+    from scripts._cluster_config import LITELLM_KEY, get_url
+except ModuleNotFoundError:
+    from _cluster_config import LITELLM_KEY, get_url
 
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
     from backports.zoneinfo import ZoneInfo
 
-TZ = ZoneInfo("America/Los_Angeles")
+DEFAULT_TIMEZONE = os.environ.get("ATHANOR_TIMEZONE", "America/Chicago")
+TZ = ZoneInfo(DEFAULT_TIMEZONE)
 
 log = logging.getLogger("cli-router")
+SERVICE_NAME = "subscription-burn"
+POLICY_PATH = REPO_ROOT / "projects" / "agents" / "config" / "subscription-routing-policy.yaml"
+PROVIDER_CATALOG_PATH = REPO_ROOT / "config" / "automation-backbone" / "provider-catalog.json"
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-EMBEDDING_URL = "http://127.0.0.1:8001/v1/embeddings"
+EMBEDDING_URL = f"{get_url('embedding')}/v1/embeddings"
 EMBEDDING_MODEL = "/models/Qwen3-Embedding-0.6B"
 LITELLM_URL = get_url("litellm")
+SUBSCRIPTION_BURN_URL = get_url("subscription_burn")
 # LITELLM_KEY imported from cluster_config
 LITELLM_MODEL = "creative"  # Qwen3.5 on WORKSHOP
 
@@ -60,7 +83,9 @@ MIN_SAMPLES_FOR_LEARNING = 50
 SIMILARITY_THRESHOLD = 0.45
 
 # ---------------------------------------------------------------------------
-# Task type definitions with representative utterances for embedding matching
+# Task type definitions with representative utterances for embedding matching.
+# Task classification stays local, but provider order now derives from the
+# canonical subscription routing policy and provider catalog.
 # ---------------------------------------------------------------------------
 TASK_TYPE_UTTERANCES: dict[str, list[str]] = {
     "architecture": [
@@ -143,30 +168,260 @@ TASK_TYPE_UTTERANCES: dict[str, list[str]] = {
     ],
 }
 
-# Static routing rules: task type -> ranked CLI preferences
-TASK_RULES: dict[str, list[str]] = {
-    "architecture": ["claude", "codex"],
-    "code_review": ["claude", "codex"],
-    "feature_dev": ["claude", "codex", "kimi"],
-    "debugging": ["codex", "claude"],
-    "refactoring": ["claude", "kimi"],
-    "testing": ["kimi", "codex", "gemini"],
-    "documentation": ["kimi", "gemini"],
-    "research": ["gemini", "kimi"],
-    "fact_check": ["gemini"],
-    "deep_research": ["perplexity"],
+TASK_TYPE_EXECUTION_PROFILES: dict[str, dict[str, Any]] = {
+    "architecture": {
+        "requester": "coding-agent",
+        "task_class": "interactive_architecture",
+        "interactive": True,
+        "priority": "high",
+        "sensitivity": "repo_internal",
+    },
+    "code_review": {
+        "requester": "coding-agent",
+        "task_class": "interactive_architecture",
+        "interactive": True,
+        "priority": "high",
+        "sensitivity": "repo_internal",
+    },
+    "feature_dev": {
+        "requester": "coding-agent",
+        "task_class": "multi_file_implementation",
+        "interactive": False,
+        "priority": "normal",
+        "sensitivity": "repo_internal",
+    },
+    "debugging": {
+        "requester": "coding-agent",
+        "task_class": "multi_file_implementation",
+        "interactive": False,
+        "priority": "high",
+        "sensitivity": "repo_internal",
+    },
+    "refactoring": {
+        "requester": "coding-agent",
+        "task_class": "multi_file_implementation",
+        "interactive": False,
+        "priority": "normal",
+        "sensitivity": "repo_internal",
+    },
+    "testing": {
+        "requester": "coding-agent",
+        "task_class": "async_backlog_execution",
+        "interactive": False,
+        "priority": "normal",
+        "sensitivity": "repo_internal",
+    },
+    "documentation": {
+        "requester": "research-agent",
+        "task_class": "search_heavy_planning",
+        "interactive": False,
+        "priority": "normal",
+        "sensitivity": "mixed",
+    },
+    "research": {
+        "requester": "research-agent",
+        "task_class": "search_heavy_planning",
+        "interactive": False,
+        "priority": "normal",
+        "sensitivity": "mixed",
+    },
+    "fact_check": {
+        "requester": "research-agent",
+        "task_class": "repo_wide_audit",
+        "interactive": False,
+        "priority": "normal",
+        "sensitivity": "mixed",
+    },
+    "deep_research": {
+        "requester": "research-agent",
+        "task_class": "repo_wide_audit",
+        "interactive": False,
+        "priority": "high",
+        "sensitivity": "mixed",
+    },
 }
 
-# Reverse map: CLI name -> subscription key in subscription-burn.py
-CLI_TO_SUB: dict[str, str] = {
-    "claude": "claude_max",
-    "codex": "chatgpt_pro",
-    "gemini": "gemini_advanced",
-    "kimi": "kimi_allegretto",
-    "perplexity": "perplexity_pro",
-}
+ALL_TASK_TYPES = list(TASK_TYPE_EXECUTION_PROFILES.keys())
 
-ALL_TASK_TYPES = list(TASK_RULES.keys())
+_POLICY_CACHE: dict[str, Any] | None = None
+_POLICY_CACHE_MTIME_NS: int | None = None
+_PROVIDER_SNAPSHOT_CACHE: dict[str, Any] | None = None
+_PROVIDER_SNAPSHOT_MTIME_NS: int | None = None
+
+
+def _load_policy() -> dict[str, Any]:
+    global _POLICY_CACHE
+    global _POLICY_CACHE_MTIME_NS
+
+    if not POLICY_PATH.exists():
+        return {"providers": {}, "task_classes": {}, "agents": {}}
+
+    stat = POLICY_PATH.stat()
+    if _POLICY_CACHE is not None and _POLICY_CACHE_MTIME_NS == stat.st_mtime_ns:
+        return _POLICY_CACHE
+
+    with POLICY_PATH.open("r", encoding="utf-8") as handle:
+        policy = yaml.safe_load(handle) or {}
+    if not isinstance(policy, dict):
+        raise ValueError(f"Subscription policy at {POLICY_PATH} must be a mapping")
+    policy.setdefault("providers", {})
+    policy.setdefault("task_classes", {})
+    policy.setdefault("agents", {})
+    _POLICY_CACHE = policy
+    _POLICY_CACHE_MTIME_NS = stat.st_mtime_ns
+    return policy
+
+
+def _provider_catalog_snapshot() -> dict[str, Any]:
+    global _PROVIDER_SNAPSHOT_CACHE
+    global _PROVIDER_SNAPSHOT_MTIME_NS
+
+    if not PROVIDER_CATALOG_PATH.exists():
+        return {"providers": []}
+
+    stat = PROVIDER_CATALOG_PATH.stat()
+    if _PROVIDER_SNAPSHOT_CACHE is not None and _PROVIDER_SNAPSHOT_MTIME_NS == stat.st_mtime_ns:
+        return _PROVIDER_SNAPSHOT_CACHE
+
+    try:
+        payload = json.loads(PROVIDER_CATALOG_PATH.read_text(encoding="utf-8"))
+    except Exception as exc:
+        log.warning("Failed to load provider catalog from %s: %s", PROVIDER_CATALOG_PATH, exc)
+        payload = {"providers": []}
+
+    allowed = {str(item) for item in dict(_load_policy().get("providers") or {}).keys()}
+    snapshot = {
+        "providers": [
+            entry
+            for entry in payload.get("providers", [])
+            if isinstance(entry, dict) and str(entry.get("id") or "") in allowed
+        ]
+    }
+    _PROVIDER_SNAPSHOT_CACHE = snapshot
+    _PROVIDER_SNAPSHOT_MTIME_NS = stat.st_mtime_ns
+    return snapshot
+
+
+def _provider_catalog_index() -> dict[str, dict[str, Any]]:
+    return {
+        str(entry.get("id") or ""): dict(entry)
+        for entry in _provider_catalog_snapshot().get("providers", [])
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }
+
+
+def _provider_cli_name(provider_id: str, catalog_index: dict[str, dict[str, Any]] | None = None) -> str:
+    provider = (catalog_index or _provider_catalog_index()).get(provider_id, {})
+    commands = provider.get("cli_commands", [])
+    if isinstance(commands, list):
+        for command in commands:
+            alias = str(command or "").strip()
+            if alias:
+                return alias
+    return ""
+
+
+def _task_profile(task_type: str) -> dict[str, Any]:
+    return dict(
+        TASK_TYPE_EXECUTION_PROFILES.get(
+            task_type,
+            {
+                "requester": "coding-agent",
+                "task_class": "multi_file_implementation",
+                "interactive": False,
+                "priority": "normal",
+                "sensitivity": "repo_internal",
+            },
+        )
+    )
+
+
+def _canonical_cli_candidates(task_type: str, task_description: str) -> list[tuple[str, str]]:
+    profile = _task_profile(task_type)
+    policy = _load_policy()
+    task_class = str(profile.get("task_class") or "multi_file_implementation")
+    task_meta = dict(policy.get("task_classes", {}).get(task_class, {}) or {})
+    ordered_provider_ids = [
+        str(item or "")
+        for item in list(task_meta.get("primary", [])) + list(task_meta.get("fallback", []))
+    ]
+    policy_providers = dict(policy.get("providers") or {})
+    catalog_index = _provider_catalog_index()
+    resolved: list[tuple[str, str]] = []
+    seen_provider: set[str] = set()
+    seen_cli: set[str] = set()
+
+    for provider_id in ordered_provider_ids:
+        if not provider_id or provider_id in seen_provider:
+            continue
+        provider_meta = dict(policy_providers.get(provider_id) or {})
+        if not provider_meta.get("enabled", True):
+            continue
+        if str(provider_meta.get("routing_posture") or "") != "ordinary_auto":
+            continue
+        catalog_entry = catalog_index.get(provider_id, {})
+        if str(catalog_entry.get("access_mode") or "") != "cli":
+            continue
+        cli_name = _provider_cli_name(provider_id, catalog_index)
+        if not cli_name or cli_name in seen_cli:
+            continue
+        resolved.append((provider_id, cli_name))
+        seen_provider.add(provider_id)
+        seen_cli.add(cli_name)
+
+    return resolved
+
+
+def _known_cli_aliases() -> list[str]:
+    aliases: list[str] = []
+    seen: set[str] = set()
+    for task_type, utterances in TASK_TYPE_UTTERANCES.items():
+        sample = utterances[0] if utterances else task_type
+        for _, cli_name in _canonical_cli_candidates(task_type, sample):
+            if cli_name in seen:
+                continue
+            aliases.append(cli_name)
+            seen.add(cli_name)
+    return aliases
+
+
+def _operator_action_payload(body: dict[str, Any]) -> dict[str, Any]:
+    payload = body.get("operator_action")
+    if isinstance(payload, dict):
+        return dict(payload)
+    return body
+
+
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    payload = _operator_action_payload(body)
+    candidate = build_operator_action(payload, default_reason=default_reason)
+    try:
+        action = require_operator_action(payload, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            service=SERVICE_NAME,
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
 
 
 # ---------------------------------------------------------------------------
@@ -284,7 +539,7 @@ class RoutingHistory:
 class CLIRouter:
     """Routes tasks to the best subscription CLI based on task type and quota.
 
-    Imported by subscription-burn.py to enhance mechanical scheduling with
+    Imported by Subscription Burn to enhance mechanical scheduling with
     intelligent task->CLI matching.
     """
 
@@ -293,6 +548,8 @@ class CLIRouter:
         self.history = RoutingHistory.load()
         self._http: httpx.AsyncClient | None = None
         self._available_clis: dict[str, bool] = {}
+        self._cli_to_subscription: dict[str, str] = {}
+        self._cli_to_provider: dict[str, str] = {}
         self._last_availability_check: float = 0
         self._availability_ttl: float = 60.0  # seconds
 
@@ -382,7 +639,7 @@ class CLIRouter:
     # Task classification
     # -------------------------------------------------------------------
     async def classify_task(self, task_description: str) -> tuple[str, float, str]:
-        """Classify a task description into a TASK_RULES category.
+        """Classify a task description into a local router task type.
 
         Returns (task_type, confidence, method) where method is
         'embedding' or 'llm'.
@@ -480,12 +737,12 @@ class CLIRouter:
             return "feature_dev", 0.2, "error_fallback"
 
     # -------------------------------------------------------------------
-    # CLI availability -- reads from subscription-burn.py state
+    # CLI availability -- reads from Subscription Burn state
     # -------------------------------------------------------------------
     async def get_available_clis(self) -> dict[str, bool]:
         """Check which CLIs have quota available right now.
 
-        Reads from subscription-burn.py /status endpoint on DEV:8065.
+        Reads from the Subscription Burn /status endpoint on DEV:8065.
         Returns {cli_name: has_quota}.
         """
         now = time.monotonic()
@@ -493,17 +750,37 @@ class CLIRouter:
             return self._available_clis
 
         available: dict[str, bool] = {}
+        cli_to_subscription: dict[str, str] = {}
+        cli_to_provider: dict[str, str] = {}
         try:
             client = await self._client()
-            resp = await client.get("http://127.0.0.1:8065/status")
+            resp = await client.get(f"{SUBSCRIPTION_BURN_URL}/status")
             resp.raise_for_status()
             status = resp.json()
+            policy_providers = dict(_load_policy().get("providers") or {})
+            catalog_index = _provider_catalog_index()
 
-            for cli_name, sub_key in CLI_TO_SUB.items():
-                sub_status = status.get("subscriptions", {}).get(sub_key)
-                if not sub_status:
-                    available[cli_name] = False
+            for sub_key, sub_status in dict(status.get("subscriptions", {})).items():
+                if not isinstance(sub_status, dict):
                     continue
+                provider_id = str(sub_status.get("provider_id") or "").strip()
+                if not provider_id:
+                    continue
+
+                provider_meta = dict(policy_providers.get(provider_id) or {})
+                if str(provider_meta.get("routing_posture") or "") != "ordinary_auto":
+                    continue
+
+                catalog_entry = catalog_index.get(provider_id, {})
+                if str(catalog_entry.get("access_mode") or "") != "cli":
+                    continue
+
+                cli_name = _provider_cli_name(provider_id, catalog_index)
+                if not cli_name:
+                    continue
+
+                cli_to_subscription[cli_name] = str(sub_key)
+                cli_to_provider[cli_name] = provider_id
 
                 # Check if already running
                 if sub_status.get("running"):
@@ -530,12 +807,13 @@ class CLIRouter:
 
         except Exception as e:
             log.warning(
-                f"Failed to check CLI availability from burn scheduler: {e}"
+                f"Failed to check CLI availability from Subscription Burn: {e}"
             )
-            # Assume all available on error -- better to try than to block
-            available = {cli: True for cli in CLI_TO_SUB}
+            available = {cli: True for cli in _known_cli_aliases()}
 
         self._available_clis = available
+        self._cli_to_subscription = cli_to_subscription
+        self._cli_to_provider = cli_to_provider
         self._last_availability_check = now
         return available
 
@@ -559,8 +837,16 @@ class CLIRouter:
         # 1. Classify the task
         task_type, confidence, method = await self.classify_task(description)
 
-        # 2. Get preferred CLIs for this task type
-        preferred = TASK_RULES.get(task_type, ["claude"])
+        # 2. Get preferred CLIs for this task type from canonical routing truth.
+        preferred_pairs = _canonical_cli_candidates(task_type, description)
+        preferred = [cli_name for _, cli_name in preferred_pairs]
+        for provider_id, cli_name in preferred_pairs:
+            self._cli_to_provider.setdefault(cli_name, provider_id)
+        if not preferred:
+            fallback_pairs = _canonical_cli_candidates("feature_dev", description)
+            preferred = [cli_name for _, cli_name in fallback_pairs] or ["claude"]
+            for provider_id, cli_name in fallback_pairs:
+                self._cli_to_provider.setdefault(cli_name, provider_id)
 
         # 3. Check availability
         available = await self.get_available_clis()
@@ -579,12 +865,16 @@ class CLIRouter:
         if win_rate is not None:
             reason_parts.append(f"learned_win_rate={win_rate:.2f}")
         else:
-            reason_parts.append("static_preference")
+            reason_parts.append("policy_preference")
         reason_parts.append(f"classified_by={method}")
+        task_class = str(_task_profile(task_type).get("task_class") or "")
+        if task_class:
+            reason_parts.append(f"policy_task_class={task_class}")
 
         return {
             "cli": chosen,
-            "subscription": CLI_TO_SUB.get(chosen, "unknown"),
+            "subscription": self._cli_to_subscription.get(chosen, "unknown"),
+            "provider": self._cli_to_provider.get(chosen, "unknown"),
             "task_type": task_type,
             "confidence": round(confidence, 3),
             "method": method,
@@ -628,9 +918,13 @@ class CLIRouter:
         return [cli for cli, _ in candidates]
 
     def _fallback_route(self, reason: str) -> dict[str, Any]:
+        fallback_pairs = _canonical_cli_candidates("feature_dev", "Implement the next feature slice")
+        chosen_cli = fallback_pairs[0][1] if fallback_pairs else "claude"
+        chosen_provider = fallback_pairs[0][0] if fallback_pairs else "unknown"
         return {
-            "cli": "claude",
-            "subscription": "claude_max",
+            "cli": chosen_cli,
+            "subscription": self._cli_to_subscription.get(chosen_cli, "unknown"),
+            "provider": chosen_provider,
             "task_type": "feature_dev",
             "confidence": 0.0,
             "method": "fallback",
@@ -658,10 +952,11 @@ class CLIRouter:
         self,
         task: dict,
         dry_run: bool = False,
+        operator_action: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Route a task and trigger execution via subscription-burn.py.
+        """Route a task and trigger execution via Subscription Burn.
 
-        Calls the burn scheduler's /burn/{subscription} endpoint after
+        Calls the Subscription Burn /burn/{subscription} endpoint after
         routing, so the task gets launched through the normal process
         management path.
         """
@@ -673,9 +968,8 @@ class CLIRouter:
         sub_key = routing["subscription"]
         try:
             client = await self._client()
-            resp = await client.post(
-                f"http://127.0.0.1:8065/burn/{sub_key}"
-            )
+            payload = {"operator_action": dict(operator_action)} if operator_action else {}
+            resp = await client.post(f"{SUBSCRIPTION_BURN_URL}/burn/{sub_key}", json=payload)
             burn_result = resp.json()
         except Exception as e:
             burn_result = {"error": str(e)}
@@ -687,13 +981,23 @@ class CLIRouter:
     # -------------------------------------------------------------------
     def stats(self) -> dict[str, Any]:
         """Return routing statistics for API responses."""
+        task_rules = {
+            task_type: [
+                cli_name
+                for _, cli_name in _canonical_cli_candidates(
+                    task_type,
+                    TASK_TYPE_UTTERANCES.get(task_type, [task_type])[0],
+                )
+            ]
+            for task_type in ALL_TASK_TYPES
+        }
         return {
             "index_ready": self.index.ready,
             "index_types": len(self.index.centroids),
             "index_dim": self.index.dim,
             "history": self.history.summary(),
-            "task_rules": TASK_RULES,
-            "cli_map": CLI_TO_SUB,
+            "task_rules": task_rules,
+            "cli_map": dict(self._cli_to_subscription),
             "similarity_threshold": SIMILARITY_THRESHOLD,
             "min_samples_for_learning": MIN_SAMPLES_FOR_LEARNING,
         }
@@ -707,14 +1011,14 @@ class CLIRouter:
 
 
 # ---------------------------------------------------------------------------
-# FastAPI integration -- endpoints to add to subscription-burn.py
+# FastAPI integration -- endpoints to add to Subscription Burn
 # ---------------------------------------------------------------------------
-def register_router_endpoints(app, router_instance: CLIRouter):
+def register_router_endpoints(app, router_instance: CLIRouter, *, service_name: str = SERVICE_NAME):
     """Register /route, /dispatch, /router-stats endpoints on the FastAPI app.
 
-    Called from subscription-burn.py after creating the CLIRouter instance.
+    Called from Subscription Burn after creating the CLIRouter instance.
 
-    Usage in subscription-burn.py::
+    Usage in Subscription Burn::
 
         from cli_router import CLIRouter, register_router_endpoints
 
@@ -759,29 +1063,115 @@ def register_router_endpoints(app, router_instance: CLIRouter):
         return await router_instance.route(task)
 
     @app.post("/dispatch")
-    async def dispatch_task(req: DispatchRequest):
+    async def dispatch_task(req: DispatchRequest, request: Request):
         """Route a task to the best CLI and launch it."""
+        _body, action, denial = await _load_operator_body(
+            request,
+            route="/dispatch",
+            action_class="admin",
+            default_reason="Dispatched a routed subscription burn task",
+        )
+        if denial:
+            return denial
         task = {"description": req.description}
         if req.prompt:
             task["prompt"] = req.prompt
         if req.working_dir:
             task["working_dir"] = req.working_dir
-        return await router_instance.dispatch(task, dry_run=req.dry_run)
+        result = await router_instance.dispatch(
+            task,
+            dry_run=req.dry_run,
+            operator_action=action.to_dict(),
+        )
+        dispatch_payload = result.get("dispatch")
+        if isinstance(dispatch_payload, dict) and dispatch_payload.get("error") and not dispatch_payload.get("skipped"):
+            await emit_operator_audit_event(
+                service=service_name,
+                route="/dispatch",
+                action_class="admin",
+                decision="denied",
+                status_code=500,
+                action=action,
+                detail=str(dispatch_payload.get("error")),
+                target=str(result["routing"]["subscription"]),
+                metadata={
+                    "cli": str(result["routing"]["cli"]),
+                    "task_type": str(result["routing"]["task_type"]),
+                    "dry_run": req.dry_run,
+                },
+            )
+            return JSONResponse(status_code=500, content=result)
+        await emit_operator_audit_event(
+            service=service_name,
+            route="/dispatch",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Routed task as {result['routing']['subscription']}",
+            target=str(result["routing"]["subscription"]),
+            metadata={
+                "cli": str(result["routing"]["cli"]),
+                "task_type": str(result["routing"]["task_type"]),
+                "dry_run": req.dry_run,
+            },
+        )
+        return result
 
     @app.post("/record-result")
-    async def record_result(req: RecordRequest):
+    async def record_result(req: RecordRequest, request: Request):
         """Record task outcome for the learning loop."""
-        if req.cli not in CLI_TO_SUB and req.cli not in CLI_TO_SUB.values():
-            raise _HTTPException(
-                status_code=400, detail=f"Unknown CLI: {req.cli}"
-            )
-        if req.task_type not in ALL_TASK_TYPES:
-            raise _HTTPException(
+        _body, action, denial = await _load_operator_body(
+            request,
+            route="/record-result",
+            action_class="operator",
+            default_reason=f"Recorded CLI routing outcome for {req.cli}",
+        )
+        if denial:
+            return denial
+        known_clis = set(_known_cli_aliases()) | set(router_instance._cli_to_subscription)
+        known_subscriptions = set(router_instance._cli_to_subscription.values())
+        if req.cli not in known_clis and req.cli not in known_subscriptions:
+            await emit_operator_audit_event(
+                service=service_name,
+                route="/record-result",
+                action_class="operator",
+                decision="denied",
                 status_code=400,
-                detail=f"Unknown task type: {req.task_type}",
+                action=action,
+                detail=f"Unknown CLI: {req.cli}",
+                target=req.cli,
             )
+            raise _HTTPException(status_code=400, detail=f"Unknown CLI: {req.cli}")
+        if req.task_type not in ALL_TASK_TYPES:
+            await emit_operator_audit_event(
+                service=service_name,
+                route="/record-result",
+                action_class="operator",
+                decision="denied",
+                status_code=400,
+                action=action,
+                detail=f"Unknown task type: {req.task_type}",
+                target=req.task_type,
+            )
+            raise _HTTPException(status_code=400, detail=f"Unknown task type: {req.task_type}")
         router_instance.record_result(
             req.cli, req.task_type, req.success, req.duration
+        )
+        await emit_operator_audit_event(
+            service=service_name,
+            route="/record-result",
+            action_class="operator",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Recorded routing result for {req.cli}",
+            target=req.cli,
+            metadata={
+                "task_type": req.task_type,
+                "success": req.success,
+                "duration": req.duration,
+            },
         )
         return {"recorded": True}
 
@@ -803,14 +1193,34 @@ def register_router_endpoints(app, router_instance: CLIRouter):
             "task_type": task_type,
             "confidence": round(confidence, 3),
             "method": method,
-            "preferred_clis": TASK_RULES.get(task_type, []),
+            "preferred_clis": [
+                cli_name for _, cli_name in _canonical_cli_candidates(task_type, req.description)
+            ],
         }
 
     @app.post("/router/invalidate-cache")
-    async def invalidate_cache():
+    async def invalidate_cache(request: Request):
         """Force rebuild of embedding index."""
+        _body, action, denial = await _load_operator_body(
+            request,
+            route="/router/invalidate-cache",
+            action_class="admin",
+            default_reason="Rebuilt the CLI router embedding cache",
+        )
+        if denial:
+            return denial
         router_instance.invalidate_cache()
         await router_instance.build_index()
+        await emit_operator_audit_event(
+            service=service_name,
+            route="/router/invalidate-cache",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail="Rebuilt the CLI router embedding cache",
+            metadata={"types": len(router_instance.index.centroids)},
+        )
         return {
             "status": "rebuilt",
             "types": len(router_instance.index.centroids),

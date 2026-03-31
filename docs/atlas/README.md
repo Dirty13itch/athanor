@@ -1,6 +1,6 @@
 # Athanor Atlas
 
-The Athanor Atlas is the canonical cross-layer system map for Athanor. It does not replace [`../SYSTEM-SPEC.md`](../SYSTEM-SPEC.md) or [`../SERVICES.md`](../SERVICES.md); it sits above them and tells you where truth lives, which surfaces are live, and how the pieces connect.
+The Athanor Atlas is now a narrow reference layer. It no longer owns live topology, UI, API, or completion-audit inventory truth. Those moved into the registry-backed control plane, generated reports, and the repo-native completion-audit toolchain.
 
 ## Authority Order
 
@@ -9,7 +9,7 @@ Use this order whenever sources disagree:
 1. Running code, configs, route definitions, and deployed manifests
 2. Operational specs and current inventory docs
 3. Design docs and ADRs
-4. Planning docs and build-manifest context
+4. Planning docs and archived build-manifest context
 5. Older system-map documents
 
 The atlas keeps older docs as source material, but it no longer lets them compete as equal truth.
@@ -26,49 +26,31 @@ The atlas keeps older docs as source material, but it no longer lets them compet
 
 ## Atlas Layout
 
-- [`TOPOLOGY_ATLAS.md`](./TOPOLOGY_ATLAS.md) - nodes, services, models, stores, network paths, and deployment truth.
-- [`RUNTIME_ATLAS.md`](./RUNTIME_ATLAS.md) - agents, task/workspace systems, control loops, subscriptions, and adaptive subsystems.
-- [`UI_ATLAS.md`](./UI_ATLAS.md) - shell, every dashboard route, shared console families, dormant UI systems, and cross-route dependencies.
-- [`API_ATLAS.md`](./API_ATLAS.md) - dashboard API families, agent-server endpoint families, contract ownership, and UI/API consumer mapping.
-- [`COMPLETION_AUDIT_PLAN.md`](./COMPLETION_AUDIT_PLAN.md) - the exhaustive program for finding unfinished, partial, dormant, broken, and legacy surfaces across every layer.
-- [`SOURCE_RECONCILIATION.md`](./SOURCE_RECONCILIATION.md) - which documents and code/config layers still own truth, and which older docs are now reference-only.
+- [`RUNTIME_ATLAS.md`](./RUNTIME_ATLAS.md) - runtime-oriented synthesis across task/workspace/control subsystems.
+- [`COMMAND_HIERARCHY_ATLAS.md`](./COMMAND_HIERARCHY_ATLAS.md) - command and execution-path synthesis.
+- [`MODEL_GOVERNANCE_ATLAS.md`](./MODEL_GOVERNANCE_ATLAS.md) - promotion, retirement, and proving-ground synthesis.
+- [`OPERATIONS_ATLAS.md`](./OPERATIONS_ATLAS.md) - operational loops and governance synthesis.
+- [`SOURCE_RECONCILIATION.md`](./SOURCE_RECONCILIATION.md) - which sources still own truth and which atlas surfaces are archived.
 
-## Machine-readable Inventory Layer
+Retired atlas planning leftovers now live under [`../archive/atlas/`](../archive/atlas/).
+The old atlas inventory JSON/schema bundle and completion-audit schemas were deleted once the repo-native audit outputs became authoritative.
 
-The atlas inventory lives beside the prose docs and uses one record schema across all layers:
+## Current Truth Layer
 
-- [`inventory/atlas-record.schema.json`](./inventory/atlas-record.schema.json)
-- [`inventory/topology-inventory.json`](./inventory/topology-inventory.json)
-- [`inventory/runtime-inventory.json`](./inventory/runtime-inventory.json)
-- [`inventory/ui-inventory.json`](./inventory/ui-inventory.json)
-- [`inventory/api-inventory.json`](./inventory/api-inventory.json)
+Use these instead of the retired atlas inventory layer:
 
-The inventory is internal documentation structure, not a product API.
-
-### Completion Audit Inventory
-
-The completion-audit layer extends the atlas with code-derived and runtime-derived audit artifacts:
-
-- [`inventory/completion/completion-status.schema.json`](./inventory/completion/completion-status.schema.json)
-- [`inventory/completion/route-audit-record.schema.json`](./inventory/completion/route-audit-record.schema.json)
-- [`inventory/completion/api-audit-record.schema.json`](./inventory/completion/api-audit-record.schema.json)
-- [`inventory/completion/runtime-subsystem-audit-record.schema.json`](./inventory/completion/runtime-subsystem-audit-record.schema.json)
-- [`inventory/completion/deployment-ownership-record.schema.json`](./inventory/completion/deployment-ownership-record.schema.json)
-- [`inventory/completion/release-readiness-report.schema.json`](./inventory/completion/release-readiness-report.schema.json)
-- [`inventory/completion/dashboard-route-census.json`](./inventory/completion/dashboard-route-census.json)
-- [`inventory/completion/dashboard-api-census.json`](./inventory/completion/dashboard-api-census.json)
-- [`inventory/completion/dashboard-component-census.json`](./inventory/completion/dashboard-component-census.json)
-- [`inventory/completion/dashboard-mount-graph.json`](./inventory/completion/dashboard-mount-graph.json)
-- [`inventory/completion/agent-endpoint-census.json`](./inventory/completion/agent-endpoint-census.json)
-- [`inventory/completion/runtime-subsystem-census.json`](./inventory/completion/runtime-subsystem-census.json)
-- [`inventory/completion/env-contract-census.json`](./inventory/completion/env-contract-census.json)
-- [`inventory/completion/deployment-ownership-matrix.json`](./inventory/completion/deployment-ownership-matrix.json)
+- [`../../config/automation-backbone/platform-topology.json`](../../config/automation-backbone/platform-topology.json)
+- [`../../config/automation-backbone/runtime-subsystem-registry.json`](../../config/automation-backbone/runtime-subsystem-registry.json)
+- [`../../config/automation-backbone/model-deployment-registry.json`](../../config/automation-backbone/model-deployment-registry.json)
+- [`../../projects/dashboard/src/lib/navigation.ts`](../../projects/dashboard/src/lib/navigation.ts)
+- [`../../projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md`](../../projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md)
+- `reports/completion-audit/latest/inventory/`
 
 ## Validation
 
-Keep the atlas synchronized with the repo by running:
+The atlas-specific validator is retired. Keep the remaining atlas docs synchronized by validating the real truth layer and checking atlas links:
 
-- `python scripts/validate-atlas.py`
+- `python scripts/validate_platform_contract.py`
 - `python scripts/check-doc-refs.py docs/atlas`
 
 ## Completion Audit Execution
@@ -93,15 +75,12 @@ Core census and probe scripts:
 
 Run outputs land in the `reports/completion-audit/` directory (created on first run).
 
-### Current Gate State
+### Historical Gate Snapshot
 
-As of `2026-03-11`, the completion gate is passing in `ready` state.
+The old atlas-owned gate snapshot is retired. For current readiness, use:
 
-- `25` dashboard routes are inventoried and audited.
-- `30` support surfaces are inventoried with direct automated render coverage.
-- `54` dashboard APIs are inventoried; only `/api/stash/stats` remains unresolved as an orphan candidate.
-- the deterministic fixture lane and live-runtime lane both pass with `0` failed jobs.
-- the remaining warnings are deliberate dormant/unmounted surfaces plus known deployment drift on `agent-server`, `LiteLLM`, and `VAULT` monitoring.
+- `reports/completion-audit/latest/summary.md`
+- `python scripts/run-completion-audit.py`
 
 ## Source Anchors
 
@@ -109,8 +88,9 @@ These remain the main upstream sources the atlas reconciles:
 
 - [`../SYSTEM-SPEC.md`](../SYSTEM-SPEC.md) - operational architecture and system behavior.
 - [`../SERVICES.md`](../SERVICES.md) - live service placement and model routing.
-- [`../BUILD-MANIFEST.md`](../BUILD-MANIFEST.md) - execution queue and current deployment notes.
-- [`../design/agent-contracts.md`](../design/agent-contracts.md) - agent behavior contracts.
+- [`../../STATUS.md`](../../STATUS.md) and [`../operations/CONTINUOUS-COMPLETION-BACKLOG.md`](../operations/CONTINUOUS-COMPLETION-BACKLOG.md) - current execution state and ranked work order.
+- [`../design/command-hierarchy-governance.md`](../design/command-hierarchy-governance.md) - current command hierarchy and authority split.
+- [`../decisions/ADR-023-command-hierarchy-and-governance.md`](../decisions/ADR-023-command-hierarchy-and-governance.md) - formal hierarchy decision.
 - [`../../projects/dashboard/README.md`](../../projects/dashboard/README.md) - dashboard platform overview.
 - [`../../projects/dashboard/docs/UI_AUDIT.md`](../../projects/dashboard/docs/UI_AUDIT.md) - route quality baseline.
 
@@ -120,12 +100,13 @@ These older map documents remain useful as historical or planning context, but t
 
 - [`../archive/planning-era/ATHANOR-MAP.md`](../archive/planning-era/ATHANOR-MAP.md)
 - [`../archive/planning-era/ATHANOR-MAP-ADDENDUM.md`](../archive/planning-era/ATHANOR-MAP-ADDENDUM.md)
-- [`../hardware/ATHANOR-SYSTEM-MAP.md`](../hardware/ATHANOR-SYSTEM-MAP.md)
-- [`../hardware/COMPLETE-SYSTEM-BREAKDOWN.md`](../hardware/COMPLETE-SYSTEM-BREAKDOWN.md)
+- [`../archive/ATHANOR-SYSTEM-MAP.md`](../archive/ATHANOR-SYSTEM-MAP.md)
+- [`../archive/COMPLETE-SYSTEM-BREAKDOWN.md`](../archive/COMPLETE-SYSTEM-BREAKDOWN.md)
+- [`../archive/atlas/COMPLETION_AUDIT_PLAN.md`](../archive/atlas/COMPLETION_AUDIT_PLAN.md)
 
 ## How to Use This
 
-- Start here when you need the full shape of Athanor.
-- Drop to the subsystem atlas that matches the question.
-- Use the inventory JSON when you need systematic coverage checks or machine-readable linking.
-- Drop to the operational/design docs only when the atlas points you there as the higher-detail source.
+- Start here when you need synthesis and source precedence.
+- Drop to the retained runtime/governance atlas docs only for cross-layer narrative context.
+- Use registries, generated reports, and completion-audit inventories for machine-readable truth.
+- Use archived atlas docs only for historical comparison or migration context.

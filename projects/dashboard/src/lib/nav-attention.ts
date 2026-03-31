@@ -1,6 +1,8 @@
 import type {
   AgentInfo,
   JudgePlaneSnapshot,
+  NavAttentionPersistenceRecord,
+  NavAttentionPersistenceState,
   NavAttentionSignal,
   NavAttentionSource,
   NavAttentionTier,
@@ -8,6 +10,8 @@ import type {
   WorkforceNotification,
   WorkforceSnapshot,
 } from "@/lib/contracts";
+
+export type { NavAttentionPersistenceRecord, NavAttentionPersistenceState } from "@/lib/contracts";
 
 const CORE_OPERATOR_SERVICE_IDS = new Set([
   "dashboard",
@@ -29,14 +33,6 @@ const V1_ATTENTION_ROUTES = [
 
 export const NAV_ATTENTION_HOT_MS = 90_000;
 export const NAV_ATTENTION_SETTLED_MS = 6 * 60_000;
-
-export interface NavAttentionPersistenceRecord {
-  signature: string;
-  firstSeenAt: string;
-  acknowledgedAt: string | null;
-}
-
-export type NavAttentionPersistenceState = Record<string, NavAttentionPersistenceRecord>;
 
 export interface NavAttentionPresentation {
   signal: NavAttentionSignal | null;
@@ -227,7 +223,10 @@ function getReviewSignal(
 }
 
 function getServiceSignal(services: ServiceSnapshot[], updatedAt: string): NavAttentionSignal {
-  const degraded = services.filter((service) => !service.healthy);
+  const degraded = services.filter((service) => {
+    const status = service.healthSnapshot?.status;
+    return status ? status !== "healthy" : !service.healthy;
+  });
   const degradedCore = degraded.filter((service) => CORE_OPERATOR_SERVICE_IDS.has(service.id));
   if (degradedCore.length > 0) {
     return createSignal(
@@ -371,6 +370,40 @@ export function buildNavAttentionSignals({
 
 export function createNavAttentionMap(signals: NavAttentionSignal[]) {
   return new Map(signals.map((signal) => [signal.routeHref, signal]));
+}
+
+export function navAttentionStateEquals(
+  left: NavAttentionPersistenceState,
+  right: NavAttentionPersistenceState
+): boolean {
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  for (let index = 0; index < leftKeys.length; index += 1) {
+    if (leftKeys[index] !== rightKeys[index]) {
+      return false;
+    }
+  }
+
+  for (const routeHref of leftKeys) {
+    const leftRecord = left[routeHref];
+    const rightRecord = right[routeHref];
+    if (!leftRecord || !rightRecord) {
+      return false;
+    }
+    if (
+      leftRecord.signature !== rightRecord.signature ||
+      leftRecord.firstSeenAt !== rightRecord.firstSeenAt ||
+      leftRecord.acknowledgedAt !== rightRecord.acknowledgedAt
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export function resolveNavAttentionPresentation(

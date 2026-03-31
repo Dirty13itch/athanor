@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 
 type TimeContext = "morning" | "afternoon" | "evening" | "night";
 
@@ -52,11 +54,19 @@ function contextEmoji(ctx: TimeContext): string {
 }
 
 export function SmartStack() {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const [ctx] = useState<TimeContext>(getTimeContext);
   const [data, setData] = useState<StackData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (locked) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     async function fetchData() {
@@ -98,7 +108,28 @@ export function SmartStack() {
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [locked]);
+
+  if (locked) {
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <span>{contextEmoji(ctx)}</span>
+            <span>{contextLabel(ctx)}</span>
+            <span className="ml-auto text-xs font-normal text-muted-foreground">Smart Stack</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="The smart stack stays quiet until the operator session is unlocked."
+            className="py-6"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (loading) {
     return (

@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-15
 **Status:** Accepted
-**Research:** [docs/research/2026-02-15-base-platform.md](../research/2026-02-15-base-platform.md)
+**Research:** [docs/archive/research/2026-02-15-base-platform.md](../archive/research/2026-02-15-base-platform.md)
 **Depends on:** Hardware inventory (complete)
 
 ---

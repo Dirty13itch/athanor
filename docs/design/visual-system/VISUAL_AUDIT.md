@@ -4,8 +4,8 @@
 
 This audit covers the live shell and active operator routes documented in:
 
-- `docs/atlas/UI_ATLAS.md`
-- `docs/atlas/inventory/ui-inventory.json`
+- `projects/dashboard/src/lib/navigation.ts`
+- `projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md`
 
 And the current screenshot evidence under:
 
@@ -17,7 +17,7 @@ Current-state review used four evidence layers:
 
 1. live theme tokens and surface utilities in `src/app/globals.css`
 2. active shell and command-center source
-3. route inventory from the atlas
+3. route inventory from live dashboard navigation and operator route contracts
 4. Playwright baseline screenshots for desktop and mobile
 
 ## Executive finding

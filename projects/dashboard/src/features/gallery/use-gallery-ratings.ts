@@ -1,73 +1,92 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
+import type { GalleryRating, GalleryRatingsResponse } from "@/lib/contracts";
+import { fetchGalleryRatings, persistGalleryRating } from "@/lib/gallery-ratings";
 
-export interface GalleryRating {
-  rating: number | null; // 1-5
-  approved: boolean;
-  flagged: boolean;
-  notes: string;
-  timestamp: string;
-}
-
-const STORAGE_KEY = "athanor-gallery-ratings";
+export type { GalleryRating } from "@/lib/contracts";
 
 type Ratings = Record<string, GalleryRating>;
 
-// ---------------------------------------------------------------------------
-// Tiny external-store wrapper around localStorage so all mounted components
-// re-render when a rating changes (even across hooks).
-// ---------------------------------------------------------------------------
+const EMPTY_RATINGS: Ratings = {};
 
 let listeners: Array<() => void> = [];
-let snapshotCache: Ratings | null = null;
+let snapshotCache: Ratings = EMPTY_RATINGS;
+let ratingsLoadPromise: Promise<void> | null = null;
 
-function readStore(): Ratings {
-  if (snapshotCache) return snapshotCache;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    snapshotCache = raw ? (JSON.parse(raw) as Ratings) : {};
-  } catch {
-    snapshotCache = {};
+function notify() {
+  for (const listener of listeners) {
+    listener();
   }
-  return snapshotCache;
 }
 
-function writeStore(next: Ratings) {
-  snapshotCache = next;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  for (const fn of listeners) fn();
+function applySnapshot(response: GalleryRatingsResponse) {
+  snapshotCache = response.ratings;
+  notify();
+}
+
+async function ensureRatingsLoaded() {
+  if (!ratingsLoadPromise) {
+    ratingsLoadPromise = fetchGalleryRatings()
+      .then(applySnapshot)
+      .catch(() => {
+        snapshotCache = EMPTY_RATINGS;
+      })
+      .finally(() => {
+        ratingsLoadPromise = null;
+      });
+  }
+
+  return ratingsLoadPromise;
 }
 
 function subscribe(cb: () => void) {
   listeners = [...listeners, cb];
   return () => {
-    listeners = listeners.filter((l) => l !== cb);
+    listeners = listeners.filter((listener) => listener !== cb);
   };
 }
 
 function getSnapshot(): Ratings {
-  return readStore();
+  return snapshotCache;
 }
 
 function getServerSnapshot(): Ratings {
-  return {};
+  return EMPTY_RATINGS;
 }
-
-// ---------------------------------------------------------------------------
 
 export function useGalleryRatings() {
   const ratings = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  const getRating = useCallback(
-    (imageId: string): GalleryRating | undefined => ratings[imageId],
-    [ratings],
-  );
+  useEffect(() => {
+    void ensureRatingsLoaded();
+  }, []);
 
-  const setRating = useCallback((imageId: string, rating: GalleryRating) => {
-    const current = readStore();
-    writeStore({ ...current, [imageId]: rating });
+  const getRating = useCallback((imageId: string): GalleryRating | undefined => ratings[imageId], [ratings]);
+
+  const setRating = useCallback(async (imageId: string, rating: GalleryRating) => {
+    const previous = snapshotCache;
+    snapshotCache = { ...snapshotCache, [imageId]: rating };
+    notify();
+
+    try {
+      const response = await persistGalleryRating({ imageId, rating });
+      applySnapshot(response);
+    } catch {
+      snapshotCache = previous;
+      notify();
+    }
   }, []);
 
   return { ratings, getRating, setRating } as const;
+}
+
+export function __resetGalleryRatingsCacheForTests() {
+  listeners = [];
+  snapshotCache = EMPTY_RATINGS;
+  ratingsLoadPromise = null;
+}
+
+export function __getGalleryRatingsServerSnapshotForTests() {
+  return getServerSnapshot();
 }

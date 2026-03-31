@@ -1,34 +1,41 @@
 """Athanor Gateway - API Gateway with service health aggregation.
-Port: 8780 on DEV
+Port: 8700 on DEV
 """
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 import httpx
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-from cluster_config import (
-    AGENT_SERVER_URL, VLLM_CODER_URL, VLLM_COORDINATOR_URL,
-    LITELLM_URL, LANGFUSE_URL, QDRANT_URL, COMFYUI_URL,
-    WORKSHOP_HOST, DASHBOARD_URL,
-)
 from fastapi import FastAPI, Query, Response
 
+from _imports import (
+    SERVICE_DEFINITIONS,
+    get_health_url,
+)
+
 app = FastAPI(title="Athanor Gateway", version="0.1.0")
+STARTED_AT = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+MONITORED_SERVICE_IDS = (
+    "agent_server",
+    "vllm_coder",
+    "vllm_coordinator",
+    "vllm_worker",
+    "litellm",
+    "langfuse",
+    "qdrant",
+    "embedding",
+    "reranker",
+    "dashboard",
+    "comfyui",
+    "quality_gate",
+)
 
 SERVICES = {
-    "coordinator": {"url": f"{AGENT_SERVER_URL}/health", "node": "foundry"},
-    "coder": {"url": f"{VLLM_CODER_URL}/health", "node": "foundry"},
-    "vllm-foundry": {"url": f"{VLLM_COORDINATOR_URL}/health", "node": "foundry"},
-    "vllm-workshop": {"url": f"http://{WORKSHOP_HOST}:8000/health", "node": "workshop"},
-    "litellm": {"url": f"{LITELLM_URL}/health", "node": "vault"},
-    "langfuse": {"url": f"{LANGFUSE_URL}/api/public/health", "node": "vault"},
-    "qdrant": {"url": f"{QDRANT_URL}/healthz", "node": "vault"},
-    "governor": {"url": "http://127.0.0.1:8760/health", "node": "dev"},
-    "embedding": {"url": "http://127.0.0.1:8001/health", "node": "dev"},
-    "reranker": {"url": "http://127.0.0.1:8003/health", "node": "dev"},
-    "dashboard": {"url": f"{DASHBOARD_URL}/api/health", "node": "dev"},
-    "comfyui": {"url": f"{COMFYUI_URL}/system_stats", "node": "workshop"},
+    service_id: {
+        "url": get_health_url(service_id),
+        "node": str(SERVICE_DEFINITIONS[service_id]["node"]),
+    }
+    for service_id in MONITORED_SERVICE_IDS
 }
 
 MAX_LIMIT = 100
@@ -58,6 +65,59 @@ async def _check_service(name: str, info: dict) -> dict:
         }
 
 
+def _dependency_status(check: dict) -> str:
+    status = str(check.get("status") or "").lower()
+    if status == "healthy":
+        return "healthy"
+    if status == "degraded":
+        return "degraded"
+    if status == "unreachable":
+        return "down"
+    return "unknown"
+
+
+def _dependency_detail(check: dict) -> str:
+    http_status = check.get("http_status")
+    response_ms = check.get("response_ms")
+    if http_status is not None and response_ms is not None:
+        return f"HTTP {http_status} in {response_ms}ms"
+    if http_status is not None:
+        return f"HTTP {http_status}"
+    if check.get("error"):
+        return str(check["error"])
+    return ""
+
+
+def build_health_snapshot(all_checks: list[dict], *, timestamp: str) -> dict:
+    total = len(all_checks)
+    healthy = sum(1 for check in all_checks if check.get("status") == "healthy")
+    degraded = total - healthy
+    status = "healthy" if degraded == 0 else "degraded"
+
+    return {
+        "service": "gateway",
+        "version": app.version,
+        "status": status,
+        "auth_class": "internal_only",
+        "dependencies": [
+            {
+                "id": str(check.get("service") or "unknown"),
+                "status": _dependency_status(check),
+                "required": True,
+                "last_checked_at": timestamp,
+                "detail": _dependency_detail(check),
+            }
+            for check in all_checks
+        ],
+        "last_error": None if degraded == 0 else f"{degraded} dependency checks degraded or unreachable",
+        "started_at": STARTED_AT,
+        "actions_allowed": [],
+        "network_scope": "internal_only",
+        "healthy": healthy,
+        "total": total,
+    }
+
+
 @app.get("/health")
 async def health(
     response: Response,
@@ -73,15 +133,13 @@ async def health(
     page = all_checks[offset : offset + limit]
 
     healthy = sum(1 for c in all_checks if c["status"] == "healthy")
+    timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     response.headers["X-Total-Count"] = str(total)
 
     return {
-        "status": "ok" if healthy == total else "degraded",
-        "version": "0.1.0",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "healthy": healthy,
-        "total": total,
+        **build_health_snapshot(all_checks, timestamp=timestamp),
+        "timestamp": timestamp,
         "limit": limit,
         "offset": offset,
         "services": page,
@@ -91,4 +149,4 @@ async def health(
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8780)
+    uvicorn.run(app, host="0.0.0.0", port=8700)

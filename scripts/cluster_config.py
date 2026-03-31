@@ -1,75 +1,101 @@
-"""Athanor Cluster Configuration — single source of truth for all node addresses.
+"""Athanor cluster topology loaded from the shared platform contract."""
 
-Import this instead of hardcoding IPs:
-    from cluster_config import NODES, SERVICES, get_url
+from __future__ import annotations
 
-Usage:
-    from cluster_config import SERVICES, get_url
-    litellm_url = SERVICES["litellm"]["url"]
-    # Returns "http://192.168.1.203:4000"
-
-    litellm_url = get_url("litellm")
-    # Same thing
-"""
+import json
 import os
+from pathlib import Path
+from typing import Any
 
-# Node addresses (override via environment)
+
+def _candidate_topology_paths() -> list[Path]:
+    candidates: list[Path] = []
+    env_path = os.environ.get("ATHANOR_TOPOLOGY_PATH")
+    if env_path:
+        candidates.append(Path(env_path))
+
+    repo_root = Path(__file__).resolve().parents[1]
+    candidates.extend(
+        [
+            repo_root / "config" / "automation-backbone" / "platform-topology.json",
+            Path("/app/config/automation-backbone/platform-topology.json"),
+            Path("/opt/athanor/config/automation-backbone/platform-topology.json"),
+        ]
+    )
+    return candidates
+
+
+def _load_topology() -> dict[str, Any]:
+    for path in _candidate_topology_paths():
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    checked = ", ".join(str(path) for path in _candidate_topology_paths())
+    raise FileNotFoundError(f"Unable to resolve platform topology. Checked: {checked}")
+
+
+def _first_env(names: list[str], default: str = "") -> str:
+    for name in names:
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return default
+
+
+def _default_url_env(service_id: str) -> str:
+    return f"ATHANOR_{service_id.upper().replace('-', '_')}_URL"
+
+
+def _build_url(service: dict[str, Any], node_hosts: dict[str, str]) -> str:
+    override = _first_env([str(service.get("url_env") or _default_url_env(str(service["id"])))])
+    if override:
+        return override
+
+    node_id = str(service["node"])
+    scheme = str(service["scheme"])
+    port = int(service["port"])
+    path = str(service.get("path") or "")
+    return f"{scheme}://{node_hosts[node_id]}:{port}{path}"
+
+
+TOPOLOGY = _load_topology()
+NODE_DEFINITIONS = {str(node["id"]): dict(node) for node in TOPOLOGY.get("nodes", [])}
+SERVICE_DEFINITIONS = {str(service["id"]): dict(service) for service in TOPOLOGY.get("services", [])}
+
 NODES = {
-    "dev":      os.environ.get("ATHANOR_DEV_IP", "192.168.1.189"),
-    "foundry":  os.environ.get("ATHANOR_FOUNDRY_IP", "192.168.1.244"),
-    "workshop": os.environ.get("ATHANOR_WORKSHOP_IP", "192.168.1.225"),
-    "vault":    os.environ.get("ATHANOR_VAULT_IP", "192.168.1.203"),
-    "desk":     os.environ.get("ATHANOR_DESK_IP", "192.168.1.50"),
+    node_id: _first_env(list(node.get("host_envs", [])), str(node.get("default_host") or ""))
+    for node_id, node in NODE_DEFINITIONS.items()
 }
 
-# Convenience: LiteLLM master key
-def _read_secret(name, default=""):
+DEV_HOST = NODES["dev"]
+FOUNDRY_HOST = NODES["foundry"]
+WORKSHOP_HOST = NODES["workshop"]
+VAULT_HOST = NODES["vault"]
+DESK_HOST = NODES["desk"]
+
+
+def _read_secret(name: str, default: str = "") -> str:
     path = os.path.expanduser(f"~/.secrets/{name}")
     try:
-        return open(path).read().strip()
+        with open(path, encoding="utf-8") as handle:
+            return handle.read().strip()
     except FileNotFoundError:
         return default
 
+
 LITELLM_KEY = os.environ.get("LITELLM_MASTER_KEY") or _read_secret("litellm-master-key")
 
-# Service endpoints
 SERVICES = {
-    "litellm":          {"node": "vault",    "port": 4000,  "url": f"http://{NODES['vault']}:4000"},
-    "vllm_coordinator": {"node": "foundry",  "port": 8000,  "url": f"http://{NODES['foundry']}:8000"},
-    "vllm_coder":       {"node": "foundry",  "port": 8006,  "url": f"http://{NODES['foundry']}:8006"},
-    "vllm_vision":      {"node": "workshop", "port": 8000,  "url": f"http://{NODES['workshop']}:8000"},
-    "agent_server":     {"node": "foundry",  "port": 9000,  "url": f"http://{NODES['foundry']}:9000"},
-    "gateway":          {"node": "dev",      "port": 8700,  "url": f"http://{NODES['dev']}:8700"},
-    "memory":           {"node": "dev",      "port": 8720,  "url": f"http://{NODES['dev']}:8720"},
-    "semantic_router":  {"node": "dev",      "port": 8060,  "url": f"http://{NODES['dev']}:8060"},
-    "embedding":        {"node": "dev",      "port": 8001,  "url": f"http://{NODES['dev']}:8001"},
-    "reranker":         {"node": "dev",      "port": 8003,  "url": f"http://{NODES['dev']}:8003"},
-    "subscription_burn":{"node": "dev",      "port": 8065,  "url": f"http://{NODES['dev']}:8065"},
-    "scorer":           {"node": "workshop", "port": 8050,  "url": f"http://{NODES['workshop']}:8050"},
-    "comfyui":          {"node": "workshop", "port": 8188,  "url": f"http://{NODES['workshop']}:8188"},
-    "speaches":         {"node": "foundry",  "port": 8200,  "url": f"http://{NODES['foundry']}:8200"},
-    "ollama_workshop":  {"node": "workshop", "port": 11434, "url": f"http://{NODES['workshop']}:11434"},
-    "qdrant":           {"node": "vault",    "port": 6333,  "url": f"http://{NODES['vault']}:6333"},
-    "neo4j":            {"node": "vault",    "port": 7687,  "url": f"bolt://{NODES['vault']}:7687"},
-    "neo4j_http":       {"node": "vault",    "port": 7474,  "url": f"http://{NODES['vault']}:7474"},
-    "redis":            {"node": "vault",    "port": 6379,  "url": f"redis://{NODES['vault']}:6379/0"},
-    "prometheus":       {"node": "vault",    "port": 9090,  "url": f"http://{NODES['vault']}:9090"},
-    "grafana":          {"node": "vault",    "port": 3000,  "url": f"http://{NODES['vault']}:3000"},
-    "ntfy":             {"node": "vault",    "port": 8880,  "url": f"http://{NODES['vault']}:8880"},
-    "ntfy_topic":       {"node": "vault",    "port": 8880,  "url": f"http://{NODES['vault']}:8880/athanor"},
-    "n8n":              {"node": "vault",    "port": 5678,  "url": f"http://{NODES['vault']}:5678"},
-    "stash":            {"node": "vault",    "port": 9999,  "url": f"http://{NODES['vault']}:9999"},
-    "uptime_kuma":      {"node": "vault",    "port": 3009,  "url": f"http://{NODES['vault']}:3009"},
-    "langfuse":         {"node": "vault",    "port": 3030,  "url": f"http://{NODES['vault']}:3030"},
-    "miniflux":         {"node": "vault",    "port": 8070,  "url": f"http://{NODES['vault']}:8070"},
-    "dashboard":        {"node": "dev",      "port": 3001,  "url": f"http://{NODES['dev']}:3001"},
-    "openfang":         {"node": "dev",      "port": 4200,  "url": f"http://{NODES['dev']}:4200"},
+    service_id: {
+        **service,
+        "url": _build_url(service, NODES),
+    }
+    for service_id, service in SERVICE_DEFINITIONS.items()
 }
 
 
 def get_url(service_name: str) -> str:
     """Get the URL for a service by name."""
-    svc = SERVICES.get(service_name)
-    if isinstance(svc, dict):
-        return svc["url"]
+    service = SERVICES.get(service_name)
+    if isinstance(service, dict):
+        return str(service["url"])
     raise KeyError(f"Unknown service: {service_name}")

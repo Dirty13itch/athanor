@@ -15,6 +15,7 @@ Usage in .mcp.json:
 
 import json
 import os
+import uuid
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -37,8 +38,36 @@ _AGENT_TOKEN = os.environ.get("ATHANOR_AGENT_API_TOKEN", "")
 _AUTH_HEADERS = {"Authorization": f"Bearer {_AGENT_TOKEN}"} if _AGENT_TOKEN else {}
 _client = httpx.Client(timeout=120, headers=_AUTH_HEADERS)
 _client_long = httpx.Client(timeout=600, headers=_AUTH_HEADERS)  # 10 min for deep research
+_MCP_ACTOR = "mcp-athanor-agents"
+_MCP_SESSION_ID = f"{_MCP_ACTOR}-{uuid.uuid4().hex[:12]}"
 
 mcp = FastMCP("athanor-agents")
+
+
+def _operator_envelope(*, reason: str, protected_mode: bool = False) -> dict[str, object]:
+    return {
+        "actor": _MCP_ACTOR,
+        "session_id": _MCP_SESSION_ID,
+        "correlation_id": uuid.uuid4().hex,
+        "reason": reason,
+        "protected_mode": protected_mode,
+    }
+
+
+def _post_mutation(
+    path: str,
+    payload: dict[str, object] | None,
+    *,
+    reason: str,
+    timeout: int = 30,
+    protected_mode: bool = False,
+) -> httpx.Response:
+    body = dict(payload or {})
+    for key, value in _operator_envelope(reason=reason, protected_mode=protected_mode).items():
+        body.setdefault(key, value)
+    response = _client.post(f"{AGENT_URL}{path}", json=body, timeout=timeout)
+    response.raise_for_status()
+    return response
 
 
 def _chat(agent: str, prompt: str, long: bool = False) -> str:
@@ -290,17 +319,17 @@ def store_preference(content: str, agent: str = "global", category: str = "") ->
         category: Optional grouping (e.g., "media", "home", "ui").
     """
     try:
-        resp = _client.post(
-            f"{AGENT_URL}/v1/preferences",
-            json={
+        _post_mutation(
+            "/v1/preferences",
+            {
                 "agent": agent,
                 "signal_type": "remember_this",
                 "content": content,
                 "category": category,
             },
+            reason=f"Store preference for {agent}",
             timeout=15,
         )
-        resp.raise_for_status()
         return f"Stored preference: {content}"
     except Exception as e:
         return f"Error: {e}"
@@ -350,12 +379,12 @@ def submit_task(agent: str, prompt: str, priority: str = "normal") -> str:
         priority: "critical", "high", "normal", or "low".
     """
     try:
-        resp = _client.post(
-            f"{AGENT_URL}/v1/tasks",
-            json={"agent": agent, "prompt": prompt, "priority": priority},
+        resp = _post_mutation(
+            "/v1/tasks",
+            {"agent": agent, "prompt": prompt, "priority": priority},
+            reason=f"Submit background task to {agent}",
             timeout=15,
         )
-        resp.raise_for_status()
         data = resp.json()
         task = data.get("task", {})
         return f"Task submitted: id={task['id']} agent={task['agent']} status={task['status']}"
@@ -418,17 +447,25 @@ def task_status(task_id: str = "") -> str:
 def governor_snapshot() -> str:
     """Get current governor state — lanes, capacity, presence, autonomy levels."""
     try:
-        resp = _client.get(f"{AGENT_URL}/v1/governor", timeout=10)
-        resp.raise_for_status()
-        data = resp.json()
+        posture_resp = _client.get(f"{AGENT_URL}/v1/governor", timeout=10)
+        posture_resp.raise_for_status()
+        data = posture_resp.json()
+        stats_resp = _client.get(f"{AGENT_URL}/v1/tasks/stats", timeout=10)
+        stats_resp.raise_for_status()
+        stats = stats_resp.json()
+        by_status = stats.get("by_status", {}) if isinstance(stats, dict) else {}
         lines = [
             f"Mode: {data.get('global_mode', '?')}",
             f"Presence: {data.get('presence', {}).get('state', '?')}",
         ]
         for lane in data.get("lanes", []):
             lines.append(f"  Lane {lane.get('label', lane.get('id', '?'))}: {'PAUSED' if lane.get('paused') else 'active'}")
-        capacity = data.get("capacity", {})
-        lines.append(f"Queue: {capacity.get('queue_depth', '?')} pending, {capacity.get('running', '?')} running")
+        lines.append(
+            "Queue: "
+            f"{by_status.get('pending', '?')} pending, "
+            f"{stats.get('currently_running', '?') if isinstance(stats, dict) else '?'} running, "
+            f"{by_status.get('pending_approval', 0)} pending approval"
+        )
         return "\n".join(lines)
     except Exception as e:
         return f"Error: {e}"
@@ -458,8 +495,12 @@ def pipeline_status() -> str:
 def trigger_pipeline_cycle() -> str:
     """Trigger an on-demand work pipeline cycle — mines intents, generates plans, spawns tasks."""
     try:
-        resp = _client.post(f"{AGENT_URL}/v1/pipeline/cycle", json={}, timeout=60)
-        resp.raise_for_status()
+        resp = _post_mutation(
+            "/v1/pipeline/cycle",
+            {},
+            reason="Trigger pipeline cycle from MCP bridge",
+            timeout=60,
+        )
         data = resp.json()
         return f"Pipeline cycle: mined={data.get('intents_mined', '?')}, new={data.get('intents_new', '?')}, plans={data.get('plans_created', '?')}, tasks={data.get('tasks_spawned', '?')}"
     except Exception as e:
@@ -470,8 +511,12 @@ def trigger_pipeline_cycle() -> str:
 def trigger_improvement_cycle() -> str:
     """Trigger the nightly prompt optimization cycle manually."""
     try:
-        resp = _client.post(f"{AGENT_URL}/v1/improvement/trigger", json={}, timeout=60)
-        resp.raise_for_status()
+        resp = _post_mutation(
+            "/v1/improvement/trigger",
+            {},
+            reason="Trigger improvement cycle from MCP bridge",
+            timeout=60,
+        )
         data = resp.json()
         return f"Improvement cycle: {data.get('status', '?')}, proposals={data.get('proposals_generated', 0)}"
     except Exception as e:
@@ -486,12 +531,12 @@ def review_task_output(task_id: str) -> str:
         task_id: The task ID to review (e.g., "T-abc123").
     """
     try:
-        resp = _client.post(
-            f"{AGENT_URL}/v1/tasks/{task_id}/review",
-            json={},
+        resp = _post_mutation(
+            f"/v1/tasks/{task_id}/review",
+            {},
+            reason=f"Review completed task {task_id}",
             timeout=30,
         )
-        resp.raise_for_status()
         data = resp.json()
         return f"Task {task_id}: quality={data.get('quality_score', '?')}, agent={data.get('agent', '?')}, status={data.get('status', '?')}"
     except Exception as e:
@@ -511,12 +556,12 @@ def supervise_project(project_id: str, instruction: str, milestones: str = "") -
         body: dict = {"instruction": instruction}
         if milestones:
             body["milestones"] = json.loads(milestones)
-        resp = _client.post(
-            f"{AGENT_URL}/v1/projects/{project_id}/supervise",
-            json=body,
+        resp = _post_mutation(
+            f"/v1/projects/{project_id}/supervise",
+            body,
+            reason=f"Supervise project {project_id}",
             timeout=30,
         )
-        resp.raise_for_status()
         data = resp.json()
         return f"Project {project_id}: {data.get('milestones_created', 0)} milestones created, {data.get('total_milestones', 0)} total"
     except Exception as e:

@@ -1,108 +1,154 @@
 #!/usr/bin/env python3
-"""Map agent-server endpoints into runtime subsystems and dashboard touchpoints."""
+"""Map live agent-server endpoints into runtime subsystems and dashboard touchpoints."""
 
 from __future__ import annotations
 
 import argparse
-import ast
 import json
+import sys
 from collections import defaultdict
 from pathlib import Path
 
-from completion_audit_common import (
-    AGENT_SERVER,
-    ATLAS_COMPLETION_DIR,
-    load_runtime_inventory,
-    read_text,
+from fastapi.routing import APIRoute
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+AGENTS_SRC = REPO_ROOT / "projects" / "agents" / "src"
+if str(AGENTS_SRC) not in sys.path:
+    sys.path.insert(0, str(AGENTS_SRC))
+
+from athanor_agents.server import app  # noqa: E402
+
+from completion_audit_common import (  # noqa: E402
+    COMPLETION_AUDIT_DIR,
+    load_navigation,
+    load_runtime_subsystem_registry,
     slugify,
     write_json,
 )
 
 
-ENDPOINT_OUTPUT = ATLAS_COMPLETION_DIR / "agent-endpoint-census.json"
-SUBSYSTEM_OUTPUT = ATLAS_COMPLETION_DIR / "runtime-subsystem-census.json"
+ENDPOINT_OUTPUT = COMPLETION_AUDIT_DIR / "agent-endpoint-census.json"
+SUBSYSTEM_OUTPUT = COMPLETION_AUDIT_DIR / "runtime-subsystem-census.json"
+EXCLUDED_PATHS = {"/openapi.json", "/docs", "/docs/oauth2-redirect", "/redoc"}
 
 SUBSYSTEM_RULES = [
-    ("runtime.subsystem.subscriptions", "Subscription control layer", lambda path: path.startswith("/v1/subscriptions")),
-    ("runtime.subsystem.task-engine", "Task engine", lambda path: path.startswith("/v1/tasks")),
-    ("runtime.subsystem.workspace", "Workspace and CST", lambda path: path.startswith("/v1/workspace") or path.startswith("/v1/events") or path.startswith("/v1/cognitive") or path.startswith("/v1/conventions")),
-    ("runtime.subsystem.goals-workplan", "Goals and workplan", lambda path: path.startswith("/v1/goals") or path.startswith("/v1/workplan") or path.startswith("/v1/projects") or path.startswith("/v1/scheduling")),
-    ("runtime.subsystem.notifications-escalation", "Notifications and trust", lambda path: path.startswith("/v1/notifications") or path.startswith("/v1/escalation") or path.startswith("/v1/trust") or path.startswith("/v1/autonomy") or path.startswith("/v1/alerts") or path.startswith("/v1/feedback") or path.startswith("/v1/notification-budget")),
-    ("runtime.subsystem.patterns-learning", "Patterns and learning", lambda path: path.startswith("/v1/patterns") or path.startswith("/v1/learning") or path.startswith("/v1/briefing") or path.startswith("/v1/metrics")),
-    ("runtime.subsystem.skills-research-consolidation", "Skills, research jobs, and consolidation", lambda path: path.startswith("/v1/skills") or path.startswith("/v1/research/jobs") or path.startswith("/v1/consolidate")),
-    ("runtime.history-outputs", "History and outputs", lambda path: path.startswith("/v1/activity") or path.startswith("/v1/conversations") or path.startswith("/v1/outputs")),
-    ("runtime.memory", "Preferences and memory", lambda path: path.startswith("/v1/preferences")),
-    ("runtime.routing-context", "Routing and context", lambda path: path.startswith("/v1/context") or path.startswith("/v1/routing")),
-    ("runtime.chat", "Chat completions", lambda path: path == "/v1/chat/completions"),
-    ("runtime.status", "Service and media status", lambda path: path.startswith("/v1/status")),
-    ("runtime.catalog", "Health and model inventory", lambda path: path in {"/health", "/v1/models", "/v1/agents", "/v1/agents/registry"}),
+    (
+        "runtime.subsystem.model-governance",
+        "Model governance and proving ground",
+        ("/v1/models/governance", "/v1/models/proving-ground"),
+    ),
+    (
+        "runtime.subsystem.subscriptions",
+        "Subscription control layer",
+        ("/v1/subscriptions",),
+    ),
+    (
+        "runtime.subsystem.task-engine",
+        "Task engine and governor posture",
+        ("/v1/tasks", "/v1/scheduler", "/v1/scheduling", "/v1/governor", "/v1/emergency"),
+    ),
+    (
+        "runtime.subsystem.workspace",
+        "Workspace and competition state",
+        ("/v1/workspace", "/v1/events", "/v1/cognitive"),
+    ),
+    (
+        "runtime.subsystem.goals-workplan",
+        "Goals, workplan, and projects",
+        ("/v1/goals", "/v1/workplan", "/v1/projects", "/v1/plans", "/v1/pipeline", "/v1/steer", "/v1/react"),
+    ),
+    (
+        "runtime.subsystem.notifications-escalation",
+        "Notifications, trust, and escalation",
+        ("/v1/notifications", "/v1/escalation", "/v1/alerts", "/v1/autonomy", "/v1/trust", "/v1/notification-budget", "/v1/feedback"),
+    ),
+    (
+        "runtime.subsystem.patterns-learning",
+        "Patterns, learning, and improvement",
+        ("/v1/patterns", "/v1/learning", "/v1/metrics", "/v1/improvement", "/v1/briefing", "/v1/diagnosis"),
+    ),
+    (
+        "runtime.subsystem.skills-research-consolidation",
+        "Skills, research jobs, and consolidation",
+        ("/v1/skills", "/v1/research/jobs", "/v1/consolidate", "/v1/workflows"),
+    ),
+    (
+        "runtime.history-outputs",
+        "History and outputs",
+        ("/v1/activity", "/v1/conversations", "/v1/outputs", "/v1/digests"),
+    ),
+    (
+        "runtime.memory",
+        "Preferences and memory",
+        ("/v1/preferences", "/v1/preferences/learning", "/v1/conventions", "/v1/core-memory"),
+    ),
+    (
+        "runtime.routing-context",
+        "Routing and context",
+        ("/v1/context", "/v1/routing", "/v1/cache", "/v1/circuits"),
+    ),
+    (
+        "runtime.chat",
+        "Chat completions",
+        ("/v1/chat/completions",),
+    ),
+    (
+        "runtime.catalog",
+        "Health and model inventory",
+        ("/health", "/v1/system-map", "/v1/models", "/v1/agents"),
+    ),
+    (
+        "runtime.status",
+        "Service and operator status",
+        ("/v1/status", "/v1/home", "/v1/operator", "/v1/gpu"),
+    ),
 ]
-
-SUBSYSTEM_TOUCHPOINTS = {
-    "runtime.subsystem.subscriptions": ["/agents", "/tasks", "/workspace"],
-    "runtime.subsystem.task-engine": ["/tasks", "/review", "/workplanner"],
-    "runtime.subsystem.workspace": ["/workspace", "/activity", "/review"],
-    "runtime.subsystem.goals-workplan": ["/goals", "/workplanner", "/tasks"],
-    "runtime.subsystem.notifications-escalation": ["/notifications", "/review", "/tasks"],
-    "runtime.subsystem.patterns-learning": ["/insights", "/learning", "/review"],
-    "runtime.subsystem.skills-research-consolidation": ["/learning", "/workplanner", "/personal-data"],
-    "runtime.history-outputs": ["/activity", "/conversations", "/outputs"],
-    "runtime.memory": ["/preferences", "/personal-data"],
-    "runtime.routing-context": ["/chat", "/agents"],
-    "runtime.chat": ["/chat", "/agents"],
-    "runtime.status": ["/services", "/media"],
-    "runtime.catalog": ["/", "/chat", "/agents"],
-}
 
 
 def classify_subsystem(path: str) -> tuple[str, str]:
-    for subsystem_id, title, predicate in SUBSYSTEM_RULES:
-        if predicate(path):
+    for subsystem_id, title, prefixes in SUBSYSTEM_RULES:
+        if any(path == prefix or path.startswith(f"{prefix}/") for prefix in prefixes):
             return subsystem_id, title
     return "runtime.misc", "Miscellaneous runtime"
 
 
 def parse_endpoints() -> list[dict]:
-    tree = ast.parse(read_text(AGENT_SERVER))
     endpoints: list[dict] = []
-    for node in tree.body:
-        if not isinstance(node, ast.AsyncFunctionDef):
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
             continue
-        for decorator in node.decorator_list:
-            if not isinstance(decorator, ast.Call):
-                continue
-            if not isinstance(decorator.func, ast.Attribute):
-                continue
-            if not isinstance(decorator.func.value, ast.Name) or decorator.func.value.id != "app":
-                continue
-            if not decorator.args:
-                continue
-            if not isinstance(decorator.args[0], ast.Constant) or not isinstance(decorator.args[0].value, str):
-                continue
-            method = decorator.func.attr.upper()
-            path = decorator.args[0].value
-            subsystem_id, subsystem_title = classify_subsystem(path)
+
+        path = route.path
+        if path in EXCLUDED_PATHS:
+            continue
+        if not (path == "/health" or path.startswith("/v1/")):
+            continue
+
+        subsystem_id, subsystem_title = classify_subsystem(path)
+        methods = sorted(method for method in route.methods if method not in {"HEAD", "OPTIONS"})
+        for method in methods:
             endpoints.append(
                 {
                     "id": f"agent.endpoint.{slugify(method)}.{slugify(path)}",
                     "method": method,
                     "path": path,
-                    "handler": node.name,
+                    "handler": route.endpoint.__name__,
                     "subsystemId": subsystem_id,
                     "subsystemTitle": subsystem_title,
                 }
             )
-    return sorted(endpoints, key=lambda item: (item["subsystemId"], item["path"], item["method"]))
+
+    return sorted(endpoints, key=lambda item: (item["subsystemId"], item["path"], item["method"], item["handler"]))
 
 
 def completion_from_status_tag(status_tag: str | None, touchpoints: list[str]) -> str:
     if status_tag == "implemented_not_live":
         return "implemented_not_live"
-    if not touchpoints:
-        return "implemented_not_live"
     if status_tag == "live":
         return "live_partial"
-    return "live_partial"
+    if touchpoints:
+        return "live_partial"
+    return "implemented_not_live"
 
 
 def main() -> int:
@@ -112,7 +158,8 @@ def main() -> int:
     args = parser.parse_args()
 
     endpoints = parse_endpoints()
-    runtime_inventory = load_runtime_inventory()
+    dashboard_routes = set(load_navigation().keys()) | {"/"}
+    subsystem_registry = load_runtime_subsystem_registry()
 
     grouped: dict[str, list[dict]] = defaultdict(list)
     titles: dict[str, str] = {}
@@ -128,21 +175,25 @@ def main() -> int:
 
     subsystem_records: list[dict] = []
     for subsystem_id, subsystem_endpoints in sorted(grouped.items()):
-        runtime_record = runtime_inventory.get(subsystem_id)
-        status_tag = runtime_record.get("status_tag") if runtime_record else None
-        touchpoints = SUBSYSTEM_TOUCHPOINTS.get(subsystem_id, [])
+        registry_record = subsystem_registry.get(subsystem_id, {})
+        touchpoints = sorted(
+            route_path
+            for route_path in registry_record.get("dashboard_touchpoints", [])
+            if route_path in dashboard_routes
+        )
+        status_tag = str(registry_record.get("status_tag") or "") or ("live" if subsystem_id != "runtime.misc" else None)
         subsystem_records.append(
             {
                 "id": subsystem_id,
-                "title": titles[subsystem_id],
+                "title": str(registry_record.get("title") or titles[subsystem_id]),
                 "dashboardTouchpoints": touchpoints,
                 "endpointCount": len(subsystem_endpoints),
                 "endpoints": subsystem_endpoints,
                 "statusTag": status_tag,
                 "completionStatus": completion_from_status_tag(status_tag, touchpoints),
                 "notes": [
-                    "Grouped from FastAPI route decorators in server.py.",
-                    "Dashboard touchpoints are inferred from the current atlas/runtime model.",
+                    "Grouped from the live FastAPI route registry on athanor_agents.server.app.",
+                    "Dashboard touchpoints and status tags come from config/automation-backbone/runtime-subsystem-registry.json.",
                 ],
             }
         )

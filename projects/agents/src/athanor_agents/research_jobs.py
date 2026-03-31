@@ -242,12 +242,12 @@ Produce a structured research report with:
 Time budget: {job.max_duration_minutes} minutes max."""
 
 
-async def execute_job(job_id: str) -> dict:
+async def execute_job(job_id: str, *, autonomy_managed: bool = False) -> dict:
     """Execute a research job by submitting it to the research agent.
 
     Returns dict with task_id and status.
     """
-    from .tasks import submit_task
+    from .tasks import submit_governed_task
 
     job = await get_job(job_id)
     if not job:
@@ -268,7 +268,7 @@ async def execute_job(job_id: str) -> dict:
     prompt = _build_research_prompt(job)
 
     try:
-        task = await submit_task(
+        submission = await submit_governed_task(
             agent="research-agent",
             prompt=prompt,
             priority="low",
@@ -276,8 +276,11 @@ async def execute_job(job_id: str) -> dict:
                 "source": "research_job",
                 "job_id": job.id,
                 "topic": job.topic,
+                "_autonomy_managed": autonomy_managed,
             },
+            source="research_job",
         )
+        task = submission.task
 
         job.last_task_id = task.id
         await r.hset(RESEARCH_JOBS_KEY, job.id, json.dumps(job.to_dict()))
@@ -365,7 +368,7 @@ async def _store_report(job: ResearchJob, report: str) -> None:
 # --- Scheduler Integration ---
 
 
-async def check_scheduled_jobs() -> int:
+async def check_scheduled_jobs(*, autonomy_managed: bool = False) -> int:
     """Check for research jobs that need to run.
 
     Called by the scheduler loop. Returns number of jobs triggered.
@@ -387,7 +390,7 @@ async def check_scheduled_jobs() -> int:
             # Check if interval has elapsed
             interval_seconds = job.schedule_hours * 3600
             if now - job.last_run >= interval_seconds:
-                await execute_job(job.id)
+                await execute_job(job.id, autonomy_managed=autonomy_managed)
                 triggered += 1
 
     except Exception as e:

@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-15
 **Status:** Accepted
-**Research:** [docs/research/2026-02-15-agent-framework.md](../research/2026-02-15-agent-framework.md)
+**Research:** [docs/archive/research/2026-02-15-agent-framework.md](../archive/research/2026-02-15-agent-framework.md)
 **Depends on:** ADR-005 (Inference Engine)
 
 ---

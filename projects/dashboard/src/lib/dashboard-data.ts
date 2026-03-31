@@ -13,6 +13,7 @@ import {
   type ProjectPosture,
   type ProjectSnapshot,
   type ProjectsSnapshot,
+  serviceHealthSnapshotSchema,
   type ServiceHistorySeries,
   type ServiceSnapshot,
   type ServicesHistorySnapshot,
@@ -400,6 +401,7 @@ function normalizeTaskStatus(value: string | null | undefined): WorkforceTask["s
     case "pending":
     case "pending_approval":
     case "running":
+    case "stale_lease":
     case "completed":
     case "failed":
     case "cancelled":
@@ -501,7 +503,24 @@ async function queryPrometheusRange(query: string, window: TimeWindowId): Promis
   return response.data.result;
 }
 
-function deriveServiceState(healthy: boolean, latencyMs: number | null): ServiceSnapshot["state"] {
+function deriveServiceState(
+  healthStatus: string | null,
+  healthy: boolean,
+  latencyMs: number | null,
+  contractDrift = false
+): ServiceSnapshot["state"] {
+  if (contractDrift) {
+    return "warning";
+  }
+
+  if (healthStatus === "down" || healthStatus === "degraded") {
+    return "degraded";
+  }
+
+  if (healthStatus === "unknown") {
+    return "muted";
+  }
+
   if (!healthy) {
     return "degraded";
   }
@@ -511,6 +530,84 @@ function deriveServiceState(healthy: boolean, latencyMs: number | null): Service
   }
 
   return "healthy";
+}
+
+async function tryParseServiceHealthSnapshot(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return null;
+  }
+
+  try {
+    const payload = await response.clone().json();
+    return serviceHealthSnapshotSchema.parse(payload);
+  } catch {
+    return null;
+  }
+}
+
+function isHealthyHealthStatus(status: string) {
+  return status === "healthy";
+}
+
+function getServiceHealthStatus(service: ServiceSnapshot) {
+  return service.healthSnapshot?.status ?? (service.healthy ? "healthy" : "down");
+}
+
+function summarizeServiceStates(services: ServiceSnapshot[]) {
+  const summary = {
+    healthy: 0,
+    warning: 0,
+    degraded: 0,
+  };
+
+  for (const service of services) {
+    if (service.state === "healthy") {
+      summary.healthy += 1;
+      continue;
+    }
+
+    if (service.state === "warning") {
+      summary.warning += 1;
+      continue;
+    }
+
+    summary.degraded += 1;
+  }
+
+  return summary;
+}
+
+function isServiceDegraded(service: ServiceSnapshot) {
+  return getServiceHealthStatus(service) !== "healthy";
+}
+
+function describeServiceCondition(service: ServiceSnapshot) {
+  const healthStatus = service.healthSnapshot?.status;
+  if (!healthStatus) {
+    return `${service.node} is unreachable from the dashboard probe.`;
+  }
+
+  if (healthStatus === "healthy") {
+    return service.lastError
+      ? `${service.node} is healthy but still reported a recent issue: ${service.lastError}`
+      : `${service.node} is reporting healthy service status.`;
+  }
+
+  if (service.lastError) {
+    return `${service.node} reported ${healthStatus}: ${service.lastError}`;
+  }
+
+  const degradedDependencies = (service.dependencies ?? []).filter(
+    (dependency) => dependency.status !== "healthy"
+  );
+  if (degradedDependencies.length > 0) {
+    return `${service.node} reported ${healthStatus}; affected dependencies: ${degradedDependencies
+      .map((dependency) => dependency.id)
+      .join(", ")}.`;
+  }
+
+  return `${service.node} reported ${healthStatus} service status.`;
 }
 
 async function checkService(service: MonitoredService): Promise<ServiceSnapshot> {
@@ -525,6 +622,11 @@ async function checkService(service: MonitoredService): Promise<ServiceSnapshot>
       cache: "no-store",
     });
     const latencyMs = Date.now() - start;
+    const healthSnapshot = await tryParseServiceHealthSnapshot(response);
+    const contractDrift =
+      !healthSnapshot && (response.ok || response.status === 401 || response.status === 403);
+    const healthStatus = healthSnapshot?.status ?? null;
+    const healthy = healthSnapshot ? isHealthyHealthStatus(healthSnapshot.status) : false;
     return {
       id: service.id,
       name: service.name,
@@ -533,10 +635,18 @@ async function checkService(service: MonitoredService): Promise<ServiceSnapshot>
       category: service.category,
       description: service.description,
       url: service.url,
-      healthy: response.ok || response.status === 401 || response.status === 403,
+      healthy,
       latencyMs,
       checkedAt,
-      state: deriveServiceState(response.ok, latencyMs),
+      state: deriveServiceState(healthStatus, healthy, latencyMs, contractDrift),
+      authClass: healthSnapshot?.auth_class,
+      startedAt: healthSnapshot?.started_at ?? null,
+      actionsAllowed: healthSnapshot?.actions_allowed,
+      lastError:
+        healthSnapshot?.last_error ??
+        (contractDrift ? "Service health endpoint did not return the shared snapshot contract." : null),
+      dependencies: healthSnapshot?.dependencies,
+      healthSnapshot: healthSnapshot ?? undefined,
     };
   } catch {
     return {
@@ -649,7 +759,7 @@ export async function getProjectsSnapshot(): Promise<ProjectsSnapshot> {
         firstClass: project.first_class ?? registry?.firstClass ?? false,
         lens: (project.lens as ProjectSnapshot["lens"] | undefined) ?? registry?.lens ?? "default",
         primaryRoute: project.primary_route ?? registry?.primaryRoute ?? "/workplanner",
-        externalUrl: project.external_url ?? registry?.externalUrl ?? null,
+        externalUrl: registry?.externalUrl ?? project.external_url ?? null,
         agents: project.agents,
         needsCount: project.needs_count,
         constraints: project.constraints,
@@ -970,10 +1080,11 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
     const statusOrder: Record<WorkforceTask["status"], number> = {
       pending_approval: 0,
       running: 1,
-      pending: 2,
-      failed: 3,
-      completed: 4,
-      cancelled: 5,
+      stale_lease: 2,
+      pending: 3,
+      failed: 4,
+      completed: 5,
+      cancelled: 6,
     };
     return (
       statusOrder[left.status] - statusOrder[right.status] ||
@@ -1116,8 +1227,7 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
 function buildNodeSummaries(services: ServiceSnapshot[]) {
   return config.nodes.map((node) => {
     const nodeServices = services.filter((service) => service.nodeId === node.id);
-    const healthyServices = nodeServices.filter((service) => service.healthy).length;
-    const degradedServices = nodeServices.length - healthyServices;
+    const summary = summarizeServiceStates(nodeServices);
     const averageLatencyMs = average(
       nodeServices.flatMap((service) => (service.latencyMs === null ? [] : [service.latencyMs]))
     );
@@ -1128,8 +1238,9 @@ function buildNodeSummaries(services: ServiceSnapshot[]) {
       ip: node.ip,
       role: node.role,
       totalServices: nodeServices.length,
-      healthyServices,
-      degradedServices,
+      healthyServices: summary.healthy,
+      warningServices: summary.warning,
+      degradedServices: summary.degraded,
       averageLatencyMs,
       gpuUtilization: null,
     };
@@ -1187,7 +1298,7 @@ export async function getServicesSnapshot(): Promise<ServicesSnapshot> {
   }
 
   const services = await Promise.all(config.services.map(checkService));
-  const healthy = services.filter((service) => service.healthy).length;
+  const summary = summarizeServiceStates(services);
   const slowestService = services
     .filter((service) => service.latencyMs !== null)
     .sort((left, right) => (right.latencyMs ?? 0) - (left.latencyMs ?? 0))[0];
@@ -1196,8 +1307,9 @@ export async function getServicesSnapshot(): Promise<ServicesSnapshot> {
     generatedAt: nowIso(),
     summary: {
       total: services.length,
-      healthy,
-      degraded: services.length - healthy,
+      healthy: summary.healthy,
+      warning: summary.warning,
+      degraded: summary.degraded,
       averageLatencyMs: average(
         services.flatMap((service) => (service.latencyMs === null ? [] : [service.latencyMs]))
       ),
@@ -1304,6 +1416,12 @@ export async function getServicesHistory(window: TimeWindowId): Promise<Services
     };
   }
 }
+
+export const __testing = {
+  checkService,
+  deriveServiceState,
+  tryParseServiceHealthSnapshot,
+};
 
 export async function getGpuSnapshot(): Promise<GpuSnapshotResponse> {
   if (isDashboardFixtureMode()) {
@@ -1622,13 +1740,13 @@ function buildAlerts(
   projects: ProjectSnapshot[]
 ) {
   const alerts: OverviewSnapshot["alerts"] = [];
-  const degradedServices = services.filter((service) => !service.healthy);
+  const degradedServices = services.filter((service) => isServiceDegraded(service));
   for (const service of degradedServices.slice(0, 3)) {
     alerts.push({
       id: `service-${service.id}`,
       title: service.name,
-      description: `${service.node} is unreachable from the dashboard probe.`,
-      tone: "degraded",
+      description: describeServiceCondition(service),
+      tone: service.state === "muted" ? "warning" : "degraded",
       href: `/services?service=${service.id}`,
     });
   }
@@ -1753,6 +1871,7 @@ export async function getOverviewSnapshot(window: TimeWindowId = "3h"): Promise<
     summary: {
       totalServices: servicesSnapshot.summary.total,
       healthyServices: servicesSnapshot.summary.healthy,
+      warningServices: servicesSnapshot.summary.warning,
       degradedServices: servicesSnapshot.summary.degraded,
       averageLatencyMs: servicesSnapshot.summary.averageLatencyMs,
       averageGpuUtilization: gpuSnapshot.summary.averageUtilization,

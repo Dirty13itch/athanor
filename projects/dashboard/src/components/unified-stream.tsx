@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FeedbackButtons } from "@/components/gen-ui/feedback-buttons";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { cn } from "@/lib/utils";
 
 interface StreamEvent {
@@ -74,6 +75,8 @@ const FILTER_OPTIONS = [
 ] as const;
 
 export function UnifiedStream({ limit = 12, filterTypes, showFilters = false, agentFilter }: { limit?: number; filterTypes?: string[]; showFilters?: boolean; agentFilter?: string | null }) {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -83,6 +86,12 @@ export function UnifiedStream({ limit = 12, filterTypes, showFilters = false, ag
     : filterTypes;
 
   useEffect(() => {
+    if (locked) {
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     async function fetchEvents() {
@@ -152,7 +161,11 @@ export function UnifiedStream({ limit = 12, filterTypes, showFilters = false, ag
       mounted = false;
       clearInterval(interval);
     };
-  }, [limit, effectiveFilter, agentFilter]);
+  }, [agentFilter, effectiveFilter, limit, locked]);
+
+  if (locked) {
+    return <p className="py-2 text-xs text-muted-foreground">Unlock required to view the operator activity stream.</p>;
+  }
 
   if (loading) {
     return (

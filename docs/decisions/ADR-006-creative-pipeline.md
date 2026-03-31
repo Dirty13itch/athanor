@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-15
 **Status:** Accepted
-**Research:** [docs/research/2026-02-15-creative-pipeline.md](../research/2026-02-15-creative-pipeline.md)
+**Research:** [docs/archive/research/2026-02-15-creative-pipeline.md](../archive/research/2026-02-15-creative-pipeline.md)
 **Depends on:** ADR-004 (Node Roles), ADR-005 (Inference Engine)
 
 ---

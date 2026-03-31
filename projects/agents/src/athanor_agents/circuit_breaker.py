@@ -247,24 +247,98 @@ def get_circuit_breakers() -> InferenceCircuitBreakers:
 
 # FastAPI router
 def create_circuit_breaker_router():
-    from fastapi import APIRouter
+    from fastapi import APIRouter, Request
+    from starlette.responses import JSONResponse
+
+    from .operator_contract import (
+        build_operator_action,
+        emit_operator_audit_event,
+        require_operator_action,
+    )
 
     router = APIRouter(prefix="/v1/circuits", tags=["circuit-breakers"])
+
+    async def _load_operator_action(
+        request: Request,
+        *,
+        route: str,
+        default_reason: str,
+    ):
+        body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+        if not isinstance(body, dict):
+            body = {}
+
+        candidate = build_operator_action(body, default_reason=default_reason)
+        try:
+            action = require_operator_action(
+                body,
+                action_class="admin",
+                default_reason=default_reason,
+            )
+        except Exception as exc:
+            detail = getattr(exc, "detail", str(exc))
+            status_code = getattr(exc, "status_code", 400)
+            await emit_operator_audit_event(
+                service="agent-server",
+                route=route,
+                action_class="admin",
+                decision="denied",
+                status_code=status_code,
+                action=candidate,
+                detail=str(detail),
+            )
+            return None, JSONResponse(status_code=status_code, content={"error": detail})
+
+        return action, None
 
     @router.get("/")
     async def list_circuits():
         return get_circuit_breakers().get_all_stats()
 
     @router.post("/{service}/open")
-    async def force_open(service: str):
+    async def force_open(service: str, request: Request):
+        action, denial = await _load_operator_action(
+            request,
+            route="/v1/circuits/{service}/open",
+            default_reason=f"Opened circuit {service}",
+        )
+        if denial:
+            return denial
         breaker = get_circuit_breakers().get_or_create(service)
         await breaker.force_open()
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/circuits/{service}/open",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Opened circuit for {service}",
+            target=service,
+        )
         return {"service": service, "state": "open"}
 
     @router.post("/{service}/close")
-    async def force_close(service: str):
+    async def force_close(service: str, request: Request):
+        action, denial = await _load_operator_action(
+            request,
+            route="/v1/circuits/{service}/close",
+            default_reason=f"Closed circuit {service}",
+        )
+        if denial:
+            return denial
         breaker = get_circuit_breakers().get_or_create(service)
         await breaker.force_close()
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/circuits/{service}/close",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Closed circuit for {service}",
+            target=service,
+        )
         return {"service": service, "state": "closed"}
 
     return router

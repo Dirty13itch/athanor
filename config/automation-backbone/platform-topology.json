@@ -1,0 +1,419 @@
+{
+  "version": "2026-03-27.1",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/platform-topology.json",
+  "nodes": [
+    {
+      "id": "dev",
+      "label": "DEV",
+      "role": "ops_center",
+      "default_host": "192.168.1.189",
+      "host_envs": ["ATHANOR_DEV_IP", "ATHANOR_DEV_HOST"],
+      "description": "Primary operations workstation and support runtime host."
+    },
+    {
+      "id": "foundry",
+      "label": "FOUNDRY",
+      "role": "heavy_compute",
+      "default_host": "192.168.1.244",
+      "host_envs": ["ATHANOR_FOUNDRY_IP", "ATHANOR_NODE1_HOST", "ATHANOR_FOUNDRY_HOST"],
+      "description": "Heavy inference, multi-GPU, and agent runtime host."
+    },
+    {
+      "id": "workshop",
+      "label": "WORKSHOP",
+      "role": "creative_compute",
+      "default_host": "192.168.1.225",
+      "host_envs": ["ATHANOR_WORKSHOP_IP", "ATHANOR_NODE2_HOST", "ATHANOR_WORKSHOP_HOST"],
+      "description": "Interactive creative inference and UI-adjacent runtime host."
+    },
+    {
+      "id": "vault",
+      "label": "VAULT",
+      "role": "storage_observability",
+      "default_host": "192.168.1.203",
+      "host_envs": ["ATHANOR_VAULT_IP", "ATHANOR_VAULT_HOST"],
+      "description": "Primary storage, observability, and shared data host."
+    },
+    {
+      "id": "desk",
+      "label": "DESK",
+      "role": "workstation",
+      "default_host": "192.168.1.50",
+      "host_envs": ["ATHANOR_DESK_IP", "ATHANOR_DESK_HOST"],
+      "description": "Desktop workstation and local operator surface."
+    }
+  ],
+  "services": [
+    {
+      "id": "agent_server",
+      "label": "Agent Server",
+      "node": "foundry",
+      "scheme": "http",
+      "port": 9000,
+      "url_env": "ATHANOR_AGENT_SERVER_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "admin",
+      "health_path": "/health"
+    },
+    {
+      "id": "gpu_orchestrator",
+      "label": "GPU Orchestrator",
+      "node": "foundry",
+      "scheme": "http",
+      "port": 9200,
+      "url_env": "ATHANOR_GPU_ORCHESTRATOR_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "admin",
+      "health_path": "/health"
+    },
+    {
+      "id": "ws_pty_bridge",
+      "label": "WS PTY Bridge",
+      "node": "workshop",
+      "scheme": "http",
+      "port": 3100,
+      "url_env": "ATHANOR_WS_PTY_BRIDGE_URL",
+      "allowed_nodes": ["workshop", "foundry", "dev"],
+      "runtime_class": "control_plane",
+      "auth_class": "admin",
+      "health_path": "/health"
+    },
+    {
+      "id": "quality_gate",
+      "label": "Quality Gate",
+      "node": "dev",
+      "scheme": "http",
+      "port": 8790,
+      "url_env": "ATHANOR_QUALITY_GATE_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "admin",
+      "health_path": "/health"
+    },
+    {
+      "id": "dashboard",
+      "label": "Command Center",
+      "node": "dev",
+      "scheme": "http",
+      "port": 3001,
+      "url_env": "ATHANOR_DASHBOARD_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/api/operator/session"
+    },
+    {
+      "id": "litellm",
+      "label": "LiteLLM",
+      "node": "vault",
+      "scheme": "http",
+      "port": 4000,
+      "url_env": "ATHANOR_LITELLM_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "vllm_coordinator",
+      "label": "vLLM Coordinator",
+      "node": "foundry",
+      "scheme": "http",
+      "port": 8000,
+      "url_env": "ATHANOR_VLLM_COORDINATOR_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "vllm_coder",
+      "label": "vLLM Coder",
+      "node": "foundry",
+      "scheme": "http",
+      "port": 8006,
+      "url_env": "ATHANOR_VLLM_CODER_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "vllm_worker",
+      "label": "vLLM Worker",
+      "node": "workshop",
+      "scheme": "http",
+      "port": 8010,
+      "url_env": "ATHANOR_VLLM_WORKER_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "vllm_vision",
+      "label": "vLLM Vision",
+      "node": "workshop",
+      "scheme": "http",
+      "port": 8000,
+      "url_env": "ATHANOR_VLLM_VISION_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "embedding",
+      "label": "Embedding",
+      "node": "dev",
+      "scheme": "http",
+      "port": 8001,
+      "url_env": "ATHANOR_EMBEDDING_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "reranker",
+      "label": "Reranker",
+      "node": "dev",
+      "scheme": "http",
+      "port": 8003,
+      "url_env": "ATHANOR_RERANKER_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "semantic_router",
+      "label": "Semantic Router",
+      "node": "dev",
+      "scheme": "http",
+      "port": 8060,
+      "url_env": "ATHANOR_SEMANTIC_ROUTER_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "subscription_burn",
+      "label": "Subscription Burn",
+      "node": "dev",
+      "scheme": "http",
+      "port": 8065,
+      "url_env": "ATHANOR_SUBSCRIPTION_BURN_URL",
+      "runtime_class": "scaffold",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "scorer",
+      "label": "Scorer",
+      "node": "workshop",
+      "scheme": "http",
+      "port": 8050,
+      "url_env": "ATHANOR_SCORER_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "comfyui",
+      "label": "ComfyUI",
+      "node": "workshop",
+      "scheme": "http",
+      "port": 8188,
+      "url_env": "ATHANOR_COMFYUI_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/system_stats"
+    },
+    {
+      "id": "ollama_workshop",
+      "label": "Ollama Workshop",
+      "node": "workshop",
+      "scheme": "http",
+      "port": 11434,
+      "url_env": "ATHANOR_OLLAMA_WORKSHOP_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/api/tags"
+    },
+    {
+      "id": "qdrant",
+      "label": "Qdrant",
+      "node": "vault",
+      "scheme": "http",
+      "port": 6333,
+      "url_env": "ATHANOR_QDRANT_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/collections"
+    },
+    {
+      "id": "neo4j",
+      "label": "Neo4j Bolt",
+      "node": "vault",
+      "scheme": "bolt",
+      "port": 7687,
+      "url_env": "ATHANOR_NEO4J_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only"
+    },
+    {
+      "id": "neo4j_http",
+      "label": "Neo4j HTTP",
+      "node": "vault",
+      "scheme": "http",
+      "port": 7474,
+      "url_env": "ATHANOR_NEO4J_HTTP_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/"
+    },
+    {
+      "id": "redis",
+      "label": "Redis",
+      "node": "vault",
+      "scheme": "redis",
+      "port": 6379,
+      "path": "/0",
+      "url_env": "ATHANOR_REDIS_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only"
+    },
+    {
+      "id": "prometheus",
+      "label": "Prometheus",
+      "node": "vault",
+      "scheme": "http",
+      "port": 9090,
+      "url_env": "ATHANOR_PROMETHEUS_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "operator",
+      "health_path": "/-/healthy"
+    },
+    {
+      "id": "grafana",
+      "label": "Grafana",
+      "node": "vault",
+      "scheme": "http",
+      "port": 3000,
+      "url_env": "ATHANOR_GRAFANA_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "operator",
+      "health_path": "/api/health"
+    },
+    {
+      "id": "langfuse",
+      "label": "Langfuse",
+      "node": "vault",
+      "scheme": "http",
+      "port": 3030,
+      "url_env": "ATHANOR_LANGFUSE_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "operator",
+      "health_path": "/api/public/health"
+    },
+    {
+      "id": "ntfy",
+      "label": "ntfy",
+      "node": "vault",
+      "scheme": "http",
+      "port": 8880,
+      "url_env": "ATHANOR_NTFY_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "operator",
+      "health_path": "/v1/health"
+    },
+    {
+      "id": "ntfy_topic",
+      "label": "ntfy Athanor Topic",
+      "node": "vault",
+      "scheme": "http",
+      "port": 8880,
+      "path": "/athanor",
+      "url_env": "ATHANOR_NTFY_TOPIC_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "operator"
+    },
+    {
+      "id": "gateway",
+      "label": "Gateway",
+      "node": "dev",
+      "scheme": "http",
+      "port": 8700,
+      "url_env": "ATHANOR_GATEWAY_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "memory",
+      "label": "Memory Service",
+      "node": "dev",
+      "scheme": "http",
+      "port": 8720,
+      "url_env": "ATHANOR_MEMORY_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
+      "id": "speaches",
+      "label": "Speaches",
+      "node": "foundry",
+      "scheme": "http",
+      "port": 8200,
+      "url_env": "ATHANOR_SPEACHES_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator"
+    },
+    {
+      "id": "stash",
+      "label": "Stash",
+      "node": "vault",
+      "scheme": "http",
+      "port": 9999,
+      "url_env": "ATHANOR_STASH_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator"
+    },
+    {
+      "id": "uptime_kuma",
+      "label": "Uptime Kuma",
+      "node": "vault",
+      "scheme": "http",
+      "port": 3009,
+      "url_env": "ATHANOR_UPTIME_KUMA_URL",
+      "runtime_class": "control_plane",
+      "auth_class": "operator"
+    },
+    {
+      "id": "n8n",
+      "label": "n8n",
+      "node": "vault",
+      "scheme": "http",
+      "port": 5678,
+      "url_env": "ATHANOR_N8N_URL",
+      "runtime_class": "scaffold",
+      "auth_class": "operator"
+    },
+    {
+      "id": "miniflux",
+      "label": "Miniflux",
+      "node": "vault",
+      "scheme": "http",
+      "port": 8070,
+      "url_env": "ATHANOR_MINIFLUX_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/healthcheck"
+    },
+    {
+      "id": "openfang",
+      "label": "OpenFang",
+      "node": "dev",
+      "scheme": "http",
+      "port": 4200,
+      "url_env": "ATHANOR_OPENFANG_URL",
+      "runtime_class": "scaffold",
+      "auth_class": "operator",
+      "health_path": "/api/health"
+    }
+  ]
+}

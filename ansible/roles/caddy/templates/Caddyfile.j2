@@ -1,0 +1,11 @@
+{
+    local_certs
+}
+
+{{ ([caddy_front_door_hostname] + (caddy_front_door_additional_hostnames | default([]))) | join(", ") }} {
+    {% if caddy_front_door_tls_mode == "internal" -%}
+    tls internal
+    {% endif -%}
+    encode zstd gzip
+    reverse_proxy {{ caddy_front_door_upstream }}
+}

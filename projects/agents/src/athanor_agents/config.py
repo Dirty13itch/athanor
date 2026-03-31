@@ -1,3 +1,6 @@
+from functools import lru_cache
+from typing import Any
+
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -11,28 +14,88 @@ def _ensure_openai_base_url(url: str) -> str:
     return normalized if normalized.endswith("/v1") else f"{normalized}/v1"
 
 
+@lru_cache(maxsize=1)
+def _platform_topology() -> dict[str, Any]:
+    try:
+        from .model_governance import get_platform_topology
+
+        topology = get_platform_topology()
+        if isinstance(topology, dict):
+            return topology
+    except Exception:
+        pass
+    return {"nodes": [], "services": []}
+
+
+@lru_cache(maxsize=1)
+def _node_definitions() -> dict[str, dict[str, Any]]:
+    return {
+        str(node.get("id")): dict(node)
+        for node in _platform_topology().get("nodes", [])
+        if isinstance(node, dict) and node.get("id")
+    }
+
+
+@lru_cache(maxsize=1)
+def _service_definitions() -> dict[str, dict[str, Any]]:
+    return {
+        str(service.get("id")): dict(service)
+        for service in _platform_topology().get("services", [])
+        if isinstance(service, dict) and service.get("id")
+    }
+
+
+def _node_default(node_id: str, fallback: str) -> str:
+    node = _node_definitions().get(node_id, {})
+    value = str(node.get("default_host") or "").strip()
+    return value or fallback
+
+
+def _service_default_url(service_id: str, fallback: str) -> str:
+    service = _service_definitions().get(service_id)
+    if not service:
+        return fallback
+
+    node_id = str(service.get("node") or "").strip()
+    node_host = _node_default(node_id, "")
+    scheme = str(service.get("scheme") or "").strip()
+    try:
+        port = int(service.get("port") or 0)
+    except (TypeError, ValueError):
+        return fallback
+    path = str(service.get("path") or "")
+    if not node_host or not scheme or port <= 0:
+        return fallback
+    return f"{scheme}://{node_host}:{port}{path}"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="", extra="ignore")
 
+    runtime_environment: str = Field(
+        default="production",
+        validation_alias=AliasChoices("ATHANOR_ENV", "ATHANOR_RUNTIME_ENV", "APP_ENV", "ENVIRONMENT"),
+    )
+
     node1_host: str = Field(
-        default="192.168.1.244",
+        default_factory=lambda: _node_default("foundry", "192.168.1.244"),
         validation_alias=AliasChoices("ATHANOR_NODE1_HOST"),
     )
     node2_host: str = Field(
-        default="192.168.1.225",
+        default_factory=lambda: _node_default("workshop", "192.168.1.225"),
         validation_alias=AliasChoices("ATHANOR_NODE2_HOST"),
     )
     vault_host: str = Field(
-        default="192.168.1.203",
+        default_factory=lambda: _node_default("vault", "192.168.1.203"),
         validation_alias=AliasChoices("ATHANOR_VAULT_HOST"),
     )
     dev_host: str = Field(
-        default="192.168.1.189",
+        default_factory=lambda: _node_default("dev", "192.168.1.189"),
         validation_alias=AliasChoices("ATHANOR_DEV_HOST"),
     )
 
     litellm_url: str = Field(
-        default="http://192.168.1.203:4000",
+        default_factory=lambda: _service_default_url("litellm", "http://192.168.1.203:4000"),
         validation_alias=AliasChoices("ATHANOR_LITELLM_URL", "ATHANOR_LLM_BASE_URL"),
     )
     litellm_api_key: str = Field(
@@ -78,58 +141,58 @@ class Settings(BaseSettings):
     )
 
     coordinator_url: str = Field(
-        default="http://192.168.1.244:8000",
+        default_factory=lambda: _service_default_url("vllm_coordinator", "http://192.168.1.244:8000"),
         validation_alias=AliasChoices(
             "ATHANOR_VLLM_COORDINATOR_URL",
             "ATHANOR_VLLM_NODE1_URL",
         ),
     )
     coder_url: str = Field(
-        default="http://192.168.1.244:8006",
+        default_factory=lambda: _service_default_url("vllm_coder", "http://192.168.1.244:8006"),
         validation_alias=AliasChoices("ATHANOR_VLLM_CODER_URL", "ATHANOR_VLLM_UTILITY_URL"),
     )
     worker_url: str = Field(
-        default="http://192.168.1.225:8010",
+        default_factory=lambda: _service_default_url("vllm_worker", "http://192.168.1.225:8010"),
         validation_alias=AliasChoices(
             "ATHANOR_VLLM_WORKER_URL",
             "ATHANOR_VLLM_NODE2_URL",
         ),
     )
     embedding_url: str = Field(
-        default="http://192.168.1.189:8001",
+        default_factory=lambda: _service_default_url("embedding", "http://192.168.1.189:8001"),
         validation_alias=AliasChoices("ATHANOR_VLLM_EMBEDDING_URL"),
     )
     reranker_url: str = Field(
-        default="http://192.168.1.189:8003",
+        default_factory=lambda: _service_default_url("reranker", "http://192.168.1.189:8003"),
         validation_alias=AliasChoices("ATHANOR_VLLM_RERANKER_URL"),
     )
     vision_url: str = Field(
-        default="http://192.168.1.225:8010",
+        default_factory=lambda: _service_default_url("vllm_vision", "http://192.168.1.225:8010"),
         validation_alias=AliasChoices("ATHANOR_VLLM_VISION_URL"),
     )
 
     agent_server_url: str = Field(
-        default="http://192.168.1.244:9000",
+        default_factory=lambda: _service_default_url("agent_server", "http://192.168.1.244:9000"),
         validation_alias=AliasChoices("ATHANOR_AGENT_SERVER_URL"),
     )
     dashboard_url: str = Field(
-        default="http://192.168.1.225:3001",
+        default_factory=lambda: _service_default_url("dashboard", "http://dev.athanor.local:3001"),
         validation_alias=AliasChoices("ATHANOR_DASHBOARD_URL"),
     )
     prometheus_url: str = Field(
-        default="http://192.168.1.203:9090",
+        default_factory=lambda: _service_default_url("prometheus", "http://192.168.1.203:9090"),
         validation_alias=AliasChoices("ATHANOR_PROMETHEUS_URL"),
     )
     grafana_url: str = Field(
-        default="http://192.168.1.203:3000",
+        default_factory=lambda: _service_default_url("grafana", "http://192.168.1.203:3000"),
         validation_alias=AliasChoices("ATHANOR_GRAFANA_URL"),
     )
     qdrant_url: str = Field(
-        default="http://192.168.1.244:6333",
+        default_factory=lambda: _service_default_url("qdrant", "http://192.168.1.203:6333"),
         validation_alias=AliasChoices("ATHANOR_QDRANT_URL"),
     )
     redis_url: str = Field(
-        default="redis://192.168.1.203:6379/0",
+        default_factory=lambda: _service_default_url("redis", "redis://192.168.1.203:6379/0"),
         validation_alias=AliasChoices("ATHANOR_REDIS_URL"),
     )
     redis_password: str = Field(
@@ -141,7 +204,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("ATHANOR_SUBSCRIPTION_POLICY_PATH"),
     )
     neo4j_url: str = Field(
-        default="http://192.168.1.203:7474",
+        default_factory=lambda: _service_default_url("neo4j_http", "http://192.168.1.203:7474"),
         validation_alias=AliasChoices("ATHANOR_NEO4J_URL"),
     )
     neo4j_user: str = Field(
@@ -199,12 +262,12 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("ATHANOR_SABNZBD_URL"),
     )
     stash_url: str = Field(
-        default="http://192.168.1.203:9999",
+        default_factory=lambda: _service_default_url("stash", "http://192.168.1.203:9999"),
         validation_alias=AliasChoices("ATHANOR_STASH_URL"),
     )
 
     comfyui_url: str = Field(
-        default="http://192.168.1.225:8188",
+        default_factory=lambda: _service_default_url("comfyui", "http://192.168.1.225:8188"),
         validation_alias=AliasChoices("ATHANOR_COMFYUI_URL"),
     )
     open_webui_url: str = Field(
@@ -220,20 +283,32 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("ATHANOR_EOQ_URL", "ATHANOR_EOBQ_URL"),
     )
     speaches_url: str = Field(
-        default="http://192.168.1.244:8200",
+        default_factory=lambda: _service_default_url("speaches", "http://192.168.1.244:8200"),
         validation_alias=AliasChoices("ATHANOR_SPEACHES_URL"),
     )
     gpu_orchestrator_url: str = Field(
-        default="http://192.168.1.244:9200",
+        default_factory=lambda: _service_default_url("gpu_orchestrator", "http://192.168.1.244:9200"),
         validation_alias=AliasChoices("ATHANOR_GPU_ORCHESTRATOR_URL"),
     )
+    provider_bridge_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_PROVIDER_BRIDGE_URL"),
+    )
+    provider_bridge_token: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_PROVIDER_BRIDGE_TOKEN"),
+    )
+    provider_bridge_timeout_seconds: int = Field(
+        default=120,
+        validation_alias=AliasChoices("ATHANOR_PROVIDER_BRIDGE_TIMEOUT_SECONDS"),
+    )
     langfuse_url: str = Field(
-        default="http://192.168.1.203:3030",
+        default_factory=lambda: _service_default_url("langfuse", "http://192.168.1.203:3030"),
         validation_alias=AliasChoices("ATHANOR_LANGFUSE_URL"),
     )
 
     miniflux_url: str = Field(
-        default="http://192.168.1.203:8070",
+        default_factory=lambda: _service_default_url("miniflux", "http://192.168.1.203:8070"),
         validation_alias=AliasChoices("ATHANOR_MINIFLUX_URL", "MINIFLUX_URL"),
     )
     miniflux_user: str = Field(
@@ -246,7 +321,7 @@ class Settings(BaseSettings):
     )
 
     ntfy_url: str = Field(
-        default="http://192.168.1.203:8880",
+        default_factory=lambda: _service_default_url("ntfy", "http://192.168.1.203:8880"),
         validation_alias=AliasChoices("ATHANOR_NTFY_URL"),
     )
     ntfy_topic: str = Field(

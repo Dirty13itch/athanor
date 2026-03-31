@@ -12,7 +12,8 @@ Systematic debugging for Athanor. Follow this order — don't skip steps.
 ```bash
 # Service health
 curl -sf http://192.168.1.244:9000/health  # Agent server
-curl -sf http://192.168.1.225:3001          # Dashboard
+curl -skf https://athanor.local/api/operator/session      # Canonical front door
+curl -sf http://dev.athanor.local:3001/api/operator/session  # Command Center runtime fallback
 curl -sf http://192.168.1.203:4000/health   # LiteLLM
 
 # Container status

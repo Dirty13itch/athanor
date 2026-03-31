@@ -12,16 +12,18 @@ paths:
 After any operational change, update all affected docs atomically (same commit).
 
 ## After Deploying a Service
-- `docs/SERVICES.md` — add/update entry
-- `docs/SYSTEM-SPEC.md` — update service inventory
-- `docs/BUILD-MANIFEST.md` — mark item complete if applicable
-- `STATUS.md` — update cluster state
+- `docs/SERVICES.md` - add or update entry
+- `docs/SYSTEM-SPEC.md` - update service inventory
+- `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` - update the live execution order if priorities changed
+- `STATUS.md` - update cluster state
 
 ## After GPU Reassignment
-- `docs/hardware/inventory.md` — update GPU allocation
-- `.claude/rules/vllm.md` — update deployment section
-- `.claude/skills/gpu-placement.md` — update placement table
-- `docs/SYSTEM-SPEC.md` — update model inventory table
+- `config/automation-backbone/hardware-inventory.json` - active hardware truth
+- `docs/operations/HARDWARE-REPORT.md` - regenerate the summary after inventory changes
+- `docs/archive/hardware/hardware-inventory.md` - update only if the historical owned-hardware ledger itself changed
+- `.claude/rules/vllm.md` - update deployment section
+- `.claude/skills/gpu-placement.md` - update placement table
+- `docs/SYSTEM-SPEC.md` - update model inventory table
 
 ## After Model Swap
 - Grep all references to old model name: `grep -rn "old-model" .`
@@ -34,5 +36,5 @@ After any operational change, update all affected docs atomically (same commit).
 - One commit for all changes
 
 ## Validation
-- `python3 scripts/check-doc-refs.py` — finds broken internal links
+- `python3 scripts/check-doc-refs.py` - finds broken internal links
 - Manual: grep for the changed value across entire repo

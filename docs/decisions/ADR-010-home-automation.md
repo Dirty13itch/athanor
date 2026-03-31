@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-15
 **Status:** Accepted
-**Research:** [docs/research/2026-02-15-home-automation.md](../research/2026-02-15-home-automation.md)
+**Research:** [docs/archive/research/2026-02-15-home-automation.md](../archive/research/2026-02-15-home-automation.md)
 **Depends on:** ADR-001 (Base Platform), ADR-007 (Dashboard)
 
 ---

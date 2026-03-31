@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import webpush from "web-push";
 import { isDashboardFixtureMode } from "@/lib/dashboard-fixtures";
-import { getSubscriptions } from "../subscribe/route";
+import { listPushSubscriptions } from "../store";
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY ?? "";
@@ -12,7 +12,7 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 
 export async function POST(request: NextRequest) {
   if (isDashboardFixtureMode()) {
-    const subs = getSubscriptions();
+    const subs = listPushSubscriptions();
     return NextResponse.json({
       sent: subs.length,
       failed: 0,
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       data: data ?? {},
     });
 
-    const subs = getSubscriptions();
+    const subs = listPushSubscriptions();
     if (subs.length === 0) {
       return NextResponse.json({ error: "No subscriptions", sent: 0 });
     }

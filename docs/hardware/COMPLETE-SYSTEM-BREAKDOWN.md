@@ -1077,7 +1077,7 @@ TARGET: 5GbE = 1,250 MB/s (10× faster, dedicated bandwidth per node)
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                     CLIENT / BROWSER LAYER                           │
-│  http://192.168.1.225:3001  →  Dashboard (Next.js)                  │
+│  https://athanor.local/     →  Athanor Command Center               │
 │  http://192.168.1.225:3000  →  Open WebUI (chat frontend)           │
 │  http://192.168.1.225:8188  →  ComfyUI (Flux image gen)             │
 │  http://192.168.1.203:3000  →  Grafana (monitoring)                 │
@@ -1088,7 +1088,7 @@ TARGET: 5GbE = 1,250 MB/s (10× faster, dedicated bandwidth per node)
 ┌──────────────────────────────────────────────────────────────────────┐
 │              NODE 2 "Workshop" - Interface Layer (.225)              │
 │                                                                      │
-│  Dashboard (3001)  ─────┐                                           │
+│  Command Center    ─────┐                                           │
 │  Open WebUI (3000) ─────┼──→  HTTP API calls                        │
 │                         │     to Node 1 vLLM                         │
 │                         │                                            │

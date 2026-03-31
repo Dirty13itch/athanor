@@ -24,6 +24,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import type { ProjectSnapshot, ProjectsSnapshot } from "@/lib/contracts";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { requestJson, postJson } from "@/features/workforce/helpers";
 
 // ── Inline types for milestone data (no Zod schemas) ─────────────────
@@ -60,6 +61,7 @@ interface StalledProject {
 
 interface StalledResponse {
   stalled: StalledProject[];
+  projects?: StalledProject[];
   count: number;
 }
 
@@ -90,6 +92,8 @@ function projectStatusTone(status: string) {
 
 export function ProjectsConsole() {
   const queryClient = useQueryClient();
+  const operatorSession = useOperatorSessionStatus();
+  const privilegedReadEnabled = !operatorSession.isPending && !isOperatorSessionLocked(operatorSession);
   const [expandedProject, setExpandedProject] = useState<string | null>(null);
   const [milestoneCache, setMilestoneCache] = useState<
     Record<string, MilestonesResponse>
@@ -112,6 +116,7 @@ export function ProjectsConsole() {
   const stalledQuery = useQuery<StalledResponse>({
     queryKey: ["projects-stalled"],
     queryFn: () => requestJson("/api/projects/stalled"),
+    enabled: privilegedReadEnabled,
     refetchInterval: 60_000,
   });
 

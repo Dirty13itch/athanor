@@ -184,7 +184,7 @@ class TestFallbackChains:
     """Fallback chain configuration."""
 
     def test_reasoning_fallback_chain(self):
-        assert routing.FALLBACK_CHAINS["reasoning"] == ["worker", "fast"]
+        assert routing.FALLBACK_CHAINS["reasoning"] == ["worker", "fast", "claude"]
 
     def test_fast_fallback_chain(self):
         assert routing.FALLBACK_CHAINS["fast"] == ["worker", "reasoning"]

@@ -1,0 +1,288 @@
+{
+  "version": "2026-03-29.2",
+  "updated_at": "2026-03-29T04:20:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/runtime-migration-registry.json",
+  "migrations": [
+    {
+      "id": "dev-governor-facade-8760-callers",
+      "status": "retired",
+      "severity": "high",
+      "runtime_surface": "athanor-governor.service on DEV :8760",
+      "runtime_owner": "/home/shaun/repos/athanor on DEV",
+      "canonical_owner": "C:\\Athanor",
+      "runtime_listener": "http://127.0.0.1:8760",
+      "runtime_backup_root": "/home/shaun/.athanor/backups/governor-facade-cutover",
+      "systemd_backup_target": "/home/shaun/.athanor/backups/governor-facade-cutover/athanor-governor.service",
+      "canonical_successor_surfaces": [
+        "/v1/tasks",
+        "/v1/tasks/stats",
+        "/v1/governor"
+      ],
+      "maintenance_window_required": false,
+      "observed_at": "2026-03-29T02:48:53Z",
+      "observed_runtime_repo_head": "075490f",
+      "runbook_path": "docs/runbooks/governor-facade-retirement.md",
+      "generated_report_path": "docs/operations/RUNTIME-MIGRATION-REPORT.md",
+      "acceptance_criteria": [
+        "All runtime-owned callers that still hit :8760 are migrated to canonical task-engine, governor, or topology-owned health surfaces.",
+        "No new GET /queue or GET /health journal entries land on athanor-governor after maintenance-window cutover.",
+        "athanor-governor.service can be stopped without regressing dashboard, helper, or collector behavior.",
+        "The repo-side compatibility facade is deleted after runtime cutover verification, leaving rollback evidence only."
+      ],
+      "delete_gate": [
+        "Every observed DEV runtime caller is covered by this migration registry.",
+        "Every mapped caller already has a passing implementation-authority copy in C:\\Athanor.",
+        "The 2026-03-29 DEV cutover removed live :8760 helper traffic, retired athanor-governor.service, and the implementation-authority facade file is now deleted."
+      ],
+      "callers": [
+        {
+          "path": "scripts/drift-check.sh",
+          "sync_order": 1,
+          "runtime_owner_path": "/home/shaun/repos/athanor/scripts/drift-check.sh",
+          "sync_strategy": "backup_then_replace_from_implementation_authority",
+          "rollback_target": "/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh",
+          "current_purpose": "Cluster-wide drift and service health helper",
+          "canonical_replacement": "Use the implementation-authority drift-check helper with cluster-config-owned service URLs and canonical health or /v1 probes instead of :8760.",
+          "canonical_targets": [
+            "scripts/cluster_config.sh",
+            "gateway:/health",
+            "memory:/health",
+            "dashboard:/api/overview",
+            "agent_server:/health",
+            "vllm_*:/health",
+            "ollama_workshop:/api/tags"
+          ],
+          "replacement_owner_paths": [
+            "scripts/drift-check.sh",
+            "scripts/cluster_config.sh"
+          ],
+          "implementation_state": "migrated",
+          "runtime_cutover_state": "cutover_verified",
+          "ask_first_required": true,
+          "cutover_check": "Script runs cleanly from implementation authority without any :8760 reference and the DEV runtime copy no longer journals facade traffic.",
+          "repo_side_gates": [
+            "projects/agents/tests/test_repo_contracts.py::test_legacy_governor_local_helper_scripts_match_live_runtime_truth",
+            "bash scripts/drift-check.sh"
+          ],
+          "notes": [
+            "2026-03-29 maintenance window verified the DEV runtime copy matches implementation authority and the post-cutover collector observed no live facade traffic."
+          ]
+        },
+        {
+          "path": "scripts/smoke-test.sh",
+          "sync_order": 2,
+          "runtime_owner_path": "/home/shaun/repos/athanor/scripts/smoke-test.sh",
+          "sync_strategy": "backup_then_replace_from_implementation_authority",
+          "rollback_target": "/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh",
+          "current_purpose": "Minimal critical-surface smoke checker",
+          "canonical_replacement": "Use the implementation-authority smoke-test helper with cluster-config-owned canonical service URLs and no :8760 dependency.",
+          "canonical_targets": [
+            "scripts/cluster_config.sh",
+            "gateway:/health",
+            "quality_gate:/health",
+            "agent_server:/health",
+            "litellm:/health",
+            "subscription_burn:/health"
+          ],
+          "replacement_owner_paths": [
+            "scripts/smoke-test.sh",
+            "scripts/cluster_config.sh"
+          ],
+          "implementation_state": "migrated",
+          "runtime_cutover_state": "cutover_verified",
+          "ask_first_required": true,
+          "cutover_check": "Script runs cleanly from implementation authority and the DEV runtime copy no longer hits :8760.",
+          "repo_side_gates": [
+            "python scripts/validate_platform_contract.py",
+            "bash scripts/smoke-test.sh"
+          ]
+        },
+        {
+          "path": "services/cluster_config.py",
+          "sync_order": 3,
+          "runtime_owner_path": "/home/shaun/repos/athanor/services/cluster_config.py",
+          "sync_strategy": "backup_then_replace_from_implementation_authority",
+          "rollback_target": "/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py",
+          "current_purpose": "Shared canonical service URL and health-path resolver",
+          "canonical_replacement": "Use platform-topology-backed service resolution and remove any runtime-local governor URL fallback.",
+          "canonical_targets": [
+            "config/automation-backbone/platform-topology.json",
+            "services/cluster_config.py",
+            "get_health_url(service_id)",
+            "AGENT_SERVER_URL"
+          ],
+          "replacement_owner_paths": [
+            "services/cluster_config.py",
+            "config/automation-backbone/platform-topology.json"
+          ],
+          "implementation_state": "migrated",
+          "runtime_cutover_state": "cutover_verified",
+          "ask_first_required": true,
+          "cutover_check": "DEV runtime repo no longer exports or defaults any localhost:8760 governor URL.",
+          "repo_side_gates": [
+            "projects/agents/tests/test_repo_contracts.py::test_legacy_governor_local_helper_scripts_match_live_runtime_truth",
+            "python scripts/validate_platform_contract.py"
+          ],
+          "notes": [
+            "This is the shared replacement seam for helper scripts that should consume topology-owned service URLs."
+          ]
+        },
+        {
+          "path": "services/gateway/main.py",
+          "sync_order": 4,
+          "runtime_owner_path": "/home/shaun/repos/athanor/services/gateway/main.py",
+          "sync_strategy": "backup_then_replace_from_implementation_authority",
+          "rollback_target": "/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py",
+          "current_purpose": "Aggregated service-health view for the gateway surface",
+          "canonical_replacement": "Monitor topology-owned service ids through get_health_url(service_id) and shared health snapshots instead of :8760.",
+          "canonical_targets": [
+            "gateway:/health",
+            "agent_server:/health",
+            "quality_gate:/health",
+            "embedding:/health",
+            "reranker:/health"
+          ],
+          "replacement_owner_paths": [
+            "services/gateway/main.py",
+            "services/cluster_config.py"
+          ],
+          "implementation_state": "migrated",
+          "runtime_cutover_state": "cutover_verified",
+          "ask_first_required": true,
+          "cutover_check": "Gateway health references canonical task-engine stats and topology-owned dependency ids instead of localhost:8760.",
+          "repo_side_gates": [
+            "python scripts/run_service_contract_tests.py",
+            "projects/agents/tests/test_repo_contracts.py::test_legacy_governor_local_helper_scripts_match_live_runtime_truth"
+          ]
+        },
+        {
+          "path": "services/governor/status_report.py",
+          "sync_order": 5,
+          "runtime_owner_path": "/home/shaun/repos/athanor/services/governor/status_report.py",
+          "sync_strategy": "backup_then_replace_from_implementation_authority",
+          "rollback_target": "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py",
+          "current_purpose": "Operator-readable status summary generator",
+          "canonical_replacement": "Read posture, task, proposal, skill, and subscription truth from canonical agent-server and dashboard surfaces.",
+          "canonical_targets": [
+            "agent_server:/v1/goals",
+            "agent_server:/v1/tasks/stats",
+            "agent_server:/v1/improvement/proposals",
+            "agent_server:/health",
+            "dashboard:/api/subscriptions/summary"
+          ],
+          "replacement_owner_paths": [
+            "services/governor/status_report.py"
+          ],
+          "implementation_state": "migrated",
+          "runtime_cutover_state": "cutover_verified",
+          "ask_first_required": true,
+          "cutover_check": "Helper reads canonical task and subscription summary surfaces only.",
+          "repo_side_gates": [
+            "projects/agents/tests/test_repo_contracts.py::test_legacy_governor_automation_uses_canonical_task_routes",
+            "python scripts/validate_platform_contract.py"
+          ]
+        },
+        {
+          "path": "services/governor/overnight.py",
+          "sync_order": 6,
+          "runtime_owner_path": "/home/shaun/repos/athanor/services/governor/overnight.py",
+          "sync_strategy": "backup_then_replace_from_implementation_authority",
+          "rollback_target": "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py",
+          "current_purpose": "Overnight pending-task dispatch helper",
+          "canonical_replacement": "Dispatch pending work only through the canonical task engine.",
+          "canonical_targets": [
+            "agent_server:/v1/tasks?status=pending&limit=50",
+            "agent_server:/v1/tasks/dispatch"
+          ],
+          "replacement_owner_paths": [
+            "services/governor/overnight.py"
+          ],
+          "implementation_state": "migrated",
+          "runtime_cutover_state": "cutover_verified",
+          "ask_first_required": true,
+          "cutover_check": "Helper dispatches through /v1/tasks/dispatch and no longer reads /queue or /dispatch-and-run.",
+          "repo_side_gates": [
+            "projects/agents/tests/test_repo_contracts.py::test_legacy_governor_automation_uses_canonical_task_routes",
+            "services/governor/tests/test_helper_contracts.py"
+          ]
+        },
+        {
+          "path": "services/governor/act_first.py",
+          "sync_order": 7,
+          "runtime_owner_path": "/home/shaun/repos/athanor/services/governor/act_first.py",
+          "sync_strategy": "backup_then_replace_from_implementation_authority",
+          "rollback_target": "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py",
+          "current_purpose": "Completed and failed task reporting helper",
+          "canonical_replacement": "Read recent canonical task truth from the task engine and never touch legacy queue surfaces.",
+          "canonical_targets": [
+            "agent_server:/v1/tasks?limit=50"
+          ],
+          "replacement_owner_paths": [
+            "services/governor/act_first.py"
+          ],
+          "implementation_state": "migrated",
+          "runtime_cutover_state": "cutover_verified",
+          "ask_first_required": true,
+          "cutover_check": "Helper reads the canonical task list instead of mutating a local queue snapshot.",
+          "repo_side_gates": [
+            "projects/agents/tests/test_repo_contracts.py::test_legacy_governor_automation_uses_canonical_task_routes",
+            "services/governor/tests/test_helper_contracts.py"
+          ]
+        },
+        {
+          "path": "services/governor/self_improve.py",
+          "sync_order": 8,
+          "runtime_owner_path": "/home/shaun/repos/athanor/services/governor/self_improve.py",
+          "sync_strategy": "backup_then_replace_from_implementation_authority",
+          "rollback_target": "/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py",
+          "current_purpose": "Proposal-to-task automation helper",
+          "canonical_replacement": "Read and patch proposals on the agent server, then create durable tasks through canonical /v1/tasks.",
+          "canonical_targets": [
+            "agent_server:/v1/improvement/proposals",
+            "agent_server:/v1/improvement/proposals/{proposal_id}",
+            "agent_server:/v1/tasks",
+            "agent_server:/v1/goals"
+          ],
+          "replacement_owner_paths": [
+            "services/governor/self_improve.py"
+          ],
+          "implementation_state": "migrated",
+          "runtime_cutover_state": "cutover_verified",
+          "ask_first_required": true,
+          "cutover_check": "Helper submits durable tasks through /v1/tasks and no longer relies on governor-owned queue surfaces.",
+          "repo_side_gates": [
+            "projects/agents/tests/test_repo_contracts.py::test_legacy_governor_automation_uses_canonical_task_routes",
+            "services/governor/tests/test_helper_contracts.py"
+          ]
+        },
+        {
+          "path": "services/sentinel/checks.py",
+          "sync_order": 9,
+          "runtime_owner_path": "/home/shaun/repos/athanor/services/sentinel/checks.py",
+          "sync_strategy": "backup_then_replace_from_implementation_authority",
+          "rollback_target": "/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py",
+          "current_purpose": "Heartbeat, readiness, and integration probe definitions",
+          "canonical_replacement": "Probe topology-owned health surfaces and canonical /v1/tasks/stats instead of :8760.",
+          "canonical_targets": [
+            "get_health_url(service_id)",
+            "agent_server:/v1/tasks/stats",
+            "agent_server:/v1/agents"
+          ],
+          "replacement_owner_paths": [
+            "services/sentinel/checks.py",
+            "services/cluster_config.py"
+          ],
+          "implementation_state": "migrated",
+          "runtime_cutover_state": "cutover_verified",
+          "ask_first_required": true,
+          "cutover_check": "Sentinel integration checks use canonical task-engine stats and topology-owned service health URLs.",
+          "repo_side_gates": [
+            "python scripts/run_service_contract_tests.py",
+            "projects/agents/tests/test_repo_contracts.py::test_legacy_governor_main_is_deleted_from_implementation_authority"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -63,7 +63,7 @@ ENDPOINTS = {
         "name": "comfyui",
         "type": "comfyui",
     },
-    host_port_from_url(env("ATHANOR_DASHBOARD_URL", f"http://{NODE2_HOST}:3001")): {
+    host_port_from_url(env("ATHANOR_DASHBOARD_URL", "http://dev.athanor.local:3001")): {
         "name": "dashboard",
         "type": "http",
     },

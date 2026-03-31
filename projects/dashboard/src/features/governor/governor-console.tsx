@@ -54,7 +54,7 @@ export function GovernorConsole() {
   const trustQuery = useQuery({
     queryKey: ["trust-scores"],
     queryFn: async (): Promise<TrustScore[]> => {
-      const data = await requestJson("/api/agents/proxy?path=/v1/trust");
+      const data = await requestJson("/api/trust");
       // Agent Server returns { agents: { agent_id: { score, grade, ... } } }
       const agents = data?.agents;
       if (agents && typeof agents === "object" && !Array.isArray(agents)) {

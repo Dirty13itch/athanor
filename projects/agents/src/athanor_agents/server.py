@@ -1,12 +1,15 @@
 import logging
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from .auth import BearerAuthContract
 from .agents import list_agents
+from .command_hierarchy import build_system_map_snapshot
 from .config import settings
 
 # Configure root logger so all athanor_agents.* loggers are visible
@@ -17,6 +20,14 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+SERVICE_STARTED_AT = datetime.now(timezone.utc).isoformat()
+
+AUTH_CONTRACT = BearerAuthContract(
+    service_name="agent-server",
+    runtime_environment=settings.runtime_environment,
+    bearer_token=settings.api_bearer_token,
+    token_env_names=("ATHANOR_AGENT_API_TOKEN", "ATHANOR_API_BEARER_TOKEN"),
+)
 
 
 # --- Agent metadata (single source of truth) ---
@@ -103,6 +114,7 @@ async def lifespan(app: FastAPI):
     from .tasks import start_task_worker, stop_task_worker
     from .scheduler import start_scheduler, stop_scheduler
 
+    AUTH_CONTRACT.validate_startup()
     _init_agents()
     ensure_collections()
 
@@ -170,27 +182,29 @@ AUTH_EXEMPT_PATHS = {"/health", "/metrics", "/docs", "/openapi.json"}
 
 class BearerAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        token = settings.api_bearer_token
-        if not token:
-            # No token configured — auth disabled (backwards compatible)
+        denial = AUTH_CONTRACT.authorize(request)
+        if denial is None:
             return await call_next(request)
-        if request.url.path in AUTH_EXEMPT_PATHS:
-            return await call_next(request)
-        auth = request.headers.get("authorization", "")
-        if auth == f"Bearer {token}":
-            return await call_next(request)
-        return JSONResponse(
-            status_code=401,
-            content={"error": {"message": "Invalid or missing bearer token", "type": "authentication_error"}},
-        )
+        return denial
 
 
 app.add_middleware(BearerAuthMiddleware)
 
 from fastapi.middleware.cors import CORSMiddleware
+
+ALLOWED_ORIGINS = [
+    origin
+    for origin in {
+        settings.dashboard_url.rstrip("/"),
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    }
+    if origin
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -205,13 +219,29 @@ async def health():
     import asyncio
     import httpx
 
+    checked_at = datetime.now(timezone.utc).isoformat()
+
     async def _probe(name: str, url: str, timeout: float = 2.0, headers: dict | None = None) -> dict:
         try:
             async with httpx.AsyncClient(timeout=timeout) as c:
                 resp = await c.get(url, headers=headers or {})
-                return {"name": name, "status": "up", "latency_ms": int(resp.elapsed.total_seconds() * 1000)}
+                latency_ms = int(resp.elapsed.total_seconds() * 1000)
+                return {
+                    "id": name,
+                    "status": "healthy",
+                    "required": name in {"redis", "qdrant", "litellm"},
+                    "last_checked_at": checked_at,
+                    "detail": f"latency_ms={latency_ms}",
+                    "latency_ms": latency_ms,
+                }
         except Exception as e:
-            return {"name": name, "status": "down", "error": str(e)[:120]}
+            return {
+                "id": name,
+                "status": "down",
+                "required": name in {"redis", "qdrant", "litellm"},
+                "last_checked_at": checked_at,
+                "detail": str(e)[:120],
+            }
 
     deps = await asyncio.gather(
         _probe("redis", f"http://{settings.vault_host}:6379", timeout=1.0),  # TCP only, will fail on HTTP but that's fine
@@ -229,32 +259,63 @@ async def health():
         r = _redis.from_url(settings.redis_url, password=settings.redis_password or None, socket_timeout=1.0)
         r.ping()
         deps = list(deps)
-        deps[0] = {"name": "redis", "status": "up", "latency_ms": 0}
+        deps[0] = {
+            "id": "redis",
+            "status": "healthy",
+            "required": True,
+            "last_checked_at": checked_at,
+            "detail": "latency_ms=0",
+            "latency_ms": 0,
+        }
     except Exception as e:
         deps = list(deps)
-        deps[0] = {"name": "redis", "status": "down", "error": str(e)[:120]}
+        deps[0] = {
+            "id": "redis",
+            "status": "down",
+            "required": True,
+            "last_checked_at": checked_at,
+            "detail": str(e)[:120],
+        }
 
-    dep_map = {d["name"]: d for d in deps}
-    down = [d["name"] for d in deps if d["status"] == "down"]
+    dep_map = {d["id"]: d for d in deps}
+    down = [d["id"] for d in deps if d["status"] == "down"]
     active_agents = list_agents()
 
     # Core deps: qdrant, redis, litellm. If any core dep is down, status is degraded.
     # If agents can't load, status is unhealthy.
     core_down = [n for n in down if n in ("qdrant", "redis", "litellm")]
-    if not active_agents:
-        overall = "unhealthy"
-    elif core_down:
+    if not active_agents or core_down:
         overall = "degraded"
     else:
         overall = "healthy"
 
     return {
+        "service": "agent-server",
+        "version": app.version,
         "status": overall,
+        "auth_class": "admin",
+        "dependencies": deps,
+        "last_error": "; ".join(sorted(core_down)) if core_down else None,
+        "started_at": SERVICE_STARTED_AT,
+        "actions_allowed": [
+            "governor.pause",
+            "governor.resume",
+            "governor.presence",
+            "governor.release_tier",
+            "tasks.approve",
+            "tasks.reject",
+        ],
         "agents": active_agents,
         "agent_count": len(active_agents),
-        "dependencies": dep_map,
+        "dependency_map": dep_map,
         "issues": down if down else None,
     }
+
+
+@app.get("/v1/system-map")
+async def system_map():
+    """Return the live system map plus registry-backed topology and portfolio state."""
+    return await build_system_map_snapshot(AGENT_METADATA)
 
 
 @app.get("/v1/models")
@@ -316,6 +377,7 @@ from .routes.models import router as models_router
 from .routes.home import router as home_router
 from .routes.digests import router as digests_router
 from .routes.model_governance import router as model_governance_router
+from .routes.operator_audit import router as operator_audit_router
 from .routes.core_memory import router as core_memory_router
 
 app.include_router(subscriptions_router)
@@ -342,6 +404,7 @@ app.include_router(models_router)
 app.include_router(home_router)
 app.include_router(digests_router)
 app.include_router(model_governance_router)
+app.include_router(operator_audit_router)
 app.include_router(core_memory_router)
 
 from .routes.feedback import router as feedback_router

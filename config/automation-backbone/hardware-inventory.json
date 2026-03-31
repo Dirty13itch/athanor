@@ -1,0 +1,295 @@
+{
+  "version": "2026-03-26.1",
+  "updated_at": "2026-03-26T19:20:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/hardware-inventory.json",
+  "nodes": [
+    {
+      "id": "desk",
+      "host": "DESK",
+      "default_host": "192.168.1.50",
+      "role": "implementation-authority workstation",
+      "os": "Windows 11",
+      "evidence_sources": [
+        "local runtime probe"
+      ],
+      "last_verified_at": "2026-03-26T18:45:00Z",
+      "verification_mode": "observed",
+      "cpu": {
+        "model": "Intel Core i7-13700K",
+        "cores": 16,
+        "threads": 24
+      },
+      "ram_gb": 64,
+      "gpus": [
+        {
+          "model": "NVIDIA RTX 3060",
+          "vram_gb": 12,
+          "status": "installed"
+        },
+        {
+          "model": "Intel UHD 770",
+          "vram_gb": 0,
+          "status": "integrated"
+        }
+      ],
+      "storage": [
+        {
+          "kind": "nvme",
+          "size_tb": 1,
+          "status": "installed"
+        },
+        {
+          "kind": "nvme",
+          "size_tb": 2,
+          "status": "installed"
+        }
+      ],
+      "network_links": [
+        {
+          "interface": "Intel I219-V",
+          "speed_gbps": 1,
+          "status": "observed"
+        }
+      ],
+      "notes": [
+        "Primary implementation-authority workstation.",
+        "Compatibility-only provider bridge settings may still be supplied by env, but DESK no longer carries a canonical live provider-bridge service entry."
+      ]
+    },
+    {
+      "id": "dev",
+      "host": "DEV",
+      "default_host": "192.168.1.189",
+      "role": "runtime authority and ops center",
+      "os": "Linux",
+      "evidence_sources": [
+        "ssh runtime probe"
+      ],
+      "last_verified_at": "2026-03-25T17:45:00Z",
+      "verification_mode": "observed",
+      "cpu": {
+        "model": "AMD Ryzen 9 9900X",
+        "cores": 12,
+        "threads": 24
+      },
+      "ram_gb": 64,
+      "gpus": [
+        {
+          "model": "NVIDIA RTX 5060 Ti",
+          "vram_gb": 16,
+          "status": "installed"
+        }
+      ],
+      "storage": [
+        {
+          "kind": "nvme",
+          "size_tb": 4,
+          "status": "installed"
+        },
+        {
+          "kind": "nvme",
+          "size_tb": 1,
+          "status": "installed"
+        },
+        {
+          "kind": "nvme",
+          "size_tb": 1,
+          "status": "installed"
+        }
+      ],
+      "network_links": [
+        {
+          "interface": "primary",
+          "speed_gbps": 5,
+          "status": "observed"
+        }
+      ],
+      "notes": [
+        "Current live deployment host.",
+        "Runtime authority includes /home/shaun/repos/athanor, /opt/athanor, /home/shaun/.athanor, systemd, cron, and /var/log/athanor."
+      ]
+    },
+    {
+      "id": "foundry",
+      "host": "FOUNDRY",
+      "default_host": "192.168.1.244",
+      "role": "heavy compute and inference",
+      "os": "Linux",
+      "evidence_sources": [
+        "ssh runtime probe"
+      ],
+      "last_verified_at": "2026-03-26T18:50:00Z",
+      "verification_mode": "observed",
+      "cpu": {
+        "model": "AMD EPYC 7663",
+        "cores": 56,
+        "threads": 112
+      },
+      "ram_gb": 224,
+      "gpus": [
+        {
+          "model": "NVIDIA RTX 4090",
+          "vram_gb": 24,
+          "status": "installed"
+        },
+        {
+          "model": "NVIDIA RTX 5070 Ti",
+          "vram_gb": 16,
+          "status": "installed"
+        },
+        {
+          "model": "NVIDIA RTX 5070 Ti",
+          "vram_gb": 16,
+          "status": "installed"
+        },
+        {
+          "model": "NVIDIA RTX 5070 Ti",
+          "vram_gb": 16,
+          "status": "installed"
+        },
+        {
+          "model": "NVIDIA RTX 5070 Ti",
+          "vram_gb": 16,
+          "status": "installed"
+        }
+      ],
+      "storage": [
+        {
+          "kind": "nvme",
+          "size_tb": 4,
+          "status": "installed"
+        },
+        {
+          "kind": "nvme",
+          "size_tb": 4,
+          "status": "installed"
+        },
+        {
+          "kind": "nfs",
+          "size_tb": 22,
+          "status": "mounted"
+        }
+      ],
+      "network_links": [
+        {
+          "interface": "primary",
+          "speed_gbps": 10,
+          "status": "observed"
+        }
+      ],
+      "notes": [
+        "Primary high-throughput inference node.",
+        "Observed model endpoints currently serve Qwen3.5-27B-FP8 on 8000 and devstral-small-2 on 8006."
+      ]
+    },
+    {
+      "id": "workshop",
+      "host": "WORKSHOP",
+      "default_host": "192.168.1.225",
+      "role": "creative compute and dashboard-adjacent node",
+      "os": "Linux",
+      "evidence_sources": [
+        "ssh runtime probe"
+      ],
+      "last_verified_at": "2026-03-26T18:55:00Z",
+      "verification_mode": "observed",
+      "cpu": {
+        "model": "AMD Threadripper 7960X",
+        "cores": 24,
+        "threads": 48
+      },
+      "ram_gb": 128,
+      "gpus": [
+        {
+          "model": "NVIDIA RTX 5090",
+          "vram_gb": 32,
+          "status": "installed"
+        },
+        {
+          "model": "NVIDIA RTX 5060 Ti",
+          "vram_gb": 16,
+          "status": "installed"
+        }
+      ],
+      "storage": [
+        {
+          "kind": "nvme",
+          "size_tb": 4,
+          "status": "installed"
+        },
+        {
+          "kind": "nvme",
+          "size_tb": 1,
+          "status": "installed"
+        },
+        {
+          "kind": "nvme",
+          "size_tb": 1,
+          "status": "installed"
+        }
+      ],
+      "network_links": [
+        {
+          "interface": "primary",
+          "speed_gbps": 10,
+          "status": "observed"
+        }
+      ],
+      "notes": [
+        "ComfyUI on 8188 is observed on the 5060 Ti lane.",
+        "The 8010 lane is aligned to the canonical workshop worker runtime and currently serves /models/Qwen3.5-35B-A3B-AWQ-4bit."
+      ]
+    },
+    {
+      "id": "vault",
+      "host": "VAULT",
+      "default_host": "192.168.1.203",
+      "role": "storage, monitoring, and API aggregation",
+      "os": "Unraid/Linux",
+      "evidence_sources": [
+        "vault runtime probe"
+      ],
+      "last_verified_at": "2026-03-25T18:10:00Z",
+      "verification_mode": "observed",
+      "cpu": {
+        "model": "AMD Ryzen 9 9950X",
+        "cores": 16,
+        "threads": 32
+      },
+      "ram_gb": 128,
+      "gpus": [
+        {
+          "model": "Intel Arc A380",
+          "vram_gb": 6,
+          "status": "installed"
+        }
+      ],
+      "storage": [
+        {
+          "kind": "nvme",
+          "count": 5,
+          "size_tb_each": 1,
+          "status": "installed"
+        },
+        {
+          "kind": "hdd",
+          "count": 10,
+          "raw_tb": 184,
+          "status": "installed"
+        }
+      ],
+      "network_links": [
+        {
+          "interface": "primary",
+          "speed_gbps": 10,
+          "status": "observed"
+        }
+      ],
+      "notes": [
+        "Holds LiteLLM, Neo4j, Grafana, Prometheus, and long-lived storage surfaces.",
+        "LiteLLM is auth-protected; /health returned 401 during the 2026-03-25 probe, which counts as reachable and protected."
+      ]
+    }
+  ]
+}

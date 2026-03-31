@@ -449,7 +449,9 @@ function EnhancedLightbox({
           imageId={item.id}
           prompt={item.prompt}
           currentRating={getRating(item.id)}
-          onRate={(r) => setRating(item.id, r)}
+          onRate={(r) => {
+            void setRating(item.id, r);
+          }}
         />
       </div>
     </div>

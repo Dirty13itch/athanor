@@ -35,6 +35,7 @@ export interface ApiAuditRecord {
   sourceFile: string;
   methods: string[];
   responseMode: string;
+  accessClass: string;
   consumerStatus: string;
   likelyConsumers: string[];
   coverage: {
@@ -47,12 +48,24 @@ export interface ApiAuditRecord {
 }
 
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
-const COMPLETION_DIR = path.join(REPO_ROOT, "docs", "atlas", "inventory", "completion");
+const COMPLETION_DIRS = [
+  path.join(REPO_ROOT, "reports", "completion-audit", "latest", "inventory"),
+  path.join(REPO_ROOT, "docs", "atlas", "inventory", "completion"),
+];
 
 function readJson<T>(filename: string): T {
-  const filePath = path.join(COMPLETION_DIR, filename);
-  const text = fs.readFileSync(filePath, "utf-8");
-  return JSON.parse(text) as T;
+  for (const directory of COMPLETION_DIRS) {
+    const filePath = path.join(directory, filename);
+    if (!fs.existsSync(filePath)) {
+      continue;
+    }
+    const text = fs.readFileSync(filePath, "utf-8");
+    return JSON.parse(text) as T;
+  }
+
+  throw new Error(
+    `Missing completion-audit inventory ${filename}; checked ${COMPLETION_DIRS.join(", ")}`
+  );
 }
 
 export function loadRouteAuditRecords(): RouteAuditRecord[] {

@@ -21,6 +21,7 @@ from .subscriptions import (
     LeaseRequest,
     get_quota_summary,
     get_policy_snapshot,
+    get_provider_catalog_snapshot,
     issue_execution_lease,
     list_execution_leases,
     preview_execution_lease,
@@ -46,76 +47,41 @@ _BRIDGE_PROVIDER_CACHE: dict[str, Any] = {
     "bridge_url": "",
 }
 
-_PROVIDER_ADAPTERS: dict[str, dict[str, Any]] = {
+_PROVIDER_ADAPTER_HINTS: dict[str, dict[str, Any]] = {
     "athanor_local": {
         "meta_lane": "sovereign_local",
-        "execution_mode": "local_runtime",
-        "command_names": [],
         "probe_args": [],
-        "supports_handoff": False,
-        "direct_supported": False,
         "notes": [
-            "Primary sovereign execution lane.",
             "Bulk private work should stay here unless policy escalates outward.",
         ],
     },
     "anthropic_claude_code": {
-        "meta_lane": "frontier_cloud",
-        "execution_mode": "handoff_bundle",
-        "command_names": ["claude"],
         "probe_args": ["--help"],
-        "supports_handoff": True,
-        "direct_supported": True,
         "notes": [
-            "Preferred frontier architecture and review lane.",
             "Use direct CLI when installed locally or through the DESK bridge; otherwise generate a structured bundle.",
         ],
     },
     "openai_codex": {
-        "meta_lane": "frontier_cloud",
-        "execution_mode": "handoff_bundle",
-        "command_names": ["codex"],
         "probe_args": ["--help"],
-        "supports_handoff": True,
-        "direct_supported": True,
         "notes": [
-            "Preferred async implementation lane when direct execution is available.",
             "Falls back to operator handoff when direct execution is unavailable.",
         ],
     },
     "google_gemini": {
-        "meta_lane": "frontier_cloud",
-        "execution_mode": "handoff_bundle",
-        "command_names": ["gemini"],
         "probe_args": ["--help"],
-        "supports_handoff": True,
-        "direct_supported": True,
         "notes": [
-            "Best large-context audit lane.",
             "Use abstracted context for hybrid-abstractable work.",
         ],
     },
     "moonshot_kimi": {
-        "meta_lane": "frontier_cloud",
-        "execution_mode": "handoff_bundle",
-        "command_names": ["kimi"],
         "probe_args": ["--help"],
-        "supports_handoff": True,
-        "direct_supported": True,
         "notes": [
-            "Alternative planning and search-heavy lane.",
             "Can execute directly where the Kimi CLI exists; otherwise stays handoff-first.",
         ],
     },
     "zai_glm_coding": {
-        "meta_lane": "frontier_cloud",
-        "execution_mode": "handoff_bundle",
-        "command_names": ["glm", "zai"],
         "probe_args": ["--help"],
-        "supports_handoff": True,
-        "direct_supported": True,
         "notes": [
-            "Overflow high-throughput coding lane.",
             "Defaults to structured handoff unless a CLI or bridge adapter is available.",
         ],
     },
@@ -167,6 +133,13 @@ def _iso_from_unix(value: Any) -> str | None:
         return None
 
 
+def serialize_handoff_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
+    serialized = dict(bundle)
+    for field in ("created_at", "updated_at", "completed_at"):
+        serialized[field] = _iso_from_unix(serialized.get(field))
+    return serialized
+
+
 async def _get_redis():
     from .workspace import get_redis
 
@@ -175,6 +148,86 @@ async def _get_redis():
 
 def _provider_env_key(provider_id: str) -> str:
     return f"ATHANOR_{provider_id.upper()}_COMMAND".replace("-", "_")
+
+
+def _provider_catalog_entry(provider_id: str) -> dict[str, Any]:
+    for entry in get_provider_catalog_snapshot(policy_only=False).get("providers", []):
+        if str(entry.get("id") or "").strip() == provider_id:
+            return dict(entry)
+    return {}
+
+
+def _provider_adapter_metadata(
+    provider_id: str,
+    provider_meta: dict[str, Any],
+    *,
+    catalog_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    catalog = dict(catalog_meta or _provider_catalog_entry(provider_id))
+    hints = dict(_PROVIDER_ADAPTER_HINTS.get(provider_id) or {})
+    access_mode = str(catalog.get("access_mode") or "").strip()
+    privacy = str(provider_meta.get("privacy") or catalog.get("privacy_posture") or "cloud").strip()
+    routing_posture = str(provider_meta.get("routing_posture") or "ordinary_auto").strip()
+    routing_reason = str(provider_meta.get("routing_reason") or "").strip()
+    execution_modes = [
+        str(item).strip()
+        for item in list(catalog.get("execution_modes") or [])
+        if str(item).strip()
+    ]
+    if not execution_modes:
+        if access_mode == "local" or privacy in {"lan_only", "sovereign_only"}:
+            execution_modes = ["local_runtime"]
+        else:
+            execution_modes = ["handoff_bundle"]
+    command_names = [
+        str(item).strip()
+        for item in list(catalog.get("cli_commands") or [])
+        if str(item).strip()
+    ]
+    if "local_runtime" in execution_modes:
+        default_mode = "local_runtime"
+    elif "handoff_bundle" in execution_modes:
+        default_mode = "handoff_bundle"
+    elif "bridge_cli" in execution_modes:
+        default_mode = "bridge_cli"
+    elif "direct_cli" in execution_modes:
+        default_mode = "direct_cli"
+    else:
+        default_mode = execution_modes[0]
+    notes = list(
+        dict.fromkeys(
+            [
+                *[str(item) for item in list(catalog.get("notes") or []) if str(item).strip()],
+                *[str(item) for item in list(hints.get("notes") or []) if str(item).strip()],
+            ]
+        )
+    )
+    return {
+        "catalog_access_mode": access_mode,
+        "catalog_execution_modes": execution_modes,
+        "catalog_state_classes": [
+            str(item).strip()
+            for item in list(catalog.get("state_classes") or [])
+            if str(item).strip()
+        ],
+        "routing_posture": routing_posture,
+        "routing_reason": routing_reason,
+        "command_names": command_names,
+        "probe_args": list(hints.get("probe_args", ["--help"])) if command_names else [],
+        "supports_handoff": "handoff_bundle" in execution_modes,
+        "allow_direct_cli": "direct_cli" in execution_modes,
+        "allow_bridge_cli": "bridge_cli" in execution_modes,
+        "default_mode": default_mode,
+        "meta_lane": str(
+            hints.get("meta_lane")
+            or (
+                "sovereign_local"
+                if default_mode == "local_runtime" or privacy in {"lan_only", "sovereign_only"} or access_mode == "local"
+                else "frontier_cloud"
+            )
+        ),
+        "notes": notes,
+    }
 
 
 def _bridge_enabled() -> bool:
@@ -309,34 +362,47 @@ async def _fetch_bridge_provider_snapshot(force: bool = False) -> dict[str, Any]
     return dict(_BRIDGE_PROVIDER_CACHE)
 
 
-def _build_local_adapter_record(provider_id: str, provider_meta: dict[str, Any]) -> dict[str, Any]:
-    adapter_meta = dict(_PROVIDER_ADAPTERS.get(provider_id) or {})
+def _build_local_adapter_record(
+    provider_id: str,
+    provider_meta: dict[str, Any],
+    *,
+    catalog_meta: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    adapter_meta = _provider_adapter_metadata(provider_id, provider_meta, catalog_meta=catalog_meta)
     command_names = list(adapter_meta.get("command_names", []))
     command_hint = _resolve_command(provider_id, command_names)
-    default_mode = str(adapter_meta.get("execution_mode", "handoff_bundle"))
+    default_mode = str(adapter_meta.get("default_mode", "handoff_bundle"))
     probe_args = list(adapter_meta.get("probe_args", []))
     probe = _probe_command(command_hint, provider_id, probe_args)
+    allow_direct_cli = bool(adapter_meta.get("allow_direct_cli"))
+    routing_posture = str(adapter_meta.get("routing_posture") or "ordinary_auto")
 
-    if default_mode == "local_runtime":
+    if routing_posture == "governed_handoff_only":
+        execution_mode = "handoff_bundle"
+        adapter_available = False
+        availability_state = "handoff-only"
+    elif default_mode == "local_runtime":
         execution_mode = "local_runtime"
         adapter_available = True
         availability_state = "available"
-    elif command_hint and probe["ok"]:
+    elif allow_direct_cli and command_hint and probe["ok"]:
         execution_mode = "direct_cli"
         adapter_available = True
         availability_state = "available"
     else:
-        execution_mode = default_mode
+        execution_mode = "handoff_bundle" if bool(adapter_meta.get("supports_handoff", True)) else default_mode
         adapter_available = False
         availability_state = "handoff-only" if adapter_meta.get("supports_handoff", True) else "disabled"
-        if command_hint and not probe["ok"]:
+        if allow_direct_cli and command_hint and not probe["ok"]:
             availability_state = "degraded"
 
-    return {
+    record = {
         "provider": provider_id,
         "execution_mode": execution_mode,
         "adapter_available": adapter_available,
         "supports_handoff": bool(adapter_meta.get("supports_handoff", True)),
+        "allow_direct_cli": bool(adapter_meta.get("allow_direct_cli", False)),
+        "allow_bridge_cli": bool(adapter_meta.get("allow_bridge_cli", False)),
         "command_hint": command_hint,
         "meta_lane": adapter_meta.get(
             "meta_lane",
@@ -349,11 +415,20 @@ def _build_local_adapter_record(provider_id: str, provider_meta: dict[str, Any])
         "probe_checked_at": float(probe.get("checked_at", 0.0)),
         "bridge_status": "disabled",
         "bridge_detail": "Provider bridge is not configured.",
+        "catalog_access_mode": str(adapter_meta.get("catalog_access_mode") or ""),
+        "catalog_execution_modes": list(adapter_meta.get("catalog_execution_modes", [])),
+        "catalog_state_classes": list(adapter_meta.get("catalog_state_classes", [])),
+        "routing_posture": routing_posture,
+        "routing_reason": str(adapter_meta.get("routing_reason") or ""),
     }
+    if routing_posture == "governed_handoff_only":
+        record["notes"].append("Policy keeps this lane governed-handoff-only until stronger evidence exists.")
+    return record
 
 
 async def _build_adapter_record(provider_id: str, provider_meta: dict[str, Any]) -> dict[str, Any]:
-    adapter = _build_local_adapter_record(provider_id, provider_meta)
+    catalog_meta = _provider_catalog_entry(provider_id)
+    adapter = _build_local_adapter_record(provider_id, provider_meta, catalog_meta=catalog_meta)
     runtime_state = await _recent_provider_execution_state(provider_id)
     if adapter["execution_mode"] in {"local_runtime", "direct_cli"}:
         if runtime_state and runtime_state["status"] == "degraded" and adapter["supports_handoff"]:
@@ -368,13 +443,23 @@ async def _build_adapter_record(provider_id: str, provider_meta: dict[str, Any])
     bridge_provider = dict(bridge_snapshot.get("providers", {}).get(provider_id) or {})
     adapter["bridge_status"] = str(bridge_snapshot.get("bridge_status", "disabled"))
     adapter["bridge_detail"] = str(bridge_snapshot.get("detail", ""))
-    if bridge_provider.get("adapter_available"):
+    if bridge_provider.get("adapter_available") and bool(adapter.get("allow_bridge_cli")) and str(
+        adapter.get("routing_posture") or "ordinary_auto"
+    ) != "governed_handoff_only":
         adapter["execution_mode"] = "bridge_cli"
         adapter["adapter_available"] = True
         adapter["availability_state"] = "available"
         adapter["command_hint"] = f"bridge://{provider_id}"
         adapter["notes"].append("DESK provider bridge can execute this lane directly.")
         adapter["bridge_detail"] = str(bridge_provider.get("probe_detail") or adapter["bridge_detail"])
+    elif bridge_provider.get("adapter_available") and not bool(adapter.get("allow_bridge_cli")):
+        adapter["notes"].append(
+            "DESK provider bridge advertised direct execution, but the provider catalog keeps this lane handoff-only."
+        )
+    elif bridge_provider.get("adapter_available") and str(adapter.get("routing_posture") or "") == "governed_handoff_only":
+        adapter["notes"].append(
+            "DESK provider bridge advertised direct execution, but policy keeps this lane governed-handoff-only."
+        )
     elif adapter["availability_state"] == "handoff-only" and bridge_snapshot.get("bridge_status") == "degraded":
         adapter["availability_state"] = "degraded"
         adapter["notes"].append("DESK provider bridge is configured but currently degraded.")
@@ -520,14 +605,22 @@ def _bundle_prompt(bundle: dict[str, Any]) -> str:
     return str(bundle.get("prompt") or "")
 
 
-async def list_handoff_bundles(requester: str = "", limit: int = 25) -> list[dict[str, Any]]:
+async def list_handoff_bundles(
+    requester: str = "",
+    limit: int = 25,
+    *,
+    serialize: bool = True,
+) -> list[dict[str, Any]]:
     redis = await _get_redis()
     raw = await redis.hgetall(HANDOFFS_KEY)
     bundles = [json.loads(value) for value in raw.values()]
     if requester:
         bundles = [bundle for bundle in bundles if bundle.get("requester") == requester]
     bundles.sort(key=lambda bundle: float(bundle.get("created_at", 0.0)), reverse=True)
-    return bundles[:limit]
+    bundles = bundles[:limit]
+    if serialize:
+        return [serialize_handoff_bundle(bundle) for bundle in bundles]
+    return bundles
 
 
 async def _recent_provider_execution_state(
@@ -540,7 +633,7 @@ async def _recent_provider_execution_state(
         return None
 
     now = time.time()
-    for bundle in await list_handoff_bundles(limit=limit):
+    for bundle in await list_handoff_bundles(limit=limit, serialize=False):
         if str(bundle.get("provider")) != provider_id:
             continue
         updated_at = float(bundle.get("updated_at") or bundle.get("created_at") or 0.0)
@@ -629,11 +722,32 @@ def _next_action_for_provider_state(
     return "monitor"
 
 
+def _recent_provider_latency_ms(provider_handoffs: list[dict[str, Any]]) -> int | None:
+    durations: list[int] = []
+    for handoff in provider_handoffs:
+        last_execution = dict(handoff.get("last_execution") or {})
+        raw_duration = last_execution.get("duration_ms") or last_execution.get("latency_ms")
+        try:
+            duration = int(raw_duration)
+        except (TypeError, ValueError):
+            continue
+        if duration > 0:
+            durations.append(duration)
+    if not durations:
+        return None
+    return int(round(sum(durations) / len(durations)))
+
+
 async def build_provider_posture_records(limit: int = 25) -> list[dict[str, Any]]:
     policy = get_policy_snapshot()
+    provider_catalog = {
+        str(entry.get("id") or ""): dict(entry)
+        for entry in get_provider_catalog_snapshot(policy_only=False).get("providers", [])
+        if str(entry.get("id") or "").strip()
+    }
     quotas = await get_quota_summary()
     raw_provider_stats = dict(quotas.get("providers") or {})
-    raw_handoffs = await list_handoff_bundles(limit=max(limit * 2, 25))
+    raw_handoffs = await list_handoff_bundles(limit=max(limit * 2, 25), serialize=False)
     handoffs_by_provider: dict[str, list[dict[str, Any]]] = {}
     for handoff in raw_handoffs:
         provider_id = str(handoff.get("provider") or "").strip()
@@ -642,6 +756,7 @@ async def build_provider_posture_records(limit: int = 25) -> list[dict[str, Any]
 
     records: list[dict[str, Any]] = []
     for provider_id, provider_meta in dict(policy.get("providers") or {}).items():
+        catalog_meta = dict(provider_catalog.get(provider_id) or {})
         adapter = await _build_adapter_record(provider_id, dict(provider_meta))
         stats = dict(raw_provider_stats.get(provider_id) or {})
         provider_handoffs = handoffs_by_provider.get(provider_id, [])
@@ -674,6 +789,8 @@ async def build_provider_posture_records(limit: int = 25) -> list[dict[str, Any]
         ):
             provider_state = "handoff_only"
             state_reasons.append("handoff_only_execution_path")
+            if str(adapter.get("routing_posture") or "") == "governed_handoff_only":
+                state_reasons.append("policy_governed_handoff_only")
         else:
             provider_state = "available"
             state_reasons.append("direct_or_local_path_ready")
@@ -684,6 +801,19 @@ async def build_provider_posture_records(limit: int = 25) -> list[dict[str, Any]
         records.append(
             {
                 "provider": provider_id,
+                "label": str(catalog_meta.get("label") or provider_id.replace("_", " ").title()),
+                "vendor": str(catalog_meta.get("vendor") or ""),
+                "subscription_product": str(catalog_meta.get("subscription_product") or ""),
+                "catalog_category": str(catalog_meta.get("category") or ""),
+                "catalog_access_mode": str(catalog_meta.get("access_mode") or ""),
+                "catalog_state_classes": list(catalog_meta.get("state_classes", [])),
+                "catalog_monthly_cost_usd": catalog_meta.get("monthly_cost_usd"),
+                "catalog_pricing_status": str(catalog_meta.get("official_pricing_status") or ""),
+                "pricing_truth_label": str(catalog_meta.get("pricing_truth_label") or ""),
+                "evidence_posture": str(catalog_meta.get("evidence_posture") or ""),
+                "routing_posture": str(adapter.get("routing_posture") or provider_meta.get("routing_posture") or ""),
+                "routing_reason": str(adapter.get("routing_reason") or provider_meta.get("routing_reason") or ""),
+                "official_sources": list(catalog_meta.get("official_sources", [])),
                 "lane": str(provider_meta.get("role") or "unclassified"),
                 "availability": provider_state,
                 "provider_state": provider_state,
@@ -694,6 +824,7 @@ async def build_provider_posture_records(limit: int = 25) -> list[dict[str, Any]
                 "remaining": int(stats.get("remaining", 0) or 0),
                 "throttle_events": int(stats.get("throttle_events", 0) or 0),
                 "recent_outcomes": recent_outcomes,
+                "avg_latency_ms": _recent_provider_latency_ms(provider_handoffs),
                 "last_issued_at": _iso_from_unix(stats.get("last_issued_at")),
                 "last_outcome_at": _iso_from_unix(stats.get("last_outcome_at")),
                 "direct_execution_ready": direct_execution_ready,
@@ -778,6 +909,8 @@ async def create_handoff_bundle(
     parallelism: str = "low",
     metadata: dict[str, Any] | None = None,
     issue_lease: bool = True,
+    *,
+    serialize: bool = True,
 ) -> dict[str, Any]:
     meta = dict(metadata or {})
     lease_permission = evaluate_tool_permission(
@@ -874,6 +1007,8 @@ async def create_handoff_bundle(
         ],
         notes=list(adapter.get("notes", []))
         + [
+            f"routing posture {lease_payload.get('metadata', {}).get('provider_routing_posture', 'unknown')}",
+            f"routing reason {lease_payload.get('metadata', {}).get('provider_routing_reason', 'unspecified')}",
             f"tool-permission subject {lease_permission['subject_class']} approved lease requests",
             f"tool-permission subject {execution_permission['subject_class']} approved bounded execution",
         ],
@@ -897,7 +1032,8 @@ async def create_handoff_bundle(
             "execution_mode": bundle.execution_mode,
         }
     )
-    return bundle.to_dict()
+    payload = bundle.to_dict()
+    return serialize_handoff_bundle(payload) if serialize else payload
 
 
 async def record_handoff_outcome(
@@ -909,6 +1045,8 @@ async def record_handoff_outcome(
     quality_score: float | None = None,
     latency_ms: int | None = None,
     execution_details: dict[str, Any] | None = None,
+    *,
+    serialize: bool = True,
 ) -> dict[str, Any] | None:
     redis = await _get_redis()
     raw = await redis.hget(HANDOFFS_KEY, handoff_id)
@@ -959,7 +1097,7 @@ async def record_handoff_outcome(
             "outcome": outcome,
         }
     )
-    return bundle
+    return serialize_handoff_bundle(bundle) if serialize else bundle
 
 
 def _build_direct_cli_command(
@@ -1054,7 +1192,12 @@ async def _run_direct_cli(
         }
 
 
-async def _execute_via_bridge(bundle: dict[str, Any], adapter: dict[str, Any], timeout_seconds: int) -> dict[str, Any]:
+async def _execute_via_bridge(
+    bundle: dict[str, Any],
+    adapter: dict[str, Any],
+    timeout_seconds: int,
+    operator_action: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     if not _bridge_enabled():
         return {
             "ok": False,
@@ -1078,6 +1221,7 @@ async def _execute_via_bridge(bundle: dict[str, Any], adapter: dict[str, Any], t
         "lease_id": bundle.get("lease_id"),
         "timeout_seconds": timeout_seconds,
         "workspace_dir": bundle.get("plan_packet", {}).get("workspace_dir") or _default_provider_workspace(),
+        "operator_action": dict(operator_action or {}),
     }
 
     try:
@@ -1112,6 +1256,7 @@ async def execute_provider_request(
     metadata: dict[str, Any] | None = None,
     issue_lease: bool = True,
     timeout_seconds: int = DEFAULT_EXECUTION_TIMEOUT_SECONDS,
+    operator_action: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     bundle = await create_handoff_bundle(
         requester=requester,
@@ -1123,6 +1268,7 @@ async def execute_provider_request(
         parallelism=parallelism,
         metadata=metadata,
         issue_lease=issue_lease,
+        serialize=False,
     )
 
     provider_meta = dict(get_policy_snapshot().get("providers", {}).get(bundle["provider"], {}))
@@ -1135,7 +1281,7 @@ async def execute_provider_request(
         return {
             "status": "local_runtime",
             "provider": bundle["provider"],
-            "handoff": bundle,
+            "handoff": serialize_handoff_bundle(bundle),
             "adapter": adapter,
             "message": "The selected lane is sovereign local runtime; use the task engine or workforce to execute locally.",
         }
@@ -1144,7 +1290,7 @@ async def execute_provider_request(
         return {
             "status": "handoff_created",
             "provider": bundle["provider"],
-            "handoff": bundle,
+            "handoff": serialize_handoff_bundle(bundle),
             "adapter": adapter,
             "message": "Direct execution is unavailable; structured handoff bundle created.",
         }
@@ -1162,7 +1308,12 @@ async def execute_provider_request(
     )
 
     if adapter["execution_mode"] == "bridge_cli":
-        execution = await _execute_via_bridge(bundle, adapter, timeout_seconds)
+        execution = await _execute_via_bridge(
+            bundle,
+            adapter,
+            timeout_seconds,
+            operator_action=operator_action,
+        )
     else:
         command, cwd, stdin_text = _build_direct_cli_command(
             bundle["provider"],
@@ -1215,11 +1366,12 @@ async def execute_provider_request(
             artifact_refs=artifact_refs,
             latency_ms=int(execution.get("duration_ms", 0) or 0),
             execution_details=execution,
+            serialize=False,
         )
         return {
             "status": "completed",
             "provider": bundle["provider"],
-            "handoff": completed,
+            "handoff": serialize_handoff_bundle(completed),
             "adapter": adapter,
             "execution": execution,
             "message": "Provider execution completed successfully.",
@@ -1251,7 +1403,7 @@ async def execute_provider_request(
         return {
             "status": "fallback_to_handoff",
             "provider": bundle["provider"],
-            "handoff": bundle,
+            "handoff": serialize_handoff_bundle(bundle),
             "adapter": adapter,
             "execution": execution,
             "message": "Direct provider execution failed; structured handoff remains available.",
@@ -1264,11 +1416,12 @@ async def execute_provider_request(
         result_summary=str(execution.get("summary") or ""),
         latency_ms=int(execution.get("duration_ms", 0) or 0),
         execution_details=execution,
+        serialize=False,
     )
     return {
         "status": "failed",
         "provider": bundle["provider"],
-        "handoff": failed,
+        "handoff": serialize_handoff_bundle(failed),
         "adapter": adapter,
         "execution": execution,
         "message": "Provider execution failed and no governed handoff fallback is available.",
@@ -1277,6 +1430,7 @@ async def execute_provider_request(
 
 async def build_provider_execution_snapshot(limit: int = 10) -> dict[str, Any]:
     policy = get_policy_snapshot()
+    catalog = get_provider_catalog_snapshot(policy_only=True)
     adapters = []
     for provider_id, provider_meta in dict(policy.get("providers") or {}).items():
         adapters.append(await _build_adapter_record(provider_id, dict(provider_meta)))
@@ -1298,6 +1452,8 @@ async def build_provider_execution_snapshot(limit: int = 10) -> dict[str, Any]:
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "policy_source": policy.get("policy_source", "unknown"),
+        "catalog_version": catalog.get("version", ""),
+        "catalog_source": catalog.get("source_of_truth", ""),
         "adapters": adapters,
         "provider_posture": provider_posture,
         "provider_state_counts": provider_state_counts,

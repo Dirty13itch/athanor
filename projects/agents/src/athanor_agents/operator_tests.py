@@ -6,6 +6,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
@@ -116,6 +117,30 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _is_auth_protected_reachable(status_code: int) -> bool:
+    return status_code in {200, 401, 403}
+
+
+def _sanitize_artifact_reference(value: Any) -> Any:
+    if not isinstance(value, str) or "://" not in value:
+        return value
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return value
+    if not parsed.scheme or not parsed.netloc:
+        return value
+    if parsed.username is None and parsed.password is None and "@" not in parsed.netloc:
+        return value
+    host = parsed.hostname or ""
+    netloc = f"{host}:{parsed.port}" if parsed.port else host
+    return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+
+
+def _sanitize_artifact_references(values: list[Any]) -> list[Any]:
+    return [_sanitize_artifact_reference(value) for value in values]
+
+
 async def _collect_restore_store_results(
     probes: list[Callable[[], Awaitable[dict[str, Any]]]],
 ) -> list[dict[str, Any]]:
@@ -201,7 +226,11 @@ async def _run_pause_resume_flow() -> OperatorTestFlowRecord:
             {},
         )
         rights = set(governor_profile.get("can", []))
-        if {"issue leases", "pause or resume automation", "create durable tasks"} <= rights:
+        if {
+            "route work",
+            "pause or resume automation",
+            "choose fallback or degraded mode",
+        } <= rights:
             checks_passed += 1
         else:
             notes.append("Governor rights profile is missing one or more control rights.")
@@ -1151,7 +1180,7 @@ async def _run_restore_drill_flow() -> OperatorTestFlowRecord:
     async def probe_redis_store() -> dict[str, Any]:
         redis = await _get_redis()
         probe_key = f"athanor:restore-drill:probe:{int(time.time())}"
-        artifacts = [settings.redis_url]
+        artifacts = _sanitize_artifact_references([settings.redis_url])
         summary = "Redis restore rehearsal did not complete."
         verified = False
         try:
@@ -1187,7 +1216,7 @@ async def _run_restore_drill_flow() -> OperatorTestFlowRecord:
         }
 
     async def probe_qdrant_store() -> dict[str, Any]:
-        artifacts = [f"{settings.qdrant_url.rstrip('/')}/collections"]
+        artifacts = _sanitize_artifact_references([f"{settings.qdrant_url.rstrip('/')}/collections"])
         summary = "Qdrant restore rehearsal did not complete."
         verified = False
         try:
@@ -1214,7 +1243,7 @@ async def _run_restore_drill_flow() -> OperatorTestFlowRecord:
 
     async def probe_neo4j_store() -> dict[str, Any]:
         base_url = settings.neo4j_url.rstrip("/")
-        artifacts = [base_url]
+        artifacts = _sanitize_artifact_references([base_url])
         summary = "Neo4j restore rehearsal did not complete."
         verified = False
         try:
@@ -1233,7 +1262,9 @@ async def _run_restore_drill_flow() -> OperatorTestFlowRecord:
                         if verified
                         else f"Neo4j transaction probe returned {response.status_code}."
                     )
-                    artifacts.append(f"{base_url}/db/neo4j/tx/commit")
+                    artifacts = _sanitize_artifact_references(
+                        [*artifacts, f"{base_url}/db/neo4j/tx/commit"]
+                    )
                 else:
                     response = await client.get(base_url)
                     verified = response.status_code in {200, 401}
@@ -1257,19 +1288,34 @@ async def _run_restore_drill_flow() -> OperatorTestFlowRecord:
     async def probe_deploy_state_store() -> dict[str, Any]:
         agent_url = f"{settings.agent_server_url.rstrip('/')}/v1/governor"
         dashboard_url = f"{settings.dashboard_url.rstrip('/')}/api/system-map"
-        artifacts = [agent_url, dashboard_url]
+        artifacts = _sanitize_artifact_references([agent_url, dashboard_url])
         summary = "Deployment-state restore rehearsal did not complete."
         verified = False
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                agent_response = await client.get(agent_url)
-                dashboard_response = await client.get(dashboard_url)
-                verified = agent_response.status_code == 200 and dashboard_response.status_code == 200
-                summary = (
-                    "Agent and dashboard deployment surfaces are reachable for ordered recovery."
-                    if verified
-                    else f"Agent/dashboard deploy probes returned {agent_response.status_code}/{dashboard_response.status_code}."
+                agent_headers = (
+                    {"Authorization": f"Bearer {settings.api_bearer_token}"}
+                    if settings.api_bearer_token
+                    else None
                 )
+                agent_response = await client.get(agent_url, headers=agent_headers)
+                dashboard_response = await client.get(dashboard_url)
+                verified = _is_auth_protected_reachable(
+                    agent_response.status_code
+                ) and _is_auth_protected_reachable(dashboard_response.status_code)
+                if verified:
+                    if agent_response.status_code == 200 and dashboard_response.status_code == 200:
+                        summary = "Agent and dashboard deployment surfaces are reachable for ordered recovery."
+                    else:
+                        summary = (
+                            "Agent and dashboard deployment surfaces are reachable and "
+                            "auth-protected for ordered recovery."
+                        )
+                else:
+                    summary = (
+                        f"Agent/dashboard deploy probes returned "
+                        f"{agent_response.status_code}/{dashboard_response.status_code}."
+                    )
         except Exception as exc:  # pragma: no cover - exercised in live runtime
             summary = f"Deployment-state rehearsal failed: {exc}"
         return {

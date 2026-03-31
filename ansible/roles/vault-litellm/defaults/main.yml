@@ -11,6 +11,17 @@ litellm_master_key: "{{ vault_litellm_master_key | default(athanor_litellm_api_k
 
 # Cloud API keys (passed through to container env)
 litellm_anthropic_api_key: "{{ vault_anthropic_api_key | default('') }}"
+litellm_openai_api_key: "{{ vault_openai_api_key | default('') }}"
+litellm_mistral_api_key: "{{ vault_mistral_api_key | default('') }}"
+litellm_codestral_api_key: "{{ vault_codestral_api_key | default('') }}"
+litellm_gemini_api_key: "{{ vault_gemini_api_key | default('') }}"
+litellm_google_api_key: "{{ vault_google_api_key | default(vault_gemini_api_key | default('')) }}"
+litellm_deepseek_api_key: "{{ vault_deepseek_api_key | default('') }}"
+litellm_moonshot_api_key: "{{ vault_moonshot_api_key | default(vault_kimi_api_key | default('')) }}"
+litellm_dashscope_api_key: "{{ vault_dashscope_api_key | default(vault_qwen_api_key | default('')) }}"
+litellm_venice_api_key: "{{ vault_venice_api_key | default('') }}"
+litellm_zai_api_key: "{{ vault_zai_api_key | default(vault_glm_api_key | default('')) }}"
+litellm_openrouter_api_key: "{{ vault_openrouter_api_key | default('') }}"
 
 # vLLM backends
 vllm_node1_host: 192.168.1.244

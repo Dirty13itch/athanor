@@ -216,7 +216,7 @@ class ServiceRegistry:
         return ServiceEndpoint(
             id="qdrant",
             name="Qdrant",
-            node="Foundry",
+            node="VAULT",
             base_url=self.config.qdrant_url,
             description="Vector store.",
             health_path="/collections",
@@ -238,7 +238,7 @@ class ServiceRegistry:
         return ServiceEndpoint(
             id="dashboard",
             name="Dashboard",
-            node="Workshop",
+            node="DEV",
             base_url=self.config.dashboard_url,
             description="Command Center UI.",
         )

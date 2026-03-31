@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PauseCircle, PlayCircle, ShieldCheck } from "lucide-react";
 import { requestJson } from "@/features/workforce/helpers";
 import { EmptyState } from "@/components/empty-state";
@@ -10,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getGovernor } from "@/lib/api";
+import type { GovernorSnapshot } from "@/lib/contracts";
 import { formatRelativeTime } from "@/lib/format";
+import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 import { queryKeys } from "@/lib/query-client";
 
 function formatLabel(value: string) {
@@ -35,6 +37,15 @@ function badgeVariant(value: string) {
   return "outline" as const;
 }
 
+function isGovernorSnapshot(value: unknown): value is GovernorSnapshot {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      Array.isArray((value as GovernorSnapshot).lanes) &&
+      typeof (value as GovernorSnapshot).global_mode === "string"
+  );
+}
+
 export function GovernorCard({
   title = "Governor posture",
   description = "Automation lanes, capacity pressure, and direct pause or resume control for the runtime commander.",
@@ -44,20 +55,54 @@ export function GovernorCard({
   description?: string;
   compact?: boolean;
 }) {
+  const session = useOperatorSessionStatus();
+  const locked = isOperatorSessionLocked(session);
+  const queryClient = useQueryClient();
   const governorQuery = useQuery({
     queryKey: queryKeys.governor,
     queryFn: getGovernor,
+    enabled: !locked,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
   const [busyScope, setBusyScope] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  function applyGovernorMutation(result: unknown) {
+    if (!isGovernorSnapshot(result)) {
+      return false;
+    }
+
+    queryClient.setQueryData(queryKeys.governor, result);
+    return true;
+  }
+
+  if (locked) {
+    return (
+      <Card className="surface-panel">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            {title}
+          </CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="Unlock required"
+            description="Governor posture and pause or resume controls stay locked until the operator session is unlocked."
+            className="py-8"
+          />
+        </CardContent>
+      </Card>
+    );
+  }
+
   async function toggleScope(scope: string, paused: boolean) {
     setBusyScope(scope);
     setFeedback(null);
     try {
-      await requestJson(paused ? "/api/governor/resume" : "/api/governor/pause", {
+      const result = await requestJson(paused ? "/api/governor/resume" : "/api/governor/pause", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -66,7 +111,9 @@ export function GovernorCard({
           reason: paused ? "" : `Paused from cockpit (${scope})`,
         }),
       });
-      await governorQuery.refetch();
+      if (!applyGovernorMutation(result)) {
+        await governorQuery.refetch();
+      }
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Governor request failed.");
     } finally {
@@ -78,7 +125,7 @@ export function GovernorCard({
     setBusyScope(`presence:${state}`);
     setFeedback(null);
     try {
-      await requestJson("/api/governor/presence", {
+      const result = await requestJson("/api/governor/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -88,7 +135,9 @@ export function GovernorCard({
           reason: `Presence set from cockpit (${state})`,
         }),
       });
-      await governorQuery.refetch();
+      if (!applyGovernorMutation(result)) {
+        await governorQuery.refetch();
+      }
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Presence update failed.");
     } finally {
@@ -102,7 +151,7 @@ export function GovernorCard({
     setBusyScope("presence:auto");
     setFeedback(null);
     try {
-      await requestJson("/api/governor/presence", {
+      const result = await requestJson("/api/governor/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -112,7 +161,9 @@ export function GovernorCard({
           reason: "Returned presence posture to automatic dashboard heartbeat.",
         }),
       });
-      await governorQuery.refetch();
+      if (!applyGovernorMutation(result)) {
+        await governorQuery.refetch();
+      }
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Automatic presence update failed.");
     } finally {
@@ -124,7 +175,7 @@ export function GovernorCard({
     setBusyScope(`tier:${tier}`);
     setFeedback(null);
     try {
-      await requestJson("/api/governor/release-tier", {
+      const result = await requestJson("/api/governor/release-tier", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -133,7 +184,24 @@ export function GovernorCard({
           reason: `Release tier set from cockpit (${tier})`,
         }),
       });
-      await governorQuery.refetch();
+      applyGovernorMutation(result);
+      queryClient.setQueryData<GovernorSnapshot | undefined>(
+        queryKeys.governor,
+        (current) =>
+          current
+            ? {
+                ...current,
+                updated_at: new Date().toISOString(),
+                release_tier: {
+                  ...current.release_tier,
+                  state: tier,
+                },
+              }
+            : current
+      );
+      if (!isGovernorSnapshot(result)) {
+        void governorQuery.refetch();
+      }
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Release-tier update failed.");
     } finally {

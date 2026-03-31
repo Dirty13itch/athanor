@@ -24,6 +24,7 @@ import { RichText } from "@/components/rich-text";
 import { StatCard } from "@/components/stat-card";
 import { requestJson, postWithoutBody, postJson } from "@/features/workforce/helpers";
 import { formatRelativeTime } from "@/lib/format";
+import { readChatEventStream } from "@/lib/sse";
 
 interface ChatMessage {
   id: string;
@@ -80,7 +81,7 @@ export function OperatorConsole() {
     queryKey: PENDING_TASKS_KEY,
     queryFn: async (): Promise<PendingTask[]> => {
       const data = await requestJson(
-        "/api/agents/proxy?path=/v1/tasks?status=pending_approval"
+        "/api/workforce/tasks?status=pending_approval"
       );
       return (data?.tasks ?? data ?? []) as PendingTask[];
     },
@@ -106,7 +107,7 @@ export function OperatorConsole() {
 
   const approveMutation = useMutation({
     mutationFn: async (taskId: string) => {
-      await postWithoutBody(`/api/agents/proxy?path=/v1/tasks/${taskId}/approve`);
+      await postWithoutBody(`/api/workforce/tasks/${taskId}/approve`);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_TASKS_KEY });
@@ -115,7 +116,7 @@ export function OperatorConsole() {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ taskId, reason }: { taskId: string; reason: string }) => {
-      await postJson(`/api/agents/proxy?path=/v1/tasks/${taskId}/reject`, { reason });
+      await postJson(`/api/workforce/tasks/${taskId}/reject`, { reason });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_TASKS_KEY });
@@ -160,16 +161,13 @@ export function OperatorConsole() {
     abortRef.current = controller;
 
     try {
-      const response = await fetch("/api/agents/proxy", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          path: "/v1/chat/completions",
-          body: {
-            model: "meta-orchestrator",
-            messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
-            stream: true,
-          },
+          target: "agent-server",
+          model: "meta-orchestrator",
+          messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
         signal: controller.signal,
       });
@@ -178,45 +176,24 @@ export function OperatorConsole() {
         throw new Error(`Request failed (${response.status})`);
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith("data:")) continue;
-          const payload = trimmed.slice(5).trim();
-          if (payload === "[DONE]") continue;
-
-          try {
-            const parsed = JSON.parse(payload);
-            const delta =
-              parsed?.choices?.[0]?.delta?.content ??
-              parsed?.content ??
-              "";
-            if (delta) {
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === assistantMsg.id
-                    ? { ...m, content: m.content + delta }
-                    : m
-                )
-              );
-              scrollToBottom();
-            }
-          } catch {
-            // skip malformed chunks
-          }
+      let assistantContent = "";
+      await readChatEventStream(response.body, (event) => {
+        if (event.type === "assistant_delta") {
+          assistantContent += event.content;
+          setMessages((prev) =>
+            prev.map((message) =>
+              message.id === assistantMsg.id
+                ? { ...message, content: assistantContent }
+                : message
+            )
+          );
+          scrollToBottom();
         }
-      }
+
+        if (event.type === "error") {
+          setError(event.message);
+        }
+      });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setError("Stopped.");

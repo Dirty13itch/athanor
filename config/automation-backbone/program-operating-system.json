@@ -1,0 +1,116 @@
+{
+  "version": "2026-03-25.1",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/program-operating-system.json",
+  "objective": [
+    "secure enough to trust on the LAN",
+    "coherent enough to reason about from one source of truth",
+    "testable enough that velocity is real",
+    "modular enough that each project can mature independently",
+    "measurable enough that autonomy and feature growth can be governed"
+  ],
+  "lenses": [
+    "security",
+    "truth",
+    "reliability",
+    "developer_velocity",
+    "product_integrity",
+    "architecture",
+    "observability",
+    "evaluation",
+    "portfolio_discipline",
+    "economic_efficiency",
+    "knowledge_quality",
+    "autonomy_governance"
+  ],
+  "cadence": {
+    "daily": [
+      "health review",
+      "CI failures",
+      "secret and auth drift",
+      "queue backlog",
+      "blocked work",
+      "artifact cleanup status"
+    ],
+    "twice_weekly": [
+      "subsystem audits on one rotating lens per subsystem"
+    ],
+    "weekly": [
+      "architecture review",
+      "portfolio review",
+      "dependency upgrades",
+      "docs freshness sweep"
+    ],
+    "biweekly": [
+      "product maturity review per project"
+    ],
+    "monthly": [
+      "security review",
+      "recovery drill review",
+      "topology and config drift review",
+      "artifact debt purge"
+    ],
+    "quarterly": [
+      "platform reset review",
+      "dead-system and dead-doc removal",
+      "unstable contract rewrite",
+      "roadmap refresh"
+    ]
+  },
+  "roles": [
+    {
+      "id": "program_manager",
+      "label": "Program Manager",
+      "responsibilities": ["master backlog", "sequencing", "acceptance criteria", "weekly priorities"]
+    },
+    {
+      "id": "security_auditor",
+      "label": "Security Auditor",
+      "responsibilities": ["auth", "secrets", "privilege boundaries", "credential rotation"]
+    },
+    {
+      "id": "runtime_architect",
+      "label": "Runtime Architect",
+      "responsibilities": ["service contracts", "persistence", "topology", "deployment consistency"]
+    },
+    {
+      "id": "frontend_curator",
+      "label": "Frontend Curator",
+      "responsibilities": ["dashboard", "UX maturity", "state model", "route integrity", "accessibility"]
+    },
+    {
+      "id": "dx_enforcer",
+      "label": "DX Enforcer",
+      "responsibilities": ["CI", "test ergonomics", "clean checkout", "build speed", "repo hygiene"]
+    },
+    {
+      "id": "data_knowledge_curator",
+      "label": "Data and Knowledge Curator",
+      "responsibilities": ["memory", "search", "knowledge lifecycle", "archive discipline"]
+    },
+    {
+      "id": "eval_lead",
+      "label": "Eval Lead",
+      "responsibilities": ["benchmarks", "regression suites", "scoring policy", "promotion evidence"]
+    },
+    {
+      "id": "infra_sre",
+      "label": "Infra and SRE",
+      "responsibilities": ["monitoring", "alerts", "backup and restore", "recovery drills", "runtime hygiene"]
+    },
+    {
+      "id": "research_scout",
+      "label": "Research Scout",
+      "responsibilities": ["external research backlog", "vendor review", "architecture options"]
+    },
+    {
+      "id": "portfolio_curator",
+      "label": "Portfolio Curator",
+      "responsibilities": ["project classification", "lifecycle", "promotion and demotion criteria"]
+    }
+  ],
+  "backlog_policy": {
+    "ranking_axes": ["impact", "reversibility", "risk", "foundationality"],
+    "default_order": ["security", "control_plane", "repo_contract", "topology", "productization"]
+  }
+}

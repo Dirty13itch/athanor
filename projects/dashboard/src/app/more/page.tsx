@@ -12,7 +12,15 @@ import { cn } from "@/lib/utils";
 import { useLens } from "@/hooks/use-lens";
 import { getRouteFamiliesWithRoutes } from "@/lib/navigation";
 
-const ROUTE_FAMILIES = getRouteFamiliesWithRoutes().filter((family) => family.id !== "support");
+const ROUTE_FAMILIES = getRouteFamiliesWithRoutes();
+
+function routeIndexTestId(href: string) {
+  if (href === "/") {
+    return "route-index-root";
+  }
+
+  return `route-index-${href.replace(/\//g, "-").replace(/^-+/, "")}`;
+}
 
 export default function MorePage() {
   const pathname = usePathname();
@@ -22,9 +30,9 @@ export default function MorePage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Route Index"
+        eyebrow="Catalog"
         title="All Pages"
-        description="Family-aware route launcher for mobile use, deep links, and console discovery."
+        description="Complete route index for every command-center page when you need the full map instead of the curated launchpad."
       />
 
       <Card className="border-border/70 bg-card/70">
@@ -41,7 +49,7 @@ export default function MorePage() {
 
       <ThemeSampler />
 
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="route-index-families">
         {ROUTE_FAMILIES.map((family) => (
           <Card key={family.id} className="border-border/70 bg-card/70">
             <CardHeader>
@@ -51,12 +59,15 @@ export default function MorePage() {
             <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {family.routes.map((route) => {
                 const active = pathname === route.href;
-                const routeLabel = route.shortLabel ?? route.label;
+                const routeLabel = route.href === "/" ? route.label : route.shortLabel ?? route.label;
+                const showsAlias = route.label !== routeLabel;
+
                 return (
                   <Link
                     key={route.href}
                     href={`${route.href}${lensQuery}`}
                     aria-label={routeLabel}
+                    data-testid={routeIndexTestId(route.href)}
                     className={cn(
                       "rounded-2xl border border-border/70 bg-background/20 p-4 transition hover:bg-accent/40",
                       active && "border-primary/60 bg-primary/5"
@@ -71,7 +82,7 @@ export default function MorePage() {
                           <div>
                             <p className="font-medium">{routeLabel}</p>
                             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                              {route.label !== routeLabel ? `${family.label} · ${route.label}` : family.label}
+                              {showsAlias ? `${family.label} - ${route.label}` : family.label}
                             </p>
                           </div>
                         </div>

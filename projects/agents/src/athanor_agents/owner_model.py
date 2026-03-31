@@ -276,10 +276,8 @@ async def _gather_capacity() -> dict:
     # Idle agents — agents with no pending/running tasks
     try:
         from .tasks import list_tasks
-        pending = await list_tasks(status="pending", limit=50)
-        running = await list_tasks(status="running", limit=50)
         busy_agents = set()
-        for t in pending + running:
+        for t in await list_tasks(statuses=["pending", "running"], limit=None):
             if isinstance(t, dict):
                 busy_agents.add(t.get("agent", ""))
         all_agents = [

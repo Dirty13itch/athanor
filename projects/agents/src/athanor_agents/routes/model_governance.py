@@ -7,7 +7,51 @@ Extracted from the backbone branch and reconciled into main as a router module.
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
+from ..operator_contract import (
+    build_operator_action,
+    emit_operator_audit_event,
+    require_operator_action,
+)
+
 router = APIRouter(tags=["model-governance"])
+
+
+async def _load_candidate_action(request: Request, *, default_reason: str):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+    return build_operator_action(body, default_reason=default_reason)
+
+
+async def _load_operator_body(
+    request: Request,
+    *,
+    route: str,
+    action_class: str,
+    default_reason: str,
+):
+    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    if not isinstance(body, dict):
+        body = {}
+
+    candidate = build_operator_action(body, default_reason=default_reason)
+    try:
+        action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        status_code = getattr(exc, "status_code", 400)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=route,
+            action_class=action_class,
+            decision="denied",
+            status_code=status_code,
+            action=candidate,
+            detail=str(detail),
+        )
+        return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+    return body, action, None
 
 
 @router.get("/v1/models/governance")
@@ -28,10 +72,26 @@ async def model_governance_promotions(limit: int = 12):
 async def stage_model_governance_promotion(request: Request):
     from ..promotion_control import stage_promotion_candidate
 
-    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/models/governance/promotions",
+        action_class="admin",
+        default_reason="",
+    )
+    if denial:
+        return denial
     role_id = body.get("role_id", "") if isinstance(body, dict) else ""
     candidate = body.get("candidate", "") if isinstance(body, dict) else ""
     if not role_id or not candidate:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/models/governance/promotions",
+            action_class="admin",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="Fields 'role_id' and 'candidate' are required",
+        )
         return JSONResponse(
             status_code=400,
             content={"error": "Fields 'role_id' and 'candidate' are required"},
@@ -41,10 +101,21 @@ async def stage_model_governance_promotion(request: Request):
         role_id=role_id,
         candidate=candidate,
         target_tier=body.get("target_tier", "canary") if isinstance(body, dict) else "canary",
-        actor=body.get("actor", "operator") if isinstance(body, dict) else "operator",
-        reason=body.get("reason", "") if isinstance(body, dict) else "",
+        actor=action.actor,
+        reason=action.reason,
         source=body.get("source", "manual") if isinstance(body, dict) else "manual",
         asset_class=body.get("asset_class", "models") if isinstance(body, dict) else "models",
+    )
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/models/governance/promotions",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Staged promotion {candidate} for role {role_id}",
+        target=role_id,
+        metadata={"candidate": candidate, "target_tier": body.get("target_tier", "canary")},
     )
     return {"promotion": record}
 
@@ -54,17 +125,55 @@ async def transition_model_governance_promotion(promotion_id: str, action: str, 
     from ..promotion_control import transition_promotion_candidate
 
     if action not in {"advance", "hold", "rollback"}:
+        candidate = await _load_candidate_action(request, default_reason="")
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=f"/v1/models/governance/promotions/{promotion_id}/{action}",
+            action_class="admin",
+            decision="denied",
+            status_code=400,
+            action=candidate,
+            detail=f"Unsupported action '{action}'",
+            target=promotion_id,
+        )
         return JSONResponse(status_code=400, content={"error": f"Unsupported action '{action}'"})
 
-    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    body, operator_action, denial = await _load_operator_body(
+        request,
+        route=f"/v1/models/governance/promotions/{promotion_id}/{action}",
+        action_class="admin",
+        default_reason="",
+    )
+    if denial:
+        return denial
     record = await transition_promotion_candidate(
         promotion_id,
         action=action,
-        actor=body.get("actor", "operator") if isinstance(body, dict) else "operator",
-        reason=body.get("reason", "") if isinstance(body, dict) else "",
+        actor=operator_action.actor,
+        reason=operator_action.reason,
     )
     if record is None:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=f"/v1/models/governance/promotions/{promotion_id}/{action}",
+            action_class="admin",
+            decision="denied",
+            status_code=404,
+            action=operator_action,
+            detail=f"Promotion '{promotion_id}' not found",
+            target=promotion_id,
+        )
         return JSONResponse(status_code=404, content={"error": f"Promotion '{promotion_id}' not found"})
+    await emit_operator_audit_event(
+        service="agent-server",
+        route=f"/v1/models/governance/promotions/{promotion_id}/{action}",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=operator_action,
+        detail=f"Applied promotion action={action} for {promotion_id}",
+        target=promotion_id,
+    )
     return {"promotion": record}
 
 
@@ -79,11 +188,27 @@ async def model_governance_retirements(limit: int = 12):
 async def stage_model_governance_retirement(request: Request):
     from ..retirement_control import stage_retirement_candidate
 
-    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/models/governance/retirements",
+        action_class="admin",
+        default_reason="",
+    )
+    if denial:
+        return denial
     asset_class = body.get("asset_class", "") if isinstance(body, dict) else ""
     asset_id = body.get("asset_id", "") if isinstance(body, dict) else ""
     label = body.get("label", asset_id) if isinstance(body, dict) else asset_id
     if not asset_class or not asset_id:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/models/governance/retirements",
+            action_class="admin",
+            decision="denied",
+            status_code=400,
+            action=action,
+            detail="Fields 'asset_class' and 'asset_id' are required",
+        )
         return JSONResponse(
             status_code=400,
             content={"error": "Fields 'asset_class' and 'asset_id' are required"},
@@ -96,9 +221,20 @@ async def stage_model_governance_retirement(request: Request):
         target_stage=body.get("target_stage", "retired_reference_only")
         if isinstance(body, dict)
         else "retired_reference_only",
-        actor=body.get("actor", "operator") if isinstance(body, dict) else "operator",
-        reason=body.get("reason", "") if isinstance(body, dict) else "",
+        actor=action.actor,
+        reason=action.reason,
         source=body.get("source", "manual") if isinstance(body, dict) else "manual",
+    )
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/models/governance/retirements",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Staged retirement {asset_id}",
+        target=asset_id,
+        metadata={"asset_class": asset_class, "target_stage": body.get("target_stage", "retired_reference_only")},
     )
     return {"retirement": record}
 
@@ -108,17 +244,55 @@ async def transition_model_governance_retirement(retirement_id: str, action: str
     from ..retirement_control import transition_retirement_candidate
 
     if action not in {"advance", "hold", "rollback"}:
+        candidate = await _load_candidate_action(request, default_reason="")
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=f"/v1/models/governance/retirements/{retirement_id}/{action}",
+            action_class="admin",
+            decision="denied",
+            status_code=400,
+            action=candidate,
+            detail=f"Unsupported action '{action}'",
+            target=retirement_id,
+        )
         return JSONResponse(status_code=400, content={"error": f"Unsupported action '{action}'"})
 
-    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    body, operator_action, denial = await _load_operator_body(
+        request,
+        route=f"/v1/models/governance/retirements/{retirement_id}/{action}",
+        action_class="admin",
+        default_reason="",
+    )
+    if denial:
+        return denial
     record = await transition_retirement_candidate(
         retirement_id,
         action=action,
-        actor=body.get("actor", "operator") if isinstance(body, dict) else "operator",
-        reason=body.get("reason", "") if isinstance(body, dict) else "",
+        actor=operator_action.actor,
+        reason=operator_action.reason,
     )
     if record is None:
+        await emit_operator_audit_event(
+            service="agent-server",
+            route=f"/v1/models/governance/retirements/{retirement_id}/{action}",
+            action_class="admin",
+            decision="denied",
+            status_code=404,
+            action=operator_action,
+            detail=f"Retirement '{retirement_id}' not found",
+            target=retirement_id,
+        )
         return JSONResponse(status_code=404, content={"error": f"Retirement '{retirement_id}' not found"})
+    await emit_operator_audit_event(
+        service="agent-server",
+        route=f"/v1/models/governance/retirements/{retirement_id}/{action}",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=operator_action,
+        detail=f"Applied retirement action={action} for {retirement_id}",
+        target=retirement_id,
+    )
     return {"retirement": record}
 
 
@@ -133,6 +307,24 @@ async def model_proving_ground(limit: int = 12):
 async def run_model_proving_ground(request: Request):
     from ..proving_ground import run_proving_ground
 
-    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    body, action, denial = await _load_operator_body(
+        request,
+        route="/v1/models/proving-ground/run",
+        action_class="admin",
+        default_reason="",
+    )
+    if denial:
+        return denial
     limit = int(body.get("limit", 12)) if isinstance(body, dict) else 12
-    return await run_proving_ground(limit=limit)
+    result = await run_proving_ground(limit=limit)
+    await emit_operator_audit_event(
+        service="agent-server",
+        route="/v1/models/proving-ground/run",
+        action_class="admin",
+        decision="accepted",
+        status_code=200,
+        action=action,
+        detail=f"Ran proving ground limit={limit}",
+        metadata={"limit": limit},
+    )
+    return result

@@ -34,14 +34,14 @@ import {
   getPrimaryRoutes,
   type RouteIconKey,
 } from "@/lib/navigation";
+import { useOperatorUiPreferences } from "@/lib/operator-ui-preferences";
 import { queryKeys } from "@/lib/query-client";
-import { usePersistentState, STORAGE_KEYS, DEFAULT_UI_PREFERENCES } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { formatLatency, formatPercent, formatRelativeTime } from "@/lib/format";
 
 const PRIMARY_ROUTES = getPrimaryRoutes();
 const ROUTE_FAMILIES = getRouteFamiliesWithRoutes();
-const DESKTOP_ROUTE_FAMILIES = ROUTE_FAMILIES.filter((family) => family.id !== "core");
+const DESKTOP_ROUTE_FAMILIES = ROUTE_FAMILIES.filter((family) => family.id !== "command_center");
 
 function NavRailItem({
   href,
@@ -119,7 +119,7 @@ function NavLinks({
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [preferences] = usePersistentState(STORAGE_KEYS.uiPreferences, DEFAULT_UI_PREFERENCES);
+  const { preferences } = useOperatorUiPreferences();
   const overviewQuery = useQuery({
     queryKey: queryKeys.overview,
     queryFn: getOverview,
@@ -128,9 +128,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   });
 
   const overview = overviewQuery.data;
+  const warningCount = overview?.summary.warningServices ?? 0;
   const routeLabel = getRouteLabel(pathname);
   const degradedCount = overview?.summary.degradedServices ?? 0;
-  const shellStateTone = degradedCount > 0 ? "warning" : "healthy";
+  const shellIndicatorTone = degradedCount > 0 ? "danger" : warningCount > 0 ? "warning" : "healthy";
+  const shellChipTone = degradedCount > 0 || warningCount > 0 ? "warning" : "healthy";
 
   return (
     <NavAttentionProvider overview={overview} pathname={pathname}>
@@ -150,7 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-3">
                 <div className="hidden items-center gap-2 lg:flex">
-                  <StatusDot tone={shellStateTone} pulse={degradedCount > 0} />
+                  <StatusDot tone={shellIndicatorTone} pulse={degradedCount > 0 || warningCount > 0} />
                   <p className="text-sm font-medium">{routeLabel}</p>
                 </div>
                 <Button
@@ -185,8 +187,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     ? `${overview.summary.healthyServices}/${overview.summary.totalServices}`
                     : "--"
                 }
-                tone={degradedCount > 0 ? "warning" : "healthy"}
-                detail={overview ? `${overview.summary.degradedServices} degraded` : "Loading"}
+                tone={shellChipTone}
+                detail={
+                  overview
+                    ? `${overview.summary.warningServices} warning · ${overview.summary.degradedServices} degraded`
+                    : "Loading"
+                }
               />
               <StatusChip
                 label="Latency"
@@ -220,14 +226,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       <SheetTitle className="font-heading text-xl font-medium tracking-[-0.025em]">
                         Athanor
                       </SheetTitle>
-                      <SheetDescription>Operator command center</SheetDescription>
+                      <SheetDescription>Canonical operator front door</SheetDescription>
                     </div>
                   </SheetHeader>
                   <div className="p-3">
                     <NavLinks pathname={pathname} compact />
                   </div>
                   <div className="border-t border-border/80 p-4 text-sm text-muted-foreground">
-                    Services, GPU telemetry, model chat, and agent workflows in one console.
+                    Command center, launchpad, and deep links into specialist tools across the cluster.
                   </div>
                 </SheetContent>
               </Sheet>
@@ -242,7 +248,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               Command Center
             </p>
             <p className="mt-3 text-sm text-muted-foreground">
-              Desktop-first operator console for cluster health, inference, and agents.
+              Canonical operator portal for posture, autonomy, incidents, and specialist-tool launch.
             </p>
           </Link>
 
@@ -298,14 +304,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="surface-instrument mt-6 space-y-3 rounded-2xl border p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Cluster</p>
-              <StatusDot tone={shellStateTone} pulse={degradedCount > 0} />
+              <StatusDot tone={shellIndicatorTone} pulse={degradedCount > 0 || warningCount > 0} />
             </div>
             <div>
               <p className="text-2xl font-semibold">
                 {overview ? `${overview.summary.healthyServices}/${overview.summary.totalServices}` : "--"}
               </p>
               <p className="text-sm text-muted-foreground">
-                {degradedCount > 0 ? `${degradedCount} services need attention` : "No active incidents"}
+                {degradedCount > 0
+                  ? `${degradedCount} degraded services need attention`
+                  : warningCount > 0
+                    ? `${warningCount} warning services under watch`
+                    : "No active incidents"}
               </p>
             </div>
             <MiniTrend points={overview?.serviceTrend ?? []} />
@@ -333,7 +343,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link href="/workplanner">Project work planner</Link>
             </Button>
             <Button asChild className="w-full justify-between" variant="ghost">
-              <Link href="/more">Browse all families</Link>
+              <Link href="/catalog">Open catalog</Link>
             </Button>
           </div>
 

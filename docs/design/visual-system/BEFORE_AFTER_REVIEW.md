@@ -39,7 +39,7 @@ The repo-backed snapshot set has now been refreshed after the staged implementat
 
 - shell, core routes, telemetry routes, intelligence/memory/chat routes, and domain/history routes all share the governed material and signal grammar
 - the old earthy/furnace reading has been removed from the active screenshot set
-- the deployed WORKSHOP dashboard has now been rebuilt and smoke-verified against the refreshed repo baselines
+- the deployed DEV command-center runtime has now been rebuilt and smoke-verified against the refreshed repo baselines
 - the remaining review work is optional screenshot-by-screenshot live signoff and any final cosmetic polish
 
 ## After-state review requirements

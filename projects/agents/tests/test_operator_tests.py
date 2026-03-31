@@ -11,7 +11,11 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from athanor_agents.governor import get_governor_state
-from athanor_agents.operator_tests import build_operator_tests_snapshot, run_operator_tests
+from athanor_agents.operator_tests import (
+    _sanitize_artifact_reference,
+    build_operator_tests_snapshot,
+    run_operator_tests,
+)
 
 
 class FakeRedis:
@@ -57,7 +61,53 @@ class FakeRedis:
         return values[start : end + 1]
 
 
+class FakeHttpResponse:
+    def __init__(
+        self,
+        status_code: int,
+        payload: dict | None = None,
+        content_type: str = "application/json",
+    ) -> None:
+        self.status_code = status_code
+        self._payload = payload or {}
+        self.headers = {"content-type": content_type}
+
+    def json(self) -> dict:
+        return dict(self._payload)
+
+
+class FakeRestoreDrillHttpClient:
+    async def __aenter__(self) -> "FakeRestoreDrillHttpClient":
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:
+        return None
+
+    async def get(self, url: str, headers: dict | None = None) -> FakeHttpResponse:
+        if url.endswith("/collections"):
+            return FakeHttpResponse(200, {"result": {"collections": [{"name": "activity"}]}})
+        if url.endswith("/v1/governor"):
+            return FakeHttpResponse(401, content_type="text/plain")
+        if url.endswith("/api/system-map"):
+            return FakeHttpResponse(403, content_type="text/plain")
+        return FakeHttpResponse(401, content_type="text/plain")
+
+
 class OperatorTestsRuntimeTests(unittest.IsolatedAsyncioTestCase):
+    def test_sanitize_artifact_reference_redacts_embedded_credentials(self) -> None:
+        self.assertEqual(
+            "redis://192.168.1.203:6379/0",
+            _sanitize_artifact_reference("redis://:super-secret@192.168.1.203:6379/0"),
+        )
+        self.assertEqual(
+            "https://example.com/path",
+            _sanitize_artifact_reference("https://user:pass@example.com/path"),
+        )
+        self.assertEqual(
+            "http://dashboard/api/system-map",
+            _sanitize_artifact_reference("http://dashboard/api/system-map"),
+        )
+
     async def test_pause_resume_operator_flow_runs_and_restores_governor_state(self) -> None:
         fake_redis = FakeRedis()
         with (
@@ -147,6 +197,29 @@ class OperatorTestsRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(4, flow["details"]["verified_store_count"])
         self.assertEqual(4, len(flow["details"]["stores"]))
         self.assertEqual("passed", stored_flow["last_outcome"])
+
+    async def test_restore_drill_counts_auth_protected_deploy_surfaces_as_reachable(self) -> None:
+        fake_redis = FakeRedis()
+        with (
+            patch("athanor_agents.operator_tests._get_redis", AsyncMock(return_value=fake_redis)),
+            patch(
+                "athanor_agents.operator_tests.httpx.AsyncClient",
+                return_value=FakeRestoreDrillHttpClient(),
+            ),
+            patch("athanor_agents.activity.log_event", AsyncMock()),
+        ):
+            snapshot = await run_operator_tests(flow_ids=["restore_drill"], actor="test-suite")
+
+        flow = next(flow for flow in snapshot["flows"] if flow["id"] == "restore_drill")
+        deploy_store = next(
+            store
+            for store in flow["details"]["stores"]
+            if store["id"] == "dashboard_agent_deploy_state"
+        )
+        self.assertEqual("passed", flow["last_outcome"])
+        self.assertEqual(4, flow["details"]["verified_store_count"])
+        self.assertTrue(deploy_store["verified"])
+        self.assertIn("auth-protected", deploy_store["probe_summary"])
 
     async def test_promotion_ladder_operator_flow_rehearses_and_rolls_back(self) -> None:
         fake_redis = FakeRedis()

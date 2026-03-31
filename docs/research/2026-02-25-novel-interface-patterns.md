@@ -3,7 +3,7 @@
 **Date:** 2026-02-25
 **Status:** Complete -- comprehensive survey with synthesis
 **Scope:** Interface design patterns for an AI agent command center beyond standard dashboards and chatbots
-**Context:** Athanor dashboard is Next.js 16 + React 19 + shadcn/ui + Tailwind v4, deployed at Node 2:3001 with 16 pages and 26 service health checks. 8 autonomous AI agents, 7 GPUs, media, home automation, creative pipelines. The goal: an interface that feels alive, intuitive, and genuinely novel.
+**Context:** Athanor dashboard is Next.js 16 + React 19 + shadcn/ui + Tailwind v4, deployed at DEV via athanor.local (runtime fallback dev.athanor.local:3001) with 16 pages and 26 service health checks. 8 autonomous AI agents, 7 GPUs, media, home automation, creative pipelines. The goal: an interface that feels alive, intuitive, and genuinely novel.
 
 ---
 

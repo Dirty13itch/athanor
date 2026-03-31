@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOperatorMutationAccess } from "@/lib/operator-auth";
 
 const FIXTURE_SESSION_COOKIE = "athanor_fixture_session";
 
 export function proxy(request: NextRequest) {
+  const gate = requireOperatorMutationAccess(request);
+  if (gate) {
+    return gate;
+  }
+
   if (process.env.DASHBOARD_FIXTURE_MODE !== "1") {
     return NextResponse.next();
   }

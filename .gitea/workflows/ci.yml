@@ -15,39 +15,130 @@ jobs:
 
       - name: Python syntax check (agents)
         run: |
-          find projects/agents/src -name "*.py" -exec python3 -m py_compile {} + 2>&1
-          echo "Python syntax: OK"
+          set -euo pipefail
+          find projects/agents/src -name "*.py" -print0 | while IFS= read -r -d '' file; do
+            python3 -m py_compile "$file"
+          done
 
-      - name: YAML validation (ansible)
+      - name: YAML validation
         run: |
-          python3 -c "
-          import yaml, glob, sys
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob
+          import sys
+
+          import yaml
+
+          paths = sorted(set(glob.glob("ansible/**/*.yml", recursive=True)) | set(glob.glob(".gitea/workflows/*.yml")))
           errors = 0
-          for f in glob.glob('ansible/**/*.yml', recursive=True):
+          for path in paths:
               try:
-                  yaml.safe_load(open(f))
-              except Exception as e:
-                  print(f'FAIL: {f}: {e}', file=sys.stderr)
+                  with open(path, encoding="utf-8") as handle:
+                      yaml.safe_load(handle)
+              except Exception as exc:
+                  print(f"FAIL: {path}: {exc}", file=sys.stderr)
                   errors += 1
           if errors:
               sys.exit(1)
-          print(f'YAML validation: {len(glob.glob(\"ansible/**/*.yml\", recursive=True))} files OK')
-          "
+          print(f"YAML validation: {len(paths)} files OK")
+          PY
 
-      - name: TypeScript check (dashboard)
+      - name: Shell syntax check
         run: |
+          set -euo pipefail
+          for script in scripts/*.sh; do
+            [ -f "$script" ] || continue
+            bash -n "$script"
+          done
+
+      - name: Platform contract validation
+        run: |
+          set -euo pipefail
+          python3 scripts/validate_platform_contract.py
+
+      - name: Agents contract
+        run: |
+          set -euo pipefail
+          if [ -f projects/agents/pyproject.toml ]; then
+            cd projects/agents
+            python3 -m venv .venv-ci
+            . .venv-ci/bin/activate
+            python -m pip install --upgrade pip
+            python -m pip install -e . pytest
+            pytest tests -q
+          fi
+
+      - name: Dashboard contract
+        run: |
+          set -euo pipefail
           if [ -f projects/dashboard/package.json ]; then
             cd projects/dashboard
-            npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
-            npx tsc --noEmit 2>&1 || echo "TypeScript check completed with warnings"
+            if ! npm ci --ignore-scripts; then
+              npm install --ignore-scripts
+            fi
+            npm test
+            npm run typecheck
+            npm run build
+            npm run test:e2e:terminal
+          fi
+
+      - name: GPU orchestrator contract
+        run: |
+          set -euo pipefail
+          if [ -f projects/gpu-orchestrator/pyproject.toml ]; then
+            cd projects/gpu-orchestrator
+            python3 -m venv .venv-ci
+            . .venv-ci/bin/activate
+            python -m pip install --upgrade pip
+            python -m pip install -e . pytest
+            pytest tests -q
+          fi
+
+      - name: WS PTY bridge contract
+        run: |
+          set -euo pipefail
+          if [ -f projects/ws-pty-bridge/package.json ]; then
+            cd projects/ws-pty-bridge
+            npm install --ignore-scripts --no-package-lock
+            npm run ci
+          fi
+
+      - name: Quality gate contract
+        run: |
+          set -euo pipefail
+          if [ -f services/quality-gate/main.py ]; then
+            python3 -m pip install --upgrade pip
+            python3 -m pip install -r services/quality-gate/requirements.txt pytest
+            python3 -m pytest services/quality-gate/tests -q
+          fi
+
+      - name: Gateway contract
+        run: |
+          set -euo pipefail
+          if [ -d services/gateway/tests ]; then
+            python3 -m pip install --upgrade pip
+            python3 -m pip install -r services/gateway/requirements-test.txt
+            python3 -m pytest services/gateway/tests -q
+          fi
+
+      - name: Governor helper contract
+        run: |
+          set -euo pipefail
+          if [ -d services/governor/tests ]; then
+            python3 -m pip install --upgrade pip
+            python3 -m pip install -r services/governor/requirements-test.txt
+            python3 -m pytest services/governor/tests -q
           fi
 
       - name: TypeScript check (eoq)
         run: |
+          set -euo pipefail
           if [ -f projects/eoq/package.json ]; then
             cd projects/eoq
-            npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts 2>/dev/null || true
-            npx tsc --noEmit 2>&1 || echo "TypeScript check completed with warnings"
+            if ! npm ci --ignore-scripts; then
+              npm install --ignore-scripts
+            fi
+            npx tsc --noEmit
           fi
 
   notify:
@@ -57,5 +148,6 @@ jobs:
     steps:
       - name: Notify on failure
         run: |
-          curl -sf -d "CI failed on ${{ github.ref_name }}: ${{ github.event.head_commit.message }}" \
+          set -euo pipefail
+          curl -fsS -d "CI failed on ${{ github.ref_name }}: ${{ github.event.head_commit.message }}" \
             http://192.168.1.203:8880/athanor-ci 2>/dev/null || true

@@ -1,174 +1,121 @@
-﻿# Athanor Services Map
+# Athanor Services Map
 
-*Live service inventory. Updated when services change.*
+Source of truth: `config/automation-backbone/platform-topology.json`, `docs/projects/PORTFOLIO-REGISTRY.md`
+Validated against registry version: `platform-topology.json@2026-03-27.1`, `project-maturity-registry.json@2026-03-27.1`
+Mutable facts policy: service ids, nodes, ports, auth classes, and health paths belong to `platform-topology.json`. This document is the operator-facing map for the current validated registry snapshot and should be rewritten when topology changes.
 
-Last updated: 2026-03-16 (Added vLLM Vision model on Workshop 5060Ti :8010, vision LiteLLM route)
+---
 
-## Node 1 â€” Foundry (192.168.1.244)
+## How To Read This Map
 
-| Service | Port | Details |
-|---------|------|---------|
-| vLLM Coordinator (Qwen3.5-27B-FP8) | 8000 | TP=4 across GPUs 0,1,3,4 (4x RTX 5070 Ti), `--tool-call-parser qwen3_xml`, `--enforce-eager`, `--language-model-only` |
-| vLLM Coder (Qwen3.5-35B-A3B-AWQ-4bit) | 8006 | GPU 2 (RTX 4090), dedicated coding and tool-heavy lane |
-| Agent Server | 9000 | 9 agents + GWT workspace + escalation + activity/preferences + routing + diagnosis + semantic cache + circuit breakers + self-improvement + preference learning APIs |
-| Qdrant | 6333/6334 | Vector DB: knowledge (2484), personal_data (2304), conversations, activity, preferences (55), implicit_feedback, events |
-| GPU Orchestrator | 9200 | 4 zones, DCGM metrics, vLLM sleep/wake, TTL auto-sleep, Prometheus export |
-| wyoming-whisper | 10300 | STT for HA â€” faster-distil-whisper-large-v3 (float16), GPU 4 |
-| Speaches | 8200 | OpenAI-compatible STT+TTS API â€” Kokoro + faster-whisper, GPU 4 |
-| Docker Socket Proxy | 2375 | Read-only Docker socket proxy for MCP tools, /opt/athanor/docker-socket-proxy/ |
-| Grafana Alloy | â€” | Log/metric forwarding |
-| node_exporter | 9100 | Prometheus metrics |
-| dcgm-exporter | 9400 | GPU metrics |
+- If a service is listed here, it is in the topology registry and is part of current live truth.
+- If a service is not listed here, it is not part of the canonical live map, even if a historical doc or host still references it.
+- Use the topology registry for exact URLs and env overrides.
+- Use this document to understand service role, operator expectations, and which surfaces are core versus supporting.
 
-### Agent Server Endpoints (FOUNDRY:9000)
+## Auth Classes
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| /health | GET | Agent server health |
-| /v1/agents | GET | Agent registry |
-| /v1/tasks/* | GET/POST | Task submission, status, approval |
-| /v1/governor/* | GET/POST | Governor state, lanes, presence, pause/resume |
-| /v1/plans/* | GET/POST | Plan lifecycle (intent → plan → execute) |
-| /v1/projects/* | GET/POST | Project milestones, stalled detection, advancement |
-| /v1/models/local | GET | Live vLLM model health and status |
-| /v1/subscriptions/* | GET/POST | CLI status, routing log, provider status, quotas, leases |
-| /v1/goals/* | GET/POST | Goal tracking, trust scores |
-| /v1/workspace/* | GET/POST | GWT workspace state |
-| /v1/activity/* | GET | Activity feed |
-| /v1/events/* | GET/POST | Event stream |
-| /v1/metrics/* | GET | Agent and system metrics |
+| Auth class | Meaning |
+|------------|---------|
+| `admin` | Privileged control-plane service. Mutations must fail closed. |
+| `operator` | Human/operator-facing or guarded product surface. |
+| `internal_only` | Backend-only dependency. Not for unauthenticated browser or LAN mutation. |
 
-## Node 2 â€” Workshop (192.168.1.225)
+## Runtime Classes
 
-| Service | Port | Details |
-|---------|------|---------|
-| vLLM (Qwen3.5-35B-A3B-AWQ-4bit) | 8000 | RTX 5090, vLLM nightly, `--tool-call-parser qwen3_xml`, `--kv-cache-dtype auto` |
-| Dashboard | 3001 | Next.js 16, PWA, 5 lens modes, SSE real-time, 17+ pages |
-| ws-pty Bridge | 3100 | WebSocket terminal bridge (node-pty + ws sidecar) |
-| vLLM Vision (Qwen3-VL-8B-Instruct-FP8) | 8010 | RTX 5060 Ti (GPU 1), multimodal vision-language model, FP8, 8K context |
-| ComfyUI | 8188 | Flux dev FP8 + Wan2.x T2V, RTX 5060 Ti (GPU 1, shared with vLLM Vision — cannot run simultaneously) |
-| EoBQ | 3002 | Empire of Broken Queens â€” Next.js game app |
-| Open WebUI | 3000 | Chat interface (Workshop-local, routes to Node 1 vLLM) |
-| Grafana Alloy | â€” | Log/metric forwarding |
-| node_exporter | 9100 | Prometheus metrics |
-| dcgm-exporter | 9400 | GPU metrics |
+| Runtime class | Meaning |
+|---------------|---------|
+| `control_plane` | Coordination, policy, observability, or privileged orchestration surface |
+| `data_plane` | Inference, state, routing, or backend data dependency |
+| `product_app` | User/operator-facing application surface |
+| `scaffold` | Intentionally incomplete surface with limited obligations |
 
-## VAULT (192.168.1.203)
+## Registry-Managed Services
 
-### Core Services
+### Control Plane
 
-| Service | Port | Details |
-|---------|------|---------|
-| LiteLLM Proxy | 4000 | Routed local + cloud inference: reasoning, coding, coder, creative, utility, fast, worker, uncensored, vision, embedding, reranker, Anthropic, OpenAI, Google, DeepSeek, Moonshot, Z.ai, OpenRouter. LangFuse callbacks. Auth is env-backed. |
-| Neo4j | 7474/7687 | Graph DB (3095 nodes, 4447 rels), auth is env-backed. |
-| Redis | 6379 | GWT workspace + GPU orchestrator state + scheduler |
-| Qdrant | 6333/6334 | VAULT-side vector DB instance |
-| Postgres | 5432 | Shared PostgreSQL |
-| Meilisearch | 7700 | Search engine |
+| Service id | Node | Auth | Health | Role |
+|------------|------|------|--------|------|
+| `gateway` | `dev` | `internal_only` | `/health` | Local gateway/control helper on the ops host |
+| `quality_gate` | `dev` | `admin` | `/health` | Quality and cleanup gate for curated data/control flows |
+| `semantic_router` | `dev` | `internal_only` | `/health` | Routing helper for intent or semantic dispatch |
+| `agent_server` | `foundry` | `admin` | `/health` | Main agent runtime, task API, workspace, subscriptions, and backbone read models |
+| `gpu_orchestrator` | `foundry` | `admin` | `/health` | GPU placement and runtime power/lease control |
+| `grafana` | `vault` | `operator` | `/api/health` | Metrics and dashboards |
+| `langfuse` | `vault` | `operator` | `/api/public/health` | Observability and tracing surface |
+| `ntfy` | `vault` | `operator` | none | Push notification service |
+| `ntfy_topic` | `vault` | `operator` | none | Topic endpoint used by notification flows |
+| `prometheus` | `vault` | `operator` | `/-/healthy` | Metrics aggregation |
+| `uptime_kuma` | `vault` | `operator` | none | Availability checks and endpoint monitoring |
+| `ws_pty_bridge` | `workshop` | `admin` | `/health` | Privileged terminal bridge with signed-ticket access |
 
-### Observability
+### Data Plane
 
-| Service | Port | Details |
-|---------|------|---------|
-| LangFuse Web | 3030 | v3.155.1, observability + tracing for LiteLLM |
-| LangFuse Worker | â€” | Background job processor |
-| LangFuse Postgres | â€” | LangFuse-dedicated PostgreSQL 16 |
-| LangFuse ClickHouse | â€” | LangFuse metrics store |
-| LangFuse Redis | â€” | LangFuse cache |
-| LangFuse MinIO | â€” | LangFuse blob storage |
-| Prometheus | 9090 | Metrics aggregation |
-| Grafana | 3000 | Admin credentials are managed outside tracked docs. |
-| Grafana Alloy | â€” | Log collection agent |
-| Loki | â€” | Log aggregation |
-| cadvisor | 9880 | Container metrics |
-| node_exporter | 9100 | System metrics |
+| Service id | Node | Auth | Health | Role |
+|------------|------|------|--------|------|
+| `embedding` | `dev` | `internal_only` | `/health` | Embedding service |
+| `memory` | `dev` | `internal_only` | `/health` | Memory/data helper on the ops host |
+| `reranker` | `dev` | `internal_only` | `/health` | Reranker service |
+| `vllm_coder` | `foundry` | `internal_only` | `/health` | Dedicated coder inference lane |
+| `vllm_coordinator` | `foundry` | `internal_only` | `/health` | Main reasoning/coordinator inference lane |
+| `litellm` | `vault` | `internal_only` | `/health` | Central routed inference proxy |
+| `neo4j` | `vault` | `internal_only` | none | Bolt graph endpoint |
+| `neo4j_http` | `vault` | `internal_only` | `/` | HTTP graph endpoint |
+| `qdrant` | `vault` | `internal_only` | `/collections` | Vector store |
+| `redis` | `vault` | `internal_only` | TCP connect | Shared volatile/durable runtime state for this cycle |
+| `ollama_workshop` | `workshop` | `internal_only` | `/api/tags` | Workshop-local model runtime |
+| `scorer` | `workshop` | `internal_only` | `/health` | Scoring/evaluation helper |
+| `vllm_vision` | `workshop` | `internal_only` | `/health` | Vision lane |
+| `vllm_worker` | `workshop` | `internal_only` | `/health` | Worker/utility inference lane |
 
-### Media Stack
+### Product Apps
 
-| Service | Port | Details |
-|---------|------|---------|
-| Plex | 32400 | Media server |
-| Sonarr | 8989 | TV management |
-| Radarr | 7878 | Movie management |
-| Prowlarr | 9696 | Indexer management |
-| SABnzbd | 8080 | Usenet downloader |
-| Tautulli | 8181 | Plex analytics |
-| Stash | 9999 | Adult content management |
-| Tdarr | 8265-8266 | Media transcoding (server + node) |
-| qBittorrent | 8112 | Torrent client (via Gluetun VPN). Admin: `admin`. |
-| Gluetun | -- | VPN tunnel (NordVPN/Switzerland). qBittorrent routes through this. |
+| Service id | Node | Auth | Health | Role |
+|------------|------|------|--------|------|
+| `dashboard` | `dev` | `operator` | `/api/operator/session` | Main authenticated operator console |
+| `speaches` | `foundry` | `operator` | none | Speech/STT/TTS surface |
+| `miniflux` | `vault` | `operator` | `/healthcheck` | RSS and signal intake product surface |
+| `stash` | `vault` | `operator` | none | Adult-content management surface |
+| `comfyui` | `workshop` | `operator` | `/system_stats` | Image/video generation surface |
 
-### Home + Voice
+### Scaffolds
 
-| Service | Port | Details |
-|---------|------|---------|
-| Home Assistant | 8123 | v2026.2.3, 38+ entities, agent token active |
-| wyoming-piper | 10200 | TTS for HA â€” en_US-lessac-medium, CPU-only |
-| wyoming-openwakeword | 10400 | Wake word detection for HA, CPU-only |
+| Service id | Node | Auth | Health | Role |
+|------------|------|------|--------|------|
+| `openfang` | `dev` | `operator` | `/api/health` | Incubating/operator-adjacent scaffold |
+| `subscription_burn` | `dev` | `internal_only` | `/health` | Subscription and quota scaffold |
+| `n8n` | `vault` | `operator` | none | Workflow automation scaffold |
 
-### Applications
+## Core-First Surfaces
 
-| Service | Port | Details |
-|---------|------|---------|
-| Gitea | 3033 | Self-hosted git + CI/CD (SQLite, Actions enabled, admin credentials managed outside tracked docs) |
-| Miniflux | 8070 | RSS reader (17 feeds, 6 categories, dedicated PostgreSQL, admin credentials managed outside tracked docs) |
-| n8n | 5678 | Workflow automation â€” Miniflux RSS â†’ LLM classification â†’ Qdrant signals pipeline |
-| Open WebUI (VAULT) | 3090 | Chat interface (routes through LiteLLM) |
-| Spiderfoot | 5001 | OSINT tool |
-| ntfy | 8880 | Push notification server |
-| Field Inspect App | 3080 | Field inspection PWA (dedicated Postgres :5433, MinIO :9000-9001) |
-| Ulrich Energy Website | 8088 | Ulrich Energy business site |
-| backup-exporter | 9199 | Prometheus exporter for backup job status |
-| blackbox-exporter | 9115 | Prometheus blackbox exporter for endpoint probing |
+The following services sit directly on the current `platform-core` or `production-product` path and should be treated as highest-priority runtime truth:
 
-## DEV (192.168.1.189)
+- `agent_server`
+- `gpu_orchestrator`
+- `ws_pty_bridge`
+- `dashboard`
+- `quality_gate`
+- `redis`
+- `qdrant`
+- `neo4j` / `neo4j_http`
+- `litellm`
 
-| Service | Port | Details |
-|---------|------|---------|
-| Claude Code | â€” | Primary development tool (native install, auto-updates) |
-| claude-squad | â€” | Multi-session Claude Code manager (git worktrees, parallel sessions) |
-| Embedding (Qwen3-Embedding-0.6B) | 8001 | vLLM embedding model on RTX 5060 Ti |
-| Reranker | 8003 | Reranker model on RTX 5060 Ti |
-| node_exporter | 9100 | Prometheus metrics |
-| dcgm-exporter | 9400 | GPU metrics (nv-hostengine entrypoint for driver 590) |
-| Gitea Actions Runner | â€” | act_runner v0.2.11 (systemd service, self-hosted label) |
-| Multi-CLI Dispatch | â€” | Daemon polling dispatch queue, spawns CLIs (systemd user service) |
+If one of these drifts, the repo contract or operator surface drifts with it.
 
-## LiteLLM Model Routes
+## Reference-Only / Historical Names
 
-| Route | Backend | Model | Node |
-|-------|---------|-------|------|
-| `reasoning` / `gpt-4` | vLLM | Qwen3.5-27B-FP8 | Foundry :8000 (TP=4) |
-| `coding` | vLLM | Qwen3.5-27B-FP8 | Foundry :8000 (same coordinator lane, coding-oriented alias) |
-| `coder` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Foundry :8006 |
-| `creative` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
-| `utility` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
-| `fast` / `gpt-3.5-turbo` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
-| `worker` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
-| `uncensored` | vLLM | Qwen3.5-35B-A3B-AWQ-4bit | Workshop :8000 |
-| `vision` | vLLM | Qwen3-VL-8B-Instruct-FP8 | Workshop :8010 (5060Ti) |
-| `embedding` / `text-embedding-ada-002` | vLLM | Qwen3-Embedding-0.6B | DEV :8001 |
-| `reranker` | vLLM | Reranker model | DEV :8003 |
-| `claude` | Anthropic API | Claude | Cloud |
-| `gpt` | OpenAI API | GPT | Cloud |
-| `deepseek` | DeepSeek API | DeepSeek | Cloud |
-| `gemini` | Google API | Gemini | Cloud |
-| `kimi` | Moonshot API | Kimi | Cloud |
-| `glm` | Z.ai API | GLM | Cloud |
-| `openrouter` | OpenRouter API | OpenRouter | Cloud |
+Historical docs and scripts may still mention services that are not in the current topology registry. Those names are reference-only until re-registered. Common examples:
 
-## Models Available to Inference Nodes (`/mnt/vault/models/` or `/mnt/local-fast/models/`)
+- `mind`
+- `perception`
+- `classifier`
+- `provider_bridge`
+- `ui`
+- `open-webui`
+- `whisparr`
+- `seerr`
+- `vaultwarden`
+- `headscale`
+- `arize-phoenix`
 
-| Model | Size | Purpose |
-|-------|------|---------|
-| Qwen3.5-27B-FP8 | ~29G | Coordinator (LiteLLM: `reasoning`, `coding`) - Foundry TP=4 |
-| Qwen3.5-35B-A3B-AWQ-4bit | ~22G | Worker lane (LiteLLM: `fast`, `worker`, `creative`, `utility`, `uncensored`) - Workshop |
-| Qwen3.5-35B-A3B-AWQ-4bit | ~16G | Coder lane (LiteLLM: `coder`) - Foundry GPU 2 (4090) |
-| Qwen3-VL-8B-Instruct-FP8 | ~10G | Vision-language model (LiteLLM: `vision`) - Workshop 5060Ti :8010 |
-| Qwen3-32B-AWQ | 19G | Previous reasoning model (replaced by Qwen3.5-27B-FP8) |
-| GLM-4.7-Flash-GPTQ-4bit | 16G | Previous local creative candidate (not currently loaded) |
-| Huihui-Qwen3.5-27B-abliterated | 52G | Abliterated 27B (available, not loaded) |
-| Qwen3-0.6B | 1.5G | Draft/speculative decoding |
-| gte-Qwen2-7B-instruct | 29G | Legacy embedding (unused) |
-| comfyui models | 99G | Flux dev FP8, Wan2.x T2V, text encoders, VAE |
-
+Do not treat those names as part of current canonical service truth unless they are added back to `platform-topology.json`.

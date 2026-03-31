@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  config,
   getNodeNameFromInstance,
   getProjectById,
   joinUrl,
@@ -31,12 +32,23 @@ describe("config helpers", () => {
     expect(resolveChatModel("workshop-worker", undefined)).toBe(
       "/models/Qwen3.5-35B-A3B-AWQ-4bit"
     );
-    expect(resolveChatModel("foundry-coordinator", "custom-model")).toBe("/models/custom-model");
+    expect(resolveChatModel("foundry-coder", undefined)).toBe("devstral-small-2");
+    expect(resolveChatModel("foundry-coordinator", "custom-model")).toBe("custom-model");
   });
 
   it("keeps the fallback project registry aligned with active and scaffolded tenants", () => {
     expect(getProjectById("athanor")?.firstClass).toBe(true);
     expect(getProjectById("eoq")?.firstClass).toBe(true);
     expect(getProjectById("ulrich-energy")?.kind).toBe("scaffold");
+  });
+
+  it("uses registry-backed canonical front-door and launchpad URLs", () => {
+    expect(config.frontDoor.canonicalUrl).toBe("https://athanor.local/");
+    expect(config.frontDoor.runtimeUrl).toBe("http://dev.athanor.local:3001/");
+    expect(config.externalTools.length).toBeGreaterThan(10);
+    expect(config.externalTools.every((tool) => !tool.url.includes("192.168.1."))).toBe(true);
+    expect(getProjectById("eoq")?.externalUrl).toMatch(/^http:\/\/interface\.athanor\.local:3002\/?$/);
+    expect(getProjectById("ulrich-energy")?.externalUrl).toMatch(/^http:\/\/interface\.athanor\.local:3003\/?$/);
+    expect(getProjectById("media")?.externalUrl).toBe("http://vault.athanor.local:32400/web");
   });
 });

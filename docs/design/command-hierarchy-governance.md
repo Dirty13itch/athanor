@@ -23,7 +23,7 @@ That means Athanor is not:
 - a Claude-only hierarchy
 - a browser-driven orchestration layer
 
-It is a governed system with one runtime commander and two strategic lanes.
+It is a governed system with one runtime posture authority and two strategic lanes.
 
 ## Canonical authority order
 
@@ -114,7 +114,7 @@ Decentralized handoffs are allowed only for bounded cases:
 | --- | --- | --- |
 | Shaun | approvals, overrides, policy change, destructive authorization | none |
 | Constitution + policy | hard-block, soft-block, approval class definition | direct runtime mutation |
-| Governor | routing, durable tasks, leases, schedules, fallback, low-risk automation control | overriding constitution |
+| Governor | routing policy, runtime posture, fallback, release-tier control, low-risk automation control | overriding constitution, owning durable task or lease truth |
 | Meta lanes | planning, review, critique, decomposition, redirects | direct tool use, lease issuance, schedule ownership |
 | Specialists | scoped execution | self-expanding authority |
 | Workers | generation and execution | approvals, scheduling, routing |
@@ -146,6 +146,8 @@ The orchestrator is a stack, not a single daemon:
 - `alerts`: operator escalation and notification posture
 - `subscription broker`: provider leasing and cloud-boundary enforcement
 - `capacity governor`: live arbitration posture for GPU, queue, benchmark, and provider-reserve contention
+
+The governor layer sits above these subsystems as posture and policy authority; it does not replace the task engine, scheduler, or subscription broker as the durable store of record.
 
 ## Supervisor-worker rule
 

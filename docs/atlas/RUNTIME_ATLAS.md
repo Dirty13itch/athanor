@@ -68,7 +68,7 @@ This atlas maps the active Athanor runtime: the agent server, the workforce subs
 
 - `projects/agents/src/athanor_agents/server.py` is the runtime contract source for endpoint surface and boot behavior.
 - `projects/agents/src/athanor_agents/*` modules are the source for subsystem implementation and dependency shape.
-- [`../design/agent-contracts.md`](../design/agent-contracts.md) is the normative behavioral layer above implementation details.
+- [`../design/command-hierarchy-governance.md`](../design/command-hierarchy-governance.md) is the normative behavioral layer above implementation details for authority split and command hierarchy.
 - [`../SYSTEM-SPEC.md`](../SYSTEM-SPEC.md) explains the runtime in operational terms and remains the primary prose spec below the atlas.
 
 When those sources disagree, the atlas favors the actual agent-server surface and marks the older description instead of silently blending them.

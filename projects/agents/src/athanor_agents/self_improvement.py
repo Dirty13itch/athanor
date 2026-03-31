@@ -668,8 +668,11 @@ def get_improvement_engine() -> SelfImprovementEngine:
 
 # FastAPI router
 def create_improvement_router():
-    from fastapi import APIRouter
-    from pydantic import BaseModel
+    from fastapi import APIRouter, Request
+    from fastapi.responses import JSONResponse
+    from pydantic import BaseModel, ValidationError
+
+    from .operator_contract import build_operator_action, emit_operator_audit_event, require_operator_action
 
     router = APIRouter(prefix="/v1/improvement", tags=["self-improvement"])
 
@@ -682,11 +685,65 @@ def create_improvement_router():
         expected_improvement: str = ""
         benchmark_targets: list[str] = []
 
+    async def _load_operator_body(
+        request: Request,
+        *,
+        route: str,
+        action_class: str,
+        default_reason: str,
+    ):
+        body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+        if not isinstance(body, dict):
+            body = {}
+
+        candidate = build_operator_action(body, default_reason=default_reason)
+        try:
+            action = require_operator_action(body, action_class=action_class, default_reason=default_reason)
+        except Exception as exc:
+            detail = getattr(exc, "detail", str(exc))
+            status_code = getattr(exc, "status_code", 400)
+            await emit_operator_audit_event(
+                service="agent-server",
+                route=route,
+                action_class=action_class,
+                decision="denied",
+                status_code=status_code,
+                action=candidate,
+                detail=str(detail),
+            )
+            return None, None, JSONResponse(status_code=status_code, content={"error": detail})
+
+        return body, action, None
+
     @router.post("/benchmarks/run")
-    async def run_benchmarks():
+    async def run_benchmarks(request: Request):
         """Run the full benchmark suite."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/improvement/benchmarks/run",
+            action_class="admin",
+            default_reason="Ran benchmark suite",
+        )
+        if denial:
+            return denial
+
         engine = get_improvement_engine()
-        return await engine.run_benchmark_suite()
+        result = await engine.run_benchmark_suite()
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/improvement/benchmarks/run",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail="Ran benchmark suite",
+            metadata={
+                "passed": int(result.get("passed", 0) or 0),
+                "total": int(result.get("total", 0) or 0),
+                "pass_rate": float(result.get("pass_rate", 0.0) or 0.0),
+            },
+        )
+        return result
 
     @router.get("/benchmarks/baseline")
     async def get_baseline():
@@ -701,7 +758,30 @@ def create_improvement_router():
         }
 
     @router.post("/proposals")
-    async def create_proposal(inp: ProposalInput):
+    async def create_proposal(request: Request):
+        body, action, denial = await _load_operator_body(
+            request,
+            route="/v1/improvement/proposals",
+            action_class="admin",
+            default_reason="Created improvement proposal",
+        )
+        if denial:
+            return denial
+
+        try:
+            inp = ProposalInput.model_validate(body)
+        except ValidationError as exc:
+            await emit_operator_audit_event(
+                service="agent-server",
+                route="/v1/improvement/proposals",
+                action_class="admin",
+                decision="denied",
+                status_code=422,
+                action=action,
+                detail=str(exc),
+            )
+            return JSONResponse(status_code=422, content={"error": "Invalid proposal payload", "detail": str(exc)})
+
         engine = get_improvement_engine()
         proposal = await engine.propose_improvement(
             title=inp.title,
@@ -712,7 +792,22 @@ def create_improvement_router():
             expected_improvement=inp.expected_improvement,
             benchmark_targets=inp.benchmark_targets,
         )
-        return asdict(proposal)
+        payload = asdict(proposal)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/improvement/proposals",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Created improvement proposal {payload.get('id', '')}",
+            target=str(payload.get("id", "")),
+            metadata={
+                "category": payload.get("category", ""),
+                "target_file_count": len(payload.get("target_files", []) or []),
+            },
+        )
+        return payload
 
     @router.get("/proposals")
     async def list_proposals(status: str = ""):
@@ -723,16 +818,60 @@ def create_improvement_router():
         return {"proposals": [asdict(p) for p in proposals]}
 
     @router.post("/proposals/{proposal_id}/validate")
-    async def validate(proposal_id: str):
+    async def validate(proposal_id: str, request: Request):
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/improvement/proposals/{proposal_id}/validate",
+            action_class="admin",
+            default_reason=f"Validated improvement proposal {proposal_id}",
+        )
+        if denial:
+            return denial
+
         engine = get_improvement_engine()
-        return await engine.validate_proposal(proposal_id)
+        result = await engine.validate_proposal(proposal_id)
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/improvement/proposals/{proposal_id}/validate",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail=f"Validated improvement proposal {proposal_id}",
+            target=proposal_id,
+            metadata={"valid": bool(result.get("valid", False)) if isinstance(result, dict) else False},
+        )
+        return result
 
     @router.post("/cycle")
-    async def run_cycle():
+    async def run_cycle(request: Request):
         """Run a full improvement cycle (benchmarks → patterns → proposals)."""
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/improvement/cycle",
+            action_class="admin",
+            default_reason="Ran improvement cycle",
+        )
+        if denial:
+            return denial
         engine = get_improvement_engine()
         await engine.load()
-        return await engine.run_improvement_cycle()
+        result = await engine.run_improvement_cycle()
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/improvement/cycle",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail="Ran improvement cycle",
+            metadata={
+                "patterns_consumed": int(result.get("patterns_consumed", 0) or 0),
+                "proposals_generated": int(result.get("proposals_generated", 0) or 0),
+                "auto_deployed": int(result.get("auto_deployed", 0) or 0),
+            },
+        )
+        return result
 
     @router.get("/summary")
     async def summary():
@@ -741,10 +880,30 @@ def create_improvement_router():
         return await engine.get_improvement_summary()
 
     @router.post("/trigger")
-    async def trigger_nightly():
+    async def trigger_nightly(request: Request):
         """Trigger nightly prompt optimization cycle."""
         from .prompt_optimizer import run_nightly_optimization
-        return await run_nightly_optimization()
+
+        _, action, denial = await _load_operator_body(
+            request,
+            route="/v1/improvement/trigger",
+            action_class="admin",
+            default_reason="Triggered nightly optimization",
+        )
+        if denial:
+            return denial
+        result = await run_nightly_optimization()
+        await emit_operator_audit_event(
+            service="agent-server",
+            route="/v1/improvement/trigger",
+            action_class="admin",
+            decision="accepted",
+            status_code=200,
+            action=action,
+            detail="Triggered nightly optimization",
+            metadata={"status": str(result.get("status", "")) if isinstance(result, dict) else ""},
+        )
+        return result
 
     @router.get("/optimization-status")
     async def optimization_status():

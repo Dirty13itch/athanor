@@ -10,6 +10,7 @@ Covers:
 import importlib.util
 import os
 import sys
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 # Mock dependencies
@@ -136,6 +137,38 @@ class TestPeakHoursIntegration:
         # tested in test_constitution.py
         result = scheduler.is_peak_hours()
         assert isinstance(result, bool)
+
+
+class TestAutonomyPolicyIntegration:
+    """Shared autonomy-policy seam."""
+
+    def test_autonomy_allows_workload_uses_shared_policy(self):
+        original = scheduler._load_autonomy_policy
+        scheduler._load_autonomy_policy = lambda: SimpleNamespace(
+            phase_id="software_core_phase_1",
+            is_active=True,
+            activation_state="software_core_active",
+            phase_status="active",
+            enabled_agents=frozenset({"coding-agent"}),
+            allowed_workload_classes=frozenset({"coding_implementation"}),
+            blocked_workload_classes=frozenset({"background_transform"}),
+            unmet_prerequisite_ids=(),
+            broad_autonomy_enabled=False,
+            runtime_mutations_approval_gated=True,
+        )
+        try:
+            assert scheduler._autonomy_allows_workload(
+                "coding_implementation",
+                agent="coding-agent",
+                loop_id="scheduler-test",
+            )
+            assert not scheduler._autonomy_allows_workload(
+                "background_transform",
+                agent="coding-agent",
+                loop_id="scheduler-test",
+            )
+        finally:
+            scheduler._load_autonomy_policy = original
 
 
 class TestSchedulerPriorities:

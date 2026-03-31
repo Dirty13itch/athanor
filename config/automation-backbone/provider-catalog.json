@@ -1,0 +1,856 @@
+{
+  "version": "2026-03-29.1",
+  "updated_at": "2026-03-29T06:45:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/provider-catalog.json",
+  "official_verified_at": "2026-03-28",
+  "providers": [
+    {
+      "id": "athanor_local",
+      "label": "Athanor Local",
+      "vendor": "Athanor",
+      "category": "local",
+      "access_mode": "local",
+      "execution_modes": ["local_runtime"],
+      "state_classes": ["active-routing"],
+      "subscription_product": "Sovereign local cluster",
+      "monthly_cost_usd": 0,
+      "official_pricing_status": "not_applicable",
+      "reserve_posture": "keep_available",
+      "privacy_posture": "sovereign_only",
+      "official_sources": [],
+      "env_contracts": [],
+      "litellm_aliases": ["athanor_local"],
+      "cli_commands": [],
+      "observed_hosts": ["foundry", "workshop", "dev"],
+      "observed_runtime": {
+        "routing_policy_enabled": true,
+        "active_burn_observed": false,
+        "api_configured": false,
+        "last_verified_at": "2026-03-25T19:15:00Z"
+      },
+      "notes": [
+        "Primary sovereign execution lane.",
+        "Use for private, refusal-sensitive, and local-first automation."
+      ]
+    },
+    {
+      "id": "anthropic_claude_code",
+      "label": "Claude Code",
+      "vendor": "Anthropic",
+      "category": "subscription",
+      "access_mode": "cli",
+      "execution_modes": ["direct_cli", "bridge_cli", "handoff_bundle"],
+      "state_classes": ["active-routing", "active-burn"],
+      "subscription_product": "Claude Max",
+      "monthly_cost_usd": 200,
+      "official_pricing_status": "official_verified",
+      "reserve_posture": "premium_interactive",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Claude Max plan",
+          "url": "https://support.claude.com/en/articles/11049741-what-is-the-max-plan"
+        },
+        {
+          "label": "Claude plan chooser",
+          "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan"
+        }
+      ],
+      "env_contracts": ["ANTHROPIC_API_KEY"],
+      "litellm_aliases": [],
+      "cli_commands": ["claude"],
+      "observed_hosts": ["desk", "dev"],
+      "observed_runtime": {
+        "routing_policy_enabled": true,
+        "active_burn_observed": true,
+        "api_configured": true,
+        "last_verified_at": "2026-03-25T19:15:00Z"
+      },
+      "notes": [
+        "Primary frontier architecture and final-review lane."
+      ]
+    },
+    {
+      "id": "openai_codex",
+      "label": "Codex CLI",
+      "vendor": "OpenAI",
+      "category": "subscription",
+      "access_mode": "cli",
+      "execution_modes": ["direct_cli", "bridge_cli", "handoff_bundle"],
+      "state_classes": ["active-routing", "active-burn"],
+      "subscription_product": "ChatGPT Pro",
+      "monthly_cost_usd": 200,
+      "official_pricing_status": "official_verified",
+      "reserve_posture": "premium_async",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "ChatGPT Pro",
+          "url": "https://help.openai.com/en/articles/9793128"
+        }
+      ],
+      "env_contracts": ["OPENAI_API_KEY"],
+      "litellm_aliases": ["openai"],
+      "cli_commands": ["codex"],
+      "observed_hosts": ["desk", "dev"],
+      "observed_runtime": {
+        "routing_policy_enabled": true,
+        "active_burn_observed": true,
+        "api_configured": true,
+        "last_verified_at": "2026-03-25T19:15:00Z"
+      },
+      "notes": [
+        "Primary async cloud execution lane."
+      ]
+    },
+    {
+      "id": "google_gemini",
+      "label": "Gemini CLI",
+      "vendor": "Google",
+      "category": "subscription",
+      "access_mode": "cli",
+      "execution_modes": ["direct_cli", "handoff_bundle"],
+      "state_classes": ["active-routing", "active-burn"],
+      "subscription_product": "Google AI Pro / Gemini CLI",
+      "monthly_cost_usd": 20,
+      "official_pricing_status": "official_verified",
+      "reserve_posture": "burn_early",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Google AI plans",
+          "url": "https://one.google.com/about/google-ai-plans/"
+        },
+        {
+          "label": "Gemini CLI README",
+          "url": "https://github.com/google-gemini/gemini-cli"
+        },
+        {
+          "label": "Gemini API quota docs",
+          "url": "https://ai.google.dev/gemini-api/docs/quota"
+        }
+      ],
+      "env_contracts": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+      "litellm_aliases": ["gemini"],
+      "cli_commands": ["gemini"],
+      "observed_hosts": ["desk", "dev"],
+      "observed_runtime": {
+        "routing_policy_enabled": true,
+        "active_burn_observed": true,
+        "api_configured": true,
+        "last_verified_at": "2026-03-25T19:15:00Z"
+      },
+      "notes": [
+        "Preferred large-context audit lane.",
+        "Official plan and CLI limits drift independently; measure actual usage separately from plan pricing."
+      ]
+    },
+    {
+      "id": "moonshot_kimi",
+      "label": "Kimi Code",
+      "vendor": "Moonshot AI",
+      "category": "subscription",
+      "access_mode": "cli",
+      "execution_modes": ["direct_cli", "handoff_bundle"],
+      "state_classes": ["active-routing", "active-burn"],
+      "subscription_product": "Kimi Membership / Kimi Code",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "official-source-present-cost-unverified",
+      "reserve_posture": "targeted",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Kimi Code docs",
+          "url": "https://www.kimi.com/code/docs/en/"
+        },
+        {
+          "label": "Kimi Code membership benefits",
+          "url": "https://www.kimi.com/code/docs/en/benefits.html"
+        }
+      ],
+      "env_contracts": ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
+      "litellm_aliases": ["kimi-k2.5"],
+      "cli_commands": ["kimi"],
+      "observed_hosts": ["desk", "dev"],
+      "observed_runtime": {
+        "routing_policy_enabled": true,
+        "active_burn_observed": true,
+        "api_configured": true,
+        "last_verified_at": "2026-03-29T06:17:44Z"
+      },
+      "evidence": {
+        "kind": "cli_subscription",
+        "cli_probe": {
+          "status": "installed",
+          "expected_hosts": ["desk", "dev"],
+          "required_commands": ["kimi"],
+          "last_verified_at": "2026-03-29T06:17:44Z",
+          "source": "config/automation-backbone/tooling-inventory.json"
+        },
+        "billing": {
+          "status": "operator_visible_tier_unverified",
+          "pricing_scope": "membership_included",
+          "quota_refresh_cycle": "7_day_rolling",
+          "allowed_scope": "personal_development_only",
+          "subscribed_tier": null,
+          "verified_monthly_cost_usd": null,
+          "last_verified_at": "2026-03-28",
+          "source": "official_docs_only"
+        }
+      },
+      "verification_steps": [
+        "Verify the subscribed monthly tier or billing surface for `Kimi Code` from a current operator-visible source.",
+        "Keep this lane cost-unverified until the billing tier is proven from a current runtime-visible or operator-visible surface."
+      ],
+      "notes": [
+        "Official docs confirm Kimi Code benefits are included in Kimi Membership, refresh on a 7-day rolling cycle, and are limited to personal development use.",
+        "The public Kimi docs used here still do not publish the exact subscribed membership price for this lane.",
+        "The exact subscribed monthly tier still needs runtime billing verification.",
+        "Live CLI probes reconfirmed `kimi --version` on DESK and DEV during the 2026-03-29 verification pass."
+      ]
+    },
+    {
+      "id": "zai_glm_coding",
+      "label": "Z.ai GLM Coding",
+      "vendor": "Z.ai",
+      "category": "subscription",
+      "access_mode": "cli",
+      "execution_modes": ["direct_cli", "handoff_bundle"],
+      "state_classes": ["configured-unused"],
+      "subscription_product": "GLM Coding Plan",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "official-source-present-cost-unverified",
+      "reserve_posture": "burn_for_bulk",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Z.ai GLM-5 overview",
+          "url": "https://docs.z.ai/guides/llm"
+        },
+        {
+          "label": "Z.ai devpack overview",
+          "url": "https://docs.z.ai/devpack/overview"
+        },
+        {
+          "label": "Z.ai pricing",
+          "url": "https://docs.z.ai/guides/overview/pricing"
+        }
+      ],
+      "env_contracts": ["ZAI_API_KEY", "ZAI_CODING_API_KEY"],
+      "litellm_aliases": ["glm-4.7"],
+      "cli_commands": ["glm", "zai"],
+      "observed_hosts": [],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "last_verified_at": "2026-03-29T06:17:44Z"
+      },
+      "evidence": {
+        "kind": "coding_tool_subscription",
+        "tooling_probe": {
+          "status": "supported_tools_present",
+          "expected_hosts": ["desk", "dev"],
+          "supported_commands": ["claude", "codex", "gemini"],
+          "integration_status": "unverified",
+          "last_verified_at": "2026-03-29T06:17:44Z",
+          "source": "config/automation-backbone/tooling-inventory.json"
+        },
+        "billing": {
+          "status": "published_tiers_known_subscribed_tier_unverified",
+          "public_plan_prices_usd": {
+            "lite": 10,
+            "pro": 30
+          },
+          "quota_windows": ["5h_rolling", "7d_rolling"],
+          "subscribed_tier": null,
+          "verified_monthly_cost_usd": null,
+          "last_verified_at": "2026-03-28",
+          "source": "official_docs"
+        }
+      },
+      "verification_steps": [
+        "Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.",
+        "Verify which public GLM Coding Plan tier is actually subscribed before treating any published USD price as this lane's monthly cost.",
+        "Until supported-tool integration is proven, keep this lane configured-unused and out of ordinary auto-routing."
+      ],
+      "notes": [
+        "Official Z.ai docs publish GLM Coding Plan floor prices starting at USD 10 per month for Lite and USD 30 per month for Pro.",
+        "The same docs describe 5-hour rolling and 7-day quota windows, and separate metered API pricing outside the coding plan.",
+        "Live routing remains disabled until a supported coding tool can prove GLM Coding Plan execution on DESK or DEV.",
+        "This lane was demoted out of live routing on 2026-03-28 until supported-tool integration evidence is restored."
+      ]
+    },
+    {
+      "id": "anthropic_api",
+      "label": "Anthropic API",
+      "vendor": "Anthropic",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "Anthropic API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Anthropic pricing",
+          "url": "https://www.anthropic.com/pricing"
+        }
+      ],
+      "env_contracts": ["ANTHROPIC_API_KEY"],
+      "litellm_aliases": ["claude", "claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": false,
+        "last_verified_at": "2026-03-28T06:00:00Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "claude",
+          "preferred_models": ["claude", "claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"],
+          "served_model_match_tokens": ["claude"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "pending",
+          "last_verified_at": null,
+          "source": "pending_capture",
+          "proof_kind": "litellm_alias_request"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM served model `claude` and record the timestamp.",
+        "Capture evidence that the request exercised `Anthropic API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": []
+    },
+    {
+      "id": "openai_api",
+      "label": "OpenAI API",
+      "vendor": "OpenAI",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "OpenAI API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "OpenAI API pricing",
+          "url": "https://openai.com/api/pricing/"
+        }
+      ],
+      "env_contracts": ["OPENAI_API_KEY"],
+      "litellm_aliases": ["gpt", "gpt-5.4", "gpt-5-mini", "o4-mini"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": false,
+        "last_verified_at": "2026-03-28T06:00:00Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "gpt",
+          "preferred_models": ["gpt", "gpt-5-mini", "gpt-5.4", "o4-mini"],
+          "served_model_match_tokens": ["gpt", "o4"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "pending",
+          "last_verified_at": null,
+          "source": "pending_capture",
+          "proof_kind": "litellm_alias_request"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM served model `gpt` and record the timestamp.",
+        "Capture evidence that the request exercised `OpenAI API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": []
+    },
+    {
+      "id": "mistral_codestral_api",
+      "label": "Codestral API",
+      "vendor": "Mistral",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "Codestral API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Mistral pricing",
+          "url": "https://mistral.ai/pricing"
+        }
+      ],
+      "env_contracts": ["MISTRAL_API_KEY", "CODESTRAL_API_KEY"],
+      "litellm_aliases": ["codestral", "mistral-large"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": true,
+        "last_verified_at": "2026-03-29T03:46:16Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "codestral",
+          "preferred_models": ["codestral", "mistral-large"],
+          "served_model_match_tokens": ["codestral", "mistral"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "observed",
+          "last_verified_at": "2026-03-29T03:46:16Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_completion"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM alias `codestral` and record the timestamp.",
+        "Capture evidence that the request exercised `Codestral API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": []
+    },
+    {
+      "id": "google_gemini_api",
+      "label": "Gemini API",
+      "vendor": "Google",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "Gemini API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Gemini API pricing",
+          "url": "https://ai.google.dev/gemini-api/docs/pricing"
+        },
+        {
+          "label": "Gemini API billing",
+          "url": "https://ai.google.dev/gemini-api/docs/billing/"
+        },
+        {
+          "label": "Gemini API quota docs",
+          "url": "https://ai.google.dev/gemini-api/docs/quota"
+        }
+      ],
+      "env_contracts": ["GOOGLE_API_KEY", "GEMINI_API_KEY"],
+      "litellm_aliases": ["gemini"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": false,
+        "last_verified_at": "2026-03-28T06:00:00Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "gemini",
+          "preferred_models": ["gemini"],
+          "served_model_match_tokens": ["gemini"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "pending",
+          "last_verified_at": null,
+          "source": "pending_capture",
+          "proof_kind": "litellm_alias_request"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM served model `gemini` and record the timestamp.",
+        "Capture evidence that the request exercised `Gemini API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": []
+    },
+    {
+      "id": "deepseek_api",
+      "label": "DeepSeek API",
+      "vendor": "DeepSeek",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "DeepSeek API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "DeepSeek API pricing",
+          "url": "https://api-docs.deepseek.com/quick_start/pricing"
+        }
+      ],
+      "env_contracts": ["DEEPSEEK_API_KEY"],
+      "litellm_aliases": ["deepseek", "deepseek-chat", "deepseek-reasoner"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": true,
+        "last_verified_at": "2026-03-29T03:46:16Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "deepseek",
+          "preferred_models": ["deepseek", "deepseek-chat", "deepseek-reasoner"],
+          "served_model_match_tokens": ["deepseek"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "observed",
+          "last_verified_at": "2026-03-29T03:46:16Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_completion"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM served model `deepseek` and record the timestamp.",
+        "Capture evidence that the request exercised `DeepSeek API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": [
+        "DeepSeek is configured as an API lane via LiteLLM.",
+        "This catalog tracks the lane as configured but not recently observed in burn state."
+      ]
+    },
+    {
+      "id": "moonshot_api",
+      "label": "Moonshot API",
+      "vendor": "Moonshot AI",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "Moonshot API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Moonshot API pricing update",
+          "url": "https://platform.moonshot.ai/blog/posts/Kimi_API_Newsletter"
+        }
+      ],
+      "env_contracts": ["MOONSHOT_API_KEY"],
+      "litellm_aliases": ["kimi-k2.5"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": false,
+        "last_verified_at": "2026-03-28T06:00:00Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "kimi-k2.5",
+          "preferred_models": ["kimi-k2.5"],
+          "served_model_match_tokens": ["kimi"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "pending",
+          "last_verified_at": null,
+          "source": "pending_capture",
+          "proof_kind": "litellm_alias_request"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM served model `kimi-k2.5` and record the timestamp.",
+        "Capture evidence that the request exercised `Moonshot API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": [
+        "Moonshot still exposes public API pricing through a pricing-specific official post rather than a dedicated stable pricing reference page."
+      ]
+    },
+    {
+      "id": "dashscope_qwen_api",
+      "label": "DashScope Qwen API",
+      "vendor": "Alibaba Cloud",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "DashScope API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Alibaba Model Studio pricing",
+          "url": "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+        }
+      ],
+      "env_contracts": ["DASHSCOPE_API_KEY"],
+      "litellm_aliases": ["qwen-max", "qwen-plus"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": false,
+        "last_verified_at": "2026-03-28T06:00:00Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "qwen-max",
+          "preferred_models": ["qwen-max", "qwen-plus"],
+          "served_model_match_tokens": ["qwen"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "pending",
+          "last_verified_at": null,
+          "source": "pending_capture",
+          "proof_kind": "litellm_alias_request"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM served model `qwen-max` and record the timestamp.",
+        "Capture evidence that the request exercised `DashScope Qwen API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": [
+        "Official Model Studio pricing is published on the per-model list and can vary by deployment region."
+      ]
+    },
+    {
+      "id": "venice_api",
+      "label": "Venice API",
+      "vendor": "Venice",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "Venice API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Venice API pricing",
+          "url": "https://docs.venice.ai/overview/pricing"
+        }
+      ],
+      "env_contracts": ["VENICE_API_KEY"],
+      "litellm_aliases": ["venice-uncensored", "venice-qwen3-235b"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": true,
+        "last_verified_at": "2026-03-29T03:46:17Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "venice-uncensored",
+          "preferred_models": ["venice-uncensored", "venice-qwen3-235b"],
+          "served_model_match_tokens": ["venice"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "observed",
+          "last_verified_at": "2026-03-29T03:46:17Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_completion"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM served model `venice-uncensored` and record the timestamp.",
+        "Capture evidence that the request exercised `Venice API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": [
+        "Venice remains configured as an API lane and still needs observed runtime usage evidence."
+      ]
+    },
+    {
+      "id": "zai_api",
+      "label": "Z.ai API",
+      "vendor": "Z.ai",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "Z.ai API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "Z.ai pricing",
+          "url": "https://docs.z.ai/guides/overview/pricing"
+        }
+      ],
+      "env_contracts": ["ZAI_API_KEY"],
+      "litellm_aliases": ["glm-4.7"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": false,
+        "last_verified_at": "2026-03-28T06:00:00Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "glm-4.7",
+          "preferred_models": ["glm-4.7"],
+          "served_model_match_tokens": ["glm"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "pending",
+          "last_verified_at": null,
+          "source": "pending_capture",
+          "proof_kind": "litellm_alias_request"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM served model `glm-4.7` and record the timestamp.",
+        "Capture evidence that the request exercised `Z.ai API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": []
+    },
+    {
+      "id": "openrouter_api",
+      "label": "OpenRouter API",
+      "vendor": "OpenRouter",
+      "category": "api",
+      "access_mode": "api",
+      "execution_modes": ["litellm_proxy"],
+      "state_classes": ["active-api", "configured-unused"],
+      "subscription_product": "OpenRouter API",
+      "monthly_cost_usd": null,
+      "official_pricing_status": "metered",
+      "reserve_posture": "metered-api",
+      "privacy_posture": "cloud",
+      "official_sources": [
+        {
+          "label": "OpenRouter pricing",
+          "url": "https://openrouter.ai/pricing"
+        }
+      ],
+      "env_contracts": ["OPENROUTER_API_KEY"],
+      "litellm_aliases": ["openrouter"],
+      "cli_commands": [],
+      "observed_hosts": ["vault"],
+      "observed_runtime": {
+        "routing_policy_enabled": false,
+        "active_burn_observed": false,
+        "api_configured": true,
+        "proxy_activity_observed": true,
+        "provider_specific_usage_observed": false,
+        "last_verified_at": "2026-03-28T06:00:00Z"
+      },
+      "evidence": {
+        "kind": "vault_litellm_proxy",
+        "proxy": {
+          "alias": "openrouter",
+          "preferred_models": ["openrouter"],
+          "served_model_match_tokens": ["openrouter"],
+          "host": "vault",
+          "last_verified_at": "2026-03-28T06:00:00Z",
+          "source": "scripts/collect_truth_inventory.py"
+        },
+        "provider_specific_usage": {
+          "status": "pending",
+          "last_verified_at": null,
+          "source": "pending_capture",
+          "proof_kind": "litellm_alias_request"
+        }
+      },
+      "verification_steps": [
+        "Run a provider-specific request through the VAULT LiteLLM served model `openrouter` and record the timestamp.",
+        "Capture evidence that the request exercised `OpenRouter API` upstream specifically, not just generic proxy activity.",
+        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+      ],
+      "notes": [
+        "Official OpenRouter pricing is pay-as-you-go and states there is no markup over listed provider model prices."
+      ]
+    }
+  ],
+  "known_drifts": []
+}

@@ -1,0 +1,11 @@
+---
+# DEV front-door cutover lane
+# Usage: ansible-playbook playbooks/front-door.yml --tags caddy
+# Approval-gated: this installs or updates the canonical Caddy front door for athanor.local.
+
+- name: Deploy Athanor front door on DEV
+  hosts: dev
+  become: true
+  roles:
+    - { role: front-door-prereqs, tags: [front-door-prereqs, front-door] }
+    - { role: caddy, tags: [caddy, front-door] }

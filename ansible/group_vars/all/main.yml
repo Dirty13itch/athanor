@@ -7,10 +7,10 @@ dev_ip: "192.168.1.189"
 
 # Cluster hostname resolution (managed by common role)
 cluster_hosts:
-  - { ip: "192.168.1.244", name: "foundry" }
-  - { ip: "192.168.1.225", name: "workshop" }
-  - { ip: "192.168.1.203", name: "vault" }
-  - { ip: "192.168.1.189", name: "dev" }
+  - { ip: "192.168.1.244", name: "foundry", aliases: ["core.athanor.local"] }
+  - { ip: "192.168.1.225", name: "workshop", aliases: ["interface.athanor.local"] }
+  - { ip: "192.168.1.203", name: "vault", aliases: ["vault.athanor.local"] }
+  - { ip: "192.168.1.189", name: "dev", aliases: ["dev.athanor.local", "athanor.local"] }
 
 # Map vault-encrypted secrets to role-expected variable names
 athanor_sonarr_api_key: "{{ vault_agent_sonarr_api_key }}"

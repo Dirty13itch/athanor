@@ -2,6 +2,8 @@
 
 > Visual-source note: the structural and operator-workflow decisions in this document remain valid, but its older furnace/alchemical visual metaphor is superseded by the visual-system pack in [`./visual-system/README.md`](./visual-system/README.md). Use the visual-system docs as the canonical source for visual identity, token direction, materials, typography, and signal grammar.
 
+> Deployment note: hostnames, ports, and service placement mentioned here are design-era context only. Live deployment truth comes from [`platform-topology.json`](/C:/Athanor/config/automation-backbone/platform-topology.json), [`STATUS.md`](/C:/Athanor/STATUS.md), and the generated operations reports.
+
 **Status:** Design complete — ready for ADR + implementation
 **Date:** 2026-02-25
 **Synthesizes:** 5 research documents (web dev environments, command center UI, human-in-the-loop, mobile PWA, novel interface patterns)
@@ -11,7 +13,7 @@
 
 ## What This Is
 
-The Athanor Command Center is the evolution of the existing dashboard (Node 2:3001, Next.js 16 + React 19 + shadcn/ui + Tailwind v4) from a monitoring surface into the **primary interface** for the entire system. It replaces the terminal as the default way Shaun interacts with Athanor.
+The Athanor Command Center is the evolution of the existing dashboard (now fronted canonically at `https://athanor.local/`, with the DEV runtime fallback still available at `http://dev.athanor.local:3001/` while hostname rollout finishes, Next.js 16 + React 19 + shadcn/ui + Tailwind v4) from a monitoring surface into the **primary interface** for the entire system. It replaces the terminal as the default way Shaun interacts with Athanor.
 
 It is:
 - A **PWA** that works equally well on desktop and phone — both are first-class
@@ -282,7 +284,7 @@ The command center optionally embeds development tools rather than replacing the
 An embedded terminal page in the dashboard for Claude Code access:
 
 ```
-Dashboard (Node 2:3001)
+Command Center runtime (DEV:3001)
   └── /terminal page
         └── react-xtermjs (dynamic import, ssr: false)
               └── WebSocket → Terminal Backend (DEV)
@@ -329,7 +331,7 @@ Phone / Desktop Browser
   │     ├── Service Worker (push handler, offline fallback)
   │     └── VAPID push subscription → Dashboard API
   │
-  └── Dashboard (Node 2:3001, Next.js 16)
+└── Command Center (DEV:3001, Next.js 16)
         │
         ├── Layout (persistent)
         │     ├── Pulse Strip (SSE-driven, always visible)
@@ -587,7 +589,7 @@ export async function GET() {
 1. **Icon design.** PWA icons need custom design. The current favicon is Next.js default.
 2. **Mobile bottom nav tabs.** Proposed: Home, Agents, Stream, Chat, More. But "GPUs" and "Tasks" might be more useful than some of these.
 3. **SSE backend source.** Does the SSE endpoint poll on behalf of clients (server-side aggregation) or subscribe to Redis pub/sub (GWT workspace already broadcasts there)? Recommendation: Redis pub/sub primary + 5s polling for metrics not on pub/sub.
-4. **Notification trigger location.** Where do push triggers live? Agent framework (Node 1:9000) sends to dashboard API (Node 2:3001) which sends to browser? Or agent framework sends directly via web-push? Recommendation: agent framework fires webhook to dashboard API, which manages subscriptions and sends pushes.
+4. **Notification trigger location.** Where do push triggers live? Agent framework (Node 1:9000) sends to the command-center API on DEV `:3001` which then sends to the browser? Or agent framework sends directly via web-push? Recommendation: agent framework fires webhook to the command-center API, which manages subscriptions and sends pushes.
 5. **Auth.** No auth on LAN is fine for now. WebAuthn requires HTTPS. Defer until remote access is needed.
 6. **Vercel AI SDK + local models.** AI SDK supports any OpenAI-compatible endpoint. Wire to LiteLLM (VAULT:4000) for local model generative UI. Test quality with Qwen3.5-27B.
 
@@ -611,7 +613,7 @@ The command center is successful when:
 This design synthesizes findings from 5 research documents totaling ~4,500 lines:
 
 - `docs/research/2026-02-25-web-development-environments.md` — Browser IDEs, Claude Code web access, Claudeman, OpenHands, xterm.js, orchestrator's workbench concept
-- `docs/research/2026-02-25-command-center-ui-design.md` — SpaceX, smart home, NOC, gaming HUD, adaptive UI patterns, dark dashboard design, real-time frameworks
+- `docs/archive/research/2026-02-25-command-center-ui-design.md` — SpaceX, smart home, NOC, gaming HUD, adaptive UI patterns, dark dashboard design, real-time frameworks
 - `docs/research/2026-02-25-human-in-the-loop-patterns.md` — Waymo, trading, RLHF, drones, recommendations, goal-setting, attention management, trust calibration, feedback loops
 - `docs/research/2026-02-25-mobile-pwa-architecture.md` — PWA capabilities, service workers, VAPID push, SSE, mobile visualization, authentication, responsive patterns
 - `docs/research/2026-02-25-novel-interface-patterns.md` — Conversational UI, calm technology, spatial interfaces, agent-as-character, intent-based interfaces, generative UI, glanceable design, feedback surfaces

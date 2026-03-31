@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-03-30T11:41:07.859265+00:00",
+  "lane": "contract_healer",
+  "action_class": "drift_report_generation",
+  "success": true,
+  "checks": [
+    {
+      "command": [
+        "C:\\Program Files\\Python313\\python.exe",
+        "scripts/validate_platform_contract.py"
+      ],
+      "returncode": 0,
+      "stdout": "Platform contract OK: 5 nodes, 34 services, 11 projects, 105 doc lifecycle entries.",
+      "stderr": "",
+      "duration_seconds": 1.223
+    },
+    {
+      "command": [
+        "C:\\Program Files\\Python313\\python.exe",
+        "scripts/generate_documentation_index.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "duration_seconds": 0.042
+    },
+    {
+      "command": [
+        "C:\\Program Files\\Python313\\python.exe",
+        "scripts/generate_project_maturity_report.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "duration_seconds": 0.056
+    }
+  ],
+  "operator_visible_summary": "Contract healer regenerated drift evidence successfully.",
+  "automation_record_persisted": true,
+  "automation_record_error": null
+}

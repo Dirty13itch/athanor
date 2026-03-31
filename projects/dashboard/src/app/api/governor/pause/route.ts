@@ -1,15 +1,14 @@
 import { NextRequest } from "next/server";
-import { proxyAgentJson } from "@/lib/server-agent";
+import { proxyAgentOperatorJson } from "@/lib/operator-actions";
 
 export async function POST(request: NextRequest) {
-  const body = await request.text();
-  return proxyAgentJson(
+  return proxyAgentOperatorJson(
+    request,
     "/v1/governor/pause",
+    "Failed to pause automation",
     {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    },
-    "Failed to pause automation"
+      privilegeClass: "admin",
+      defaultReason: "Manual governor pause from dashboard",
+    }
   );
 }

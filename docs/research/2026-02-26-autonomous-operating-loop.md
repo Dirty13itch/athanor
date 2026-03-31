@@ -64,8 +64,8 @@ Before designing anything new, here is what Athanor already has that this system
 | **Knowledge Base** | Node 1:6333 | Live | 2220 vectors in Qdrant, 30+ Neo4j nodes |
 | **Preference Store** | Node 1:6333 | Live | Qdrant `preferences` collection, 17 profile points |
 | **Daily Digest** | Scheduler | Live | 6:55 AM, compiles overnight summary via general-assistant |
-| **Command Center** | Node 2:3001 | Live | PWA, 17 pages, 5 lenses, SSE, generative UI, crew bar |
-| **Push Notifications** | Node 2:3001 | Live (infra) | VAPID keys deployed, SW handler, `/api/push` endpoint |
+| **Command Center** | https://athanor.local/ (runtime dev.athanor.local:3001) | Live | PWA, 17 pages, 5 lenses, SSE, generative UI, crew bar |
+| **Push Notifications** | https://athanor.local/ (runtime dev.athanor.local:3001) | Live (infra) | VAPID keys deployed, SW handler, `/api/push` endpoint |
 | **MCP Bridge** | DEV | Live | 14 tools connecting Claude Code to local agents |
 | **Rubber-stamp Detection** | Node 1:9000 | Live | Warns if >20 approvals with 0 rejections |
 
@@ -76,7 +76,7 @@ These documents encode Shaun's intent at different levels of specificity:
 | Document | Path | Intent Level | Content |
 |----------|------|-------------|---------|
 | **VISION.md** | `docs/VISION.md` | Strategic | Philosophy, non-negotiables, what Athanor is/isn't |
-| **BUILD-MANIFEST.md** | `docs/BUILD-MANIFEST.md` | Tactical | Tiered build plan with status tracking |
+| **STATUS + Live Backlog** | `STATUS.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` | Tactical | Current-state summary and ranked execution backlog |
 | **TODO.md** | `memory/TODO.md` | Operational | Prioritized task list (P0/P1/P2/P3), blocked items, research questions |
 | **Profile** | `memory/profile.md` | Personal | Identity, repos, starred repos, tools, work patterns, interests |
 | **Agent Contracts** | `docs/design/agent-contracts.md` | Behavioral | Per-agent: purpose, tools, escalation rules, learning signals |
@@ -1127,7 +1127,7 @@ These decisions require Shaun's input because they affect the fundamental experi
 
 ### Existing Athanor Research (previously completed)
 - `docs/research/2026-02-25-human-in-the-loop-patterns.md` -- 10-domain HITL survey (64 KB)
-- `docs/research/2026-02-25-command-center-ui-design.md` -- SpaceX, NOC, gaming HUD, adaptive UI
+- `docs/archive/research/2026-02-25-command-center-ui-design.md` -- SpaceX, NOC, gaming HUD, adaptive UI
 - `docs/research/2026-02-25-novel-interface-patterns.md` -- Conversational UI, calm tech, spatial, generative UI
 - `docs/research/2026-02-25-mobile-pwa-architecture.md` -- PWA, SSE, push notifications
 - `docs/research/2026-02-25-web-development-environments.md` -- Claude Code web access, Claudeman

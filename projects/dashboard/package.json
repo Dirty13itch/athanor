@@ -6,10 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:standalone": "node .next/standalone/server.js",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:audit": "playwright test tests/e2e/api-census.spec.ts tests/e2e/audit-capture.spec.ts tests/e2e/smoke-api.spec.ts tests/e2e/smoke-routes.spec.ts tests/e2e/navigation.spec.ts tests/e2e/operator-controls.spec.ts --project=desktop-chromium --workers=1",
+    "test:e2e:terminal": "playwright test tests/e2e/navigation.spec.ts --grep terminal --project=desktop-chromium",
+    "typecheck": "node scripts/typecheck.mjs && next typegen && tsc --project tsconfig.typecheck.json --noEmit --incremental false",
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "lighthouse": "npm run build && lhci autorun"
@@ -30,6 +34,7 @@
     "react-dom": "19.2.3",
     "react-force-graph-2d": "^1.29.1",
     "recharts": "^3.8.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.4.1",
     "web-push": "^3.6.7",
     "zod": "^4.3.6"

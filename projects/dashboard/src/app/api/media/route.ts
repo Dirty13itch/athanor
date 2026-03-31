@@ -1,6 +1,11 @@
 import { agentServerHeaders, config } from "@/lib/config";
+import { getFixtureMediaSnapshot, isDashboardFixtureMode } from "@/lib/dashboard-fixtures";
 
 export async function GET() {
+  if (isDashboardFixtureMode()) {
+    return Response.json(getFixtureMediaSnapshot());
+  }
+
   try {
     const res = await fetch(`${config.agentServer.url}/v1/status/media`, {
       signal: AbortSignal.timeout(10000),
