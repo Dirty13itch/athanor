@@ -1,19 +1,17 @@
 # Athanor Status
 
-**Last updated: 2026-03-30 20:00 PDT**
-**Session:** Evening Review
+**Last updated: 2026-03-31 07:00 PDT**
+**Session:** Morning Review
 
 ---
 
-## Evening Review — 2026-03-30
+## Morning Review — 2026-03-31
 
-### Score: 3/10 — Pipeline dark day 10, Dashboard still DOWN, home-agent stuck (day 5), media-agent 7+ cycles
+### Score: 3/10 — Pipeline dark day 11 (deeper than timeouts), Dashboard DOWN, home-agent stuck (day 6)
 
-**Today's activity:** Post-morning-review: coding-agent ran 2 code quality cycles (15:17, 17:19 — legitimate work). creative-agent quality cascade (23:07). data-curator deep indexing (01:21 AM). home-agent ran 2 more stuck cycles (19:46, 22:37). media-agent ran 7th+ identical CRITICAL ISSUES cycle (12:06). Pipeline: `last cycle tasks=0`, 14 plans queued unchanged. Fix coded day 2, still undeployed on day 10.
+**Overnight:** stash-agent recovered (first run since March 28, deep org cycle 06:10). media-agent ran another deep cycle (05:58). home-agent still looping every 10 min (identical 44-entity output). Pipeline cycle ran at 06:53 — **synthesis produced 0 strategic intents**. Root cause: `athanor:owner:profile` missing from Redis, so synthesizer has no owner context. Timeout fix necessary but not sufficient.
 
-**System status:** 24/25 services UP. Dashboard [Workshop] still DOWN. All FOUNDRY services healthy. ComfyUI UP. EoBQ UP.
-
-**DESK activity:** Significant work committed from C:\Athanor — operator surface registry, provider catalog truth cleanup, shared health/action rollout, governor facade retirement, dashboard route coverage expansion. 94 commits landed while DEV was behind. Synthesized work is now on main.
+**System status:** 24/25 services UP. Dashboard container MISSING on Workshop (only ws-pty-bridge in compose stack). FOUNDRY healthy, all agents responding. Governor active, all 5 lanes active, presence: away. 5 backup alerts (Backblaze B2 blocked).
 
 ---
 
@@ -25,7 +23,7 @@
 - Module 2: intent_synthesizer.py — BUILT (376 lines, on main)
 - Module 3: quality evaluation via Gemini vision — BUILT (auto_grade_image, commit 845bb52)
 - Module 4: feedback loop endpoints — BUILT (feedback.py, commit c68caf8)
-- **BLOCKER:** Scheduler fix coded (day 9) but NOT DEPLOYED. Pipeline has never run these modules.
+- **BLOCKER:** Scheduler fix coded (day 9) but NOT DEPLOYED. Pipeline runs but synthesizer produces 0 intents — owner profile never bootstrapped into Redis.
 
 ---
 
@@ -33,7 +31,7 @@
 
 | Node | Status | GPUs | Notes |
 |------|--------|------|-------|
-| FOUNDRY | UP | 4x5070Ti (106-115F, 0%), 4090 (106F, 0%) | All services healthy, models loaded idle |
+| FOUNDRY | UP | 4x5070Ti + 4090 (99F, idle) | All services healthy, 9 agents responding |
 | WORKSHOP | DEGRADED | 5090 (worker UP), 5060Ti (ComfyUI UP) | **Dashboard container MISSING** |
 | VAULT | UP | 55 containers | All services responding |
 | DEV | UP | Embedding + Reranker OK | — |
@@ -44,7 +42,7 @@
 
 | Alert | Status | Action |
 |-------|--------|--------|
-| BackupAgeCritical (Qdrant) | REAL — 17 days stale | Blocked on Shaun (Backblaze B2 creds) |
+| BackupAgeCritical (Qdrant) | REAL — 18+ days stale | Blocked on Shaun (Backblaze B2 creds) |
 | BackupAgeWarning x3 (stash, athanor, postgres) | REAL | Same |
 | BackupAgeWarning (Qdrant) | REAL | Same |
 
@@ -52,13 +50,14 @@
 
 ## Pipeline Status
 
-**BROKEN — FIX CODED (DAY 10), NOT DEPLOYED**
+**BROKEN — DAY 11. DEEPER THAN TIMEOUTS.**
 
 - Queue depth: 0
 - Pending plans: 14 (sitting idle)
 - Last successful cycle: March 22
-- Last cycle: mined=148 plans=8 tasks=0
-- Owner model: never populated Redis (`athanor:owner:profile` missing)
+- Last cycle (06:53 today): mined=148 plans=8 tasks=0, **synthesis=0 intents**
+- Root cause: `athanor:owner:profile` missing from Redis — synthesizer produces 0 intents without it
+- Owner model (owner_model.py) built but never bootstrapped into Redis
 - MAX_QUEUE_DEPTH: already raised to 100 in work_pipeline.py (was 20)
 - Fix ready: `projects/agents/src/athanor_agents/scheduler.py` — timeout 120s->600s, TimeoutError handler, CASCADE_TIMEOUT import
 - Deploy command:
@@ -72,17 +71,19 @@
 
 ## Next Actions
 
-### P0 — Deploy scheduler fix (FIRST ACTION, day 10, awaiting Shaun approval)
-FOUNDRY is production. Need approval to deploy:
+### P0 — Deploy scheduler fix + bootstrap owner profile (DAY 11, awaiting Shaun approval)
+FOUNDRY is production. Need approval. TWO things must happen:
+1. Deploy timeout fix (scheduler.py 120s->600s)
+2. Bootstrap `athanor:owner:profile` into Redis so synthesizer can produce intents
 ```bash
 rsync -av projects/agents/src/ foundry:/opt/athanor/agents/src/
 ssh foundry "cd /opt/athanor/agents && docker compose build --no-cache agents && docker compose up -d agents"
 ```
 
 ### P0 — Restore Dashboard on Workshop
-Container missing. Quick fix (Workshop is staging, can proceed):
+Container missing (only ws-pty-bridge up). Workshop is staging:
 ```bash
-ssh workshop "cd /opt/athanor/dashboard && docker compose up -d"
+ssh workshop "cd /opt/athanor/dashboard && docker compose up -d dashboard"
 ```
 
 ### P0 — Verify pipeline end-to-end after deploy
@@ -90,25 +91,20 @@ ssh workshop "cd /opt/athanor/dashboard && docker compose up -d"
 - Confirm `athanor:owner:profile` populates in Redis
 - Confirm intents generated -> plans submitted -> tasks dispatched
 
-### P1 — Break media-agent runaway loop (7+ identical cycles)
-- Root cause: likely Radarr library root path config
-- SSH VAULT, check Radarr container logs
+### P1 — Fix home-agent stuck loop (day 6, every 10 min)
+- Running every 600s with identical "44 entities, no automations" output
+- Either increase interval or add change-detection gate
+
+### P1 — Break media-agent runaway loop (8+ identical cycles)
 - Add suppression: after 3 identical critical-issue cycles -> suppress, flag for human review
 
-### P1 — Break home-agent stuck loop (day 5)
-- SSH VAULT, verify HA entity state directly
-- Add suppression for repeated identical reports
-
-### P1 — Stash-agent diagnostic (silent fail since March 28)
-
-### P2 — Sync DEV local with remote (94 commits from DESK landed)
 ### P2 — Dedupe Qdrant knowledge collection
 ### P2 — General-assistant scheduling reliability
 
 ### Blocked on Shaun
-- **Backblaze B2 credentials** (5 backup alerts, Qdrant 17 days stale)
+- **Approve scheduler deploy + owner bootstrap to FOUNDRY** (day 11, pipeline producing 0 intents)
+- **Backblaze B2 credentials** (5 backup alerts, Qdrant 18+ days stale)
 - **VAULT storage decision** (83%)
-- **Approve scheduler deploy to FOUNDRY** (day 10, all 4 lucky-crafting-swing modules + pipeline timeout fix)
 
 ---
 
@@ -116,6 +112,7 @@ ssh workshop "cd /opt/athanor/dashboard && docker compose up -d"
 
 | Date | Summary |
 |------|---------|
+| 2026-03-31 AM | Score 3/10. Pipeline dark day 11 — cycle ran at 06:53, **synthesis=0 intents** (owner profile missing from Redis). stash-agent recovered. home-agent stuck day 6 (10-min loop). Dashboard still DOWN (container missing). 24/25 services. Awaiting Shaun approval for FOUNDRY deploy + owner bootstrap. |
 | 2026-03-30 EVE | Score 3/10. Pipeline dark day 10. Dashboard still DOWN (24/25 services). coding-agent 2 quality cycles, creative cascade, data-curator indexing. home-agent stuck day 5 (2 more cycles). media-agent 7th+ identical cycle. 14 plans queued, tasks=0. Fix coded day 2, undeployed day 10. 94 DESK commits landed on remote (operator surface, provider catalog, governor retirement, dashboard coverage). |
 | 2026-03-30 AM | Score 3/10. Pipeline dark day 9. Dashboard container MISSING on Workshop (not stopped — absent). media-agent runaway loop now 6 identical cycles. home-agent stuck day 5. FOUNDRY healthy (9 agents, all deps up, GPUs loaded idle). 14 plans queued, 0 dispatched. Awaiting Shaun approval for FOUNDRY deploy. |
 | 2026-03-29 EVE | Score 4/10. Pipeline dark day 8 — fix still not deployed. Dashboard DOWN (new). media-agent runaway loop (3x critical issues, 0 resolution). home-agent stuck loop day 4. general-assistant + research-agent recovered. knowledge-agent solid (4 tasks). 14 plans queued, 0 dispatched. |
