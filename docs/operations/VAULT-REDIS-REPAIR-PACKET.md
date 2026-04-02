@@ -3,8 +3,8 @@
 Generated from the cached truth snapshot plus the read-only VAULT Redis audit by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Cached truth snapshot: `2026-04-02T16:05:03.611011+00:00`
-- Cached redis audit: `2026-04-02T16:05:03Z`
+- Cached truth snapshot: `2026-04-02T19:40:35.257979+00:00`
+- Cached redis audit: `2026-04-02T19:40:35Z`
 - Surface id: `vault-redis-persistence`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
@@ -22,44 +22,44 @@ Do not edit manually.
 - Persistence blocker detail: Redis persistence audit is healthy.
 - Latest temp-RDB no-space error: ``
 - Latest background-save error: ``
-- Latest cross-protocol warning: `02 Apr 2026 14:01:48.115`
+- Latest cross-protocol warning: ``
 - Temp-RDB no-space error count in audit tail: `0`
 - Background-save error count in audit tail: `0`
-- Cross-protocol warning count in audit tail: `1`
-- Redis data directory size: `12.19 MiB`
+- Cross-protocol warning count in audit tail: `0`
+- Redis data directory size: `20.14 MiB`
 - Filesystem device: `/dev/nvme0n1p1`
 - Filesystem size: `931.51 GiB`
-- Filesystem used: `929.81 GiB`
-- Filesystem available: `287.13 MiB`
+- Filesystem used: `929.92 GiB`
+- Filesystem available: `179.37 MiB`
 - Filesystem used percent: `100%`
 - Filesystem mountpoint: `/mnt/appdatacache`
 - Btrfs device allocated: `931.51GiB`
 - Btrfs device unallocated: `1.02MiB`
-- Btrfs free estimate: `287.13MiB	(min: 287.13MiB)`
+- Btrfs free estimate: `179.37MiB	(min: 179.37MiB)`
 - Next live action: No Redis repair action required.
 
 ## Largest Consumers On The Backing Filesystem
 
 ### /mnt/appdatacache
 
-- `/mnt/appdatacache/appdata`: `347.85 GiB`
+- `/mnt/appdatacache/appdata`: `347.94 GiB`
 - `/mnt/appdatacache/backups`: `284.92 GiB`
 - `/mnt/appdatacache/models`: `252.75 GiB`
 - `/mnt/appdatacache/system`: `18.80 GiB`
 - `/mnt/appdatacache/dev`: `3.80 GiB`
 - `/mnt/appdatacache/databases`: `1.32 GiB`
-- `/mnt/appdatacache/n8n`: `315.12 MiB`
+- `/mnt/appdatacache/n8n`: `315.40 MiB`
 - `/mnt/appdatacache/ulrich-energy-website`: `131.78 MiB`
 
 ### /mnt/appdatacache/appdata
 
 - `/mnt/appdatacache/appdata/stash`: `309.79 GiB`
 - `/mnt/appdatacache/appdata/plex`: `23.30 GiB`
-- `/mnt/appdatacache/appdata/tdarr`: `3.96 GiB`
+- `/mnt/appdatacache/appdata/tdarr`: `3.97 GiB`
 - `/mnt/appdatacache/appdata/loki`: `3.82 GiB`
-- `/mnt/appdatacache/appdata/prometheus`: `3.65 GiB`
+- `/mnt/appdatacache/appdata/prometheus`: `3.72 GiB`
 - `/mnt/appdatacache/appdata/Field Inspect`: `1.45 GiB`
-- `/mnt/appdatacache/appdata/sonarr`: `951.60 MiB`
+- `/mnt/appdatacache/appdata/sonarr`: `951.61 MiB`
 - `/mnt/appdatacache/appdata/neo4j`: `521.32 MiB`
 
 ### /mnt/appdatacache/backups (top files)

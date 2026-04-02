@@ -31,9 +31,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local git head: `0370cd05`
-- Local dirty file count: `7`
-- Local dirty sample: ` M docs/operations/REPO-ROOTS-REPORT.md`, ` M docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, ` M docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, ` M docs/runbooks/rebuild-dev.md`, ` M docs/runbooks/runtime-ownership-contract.md`, ` M scripts/sync_dev_runtime_repo.py`, ` M scripts/validate_platform_contract.py`
+- Local dirty file count: `0`
+- Local dirty sample: none
 
 ## dev-runtime-repo
 
@@ -41,9 +40,8 @@ Do not edit manually.
 - Host: `dev`
 - Authority: `runtime-authority`
 - Notes: `Runtime and deployment authority until deployment is mirror-clean.`, `Observed 2026-04-02 runtime probe shows the retired governor-facade caller set still mirror-clean with zero sync-required runtime-owned callers.`, `Repo-root systemd services on DEV still launch from this root while the active command-center container is deployed from /opt/athanor/dashboard.`, `Broader runtime-owned deployment surfaces still live across the DEV runtime repo and /opt/athanor, but the runtime-ownership contract now governs that split explicitly so it is governed maintenance rather than a promotion blocker.`
-- Runtime repo head: `511d1cb`
-- Runtime dirty file count: `428`
-- Runtime dirty sample: ` M .claude/.health-cache`, ` M STATUS.md`, ` M config/automation-backbone/autonomy-activation-registry.json`, ` M projects/agents/config/subscription-routing-policy.yaml`, ` M projects/dashboard/.dockerignore`, ` M projects/dashboard/.env.example`, ` M projects/dashboard/.gitignore`, ` M projects/dashboard/.lighthouserc.json`, ` M projects/dashboard/.storybook/main.ts`, ` M projects/dashboard/.storybook/preview.ts`, ` M projects/dashboard/Dockerfile`, ` M projects/dashboard/README.md`, ` M projects/dashboard/components.json`, ` M projects/dashboard/docker-compose.yml`, ` M projects/dashboard/docs/DESIGN.md`, ` M projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md`, ` M projects/dashboard/docs/SUBPAGE_COMPLETION_PLAN.md`, ` M projects/dashboard/docs/UI_AUDIT.md`, ` M projects/dashboard/eslint.config.mjs`, ` M projects/dashboard/package-lock.json`
+- Runtime dirty file count: `0`
+- Runtime dirty sample: none
 
 ## dev-opt-athanor
 
@@ -115,7 +113,7 @@ Do not edit manually.
 - Authority: `runtime-state`
 - Notes: `Observed 2026-04-02 FOUNDRY runtime probe shows the live athanor-agents compose bundle rooted at /opt/athanor/agents.`, `The installed Python package under /usr/local/lib/python3.12/site-packages/athanor_agents is the expected image layout for this lane, while /workspace remains a read-only runtime mirror.`
 - Compose root matches expected: `True`
-- Build root clean: `False`
+- Build root clean: `True`
 - Container running: `True`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 

@@ -6,7 +6,7 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-02.5`
-- Cached truth snapshot: `2026-04-02T18:04:39.550896+00:00`
+- Cached truth snapshot: `2026-04-02T19:40:35.257979+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
 - Implementation authority: `desk-main` -> `C:/Athanor`
@@ -21,12 +21,10 @@ Do not edit manually.
 
 ## Repo Evidence
 
-- Implementation repo head: `0370cd05`
-- Implementation dirty file count: `7`
-- DEV runtime repo head: `511d1cb`
-- DEV runtime dirty file count: `428`
+- Implementation dirty file count: `0`
+- DEV runtime dirty file count: `0`
 - FOUNDRY compose root matches expected: `True`
-- FOUNDRY build root clean: `False`
+- FOUNDRY build root clean: `True`
 - FOUNDRY runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 
 ## Ownership Lanes
@@ -99,7 +97,7 @@ Do not edit manually.
 - Active root: `/opt/athanor/dashboard`
 - Runtime repo compose controls container: `True`
 - Container running: `True`
-- Container status: `Up 20 hours`
+- Container status: `Up 22 hours`
 - Compose working dir: `/opt/athanor/dashboard`
 - Legacy service state: `inactive` / `dead`
 - Legacy unit file state: `masked`
@@ -194,11 +192,11 @@ Do not edit manually.
 
 - Expected root exists: `True`
 - Compose root matches expected: `True`
-- Build root clean: `False`
-- Nested source dir present: `True`
-- bak-codex files: `src/athanor_agents/athanor_agents/command_hierarchy.py.bak-codex`, `src/athanor_agents/athanor_agents/server.py.bak-codex`, `src/athanor_agents/command_hierarchy.py.bak-codex`, `src/athanor_agents/server.py.bak-codex`
+- Build root clean: `True`
+- Nested source dir present: `False`
+- bak-codex files: none
 - Container running: `True`
-- Container status: `Up 2 hours`
+- Container status: `Up 2 minutes`
 - Compose working dir: `/opt/athanor/agents`
 - Compose config files: `/opt/athanor/agents/docker-compose.yml`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
@@ -209,7 +207,7 @@ Do not edit manually.
 | --- | --- | --- | --- | --- |
 | `Dockerfile` | `file` | `True` | `True` | `True` |
 | `pyproject.toml` | `file` | `True` | `True` | `True` |
-| `docker-compose.yml` | `file` | `True` | `True` | `False` |
+| `docker-compose.yml` | `file` | `True` | `True` | `True` |
 | `config/subscription-routing-policy.yaml` | `file` | `True` | `True` | `True` |
 | `src/athanor_agents` | `directory` | `True` | `True` | `False` |
 

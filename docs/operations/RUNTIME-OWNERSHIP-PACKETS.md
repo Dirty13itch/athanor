@@ -4,7 +4,7 @@ Generated from `config/automation-backbone/runtime-ownership-packets.json`, `con
 Do not edit manually.
 
 - Registry version: `2026-04-02.4`
-- Cached truth snapshot: `2026-04-02T18:04:39.550896+00:00`
+- Cached truth snapshot: `2026-04-02T19:40:35.257979+00:00`
 - Packets tracked: `4`
 
 | Packet | Status | Lane | Approval type | Goal |
@@ -32,8 +32,7 @@ Do not edit manually.
 
 ### Live evidence
 
-- DEV runtime repo head: `511d1cb`
-- DEV runtime dirty file count: `428`
+- DEV runtime dirty file count: `0`
 
 ### Preflight Commands
 
@@ -187,11 +186,11 @@ Do not edit manually.
 ### Live evidence
 
 - Compose root matches expected: `True`
-- Build root clean: `False`
-- Nested source dir present: `True`
-- bak-codex files: `src/athanor_agents/athanor_agents/command_hierarchy.py.bak-codex`, `src/athanor_agents/athanor_agents/server.py.bak-codex`, `src/athanor_agents/command_hierarchy.py.bak-codex`, `src/athanor_agents/server.py.bak-codex`
+- Build root clean: `True`
+- Nested source dir present: `False`
+- bak-codex files: none
 - Container running: `True`
-- Container status: `Up 2 hours`
+- Container status: `Up 2 minutes`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 
 ### Preflight Commands
