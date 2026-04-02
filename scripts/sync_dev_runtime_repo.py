@@ -116,7 +116,7 @@ fi
 printf 'branch=%s\n' "$(git branch --show-current)"
 printf 'head=%s\n' "$(git rev-parse --short HEAD)"
 printf 'dirty=%s\n' "$(git status --porcelain | wc -l)"
-"""
+""".replace("\r\n", "\n")
 
 
 def _execute_remote_sync(
