@@ -3,7 +3,7 @@
 Generated from `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/runtime-ownership-contract.json`, and the cached truth snapshot in `reports/truth-inventory/latest.json` by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Registry version: `2026-04-02.4`
+- Registry version: `2026-04-02.5`
 - Cached truth snapshot: `2026-04-02T19:40:35.257979+00:00`
 - Packets tracked: `4`
 
@@ -38,6 +38,7 @@ Do not edit manually.
 
 - python scripts/validate_platform_contract.py
 - python scripts/sync_dev_runtime_repo.py
+- python scripts/sync_dev_runtime_repo.py --cleanup-only
 - ssh dev "git -C /home/shaun/repos/athanor rev-parse --short HEAD && git -C /home/shaun/repos/athanor status --short | wc -l"
 - ssh dev "systemctl show athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service --property=WorkingDirectory,ExecStart --no-pager"
 
@@ -49,6 +50,7 @@ Do not edit manually.
 - Push the approved implementation commit to a temporary ref in /home/shaun/repos/athanor/.git from implementation authority instead of copying files ad hoc.
 - Reset DEV main to that approved mirror commit so tracked files and new tracked paths match implementation authority exactly.
 - Clean leftover pre-sync residue that is not present in the approved commit, then restart only the repo-root services that actually changed.
+- Prune all consumed runtime-sync/* refs immediately after the reset and retain only the newest 3 backup/runtime-sync-* branches plus the newest 3 timestamped backup directories under the runtime-repo-sync backup root.
 - Refresh the truth snapshot and generated reports immediately after the sync.
 
 ### Verification Commands
