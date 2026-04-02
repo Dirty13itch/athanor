@@ -94,7 +94,7 @@ prune_sync_artifacts() {
     pruned_sync_branches=$((pruned_sync_branches + 1))
   done
 
-  mapfile -t backup_branches < <(git for-each-ref --format='%(refname:short)' --sort=-creatordate refs/heads/backup/runtime-sync-)
+  mapfile -t backup_branches < <(git for-each-ref --format='%(refname:short)' --sort=-creatordate refs/heads/backup | grep '^backup/runtime-sync-' || true)
   for idx in "${!backup_branches[@]}"; do
     if (( idx >= keep_count )); then
       git branch -D "${backup_branches[$idx]}" >/dev/null
