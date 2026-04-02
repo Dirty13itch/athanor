@@ -5,7 +5,7 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-02.4`
+- Registry version: `2026-04-02.5`
 - Cached truth snapshot: `2026-04-02T18:04:39.550896+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
@@ -21,8 +21,8 @@ Do not edit manually.
 
 ## Repo Evidence
 
-- Implementation repo head: `167c0ea1`
-- Implementation dirty file count: `269`
+- Implementation repo head: `0370cd05`
+- Implementation dirty file count: `7`
 - DEV runtime repo head: `511d1cb`
 - DEV runtime dirty file count: `428`
 - FOUNDRY compose root matches expected: `True`
@@ -33,7 +33,7 @@ Do not edit manually.
 
 | Lane | Host | Mode | Status | Owner roots | Packet | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
-| `dev-runtime-repo-systemd` | `dev` | `repo_worktree_systemd` | `active` | `dev-runtime-repo`, `dev-systemd` | `dev-runtime-repo-sync-packet` | Review and approve the dev-runtime-repo-sync-packet before replacing runtime-owned files on DEV. |
+| `dev-runtime-repo-systemd` | `dev` | `repo_worktree_mirror` | `active` | `dev-runtime-repo`, `dev-systemd` | `dev-runtime-repo-sync-packet` | Execute the dev-runtime-repo-sync-packet to make /home/shaun/repos/athanor a clean mirror of implementation authority, then restart only the repo-root services that actually changed. |
 | `dev-dashboard-compose` | `dev` | `opt_compose_service` | `active` | `dev-opt-athanor`, `dev-runtime-repo` | `dev-dashboard-shadow-retirement-packet` | Keep athanor-dashboard.service masked as a recovery-only shadow; the active /opt/athanor/dashboard compose lane is the sole ordinary dashboard path. |
 | `dev-heartbeat-opt` | `dev` | `opt_systemd_service` | `active` | `dev-opt-athanor`, `dev-systemd` | `dev-heartbeat-opt-deploy-packet` | Use the executed heartbeat deploy packet as the governed replacement path for future /opt/athanor/heartbeat updates. |
 | `dev-runtime-state` | `dev` | `host_state_surface` | `active` | `dev-state`, `dev-systemd`, `dev-cron`, `dev-logs` | `none` | Keep these state surfaces explicit in reports so runtime maintenance is tied to named roots instead of operator memory. |
@@ -42,22 +42,22 @@ Do not edit manually.
 
 ## dev-runtime-repo-systemd
 
-- Label: `DEV repo-root systemd services`
+- Label: `DEV runtime repo mirror lane`
 - Host: `dev`
 - Status: `active`
-- Mode: `repo_worktree_systemd`
+- Mode: `repo_worktree_mirror`
 - Owner roots: `dev-runtime-repo -> /home/shaun/repos/athanor`, `dev-systemd -> /etc/systemd/system/athanor-*`
 - Source root: `desk-main`
-- Runtime scope: Repo-backed services and helpers launched directly from /home/shaun/repos/athanor on DEV.
-- Source paths: `services/brain`, `services/classifier`, `services/quality-gate`, `services/sentinel`, `scripts/overnight-ops.sh`
-- Runtime paths: `/home/shaun/repos/athanor/services/brain`, `/home/shaun/repos/athanor/services/classifier`, `/home/shaun/repos/athanor/services/quality-gate`, `/home/shaun/repos/athanor/services/sentinel`, `/home/shaun/repos/athanor/scripts/overnight-ops.sh`
-- Active surfaces: `athanor-brain.service`, `athanor-classifier.service`, `athanor-quality-gate.service`, `athanor-sentinel.service`, `athanor-overnight.service`
+- Runtime scope: Mirror-clean runtime repo on DEV that backs repo-root services and serves as the governed source for repo-based runtime maintenance.
+- Source paths: `.`
+- Runtime paths: `/home/shaun/repos/athanor`
+- Active surfaces: `/home/shaun/repos/athanor`, `athanor-brain.service`, `athanor-classifier.service`, `athanor-quality-gate.service`, `athanor-sentinel.service`, `athanor-overnight.service`
 - Execution packet: `dev-runtime-repo-sync-packet`
 - Evidence: `reports/truth-inventory/latest.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-MIGRATION-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 - Verification commands: `ssh dev "systemctl show athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service --property=WorkingDirectory,ExecStart --no-pager"`, `ssh dev "git -C /home/shaun/repos/athanor rev-parse --short HEAD && git -C /home/shaun/repos/athanor status --short | wc -l"`
-- Rollback contract: Back up changed runtime-owned files under /home/shaun/.athanor/backups/runtime-ownership/<timestamp>/ before replacement or service-unit edits.
-- Approval boundary: Replacing runtime files or editing systemd units remains approval-gated.
-- Next action: Review and approve the dev-runtime-repo-sync-packet before replacing runtime-owned files on DEV.
+- Rollback contract: Back up the pre-sync DEV repo state under /home/shaun/.athanor/backups/runtime-ownership/<timestamp>/ and preserve a timestamped backup branch before resetting main to the approved mirror commit.
+- Approval boundary: Resetting the DEV runtime repo or restarting repo-root services remains approval-gated.
+- Next action: Execute the dev-runtime-repo-sync-packet to make /home/shaun/repos/athanor a clean mirror of implementation authority, then restart only the repo-root services that actually changed.
 - Packet status: `ready_for_approval`
 - Packet approval type: `runtime_host_reconfiguration`
 
@@ -65,6 +65,7 @@ Do not edit manually.
 
 | Unit | Working directories | ExecStart | EnvFiles |
 | --- | --- | --- | --- |
+| `/home/shaun/repos/athanor` | none | none | 0 |
 | `athanor-brain.service` | `/home/shaun/repos/athanor/services/brain` | `/home/shaun/repos/athanor/services/brain/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8780` | 0 |
 | `athanor-classifier.service` | `/home/shaun/repos/athanor/services/classifier` | `/home/shaun/repos/athanor/services/classifier/.venv/bin/python main.py` | 1 |
 | `athanor-quality-gate.service` | `/home/shaun/repos/athanor/services/quality-gate` | `/home/shaun/repos/athanor/services/quality-gate/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8790` | 0 |
@@ -245,7 +246,7 @@ Do not edit manually.
 
 | Packet | Status | Lane | Approval type | Goal |
 | --- | --- | --- | --- | --- |
-| `dev-runtime-repo-sync-packet` | `ready_for_approval` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make the implementation-authority to DEV runtime-repo sync path explicit for the repo-root systemd estate instead of treating the runtime repo as generic dirty drift. |
+| `dev-runtime-repo-sync-packet` | `ready_for_approval` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone. |
 | `dev-dashboard-shadow-retirement-packet` | `executed` | `dev-dashboard-compose` | `systemd_runtime_change` | Retire or explicitly downgrade the inactive athanor-dashboard.service unit so the active /opt/athanor/dashboard compose lane is the only ordinary dashboard deployment path. |
 | `dev-heartbeat-opt-deploy-packet` | `executed` | `dev-heartbeat-opt` | `runtime_host_reconfiguration` | Make the source-to-/opt heartbeat bundle replacement explicit so the live athanor-heartbeat.service lane no longer depends on undocumented manual copy steps. |
 | `foundry-agents-compose-deploy-packet` | `ready_for_approval` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |

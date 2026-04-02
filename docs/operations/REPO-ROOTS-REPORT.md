@@ -31,9 +31,9 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local git head: `167c0ea1`
-- Local dirty file count: `269`
-- Local dirty sample: ` M .gitignore`, ` M STATUS.md`, ` M ansible/host_vars/core.yml`, ` M ansible/host_vars/vault.yml`, ` M ansible/roles/agents/defaults/main.yml`, ` M ansible/roles/agents/templates/docker-compose.yml.j2`, ` M ansible/roles/vault-langfuse/defaults/main.yml`, ` M ansible/roles/vault-langfuse/tasks/main.yml`, ` M ansible/roles/vault-langfuse/templates/docker-compose.yml.j2`, ` M audit/recovery/restore-drill-latest.json`
+- Local git head: `0370cd05`
+- Local dirty file count: `7`
+- Local dirty sample: ` M docs/operations/REPO-ROOTS-REPORT.md`, ` M docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, ` M docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, ` M docs/runbooks/rebuild-dev.md`, ` M docs/runbooks/runtime-ownership-contract.md`, ` M scripts/sync_dev_runtime_repo.py`, ` M scripts/validate_platform_contract.py`
 
 ## dev-runtime-repo
 

@@ -131,24 +131,34 @@ def _execute_remote_sync(
     timestamp: str,
 ) -> str:
     remote_script = _remote_sync_script()
-    result = _run(
-        [
-            "ssh",
-            remote,
-            "bash",
-            "-s",
-            "--",
-            remote_repo,
-            temp_branch,
-            backup_branch,
-            backup_root,
-            ",".join(restart_units),
-            "1" if restart_services else "0",
-            timestamp,
-        ],
-        input_text=remote_script,
-        capture_output=True,
-    )
+    command = [
+        "ssh",
+        remote,
+        "bash",
+        "-s",
+        "--",
+        remote_repo,
+        temp_branch,
+        backup_branch,
+        backup_root,
+        ",".join(restart_units),
+        "1" if restart_services else "0",
+        timestamp,
+    ]
+    try:
+        result = _run(
+            command,
+            input_text=remote_script,
+            capture_output=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        stderr = exc.stderr.strip() if exc.stderr else ""
+        stdout = exc.stdout.strip() if exc.stdout else ""
+        raise SystemExit(
+            "Remote DEV repo sync failed.\n"
+            f"stdout:\n{stdout or '<empty>'}\n"
+            f"stderr:\n{stderr or '<empty>'}"
+        ) from exc
     return result.stdout.strip()
 
 

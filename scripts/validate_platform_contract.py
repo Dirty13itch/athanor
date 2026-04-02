@@ -312,7 +312,8 @@ ALLOWED_RUNTIME_CUTOVER_STATES = {"pending_dev_cutover", "cutover_in_progress", 
 ALLOWED_RUNTIME_SYNC_STRATEGIES = {"backup_then_replace_from_implementation_authority"}
 ALLOWED_RUNTIME_OWNERSHIP_LANE_STATUSES = {"active", "recovery_only", "planned", "retired"}
 ALLOWED_RUNTIME_OWNERSHIP_DEPLOYMENT_MODES = {
-    "repo_worktree_systemd",
+        "repo_worktree_systemd",
+        "repo_worktree_mirror",
     "repo_worktree_script",
     "opt_compose_service",
     "opt_systemd_service",

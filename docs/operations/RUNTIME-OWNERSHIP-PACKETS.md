@@ -3,13 +3,13 @@
 Generated from `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/runtime-ownership-contract.json`, and the cached truth snapshot in `reports/truth-inventory/latest.json` by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Registry version: `2026-04-02.3`
+- Registry version: `2026-04-02.4`
 - Cached truth snapshot: `2026-04-02T18:04:39.550896+00:00`
 - Packets tracked: `4`
 
 | Packet | Status | Lane | Approval type | Goal |
 | --- | --- | --- | --- | --- |
-| `dev-runtime-repo-sync-packet` | `ready_for_approval` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make the implementation-authority to DEV runtime-repo sync path explicit for the repo-root systemd estate instead of treating the runtime repo as generic dirty drift. |
+| `dev-runtime-repo-sync-packet` | `ready_for_approval` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone. |
 | `dev-dashboard-shadow-retirement-packet` | `executed` | `dev-dashboard-compose` | `systemd_runtime_change` | Retire or explicitly downgrade the inactive athanor-dashboard.service unit so the active /opt/athanor/dashboard compose lane is the only ordinary dashboard deployment path. |
 | `dev-heartbeat-opt-deploy-packet` | `executed` | `dev-heartbeat-opt` | `runtime_host_reconfiguration` | Make the source-to-/opt heartbeat bundle replacement explicit so the live athanor-heartbeat.service lane no longer depends on undocumented manual copy steps. |
 | `foundry-agents-compose-deploy-packet` | `ready_for_approval` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |
@@ -21,18 +21,14 @@ Do not edit manually.
 - Lane: `dev-runtime-repo-systemd`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `dev`
-- Goal: Make the implementation-authority to DEV runtime-repo sync path explicit for the repo-root systemd estate instead of treating the runtime repo as generic dirty drift.
-- Lane next action: Review and approve the dev-runtime-repo-sync-packet before replacing runtime-owned files on DEV.
+- Goal: Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone.
+- Lane next action: Execute the dev-runtime-repo-sync-packet to make /home/shaun/repos/athanor a clean mirror of implementation authority, then restart only the repo-root services that actually changed.
 - Backup root: `/home/shaun/.athanor/backups/runtime-ownership/runtime-repo-sync/<timestamp>`
-- Evidence: `config/automation-backbone/runtime-ownership-contract.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+- Evidence: `config/automation-backbone/runtime-ownership-contract.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `scripts/sync_dev_runtime_repo.py`
 
 | Source path | Runtime path | Restart units |
 | --- | --- | --- |
-| `services/brain` | `/home/shaun/repos/athanor/services/brain` | `athanor-brain.service` |
-| `services/classifier` | `/home/shaun/repos/athanor/services/classifier` | `athanor-classifier.service` |
-| `services/quality-gate` | `/home/shaun/repos/athanor/services/quality-gate` | `athanor-quality-gate.service` |
-| `services/sentinel` | `/home/shaun/repos/athanor/services/sentinel` | `athanor-sentinel.service` |
-| `scripts/overnight-ops.sh` | `/home/shaun/repos/athanor/scripts/overnight-ops.sh` | `athanor-overnight.service` |
+| `.` | `/home/shaun/repos/athanor` | `athanor-brain.service`, `athanor-classifier.service`, `athanor-quality-gate.service`, `athanor-sentinel.service`, `athanor-overnight.service` |
 
 ### Live evidence
 
@@ -42,19 +38,23 @@ Do not edit manually.
 ### Preflight Commands
 
 - python scripts/validate_platform_contract.py
+- python scripts/sync_dev_runtime_repo.py
 - ssh dev "git -C /home/shaun/repos/athanor rev-parse --short HEAD && git -C /home/shaun/repos/athanor status --short | wc -l"
 - ssh dev "systemctl show athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service --property=WorkingDirectory,ExecStart --no-pager"
 
 ### Exact Steps
 
 - Create a timestamped backup root under /home/shaun/.athanor/backups/runtime-ownership/runtime-repo-sync/<timestamp>.
-- Back up each runtime-owned target before replacement, preserving permissions and timestamps where possible.
-- Replace only the declared runtime targets from implementation authority into /home/shaun/repos/athanor.
-- Restart or reload only the affected services after their owned paths are replaced.
+- Dry-run the governed sync with python scripts/sync_dev_runtime_repo.py and confirm the target temp branch, backup branch, and backup root.
+- Capture the pre-sync DEV repo state both as a timestamped archive and as a timestamped backup branch before any reset.
+- Push the approved implementation commit to a temporary ref in /home/shaun/repos/athanor/.git from implementation authority instead of copying files ad hoc.
+- Reset DEV main to that approved mirror commit so tracked files and new tracked paths match implementation authority exactly.
+- Clean leftover pre-sync residue that is not present in the approved commit, then restart only the repo-root services that actually changed.
 - Refresh the truth snapshot and generated reports immediately after the sync.
 
 ### Verification Commands
 
+- ssh dev "cd /home/shaun/repos/athanor && git status --short | wc -l && git rev-parse --short HEAD"
 - ssh dev "systemctl is-active athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service"
 - python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json
 - python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets
@@ -62,8 +62,8 @@ Do not edit manually.
 
 ### Rollback Steps
 
-- Restore the backed up runtime-owned paths from the timestamped backup root.
-- Restart only the affected services after the restore.
+- Restore DEV main from the timestamped backup branch or archive captured before the mirror reset.
+- Restart only the affected repo-root services after the restore.
 - Re-run the same truth refresh and validator sequence to confirm rollback.
 
 ## dev-dashboard-shadow-retirement-packet

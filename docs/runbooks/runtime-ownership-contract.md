@@ -1,7 +1,7 @@
 # Runtime Ownership Contract
 
 Source of truth: `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/repo-roots-registry.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-Validated against registry version: `runtime-ownership-contract.json@2026-04-02.4`, `runtime-ownership-packets.json@2026-04-02.3`, `repo-roots-registry.json@2026-04-02.5`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `runtime-ownership-contract.json@2026-04-02.5`, `runtime-ownership-packets.json@2026-04-02.4`, `repo-roots-registry.json@2026-04-02.5`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: implementation authority, runtime authority, deployed roots, and live deployment modes come from the registries plus the latest truth snapshot. This runbook describes how code and runtime state move between those roots.
 
 ---
@@ -21,9 +21,9 @@ Runtime ownership is now explicit enough for full-system promotion to be an oper
 
 ## Current Live Lanes
 
-### 1. DEV repo-root systemd services
+### 1. DEV runtime repo mirror lane
 
-These services run directly from `/home/shaun/repos/athanor`:
+These services still run directly from `/home/shaun/repos/athanor`, but the governed end state is broader than a five-path patch: the entire DEV runtime repo should be a clean mirror of `C:\Athanor`, with restarts limited to the repo-root services that actually execute from that tree.
 
 - `athanor-brain.service`
 - `athanor-classifier.service`
@@ -34,7 +34,7 @@ These services run directly from `/home/shaun/repos/athanor`:
 Contract:
 
 - code authority starts in `C:\Athanor`
-- approved sync lands in `/home/shaun/repos/athanor`
+- approved mirror sync lands in `/home/shaun/repos/athanor`
 - service verification comes from `systemctl show ... WorkingDirectory,ExecStart`
 - rollback requires a timestamped backup under `/home/shaun/.athanor/backups/runtime-ownership/<timestamp>/`
 - packet id: `dev-runtime-repo-sync-packet`
