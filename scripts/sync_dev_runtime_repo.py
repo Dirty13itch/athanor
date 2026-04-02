@@ -11,6 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REMOTE = "dev"
 DEFAULT_REMOTE_REPO = "/home/shaun/repos/athanor"
 DEFAULT_BACKUP_ROOT = "/home/shaun/.athanor/backups/runtime-ownership/runtime-repo-sync"
+DEFAULT_RETENTION_COUNT = 3
 DEFAULT_RESTART_UNITS = [
     "athanor-brain.service",
     "athanor-classifier.service",
@@ -74,9 +75,57 @@ backup_root="$4"
 restart_units_csv="$5"
 restart_flag="$6"
 sync_timestamp="$7"
+retention_count="$8"
+cleanup_only="$9"
+
+backup_parent="$(dirname "$backup_root")"
+cd "$repo_path"
+
+prune_sync_artifacts() {
+  local keep_count="$1"
+  local pruned_sync_branches=0
+  local pruned_backup_branches=0
+  local pruned_backup_dirs=0
+
+  mapfile -t sync_branches < <(git for-each-ref --format='%(refname:short)' --sort=-creatordate refs/heads/runtime-sync)
+  for branch in "${sync_branches[@]}"; do
+    [[ -n "$branch" ]] || continue
+    git branch -D "$branch" >/dev/null
+    pruned_sync_branches=$((pruned_sync_branches + 1))
+  done
+
+  mapfile -t backup_branches < <(git for-each-ref --format='%(refname:short)' --sort=-creatordate refs/heads/backup/runtime-sync-)
+  for idx in "${!backup_branches[@]}"; do
+    if (( idx >= keep_count )); then
+      git branch -D "${backup_branches[$idx]}" >/dev/null
+      pruned_backup_branches=$((pruned_backup_branches + 1))
+    fi
+  done
+
+  if [[ -d "$backup_parent" ]]; then
+    mapfile -t backup_dirs < <(find "$backup_parent" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort -r)
+    for idx in "${!backup_dirs[@]}"; do
+      if (( idx >= keep_count )); then
+        rm -rf -- "$backup_parent/${backup_dirs[$idx]}"
+        pruned_backup_dirs=$((pruned_backup_dirs + 1))
+      fi
+    done
+  fi
+
+  printf 'pruned_sync_branches=%s\n' "$pruned_sync_branches"
+  printf 'pruned_backup_branches=%s\n' "$pruned_backup_branches"
+  printf 'pruned_backup_dirs=%s\n' "$pruned_backup_dirs"
+}
+
+if [[ "$cleanup_only" == "1" ]]; then
+  prune_sync_artifacts "$retention_count"
+  printf 'branch=%s\n' "$(git branch --show-current)"
+  printf 'head=%s\n' "$(git rev-parse --short HEAD)"
+  printf 'dirty=%s\n' "$(git status --porcelain | wc -l)"
+  exit 0
+fi
 
 mkdir -p "$backup_root"
-cd "$repo_path"
 
 git status --short > "$backup_root/git-status.before.txt"
 git rev-parse --short HEAD > "$backup_root/head.before.txt"
@@ -113,6 +162,7 @@ if [[ "$restart_flag" == "1" ]]; then
   systemctl is-active "${restart_units[@]}" > "$backup_root/systemd.after.txt"
 fi
 
+prune_sync_artifacts "$retention_count"
 printf 'branch=%s\n' "$(git branch --show-current)"
 printf 'head=%s\n' "$(git rev-parse --short HEAD)"
 printf 'dirty=%s\n' "$(git status --porcelain | wc -l)"
@@ -129,6 +179,8 @@ def _execute_remote_sync(
     restart_units: list[str],
     restart_services: bool,
     timestamp: str,
+    retention_count: int,
+    cleanup_only: bool,
 ) -> str:
     remote_script = _remote_sync_script()
     command = [
@@ -144,6 +196,8 @@ def _execute_remote_sync(
         ",".join(restart_units),
         "1" if restart_services else "0",
         timestamp,
+        str(retention_count),
+        "1" if cleanup_only else "0",
     ]
     try:
         result = subprocess.run(
@@ -168,15 +222,28 @@ def _parse_args() -> argparse.Namespace:
         description="Mirror a clean implementation-authority commit into the DEV runtime repo."
     )
     parser.add_argument("--execute", action="store_true", help="Perform the sync. Without this flag the script prints the plan only.")
+    parser.add_argument(
+        "--cleanup-only",
+        action="store_true",
+        help="Prune old DEV runtime-sync refs and backup artifacts without performing a mirror reset.",
+    )
     parser.add_argument("--remote", default=DEFAULT_REMOTE)
     parser.add_argument("--remote-repo", default=DEFAULT_REMOTE_REPO)
     parser.add_argument("--backup-root", default=DEFAULT_BACKUP_ROOT)
+    parser.add_argument(
+        "--retention-count",
+        type=int,
+        default=DEFAULT_RETENTION_COUNT,
+        help="Number of backup branches and backup directories to retain on DEV.",
+    )
     parser.add_argument("--restart-services", action="store_true", help="Restart repo-root services after the sync.")
     return parser.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
+    if args.retention_count < 0:
+        raise SystemExit("--retention-count must be >= 0")
     timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
     head_sha = _git_head()
     short_sha = head_sha[:12]
@@ -190,6 +257,8 @@ def main() -> int:
     print(f"temp_branch={temp_branch}")
     print(f"backup_branch={backup_branch}")
     print(f"backup_root={backup_root}")
+    print(f"cleanup_only={args.cleanup_only}")
+    print(f"retention_count={args.retention_count}")
     print(f"restart_services={args.restart_services}")
     print(f"restart_units={','.join(DEFAULT_RESTART_UNITS)}")
 
@@ -197,8 +266,9 @@ def main() -> int:
         print("dry_run=true")
         return 0
 
-    _ensure_clean_worktree()
-    _push_temp_ref(args.remote, args.remote_repo, head_sha, temp_branch)
+    if not args.cleanup_only:
+        _ensure_clean_worktree()
+        _push_temp_ref(args.remote, args.remote_repo, head_sha, temp_branch)
     summary = _execute_remote_sync(
         remote=args.remote,
         remote_repo=args.remote_repo,
@@ -208,6 +278,8 @@ def main() -> int:
         restart_units=DEFAULT_RESTART_UNITS,
         restart_services=args.restart_services,
         timestamp=timestamp,
+        retention_count=args.retention_count,
+        cleanup_only=args.cleanup_only,
     )
     print(summary)
     return 0

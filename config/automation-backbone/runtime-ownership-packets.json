@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-02.4",
-  "updated_at": "2026-04-02T19:30:00Z",
+  "version": "2026-04-02.5",
+  "updated_at": "2026-04-02T20:10:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-packets.json",
   "packets": [
@@ -26,9 +26,15 @@
         }
       ],
       "backup_root": "/home/shaun/.athanor/backups/runtime-ownership/runtime-repo-sync/<timestamp>",
+      "retention_policy": {
+        "prune_runtime_sync_refs_after_success": true,
+        "keep_backup_branches": 3,
+        "keep_backup_directories": 3
+      },
       "preflight_commands": [
         "python scripts/validate_platform_contract.py",
         "python scripts/sync_dev_runtime_repo.py",
+        "python scripts/sync_dev_runtime_repo.py --cleanup-only",
         "ssh dev \"git -C /home/shaun/repos/athanor rev-parse --short HEAD && git -C /home/shaun/repos/athanor status --short | wc -l\"",
         "ssh dev \"systemctl show athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service --property=WorkingDirectory,ExecStart --no-pager\""
       ],
@@ -39,6 +45,7 @@
         "Push the approved implementation commit to a temporary ref in /home/shaun/repos/athanor/.git from implementation authority instead of copying files ad hoc.",
         "Reset DEV main to that approved mirror commit so tracked files and new tracked paths match implementation authority exactly.",
         "Clean leftover pre-sync residue that is not present in the approved commit, then restart only the repo-root services that actually changed.",
+        "Prune all consumed runtime-sync/* refs immediately after the reset and retain only the newest 3 backup/runtime-sync-* branches plus the newest 3 timestamped backup directories under the runtime-repo-sync backup root.",
         "Refresh the truth snapshot and generated reports immediately after the sync."
       ],
       "verification_commands": [
