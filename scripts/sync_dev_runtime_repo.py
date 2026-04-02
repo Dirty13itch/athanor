@@ -146,20 +146,21 @@ def _execute_remote_sync(
         timestamp,
     ]
     try:
-        result = _run(
+        result = subprocess.run(
             command,
-            input_text=remote_script,
+            input=remote_script.encode("utf-8"),
             capture_output=True,
+            check=True,
         )
     except subprocess.CalledProcessError as exc:
-        stderr = exc.stderr.strip() if exc.stderr else ""
-        stdout = exc.stdout.strip() if exc.stdout else ""
+        stderr = exc.stderr.decode("utf-8", errors="replace").strip() if exc.stderr else ""
+        stdout = exc.stdout.decode("utf-8", errors="replace").strip() if exc.stdout else ""
         raise SystemExit(
             "Remote DEV repo sync failed.\n"
             f"stdout:\n{stdout or '<empty>'}\n"
             f"stderr:\n{stderr or '<empty>'}"
         ) from exc
-    return result.stdout.strip()
+    return result.stdout.decode("utf-8", errors="replace").strip()
 
 
 def _parse_args() -> argparse.Namespace:
