@@ -80,7 +80,7 @@ cd "$repo_path"
 
 git status --short > "$backup_root/git-status.before.txt"
 git rev-parse --short HEAD > "$backup_root/head.before.txt"
-tar --exclude='.git' -czf "$backup_root/runtime-repo.before.tar.gz" .
+tar --warning=no-file-changed --exclude='.git' -czf "$backup_root/runtime-repo.before.tar.gz" .
 
 current_branch="$(git branch --show-current || true)"
 if [[ "$current_branch" != "main" ]]; then
