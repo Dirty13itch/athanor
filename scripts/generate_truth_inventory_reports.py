@@ -4,7 +4,7 @@ import argparse
 import json
 import subprocess
 from collections import Counter
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from truth_inventory import (
@@ -40,6 +40,29 @@ def _short_hash(value: str | None) -> str:
     return f"`{value[:12]}`"
 
 
+GENERATED_LOCAL_GIT_IGNORE_PATHS = {
+    path.relative_to(REPO_ROOT).as_posix()
+    for path in [
+        *REPORT_PATHS.values(),
+        TRUTH_SNAPSHOT_PATH,
+        PROVIDER_USAGE_EVIDENCE_PATH,
+        VAULT_LITELLM_ENV_AUDIT_PATH,
+        VAULT_REDIS_AUDIT_PATH,
+        DASHBOARD_OPERATOR_SURFACES_PATH,
+    ]
+    if path.is_absolute() and REPO_ROOT in path.parents
+}
+
+
+def _status_line_paths(line: str) -> list[str]:
+    payload = line[3:].strip()
+    if not payload:
+        return []
+    if " -> " in payload:
+        return [part.strip().replace("\\", "/") for part in payload.split(" -> ") if part.strip()]
+    return [payload.replace("\\", "/")]
+
+
 def _local_git_probe(path: str) -> dict[str, Any]:
     head = subprocess.run(
         ["git", "-C", path, "rev-parse", "--short", "HEAD"],
@@ -54,6 +77,19 @@ def _local_git_probe(path: str) -> dict[str, Any]:
         check=False,
     )
     status_lines = [line.rstrip() for line in status.stdout.splitlines() if line.strip()] if status.returncode == 0 else []
+    try:
+        probe_root = Path(path).resolve()
+    except OSError:
+        probe_root = None
+    if probe_root == REPO_ROOT.resolve():
+        status_lines = [
+            line
+            for line in status_lines
+            if not (
+                (paths := _status_line_paths(line))
+                and all(candidate in GENERATED_LOCAL_GIT_IGNORE_PATHS for candidate in paths)
+            )
+        ]
     return {
         "head": head.stdout.strip() if head.returncode == 0 else "",
         "dirty_count": len(status_lines),
@@ -71,6 +107,7 @@ VOLATILE_REPORT_LINE_PREFIXES: dict[str, tuple[str, ...]] = {
     ),
     "operator_surfaces": (
         "- Cached truth snapshot: `",
+        "- Dashboard container status: `",
     ),
     "runtime_migrations": (
         "- Latest live content evidence snapshot: `",
@@ -1466,7 +1503,6 @@ def render_repo_roots_report() -> str:
         if str(root.get("id") or "") == "desk-main":
             extra_lines.extend(
                 [
-                    f"- Local git head: `{local_repo_probe.get('head') or 'unknown'}`",
                     f"- Local dirty file count: `{local_repo_probe.get('dirty_count', 0)}`",
                     f"- Local dirty sample: {list_or_none(list(local_repo_probe.get('status_sample', [])))}",
                 ]
@@ -1474,7 +1510,6 @@ def render_repo_roots_report() -> str:
         elif str(root.get("id") or "") == "dev-runtime-repo" and dev_runtime_probe.get("ok"):
             extra_lines.extend(
                 [
-                    f"- Runtime repo head: `{dev_runtime_detail.get('repo_git_head') or 'unknown'}`",
                     f"- Runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`",
                     f"- Runtime dirty sample: {list_or_none(list(dev_runtime_detail.get('repo_status_sample', [])))}",
                 ]
@@ -1593,13 +1628,11 @@ def render_runtime_ownership_report() -> str:
         "",
         "## Repo Evidence",
         "",
-        f"- Implementation repo head: `{local_repo_probe.get('head') or 'unknown'}`",
         f"- Implementation dirty file count: `{local_repo_probe.get('dirty_count', 0)}`",
     ]
     if dev_runtime_probe.get("ok"):
         lines.extend(
             [
-                f"- DEV runtime repo head: `{dev_runtime_detail.get('repo_git_head') or 'unknown'}`",
                 f"- DEV runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`",
             ]
         )
@@ -2030,7 +2063,6 @@ def render_runtime_ownership_packets_report() -> str:
                     "",
                     "### Live evidence",
                     "",
-                    f"- DEV runtime repo head: `{dev_runtime_detail.get('repo_git_head') or 'unknown'}`",
                     f"- DEV runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`",
                 ]
             )
@@ -2952,10 +2984,8 @@ def render_autonomy_activation_report() -> str:
                 for note in notes:
                     lines.append(f"- {note}")
                 if str(item.get("id") or "") == "runtime_ownership_maturity":
-                    lines.append(f"- Implementation repo head: `{local_repo_probe.get('head') or 'unknown'}`")
                     lines.append(f"- Implementation dirty file count: `{local_repo_probe.get('dirty_count', 0)}`")
                     if dev_runtime_probe.get("ok"):
-                        lines.append(f"- DEV runtime repo head: `{dev_runtime_detail.get('repo_git_head') or 'unknown'}`")
                         lines.append(f"- DEV runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`")
                     else:
                         lines.append(f"- DEV runtime probe: `{dev_runtime_probe.get('detail') or 'unavailable'}`")
