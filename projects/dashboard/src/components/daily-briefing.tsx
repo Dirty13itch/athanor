@@ -16,6 +16,7 @@ interface BriefingTask {
   result?: string;
   created_at?: string | number;
   updated_at?: string | number;
+  metadata?: Record<string, unknown>;
 }
 
 interface BriefingState {
@@ -24,24 +25,42 @@ interface BriefingState {
   loading: boolean;
 }
 
+interface DigestCompletion {
+  result_preview?: string;
+  title?: string;
+  prompt?: string;
+}
+
+interface OperatorDigestSummary {
+  generated_at?: string;
+  summary?: string;
+  task_count?: number;
+  recent_completions?: DigestCompletion[];
+}
+
+interface OperatorSummaryPayload {
+  digest?: OperatorDigestSummary;
+}
+
 async function fetchLatestBriefing(
   setState: Dispatch<SetStateAction<BriefingState>>
 ) {
   try {
-    // Try the digest endpoint first (auto-generated from proactive task results)
-    const digestRes = await fetch("/api/digests/latest", {
+    const summaryRes = await fetch("/api/operator/summary", {
       signal: AbortSignal.timeout(8000),
     });
-    if (digestRes.ok) {
-      const digest = await digestRes.json();
-      if (digest?.summary && digest.task_count > 0) {
+    if (summaryRes.ok) {
+      const summary = (await summaryRes.json()) as OperatorSummaryPayload;
+      const digest = summary?.digest;
+      if (digest?.summary && Number(digest.task_count ?? 0) > 0) {
         const parts = [digest.summary];
         const completions = digest.recent_completions ?? [];
         if (completions.length > 0) {
           const uniqueResults = completions
-            .filter((c: { result_preview?: string }) => c.result_preview)
+            .map((completion) => completion.result_preview ?? completion.title ?? completion.prompt ?? "")
+            .filter(Boolean)
             .slice(0, 3)
-            .map((c: { result_preview?: string }) => (c.result_preview ?? "").slice(0, 100));
+            .map((value) => value.slice(0, 100));
           if (uniqueResults.length > 0) {
             parts.push("\nRecent results:");
             for (const r of uniqueResults) {
@@ -58,8 +77,8 @@ async function fetchLatestBriefing(
       }
     }
 
-    // Fallback: search completed tasks for briefing/digest keywords
-    const res = await fetch("/api/workforce/tasks?limit=50", {
+    // Canonical fallback: search recent runs for briefing/digest keywords.
+    const res = await fetch("/api/operator/runs?limit=50", {
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) {
@@ -68,7 +87,7 @@ async function fetchLatestBriefing(
     }
 
     const data = await res.json();
-    const tasks: BriefingTask[] = data.tasks ?? data ?? [];
+    const tasks: BriefingTask[] = data.runs ?? data ?? [];
     if (!Array.isArray(tasks)) {
       setState((prev) => ({ ...prev, loading: false }));
       return;
@@ -77,7 +96,19 @@ async function fetchLatestBriefing(
     const briefingTask = tasks
       .filter((t) => {
         if (t.status !== "completed") return false;
-        const text = [t.description, t.title, t.prompt].filter(Boolean).join(" ").toLowerCase();
+        const metadata = t.metadata ?? {};
+        const text = [
+          t.description,
+          t.title,
+          t.prompt,
+          t.result,
+          String(metadata["dispatch_reason"] ?? ""),
+          String(metadata["work_class"] ?? ""),
+          String(metadata["summary"] ?? ""),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
         return text.includes("digest") || text.includes("briefing") || text.includes("morning");
       })
       .sort((a, b) => {

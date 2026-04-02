@@ -138,12 +138,11 @@ class CommandHierarchyTest(unittest.TestCase):
             "software_core_phase_1",
             snapshot["operational_governance"]["autonomy_activation"]["current_phase_id"],
         )
-        self.assertEqual(
-            "expanded_core_phase_2",
-            snapshot["operational_governance"]["autonomy_activation"]["next_phase_id"],
+        self.assertIsNone(
+            snapshot["operational_governance"]["autonomy_activation"]["next_phase_id"]
         )
         self.assertEqual(
-            ["vault_provider_auth_repair"],
+            [],
             snapshot["operational_governance"]["autonomy_activation"]["next_phase_blocker_ids"],
         )
 

@@ -177,7 +177,7 @@ function SelectionDetails({
         <CardContent className="flex flex-wrap gap-2">
           {item.projectId ? (
             <Button asChild size="sm" variant="outline">
-              <Link href={`/workplanner?project=${item.projectId}`}>
+              <Link href={`/backlog?project=${item.projectId}`}>
                 <Link2 className="mr-2 h-4 w-4" />
                 Open project
               </Link>
@@ -185,9 +185,9 @@ function SelectionDetails({
           ) : null}
           {item.relatedTaskId ? (
             <Button asChild size="sm" variant="outline">
-              <Link href={`/tasks?selection=${item.relatedTaskId}`}>
+              <Link href={`/runs?selection=${item.relatedTaskId}`}>
                 <Link2 className="mr-2 h-4 w-4" />
-                Open task
+                Open run
               </Link>
             </Button>
           ) : null}

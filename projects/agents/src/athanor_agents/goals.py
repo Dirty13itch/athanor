@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import httpx
 
 from .config import settings
+from .durable_state import list_goal_records, soft_delete_goal_record, upsert_goal_record
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +234,10 @@ async def list_goals(agent: str = "", active_only: bool = True) -> list[dict]:
         return goals
     except Exception as e:
         logger.warning("Failed to list goals: %s", e)
+    try:
+        return await list_goal_records(agent=agent, active_only=active_only)
+    except Exception as e:
+        logger.warning("Durable fallback failed while listing goals: %s", e)
         return []
 
 
@@ -248,21 +253,26 @@ async def create_goal(text: str, agent: str = "global", priority: str = "normal"
         r = await _get_redis()
         await r.hset(GOALS_KEY, goal.id, json.dumps(goal.to_dict()))
         logger.info("Created goal %s: %s (agent=%s)", goal.id, text[:50], agent)
-        return goal.to_dict()
+        payload = goal.to_dict()
+        await upsert_goal_record(payload)
+        return payload
     except Exception as e:
         logger.warning("Failed to create goal: %s", e)
-        raise
+    payload = goal.to_dict()
+    await upsert_goal_record(payload)
+    return payload
 
 
 async def delete_goal(goal_id: str) -> bool:
     """Delete a goal by ID."""
+    removed = False
     try:
         r = await _get_redis()
-        removed = await r.hdel(GOALS_KEY, goal_id)
-        return removed > 0
+        removed = (await r.hdel(GOALS_KEY, goal_id)) > 0
     except Exception as e:
         logger.warning("Failed to delete goal %s: %s", goal_id, e)
-        return False
+    durable_removed = await soft_delete_goal_record(goal_id)
+    return bool(removed or durable_removed)
 
 
 async def get_goals_for_agent(agent: str) -> list[str]:

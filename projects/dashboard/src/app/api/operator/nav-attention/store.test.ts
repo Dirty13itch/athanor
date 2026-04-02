@@ -34,8 +34,8 @@ describe("operator nav attention store", () => {
 
   it("persists nav attention state to disk", async () => {
     await saveNavAttentionState({
-      "/tasks": {
-        signature: "/tasks|pending_approvals|urgent|1|task-1",
+      "/runs": {
+        signature: "/runs|pending_approvals|urgent|1|task-1",
         firstSeenAt: "2026-03-25T12:00:00.000Z",
         acknowledgedAt: null,
       },
@@ -45,6 +45,6 @@ describe("operator nav attention store", () => {
 
     expect(snapshot.source).toBe("file");
     expect(snapshot.routeCount).toBe(1);
-    expect(snapshot.state["/tasks"]?.signature).toContain("pending_approvals");
+    expect(snapshot.state["/runs"]?.signature).toContain("pending_approvals");
   });
 });

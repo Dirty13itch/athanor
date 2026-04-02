@@ -1,0 +1,97 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T02:05:00Z",
+  "source_of_truth": "config/automation-backbone/domain-packets-registry.json",
+  "domains": [
+    {
+      "id": "operator_control",
+      "label": "Operator Control",
+      "status": "live",
+      "owner_agent": "general-assistant",
+      "support_agents": ["coding-agent", "knowledge-agent", "research-agent"],
+      "systems": ["dashboard", "agent_server", "quality_gate", "gateway"],
+      "surfaces": ["/", "/inbox", "/todos", "/backlog", "/runs"],
+      "description": "Operator-facing intake, routing, task visibility, and control-plane interaction surfaces."
+    },
+    {
+      "id": "product_foundry",
+      "label": "Product Foundry",
+      "status": "live",
+      "owner_agent": "coding-agent",
+      "support_agents": ["general-assistant", "knowledge-agent", "research-agent"],
+      "systems": ["agent_server", "quality_gate", "gpu_orchestrator", "ws_pty_bridge"],
+      "surfaces": ["/projects", "/tasks", "/workplanner"],
+      "description": "Implementation, review, execution, and launch orchestration for Athanor projects."
+    },
+    {
+      "id": "research",
+      "label": "Research",
+      "status": "live",
+      "owner_agent": "research-agent",
+      "support_agents": ["knowledge-agent", "general-assistant"],
+      "systems": ["miniflux", "litellm", "qdrant", "neo4j_http"],
+      "surfaces": ["/agents", "/workplanner"],
+      "description": "External research, citation gathering, signal scan, and current-state synthesis."
+    },
+    {
+      "id": "knowledge",
+      "label": "Knowledge",
+      "status": "live",
+      "owner_agent": "knowledge-agent",
+      "support_agents": ["research-agent", "data-curator"],
+      "systems": ["qdrant", "neo4j", "neo4j_http", "memory"],
+      "surfaces": ["/memory", "/agents"],
+      "description": "Canonical document search, graph retrieval, intelligence synthesis, and durable knowledge stewardship."
+    },
+    {
+      "id": "personal_data",
+      "label": "Personal Data",
+      "status": "live",
+      "owner_agent": "data-curator",
+      "support_agents": ["knowledge-agent"],
+      "systems": ["memory", "qdrant", "miniflux"],
+      "surfaces": ["/memory"],
+      "description": "Personal and operator data discovery, parsing, indexing, and searchable curation."
+    },
+    {
+      "id": "media",
+      "label": "Media",
+      "status": "live",
+      "owner_agent": "media-agent",
+      "support_agents": ["general-assistant"],
+      "systems": ["sonarr", "radarr", "prowlarr", "sabnzbd", "tautulli", "plex"],
+      "surfaces": ["/media", "/services"],
+      "description": "Media acquisition, downloader health, library status, and playback telemetry."
+    },
+    {
+      "id": "home",
+      "label": "Home",
+      "status": "live",
+      "owner_agent": "home-agent",
+      "support_agents": ["general-assistant"],
+      "systems": ["home_assistant"],
+      "surfaces": ["/services"],
+      "description": "Home Assistant-driven environment control, routines, and operator-aware home status."
+    },
+    {
+      "id": "creative",
+      "label": "Creative",
+      "status": "live",
+      "owner_agent": "creative-agent",
+      "support_agents": ["general-assistant"],
+      "systems": ["comfyui", "scorer"],
+      "surfaces": ["/gallery", "/services"],
+      "description": "Creative generation, queueing, scoring, and persona-aware asset work."
+    },
+    {
+      "id": "stash",
+      "label": "Stash",
+      "status": "live",
+      "owner_agent": "stash-agent",
+      "support_agents": ["general-assistant"],
+      "systems": ["stash"],
+      "surfaces": ["/catalog", "/services"],
+      "description": "Adult library organization, tagging, duplicate review, and catalog maintenance."
+    }
+  ]
+}

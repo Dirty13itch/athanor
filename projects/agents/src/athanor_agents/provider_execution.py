@@ -605,6 +605,26 @@ def _bundle_prompt(bundle: dict[str, Any]) -> str:
     return str(bundle.get("prompt") or "")
 
 
+def _coerce_bundle_timestamp(value: Any) -> float:
+    if value in (None, "", 0, 0.0):
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+
+    text = str(value).strip()
+    if not text:
+        return 0.0
+
+    try:
+        return float(text)
+    except ValueError:
+        normalized = text.replace("Z", "+00:00") if text.endswith("Z") else text
+        try:
+            return datetime.fromisoformat(normalized).timestamp()
+        except ValueError:
+            return 0.0
+
+
 async def list_handoff_bundles(
     requester: str = "",
     limit: int = 25,
@@ -616,7 +636,7 @@ async def list_handoff_bundles(
     bundles = [json.loads(value) for value in raw.values()]
     if requester:
         bundles = [bundle for bundle in bundles if bundle.get("requester") == requester]
-    bundles.sort(key=lambda bundle: float(bundle.get("created_at", 0.0)), reverse=True)
+    bundles.sort(key=lambda bundle: _coerce_bundle_timestamp(bundle.get("created_at")), reverse=True)
     bundles = bundles[:limit]
     if serialize:
         return [serialize_handoff_bundle(bundle) for bundle in bundles]
@@ -636,7 +656,7 @@ async def _recent_provider_execution_state(
     for bundle in await list_handoff_bundles(limit=limit, serialize=False):
         if str(bundle.get("provider")) != provider_id:
             continue
-        updated_at = float(bundle.get("updated_at") or bundle.get("created_at") or 0.0)
+        updated_at = _coerce_bundle_timestamp(bundle.get("updated_at") or bundle.get("created_at"))
         if updated_at and now - updated_at > ttl_seconds:
             continue
         execution = dict(bundle.get("last_execution") or {})

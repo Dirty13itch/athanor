@@ -27,12 +27,32 @@ from .scheduler import (
     DAILY_DIGEST_KEY,
     DIGEST_HOUR,
     DIGEST_MINUTE,
+    DPO_TRAINING_HOUR,
+    DPO_TRAINING_KEY,
+    DPO_TRAINING_MINUTE,
+    DPO_TRAINING_WEEKDAY,
+    CODE_CASCADE_INTERVAL,
+    CODE_CASCADE_KEY,
     IMPROVEMENT_CYCLE_HOUR,
     IMPROVEMENT_CYCLE_KEY,
     IMPROVEMENT_CYCLE_MINUTE,
+    KNOWLEDGE_REFRESH_HOUR,
+    KNOWLEDGE_REFRESH_KEY,
+    KNOWLEDGE_REFRESH_MINUTE,
+    NIGHTLY_OPTIMIZATION_HOUR,
+    NIGHTLY_OPTIMIZATION_KEY,
+    NIGHTLY_OPTIMIZATION_MINUTE,
+    OWNER_MODEL_HOUR,
+    OWNER_MODEL_KEY,
+    OWNER_MODEL_MINUTE,
     PATTERN_DETECTION_KEY,
     PATTERN_HOUR,
     PATTERN_MINUTE,
+    PIPELINE_INTERVAL,
+    PIPELINE_KEY,
+    SCHEDULER_INTERVAL,
+    CREATIVE_CASCADE_INTERVAL,
+    CREATIVE_CASCADE_KEY,
     WORKPLAN_HOUR,
     WORKPLAN_MINUTE,
     WORKPLAN_MORNING_KEY,
@@ -384,6 +404,16 @@ def _next_daily_occurrence(hour: int, minute: int) -> str:
     return candidate.isoformat()
 
 
+def _next_weekly_occurrence(weekday: int, hour: int, minute: int) -> str:
+    now = datetime.now()
+    candidate = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    days_ahead = (weekday - candidate.weekday()) % 7
+    if days_ahead == 0 and candidate <= now:
+        days_ahead = 7
+    candidate += timedelta(days=days_ahead)
+    return candidate.isoformat()
+
+
 async def _read_schedule_marker(key: str) -> str | None:
     redis = await _get_redis()
     value = await redis.get(key)
@@ -527,6 +557,26 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
             "deep_link": "/workplanner",
         },
         {
+            "id": "pipeline-cycle",
+            "key": PIPELINE_KEY,
+            "job_family": "pipeline",
+            "title": "Pipeline cycle",
+            "cadence": "every 2h",
+            "trigger_mode": "interval",
+            "next_run": _iso_from_unix(now + PIPELINE_INTERVAL),
+            "deep_link": "/workplanner",
+        },
+        {
+            "id": "owner-model",
+            "key": OWNER_MODEL_KEY,
+            "job_family": "owner_model",
+            "title": "Owner model rebuild",
+            "cadence": "daily 4:00",
+            "trigger_mode": "daily",
+            "next_run": _next_daily_occurrence(OWNER_MODEL_HOUR, OWNER_MODEL_MINUTE),
+            "deep_link": "/operator",
+        },
+        {
             "id": "alert-check",
             "key": ALERT_CHECK_KEY,
             "job_family": "alerts",
@@ -547,6 +597,16 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
             "deep_link": "/learning",
         },
         {
+            "id": "weekly-dpo-training",
+            "key": DPO_TRAINING_KEY,
+            "job_family": "weekly_dpo_training",
+            "title": "Weekly DPO training prep",
+            "cadence": "weekly Sat 2:00",
+            "trigger_mode": "weekly",
+            "next_run": _next_weekly_occurrence(DPO_TRAINING_WEEKDAY, DPO_TRAINING_HOUR, DPO_TRAINING_MINUTE),
+            "deep_link": "/learning",
+        },
+        {
             "id": "cache-cleanup",
             "key": CACHE_CLEANUP_KEY,
             "job_family": "cache_cleanup",
@@ -554,6 +614,26 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
             "cadence": "every 1h",
             "trigger_mode": "interval",
             "next_run": _iso_from_unix(now + CACHE_CLEANUP_INTERVAL),
+            "deep_link": "/learning",
+        },
+        {
+            "id": "nightly-optimization",
+            "key": NIGHTLY_OPTIMIZATION_KEY,
+            "job_family": "nightly_optimization",
+            "title": "Nightly optimization",
+            "cadence": "daily 22:00",
+            "trigger_mode": "daily",
+            "next_run": _next_daily_occurrence(NIGHTLY_OPTIMIZATION_HOUR, NIGHTLY_OPTIMIZATION_MINUTE),
+            "deep_link": "/review",
+        },
+        {
+            "id": "knowledge-refresh",
+            "key": KNOWLEDGE_REFRESH_KEY,
+            "job_family": "knowledge_refresh",
+            "title": "Knowledge refresh",
+            "cadence": "daily 0:00",
+            "trigger_mode": "daily",
+            "next_run": _next_daily_occurrence(KNOWLEDGE_REFRESH_HOUR, KNOWLEDGE_REFRESH_MINUTE),
             "deep_link": "/learning",
         },
         {
@@ -566,6 +646,39 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
             "next_run": _next_daily_occurrence(IMPROVEMENT_CYCLE_HOUR, IMPROVEMENT_CYCLE_MINUTE),
             "deep_link": "/review",
         },
+        {
+            "id": "creative-cascade",
+            "key": CREATIVE_CASCADE_KEY,
+            "job_family": "creative_cascade",
+            "title": "Creative cascade",
+            "cadence": "every 4h",
+            "trigger_mode": "interval",
+            "next_run": _iso_from_unix(now + CREATIVE_CASCADE_INTERVAL),
+            "deep_link": "/gallery",
+            "owner_agent": "creative-agent",
+        },
+        {
+            "id": "code-cascade",
+            "key": CODE_CASCADE_KEY,
+            "job_family": "code_cascade",
+            "title": "Code cascade",
+            "cadence": "every 6h",
+            "trigger_mode": "interval",
+            "next_run": _iso_from_unix(now + CODE_CASCADE_INTERVAL),
+            "deep_link": "/review",
+            "owner_agent": "coding-agent",
+        },
+        {
+            "id": "research:scheduler",
+            "key": None,
+            "job_family": "research_jobs",
+            "title": "Research scheduler scan",
+            "cadence": "every 30s",
+            "trigger_mode": "interval",
+            "next_run": _iso_from_unix(now + SCHEDULER_INTERVAL),
+            "deep_link": "/workplanner",
+            "owner_agent": "research-agent",
+        },
     ]
 
     for definition in builtin_definitions:
@@ -576,7 +689,7 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
             job_id=definition["id"],
             job_family=definition["job_family"],
             control_scope=control_scope,
-            owner_agent="system",
+            owner_agent=str(definition.get("owner_agent") or "system"),
             capacity_snapshot=capacity_snapshot,
         )
         paused = global_paused or (control_scope in paused_lanes if control_scope else False)
@@ -587,11 +700,19 @@ async def build_scheduled_job_records(limit: int = 50) -> list[dict[str, Any]]:
                 "title": definition["title"],
                 "cadence": definition["cadence"],
                 "trigger_mode": definition["trigger_mode"],
-                "last_run": event.get("timestamp") if event else await _read_schedule_marker(definition["key"]),
+                "last_run": (
+                    event.get("timestamp")
+                    if event
+                    else (
+                        await _read_schedule_marker(definition["key"])
+                        if definition.get("key")
+                        else None
+                    )
+                ),
                 "next_run": definition["next_run"],
                 "current_state": "paused" if paused else ("deferred" if not governance["allowed"] else "scheduled"),
                 "last_outcome": str(event_data.get("outcome") or "scheduled"),
-                "owner_agent": "system",
+                "owner_agent": str(definition.get("owner_agent") or "system"),
                 "deep_link": definition["deep_link"],
                 "control_scope": control_scope,
                 "paused": paused,

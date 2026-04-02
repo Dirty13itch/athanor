@@ -1,0 +1,107 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T16:00:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/memory-namespace-registry.json",
+  "namespaces": [
+    {
+      "id": "operator.inbox",
+      "owner_agent": "general-assistant",
+      "status": "live",
+      "tier": "operational",
+      "retention": "365d",
+      "cloud_allowed": false,
+      "write_agents": ["general-assistant"]
+    },
+    {
+      "id": "operator.todos",
+      "owner_agent": "general-assistant",
+      "status": "live",
+      "tier": "operational",
+      "retention": "365d",
+      "cloud_allowed": false,
+      "write_agents": ["general-assistant"]
+    },
+    {
+      "id": "foundry.runs",
+      "owner_agent": "coding-agent",
+      "status": "live",
+      "tier": "operational",
+      "retention": "indefinite",
+      "cloud_allowed": false,
+      "write_agents": ["coding-agent"]
+    },
+    {
+      "id": "foundry.reviews",
+      "owner_agent": "coding-agent",
+      "status": "live",
+      "tier": "operational",
+      "retention": "indefinite",
+      "cloud_allowed": false,
+      "write_agents": ["coding-agent"]
+    },
+    {
+      "id": "truth.docs",
+      "owner_agent": "knowledge-agent",
+      "status": "live",
+      "tier": "knowledge_long_term",
+      "retention": "indefinite",
+      "cloud_allowed": false,
+      "write_agents": ["knowledge-agent"]
+    },
+    {
+      "id": "truth.graph",
+      "owner_agent": "knowledge-agent",
+      "status": "live",
+      "tier": "knowledge_long_term",
+      "retention": "indefinite",
+      "cloud_allowed": false,
+      "write_agents": ["knowledge-agent"]
+    },
+    {
+      "id": "media.incidents",
+      "owner_agent": "media-agent",
+      "status": "live",
+      "tier": "operational",
+      "retention": "365d",
+      "cloud_allowed": false,
+      "write_agents": ["media-agent"]
+    },
+    {
+      "id": "home.overrides",
+      "owner_agent": "home-agent",
+      "status": "live",
+      "tier": "sovereign_long_term",
+      "retention": "indefinite",
+      "cloud_allowed": false,
+      "write_agents": ["home-agent"]
+    },
+    {
+      "id": "creative.assets",
+      "owner_agent": "creative-agent",
+      "status": "live",
+      "tier": "sovereign_long_term",
+      "retention": "indefinite",
+      "cloud_allowed": false,
+      "write_agents": ["creative-agent"]
+    },
+    {
+      "id": "stash.organization",
+      "owner_agent": "stash-agent",
+      "status": "live",
+      "tier": "sovereign_long_term",
+      "retention": "indefinite",
+      "cloud_allowed": false,
+      "write_agents": ["stash-agent"]
+    },
+    {
+      "id": "personal.semantic",
+      "owner_agent": "data-curator",
+      "status": "live",
+      "tier": "sovereign_long_term",
+      "retention": "indefinite",
+      "cloud_allowed": false,
+      "write_agents": ["data-curator"]
+    }
+  ]
+}

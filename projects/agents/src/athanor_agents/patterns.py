@@ -28,6 +28,17 @@ async def _get_redis():
     return await get_redis()
 
 
+def _coerce_timestamp(value) -> float | None:
+    """Normalize activity/event timestamps from Qdrant payloads."""
+
+    if value in ("", None):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 async def run_pattern_detection() -> dict:
     """Run pattern detection over the last 24 hours of events.
 
@@ -314,12 +325,12 @@ async def _detect_agent_behavioral_patterns(
     if len(home_activity) >= 5:
         hour_distribution = Counter()
         for a in home_activity:
-            ts = a.get("timestamp", 0)
-            if ts:
+            ts = _coerce_timestamp(a.get("timestamp"))
+            if ts is not None:
                 try:
                     hour = datetime.fromtimestamp(ts).hour
                     hour_distribution[hour] += 1
-                except (ValueError, OSError):
+                except (OSError, OverflowError, ValueError):
                     pass
         if hour_distribution:
             peak_hours = [h for h, c in hour_distribution.most_common(3)]

@@ -63,6 +63,231 @@ def _point_id(text: str) -> str:
     return f"{h[:8]}-{h[8:12]}-{h[12:16]}-{h[16:20]}-{h[20:32]}"
 
 
+def _coerce_unix_timestamp(value, *, default: int = 0) -> int:
+    try:
+        if value in ("", None):
+            return default
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_event_point(point: dict) -> dict:
+    payload = point.get("payload", {}) if isinstance(point, dict) else {}
+    return {
+        "event_type": payload.get("event_type", ""),
+        "agent": payload.get("agent", ""),
+        "description": payload.get("description", ""),
+        "data": payload.get("data", {}),
+        "timestamp": payload.get("timestamp", ""),
+        "timestamp_unix": _coerce_unix_timestamp(payload.get("timestamp_unix", 0)),
+    }
+
+
+def _build_event_record(
+    *,
+    event_type: str,
+    agent: str,
+    description: str,
+    timestamp_unix: int,
+    data: dict | None = None,
+) -> dict:
+    timestamp_value = datetime.fromtimestamp(max(timestamp_unix, 0), timezone.utc).isoformat()
+    return {
+        "event_type": event_type,
+        "agent": agent,
+        "description": description,
+        "data": data or {},
+        "timestamp": timestamp_value,
+        "timestamp_unix": timestamp_unix,
+    }
+
+
+def _event_matches_filters(event: dict, *, event_type: str, agent: str, since_unix: int) -> bool:
+    if event_type and event.get("event_type") != event_type:
+        return False
+    if agent and event.get("agent") != agent:
+        return False
+    if since_unix > 0 and _coerce_unix_timestamp(event.get("timestamp_unix", 0)) < since_unix:
+        return False
+    return True
+
+
+def _scroll_collection_points(
+    collection: str,
+    *,
+    batch_size: int = 256,
+    max_points: int = 10000,
+) -> list[dict]:
+    points: list[dict] = []
+    next_page_offset = None
+
+    while len(points) < max_points:
+        body: dict = {
+            "limit": min(batch_size, max_points - len(points)),
+            "with_payload": True,
+            "with_vector": False,
+        }
+        if next_page_offset is not None:
+            body["offset"] = next_page_offset
+
+        resp = httpx.post(
+            f"{_QDRANT_URL}/collections/{collection}/points/scroll",
+            json=body,
+            timeout=15,
+        )
+        resp.raise_for_status()
+
+        result = resp.json().get("result", {})
+        page_points = result.get("points", [])
+        if not page_points:
+            break
+
+        points.extend(page_points)
+        next_page_offset = result.get("next_page_offset")
+        if not next_page_offset:
+            break
+
+    return points
+
+
+async def _query_task_store_events(
+    *,
+    event_type: str = "",
+    agent: str = "",
+    limit: int = 50,
+    since_unix: int = 0,
+) -> list[dict]:
+    from .task_store import read_task_records_by_statuses
+    from .workspace import get_redis
+
+    try:
+        redis_client = await get_redis()
+        task_record_limit = min(max(limit * 4, 500), 5000)
+        records = await read_task_records_by_statuses(
+            redis_client,
+            "completed",
+            "failed",
+            "pending_approval",
+            limit=task_record_limit,
+        )
+    except Exception as exc:
+        logger.warning("Task-store event fallback unavailable: %s", exc)
+        return []
+
+    synthetic_events: list[dict] = []
+    seen_keys: set[tuple[str, str, int]] = set()
+
+    for record in records:
+        agent_name = str(record.get("agent") or "")
+        if not agent_name:
+            continue
+
+        metadata = record.get("metadata", {}) if isinstance(record.get("metadata"), dict) else {}
+        source = str(record.get("source") or metadata.get("source") or "")
+        status = str(record.get("status") or "")
+        task_id = str(record.get("id") or "")
+        created_at = _coerce_unix_timestamp(record.get("created_at", 0))
+        completed_at = _coerce_unix_timestamp(
+            record.get("completed_at") or record.get("updated_at") or record.get("created_at") or 0
+        )
+        failure = metadata.get("failure", {}) if isinstance(metadata.get("failure"), dict) else {}
+        failure_message = str(
+            failure.get("message")
+            or record.get("error")
+            or record.get("previous_error")
+            or f"Task {task_id} failed"
+        ).strip()
+        result_summary = str(record.get("result") or f"Task {task_id} completed").strip()
+
+        candidates: list[dict] = []
+        if status == "completed" and completed_at:
+            candidates.append(
+                _build_event_record(
+                    event_type="task_completed",
+                    agent=agent_name,
+                    description=result_summary[:500],
+                    timestamp_unix=completed_at,
+                    data={
+                        "task_id": task_id,
+                        "priority": str(record.get("priority") or ""),
+                        "source": source,
+                        "lane": str(record.get("lane") or ""),
+                        "synthetic": True,
+                    },
+                )
+            )
+        if status == "failed" and completed_at:
+            candidates.append(
+                _build_event_record(
+                    event_type="task_failed",
+                    agent=agent_name,
+                    description=failure_message[:500],
+                    timestamp_unix=completed_at,
+                    data={
+                        "task_id": task_id,
+                        "priority": str(record.get("priority") or ""),
+                        "source": source,
+                        "lane": str(record.get("lane") or ""),
+                        "retry_count": int(record.get("retry_count") or 0),
+                        "synthetic": True,
+                    },
+                )
+            )
+        if source == "scheduler" and created_at:
+            candidates.append(
+                _build_event_record(
+                    event_type="schedule_run",
+                    agent=agent_name,
+                    description=f"Scheduled task {task_id or agent_name} entered {status}",
+                    timestamp_unix=created_at,
+                    data={
+                        "task_id": task_id,
+                        "outcome": status,
+                        "job_family": str(metadata.get("job_family") or ""),
+                        "control_scope": str(metadata.get("control_scope") or ""),
+                        "synthetic": True,
+                    },
+                )
+            )
+        if (status == "pending_approval" or bool(metadata.get("requires_approval"))) and created_at:
+            candidates.append(
+                _build_event_record(
+                    event_type="escalation_triggered",
+                    agent=agent_name,
+                    description=f"Task {task_id or agent_name} is awaiting approval",
+                    timestamp_unix=created_at,
+                    data={
+                        "task_id": task_id,
+                        "tier": "ASK",
+                        "source": source,
+                        "synthetic": True,
+                    },
+                )
+            )
+
+        for event in candidates:
+            if not _event_matches_filters(
+                event,
+                event_type=event_type,
+                agent=agent,
+                since_unix=since_unix,
+            ):
+                continue
+            dedupe_key = (
+                str(event.get("event_type") or ""),
+                str(event.get("data", {}).get("task_id") or event.get("description") or ""),
+                _coerce_unix_timestamp(event.get("timestamp_unix", 0)),
+            )
+            if dedupe_key in seen_keys:
+                continue
+            seen_keys.add(dedupe_key)
+            synthetic_events.append(event)
+
+    synthetic_events.sort(key=lambda item: _coerce_unix_timestamp(item.get("timestamp_unix", 0)), reverse=True)
+    return synthetic_events[:limit]
+
+
 def ensure_collections():
     """Create activity and preferences collections if they don't exist."""
     for name, config in COLLECTIONS.items():
@@ -472,23 +697,57 @@ async def query_events(
         )
         resp.raise_for_status()
         points = resp.json().get("result", {}).get("points", [])
-
-        results = [
-            {
-                "event_type": p["payload"].get("event_type", ""),
-                "agent": p["payload"].get("agent", ""),
-                "description": p["payload"].get("description", ""),
-                "data": p["payload"].get("data", {}),
-                "timestamp": p["payload"].get("timestamp", ""),
-                "timestamp_unix": p["payload"].get("timestamp_unix", 0),
-            }
-            for p in points
-        ]
-        results.sort(key=lambda x: x["timestamp_unix"], reverse=True)
-        return results[:limit]
     except Exception as e:
-        logger.warning("Failed to query events: %s", e)
-        return []
+        logger.warning(
+            "Filtered event query failed, falling back to client-side filtering: %s",
+            e,
+        )
+        try:
+            points = _scroll_collection_points("events")
+        except Exception as fallback_error:
+            logger.warning("Failed to query events: %s", fallback_error)
+            fallback_events = await _query_task_store_events(
+                event_type=event_type,
+                agent=agent,
+                since_unix=since_unix,
+                limit=limit,
+            )
+            if fallback_events:
+                logger.warning(
+                    "Using synthetic task-store events for pattern detection: %d event(s)",
+                    len(fallback_events),
+                )
+            return fallback_events
+
+    results = [
+        _normalize_event_point(point)
+        for point in points
+    ]
+    results = [
+        event
+        for event in results
+        if _event_matches_filters(
+            event,
+            event_type=event_type,
+            agent=agent,
+            since_unix=since_unix,
+        )
+    ]
+    results.sort(key=lambda x: _coerce_unix_timestamp(x["timestamp_unix"]), reverse=True)
+    if not results:
+        fallback_events = await _query_task_store_events(
+            event_type=event_type,
+            agent=agent,
+            since_unix=since_unix,
+            limit=limit,
+        )
+        if fallback_events:
+            logger.warning(
+                "Using synthetic task-store events for empty Qdrant query: %d event(s)",
+                len(fallback_events),
+            )
+        return fallback_events
+    return results[:limit]
 
 
 async def query_conversations(

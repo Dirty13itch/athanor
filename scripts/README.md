@@ -7,6 +7,7 @@
 | `drift-check.sh` | Registry-backed runtime drift verification across the active Athanor service map | `bash scripts/drift-check.sh` |
 | `contract-tests.sh` | Quick interface-shape and endpoint-presence contract checks for live runtime surfaces | `bash scripts/contract-tests.sh [--quiet]` |
 | `deploy-agents.sh` | Deploy agent server to FOUNDRY (sync, build, restart) | `./scripts/deploy-agents.sh [--no-build]` |
+| `run_autonomy_loop_pass.py` | Run one governed native loop pass across builtin and agent-schedule jobs, then write `reports/autonomy-loop/latest.json` | `python scripts/run_autonomy_loop_pass.py [--force-deferred] [--skip-agent-schedules]` |
 | `model-inventory.sh` | Scan NFS models and report available vs loaded | `bash scripts/model-inventory.sh` |
 | `run_service_contract_tests.py` | Create or reuse the disposable service-contract venv and run the service and script health-contract suites | `python scripts/run_service_contract_tests.py [--reinstall]` |
 | `requirements-test.txt` | Dependency bundle for script-service contract tests in the disposable service-contract venv | Consumed by `python scripts/run_service_contract_tests.py` |

@@ -29,7 +29,7 @@ def ensure_api_root(base: str) -> str:
 
 
 def prometheus_host_regex(*hosts: str) -> str:
-    return "|".join(re.escape(host) for host in hosts if host)
+    return "|".join(re.escape(host).replace(r"\.", "[.]") for host in hosts if host)
 
 
 @dataclass(frozen=True)
@@ -119,6 +119,14 @@ class ServiceRegistry:
     @cached_property
     def radarr_api_url(self) -> str:
         return join_url(self.config.radarr_url, "/api/v3")
+
+    @cached_property
+    def prowlarr_api_url(self) -> str:
+        return join_url(self.config.prowlarr_url, "/api/v1")
+
+    @cached_property
+    def sabnzbd_api_url(self) -> str:
+        return join_url(self.config.sabnzbd_url, "/api")
 
     @cached_property
     def tautulli_api_url(self) -> str:
@@ -295,6 +303,20 @@ class ServiceRegistry:
             node="VAULT",
             base_url=self.config.sabnzbd_url,
             description="Downloader.",
+            health_path="/api?mode=version&output=json",
+        )
+
+    @cached_property
+    def prowlarr(self) -> ServiceEndpoint:
+        headers = {"X-Api-Key": self.config.prowlarr_api_key} if self.config.prowlarr_api_key else {}
+        return ServiceEndpoint(
+            id="prowlarr",
+            name="Prowlarr",
+            node="VAULT",
+            base_url=self.config.prowlarr_url,
+            description="Indexer manager.",
+            health_path="/api/v1/health",
+            headers=headers,
         )
 
     @cached_property
@@ -418,6 +440,7 @@ class ServiceRegistry:
             self.grafana,
             self.sonarr,
             self.radarr,
+            self.prowlarr,
             self.sabnzbd,
             self.tautulli,
             self.stash,

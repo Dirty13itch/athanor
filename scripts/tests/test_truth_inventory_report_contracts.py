@@ -86,6 +86,108 @@ def test_report_check_still_flags_real_content_drift() -> None:
     assert module._report_is_stale("runtime_cutover", existing=existing, rendered=rendered) is True
 
 
+def test_runtime_ownership_report_includes_foundry_agents_lane_evidence() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+
+    registries = {
+        "runtime-ownership-contract.json": {
+            "version": "test",
+            "promotion_gate_id": "runtime_ownership_maturity",
+            "goal": "test goal",
+            "implementation_authority_root_id": "desk-main",
+            "runtime_authority_root_id": "dev-runtime-repo",
+            "runtime_state_root_ids": ["foundry-opt-athanor"],
+            "lanes": [
+                {
+                    "id": "foundry-agents-compose",
+                    "label": "FOUNDRY athanor-agents compose lane",
+                    "host": "foundry",
+                    "status": "active",
+                    "deployment_mode": "opt_compose_service",
+                    "owner_root_ids": ["foundry-opt-athanor"],
+                    "source_root_id": "desk-main",
+                    "runtime_scope": "Active athanor-agents deployment",
+                    "source_paths": ["projects/agents/src/athanor_agents"],
+                    "runtime_paths": ["/opt/athanor/agents/src/athanor_agents"],
+                    "active_surfaces": ["athanor-agents container"],
+                    "execution_packet_id": "foundry-agents-compose-deploy-packet",
+                    "evidence_paths": ["reports/truth-inventory/latest.json"],
+                    "verification_commands": ["ssh foundry \"curl -sS http://localhost:9000/health\""],
+                    "rollback_contract": "backup first",
+                    "approval_boundary": "approval-gated",
+                    "next_action": "Use the packet",
+                }
+            ],
+            "promotion_criteria": [],
+            "known_gaps": [],
+        },
+        "runtime-ownership-packets.json": {
+            "version": "test",
+            "packets": [
+                {
+                    "id": "foundry-agents-compose-deploy-packet",
+                    "status": "ready_for_approval",
+                    "lane_id": "foundry-agents-compose",
+                    "approval_packet_type": "runtime_host_reconfiguration",
+                    "goal": "normalize deploy path",
+                }
+            ],
+        },
+        "repo-roots-registry.json": {
+            "roots": [
+                {"id": "desk-main", "path": "C:/Athanor"},
+                {"id": "dev-runtime-repo", "path": "/home/shaun/repos/athanor"},
+                {"id": "foundry-opt-athanor", "path": "/opt/athanor"},
+            ]
+        },
+    }
+    module.load_registry = lambda name: registries.get(name, {})
+    module._load_latest_truth_snapshot = lambda: {
+        "collected_at": "2026-04-02T18:10:00Z",
+        "foundry_agents_runtime_probe": {
+            "ok": True,
+            "detail": {
+                "deployment_root": {
+                    "expected_exists": True,
+                    "compose_root_matches_expected": True,
+                    "build_root_clean": False,
+                    "nested_source_dir_exists": True,
+                    "bak_codex_files": ["src/athanor_agents/server.py.bak-codex"],
+                },
+                "container": {
+                    "running": True,
+                    "status": "Up 2 minutes",
+                    "compose_working_dir": "/opt/athanor/agents",
+                    "compose_config_files": "/opt/athanor/agents/docker-compose.yml",
+                    "module_file": "/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py",
+                    "site_packages_import": True,
+                },
+                "control_files": [
+                    {
+                        "relative_path": "src/athanor_agents",
+                        "kind": "directory",
+                        "implementation_exists": True,
+                        "runtime_exists": True,
+                        "implementation_matches_runtime": False,
+                    }
+                ],
+                "source_mirrors": [{"path": "/workspace/projects/agents/src/athanor_agents"}],
+            },
+        },
+    }
+    module._local_git_probe = lambda path: {"head": "abc1234", "dirty_count": 0, "status_sample": []}
+
+    rendered = module.render_runtime_ownership_report()
+
+    assert "## foundry-agents-compose" in rendered
+    assert "### Live FOUNDRY agents evidence" in rendered
+    assert "- Build root clean: `False`" in rendered
+    assert "/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py" in rendered
+
+
 def test_autonomy_activation_report_includes_next_phase_boundary() -> None:
     module = _load_module(
         f"truth_inventory_report_contracts_{uuid.uuid4().hex}",

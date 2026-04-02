@@ -2,6 +2,8 @@
 
 import asyncio
 import os
+from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -13,6 +15,7 @@ from ..operator_contract import (
 )
 
 router = APIRouter(prefix="/v1", tags=["planning"])
+OUTPUT_DIR = "/output"
 
 
 async def _load_operator_body(
@@ -152,9 +155,7 @@ async def get_projects():
 @router.get("/projects/stalled")
 async def stalled_projects():
     """List stalled projects."""
-    from ..project_tracker import get_stalled_projects
-
-    stalled = await get_stalled_projects()
+    stalled = await list_stalled_project_records()
     return {"stalled": stalled, "count": len(stalled)}
 
 
@@ -172,30 +173,69 @@ async def get_project_detail(project_id: str):
     return {"project": project}
 
 
-@router.get("/outputs")
-async def list_outputs():
-    """List files produced by agent tasks in the output directory."""
-    output_dir = "/output"
-    files = []
+async def list_stalled_project_records(*, limit: int | None = None, threshold_hours: float = 24) -> list[dict[str, Any]]:
+    """Return stalled projects as operator-facing records."""
+    from ..project_tracker import get_project_state, get_stalled_projects
+    from ..projects import get_project
 
-    for root, dirs, filenames in os.walk(output_dir):
+    stalled_ids = await get_stalled_projects(threshold_hours=threshold_hours)
+    records: list[dict[str, Any]] = []
+    for project_id in stalled_ids:
+        state = await get_project_state(project_id)
+        project = get_project(project_id)
+        stalled_since = float(state.stalled_since or 0.0)
+        records.append(
+            {
+                "id": project_id,
+                "name": str((project or {}).get("name") or (project or {}).get("label") or project_id),
+                "reason": f"No milestone activity for more than {int(threshold_hours)} hours.",
+                "stalled_since": (
+                    datetime.fromtimestamp(stalled_since, tz=timezone.utc).isoformat()
+                    if stalled_since > 0
+                    else ""
+                ),
+                "total_completed": int(state.total_completed or 0),
+                "total_failed": int(state.total_failed or 0),
+                "avg_quality": float(state.avg_quality or 0.0),
+            }
+        )
+    records.sort(key=lambda item: str(item.get("stalled_since") or ""))
+    return records[:limit] if limit is not None else records
+
+
+def _collect_output_artifacts() -> list[dict[str, Any]]:
+    files: list[dict[str, Any]] = []
+    for root, dirs, filenames in os.walk(OUTPUT_DIR):
         dirs[:] = [d for d in dirs if not d.startswith(".")]
         for fname in filenames:
             if fname.startswith("."):
                 continue
             full_path = os.path.join(root, fname)
-            rel_path = os.path.relpath(full_path, output_dir)
+            rel_path = os.path.relpath(full_path, OUTPUT_DIR)
             try:
                 stat = os.stat(full_path)
-                files.append({
+            except OSError:
+                continue
+            files.append(
+                {
                     "path": rel_path,
                     "size_bytes": stat.st_size,
                     "modified": stat.st_mtime,
-                })
-            except OSError:
-                continue
+                }
+            )
+    files.sort(key=lambda item: float(item.get("modified") or 0.0), reverse=True)
+    return files
 
-    files.sort(key=lambda f: f["modified"], reverse=True)
+
+async def list_output_artifacts(*, limit: int | None = None) -> list[dict[str, Any]]:
+    files = _collect_output_artifacts()
+    return files[:limit] if limit is not None else files
+
+
+@router.get("/outputs")
+async def list_outputs():
+    """List files produced by agent tasks in the output directory."""
+    files = await list_output_artifacts()
     return {"outputs": files, "count": len(files)}
 
 

@@ -1,0 +1,61 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T18:00:00Z",
+  "status": "active",
+  "default_failover_strategy": "automatic_relay",
+  "integration_policy": "serial_after_validation",
+  "hosts": [
+    {
+      "id": "codex_external",
+      "label": "Codex",
+      "host_kind": "external_builder",
+      "status": "live",
+      "adapter_entrypoint": "python scripts/bootstrap_host_adapter.py",
+      "adapter_commands": {
+        "status": "python scripts/bootstrap_host_adapter.py status --host-id codex_external --json",
+        "claim_next": "python scripts/bootstrap_host_adapter.py claim-next --host-id codex_external --execute --json",
+        "relay": "python scripts/bootstrap_host_adapter.py relay --host-id codex_external --execute --json",
+        "complete": "python scripts/bootstrap_host_adapter.py complete --host-id codex_external --slice-id <slice_id> --json"
+      },
+      "relay_priority": 1,
+      "cooldown_minutes": 30,
+      "continuation_modes": [
+        "primary",
+        "overflow",
+        "repair",
+        "emergency"
+      ],
+      "handoff_reasons": [
+        "quota_exhausted",
+        "context_exhausted",
+        "session_exhausted"
+      ]
+    },
+    {
+      "id": "claude_external",
+      "label": "Claude Code",
+      "host_kind": "external_builder",
+      "status": "live",
+      "adapter_entrypoint": "python scripts/bootstrap_host_adapter.py",
+      "adapter_commands": {
+        "status": "python scripts/bootstrap_host_adapter.py status --host-id claude_external --json",
+        "claim_next": "python scripts/bootstrap_host_adapter.py claim-next --host-id claude_external --execute --json",
+        "relay": "python scripts/bootstrap_host_adapter.py relay --host-id claude_external --execute --json",
+        "complete": "python scripts/bootstrap_host_adapter.py complete --host-id claude_external --slice-id <slice_id> --json"
+      },
+      "relay_priority": 2,
+      "cooldown_minutes": 30,
+      "continuation_modes": [
+        "primary",
+        "overflow",
+        "repair",
+        "emergency"
+      ],
+      "handoff_reasons": [
+        "quota_exhausted",
+        "context_exhausted",
+        "session_exhausted"
+      ]
+    }
+  ]
+}

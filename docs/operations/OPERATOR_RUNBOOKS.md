@@ -68,14 +68,62 @@ These are the plain-language operating runbooks for the Athanor backbone.
 5. Treat any future systemd reactivation or `:8760` listener return as an explicit rollback or drift investigation, not as part of the normal operator path.
 6. After any rollback or audit pass, rerun the truth collector and confirm the runtime checks stay green with no new `/queue` or `/health` traffic.
 
-## Software-core autonomy operations
+## Autonomy operations
 
 1. Start from [AUTONOMY-ACTIVATION-REPORT.md](/C:/Athanor/docs/operations/AUTONOMY-ACTIVATION-REPORT.md), not `STATUS.md` prose alone.
-2. Keep the current post-cutover scope at software-core only: coding, research, knowledge, general-assistant, and governed backlog or self-maintenance loops.
-3. Treat `expanded_core_phase_2` as the next promotion boundary and keep it blocked until `vault_provider_auth_repair` is cleared in the registry-backed report layer.
-4. Keep runtime mutations approval-gated even while software-core autonomy is active.
-5. Confirm provider posture still excludes auth-failed, configured-unused, or governed-handoff-only lanes from ordinary auto-routing.
-6. If you need to widen scope, update the autonomy-activation registry first, then regenerate reports and rerun validators before treating the change as real.
+2. Treat `full_system_phase_3` as the live autonomy scope and keep the full roster inside the registry-backed provider, sovereignty, and approval boundaries.
+3. Keep runtime mutations approval-gated even while full-system autonomy is active.
+4. Confirm provider posture still excludes auth-failed, configured-unused, or governed-handoff-only lanes from ordinary auto-routing.
+5. Keep refusal-sensitive and private creative work on sovereign-only lanes even though those workload classes are now active.
+6. If you need to change scope or exceptions, update the autonomy-activation registry first, then regenerate reports and rerun validators before treating the change as real.
+
+## Constrained mode
+
+1. Use constrained mode when inbox, approval, blocked-run, or compute pressure exceeds the bounded operating budget.
+2. Pause experiments, optional maintenance, and proactive loops first.
+3. Keep approvals, active run completion, and operator work flowing.
+4. Do not widen scope while the system is constrained.
+
+## Degraded mode
+
+1. Use degraded mode for core dependency outages or blocker debt large enough to make normal dispatch unsafe.
+2. Freeze promotions, launches, and nonessential dispatch.
+3. Keep operator ingress, approvals, active run completion, and repair work alive.
+4. Exit only after the degraded dependency or blocker queue is actually cleared.
+
+## Recovery-only
+
+1. Enter recovery-only when operator ingress, Postgres durable truth, or Redis reconciliation is suspect.
+2. Stop all non-recovery dispatch.
+3. Restore auth, durable storage, and reconciliation before reopening queues.
+4. Exit only by explicit operator decision after verification passes.
+
+## Blocked approval
+
+1. Treat approval-gated runtime mutation as blocked work, not as permission to improvise.
+2. Record the blocker, the required approval class, and the blocked slice or action in the operator inbox.
+3. Keep unrelated ready slices moving; do not halt the whole program because one approval is pending.
+4. Resume only after the approval packet is explicitly cleared and the blocker evidence is updated.
+
+## Postgres restore
+
+1. Snapshot the broken state before overwrite.
+2. Restore into a staged target first.
+3. Verify operator work, runs, approvals, and foundry records before repointing runtime.
+4. Reopen the system only after `/health` clears the durable-state blocker.
+
+## Redis reconciliation
+
+1. Treat Redis as hot state only.
+2. Rebuild or clear stale leases and queue state from durable Postgres truth.
+3. Resume queue activity only after the hot state matches durable records again.
+
+## Failed promotion
+
+1. Freeze the affected channel immediately.
+2. Use the recorded rollback target instead of improvising rollback.
+3. Re-run smoke evidence after rollback.
+4. Do not repromote until the defect is understood.
 
 ## Stuck task-engine recovery
 
@@ -83,6 +131,34 @@ These are the plain-language operating runbooks for the Athanor backbone.
 2. Check whether the issue is routing posture, pending-task backlog, worker failure, or an upstream dependency.
 3. Retry bounded failed tasks before re-enabling whole lanes.
 4. If the same task storms repeatedly, pause the affected lane and inspect the retry policy.
+
+## Stuck media pipeline
+
+1. Check Prowlarr, Sonarr or Radarr, SABnzbd, Plex, and Tautulli in order.
+2. Prefer targeted retry, pause, resume, or refresh before any config mutation.
+3. Keep destructive media config changes behind explicit approval.
+4. Close the incident only after downstream library visibility is restored.
+
+## Source auth expiry
+
+1. Pause the affected source immediately.
+2. Capture the auth surface and last-success evidence.
+3. Refresh auth through the approved surface only.
+4. Resume only after a fresh validation call succeeds.
+
+## Model lane outage
+
+1. Confirm whether the outage is local, frontier-cloud, or handoff-only.
+2. Keep sovereign-only work on sovereign lanes even if throughput drops.
+3. Reroute only to allowed fallback lanes.
+4. Capture provider evidence before closing the incident.
+
+## Operator auth failure
+
+1. Confirm the issue is auth and not a broader ingress outage.
+2. Use the approved break-glass path only when normal passkey flow is unavailable.
+3. Restore the normal auth path before resuming privileged mutations.
+4. Record break-glass use and rotate session material if required.
 
 ## Sovereign routing verification
 

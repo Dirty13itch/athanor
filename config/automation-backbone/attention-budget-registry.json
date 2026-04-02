@@ -1,0 +1,85 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T16:45:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/attention-budget-registry.json",
+  "budgets": [
+    {
+      "id": "general-assistant",
+      "scope_type": "agent",
+      "scope_id": "general-assistant",
+      "daily_limit": 12,
+      "urgent_bypass": []
+    },
+    {
+      "id": "home-agent",
+      "scope_type": "agent",
+      "scope_id": "home-agent",
+      "daily_limit": 12,
+      "urgent_bypass": ["security_alert", "security_action_requested"]
+    },
+    {
+      "id": "media-agent",
+      "scope_type": "agent",
+      "scope_id": "media-agent",
+      "daily_limit": 6,
+      "urgent_bypass": ["download_stalled", "stack_flow_broken"]
+    },
+    {
+      "id": "coding-agent",
+      "scope_type": "agent",
+      "scope_id": "coding-agent",
+      "daily_limit": 6,
+      "urgent_bypass": ["blocked_run", "failed_promotion"]
+    },
+    {
+      "id": "creative-agent",
+      "scope_type": "agent",
+      "scope_id": "creative-agent",
+      "daily_limit": 4,
+      "urgent_bypass": []
+    },
+    {
+      "id": "research-agent",
+      "scope_type": "agent",
+      "scope_id": "research-agent",
+      "daily_limit": 4,
+      "urgent_bypass": []
+    },
+    {
+      "id": "knowledge-agent",
+      "scope_type": "agent",
+      "scope_id": "knowledge-agent",
+      "daily_limit": 4,
+      "urgent_bypass": []
+    },
+    {
+      "id": "stash-agent",
+      "scope_type": "agent",
+      "scope_id": "stash-agent",
+      "daily_limit": 4,
+      "urgent_bypass": ["catalog_change_requested"]
+    },
+    {
+      "id": "data-curator",
+      "scope_type": "agent",
+      "scope_id": "data-curator",
+      "daily_limit": 3,
+      "urgent_bypass": []
+    },
+    {
+      "id": "crawl-agent",
+      "scope_type": "agent",
+      "scope_id": "crawl-agent",
+      "daily_limit": 3,
+      "urgent_bypass": ["source_auth_expired", "policy_violation_detected"]
+    },
+    {
+      "id": "adult-finder-agent",
+      "scope_type": "agent",
+      "scope_id": "adult-finder-agent",
+      "daily_limit": 3,
+      "urgent_bypass": ["source_auth_needed"]
+    }
+  ]
+}

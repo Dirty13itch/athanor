@@ -28,16 +28,16 @@ export function DailyDigest() {
       };
 
       try {
-        const workforceRes = await fetch("/api/workforce", {
+        const operatorRes = await fetch("/api/operator/summary", {
           signal: AbortSignal.timeout(5000),
         }).catch(() => null);
 
-        if (workforceRes?.ok) {
-          const workforce = await workforceRes.json();
-          digest.tasksCompleted = workforce?.summary?.completedTasks ?? 0;
-          digest.tasksFailed = workforce?.summary?.failedTasks ?? 0;
-          digest.tasksRunning = workforce?.summary?.runningTasks ?? 0;
-          digest.pendingApprovals = workforce?.summary?.pendingApprovals ?? 0;
+        if (operatorRes?.ok) {
+          const operator = await operatorRes.json();
+          digest.tasksCompleted = operator?.runs?.by_status?.completed ?? 0;
+          digest.tasksFailed = operator?.runs?.by_status?.failed ?? 0;
+          digest.tasksRunning = operator?.runs?.by_status?.running ?? 0;
+          digest.pendingApprovals = operator?.approvals?.by_status?.pending ?? 0;
         }
       } catch {
         // Best effort

@@ -38,6 +38,8 @@ export type RouteIconKey =
   | "models"
   | "offline";
 
+export type RouteClass = "canonical" | "compatibility_redirect" | "compatibility_shell";
+
 export interface RouteDefinition {
   href: string;
   label: string;
@@ -47,12 +49,17 @@ export interface RouteDefinition {
   icon: RouteIconKey;
   primary: boolean;
   mobile: boolean;
+  routeClass?: RouteClass;
 }
 
 export interface RouteFamilyDefinition {
   id: RouteFamilyId;
   label: string;
   description: string;
+}
+
+export interface RouteSelectionOptions {
+  includeCompatibility?: boolean;
 }
 
 export const ROUTE_FAMILIES: RouteFamilyDefinition[] = [
@@ -115,20 +122,67 @@ export const ROUTES: RouteDefinition[] = [
   {
     href: "/workplanner",
     label: "Work Planner",
-    description: "Project-first planning and current workplan posture.",
+    description: "Compatibility redirect to the canonical backlog surface.",
     family: "operate",
     icon: "workplanner",
-    primary: true,
+    primary: false,
+    mobile: false,
+    routeClass: "compatibility_redirect",
+  },
+  {
+    href: "/ideas",
+    label: "Ideas",
+    description: "Low-commitment idea intake and promotion before work becomes a todo, backlog item, or project.",
+    family: "operate",
+    icon: "goals",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/inbox",
+    label: "Inbox",
+    description: "Operator alerts, decisions, and conversion candidates distinct from the old notification lane.",
+    family: "operate",
+    icon: "notifications",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/todos",
+    label: "Todos",
+    description: "Finite operator work distinct from the agent task queue.",
+    family: "operate",
+    icon: "tasks",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/backlog",
+    label: "Backlog",
+    description: "Agent-eligible work capture, dispatch, and blocking state separate from the execution queue.",
+    family: "operate",
+    icon: "workplanner",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/runs",
+    label: "Runs",
+    description: "Execution lineage, attempts, steps, and approval holds projected from canonical run truth.",
+    family: "operate",
+    icon: "pipeline",
+    primary: false,
     mobile: true,
   },
   {
     href: "/tasks",
     label: "Tasks",
-    description: "Queued, running, failed, and approval-bound workforce tasks.",
+    description: "Compatibility redirect to the canonical runs surface.",
     family: "operate",
     icon: "tasks",
-    primary: true,
-    mobile: true,
+    primary: false,
+    mobile: false,
+    routeClass: "compatibility_redirect",
   },
   {
     href: "/governor",
@@ -147,25 +201,28 @@ export const ROUTES: RouteDefinition[] = [
     family: "operate",
     icon: "dashboard",
     primary: false,
-    mobile: true,
+    mobile: false,
+    routeClass: "compatibility_shell",
   },
   {
     href: "/goals",
     label: "Goals",
-    description: "Agent goals, focus lanes, and project-aligned intent.",
+    description: "Compatibility redirect to the canonical todos surface.",
     family: "operate",
     icon: "goals",
     primary: false,
-    mobile: true,
+    mobile: false,
+    routeClass: "compatibility_redirect",
   },
   {
     href: "/notifications",
     label: "Notifications",
-    description: "Escalations, approvals, and action-worthy operator notices.",
+    description: "Compatibility redirect to the canonical inbox surface.",
     family: "operate",
     icon: "notifications",
     primary: false,
-    mobile: true,
+    mobile: false,
+    routeClass: "compatibility_redirect",
   },
   {
     href: "/operator",
@@ -275,6 +332,15 @@ export const ROUTES: RouteDefinition[] = [
     label: "Projects",
     shortLabel: "Projects",
     description: "Milestone tracking, autonomous continuation, and stall detection.",
+    family: "build",
+    icon: "projects",
+    primary: false,
+    mobile: true,
+  },
+  {
+    href: "/bootstrap",
+    label: "Bootstrap",
+    description: "Recursive builder programs, relay posture, integration queue state, and takeover readiness.",
     family: "build",
     icon: "projects",
     primary: false,
@@ -448,21 +514,34 @@ export function getRouteLabel(pathname: string): string {
   return getRouteByHref(pathname)?.label ?? "Command Center";
 }
 
+function isCompatibilityRoute(route: RouteDefinition): boolean {
+  return route.routeClass === "compatibility_redirect" || route.routeClass === "compatibility_shell";
+}
+
 export function getPrimaryRoutes() {
-  return ROUTES.filter((route) => route.primary);
+  return ROUTES.filter((route) => route.primary && !isCompatibilityRoute(route));
 }
 
 export function getMobileRoutes() {
-  return ROUTES.filter((route) => route.mobile);
+  return ROUTES.filter((route) => route.mobile && !isCompatibilityRoute(route));
 }
 
-export function getRoutesForFamily(family: RouteFamilyId) {
-  return ROUTES.filter((route) => route.family === family);
+export function getRoutesForFamily(family: RouteFamilyId, options: RouteSelectionOptions = {}) {
+  return ROUTES.filter((route) => {
+    if (route.family !== family) {
+      return false;
+    }
+    return options.includeCompatibility ? true : !isCompatibilityRoute(route);
+  });
 }
 
-export function getRouteFamiliesWithRoutes() {
+export function getRouteFamiliesWithRoutes(options: RouteSelectionOptions = {}) {
   return ROUTE_FAMILIES.map((family) => ({
     ...family,
-    routes: getRoutesForFamily(family.id),
+    routes: getRoutesForFamily(family.id, options),
   })).filter((family) => family.routes.length > 0);
+}
+
+export function getCompatibilityRoutes() {
+  return ROUTES.filter((route) => isCompatibilityRoute(route));
 }

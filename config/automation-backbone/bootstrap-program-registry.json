@@ -1,0 +1,202 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T18:00:00Z",
+  "status": "active",
+  "default_program_id": "launch-readiness-bootstrap",
+  "families": [
+    {
+      "id": "compatibility_retirement",
+      "label": "Compatibility retirement",
+      "order": 1,
+      "phase_scope": "software_core_phase_1",
+      "objective": "Retire workforce-era compatibility dependencies from live first-class UI and API surfaces.",
+      "max_parallel_slices": 2,
+      "validator_bundle": [
+        "dashboard targeted routes",
+        "dashboard typecheck"
+      ],
+      "exit_criteria": [
+        "Active first-class UI no longer depends on workforce-era compatibility APIs except explicit legacy shells."
+      ]
+    },
+    {
+      "id": "durable_persistence_activation",
+      "label": "Durable persistence activation",
+      "order": 2,
+      "phase_scope": "software_core_phase_1",
+      "objective": "Activate real Postgres-backed LangGraph persistence and retire fallback-memory posture where Postgres is configured.",
+      "max_parallel_slices": 1,
+      "validator_bundle": [
+        "agent persistence tests",
+        "health posture contract"
+      ],
+      "exit_criteria": [
+        "Runtime health no longer reports fallback persistence when Postgres is configured."
+      ]
+    },
+    {
+      "id": "operator_surface_canonicalization",
+      "label": "Operator surface canonicalization",
+      "order": 3,
+      "phase_scope": "software_core_phase_1",
+      "objective": "Keep shell, nav, and first-class pages aligned on canonical operator surfaces.",
+      "max_parallel_slices": 2,
+      "validator_bundle": [
+        "dashboard navigation tests",
+        "support surface tests"
+      ],
+      "exit_criteria": [
+        "Live shell, nav, and first-class pages point to canonical operator surfaces only."
+      ]
+    },
+    {
+      "id": "foundry_completion",
+      "label": "Foundry completion",
+      "order": 4,
+      "phase_scope": "software_core_phase_1",
+      "objective": "Make packet-backed foundry execution the primary build path for at least one real project.",
+      "max_parallel_slices": 2,
+      "validator_bundle": [
+        "foundry route contract",
+        "project console typecheck"
+      ],
+      "exit_criteria": [
+        "At least one real project completes packet -> slice -> run -> candidate -> promote or rollback."
+      ]
+    },
+    {
+      "id": "governance_rehearsal",
+      "label": "Governance rehearsal",
+      "order": 5,
+      "phase_scope": "software_core_phase_1",
+      "objective": "Record live evidence for constrained, degraded, recovery, restore, rollback, and blocked-approval drills.",
+      "max_parallel_slices": 1,
+      "validator_bundle": [
+        "governance route contract",
+        "runbook registry truth"
+      ],
+      "exit_criteria": [
+        "Governance drills all have live evidence instead of prose-only claims."
+      ]
+    },
+    {
+      "id": "provider_repair_preflight",
+      "label": "Provider repair preflight",
+      "order": 6,
+      "phase_scope": "software_core_phase_1",
+      "objective": "Keep remaining provider/auth gaps explicit as blockers and repair packets rather than vague follow-up prose.",
+      "max_parallel_slices": 1,
+      "validator_bundle": [
+        "provider report",
+        "secret-surface report"
+      ],
+      "exit_criteria": [
+        "Remaining provider issues are explicit blockers or repair packets."
+      ]
+    },
+    {
+      "id": "takeover_promotion_check",
+      "label": "Takeover promotion check",
+      "order": 7,
+      "phase_scope": "software_core_phase_1",
+      "objective": "Evaluate readiness for explicit promotion of the internal Athanor builder stack.",
+      "max_parallel_slices": 1,
+      "validator_bundle": [
+        "bootstrap takeover criteria",
+        "launch governance posture"
+      ],
+      "exit_criteria": [
+        "All takeover criteria are green and evidence-backed, but promotion remains explicit."
+      ]
+    }
+  ],
+  "programs": [
+    {
+      "id": "launch-readiness-bootstrap",
+      "label": "Launch readiness bootstrap",
+      "status": "active",
+      "phase_scope": "software_core_phase_1",
+      "objective": "Use the external recursive builder stack to finish the Athanor builder stack until explicit takeover is justified.",
+      "family_order": [
+        "compatibility_retirement",
+        "durable_persistence_activation",
+        "operator_surface_canonicalization",
+        "foundry_completion",
+        "governance_rehearsal",
+        "provider_repair_preflight",
+        "takeover_promotion_check"
+      ],
+      "validator_bundle": [
+        "agent targeted tests",
+        "dashboard targeted tests",
+        "platform validator"
+      ],
+      "max_parallel_slices": 2,
+      "seed_slices": [
+        {
+          "id": "slice-compatibility-retirement",
+          "family": "compatibility_retirement",
+          "objective": "Finish retiring workforce-era compatibility readers from live first-class UI and API surfaces.",
+          "priority": 1,
+          "phase_scope": "software_core_phase_1",
+          "continuation_mode": "external_bootstrap",
+          "status": "ready"
+        },
+        {
+          "id": "slice-durable-persistence-activation",
+          "family": "durable_persistence_activation",
+          "objective": "Activate real Postgres-backed persistence and remove fallback posture where Postgres is configured.",
+          "priority": 2,
+          "phase_scope": "software_core_phase_1",
+          "continuation_mode": "external_bootstrap",
+          "status": "queued"
+        },
+        {
+          "id": "slice-operator-surface-canonicalization",
+          "family": "operator_surface_canonicalization",
+          "objective": "Keep the live shell, route family, and command-center pages aligned on canonical operator surfaces.",
+          "priority": 3,
+          "phase_scope": "software_core_phase_1",
+          "continuation_mode": "external_bootstrap",
+          "status": "queued"
+        },
+        {
+          "id": "slice-foundry-completion",
+          "family": "foundry_completion",
+          "objective": "Drive at least one real project through the foundry packet path end to end.",
+          "priority": 4,
+          "phase_scope": "software_core_phase_1",
+          "continuation_mode": "external_bootstrap",
+          "status": "queued"
+        },
+        {
+          "id": "slice-governance-rehearsal",
+          "family": "governance_rehearsal",
+          "objective": "Capture live evidence for constrained, degraded, recovery, restore, rollback, and blocked-approval drills.",
+          "priority": 5,
+          "phase_scope": "software_core_phase_1",
+          "continuation_mode": "external_bootstrap",
+          "status": "queued"
+        },
+        {
+          "id": "slice-provider-repair-preflight",
+          "family": "provider_repair_preflight",
+          "objective": "Keep provider auth blockers and repair packets explicit and evidence-backed.",
+          "priority": 6,
+          "phase_scope": "software_core_phase_1",
+          "continuation_mode": "external_bootstrap",
+          "status": "queued"
+        },
+        {
+          "id": "slice-takeover-promotion-check",
+          "family": "takeover_promotion_check",
+          "objective": "Evaluate when the internal Athanor builder stack is ready for explicit takeover promotion.",
+          "priority": 7,
+          "phase_scope": "software_core_phase_1",
+          "continuation_mode": "external_bootstrap",
+          "status": "queued"
+        }
+      ]
+    }
+  ]
+}

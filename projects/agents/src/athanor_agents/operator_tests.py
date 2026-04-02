@@ -141,6 +141,33 @@ def _sanitize_artifact_references(values: list[Any]) -> list[Any]:
     return [_sanitize_artifact_reference(value) for value in values]
 
 
+def _service_health_probe_url(service_id: str, base_url: str, default_path: str) -> str:
+    normalized_base = base_url.rstrip("/")
+    normalized_default = default_path if default_path.startswith("/") else f"/{default_path}"
+    try:
+        from .model_governance import get_platform_topology
+
+        services = list(get_platform_topology().get("services", []))
+        service = next(
+            (
+                entry
+                for entry in services
+                if isinstance(entry, dict) and str(entry.get("id") or "").strip() == service_id
+            ),
+            None,
+        )
+        if service:
+            health_path = str(service.get("health_path") or "").strip()
+            if health_path:
+                normalized_path = (
+                    health_path if health_path.startswith("/") else f"/{health_path}"
+                )
+                return f"{normalized_base}{normalized_path}"
+    except Exception:
+        pass
+    return f"{normalized_base}{normalized_default}"
+
+
 async def _collect_restore_store_results(
     probes: list[Callable[[], Awaitable[dict[str, Any]]]],
 ) -> list[dict[str, Any]]:
@@ -1286,10 +1313,18 @@ async def _run_restore_drill_flow() -> OperatorTestFlowRecord:
         }
 
     async def probe_deploy_state_store() -> dict[str, Any]:
-        agent_url = f"{settings.agent_server_url.rstrip('/')}/v1/governor"
-        dashboard_url = f"{settings.dashboard_url.rstrip('/')}/api/system-map"
+        agent_url = _service_health_probe_url(
+            "agent_server",
+            settings.agent_server_url,
+            "/health",
+        )
+        dashboard_url = _service_health_probe_url(
+            "dashboard",
+            settings.dashboard_url,
+            "/api/operator/session",
+        )
         artifacts = _sanitize_artifact_references([agent_url, dashboard_url])
-        summary = "Deployment-state restore rehearsal did not complete."
+        summary = "Deployment recovery-surface rehearsal did not complete."
         verified = False
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -1305,19 +1340,19 @@ async def _run_restore_drill_flow() -> OperatorTestFlowRecord:
                 ) and _is_auth_protected_reachable(dashboard_response.status_code)
                 if verified:
                     if agent_response.status_code == 200 and dashboard_response.status_code == 200:
-                        summary = "Agent and dashboard deployment surfaces are reachable for ordered recovery."
+                        summary = "Agent and dashboard recovery surfaces are reachable for ordered recovery."
                     else:
                         summary = (
-                            "Agent and dashboard deployment surfaces are reachable and "
+                            "Agent and dashboard recovery surfaces are reachable and "
                             "auth-protected for ordered recovery."
                         )
                 else:
                     summary = (
-                        f"Agent/dashboard deploy probes returned "
+                        f"Agent/dashboard recovery probes returned "
                         f"{agent_response.status_code}/{dashboard_response.status_code}."
                     )
         except Exception as exc:  # pragma: no cover - exercised in live runtime
-            summary = f"Deployment-state rehearsal failed: {exc}"
+            summary = f"Deployment recovery-surface rehearsal failed: {exc}"
         return {
             "id": "dashboard_agent_deploy_state",
             "label": "Dashboard and agent deployment state",

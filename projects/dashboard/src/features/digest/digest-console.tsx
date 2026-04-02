@@ -36,11 +36,45 @@ interface DigestTask {
   quality_score?: number;
 }
 
+interface OperatorRunRecord {
+  id: string;
+  summary?: string;
+  agent_id?: string;
+  agent?: string;
+  status?: string;
+  created_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface PendingApproval {
+  id: string;
+  related_task_id?: string;
+  requested_action: string;
+  privilege_class: string;
+  reason: string;
+  status: string;
+  requested_at?: number;
+  task_prompt?: string;
+  task_agent_id?: string;
+  task_priority?: string;
+}
+
 interface StalledProject {
   id: string;
   name?: string;
   reason?: string;
   stalled_since?: string;
+}
+
+interface OperatorProjectSummary {
+  stalled_total?: number;
+  stalled_preview?: StalledProject[];
+}
+
+interface OperatorSummaryPayload {
+  projects?: OperatorProjectSummary;
 }
 
 function priorityVariant(priority: string | undefined) {
@@ -51,22 +85,19 @@ function priorityVariant(priority: string | undefined) {
 
 const PENDING_QUERY_KEY = ["digest-pending-approvals"] as const;
 const COMPLETED_QUERY_KEY = ["digest-overnight-results"] as const;
-const STALLED_QUERY_KEY = ["digest-stalled-projects"] as const;
+const SUMMARY_QUERY_KEY = ["digest-operator-summary"] as const;
 
 export function DigestConsole() {
   const queryClient = useQueryClient();
   const operatorSession = useOperatorSessionStatus();
-  const privilegedReadEnabled = !operatorSession.isPending && !isOperatorSessionLocked(operatorSession);
   const approvalTimestamps = useRef<number[]>([]);
   const [rubberStampWarning, setRubberStampWarning] = useState(false);
 
   const pendingQuery = useQuery({
     queryKey: PENDING_QUERY_KEY,
-    queryFn: async (): Promise<DigestTask[]> => {
-      const data = await requestJson(
-        "/api/workforce/tasks?status=pending_approval"
-      );
-      return (data?.tasks ?? data ?? []) as DigestTask[];
+    queryFn: async (): Promise<PendingApproval[]> => {
+      const data = await requestJson("/api/operator/approvals?status=pending");
+      return (data?.approvals ?? data ?? []) as PendingApproval[];
     },
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
@@ -75,10 +106,30 @@ export function DigestConsole() {
   const completedQuery = useQuery({
     queryKey: COMPLETED_QUERY_KEY,
     queryFn: async (): Promise<DigestTask[]> => {
-      const data = await requestJson(
-        "/api/workforce/tasks?status=completed&limit=20"
-      );
-      const tasks = (data?.tasks ?? data ?? []) as DigestTask[];
+      const data = await requestJson("/api/operator/runs?status=completed&limit=20");
+      const tasks = ((data?.runs ?? data ?? []) as OperatorRunRecord[]).map((run) => ({
+        id: run.id,
+        prompt: run.summary ?? String(run.metadata?.prompt ?? "(no summary)"),
+        agent_id: run.agent_id ?? run.agent,
+        agent_name: run.agent_id ?? run.agent,
+        priority:
+          typeof run.metadata?.priority === "string"
+            ? run.metadata.priority
+            : typeof run.metadata?.priority_band === "string"
+              ? run.metadata.priority_band
+              : undefined,
+        status: run.status ?? "completed",
+        created_at: run.created_at,
+        completed_at: run.completed_at,
+        duration_ms:
+          typeof run.metadata?.duration_ms === "number"
+            ? run.metadata.duration_ms
+            : undefined,
+        quality_score:
+          typeof run.metadata?.quality_score === "number"
+            ? run.metadata.quality_score
+            : undefined,
+      }));
       const cutoff = Date.now() - 12 * 60 * 60 * 1000;
       return tasks.filter((t) => {
         const ts = t.completed_at ?? t.created_at;
@@ -89,20 +140,21 @@ export function DigestConsole() {
     refetchIntervalInBackground: false,
   });
 
-  const stalledQuery = useQuery({
-    queryKey: STALLED_QUERY_KEY,
-    queryFn: async (): Promise<StalledProject[]> => {
-      const data = await requestJson("/api/projects/stalled");
-      return (data?.stalled ?? data?.projects ?? data ?? []) as StalledProject[];
+  const summaryQuery = useQuery({
+    queryKey: SUMMARY_QUERY_KEY,
+    queryFn: async (): Promise<OperatorSummaryPayload> => {
+      return (await requestJson("/api/operator/summary")) as OperatorSummaryPayload;
     },
-    enabled: privilegedReadEnabled,
+    enabled: !operatorSession.isPending && !isOperatorSessionLocked(operatorSession),
     refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
 
-  const pendingTasks = pendingQuery.data ?? [];
+  const pendingApprovals = pendingQuery.data ?? [];
   const completedTasks = completedQuery.data ?? [];
-  const stalledProjects = stalledQuery.data ?? [];
+  const projectSummary = ((summaryQuery.data as OperatorSummaryPayload | undefined)?.projects ?? {}) as OperatorProjectSummary;
+  const stalledProjects = Array.isArray(projectSummary.stalled_preview) ? projectSummary.stalled_preview : [];
+  const stalledProjectCount = Number(projectSummary.stalled_total ?? stalledProjects.length);
 
   const avgQuality = completedTasks.length > 0
     ? completedTasks.reduce((sum, t) => sum + (t.quality_score ?? 0), 0) / completedTasks.filter((t) => t.quality_score != null).length
@@ -119,8 +171,8 @@ export function DigestConsole() {
   }, []);
 
   const approveMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      await postWithoutBody(`/api/workforce/tasks/${taskId}/approve`);
+    mutationFn: async (approvalId: string) => {
+      await postWithoutBody(`/api/operator/approvals/${encodeURIComponent(approvalId)}/approve`);
     },
     onSuccess: () => {
       checkRubberStamp();
@@ -129,8 +181,8 @@ export function DigestConsole() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: async ({ taskId, reason }: { taskId: string; reason: string }) => {
-      await postJson(`/api/workforce/tasks/${taskId}/reject`, { reason });
+    mutationFn: async ({ approvalId, reason }: { approvalId: string; reason: string }) => {
+      await postJson(`/api/operator/approvals/${encodeURIComponent(approvalId)}/reject`, { reason });
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_QUERY_KEY });
@@ -138,14 +190,14 @@ export function DigestConsole() {
   });
 
   const batchApproveMutation = useMutation({
-    mutationFn: async (taskIds: string[]) => {
-      for (const id of taskIds) {
-        await postWithoutBody(`/api/workforce/tasks/${id}/approve`);
+    mutationFn: async (approvalIds: string[]) => {
+      for (const id of approvalIds) {
+        await postWithoutBody(`/api/operator/approvals/${encodeURIComponent(id)}/approve`);
       }
     },
     onSuccess: () => {
       const now = Date.now();
-      for (const _id of pendingTasks) {
+      for (const _id of pendingApprovals) {
         approvalTimestamps.current.push(now);
       }
       approvalTimestamps.current = approvalTimestamps.current.filter((ts) => now - ts < 30_000);
@@ -170,13 +222,13 @@ export function DigestConsole() {
             onClick={() => {
               void pendingQuery.refetch();
               void completedQuery.refetch();
-              void stalledQuery.refetch();
+              void summaryQuery.refetch();
             }}
-            disabled={pendingQuery.isFetching || completedQuery.isFetching}
+            disabled={pendingQuery.isFetching || completedQuery.isFetching || summaryQuery.isFetching}
           >
             <RefreshCcw
               className={`mr-2 h-4 w-4 ${
-                pendingQuery.isFetching || completedQuery.isFetching ? "animate-spin" : ""
+                pendingQuery.isFetching || completedQuery.isFetching || summaryQuery.isFetching ? "animate-spin" : ""
               }`}
             />
             Refresh
@@ -186,10 +238,10 @@ export function DigestConsole() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
             label="Pending Approvals"
-            value={`${pendingTasks.length}`}
-            detail={pendingTasks.length === 0 ? "All clear" : "Awaiting review"}
+            value={`${pendingApprovals.length}`}
+            detail={pendingApprovals.length === 0 ? "All clear" : "Awaiting review"}
             icon={<Inbox className="h-5 w-5" />}
-            tone={pendingTasks.length > 0 ? "warning" : "success"}
+            tone={pendingApprovals.length > 0 ? "warning" : "success"}
           />
           <StatCard
             label="Overnight Tasks"
@@ -206,10 +258,10 @@ export function DigestConsole() {
           />
           <StatCard
             label="Stalled Projects"
-            value={`${stalledProjects.length}`}
-            detail={stalledProjects.length === 0 ? "None detected" : "Need attention"}
+            value={`${stalledProjectCount}`}
+            detail={stalledProjectCount === 0 ? "None detected" : "Need attention"}
             icon={<FolderX className="h-5 w-5" />}
-            tone={stalledProjects.length > 0 ? "danger" : "success"}
+            tone={stalledProjectCount > 0 ? "danger" : "success"}
           />
         </div>
       </PageHeader>
@@ -229,49 +281,47 @@ export function DigestConsole() {
             <div>
               <CardTitle className="text-lg">Pending Approvals</CardTitle>
               <CardDescription>
-                Tasks awaiting operator review before execution.
+                Canonical approval requests awaiting operator review before execution.
               </CardDescription>
             </div>
-            {pendingTasks.length > 1 ? (
+            {pendingApprovals.length > 1 ? (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() =>
-                  void batchApproveMutation.mutateAsync(pendingTasks.map((t) => t.id))
+                  void batchApproveMutation.mutateAsync(pendingApprovals.map((approval) => approval.id))
                 }
                 disabled={batchApproveMutation.isPending}
               >
                 <Stamp className="mr-2 h-4 w-4" />
-                Approve all ({pendingTasks.length})
+                Approve all ({pendingApprovals.length})
               </Button>
             ) : null}
           </div>
         </CardHeader>
         <CardContent>
-          {pendingTasks.length > 0 ? (
+          {pendingApprovals.length > 0 ? (
             <div className="space-y-3">
-              {pendingTasks.map((task) => (
+              {pendingApprovals.map((approval) => (
                 <div
-                  key={task.id}
+                  key={approval.id}
                   className="surface-instrument rounded-2xl border p-4"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1 space-y-2">
-                      <p className="text-sm font-medium">{task.prompt}</p>
+                      <p className="text-sm font-medium">{approval.task_prompt || approval.reason}</p>
                       <div className="flex flex-wrap items-center gap-2">
-                        {task.agent_name ? (
-                          <Badge variant="outline">{task.agent_name}</Badge>
-                        ) : task.agent_id ? (
-                          <Badge variant="outline">{task.agent_id}</Badge>
+                        {approval.task_agent_id ? (
+                          <Badge variant="outline">{approval.task_agent_id}</Badge>
                         ) : null}
-                        {task.priority ? (
-                          <Badge variant={priorityVariant(task.priority)}>
-                            {task.priority}
+                        {approval.task_priority ? (
+                          <Badge variant={priorityVariant(approval.task_priority)}>
+                            {approval.task_priority}
                           </Badge>
                         ) : null}
-                        {task.created_at ? (
+                        {approval.requested_at ? (
                           <span className="text-xs text-muted-foreground" data-volatile="true">
-                            {formatRelativeTime(task.created_at)}
+                            {formatRelativeTime(new Date(approval.requested_at * 1000).toISOString())}
                           </span>
                         ) : null}
                       </div>
@@ -279,7 +329,7 @@ export function DigestConsole() {
                     <div className="flex shrink-0 items-center gap-2">
                       <Button
                         size="sm"
-                        onClick={() => void approveMutation.mutateAsync(task.id)}
+                        onClick={() => void approveMutation.mutateAsync(approval.id)}
                         disabled={approveMutation.isPending}
                       >
                         <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
@@ -290,7 +340,7 @@ export function DigestConsole() {
                         variant="outline"
                         onClick={() =>
                           void rejectMutation.mutateAsync({
-                            taskId: task.id,
+                            approvalId: approval.id,
                             reason: "Rejected from digest",
                           })
                         }

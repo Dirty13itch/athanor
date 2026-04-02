@@ -55,9 +55,12 @@ class ModelGovernanceTests(unittest.TestCase):
             0,
         )
         autonomy = snapshot["governance_layers"]["autonomy_activation"]
-        self.assertEqual("expanded_core_phase_2", autonomy["next_phase_id"])
-        self.assertEqual(1, autonomy["next_phase_blocker_count"])
-        self.assertIn("vault_provider_auth_repair", autonomy["next_phase_blocker_ids"])
+        self.assertEqual("full_system_phase_3", autonomy["current_phase_id"])
+        self.assertEqual("active", autonomy["current_phase_status"])
+        self.assertIsNone(autonomy["next_phase_id"])
+        self.assertEqual(0, autonomy["next_phase_blocker_count"])
+        self.assertEqual([], autonomy["next_phase_blocker_ids"])
+        self.assertTrue(autonomy["broad_autonomy_enabled"])
 
     def test_live_snapshot_exposes_runtime_intelligence(self):
         with patch(
@@ -94,6 +97,25 @@ class ModelGovernanceTests(unittest.TestCase):
                 get_command_rights_registry()["profiles"][0]["id"],
                 "sample",
             )
+
+    def test_repo_root_falls_back_to_workspace_when_running_from_site_packages(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fake_module = os.path.join(
+                tmpdir,
+                "usr",
+                "local",
+                "lib",
+                "python3.12",
+                "site-packages",
+                "athanor_agents",
+                "model_governance.py",
+            )
+            os.makedirs(os.path.dirname(fake_module), exist_ok=True)
+            with open(fake_module, "w", encoding="utf-8") as handle:
+                handle.write("# test")
+
+            with patch("athanor_agents.model_governance.__file__", fake_module):
+                self.assertEqual(model_governance.Path("/workspace"), model_governance._repo_root())
 
     def test_current_autonomy_policy_uses_current_phase_scope(self):
         with tempfile.TemporaryDirectory() as tmpdir:

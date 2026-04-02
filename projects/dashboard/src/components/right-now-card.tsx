@@ -66,7 +66,7 @@ export function RightNowCard({ snapshot }: { snapshot: OverviewSnapshot }) {
         {runningTasks.map((task) => (
           <Link
             key={task.id}
-            href="/tasks"
+            href="/runs"
             className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition hover:bg-accent/40 min-h-[44px] sm:gap-3 sm:px-3 sm:py-2.5"
           >
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 sm:h-8 sm:w-8">

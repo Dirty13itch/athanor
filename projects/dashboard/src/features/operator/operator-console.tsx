@@ -3,13 +3,14 @@
 import { useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangle,
   CheckCircle2,
-  FileText,
   Inbox,
   LoaderCircle,
   MessageSquare,
   RefreshCcw,
   Send,
+  ShieldCheck,
   Square,
   XCircle,
 } from "lucide-react";
@@ -33,23 +34,34 @@ interface ChatMessage {
   createdAt: string;
 }
 
-interface PendingTask {
+interface PendingApproval {
   id: string;
-  prompt: string;
-  agent_id?: string;
-  agent_name?: string;
-  priority?: string;
+  related_run_id?: string;
+  related_task_id?: string;
+  requested_action: string;
+  privilege_class: string;
+  reason: string;
   status: string;
-  created_at?: string;
+  requested_at?: number;
+  task_prompt?: string;
+  task_agent_id?: string;
+  task_priority?: string;
+  task_status?: string;
+  metadata?: Record<string, unknown>;
 }
 
-interface PendingPlan {
-  id: string;
-  title?: string;
-  description?: string;
-  status: string;
-  created_at?: string;
-  agent_id?: string;
+interface GovernanceSnapshot {
+  current_mode?: {
+    mode?: string;
+    entered_at?: number;
+    trigger?: string;
+  };
+  launch_blockers?: string[];
+  launch_ready?: boolean;
+  attention_posture?: {
+    recommended_mode?: string;
+    breaches?: string[];
+  };
 }
 
 function createId(prefix: string) {
@@ -65,8 +77,8 @@ const SUGGESTED_PROMPTS = [
   "What did agents do overnight?",
 ];
 
-const PENDING_TASKS_KEY = ["operator-pending-tasks"] as const;
-const PENDING_PLANS_KEY = ["operator-pending-plans"] as const;
+const PENDING_APPROVALS_KEY = ["operator-pending-approvals"] as const;
+const GOVERNANCE_KEY = ["operator-governance"] as const;
 
 export function OperatorConsole() {
   const queryClient = useQueryClient();
@@ -77,49 +89,49 @@ export function OperatorConsole() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const pendingTasksQuery = useQuery({
-    queryKey: PENDING_TASKS_KEY,
-    queryFn: async (): Promise<PendingTask[]> => {
-      const data = await requestJson(
-        "/api/workforce/tasks?status=pending_approval"
-      );
-      return (data?.tasks ?? data ?? []) as PendingTask[];
+  const pendingApprovalsQuery = useQuery({
+    queryKey: PENDING_APPROVALS_KEY,
+    queryFn: async (): Promise<PendingApproval[]> => {
+      const data = await requestJson("/api/operator/approvals?status=pending");
+      return (data?.approvals ?? data ?? []) as PendingApproval[];
     },
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
 
-  const pendingPlansQuery = useQuery({
-    queryKey: PENDING_PLANS_KEY,
-    queryFn: async (): Promise<PendingPlan[]> => {
-      const data = await requestJson(
-        "/api/pipeline/plans?status=pending"
-      );
-      return (data?.plans ?? data ?? []) as PendingPlan[];
+  const governanceQuery = useQuery({
+    queryKey: GOVERNANCE_KEY,
+    queryFn: async (): Promise<GovernanceSnapshot> => {
+      const data = await requestJson("/api/operator/governance");
+      return (data ?? {}) as GovernanceSnapshot;
     },
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
 
-  const pendingTasks = pendingTasksQuery.data ?? [];
-  const pendingPlans = pendingPlansQuery.data ?? [];
-  const totalPending = pendingTasks.length + pendingPlans.length;
+  const pendingApprovals = pendingApprovalsQuery.data ?? [];
+  const governance = governanceQuery.data ?? {};
+  const currentMode = governance.current_mode?.mode ?? "unknown";
+  const launchBlockers = governance.launch_blockers ?? [];
+  const attentionBreaches = governance.attention_posture?.breaches ?? [];
 
   const approveMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      await postWithoutBody(`/api/workforce/tasks/${taskId}/approve`);
+    mutationFn: async (approvalId: string) => {
+      await postWithoutBody(`/api/operator/approvals/${encodeURIComponent(approvalId)}/approve`);
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: PENDING_TASKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: PENDING_APPROVALS_KEY });
+      void queryClient.invalidateQueries({ queryKey: GOVERNANCE_KEY });
     },
   });
 
   const rejectMutation = useMutation({
-    mutationFn: async ({ taskId, reason }: { taskId: string; reason: string }) => {
-      await postJson(`/api/workforce/tasks/${taskId}/reject`, { reason });
+    mutationFn: async ({ approvalId, reason }: { approvalId: string; reason: string }) => {
+      await postJson(`/api/operator/approvals/${encodeURIComponent(approvalId)}/reject`, { reason });
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: PENDING_TASKS_KEY });
+      void queryClient.invalidateQueries({ queryKey: PENDING_APPROVALS_KEY });
+      void queryClient.invalidateQueries({ queryKey: GOVERNANCE_KEY });
     },
   });
 
@@ -217,14 +229,14 @@ export function OperatorConsole() {
           <Button
             variant="outline"
             onClick={() => {
-              void pendingTasksQuery.refetch();
-              void pendingPlansQuery.refetch();
+              void pendingApprovalsQuery.refetch();
+              void governanceQuery.refetch();
             }}
-            disabled={pendingTasksQuery.isFetching || pendingPlansQuery.isFetching}
+            disabled={pendingApprovalsQuery.isFetching || governanceQuery.isFetching}
           >
             <RefreshCcw
               className={`mr-2 h-4 w-4 ${
-                pendingTasksQuery.isFetching || pendingPlansQuery.isFetching ? "animate-spin" : ""
+                pendingApprovalsQuery.isFetching || governanceQuery.isFetching ? "animate-spin" : ""
               }`}
             />
             Refresh
@@ -239,24 +251,25 @@ export function OperatorConsole() {
             icon={<MessageSquare className="h-5 w-5" />}
           />
           <StatCard
-            label="Pending Tasks"
-            value={`${pendingTasks.length}`}
-            detail="Awaiting approval"
+            label="Pending Approvals"
+            value={`${pendingApprovals.length}`}
+            detail="Canonical approval requests."
             icon={<Inbox className="h-5 w-5" />}
-            tone={pendingTasks.length > 0 ? "warning" : "success"}
+            tone={pendingApprovals.length > 0 ? "warning" : "success"}
           />
           <StatCard
-            label="Pending Plans"
-            value={`${pendingPlans.length}`}
-            detail="Awaiting review"
-            icon={<FileText className="h-5 w-5" />}
-            tone={pendingPlans.length > 0 ? "warning" : "success"}
+            label="System Mode"
+            value={currentMode}
+            detail={governance.attention_posture?.recommended_mode ? `Recommended: ${governance.attention_posture.recommended_mode}` : "Governance posture"}
+            icon={<ShieldCheck className="h-5 w-5" />}
+            tone={currentMode === "normal" ? "success" : "warning"}
           />
           <StatCard
-            label="Total Queue"
-            value={`${totalPending}`}
-            detail="Tasks + plans"
-            tone={totalPending > 0 ? "warning" : "success"}
+            label="Launch Blockers"
+            value={`${launchBlockers.length}`}
+            detail={governance.launch_ready ? "Launch posture is clear." : "Still blocking promotion."}
+            icon={<AlertTriangle className="h-5 w-5" />}
+            tone={launchBlockers.length > 0 ? "warning" : "success"}
           />
         </div>
       </PageHeader>
@@ -377,45 +390,93 @@ export function OperatorConsole() {
           <CardHeader className="border-b border-border/70">
             <CardTitle className="text-lg">Approval Queue</CardTitle>
             <CardDescription>
-              Tasks and plans awaiting operator review.
+              Canonical approval requests and launch posture.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
             <ScrollArea className="flex-1 px-4 sm:px-6">
               <div className="space-y-4 py-4">
-                {/* Pending Tasks */}
-                {pendingTasks.length > 0 ? (
+                <div className="surface-instrument space-y-3 rounded-2xl border p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={governance.launch_ready ? "secondary" : "outline"}>{currentMode}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {governance.current_mode?.entered_at
+                        ? formatRelativeTime(new Date(governance.current_mode.entered_at * 1000).toISOString())
+                        : "Mode history unavailable"}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium">
+                    {governance.current_mode?.trigger
+                      ? `Entered via ${governance.current_mode.trigger}`
+                      : "No mode trigger recorded."}
+                  </p>
+                  {launchBlockers.length > 0 ? (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                        Launch blockers
+                      </p>
+                      {launchBlockers.slice(0, 3).map((blocker) => (
+                        <p key={blocker} className="text-xs text-amber-600">
+                          {blocker}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-emerald-600">Launch posture is clear.</p>
+                  )}
+                  {attentionBreaches.length > 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Attention pressure: {attentionBreaches.join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+
+                {pendingApprovals.length > 0 ? (
                   <div className="space-y-3">
                     <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                      Tasks ({pendingTasks.length})
+                      Approvals ({pendingApprovals.length})
                     </h3>
-                    {pendingTasks.map((task) => (
+                    {pendingApprovals.map((approval) => (
                       <div
-                        key={task.id}
+                        key={approval.id}
                         className="surface-instrument space-y-2 rounded-2xl border p-3"
                       >
                         <p className="text-sm font-medium">
-                          {task.prompt.length > 100
-                            ? `${task.prompt.slice(0, 100)}...`
-                            : task.prompt}
+                          {(approval.task_prompt || approval.reason).length > 140
+                            ? `${(approval.task_prompt || approval.reason).slice(0, 140)}...`
+                            : (approval.task_prompt || approval.reason)}
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
-                          {task.agent_name || task.agent_id ? (
+                          {approval.task_agent_id ? (
                             <Badge variant="outline" className="text-xs">
-                              {task.agent_name ?? task.agent_id}
+                              {approval.task_agent_id}
                             </Badge>
                           ) : null}
-                          {task.created_at ? (
+                          {approval.task_priority ? (
+                            <Badge variant="secondary" className="text-xs">
+                              {approval.task_priority}
+                            </Badge>
+                          ) : null}
+                          <Badge variant="outline" className="text-xs">
+                            {approval.privilege_class}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {approval.requested_action}
+                          </Badge>
+                          {approval.related_run_id ? (
+                            <span className="text-xs text-muted-foreground">{approval.related_run_id}</span>
+                          ) : null}
+                          {approval.requested_at ? (
                             <span className="text-xs text-muted-foreground" data-volatile="true">
-                              {formatRelativeTime(task.created_at)}
+                              {formatRelativeTime(new Date(approval.requested_at * 1000).toISOString())}
                             </span>
                           ) : null}
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
-                            onClick={() => void approveMutation.mutateAsync(task.id)}
-                            disabled={approveMutation.isPending}
+                            onClick={() => void approveMutation.mutateAsync(approval.id)}
+                            disabled={approveMutation.isPending || !approval.id}
                           >
                             <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
                             Approve
@@ -425,11 +486,11 @@ export function OperatorConsole() {
                             variant="outline"
                             onClick={() =>
                               void rejectMutation.mutateAsync({
-                                taskId: task.id,
+                                approvalId: approval.id,
                                 reason: "Rejected from operator console",
                               })
                             }
-                            disabled={rejectMutation.isPending}
+                            disabled={rejectMutation.isPending || !approval.id}
                           >
                             <XCircle className="mr-1.5 h-3.5 w-3.5" />
                             Reject
@@ -440,46 +501,10 @@ export function OperatorConsole() {
                   </div>
                 ) : null}
 
-                {/* Pending Plans */}
-                {pendingPlans.length > 0 ? (
-                  <div className="space-y-3">
-                    <h3 className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                      Plans ({pendingPlans.length})
-                    </h3>
-                    {pendingPlans.map((plan) => (
-                      <div
-                        key={plan.id}
-                        className="surface-instrument space-y-2 rounded-2xl border p-3"
-                      >
-                        <p className="text-sm font-medium">
-                          {plan.title ?? plan.id}
-                        </p>
-                        {plan.description ? (
-                          <p className="text-xs text-muted-foreground">
-                            {plan.description.length > 120
-                              ? `${plan.description.slice(0, 120)}...`
-                              : plan.description}
-                          </p>
-                        ) : null}
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {plan.status}
-                          </Badge>
-                          {plan.created_at ? (
-                            <span className="text-xs text-muted-foreground" data-volatile="true">
-                              {formatRelativeTime(plan.created_at)}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-
-                {pendingTasks.length === 0 && pendingPlans.length === 0 ? (
+                {pendingApprovals.length === 0 ? (
                   <EmptyState
                     title="Queue clear"
-                    description="No tasks or plans waiting for approval."
+                    description="No approval requests are waiting for operator action."
                     className="py-8"
                   />
                 ) : null}

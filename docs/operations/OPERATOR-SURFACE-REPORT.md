@@ -6,7 +6,7 @@ Do not edit manually.
 ## Front Door Contract
 
 - Registry version: `2026-03-29.1`
-- Cached truth snapshot: `2026-03-31T00:12:36.555929+00:00`
+- Cached truth snapshot: `2026-04-02T17:56:31.081163+00:00`
 - Canonical portal id: `athanor_command_center`
 - Canonical operator URL: `https://athanor.local/`
 - Canonical node: `dev`
@@ -58,7 +58,7 @@ Do not edit manually.
 - DEV runtime probe target: `dev`
 - DEV deployment mode observed: `containerized_service_behind_caddy`
 - Dashboard container running: `True`
-- Dashboard container status: `Up 22 hours`
+- Dashboard container status: `Up 20 hours`
 - Dashboard container image: `athanor/dashboard:latest`
 - Dashboard container ports: `0.0.0.0:3001->3001/tcp, [::]:3001->3001/tcp`
 - Dashboard compose working dir: `/opt/athanor/dashboard`
@@ -71,7 +71,7 @@ Do not edit manually.
 - DEV local canonical probe from host: `200`
 - Caddy service state: `active` / `running`
 - Legacy dashboard systemd state: `inactive` / `dead`
-- Legacy dashboard working directory: `/home/shaun/repos/athanor/projects/dashboard`
+- Legacy dashboard working directory: ``
 
 ## Shadow Portal
 
@@ -83,20 +83,20 @@ No shadow portals are currently registered.
 | --- | --- | --- | --- | --- | --- |
 | `Grafana` | `vault` | `specialist_tool` | `http://vault.athanor.local:3000/` | `observability` | `200` |
 | `Prometheus` | `vault` | `specialist_tool` | `http://vault.athanor.local:9090/` | `observability` | `200` |
-| `Uptime Kuma` | `vault` | `specialist_tool` | `http://vault.athanor.local:3009/` | `observability` | `200` |
+| `Uptime Kuma` | `vault` | `specialist_tool` | `http://vault.athanor.local:3009/` | `observability` | `URLError: [WinError 10061] No connection could b` |
 | `Langfuse` | `vault` | `specialist_tool` | `http://vault.athanor.local:3030/` | `observability` | `200` |
 | `Open WebUI (VAULT)` | `vault` | `specialist_tool` | `http://vault.athanor.local:3090/` | `chat` | `200` |
-| `Neo4j Browser` | `vault` | `specialist_tool` | `http://vault.athanor.local:7474/` | `knowledge` | `200` |
+| `Neo4j Browser` | `vault` | `specialist_tool` | `http://vault.athanor.local:7474/` | `knowledge` | `URLError: [WinError 10061] No connection could b` |
 | `Miniflux` | `vault` | `specialist_tool` | `http://vault.athanor.local:8070/` | `knowledge` | `200` |
 | `Home Assistant` | `vault` | `specialist_tool` | `http://vault.athanor.local:8123/` | `home` | `200` |
-| `Tautulli` | `vault` | `specialist_tool` | `http://vault.athanor.local:8181/` | `media` | `200` |
+| `Tautulli` | `vault` | `specialist_tool` | `http://vault.athanor.local:8181/` | `media` | `URLError: [WinError 10061] No connection could b` |
 | `ntfy` | `vault` | `specialist_tool` | `http://vault.athanor.local:8880/` | `observability` | `200` |
-| `Sonarr` | `vault` | `specialist_tool` | `http://vault.athanor.local:8989/` | `media` | `200` |
-| `Radarr` | `vault` | `specialist_tool` | `http://vault.athanor.local:7878/` | `media` | `200` |
-| `Prowlarr` | `vault` | `specialist_tool` | `http://vault.athanor.local:9696/` | `media` | `200` |
+| `Sonarr` | `vault` | `specialist_tool` | `http://vault.athanor.local:8989/` | `media` | `URLError: [WinError 10061] No connection could b` |
+| `Radarr` | `vault` | `specialist_tool` | `http://vault.athanor.local:7878/` | `media` | `URLError: [WinError 10061] No connection could b` |
+| `Prowlarr` | `vault` | `specialist_tool` | `http://vault.athanor.local:9696/` | `media` | `URLError: [WinError 10061] No connection could b` |
 | `SABnzbd` | `vault` | `specialist_tool` | `http://vault.athanor.local:8080/` | `media` | `200` |
-| `Stash` | `vault` | `specialist_tool` | `http://vault.athanor.local:9999/` | `media` | `200` |
-| `Plex` | `vault` | `specialist_tool` | `http://vault.athanor.local:32400/web` | `media` | `200` |
+| `Stash` | `vault` | `specialist_tool` | `http://vault.athanor.local:9999/` | `media` | `URLError: [WinError 10061] No connection could b` |
+| `Plex` | `vault` | `specialist_tool` | `http://vault.athanor.local:32400/web` | `media` | `URLError: [WinError 10061] No connection could b` |
 | `Open WebUI (WORKSHOP)` | `workshop` | `specialist_tool` | `http://interface.athanor.local:3000/` | `chat` | `200` |
 | `ComfyUI` | `workshop` | `specialist_tool` | `http://interface.athanor.local:8188/` | `creative` | `200` |
 | `Empire of Broken Queens` | `workshop` | `domain_app` | `http://interface.athanor.local:3002/` | `domain_product` | `200` |
@@ -116,22 +116,22 @@ No shadow portals are currently registered.
 | `reranker_api` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8003/health` | `http://192.168.1.189:8003/health` | `200` |
 | `grafana` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:3000/` | `http://192.168.1.203:3000/` | `200` |
 | `prometheus` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:9090/` | `http://192.168.1.203:9090/` | `200` |
-| `uptime_kuma` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:3009/` | `http://192.168.1.203:3009/` | `200` |
+| `uptime_kuma` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:3009/` | `http://192.168.1.203:3009/` | `URLError: [WinError 10061] No connection could b` |
 | `langfuse` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:3030/` | `http://192.168.1.203:3030/` | `200` |
 | `vault_litellm_proxy` | `internal_api` | `vault` | `active_internal` | `hidden` | `http://vault.athanor.local:4000/health` | `http://192.168.1.203:4000/health` | `401` |
 | `vault_open_webui` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:3090/` | `http://192.168.1.203:3090/` | `200` |
 | `qdrant_api` | `internal_api` | `vault` | `active_internal` | `hidden` | `http://vault.athanor.local:6333/collections` | `http://192.168.1.203:6333/collections` | `200` |
-| `neo4j_browser` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:7474/` | `http://192.168.1.203:7474/` | `200` |
+| `neo4j_browser` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:7474/` | `http://192.168.1.203:7474/` | `URLError: [WinError 10061] No connection could b` |
 | `miniflux` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:8070/` | `http://192.168.1.203:8070/` | `200` |
 | `home_assistant` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:8123/` | `http://192.168.1.203:8123/` | `200` |
-| `tautulli` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:8181/` | `http://192.168.1.203:8181/` | `200` |
+| `tautulli` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:8181/` | `http://192.168.1.203:8181/` | `URLError: [WinError 10061] No connection could b` |
 | `ntfy` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:8880/` | `http://192.168.1.203:8880/` | `200` |
-| `sonarr` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:8989/` | `http://192.168.1.203:8989/` | `200` |
-| `radarr` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:7878/` | `http://192.168.1.203:7878/` | `200` |
-| `prowlarr` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:9696/` | `http://192.168.1.203:9696/` | `200` |
+| `sonarr` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:8989/` | `http://192.168.1.203:8989/` | `URLError: [WinError 10061] No connection could b` |
+| `radarr` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:7878/` | `http://192.168.1.203:7878/` | `URLError: [WinError 10061] No connection could b` |
+| `prowlarr` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:9696/` | `http://192.168.1.203:9696/` | `URLError: [WinError 10061] No connection could b` |
 | `sabnzbd` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:8080/` | `http://192.168.1.203:8080/` | `200` |
-| `stash` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:9999/` | `http://192.168.1.203:9999/` | `200` |
-| `plex` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:32400/web` | `http://192.168.1.203:32400/web` | `200` |
+| `stash` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:9999/` | `http://192.168.1.203:9999/` | `URLError: [WinError 10061] No connection could b` |
+| `plex` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:32400/web` | `http://192.168.1.203:32400/web` | `URLError: [WinError 10061] No connection could b` |
 | `workshop_open_webui` | `specialist_tool` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3000/` | `http://192.168.1.225:3000/` | `200` |
 | `comfyui` | `specialist_tool` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:8188/` | `http://192.168.1.225:8188/` | `200` |
 | `eoq` | `domain_app` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3002/` | `http://192.168.1.225:3002/` | `200` |

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 from collections import Counter
 from pathlib import PurePosixPath
 from typing import Any
@@ -13,6 +14,7 @@ from truth_inventory import (
     REPORT_PATHS,
     TRUTH_SNAPSHOT_PATH,
     VAULT_LITELLM_ENV_AUDIT_PATH,
+    VAULT_REDIS_AUDIT_PATH,
     collect_known_drifts,
     load_json,
     load_optional_json,
@@ -38,17 +40,73 @@ def _short_hash(value: str | None) -> str:
     return f"`{value[:12]}`"
 
 
+def _local_git_probe(path: str) -> dict[str, Any]:
+    head = subprocess.run(
+        ["git", "-C", path, "rev-parse", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    status = subprocess.run(
+        ["git", "-C", path, "status", "--short"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    status_lines = [line.rstrip() for line in status.stdout.splitlines() if line.strip()] if status.returncode == 0 else []
+    return {
+        "head": head.stdout.strip() if head.returncode == 0 else "",
+        "dirty_count": len(status_lines),
+        "status_sample": status_lines[:10],
+    }
+
+
 def _fenced_block(language: str, lines: list[str]) -> list[str]:
     return [f"```{language}", *lines, "```"]
 
 
 VOLATILE_REPORT_LINE_PREFIXES: dict[str, tuple[str, ...]] = {
+    "providers": (
+        "- Runtime env audit: missing ",
+    ),
+    "operator_surfaces": (
+        "- Cached truth snapshot: `",
+    ),
+    "runtime_migrations": (
+        "- Latest live content evidence snapshot: `",
+        "- Live content evidence snapshot: `",
+    ),
+    "runtime_ownership": (
+        "- Cached truth snapshot: `",
+    ),
+    "runtime_ownership_packets": (
+        "- Cached truth snapshot: `",
+    ),
     "runtime_cutover": (
         "- Cached truth snapshot: `",
     ),
     "vault_litellm_repair_packet": (
         "- Cached truth snapshot: `",
         "- Cached env audit: `",
+    ),
+    "vault_redis_repair_packet": (
+        "- Cached truth snapshot: `",
+        "- Cached redis audit: `",
+        "- Latest temp-RDB no-space error: `",
+        "- Latest background-save error: `",
+        "- Latest cross-protocol warning: `",
+        "- Temp-RDB no-space error count in audit tail: `",
+        "- Background-save error count in audit tail: `",
+        "- Cross-protocol warning count in audit tail: `",
+        "- Redis data directory size: `",
+        "- Filesystem size: `",
+        "- Filesystem used: `",
+        "- Filesystem available: `",
+        "- Filesystem used percent: `",
+        "- Btrfs device allocated: `",
+        "- Btrfs device unallocated: `",
+        "- Btrfs free estimate: `",
+        "- `/mnt/appdatacache",
     ),
     "secret_surfaces": (
         "- VAULT LiteLLM env audit: `",
@@ -133,6 +191,13 @@ def _surface_description(surface: dict[str, Any]) -> str:
     return f"{label} on {node_label}."
 
 
+def _root_path_by_id(registry: dict[str, Any], root_id: str) -> str:
+    for root in registry.get("roots", []):
+        if str(root.get("id") or "") == root_id:
+            return str(root.get("path") or "")
+    return ""
+
+
 def _load_vault_litellm_env_audit(snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
     if isinstance(snapshot, dict):
         embedded = snapshot.get("vault_litellm_env_audit")
@@ -144,6 +209,48 @@ def _load_vault_litellm_env_audit(snapshot: dict[str, Any] | None = None) -> dic
         except Exception:
             return {}
     return {}
+
+
+def _load_vault_redis_audit(snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
+    if isinstance(snapshot, dict):
+        embedded = snapshot.get("vault_redis_audit")
+        if isinstance(embedded, dict) and embedded:
+            return embedded
+    if VAULT_REDIS_AUDIT_PATH.exists():
+        try:
+            return load_json(VAULT_REDIS_AUDIT_PATH)
+        except Exception:
+            return {}
+    return {}
+
+
+def _format_bytes(value: Any) -> str:
+    if not isinstance(value, int) or value < 0:
+        return "unknown"
+    units = ["B", "KiB", "MiB", "GiB", "TiB"]
+    amount = float(value)
+    unit = units[0]
+    for candidate in units:
+        unit = candidate
+        if amount < 1024.0 or candidate == units[-1]:
+            break
+        amount /= 1024.0
+    if unit == "B":
+        return f"{int(amount)} {unit}"
+    return f"{amount:.2f} {unit}"
+
+
+def _render_size_rankings(entries: list[dict[str, Any]], *, empty_text: str) -> list[str]:
+    if not entries:
+        return [f"- {empty_text}"]
+    lines: list[str] = []
+    for entry in entries:
+        path = str(entry.get("path") or "").strip()
+        size_bytes = entry.get("size_bytes")
+        if not path:
+            continue
+        lines.append(f"- `{path}`: `{_format_bytes(size_bytes)}`")
+    return lines or [f"- {empty_text}"]
 
 
 def _snapshot_governor_facade(snapshot: dict[str, Any] | None) -> dict[str, Any]:
@@ -855,10 +962,23 @@ def render_model_report() -> str:
             ],
         ),
     ]
-    drifts = list(registry.get("known_drifts", []))
-    if drifts:
+    active_drifts = [
+        dict(entry)
+        for entry in registry.get("known_drifts", [])
+        if isinstance(entry, dict) and str(entry.get("status") or "active") == "active"
+    ]
+    retired_drifts = [
+        dict(entry)
+        for entry in registry.get("known_drifts", [])
+        if isinstance(entry, dict) and str(entry.get("status") or "") == "retired"
+    ]
+    if active_drifts:
         lines.extend(["", "## Known Drift", ""])
-        for drift in drifts:
+        for drift in active_drifts:
+            lines.append(f"- `{drift.get('id')}` ({drift.get('severity')}): {drift.get('description')}")
+    if retired_drifts:
+        lines.extend(["", "## Retired Drift", ""])
+        for drift in retired_drifts:
             lines.append(f"- `{drift.get('id')}` ({drift.get('severity')}): {drift.get('description')}")
     lines.append("")
     return "\n".join(lines)
@@ -1305,6 +1425,16 @@ def render_tooling_report() -> str:
 
 def render_repo_roots_report() -> str:
     registry = load_registry("repo-roots-registry.json")
+    latest_snapshot = _load_latest_truth_snapshot() or {}
+    dev_runtime_probe = dict(latest_snapshot.get("dev_runtime_probe") or {})
+    dev_runtime_detail = dict(dev_runtime_probe.get("detail") or {}) if isinstance(dev_runtime_probe.get("detail"), dict) else {}
+    foundry_agents_runtime_probe = dict(latest_snapshot.get("foundry_agents_runtime_probe") or {})
+    foundry_agents_runtime_detail = (
+        dict(foundry_agents_runtime_probe.get("detail") or {})
+        if isinstance(foundry_agents_runtime_probe.get("detail"), dict)
+        else {}
+    )
+    local_repo_probe = _local_git_probe(str(REPO_ROOT))
     roots = list(registry.get("roots", []))
     lines = [
         "# Repo Roots Report",
@@ -1332,6 +1462,42 @@ def render_repo_roots_report() -> str:
         ),
     ]
     for root in roots:
+        extra_lines: list[str] = []
+        if str(root.get("id") or "") == "desk-main":
+            extra_lines.extend(
+                [
+                    f"- Local git head: `{local_repo_probe.get('head') or 'unknown'}`",
+                    f"- Local dirty file count: `{local_repo_probe.get('dirty_count', 0)}`",
+                    f"- Local dirty sample: {list_or_none(list(local_repo_probe.get('status_sample', [])))}",
+                ]
+            )
+        elif str(root.get("id") or "") == "dev-runtime-repo" and dev_runtime_probe.get("ok"):
+            extra_lines.extend(
+                [
+                    f"- Runtime repo head: `{dev_runtime_detail.get('repo_git_head') or 'unknown'}`",
+                    f"- Runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`",
+                    f"- Runtime dirty sample: {list_or_none(list(dev_runtime_detail.get('repo_status_sample', [])))}",
+                ]
+            )
+        elif str(root.get("id") or "") == "foundry-opt-athanor" and foundry_agents_runtime_probe.get("ok"):
+            deployment_root = (
+                dict(foundry_agents_runtime_detail.get("deployment_root") or {})
+                if isinstance(foundry_agents_runtime_detail.get("deployment_root"), dict)
+                else {}
+            )
+            container = (
+                dict(foundry_agents_runtime_detail.get("container") or {})
+                if isinstance(foundry_agents_runtime_detail.get("container"), dict)
+                else {}
+            )
+            extra_lines.extend(
+                [
+                    f"- Compose root matches expected: `{deployment_root.get('compose_root_matches_expected', False)}`",
+                    f"- Build root clean: `{deployment_root.get('build_root_clean', False)}`",
+                    f"- Container running: `{container.get('running', False)}`",
+                    f"- Runtime import path: `{container.get('module_file') or 'unknown'}`",
+                ]
+            )
         lines.extend(
             [
                 "",
@@ -1341,13 +1507,603 @@ def render_repo_roots_report() -> str:
                 f"- Host: `{root.get('host')}`",
                 f"- Authority: `{root.get('authority_level')}`",
                 f"- Notes: {list_or_none(list(root.get('notes', [])))}",
+                *extra_lines,
             ]
         )
-    drifts = list(registry.get("known_drifts", []))
-    if drifts:
+    active_drifts = [
+        dict(entry)
+        for entry in registry.get("known_drifts", [])
+        if isinstance(entry, dict) and str(entry.get("status") or "active") == "active"
+    ]
+    retired_drifts = [
+        dict(entry)
+        for entry in registry.get("known_drifts", [])
+        if isinstance(entry, dict) and str(entry.get("status") or "") == "retired"
+    ]
+    if active_drifts:
         lines.extend(["", "## Known Drift", ""])
-        for drift in drifts:
+        for drift in active_drifts:
             lines.append(f"- `{drift.get('id')}` ({drift.get('severity')}): {drift.get('description')}")
+    if retired_drifts:
+        lines.extend(["", "## Retired Drift", ""])
+        for drift in retired_drifts:
+            lines.append(f"- `{drift.get('id')}` ({drift.get('severity')}): {drift.get('description')}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_runtime_ownership_report() -> str:
+    contract = load_registry("runtime-ownership-contract.json")
+    ownership_packets = load_registry("runtime-ownership-packets.json")
+    repo_roots = load_registry("repo-roots-registry.json")
+    latest_snapshot = _load_latest_truth_snapshot() or {}
+    dev_runtime_probe = dict(latest_snapshot.get("dev_runtime_probe") or {})
+    dev_runtime_detail = (
+        dict(dev_runtime_probe.get("detail") or {})
+        if isinstance(dev_runtime_probe.get("detail"), dict)
+        else {}
+    )
+    foundry_agents_runtime_probe = dict(latest_snapshot.get("foundry_agents_runtime_probe") or {})
+    foundry_agents_runtime_detail = (
+        dict(foundry_agents_runtime_probe.get("detail") or {})
+        if isinstance(foundry_agents_runtime_probe.get("detail"), dict)
+        else {}
+    )
+    operator_surface_probe = dict(latest_snapshot.get("operator_surface_probe") or {})
+    dev_command_center_runtime = dict(operator_surface_probe.get("dev_command_center_runtime") or {})
+    dev_command_center_detail = (
+        dict(dev_command_center_runtime.get("detail") or {})
+        if isinstance(dev_command_center_runtime.get("detail"), dict)
+        else {}
+    )
+    local_repo_probe = _local_git_probe(str(REPO_ROOT))
+    lanes = [dict(entry) for entry in contract.get("lanes", []) if isinstance(entry, dict)]
+    packets = [
+        dict(entry) for entry in ownership_packets.get("packets", []) if isinstance(entry, dict)
+    ]
+    packet_by_id = {str(entry.get("id") or ""): entry for entry in packets}
+    promotion_criteria = [
+        dict(entry) for entry in contract.get("promotion_criteria", []) if isinstance(entry, dict)
+    ]
+    known_gaps = [dict(entry) for entry in contract.get("known_gaps", []) if isinstance(entry, dict)]
+    criteria_counts = Counter(str(entry.get("status") or "unknown") for entry in promotion_criteria)
+
+    lines = [
+        "# Runtime Ownership Report",
+        "",
+        "Generated from `config/automation-backbone/runtime-ownership-contract.json` plus the cached truth snapshot in `reports/truth-inventory/latest.json` by `scripts/generate_truth_inventory_reports.py`.",
+        "Do not edit manually.",
+        "",
+        "## Summary",
+        "",
+        f"- Registry version: `{contract.get('version', 'unknown')}`",
+        f"- Cached truth snapshot: `{latest_snapshot.get('collected_at', 'not available') if isinstance(latest_snapshot, dict) else 'not available'}`",
+        f"- Promotion gate: `{contract.get('promotion_gate_id', 'unknown')}`",
+        f"- Goal: {contract.get('goal', 'unset')}",
+        f"- Implementation authority: `{contract.get('implementation_authority_root_id', 'unknown')}` -> `{_root_path_by_id(repo_roots, str(contract.get('implementation_authority_root_id') or '')) or 'unknown'}`",
+        f"- Runtime authority: `{contract.get('runtime_authority_root_id', 'unknown')}` -> `{_root_path_by_id(repo_roots, str(contract.get('runtime_authority_root_id') or '')) or 'unknown'}`",
+        f"- Runtime state roots: {list_or_none([str(item) for item in contract.get('runtime_state_root_ids', [])])}",
+        f"- Ownership lanes tracked: `{len(lanes)}`",
+        f"- Execution packets tracked: `{len(packets)}`",
+        "",
+        *_render_table(
+            ["Criterion status", "Count"],
+            [[f"`{status}`", str(count)] for status, count in sorted(criteria_counts.items())],
+        ),
+        "",
+        "## Repo Evidence",
+        "",
+        f"- Implementation repo head: `{local_repo_probe.get('head') or 'unknown'}`",
+        f"- Implementation dirty file count: `{local_repo_probe.get('dirty_count', 0)}`",
+    ]
+    if dev_runtime_probe.get("ok"):
+        lines.extend(
+            [
+                f"- DEV runtime repo head: `{dev_runtime_detail.get('repo_git_head') or 'unknown'}`",
+                f"- DEV runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`",
+            ]
+        )
+    else:
+        lines.append(f"- DEV runtime probe: `{dev_runtime_probe.get('detail') or 'unavailable'}`")
+    if foundry_agents_runtime_probe.get("ok"):
+        foundry_container = (
+            dict(foundry_agents_runtime_detail.get("container") or {})
+            if isinstance(foundry_agents_runtime_detail.get("container"), dict)
+            else {}
+        )
+        foundry_deployment_root = (
+            dict(foundry_agents_runtime_detail.get("deployment_root") or {})
+            if isinstance(foundry_agents_runtime_detail.get("deployment_root"), dict)
+            else {}
+        )
+        lines.extend(
+            [
+                f"- FOUNDRY compose root matches expected: `{foundry_deployment_root.get('compose_root_matches_expected', False)}`",
+                f"- FOUNDRY build root clean: `{foundry_deployment_root.get('build_root_clean', False)}`",
+                f"- FOUNDRY runtime import path: `{foundry_container.get('module_file') or 'unknown'}`",
+            ]
+        )
+    else:
+        lines.append(f"- FOUNDRY agents runtime probe: `{foundry_agents_runtime_probe.get('detail') or 'unavailable'}`")
+
+    lane_rows = [
+        [
+            f"`{lane.get('id', 'unknown')}`",
+            f"`{lane.get('host', 'unknown')}`",
+            f"`{lane.get('deployment_mode', 'unknown')}`",
+            f"`{lane.get('status', 'unknown')}`",
+            list_or_none([str(item) for item in lane.get("owner_root_ids", [])]),
+            f"`{lane.get('execution_packet_id', 'none')}`",
+            str(lane.get("next_action") or ""),
+        ]
+        for lane in lanes
+    ]
+    lines.extend(
+        [
+            "",
+            "## Ownership Lanes",
+            "",
+            *_render_table(
+                ["Lane", "Host", "Mode", "Status", "Owner roots", "Packet", "Next action"],
+                lane_rows or [["none", "-", "-", "-", "-", "-"]],
+            ),
+        ]
+    )
+
+    systemd_units = {
+        str(entry.get("unit") or ""): dict(entry)
+        for entry in dev_runtime_detail.get("systemd_units", [])
+        if isinstance(entry, dict)
+    }
+    for lane in lanes:
+        owner_roots = [
+            f"{root_id} -> {_root_path_by_id(repo_roots, str(root_id)) or 'unknown'}"
+            for root_id in lane.get("owner_root_ids", [])
+        ]
+        lines.extend(
+            [
+                "",
+                f"## {lane.get('id', 'unknown')}",
+                "",
+                f"- Label: `{lane.get('label', 'unknown')}`",
+                f"- Host: `{lane.get('host', 'unknown')}`",
+                f"- Status: `{lane.get('status', 'unknown')}`",
+                f"- Mode: `{lane.get('deployment_mode', 'unknown')}`",
+                f"- Owner roots: {list_or_none(owner_roots)}",
+                f"- Source root: `{lane.get('source_root_id', 'none')}`",
+                f"- Runtime scope: {lane.get('runtime_scope', 'unset')}",
+                f"- Source paths: {list_or_none([str(item) for item in lane.get('source_paths', [])])}",
+                f"- Runtime paths: {list_or_none([str(item) for item in lane.get('runtime_paths', [])])}",
+                f"- Active surfaces: {list_or_none([str(item) for item in lane.get('active_surfaces', [])])}",
+                f"- Execution packet: `{lane.get('execution_packet_id', 'none')}`",
+                f"- Evidence: {list_or_none([str(item) for item in lane.get('evidence_paths', [])])}",
+                f"- Verification commands: {list_or_none([str(item) for item in lane.get('verification_commands', [])])}",
+                f"- Rollback contract: {lane.get('rollback_contract', 'unset')}",
+                f"- Approval boundary: {lane.get('approval_boundary', 'unset')}",
+                f"- Next action: {lane.get('next_action', 'unset')}",
+            ]
+        )
+        lane_id = str(lane.get("id") or "")
+        packet = packet_by_id.get(str(lane.get("execution_packet_id") or ""))
+        if packet:
+            lines.extend(
+                [
+                    f"- Packet status: `{packet.get('status', 'unknown')}`",
+                    f"- Packet approval type: `{packet.get('approval_packet_type', 'unknown')}`",
+                ]
+            )
+        if lane_id == "dev-dashboard-compose":
+            container = dict(dev_command_center_detail.get("container") or {})
+            deployment_root = dict(dev_command_center_detail.get("deployment_root") or {})
+            legacy_service = dict(dev_command_center_detail.get("legacy_service") or {})
+            control_files = [
+                dict(entry)
+                for entry in dev_command_center_detail.get("control_files", [])
+                if isinstance(entry, dict)
+            ]
+            lines.extend(
+                [
+                    "",
+                    "### Live dashboard evidence",
+                    "",
+                    f"- Deployment mode: `{dev_command_center_detail.get('deployment_mode', 'unknown')}`",
+                    f"- Active root: `{deployment_root.get('observed_active_root') or 'unknown'}`",
+                    f"- Runtime repo compose controls container: `{deployment_root.get('runtime_repo_compose_controls_container', False)}`",
+                    f"- Container running: `{container.get('running', False)}`",
+                    f"- Container status: `{container.get('status') or 'unknown'}`",
+                    f"- Compose working dir: `{container.get('compose_working_dir') or 'unknown'}`",
+                    f"- Legacy service state: `{legacy_service.get('active_state') or 'unknown'}` / `{legacy_service.get('sub_state') or 'unknown'}`",
+                    f"- Legacy unit file state: `{legacy_service.get('unit_file_state') or 'unknown'}`",
+                    f"- Legacy service root-cause hint: `{legacy_service.get('root_cause_hint') or 'none'}`",
+                    f"- Runtime probe status: `{dev_command_center_detail.get('local_runtime_status_code') or 'unknown'}`",
+                    f"- Canonical probe status: `{dev_command_center_detail.get('local_canonical_status_code') or 'unknown'}`",
+                ]
+            )
+            if control_files:
+                lines.extend(
+                    [
+                        "",
+                        *_render_table(
+                            [
+                                "Control file",
+                                "Impl -> runtime repo",
+                                "Impl -> deploy root",
+                                "Runtime repo -> deploy root",
+                            ],
+                            [
+                                [
+                                    f"`{entry.get('relative_path', 'unknown')}`",
+                                    f"`{entry.get('implementation_matches_runtime_repo', False)}`",
+                                    f"`{entry.get('implementation_matches_deploy_root', False)}`",
+                                    f"`{entry.get('deploy_matches_runtime_repo', False)}`",
+                                ]
+                                for entry in control_files
+                            ],
+                        ),
+                    ]
+                )
+        elif lane_id == "dev-runtime-repo-systemd":
+            rows = []
+            for surface in lane.get("active_surfaces", []):
+                unit = systemd_units.get(str(surface), {})
+                rows.append(
+                    [
+                        f"`{surface}`",
+                        list_or_none([str(item) for item in unit.get("working_directories", [])]),
+                        list_or_none([str(item) for item in unit.get("exec_starts", [])]),
+                        str(unit.get("environment_file_count", 0)),
+                    ]
+                )
+            lines.extend(
+                [
+                    "",
+                    "### Live systemd evidence",
+                    "",
+                    *_render_table(
+                        ["Unit", "Working directories", "ExecStart", "EnvFiles"],
+                        rows or [["none", "-", "-", "-"]],
+                    ),
+                ]
+            )
+        elif lane_id == "dev-heartbeat-opt":
+            heartbeat_unit = systemd_units.get("athanor-heartbeat.service", {})
+            heartbeat_bundle = (
+                dict(dev_runtime_detail.get("heartbeat_bundle") or {})
+                if isinstance(dev_runtime_detail.get("heartbeat_bundle"), dict)
+                else {}
+            )
+            lines.extend(
+                [
+                    "",
+                    "### Live heartbeat evidence",
+                    "",
+                    f"- Unit file state: `{heartbeat_unit.get('unit_file_state') or 'unknown'}`",
+                    f"- Working directories: {list_or_none([str(item) for item in heartbeat_unit.get('working_directories', [])])}",
+                    f"- ExecStart: {list_or_none([str(item) for item in heartbeat_unit.get('exec_starts', [])])}",
+                    f"- EnvFiles: `{heartbeat_unit.get('environment_file_count', 0)}`",
+                    f"- Deployed script exists: `{heartbeat_bundle.get('script_exists', False)}`",
+                    f"- Host-local env exists: `{heartbeat_bundle.get('env_exists', False)}`",
+                    f"- Runtime venv exists: `{heartbeat_bundle.get('venv_python_exists', False)}`",
+                    f"- Implementation matches deploy root: `{heartbeat_bundle.get('implementation_matches_deploy_root', False)}`",
+                ]
+            )
+        elif lane_id == "dev-runtime-state":
+            lines.extend(
+                [
+                    "",
+                    "### Live runtime-state evidence",
+                    "",
+                    f"- /opt entries: {list_or_none([str(item) for item in dev_runtime_detail.get('opt_entries', [])])}",
+                    f"- /home/shaun/.athanor entries: {list_or_none([str(item) for item in dev_runtime_detail.get('state_entries', [])])}",
+                    f"- Cron files: {list_or_none([str(item) for item in dev_runtime_detail.get('cron_files', [])])}",
+                ]
+            )
+        elif lane_id == "foundry-agents-compose":
+            container = (
+                dict(foundry_agents_runtime_detail.get("container") or {})
+                if isinstance(foundry_agents_runtime_detail.get("container"), dict)
+                else {}
+            )
+            deployment_root = (
+                dict(foundry_agents_runtime_detail.get("deployment_root") or {})
+                if isinstance(foundry_agents_runtime_detail.get("deployment_root"), dict)
+                else {}
+            )
+            control_files = [
+                dict(entry)
+                for entry in foundry_agents_runtime_detail.get("control_files", [])
+                if isinstance(entry, dict)
+            ]
+            source_mirrors = [
+                dict(entry)
+                for entry in foundry_agents_runtime_detail.get("source_mirrors", [])
+                if isinstance(entry, dict)
+            ]
+            lines.extend(
+                [
+                    "",
+                    "### Live FOUNDRY agents evidence",
+                    "",
+                    f"- Expected root exists: `{deployment_root.get('expected_exists', False)}`",
+                    f"- Compose root matches expected: `{deployment_root.get('compose_root_matches_expected', False)}`",
+                    f"- Build root clean: `{deployment_root.get('build_root_clean', False)}`",
+                    f"- Nested source dir present: `{deployment_root.get('nested_source_dir_exists', False)}`",
+                    f"- bak-codex files: {list_or_none([str(item) for item in deployment_root.get('bak_codex_files', [])])}",
+                    f"- Container running: `{container.get('running', False)}`",
+                    f"- Container status: `{container.get('status') or 'unknown'}`",
+                    f"- Compose working dir: `{container.get('compose_working_dir') or 'unknown'}`",
+                    f"- Compose config files: `{container.get('compose_config_files') or 'unknown'}`",
+                    f"- Runtime import path: `{container.get('module_file') or 'unknown'}`",
+                    f"- Site-packages import: `{container.get('site_packages_import', False)}`",
+                    f"- Source mirrors: {list_or_none([str(entry.get('path') or '') for entry in source_mirrors])}",
+                ]
+            )
+            if control_files:
+                lines.extend(
+                    [
+                        "",
+                        *_render_table(
+                            ["Control path", "Kind", "Impl exists", "Runtime exists", "Impl -> runtime"],
+                            [
+                                [
+                                    f"`{entry.get('relative_path', 'unknown')}`",
+                                    f"`{entry.get('kind', 'unknown')}`",
+                                    f"`{entry.get('implementation_exists', False)}`",
+                                    f"`{entry.get('runtime_exists', False)}`",
+                                    f"`{entry.get('implementation_matches_runtime', False)}`",
+                                ]
+                                for entry in control_files
+                            ],
+                        ),
+                    ]
+                )
+
+    if promotion_criteria:
+        lines.extend(["", "## Promotion Criteria", ""])
+        lines.extend(
+            _render_table(
+                ["Criterion", "Status", "Requirement", "Evidence"],
+                [
+                    [
+                        f"`{entry.get('id', 'unknown')}`",
+                        f"`{entry.get('status', 'unknown')}`",
+                        str(entry.get("requirement") or ""),
+                        list_or_none([str(item) for item in entry.get("evidence_paths", [])]),
+                    ]
+                    for entry in promotion_criteria
+                ],
+            )
+        )
+    if packets:
+        lines.extend(["", "## Execution Packets", ""])
+        lines.extend(
+            _render_table(
+                ["Packet", "Status", "Lane", "Approval type", "Goal"],
+                [
+                    [
+                        f"`{entry.get('id', 'unknown')}`",
+                        f"`{entry.get('status', 'unknown')}`",
+                        f"`{entry.get('lane_id', 'unknown')}`",
+                        f"`{entry.get('approval_packet_type', 'unknown')}`",
+                        str(entry.get("goal") or ""),
+                    ]
+                    for entry in packets
+                ],
+            )
+        )
+    if known_gaps:
+        lines.extend(["", "## Known Gaps", ""])
+        lines.extend(
+            _render_table(
+                ["Gap", "Status", "Severity", "Surface", "Description"],
+                [
+                    [
+                        f"`{entry.get('id', 'unknown')}`",
+                        f"`{entry.get('status', 'unknown')}`",
+                        f"`{entry.get('severity', 'unknown')}`",
+                        str(entry.get("surface") or ""),
+                        str(entry.get("description") or ""),
+                    ]
+                    for entry in known_gaps
+                ],
+            )
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def render_runtime_ownership_packets_report() -> str:
+    packets_registry = load_registry("runtime-ownership-packets.json")
+    contract = load_registry("runtime-ownership-contract.json")
+    approval_packets = load_registry("approval-packet-registry.json")
+    latest_snapshot = _load_latest_truth_snapshot() or {}
+    dev_runtime_probe = dict(latest_snapshot.get("dev_runtime_probe") or {})
+    dev_runtime_detail = (
+        dict(dev_runtime_probe.get("detail") or {})
+        if isinstance(dev_runtime_probe.get("detail"), dict)
+        else {}
+    )
+    foundry_agents_runtime_probe = dict(latest_snapshot.get("foundry_agents_runtime_probe") or {})
+    foundry_agents_runtime_detail = (
+        dict(foundry_agents_runtime_probe.get("detail") or {})
+        if isinstance(foundry_agents_runtime_probe.get("detail"), dict)
+        else {}
+    )
+    operator_surface_probe = dict(latest_snapshot.get("operator_surface_probe") or {})
+    dev_command_center_runtime = dict(operator_surface_probe.get("dev_command_center_runtime") or {})
+    dev_command_center_detail = (
+        dict(dev_command_center_runtime.get("detail") or {})
+        if isinstance(dev_command_center_runtime.get("detail"), dict)
+        else {}
+    )
+    lanes = {
+        str(entry.get("id") or ""): dict(entry)
+        for entry in contract.get("lanes", [])
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }
+    approval_packet_labels = {
+        str(entry.get("id") or ""): str(entry.get("label") or "")
+        for entry in approval_packets.get("packet_types", [])
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }
+    packets = [
+        dict(entry)
+        for entry in packets_registry.get("packets", [])
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    ]
+
+    lines = [
+        "# Runtime Ownership Packets",
+        "",
+        "Generated from `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/runtime-ownership-contract.json`, and the cached truth snapshot in `reports/truth-inventory/latest.json` by `scripts/generate_truth_inventory_reports.py`.",
+        "Do not edit manually.",
+        "",
+        f"- Registry version: `{packets_registry.get('version', 'unknown')}`",
+        f"- Cached truth snapshot: `{latest_snapshot.get('collected_at', 'not available') if isinstance(latest_snapshot, dict) else 'not available'}`",
+        f"- Packets tracked: `{len(packets)}`",
+    ]
+
+    if packets:
+        lines.extend(
+            [
+                "",
+                *_render_table(
+                    ["Packet", "Status", "Lane", "Approval type", "Goal"],
+                    [
+                        [
+                            f"`{packet.get('id', 'unknown')}`",
+                            f"`{packet.get('status', 'unknown')}`",
+                            f"`{packet.get('lane_id', 'unknown')}`",
+                            f"`{packet.get('approval_packet_type', 'unknown')}`",
+                            str(packet.get("goal") or ""),
+                        ]
+                        for packet in packets
+                    ],
+                ),
+            ]
+        )
+
+    for packet in packets:
+        lane = lanes.get(str(packet.get("lane_id") or ""), {})
+        lines.extend(
+            [
+                "",
+                f"## {packet.get('id', 'unknown')}",
+                "",
+                f"- Label: `{packet.get('label', 'unknown')}`",
+                f"- Status: `{packet.get('status', 'unknown')}`",
+                f"- Lane: `{packet.get('lane_id', 'unknown')}`",
+                f"- Approval type: `{packet.get('approval_packet_type', 'unknown')}` ({approval_packet_labels.get(str(packet.get('approval_packet_type') or ''), 'unknown')})",
+                f"- Host: `{packet.get('host', 'unknown')}`",
+                f"- Goal: {packet.get('goal', 'unset')}",
+                f"- Lane next action: {lane.get('next_action', 'unset')}",
+                f"- Backup root: `{packet.get('backup_root', 'unset')}`",
+                f"- Evidence: {list_or_none([str(item) for item in packet.get('evidence_paths', [])])}",
+            ]
+        )
+        path_mappings = [dict(entry) for entry in packet.get("path_mappings", []) if isinstance(entry, dict)]
+        if path_mappings:
+            lines.extend(
+                [
+                    "",
+                    *_render_table(
+                        ["Source path", "Runtime path", "Restart units"],
+                        [
+                            [
+                                f"`{entry.get('source_path', 'unknown')}`",
+                                f"`{entry.get('runtime_path', 'unknown')}`",
+                                list_or_none([str(item) for item in entry.get("restart_units", [])]),
+                            ]
+                            for entry in path_mappings
+                        ],
+                    ),
+                ]
+            )
+        target_units = [str(item) for item in packet.get("target_units", []) if str(item).strip()]
+        if target_units:
+            lines.extend(["", f"- Target units: {list_or_none(target_units)}"])
+
+        packet_id = str(packet.get("id") or "")
+        if packet_id == "dev-runtime-repo-sync-packet":
+            lines.extend(
+                [
+                    "",
+                    "### Live evidence",
+                    "",
+                    f"- DEV runtime repo head: `{dev_runtime_detail.get('repo_git_head') or 'unknown'}`",
+                    f"- DEV runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`",
+                ]
+            )
+        elif packet_id == "dev-dashboard-shadow-retirement-packet":
+            legacy_service = dict(dev_command_center_detail.get("legacy_service") or {})
+            container = dict(dev_command_center_detail.get("container") or {})
+            lines.extend(
+                [
+                    "",
+                    "### Live evidence",
+                    "",
+                    f"- Legacy service state: `{legacy_service.get('active_state') or 'unknown'}` / `{legacy_service.get('sub_state') or 'unknown'}`",
+                    f"- Legacy unit file state: `{legacy_service.get('unit_file_state') or 'unknown'}`",
+                    f"- Legacy fragment path: `{legacy_service.get('fragment_path') or 'unknown'}`",
+                    f"- Container running: `{container.get('running', False)}`",
+                    f"- Canonical probe status: `{dev_command_center_detail.get('local_canonical_status_code') or 'unknown'}`",
+                ]
+            )
+        elif packet_id == "dev-heartbeat-opt-deploy-packet":
+            heartbeat_bundle = (
+                dict(dev_runtime_detail.get("heartbeat_bundle") or {})
+                if isinstance(dev_runtime_detail.get("heartbeat_bundle"), dict)
+                else {}
+            )
+            lines.extend(
+                [
+                    "",
+                    "### Live evidence",
+                    "",
+                    f"- Deployed script exists: `{heartbeat_bundle.get('script_exists', False)}`",
+                    f"- Implementation matches deploy root: `{heartbeat_bundle.get('implementation_matches_deploy_root', False)}`",
+                    f"- Host-local env exists: `{heartbeat_bundle.get('env_exists', False)}`",
+                    f"- Runtime venv exists: `{heartbeat_bundle.get('venv_python_exists', False)}`",
+                ]
+            )
+        elif packet_id == "foundry-agents-compose-deploy-packet":
+            container = (
+                dict(foundry_agents_runtime_detail.get("container") or {})
+                if isinstance(foundry_agents_runtime_detail.get("container"), dict)
+                else {}
+            )
+            deployment_root = (
+                dict(foundry_agents_runtime_detail.get("deployment_root") or {})
+                if isinstance(foundry_agents_runtime_detail.get("deployment_root"), dict)
+                else {}
+            )
+            lines.extend(
+                [
+                    "",
+                    "### Live evidence",
+                    "",
+                    f"- Compose root matches expected: `{deployment_root.get('compose_root_matches_expected', False)}`",
+                    f"- Build root clean: `{deployment_root.get('build_root_clean', False)}`",
+                    f"- Nested source dir present: `{deployment_root.get('nested_source_dir_exists', False)}`",
+                    f"- bak-codex files: {list_or_none([str(item) for item in deployment_root.get('bak_codex_files', [])])}",
+                    f"- Container running: `{container.get('running', False)}`",
+                    f"- Container status: `{container.get('status') or 'unknown'}`",
+                    f"- Runtime import path: `{container.get('module_file') or 'unknown'}`",
+                ]
+            )
+
+        for heading, field in (
+            ("Preflight Commands", "preflight_commands"),
+            ("Exact Steps", "exact_steps"),
+            ("Verification Commands", "verification_commands"),
+            ("Rollback Steps", "rollback_steps"),
+        ):
+            entries = [str(item) for item in packet.get(field, []) if str(item).strip()]
+            if not entries:
+                continue
+            lines.extend(["", f"### {heading}", ""])
+            lines.extend([f"- {entry}" for entry in entries])
+
     lines.append("")
     return "\n".join(lines)
 
@@ -2104,6 +2860,10 @@ def render_runtime_cutover_packet() -> str:
 
 def render_autonomy_activation_report() -> str:
     registry = load_registry("autonomy-activation-registry.json")
+    latest_snapshot = _load_latest_truth_snapshot() or {}
+    dev_runtime_probe = dict(latest_snapshot.get("dev_runtime_probe") or {})
+    dev_runtime_detail = dict(dev_runtime_probe.get("detail") or {}) if isinstance(dev_runtime_probe.get("detail"), dict) else {}
+    local_repo_probe = _local_git_probe(str(REPO_ROOT))
     current_phase_id = str(registry.get("current_phase_id") or "")
     phases = [
         dict(item)
@@ -2183,6 +2943,23 @@ def render_autonomy_activation_report() -> str:
                 )
             lines.extend(_render_table(["Blocker", "Status", "Phase Scope", "Evidence"], blocker_rows))
             lines.append("")
+            for item in next_phase_blockers:
+                notes = [str(note).strip() for note in item.get("notes", []) if str(note).strip()]
+                if not notes and str(item.get("id") or "") != "runtime_ownership_maturity":
+                    continue
+                lines.append(f"### {item.get('id', 'unknown')} detail")
+                lines.append("")
+                for note in notes:
+                    lines.append(f"- {note}")
+                if str(item.get("id") or "") == "runtime_ownership_maturity":
+                    lines.append(f"- Implementation repo head: `{local_repo_probe.get('head') or 'unknown'}`")
+                    lines.append(f"- Implementation dirty file count: `{local_repo_probe.get('dirty_count', 0)}`")
+                    if dev_runtime_probe.get("ok"):
+                        lines.append(f"- DEV runtime repo head: `{dev_runtime_detail.get('repo_git_head') or 'unknown'}`")
+                        lines.append(f"- DEV runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`")
+                    else:
+                        lines.append(f"- DEV runtime probe: `{dev_runtime_probe.get('detail') or 'unavailable'}`")
+                lines.append("")
         else:
             lines.extend(["No remaining blockers are registered for the next phase.", ""])
     else:
@@ -2538,6 +3315,152 @@ def render_vault_litellm_repair_packet() -> str:
     return "\n".join(lines)
 
 
+def render_vault_redis_repair_packet() -> str:
+    latest_snapshot = _load_latest_truth_snapshot()
+    snapshot_collected_at = str(latest_snapshot.get("collected_at") or "") if isinstance(latest_snapshot, dict) else ""
+    vault_redis_audit = _load_vault_redis_audit(latest_snapshot)
+    filesystem = dict(vault_redis_audit.get("filesystem") or {})
+    btrfs_usage = dict(vault_redis_audit.get("btrfs_usage") or {})
+    appdatacache_top_consumers = [
+        item for item in vault_redis_audit.get("appdatacache_top_consumers", []) if isinstance(item, dict)
+    ]
+    appdata_top_consumers = [item for item in vault_redis_audit.get("appdata_top_consumers", []) if isinstance(item, dict)]
+    backup_file_top_consumers = [
+        item for item in vault_redis_audit.get("backup_file_top_consumers", []) if isinstance(item, dict)
+    ]
+    stash_generated_top_consumers = [
+        item for item in vault_redis_audit.get("stash_generated_top_consumers", []) if isinstance(item, dict)
+    ]
+    comfyui_model_top_consumers = [
+        item for item in vault_redis_audit.get("comfyui_model_top_consumers", []) if isinstance(item, dict)
+    ]
+    lines = [
+        "# VAULT Redis Repair Packet",
+        "",
+        "Generated from the cached truth snapshot plus the read-only VAULT Redis audit by `scripts/generate_truth_inventory_reports.py`.",
+        "Do not edit manually.",
+        "",
+        f"- Cached truth snapshot: `{snapshot_collected_at or 'not available'}`",
+        f"- Cached redis audit: `{vault_redis_audit.get('observed_at', 'not available')}`",
+        f"- Surface id: `{vault_redis_audit.get('surface_id', 'vault-redis-persistence')}`",
+        f"- Host: `{vault_redis_audit.get('host', 'vault')}`",
+        f"- Runtime owner surface: `{vault_redis_audit.get('runtime_owner_surface', 'unknown')}`",
+        f"- Container: `{vault_redis_audit.get('container_name', 'redis')}`",
+        f"- Container image: `{vault_redis_audit.get('container_image', 'unknown')}`",
+        f"- Restart policy: `{vault_redis_audit.get('container_restart_policy', 'unknown')}`",
+        f"- Data mount source: `{vault_redis_audit.get('data_mount_source', 'unknown')}`",
+        f"- Data mount destination: `{vault_redis_audit.get('data_mount_destination', '/data')}`",
+        f"- Reconciliation runbook: [redis-reconciliation.md](/C:/Athanor/docs/runbooks/redis-reconciliation.md)",
+        f"- Companion snapshot: [latest.json](/C:/Athanor/reports/truth-inventory/latest.json)",
+        "",
+        "## Current Runtime Truth",
+        "",
+        f"- Persistence blocker code: `{vault_redis_audit.get('persistence_blocker_code', 'unknown')}`",
+        f"- Persistence blocker detail: {vault_redis_audit.get('persistence_blocker_detail', 'unknown')}",
+        f"- Latest temp-RDB no-space error: `{vault_redis_audit.get('latest_no_space_error_at', 'unknown')}`",
+        f"- Latest background-save error: `{vault_redis_audit.get('latest_background_save_error_at', 'unknown')}`",
+        f"- Latest cross-protocol warning: `{vault_redis_audit.get('latest_security_attack_at', 'none')}`",
+        f"- Temp-RDB no-space error count in audit tail: `{vault_redis_audit.get('no_space_error_count', 0)}`",
+        f"- Background-save error count in audit tail: `{vault_redis_audit.get('background_save_error_count', 0)}`",
+        f"- Cross-protocol warning count in audit tail: `{vault_redis_audit.get('security_attack_count', 0)}`",
+        f"- Redis data directory size: `{_format_bytes(vault_redis_audit.get('redis_data_dir_size_bytes'))}`",
+        f"- Filesystem device: `{filesystem.get('filesystem', 'unknown')}`",
+        f"- Filesystem size: `{_format_bytes(filesystem.get('size_bytes'))}`",
+        f"- Filesystem used: `{_format_bytes(filesystem.get('used_bytes'))}`",
+        f"- Filesystem available: `{_format_bytes(filesystem.get('available_bytes'))}`",
+        f"- Filesystem used percent: `{filesystem.get('used_percent', 'unknown')}`",
+        f"- Filesystem mountpoint: `{filesystem.get('mountpoint', 'unknown')}`",
+        f"- Btrfs device allocated: `{btrfs_usage.get('device_allocated', 'unknown')}`",
+        f"- Btrfs device unallocated: `{btrfs_usage.get('device_unallocated', 'unknown')}`",
+        f"- Btrfs free estimate: `{btrfs_usage.get('free_estimated', 'unknown')}`",
+        f"- Next live action: {vault_redis_audit.get('operator_next_action', 'unknown')}",
+        "",
+        "## Largest Consumers On The Backing Filesystem",
+        "",
+        "### /mnt/appdatacache",
+        "",
+        *_render_size_rankings(
+            appdatacache_top_consumers,
+            empty_text="No appdatacache consumer census is available in the current audit.",
+        ),
+        "",
+        "### /mnt/appdatacache/appdata",
+        "",
+        *_render_size_rankings(
+            appdata_top_consumers,
+            empty_text="No appdata consumer census is available in the current audit.",
+        ),
+        "",
+        "### /mnt/appdatacache/backups (top files)",
+        "",
+        *_render_size_rankings(
+            backup_file_top_consumers,
+            empty_text="No backup-file census is available in the current audit.",
+        ),
+        "",
+        "### /mnt/appdatacache/appdata/stash/generated",
+        "",
+        *_render_size_rankings(
+            stash_generated_top_consumers,
+            empty_text="No stash/generated consumer census is available in the current audit.",
+        ),
+        "",
+        "### /mnt/appdatacache/models/comfyui",
+        "",
+        *_render_size_rankings(
+            comfyui_model_top_consumers,
+            empty_text="No ComfyUI model census is available in the current audit.",
+        ),
+        "",
+        "## Interpretation",
+        "",
+        "The live blocker is not Redis logical drift. It is Redis persistence failure on VAULT: Redis cannot create temporary RDB files on the current `/data` backing store.",
+        "The new storage census shows the pressure is not coming from Redis itself. Redis is roughly tens of megabytes, while the backing volume is dominated by `appdata`, `models`, `backups`, and `system`, and within `appdata` the largest paths are `stash`, `plex`, `tdarr`, `loki`, and `prometheus`.",
+        "The current lowest-risk recovery candidates are the dated `backups` tarballs, especially the large `stash_*` and `plex_*` archives, because they can be moved or pruned before touching live `stash/generated` artifacts or live ComfyUI model weights.",
+        "The repeated `Possible SECURITY ATTACK` warnings from FOUNDRY were a separate health-probe bug. Those warnings stopped after the agent health probe was changed to use a real Redis `PING`, so they are no longer the primary blocker.",
+        "",
+        "## Approved Maintenance Sequence",
+        "",
+        "1. Re-run the read-only Redis audit and confirm the blocker is still `rdb_temp_file_no_space` before touching VAULT runtime state.",
+        "2. Confirm the `/data` bind mount and backing filesystem posture on VAULT, including current filesystem availability and Btrfs allocation state.",
+        "3. Recover or expand allocatable space on the backing appdatacache filesystem. Start with the least disruptive high-yield targets in `/mnt/appdatacache/backups`, especially the dated `stash_*` and `plex_*` tarballs, before touching live `stash/generated` artifacts or live ComfyUI model weights.",
+        "4. Once space has been recovered, verify Redis can create temp RDB files again and that `BGSAVE` or the next automatic save completes without `MISCONF`.",
+        "5. Only if persistence remains blocked after space recovery, treat container relocation, bind-mount change, or Redis data-path reconfiguration as a separate approved maintenance step.",
+        "6. Re-run the Redis audit, truth collector, generated reports, and live health probe so the dependency blocker clears from evidence instead of operator memory.",
+        "",
+        "## Read-Only Verification Commands",
+        "",
+        *_fenced_block(
+            "powershell",
+            [
+                "python scripts/vault_redis_audit.py --write reports/truth-inventory/vault-redis-audit.json",
+                "python scripts/collect_truth_inventory.py",
+                "python scripts/generate_truth_inventory_reports.py --report vault_redis_repair_packet",
+                "python scripts/validate_platform_contract.py",
+                "ssh foundry \"curl -sS http://localhost:9000/health\"",
+            ],
+        ),
+        "",
+        "## Live Repair Commands To Use During The Approved Maintenance Window",
+        "",
+        *_fenced_block(
+            "powershell",
+            [
+                "python scripts/vault-ssh.py \"docker inspect redis > /mnt/user/appdata/redis/redis.inspect.$(date +%Y%m%d-%H%M%S).json\"",
+                "python scripts/vault-ssh.py \"df -h /mnt/appdatacache /mnt/appdatacache/appdata/redis\"",
+                "python scripts/vault-ssh.py \"btrfs filesystem usage /mnt/appdatacache\"",
+                "python scripts/vault-ssh.py \"du -x -B1 -d1 /mnt/appdatacache 2>/dev/null | sort -n | tail -12\"",
+                "python scripts/vault-ssh.py \"du -x -B1 -d1 /mnt/appdatacache/appdata 2>/dev/null | sort -n | tail -15\"",
+                "python scripts/vault-ssh.py \"du -sh /mnt/appdatacache/appdata/redis\"",
+                "python scripts/vault-ssh.py \"docker exec redis redis-cli LASTSAVE\"",
+                "python scripts/vault-ssh.py \"docker exec redis redis-cli INFO persistence\"",
+            ],
+        ),
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def render_secret_surface_report() -> str:
     registry = load_registry("credential-surface-registry.json")
     latest_snapshot = _load_latest_truth_snapshot()
@@ -2717,9 +3640,12 @@ REPORT_RENDERERS = {
     "operator_surfaces": render_operator_surface_report,
     "tooling": render_tooling_report,
     "repo_roots": render_repo_roots_report,
+    "runtime_ownership": render_runtime_ownership_report,
+    "runtime_ownership_packets": render_runtime_ownership_packets_report,
     "runtime_migrations": render_runtime_migration_report,
     "runtime_cutover": render_runtime_cutover_packet,
     "vault_litellm_repair_packet": render_vault_litellm_repair_packet,
+    "vault_redis_repair_packet": render_vault_redis_repair_packet,
     "autonomy_activation": render_autonomy_activation_report,
     "drift": render_truth_drift_report,
     "secret_surfaces": render_secret_surface_report,

@@ -1,11 +1,11 @@
 {
-  "version": "2026-03-29.2",
-  "updated_at": "2026-03-29T06:58:00Z",
-  "status": "live_partial",
+  "version": "2026-04-02.4",
+  "updated_at": "2026-04-02T14:15:00Z",
+  "status": "live",
   "source_of_truth": "config/automation-backbone/autonomy-activation-registry.json",
-  "current_phase_id": "software_core_phase_1",
-  "activation_state": "software_core_active",
-  "broad_autonomy_enabled": false,
+  "current_phase_id": "full_system_phase_3",
+  "activation_state": "full_system_active",
+  "broad_autonomy_enabled": true,
   "runtime_mutations_approval_gated": true,
   "promotion_rule": "Update this registry first, then regenerate reports and rerun validators before widening autonomy scope.",
   "prerequisites": [
@@ -41,13 +41,14 @@
     {
       "id": "vault_provider_auth_repair",
       "label": "VAULT LiteLLM provider auth repair",
-      "status": "pending",
+      "status": "verified",
       "phase_scope": "expanded_core_phase_2",
       "notes": [
-        "The first software-core phase can run on currently proven local and cloud lanes, but broader API-backed autonomy should not widen until the auth-failed Vault providers are repaired.",
-        "The generated packet already enumerates the exact missing env names and re-probe sequence."
+        "Expanded-core sidecar activation is now bounded to the local machine lane: `home-agent`, `media-agent`, `stash-agent`, and `data-curator` are explicitly local-only in the canonical routing policy, so the auth-failed VAULT API lanes do not gate this promotion.",
+        "The generated packet remains the maintenance source of truth for repairing the auth-failed VAULT API lanes, but those lanes stay demoted out of ordinary auto-routing until real credentials or explicit operator scope changes exist."
       ],
       "evidence_paths": [
+        "projects/agents/config/subscription-routing-policy.yaml",
         "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md",
         "docs/operations/SECRET-SURFACE-REPORT.md",
         "docs/operations/PROVIDER-CATALOG-REPORT.md"
@@ -56,14 +57,23 @@
     {
       "id": "runtime_ownership_maturity",
       "label": "Runtime ownership maturity",
-      "status": "pending",
+      "status": "verified",
       "phase_scope": "full_system_phase_3",
       "notes": [
-        "Broader full-system autonomy still depends on tightening DEV and VAULT runtime ownership so host-level mutations and maintenance work stop relying on implied operator memory."
+        "The DESK-side SSH-backed VAULT operator path is restored and the repo-roots registry now names the active runtime-state surfaces on both hosts, so browser-terminal-only recovery is no longer the only viable operator channel.",
+        "The retired governor-facade runtime-owned caller seam is now mirror-clean again, and the broader implementation-runtime split is governed by explicit repo-sync, dashboard-shadow, heartbeat, runtime-state, and VAULT maintenance lanes instead of ad hoc deployment memory.",
+        "The dashboard shadow unit is masked as a recovery-only path, the heartbeat /opt deploy packet has been executed and verified, and the remaining repo-root sync work is an explicit governed maintenance packet rather than an implicit promotion blocker."
       ],
       "evidence_paths": [
         "config/automation-backbone/repo-roots-registry.json",
-        "docs/operations/TRUTH-DRIFT-REPORT.md"
+        "config/automation-backbone/runtime-ownership-contract.json",
+        "config/automation-backbone/runtime-ownership-packets.json",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/RUNTIME-MIGRATION-REPORT.md",
+        "docs/operations/TRUTH-DRIFT-REPORT.md",
+        "scripts/vault-ssh.py",
+        "scripts/ssh-vault.ps1"
       ]
     }
   ],
@@ -147,7 +157,7 @@
     {
       "id": "expanded_core_phase_2",
       "label": "Expanded core autonomy",
-      "status": "blocked",
+      "status": "active",
       "scope": "bounded_plus_domain_sidecars",
       "enabled_agents": [
         "coding-agent",
@@ -186,7 +196,7 @@
         "creative or refusal-sensitive autonomy"
       ],
       "entry_criteria": [
-        "The VAULT LiteLLM auth-repair packet is complete for the currently blocked API lanes.",
+        "The currently auth-failed VAULT API lanes are either repaired or explicitly kept out of ordinary auto-routing with packet-backed evidence.",
         "Weak CLI and billing lanes have either been verified or explicitly kept demoted."
       ],
       "success_criteria": [
@@ -196,7 +206,7 @@
     {
       "id": "full_system_phase_3",
       "label": "Full-system autonomy",
-      "status": "planned",
+      "status": "active",
       "scope": "broad_with_explicit_exceptions",
       "enabled_agents": [
         "coding-agent",

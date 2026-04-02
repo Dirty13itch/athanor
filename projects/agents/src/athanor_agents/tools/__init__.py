@@ -14,9 +14,17 @@ from .execution import (
     run_command,
     DELEGATION_TOOLS, FILESYSTEM_TOOLS, SHELL_TOOLS, EXECUTION_TOOLS,
 )
+from .research import search_knowledge, query_infrastructure
 
 ALL_TOOLS = [
     *SYSTEM_TOOLS,
     delegate_to_agent, check_task_status,
     read_file, write_file, list_directory, search_files,
+]
+
+GENERAL_ASSISTANT_TOOLS = [
+    *SYSTEM_TOOLS,
+    delegate_to_agent, check_task_status,
+    read_file, list_directory, search_files,
+    search_knowledge, query_infrastructure,
 ]

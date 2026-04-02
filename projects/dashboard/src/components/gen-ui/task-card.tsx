@@ -35,7 +35,7 @@ export function TaskCard({ task }: { task: TaskStatusParsed }) {
         )}
       </div>
       <a
-        href="/tasks"
+        href="/runs"
         className="shrink-0 text-[10px] text-primary hover:underline"
       >
         View

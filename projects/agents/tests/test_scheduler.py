@@ -7,11 +7,13 @@ Covers:
 - Schedule constants
 """
 
+import asyncio
 import importlib.util
 import os
 import sys
+import types
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # Mock dependencies
 _mock_config = MagicMock()
@@ -180,3 +182,151 @@ class TestSchedulerPriorities:
             assert config["priority"] in valid, (
                 f"{agent} has invalid priority: {config['priority']}"
             )
+
+
+class TestSchedulerControlScopes:
+    def test_builtin_scope_mappings_cover_native_loop_jobs(self):
+        assert scheduler.get_schedule_control_scope("pipeline-cycle") == "scheduler"
+        assert scheduler.get_schedule_control_scope("owner-model") == "scheduler"
+        assert scheduler.get_schedule_control_scope("nightly-optimization") == "scheduler"
+        assert scheduler.get_schedule_control_scope("creative-cascade") == "scheduler"
+        assert scheduler.get_schedule_control_scope("code-cascade") == "scheduler"
+        assert scheduler.get_schedule_control_scope("weekly-dpo-training") == "benchmark_cycle"
+        assert scheduler.get_schedule_control_scope("knowledge-refresh") == "maintenance"
+        assert scheduler.get_schedule_control_scope("research:scheduler") == "research_jobs"
+
+
+class TestManualJobGovernanceContext:
+    def test_manual_governance_context_covers_native_loop_jobs(self):
+        assert scheduler._manual_job_governance_context("pipeline-cycle") == ("pipeline", "system")
+        assert scheduler._manual_job_governance_context("owner-model") == ("owner_model", "system")
+        assert scheduler._manual_job_governance_context("nightly-optimization") == (
+            "nightly_optimization",
+            "system",
+        )
+        assert scheduler._manual_job_governance_context("knowledge-refresh") == (
+            "knowledge_refresh",
+            "system",
+        )
+        assert scheduler._manual_job_governance_context("weekly-dpo-training") == (
+            "weekly_dpo_training",
+            "system",
+        )
+        assert scheduler._manual_job_governance_context("creative-cascade") == (
+            "creative_cascade",
+            "creative-agent",
+        )
+        assert scheduler._manual_job_governance_context("code-cascade") == (
+            "code_cascade",
+            "coding-agent",
+        )
+
+
+class TestManualRunnerHelpers:
+    def test_manual_runner_helpers_exist_for_scheduler_routes(self):
+        assert hasattr(scheduler, "_run_agent_schedule")
+        assert hasattr(scheduler, "_run_daily_digest")
+        assert hasattr(scheduler, "_run_consolidation_job")
+        assert hasattr(scheduler, "_run_pattern_detection_job")
+
+
+class _FakeRedis:
+    def __init__(self, last_run=None):
+        self.last_run = last_run
+        self.set_calls = []
+
+    async def get(self, key):
+        if key == scheduler.PIPELINE_KEY:
+            return self.last_run
+        return None
+
+    async def set(self, key, value):
+        self.set_calls.append((key, value))
+
+
+class TestBackgroundPipelineTimeouts:
+    def test_background_pipeline_uses_shared_timeout_budget(self):
+        fake_redis = _FakeRedis()
+        policy = SimpleNamespace(
+            phase_id="full_system_phase_3",
+            is_active=True,
+            activation_state="full_system_active",
+            phase_status="active",
+            enabled_agents=frozenset({"general-assistant", "coding-agent"}),
+            allowed_workload_classes=frozenset({"workplan_generation"}),
+            blocked_workload_classes=frozenset(),
+            unmet_prerequisite_ids=(),
+            broad_autonomy_enabled=True,
+            runtime_mutations_approval_gated=True,
+        )
+        pipeline_module = types.ModuleType("athanor_agents.work_pipeline")
+        pipeline_module.PIPELINE_CYCLE_TIMEOUT_SECONDS = 900
+
+        async def _run_pipeline_cycle():
+            return SimpleNamespace(
+                intents_mined=1,
+                intents_new=1,
+                plans_created=1,
+                tasks_submitted=1,
+                tasks_held=0,
+            )
+
+        async def _wait_for(coro, timeout):
+            assert timeout == 900
+            return await coro
+
+        pipeline_module.run_pipeline_cycle = _run_pipeline_cycle
+
+        with (
+            patch.object(scheduler, "_get_redis", AsyncMock(return_value=fake_redis)),
+            patch.object(scheduler, "_load_autonomy_policy", return_value=policy),
+            patch.object(scheduler.asyncio, "wait_for", _wait_for),
+            patch.object(scheduler, "logger") as logger,
+            patch.dict(sys.modules, {"athanor_agents.work_pipeline": pipeline_module}),
+        ):
+            asyncio.run(scheduler._check_work_pipeline())
+
+        assert fake_redis.set_calls
+        logger.warning.assert_not_called()
+
+    def test_background_pipeline_logs_timeout_without_blank_error(self):
+        fake_redis = _FakeRedis()
+        policy = SimpleNamespace(
+            phase_id="full_system_phase_3",
+            is_active=True,
+            activation_state="full_system_active",
+            phase_status="active",
+            enabled_agents=frozenset({"general-assistant", "coding-agent"}),
+            allowed_workload_classes=frozenset({"workplan_generation"}),
+            blocked_workload_classes=frozenset(),
+            unmet_prerequisite_ids=(),
+            broad_autonomy_enabled=True,
+            runtime_mutations_approval_gated=True,
+        )
+        pipeline_module = types.ModuleType("athanor_agents.work_pipeline")
+        pipeline_module.PIPELINE_CYCLE_TIMEOUT_SECONDS = 900
+
+        async def _run_pipeline_cycle():
+            await asyncio.sleep(0)
+            return None
+
+        async def _wait_for(coro, timeout):
+            assert timeout == 900
+            coro.close()
+            raise asyncio.TimeoutError()
+
+        pipeline_module.run_pipeline_cycle = _run_pipeline_cycle
+
+        with (
+            patch.object(scheduler, "_get_redis", AsyncMock(return_value=fake_redis)),
+            patch.object(scheduler, "_load_autonomy_policy", return_value=policy),
+            patch.object(scheduler.asyncio, "wait_for", _wait_for),
+            patch.object(scheduler, "logger") as logger,
+            patch.dict(sys.modules, {"athanor_agents.work_pipeline": pipeline_module}),
+        ):
+            asyncio.run(scheduler._check_work_pipeline())
+
+        logger.warning.assert_called_once_with(
+            "Scheduler: work pipeline cycle timed out after %ds",
+            900,
+        )

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/empty-state";
 import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operator-session";
 
 interface PlanTask {
+  id: string;
   agent: string;
   prompt: string;
   priority: string;
@@ -16,9 +18,9 @@ interface PlanTask {
   task_id?: string;
 }
 
-interface WorkPlan {
+interface WorkPlanSnapshot {
   plan_id: string;
-  generated_at: number; // Unix timestamp
+  generated_at: number;
   focus: string;
   tasks: PlanTask[];
   task_count: number;
@@ -30,10 +32,36 @@ interface OutputFile {
   modified: number;
 }
 
+interface BacklogItem {
+  id: string;
+  title: string;
+  prompt: string;
+  owner_agent: string;
+  status: string;
+  scope_id?: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface RunItem {
+  id: string;
+  backlog_id?: string;
+  status: string;
+  summary?: string;
+  updated_at?: string | number | null;
+  metadata?: Record<string, unknown>;
+}
+
+interface OperatorSummary {
+  backlog?: { total?: number; by_status?: Record<string, number> };
+  bootstrap?: { active_family?: string; active_program_id?: string; last_updated_at?: string };
+  outputs?: { recent?: OutputFile[] };
+}
+
 interface WorkPlanData {
-  current_plan: WorkPlan | null;
+  current_plan: WorkPlanSnapshot | null;
   needs_refill: boolean;
-  history: WorkPlan[];
+  history: WorkPlanSnapshot[];
+  recent_outputs: OutputFile[];
 }
 
 function timeAgo(ts: number): string {
@@ -51,8 +79,10 @@ function statusColor(status?: string): string {
     case "completed":
       return "bg-green-500";
     case "running":
+    case "scheduled":
       return "bg-primary animate-pulse";
     case "failed":
+    case "blocked":
       return "bg-red-500";
     default:
       return "bg-zinc-500";
@@ -73,11 +103,65 @@ function agentColor(agent: string): string {
   return map[agent] ?? "text-muted-foreground";
 }
 
+function buildPlanFromCanonicalState(
+  summary: OperatorSummary,
+  backlog: BacklogItem[],
+  runs: RunItem[]
+): WorkPlanData {
+  const latestRunByBacklogId = new Map<string, RunItem>();
+  for (const run of runs) {
+    const backlogId = String(run.backlog_id ?? run.metadata?.["backlog_id"] ?? "").trim();
+    if (!backlogId || latestRunByBacklogId.has(backlogId)) {
+      continue;
+    }
+    latestRunByBacklogId.set(backlogId, run);
+  }
+
+  const tasks = backlog.slice(0, 8).map((item) => {
+    const latestRun = latestRunByBacklogId.get(item.id);
+    const metadata = item.metadata ?? {};
+    return {
+      id: item.id,
+      agent: item.owner_agent,
+      prompt: item.prompt || item.title,
+      priority: String(metadata["priority_band"] ?? "normal"),
+      project: item.scope_id || undefined,
+      rationale: String(metadata["last_dispatch_reason"] ?? ""),
+      status: latestRun?.status ?? item.status,
+      task_id: String(metadata["latest_task_id"] ?? latestRun?.id ?? ""),
+    };
+  });
+
+  const activeFamily = String(summary.bootstrap?.active_family ?? "").trim();
+  const generatedAtRaw = String(summary.bootstrap?.last_updated_at ?? "");
+  const generatedAt = generatedAtRaw ? Math.floor(new Date(generatedAtRaw).getTime() / 1000) : Math.floor(Date.now() / 1000);
+  const totalBacklog = Number(summary.backlog?.total ?? backlog.length);
+  const focus = activeFamily
+    ? `Bootstrap focus: ${activeFamily.replace(/_/g, " ")}`
+    : totalBacklog > 0
+      ? `Operator backlog has ${totalBacklog} captured slices ready for continued execution.`
+      : "Operator backlog is empty.";
+
+  return {
+    current_plan: tasks.length
+      ? {
+          plan_id: String(summary.bootstrap?.active_program_id ?? "operator-backlog"),
+          generated_at: generatedAt,
+          focus,
+          tasks,
+          task_count: tasks.length,
+        }
+      : null,
+    needs_refill: tasks.length === 0,
+    history: [],
+    recent_outputs: Array.isArray(summary.outputs?.recent) ? summary.outputs.recent : [],
+  };
+}
+
 export function WorkPlan() {
   const session = useOperatorSessionStatus();
   const locked = isOperatorSessionLocked(session);
   const [data, setData] = useState<WorkPlanData | null>(null);
-  const [outputs, setOutputs] = useState<OutputFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
   const [redirectSent, setRedirectSent] = useState(false);
@@ -86,7 +170,6 @@ export function WorkPlan() {
   useEffect(() => {
     if (locked) {
       setData(null);
-      setOutputs([]);
       setLoading(false);
       return;
     }
@@ -95,59 +178,47 @@ export function WorkPlan() {
 
     async function fetchData() {
       try {
-        const [workforceRes, outputsRes] = await Promise.all([
-          fetch("/api/workforce", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-          fetch("/api/outputs", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+        const [summaryRes, backlogRes, runsRes] = await Promise.all([
+          fetch("/api/operator/summary", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+          fetch("/api/operator/backlog?limit=12", { signal: AbortSignal.timeout(5000) }).catch(() => null),
+          fetch("/api/operator/runs?limit=25", { signal: AbortSignal.timeout(5000) }).catch(() => null),
         ]);
 
-        if (mounted) {
-          if (workforceRes?.ok) {
-            const workforce = await workforceRes.json();
-            const taskStatusById = new Map<string, string>(
-              (workforce?.tasks ?? []).map((task: { id: string; status: string }) => [task.id, task.status])
-            );
-            setData({
-              current_plan: workforce?.workplan?.current
-                ? {
-                    plan_id: workforce.workplan.current.planId,
-                    generated_at: Math.floor(new Date(workforce.workplan.current.generatedAt).getTime() / 1000),
-                    focus: workforce.workplan.current.focus,
-                    tasks: (workforce.workplan.current.tasks ?? []).map((task: {
-                      agentId: string;
-                      prompt: string;
-                      priority: string;
-                      projectId?: string | null;
-                      rationale?: string | null;
-                      taskId?: string | null;
-                    }) => ({
-                      agent: task.agentId,
-                      prompt: task.prompt,
-                      priority: task.priority,
-                      project: task.projectId ?? undefined,
-                      rationale: task.rationale ?? undefined,
-                      status: task.taskId ? taskStatusById.get(task.taskId) : undefined,
-                      task_id: task.taskId ?? undefined,
-                    })),
-                    task_count: workforce.workplan.current.taskCount,
-                  }
-                : null,
-              needs_refill: workforce?.workplan?.needsRefill ?? false,
-              history: [],
-            });
-          }
-          if (outputsRes?.ok) {
-            const d = await outputsRes.json();
-            setOutputs(d.outputs ?? []);
-          }
-          setLoading(false);
+        if (!mounted) {
+          return;
+        }
+
+        if (summaryRes?.ok && backlogRes?.ok && runsRes?.ok) {
+          const [summary, backlogPayload, runsPayload] = await Promise.all([
+            summaryRes.json(),
+            backlogRes.json(),
+            runsRes.json(),
+          ]);
+          setData(
+            buildPlanFromCanonicalState(
+              (summary ?? {}) as OperatorSummary,
+              Array.isArray(backlogPayload?.backlog) ? (backlogPayload.backlog as BacklogItem[]) : [],
+              Array.isArray(runsPayload?.runs) ? (runsPayload.runs as RunItem[]) : []
+            )
+          );
+        } else {
+          setData({ current_plan: null, needs_refill: true, history: [], recent_outputs: [] });
         }
       } catch {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setData({ current_plan: null, needs_refill: true, history: [], recent_outputs: [] });
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
 
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
+    void fetchData();
+    const interval = setInterval(() => {
+      void fetchData();
+    }, 30000);
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -182,21 +253,32 @@ export function WorkPlan() {
     setRedirectSent(false);
 
     try {
-      await fetch("/api/workforce/redirect", {
+      await fetch("/api/operator/backlog", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ direction }),
+        body: JSON.stringify({
+          title: "Operator redirect",
+          prompt: direction,
+          owner_agent: "general-assistant",
+          scope_type: "global",
+          scope_id: "athanor",
+          work_class: "routing",
+          priority: 3,
+          metadata: {
+            redirect_intent: true,
+            created_from: "work-plan-card",
+          },
+          reason: "Created operator redirect from work plan card",
+        }),
         signal: AbortSignal.timeout(10000),
       });
     } catch {
-      // Server still processes even if proxy times out
+      // The dashboard proxy may time out while the agent server still accepts the request.
     }
 
     setRedirecting(false);
     setRedirectSent(true);
     if (inputRef.current) inputRef.current.value = "";
-
-    // Clear "sent" indicator after a few seconds
     setTimeout(() => setRedirectSent(false), 4000);
   }
 
@@ -213,9 +295,9 @@ export function WorkPlan() {
   const plan = data?.current_plan;
   const tasks = plan?.tasks ?? [];
   const completed = tasks.filter((t) => t.status === "completed").length;
-  const running = tasks.filter((t) => t.status === "running").length;
-  const failed = tasks.filter((t) => t.status === "failed").length;
-  const recentOutputs = outputs.slice(0, 4);
+  const running = tasks.filter((t) => ["running", "scheduled"].includes(t.status ?? "")).length;
+  const failed = tasks.filter((t) => ["failed", "blocked"].includes(t.status ?? "")).length;
+  const recentOutputs = data?.recent_outputs?.slice(0, 4) ?? [];
 
   return (
     <Card>
@@ -224,7 +306,7 @@ export function WorkPlan() {
           <span className="font-mono text-xs text-primary/70">WP</span>
           <span>Work Plan</span>
           {plan && (
-            <span className="text-xs font-normal text-muted-foreground ml-auto">
+            <span className="ml-auto text-xs font-normal text-muted-foreground">
               {timeAgo(plan.generated_at)}
             </span>
           )}
@@ -233,71 +315,59 @@ export function WorkPlan() {
       <CardContent className="space-y-3">
         {!plan ? (
           <p className="text-xs text-muted-foreground">
-            No active work plan. The scheduler generates plans at 7:00 AM or when the queue runs low.
+            No canonical work plan is active. Capture a redirect or promote more backlog to keep the builder loop moving.
           </p>
         ) : (
           <>
-            {/* Focus / summary */}
-            {plan.focus && (
-              <p className="text-xs text-muted-foreground italic">
-                {plan.focus}
-              </p>
-            )}
+            {plan.focus ? (
+              <p className="text-xs italic text-muted-foreground">{plan.focus}</p>
+            ) : null}
 
-            {/* Progress bar */}
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-muted-foreground">
                   {completed}/{tasks.length} tasks
                 </span>
-                {running > 0 && (
+                {running > 0 ? (
                   <span className="flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                    {running} running
+                    {running} active
                   </span>
-                )}
-                {failed > 0 && (
+                ) : null}
+                {failed > 0 ? (
                   <span className="flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                    {failed} failed
+                    {failed} blocked
                   </span>
-                )}
-                {data?.needs_refill && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                    needs refill
-                  </Badge>
-                )}
+                ) : null}
               </div>
-              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+              <div className="h-1.5 w-full overflow-hidden rounded bg-zinc-800">
                 <div
-                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  className="h-full bg-primary transition-all"
                   style={{ width: `${tasks.length > 0 ? (completed / tasks.length) * 100 : 0}%` }}
                 />
               </div>
             </div>
 
-            {/* Task list */}
-            <div className="space-y-1.5">
-              {tasks.map((task, i) => (
-                <div
-                  key={task.task_id ?? i}
-                  className="flex items-start gap-2 text-xs"
-                >
-                  <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${statusColor(task.status)}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`font-mono text-[10px] ${agentColor(task.agent)}`}>
-                        {task.agent.replace("-agent", "").replace("-assistant", "")}
-                      </span>
-                      {task.project && (
-                        <span className="text-[10px] text-muted-foreground/50">
-                          {task.project}
-                        </span>
-                      )}
+            <div className="space-y-2">
+              {tasks.slice(0, 4).map((task) => (
+                <div key={task.id} className="rounded-md border border-border/50 p-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-xs font-medium ${agentColor(task.agent)}`}>
+                        {task.agent}
+                      </div>
+                      <div className="mt-1 text-sm line-clamp-2">{task.prompt}</div>
+                      {task.project ? (
+                        <div className="mt-1 text-[11px] text-muted-foreground">{task.project}</div>
+                      ) : null}
                     </div>
-                    <p className="text-muted-foreground leading-relaxed line-clamp-2">
-                      {task.prompt}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${statusColor(task.status)}`} />
+                      <Badge variant="outline" className="text-[10px]">
+                        {task.priority}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -305,58 +375,46 @@ export function WorkPlan() {
           </>
         )}
 
-        {/* Recent outputs */}
-        {recentOutputs.length > 0 && (
-          <div className="border-t border-border pt-2 space-y-1">
-            <span className="text-[10px] uppercase text-muted-foreground tracking-wider">
-              Recent Outputs
-            </span>
-            {recentOutputs.map((o) => (
-              <div key={o.path} className="flex items-center gap-2 text-xs">
-                <span className="h-1 w-1 rounded-full bg-green-500/60 shrink-0" />
-                <span className="font-mono text-muted-foreground truncate">
-                  {o.path.split("/").slice(-2).join("/")}
-                </span>
-                <span className="text-[10px] text-muted-foreground/50 ml-auto shrink-0">
-                  {timeAgo(o.modified)}
-                </span>
-              </div>
-            ))}
-            {outputs.length > 4 && (
-              <p className="text-[10px] text-muted-foreground">
-                +{outputs.length - 4} more
-              </p>
-            )}
+        <div className="border-t border-border/50 pt-2">
+          <div className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+            Redirect the builder
           </div>
-        )}
-
-        {/* Steering input */}
-        <div className="border-t border-border pt-2">
           <div className="flex gap-2">
             <input
               ref={inputRef}
               type="text"
-              placeholder="Steer the plan..."
-              className="flex-1 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleRedirect();
+              placeholder="Tell Athanor what to focus on next..."
+              className="min-w-0 flex-1 rounded border border-border bg-background px-3 py-2 text-sm outline-none"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  void handleRedirect();
+                }
               }}
-              disabled={redirecting}
             />
-            <button
-              onClick={handleRedirect}
-              disabled={redirecting}
-              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-accent transition-colors disabled:opacity-50"
-            >
-              {redirecting ? "..." : "Steer"}
-            </button>
+            <Button size="sm" onClick={() => void handleRedirect()} disabled={redirecting}>
+              {redirecting ? "Sending..." : redirectSent ? "Sent" : "Redirect"}
+            </Button>
           </div>
-          {redirectSent && (
-            <p className="text-[10px] text-green-400 mt-1">
-              Preference saved — new plan generating in background
-            </p>
-          )}
         </div>
+
+        {recentOutputs.length > 0 ? (
+          <div className="border-t border-border/50 pt-2">
+            <div className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              Recent outputs
+            </div>
+            <div className="space-y-1">
+              {recentOutputs.map((file) => (
+                <div
+                  key={file.path}
+                  className="flex items-center justify-between text-xs text-muted-foreground"
+                >
+                  <span className="truncate">{file.path.split(/[\\/]/).pop()}</span>
+                  <span>{Math.round(file.size_bytes / 1024)} KB</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

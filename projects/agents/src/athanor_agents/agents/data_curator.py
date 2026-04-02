@@ -2,9 +2,9 @@
 
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
+from ..persistence import build_checkpointer
 from ..tools.data_curator import DATA_CURATOR_TOOLS
 from .prompting import build_system_prompt
 
@@ -73,11 +73,9 @@ def create_data_curator():
         },
     )
 
-    memory = InMemorySaver()
-
     return create_react_agent(
         model=llm,
         tools=DATA_CURATOR_TOOLS,
-        checkpointer=memory,
+        checkpointer=build_checkpointer(),
         prompt=build_system_prompt(SYSTEM_PROMPT),
     )

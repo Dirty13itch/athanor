@@ -1,9 +1,9 @@
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
-from ..tools import ALL_TOOLS
+from ..persistence import build_checkpointer
+from ..tools import GENERAL_ASSISTANT_TOOLS
 from ..tools.core_memory import CORE_MEMORY_TOOLS
 from .prompting import build_system_prompt
 
@@ -48,11 +48,9 @@ def create_general_assistant():
         },
     )
 
-    memory = InMemorySaver()
-
     return create_react_agent(
         model=llm,
-        tools=ALL_TOOLS + CORE_MEMORY_TOOLS,
-        checkpointer=memory,
+        tools=GENERAL_ASSISTANT_TOOLS + CORE_MEMORY_TOOLS,
+        checkpointer=build_checkpointer(),
         prompt=build_system_prompt(SYSTEM_PROMPT),
     )

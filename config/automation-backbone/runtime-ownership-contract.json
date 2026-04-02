@@ -1,0 +1,320 @@
+{
+  "version": "2026-04-02.5",
+  "updated_at": "2026-04-02T19:30:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/runtime-ownership-contract.json",
+  "promotion_gate_id": "runtime_ownership_maturity",
+  "goal": "Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.",
+  "implementation_authority_root_id": "desk-main",
+  "runtime_authority_root_id": "dev-runtime-repo",
+  "runtime_state_root_ids": [
+    "dev-opt-athanor",
+    "dev-state",
+    "dev-systemd",
+    "dev-cron",
+    "vault-boot-config",
+    "vault-appdata",
+    "vault-appdatacache",
+    "vault-docker-root",
+    "foundry-opt-athanor"
+  ],
+  "lanes": [
+    {
+      "id": "dev-runtime-repo-systemd",
+      "label": "DEV runtime repo mirror lane",
+      "host": "dev",
+      "status": "active",
+      "deployment_mode": "repo_worktree_mirror",
+      "owner_root_ids": [
+        "dev-runtime-repo",
+        "dev-systemd"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Mirror-clean runtime repo on DEV that backs repo-root services and serves as the governed source for repo-based runtime maintenance.",
+      "source_paths": [
+        "."
+      ],
+      "runtime_paths": [
+        "/home/shaun/repos/athanor"
+      ],
+      "active_surfaces": [
+        "/home/shaun/repos/athanor",
+        "athanor-brain.service",
+        "athanor-classifier.service",
+        "athanor-quality-gate.service",
+        "athanor-sentinel.service",
+        "athanor-overnight.service"
+      ],
+      "execution_packet_id": "dev-runtime-repo-sync-packet",
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-MIGRATION-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ],
+      "verification_commands": [
+        "ssh dev \"systemctl show athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service --property=WorkingDirectory,ExecStart --no-pager\"",
+        "ssh dev \"git -C /home/shaun/repos/athanor rev-parse --short HEAD && git -C /home/shaun/repos/athanor status --short | wc -l\""
+      ],
+      "rollback_contract": "Back up the pre-sync DEV repo state under /home/shaun/.athanor/backups/runtime-ownership/<timestamp>/ and preserve a timestamped backup branch before resetting main to the approved mirror commit.",
+      "approval_boundary": "Resetting the DEV runtime repo or restarting repo-root services remains approval-gated.",
+      "next_action": "Execute the dev-runtime-repo-sync-packet to make /home/shaun/repos/athanor a clean mirror of implementation authority, then restart only the repo-root services that actually changed."
+    },
+    {
+      "id": "dev-dashboard-compose",
+      "label": "DEV command center compose lane",
+      "host": "dev",
+      "status": "active",
+      "deployment_mode": "opt_compose_service",
+      "owner_root_ids": [
+        "dev-opt-athanor",
+        "dev-runtime-repo"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Active command center deployment behind Caddy, built from the dashboard project and running from /opt/athanor/dashboard.",
+      "source_paths": [
+        "projects/dashboard/Dockerfile",
+        "projects/dashboard/docker-compose.yml"
+      ],
+      "runtime_paths": [
+        "/home/shaun/repos/athanor/projects/dashboard/Dockerfile",
+        "/home/shaun/repos/athanor/projects/dashboard/docker-compose.yml",
+        "/opt/athanor/dashboard/Dockerfile",
+        "/opt/athanor/dashboard/docker-compose.yml"
+      ],
+      "active_surfaces": [
+        "athanor-dashboard container",
+        "caddy.service",
+        "https://athanor.local/"
+      ],
+      "execution_packet_id": "dev-dashboard-shadow-retirement-packet",
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/OPERATOR-SURFACE-REPORT.md",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ],
+      "verification_commands": [
+        "ssh dev \"docker compose -f /opt/athanor/dashboard/docker-compose.yml ps\"",
+        "ssh dev \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ && curl -sk -o /dev/null -w '%{http_code}' https://athanor.local/\""
+      ],
+      "rollback_contract": "Preserve the previous /opt/athanor/dashboard bundle under /opt/athanor/backups/dashboard/<timestamp>/ before replacing the compose root.",
+      "approval_boundary": "Replacing /opt/athanor/dashboard contents or restarting the live dashboard container remains approval-gated.",
+      "next_action": "Keep athanor-dashboard.service masked as a recovery-only shadow; the active /opt/athanor/dashboard compose lane is the sole ordinary dashboard path."
+    },
+    {
+      "id": "dev-heartbeat-opt",
+      "label": "DEV heartbeat /opt lane",
+      "host": "dev",
+      "status": "active",
+      "deployment_mode": "opt_systemd_service",
+      "owner_root_ids": [
+        "dev-opt-athanor",
+        "dev-systemd"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Node heartbeat daemon launched from /opt/athanor/heartbeat through systemd.",
+      "source_paths": [
+        "scripts/node-heartbeat.py"
+      ],
+      "runtime_paths": [
+        "/opt/athanor/heartbeat/node-heartbeat.py",
+        "/opt/athanor/heartbeat/env"
+      ],
+      "active_surfaces": [
+        "athanor-heartbeat.service"
+      ],
+      "execution_packet_id": "dev-heartbeat-opt-deploy-packet",
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ],
+      "verification_commands": [
+        "ssh dev \"systemctl is-active athanor-heartbeat.service && systemctl cat athanor-heartbeat.service | sed -n '1,120p'\""
+      ],
+      "rollback_contract": "Preserve the previous /opt/athanor/heartbeat bundle under /opt/athanor/backups/heartbeat/<timestamp>/ before replacement.",
+      "approval_boundary": "Changing the heartbeat bundle or its systemd unit remains approval-gated.",
+      "next_action": "Use the executed heartbeat deploy packet as the governed replacement path for future /opt/athanor/heartbeat updates."
+    },
+    {
+      "id": "dev-runtime-state",
+      "label": "DEV runtime state surfaces",
+      "host": "dev",
+      "status": "active",
+      "deployment_mode": "host_state_surface",
+      "owner_root_ids": [
+        "dev-state",
+        "dev-systemd",
+        "dev-cron",
+        "dev-logs"
+      ],
+      "runtime_scope": "Runtime envfiles, work queues, systemd units, cron definitions, and service logs that support live DEV operation.",
+      "runtime_paths": [
+        "/home/shaun/.athanor",
+        "/etc/systemd/system/athanor-*",
+        "/etc/cron.d/athanor-*",
+        "/var/log/athanor"
+      ],
+      "active_surfaces": [
+        "/home/shaun/.athanor/runtime.env",
+        "/home/shaun/.athanor/systemd",
+        "athanor-* systemd estate",
+        "athanor-* cron estate"
+      ],
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/runbooks/local-runtime-env.md"
+      ],
+      "verification_commands": [
+        "ssh dev \"ls -1 /home/shaun/.athanor && systemctl list-unit-files 'athanor-*' --no-legend && ls -1 /etc/cron.d/athanor-* 2>/dev/null\""
+      ],
+      "rollback_contract": "Capture timestamped backups under /home/shaun/.athanor/backups/runtime-state/<timestamp>/ before mutating envfiles, cron, or service units.",
+      "approval_boundary": "Systemd, cron, and other host-level state mutations remain approval-gated.",
+      "next_action": "Keep these state surfaces explicit in reports so runtime maintenance is tied to named roots instead of operator memory."
+    },
+    {
+      "id": "foundry-agents-compose",
+      "label": "FOUNDRY athanor-agents compose lane",
+      "host": "foundry",
+      "status": "active",
+      "deployment_mode": "opt_compose_service",
+      "owner_root_ids": [
+        "foundry-opt-athanor"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Active athanor-agents deployment built from the repo-owned compose bundle under /opt/athanor/agents on FOUNDRY.",
+      "source_paths": [
+        "projects/agents/Dockerfile",
+        "projects/agents/pyproject.toml",
+        "projects/agents/docker-compose.yml",
+        "projects/agents/config/subscription-routing-policy.yaml",
+        "projects/agents/src/athanor_agents",
+        "scripts/deploy-agents.sh"
+      ],
+      "runtime_paths": [
+        "/opt/athanor/agents/Dockerfile",
+        "/opt/athanor/agents/pyproject.toml",
+        "/opt/athanor/agents/docker-compose.yml",
+        "/opt/athanor/agents/config/subscription-routing-policy.yaml",
+        "/opt/athanor/agents/src/athanor_agents",
+        "/usr/local/lib/python3.12/site-packages/athanor_agents"
+      ],
+      "active_surfaces": [
+        "athanor-agents container",
+        "/opt/athanor/agents compose bundle",
+        "http://foundry:9000/health"
+      ],
+      "execution_packet_id": "foundry-agents-compose-deploy-packet",
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "scripts/deploy-agents.sh"
+      ],
+      "verification_commands": [
+        "ssh foundry \"cd /opt/athanor/agents && docker compose ps athanor-agents\"",
+        "ssh foundry \"docker exec athanor-agents python3 -c \\\"import json, pathlib, athanor_agents, athanor_agents.bootstrap_state as bootstrap_state; print(json.dumps({'module': str(pathlib.Path(athanor_agents.__file__).resolve()), 'bootstrap_state': str(pathlib.Path(bootstrap_state.__file__).resolve())}))\\\"\"",
+        "ssh foundry \"curl -sS http://localhost:9000/health\""
+      ],
+      "rollback_contract": "Preserve the previous /opt/athanor/agents bundle under /opt/athanor/backups/agents/<timestamp>/ before replacement, and rebuild the compose lane from that backup if the rollout regresses.",
+      "approval_boundary": "Replacing /opt/athanor/agents contents or rebuilding the live athanor-agents container remains approval-gated.",
+      "next_action": "Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container."
+    },
+    {
+      "id": "vault-runtime-maintenance",
+      "label": "VAULT maintenance and host-state lane",
+      "host": "vault",
+      "status": "active",
+      "deployment_mode": "vault_host_state",
+      "owner_root_ids": [
+        "vault-boot-config",
+        "vault-appdata",
+        "vault-appdatacache",
+        "vault-docker-root"
+      ],
+      "runtime_scope": "Persistent Unraid config, Docker root, appdata, cache, and host-backed maintenance surfaces required for Athanor dependencies.",
+      "runtime_paths": [
+        "/boot/config",
+        "/mnt/user/appdata",
+        "/mnt/appdatacache",
+        "/mnt/docker"
+      ],
+      "active_surfaces": [
+        "repo-owned VAULT SSH helper path",
+        "Docker-backed infrastructure on VAULT",
+        "LiteLLM, Redis, and storage maintenance packets"
+      ],
+      "evidence_paths": [
+        "reports/truth-inventory/vault-redis-audit.json",
+        "reports/truth-inventory/vault-litellm-env-audit.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "scripts/vault-ssh.py",
+        "scripts/ssh-vault.ps1"
+      ],
+      "verification_commands": [
+        "python scripts/vault-ssh.py \"echo CONNECTED && hostname\"",
+        "python scripts/vault_redis_audit.py --write reports/truth-inventory/vault-redis-audit.json"
+      ],
+      "rollback_contract": "Back up /boot/config and any targeted appdata bundle before mutating live VAULT runtime state.",
+      "approval_boundary": "VAULT Docker, env, and host-level mutations remain approval-gated.",
+      "next_action": "Keep VAULT maintenance reachable through repo-owned SSH helpers instead of browser-only access."
+    }
+  ],
+  "promotion_criteria": [
+    {
+      "id": "live_surface_mapping_complete",
+      "status": "met",
+      "requirement": "Every live DEV and VAULT runtime surface relevant to Athanor has one declared ownership lane.",
+      "evidence_paths": [
+        "config/automation-backbone/runtime-ownership-contract.json",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md"
+      ]
+    },
+    {
+      "id": "vault_operator_access_non_browser",
+      "status": "met",
+      "requirement": "VAULT maintenance must be reachable through repo-owned helpers instead of depending on the browser terminal.",
+      "evidence_paths": [
+        "scripts/vault-ssh.py",
+        "scripts/ssh-vault.ps1",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md"
+      ]
+    },
+    {
+      "id": "dashboard_shadow_unit_retired_or_recovery_only",
+      "status": "met",
+      "requirement": "The inactive athanor-dashboard.service unit must be explicitly retired or downgraded to recovery-only so it cannot be mistaken for the active dashboard deployment path.",
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
+      "id": "repo_to_runtime_sync_packet_explicit",
+      "status": "met",
+      "requirement": "The code path from C:/Athanor to /home/shaun/repos/athanor must have one explicit sync packet with verification and rollback instead of generic dirty-repo drift.",
+      "evidence_paths": [
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "config/automation-backbone/runtime-ownership-packets.json",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
+      "id": "opt_root_deploy_contract_complete",
+      "status": "met",
+      "requirement": "Each active /opt/athanor surface must declare source path, deploy mode, verification, and rollback contract.",
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "config/automation-backbone/runtime-ownership-packets.json",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    }
+  ],
+  "known_gaps": []
+}

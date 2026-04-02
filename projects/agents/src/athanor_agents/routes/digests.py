@@ -66,15 +66,19 @@ async def list_digests(limit: int = 10):
     return {"digests": digests, "count": len(digests)}
 
 
-@router.get("/digests/latest")
-async def latest_digest():
-    """Get the most recent digest, or generate one from recent tasks if none stored."""
+async def load_latest_digest_snapshot() -> dict:
+    """Load the latest stored digest or derive one from recent task results."""
     r = await get_redis()
     raw = await r.lrange(DIGESTS_KEY, 0, 0)
     if raw:
-        digest = json.loads(raw[0] if isinstance(raw[0], str) else raw[0].decode())
-        return digest
+        return json.loads(raw[0] if isinstance(raw[0], str) else raw[0].decode())
     return await _generate_digest_from_tasks(r)
+
+
+@router.get("/digests/latest")
+async def latest_digest():
+    """Get the most recent digest, or generate one from recent tasks if none stored."""
+    return await load_latest_digest_snapshot()
 
 
 @router.post("/digests/generate")

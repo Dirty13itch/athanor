@@ -1,9 +1,7 @@
-import { GoalsConsole } from "@/features/workforce/goals-console";
-import { getWorkforceSnapshot } from "@/lib/dashboard-data";
+import { redirect } from "next/navigation";
 
 export const revalidate = 15;
 
 export default async function GoalsPage() {
-  const snapshot = await getWorkforceSnapshot();
-  return <GoalsConsole initialSnapshot={snapshot} />;
+  redirect("/todos");
 }

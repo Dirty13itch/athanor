@@ -495,7 +495,9 @@ export function IntelligenceConsole({
                         size="sm"
                         onClick={() =>
                           void runAction(`approve:${selectedReviewTask.id}`, () =>
-                            postWithoutBody(`/api/workforce/tasks/${selectedReviewTask.id}/approve`)
+                            postWithoutBody(
+                              `/api/operator/approvals/${encodeURIComponent(`approval:${selectedReviewTask.id}`)}/approve`
+                            )
                           )
                         }
                       >
@@ -504,14 +506,14 @@ export function IntelligenceConsole({
                       </Button>
                     ) : null}
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/tasks?agent=${selectedReviewTask.agentId}`}>
+                      <Link href={`/runs?agent=${selectedReviewTask.agentId}`}>
                         <RefreshCcw className="mr-2 h-4 w-4" />
-                        Open task board
+                        Open runs
                       </Link>
                     </Button>
                     {selectedReviewTask.projectId ? (
                       <Button asChild size="sm" variant="outline">
-                        <Link href={`/workplanner?project=${selectedReviewTask.projectId}`}>
+                        <Link href={`/backlog?project=${selectedReviewTask.projectId}`}>
                           <Sparkles className="mr-2 h-4 w-4" />
                           Open project
                         </Link>

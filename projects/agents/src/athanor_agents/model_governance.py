@@ -29,7 +29,18 @@ class AutonomyPhasePolicy:
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[4]
+    preferred: Path | None = None
+    for base in Path(__file__).resolve().parents:
+        if base.joinpath("STATUS.md").exists() and base.joinpath("config", "automation-backbone").exists():
+            return base
+        if base.joinpath("config", "automation-backbone").exists():
+            preferred = base
+    if preferred is not None:
+        return preferred
+    for base in Path(__file__).resolve().parents:
+        if base.joinpath("config", "automation-backbone").exists():
+            return base
+    return Path("/workspace")
 
 
 def _candidate_registry_dirs() -> list[Path]:
@@ -41,6 +52,8 @@ def _candidate_registry_dirs() -> list[Path]:
     repo_root = _repo_root()
     candidates.extend(
         [
+            Path("/workspace/config/automation-backbone"),
+            Path("/workspace/config"),
             repo_root / "config" / "automation-backbone",
             Path.cwd() / "config" / "automation-backbone",
             Path.cwd() / "config",
@@ -62,6 +75,8 @@ def _candidate_reports_dirs() -> list[Path]:
     repo_root = _repo_root()
     candidates.extend(
         [
+            Path("/output/reports/truth-inventory"),
+            Path("/workspace/reports/truth-inventory"),
             repo_root / "reports" / "truth-inventory",
             Path.cwd() / "reports" / "truth-inventory",
             Path("/app/reports/truth-inventory"),
@@ -346,6 +361,34 @@ def get_program_operating_system() -> dict[str, Any]:
     return _load_registry("program-operating-system.json")
 
 
+def get_coding_lane_registry() -> dict[str, Any]:
+    return _load_registry("coding-lane-registry.json")
+
+
+def get_memory_namespace_registry() -> dict[str, Any]:
+    return _load_registry("memory-namespace-registry.json")
+
+
+def get_source_policy_registry() -> dict[str, Any]:
+    return _load_registry("source-policy-registry.json")
+
+
+def get_project_packet_registry() -> dict[str, Any]:
+    return _load_registry("project-packet-registry.json")
+
+
+def get_system_mode_registry() -> dict[str, Any]:
+    return _load_registry("system-mode-registry.json")
+
+
+def get_attention_budget_registry() -> dict[str, Any]:
+    return _load_registry("attention-budget-registry.json")
+
+
+def get_core_change_window_registry() -> dict[str, Any]:
+    return _load_registry("core-change-window-registry.json")
+
+
 def get_provider_usage_evidence_artifact() -> dict[str, Any]:
     try:
         return _load_report_artifact("provider-usage-evidence.json")
@@ -387,6 +430,13 @@ def _build_registry_versions() -> dict[str, str]:
         "project_maturity": get_project_maturity_registry().get("version", "unknown"),
         "docs_lifecycle": get_docs_lifecycle_registry().get("version", "unknown"),
         "program_operating_system": get_program_operating_system().get("version", "unknown"),
+        "coding_lanes": get_coding_lane_registry().get("version", "unknown"),
+        "memory_namespaces": get_memory_namespace_registry().get("version", "unknown"),
+        "source_policy": get_source_policy_registry().get("version", "unknown"),
+        "project_packets": get_project_packet_registry().get("version", "unknown"),
+        "system_modes": get_system_mode_registry().get("version", "unknown"),
+        "attention_budgets": get_attention_budget_registry().get("version", "unknown"),
+        "core_change_windows": get_core_change_window_registry().get("version", "unknown"),
     }
 
 

@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))
 ))))
+CREATIVE_QUALITY_SCAN_MATCH = "athanor:eoq:video_quality:*"
+CREATIVE_QUALITY_SCAN_COUNT = 200
+CREATIVE_QUALITY_SCAN_MAX_KEYS = 500
+CREATIVE_QUALITY_SCAN_MAX_SECONDS = 5.0
 
 
 @dataclass
@@ -488,12 +492,38 @@ async def _mine_creative_quality() -> list[RawIntent]:
         from .workspace import get_redis
         r = await get_redis()
 
-        # Scan for all video quality entries
+        # Bound the scan so one oversized EOQ quality corpus cannot stall the whole
+        # pipeline cycle or the manual scheduled loop pass.
         cursor = b"0"
+        scanned_keys = 0
+        started = time.monotonic()
         while True:
-            cursor, keys = await r.scan(cursor, match="athanor:eoq:video_quality:*", count=50)
-            for key in keys:
-                raw = await r.get(key)
+            if (
+                scanned_keys >= CREATIVE_QUALITY_SCAN_MAX_KEYS
+                or time.monotonic() - started >= CREATIVE_QUALITY_SCAN_MAX_SECONDS
+            ):
+                logger.info(
+                    "Creative quality miner capped scan after %d keys in %.2fs",
+                    scanned_keys,
+                    time.monotonic() - started,
+                )
+                break
+
+            cursor, keys = await r.scan(
+                cursor,
+                match=CREATIVE_QUALITY_SCAN_MATCH,
+                count=CREATIVE_QUALITY_SCAN_COUNT,
+            )
+            if not keys:
+                if cursor == b"0":
+                    break
+                continue
+
+            remaining = CREATIVE_QUALITY_SCAN_MAX_KEYS - scanned_keys
+            batch_keys = list(keys[:remaining])
+            scanned_keys += len(batch_keys)
+            raw_values = await r.mget(batch_keys)
+            for raw in raw_values:
                 if not raw:
                     continue
                 try:

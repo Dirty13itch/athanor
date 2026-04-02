@@ -1,8 +1,8 @@
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
+from ..persistence import build_checkpointer
 from ..tools.coding import CODING_TOOLS
 from ..tools.execution import FILESYSTEM_TOOLS, SHELL_TOOLS
 from ..tools.subscriptions import SUBSCRIPTION_TOOLS
@@ -81,14 +81,12 @@ def create_coding_agent():
         },
     )
 
-    memory = InMemorySaver()
-
     # Coding tools + filesystem + shell = autonomous coding agent
     tools = CODING_TOOLS + FILESYSTEM_TOOLS + SHELL_TOOLS + SUBSCRIPTION_TOOLS
 
     return create_react_agent(
         model=llm,
         tools=tools,
-        checkpointer=memory,
+        checkpointer=build_checkpointer(),
         prompt=build_system_prompt(SYSTEM_PROMPT),
     )

@@ -21,6 +21,17 @@ interface PatternReport {
   recommendations: string[];
 }
 
+interface OperatorSummaryPayload {
+  runs?: {
+    total?: number;
+    by_status?: Record<string, number>;
+  };
+  approvals?: {
+    by_status?: Record<string, number>;
+  };
+  patterns?: PatternReport;
+}
+
 interface StackData {
   taskStats: TaskStats | null;
   patterns: PatternReport | null;
@@ -71,27 +82,29 @@ export function SmartStack() {
 
     async function fetchData() {
       try {
-        const [workforceRes, patternsRes] = await Promise.all([
-          fetch("/api/workforce", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-          fetch("/api/insights", { signal: AbortSignal.timeout(5000) }).catch(() => null),
-        ]);
+        const operatorRes = await fetch("/api/operator/summary", {
+          signal: AbortSignal.timeout(5000),
+        }).catch(() => null);
 
         let taskStats: TaskStats | null = null;
         let pendingApprovals = 0;
-        if (workforceRes?.ok) {
-          const workforce = await workforceRes.json();
-          taskStats = workforce?.summary
+        let patterns: PatternReport | null = null;
+        if (operatorRes?.ok) {
+          const operator = (await operatorRes.json()) as OperatorSummaryPayload;
+          const runSummary = operator?.runs?.by_status ?? {};
+          const approvalSummary = operator?.approvals?.by_status ?? {};
+          taskStats = operator?.runs
             ? {
-                completed: workforce.summary.completedTasks ?? 0,
-                failed: workforce.summary.failedTasks ?? 0,
-                running: workforce.summary.runningTasks ?? 0,
-                pending: workforce.summary.pendingTasks ?? 0,
-                total: workforce.summary.totalTasks ?? 0,
+                completed: runSummary.completed ?? 0,
+                failed: runSummary.failed ?? 0,
+                running: runSummary.running ?? 0,
+                pending: runSummary.queued ?? 0,
+                total: operator.runs.total ?? 0,
               }
             : null;
-          pendingApprovals = workforce?.summary?.pendingApprovals ?? 0;
+          pendingApprovals = approvalSummary.pending ?? 0;
+          patterns = operator?.patterns ?? null;
         }
-        const patterns = patternsRes?.ok ? await patternsRes.json() : null;
 
         if (mounted) {
           setData({ taskStats, patterns, pendingApprovals });
@@ -166,7 +179,7 @@ export function SmartStack() {
         {/* Pending approvals — always show if any */}
         {approvals > 0 && (
           <a
-            href="/tasks?status=approval"
+            href="/operator"
             className="flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 px-3 py-2 text-xs transition-colors hover:bg-primary/15"
           >
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />

@@ -1,0 +1,125 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T16:00:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/project-packet-registry.json",
+  "projects": [
+    {
+      "id": "athanor",
+      "name": "Athanor",
+      "status": "live",
+      "stage": "active_build",
+      "template": "internal_operator_app",
+      "class": "core",
+      "visibility": "private",
+      "sensitivity": "sovereign_private",
+      "runtime_target": "cluster",
+      "deploy_target": "cluster",
+      "workspace_root": "C:\\Athanor",
+      "primary_route": "/projects",
+      "owner_domain": "product_foundry",
+      "operators": ["Shaun", "Claude"],
+      "agents": ["coding-agent", "general-assistant", "knowledge-agent", "research-agent"],
+      "acceptance_bundle": [
+        "Durable operator work surfaces",
+        "Registry-backed runtime authority",
+        "Foundry packet and deploy candidate path",
+        "Launch-blocker health posture"
+      ],
+      "rollback_contract": "Revert candidate promotion, restore previous packet snapshot, and replay smoke evidence.",
+      "maintenance_cadence": "weekly"
+    },
+    {
+      "id": "eoq",
+      "name": "Empire of Broken Queens",
+      "status": "live",
+      "stage": "active_build",
+      "template": "creative_tenant",
+      "class": "tenant",
+      "visibility": "private",
+      "sensitivity": "adult_sensitive",
+      "runtime_target": "cluster",
+      "deploy_target": "cluster",
+      "workspace_root": "C:\\Athanor\\projects\\eoq",
+      "primary_route": "/projects",
+      "owner_domain": "creative",
+      "operators": ["Shaun", "Claude"],
+      "agents": ["creative-agent", "coding-agent", "research-agent"],
+      "acceptance_bundle": [
+        "Sovereign-only routing",
+        "Narrative + asset pipeline regression checks"
+      ],
+      "rollback_contract": "Restore the previous tenant bundle and invalidate the promoted candidate.",
+      "maintenance_cadence": "weekly"
+    },
+    {
+      "id": "kindred",
+      "name": "Kindred",
+      "status": "live",
+      "stage": "scaffold",
+      "template": "public_product_app",
+      "class": "tenant",
+      "visibility": "pilot",
+      "sensitivity": "private",
+      "runtime_target": "vercel",
+      "deploy_target": "vercel",
+      "workspace_root": "C:\\Athanor\\projects\\kindred",
+      "primary_route": "/projects",
+      "owner_domain": "product_foundry",
+      "operators": ["Shaun", "Claude"],
+      "agents": ["research-agent", "coding-agent"],
+      "acceptance_bundle": [
+        "Packet-approved scaffold only",
+        "No public launch without auth, analytics, and rollback"
+      ],
+      "rollback_contract": "Drop preview candidate and keep scaffold stage unchanged.",
+      "maintenance_cadence": "monthly"
+    },
+    {
+      "id": "ulrich-energy",
+      "name": "Ulrich Energy",
+      "status": "live",
+      "stage": "scaffold",
+      "template": "field_pwa",
+      "class": "tenant",
+      "visibility": "pilot",
+      "sensitivity": "private",
+      "runtime_target": "vercel",
+      "deploy_target": "vercel",
+      "workspace_root": "C:\\Athanor\\projects\\ulrich-energy",
+      "primary_route": "/projects",
+      "owner_domain": "product_foundry",
+      "operators": ["Shaun", "Claude"],
+      "agents": ["coding-agent", "research-agent", "knowledge-agent"],
+      "acceptance_bundle": [
+        "Field workflow packet",
+        "Offline-first PWA checklist"
+      ],
+      "rollback_contract": "Retain scaffold packet and demote failed candidate.",
+      "maintenance_cadence": "monthly"
+    },
+    {
+      "id": "media",
+      "name": "Media Library",
+      "status": "live",
+      "stage": "governed_domain",
+      "template": "domain_surface",
+      "class": "domain",
+      "visibility": "private",
+      "sensitivity": "sovereign_private",
+      "runtime_target": "cluster",
+      "deploy_target": "cluster",
+      "workspace_root": "C:\\Athanor",
+      "primary_route": "/media",
+      "owner_domain": "media",
+      "operators": ["Shaun"],
+      "agents": ["media-agent", "stash-agent"],
+      "acceptance_bundle": [
+        "Sonarr/Radarr/Prowlarr/SAB/Plex/Tautulli health",
+        "Approval-gated destructive operations"
+      ],
+      "rollback_contract": "Revert domain packet changes and restore prior stack config snapshot.",
+      "maintenance_cadence": "weekly"
+    }
+  ]
+}

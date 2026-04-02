@@ -23,6 +23,14 @@ interface StreamPayload {
   timestamp: string;
 }
 
+function toCount(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 async function fetchSnapshot(): Promise<StreamPayload> {
   // GPU metrics
   const [utilization, memUsed, memTotal, temperature, power] = await Promise.all([
@@ -96,17 +104,49 @@ async function fetchSnapshot(): Promise<StreamPayload> {
     }
   } catch { /* service check failed */ }
 
-  // Task stats
+  // Canonical operator-work summary
   let tasks: StreamPayload["tasks"] = null;
+  let notifications: StreamPayload["notifications"] = { pending: 0, total: 0 };
   try {
-    const res = await fetch(`${config.agentServer.url}/v1/tasks/stats`, {
+    const res = await fetch(`${config.agentServer.url}/v1/operator/summary`, {
       signal: AbortSignal.timeout(3000),
       headers: agentServerHeaders(),
     });
     if (res.ok) {
-      tasks = await res.json();
+      const data = await res.json();
+      const runSummary = data?.runs ?? {};
+      const runByStatus = runSummary?.by_status ?? {};
+      const queued = toCount(runByStatus.queued ?? runByStatus.pending);
+      const running = toCount(runByStatus.running);
+      const completed = toCount(runByStatus.completed);
+      const failed = toCount(runByStatus.failed);
+      tasks = {
+        total: toCount(runSummary?.total),
+        by_status: {
+          completed,
+          running,
+          failed,
+          pending: queued,
+        },
+        currently_running: running,
+        worker_running: running > 0,
+      };
+
+      const inboxSummary = data?.inbox ?? {};
+      const inboxByStatus = inboxSummary?.by_status ?? {};
+      const pendingInbox =
+        toCount(inboxByStatus.new) +
+        toCount(inboxByStatus.acknowledged) +
+        toCount(inboxByStatus.snoozed);
+      const approvalSummary = data?.approvals ?? {};
+      const approvalByStatus = approvalSummary?.by_status ?? {};
+      const pendingApprovals = toCount(approvalByStatus.pending);
+      notifications = {
+        pending: pendingInbox + pendingApprovals,
+        total: toCount(inboxSummary?.total) + toCount(approvalSummary?.total),
+      };
     }
-  } catch { /* task stats unavailable */ }
+  } catch { /* operator summary unavailable */ }
 
   // Media status
   let media: StreamPayload["media"] = null;
@@ -127,22 +167,6 @@ async function fetchSnapshot(): Promise<StreamPayload> {
       };
     }
   } catch { /* media status unavailable */ }
-
-  // Workforce notification summary
-  let notifications: StreamPayload["notifications"] = { pending: 0, total: 0 };
-  try {
-    const res = await fetch(`${config.agentServer.url}/v1/notifications?include_resolved=true`, {
-      signal: AbortSignal.timeout(3000),
-      headers: agentServerHeaders(),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      notifications = {
-        pending: typeof data.unread === "number" ? data.unread : 0,
-        total: typeof data.count === "number" ? data.count : 0,
-      };
-    }
-  } catch { /* notification summary unavailable */ }
 
   return {
     gpus: Array.from(gpuMap.values()),

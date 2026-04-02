@@ -29,6 +29,36 @@
     state: restarted
   when: langfuse_compose.changed and not langfuse_result.changed
 
+- name: Check whether the Athanor Postgres database already exists
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - langfuse-postgres
+      - psql
+      - -U
+      - "{{ langfuse_pg_user }}"
+      - -d
+      - postgres
+      - -tAc
+      - "SELECT 1 FROM pg_database WHERE datname='{{ athanor_postgres_db }}';"
+  register: athanor_postgres_exists
+  changed_when: false
+
+- name: Ensure Athanor Postgres database exists
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - langfuse-postgres
+      - createdb
+      - -U
+      - "{{ langfuse_pg_user }}"
+      - -O
+      - "{{ langfuse_pg_user }}"
+      - "{{ athanor_postgres_db }}"
+  when: "'1' not in athanor_postgres_exists.stdout"
+
 - name: Wait for LangFuse web to be healthy
   uri:
     url: "http://localhost:{{ langfuse_port }}/api/public/health"

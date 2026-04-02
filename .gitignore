@@ -53,6 +53,11 @@ storybook-static/
 
 # Temp
 tmp/
+/var/bootstrap/
+/var/foundry/
+/projects/agents/var/
+/projects/agents/reports/bootstrap/
+/tmp-pattern-detection*.json
 *.tmp
 *.log
 *.bak

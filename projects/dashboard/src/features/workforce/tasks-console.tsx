@@ -392,7 +392,9 @@ export function TasksConsole({ initialSnapshot }: { initialSnapshot: WorkforceSn
                             size="sm"
                             onClick={() =>
                               void handleAction(`approve:${task.id}`, () =>
-                                postWithoutBody(`/api/workforce/tasks/${task.id}/approve`)
+                                postWithoutBody(
+                                  `/api/operator/approvals/${encodeURIComponent(`approval:${task.id}`)}/approve`
+                                )
                               )
                             }
                           >

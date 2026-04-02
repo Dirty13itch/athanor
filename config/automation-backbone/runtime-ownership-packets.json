@@ -1,0 +1,234 @@
+{
+  "version": "2026-04-02.4",
+  "updated_at": "2026-04-02T19:30:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/runtime-ownership-packets.json",
+  "packets": [
+    {
+      "id": "dev-runtime-repo-sync-packet",
+      "label": "DEV runtime repo sync packet",
+      "status": "ready_for_approval",
+      "lane_id": "dev-runtime-repo-systemd",
+      "host": "dev",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone.",
+      "path_mappings": [
+        {
+          "source_path": ".",
+          "runtime_path": "/home/shaun/repos/athanor",
+          "restart_units": [
+            "athanor-brain.service",
+            "athanor-classifier.service",
+            "athanor-quality-gate.service",
+            "athanor-sentinel.service",
+            "athanor-overnight.service"
+          ]
+        }
+      ],
+      "backup_root": "/home/shaun/.athanor/backups/runtime-ownership/runtime-repo-sync/<timestamp>",
+      "preflight_commands": [
+        "python scripts/validate_platform_contract.py",
+        "python scripts/sync_dev_runtime_repo.py",
+        "ssh dev \"git -C /home/shaun/repos/athanor rev-parse --short HEAD && git -C /home/shaun/repos/athanor status --short | wc -l\"",
+        "ssh dev \"systemctl show athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service --property=WorkingDirectory,ExecStart --no-pager\""
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /home/shaun/.athanor/backups/runtime-ownership/runtime-repo-sync/<timestamp>.",
+        "Dry-run the governed sync with python scripts/sync_dev_runtime_repo.py and confirm the target temp branch, backup branch, and backup root.",
+        "Capture the pre-sync DEV repo state both as a timestamped archive and as a timestamped backup branch before any reset.",
+        "Push the approved implementation commit to a temporary ref in /home/shaun/repos/athanor/.git from implementation authority instead of copying files ad hoc.",
+        "Reset DEV main to that approved mirror commit so tracked files and new tracked paths match implementation authority exactly.",
+        "Clean leftover pre-sync residue that is not present in the approved commit, then restart only the repo-root services that actually changed.",
+        "Refresh the truth snapshot and generated reports immediately after the sync."
+      ],
+      "verification_commands": [
+        "ssh dev \"cd /home/shaun/repos/athanor && git status --short | wc -l && git rev-parse --short HEAD\"",
+        "ssh dev \"systemctl is-active athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service\"",
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
+        "python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore DEV main from the timestamped backup branch or archive captured before the mirror reset.",
+        "Restart only the affected repo-root services after the restore.",
+        "Re-run the same truth refresh and validator sequence to confirm rollback."
+      ],
+      "evidence_paths": [
+        "config/automation-backbone/runtime-ownership-contract.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "scripts/sync_dev_runtime_repo.py"
+      ]
+    },
+    {
+      "id": "dev-dashboard-shadow-retirement-packet",
+      "label": "DEV dashboard shadow retirement packet",
+      "status": "executed",
+      "lane_id": "dev-dashboard-compose",
+      "host": "dev",
+      "approval_packet_type": "systemd_runtime_change",
+      "goal": "Retire or explicitly downgrade the inactive athanor-dashboard.service unit so the active /opt/athanor/dashboard compose lane is the only ordinary dashboard deployment path.",
+      "target_units": [
+        "athanor-dashboard.service"
+      ],
+      "backup_root": "/home/shaun/.athanor/backups/runtime-ownership/dashboard-shadow/<timestamp>",
+      "preflight_commands": [
+        "ssh dev \"systemctl cat athanor-dashboard.service > /home/shaun/.athanor/backups/runtime-ownership/dashboard-shadow/<timestamp>/athanor-dashboard.service\"",
+        "ssh dev \"journalctl -u athanor-dashboard.service -n 200 --no-pager > /home/shaun/.athanor/backups/runtime-ownership/dashboard-shadow/<timestamp>/athanor-dashboard.service.journal.log\"",
+        "ssh dev \"docker compose -f /opt/athanor/dashboard/docker-compose.yml ps && systemctl show athanor-dashboard.service --property=LoadState,ActiveState,SubState,UnitFileState,FragmentPath --no-pager\""
+      ],
+      "exact_steps": [
+        "Back up the current unit file and recent journal before any mutation.",
+        "Disable and mask athanor-dashboard.service so it cannot be mistaken for an ordinary dashboard start path.",
+        "If the retained unit file is not needed for recovery, move it out of the active systemd estate into the timestamped backup root; otherwise keep only the masked recovery copy.",
+        "Reload systemd and leave the active /opt/athanor/dashboard compose lane untouched."
+      ],
+      "verification_commands": [
+        "ssh dev \"systemctl show athanor-dashboard.service --property=LoadState,ActiveState,SubState,UnitFileState --no-pager\"",
+        "ssh dev \"docker compose -f /opt/athanor/dashboard/docker-compose.yml ps\"",
+        "ssh dev \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ && curl -sk -o /dev/null -w '%{http_code}' https://athanor.local/\"",
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
+        "python scripts/generate_truth_inventory_reports.py --report operator_surfaces --report runtime_ownership --report runtime_ownership_packets"
+      ],
+      "rollback_steps": [
+        "Unmask athanor-dashboard.service if the rollback requires the legacy recovery path.",
+        "Restore the backed up unit file into the active systemd estate if it was moved.",
+        "Reload systemd and verify the compose lane still serves the dashboard before considering any legacy start path."
+      ],
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/OPERATOR-SURFACE-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
+      "id": "dev-heartbeat-opt-deploy-packet",
+      "label": "DEV heartbeat /opt deploy packet",
+      "status": "executed",
+      "lane_id": "dev-heartbeat-opt",
+      "host": "dev",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Make the source-to-/opt heartbeat bundle replacement explicit so the live athanor-heartbeat.service lane no longer depends on undocumented manual copy steps.",
+      "path_mappings": [
+        {
+          "source_path": "scripts/node-heartbeat.py",
+          "runtime_path": "/opt/athanor/heartbeat/node-heartbeat.py",
+          "restart_units": [
+            "athanor-heartbeat.service"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/heartbeat/<timestamp>",
+      "preflight_commands": [
+        "ssh dev \"systemctl cat athanor-heartbeat.service | sed -n '1,120p'\"",
+        "ssh dev \"test -f /opt/athanor/heartbeat/node-heartbeat.py && sha256sum /opt/athanor/heartbeat/node-heartbeat.py\"",
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json"
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /opt/athanor/backups/heartbeat/<timestamp> and copy the current node-heartbeat.py there before replacement.",
+        "Replace only /opt/athanor/heartbeat/node-heartbeat.py from implementation authority; do not overwrite the host-local env file or the runtime venv as part of this packet.",
+        "Restart athanor-heartbeat.service after the script replacement.",
+        "Refresh the truth snapshot and generated reports immediately after the restart."
+      ],
+      "verification_commands": [
+        "ssh dev \"systemctl is-active athanor-heartbeat.service && systemctl show athanor-heartbeat.service --property=ExecStart,EnvironmentFiles --no-pager\"",
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
+        "python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up node-heartbeat.py from /opt/athanor/backups/heartbeat/<timestamp>.",
+        "Restart athanor-heartbeat.service.",
+        "Re-run the same truth refresh and validator sequence to confirm rollback."
+      ],
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
+      "id": "foundry-agents-compose-deploy-packet",
+      "label": "FOUNDRY athanor-agents compose deploy packet",
+      "status": "ready_for_approval",
+      "lane_id": "foundry-agents-compose",
+      "host": "foundry",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes.",
+      "path_mappings": [
+        {
+          "source_path": "projects/agents/Dockerfile",
+          "runtime_path": "/opt/athanor/agents/Dockerfile",
+          "restart_units": [
+            "athanor-agents"
+          ]
+        },
+        {
+          "source_path": "projects/agents/pyproject.toml",
+          "runtime_path": "/opt/athanor/agents/pyproject.toml",
+          "restart_units": [
+            "athanor-agents"
+          ]
+        },
+        {
+          "source_path": "projects/agents/docker-compose.yml",
+          "runtime_path": "/opt/athanor/agents/docker-compose.yml",
+          "restart_units": [
+            "athanor-agents"
+          ]
+        },
+        {
+          "source_path": "projects/agents/config/subscription-routing-policy.yaml",
+          "runtime_path": "/opt/athanor/agents/config/subscription-routing-policy.yaml",
+          "restart_units": [
+            "athanor-agents"
+          ]
+        },
+        {
+          "source_path": "projects/agents/src/athanor_agents",
+          "runtime_path": "/opt/athanor/agents/src/athanor_agents",
+          "restart_units": [
+            "athanor-agents"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/agents/<timestamp>",
+      "preflight_commands": [
+        "python scripts/validate_platform_contract.py",
+        "ssh foundry \"cd /opt/athanor/agents && docker compose ps athanor-agents\"",
+        "ssh foundry \"docker inspect athanor-agents --format '{{.Config.Image}}|{{.State.Status}}|{{index .Config.Labels \\\"com.docker.compose.project.working_dir\\\"}}|{{index .Config.Labels \\\"com.docker.compose.project.config_files\\\"}}'\"",
+        "ssh foundry \"docker exec athanor-agents python3 -c \\\"import json, pathlib, athanor_agents, athanor_agents.server as server; print(json.dumps({'module': str(pathlib.Path(athanor_agents.__file__).resolve()), 'server': str(pathlib.Path(server.__file__).resolve())}))\\\"\""
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /opt/athanor/backups/agents/<timestamp> and back up the current /opt/athanor/agents bundle before replacement.",
+        "Remove known runtime-root pollution from the staged build root only inside the approved maintenance window, including nested /opt/athanor/agents/src/athanor_agents/athanor_agents and stale *.bak-codex files if present.",
+        "Run scripts/deploy-agents.sh so the full compose build context is replaced from implementation authority: src/, config/, Dockerfile, pyproject.toml, and docker-compose.yml.",
+        "Let the script rebuild and recreate athanor-agents from the governed /opt/athanor/agents compose root instead of patching /usr/local/lib/python3.12/site-packages by hand.",
+        "Refresh truth inventory and reports immediately after the rollout."
+      ],
+      "verification_commands": [
+        "ssh foundry \"cd /opt/athanor/agents && docker compose ps athanor-agents\"",
+        "ssh foundry \"curl -sS http://localhost:9000/health\"",
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
+        "python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets --report drift",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /opt/athanor/agents bundle from /opt/athanor/backups/agents/<timestamp>.",
+        "Rebuild and restart athanor-agents from the restored compose root.",
+        "Re-run the same truth refresh and validator sequence to confirm rollback."
+      ],
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/TRUTH-DRIFT-REPORT.md",
+        "scripts/deploy-agents.sh"
+      ]
+    }
+  ]
+}

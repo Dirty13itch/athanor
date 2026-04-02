@@ -1,5 +1,5 @@
 {
-  "version": "2026-03-27.1",
+  "version": "2026-04-01.1",
   "status": "active",
   "source_of_truth": "config/automation-backbone/platform-topology.json",
   "nodes": [
@@ -310,6 +310,16 @@
       "health_path": "/api/public/health"
     },
     {
+      "id": "athanor_postgres",
+      "label": "Athanor Postgres",
+      "node": "vault",
+      "scheme": "postgresql",
+      "port": 5434,
+      "url_env": "ATHANOR_POSTGRES_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only"
+    },
+    {
       "id": "ntfy",
       "label": "ntfy",
       "node": "vault",
@@ -362,6 +372,83 @@
       "url_env": "ATHANOR_SPEACHES_URL",
       "runtime_class": "product_app",
       "auth_class": "operator"
+    },
+    {
+      "id": "home_assistant",
+      "label": "Home Assistant",
+      "node": "vault",
+      "scheme": "http",
+      "port": 8123,
+      "url_env": "ATHANOR_HOME_ASSISTANT_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/"
+    },
+    {
+      "id": "sonarr",
+      "label": "Sonarr",
+      "node": "vault",
+      "scheme": "http",
+      "port": 8989,
+      "url_env": "ATHANOR_SONARR_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/ping"
+    },
+    {
+      "id": "radarr",
+      "label": "Radarr",
+      "node": "vault",
+      "scheme": "http",
+      "port": 7878,
+      "url_env": "ATHANOR_RADARR_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/ping"
+    },
+    {
+      "id": "prowlarr",
+      "label": "Prowlarr",
+      "node": "vault",
+      "scheme": "http",
+      "port": 9696,
+      "url_env": "ATHANOR_PROWLARR_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/ping"
+    },
+    {
+      "id": "sabnzbd",
+      "label": "SABnzbd",
+      "node": "vault",
+      "scheme": "http",
+      "port": 8080,
+      "url_env": "ATHANOR_SABNZBD_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/api?mode=version&output=json"
+    },
+    {
+      "id": "tautulli",
+      "label": "Tautulli",
+      "node": "vault",
+      "scheme": "http",
+      "port": 8181,
+      "url_env": "ATHANOR_TAUTULLI_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/"
+    },
+    {
+      "id": "plex",
+      "label": "Plex",
+      "node": "vault",
+      "scheme": "http",
+      "port": 32400,
+      "url_env": "ATHANOR_PLEX_URL",
+      "runtime_class": "product_app",
+      "auth_class": "operator",
+      "health_path": "/identity"
     },
     {
       "id": "stash",

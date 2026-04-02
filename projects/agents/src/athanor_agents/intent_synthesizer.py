@@ -150,7 +150,7 @@ async def synthesize_strategic_intents() -> list[RawIntent]:
     prompt = _build_synthesis_prompt(profile)
 
     # 3. Call local LLM
-    intents = await _call_llm(prompt)
+    intents = await _call_llm(prompt, owner_profile=profile)
 
     # 4. Apply twelve-word scoring adjustments
     behavioral = profile.get("behavioral_params", {})
@@ -198,13 +198,13 @@ async def synthesize_preview() -> list[dict]:
         return []
 
     prompt = _build_synthesis_prompt(profile)
-    raw_proposals = await _call_llm_raw(prompt)
+    raw_proposals = await _call_llm_raw(prompt, owner_profile=profile)
     return raw_proposals
 
 
-async def _call_llm(prompt: str) -> list[RawIntent]:
+async def _call_llm(prompt: str, owner_profile: dict | None = None) -> list[RawIntent]:
     """Call the LLM and parse response into RawIntent objects."""
-    raw_proposals = await _call_llm_raw(prompt)
+    raw_proposals = await _call_llm_raw(prompt, owner_profile=owner_profile)
     intents = []
 
     for p in raw_proposals:
@@ -229,27 +229,111 @@ async def _call_llm(prompt: str) -> list[RawIntent]:
     return intents
 
 
-async def _call_llm_raw(prompt: str) -> list[dict]:
+def _build_heuristic_proposals(owner_profile: dict) -> list[dict]:
+    """Produce bounded cross-domain intents when synthesis LLM is too slow."""
+    domains = owner_profile.get("domains", {})
+    capacity = owner_profile.get("capacity", {})
+    idle_agents = {
+        str(agent).strip()
+        for agent in capacity.get("agents_idle", [])
+        if str(agent).strip()
+    }
+    proposals: list[dict] = []
+
+    for domain_name, domain_state in domains.items():
+        if not isinstance(domain_state, dict) or domain_state.get("suppressed"):
+            continue
+
+        agents = [
+            str(agent).strip()
+            for agent in domain_state.get("agents", [])
+            if str(agent).strip()
+        ]
+        agent = next((candidate for candidate in agents if candidate in idle_agents), agents[0] if agents else "general-assistant")
+        gaps = [
+            str(gap).strip()
+            for gap in domain_state.get("gaps", [])
+            if str(gap).strip()
+        ]
+        gap_text = gaps[0] if gaps else "identify the next highest-leverage improvement"
+        momentum = str(domain_state.get("momentum") or "idle").strip() or "idle"
+        interest = float(domain_state.get("interest") or 0.5)
+        human_domain = str(domain_name).replace("_", " ")
+        priority = min(0.95, max(0.3, round(0.35 + (interest * 0.45) + (0.1 if momentum in {"idle", "blocked"} else 0.0), 2)))
+
+        text = (
+            f"Advance {human_domain} by addressing {gap_text}."
+            if gaps
+            else f"Advance {human_domain} by identifying the next highest-leverage improvement."
+        )
+        reasoning_parts = [f"{human_domain} is currently {momentum}", f"interest={interest:.2f}"]
+        if agent in idle_agents:
+            reasoning_parts.append(f"{agent} is currently idle")
+        if gaps:
+            reasoning_parts.append(f"top gap: {gap_text}")
+
+        proposals.append(
+            {
+                "text": text,
+                "priority": priority,
+                "project": str(domain_name),
+                "agent": agent,
+                "twelve_word": "meraki" if "creative" in domain_name else ("tuftler" if momentum in {"idle", "blocked"} else "zetetic"),
+                "explore": False,
+                "reasoning": "; ".join(reasoning_parts),
+            }
+        )
+
+    proposals.sort(key=lambda item: item.get("priority", 0.0), reverse=True)
+    explore_count = min(3, max(2, len(proposals) // 4)) if proposals else 0
+    for proposal in proposals[:explore_count]:
+        proposal["explore"] = True
+        proposal["reasoning"] = f"{proposal['reasoning']}; reserve this as an exploration lane while capacity is available"
+
+    return proposals[:15]
+
+
+async def _call_llm_raw(prompt: str, owner_profile: dict | None = None) -> list[dict]:
     """Call LLM and return parsed JSON proposals."""
+    llm_url = settings.llm_base_url + "/chat/completions"
+    headers = {}
+    if settings.llm_api_key:
+        headers["Authorization"] = f"Bearer {settings.llm_api_key}"
+
+    model_name = settings.llm_model or _LLM_MODEL
     try:
-        async with httpx.AsyncClient(timeout=180) as client:
+        async with httpx.AsyncClient(timeout=45) as client:
             resp = await client.post(
-                _LLM_URL,
+                llm_url,
                 json={
-                    "model": _LLM_MODEL,
+                    "model": model_name,
                     "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.7,
-                    "max_tokens": 4096,
+                    "temperature": 0.5,
+                    "max_tokens": 1600,
                 },
-                headers={"Authorization": f"Bearer {_LLM_KEY}"},
+                headers=headers,
             )
             resp.raise_for_status()
             data = resp.json()
     except httpx.TimeoutException:
-        logger.error("Intent synthesis LLM call timed out (180s)")
+        logger.warning(
+            "Intent synthesis LLM call timed out after %ss using model %s",
+            45,
+            model_name,
+        )
+        if owner_profile:
+            logger.info("Intent synthesis: using heuristic fallback proposals")
+            return _build_heuristic_proposals(owner_profile)
         return []
     except Exception as e:
-        logger.error("Intent synthesis LLM call failed: %s", e)
+        logger.warning(
+            "Intent synthesis LLM call failed using model %s: %s",
+            model_name,
+            e,
+        )
+        if owner_profile:
+            logger.info("Intent synthesis: using heuristic fallback proposals")
+            return _build_heuristic_proposals(owner_profile)
         return []
 
     raw_text = data.get("choices", [{}])[0].get("message", {}).get("content", "")

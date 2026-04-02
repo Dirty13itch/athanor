@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -7,10 +8,17 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from .agent_registry import build_agent_metadata
 from .auth import BearerAuthContract
 from .agents import list_agents
 from .command_hierarchy import build_system_map_snapshot
 from .config import settings
+from .control_plane_registry import build_control_plane_registry_snapshot
+from .domain_registry import build_domain_metadata
+from .durable_state import ensure_durable_state_schema, get_durable_state_status
+from .launch_governance import build_launch_governance_posture
+from .persistence import get_checkpointer_status
+from .bootstrap_state import build_bootstrap_runtime_snapshot, ensure_bootstrap_state
 
 # Configure root logger so all athanor_agents.* loggers are visible
 logging.basicConfig(
@@ -30,80 +38,97 @@ AUTH_CONTRACT = BearerAuthContract(
 )
 
 
-# --- Agent metadata (single source of truth) ---
+def get_agent_metadata() -> dict[str, dict]:
+    return build_agent_metadata()
 
-AGENT_METADATA = {
-    "general-assistant": {
-        "description": "System monitoring, infrastructure management, task coordination, and codebase inspection.",
-        "tools": ["check_services", "get_gpu_metrics", "get_vllm_models", "get_storage_info",
-                  "delegate_to_agent", "check_task_status",
-                  "read_file", "list_directory", "search_files",
-                  "read_my_memory", "update_my_memory"],
-        "type": "proactive",
-    },
-    "media-agent": {
-        "description": "Media stack control — search/add TV (Sonarr), movies (Radarr), monitor Plex streams (Tautulli).",
-        "tools": [
-            "search_tv_shows", "get_tv_calendar", "get_tv_queue", "get_tv_library", "add_tv_show",
-            "search_movies", "get_movie_calendar", "get_movie_queue", "get_movie_library", "add_movie",
-            "get_plex_activity", "get_watch_history", "get_plex_libraries",
-        ],
-        "type": "proactive",
-        "schedule": "every 15 min",
-    },
-    "home-agent": {
-        "description": "Smart home control via Home Assistant — lights, climate, automations, presence.",
-        "tools": [
-            "get_ha_states", "get_entity_state", "find_entities", "call_ha_service",
-            "set_light_brightness", "set_climate_temperature", "list_automations", "trigger_automation",
-        ],
-        "type": "proactive",
-        "schedule": "every 5 min",
-        "status_note": None,
-    },
-    "creative-agent": {
-        "description": "Image and video generation via ComfyUI — Flux text-to-image, Wan2.x text-to-video, queue management.",
-        "tools": ["generate_image", "generate_video", "check_queue", "get_generation_history", "get_comfyui_status",
-                  "read_my_memory", "update_my_memory"],
-        "type": "reactive",
-    },
-    "research-agent": {
-        "description": "Web research and information synthesis — citations, fact-checking, knowledge search, graph queries.",
-        "tools": ["web_search", "fetch_page", "search_knowledge", "query_infrastructure", "request_execution_lease"],
-        "type": "reactive",
-    },
-    "knowledge-agent": {
-        "description": "Project librarian — search docs, ADRs, research notes, infrastructure graph, intelligence signals, find related knowledge.",
-        "tools": ["search_knowledge", "search_signals", "deep_search", "list_documents", "query_knowledge_graph", "find_related_docs", "get_knowledge_stats", "upload_document",
-                  "read_my_memory", "update_my_memory"],
-        "type": "reactive",
-    },
-    "coding-agent": {
-        "description": "Autonomous coding engine — generates, reviews, writes files, runs tests, iterates.",
-        "tools": ["generate_code", "review_code", "explain_code", "transform_code",
-                  "read_file", "write_file", "list_directory", "search_files", "run_command",
-                  "request_execution_lease"],
-        "type": "proactive",
-    },
-    "stash-agent": {
-        "description": "Adult content library management — search, browse, organize, tag, and manage via Stash.",
-        "tools": [
-            "get_stash_stats", "search_scenes", "get_scene_details", "search_performers",
-            "list_tags", "find_duplicates", "scan_library", "auto_tag", "generate_content",
-            "update_scene_rating", "mark_scene_organized", "get_recent_scenes",
-        ],
-        "type": "reactive",
-    },
-    "data-curator": {
-        "description": "Personal data librarian — discovers, parses, analyzes, and indexes files from all sources into searchable Qdrant collection.",
-        "tools": [
-            "scan_directory", "parse_document", "analyze_content", "index_document",
-            "search_personal", "get_scan_status", "sync_gdrive",
-        ],
-        "type": "proactive",
-        "schedule": "every 6 hours",
-    },
-}
+
+def _build_health_summary(
+    deps: list[dict],
+    active_agents: list[str],
+    persistence: dict[str, object],
+    durable_state: dict[str, object],
+    governance: dict[str, object] | None = None,
+) -> dict[str, object]:
+    dep_map = {d["id"]: d for d in deps}
+    down = [d["id"] for d in deps if d["status"] == "down"]
+    core_down = [name for name in down if name in ("qdrant", "redis", "litellm")]
+    persistence_mode = str(persistence.get("mode") or "unknown")
+    persistence_reason = str(persistence.get("reason") or "").strip() or None
+    durable_state_mode = str(durable_state.get("mode") or "unknown")
+    durable_state_reason = str(durable_state.get("reason") or "").strip() or None
+    launch_blockers = [f"dependency:{name}" for name in core_down]
+    if not bool(persistence.get("durable")):
+        launch_blockers.append(f"persistence:{persistence_mode}")
+    if bool(durable_state.get("configured")) and not bool(durable_state.get("schema_ready")):
+        launch_blockers.append(f"durable_state:{durable_state_mode}")
+    governance_blockers = list((governance or {}).get("launch_blockers") or [])
+    governance_issues = list((governance or {}).get("issues") or [])
+    launch_blockers.extend(str(item) for item in governance_blockers if str(item).strip())
+
+    if not active_agents or core_down:
+        overall = "degraded"
+    else:
+        overall = "healthy"
+
+    issues = list(down)
+    if not bool(persistence.get("durable")):
+        issues.append(f"persistence:{persistence_mode}")
+    if bool(durable_state.get("configured")) and not bool(durable_state.get("schema_ready")):
+        issues.append(f"durable_state:{durable_state_mode}")
+    issues.extend(str(item) for item in governance_issues if str(item).strip())
+
+    return {
+        "status": overall,
+        "last_error": "; ".join(sorted(core_down))
+        if core_down
+        else (persistence_reason or durable_state_reason or (issues[0] if issues else None)),
+        "agents": active_agents,
+        "agent_count": len(active_agents),
+        "dependency_map": dep_map,
+        "issues": issues or None,
+        "persistence": persistence,
+        "durable_state": durable_state,
+        "governance": governance or None,
+        "launch_ready": not bool(launch_blockers),
+        "launch_blockers": launch_blockers or None,
+    }
+
+
+def _build_launch_governance_posture() -> dict[str, object]:
+    return build_launch_governance_posture()
+
+
+async def _probe_redis_dependency(checked_at: str) -> dict[str, object]:
+    def _ping() -> dict[str, object]:
+        import redis as _redis
+
+        started = time.monotonic()
+        client = _redis.from_url(
+            settings.redis_url,
+            password=settings.redis_password or None,
+            socket_timeout=1.0,
+        )
+        client.ping()
+        latency_ms = int((time.monotonic() - started) * 1000)
+        return {
+            "id": "redis",
+            "status": "healthy",
+            "required": True,
+            "last_checked_at": checked_at,
+            "detail": f"latency_ms={latency_ms}",
+            "latency_ms": latency_ms,
+        }
+
+    try:
+        return await asyncio.to_thread(_ping)
+    except Exception as e:
+        return {
+            "id": "redis",
+            "status": "down",
+            "required": True,
+            "last_checked_at": checked_at,
+            "detail": str(e)[:120],
+        }
 
 
 @asynccontextmanager
@@ -115,6 +140,8 @@ async def lifespan(app: FastAPI):
     from .scheduler import start_scheduler, stop_scheduler
 
     AUTH_CONTRACT.validate_startup()
+    await ensure_durable_state_schema()
+    await ensure_bootstrap_state()
     _init_agents()
     ensure_collections()
 
@@ -135,7 +162,8 @@ async def lifespan(app: FastAPI):
     from .governor import Governor
     await Governor.get().load()
 
-    for name, meta in AGENT_METADATA.items():
+    agent_metadata = get_agent_metadata()
+    for name, meta in agent_metadata.items():
         await register_agent(
             name=name,
             capabilities=meta["tools"],
@@ -210,7 +238,7 @@ app.add_middleware(
 )
 
 
-# --- Core endpoints (tightly coupled to AGENT_METADATA / app) ---
+# --- Core endpoints (registry-backed metadata plus app state) ---
 
 
 @app.get("/health")
@@ -218,6 +246,7 @@ async def health():
     """Structured health check with dependency probes."""
     import asyncio
     import httpx
+    from .governance_state import build_governance_snapshot
 
     checked_at = datetime.now(timezone.utc).isoformat()
 
@@ -244,7 +273,7 @@ async def health():
             }
 
     deps = await asyncio.gather(
-        _probe("redis", f"http://{settings.vault_host}:6379", timeout=1.0),  # TCP only, will fail on HTTP but that's fine
+        _probe_redis_dependency(checked_at),
         _probe("qdrant", f"{settings.qdrant_url}/collections"),
         _probe("litellm", f"{settings.litellm_url}/health",
                headers={"Authorization": f"Bearer {settings.litellm_api_key}"} if settings.litellm_api_key else None),
@@ -253,49 +282,18 @@ async def health():
         _probe("embedding", f"{settings.embedding_url}/health"),
     )
 
-    # Redis probe: use actual Redis PING instead of HTTP
-    try:
-        import redis as _redis
-        r = _redis.from_url(settings.redis_url, password=settings.redis_password or None, socket_timeout=1.0)
-        r.ping()
-        deps = list(deps)
-        deps[0] = {
-            "id": "redis",
-            "status": "healthy",
-            "required": True,
-            "last_checked_at": checked_at,
-            "detail": "latency_ms=0",
-            "latency_ms": 0,
-        }
-    except Exception as e:
-        deps = list(deps)
-        deps[0] = {
-            "id": "redis",
-            "status": "down",
-            "required": True,
-            "last_checked_at": checked_at,
-            "detail": str(e)[:120],
-        }
-
-    dep_map = {d["id"]: d for d in deps}
-    down = [d["id"] for d in deps if d["status"] == "down"]
     active_agents = list_agents()
-
-    # Core deps: qdrant, redis, litellm. If any core dep is down, status is degraded.
-    # If agents can't load, status is unhealthy.
-    core_down = [n for n in down if n in ("qdrant", "redis", "litellm")]
-    if not active_agents or core_down:
-        overall = "degraded"
-    else:
-        overall = "healthy"
+    persistence = get_checkpointer_status()
+    durable_state = get_durable_state_status()
+    governance = await build_governance_snapshot()
+    bootstrap = await build_bootstrap_runtime_snapshot(include_snapshot_write=False)
+    summary = _build_health_summary(deps, active_agents, persistence, durable_state, governance)
 
     return {
         "service": "agent-server",
         "version": app.version,
-        "status": overall,
         "auth_class": "admin",
         "dependencies": deps,
-        "last_error": "; ".join(sorted(core_down)) if core_down else None,
         "started_at": SERVICE_STARTED_AT,
         "actions_allowed": [
             "governor.pause",
@@ -305,17 +303,15 @@ async def health():
             "tasks.approve",
             "tasks.reject",
         ],
-        "agents": active_agents,
-        "agent_count": len(active_agents),
-        "dependency_map": dep_map,
-        "issues": down if down else None,
+        "bootstrap": bootstrap,
+        **summary,
     }
 
 
 @app.get("/v1/system-map")
 async def system_map():
     """Return the live system map plus registry-backed topology and portfolio state."""
-    return await build_system_map_snapshot(AGENT_METADATA)
+    return await build_system_map_snapshot(get_agent_metadata())
 
 
 @app.get("/v1/models")
@@ -337,18 +333,31 @@ async def models():
 @app.get("/v1/agents")
 async def agents_metadata():
     active = list_agents()
+    agent_metadata = get_agent_metadata()
     agents = []
-    for name, meta in AGENT_METADATA.items():
+    for name, meta in agent_metadata.items():
         agents.append({
             "name": name,
             "description": meta["description"],
             "tools": meta["tools"],
             "type": meta["type"],
             "schedule": meta.get("schedule"),
+            "owner_domains": meta.get("owner_domains", []),
+            "support_domains": meta.get("support_domains", []),
             "status": "online" if name in active else "planned",
             "status_note": meta.get("status_note"),
         })
     return {"agents": agents}
+
+
+@app.get("/v1/domains")
+async def domains_metadata():
+    return {"domains": build_domain_metadata()}
+
+
+@app.get("/v1/control-plane/registries")
+async def control_plane_registries():
+    return build_control_plane_registry_snapshot()
 
 
 # --- Route modules ---
@@ -378,7 +387,11 @@ from .routes.home import router as home_router
 from .routes.digests import router as digests_router
 from .routes.model_governance import router as model_governance_router
 from .routes.operator_audit import router as operator_audit_router
+from .routes.operator_governance import router as operator_governance_router
+from .routes.operator_work import router as operator_work_router
+from .routes.review import router as review_router
 from .routes.core_memory import router as core_memory_router
+from .routes.bootstrap import router as bootstrap_router
 
 app.include_router(subscriptions_router)
 app.include_router(notifications_router)
@@ -405,7 +418,11 @@ app.include_router(home_router)
 app.include_router(digests_router)
 app.include_router(model_governance_router)
 app.include_router(operator_audit_router)
+app.include_router(operator_governance_router)
+app.include_router(operator_work_router)
+app.include_router(review_router)
 app.include_router(core_memory_router)
+app.include_router(bootstrap_router)
 
 from .routes.feedback import router as feedback_router
 app.include_router(feedback_router)

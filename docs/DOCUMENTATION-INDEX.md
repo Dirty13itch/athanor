@@ -5,13 +5,13 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-03-29.2`
-- Total tracked entries: `105`
+- Registry version: `2026-04-02.2`
+- Total tracked entries: `119`
 
 | Class | Count |
 | --- | ---: |
-| `canonical` | 24 |
-| `generated` | 15 |
+| `canonical` | 35 |
+| `generated` | 18 |
 | `reference` | 20 |
 | `archive` | 46 |
 
@@ -32,14 +32,25 @@ Do not edit manually.
 | `docs/operations/GOVERNOR-AUTHORITY-MATRIX.md` | markdown | `shaun` |
 | `docs/operations/OPERATOR_RUNBOOKS.md` | markdown | `shaun` |
 | `docs/projects/PORTFOLIO-REGISTRY.md` | markdown | `shaun` |
+| `docs/runbooks/constrained-mode.md` | markdown | `shaun` |
 | `docs/runbooks/credential-rotation.md` | markdown | `shaun` |
+| `docs/runbooks/degraded-mode.md` | markdown | `shaun` |
 | `docs/runbooks/dev-secret-delivery-normalization.md` | markdown | `shaun` |
+| `docs/runbooks/failed-promotion.md` | markdown | `shaun` |
 | `docs/runbooks/governor-facade-retirement.md` | markdown | `shaun` |
 | `docs/runbooks/local-runtime-env.md` | markdown | `shaun` |
+| `docs/runbooks/model-lane-outage.md` | markdown | `shaun` |
+| `docs/runbooks/operator-auth-failure.md` | markdown | `shaun` |
 | `docs/runbooks/operator-front-door-consolidation.md` | markdown | `shaun` |
+| `docs/runbooks/postgres-restore.md` | markdown | `shaun` |
 | `docs/runbooks/provider-evidence-capture.md` | markdown | `shaun` |
 | `docs/runbooks/rebuild-dev.md` | markdown | `shaun` |
+| `docs/runbooks/recovery-only.md` | markdown | `shaun` |
+| `docs/runbooks/redis-reconciliation.md` | markdown | `shaun` |
+| `docs/runbooks/runtime-ownership-contract.md` | markdown | `shaun` |
 | `docs/runbooks/software-core-autonomy-activation.md` | markdown | `shaun` |
+| `docs/runbooks/source-auth-expiry.md` | markdown | `shaun` |
+| `docs/runbooks/stuck-media-pipeline.md` | markdown | `shaun` |
 | `docs/runbooks/vault-litellm-provider-auth-repair.md` | markdown | `shaun` |
 | `projects/dashboard/README.md` | markdown | `shaun` |
 | `projects/dashboard/docs/OPERATOR-ROUTE-CONTRACTS.md` | markdown | `shaun` |
@@ -59,10 +70,13 @@ Do not edit manually.
 | `docs/operations/PROVIDER-CATALOG-REPORT.md` | markdown | `shaun` |
 | `docs/operations/REPO-ROOTS-REPORT.md` | markdown | `shaun` |
 | `docs/operations/RUNTIME-MIGRATION-REPORT.md` | markdown | `shaun` |
+| `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md` | markdown | `shaun` |
+| `docs/operations/RUNTIME-OWNERSHIP-REPORT.md` | markdown | `shaun` |
 | `docs/operations/SECRET-SURFACE-REPORT.md` | markdown | `shaun` |
 | `docs/operations/TOOLING-INVENTORY-REPORT.md` | markdown | `shaun` |
 | `docs/operations/TRUTH-DRIFT-REPORT.md` | markdown | `shaun` |
 | `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md` | markdown | `shaun` |
+| `docs/operations/VAULT-REDIS-REPAIR-PACKET.md` | markdown | `shaun` |
 
 ## Reference
 

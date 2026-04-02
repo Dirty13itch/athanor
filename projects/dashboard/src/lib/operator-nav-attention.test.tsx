@@ -42,8 +42,8 @@ describe("useOperatorNavAttention", () => {
           updatedAt: "2026-03-25T12:00:00.000Z",
           routeCount: 1,
           state: {
-            "/tasks": {
-              signature: "/tasks|pending_approvals|urgent|1|task-1",
+            "/runs": {
+              signature: "/runs|pending_approvals|urgent|1|task-1",
               firstSeenAt: "2026-03-25T12:00:00.000Z",
               acknowledgedAt: null,
             },
@@ -57,8 +57,8 @@ describe("useOperatorNavAttention", () => {
           updatedAt: "2026-03-25T12:05:00.000Z",
           routeCount: 2,
           state: {
-            "/tasks": {
-              signature: "/tasks|pending_approvals|urgent|1|task-1",
+            "/runs": {
+              signature: "/runs|pending_approvals|urgent|1|task-1",
               firstSeenAt: "2026-03-25T12:00:00.000Z",
               acknowledgedAt: "2026-03-25T12:05:00.000Z",
             },
@@ -79,13 +79,13 @@ describe("useOperatorNavAttention", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.state["/tasks"]?.signature).toContain("pending_approvals");
+      expect(result.current.state["/runs"]?.signature).toContain("pending_approvals");
     });
 
     await act(async () => {
       await result.current.saveState({
-        "/tasks": {
-          signature: "/tasks|pending_approvals|urgent|1|task-1",
+        "/runs": {
+          signature: "/runs|pending_approvals|urgent|1|task-1",
           firstSeenAt: "2026-03-25T12:00:00.000Z",
           acknowledgedAt: "2026-03-25T12:05:00.000Z",
         },
@@ -98,7 +98,7 @@ describe("useOperatorNavAttention", () => {
     });
 
     await waitFor(() => {
-      expect(Object.keys(result.current.state)).toEqual(["/tasks", "/services"]);
+      expect(Object.keys(result.current.state)).toEqual(["/runs", "/services"]);
       expect(result.current.routeCount).toBe(2);
     });
   });

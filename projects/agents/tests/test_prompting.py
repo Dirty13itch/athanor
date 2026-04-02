@@ -4,8 +4,8 @@ import types
 import unittest
 from pathlib import Path
 
-# Mock langchain_core before importing - not installed on DEV
-if "langchain_core" not in sys.modules:
+# Mock langchain_core only when the package is genuinely unavailable.
+if "langchain_core" not in sys.modules and importlib.util.find_spec("langchain_core") is None:
     class BaseMessage:
         def __init__(self, content=""):
             self.content = content

@@ -38,7 +38,6 @@ from .governor_runtime import (
 def _governor_backbone():
     from . import governor_backbone as backbone
 
-    backbone._get_redis = _get_redis
     return backbone
 
 

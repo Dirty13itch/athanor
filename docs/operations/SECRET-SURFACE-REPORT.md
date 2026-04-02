@@ -5,15 +5,15 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-03-29.2`
-- Surfaces tracked: `4`
-- VAULT LiteLLM env audit: `2026-03-31T00:12:36Z`
+- Registry version: `2026-04-02.1`
+- Surfaces tracked: `5`
+- VAULT LiteLLM env audit: `2026-04-02T15:44:36Z`
 
 ### Remediation states
 
 | Remediation state | Count |
 | --- | --- |
-| `managed` | 3 |
+| `managed` | 4 |
 | `remediation_required` | 1 |
 
 | Surface | Host | Delivery | Target | Risk | Remediation |
@@ -22,6 +22,7 @@ Do not edit manually.
 | `dev-systemd-env-surfaces` | `dev` | `service_envfile` | `service_envfile` | `managed_runtime_surface` | `managed` |
 | `vault-litellm-container-env` | `vault` | `container_env` | `container_env` | `managed_container_surface` | `remediation_required` |
 | `script-lane-redis-auth` | `desk` | `local_runtime_envfile` | `local_runtime_envfile` | `managed_runtime_surface` | `managed` |
+| `script-lane-vault-ssh-auth` | `desk` | `local_runtime_envfile` | `local_runtime_envfile` | `managed_runtime_surface` | `managed` |
 
 ## dev-user-crontab-inline-env
 
@@ -64,7 +65,7 @@ Do not edit manually.
 - Evidence sources: `VAULT LiteLLM template and appdata layout review 2026-03-25`, `VAULT live docker inspect env-presence audit 2026-03-29`, `VAULT provider-specific LiteLLM probe 2026-03-29`, `VAULT LiteLLM implementation-authority role parity review 2026-03-29`
 - Recommended actions: `Keep LiteLLM provider keys in the managed VAULT container env surface or an equivalent host-local secret source.`, `Keep the live VAULT container env aligned with every provider key referenced by ansible/roles/vault-litellm/templates/litellm_config.yaml.j2.`, `Use the generated VAULT auth-repair packet to decide whether a lane needs missing-key restoration, present-key rotation, or auth-mode review before recreating or redeploying the container.`, `Keep repo truth focused on env contracts, delivery boundaries, and repair sequencing rather than freezing point-in-time live env presence into this registry.`, `Do not move provider keys into tracked source or ad hoc shell history during future routing changes.`
 - Notes: `Backed by the current LiteLLM template and runtime appdata layout.`, `Implementation-authority LiteLLM env-contract parity is already fixed and validator-enforced; the remaining work is runtime-only and should be driven by the current env-audit plus provider-probe artifacts.`, `This registry tracks contract names, delivery surface, and remediation posture; the generated reports own point-in-time present or missing env observations.`, `The running VAULT LiteLLM surface currently appears as a standalone Docker container with a config bind mount, not a discovered compose-managed env source.`, `This registry tracks contract names only, not secret material.`
-- Latest live env audit: `2026-03-31T00:12:36Z`
+- Latest live env audit: `2026-04-02T15:44:36Z`
 - Audit status: `ok`
 - Runtime owner surface: `standalone_docker_container`
 - Container image: `ghcr.io/berriai/litellm:main-v1.81.9-stable`
@@ -95,3 +96,17 @@ Do not edit manually.
 - Evidence sources: `Automation artifact persistence failure on DESK shell 2026-03-25`, `DESK runtime env audit 2026-03-26`, `DESK runtime env bootstrap 2026-03-26`, `Contract healer and recovery evidence persistence succeeded 2026-03-26`
 - Recommended actions: `Keep ATHANOR_REDIS_URL and ATHANOR_REDIS_PASSWORD in ~/.athanor/runtime.env or ATHANOR_RUNTIME_ENV_FILE rather than ad hoc shell exports.`, `Use python scripts/runtime_env.py --check ATHANOR_REDIS_URL ATHANOR_REDIS_PASSWORD to verify the managed local env surface without printing secret values.`, `Keep Redis-backed automation scripts failing closed if the managed local env surface disappears.`
 - Notes: `The managed local runtime env surface is present and resolves both ATHANOR_REDIS_URL and ATHANOR_REDIS_PASSWORD.`, `Redis-backed automation evidence now persists through the managed local env surface instead of ad hoc shell exports.`
+
+## script-lane-vault-ssh-auth
+
+- Path: `~/.athanor/runtime.env`
+- Owner surface: VAULT SSH-backed operator access
+- Env contracts: `ATHANOR_VAULT_KEY_PATH`
+- Observed state: `runtime_envfile_present`
+- Target delivery: `local_runtime_envfile`
+- Remediation state: `managed`
+- Ask-first required: `False`
+- Managed by: `desk-session-context`
+- Evidence sources: `VAULT browser-terminal recovery 2026-04-02`, `DESK runtime env audit 2026-04-02`, `DESK direct vault-ssh helper verification 2026-04-02`
+- Recommended actions: `Keep ATHANOR_VAULT_KEY_PATH in ~/.athanor/runtime.env or ATHANOR_RUNTIME_ENV_FILE so the VAULT helpers use the managed local SSH key path instead of ad hoc shell state or browser-only recovery.`, `Use python scripts/runtime_env.py --check ATHANOR_VAULT_KEY_PATH and python scripts/vault-ssh.py "echo CONNECTED && hostname" to verify the managed local env surface without printing secret values.`, `Treat ATHANOR_VAULT_USER and ATHANOR_VAULT_PASSWORD as optional overrides; the current contract uses the managed key path and the default VAULT root user.`
+- Notes: `The managed local runtime env surface now carries the explicit VAULT SSH key-path contract needed by scripts/vault-ssh.py and scripts/ssh-vault.ps1.`, `DESK-side VAULT operator access no longer depends on the authenticated browser terminal as the only working recovery path.`

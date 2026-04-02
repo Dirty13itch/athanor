@@ -1,5 +1,7 @@
 """Plan and Pipeline API routes."""
 
+import asyncio
+
 from fastapi import APIRouter, Request
 from starlette.responses import JSONResponse
 
@@ -19,7 +21,12 @@ async def _load_operator_body(
     action_class: str,
     default_reason: str,
 ):
-    body = await request.json() if request.headers.get("content-type", "").startswith("application/json") else {}
+    body = {}
+    if request.headers.get("content-type", "").startswith("application/json"):
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
     if not isinstance(body, dict):
         body = {}
 
@@ -287,7 +294,7 @@ async def batch_approve_plans_endpoint(request: Request):
 @router.post("/pipeline/cycle")
 async def trigger_pipeline_cycle(request: Request):
     """Trigger a pipeline cycle on-demand."""
-    from ..work_pipeline import run_pipeline_cycle
+    from ..work_pipeline import PIPELINE_CYCLE_TIMEOUT_SECONDS, run_pipeline_cycle
     from dataclasses import asdict
 
     _, action, denial = await _load_operator_body(
@@ -298,7 +305,7 @@ async def trigger_pipeline_cycle(request: Request):
     )
     if denial:
         return denial
-    result = await run_pipeline_cycle()
+    result = await asyncio.wait_for(run_pipeline_cycle(), timeout=PIPELINE_CYCLE_TIMEOUT_SECONDS)
     await emit_operator_audit_event(
         service="agent-server",
         route="/v1/pipeline/cycle",

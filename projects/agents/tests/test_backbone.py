@@ -25,6 +25,7 @@ class BackboneOperatorFlowTests(unittest.IsolatedAsyncioTestCase):
         fake_redis = FakeRedis()
         with (
             patch("athanor_agents.governor._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.governor_backbone._get_redis", AsyncMock(return_value=fake_redis)),
             patch(
                 "athanor_agents.governor_backbone.build_capacity_snapshot",
                 AsyncMock(
@@ -65,7 +66,7 @@ class BackboneOperatorFlowTests(unittest.IsolatedAsyncioTestCase):
         ):
             await set_operator_presence("asleep", actor="test-suite")
             await set_release_tier("offline_eval", actor="test-suite")
-            jobs = await build_scheduled_job_records(limit=10)
+            jobs = await build_scheduled_job_records(limit=50)
 
         indexed = {job["id"]: job for job in jobs}
         self.assertEqual("deferred", indexed["agent-schedule:research-agent"]["current_state"])
@@ -77,6 +78,17 @@ class BackboneOperatorFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("wait_for_presence_change", indexed["agent-schedule:research-agent"]["next_action"])
         self.assertEqual("scheduled", indexed["benchmark-cycle"]["current_state"])
         self.assertEqual("benchmark", indexed["benchmark-cycle"]["priority_band"])
+        for job_id in (
+            "pipeline-cycle",
+            "owner-model",
+            "nightly-optimization",
+            "knowledge-refresh",
+            "weekly-dpo-training",
+            "creative-cascade",
+            "code-cascade",
+            "research:scheduler",
+        ):
+            self.assertIn(job_id, indexed)
 
     async def test_execution_runs_expose_lineage_and_governance_versions(self) -> None:
         task = {

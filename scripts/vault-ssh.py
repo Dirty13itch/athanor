@@ -1,14 +1,42 @@
 """SSH to VAULT and run commands via paramiko."""
 import os
 import sys
+from pathlib import Path
+
 import paramiko
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cluster_config import NODES
+from runtime_env import load_optional_runtime_env
+
+load_optional_runtime_env(
+    env_names=[
+        "ATHANOR_VAULT_USER",
+        "ATHANOR_VAULT_PASSWORD",
+        "VAULT_SSH_PASSWORD",
+        "ATHANOR_VAULT_KEY_PATH",
+        "VAULT_SSH_KEY_PATH",
+    ]
+)
 
 HOST = NODES["vault"]
 USER = os.environ.get("ATHANOR_VAULT_USER", "root")
 PASSWORD = os.environ.get("ATHANOR_VAULT_PASSWORD") or os.environ.get("VAULT_SSH_PASSWORD", "")
-KEY_PATH = os.environ.get("ATHANOR_VAULT_KEY_PATH") or os.environ.get("VAULT_SSH_KEY_PATH", "")
+
+
+def _resolve_key_path() -> str:
+    candidates = [
+        os.environ.get("ATHANOR_VAULT_KEY_PATH"),
+        os.environ.get("VAULT_SSH_KEY_PATH"),
+        str(Path.home() / ".ssh" / "id_ed25519"),
+        str(Path.home() / ".ssh" / "athanor_mgmt"),
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return candidate
+    return ""
+
+
+KEY_PATH = _resolve_key_path()
 
 def run(command):
     client = paramiko.SSHClient()
@@ -18,8 +46,8 @@ def run(command):
             "hostname": HOST,
             "username": USER,
             "timeout": 10,
-            "look_for_keys": not PASSWORD,
-            "allow_agent": not PASSWORD,
+            "look_for_keys": not PASSWORD and not KEY_PATH,
+            "allow_agent": not PASSWORD and not KEY_PATH,
         }
         if PASSWORD:
             connect_kwargs["password"] = PASSWORD

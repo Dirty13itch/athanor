@@ -24,7 +24,7 @@ const fixtureJudge: Pick<JudgePlaneSnapshot, "generated_at" | "summary"> = {
 };
 
 describe("buildNavAttentionSignals", () => {
-  it("classifies pending approvals on /tasks as urgent", () => {
+  it("classifies pending approvals on /runs as urgent", () => {
     const signals = buildNavAttentionSignals({
       workforce: getFixtureWorkforceSnapshot(),
       services: getFixtureServicesSnapshot().services,
@@ -33,7 +33,7 @@ describe("buildNavAttentionSignals", () => {
       updatedAt: "2026-03-09T15:00:00.000Z",
     });
 
-    const signal = signals.find((entry) => entry.routeHref === "/tasks");
+    const signal = signals.find((entry) => entry.routeHref === "/runs");
     expect(signal?.tier).toBe("urgent");
     expect(signal?.source).toBe("pending_approvals");
     expect(signal?.count).toBe(2);
@@ -91,13 +91,13 @@ describe("buildNavAttentionSignals", () => {
 
 describe("resolveNavAttentionPresentation", () => {
   const signal = {
-    routeHref: "/tasks",
+    routeHref: "/runs",
     tier: "urgent" as const,
     count: 2,
-    reason: "2 tasks need approval.",
+    reason: "2 runs need approval.",
     source: "pending_approvals" as const,
     updatedAt: "2026-03-09T15:00:00.000Z",
-    signature: "/tasks|pending_approvals|urgent|2|task-1|task-2",
+    signature: "/runs|pending_approvals|urgent|2|task-1|task-2",
   };
 
   it("keeps urgent signals hot before they settle", () => {

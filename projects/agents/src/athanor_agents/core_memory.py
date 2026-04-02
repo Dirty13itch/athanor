@@ -7,6 +7,7 @@ own memory via tools, and the context pipeline injects it automatically.
 Redis key pattern: athanor:core_memory:{agent_name}
 """
 
+from copy import deepcopy
 import json
 import logging
 from typing import Any
@@ -116,6 +117,42 @@ DEFAULT_PERSONAS: dict[str, dict] = {
 }
 
 
+def _default_core_memory(agent_name: str) -> dict:
+    persona = DEFAULT_PERSONAS.get(agent_name)
+    if persona is not None:
+        return deepcopy(persona)
+    return {
+        "bio": "",
+        "directives": [],
+        "learned_preferences": {},
+        "style_notes": "",
+    }
+
+
+def _payload_preview(raw: Any, limit: int = 120) -> str:
+    if isinstance(raw, bytes):
+        text = raw.decode("utf-8", errors="replace")
+    else:
+        text = str(raw)
+    return text[:limit]
+
+
+def _load_core_memory(raw: Any, agent_name: str, *, log_invalid: bool) -> dict | None:
+    if raw in (None, "", b""):
+        return None
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        if log_invalid:
+            logger.warning(
+                "Failed to read core memory for %s: invalid JSON payload preview=%r error=%s",
+                agent_name,
+                _payload_preview(raw),
+                exc,
+            )
+        return None
+
+
 async def _get_redis():
     from .workspace import get_redis
     return await get_redis()
@@ -129,18 +166,13 @@ async def get_core_memory(agent_name: str) -> dict:
     try:
         r = await _get_redis()
         raw = await r.get(f"{CORE_MEMORY_KEY_PREFIX}{agent_name}")
-        if raw:
-            return json.loads(raw)
+        memory = _load_core_memory(raw, agent_name, log_invalid=True)
+        if memory is not None:
+            return memory
     except Exception as e:
         logger.warning("Failed to read core memory for %s: %s", agent_name, e)
 
-    # Return default if available, otherwise empty structure
-    return DEFAULT_PERSONAS.get(agent_name, {
-        "bio": "",
-        "directives": [],
-        "learned_preferences": {},
-        "style_notes": "",
-    })
+    return _default_core_memory(agent_name)
 
 
 async def update_core_memory(agent_name: str, field: str, value: Any) -> dict:
@@ -202,23 +234,27 @@ async def seed_core_memories() -> int:
 
     Returns the number of agents seeded.
     """
-    seeded = 0
+    mutated = 0
     try:
         r = await _get_redis()
         for agent_name, persona in DEFAULT_PERSONAS.items():
             key = f"{CORE_MEMORY_KEY_PREFIX}{agent_name}"
-            exists = await r.exists(key)
-            if not exists:
+            raw = await r.get(key)
+            memory = _load_core_memory(raw, agent_name, log_invalid=False)
+            if memory is None:
                 await r.set(key, json.dumps(persona))
-                logger.info("Seeded core memory for %s", agent_name)
-                seeded += 1
-        if seeded:
-            logger.info("Core memory seeding complete: %d agents seeded", seeded)
+                if raw in (None, "", b""):
+                    logger.info("Seeded core memory for %s", agent_name)
+                else:
+                    logger.warning("Repaired invalid core memory for %s", agent_name)
+                mutated += 1
+        if mutated:
+            logger.info("Core memory seeding complete: %d agents updated", mutated)
         else:
             logger.debug("Core memory seeding: all agents already have memories")
     except Exception as e:
         logger.warning("Core memory seeding failed: %s", e)
-    return seeded
+    return mutated
 
 
 def format_core_memory_context(memory: dict) -> str:

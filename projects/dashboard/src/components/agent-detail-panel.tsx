@@ -38,6 +38,14 @@ interface TaskItem {
   created_at: number | string;
 }
 
+interface RunItem {
+  id: string;
+  agent_id?: string;
+  status?: string;
+  summary?: string;
+  created_at?: number | string;
+}
+
 interface PatternItem {
   type: string;
   severity: string;
@@ -74,11 +82,19 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
         .then((response) => (response.ok ? response.json() : null))
         .catch(() => null);
 
-    const [agentsData, activityData, tasksData, workforceData, patternsData, autonomyData] = await Promise.all([
+    const mapRunToTask = (run: RunItem): TaskItem => ({
+      id: run.id,
+      prompt: run.summary ?? "(no summary)",
+      status: run.status ?? "unknown",
+      agent: run.agent_id ?? currentAgentName,
+      created_at: run.created_at ?? 0,
+    });
+
+    const [agentsData, activityData, tasksData, trustData, patternsData, autonomyData] = await Promise.all([
       fetchJson("/api/agents"),
       fetchJson(`/api/activity?agent=${currentAgentName}&limit=5`),
-      fetchJson(`/api/workforce/tasks?agent=${currentAgentName}&limit=5`),
-      fetchJson("/api/workforce"),
+      fetchJson(`/api/operator/runs?agent=${currentAgentName}&limit=5`),
+      fetchJson("/api/trust"),
       fetchJson(`/api/insights?agent=${currentAgentName}`),
       fetchJson("/api/autonomy"),
     ]);
@@ -105,19 +121,17 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
       );
     }
     setActivity(activityData?.activity ?? []);
-    setTasks(tasksData?.tasks ?? []);
-    const trustEntry = workforceData?.trust?.find((entry: {
-      agentId: string;
-      trustScore: number;
-      trustGrade: string | null;
-      totalFeedback: number;
-    }) => entry.agentId === currentAgentName);
+    setTasks(((tasksData?.runs ?? tasksData ?? []) as RunItem[]).map(mapRunToTask));
+    const trustAgents = trustData?.agents && typeof trustData.agents === "object"
+      ? (trustData.agents as Record<string, { score?: number; grade?: string; feedback?: { total?: number } }>)
+      : null;
+    const trustEntry = trustAgents?.[currentAgentName];
     setTrust(
       trustEntry
         ? {
-            score: trustEntry.trustScore,
-            level: trustEntry.trustGrade ?? "NA",
-            feedback_count: trustEntry.totalFeedback,
+            score: trustEntry.score ?? 0,
+            level: trustEntry.grade ?? "NA",
+            feedback_count: trustEntry.feedback?.total ?? 0,
           }
         : null
     );
@@ -320,12 +334,12 @@ export function AgentDetailPanel({ agentName, agentColor, agentIcon, onClose }: 
           <Button
             variant="outline"
             className="flex-1"
-            onClick={() => {
+          onClick={() => {
               onClose();
-              router.push(`/tasks?agent=${agentName}`);
+              router.push(`/runs?agent=${agentName}`);
             }}
           >
-            Tasks
+            Runs
           </Button>
         </div>
       </SheetContent>

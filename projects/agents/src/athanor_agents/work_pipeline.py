@@ -22,6 +22,7 @@ PIPELINE_GENERATION_CONTEXT_KEY = "athanor:pipeline:generation_context"
 OUTCOMES_MAX = 200
 CYCLE_HISTORY_MAX = 30
 MAX_QUEUE_DEPTH = 20  # Skip generation if queue has >20 pending tasks
+PIPELINE_CYCLE_TIMEOUT_SECONDS = 900
 
 
 @dataclass

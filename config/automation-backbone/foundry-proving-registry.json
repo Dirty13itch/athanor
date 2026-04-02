@@ -1,0 +1,42 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T20:30:00Z",
+  "status": "active",
+  "project_id": "athanor",
+  "project_packet_ref": "config/automation-backbone/project-packet-registry.json#projects[athanor]",
+  "architecture_packet_ref": "foundry.architecture_packets(project_id=athanor)",
+  "first_proving_slice_id": "athanor-bootstrap-zero-ambiguity",
+  "first_proving_slice_packet": {
+    "owner_agent": "coding-agent",
+    "lane": "software_core_phase_1",
+    "objective": "Land the zero-ambiguity bootstrap control packet layer and prove canonical builder execution through foundry-owned records."
+  },
+  "acceptance_evidence_requirements": [
+    "Durable operator work surfaces",
+    "Registry-backed runtime authority",
+    "Foundry packet and deploy candidate path",
+    "Launch-blocker health posture"
+  ],
+  "candidate_evidence_requirements": [
+    "Candidate record references acceptance evidence artifacts",
+    "Deploy candidate includes rollback_target",
+    "Promotion status or rollback event is recorded for the proving candidate"
+  ],
+  "rollback_target_requirements": [
+    "Rollback target captures the previous candidate or packet snapshot",
+    "Rollback target is recorded before promotion",
+    "Rollback target is replayable without ad hoc operator memory"
+  ],
+  "validator_bundle": [
+    "python scripts/validate_platform_contract.py",
+    "cd /C:/Athanor/projects/agents && .\\.venv\\Scripts\\python -m pytest tests -q",
+    "cd /C:/Athanor/projects/dashboard && npm run typecheck"
+  ],
+  "promotion_gate": {
+    "require_foundry_run": true,
+    "require_candidate": true,
+    "require_rollback_target": true,
+    "require_acceptance_evidence": true,
+    "allow_direct_ad_hoc_bypass": false
+  }
+}

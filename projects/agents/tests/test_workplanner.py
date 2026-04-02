@@ -34,6 +34,9 @@ class _FakeRedis:
     async def get(self, key):
         return None
 
+    async def lrange(self, *args, **kwargs):
+        return []
+
     async def set(self, *args, **kwargs):
         return None
 
@@ -104,6 +107,7 @@ class WorkPlannerTests(unittest.IsolatedAsyncioTestCase):
             patch("athanor_agents.workplanner.httpx.AsyncClient", return_value=_FakeAsyncClient(response_payload)),
             patch("athanor_agents.tasks.submit_governed_task", AsyncMock(return_value=submission)) as submit_governed_task,
             patch("athanor_agents.workspace.get_redis", AsyncMock(return_value=_FakeRedis())),
+            patch("athanor_agents.durable_state.store_workplan_snapshot", AsyncMock(return_value=True)) as store_workplan_snapshot,
             patch("athanor_agents.activity.log_event", AsyncMock()),
             patch("athanor_agents.workplanner.asyncio.create_task", side_effect=lambda coro: coro.close()),
         ):
@@ -124,6 +128,7 @@ class WorkPlannerTests(unittest.IsolatedAsyncioTestCase):
             },
             source="work_planner",
         )
+        store_workplan_snapshot.assert_awaited_once()
 
     async def test_generate_work_plan_filters_autonomy_managed_tasks_to_allowed_agents(self) -> None:
         response_payload = """
@@ -158,6 +163,7 @@ class WorkPlannerTests(unittest.IsolatedAsyncioTestCase):
             patch("athanor_agents.workplanner.httpx.AsyncClient", return_value=_FakeAsyncClient(response_payload)),
             patch("athanor_agents.tasks.submit_governed_task", AsyncMock(return_value=submission)) as submit_governed_task,
             patch("athanor_agents.workspace.get_redis", AsyncMock(return_value=_FakeRedis())),
+            patch("athanor_agents.durable_state.store_workplan_snapshot", AsyncMock(return_value=True)),
             patch("athanor_agents.activity.log_event", AsyncMock()),
             patch("athanor_agents.workplanner.asyncio.create_task", side_effect=lambda coro: coro.close()),
         ):
@@ -178,3 +184,33 @@ class WorkPlannerTests(unittest.IsolatedAsyncioTestCase):
             },
             source="work_planner",
         )
+
+    async def test_get_current_plan_falls_back_to_durable_snapshot(self) -> None:
+        from athanor_agents.workplanner import get_current_plan
+
+        with (
+            patch("athanor_agents.workspace.get_redis", AsyncMock(side_effect=RuntimeError("redis unavailable"))),
+            patch(
+                "athanor_agents.durable_state.fetch_latest_workplan_snapshot",
+                AsyncMock(return_value={"plan_id": "wp-1", "task_count": 2}),
+            ) as fetch_latest_workplan_snapshot,
+        ):
+            plan = await get_current_plan()
+
+        self.assertEqual({"plan_id": "wp-1", "task_count": 2}, plan)
+        fetch_latest_workplan_snapshot.assert_awaited_once()
+
+    async def test_get_plan_history_falls_back_to_durable_snapshots(self) -> None:
+        from athanor_agents.workplanner import get_plan_history
+
+        with (
+            patch("athanor_agents.workspace.get_redis", AsyncMock(side_effect=RuntimeError("redis unavailable"))),
+            patch(
+                "athanor_agents.durable_state.list_workplan_snapshots",
+                AsyncMock(return_value=[{"plan_id": "wp-1"}, {"plan_id": "wp-0"}]),
+            ) as list_workplan_snapshots,
+        ):
+            history = await get_plan_history(limit=2)
+
+        self.assertEqual([{"plan_id": "wp-1"}, {"plan_id": "wp-0"}], history)
+        list_workplan_snapshots.assert_awaited_once_with(limit=2)

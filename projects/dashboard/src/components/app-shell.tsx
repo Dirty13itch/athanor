@@ -340,7 +340,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link href="/agents">Open agent console</Link>
             </Button>
             <Button asChild className="w-full justify-between" variant="ghost">
-              <Link href="/workplanner">Project work planner</Link>
+              <Link href="/backlog">Project work planner</Link>
             </Button>
             <Button asChild className="w-full justify-between" variant="ghost">
               <Link href="/catalog">Open catalog</Link>

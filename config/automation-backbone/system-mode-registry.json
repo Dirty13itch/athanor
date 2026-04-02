@@ -1,0 +1,37 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T16:45:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/system-mode-registry.json",
+  "default_mode": "normal",
+  "modes": [
+    {
+      "id": "normal",
+      "label": "Normal",
+      "status": "live",
+      "blocks_new_work": false,
+      "description": "Standard operating mode with all approved loops enabled."
+    },
+    {
+      "id": "constrained",
+      "label": "Constrained",
+      "status": "live",
+      "blocks_new_work": false,
+      "description": "Suppress experiments, noisy maintenance, and low-value proactive work until attention pressure clears."
+    },
+    {
+      "id": "degraded",
+      "label": "Degraded",
+      "status": "live",
+      "blocks_new_work": true,
+      "description": "Block launches, promotions, and nonessential dispatch while core or domain incidents are active."
+    },
+    {
+      "id": "recovery_only",
+      "label": "Recovery Only",
+      "status": "live",
+      "blocks_new_work": true,
+      "description": "Restrict activity to auth, restore, validation, and critical repair."
+    }
+  ]
+}

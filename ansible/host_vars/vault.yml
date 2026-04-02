@@ -154,6 +154,16 @@ prometheus_probe_targets:
     url: "http://{{ vault_ip }}:7878/ping"
     category: media
     node_id: vault
+  - id: prowlarr
+    name: "Prowlarr"
+    url: "http://{{ vault_ip }}:9696/ping"
+    category: media
+    node_id: vault
+  - id: sabnzbd
+    name: "SABnzbd"
+    url: "http://{{ vault_ip }}:8080/api?mode=version&output=json"
+    category: media
+    node_id: vault
   - id: tautulli
     name: "Tautulli"
     url: "http://{{ vault_ip }}:8181"

@@ -1,0 +1,138 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T20:30:00Z",
+  "status": "active",
+  "packet_types": [
+    {
+      "id": "db_schema_change",
+      "label": "DB schema change",
+      "boundary": "database schema changes remain ask-first",
+      "approval_authority": "operator",
+      "target_env_var": "ATHANOR_POSTGRES_URL",
+      "schema_authority": {
+        "checkpoint_setup_authority": "langgraph.checkpoint.postgres.PostgresSaver.setup()",
+        "bootstrap_mirror_sql_path": "projects/agents/src/athanor_agents/sql/bootstrap_durable_state.sql"
+      },
+      "affected_objects": [
+        "langgraph checkpoint tables",
+        "control.bootstrap_programs",
+        "control.bootstrap_slices",
+        "control.bootstrap_handoffs",
+        "control.bootstrap_integrations",
+        "control.bootstrap_blockers",
+        "control.bootstrap_host_state"
+      ],
+      "migration_order": [
+        "Validate the runtime dependency and env contract first.",
+        "Apply bootstrap_durable_state.sql in implementation authority.",
+        "Run PostgresSaver.setup() against ATHANOR_POSTGRES_URL.",
+        "Cut configured runtimes over from memory fallback to durable persistence.",
+        "Run restart-safe recovery proof before clearing the launch blocker."
+      ],
+      "evidence_required": [
+        "migration ordering",
+        "rollback steps",
+        "health impact",
+        "restart proof plan"
+      ],
+      "exact_steps": [
+        "Create checkpoint tables or mirrored bootstrap/run tables in implementation authority SQL first.",
+        "Review dependency and env changes before runtime mutation.",
+        "Apply schema change during an intentional maintenance window only.",
+        "Run restart-safe recovery proof before clearing the durable-persistence blocker."
+      ],
+      "rollback_steps": [
+        "Stop the runtime mutation path.",
+        "Restore pre-migration schema snapshot or backup.",
+        "Return runtime to the previous persistence posture."
+      ]
+    },
+    {
+      "id": "vault_provider_auth_repair",
+      "label": "VAULT provider auth repair",
+      "boundary": "LiteLLM runtime mutation on VAULT remains ask-first",
+      "approval_authority": "operator",
+      "evidence_required": [
+        "vault-litellm env audit artifact",
+        "provider usage evidence",
+        "repair checklist",
+        "rollback command path"
+      ],
+      "exact_steps": [
+        "Back up the current litellm container definition before edit.",
+        "Repair missing or invalid provider env delivery through the approved host-local secret surface.",
+        "Restart only the litellm container.",
+        "Re-run provider-specific probes and the env audit."
+      ],
+      "rollback_steps": [
+        "Restore the saved container definition or secret surface.",
+        "Restart the litellm container with the prior env contract.",
+        "Re-run the same probes to confirm rollback."
+      ]
+    },
+    {
+      "id": "systemd_runtime_change",
+      "label": "Systemd runtime change",
+      "boundary": "systemd unit changes remain ask-first",
+      "approval_authority": "operator",
+      "evidence_required": [
+        "unit backup path",
+        "target services",
+        "health verification steps",
+        "rollback path"
+      ],
+      "exact_steps": [
+        "Capture the current unit file and active environment contract.",
+        "Apply the change during an intentional maintenance window.",
+        "Reload systemd and restart only the affected unit.",
+        "Run health and operator smoke checks immediately."
+      ],
+      "rollback_steps": [
+        "Restore the saved unit file.",
+        "Reload systemd and restart the affected unit.",
+        "Verify the pre-change health posture."
+      ]
+    },
+    {
+      "id": "destructive_branch_cleanup",
+      "label": "Destructive branch cleanup",
+      "boundary": "destructive git cleanup outside the prune policy remains ask-first",
+      "approval_authority": "operator",
+      "evidence_required": [
+        "branch or worktree inventory",
+        "archive destination",
+        "recovery instructions"
+      ],
+      "exact_steps": [
+        "Inventory the branches and worktrees targeted for removal.",
+        "Archive recoverable state before deletion.",
+        "Delete only the approved branches or worktrees."
+      ],
+      "rollback_steps": [
+        "Restore the archived refs or worktrees.",
+        "Repoint the operator workflow to the restored state."
+      ]
+    },
+    {
+      "id": "runtime_host_reconfiguration",
+      "label": "Runtime host reconfiguration",
+      "boundary": "live host reconfiguration remains ask-first",
+      "approval_authority": "operator",
+      "evidence_required": [
+        "affected host surfaces",
+        "expected outage or drift window",
+        "verification plan",
+        "rollback plan"
+      ],
+      "exact_steps": [
+        "Document the targeted host surfaces and expected impact.",
+        "Apply the approved host reconfiguration.",
+        "Run topology-owned health and smoke checks."
+      ],
+      "rollback_steps": [
+        "Restore the prior host configuration.",
+        "Re-run the same health and smoke checks."
+      ]
+    }
+  ]
+}

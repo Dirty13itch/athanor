@@ -1,0 +1,96 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T16:00:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/coding-lane-registry.json",
+  "lanes": [
+    {
+      "id": "sovereign_supervisor",
+      "label": "Sovereign Supervisor",
+      "status": "live",
+      "provider": "local",
+      "runtime": "foundry",
+      "privacy": "local_only",
+      "max_parallel": 2,
+      "workloads": ["triage", "routing", "research_lite", "operator_briefing"],
+      "fallback": ["sovereign_coder"]
+    },
+    {
+      "id": "sovereign_coder",
+      "label": "Sovereign Coder",
+      "status": "live",
+      "provider": "local",
+      "runtime": "foundry",
+      "privacy": "local_only",
+      "max_parallel": 4,
+      "workloads": ["private_code", "domain_automation", "maintenance", "migration"],
+      "fallback": ["sovereign_supervisor"]
+    },
+    {
+      "id": "sovereign_bulk",
+      "label": "Sovereign Bulk",
+      "status": "live",
+      "provider": "local",
+      "runtime": "foundry+workshop",
+      "privacy": "local_only",
+      "max_parallel": 8,
+      "workloads": ["classification", "extraction", "indexing", "creative_batch"],
+      "fallback": ["sovereign_supervisor"]
+    },
+    {
+      "id": "codex_cloudsafe",
+      "label": "Codex Cloudsafe",
+      "status": "live",
+      "provider": "openai_responses",
+      "runtime": "remote",
+      "privacy": "cloud_safe_only",
+      "max_parallel": 2,
+      "workloads": ["coding_implementation", "refactor", "review"],
+      "fallback": ["sovereign_coder"]
+    },
+    {
+      "id": "claude_review_cloudsafe",
+      "label": "Claude Review Cloudsafe",
+      "status": "live",
+      "provider": "anthropic_api",
+      "runtime": "remote",
+      "privacy": "cloud_safe_only",
+      "max_parallel": 2,
+      "workloads": ["architecture_review", "final_review"],
+      "fallback": ["sovereign_supervisor"]
+    },
+    {
+      "id": "gemini_audit_cloudsafe",
+      "label": "Gemini Audit Cloudsafe",
+      "status": "live",
+      "provider": "google",
+      "runtime": "remote",
+      "privacy": "cloud_safe_only",
+      "max_parallel": 2,
+      "workloads": ["large_context_audit"],
+      "fallback": ["sovereign_supervisor"]
+    },
+    {
+      "id": "responses_background_cloudsafe",
+      "label": "Responses Background Cloudsafe",
+      "status": "live",
+      "provider": "openai_responses_background",
+      "runtime": "remote",
+      "privacy": "cloud_safe_only",
+      "max_parallel": 2,
+      "workloads": ["deep_research", "edge_async"],
+      "fallback": ["codex_cloudsafe"]
+    },
+    {
+      "id": "public_edge_async",
+      "label": "Public Edge Async",
+      "status": "live",
+      "provider": "vercel_workflow",
+      "runtime": "vercel",
+      "privacy": "public_product_only",
+      "max_parallel": 8,
+      "workloads": ["webhook_fanout", "cache_refresh", "transactional_email"],
+      "fallback": ["responses_background_cloudsafe"]
+    }
+  ]
+}

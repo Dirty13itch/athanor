@@ -15,7 +15,23 @@ from automation_records import AutomationRunRecord, emit_automation_run_record
 
 ROOT = Path(__file__).resolve().parents[1]
 AGENTS_SRC = ROOT / "projects" / "agents" / "src"
-ARTIFACT_PATH = ROOT / "audit" / "recovery" / "restore-drill-latest.json"
+
+
+def _runtime_artifact_root() -> Path:
+    env_root = str(os.getenv("ATHANOR_RUNTIME_ARTIFACT_ROOT") or "").strip()
+    if env_root:
+        return Path(env_root)
+    if os.access(ROOT, os.W_OK):
+        return ROOT
+    output_root = Path("/output")
+    if output_root.exists() and os.access(output_root, os.W_OK):
+        return output_root
+    return ROOT
+
+
+ARTIFACT_ROOT = _runtime_artifact_root()
+ARTIFACT_PATH = ARTIFACT_ROOT / "audit" / "recovery" / "restore-drill-latest.json"
+REPORT_ARTIFACT_PATH = ARTIFACT_ROOT / "reports" / "recovery" / "latest.json"
 
 RUNNER = """
 import asyncio
@@ -127,8 +143,11 @@ def main() -> int:
 
     artifact = _sanitize_payload(artifact)
 
+    payload = json.dumps(artifact, indent=2) + "\n"
     ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    ARTIFACT_PATH.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    ARTIFACT_PATH.write_text(payload, encoding="utf-8")
+    REPORT_ARTIFACT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_ARTIFACT_PATH.write_text(payload, encoding="utf-8")
 
     verified_store_count = 0
     if isinstance(snapshot, dict):
@@ -153,18 +172,20 @@ def main() -> int:
         inputs={
             "flow_ids": ["restore_drill"],
             "artifact_path": str(ARTIFACT_PATH),
+            "report_artifact_path": str(REPORT_ARTIFACT_PATH),
             "pythonpath": str(AGENTS_SRC),
         },
         result={
             "success": success,
             "verified_store_count": verified_store_count,
             "artifact_path": str(ARTIFACT_PATH),
+            "report_artifact_path": str(REPORT_ARTIFACT_PATH),
             "error": sanitized_error,
         },
         rollback={
-            "mode": "delete_artifact",
-            "path": str(ARTIFACT_PATH),
-            "note": "This drill is read-only; remove or regenerate the artifact if needed.",
+            "mode": "delete_artifacts",
+            "paths": [str(ARTIFACT_PATH), str(REPORT_ARTIFACT_PATH)],
+            "note": "This drill is read-only; remove or regenerate the artifacts if needed.",
         },
         duration=time.perf_counter() - started,
         operator_visible_summary=summary,
@@ -173,7 +194,9 @@ def main() -> int:
     artifact["automation_record_persisted"] = emit_result.persisted
     artifact["automation_record_error"] = emit_result.error
     artifact = _sanitize_payload(artifact)
-    ARTIFACT_PATH.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    payload = json.dumps(artifact, indent=2) + "\n"
+    ARTIFACT_PATH.write_text(payload, encoding="utf-8")
+    REPORT_ARTIFACT_PATH.write_text(payload, encoding="utf-8")
 
     return 0 if success else 1
 

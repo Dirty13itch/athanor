@@ -778,7 +778,7 @@ async def _check_cache_cleanup():
 
 async def _check_work_pipeline():
     """Check if it's time to run the work pipeline (every 2 hours)."""
-    from .work_pipeline import run_pipeline_cycle
+    from .work_pipeline import PIPELINE_CYCLE_TIMEOUT_SECONDS, run_pipeline_cycle
 
     if not _autonomy_allows_workload("workplan_generation", loop_id="work_pipeline"):
         return
@@ -795,14 +795,19 @@ async def _check_work_pipeline():
         logger.debug("Scheduler Redis check fallback: %s", e)
 
     logger.info("Scheduler: running work pipeline cycle (interval=%ds)", PIPELINE_INTERVAL)
+    started = time.monotonic()
     try:
-        result = await asyncio.wait_for(run_pipeline_cycle(), timeout=120)
+        result = await asyncio.wait_for(
+            run_pipeline_cycle(),
+            timeout=PIPELINE_CYCLE_TIMEOUT_SECONDS,
+        )
         r = await _get_redis()
         await r.set(PIPELINE_KEY, str(time.time()))
         logger.info(
-            "Work pipeline cycle: mined=%d new=%d plans=%d tasks=%d",
+            "Work pipeline cycle: mined=%d new=%d plans=%d tasks=%d duration_s=%.1f",
             result.intents_mined, result.intents_new,
             result.plans_created, result.tasks_submitted,
+            time.monotonic() - started,
         )
         # Refresh the auto-digest after each pipeline cycle
         try:
@@ -815,8 +820,17 @@ async def _check_work_pipeline():
                 logger.info("Auto-digest stored: %d tasks, %d completed", digest["task_count"], digest["completed_count"])
         except Exception as de:
             logger.debug("Auto-digest generation failed: %s", de)
+    except asyncio.TimeoutError:
+        logger.warning(
+            "Scheduler: work pipeline cycle timed out after %ds",
+            PIPELINE_CYCLE_TIMEOUT_SECONDS,
+        )
     except Exception as e:
-        logger.warning("Scheduler: work pipeline cycle failed: %s", e)
+        logger.warning(
+            "Scheduler: work pipeline cycle failed (%s): %s",
+            type(e).__name__,
+            e,
+        )
 
 
 async def _check_nightly_optimization():
@@ -1004,7 +1018,7 @@ async def _check_creative_cascade():
             return
 
         logger.info("Scheduler: starting creative quality cascade")
-        from .cascade import run_creative_cascade
+        from .cascade import CASCADE_TIMEOUT, run_creative_cascade
         result = await asyncio.wait_for(
             run_creative_cascade(autonomy_managed=True),
             timeout=CASCADE_TIMEOUT,
@@ -1037,7 +1051,7 @@ async def _check_code_cascade():
             return
 
         logger.info("Scheduler: starting code quality cascade")
-        from .cascade import run_code_quality_cascade
+        from .cascade import CASCADE_TIMEOUT, run_code_quality_cascade
         result = await asyncio.wait_for(
             run_code_quality_cascade(autonomy_managed=True),
             timeout=CASCADE_TIMEOUT,
@@ -1318,9 +1332,17 @@ BUILTIN_JOB_SCOPES: dict[str, str] = {
     "consolidation": "scheduler",
     "morning-plan": "scheduler",
     "workplan-refill": "scheduler",
+    "pipeline-cycle": "scheduler",
+    "owner-model": "scheduler",
+    "nightly-optimization": "scheduler",
+    "creative-cascade": "scheduler",
+    "code-cascade": "scheduler",
+    "research:scheduler": "research_jobs",
     "alert-check": "alerts",
     "benchmark-cycle": "benchmark_cycle",
+    "weekly-dpo-training": "benchmark_cycle",
     "cache-cleanup": "maintenance",
+    "knowledge-refresh": "maintenance",
     "improvement-cycle": "scheduler",
 }
 
@@ -1480,6 +1502,14 @@ def _manual_job_governance_context(job_id: str) -> tuple[str, str]:
         return "workplan", "system"
     if job_id == "workplan-refill":
         return "workplan_refill", "system"
+    if job_id == "pipeline-cycle":
+        return "pipeline", "system"
+    if job_id == "owner-model":
+        return "owner_model", "system"
+    if job_id == "nightly-optimization":
+        return "nightly_optimization", "system"
+    if job_id == "knowledge-refresh":
+        return "knowledge_refresh", "system"
     if job_id == "alert-check":
         return "alerts", "system"
     if job_id == "research:scheduler":
@@ -1488,8 +1518,14 @@ def _manual_job_governance_context(job_id: str) -> tuple[str, str]:
         return "research_job", "research-agent"
     if job_id == "benchmark-cycle":
         return "benchmarks", "system"
+    if job_id == "weekly-dpo-training":
+        return "weekly_dpo_training", "system"
     if job_id == "improvement-cycle":
         return "improvement_cycle", "system"
+    if job_id == "creative-cascade":
+        return "creative_cascade", "creative-agent"
+    if job_id == "code-cascade":
+        return "code_cascade", "coding-agent"
     if job_id == "cache-cleanup":
         return "cache_cleanup", "system"
     raise KeyError(job_id)
@@ -1530,6 +1566,193 @@ async def _emit_schedule_event(
     )
 
 
+
+
+async def _run_agent_schedule(
+    agent: str,
+    schedule: dict[str, Any],
+    *,
+    trigger_mode: str,
+    actor: str,
+    force_override: bool,
+) -> dict[str, Any]:
+    from .tasks import submit_governed_task
+
+    interval = int(schedule.get("interval", 0) or 0)
+    priority = str(schedule.get("priority") or "normal")
+    workload_class = SCHEDULED_AGENT_WORKLOADS.get(agent, "private_automation")
+    submission = await submit_governed_task(
+        agent=agent,
+        prompt=str(schedule.get("prompt") or ""),
+        priority=priority,
+        metadata={
+            "source": "scheduler",
+            "interval": interval,
+            "task_class": workload_class,
+        },
+        source="scheduler",
+    )
+    task = submission.task
+    await _set_last_run(agent, time.time())
+    status = "pending_approval" if submission.held_for_approval else "queued"
+    summary = f"Manual {agent} proactive loop submitted as task {task.id}"
+    await _emit_schedule_event(
+        event_type="schedule_run",
+        job_id=f"agent-schedule:{agent}",
+        job_family="agent_schedule",
+        owner_agent=agent,
+        trigger_mode=trigger_mode,
+        summary=summary,
+        outcome=status,
+        metadata={
+            "actor": actor,
+            "force_override": force_override,
+            "interval": interval,
+            "priority": priority,
+            "task_id": task.id,
+            "held_for_approval": submission.held_for_approval,
+        },
+    )
+    return {
+        "job_id": f"agent-schedule:{agent}",
+        "status": status,
+        "summary": summary,
+        "task_id": task.id,
+    }
+
+
+async def _run_daily_digest(*, trigger_mode: str, actor: str, force_override: bool) -> dict[str, Any]:
+    from .goals import generate_digest_prompt
+    from .tasks import submit_governed_task
+
+    now = datetime.now()
+    prompt = await generate_digest_prompt()
+    submission = await submit_governed_task(
+        agent="general-assistant",
+        prompt=prompt,
+        priority="normal",
+        metadata={
+            "source": "daily_digest",
+            "date": now.strftime("%Y-%m-%d"),
+            "task_class": "briefing_digest",
+        },
+        source="scheduler",
+    )
+    task = submission.task
+    r = await _get_redis()
+    await r.set(DAILY_DIGEST_KEY, now.strftime("%Y-%m-%d"))
+    status = "pending_approval" if submission.held_for_approval else "queued"
+    summary = f"Manual daily digest submitted as task {task.id}"
+    await _emit_schedule_event(
+        event_type="schedule_run",
+        job_id="daily-digest",
+        job_family="daily_digest",
+        owner_agent="general-assistant",
+        trigger_mode=trigger_mode,
+        summary=summary,
+        outcome=status,
+        metadata={
+            "actor": actor,
+            "force_override": force_override,
+            "task_id": task.id,
+            "held_for_approval": submission.held_for_approval,
+            "date": now.strftime("%Y-%m-%d"),
+        },
+    )
+    return {
+        "job_id": "daily-digest",
+        "status": status,
+        "summary": summary,
+        "task_id": task.id,
+    }
+
+
+async def _run_consolidation_job(*, trigger_mode: str, actor: str, force_override: bool) -> dict[str, Any]:
+    from .consolidation import run_consolidation
+
+    now = datetime.now()
+    results = await run_consolidation()
+    r = await _get_redis()
+    await r.set(CONSOLIDATION_KEY, now.strftime("%Y-%m-%d"))
+    error_count = len(results.get("errors", []))
+    status = "warning" if error_count else "completed"
+    summary = (
+        f"Manual consolidation deleted {results.get('total_deleted', 0)} points "
+        f"with {error_count} error(s)"
+    )
+    await _emit_schedule_event(
+        event_type="schedule_run",
+        job_id="consolidation",
+        job_family="consolidation",
+        owner_agent="system",
+        trigger_mode=trigger_mode,
+        summary=summary,
+        outcome=status,
+        metadata={
+            "actor": actor,
+            "force_override": force_override,
+            "total_deleted": results.get("total_deleted", 0),
+            "error_count": error_count,
+        },
+        error="; ".join(results.get("errors", [])),
+    )
+    return {
+        "job_id": "consolidation",
+        "status": status,
+        "summary": summary,
+        "result": results,
+    }
+
+
+async def _run_pattern_detection_job(*, trigger_mode: str, actor: str, force_override: bool) -> dict[str, Any]:
+    from .patterns import run_pattern_detection
+
+    now = datetime.now()
+    report = await run_pattern_detection()
+    r = await _get_redis()
+    await r.set(PATTERN_DETECTION_KEY, now.strftime("%Y-%m-%d"))
+
+    adjustment_error = ""
+    adjustment_count = 0
+    try:
+        from .goals import apply_trust_adjustments
+
+        adjustment_result = await apply_trust_adjustments()
+        adjustment_count = int(adjustment_result.get("agent_count", 0) or 0)
+    except Exception as exc:
+        adjustment_error = str(exc)
+
+    pattern_count = len(report.get("patterns", []))
+    recommendation_count = len(report.get("recommendations", []))
+    status = "warning" if adjustment_error else "completed"
+    summary = (
+        f"Manual pattern detection found {pattern_count} pattern(s), "
+        f"{recommendation_count} recommendation(s), and updated {adjustment_count} agent threshold(s)"
+    )
+    await _emit_schedule_event(
+        event_type="schedule_run",
+        job_id="pattern-detection",
+        job_family="pattern_detection",
+        owner_agent="system",
+        trigger_mode=trigger_mode,
+        summary=summary,
+        outcome=status,
+        metadata={
+            "actor": actor,
+            "force_override": force_override,
+            "pattern_count": pattern_count,
+            "recommendation_count": recommendation_count,
+            "adjustment_count": adjustment_count,
+        },
+        error=adjustment_error,
+    )
+    return {
+        "job_id": "pattern-detection",
+        "status": status,
+        "summary": summary,
+        "result": report,
+        "adjustment_error": adjustment_error or None,
+    }
 
 
 async def run_scheduled_job(
@@ -1672,6 +1895,48 @@ async def run_scheduled_job(
         )
         return {"job_id": job_id, "status": "completed", "summary": summary, "plan_id": plan.get("plan_id")}
 
+    if job_id == "pipeline-cycle":
+        from .work_pipeline import run_pipeline_cycle
+
+        result = await asyncio.wait_for(run_pipeline_cycle(), timeout=900)
+        summary = (
+            f"Manual pipeline cycle mined {result.intents_mined} intents, created "
+            f"{result.plans_created} plans, and submitted {result.tasks_submitted} task(s)"
+        )
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="pipeline",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed" if not result.errors else "warning",
+            metadata={
+                "intents_mined": result.intents_mined,
+                "intents_new": result.intents_new,
+                "plans_created": result.plans_created,
+                "tasks_submitted": result.tasks_submitted,
+                "tasks_held": result.tasks_held,
+                "error_count": len(result.errors),
+                "actor": actor,
+                "force_override": force,
+            },
+            error="; ".join(result.errors),
+        )
+        return {
+            "job_id": job_id,
+            "status": "completed" if not result.errors else "warning",
+            "summary": summary,
+            "result": {
+                "intents_mined": result.intents_mined,
+                "intents_new": result.intents_new,
+                "plans_created": result.plans_created,
+                "tasks_submitted": result.tasks_submitted,
+                "tasks_held": result.tasks_held,
+                "errors": list(result.errors),
+            },
+        }
+
     if job_id == "alert-check":
         from .alerts import check_prometheus_alerts
 
@@ -1711,6 +1976,26 @@ async def run_scheduled_job(
             metadata={"triggered": triggered, "actor": actor, "force_override": force},
         )
         return {"job_id": job_id, "status": "queued" if triggered > 0 else "completed", "summary": summary}
+
+    if job_id == "owner-model":
+        from .owner_model import rebuild_full
+
+        profile = await rebuild_full()
+        summary = (
+            f"Manual owner-model rebuild completed with {len(profile.get('domains', {}))} domains "
+            f"and {len(profile.get('active_goals', []))} active goals"
+        )
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="owner_model",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed",
+            metadata={"actor": actor, "force_override": force},
+        )
+        return {"job_id": job_id, "status": "completed", "summary": summary}
 
     if job_id.startswith("research:"):
         from .research_jobs import execute_job
@@ -1788,6 +2073,220 @@ async def run_scheduled_job(
             metadata={"actor": actor, "force_override": force},
         )
         return {"job_id": job_id, "status": "completed", "summary": summary}
+
+    if job_id == "nightly-optimization":
+        from .prompt_optimizer import run_nightly_optimization
+
+        result = await run_nightly_optimization()
+        summary = (
+            f"Manual nightly optimization analyzed {result.get('traces_analyzed', 0)} traces, "
+            f"found {len(result.get('underperformers', []))} underperformers, and generated "
+            f"{result.get('variants_generated', 0)} variants"
+        )
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="nightly_optimization",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed",
+            metadata={"actor": actor, "force_override": force},
+        )
+        return {"job_id": job_id, "status": "completed", "summary": summary}
+
+    if job_id == "knowledge-refresh":
+        from .knowledge_refresh import run_knowledge_refresh
+
+        result = await run_knowledge_refresh()
+        summary = (
+            f"Manual knowledge refresh found {result.get('docs_found', 0)} documents, refreshed "
+            f"{result.get('docs_refreshed', 0)}, and failed {result.get('docs_failed', 0)}"
+        )
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="knowledge_refresh",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed" if not result.get("docs_failed") else "warning",
+            metadata={"actor": actor, "force_override": force},
+        )
+        return {
+            "job_id": job_id,
+            "status": "completed" if not result.get("docs_failed") else "warning",
+            "summary": summary,
+        }
+
+    if job_id == "weekly-dpo-training":
+        now = datetime.now()
+        r = await _get_redis()
+        outcomes_raw = await r.lrange("athanor:pipeline:outcomes", 0, -1)
+        pairs = []
+        for raw in outcomes_raw:
+            try:
+                outcome = json.loads(raw if isinstance(raw, str) else raw.decode())
+                score = outcome.get("quality_score", 0.5)
+                prompt = outcome.get("prompt", "")
+                output = outcome.get("output_summary", "")
+                if prompt and output and score != 0.5:
+                    pairs.append(
+                        {
+                            "prompt": prompt[:2000],
+                            "output": output[:2000],
+                            "score": score,
+                        }
+                    )
+            except (json.JSONDecodeError, AttributeError):
+                continue
+
+        if len(pairs) < 10:
+            summary = f"Manual weekly DPO training skipped because only {len(pairs)} preference pairs are available"
+            await _emit_schedule_event(
+                event_type="schedule_skipped",
+                job_id=job_id,
+                job_family="weekly_dpo_training",
+                owner_agent="system",
+                trigger_mode="manual",
+                summary=summary,
+                outcome="skipped",
+                metadata={"actor": actor, "force_override": force, "pairs": len(pairs)},
+            )
+            return {"job_id": job_id, "status": "skipped", "summary": summary}
+
+        dataset_key = f"athanor:dpo:dataset:{now.strftime('%Y-%m-%d')}"
+        await r.set(dataset_key, json.dumps(pairs), ex=604800)
+        await r.set(DPO_TRAINING_KEY, now.strftime("%Y-%m-%d"))
+
+        from .tasks import submit_governed_task
+
+        submission = await submit_governed_task(
+            agent="coding-agent",
+            prompt=(
+                f"Weekly DPO training dataset is ready at Redis key '{dataset_key}' "
+                f"with {len(pairs)} preference pairs. "
+                "To run LoRA fine-tuning: 1) Stop vllm-coder container on FOUNDRY, "
+                "2) Run DPO training on FOUNDRY 4090, "
+                "3) Evaluate against promptfoo baseline, "
+                "4) If improved, deploy as new worker model on WORKSHOP, "
+                "5) Restart vllm-coder. "
+                "Report dataset stats and readiness status."
+            ),
+            priority="low",
+            metadata={
+                "source": "dpo_training",
+                "pairs": len(pairs),
+                "date": now.strftime("%Y-%m-%d"),
+                "task_class": "background_transform",
+                "requires_runtime_mutation": True,
+            },
+            source="scheduler",
+        )
+        task = submission.task
+        summary = (
+            f"Manual weekly DPO training prepared {len(pairs)} preference pairs and submitted task {task.id}"
+        )
+        await _emit_schedule_event(
+            event_type="schedule_run",
+            job_id=job_id,
+            job_family="weekly_dpo_training",
+            owner_agent="system",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="queued" if not submission.held_for_approval else "pending_approval",
+            metadata={
+                "pairs": len(pairs),
+                "dataset_key": dataset_key,
+                "actor": actor,
+                "force_override": force,
+                "task_id": task.id,
+                "held_for_approval": submission.held_for_approval,
+            },
+        )
+        return {
+            "job_id": job_id,
+            "status": "pending_approval" if submission.held_for_approval else "queued",
+            "summary": summary,
+            "task_id": task.id,
+        }
+
+    if job_id == "creative-cascade":
+        from .cascade import CASCADE_TIMEOUT, run_creative_cascade
+
+        result = await asyncio.wait_for(
+            run_creative_cascade(autonomy_managed=True),
+            timeout=CASCADE_TIMEOUT,
+        )
+        final_quality = float(result.get("final_quality", 0.0) or 0.0)
+        error = str(result.get("error") or "") or None
+        summary = (
+            f"Manual creative cascade completed {result.get('total_loops', 0)} loop(s) "
+            f"with final quality {final_quality:.2f}"
+        )
+        await _emit_schedule_event(
+            event_type="schedule_run" if not error else "schedule_failed",
+            job_id=job_id,
+            job_family="creative_cascade",
+            owner_agent="creative-agent",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed" if not error else "failed",
+            metadata={
+                "actor": actor,
+                "force_override": force,
+                "total_loops": result.get("total_loops", 0),
+                "final_quality": final_quality,
+            },
+            error=error or "",
+        )
+        return {
+            "job_id": job_id,
+            "status": "completed" if not error else "failed",
+            "summary": summary,
+            "result": {
+                "cascade_id": result.get("cascade_id"),
+                "total_loops": result.get("total_loops", 0),
+                "final_quality": final_quality,
+                "error": error,
+            },
+        }
+
+    if job_id == "code-cascade":
+        from .cascade import CASCADE_TIMEOUT, run_code_quality_cascade
+
+        result = await asyncio.wait_for(
+            run_code_quality_cascade(autonomy_managed=True),
+            timeout=CASCADE_TIMEOUT,
+        )
+        steps = list(result.get("steps") or [])
+        error = str(result.get("error") or "") or None
+        summary = f"Manual code cascade completed {len(steps)} step(s)"
+        await _emit_schedule_event(
+            event_type="schedule_run" if not error else "schedule_failed",
+            job_id=job_id,
+            job_family="code_cascade",
+            owner_agent="coding-agent",
+            trigger_mode="manual",
+            summary=summary,
+            outcome="completed" if not error else "failed",
+            metadata={
+                "actor": actor,
+                "force_override": force,
+                "step_count": len(steps),
+            },
+            error=error or "",
+        )
+        return {
+            "job_id": job_id,
+            "status": "completed" if not error else "failed",
+            "summary": summary,
+            "result": {
+                "cascade_id": result.get("cascade_id"),
+                "step_count": len(steps),
+                "error": error,
+            },
+        }
 
     if job_id == "cache-cleanup":
         from .semantic_cache import get_semantic_cache

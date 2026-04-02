@@ -2,9 +2,11 @@ import unittest
 from unittest.mock import AsyncMock, patch
 
 from athanor_agents.provider_execution import (
+    HANDOFFS_KEY,
     build_provider_execution_snapshot,
     create_handoff_bundle,
     execute_provider_request,
+    list_handoff_bundles,
     record_handoff_outcome,
 )
 from athanor_agents.proving_ground import (
@@ -83,6 +85,23 @@ class FakeImprovementEngine:
 
 
 class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_list_handoff_bundles_sorts_iso_and_unix_timestamps(self) -> None:
+        fake_redis = FakeRedis()
+        await fake_redis.hset(
+            HANDOFFS_KEY,
+            "older",
+            '{"id":"older","requester":"coding-agent","created_at":1710000000}',
+        )
+        await fake_redis.hset(
+            HANDOFFS_KEY,
+            "newer",
+            '{"id":"newer","requester":"coding-agent","created_at":"2026-03-24T16:32:47Z"}',
+        )
+        with patch("athanor_agents.provider_execution._get_redis", AsyncMock(return_value=fake_redis)):
+            bundles = await list_handoff_bundles(limit=5, serialize=False)
+
+        self.assertEqual(["newer", "older"], [bundle["id"] for bundle in bundles])
+
     async def test_meta_lane_requester_is_blocked_from_creating_handoff_bundle(self) -> None:
         fake_redis = FakeRedis()
         with (

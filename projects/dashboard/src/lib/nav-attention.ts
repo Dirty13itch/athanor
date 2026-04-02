@@ -23,11 +23,11 @@ const CORE_OPERATOR_SERVICE_IDS = new Set([
 ]);
 
 const V1_ATTENTION_ROUTES = [
-  "/tasks",
-  "/notifications",
+  "/runs",
+  "/inbox",
   "/review",
   "/services",
-  "/workplanner",
+  "/backlog",
   "/agents",
 ] as const;
 
@@ -91,15 +91,15 @@ function byNewestId<T extends { id: string; createdAt?: string }>(items: T[]) {
   });
 }
 
-function getTaskSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
+function getRunsSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
   const updatedAt = workforce.generatedAt;
   const approvals = byNewestId(workforce.tasks.filter((task) => task.status === "pending_approval"));
   if (approvals.length > 0) {
     return createSignal(
-      "/tasks",
+      "/runs",
       "urgent",
       "pending_approvals",
-      approvals.length === 1 ? "1 task needs approval." : `${approvals.length} tasks need approval.`,
+      approvals.length === 1 ? "1 run needs approval." : `${approvals.length} runs need approval.`,
       updatedAt,
       approvals.length,
       approvals.map((task) => task.id)
@@ -109,10 +109,10 @@ function getTaskSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
   const failed = byNewestId(workforce.tasks.filter((task) => task.status === "failed"));
   if (failed.length > 0) {
     return createSignal(
-      "/tasks",
+      "/runs",
       "action",
       "failed_tasks",
-      failed.length === 1 ? "1 task failed and needs review." : `${failed.length} tasks failed and need review.`,
+      failed.length === 1 ? "1 run failed and needs review." : `${failed.length} runs failed and need review.`,
       updatedAt,
       failed.length,
       failed.map((task) => task.id)
@@ -124,31 +124,29 @@ function getTaskSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
   );
   if (queued.length > 0) {
     return createSignal(
-      "/tasks",
+      "/runs",
       "watch",
       "queued_work",
-      queued.length === 1 ? "1 task is active in the queue." : `${queued.length} tasks are active in the queue.`,
+      queued.length === 1 ? "1 run is active in the queue." : `${queued.length} runs are active in the queue.`,
       updatedAt,
       queued.length,
       queued.map((task) => task.id)
     );
   }
 
-  return createNoneSignal("/tasks", updatedAt);
+  return createNoneSignal("/runs", updatedAt);
 }
 
-function getNotificationSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
+function getInboxSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
   const updatedAt = workforce.generatedAt;
   const unresolved = byNewestId(workforce.notifications.filter((notification) => !notification.resolved));
   const pendingApprovals = unresolved.filter((notification) => notification.tier === "ask");
   if (pendingApprovals.length > 0) {
     return createSignal(
-      "/notifications",
+      "/inbox",
       "urgent",
       "critical_notifications",
-      pendingApprovals.length === 1
-        ? "1 notification is waiting for approval."
-        : `${pendingApprovals.length} notifications are waiting for approval.`,
+      pendingApprovals.length === 1 ? "1 inbox item is waiting for approval." : `${pendingApprovals.length} inbox items are waiting for approval.`,
       updatedAt,
       pendingApprovals.length,
       pendingApprovals.map((notification) => notification.id)
@@ -158,12 +156,10 @@ function getNotificationSignal(workforce: WorkforceSnapshot): NavAttentionSignal
   const actionable = unresolved.filter((notification) => notification.tier === "notify");
   if (actionable.length > 0) {
     return createSignal(
-      "/notifications",
+      "/inbox",
       "action",
       "actionable_notifications",
-      actionable.length === 1
-        ? "1 notification needs a check."
-        : `${actionable.length} notifications need a check.`,
+      actionable.length === 1 ? "1 inbox item needs a check." : `${actionable.length} inbox items need a check.`,
       updatedAt,
       actionable.length,
       actionable.map((notification) => notification.id)
@@ -174,17 +170,17 @@ function getNotificationSignal(workforce: WorkforceSnapshot): NavAttentionSignal
   if (informational.length > 0 || workforce.summary.unreadNotifications > 0) {
     const count = informational.length > 0 ? informational.length : workforce.summary.unreadNotifications;
     return createSignal(
-      "/notifications",
+      "/inbox",
       "watch",
       "informational_notifications",
-      count === 1 ? "1 informational notification is unread." : `${count} informational notifications are unread.`,
+      count === 1 ? "1 inbox item is unread." : `${count} inbox items are unread.`,
       updatedAt,
       count,
       (informational.length > 0 ? informational : unresolved).map((notification) => notification.id)
     );
   }
 
-  return createNoneSignal("/notifications", updatedAt);
+  return createNoneSignal("/inbox", updatedAt);
 }
 
 function getReviewSignal(
@@ -259,14 +255,14 @@ function getServiceSignal(services: ServiceSnapshot[], updatedAt: string): NavAt
   return createNoneSignal("/services", updatedAt);
 }
 
-function getWorkplannerSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
+function getBacklogSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
   const updatedAt = workforce.generatedAt;
   if (workforce.workplan.needsRefill) {
     return createSignal(
-      "/workplanner",
+      "/backlog",
       "action",
       "workplan_refill",
-      "The work plan needs refill or operator steering.",
+      "The backlog needs refill or operator steering.",
       updatedAt,
       null,
       [String(workforce.summary.pendingTasks), String(workforce.summary.queuedProjects)]
@@ -276,19 +272,19 @@ function getWorkplannerSignal(workforce: WorkforceSnapshot): NavAttentionSignal 
   if (workforce.summary.queuedProjects > 0 || workforce.summary.activeGoals > 0) {
     const count = workforce.summary.queuedProjects > 0 ? workforce.summary.queuedProjects : null;
     return createSignal(
-      "/workplanner",
+      "/backlog",
       "watch",
       "planning_backlog",
       workforce.summary.queuedProjects > 0
-        ? `${workforce.summary.queuedProjects} projects have planning backlog.`
-        : "Planning backlog exists, but nothing is blocked.",
+        ? `${workforce.summary.queuedProjects} projects have backlog pressure.`
+        : "Backlog pressure exists, but nothing is blocked.",
       updatedAt,
       count,
       [String(workforce.summary.queuedProjects), String(workforce.summary.activeGoals)]
     );
   }
 
-  return createNoneSignal("/workplanner", updatedAt);
+  return createNoneSignal("/backlog", updatedAt);
 }
 
 function getAgentsSignal(
@@ -355,11 +351,11 @@ export function buildNavAttentionSignals({
   updatedAt: string;
 }): NavAttentionSignal[] {
   const signals = [
-    getTaskSignal(workforce),
-    getNotificationSignal(workforce),
+    getRunsSignal(workforce),
+    getInboxSignal(workforce),
     getReviewSignal(judge),
     getServiceSignal(services, updatedAt),
-    getWorkplannerSignal(workforce),
+    getBacklogSignal(workforce),
     getAgentsSignal(agents, workforce, updatedAt),
   ];
 

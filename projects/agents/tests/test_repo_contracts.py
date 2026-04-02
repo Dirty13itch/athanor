@@ -14,6 +14,7 @@ ROOT_GITIGNORE = REPO_ROOT / ".gitignore"
 AGENTS_DOC = REPO_ROOT / "AGENTS.md"
 AGENTS_INIT = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "agents" / "__init__.py"
 SERVER_PY = REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "server.py"
+AGENT_DESCRIPTOR_REGISTRY = REPO_ROOT / "config" / "automation-backbone" / "agent-descriptor-registry.json"
 DASHBOARD_CONFIG = REPO_ROOT / "projects" / "dashboard" / "src" / "lib" / "config.ts"
 DASHBOARD_SERVER_CONFIG = REPO_ROOT / "projects" / "dashboard" / "src" / "lib" / "server-config.ts"
 DASHBOARD_TEMPLATE = REPO_ROOT / "ansible" / "roles" / "dashboard" / "templates" / "docker-compose.yml.j2"
@@ -66,6 +67,10 @@ ACTIVE_TACTICAL_PLAN = REPO_ROOT / "docs" / "superpowers" / "specs" / "2026-03-1
 ACTIVE_TACTICAL_PLAN_FULL = REPO_ROOT / "docs" / "superpowers" / "specs" / "2026-03-18-athanor-coo-architecture-FULL.md"
 ARCHIVED_TACTICAL_PLAN_FULL = REPO_ROOT / "docs" / "archive" / "planning-era" / "2026-03-18-athanor-coo-architecture-FULL.md"
 PLATFORM_TOPOLOGY_REGISTRY = REPO_ROOT / "config" / "automation-backbone" / "platform-topology.json"
+VAULT_HOST_VARS = REPO_ROOT / "ansible" / "host_vars" / "vault.yml"
+CORE_HOST_VARS = REPO_ROOT / "ansible" / "host_vars" / "core.yml"
+VAULT_LANGFUSE_DEFAULTS = REPO_ROOT / "ansible" / "roles" / "vault-langfuse" / "defaults" / "main.yml"
+VAULT_LANGFUSE_TASKS = REPO_ROOT / "ansible" / "roles" / "vault-langfuse" / "tasks" / "main.yml"
 REFERENCE_INDEX_DOC = REPO_ROOT / "docs" / "REFERENCE-INDEX.md"
 DOC_WRITER_AGENT_DOC = REPO_ROOT / ".claude" / "agents" / "doc-writer.md"
 INFRA_AUDITOR_AGENT_DOC = REPO_ROOT / ".claude" / "agents" / "infra-auditor.md"
@@ -336,18 +341,35 @@ def list_tracked_repo_files() -> tuple[Path, ...]:
 
 
 def parse_server_agent_metadata() -> dict:
-    module = ast.parse(read_text(SERVER_PY))
-    for node in module.body:
-        if isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name) and target.id == "AGENT_METADATA":
-                    return ast.literal_eval(node.value)
-    raise AssertionError("AGENT_METADATA not found in server.py")
+    registry = json.loads(read_text(AGENT_DESCRIPTOR_REGISTRY))
+    live_agents = {}
+    for entry in registry.get("agents", []):
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("status") or "").strip().lower() != "live":
+            continue
+        agent_id = str(entry.get("id") or "").strip()
+        if agent_id:
+            live_agents[agent_id] = entry
+    if not live_agents:
+        raise AssertionError("No live agents found in agent-descriptor-registry.json")
+    return live_agents
 
 
 def parse_agent_ids_from_init() -> set[str]:
-    text = read_text(AGENTS_INIT)
-    return set(re.findall(r'_AGENTS\["([^"]+)"\]\s*=', text))
+    module = ast.parse(read_text(AGENTS_INIT))
+    for node in module.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name) and target.id == "_AGENT_FACTORIES":
+                if isinstance(node.value, ast.Dict):
+                    keys: set[str] = set()
+                    for key in node.value.keys:
+                        if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                            keys.add(key.value)
+                    return keys
+    raise AssertionError("_AGENT_FACTORIES not found in agents/__init__.py")
 
 
 def parse_agent_ids_from_docs() -> set[str]:
@@ -730,6 +752,7 @@ class RepoContractsTest(unittest.TestCase):
 
         deploy_agents_text = read_text(DEPLOY_AGENTS_SCRIPT)
         self.assertIn("ATHANOR_AGENT_SERVER_URL", deploy_agents_text)
+        self.assertIn('config/" "${FOUNDRY}:${REMOTE_DIR}/config/"', deploy_agents_text)
 
         export_langfuse_text = read_text(EXPORT_LANGFUSE_TRACES_SCRIPT)
         self.assertIn("ATHANOR_LANGFUSE_URL", export_langfuse_text)
@@ -1557,12 +1580,39 @@ class RepoContractsTest(unittest.TestCase):
     def test_operator_runbooks_registry_includes_current_runtime_runbooks(self) -> None:
         registry = json.loads(read_text(OPERATOR_RUNBOOKS_REGISTRY))
         runbook_ids = {str(entry.get("id") or "") for entry in registry.get("runbooks", [])}
-        self.assertTrue({"local-runtime-env-bootstrap", "dev-secret-delivery-normalization", "governor-facade-retirement"} <= runbook_ids)
+        self.assertTrue(
+            {
+                "local-runtime-env-bootstrap",
+                "dev-secret-delivery-normalization",
+                "governor-facade-retirement",
+                "constrained-mode",
+                "degraded-mode",
+                "recovery-only",
+                "postgres-restore",
+                "redis-reconciliation",
+                "failed-promotion",
+                "stuck-media-pipeline",
+                "source-auth-expiry",
+                "model-lane-outage",
+                "operator-auth-failure",
+            }
+            <= runbook_ids
+        )
 
         operator_runbooks_text = read_text(OPERATOR_RUNBOOKS_DOC)
         self.assertIn("## Local runtime env bootstrap", operator_runbooks_text)
         self.assertIn("## DEV secret-delivery normalization", operator_runbooks_text)
         self.assertIn("## Governor facade rollback and audit", operator_runbooks_text)
+        self.assertIn("## Constrained mode", operator_runbooks_text)
+        self.assertIn("## Degraded mode", operator_runbooks_text)
+        self.assertIn("## Recovery-only", operator_runbooks_text)
+        self.assertIn("## Postgres restore", operator_runbooks_text)
+        self.assertIn("## Redis reconciliation", operator_runbooks_text)
+        self.assertIn("## Failed promotion", operator_runbooks_text)
+        self.assertIn("## Stuck media pipeline", operator_runbooks_text)
+        self.assertIn("## Source auth expiry", operator_runbooks_text)
+        self.assertIn("## Model lane outage", operator_runbooks_text)
+        self.assertIn("## Operator auth failure", operator_runbooks_text)
         self.assertIn("GOVERNOR-FACADE-CUTOVER-PACKET.md", operator_runbooks_text)
 
     def test_truth_inventory_collector_tracks_governor_facade_runtime_evidence(self) -> None:
@@ -1641,8 +1691,76 @@ class RepoContractsTest(unittest.TestCase):
 
         collector_text = read_text(TRUTH_INVENTORY_COLLECTOR)
         self.assertIn('service.get("health_path") or service.get("path") or "/health"', collector_text)
-        self.assertIn('if scheme in {"bolt", "redis"}', collector_text)
+        self.assertIn('if scheme in {"bolt", "redis", "postgres", "postgresql"}', collector_text)
         self.assertIn('"probe_class": "tcp_connect"', collector_text)
+
+    def test_topology_and_vault_probe_truth_cover_live_media_stack(self) -> None:
+        topology = json.loads(read_text(PLATFORM_TOPOLOGY_REGISTRY))
+        service_map = {str(service["id"]): service for service in topology.get("services", [])}
+
+        expected_topology = {
+            "home_assistant": "/",
+            "sonarr": "/ping",
+            "radarr": "/ping",
+            "prowlarr": "/ping",
+            "sabnzbd": "/api?mode=version&output=json",
+            "tautulli": "/",
+            "plex": "/identity",
+            "stash": None,
+        }
+        for service_id, health_path in expected_topology.items():
+            self.assertIn(service_id, service_map, f"{service_id} must exist in platform-topology.json")
+            if health_path is not None:
+                self.assertEqual(health_path, service_map[service_id].get("health_path"))
+            self.assertEqual("vault", service_map[service_id].get("node"))
+            self.assertEqual("operator", service_map[service_id].get("auth_class"))
+
+        vault_host_vars_text = read_text(VAULT_HOST_VARS)
+        for fragment in [
+            '- id: sonarr',
+            'url: "http://{{ vault_ip }}:8989/ping"',
+            '- id: radarr',
+            'url: "http://{{ vault_ip }}:7878/ping"',
+            '- id: prowlarr',
+            'url: "http://{{ vault_ip }}:9696/ping"',
+            '- id: sabnzbd',
+            'url: "http://{{ vault_ip }}:8080/api?mode=version&output=json"',
+            '- id: tautulli',
+            'url: "http://{{ vault_ip }}:8181"',
+            '- id: plex',
+            'url: "http://{{ vault_ip }}:32400/identity"',
+            '- id: home-assistant',
+            'url: "http://{{ vault_ip }}:8123/"',
+        ]:
+            self.assertIn(fragment, vault_host_vars_text)
+
+    def test_topology_declares_athanor_postgres_service(self) -> None:
+        topology = json.loads(read_text(PLATFORM_TOPOLOGY_REGISTRY))
+        service_map = {str(service["id"]): service for service in topology.get("services", [])}
+        self.assertIn("athanor_postgres", service_map)
+        athanor_postgres = service_map["athanor_postgres"]
+        self.assertEqual("vault", athanor_postgres.get("node"))
+        self.assertEqual("postgresql", athanor_postgres.get("scheme"))
+        self.assertEqual(5434, athanor_postgres.get("port"))
+        self.assertEqual("ATHANOR_POSTGRES_URL", athanor_postgres.get("url_env"))
+        self.assertEqual("internal_only", athanor_postgres.get("auth_class"))
+
+    def test_durable_persistence_contract_uses_the_cluster_postgres_target(self) -> None:
+        core_host_vars_text = read_text(CORE_HOST_VARS)
+        self.assertIn("athanor_postgres_url:", core_host_vars_text)
+        self.assertIn("vault_langfuse_pg_password | urlencode", core_host_vars_text)
+        self.assertIn("athanor_postgres_port: 5434", core_host_vars_text)
+        self.assertIn("athanor_postgres_db: athanor", core_host_vars_text)
+
+        langfuse_defaults_text = read_text(VAULT_LANGFUSE_DEFAULTS)
+        self.assertIn("langfuse_pg_host_port: 5434", langfuse_defaults_text)
+        self.assertIn("athanor_postgres_db: athanor", langfuse_defaults_text)
+
+        langfuse_tasks_text = read_text(VAULT_LANGFUSE_TASKS)
+        self.assertIn("Check whether the Athanor Postgres database already exists", langfuse_tasks_text)
+        self.assertIn("Ensure Athanor Postgres database exists", langfuse_tasks_text)
+        self.assertIn("createdb", langfuse_tasks_text)
+        self.assertIn("athanor_postgres_db", langfuse_tasks_text)
 
     def test_active_governor_helpers_do_not_reintroduce_local_state_ownership(self) -> None:
         for path in ACTIVE_GOVERNOR_HELPER_MODULES:

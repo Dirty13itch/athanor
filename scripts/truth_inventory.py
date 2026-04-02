@@ -37,9 +37,12 @@ REPORT_PATHS = {
     "operator_surfaces": REPO_ROOT / "docs" / "operations" / "OPERATOR-SURFACE-REPORT.md",
     "tooling": REPO_ROOT / "docs" / "operations" / "TOOLING-INVENTORY-REPORT.md",
     "repo_roots": REPO_ROOT / "docs" / "operations" / "REPO-ROOTS-REPORT.md",
+    "runtime_ownership": REPO_ROOT / "docs" / "operations" / "RUNTIME-OWNERSHIP-REPORT.md",
+    "runtime_ownership_packets": REPO_ROOT / "docs" / "operations" / "RUNTIME-OWNERSHIP-PACKETS.md",
     "runtime_migrations": REPO_ROOT / "docs" / "operations" / "RUNTIME-MIGRATION-REPORT.md",
     "runtime_cutover": REPO_ROOT / "docs" / "operations" / "GOVERNOR-FACADE-CUTOVER-PACKET.md",
     "vault_litellm_repair_packet": REPO_ROOT / "docs" / "operations" / "VAULT-LITELLM-AUTH-REPAIR-PACKET.md",
+    "vault_redis_repair_packet": REPO_ROOT / "docs" / "operations" / "VAULT-REDIS-REPAIR-PACKET.md",
     "autonomy_activation": REPO_ROOT / "docs" / "operations" / "AUTONOMY-ACTIVATION-REPORT.md",
     "drift": REPO_ROOT / "docs" / "operations" / "TRUTH-DRIFT-REPORT.md",
     "secret_surfaces": REPO_ROOT / "docs" / "operations" / "SECRET-SURFACE-REPORT.md",
@@ -47,6 +50,7 @@ REPORT_PATHS = {
 TRUTH_SNAPSHOT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "latest.json"
 PROVIDER_USAGE_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "provider-usage-evidence.json"
 VAULT_LITELLM_ENV_AUDIT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "vault-litellm-env-audit.json"
+VAULT_REDIS_AUDIT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "vault-redis-audit.json"
 DASHBOARD_OPERATOR_SURFACES_PATH = (
     REPO_ROOT / "projects" / "dashboard" / "src" / "generated" / "operator-surfaces.json"
 )

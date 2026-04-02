@@ -150,6 +150,10 @@ Respond with JSON only:
     "risk_level": "low|medium|high"
 }}"""
 
+        headers = {}
+        if settings.litellm_api_key:
+            headers["Authorization"] = f"Bearer {settings.litellm_api_key}"
+
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 f"{settings.litellm_url}/v1/chat/completions",
@@ -159,6 +163,7 @@ Respond with JSON only:
                     "max_tokens": 500,
                     "temperature": 0.3,
                 },
+                headers=headers,
             )
             if resp.status_code == 200:
                 content = resp.json()["choices"][0]["message"]["content"]

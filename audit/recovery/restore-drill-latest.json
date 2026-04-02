@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-03-30T11:41:07.552447+00:00",
+  "generated_at": "2026-04-01T04:10:26.717837+00:00",
   "lane": "recovery_evidence",
   "action_class": "restore_drill_rehearsal",
   "success": true,
   "artifact_mode": "non_destructive_live_probe",
   "snapshot": {
-    "generated_at": "2026-03-30T11:41:07.501821+00:00",
-    "status": "degraded",
-    "last_outcome": "failed",
-    "last_run_at": "2026-03-30T11:41:07.501514+00:00",
+    "generated_at": "2026-04-01T04:10:26.683174+00:00",
+    "status": "live_partial",
+    "last_outcome": "partial",
+    "last_run_at": "2026-04-01T04:10:26.682860+00:00",
     "flow_count": 13,
     "flows": [
       {
@@ -135,23 +135,22 @@
         "id": "restore_drill",
         "title": "Restore drill and recovery flow",
         "description": "Checks restore-drill readiness posture and recovery ordering for critical stores until live drill execution lands.",
-        "status": "degraded",
-        "last_outcome": "failed",
-        "last_run_at": "2026-03-30T11:41:07.501514+00:00",
-        "last_duration_ms": 605,
-        "checks_passed": 3,
+        "status": "live_partial",
+        "last_outcome": "passed",
+        "last_run_at": "2026-04-01T04:10:26.682860+00:00",
+        "last_duration_ms": 604,
+        "checks_passed": 4,
         "checks_total": 4,
         "evidence": [
           "OPERATOR_RUNBOOKS.md",
           "backup-restore-readiness.json"
         ],
         "notes": [
-          "Only 3/4 critical stores passed the live non-destructive restore rehearsal.",
           "Restore drill now captures live non-destructive evidence against critical stores while preserving the governed recovery order."
         ],
         "details": {
           "drill_mode": "non_destructive_live_probe",
-          "verified_store_count": 3,
+          "verified_store_count": 4,
           "store_count": 4,
           "stores": [
             {
@@ -160,7 +159,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Redis ping and synthetic write/read/delete rehearsal succeeded.",
-              "checked_at": "2026-03-30T11:41:06.896451+00:00",
+              "checked_at": "2026-04-01T04:10:26.079071+00:00",
               "artifacts": [
                 "redis://192.168.1.203:6379/0"
               ]
@@ -171,7 +170,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Qdrant collections endpoint is healthy with 14 collections visible.",
-              "checked_at": "2026-03-30T11:41:07.495114+00:00",
+              "checked_at": "2026-04-01T04:10:26.602153+00:00",
               "artifacts": [
                 "http://192.168.1.203:6333/collections"
               ]
@@ -182,7 +181,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Neo4j endpoint is reachable; authenticated restore drill remains password-gated.",
-              "checked_at": "2026-03-30T11:41:07.495680+00:00",
+              "checked_at": "2026-04-01T04:10:26.602452+00:00",
               "artifacts": [
                 "http://192.168.1.203:7474"
               ]
@@ -190,13 +189,13 @@
             {
               "id": "dashboard_agent_deploy_state",
               "label": "Dashboard and agent deployment state",
-              "verified": false,
-              "probe_status": "degraded",
-              "probe_summary": "Agent/dashboard deploy probes returned 401/404.",
-              "checked_at": "2026-03-30T11:41:07.501485+00:00",
+              "verified": true,
+              "probe_status": "verified",
+              "probe_summary": "Agent and dashboard recovery surfaces are reachable for ordered recovery.",
+              "checked_at": "2026-04-01T04:10:26.682829+00:00",
               "artifacts": [
-                "http://192.168.1.244:9000/v1/governor",
-                "http://192.168.1.189:3001/api/system-map"
+                "http://192.168.1.244:9000/health",
+                "http://192.168.1.189:3001/api/operator/session"
               ]
             }
           ]

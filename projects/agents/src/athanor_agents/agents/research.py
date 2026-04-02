@@ -1,8 +1,8 @@
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.memory import InMemorySaver
 
 from ..config import settings
+from ..persistence import build_checkpointer
 from ..tools.research import RESEARCH_TOOLS
 from ..tools.subscriptions import SUBSCRIPTION_TOOLS
 from .prompting import build_system_prompt
@@ -62,11 +62,9 @@ def create_research_agent():
         },
     )
 
-    memory = InMemorySaver()
-
     return create_react_agent(
         model=llm,
         tools=RESEARCH_TOOLS + SUBSCRIPTION_TOOLS,
-        checkpointer=memory,
+        checkpointer=build_checkpointer(),
         prompt=build_system_prompt(SYSTEM_PROMPT),
     )

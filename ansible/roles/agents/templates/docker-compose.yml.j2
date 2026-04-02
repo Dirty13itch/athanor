@@ -35,7 +35,10 @@ services:
       - ATHANOR_QDRANT_URL={{ agent_qdrant_url }}
       - ATHANOR_REDIS_URL={{ agent_redis_url }}
       - ATHANOR_REDIS_PASSWORD={{ agent_redis_password }}
+      - ATHANOR_POSTGRES_URL={{ agent_postgres_url }}
       - ATHANOR_SUBSCRIPTION_POLICY_PATH={{ agent_subscription_policy_path }}
+      - ATHANOR_AGENT_DESCRIPTOR_PATH={{ agent_descriptor_path }}
+      - ATHANOR_DOMAIN_PACKET_PATH={{ agent_domain_packet_path }}
       - ATHANOR_NEO4J_URL={{ agent_neo4j_url }}
       - ATHANOR_NEO4J_USER={{ agent_neo4j_user }}
       - ATHANOR_NEO4J_PASSWORD={{ agent_neo4j_password }}
@@ -56,7 +59,9 @@ services:
       - ATHANOR_TAUTULLI_API_KEY={{ agent_tautulli_api_key }}
       - ATHANOR_PLEX_URL={{ agent_plex_url }}
       - ATHANOR_PROWLARR_URL={{ agent_prowlarr_url }}
+      - ATHANOR_PROWLARR_API_KEY={{ agent_prowlarr_api_key }}
       - ATHANOR_SABNZBD_URL={{ agent_sabnzbd_url }}
+      - ATHANOR_SABNZBD_API_KEY={{ agent_sabnzbd_api_key }}
       - ATHANOR_STASH_URL={{ agent_stash_url }}
       - ATHANOR_COMFYUI_URL={{ agent_comfyui_url }}
       - ATHANOR_OPEN_WEBUI_URL={{ agent_open_webui_url }}

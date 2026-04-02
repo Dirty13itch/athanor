@@ -92,13 +92,35 @@ export function RatingControls({
   async function handleRefine() {
     setRefining(true);
     try {
-      await fetch("/api/workforce/tasks", {
+      await fetch("/api/operator/backlog", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          agent: "creative-agent",
-          task: `Refine generation: ${prompt}`,
-          context: { imageId, notes: rating.notes },
+          title: `Refine gallery generation ${imageId}`,
+          prompt: [
+            `Refine gallery generation for image ${imageId}.`,
+            `Original prompt: ${prompt}`,
+            rating.notes ? `Operator notes: ${rating.notes}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n"),
+          owner_agent: "creative-agent",
+          scope_type: "domain",
+          scope_id: "creative",
+          work_class: "creative_refine",
+          priority: rating.flagged || (rating.rating !== null && rating.rating <= 2) ? 4 : 3,
+          approval_mode: "none",
+          dispatch_policy: "planner_eligible",
+          metadata: {
+            imageId,
+            prompt,
+            notes: rating.notes,
+            approved: rating.approved,
+            flagged: rating.flagged,
+            rating: rating.rating,
+            source: "gallery_rating_controls",
+          },
+          reason: "Queued creative refinement from gallery rating controls",
         }),
       });
     } finally {

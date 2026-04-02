@@ -1,7 +1,7 @@
 # Athanor Services Map
 
 Source of truth: `config/automation-backbone/platform-topology.json`, `docs/projects/PORTFOLIO-REGISTRY.md`
-Validated against registry version: `platform-topology.json@2026-03-27.1`, `project-maturity-registry.json@2026-03-27.1`
+Validated against registry version: `platform-topology.json@2026-04-01.1`, `project-maturity-registry.json@2026-03-27.1`
 Mutable facts policy: service ids, nodes, ports, auth classes, and health paths belong to `platform-topology.json`. This document is the operator-facing map for the current validated registry snapshot and should be rewritten when topology changes.
 
 ---
@@ -59,6 +59,7 @@ Mutable facts policy: service ids, nodes, ports, auth classes, and health paths 
 | `vllm_coder` | `foundry` | `internal_only` | `/health` | Dedicated coder inference lane |
 | `vllm_coordinator` | `foundry` | `internal_only` | `/health` | Main reasoning/coordinator inference lane |
 | `litellm` | `vault` | `internal_only` | `/health` | Central routed inference proxy |
+| `athanor_postgres` | `vault` | `internal_only` | TCP connect | Durable builder and LangGraph persistence backend |
 | `neo4j` | `vault` | `internal_only` | none | Bolt graph endpoint |
 | `neo4j_http` | `vault` | `internal_only` | `/` | HTTP graph endpoint |
 | `qdrant` | `vault` | `internal_only` | `/collections` | Vector store |
@@ -75,6 +76,13 @@ Mutable facts policy: service ids, nodes, ports, auth classes, and health paths 
 | `dashboard` | `dev` | `operator` | `/api/operator/session` | Main authenticated operator console |
 | `speaches` | `foundry` | `operator` | none | Speech/STT/TTS surface |
 | `miniflux` | `vault` | `operator` | `/healthcheck` | RSS and signal intake product surface |
+| `home_assistant` | `vault` | `operator` | `/` | Home automation control surface |
+| `sonarr` | `vault` | `operator` | `/ping` | TV acquisition and library management surface |
+| `radarr` | `vault` | `operator` | `/ping` | Movie acquisition and library management surface |
+| `prowlarr` | `vault` | `operator` | `/ping` | Indexer management surface for the media stack |
+| `sabnzbd` | `vault` | `operator` | `/api?mode=version&output=json` | Downloader queue and NZB execution surface |
+| `tautulli` | `vault` | `operator` | `/` | Plex telemetry and watch-activity surface |
+| `plex` | `vault` | `operator` | `/identity` | Media playback and library serving surface |
 | `stash` | `vault` | `operator` | none | Adult-content management surface |
 | `comfyui` | `workshop` | `operator` | `/system_stats` | Image/video generation surface |
 
@@ -95,6 +103,7 @@ The following services sit directly on the current `platform-core` or `productio
 - `ws_pty_bridge`
 - `dashboard`
 - `quality_gate`
+- `athanor_postgres`
 - `redis`
 - `qdrant`
 - `neo4j` / `neo4j_http`

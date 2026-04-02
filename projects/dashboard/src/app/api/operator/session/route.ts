@@ -11,10 +11,7 @@ import {
 } from "@/lib/operator-auth";
 
 export async function GET(request: NextRequest) {
-  const configured = Boolean(
-    process.env.ATHANOR_DASHBOARD_OPERATOR_TOKEN?.trim() ||
-      process.env.ATHANOR_AGENT_API_TOKEN?.trim()
-  );
+  const configured = Boolean(process.env.ATHANOR_DASHBOARD_OPERATOR_TOKEN?.trim());
   const unlocked = configured ? hasValidOperatorSession(request) : true;
   return NextResponse.json({
     configured,
@@ -26,6 +23,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const configuredToken = getOperatorMutationToken();
+  if (!configuredToken) {
+    return NextResponse.json({ ok: true, unlocked: true, configured: false });
+  }
+
   const body = await request.json().catch(() => ({}));
   const bodyToken = (body as { token?: unknown }).token;
   const providedToken =
@@ -40,10 +42,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const tokenForCookie = getOperatorMutationToken() || providedToken;
   const sessionId = crypto.randomUUID();
   const response = NextResponse.json({ ok: true, unlocked: true });
-  response.headers.append("Set-Cookie", buildOperatorSessionCookie(tokenForCookie));
+  response.headers.append("Set-Cookie", buildOperatorSessionCookie(configuredToken));
   response.headers.append("Set-Cookie", buildOperatorSessionIdCookie(sessionId));
   return response;
 }

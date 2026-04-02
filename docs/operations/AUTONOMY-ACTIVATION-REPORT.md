@@ -3,31 +3,23 @@
 Generated from `config/automation-backbone/autonomy-activation-registry.json` by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Registry version: `2026-03-29.2`
-- Status: `live_partial`
-- Activation state: `software_core_active`
-- Current phase: `software_core_phase_1`
+- Registry version: `2026-04-02.4`
+- Status: `live`
+- Activation state: `full_system_active`
+- Current phase: `full_system_phase_3`
 - Current phase status: `active`
-- Current phase scope: `bounded`
-- Next phase: `expanded_core_phase_2`
-- Next phase status: `blocked`
-- Next phase scope: `bounded_plus_domain_sidecars`
-- Next phase blocker count: `1`
-- Next phase blocker ids: `vault_provider_auth_repair`
-- Broad autonomy enabled: `False`
+- Current phase scope: `broad_with_explicit_exceptions`
+- Next phase: `none`
+- Next phase status: `none`
+- Next phase scope: `n/a`
+- Next phase blocker count: `0`
+- Next phase blocker ids: none
+- Broad autonomy enabled: `True`
 - Runtime mutations approval gated: `True`
 
 ## Next Promotion Boundary
 
-- Next phase id: `expanded_core_phase_2`
-- Label: `Expanded core autonomy`
-- Status: `blocked`
-- Scope: `bounded_plus_domain_sidecars`
-- Remaining blocker count: `1`
-
-| Blocker | Status | Phase Scope | Evidence |
-| --- | --- | --- | --- |
-| `vault_provider_auth_repair` | `pending` | `expanded_core_phase_2` | `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, `docs/operations/SECRET-SURFACE-REPORT.md`, `docs/operations/PROVIDER-CATALOG-REPORT.md` |
+No next phase is registered beyond the current active scope.
 
 ## Prerequisites
 
@@ -35,8 +27,8 @@ Do not edit manually.
 | --- | --- | --- | --- |
 | `dev_governor_facade_cutover` | `verified` | `software_core_phase_1` | `docs/operations/RUNTIME-MIGRATION-REPORT.md`, `docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md` |
 | `provider_routing_truth` | `verified` | `software_core_phase_1` | `config/automation-backbone/provider-catalog.json`, `projects/agents/config/subscription-routing-policy.yaml`, `docs/operations/PROVIDER-CATALOG-REPORT.md` |
-| `vault_provider_auth_repair` | `pending` | `expanded_core_phase_2` | `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, `docs/operations/SECRET-SURFACE-REPORT.md`, `docs/operations/PROVIDER-CATALOG-REPORT.md` |
-| `runtime_ownership_maturity` | `pending` | `full_system_phase_3` | `config/automation-backbone/repo-roots-registry.json`, `docs/operations/TRUTH-DRIFT-REPORT.md` |
+| `vault_provider_auth_repair` | `verified` | `expanded_core_phase_2` | `projects/agents/config/subscription-routing-policy.yaml`, `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, `docs/operations/SECRET-SURFACE-REPORT.md`, `docs/operations/PROVIDER-CATALOG-REPORT.md` |
+| `runtime_ownership_maturity` | `verified` | `full_system_phase_3` | `config/automation-backbone/repo-roots-registry.json`, `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `docs/operations/RUNTIME-MIGRATION-REPORT.md`, `docs/operations/TRUTH-DRIFT-REPORT.md`, `scripts/vault-ssh.py`, `scripts/ssh-vault.ps1` |
 
 ## Approval Gates
 
@@ -57,8 +49,8 @@ Do not edit manually.
 | Phase | Status | Scope | Enabled Agents | Allowed Workloads |
 | --- | --- | --- | --- | --- |
 | `software_core_phase_1` | `active` | `bounded` | `coding-agent`, `research-agent`, `knowledge-agent`, `general-assistant` | `architecture_planning`, `repo_audit`, `coding_implementation`, `private_automation`, `research_synthesis`, `workplan_generation`, `briefing_digest`, `judge_verification` |
-| `expanded_core_phase_2` | `blocked` | `bounded_plus_domain_sidecars` | `coding-agent`, `research-agent`, `knowledge-agent`, `general-assistant`, `data-curator`, `stash-agent`, `home-agent`, `media-agent` | `architecture_planning`, `repo_audit`, `coding_implementation`, `private_automation`, `research_synthesis`, `workplan_generation`, `briefing_digest`, `judge_verification`, `background_transform` |
-| `full_system_phase_3` | `planned` | `broad_with_explicit_exceptions` | `coding-agent`, `research-agent`, `knowledge-agent`, `general-assistant`, `data-curator`, `stash-agent`, `home-agent`, `media-agent`, `creative-agent` | `architecture_planning`, `repo_audit`, `coding_implementation`, `private_automation`, `research_synthesis`, `workplan_generation`, `briefing_digest`, `judge_verification`, `background_transform`, `refusal_sensitive_creative`, `explicit_dialogue` |
+| `expanded_core_phase_2` | `active` | `bounded_plus_domain_sidecars` | `coding-agent`, `research-agent`, `knowledge-agent`, `general-assistant`, `data-curator`, `stash-agent`, `home-agent`, `media-agent` | `architecture_planning`, `repo_audit`, `coding_implementation`, `private_automation`, `research_synthesis`, `workplan_generation`, `briefing_digest`, `judge_verification`, `background_transform` |
+| `full_system_phase_3` | `active` | `broad_with_explicit_exceptions` | `coding-agent`, `research-agent`, `knowledge-agent`, `general-assistant`, `data-curator`, `stash-agent`, `home-agent`, `media-agent`, `creative-agent` | `architecture_planning`, `repo_audit`, `coding_implementation`, `private_automation`, `research_synthesis`, `workplan_generation`, `briefing_digest`, `judge_verification`, `background_transform`, `refusal_sensitive_creative`, `explicit_dialogue` |
 
 ### Software-core autonomy
 
@@ -76,20 +68,20 @@ Do not edit manually.
 ### Expanded core autonomy
 
 - Phase id: `expanded_core_phase_2`
-- Status: `blocked`
+- Status: `active`
 - Scope: `bounded_plus_domain_sidecars`
 - Enabled agents: `coding-agent`, `research-agent`, `knowledge-agent`, `general-assistant`, `data-curator`, `stash-agent`, `home-agent`, `media-agent`
 - Allowed workload classes: `architecture_planning`, `repo_audit`, `coding_implementation`, `private_automation`, `research_synthesis`, `workplan_generation`, `briefing_digest`, `judge_verification`, `background_transform`
 - Blocked workload classes: `refusal_sensitive_creative`, `explicit_dialogue`
 - Allowed loop families: `software-core loops`, `data curation`, `bounded media and home automation`, `background transforms on approved lanes`
 - Blocked without approval: `runtime mutations`, `VAULT provider expansion without repaired auth posture`, `creative or refusal-sensitive autonomy`
-- Entry criteria: `The VAULT LiteLLM auth-repair packet is complete for the currently blocked API lanes.`, `Weak CLI and billing lanes have either been verified or explicitly kept demoted.`
+- Entry criteria: `The currently auth-failed VAULT API lanes are either repaired or explicitly kept out of ordinary auto-routing with packet-backed evidence.`, `Weak CLI and billing lanes have either been verified or explicitly kept demoted.`
 - Success criteria: `The broader live roster can execute within the same governed provider and approval boundaries as software-core autonomy.`
 
 ### Full-system autonomy
 
 - Phase id: `full_system_phase_3`
-- Status: `planned`
+- Status: `active`
 - Scope: `broad_with_explicit_exceptions`
 - Enabled agents: `coding-agent`, `research-agent`, `knowledge-agent`, `general-assistant`, `data-curator`, `stash-agent`, `home-agent`, `media-agent`, `creative-agent`
 - Allowed workload classes: `architecture_planning`, `repo_audit`, `coding_implementation`, `private_automation`, `research_synthesis`, `workplan_generation`, `briefing_digest`, `judge_verification`, `background_transform`, `refusal_sensitive_creative`, `explicit_dialogue`

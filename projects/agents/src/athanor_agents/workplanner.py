@@ -587,6 +587,12 @@ async def generate_work_plan(
         await r.set(WORKPLAN_LAST_RUN_KEY, str(time.time()))
     except Exception as e:
         logger.warning("Failed to store work plan: %s", e)
+    try:
+        from .durable_state import store_workplan_snapshot
+
+        await store_workplan_snapshot(plan)
+    except Exception as e:
+        logger.warning("Failed to persist durable work plan snapshot: %s", e)
 
     # Log event
     from .activity import log_event
@@ -697,6 +703,12 @@ async def get_current_plan() -> dict | None:
             return json.loads(raw.decode() if isinstance(raw, bytes) else raw)
     except Exception as e:
         logger.debug("Work plan load from Redis failed: %s", e)
+    try:
+        from .durable_state import fetch_latest_workplan_snapshot
+
+        return await fetch_latest_workplan_snapshot()
+    except Exception as e:
+        logger.debug("Durable work plan load failed: %s", e)
     return None
 
 
@@ -708,7 +720,14 @@ async def get_plan_history(limit: int = 10) -> list[dict]:
         r = await get_redis()
         entries = await r.lrange(WORKPLAN_HISTORY_KEY, 0, limit - 1)
         return [json.loads(e.decode() if isinstance(e, bytes) else e) for e in entries]
-    except Exception:
+    except Exception as e:
+        logger.debug("Work plan history load from Redis failed: %s", e)
+    try:
+        from .durable_state import list_workplan_snapshots
+
+        return await list_workplan_snapshots(limit=limit)
+    except Exception as e:
+        logger.debug("Durable work plan history load failed: %s", e)
         return []
 
 

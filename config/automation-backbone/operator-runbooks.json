@@ -1,7 +1,7 @@
 {
-  "version": "2026-03-29.2",
-  "updated_at": "2026-03-29T06:40:00Z",
-  "status": "live_partial",
+  "version": "2026-04-02.1",
+  "updated_at": "2026-04-02T14:15:00Z",
+  "status": "live",
   "runbooks": [
     {
       "id": "morning-review",
@@ -69,11 +69,67 @@
     },
     {
       "id": "software-core-autonomy-activation",
-      "label": "Software-Core Autonomy Operations",
-      "description": "Use the autonomy activation report, governor posture, and provider evidence to operate and audit post-cutover software-core autonomy, with `expanded_core_phase_2` still blocked by `vault_provider_auth_repair` until the broader phase is explicitly promoted.",
+      "label": "Autonomy Operations",
+      "description": "Use the autonomy activation report, governor posture, and provider evidence to operate the live full-system autonomy phase while keeping runtime mutations approval-gated and sovereign-only routing rules intact.",
       "cadence": "as-needed",
       "related_surface": "/governor",
       "evidence_flow_ids": ["presence_tier", "scheduled_job_governance", "provider_fallback", "tool_permissions"]
+    },
+    {
+      "id": "constrained-mode",
+      "label": "Constrained Mode",
+      "description": "Pause experiments and optional loops when attention, approval, or compute pressure exceeds the bounded operating budget.",
+      "cadence": "as-needed",
+      "related_surface": "/inbox",
+      "evidence_flow_ids": ["scheduled_job_governance", "pause_resume", "incident_review"]
+    },
+    {
+      "id": "degraded-mode",
+      "label": "Degraded Mode",
+      "description": "Suppress nonessential dispatch, launches, and promotions while core dependencies or active blockers are unhealthy.",
+      "cadence": "as-needed",
+      "related_surface": "/runs",
+      "evidence_flow_ids": ["incident_review", "pause_resume", "scheduled_job_governance"]
+    },
+    {
+      "id": "recovery-only",
+      "label": "Recovery-Only Mode",
+      "description": "Stop all non-recovery dispatch and restore only auth, storage, and reconciliation surfaces until core control is trustworthy again.",
+      "cadence": "as-needed",
+      "related_surface": "/operator",
+      "evidence_flow_ids": ["restore_drill", "incident_review"]
+    },
+    {
+      "id": "blocked-approval",
+      "label": "Blocked Approval",
+      "description": "Handle approval-gated work that cannot proceed yet by recording the blocker, keeping evidence in the operator inbox, and allowing unrelated ready work to continue.",
+      "cadence": "as-needed",
+      "related_surface": "/inbox",
+      "evidence_flow_ids": ["incident_review", "pause_resume"]
+    },
+    {
+      "id": "postgres-restore",
+      "label": "Postgres Restore",
+      "description": "Restore the Athanor durable ledger into a staged target, verify integrity, and only then repoint runtime surfaces.",
+      "cadence": "as-needed",
+      "related_surface": "/runs",
+      "evidence_flow_ids": ["restore_drill"]
+    },
+    {
+      "id": "redis-reconciliation",
+      "label": "Redis Reconciliation",
+      "description": "Rebuild Redis hot state from durable Postgres truth after restart, failover, or drift without treating Redis as canonical state.",
+      "cadence": "as-needed",
+      "related_surface": "/tasks",
+      "evidence_flow_ids": ["restore_drill", "stuck_queue_recovery"]
+    },
+    {
+      "id": "failed-promotion",
+      "label": "Failed Promotion",
+      "description": "Abort a failed candidate promotion, execute the recorded rollback target, and verify smoke evidence before reopening the channel.",
+      "cadence": "as-needed",
+      "related_surface": "/projects",
+      "evidence_flow_ids": ["promotion_ladder", "incident_review"]
     },
     {
       "id": "stuck-queue-recovery",
@@ -82,6 +138,38 @@
       "cadence": "as-needed",
       "related_surface": "/tasks",
       "evidence_flow_ids": ["stuck_queue_recovery", "pause_resume", "scheduled_job_governance"]
+    },
+    {
+      "id": "stuck-media-pipeline",
+      "label": "Stuck Media Pipeline",
+      "description": "Work the Sonarr/Radarr/Prowlarr/SABnzbd/Plex/Tautulli chain from queue health to rollback-safe remediation without mutating config casually.",
+      "cadence": "as-needed",
+      "related_surface": "/media",
+      "evidence_flow_ids": ["incident_review"]
+    },
+    {
+      "id": "source-auth-expiry",
+      "label": "Source Auth Expiry",
+      "description": "Pause a governed source, refresh its auth surface, and only resume crawl or acquisition work after revalidation.",
+      "cadence": "as-needed",
+      "related_surface": "/domains",
+      "evidence_flow_ids": ["incident_review", "provider_fallback"]
+    },
+    {
+      "id": "model-lane-outage",
+      "label": "Model Lane Outage",
+      "description": "Handle degraded local or cloud model lanes by preserving policy boundaries, rerouting safely, and recording the outage evidence.",
+      "cadence": "as-needed",
+      "related_surface": "/models",
+      "evidence_flow_ids": ["provider_fallback", "incident_review", "sovereign_routing"]
+    },
+    {
+      "id": "operator-auth-failure",
+      "label": "Operator Auth Failure",
+      "description": "Recover operator ingress when WebAuthn, session, or break-glass posture fails without widening broader runtime mutation scope.",
+      "cadence": "as-needed",
+      "related_surface": "/operator",
+      "evidence_flow_ids": ["incident_review"]
     },
     {
       "id": "sovereign-routing-verification",

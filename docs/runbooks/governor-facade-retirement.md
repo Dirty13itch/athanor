@@ -1,7 +1,7 @@
 # Governor Compatibility Facade Retirement
 
 Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/runtime-subsystem-registry.json`, `config/automation-backbone/runtime-migration-registry.json`, `config/automation-backbone/repo-roots-registry.json`, `STATUS.md`
-Validated against registry version: `platform-topology.json@2026-03-27.1`, `runtime-subsystem-registry.json@2026-03-29.2`, `runtime-migration-registry.json@2026-03-29.2`, `repo-roots-registry.json@2026-03-29.1`
+Validated against registry version: `platform-topology.json@2026-04-01.1`, `runtime-subsystem-registry.json@2026-03-29.2`, `runtime-migration-registry.json@2026-03-29.2`, `repo-roots-registry.json@2026-04-02.5`
 Mutable facts policy: implementation authority stays in `C:\Athanor`, runtime authority stays on DEV until broader runtime convergence. This runbook now preserves the completed operator sequence, rollback evidence, and acceptance checks for the retired `athanor-governor.service` cutover.
 
 ---

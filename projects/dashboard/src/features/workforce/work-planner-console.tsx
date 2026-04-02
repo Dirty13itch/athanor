@@ -290,7 +290,18 @@ export function WorkPlannerConsole({ initialSnapshot }: { initialSnapshot: Workf
                   </div>
                   <p className="mt-3 text-sm">{compactText(task.prompt, 140)}</p>
                   <div className="mt-3 flex gap-2">
-                    <Button size="sm" onClick={() => void handleAction(`approve:${task.id}`, () => postWithoutBody(`/api/workforce/tasks/${task.id}/approve`))}>Approve</Button>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        void handleAction(`approve:${task.id}`, () =>
+                          postWithoutBody(
+                            `/api/operator/approvals/${encodeURIComponent(`approval:${task.id}`)}/approve`
+                          )
+                        )
+                      }
+                    >
+                      Approve
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => void handleAction(`cancel:${task.id}`, () => postWithoutBody(`/api/workforce/tasks/${task.id}/cancel`))}>Cancel</Button>
                   </div>
                 </div>

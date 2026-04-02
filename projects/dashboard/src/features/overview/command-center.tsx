@@ -461,7 +461,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
           <Link href="/services?status=degraded">Incidents</Link>
         </Button>
         <Button asChild variant="outline" size="sm">
-          <Link href="/workplanner">Work planner</Link>
+          <Link href="/backlog">Backlog</Link>
         </Button>
         <Button asChild variant="outline" size="sm">
           <Link href="/gallery">Gallery</Link>
@@ -872,7 +872,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                 {snapshot.workforce.tasks.slice(0, 3).map((task) => (
                   <Link
                     key={task.id}
-                    href="/workplanner"
+                    href="/backlog"
                     className="surface-tile block rounded-2xl border p-3 sm:p-4 transition hover:bg-accent/60"
                   >
                     <div className="flex flex-wrap items-center gap-2">

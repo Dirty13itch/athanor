@@ -10,7 +10,7 @@ import shutil
 import socket
 import subprocess
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin
@@ -23,12 +23,14 @@ from truth_inventory import (
     REPO_ROOT,
     TRUTH_SNAPSHOT_PATH,
     VAULT_LITELLM_ENV_AUDIT_PATH,
+    VAULT_REDIS_AUDIT_PATH,
     load_optional_json,
     load_registry,
     provider_index,
 )
 from runtime_env import runtime_env_status
 from vault_litellm_env_audit import collect_vault_litellm_env_audit
+from vault_redis_audit import collect_vault_redis_audit
 
 
 def _normalize_runtime_caller_path(path: str) -> str:
@@ -46,6 +48,43 @@ def _file_sha256(path: Path) -> str | None:
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(65536), b""):
             digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _normalized_file_sha256(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    pending_cr = False
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            if pending_cr:
+                chunk = b"\r" + chunk
+                pending_cr = False
+            if chunk.endswith(b"\r"):
+                chunk = chunk[:-1]
+                pending_cr = True
+            digest.update(chunk.replace(b"\r\n", b"\n"))
+    if pending_cr:
+        digest.update(b"\r")
+    return digest.hexdigest()
+
+
+def _normalized_tree_sha256(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    if path.is_file():
+        return _normalized_file_sha256(path)
+
+    digest = hashlib.sha256()
+    for file_path in sorted(candidate for candidate in path.rglob("*") if candidate.is_file()):
+        relative_path = file_path.relative_to(path).as_posix().encode("utf-8")
+        digest.update(relative_path)
+        digest.update(b"\0")
+        normalized_sha = _normalized_file_sha256(file_path)
+        if normalized_sha:
+            digest.update(normalized_sha.encode("utf-8"))
+            digest.update(b"\0")
     return digest.hexdigest()
 
 
@@ -115,8 +154,10 @@ def _annotate_governor_facade_probe(
         implementation_path = IMPLEMENTATION_AUTHORITY_ROOT / caller_path
         implementation_exists = implementation_path.is_file()
         implementation_sha256 = _file_sha256(implementation_path)
+        implementation_normalized_sha256 = _normalized_file_sha256(implementation_path)
         runtime_exists = bool(runtime_record.get("exists"))
         runtime_sha256 = str(runtime_record.get("sha256") or "") or None
+        runtime_normalized_sha256 = str(runtime_record.get("normalized_sha256") or "") or None
         observed_in_runtime_probe = caller_path in observed_callers
         configured_runtime_path = str(caller_spec.get("runtime_owner_path") or "")
         observed_runtime_path = str(runtime_record.get("runtime_path") or "")
@@ -124,10 +165,18 @@ def _annotate_governor_facade_probe(
             content_state = "missing_runtime_file"
         elif not implementation_exists:
             content_state = "missing_implementation_file"
-        elif runtime_sha256 == implementation_sha256:
+        elif runtime_normalized_sha256 == implementation_normalized_sha256:
             content_state = "content_match"
         else:
             content_state = "content_drift"
+        line_ending_only_drift = bool(
+            runtime_exists
+            and implementation_exists
+            and runtime_sha256
+            and implementation_sha256
+            and runtime_sha256 != implementation_sha256
+            and runtime_normalized_sha256 == implementation_normalized_sha256
+        )
         if content_state == "content_match":
             sync_decision = "already_synced"
         elif content_state == "content_drift":
@@ -147,6 +196,7 @@ def _annotate_governor_facade_probe(
                 "runtime_path": observed_runtime_path,
                 "runtime_exists": runtime_exists,
                 "runtime_sha256": runtime_sha256,
+                "runtime_normalized_sha256": runtime_normalized_sha256,
                 "runtime_size_bytes": runtime_record.get("size_bytes"),
                 "runtime_line_count": runtime_record.get("line_count"),
                 "runtime_path_matches_registry": bool(configured_runtime_path) and observed_runtime_path == configured_runtime_path,
@@ -154,6 +204,7 @@ def _annotate_governor_facade_probe(
                 "implementation_path": str(implementation_path),
                 "implementation_exists": implementation_exists,
                 "implementation_sha256": implementation_sha256,
+                "implementation_normalized_sha256": implementation_normalized_sha256,
                 "implementation_size_bytes": implementation_path.stat().st_size if implementation_exists else None,
                 "implementation_line_count": _file_line_count(implementation_path),
                 "runtime_backup_root": runtime_backup_root or None,
@@ -162,6 +213,7 @@ def _annotate_governor_facade_probe(
                 "rollback_ready": bool(runtime_exists and caller_spec.get("rollback_target")),
                 "content_state": content_state,
                 "content_match": content_state == "content_match",
+                "line_ending_only_drift": line_ending_only_drift,
             }
         )
 
@@ -274,7 +326,7 @@ def _probe_dev_runtime(topology: dict[str, Any], runtime_migrations: dict[str, A
     planned_callers_json = json.dumps(planned_callers)
 
     runtime_script = """
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import hashlib
 import json
 import subprocess
@@ -285,12 +337,23 @@ PLANNED_CALLERS = __PLANNED_CALLERS__
 result = {
     "paths": {},
     "repo_git_head": None,
+    "repo_dirty_count": 0,
+    "repo_status_sample": [],
     "opt_entries": [],
     "state_entries": [],
     "cron_files": [],
     "user_crontab_job_count": 0,
     "user_crontab_inline_env_keys": [],
     "systemd_units": [],
+    "heartbeat_bundle": {
+        "script_path": "/opt/athanor/heartbeat/node-heartbeat.py",
+        "script_exists": False,
+        "script_normalized_sha256": None,
+        "env_path": "/opt/athanor/heartbeat/env",
+        "env_exists": False,
+        "venv_python_path": "/opt/athanor/heartbeat/venv/bin/python3",
+        "venv_python_exists": False,
+    },
     "governor_facade": {
         "listener_present": False,
         "listener_lines": [],
@@ -306,6 +369,24 @@ result = {
     },
 }
 
+def _normalized_file_sha256(path: Path):
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    pending_cr = False
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            if pending_cr:
+                chunk = b"\\r" + chunk
+                pending_cr = False
+            if chunk.endswith(b"\\r"):
+                chunk = chunk[:-1]
+                pending_cr = True
+            digest.update(chunk.replace(b"\\r\\n", b"\\n"))
+    if pending_cr:
+        digest.update(b"\\r")
+    return digest.hexdigest()
+
 for probe_path in ["/home/shaun/repos/athanor", "/opt/athanor", "/home/shaun/.athanor", "/var/log/athanor"]:
     result["paths"][probe_path] = Path(probe_path).exists()
 
@@ -313,6 +394,10 @@ repo = Path("/home/shaun/repos/athanor")
 if repo.exists():
     proc = subprocess.run(["git", "-C", str(repo), "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=False)
     result["repo_git_head"] = proc.stdout.strip() or None
+    status = subprocess.run(["git", "-C", str(repo), "status", "--short"], capture_output=True, text=True, check=False)
+    status_lines = [line.rstrip() for line in status.stdout.splitlines() if line.strip()]
+    result["repo_dirty_count"] = len(status_lines)
+    result["repo_status_sample"] = status_lines[:20]
 
 opt_path = Path("/opt/athanor")
 if opt_path.exists():
@@ -321,6 +406,14 @@ if opt_path.exists():
 state_path = Path("/home/shaun/.athanor")
 if state_path.exists():
     result["state_entries"] = sorted(entry.name for entry in state_path.iterdir())[:30]
+
+heartbeat_bundle = result["heartbeat_bundle"]
+heartbeat_script = Path(str(heartbeat_bundle["script_path"]))
+heartbeat_bundle["script_exists"] = heartbeat_script.is_file()
+if heartbeat_script.is_file():
+    heartbeat_bundle["script_normalized_sha256"] = _normalized_file_sha256(heartbeat_script)
+heartbeat_bundle["env_exists"] = Path(str(heartbeat_bundle["env_path"])).exists()
+heartbeat_bundle["venv_python_exists"] = Path(str(heartbeat_bundle["venv_python_path"])).exists()
 
 for cron_dir in [Path("/etc/cron.d"), Path("/etc/cron.daily")]:
     if cron_dir.exists():
@@ -366,6 +459,7 @@ for raw in units.stdout.splitlines():
             contains_governor_ref = True
     unit_record = {
         "unit": unit,
+        "unit_file_state": parts[1] if len(parts) > 1 else "",
         "environment_file_count": envfile_count,
         "environment_count": environment_count,
         "working_directories": working_directories[:3],
@@ -411,7 +505,7 @@ else:
     ref_command = (
         'grep -R -n -E ":8760|athanor-governor|dispatch-and-run|/queue|/health" '
         '/home/shaun/repos/athanor/services/governor /home/shaun/repos/athanor/services/gateway /home/shaun/repos/athanor/services/sentinel /home/shaun/repos/athanor/services/cluster_config.py /home/shaun/repos/athanor/scripts/drift-check.sh /home/shaun/repos/athanor/scripts/smoke-test.sh /home/shaun/repos/athanor/scripts/contract-tests.sh /home/shaun/repos/athanor/scripts/subscription-status.sh /opt/athanor/scripts /home/shaun/.athanor/systemd /etc/systemd/system/athanor-* /etc/cron.d/athanor-* 2>/dev/null '
-        '| grep -v "/node_modules/" | grep -v "/.venv/" | grep -v "/semantic-router-venv/" | grep -v "/site-packages/" | grep -v "\\.tsbuildinfo:" | head -n 40'
+        '| grep -v "/node_modules/" | grep -v "/.venv/" | grep -v "/semantic-router-venv/" | grep -v "/site-packages/" | grep -v "\\\\.tsbuildinfo:" | head -n 40'
     )
 runtime_refs = subprocess.run(
     ["bash", "-lc", ref_command],
@@ -470,6 +564,7 @@ for raw_path in sorted(set(caller_files))[:20]:
         record["size_bytes"] = runtime_file.stat().st_size
         record["line_count"] = sum(1 for _ in runtime_file.open("rb"))
         record["sha256"] = hashlib.sha256(runtime_file.read_bytes()).hexdigest()
+        record["normalized_sha256"] = _normalized_file_sha256(runtime_file)
     caller_records.append(record)
 observed_paths = {str(record.get("normalized_path") or "") for record in caller_records}
 for planned_path in PLANNED_CALLERS:
@@ -486,6 +581,7 @@ for planned_path in PLANNED_CALLERS:
         record["size_bytes"] = runtime_file.stat().st_size
         record["line_count"] = sum(1 for _ in runtime_file.open("rb"))
         record["sha256"] = hashlib.sha256(runtime_file.read_bytes()).hexdigest()
+        record["normalized_sha256"] = _normalized_file_sha256(runtime_file)
     caller_records.append(record)
 result["governor_facade"]["caller_records"] = caller_records
 
@@ -511,10 +607,27 @@ print(json.dumps(result))
         )
         attempts.append({"target": target, "detail": result.get("detail"), "ok": result.get("ok")})
         if result.get("ok"):
+            detail = dict(result.get("detail") or {})
+            heartbeat_bundle = detail.get("heartbeat_bundle")
+            if isinstance(heartbeat_bundle, dict):
+                implementation_path = REPO_ROOT / "scripts" / "node-heartbeat.py"
+                implementation_exists = implementation_path.is_file()
+                heartbeat_bundle["implementation_path"] = str(implementation_path)
+                heartbeat_bundle["implementation_exists"] = implementation_exists
+                if implementation_exists:
+                    heartbeat_bundle["implementation_normalized_sha256"] = _normalized_file_sha256(
+                        implementation_path
+                    )
+                implementation_sha = str(heartbeat_bundle.get("implementation_normalized_sha256") or "")
+                deploy_sha = str(heartbeat_bundle.get("script_normalized_sha256") or "")
+                heartbeat_bundle["implementation_matches_deploy_root"] = bool(
+                    implementation_sha and deploy_sha and implementation_sha == deploy_sha
+                )
+                detail["heartbeat_bundle"] = heartbeat_bundle
             return {
                 "ok": True,
                 "target": target,
-                "detail": result.get("detail"),
+                "detail": detail,
             }
     return {"ok": False, "target": ssh_targets[0], "detail": "unable to reach DEV via ssh", "attempts": attempts}
 
@@ -669,7 +782,8 @@ def _probe_dev_command_center_runtime(topology: dict[str, Any]) -> dict[str, Any
     probe_script = """
 import json
 import subprocess
-from pathlib import Path
+import hashlib
+from pathlib import Path, PurePosixPath
 
 payload = {
     "deployment_mode": "unknown",
@@ -714,19 +828,41 @@ payload = {
     },
     "local_runtime_status_code": None,
     "local_canonical_status_code": None,
+    "control_files": [],
 }
 def _exists(path):
     try:
         return path.exists()
     except Exception:
         return False
+def _normalized_sha256(path):
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    pending_cr = False
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            if pending_cr:
+                if chunk.startswith(b"\\n"):
+                    digest.update(b"\\n")
+                    chunk = chunk[1:]
+                else:
+                    digest.update(b"\\r")
+                pending_cr = False
+            if chunk.endswith(b"\\r"):
+                chunk, pending_cr = chunk[:-1], True
+            chunk = chunk.replace(b"\\r\\n", b"\\n")
+            digest.update(chunk)
+    if pending_cr:
+        digest.update(b"\\r")
+    return digest.hexdigest()
 legacy = payload["legacy_service"]
 result = subprocess.run(
     [
         "systemctl",
         "show",
         "athanor-dashboard.service",
-        "--property=LoadState,ActiveState,SubState,WorkingDirectory,ExecStart,FragmentPath",
+        "--property=LoadState,ActiveState,SubState,UnitFileState,WorkingDirectory,ExecStart,FragmentPath",
         "--no-pager",
     ],
     capture_output=True,
@@ -746,6 +882,8 @@ if result.returncode == 0:
             legacy["active_state"] = value or "unknown"
         elif key == "SubState":
             legacy["sub_state"] = value or "unknown"
+        elif key == "UnitFileState":
+            legacy["unit_file_state"] = value or "unknown"
         elif key == "WorkingDirectory":
             payload["working_directory"] = value
         elif key == "ExecStart":
@@ -819,6 +957,26 @@ runtime_repo_root = Path(deployment_root["runtime_repo_path"])
 deployment_root["expected_exists"] = _exists(expected_root)
 deployment_root["runtime_repo_exists"] = _exists(runtime_repo_root)
 deployment_root["runtime_repo_compose_exists"] = _exists(runtime_repo_root / "docker-compose.yml")
+for relative_path in ["Dockerfile", "docker-compose.yml"]:
+    runtime_repo_file = runtime_repo_root / relative_path
+    deploy_root_file = expected_root / relative_path
+    record = {
+        "relative_path": relative_path,
+        "runtime_repo_path": str(runtime_repo_file),
+        "runtime_repo_exists": _exists(runtime_repo_file),
+        "deploy_root_path": str(deploy_root_file),
+        "deploy_root_exists": _exists(deploy_root_file),
+    }
+    if record["runtime_repo_exists"]:
+        record["runtime_repo_normalized_sha256"] = _normalized_sha256(runtime_repo_file)
+    if record["deploy_root_exists"]:
+        record["deploy_root_normalized_sha256"] = _normalized_sha256(deploy_root_file)
+    record["deploy_matches_runtime_repo"] = bool(
+        record.get("runtime_repo_normalized_sha256")
+        and record.get("deploy_root_normalized_sha256")
+        and record["runtime_repo_normalized_sha256"] == record["deploy_root_normalized_sha256"]
+    )
+    payload["control_files"].append(record)
 if deployment_root["runtime_repo_compose_exists"]:
     compose_result = subprocess.run(
         [
@@ -918,7 +1076,32 @@ print(json.dumps(payload))
         )
         attempts.append({"target": target, "ok": result.get("ok"), "detail": result.get("detail")})
         if result.get("ok"):
-            return {"ok": True, "target": target, "detail": result.get("detail"), "attempts": attempts}
+            detail = dict(result.get("detail") or {})
+            control_files = detail.get("control_files")
+            if isinstance(control_files, list):
+                for record in control_files:
+                    if not isinstance(record, dict):
+                        continue
+                    relative_path = str(record.get("relative_path") or "").strip()
+                    if not relative_path:
+                        continue
+                    implementation_path = REPO_ROOT / "projects" / "dashboard" / relative_path
+                    implementation_exists = implementation_path.is_file()
+                    record["implementation_path"] = str(implementation_path)
+                    record["implementation_exists"] = implementation_exists
+                    if implementation_exists:
+                        record["implementation_normalized_sha256"] = _normalized_file_sha256(implementation_path)
+                    implementation_sha = str(record.get("implementation_normalized_sha256") or "")
+                    runtime_repo_sha = str(record.get("runtime_repo_normalized_sha256") or "")
+                    deploy_root_sha = str(record.get("deploy_root_normalized_sha256") or "")
+                    record["implementation_matches_runtime_repo"] = bool(
+                        implementation_sha and runtime_repo_sha and implementation_sha == runtime_repo_sha
+                    )
+                    record["implementation_matches_deploy_root"] = bool(
+                        implementation_sha and deploy_root_sha and implementation_sha == deploy_root_sha
+                    )
+                detail["control_files"] = control_files
+            return {"ok": True, "target": target, "detail": detail, "attempts": attempts}
     return {"ok": False, "detail": "unable to reach DEV dashboard runtime probe", "attempts": attempts}
 
 
@@ -969,6 +1152,260 @@ print(json.dumps(payload))
         if result.get("ok"):
             return {"ok": True, "target": target, "detail": result.get("detail"), "attempts": attempts}
     return {"ok": False, "detail": "unable to reach WORKSHOP dashboard runtime probe", "attempts": attempts}
+
+
+def _probe_foundry_agents_runtime(topology: dict[str, Any]) -> dict[str, Any]:
+    probe_script = """
+from pathlib import Path
+import hashlib
+import json
+import subprocess
+
+def _normalized_sha256(path: Path):
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    pending_cr = False
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            if pending_cr:
+                chunk = b"\\r" + chunk
+                pending_cr = False
+            if chunk.endswith(b"\\r"):
+                chunk = chunk[:-1]
+                pending_cr = True
+            digest.update(chunk.replace(b"\\r\\n", b"\\n"))
+    if pending_cr:
+        digest.update(b"\\r")
+    return digest.hexdigest()
+
+def _tree_sha256(path: Path):
+    if not path.exists():
+        return None
+    if path.is_file():
+        return _normalized_sha256(path)
+    digest = hashlib.sha256()
+    for file_path in sorted(candidate for candidate in path.rglob("*") if candidate.is_file()):
+        digest.update(file_path.relative_to(path).as_posix().encode("utf-8"))
+        digest.update(b"\\\\0")
+        file_sha = _normalized_sha256(file_path)
+        if file_sha:
+            digest.update(file_sha.encode("utf-8"))
+            digest.update(b"\\\\0")
+    return digest.hexdigest()
+
+payload = {
+    "deployment_root": {
+        "expected_path": "/opt/athanor/agents",
+        "expected_exists": False,
+        "compose_file_exists": False,
+        "config_file_exists": False,
+        "source_root_exists": False,
+        "source_tree_sha256": None,
+        "nested_source_dir_exists": False,
+        "bak_codex_files": [],
+        "build_root_clean": None,
+    },
+    "container": {
+        "name": "athanor-agents",
+        "running": False,
+        "status": "",
+        "image": "",
+        "compose_working_dir": "",
+        "compose_config_files": "",
+        "mounts": [],
+        "module_file": "",
+        "bootstrap_state_file": "",
+        "site_packages_import": False,
+    },
+    "control_files": [],
+    "source_mirrors": [],
+}
+
+expected_root = Path(payload["deployment_root"]["expected_path"])
+payload["deployment_root"]["expected_exists"] = expected_root.is_dir()
+payload["deployment_root"]["compose_file_exists"] = (expected_root / "docker-compose.yml").is_file()
+payload["deployment_root"]["config_file_exists"] = (expected_root / "config" / "subscription-routing-policy.yaml").is_file()
+source_root = expected_root / "src" / "athanor_agents"
+payload["deployment_root"]["source_root_exists"] = source_root.is_dir()
+payload["deployment_root"]["source_tree_sha256"] = _tree_sha256(source_root) if source_root.is_dir() else None
+payload["deployment_root"]["nested_source_dir_exists"] = (source_root / "athanor_agents").exists()
+payload["deployment_root"]["bak_codex_files"] = sorted(
+    entry.relative_to(expected_root).as_posix()
+    for entry in expected_root.rglob("*.bak-codex")
+)[:50] if expected_root.exists() else []
+payload["deployment_root"]["build_root_clean"] = not payload["deployment_root"]["nested_source_dir_exists"] and not payload["deployment_root"]["bak_codex_files"]
+
+for relative_path, kind in [
+    ("Dockerfile", "file"),
+    ("pyproject.toml", "file"),
+    ("docker-compose.yml", "file"),
+    ("config/subscription-routing-policy.yaml", "file"),
+    ("src/athanor_agents", "directory"),
+]:
+    runtime_path = expected_root / relative_path
+    record = {
+        "relative_path": relative_path,
+        "kind": kind,
+        "runtime_path": str(runtime_path),
+        "runtime_exists": runtime_path.exists(),
+    }
+    if runtime_path.exists():
+        if kind == "directory":
+            record["runtime_tree_sha256"] = _tree_sha256(runtime_path)
+        else:
+            record["runtime_normalized_sha256"] = _normalized_sha256(runtime_path)
+    payload["control_files"].append(record)
+
+result = subprocess.run(
+    [
+        "docker",
+        "ps",
+        "--filter",
+        "name=athanor-agents",
+        "--format",
+        "{{.Names}}|{{.Image}}|{{.Status}}",
+    ],
+    capture_output=True,
+    text=True,
+    check=False,
+)
+line = next((entry for entry in result.stdout.splitlines() if entry.strip()), "")
+if result.returncode == 0 and line:
+    name, image, status = (line.split("|", 2) + ["", "", ""])[:3]
+    payload["container"]["name"] = name or "athanor-agents"
+    payload["container"]["running"] = True
+    payload["container"]["image"] = image
+    payload["container"]["status"] = status
+    inspect_result = subprocess.run(
+        ["docker", "inspect", "athanor-agents"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if inspect_result.returncode == 0 and inspect_result.stdout.strip():
+        try:
+            inspect_payload = json.loads(inspect_result.stdout)
+        except json.JSONDecodeError:
+            inspect_payload = []
+        if inspect_payload:
+            labels = dict(inspect_payload[0].get("Config", {}).get("Labels", {}) or {})
+            mounts = inspect_payload[0].get("Mounts", []) or []
+            payload["container"]["compose_working_dir"] = str(
+                labels.get("com.docker.compose.project.working_dir") or ""
+            )
+            payload["container"]["compose_config_files"] = str(
+                labels.get("com.docker.compose.project.config_files") or ""
+            )
+            payload["container"]["mounts"] = [
+                {
+                    "source": str(mount.get("Source") or ""),
+                    "destination": str(mount.get("Destination") or ""),
+                    "rw": bool(mount.get("RW")),
+                }
+                for mount in mounts
+            ]
+    import_code = '''
+from pathlib import Path
+import json
+import os
+import athanor_agents
+import athanor_agents.bootstrap_state as bootstrap_state
+
+paths = [
+    "/workspace/projects/agents/src/athanor_agents",
+    "/workspace/agents/src/athanor_agents",
+    "/app/src/athanor_agents",
+]
+
+print(json.dumps({
+    "module_file": str(Path(athanor_agents.__file__).resolve()),
+    "bootstrap_state_file": str(Path(bootstrap_state.__file__).resolve()),
+    "site_packages_import": "site-packages" in str(Path(athanor_agents.__file__).resolve()),
+    "source_mirrors": [
+        {
+            "path": path,
+            "exists": Path(path).exists(),
+            "writable": os.access(path, os.W_OK),
+        }
+        for path in paths
+    ],
+}))
+'''.strip()
+    import_result = subprocess.run(
+        ["docker", "exec", "athanor-agents", "python3", "-c", import_code],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if import_result.returncode == 0 and import_result.stdout.strip():
+        try:
+            import_payload = json.loads(import_result.stdout)
+        except json.JSONDecodeError:
+            import_payload = {}
+        if import_payload:
+            payload["container"]["module_file"] = str(import_payload.get("module_file") or "")
+            payload["container"]["bootstrap_state_file"] = str(import_payload.get("bootstrap_state_file") or "")
+            payload["container"]["site_packages_import"] = bool(import_payload.get("site_packages_import"))
+            payload["source_mirrors"] = [
+                dict(entry) for entry in import_payload.get("source_mirrors", []) if isinstance(entry, dict)
+            ]
+
+print(json.dumps(payload))
+""".strip()
+
+    attempts: list[dict[str, Any]] = []
+    for target in _ssh_targets_for_node(topology, "foundry"):
+        result = _run_inline_python_json(
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", target],
+            probe_script,
+        )
+        attempts.append({"target": target, "ok": result.get("ok"), "detail": result.get("detail")})
+        if result.get("ok"):
+            detail = dict(result.get("detail") or {})
+            control_files = [
+                dict(entry)
+                for entry in detail.get("control_files", [])
+                if isinstance(entry, dict) and str(entry.get("relative_path") or "").strip()
+            ]
+            for record in control_files:
+                relative_path = str(record.get("relative_path") or "").strip()
+                implementation_path = REPO_ROOT / "projects" / "agents" / PurePosixPath(relative_path)
+                implementation_exists = implementation_path.exists()
+                record["implementation_path"] = str(implementation_path)
+                record["implementation_exists"] = implementation_exists
+                kind = str(record.get("kind") or "file")
+                if implementation_exists:
+                    if kind == "directory":
+                        record["implementation_tree_sha256"] = _normalized_tree_sha256(implementation_path)
+                    else:
+                        record["implementation_normalized_sha256"] = _normalized_file_sha256(implementation_path)
+                implementation_sha = str(
+                    record.get("implementation_tree_sha256")
+                    or record.get("implementation_normalized_sha256")
+                    or ""
+                )
+                runtime_sha = str(
+                    record.get("runtime_tree_sha256")
+                    or record.get("runtime_normalized_sha256")
+                    or ""
+                )
+                record["implementation_matches_runtime"] = bool(
+                    implementation_sha and runtime_sha and implementation_sha == runtime_sha
+                )
+            detail["control_files"] = control_files
+            deployment_root = (
+                dict(detail.get("deployment_root") or {})
+                if isinstance(detail.get("deployment_root"), dict)
+                else {}
+            )
+            deployment_root["compose_root_matches_expected"] = (
+                str(dict(detail.get("container") or {}).get("compose_working_dir") or "")
+                == str(deployment_root.get("expected_path") or "")
+            )
+            detail["deployment_root"] = deployment_root
+            return {"ok": True, "target": target, "detail": detail, "attempts": attempts}
+    return {"ok": False, "detail": "unable to reach FOUNDRY agents runtime probe", "attempts": attempts}
 
 
 async def _probe_operator_surfaces(
@@ -1108,7 +1545,7 @@ async def _probe_services(topology: dict[str, Any]) -> list[dict[str, Any]]:
             http_targets.append((service_id, f"{scheme}://{host}:{port}{path}"))
             continue
 
-        if scheme in {"bolt", "redis"}:
+        if scheme in {"bolt", "redis", "postgres", "postgresql"}:
             tcp_targets.append((service_id, scheme, host, port))
             continue
 
@@ -1140,6 +1577,7 @@ async def build_snapshot() -> dict[str, Any]:
     dev_runtime_probe = _probe_dev_runtime(topology, runtime_migrations)
     _annotate_governor_facade_probe(dev_runtime_probe, runtime_migrations)
     vault_litellm_env_audit = collect_vault_litellm_env_audit()
+    vault_redis_audit = collect_vault_redis_audit()
 
     return {
         "collected_at": datetime.now(timezone.utc).isoformat(),
@@ -1150,11 +1588,13 @@ async def build_snapshot() -> dict[str, Any]:
         "provider_index": provider_index(providers),
         "provider_usage_evidence": load_optional_json(PROVIDER_USAGE_EVIDENCE_PATH),
         "vault_litellm_env_audit": vault_litellm_env_audit,
+        "vault_redis_audit": vault_redis_audit,
         "local_tool_probes": _probe_local_tools(),
         "local_runtime_env_probe": runtime_env_status(
-            env_names=["ATHANOR_REDIS_URL", "ATHANOR_REDIS_PASSWORD"]
+            env_names=["ATHANOR_REDIS_URL", "ATHANOR_REDIS_PASSWORD", "ATHANOR_VAULT_KEY_PATH"]
         ),
         "dev_runtime_probe": dev_runtime_probe,
+        "foundry_agents_runtime_probe": _probe_foundry_agents_runtime(topology),
         "operator_surface_probe": await _probe_operator_surfaces(topology, operator_surfaces),
         "service_probes": await _probe_services(topology),
         "model_endpoint_probes": await _probe_urls(model_urls),
@@ -1183,6 +1623,10 @@ def main() -> int:
     TRUTH_SNAPSHOT_PATH.write_text(rendered, encoding="utf-8")
     VAULT_LITELLM_ENV_AUDIT_PATH.write_text(
         json.dumps(snapshot.get("vault_litellm_env_audit", {}), indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    VAULT_REDIS_AUDIT_PATH.write_text(
+        json.dumps(snapshot.get("vault_redis_audit", {}), indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     if args.write:

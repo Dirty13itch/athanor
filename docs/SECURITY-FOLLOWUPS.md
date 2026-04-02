@@ -1,7 +1,7 @@
 # Security Follow-Ups
 
 Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/credential-surface-registry.json`, `docs/runbooks/credential-rotation.md`
-Validated against registry version: `platform-topology.json@2026-03-27.1`, `credential-surface-registry.json@2026-03-29.2`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `platform-topology.json@2026-04-01.1`, `credential-surface-registry.json@2026-04-02.1`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: service placement and auth class come from the topology registry. This document tracks secret ownership, rotation priority, and the still-open security backlog.
 
 ---

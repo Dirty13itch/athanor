@@ -1,0 +1,62 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T18:00:00Z",
+  "status": "active",
+  "promotion_rule": "explicit_promotion_only",
+  "before_takeover_authority": "hybrid_local_ledger",
+  "after_takeover_authority": "athanor_postgres",
+  "criteria": [
+    {
+      "id": "software_core_active",
+      "label": "Software-core autonomy active",
+      "status": "required",
+      "description": "The bounded software-core autonomy phase is active and stable."
+    },
+    {
+      "id": "canonical_operator_work_system",
+      "label": "Canonical operator work system",
+      "status": "required",
+      "description": "Inbox, todos, backlog, ideas, and runs are live as canonical surfaces."
+    },
+    {
+      "id": "compatibility_retirement_complete",
+      "label": "Compatibility retirement complete",
+      "status": "required",
+      "description": "The compatibility retirement family is complete."
+    },
+    {
+      "id": "durable_persistence_live",
+      "label": "Durable persistence live",
+      "status": "required",
+      "description": "Configured runtimes no longer rely on fallback in-memory persistence."
+    },
+    {
+      "id": "foundry_path_live",
+      "label": "Foundry path live",
+      "status": "required",
+      "description": "At least one real project has moved through the packet-backed foundry path."
+    },
+    {
+      "id": "governance_drills_green",
+      "label": "Governance drills green",
+      "status": "required",
+      "description": "Constrained, degraded, recovery, restore, rollback, and blocked-approval drills have live evidence."
+    },
+    {
+      "id": "external_dependency_removed",
+      "label": "External-host-only dependency removed",
+      "status": "required",
+      "description": "The bootstrap controller no longer depends on external-host-only behavior for normal continuation."
+    }
+  ],
+  "external_posture": {
+    "before_takeover": "primary",
+    "after_takeover": "fallback",
+    "fallback_modes": [
+      "quota_overflow",
+      "repair_work",
+      "emergency_continuity",
+      "explicit_operator_override"
+    ]
+  }
+}

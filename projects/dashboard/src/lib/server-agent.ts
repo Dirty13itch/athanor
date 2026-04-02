@@ -838,7 +838,7 @@ function buildFixtureOperationsReadinessSnapshot(
           label: "Pause or resume automation",
           description: "Use governor controls to pause global automation or bounded lanes, then confirm resumed posture.",
           cadence: "as-needed",
-          related_surface: "/tasks",
+          related_surface: "/runs",
           evidence_flow_ids: ["pause_resume"],
           support_status: "evidenced",
         },
@@ -856,7 +856,7 @@ function buildFixtureOperationsReadinessSnapshot(
           label: "Stuck queue recovery",
           description: "Use governor posture, scheduled-job state, and execution-run lineage to identify paused, deferred, or blocked work and restore forward progress safely.",
           cadence: "as-needed",
-          related_surface: "/tasks",
+          related_surface: "/runs",
           evidence_flow_ids: ["stuck_queue_recovery", "pause_resume", "scheduled_job_governance"],
           support_status: "evidenced",
         },
@@ -883,7 +883,7 @@ function buildFixtureOperationsReadinessSnapshot(
           label: "Incident review",
           description: "Use the operator stream, synthetic operator tests, and release-ladder posture to understand failures, retries, fallback behavior, and recovery decisions.",
           cadence: "as-needed",
-          related_surface: "/notifications",
+          related_surface: "/inbox",
           evidence_flow_ids: ["incident_review", "provider_fallback", "restore_drill", "promotion_ladder"],
           support_status: "evidenced",
         },
@@ -1073,6 +1073,242 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
   const promotionState = await getFixturePromotionState(timestamp);
   const retirementState = await getFixtureRetirementState();
 
+  const buildFixtureProjectPacket = (projectId: string) => ({
+    id: projectId,
+    name:
+      projectId === "athanor"
+        ? "Athanor"
+        : projectId === "eoq"
+          ? "Empire of Broken Queens"
+          : projectId === "kindred"
+            ? "Kindred"
+            : projectId,
+    stage:
+      projectId === "athanor"
+        ? "active_build"
+        : projectId === "media"
+          ? "governed_domain"
+          : "scaffold",
+    template:
+      projectId === "athanor"
+        ? "internal_operator_app"
+        : projectId === "media"
+          ? "domain_surface"
+          : "public_product_app",
+    class: projectId === "media" ? "domain" : "tenant",
+    visibility: projectId === "kindred" ? "pilot" : "private",
+    sensitivity: projectId === "eoq" ? "adult_sensitive" : "private",
+    runtime_target: projectId === "kindred" ? "vercel" : "cluster",
+    deploy_target: projectId === "kindred" ? "vercel" : "cluster",
+    workspace_root:
+      projectId === "athanor" ? "C:\\Athanor" : `C:\\Athanor\\projects\\${projectId}`,
+    primary_route: projectId === "media" ? "/media" : "/projects",
+    owner_domain: projectId === "media" ? "media" : "product_foundry",
+    operators: ["Shaun", "Claude"],
+    agents:
+      projectId === "media"
+        ? ["media-agent", "stash-agent"]
+        : ["coding-agent", "research-agent", "knowledge-agent"],
+    acceptance_bundle:
+      projectId === "athanor"
+        ? [
+            "Durable operator work surfaces",
+            "Registry-backed runtime authority",
+            "Foundry packet and deploy candidate path",
+          ]
+        : ["Packet-approved scaffold", "Rollback evidence before promotion"],
+    rollback_contract:
+      projectId === "athanor"
+        ? "Revert candidate promotion and restore the prior operator packet snapshot."
+        : "Restore the prior scaffold candidate and invalidate the failed promotion.",
+    maintenance_cadence: projectId === "athanor" ? "weekly" : "monthly",
+    metadata: {
+      source: "dashboard_fixture",
+      status: projectId === "athanor" ? "live" : "pilot",
+    },
+    created_at: new Date(timestamp).getTime() / 1000 - 14 * 24 * 60 * 60,
+    updated_at: new Date(timestamp).getTime() / 1000 - 25 * 60,
+  });
+
+  const buildFixtureArchitecturePacket = (projectId: string) => ({
+    project_id: projectId,
+    service_shape: {
+      app:
+        projectId === "athanor" ? "nextjs-operator" : projectId === "kindred" ? "public-product-app" : "service",
+      runtime: projectId === "kindred" ? "vercel" : "cluster",
+    },
+    data_contracts:
+      projectId === "athanor"
+        ? ["operator-work snapshots", "registry-backed governance"]
+        : ["deploy candidate", "public-edge configuration"],
+    auth_boundary:
+      projectId === "kindred"
+        ? { operator_auth_shared: false, product_auth: "separate" }
+        : { operator_auth_shared: true, product_auth: "n/a" },
+    deploy_shape:
+      projectId === "kindred"
+        ? { primary: "preview-staging-production", rollback: "instant" }
+        : { primary: "cluster", rollback: "config snapshot" },
+    risk_notes:
+      projectId === "athanor"
+        ? ["Do not widen autonomy until launch blockers clear."]
+        : ["Promotion blocked until rollback evidence is recorded."],
+    test_plan:
+      projectId === "athanor"
+        ? ["durable restart drill", "operator work regression suite"]
+        : ["preview smoke", "promotion rollback drill"],
+    rollback_notes:
+      projectId === "athanor"
+        ? ["Restore prior packet", "Re-run operator smoke suite"]
+        : ["Rollback to previous candidate", "Verify preview health"],
+    metadata: { source: "dashboard_fixture" },
+    approved_at: new Date(timestamp).getTime() / 1000 - 4 * 24 * 60 * 60,
+    created_at: new Date(timestamp).getTime() / 1000 - 10 * 24 * 60 * 60,
+    updated_at: new Date(timestamp).getTime() / 1000 - 55 * 60,
+  });
+
+  const buildFixtureFoundryRuns = (projectId: string) => [
+    {
+      id: `${projectId}-foundry-run-1`,
+      project_id: projectId,
+      slice_id: `${projectId}-slice-1`,
+      execution_run_id: `run-${projectId}-1`,
+      status: "running",
+      summary: "Executing the current slice with durable run lineage enabled.",
+      artifact_refs: ["artifact://foundry/log", "artifact://foundry/review"],
+      review_refs: ["review://launch/readiness"],
+      metadata: { source: "dashboard_fixture" },
+      created_at: new Date(timestamp).getTime() / 1000 - 95 * 60,
+      updated_at: new Date(timestamp).getTime() / 1000 - 6 * 60,
+      completed_at: 0,
+    },
+    {
+      id: `${projectId}-foundry-run-2`,
+      project_id: projectId,
+      slice_id: `${projectId}-slice-0`,
+      execution_run_id: `run-${projectId}-0`,
+      status: "completed",
+      summary: "Previous slice completed with acceptance evidence attached.",
+      artifact_refs: ["artifact://foundry/smoke"],
+      review_refs: ["review://launch/acceptance"],
+      metadata: { source: "dashboard_fixture" },
+      created_at: new Date(timestamp).getTime() / 1000 - 480 * 60,
+      updated_at: new Date(timestamp).getTime() / 1000 - 420 * 60,
+      completed_at: new Date(timestamp).getTime() / 1000 - 420 * 60,
+    },
+  ];
+
+  const buildFixtureExecutionSlices = (projectId: string) => [
+    {
+      id: `${projectId}-slice-1`,
+      project_id: projectId,
+      owner_agent: "coding-agent",
+      lane: projectId === "kindred" ? "codex_cloudsafe" : "sovereign_coder",
+      base_sha: "abc1234",
+      worktree_path: `C:\\Athanor\\worktrees\\${projectId}-slice-1`,
+      acceptance_target: "packet acceptance bundle",
+      status: "active",
+      metadata: { source: "dashboard_fixture" },
+      created_at: new Date(timestamp).getTime() / 1000 - 120 * 60,
+      updated_at: new Date(timestamp).getTime() / 1000 - 25 * 60,
+    },
+    {
+      id: `${projectId}-slice-0`,
+      project_id: projectId,
+      owner_agent: "coding-agent",
+      lane: projectId === "kindred" ? "codex_cloudsafe" : "sovereign_coder",
+      base_sha: "def5678",
+      worktree_path: `C:\\Athanor\\worktrees\\${projectId}-slice-0`,
+      acceptance_target: "previous release candidate",
+      status: "completed",
+      metadata: { source: "dashboard_fixture" },
+      created_at: new Date(timestamp).getTime() / 1000 - 520 * 60,
+      updated_at: new Date(timestamp).getTime() / 1000 - 420 * 60,
+    },
+  ];
+
+  const buildFixtureDeployments = (projectId: string) => [
+    {
+      id: `${projectId}-candidate-1`,
+      project_id: projectId,
+      channel: projectId === "kindred" ? "public_staging" : "internal_preview",
+      artifact_refs: ["artifact://deploy/build", "artifact://deploy/smoke"],
+      env_contract: {
+        runtime: projectId === "kindred" ? "vercel" : "cluster",
+        secrets_verified: true,
+      },
+      smoke_results: {
+        status: "passed",
+        verified_at: isoMinutesBefore(40),
+      },
+      rollback_target: {
+        type: projectId === "kindred" ? "vercel-rollback" : "cluster-snapshot",
+        ref: `${projectId}-rollback-anchor`,
+      },
+      promotion_status: "pending",
+      metadata: { source: "dashboard_fixture" },
+      created_at: new Date(timestamp).getTime() / 1000 - 75 * 60,
+      updated_at: new Date(timestamp).getTime() / 1000 - 20 * 60,
+      promoted_at: 0,
+    },
+    {
+      id: `${projectId}-candidate-0`,
+      project_id: projectId,
+      channel: projectId === "kindred" ? "public_preview" : "internal_preview",
+      artifact_refs: ["artifact://deploy/build-previous"],
+      env_contract: {
+        runtime: projectId === "kindred" ? "vercel" : "cluster",
+      },
+      smoke_results: {
+        status: "passed",
+        verified_at: isoMinutesBefore(360),
+      },
+      rollback_target: {
+        type: projectId === "kindred" ? "vercel-rollback" : "cluster-snapshot",
+        ref: `${projectId}-rollback-anchor-previous`,
+      },
+      promotion_status: "promoted",
+      metadata: { source: "dashboard_fixture" },
+      created_at: new Date(timestamp).getTime() / 1000 - 420 * 60,
+      updated_at: new Date(timestamp).getTime() / 1000 - 360 * 60,
+      promoted_at: new Date(timestamp).getTime() / 1000 - 360 * 60,
+    },
+  ];
+
+  const buildFixtureRollbacks = (projectId: string) => [
+    {
+      id: `${projectId}-rollback-1`,
+      project_id: projectId,
+      candidate_id: `${projectId}-candidate-0`,
+      reason: "Rollback anchor preserved from the last successful promotion.",
+      rollback_target: {
+        type: projectId === "kindred" ? "vercel-rollback" : "cluster-snapshot",
+        ref: `${projectId}-rollback-anchor-previous`,
+      },
+      status: "recorded",
+      metadata: {
+        channel: projectId === "kindred" ? "public_preview" : "internal_preview",
+        source: "dashboard_fixture",
+      },
+      created_at: new Date(timestamp).getTime() / 1000 - 355 * 60,
+    },
+  ];
+
+  const buildFixtureMaintenanceRuns = (projectId: string) => [
+    {
+      id: `${projectId}-maintenance-1`,
+      project_id: projectId,
+      kind: "smoke",
+      trigger: "post-promotion",
+      status: "completed",
+      evidence_ref: "artifact://maintenance/smoke",
+      metadata: { source: "dashboard_fixture" },
+      created_at: new Date(timestamp).getTime() / 1000 - 50 * 60,
+      updated_at: new Date(timestamp).getTime() / 1000 - 35 * 60,
+      completed_at: new Date(timestamp).getTime() / 1000 - 35 * 60,
+    },
+  ];
+
   if (method === "GET" && basePath === "/v1/tasks") {
     const tasks = getFixtureAgentTasks({ agent, limit });
     return {
@@ -1080,6 +1316,1543 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
       count: tasks.length,
     };
   }
+
+  if (method === "GET" && basePath === "/v1/operator/inbox") {
+    const status = requestUrl.searchParams.get("status");
+    const items = [
+      {
+        id: "inbox-fixture-1",
+        kind: "approval_request",
+        severity: 3,
+        status: "new",
+        source: "system",
+        title: "Approve durable-state rollout follow-up",
+        description: "The next control-plane tranche is waiting on operator review.",
+        requires_decision: true,
+        decision_type: "approval",
+        snooze_until: 0,
+        created_at: new Date(timestamp).getTime() / 1000 - 15 * 60,
+        updated_at: new Date(timestamp).getTime() / 1000 - 15 * 60,
+        resolved_at: 0,
+      },
+      {
+        id: "inbox-fixture-2",
+        kind: "blocked_run",
+        severity: 2,
+        status: "acknowledged",
+        source: "foundry",
+        title: "Review blocked rollout note",
+        description: "A follow-up run is waiting on a dashboard-side confirmation.",
+        requires_decision: false,
+        decision_type: "",
+        snooze_until: 0,
+        created_at: new Date(timestamp).getTime() / 1000 - 90 * 60,
+        updated_at: new Date(timestamp).getTime() / 1000 - 50 * 60,
+        resolved_at: 0,
+      },
+      {
+        id: "inbox-fixture-3",
+        kind: "daily_brief",
+        severity: 1,
+        status: "snoozed",
+        source: "planner",
+        title: "Morning brief parked",
+        description: "Deferred until the next work block.",
+        requires_decision: false,
+        decision_type: "",
+        snooze_until: new Date(new Date(timestamp).getTime() + 30 * 60_000).getTime() / 1000,
+        created_at: new Date(timestamp).getTime() / 1000 - 3 * 60 * 60,
+        updated_at: new Date(timestamp).getTime() / 1000 - 20 * 60,
+        resolved_at: 0,
+      },
+    ].filter((item) => !status || item.status === status);
+    const trimmed = limit ? items.slice(0, limit) : items;
+      return { items: trimmed, count: trimmed.length };
+    }
+
+  if (method === "GET" && basePath === "/v1/operator/ideas") {
+      const status = requestUrl.searchParams.get("status");
+      const ideas = [
+        {
+          id: "idea-fixture-1",
+          title: "Foundry promotion cockpit",
+          note: "Add a promotion lane that records rollback targets before the operator can advance a candidate.",
+          tags: ["foundry", "launch"],
+          source: "operator",
+          confidence: 0.91,
+          energy_class: "focused",
+          scope_guess: "project",
+          status: "candidate",
+          next_review_at: 0,
+          promoted_project_id: "",
+          created_at: new Date(timestamp).getTime() / 1000 - 180 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 35 * 60,
+        },
+        {
+          id: "idea-fixture-2",
+          title: "Autonomy blocker digest",
+          note: "Group provider auth, durable posture, and next-phase blockers into one operator-facing surface.",
+          tags: ["autonomy", "ops"],
+          source: "planner",
+          confidence: 0.74,
+          energy_class: "quick",
+          scope_guess: "global",
+          status: "sprout",
+          next_review_at: new Date(new Date(timestamp).getTime() + 4 * 60 * 60_000).getTime() / 1000,
+          promoted_project_id: "",
+          created_at: new Date(timestamp).getTime() / 1000 - 420 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 95 * 60,
+        },
+        {
+          id: "idea-fixture-3",
+          title: "Provider lane repair rehearsal",
+          note: "Capture the exact evidence bundle after the next VAULT auth pass.",
+          tags: ["providers"],
+          source: "research-agent",
+          confidence: 0.63,
+          energy_class: "admin",
+          scope_guess: "domain",
+          status: "seed",
+          next_review_at: 0,
+          promoted_project_id: "",
+          created_at: new Date(timestamp).getTime() / 1000 - 960 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 510 * 60,
+        },
+      ].filter((idea) => !status || idea.status === status);
+      const trimmed = limit ? ideas.slice(0, limit) : ideas;
+      return { ideas: trimmed, count: trimmed.length };
+    }
+
+  if (method === "GET" && basePath === "/v1/operator/todos") {
+    const status = requestUrl.searchParams.get("status");
+    const todos = [
+      {
+        id: "todo-fixture-1",
+        title: "Review next migration tranche",
+        description: "Validate the next durable operator-work rollout before widening scope.",
+        category: "ops",
+        scope_type: "global",
+        scope_id: "athanor",
+        priority: 3,
+        status: "open",
+        energy_class: "focused",
+        created_at: new Date(timestamp).getTime() / 1000 - 2 * 60 * 60,
+        updated_at: new Date(timestamp).getTime() / 1000 - 2 * 60 * 60,
+        completed_at: 0,
+      },
+      {
+        id: "todo-fixture-2",
+        title: "Confirm provider auth repair window",
+        description: "Coordinate the next VAULT maintenance pass.",
+        category: "approval",
+        scope_type: "global",
+        scope_id: "athanor",
+        priority: 4,
+        status: "ready",
+        energy_class: "quick",
+        created_at: new Date(timestamp).getTime() / 1000 - 5 * 60 * 60,
+        updated_at: new Date(timestamp).getTime() / 1000 - 75 * 60,
+        completed_at: 0,
+      },
+      {
+        id: "todo-fixture-3",
+        title: "Capture dashboard fixture follow-up",
+        description: "This one is parked until the operator pages settle.",
+        category: "maintenance",
+        scope_type: "global",
+        scope_id: "athanor",
+        priority: 2,
+        status: "someday",
+        energy_class: "quick",
+        created_at: new Date(timestamp).getTime() / 1000 - 24 * 60 * 60,
+        updated_at: new Date(timestamp).getTime() / 1000 - 24 * 60 * 60,
+        completed_at: 0,
+      },
+    ].filter((todo) => !status || todo.status === status);
+      const trimmed = limit ? todos.slice(0, limit) : todos;
+      return { todos: trimmed, count: trimmed.length };
+    }
+
+  if (method === "GET" && basePath === "/v1/operator/backlog") {
+      const status = requestUrl.searchParams.get("status");
+      const ownerAgent = requestUrl.searchParams.get("owner_agent");
+      const backlog = [
+        {
+          id: "backlog-fixture-1",
+          title: "Finish durable execution run ledger",
+          prompt: "Extend the durable state layer so task projections become canonical execution runs with attempts and steps.",
+          owner_agent: "coding-agent",
+          support_agents: ["knowledge-agent"],
+          scope_type: "project",
+          scope_id: "athanor",
+          work_class: "migration",
+          priority: 5,
+          status: "ready",
+          approval_mode: "none",
+          dispatch_policy: "planner_eligible",
+          preconditions: ["schema bootstrap landed"],
+          blocking_reason: "",
+          created_at: new Date(timestamp).getTime() / 1000 - 260 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 18 * 60,
+          completed_at: 0,
+        },
+        {
+          id: "backlog-fixture-2",
+          title: "Rehearse degraded mode banner and suppression",
+          prompt: "Verify the dashboard and runtime both suppress nonessential dispatch when degraded mode is active.",
+          owner_agent: "general-assistant",
+          support_agents: ["coding-agent"],
+          scope_type: "global",
+          scope_id: "athanor",
+          work_class: "ops_audit",
+          priority: 4,
+          status: "blocked",
+          approval_mode: "operator",
+          dispatch_policy: "manual_only",
+          preconditions: ["mode transitions live"],
+          blocking_reason: "Awaiting the governance slice.",
+          created_at: new Date(timestamp).getTime() / 1000 - 520 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 62 * 60,
+          completed_at: 0,
+        },
+        {
+          id: "backlog-fixture-3",
+          title: "Public-edge rollout packet",
+          prompt: "Prepare the Vercel rollout defaults and rollback evidence for the next public product.",
+          owner_agent: "research-agent",
+          support_agents: ["coding-agent"],
+          scope_type: "project",
+          scope_id: "eoq",
+          work_class: "research",
+          priority: 3,
+          status: "waiting_approval",
+          approval_mode: "admin",
+          dispatch_policy: "manual_only",
+          preconditions: [],
+          blocking_reason: "",
+          created_at: new Date(timestamp).getTime() / 1000 - 800 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 120 * 60,
+          completed_at: 0,
+        },
+      ].filter((item) => (!status || item.status === status) && (!ownerAgent || item.owner_agent === ownerAgent));
+      const trimmed = limit ? backlog.slice(0, limit) : backlog;
+      return { backlog: trimmed, count: trimmed.length };
+    }
+
+  if (method === "GET" && basePath === "/v1/operator/runs") {
+      const status = requestUrl.searchParams.get("status");
+      const agentFilter = requestUrl.searchParams.get("agent");
+      const runs = [
+        {
+          id: "run-fixture-1",
+          task_id: "task-fixture-1",
+          backlog_id: "backlog-fixture-1",
+          agent_id: "coding-agent",
+          workload_class: "migration",
+          provider_lane: "athanor_local",
+          runtime_lane: "coding-agent",
+          policy_class: "private",
+          status: "running",
+          summary: "Durable execution ledger write-through is in progress.",
+          created_at: new Date(timestamp).getTime() / 1000 - 40 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 4 * 60,
+          completed_at: 0,
+          step_count: 4,
+          approval_pending: false,
+          latest_attempt: {
+            id: "run-fixture-1:attempt:0",
+            runtime_host: "foundry",
+            status: "running",
+            heartbeat_at: new Date(timestamp).getTime() / 1000 - 60,
+          },
+          approvals: [],
+        },
+        {
+          id: "run-fixture-2",
+          task_id: "task-fixture-2",
+          backlog_id: "backlog-fixture-3",
+          agent_id: "research-agent",
+          workload_class: "research",
+          provider_lane: "frontier_cloud",
+          runtime_lane: "research-agent",
+          policy_class: "cloud_safe",
+          status: "waiting_approval",
+          summary: "Public-edge rollout packet is waiting on operator approval before continuing.",
+          created_at: new Date(timestamp).getTime() / 1000 - 130 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 12 * 60,
+          completed_at: 0,
+          step_count: 2,
+          approval_pending: true,
+          latest_attempt: {
+            id: "run-fixture-2:attempt:0",
+            runtime_host: "frontier-cloud",
+            status: "waiting_approval",
+            heartbeat_at: new Date(timestamp).getTime() / 1000 - 12 * 60,
+          },
+          approvals: [{ id: "approval-fixture-1", status: "pending", privilege_class: "admin" }],
+        },
+        {
+          id: "run-fixture-3",
+          task_id: "task-fixture-3",
+          backlog_id: "",
+          agent_id: "general-assistant",
+          workload_class: "operator_briefing",
+          provider_lane: "athanor_local",
+          runtime_lane: "general-assistant",
+          policy_class: "private",
+          status: "completed",
+          summary: "Morning operator summary completed with durable snapshot evidence.",
+          created_at: new Date(timestamp).getTime() / 1000 - 360 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 300 * 60,
+          completed_at: new Date(timestamp).getTime() / 1000 - 300 * 60,
+          step_count: 3,
+          approval_pending: false,
+          latest_attempt: {
+            id: "run-fixture-3:attempt:0",
+            runtime_host: "foundry",
+            status: "completed",
+            heartbeat_at: new Date(timestamp).getTime() / 1000 - 300 * 60,
+          },
+          approvals: [],
+        },
+        {
+          id: "run-fixture-4",
+          task_id: "task-fixture-4",
+          backlog_id: "backlog-fixture-4",
+          agent_id: "general-assistant",
+          workload_class: "operator_briefing",
+          provider_lane: "athanor_local",
+          runtime_lane: "general-assistant",
+          policy_class: "private",
+          status: "queued",
+          summary: "Prepare the next operator brief from canonical inbox and run surfaces.",
+          created_at: new Date(timestamp).getTime() / 1000 - 8 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 2 * 60,
+          completed_at: 0,
+          step_count: 0,
+          approval_pending: false,
+          latest_attempt: null,
+          approvals: [],
+        },
+      ].filter((run) => (!status || run.status === status) && (!agentFilter || run.agent_id === agentFilter));
+      const trimmed = limit ? runs.slice(0, limit) : runs;
+      return { runs: trimmed, count: trimmed.length };
+    }
+
+  if (method === "GET" && basePath === "/v1/operator/approvals") {
+      const status = requestUrl.searchParams.get("status");
+      const approvals = [
+        {
+          id: "approval-fixture-1",
+          related_run_id: "run-fixture-2",
+          related_attempt_id: "run-fixture-2:attempt:0",
+          related_task_id: "task-fixture-2",
+          requested_action: "approve_task",
+          privilege_class: "admin",
+          reason: "Public-edge rollout packet needs operator approval before continuing.",
+          status: "pending",
+          requested_at: new Date(timestamp).getTime() / 1000 - 18 * 60,
+          decided_at: 0,
+          decided_by: "",
+          task_prompt: "Promote the public-edge rollout packet after smoke evidence is attached.",
+          task_agent_id: "coding-agent",
+          task_priority: "high",
+          task_status: "pending_approval",
+          task_created_at: new Date(timestamp).getTime() / 1000 - 26 * 60,
+          metadata: {
+            source: "dashboard_fixture",
+            scope_id: "eoq",
+          },
+        },
+      ].filter((approval) => !status || approval.status === status);
+      const trimmed = limit ? approvals.slice(0, limit) : approvals;
+      return { approvals: trimmed, count: trimmed.length };
+    }
+
+  if (method === "POST" && /\/v1\/operator\/approvals\/[^/]+\/approve$/.test(path)) {
+      return {
+        ok: true,
+        fixture: true,
+        status: "approved",
+        approval: {
+          id: path.split("/").at(-2),
+          status: "approved",
+          decided_by: "dashboard-operator",
+          decided_at: new Date(timestamp).getTime() / 1000,
+        },
+        timestamp,
+      };
+    }
+
+  if (method === "POST" && /\/v1\/operator\/approvals\/[^/]+\/reject$/.test(path)) {
+      return {
+        ok: true,
+        fixture: true,
+        status: "rejected",
+        approval: {
+          id: path.split("/").at(-2),
+          status: "rejected",
+          decided_by: "dashboard-operator",
+          decided_at: new Date(timestamp).getTime() / 1000,
+        },
+        timestamp,
+      };
+    }
+
+  if (method === "GET" && basePath === "/v1/operator/governance") {
+      return {
+        current_mode: {
+          id: "mode-constrained-fixture",
+          mode: "constrained",
+          entered_at: new Date(timestamp).getTime() / 1000 - 45 * 60,
+          entered_by: "operator",
+          trigger: "attention_breach",
+          exit_conditions: "Clear attention breaches for 15 minutes.",
+          notes: "Fixture governance posture while the launch-readiness tranche is in flight.",
+          metadata: {},
+        },
+        mode_history: [
+          {
+            id: "mode-constrained-fixture",
+            mode: "constrained",
+            entered_at: new Date(timestamp).getTime() / 1000 - 45 * 60,
+            entered_by: "operator",
+            trigger: "attention_breach",
+            exit_conditions: "Clear attention breaches for 15 minutes.",
+            notes: "Fixture governance posture while the launch-readiness tranche is in flight.",
+            metadata: {},
+          },
+          {
+            id: "mode-normal-fixture",
+            mode: "normal",
+            entered_at: new Date(timestamp).getTime() / 1000 - 8 * 60 * 60,
+            entered_by: "system",
+            trigger: "registry_seed",
+            exit_conditions: "",
+            notes: "Seeded default mode.",
+            metadata: {},
+          },
+        ],
+        attention_budgets: [
+          {
+            id: "general-assistant",
+            scope_type: "agent",
+            scope_id: "general-assistant",
+            daily_limit: 12,
+            urgent_bypass: [],
+            used_today: 8,
+            status: "active",
+            last_reset_at: new Date(timestamp).getTime() / 1000 - 6 * 60 * 60,
+            metadata: {},
+            created_at: new Date(timestamp).getTime() / 1000 - 30 * 24 * 60 * 60,
+            updated_at: new Date(timestamp).getTime() / 1000 - 60 * 60,
+          },
+          {
+            id: "home-agent",
+            scope_type: "agent",
+            scope_id: "home-agent",
+            daily_limit: 12,
+            urgent_bypass: ["security_alert", "security_action_requested"],
+            used_today: 3,
+            status: "active",
+            last_reset_at: new Date(timestamp).getTime() / 1000 - 6 * 60 * 60,
+            metadata: {},
+            created_at: new Date(timestamp).getTime() / 1000 - 30 * 24 * 60 * 60,
+            updated_at: new Date(timestamp).getTime() / 1000 - 60 * 60,
+          },
+        ],
+        attention_posture: {
+          open_inbox_count: 11,
+          urgent_inbox_count: 4,
+          pending_approval_count: 1,
+          blocked_run_count: 3,
+          stale_blocked_run_count: 3,
+          recommended_mode: "constrained",
+          breaches: [
+            "attention:open_inbox",
+            "attention:urgent_inbox",
+            "attention:stale_blocked_runs",
+          ],
+          by_status: {
+            new: 1,
+            acknowledged: 1,
+            snoozed: 1,
+          },
+        },
+        core_change_windows: [
+          {
+            id: "core-window-first-weekend",
+            label: "First Weekend Window",
+            schedule: "first_weekend",
+            start_local: "Saturday 00:00",
+            end_local: "Sunday 23:59",
+            allowed_change_classes: ["core_contract", "schema_migration", "runtime_cutover", "validator_repair"],
+            status: "live",
+            notes: "Default monthly core change window.",
+            metadata: {},
+            created_at: new Date(timestamp).getTime() / 1000 - 30 * 24 * 60 * 60,
+            updated_at: new Date(timestamp).getTime() / 1000 - 24 * 60 * 60,
+          },
+        ],
+        launch_posture: {
+          activation_state: "full_system_active",
+          current_phase_id: "full_system_phase_3",
+          current_phase_status: "active",
+          next_phase_id: null,
+          next_phase_status: null,
+          current_phase_blockers: [],
+          next_phase_blockers: [],
+          provider_evidence: {
+            path: "C:\\Athanor\\reports\\truth-inventory\\provider-usage-evidence.json",
+            exists: true,
+            capture_count: 4,
+            observed_count: 3,
+            auth_failed_count: 1,
+          },
+          required_runbook_count: 10,
+          registered_runbook_count: 10,
+          missing_runbook_ids: [],
+          launch_blockers: [],
+          issues: [],
+        },
+        launch_blockers: [],
+        issues: [
+          "attention:open_inbox",
+          "attention:urgent_inbox",
+          "attention:stale_blocked_runs",
+        ],
+        launch_ready: true,
+      };
+    }
+
+  if (method === "GET" && basePath === "/v1/operator/system-mode") {
+      return {
+        current_mode: {
+          id: "mode-constrained-fixture",
+          mode: "constrained",
+          entered_at: new Date(timestamp).getTime() / 1000 - 45 * 60,
+          entered_by: "operator",
+          trigger: "attention_breach",
+          exit_conditions: "Clear attention breaches for 15 minutes.",
+          notes: "Fixture governance posture while the launch-readiness tranche is in flight.",
+          metadata: {},
+        },
+        attention_posture: {
+          open_inbox_count: 11,
+          urgent_inbox_count: 4,
+          pending_approval_count: 1,
+          blocked_run_count: 3,
+          stale_blocked_run_count: 3,
+          recommended_mode: "constrained",
+          breaches: [
+            "attention:open_inbox",
+            "attention:urgent_inbox",
+            "attention:stale_blocked_runs",
+          ],
+          by_status: {
+            new: 1,
+            acknowledged: 1,
+            snoozed: 1,
+          },
+        },
+      };
+    }
+
+  if (method === "POST" && basePath === "/v1/operator/system-mode") {
+      return {
+        status: "updated",
+        current_mode: {
+          id: "mode-updated-fixture",
+          mode: typeof payload?.mode === "string" && payload.mode.length > 0 ? payload.mode : "normal",
+          entered_at: new Date(timestamp).getTime() / 1000,
+          entered_by: typeof payload?.actor === "string" && payload.actor.length > 0 ? payload.actor : "dashboard-operator",
+          trigger: typeof payload?.trigger === "string" ? payload.trigger : "",
+          exit_conditions: typeof payload?.exit_conditions === "string" ? payload.exit_conditions : "",
+          notes: typeof payload?.notes === "string" ? payload.notes : "",
+          metadata: typeof payload?.metadata === "object" && payload?.metadata ? payload.metadata : {},
+        },
+      };
+    }
+
+  if (method === "GET" && basePath === "/v1/operator/attention-budgets") {
+      const budgets = [
+        {
+          id: "general-assistant",
+          scope_type: "agent",
+          scope_id: "general-assistant",
+          daily_limit: 12,
+          urgent_bypass: [],
+          used_today: 8,
+          status: "active",
+          last_reset_at: new Date(timestamp).getTime() / 1000 - 6 * 60 * 60,
+          metadata: {},
+          created_at: new Date(timestamp).getTime() / 1000 - 30 * 24 * 60 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 60 * 60,
+        },
+        {
+          id: "home-agent",
+          scope_type: "agent",
+          scope_id: "home-agent",
+          daily_limit: 12,
+          urgent_bypass: ["security_alert", "security_action_requested"],
+          used_today: 3,
+          status: "active",
+          last_reset_at: new Date(timestamp).getTime() / 1000 - 6 * 60 * 60,
+          metadata: {},
+          created_at: new Date(timestamp).getTime() / 1000 - 30 * 24 * 60 * 60,
+          updated_at: new Date(timestamp).getTime() / 1000 - 60 * 60,
+        },
+      ];
+      return {
+        budgets,
+        count: budgets.length,
+        attention_posture: {
+          open_inbox_count: 11,
+          urgent_inbox_count: 4,
+          pending_approval_count: 1,
+          blocked_run_count: 3,
+          stale_blocked_run_count: 3,
+          recommended_mode: "constrained",
+          breaches: [
+            "attention:open_inbox",
+            "attention:urgent_inbox",
+            "attention:stale_blocked_runs",
+          ],
+          by_status: {
+            new: 1,
+            acknowledged: 1,
+            snoozed: 1,
+          },
+        },
+      };
+    }
+
+  const projectPacketMatch = basePath.match(/^\/v1\/projects\/([^/]+)\/packet$/);
+  if (projectPacketMatch) {
+    const projectId = decodeURIComponent(projectPacketMatch[1] ?? "");
+    if (method === "GET") {
+      return { packet: buildFixtureProjectPacket(projectId) };
+    }
+    if (method === "POST") {
+      return {
+        status: "updated",
+        packet: {
+          ...buildFixtureProjectPacket(projectId),
+          ...(payload ?? {}),
+          id: projectId,
+          updated_at: new Date(timestamp).getTime() / 1000,
+        },
+      };
+    }
+  }
+
+  const architectureMatch = basePath.match(/^\/v1\/projects\/([^/]+)\/architecture$/);
+  if (architectureMatch) {
+    const projectId = decodeURIComponent(architectureMatch[1] ?? "");
+    if (method === "GET") {
+      return { architecture: buildFixtureArchitecturePacket(projectId) };
+    }
+    if (method === "POST") {
+      return {
+        status: "updated",
+        architecture: {
+          ...buildFixtureArchitecturePacket(projectId),
+          ...(payload ?? {}),
+          project_id: projectId,
+          updated_at: new Date(timestamp).getTime() / 1000,
+        },
+      };
+    }
+  }
+
+  const foundryRunsMatch = basePath.match(/^\/v1\/projects\/([^/]+)\/foundry\/runs$/);
+  if (foundryRunsMatch) {
+    const projectId = decodeURIComponent(foundryRunsMatch[1] ?? "");
+    if (method === "GET") {
+      const runs = buildFixtureFoundryRuns(projectId).slice(0, limit ?? undefined);
+      return { runs, count: runs.length };
+    }
+    if (method === "POST") {
+      return {
+        status: "created",
+        run: {
+          ...buildFixtureFoundryRuns(projectId)[0],
+          ...(payload ?? {}),
+          id:
+            typeof payload?.id === "string" && payload.id.length > 0
+              ? payload.id
+              : `${projectId}-foundry-run-new`,
+          project_id: projectId,
+          created_at: new Date(timestamp).getTime() / 1000,
+          updated_at: new Date(timestamp).getTime() / 1000,
+        },
+      };
+    }
+  }
+
+  const slicesMatch = basePath.match(/^\/v1\/projects\/([^/]+)\/slices$/);
+  if (slicesMatch) {
+    const projectId = decodeURIComponent(slicesMatch[1] ?? "");
+    if (method === "GET") {
+      const slices = buildFixtureExecutionSlices(projectId).slice(0, limit ?? undefined);
+      return { slices, count: slices.length };
+    }
+    if (method === "POST") {
+      return {
+        status: "created",
+        slice: {
+          ...buildFixtureExecutionSlices(projectId)[0],
+          ...(payload ?? {}),
+          id:
+            typeof payload?.id === "string" && payload.id.length > 0
+              ? payload.id
+              : `${projectId}-slice-new`,
+          project_id: projectId,
+          created_at: new Date(timestamp).getTime() / 1000,
+          updated_at: new Date(timestamp).getTime() / 1000,
+        },
+      };
+    }
+  }
+
+  const deploymentsMatch = basePath.match(/^\/v1\/projects\/([^/]+)\/deployments$/);
+  if (deploymentsMatch) {
+    const projectId = decodeURIComponent(deploymentsMatch[1] ?? "");
+    if (method === "GET") {
+      const deployments = buildFixtureDeployments(projectId).slice(0, limit ?? undefined);
+      return { deployments, count: deployments.length };
+    }
+    if (method === "POST") {
+      return {
+        status: "created",
+        deployment: {
+          ...buildFixtureDeployments(projectId)[0],
+          ...(payload ?? {}),
+          id:
+            typeof payload?.id === "string" && payload.id.length > 0
+              ? payload.id
+              : `${projectId}-candidate-new`,
+          project_id: projectId,
+          created_at: new Date(timestamp).getTime() / 1000,
+          updated_at: new Date(timestamp).getTime() / 1000,
+        },
+      };
+    }
+  }
+
+  const maintenanceMatch = basePath.match(/^\/v1\/projects\/([^/]+)\/maintenance$/);
+  if (maintenanceMatch) {
+    const projectId = decodeURIComponent(maintenanceMatch[1] ?? "");
+    if (method === "GET") {
+      const maintenance_runs = buildFixtureMaintenanceRuns(projectId).slice(0, limit ?? undefined);
+      return { maintenance_runs, count: maintenance_runs.length };
+    }
+    if (method === "POST") {
+      return {
+        status: "created",
+        maintenance_run: {
+          ...buildFixtureMaintenanceRuns(projectId)[0],
+          ...(payload ?? {}),
+          id:
+            typeof payload?.id === "string" && payload.id.length > 0
+              ? payload.id
+              : `${projectId}-maintenance-new`,
+          project_id: projectId,
+          created_at: new Date(timestamp).getTime() / 1000,
+          updated_at: new Date(timestamp).getTime() / 1000,
+        },
+      };
+    }
+  }
+
+  const rollbacksMatch = basePath.match(/^\/v1\/projects\/([^/]+)\/rollbacks$/);
+  if (rollbacksMatch && method === "GET") {
+    const projectId = decodeURIComponent(rollbacksMatch[1] ?? "");
+    const rollbacks = buildFixtureRollbacks(projectId).slice(0, limit ?? undefined);
+    return { rollbacks, count: rollbacks.length };
+  }
+
+  const promoteMatch = basePath.match(/^\/v1\/projects\/([^/]+)\/promote$/);
+  if (promoteMatch && method === "POST") {
+    const projectId = decodeURIComponent(promoteMatch[1] ?? "");
+    const candidateId =
+      typeof payload?.candidate_id === "string" && payload.candidate_id.length > 0
+        ? payload.candidate_id
+        : `${projectId}-candidate-1`;
+    const channel =
+      typeof payload?.channel === "string" && payload.channel.length > 0
+        ? payload.channel
+        : "internal_preview";
+    return {
+      status: "promoted",
+      candidate: {
+        ...buildFixtureDeployments(projectId)[0],
+        id: candidateId,
+        project_id: projectId,
+        channel,
+        promotion_status: "promoted",
+        metadata: {
+          source: "dashboard_fixture",
+          promotion_reason:
+            typeof payload?.reason === "string" ? payload.reason : "Fixture promotion",
+        },
+        promoted_at: new Date(timestamp).getTime() / 1000,
+        updated_at: new Date(timestamp).getTime() / 1000,
+      },
+    };
+  }
+
+  const rollbackMatch = basePath.match(/^\/v1\/projects\/([^/]+)\/rollback$/);
+  if (rollbackMatch && method === "POST") {
+    const projectId = decodeURIComponent(rollbackMatch[1] ?? "");
+    const candidateId =
+      typeof payload?.candidate_id === "string" && payload.candidate_id.length > 0
+        ? payload.candidate_id
+        : `${projectId}-candidate-0`;
+    return {
+      status: "rolled_back",
+      candidate: {
+        ...buildFixtureDeployments(projectId)[1],
+        id: candidateId,
+        project_id: projectId,
+        promotion_status: "rolled_back",
+        metadata: {
+          source: "dashboard_fixture",
+          rollback_reason:
+            typeof payload?.reason === "string" ? payload.reason : "Fixture rollback",
+        },
+        updated_at: new Date(timestamp).getTime() / 1000,
+      },
+      rollback_event: {
+        id: `${projectId}-rollback-new`,
+        project_id: projectId,
+        candidate_id: candidateId,
+        reason:
+          typeof payload?.reason === "string" ? payload.reason : "Fixture rollback",
+        rollback_target: buildFixtureDeployments(projectId)[1].rollback_target,
+        status: "executed",
+        metadata: {
+          channel: buildFixtureDeployments(projectId)[1].channel,
+          source: "dashboard_fixture",
+        },
+        created_at: new Date(timestamp).getTime() / 1000,
+      },
+    };
+  }
+
+  const fixtureBootstrapTakeover = {
+    ready: false,
+    blocker_ids: [
+      "durable_persistence_live",
+      "governance_drills_green",
+      "external_dependency_removed",
+    ],
+    criteria: [
+      {
+        id: "software_core_active",
+        label: "Software-core autonomy active",
+        passed: true,
+        detail:
+          "Current autonomy phase is full_system_phase_3 and active, which keeps software-core autonomy live.",
+      },
+      {
+        id: "canonical_operator_work_system",
+        label: "Canonical operator work system",
+        passed: true,
+        detail: "Canonical operator work surfaces are live.",
+      },
+      {
+        id: "compatibility_retirement_complete",
+        label: "Compatibility retirement complete",
+        passed: true,
+        detail: "Compatibility retirement is closed from census and contract evidence.",
+      },
+      {
+        id: "durable_persistence_live",
+        label: "Durable persistence live",
+        passed: false,
+        detail: "Schema/runtime cutover and restart proof remain approval-gated.",
+      },
+      {
+        id: "foundry_path_live",
+        label: "Foundry path live",
+        passed: true,
+        detail: "Foundry proving packet has project, architecture, slice, run, candidate, and rollback evidence.",
+      },
+      {
+        id: "governance_drills_green",
+        label: "Governance drills green",
+        passed: false,
+        detail: "Governance drill evidence is still failing: constrained-mode, degraded-mode, and recovery-only all require durable persistence.",
+      },
+      {
+        id: "external_dependency_removed",
+        label: "External-host-only dependency removed",
+        passed: false,
+        detail: "External builders are still primary in the bootstrap posture.",
+      },
+    ],
+  };
+  const fixtureBootstrapProgram = {
+    id: "launch-readiness-bootstrap",
+    label: "Launch readiness bootstrap",
+    objective:
+      "Use the external recursive builder stack to finish the Athanor builder stack until explicit takeover is justified.",
+    phase_scope: "software_core_phase_1",
+    status: "waiting_approval",
+    current_family: "durable_persistence_activation",
+    next_slice_id: "",
+    recommended_host_id: "",
+    waiting_on_approval_family: "durable_persistence_activation",
+    waiting_on_approval_slice_id: "persist-04-activation-cutover",
+    next_action: {
+      kind: "approval_required",
+      family: "durable_persistence_activation",
+      slice_id: "persist-04-activation-cutover",
+      approval_class: "approval_packet",
+      blocking_packet_id: "approval_packet",
+      open_blocker_ids: ["blocker-40429ccbc0"],
+    },
+    pending_integrations: 0,
+    slice_counts: {
+      total: 30,
+      queued: 2,
+      active: 0,
+      blocked: 0,
+      completed: 28,
+    },
+  };
+  const fixtureBootstrapSlices = [
+    {
+      id: "compat-04-completion-detector",
+      program_id: "launch-readiness-bootstrap",
+      family: "compatibility_retirement",
+      objective: "Keep first-class workforce compatibility retirement enforced by contract.",
+      status: "completed",
+      host_id: "codex_external",
+      validation_status: "passed",
+      next_step: "Compatibility retirement is closed.",
+    },
+    {
+      id: "persist-03-runtime-dependency-packet",
+      program_id: "launch-readiness-bootstrap",
+      family: "durable_persistence_activation",
+      objective: "Freeze the durable runtime dependency and env contract.",
+      status: "completed",
+      host_id: "codex_external",
+      validation_status: "passed",
+      next_step: "Wait for approval to cut configured runtimes over to durable persistence.",
+    },
+    {
+      id: "persist-04-activation-cutover",
+      program_id: "launch-readiness-bootstrap",
+      family: "durable_persistence_activation",
+      objective: "Cut configured Postgres runtimes over from fallback memory to durable persistence.",
+      status: "waiting_approval",
+      host_id: "",
+      validation_status: "pending",
+      next_step: "Await DB schema/runtime approval packet execution.",
+    },
+    {
+      id: "persist-05-restart-proof",
+      program_id: "launch-readiness-bootstrap",
+      family: "durable_persistence_activation",
+      objective: "Capture restart-safe durable recovery evidence after cutover.",
+      status: "waiting_approval",
+      host_id: "",
+      validation_status: "pending",
+      next_step: "Run after durable cutover lands.",
+    },
+    {
+      id: "opsurf-03-fixture-parity",
+      program_id: "launch-readiness-bootstrap",
+      family: "operator_surface_canonicalization",
+      objective: "Keep fixture mode coherent for every canonical operator and bootstrap route.",
+      status: "completed",
+      host_id: "codex_external",
+      validation_status: "passed",
+      next_step: "Fixture parity is locked to canonical operator and bootstrap routes.",
+    },
+    {
+      id: "opsurf-04-nav-lock",
+      program_id: "launch-readiness-bootstrap",
+      family: "operator_surface_canonicalization",
+      objective: "Freeze navigation truth so compatibility pages are explicit redirects only.",
+      status: "completed",
+      host_id: "codex_external",
+      validation_status: "passed",
+      next_step: "Navigation truth is locked to canonical operator surfaces with explicit compatibility redirects.",
+    },
+    {
+      id: "opsurf-05-surface-contract",
+      program_id: "launch-readiness-bootstrap",
+      family: "operator_surface_canonicalization",
+      objective: "Add contract coverage that fails if first-class surfaces consume non-canonical operator data.",
+      status: "queued",
+      host_id: "",
+      validation_status: "pending",
+      next_step: "Run the surface contract bundle and keep operator nav lock green.",
+    },
+  ];
+  const fixtureBootstrapHandoffs = [
+    {
+      id: "handoff-opsurf-02-fixture",
+      slice_id: "opsurf-02-summary-alignment",
+      from_host: "claude_external",
+      to_host: "codex_external",
+      stop_reason: "context_exhausted",
+      next_step: "Finish aligning first-class digest and shell summary surfaces on canonical operator summary data.",
+      resume_instructions: "Resume from the existing operator surface lane without restarting the slice.",
+    },
+  ];
+  const fixtureBootstrapBlockers = [
+    {
+      id: "blocker-40429ccbc0",
+      family: "durable_persistence_activation",
+      blocker_class: "approval_required",
+      reason: "Slice persist-04-activation-cutover requires explicit operator approval before runtime mutation or promotion-sensitive continuation.",
+      approval_required: true,
+      inbox_id: "inbox-f58560ce",
+    },
+    {
+      id: "blocker-5efe04adf2",
+      family: "durable_persistence_activation",
+      blocker_class: "approval_required",
+      reason: "Slice persist-05-restart-proof requires explicit operator approval before runtime mutation or promotion-sensitive continuation.",
+      approval_required: true,
+      inbox_id: "inbox-79a19f3e",
+    },
+    {
+      id: "blocker-02183d3fb6",
+      family: "governance_rehearsal",
+      blocker_class: "governance_drill_failed",
+      reason: "Governance drill constrained-mode is not green: durable system-mode persistence is unavailable because ATHANOR_POSTGRES_URL is not configured.",
+      approval_required: false,
+      inbox_id: "",
+    },
+    {
+      id: "blocker-d11400e7b2",
+      family: "governance_rehearsal",
+      blocker_class: "governance_drill_failed",
+      reason: "Governance drill degraded-mode is not green: durable system-mode persistence is unavailable because ATHANOR_POSTGRES_URL is not configured.",
+      approval_required: false,
+      inbox_id: "",
+    },
+    {
+      id: "blocker-93e86901b0",
+      family: "governance_rehearsal",
+      blocker_class: "governance_drill_failed",
+      reason: "Governance drill recovery-only is not green: durable system-mode persistence is unavailable because ATHANOR_POSTGRES_URL is not configured.",
+      approval_required: false,
+      inbox_id: "",
+    },
+  ];
+  const fixtureBootstrapIntegrations: Array<Record<string, unknown>> = [];
+  const fixtureBootstrapStatus = {
+    mode: "ready",
+    authority: "hybrid_local_ledger",
+    sqlite_ready: true,
+    mirror_ready: false,
+    mirror_configured: false,
+    program_count: 1,
+    slice_count: 37,
+    open_blockers: fixtureBootstrapBlockers.length,
+    busy_hosts: 0,
+    pending_integrations: fixtureBootstrapIntegrations.length,
+    active_program_id: fixtureBootstrapProgram.id,
+    active_family: fixtureBootstrapProgram.current_family,
+    next_slice_id: fixtureBootstrapProgram.next_slice_id,
+    recommended_host_id: fixtureBootstrapProgram.recommended_host_id,
+    waiting_on_approval_family: fixtureBootstrapProgram.waiting_on_approval_family,
+    waiting_on_approval_slice_id: fixtureBootstrapProgram.waiting_on_approval_slice_id,
+    next_action: fixtureBootstrapProgram.next_action,
+    approval_context: {
+      kind: "approval_required",
+      family: "durable_persistence_activation",
+      slice_id: "persist-04-activation-cutover",
+      approval_class: "approval_packet",
+      packet_id: "db_schema_change",
+      packet_label: "DB schema change",
+      approval_authority: "operator",
+      open_blocker_ids: ["blocker-40429ccbc0"],
+      follow_on_slice_id: "persist-05-restart-proof",
+      summary: "Authorize the durable persistence schema and runtime cutover maintenance window.",
+      unlocks:
+        "Unblocks persist-04-activation-cutover and the follow-on persist-05-restart-proof restart-proof slice.",
+      operator_instruction:
+        "Approve db_schema_change for persist-04-activation-cutover and proceed with the maintenance window. After cutover, continue with persist-05-restart-proof.",
+      review_artifacts: [
+        "C:\\Athanor\\reports\\bootstrap\\durable-persistence-packet.json",
+        "C:\\Athanor\\config\\automation-backbone\\approval-packet-registry.json",
+        "C:\\Athanor\\projects\\agents\\src\\athanor_agents\\sql\\bootstrap_durable_state.sql",
+        "C:\\Athanor\\reports\\bootstrap\\latest.json",
+      ],
+      exact_steps: [
+        "Create checkpoint tables or mirrored bootstrap/run tables in implementation authority SQL first.",
+        "Review dependency and env changes before runtime mutation.",
+        "Apply schema change during an intentional maintenance window only.",
+        "Run restart-safe recovery proof before clearing the durable-persistence blocker.",
+      ],
+      rollback_steps: [
+        "Stop the runtime mutation path.",
+        "Restore pre-migration schema snapshot or backup.",
+        "Return runtime to the previous persistence posture.",
+      ],
+    },
+    control_artifacts: {
+      snapshot_path: "C:\\Athanor\\reports\\bootstrap\\latest.json",
+      durable_persistence_packet_path: "C:\\Athanor\\reports\\bootstrap\\durable-persistence-packet.json",
+      approval_packet_registry_path: "C:\\Athanor\\config\\automation-backbone\\approval-packet-registry.json",
+      durable_state_sql_path: "C:\\Athanor\\projects\\agents\\src\\athanor_agents\\sql\\bootstrap_durable_state.sql",
+    },
+    hosts: [
+      {
+        id: "codex_external",
+        status: "available",
+        active_slice_id: "",
+        last_reason: "Awaiting explicit durable-persistence approval.",
+      },
+      {
+        id: "claude_external",
+        status: "available",
+        active_slice_id: "",
+        last_reason: "Standing by for automatic relay.",
+      },
+    ],
+    takeover: fixtureBootstrapTakeover,
+  };
+  const fixtureBootstrapNextSlice =
+    fixtureBootstrapSlices.find((slice) => slice.id === fixtureBootstrapProgram.next_slice_id) ?? null;
+  const fixtureApprovedBootstrapProgram = {
+    ...fixtureBootstrapProgram,
+    status: "active",
+    current_family: "durable_persistence_activation",
+    next_slice_id: "persist-04-activation-cutover",
+    recommended_host_id: "codex_external",
+    waiting_on_approval_family: "",
+    waiting_on_approval_slice_id: "",
+    next_action: {
+      kind: "dispatch",
+      family: "durable_persistence_activation",
+      slice_id: "persist-04-activation-cutover",
+      host_id: "codex_external",
+      worktree_required: true,
+    },
+  };
+  const fixtureApprovedBootstrapStatus = {
+    ...fixtureBootstrapStatus,
+    active_family: fixtureApprovedBootstrapProgram.current_family,
+    next_slice_id: fixtureApprovedBootstrapProgram.next_slice_id,
+    recommended_host_id: fixtureApprovedBootstrapProgram.recommended_host_id,
+    waiting_on_approval_family: "",
+    waiting_on_approval_slice_id: "",
+    next_action: fixtureApprovedBootstrapProgram.next_action,
+    approval_context: null,
+    open_blockers: fixtureBootstrapBlockers.filter((blocker) => !String(blocker.id).startsWith("blocker-40429") && !String(blocker.id).startsWith("blocker-5efe04")).length,
+    hosts: [
+      {
+        id: "codex_external",
+        status: "available",
+        active_slice_id: "",
+        last_reason: "Approval recorded; durable cutover is dispatchable.",
+      },
+      {
+        id: "claude_external",
+        status: "available",
+        active_slice_id: "",
+        last_reason: "Standing by for automatic relay.",
+      },
+    ],
+  };
+
+  if (method === "GET" && basePath === "/v1/bootstrap/programs") {
+    return {
+      programs: [fixtureBootstrapProgram],
+      count: 1,
+      status: fixtureBootstrapStatus,
+      takeover: fixtureBootstrapTakeover,
+    };
+  }
+
+  if (method === "GET" && /^\/v1\/bootstrap\/programs\/[^/]+$/.test(basePath)) {
+    return {
+      program: fixtureBootstrapProgram,
+      status: fixtureBootstrapStatus,
+      takeover: fixtureBootstrapTakeover,
+      next_slice: fixtureBootstrapNextSlice,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/bootstrap/slices") {
+    return { slices: fixtureBootstrapSlices, count: fixtureBootstrapSlices.length };
+  }
+
+  if (method === "GET" && basePath === "/v1/bootstrap/handoffs") {
+    return { handoffs: fixtureBootstrapHandoffs, count: fixtureBootstrapHandoffs.length };
+  }
+
+  if (method === "GET" && basePath === "/v1/bootstrap/blockers") {
+    return { blockers: fixtureBootstrapBlockers, count: fixtureBootstrapBlockers.length };
+  }
+
+  if (method === "GET" && basePath === "/v1/bootstrap/integrations") {
+    return { integrations: fixtureBootstrapIntegrations, count: fixtureBootstrapIntegrations.length };
+  }
+
+  if (method === "POST" && /^\/v1\/bootstrap\/programs\/[^/]+\/nudge$/.test(basePath)) {
+    return {
+      status: "nudged",
+      active_program_id: fixtureBootstrapProgram.id,
+      active_family: fixtureBootstrapProgram.current_family,
+      recommendation: {
+        slice_id: fixtureBootstrapProgram.next_slice_id,
+        host_id: fixtureBootstrapProgram.recommended_host_id,
+        ready: false,
+      },
+      next_action: fixtureBootstrapProgram.next_action,
+    };
+  }
+
+  const bootstrapApproveMatch = basePath.match(/^\/v1\/bootstrap\/programs\/([^/]+)\/approve$/);
+  if (method === "POST" && bootstrapApproveMatch) {
+    const programId = decodeURIComponent(bootstrapApproveMatch[1] ?? "");
+    const packetId = typeof payload?.packet_id === "string" && payload.packet_id.length > 0 ? payload.packet_id : "db_schema_change";
+    return {
+      status: "approved",
+      approved_packet_id: packetId,
+      approved_slice_ids: ["persist-04-activation-cutover", "persist-05-restart-proof"],
+      resolved_blocker_ids: ["blocker-40429ccbc0", "blocker-5efe04adf2"],
+      program: {
+        ...fixtureApprovedBootstrapProgram,
+        id: programId || fixtureApprovedBootstrapProgram.id,
+      },
+      snapshot: fixtureApprovedBootstrapStatus,
+      takeover: fixtureBootstrapTakeover,
+      recommendation: {
+        slice_id: "persist-04-activation-cutover",
+        host_id: "codex_external",
+        ready: true,
+      },
+      next_action: fixtureApprovedBootstrapProgram.next_action,
+      timestamp,
+    };
+  }
+
+  if (method === "POST" && /^\/v1\/bootstrap\/programs\/[^/]+\/promote$/.test(basePath)) {
+    return {
+      status: "promoted",
+      program: {
+        ...fixtureBootstrapProgram,
+        status: "takeover_promoted",
+        metadata: {
+          internal_builder_primary: true,
+          promoted_at: timestamp,
+          promoted_by: "operator",
+        },
+      },
+    };
+  }
+
+  const bootstrapClaimMatch = basePath.match(/^\/v1\/bootstrap\/slices\/([^/]+)\/claim$/);
+  if (method === "POST" && bootstrapClaimMatch) {
+    const sliceId = decodeURIComponent(bootstrapClaimMatch[1] ?? "");
+    const current = fixtureBootstrapSlices.find((slice) => slice.id === sliceId);
+    return {
+      status: "claimed",
+      slice: {
+        ...(current ?? {
+          id: sliceId,
+          program_id: fixtureBootstrapProgram.id,
+          family: fixtureBootstrapProgram.current_family,
+          objective: "Fixture bootstrap slice claim",
+        }),
+        status: "claimed",
+        host_id: typeof payload?.host_id === "string" ? payload.host_id : "codex_external",
+        current_ref: typeof payload?.current_ref === "string" ? payload.current_ref : "HEAD",
+        worktree_path:
+          typeof payload?.worktree_path === "string" && payload.worktree_path.length > 0
+            ? payload.worktree_path
+            : `C:\\Athanor_worktrees\\${current?.family ?? fixtureBootstrapProgram.current_family}\\${sliceId}`,
+        files_touched: Array.isArray(payload?.files_touched) ? payload.files_touched : [],
+        next_step:
+          typeof payload?.next_step === "string" && payload.next_step.length > 0
+            ? payload.next_step
+            : current?.next_step ?? "",
+        claimed_at: new Date(timestamp).getTime() / 1000,
+      },
+      timestamp,
+    };
+  }
+
+  const bootstrapCompleteMatch = basePath.match(/^\/v1\/bootstrap\/slices\/([^/]+)\/complete$/);
+  if (method === "POST" && bootstrapCompleteMatch) {
+    const sliceId = decodeURIComponent(bootstrapCompleteMatch[1] ?? "");
+    const current = fixtureBootstrapSlices.find((slice) => slice.id === sliceId);
+    const validationStatus =
+      typeof payload?.validation_status === "string" ? payload.validation_status : "passed";
+    return {
+      status: "completed",
+      slice: {
+        ...(current ?? {
+          id: sliceId,
+          program_id: fixtureBootstrapProgram.id,
+          family: fixtureBootstrapProgram.current_family,
+          objective: "Fixture bootstrap slice completion",
+        }),
+        status: "completed",
+        host_id: typeof payload?.host_id === "string" ? payload.host_id : "codex_external",
+        validation_status: validationStatus,
+        next_step: typeof payload?.next_step === "string" ? payload.next_step : "",
+        summary: typeof payload?.summary === "string" ? payload.summary : "",
+        completed_at: new Date(timestamp).getTime() / 1000,
+      },
+      integration:
+        validationStatus === "passed"
+          ? {
+              id: `integration-${sliceId}`,
+              slice_id: sliceId,
+              family: current?.family ?? fixtureBootstrapProgram.current_family,
+              method:
+                typeof payload?.integration_method === "string" ? payload.integration_method : "squash_commit",
+              target_ref: typeof payload?.target_ref === "string" ? payload.target_ref : "main",
+              status: "queued",
+              priority: typeof payload?.queue_priority === "number" ? payload.queue_priority : 3,
+            }
+          : null,
+      timestamp,
+    };
+  }
+
+  const bootstrapHandoffMatch = basePath.match(/^\/v1\/bootstrap\/slices\/([^/]+)\/handoff$/);
+  if (method === "POST" && bootstrapHandoffMatch) {
+    const sliceId = decodeURIComponent(bootstrapHandoffMatch[1] ?? "");
+    return {
+      status: "handed_off",
+      handoff: {
+        id: `handoff-${sliceId}`,
+        slice_id: sliceId,
+        from_host: typeof payload?.from_host === "string" ? payload.from_host : "codex_external",
+        to_host: typeof payload?.to_host === "string" ? payload.to_host : "claude_external",
+        current_ref: typeof payload?.current_ref === "string" ? payload.current_ref : "HEAD",
+        worktree_path:
+          typeof payload?.worktree_path === "string" && payload.worktree_path.length > 0
+            ? payload.worktree_path
+            : `C:\\Athanor_worktrees\\${fixtureBootstrapProgram.current_family}\\${sliceId}`,
+        files_touched: Array.isArray(payload?.files_touched) ? payload.files_touched : [],
+        validation_status: typeof payload?.validation_status === "string" ? payload.validation_status : "pending",
+        open_risks: Array.isArray(payload?.open_risks) ? payload.open_risks : [],
+        next_step: typeof payload?.next_step === "string" ? payload.next_step : "",
+        stop_reason: typeof payload?.stop_reason === "string" ? payload.stop_reason : "",
+        resume_instructions: typeof payload?.resume_instructions === "string" ? payload.resume_instructions : "",
+        cooldown_minutes: typeof payload?.cooldown_minutes === "number" ? payload.cooldown_minutes : 30,
+        created_at: new Date(timestamp).getTime() / 1000,
+      },
+      timestamp,
+    };
+  }
+
+  const bootstrapReplayMatch = basePath.match(/^\/v1\/bootstrap\/integrations\/([^/]+)\/replay$/);
+  if (method === "POST" && bootstrapReplayMatch) {
+    const sliceId = decodeURIComponent(bootstrapReplayMatch[1] ?? "");
+    const current = fixtureBootstrapSlices.find((slice) => slice.id === sliceId);
+    return {
+      status: "queued",
+      integration: {
+        id: `integration-${sliceId}`,
+        slice_id: sliceId,
+        family: current?.family ?? fixtureBootstrapProgram.current_family,
+        method: typeof payload?.method === "string" ? payload.method : "squash_commit",
+        source_ref: typeof payload?.source_ref === "string" ? payload.source_ref : "",
+        target_ref: typeof payload?.target_ref === "string" ? payload.target_ref : "main",
+        patch_path: typeof payload?.patch_path === "string" ? payload.patch_path : "",
+        status: "queued",
+        priority: typeof payload?.priority === "number" ? payload.priority : 3,
+      },
+      timestamp,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/operator/summary") {
+      const patternReport = getFixtureAgentPatterns({});
+      const patternItems = Array.isArray(patternReport?.patterns)
+        ? (patternReport.patterns.filter(
+            (item) =>
+              typeof item === "object" &&
+              item !== null &&
+              ["high", "medium"].includes(String((item as Record<string, unknown>)["severity"] ?? ""))
+          ) as Array<Record<string, unknown>>)
+        : [];
+      const outputPreview = getFixtureAgentOutputs().slice(0, 5);
+      return {
+        ideas: {
+          total: 3,
+          by_status: {
+            candidate: 1,
+            sprout: 1,
+            seed: 1,
+          },
+        },
+        inbox: {
+          total: 3,
+          by_status: {
+            new: 1,
+            acknowledged: 1,
+            snoozed: 1,
+            resolved: 0,
+            converted: 0,
+          },
+        },
+        todos: {
+          total: 3,
+          by_status: {
+            open: 1,
+            ready: 1,
+            blocked: 0,
+            waiting: 0,
+            done: 0,
+            cancelled: 0,
+            someday: 1,
+          },
+        },
+        backlog: {
+          total: 3,
+          by_status: {
+            ready: 1,
+            blocked: 1,
+            waiting_approval: 1,
+          },
+        },
+        runs: {
+          total: 3,
+          by_status: {
+            running: 1,
+            waiting_approval: 1,
+            completed: 1,
+          },
+        },
+        approvals: {
+          total: 1,
+          by_status: {
+            pending: 1,
+          },
+        },
+        digest: {
+          type: "auto",
+          generated_at: timestamp,
+          period: "24h",
+          summary: "4 tasks completed, 1 failed in the last 24 hours. Canonical operator work stayed active overnight.",
+          task_count: 5,
+          completed_count: 4,
+          failed_count: 1,
+          recent_completions: [
+            {
+              id: "run-ath-1",
+              title: "Refresh command-center route taxonomy",
+              result_preview: "Canonical operator and bootstrap routes are aligned across the shell.",
+            },
+            {
+              id: "run-ath-2",
+              title: "Queue zero-ambiguity proving packet",
+              result_preview: "Foundry packet evidence is staged and waiting on the next execution slice.",
+            },
+          ],
+          recent_failures: [
+            {
+              id: "run-ath-fail-1",
+              title: "Durable persistence cutover",
+              error: "Schema/runtime mutation is still approval-gated.",
+            },
+          ],
+        },
+        projects: {
+          stalled_total: 1,
+          stalled_preview: [
+            {
+              id: "athanor",
+              name: "Athanor",
+              reason: "No milestone activity for more than 24 hours.",
+              stalled_since: isoMinutesBefore(180),
+            },
+          ],
+          threshold_hours: 24,
+        },
+        outputs: {
+          total: outputPreview.length,
+          recent: outputPreview,
+        },
+        patterns: {
+          available: true,
+          generated_at: timestamp,
+          warning_count: patternItems.length,
+          high_count: patternItems.filter((item) => String(item["severity"] ?? "") === "high").length,
+          medium_count: patternItems.filter((item) => String(item["severity"] ?? "") === "medium").length,
+          patterns: patternItems.slice(0, 5),
+          recommendations: Array.isArray(patternReport?.recommendations)
+            ? patternReport.recommendations.slice(0, 3)
+            : [],
+        },
+        bootstrap: {
+          mode: "ready",
+          sqlite_ready: true,
+          mirror_ready: false,
+          program_count: 1,
+          slice_count: 7,
+          open_blockers: 1,
+          busy_hosts: 1,
+          hosts: [
+            { id: "codex_external", status: "busy", active_slice_id: "slice-compatibility-retirement", last_reason: "Claimed slice" },
+            { id: "claude_external", status: "available", active_slice_id: "", last_reason: "Waiting for relay" },
+          ],
+          takeover: {
+            ready: false,
+            blocker_ids: [
+              "compatibility_retirement_complete",
+              "durable_persistence_live",
+              "governance_drills_green",
+              "external_dependency_removed",
+            ],
+            criteria: [],
+          },
+        },
+        governance: {
+          current_mode: {
+            id: "mode-constrained-fixture",
+            mode: "constrained",
+            entered_at: new Date(timestamp).getTime() / 1000 - 45 * 60,
+            entered_by: "operator",
+            trigger: "attention_breach",
+            exit_conditions: "Clear attention breaches for 15 minutes.",
+            notes: "Fixture governance posture while the launch-readiness tranche is in flight.",
+            metadata: {},
+          },
+          launch_ready: true,
+          launch_blockers: [],
+          issues: [
+            "attention:open_inbox",
+            "attention:urgent_inbox",
+            "attention:stale_blocked_runs",
+          ],
+          attention_posture: {
+            open_inbox_count: 11,
+            urgent_inbox_count: 4,
+            pending_approval_count: 1,
+            blocked_run_count: 3,
+            stale_blocked_run_count: 3,
+            recommended_mode: "constrained",
+            breaches: [
+              "attention:open_inbox",
+              "attention:urgent_inbox",
+              "attention:stale_blocked_runs",
+            ],
+            by_status: {
+              new: 1,
+              acknowledged: 1,
+              snoozed: 1,
+            },
+          },
+        },
+      };
+    }
 
   if (method === "GET" && basePath === "/v1/activity") {
     const activity = getFixtureAgentActivity({ agent, limit });
@@ -1472,7 +3245,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           created_at: "2026-03-11T17:20:00Z",
           started_at: "2026-03-11T17:21:00Z",
           completed_at: "2026-03-11T17:33:00Z",
-          artifact_refs: [{ label: "workplanner", href: "/workplanner" }],
+          artifact_refs: [{ label: "backlog", href: "/backlog" }],
           failure_reason: null,
           summary: "repo audit -> provider-backed research",
         },
@@ -1489,7 +3262,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           created_at: "2026-03-11T18:50:00Z",
           started_at: "2026-03-11T18:51:00Z",
           completed_at: "2026-03-11T18:58:00Z",
-          artifact_refs: [{ label: "tasks", href: "/tasks" }],
+          artifact_refs: [{ label: "runs", href: "/runs" }],
           failure_reason: null,
           summary: "private implementation stayed local",
         },
@@ -2117,7 +3890,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           event_type: "run_completed",
           subject: "coding-agent",
           summary: "Private implementation completed via athanor_local.",
-          deep_link: "/tasks",
+          deep_link: "/runs",
           related_run_id: "run-fixture-local",
         },
         {
@@ -2128,7 +3901,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           event_type: "lease_review",
           subject: "research-agent",
           summary: "Repo audit used frontier planning and returned a review packet.",
-          deep_link: "/workplanner",
+          deep_link: "/backlog",
           related_run_id: "run-fixture-frontier",
         },
         {
@@ -2139,7 +3912,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           event_type: "provider_posture",
           subject: "subscription-broker",
           summary: "Interactive reserve remains healthy across frontier providers.",
-          deep_link: "/notifications",
+          deep_link: "/inbox",
           related_run_id: null,
         },
       ],
@@ -2163,7 +3936,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           created_at: "2026-03-11T18:50:00Z",
           started_at: "2026-03-11T18:51:00Z",
           completed_at: "2026-03-11T18:58:00Z",
-          artifact_refs: [{ label: "tasks", href: "/tasks" }],
+          artifact_refs: [{ label: "runs", href: "/runs" }],
           failure_reason: null,
           summary: "private implementation stayed local",
         },
@@ -2180,7 +3953,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           created_at: "2026-03-11T17:20:00Z",
           started_at: "2026-03-11T17:21:00Z",
           completed_at: "2026-03-11T17:33:00Z",
-          artifact_refs: [{ label: "workplanner", href: "/workplanner" }],
+          artifact_refs: [{ label: "backlog", href: "/backlog" }],
           failure_reason: null,
           summary: "repo audit -> provider-backed research",
         },
@@ -2221,7 +3994,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           current_state: "deferred",
           last_outcome: "completed",
           owner_agent: "research-agent",
-          deep_link: "/workplanner",
+          deep_link: "/backlog",
           control_scope: "research_jobs",
           paused: false,
           can_run_now: false,
@@ -2914,7 +4687,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           score: 0.84,
           verdict: "accept",
           rationale: "Execution completed with a durable run record.",
-          deep_link: "/tasks",
+          deep_link: "/runs",
         },
         {
           run_id: "run-fixture-local",
@@ -2924,7 +4697,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           score: 0.9,
           verdict: "accept",
           rationale: "Execution completed on the sovereign local lane for protected work.",
-          deep_link: "/tasks",
+          deep_link: "/runs",
         },
         {
           run_id: "run-fixture-failed",
@@ -2934,7 +4707,7 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
           score: 0.12,
           verdict: "reject",
           rationale: "Execution failed before a usable result was recorded.",
-          deep_link: "/tasks",
+          deep_link: "/runs",
         },
       ],
     };

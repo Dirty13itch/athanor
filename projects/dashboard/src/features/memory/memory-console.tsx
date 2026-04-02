@@ -314,7 +314,7 @@ export function MemoryConsole({
                     <p className="mt-3 text-sm">{preference.content}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button asChild size="sm" variant="outline">
-                        <Link href={`/workplanner?project=${inferProjectIdFromMemory(preference.content)}`}>
+                        <Link href={`/backlog?project=${inferProjectIdFromMemory(preference.content)}`}>
                           Open project
                         </Link>
                       </Button>
@@ -424,7 +424,7 @@ export function MemoryConsole({
                 <Section label="Back-links">
                   <div className="flex flex-wrap gap-2">
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/workplanner?project=${inferProjectIdFromMemory(`${selectedItem.title} ${selectedItem.description ?? ""}`)}`}>
+                      <Link href={`/backlog?project=${inferProjectIdFromMemory(`${selectedItem.title} ${selectedItem.description ?? ""}`)}`}>
                         Open project
                       </Link>
                     </Button>

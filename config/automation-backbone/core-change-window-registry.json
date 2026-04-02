@@ -1,0 +1,28 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T16:45:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/core-change-window-registry.json",
+  "windows": [
+    {
+      "id": "core-window-first-weekend",
+      "label": "First Weekend Window",
+      "status": "live",
+      "schedule": "first_weekend",
+      "start_local": "Saturday 00:00",
+      "end_local": "Sunday 23:59",
+      "allowed_change_classes": ["core_contract", "schema_migration", "runtime_cutover", "validator_repair"],
+      "notes": "Default monthly core change window."
+    },
+    {
+      "id": "core-window-third-weekend",
+      "label": "Third Weekend Window",
+      "status": "live",
+      "schedule": "third_weekend",
+      "start_local": "Saturday 00:00",
+      "end_local": "Sunday 23:59",
+      "allowed_change_classes": ["core_contract", "schema_migration", "runtime_cutover", "validator_repair"],
+      "notes": "Secondary monthly core change window."
+    }
+  ]
+}

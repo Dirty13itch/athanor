@@ -19,6 +19,9 @@ import {
   type ServicesHistorySnapshot,
   type ServicesSnapshot,
   type WorkforceAgentSnapshot,
+  type WorkforceGoal,
+  type WorkforceNotification,
+  type WorkforceScheduleEntry,
   type WorkforceSnapshot,
   type WorkforceTask,
   type WorkplanSnapshot,
@@ -304,6 +307,183 @@ const improvementSummaryResponseSchema = z.object({
     .optional(),
 });
 
+const operatorStatusCountsSchema = z.record(z.string(), z.number().int().nonnegative()).default({});
+
+const operatorSummarySectionSchema = z.object({
+  total: z.number().int().nonnegative().default(0),
+  by_status: operatorStatusCountsSchema,
+});
+
+const operatorSummaryResponseSchema = z
+  .object({
+    ideas: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
+    inbox: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
+    todos: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
+    backlog: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
+    runs: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
+    approvals: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
+  })
+  .passthrough();
+
+const rawOperatorRunSchema = z
+  .object({
+    id: z.string(),
+    task_id: z.string().optional().default(""),
+    backlog_id: z.string().optional().default(""),
+    agent_id: z.string().optional().default(""),
+    workload_class: z.string().optional().default(""),
+    provider_lane: z.string().optional().default(""),
+    runtime_lane: z.string().optional().default(""),
+    policy_class: z.string().optional().default(""),
+    status: z.string().optional().default("pending"),
+    summary: z.string().optional().default(""),
+    created_at: z.coerce.number().default(0),
+    updated_at: z.coerce.number().default(0),
+    completed_at: z.coerce.number().default(0),
+    step_count: z.number().int().nonnegative().default(0),
+    approval_pending: z.boolean().default(false),
+    latest_attempt: z
+      .object({
+        id: z.string().optional().default(""),
+        runtime_host: z.string().optional().default(""),
+        status: z.string().optional().default(""),
+        heartbeat_at: z.coerce.number().default(0),
+      })
+      .nullable()
+      .optional(),
+    approvals: z.array(z.object({ id: z.string().optional().default(""), status: z.string().optional().default(""), privilege_class: z.string().optional().default("") }).passthrough()).default([]),
+    metadata: z.record(z.string(), z.unknown()).default({}),
+  })
+  .passthrough();
+
+const operatorRunsResponseSchema = z.object({
+  runs: z.array(rawOperatorRunSchema).default([]),
+  count: z.number().int().nonnegative().default(0),
+});
+
+const rawOperatorBacklogSchema = z
+  .object({
+    id: z.string(),
+    title: z.string().optional().default(""),
+    prompt: z.string().optional().default(""),
+    owner_agent: z.string().optional().default(""),
+    support_agents: z.array(z.string()).default([]),
+    scope_type: z.string().optional().default("global"),
+    scope_id: z.string().optional().default(""),
+    work_class: z.string().optional().default(""),
+    priority: z.union([z.number(), z.string()]).optional(),
+    status: z.string().optional().default("captured"),
+    approval_mode: z.string().optional().default("none"),
+    dispatch_policy: z.string().optional().default("planner_eligible"),
+    preconditions: z.array(z.string()).default([]),
+    blocking_reason: z.string().optional().default(""),
+    created_at: z.coerce.number().default(0),
+    updated_at: z.coerce.number().default(0),
+    completed_at: z.coerce.number().default(0),
+    metadata: z.record(z.string(), z.unknown()).default({}),
+  })
+  .passthrough();
+
+const operatorBacklogResponseSchema = z.object({
+  backlog: z.array(rawOperatorBacklogSchema).default([]),
+  count: z.number().int().nonnegative().default(0),
+});
+
+const rawOperatorTodoSchema = z
+  .object({
+    id: z.string(),
+    title: z.string().optional().default(""),
+    description: z.string().optional().default(""),
+    category: z.string().optional().default("ops"),
+    scope_type: z.string().optional().default("global"),
+    scope_id: z.string().optional().default(""),
+    priority: z.union([z.number(), z.string()]).optional(),
+    status: z.string().optional().default("open"),
+    energy_class: z.string().optional().default("focused"),
+    created_at: z.coerce.number().default(0),
+    updated_at: z.coerce.number().default(0),
+    completed_at: z.coerce.number().default(0),
+  })
+  .passthrough();
+
+const operatorTodosResponseSchema = z.object({
+  todos: z.array(rawOperatorTodoSchema).default([]),
+  count: z.number().int().nonnegative().default(0),
+});
+
+const rawOperatorInboxSchema = z
+  .object({
+    id: z.string(),
+    kind: z.string().optional().default("notice"),
+    severity: z.coerce.number().default(1),
+    status: z.string().optional().default("new"),
+    source: z.string().optional().default("system"),
+    title: z.string().optional().default(""),
+    description: z.string().optional().default(""),
+    requires_decision: z.boolean().default(false),
+    decision_type: z.string().optional().default(""),
+    related_run_id: z.string().optional().default(""),
+    snooze_until: z.coerce.number().default(0),
+    created_at: z.coerce.number().default(0),
+    updated_at: z.coerce.number().default(0),
+    resolved_at: z.coerce.number().default(0),
+  })
+  .passthrough();
+
+const operatorInboxResponseSchema = z.object({
+  items: z.array(rawOperatorInboxSchema).default([]),
+  count: z.number().int().nonnegative().default(0),
+});
+
+const rawOperatorIdeaSchema = z
+  .object({
+    id: z.string(),
+    title: z.string().optional().default(""),
+    note: z.string().optional().default(""),
+    tags: z.array(z.string()).default([]),
+    source: z.string().optional().default("operator"),
+    confidence: z.coerce.number().default(0),
+    energy_class: z.string().optional().default("focused"),
+    scope_guess: z.string().optional().default("global"),
+    status: z.string().optional().default("seed"),
+    next_review_at: z.coerce.number().default(0),
+    promoted_project_id: z.string().optional().default(""),
+    created_at: z.coerce.number().default(0),
+    updated_at: z.coerce.number().default(0),
+  })
+  .passthrough();
+
+const operatorIdeasResponseSchema = z.object({
+  ideas: z.array(rawOperatorIdeaSchema).default([]),
+  count: z.number().int().nonnegative().default(0),
+});
+
+const rawOperatorApprovalSchema = z
+  .object({
+    id: z.string(),
+    related_run_id: z.string().optional().default(""),
+    related_task_id: z.string().optional().default(""),
+    requested_action: z.string().optional().default(""),
+    privilege_class: z.string().optional().default(""),
+    reason: z.string().optional().default(""),
+    status: z.string().optional().default("pending"),
+    requested_at: z.coerce.number().default(0),
+    decided_at: z.coerce.number().default(0),
+    decided_by: z.string().optional().default(""),
+    task_prompt: z.string().optional().default(""),
+    task_agent_id: z.string().optional().default(""),
+    task_priority: z.string().optional().default("normal"),
+    task_status: z.string().optional().default("pending"),
+    task_created_at: z.coerce.number().default(0),
+    metadata: z.record(z.string(), z.unknown()).default({}),
+  })
+  .passthrough();
+
+const operatorApprovalsResponseSchema = z.object({
+  approvals: z.array(rawOperatorApprovalSchema).default([]),
+  count: z.number().int().nonnegative().default(0),
+});
+
 const projectsResponseSchema = z.object({
   projects: z.record(
     z.string(),
@@ -334,6 +514,12 @@ type RawTask = z.infer<typeof rawTaskSchema>;
 type RawWorkplan = z.infer<typeof rawWorkplanSchema>;
 type RawWorkspaceItem = z.infer<typeof rawWorkspaceItemSchema>;
 type RawConvention = z.infer<typeof conventionsResponseSchema>["conventions"][number];
+type RawOperatorRun = z.infer<typeof rawOperatorRunSchema>;
+type RawOperatorBacklog = z.infer<typeof rawOperatorBacklogSchema>;
+type RawOperatorTodo = z.infer<typeof rawOperatorTodoSchema>;
+type RawOperatorInbox = z.infer<typeof rawOperatorInboxSchema>;
+type RawOperatorIdea = z.infer<typeof rawOperatorIdeaSchema>;
+type RawOperatorApproval = z.infer<typeof rawOperatorApprovalSchema>;
 
 const WORKPLAN_MORNING_HOUR_LOCAL = 7;
 const WORKPLAN_MORNING_MINUTE_LOCAL = 0;
@@ -384,16 +570,24 @@ function unixToIso(timestamp: number | null | undefined): string | null {
   return new Date(timestamp * 1000).toISOString();
 }
 
-function normalizePriority(value: string | null | undefined): WorkforceTask["priority"] {
-  switch (value) {
-    case "critical":
-    case "high":
-    case "low":
-    case "normal":
-      return value;
-    default:
-      return "normal";
+function normalizePriority(value: string | number | null | undefined): WorkforceTask["priority"] {
+  if (typeof value === "number") {
+    if (value >= 4) return "high";
+    if (value <= 2) return "low";
+    return "normal";
   }
+
+  const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (candidate === "critical" || candidate === "high" || candidate === "low" || candidate === "normal") {
+    return candidate;
+  }
+  if (candidate) {
+    const numeric = Number.parseInt(candidate, 10);
+    if (!Number.isNaN(numeric)) {
+      return normalizePriority(numeric);
+    }
+  }
+  return "normal";
 }
 
 function normalizeTaskStatus(value: string | null | undefined): WorkforceTask["status"] {
@@ -708,21 +902,22 @@ async function getBackendSnapshots(): Promise<BackendSnapshot[]> {
   );
 }
 
-async function getAgentDescriptors(): Promise<Array<AgentInfo & { type: string }>> {
+async function getAgentDescriptors(): Promise<Array<AgentInfo & { type: string; schedule?: string | null }>> {
   try {
     const result = await fetchJson(joinUrl(config.agentServer.url, "/v1/agents"), agentsResponseSchema, {
       cache: "no-store",
       headers: agentServerHeaders(),
     });
-    return result.agents.map((agent): AgentInfo & { type: string } => ({
-      id: agent.name,
-      name: getAgentName(agent.name),
-      description: agent.description,
-      icon: getAgentIcon(agent.name),
-      tools: agent.tools,
-      status: normalizeAgentStatus(agent.status),
-      type: agent.type,
-    }));
+      return result.agents.map((agent): AgentInfo & { type: string; schedule?: string | null } => ({
+        id: agent.name,
+        name: getAgentName(agent.name),
+        description: agent.description,
+        icon: getAgentIcon(agent.name),
+        tools: agent.tools,
+        status: normalizeAgentStatus(agent.status),
+        type: agent.type,
+        schedule: agent.schedule ?? null,
+      }));
   } catch {
     return [];
   }
@@ -758,7 +953,7 @@ export async function getProjectsSnapshot(): Promise<ProjectsSnapshot> {
         kind: project.kind ?? registry?.kind ?? "domain",
         firstClass: project.first_class ?? registry?.firstClass ?? false,
         lens: (project.lens as ProjectSnapshot["lens"] | undefined) ?? registry?.lens ?? "default",
-        primaryRoute: project.primary_route ?? registry?.primaryRoute ?? "/workplanner",
+        primaryRoute: project.primary_route ?? registry?.primaryRoute ?? "/backlog",
         externalUrl: registry?.externalUrl ?? project.external_url ?? null,
         agents: project.agents,
         needsCount: project.needs_count,
@@ -878,6 +1073,196 @@ function normalizeWorkplan(rawPlan: RawWorkplan, tasksById: Map<string, Workforc
     tasks: rawPlan.tasks.map((task) => normalizeWorkplanTask(task, tasksById)),
     error: normalizeText(rawPlan.error) ?? undefined,
   };
+}
+
+function normalizeCanonicalRunStatus(run: RawOperatorRun): WorkforceTask["status"] {
+  const status = String(run.status ?? "").trim().toLowerCase();
+  if (status === "running") return "running";
+  if (status === "completed") return "completed";
+  if (status === "failed") return "failed";
+  if (status === "cancelled") return "cancelled";
+  if (status === "stale_lease") return "stale_lease";
+  if (status === "waiting_approval" || status === "pending_approval") return "pending_approval";
+  if (status === "blocked" && (run.approval_pending || (run.approvals ?? []).some((approval) => approval.status === "pending"))) {
+    return "pending_approval";
+  }
+  return "pending";
+}
+
+function normalizeBacklogStatus(backlog: RawOperatorBacklog): WorkforceTask["status"] {
+  const status = String(backlog.status ?? "").trim().toLowerCase();
+  if (status === "waiting_approval") return "pending_approval";
+  if (status === "blocked") return backlog.approval_mode !== "none" ? "pending_approval" : "stale_lease";
+  if (status === "completed") return "completed";
+  if (status === "failed") return "failed";
+  if (status === "cancelled" || status === "archived") return "cancelled";
+  return "pending";
+}
+
+function normalizeOperatorRunTask(rawRun: RawOperatorRun): WorkforceTask {
+  const metadata = rawRun.metadata ?? {};
+  const startedAt = rawRun.latest_attempt?.heartbeat_at ? unixToIso(rawRun.latest_attempt.heartbeat_at) : null;
+  const completedAt = unixToIso(rawRun.completed_at);
+  const createdAt = unixToIso(rawRun.created_at) ?? nowIso();
+  return {
+    id: rawRun.id,
+    agentId: rawRun.agent_id || rawRun.runtime_lane || "unknown",
+    prompt: rawRun.summary || String(metadata.prompt ?? rawRun.task_id ?? rawRun.id),
+    priority: normalizePriority(metadata.priority as string | number | null | undefined),
+    status: normalizeCanonicalRunStatus(rawRun),
+    createdAt,
+    startedAt,
+    completedAt,
+    durationMs:
+      rawRun.completed_at > 0 && rawRun.created_at > 0
+        ? Math.max(0, Math.round((rawRun.completed_at - rawRun.created_at) * 1000))
+        : null,
+    requiresApproval: Boolean(rawRun.approval_pending) || (rawRun.approvals ?? []).some((approval) => approval.status === "pending"),
+    source: normalizeText(rawRun.provider_lane || rawRun.policy_class),
+    projectId: normalizeText((metadata.project_id as string | undefined) ?? (metadata.scope_id as string | undefined)),
+    planId: normalizeText(rawRun.backlog_id),
+    rationale: normalizeText(rawRun.workload_class),
+    parentTaskId: normalizeText(rawRun.task_id),
+    result: normalizeText(String(metadata.result ?? "")),
+    error: normalizeText(String(metadata.error ?? "")),
+    stepCount: rawRun.step_count,
+  };
+}
+
+function normalizeBacklogTask(rawBacklog: RawOperatorBacklog): WorkforceTask {
+  const metadata = rawBacklog.metadata ?? {};
+  const scopeProjectId =
+    rawBacklog.scope_type === "project"
+      ? normalizeText(rawBacklog.scope_id)
+      : normalizeText(metadata.project_id as string | undefined);
+  return {
+    id: `backlog:${rawBacklog.id}`,
+    agentId: rawBacklog.owner_agent || "unknown",
+    prompt: rawBacklog.prompt || rawBacklog.title || rawBacklog.id,
+    priority: normalizePriority(rawBacklog.priority),
+    status: normalizeBacklogStatus(rawBacklog),
+    createdAt: unixToIso(rawBacklog.created_at) ?? nowIso(),
+    startedAt: null,
+    completedAt: unixToIso(rawBacklog.completed_at),
+    durationMs: null,
+    requiresApproval: rawBacklog.approval_mode !== "none",
+    source: normalizeText(rawBacklog.work_class),
+    projectId: scopeProjectId,
+    planId: rawBacklog.id,
+    rationale: normalizeText(rawBacklog.blocking_reason) ?? normalizeText(rawBacklog.title),
+    parentTaskId: null,
+    result: null,
+    error: normalizeText(rawBacklog.blocking_reason),
+    stepCount: 0,
+  };
+}
+
+function buildSyntheticWorkplan(
+  backlogItems: RawOperatorBacklog[],
+  tasksById: Map<string, WorkforceTask>
+): WorkplanSnapshot | null {
+  const queued = backlogItems
+    .filter((item) => !["completed", "cancelled", "archived"].includes(String(item.status ?? "").toLowerCase()))
+    .sort((left, right) => {
+      return (
+        Number(right.priority ?? 0) - Number(left.priority ?? 0) ||
+        (right.updated_at ?? 0) - (left.updated_at ?? 0)
+      );
+    })
+    .slice(0, 8);
+
+  if (queued.length === 0) {
+    return null;
+  }
+
+  return {
+    planId: "canonical-backlog-plan",
+    generatedAt: nowIso(),
+    timeContext: "canonical operator backlog",
+    focus: "Canonical operator backlog",
+    taskCount: queued.length,
+    tasks: queued.map((item) => {
+      const syntheticTaskId = `backlog:${item.id}`;
+      const linkedTask = tasksById.get(syntheticTaskId);
+      return {
+        taskId: linkedTask?.id ?? syntheticTaskId,
+        agentId: item.owner_agent || "unknown",
+        projectId: item.scope_type === "project" ? normalizeText(item.scope_id) : null,
+        prompt: item.prompt || item.title || item.id,
+        priority: normalizePriority(item.priority),
+        rationale: normalizeText(item.title) ?? normalizeText(item.blocking_reason),
+        requiresApproval: item.approval_mode !== "none",
+      };
+    }),
+  };
+}
+
+function buildSyntheticGoals(todos: RawOperatorTodo[]): WorkforceGoal[] {
+  return todos
+    .filter((todo) => !["done", "cancelled", "someday"].includes(String(todo.status ?? "").toLowerCase()))
+    .map((todo) => {
+      const priority = normalizePriority(todo.priority);
+      return {
+        id: todo.id,
+        text: todo.description || todo.title || todo.id,
+        agentId: todo.scope_type === "agent" ? todo.scope_id || "global" : "global",
+        priority: priority === "critical" ? "high" : priority,
+        createdAt: unixToIso(todo.created_at) ?? nowIso(),
+        active: true,
+      };
+    })
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+function normalizeInboxNotification(item: RawOperatorInbox): WorkforceNotification {
+  const severity = Number(item.severity ?? 1);
+  const confidence = severity >= 3 ? 0.95 : severity === 2 ? 0.75 : 0.55;
+  const resolved = ["resolved", "converted"].includes(String(item.status ?? "").toLowerCase());
+  return {
+    id: item.id,
+    agentId: String(item.source ?? "operator"),
+    action: item.title || item.kind || item.id,
+    category: item.kind || "notice",
+    confidence,
+    description: item.description || item.title || "",
+    tier: item.requires_decision ? "ask" : "notify",
+    createdAt: unixToIso(item.created_at) ?? nowIso(),
+    resolved,
+    resolution: resolved ? String(item.status ?? "") : null,
+  };
+}
+
+function normalizeApprovalNotification(approval: RawOperatorApproval): WorkforceNotification {
+  const resolved = String(approval.status ?? "") !== "pending";
+  return {
+    id: approval.id,
+    agentId: approval.task_agent_id || "operator",
+    action: approval.requested_action || "approval_request",
+    category: "approval",
+    confidence: 0.98,
+    description: approval.reason || approval.task_prompt || approval.id,
+    tier: "ask",
+    createdAt: unixToIso(approval.requested_at) ?? nowIso(),
+    resolved,
+    resolution: resolved ? String(approval.status ?? "") : null,
+  };
+}
+
+function buildSyntheticSchedules(
+  agents: Array<AgentInfo & { type: string; schedule?: string | null }>
+): WorkforceScheduleEntry[] {
+  return agents
+    .filter((agent) => typeof agent.schedule === "string" && agent.schedule.trim().length > 0)
+    .map((agent) => ({
+      agentId: agent.id,
+      intervalSeconds: 0,
+      intervalHuman: agent.schedule?.trim() || "event-driven",
+      enabled: true,
+      lastRunAt: null,
+      nextRunInSeconds: 0,
+      priority: agent.type === "proactive" ? "normal" : "manual",
+    }))
+    .sort((left, right) => left.agentId.localeCompare(right.agentId));
 }
 
 function normalizeWorkspaceItem(rawItem: RawWorkspaceItem) {
@@ -1003,35 +1388,52 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
   }
 
   const [
-    tasksResult,
-    workplanResult,
-    goalsResult,
+    operatorSummary,
+    operatorRunsResult,
+    operatorBacklogResult,
+    operatorTodosResult,
+    operatorInboxResult,
+    operatorApprovalsResult,
     trustResult,
-    notificationsResult,
     workspaceResult,
     workspaceStatsResult,
     workspaceSubscriptionsResult,
     proposedConventionsResult,
     confirmedConventionsResult,
     improvementResult,
-    schedulesResult,
     agentDescriptors,
     projectsSnapshot,
   ] =
     await Promise.all([
-      fetchAgentJson("/v1/tasks?limit=120", tasksResponseSchema, { tasks: [], count: 0 }),
-      fetchAgentJson("/v1/workplan", workplanResponseSchema, {
-        current_plan: null,
-        history: [],
-        needs_refill: false,
+      fetchAgentJson("/v1/operator/summary", operatorSummaryResponseSchema, {
+        ideas: { total: 0, by_status: {} },
+        inbox: { total: 0, by_status: {} },
+        todos: { total: 0, by_status: {} },
+        backlog: { total: 0, by_status: {} },
+        runs: { total: 0, by_status: {} },
+        approvals: { total: 0, by_status: {} },
       }),
-      fetchAgentJson("/v1/goals", goalsResponseSchema, { goals: [] }),
-      fetchAgentJson("/v1/trust", trustResponseSchema, { agents: {} }),
-      fetchAgentJson("/v1/notifications?include_resolved=true", notificationsResponseSchema, {
-        notifications: [],
+      fetchAgentJson("/v1/operator/runs?limit=120", operatorRunsResponseSchema, {
+        runs: [],
         count: 0,
-        unread: 0,
       }),
+      fetchAgentJson("/v1/operator/backlog?limit=120", operatorBacklogResponseSchema, {
+        backlog: [],
+        count: 0,
+      }),
+      fetchAgentJson("/v1/operator/todos?limit=120", operatorTodosResponseSchema, {
+        todos: [],
+        count: 0,
+      }),
+      fetchAgentJson("/v1/operator/inbox?limit=120", operatorInboxResponseSchema, {
+        items: [],
+        count: 0,
+      }),
+      fetchAgentJson("/v1/operator/approvals?limit=120", operatorApprovalsResponseSchema, {
+        approvals: [],
+        count: 0,
+      }),
+      fetchAgentJson("/v1/trust", trustResponseSchema, { agents: {} }),
       fetchAgentJson("/v1/workspace", workspaceResponseSchema, {
         broadcast: [],
         count: 0,
@@ -1068,15 +1470,20 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
         benchmark_results: 0,
         last_cycle: null,
       }),
-      fetchAgentJson("/v1/tasks/schedules", schedulesResponseSchema, {
-        schedules: [],
-        scheduler_running: false,
-      }),
       getAgentDescriptors(),
       getProjectsSnapshot(),
     ]);
 
-  const tasks = tasksResult.tasks.map(normalizeTask).sort((left, right) => {
+  const canonicalRunTasks = operatorRunsResult.runs.map(normalizeOperatorRunTask);
+  const linkedBacklogIds = new Set(
+    operatorRunsResult.runs
+      .map((run) => normalizeText(run.backlog_id))
+      .filter((value): value is string => value !== null)
+  );
+  const backlogTasks = operatorBacklogResult.backlog
+    .filter((item) => !linkedBacklogIds.has(item.id))
+    .map(normalizeBacklogTask);
+  const tasks = [...canonicalRunTasks, ...backlogTasks].sort((left, right) => {
     const statusOrder: Record<WorkforceTask["status"], number> = {
       pending_approval: 0,
       running: 1,
@@ -1089,31 +1496,16 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
     return (
       statusOrder[left.status] - statusOrder[right.status] ||
       right.createdAt.localeCompare(left.createdAt)
-    );
-  });
+      );
+    });
   const tasksById = new Map(tasks.map((task) => [task.id, task]));
-  const currentPlan = workplanResult.current_plan ? normalizeWorkplan(workplanResult.current_plan, tasksById) : null;
-  const history = workplanResult.history.map((plan) => normalizeWorkplan(plan, tasksById));
-  const goals = goalsResult.goals.map((goal) => ({
-    id: goal.id,
-    text: goal.text,
-    agentId: goal.agent,
-    priority: goal.priority,
-    createdAt: unixToIso(goal.created_at) ?? nowIso(),
-    active: goal.active,
-  }));
-  const notifications = notificationsResult.notifications.map((notification) => ({
-    id: notification.id,
-    agentId: notification.agent,
-    action: notification.action,
-    category: notification.category,
-    confidence: Math.max(0, Math.min(1, notification.confidence)),
-    description: notification.description,
-    tier: notification.tier,
-    createdAt: unixToIso(notification.created_at) ?? nowIso(),
-    resolved: notification.resolved,
-    resolution: normalizeText(notification.resolution),
-  }));
+  const currentPlan = buildSyntheticWorkplan(operatorBacklogResult.backlog, tasksById);
+  const history: WorkplanSnapshot[] = [];
+  const goals = buildSyntheticGoals(operatorTodosResult.todos);
+  const notifications = [
+    ...operatorInboxResult.items.map(normalizeInboxNotification),
+    ...operatorApprovalsResult.approvals.map(normalizeApprovalNotification),
+  ].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
   const workspace = {
     totalItems: workspaceStatsResult.total_items,
     broadcastItems: workspaceStatsResult.broadcast_items,
@@ -1167,22 +1559,31 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
             : null,
         }
       : null,
-  };
+    };
   const trustValues = Object.values(trustResult.agents)
     .map((entry) => entry.score)
     .filter((value): value is number => typeof value === "number");
+  const pendingApprovals =
+    operatorSummary.approvals.total > 0
+      ? operatorSummary.approvals.total
+      : tasks.filter((task) => task.status === "pending_approval").length;
+  const unreadNotifications =
+    operatorSummary.inbox.by_status.new ?? notifications.filter((notification) => !notification.resolved).length;
+  const activeGoalCount =
+    goals.filter((goal) => goal.active).length || operatorSummary.todos.total || operatorSummary.ideas.total;
+  const schedules = buildSyntheticSchedules(agentDescriptors);
 
   return {
     generatedAt: nowIso(),
     summary: {
       totalTasks: tasks.length,
       pendingTasks: tasks.filter((task) => task.status === "pending").length,
-      pendingApprovals: tasks.filter((task) => task.status === "pending_approval").length,
+      pendingApprovals,
       runningTasks: tasks.filter((task) => task.status === "running").length,
       completedTasks: tasks.filter((task) => task.status === "completed").length,
       failedTasks: tasks.filter((task) => task.status === "failed").length,
-      activeGoals: goals.filter((goal) => goal.active).length,
-      unreadNotifications: notificationsResult.unread,
+      activeGoals: activeGoalCount,
+      unreadNotifications,
       avgTrustScore: average(trustValues),
       workspaceUtilization: workspace.utilization,
       activeProjects: projectPostures.filter((project) => isActiveProjectStatus(project.status)).length,
@@ -1193,7 +1594,7 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
     workplan: {
       current: currentPlan,
       history,
-      needsRefill: workplanResult.needs_refill,
+      needsRefill: (operatorSummary.backlog.by_status.ready ?? 0) < WORKPLAN_MIN_PENDING_TASKS,
       schedule: {
         morningRunHourLocal: WORKPLAN_MORNING_HOUR_LOCAL,
         morningRunMinuteLocal: WORKPLAN_MORNING_MINUTE_LOCAL,
@@ -1212,15 +1613,7 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
     improvement,
     agents: workforceAgents,
     projects: projectPostures,
-    schedules: schedulesResult.schedules.map((schedule) => ({
-      agentId: schedule.agent,
-      intervalSeconds: schedule.interval_seconds,
-      intervalHuman: schedule.interval_human,
-      enabled: schedule.enabled,
-      lastRunAt: unixToIso(schedule.last_run ?? null),
-      nextRunInSeconds: schedule.next_run_in,
-      priority: schedule.priority,
-    })),
+    schedules,
   };
 }
 
@@ -1789,7 +2182,7 @@ function buildAlerts(
       title: "Project platform data unavailable",
       description: "The dashboard could not resolve the first-class project registry.",
       tone: "warning",
-      href: "/workplanner",
+      href: "/backlog",
     });
   }
 

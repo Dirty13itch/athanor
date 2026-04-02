@@ -2,127 +2,137 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, PauseCircle, PlayCircle, RefreshCcw, Rocket } from "lucide-react";
+import { ArrowLeftRight, CalendarClock, RefreshCcw, Rocket, ShieldAlert } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ErrorPanel } from "@/components/error-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getScheduledJobs } from "@/lib/api";
-import { formatRelativeTime, formatTimestamp } from "@/lib/format";
+import { getBootstrapProgramsData, getOperatorSummaryData } from "@/lib/api";
+import { formatRelativeTime } from "@/lib/format";
 import { queryKeys } from "@/lib/query-client";
+
+interface BootstrapProgram {
+  id: string;
+  label: string;
+  objective: string;
+  phase_scope: string;
+  status: string;
+  current_family: string;
+  next_slice_id: string;
+  recommended_host_id: string;
+  pending_integrations: number;
+  slice_counts: {
+    total: number;
+    queued: number;
+    active: number;
+    blocked: number;
+    completed: number;
+  };
+  updated_at?: string;
+}
+
+interface BootstrapProgramsResponse {
+  programs: BootstrapProgram[];
+  count: number;
+  status?: {
+    open_blockers?: number;
+    pending_integrations?: number;
+    active_family?: string;
+    recommended_host_id?: string;
+    takeover?: { ready?: boolean };
+  };
+}
 
 function formatLabel(value: string) {
   return value.replace(/_/g, " ");
 }
 
-function formatWindowLabel(value: string) {
-  return value
-    .split(/[-_]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function toneForOutcome(value: string) {
-  if (value === "failed") {
+function toneForStatus(value: string) {
+  if (value === "blocked") {
     return "destructive" as const;
   }
-  if (value === "degraded" || value === "warning") {
+  if (value === "ready_for_takeover_check" || value === "active") {
     return "secondary" as const;
   }
   return "outline" as const;
 }
 
 export function ScheduledJobsCard({
-  title = "Scheduled jobs",
-  description = "Recurring autonomy loops, their current state, and their next expected execution.",
-  limit = 6,
+  title = "Bootstrap loops",
+  description = "Recursive builder families, serial integration posture, and manual supervisor nudges for the external bootstrap stack.",
 }: {
   title?: string;
   description?: string;
-  limit?: number;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const jobsQuery = useQuery({
-    queryKey: queryKeys.scheduledJobs(limit),
-    queryFn: () => getScheduledJobs(limit),
+
+  const programsQuery = useQuery({
+    queryKey: queryKeys.bootstrapPrograms,
+    queryFn: async () => (await getBootstrapProgramsData()) as unknown as BootstrapProgramsResponse,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
 
-  async function runJob(jobId: string, force = false) {
-    setBusy(`${force ? "override" : "run"}:${jobId}`);
-    setFeedback(null);
-    try {
-      const response = await fetch(`/api/workforce/scheduled/${encodeURIComponent(jobId)}/run`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ actor: "dashboard-operator", force }),
-      });
-      if (!response.ok) {
-        throw new Error(`Run request failed (${response.status})`);
-      }
-      const payload = (await response.json()) as {
-        status?: string;
-        summary?: string;
-        governor_decision?: { reason?: string };
-      };
-      if (payload.status === "deferred") {
-        setFeedback(payload.summary ?? payload.governor_decision?.reason ?? `Governor deferred ${jobId}.`);
-      } else {
-        setFeedback(payload.summary ?? `Scheduled job ${jobId} triggered.`);
-      }
-      await jobsQuery.refetch();
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Failed to run scheduled job.");
-    } finally {
-      setBusy(null);
-    }
-  }
+  const summaryQuery = useQuery({
+    queryKey: queryKeys.operatorSummary,
+    queryFn: getOperatorSummaryData,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+  });
 
-  async function toggleScope(scope: string, paused: boolean) {
-    setBusy(`${paused ? "resume" : "pause"}:${scope}`);
+  async function runSupervisor(programId: string, execute = true) {
+    setBusy(programId);
     setFeedback(null);
     try {
-      const response = await fetch(paused ? "/api/governor/resume" : "/api/governor/pause", {
+      const response = await fetch(`/api/bootstrap/programs/${encodeURIComponent(programId)}/nudge`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          scope,
-          actor: "dashboard-operator",
-          reason: paused ? "" : `Paused from scheduled jobs (${scope})`,
+          execute,
+          reason: "Triggered from bootstrap loops card",
         }),
       });
       if (!response.ok) {
-        throw new Error(`Governor request failed (${response.status})`);
+        throw new Error(`Bootstrap nudge failed (${response.status})`);
       }
-      setFeedback(`${paused ? "Resumed" : "Paused"} ${scope.replace(/_/g, " ")} lane.`);
-      await jobsQuery.refetch();
+      const payload = (await response.json()) as {
+        active_family?: string;
+        recommendation?: { slice_id?: string; host_id?: string };
+        actions?: Array<{ kind?: string }>;
+      };
+      const actionCount = Array.isArray(payload.actions) ? payload.actions.length : 0;
+      setFeedback(
+        payload.recommendation?.slice_id
+          ? `Cycle ran for ${programId}. Next slice ${payload.recommendation.slice_id} on ${payload.recommendation.host_id || "unassigned"} (${actionCount} actions).`
+          : `Cycle ran for ${programId}${payload.active_family ? ` in ${formatLabel(payload.active_family)}` : ""}.`
+      );
+      await Promise.all([programsQuery.refetch(), summaryQuery.refetch()]);
     } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Failed to update scheduled job lane.");
+      setFeedback(error instanceof Error ? error.message : "Failed to nudge bootstrap supervisor.");
     } finally {
       setBusy(null);
     }
   }
 
-  if (jobsQuery.isError && !jobsQuery.data) {
+  if (programsQuery.isError && !programsQuery.data) {
     return (
       <ErrorPanel
         title={title}
         description={
-          jobsQuery.error instanceof Error
-            ? jobsQuery.error.message
-            : "Failed to load scheduled-job records."
+          programsQuery.error instanceof Error
+            ? programsQuery.error.message
+            : "Failed to load bootstrap-loop records."
         }
       />
     );
   }
 
-  const jobs = jobsQuery.data?.jobs ?? [];
-  const activeCount = jobs.filter((job) => job.current_state === "running").length;
-  const failedCount = jobs.filter((job) => job.last_outcome === "failed").length;
+  const programs = programsQuery.data?.programs ?? [];
+  const status = programsQuery.data?.status;
+  const governance = (summaryQuery.data?.governance as Record<string, unknown> | undefined) ?? {};
+  const bootstrap = (summaryQuery.data?.bootstrap as Record<string, unknown> | undefined) ?? {};
 
   return (
     <Card className="border-border/70 bg-card/70">
@@ -140,151 +150,88 @@ export function ScheduledJobsCard({
           </div>
         ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Metric label="Visible jobs" value={`${jobs.length}`} />
-          <Metric label="Running now" value={`${activeCount}`} />
-          <Metric label="Failed last run" value={`${failedCount}`} />
+        <div className="grid gap-3 sm:grid-cols-4">
+          <Metric label="Programs" value={`${programs.length}`} />
+          <Metric label="Blockers" value={`${status?.open_blockers ?? 0}`} />
+          <Metric label="Pending replay" value={`${status?.pending_integrations ?? 0}`} />
+          <Metric label="Takeover" value={status?.takeover?.ready ? "Ready" : "Blocked"} />
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => void jobsQuery.refetch()} disabled={jobsQuery.isFetching}>
-            <RefreshCcw className={`mr-2 h-4 w-4 ${jobsQuery.isFetching ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            onClick={() => void Promise.all([programsQuery.refetch(), summaryQuery.refetch()])}
+            disabled={programsQuery.isFetching || summaryQuery.isFetching}
+          >
+            <RefreshCcw className={`mr-2 h-4 w-4 ${(programsQuery.isFetching || summaryQuery.isFetching) ? "animate-spin" : ""}`} />
             Refresh
           </Button>
+          <Badge variant="outline">
+            active family {formatLabel(String(status?.active_family || bootstrap.active_family || "unknown"))}
+          </Badge>
+          {governance && Object.keys(governance).length > 0 ? (
+            <Badge variant="outline">
+              mode {formatLabel(String((governance.current_mode as string | undefined) || (governance.mode as string | undefined) || "unknown"))}
+            </Badge>
+          ) : null}
         </div>
 
-        {jobs.length > 0 ? (
+        {programs.length > 0 ? (
           <div className="space-y-3">
-            {jobs.map((job) => (
-              <a
-                key={job.id}
-                href={job.deep_link}
-                className="block rounded-2xl border border-border/70 bg-background/20 p-4 transition hover:bg-accent/40"
+            {programs.map((program) => (
+              <div
+                key={program.id}
+                className="block rounded-2xl border border-border/70 bg-background/20 p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary">{formatLabel(job.job_family)}</Badge>
-                  <Badge variant="outline">{job.owner_agent}</Badge>
-                  <Badge variant={toneForOutcome(job.last_outcome)}>{formatLabel(job.last_outcome)}</Badge>
-                  {job.paused ? <Badge variant="destructive">paused</Badge> : null}
-                  {job.current_state === "deferred" ? <Badge variant="secondary">deferred</Badge> : null}
+                  <Badge variant={toneForStatus(program.status)}>{formatLabel(program.status)}</Badge>
+                  <Badge variant="secondary">{formatLabel(program.current_family || "queued")}</Badge>
+                  <Badge variant="outline">{program.phase_scope}</Badge>
+                  {program.recommended_host_id ? (
+                    <Badge variant="outline">
+                      <ArrowLeftRight className="mr-1 h-3 w-3" />
+                      {program.recommended_host_id}
+                    </Badge>
+                  ) : null}
+                  {program.slice_counts.blocked > 0 ? (
+                    <Badge variant="destructive">
+                      <ShieldAlert className="mr-1 h-3 w-3" />
+                      {program.slice_counts.blocked} blocked
+                    </Badge>
+                  ) : null}
                 </div>
-                <p className="mt-3 text-sm font-medium">{job.title}</p>
-                <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
-                  <span>cadence: {job.cadence}</span>
-                  <span>trigger: {formatLabel(job.trigger_mode)}</span>
-                  <span data-volatile="true">last run {formatRelativeTime(job.last_run)}</span>
-                  <span data-volatile="true">next run {formatTimestamp(job.next_run)}</span>
+                <p className="mt-3 text-sm font-medium">{program.label}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{program.objective}</p>
+                <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-3">
+                  <span>next slice: {program.next_slice_id || "none"}</span>
+                  <span>pending replay: {program.pending_integrations}</span>
+                  <span data-volatile="true">
+                    updated {program.updated_at ? formatRelativeTime(program.updated_at) : "unknown"}
+                  </span>
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  state {formatLabel(job.current_state)}
-                </p>
                 <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                  {job.priority_band ? (
-                    <Badge variant="outline">priority {formatLabel(job.priority_band)}</Badge>
-                  ) : null}
-                  {job.capacity_posture ? (
-                    <Badge variant="outline">
-                      capacity {formatLabel(job.capacity_posture)}
-                    </Badge>
-                  ) : null}
-                  {job.queue_posture ? (
-                    <Badge variant="outline">queue {formatLabel(job.queue_posture)}</Badge>
-                  ) : null}
-                  {job.provider_posture ? (
-                    <Badge variant="outline">
-                      provider {formatLabel(job.provider_posture)}
-                    </Badge>
-                  ) : null}
-                  {job.deferred_by ? (
-                    <Badge variant="secondary">deferred by {formatLabel(job.deferred_by)}</Badge>
-                  ) : null}
+                  <Badge variant="outline">queued {program.slice_counts.queued}</Badge>
+                  <Badge variant="outline">active {program.slice_counts.active}</Badge>
+                  <Badge variant="outline">completed {program.slice_counts.completed}</Badge>
                 </div>
-                {job.active_window_ids?.length ? (
-                  <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                    {job.active_window_ids.map((windowId) => (
-                      <Badge key={windowId} variant="outline">
-                        window {formatWindowLabel(windowId)}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : null}
-                {job.last_summary ? (
-                  <p className="mt-2 text-xs text-muted-foreground">{job.last_summary}</p>
-                ) : null}
-                {job.governor_reason ? (
-                  <p className="mt-2 text-xs text-muted-foreground">{job.governor_reason}</p>
-                ) : null}
-                {job.next_action ? (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    next action {formatLabel(job.next_action)}
-                  </p>
-                ) : null}
-                {job.last_actor || job.last_force_override || job.last_task_id || job.last_plan_id ? (
-                  <div className="mt-2 grid gap-1 text-[11px] text-muted-foreground md:grid-cols-2">
-                    {job.last_actor ? <span>last actor {job.last_actor}</span> : null}
-                    {job.last_force_override ? <span>force override yes</span> : null}
-                    {job.last_task_id ? <span>task {job.last_task_id}</span> : null}
-                    {job.last_plan_id ? <span>plan {job.last_plan_id}</span> : null}
-                  </div>
-                ) : null}
-                {job.last_error ? (
-                  <p className="mt-2 text-xs text-red-200">{job.last_error}</p>
-                ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {job.can_run_now ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        void runJob(job.id);
-                      }}
-                      disabled={busy !== null}
-                    >
-                      <Rocket className="mr-2 h-4 w-4" />
-                      Run now
-                    </Button>
-                  ) : null}
-                  {job.can_override_now ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        void runJob(job.id, true);
-                      }}
-                      disabled={busy !== null}
-                    >
-                      <Rocket className="mr-2 h-4 w-4" />
-                      Override
-                    </Button>
-                  ) : null}
-                  {job.control_scope ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        void toggleScope(job.control_scope!, Boolean(job.paused));
-                      }}
-                      disabled={busy !== null}
-                    >
-                      {job.paused ? (
-                        <PlayCircle className="mr-2 h-4 w-4" />
-                      ) : (
-                        <PauseCircle className="mr-2 h-4 w-4" />
-                      )}
-                      {job.paused ? "Resume lane" : "Pause lane"}
-                    </Button>
-                  ) : null}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void runSupervisor(program.id, true)}
+                    disabled={busy !== null}
+                  >
+                    <Rocket className="mr-2 h-4 w-4" />
+                    Run cycle
+                  </Button>
                 </div>
-              </a>
+              </div>
             ))}
           </div>
         ) : (
           <EmptyState
-            title="No scheduled jobs reported"
-            description="Recurring autonomy lanes will appear here once the scheduler emits normalized records."
+            title="No bootstrap loops yet"
+            description="Bootstrap programs will appear here once the recursive builder registry is active."
             className="py-8"
           />
         )}

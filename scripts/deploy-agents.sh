@@ -16,12 +16,17 @@ AGENT_URL="${ATHANOR_AGENT_SERVER_URL:-${AGENT_SERVER_URL}}"
 
 echo "=== Deploying Athanor Agent Server to FOUNDRY ==="
 
-# Sync source code
+# Sync source code and build-context inputs
 echo "[1/3] Syncing source..."
 rsync -avz --delete \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
     "${SRC_DIR}/src/" "${FOUNDRY}:${REMOTE_DIR}/src/"
+
+rsync -avz --delete \
+    --exclude='__pycache__' \
+    --exclude='*.pyc' \
+    "${SRC_DIR}/config/" "${FOUNDRY}:${REMOTE_DIR}/config/"
 
 # Sync build files
 rsync -avz \

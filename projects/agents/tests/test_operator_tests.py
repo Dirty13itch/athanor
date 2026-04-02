@@ -86,9 +86,9 @@ class FakeRestoreDrillHttpClient:
     async def get(self, url: str, headers: dict | None = None) -> FakeHttpResponse:
         if url.endswith("/collections"):
             return FakeHttpResponse(200, {"result": {"collections": [{"name": "activity"}]}})
-        if url.endswith("/v1/governor"):
+        if url.endswith("/health"):
             return FakeHttpResponse(401, content_type="text/plain")
-        if url.endswith("/api/system-map"):
+        if url.endswith("/api/operator/session"):
             return FakeHttpResponse(403, content_type="text/plain")
         return FakeHttpResponse(401, content_type="text/plain")
 
@@ -112,6 +112,7 @@ class OperatorTestsRuntimeTests(unittest.IsolatedAsyncioTestCase):
         fake_redis = FakeRedis()
         with (
             patch("athanor_agents.governor._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.governor_backbone._get_redis", AsyncMock(return_value=fake_redis)),
             patch("athanor_agents.operator_tests._get_redis", AsyncMock(return_value=fake_redis)),
             patch("athanor_agents.activity.log_event", AsyncMock()),
         ):
@@ -179,7 +180,7 @@ class OperatorTestsRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 "probe_status": "verified",
                 "probe_summary": "Deploy-state probe ok.",
                 "checked_at": "2026-03-12T12:00:00Z",
-                "artifacts": ["http://dashboard/api/system-map"],
+                "artifacts": ["http://dashboard/api/operator/session"],
             },
         ]
         with (
@@ -396,6 +397,7 @@ class OperatorTestsRuntimeTests(unittest.IsolatedAsyncioTestCase):
         with (
             patch("athanor_agents.operator_tests._get_redis", AsyncMock(return_value=fake_redis)),
             patch("athanor_agents.governor._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.governor_backbone._get_redis", AsyncMock(return_value=fake_redis)),
             patch("athanor_agents.backbone.build_scheduled_job_records", AsyncMock(return_value=scheduled_jobs)),
             patch("athanor_agents.backbone.build_execution_run_records", AsyncMock(return_value=runs)),
             patch("athanor_agents.governor.build_capacity_snapshot", AsyncMock(return_value=capacity)),

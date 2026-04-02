@@ -177,6 +177,18 @@ agents:
     allowed_providers:
       - athanor_local
 
+  stash-agent:
+    default_task_class: private_internal_automation
+    sensitivity_default: private
+    allowed_providers:
+      - athanor_local
+
+  data-curator:
+    default_task_class: private_internal_automation
+    sensitivity_default: private
+    allowed_providers:
+      - athanor_local
+
 quota_strategy:
   observe_reset_windows: true
   record_throttling_events: true

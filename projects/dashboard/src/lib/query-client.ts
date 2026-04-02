@@ -9,6 +9,8 @@ export const queryKeys = {
   modelGovernance: ["models-governance"] as const,
   governor: ["governor"] as const,
   operationsReadiness: ["operations-readiness"] as const,
+  operatorSummary: ["operator-summary"] as const,
+  bootstrapPrograms: ["bootstrap-programs"] as const,
   judgePlane: (limit: number) => ["judge-plane", limit] as const,
   executionRuns: (limit: number) => ["execution-runs", limit] as const,
   scheduledJobs: (limit: number) => ["scheduled-jobs", limit] as const,

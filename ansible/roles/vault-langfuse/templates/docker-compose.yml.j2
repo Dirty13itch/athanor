@@ -106,6 +106,8 @@ services:
     image: {{ langfuse_postgres_image }}
     container_name: langfuse-postgres
     restart: unless-stopped
+    ports:
+      - "{{ langfuse_pg_host_port }}:5432"
     environment:
       - POSTGRES_USER={{ langfuse_pg_user }}
       - POSTGRES_PASSWORD={{ langfuse_pg_password }}

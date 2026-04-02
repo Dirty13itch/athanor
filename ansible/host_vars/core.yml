@@ -1,12 +1,12 @@
 ---
-# Node 1 (core / Foundry) — host-specific vars
+# Node 1 (core / Foundry) â€” host-specific vars
 
 # Per-GPU power limits (mixed GPU config: 4x RTX 5070 Ti + RTX 4090)
 # GPU order verified via nvidia-smi 2026-02-24
 nvidia_gpu_power_limits:
-  - { index: 0, watts: 250 }   # RTX 5070 Ti (PCI 01:00) — min 250W, max 300W
+  - { index: 0, watts: 250 }   # RTX 5070 Ti (PCI 01:00) â€” min 250W, max 300W
   - { index: 1, watts: 250 }   # RTX 5070 Ti (PCI 02:00)
-  - { index: 2, watts: 320 }   # RTX 4090 (PCI 81:00) — min 100W, max 450W
+  - { index: 2, watts: 320 }   # RTX 4090 (PCI 81:00) â€” min 100W, max 450W
   - { index: 3, watts: 250 }   # RTX 5070 Ti (PCI 82:00)
   - { index: 4, watts: 250 }   # RTX 5070 Ti (PCI C1:00, embedding)
 
@@ -70,7 +70,7 @@ vllm_instances:
       - --safetensors-load-strategy
       - eager
 
-# Network interfaces — dual 5GbE NICs, MTU 9000
+# Network interfaces â€” dual 5GbE NICs, MTU 9000
 network_interfaces:
   - name: enp66s0f0
     addresses: ["192.168.1.244/24"]
@@ -88,4 +88,9 @@ network_interfaces:
 # Alloy log shipping
 alloy_node_name: foundry
 
-# Agent config — API keys and LiteLLM routing in roles/agents/defaults/main.yml
+# Durable control-plane persistence
+athanor_postgres_port: 5434
+athanor_postgres_db: athanor
+athanor_postgres_url: "postgresql://langfuse:{{ vault_langfuse_pg_password | urlencode }}@{{ vault_ip }}:{{ athanor_postgres_port }}/{{ athanor_postgres_db }}"
+
+# Agent config â€” API keys and LiteLLM routing in roles/agents/defaults/main.yml

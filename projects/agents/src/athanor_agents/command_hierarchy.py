@@ -21,6 +21,9 @@ from .model_governance import (
     get_tool_permission_registry,
     get_workload_class_registry,
 )
+from .domain_registry import build_domain_metadata
+from .durable_state import get_durable_state_status
+from .persistence import get_checkpointer_status
 from .subscriptions import get_policy_snapshot
 
 
@@ -81,7 +84,7 @@ CONTROL_STACK = [
         "id": "agent-server",
         "label": "Agent Server",
         "role": "runtime boundary and API front door",
-        "entrypoints": ["/health", "/v1/chat/completions", "/v1/agents", "/v1/models"],
+        "entrypoints": ["/health", "/v1/chat/completions", "/v1/agents", "/v1/domains", "/v1/models"],
         "status": "live",
     },
     {
@@ -343,6 +346,8 @@ async def _build_operational_governance() -> dict[str, Any]:
     live_release_ritual = dict(readiness_snapshot.get("release_ritual") or {})
     live_presence = dict(governor_snapshot.get("presence") or {})
     live_autonomy = dict(readiness_snapshot.get("autonomy_activation") or {})
+    persistence_status = get_checkpointer_status()
+    durable_state_status = get_durable_state_status()
     autonomy_summary = _build_autonomy_activation_summary(live_presence)
     if live_autonomy:
         autonomy_summary.update(
@@ -419,6 +424,24 @@ async def _build_operational_governance() -> dict[str, Any]:
             "active_promotion_count": live_release_ritual.get("active_promotion_count"),
             "last_rehearsal_at": live_release_ritual.get("last_rehearsal_at"),
         },
+        "persistence": {
+            "mode": persistence_status.get("mode"),
+            "durable": bool(persistence_status.get("durable")),
+            "configured": bool(persistence_status.get("configured")),
+            "driver": persistence_status.get("driver"),
+            "reason": persistence_status.get("reason"),
+            "last_updated_at": persistence_status.get("last_updated_at"),
+        },
+        "durable_state": {
+            "mode": durable_state_status.get("mode"),
+            "configured": bool(durable_state_status.get("configured")),
+            "available": bool(durable_state_status.get("available")),
+            "schema_ready": bool(durable_state_status.get("schema_ready")),
+            "reason": durable_state_status.get("reason"),
+            "bootstrap_sql_path": durable_state_status.get("bootstrap_sql_path"),
+            "last_updated_at": durable_state_status.get("last_updated_at"),
+            "last_bootstrap_at": durable_state_status.get("last_bootstrap_at"),
+        },
         "autonomy_activation": autonomy_summary,
         "runtime_state": {
             "status": runtime_status,
@@ -485,6 +508,8 @@ async def build_system_map_snapshot(agent_metadata: dict[str, dict[str, Any]]) -
                 "authority": specialist_meta.get("authority", "scoped execution"),
                 "tool_count": len(meta.get("tools", [])),
                 "mode": meta.get("type", "reactive"),
+                "owner_domains": list(meta.get("owner_domains", [])),
+                "support_domains": list(meta.get("support_domains", [])),
                 "status": specialist_meta.get("status", "live"),
             }
         )
@@ -520,6 +545,7 @@ async def build_system_map_snapshot(agent_metadata: dict[str, dict[str, Any]]) -
         "workload_guidance": WORKLOAD_GUIDANCE,
         "registry_versions": _build_registry_versions(),
         "policy_source": policy.get("policy_source", "unknown"),
+        "domains": build_domain_metadata(),
         "platform_topology": get_platform_topology(),
         "project_portfolio": get_project_maturity_registry(),
         "docs_lifecycle": get_docs_lifecycle_registry(),

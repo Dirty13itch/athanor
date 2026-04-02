@@ -18,6 +18,8 @@ langfuse_encryption_key: "{{ vault_langfuse_encryption_key | default('') }}"
 langfuse_pg_user: langfuse
 langfuse_pg_password: "{{ vault_langfuse_pg_password | default('') }}"
 langfuse_pg_db: langfuse
+langfuse_pg_host_port: 5434
+athanor_postgres_db: athanor
 
 # MinIO (internal S3-compatible blob store)
 langfuse_minio_user: minioadmin

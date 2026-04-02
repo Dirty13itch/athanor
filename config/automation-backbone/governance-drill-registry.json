@@ -1,0 +1,110 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T20:30:00Z",
+  "status": "active",
+  "evidence_root": "reports/governance/drills",
+  "drills": [
+    {
+      "drill_id": "constrained-mode",
+      "runbook_id": "constrained-mode",
+      "mode_target": "constrained",
+      "entry_trigger": "attention budget breach or bounded compute pressure",
+      "evidence_artifacts": [
+        "reports/governance/drills/constrained-mode.json"
+      ],
+      "health_effect": "launch blocker while missing or failed",
+      "dashboard_effect": "show constrained drill state in /operator and /bootstrap",
+      "pass_criteria": [
+        "system mode changes to constrained",
+        "optional loops pause",
+        "operator ingress and approvals remain live"
+      ],
+      "fail_blocker_class": "governance_drill_failed"
+    },
+    {
+      "drill_id": "degraded-mode",
+      "runbook_id": "degraded-mode",
+      "mode_target": "degraded",
+      "entry_trigger": "core dependency outage or unsafe blocker pressure",
+      "evidence_artifacts": [
+        "reports/governance/drills/degraded-mode.json"
+      ],
+      "health_effect": "launch blocker while missing or failed",
+      "dashboard_effect": "show degraded drill state in /runs and /bootstrap",
+      "pass_criteria": [
+        "system mode changes to degraded",
+        "promotions freeze",
+        "repair work remains allowed"
+      ],
+      "fail_blocker_class": "governance_drill_failed"
+    },
+    {
+      "drill_id": "recovery-only",
+      "runbook_id": "recovery-only",
+      "mode_target": "recovery_only",
+      "entry_trigger": "operator ingress or durable truth becomes suspect",
+      "evidence_artifacts": [
+        "reports/governance/drills/recovery-only.json"
+      ],
+      "health_effect": "launch blocker while missing or failed",
+      "dashboard_effect": "show recovery-only drill state in /operator and /bootstrap",
+      "pass_criteria": [
+        "system mode changes to recovery_only",
+        "non-recovery dispatch stops",
+        "recovery surfaces remain available"
+      ],
+      "fail_blocker_class": "governance_drill_failed"
+    },
+    {
+      "drill_id": "blocked-approval",
+      "runbook_id": "blocked-approval",
+      "mode_target": "approval_hold",
+      "entry_trigger": "approval-gated mutation is requested without approval",
+      "evidence_artifacts": [
+        "reports/governance/drills/blocked-approval.json"
+      ],
+      "health_effect": "open launch blocker while unresolved",
+      "dashboard_effect": "show blocked approval drill state in /inbox and /bootstrap",
+      "pass_criteria": [
+        "approval-gated action creates blocker",
+        "operator inbox evidence is created",
+        "unrelated ready work continues"
+      ],
+      "fail_blocker_class": "approval_path_failed"
+    },
+    {
+      "drill_id": "restore",
+      "runbook_id": "restore-drill",
+      "mode_target": "restore_validation",
+      "entry_trigger": "scheduled or explicit restore rehearsal",
+      "evidence_artifacts": [
+        "reports/governance/drills/restore.json"
+      ],
+      "health_effect": "launch blocker while missing or failed",
+      "dashboard_effect": "show restore drill state in /operator and /bootstrap",
+      "pass_criteria": [
+        "restore rehearsal runs in documented order",
+        "evidence artifact is written",
+        "dependent services validate after rehearsal"
+      ],
+      "fail_blocker_class": "restore_drill_failed"
+    },
+    {
+      "drill_id": "rollback",
+      "runbook_id": "failed-promotion",
+      "mode_target": "rollback_validation",
+      "entry_trigger": "promotion failure or deliberate rollback rehearsal",
+      "evidence_artifacts": [
+        "reports/governance/drills/rollback.json"
+      ],
+      "health_effect": "launch blocker while missing or failed",
+      "dashboard_effect": "show rollback drill state in /projects and /bootstrap",
+      "pass_criteria": [
+        "recorded rollback target is used",
+        "smoke evidence reruns after rollback",
+        "promotion channel remains frozen until verified"
+      ],
+      "fail_blocker_class": "rollback_drill_failed"
+    }
+  ]
+}

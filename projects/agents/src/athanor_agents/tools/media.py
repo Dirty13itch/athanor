@@ -6,6 +6,8 @@ from ..services import registry
 
 SONARR = registry.sonarr_api_url
 RADARR = registry.radarr_api_url
+PROWLARR = registry.prowlarr_api_url
+SABNZBD = registry.sabnzbd_api_url
 TAUTULLI = registry.tautulli_api_url
 
 
@@ -48,6 +50,32 @@ def _radarr_post(path: str, json_data: dict) -> dict:
 def _tautulli_get(cmd: str, params: dict | None = None) -> dict:
     p = {"apikey": settings.tautulli_api_key, "cmd": cmd, **(params or {})}
     resp = httpx.get(TAUTULLI, params=p, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _prowlarr_get(path: str, params: dict | None = None) -> dict | list:
+    if not settings.prowlarr_api_key:
+        raise RuntimeError("ATHANOR_PROWLARR_API_KEY is not configured")
+    resp = httpx.get(
+        f"{PROWLARR}{path}",
+        params=params or {},
+        headers={"X-Api-Key": settings.prowlarr_api_key},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _sabnzbd_request(params: dict | None = None) -> dict:
+    if not settings.sabnzbd_api_key:
+        raise RuntimeError("ATHANOR_SABNZBD_API_KEY is not configured")
+    request_params = {
+        "apikey": settings.sabnzbd_api_key,
+        "output": "json",
+        **(params or {}),
+    }
+    resp = httpx.get(SABNZBD, params=request_params, timeout=15)
     resp.raise_for_status()
     return resp.json()
 
@@ -357,6 +385,76 @@ def get_plex_libraries() -> str:
         return f"Error fetching Plex libraries: {e}"
 
 
+@tool
+def get_prowlarr_health() -> str:
+    """Get Prowlarr health status and active warnings/errors from the authenticated /api/v1/health endpoint."""
+    try:
+        payload = _prowlarr_get("/health")
+        if not isinstance(payload, list):
+            return f"Prowlarr health returned unexpected payload: {payload!r}"
+        if not payload:
+            return "Prowlarr health is clean. No active warnings or errors."
+        lines = [f"Prowlarr Health ({len(payload)} issues):"]
+        for item in payload[:20]:
+            source = item.get("source") or item.get("type") or "unknown"
+            level = item.get("type") or item.get("severity") or "notice"
+            message = item.get("message") or item.get("messageTemplate") or "No message"
+            lines.append(f"  - {level} [{source}]: {message}")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error fetching Prowlarr health: {e}"
+
+
+@tool
+def get_sabnzbd_queue(limit: int = 10) -> str:
+    """Get the active SABnzbd queue with progress, status, category, and remaining time."""
+    try:
+        payload = _sabnzbd_request({"mode": "queue", "limit": limit})
+        queue = payload.get("queue", {})
+        slots = queue.get("slots", [])
+        if not slots:
+            status = queue.get("status", "Idle")
+            return f"SABnzbd queue is empty. Status: {status}."
+        lines = [
+            f"SABnzbd Queue ({len(slots)} items, status={queue.get('status', '?')}, speed={queue.get('speed', '?')})"
+        ]
+        for slot in slots[:limit]:
+            filename = slot.get("filename", "?")
+            status = slot.get("status", "?")
+            percentage = slot.get("percentage", "?")
+            time_left = slot.get("timeleft", "?")
+            category = slot.get("cat", "?")
+            nzo_id = slot.get("nzo_id", "?")
+            lines.append(
+                f"  - {filename}: {status}, {percentage}% complete, {time_left} left, cat={category}, nzo_id={nzo_id}"
+            )
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error fetching SABnzbd queue: {e}"
+
+
+@tool
+def pause_sabnzbd_queue() -> str:
+    """Pause the entire SABnzbd download queue."""
+    try:
+        payload = _sabnzbd_request({"mode": "pause"})
+        status = payload.get("status")
+        return "Paused the SABnzbd queue." if status else f"SABnzbd did not confirm pause: {payload}"
+    except Exception as e:
+        return f"Error pausing SABnzbd queue: {e}"
+
+
+@tool
+def resume_sabnzbd_queue() -> str:
+    """Resume the entire SABnzbd download queue."""
+    try:
+        payload = _sabnzbd_request({"mode": "resume"})
+        status = payload.get("status")
+        return "Resumed the SABnzbd queue." if status else f"SABnzbd did not confirm resume: {payload}"
+    except Exception as e:
+        return f"Error resuming SABnzbd queue: {e}"
+
+
 MEDIA_TOOLS = [
     search_tv_shows,
     get_tv_calendar,
@@ -368,6 +466,10 @@ MEDIA_TOOLS = [
     get_movie_queue,
     get_movie_library,
     add_movie,
+    get_prowlarr_health,
+    get_sabnzbd_queue,
+    pause_sabnzbd_queue,
+    resume_sabnzbd_queue,
     get_plex_activity,
     get_watch_history,
     get_plex_libraries,

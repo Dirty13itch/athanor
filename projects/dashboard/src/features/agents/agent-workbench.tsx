@@ -36,6 +36,22 @@ interface AgentTask {
   started_at?: string;
 }
 
+interface OperatorRunRecord {
+  id: string;
+  agent_id?: string;
+  status?: string;
+  summary?: string;
+  provider_lane?: string;
+  runtime_lane?: string;
+  metadata?: Record<string, unknown>;
+  created_at?: number | string;
+  updated_at?: number | string;
+  latest_attempt?: {
+    started_at?: number | string;
+    heartbeat_at?: number | string;
+  };
+}
+
 interface AgentActivity {
   task_id?: string;
   agent_id?: string;
@@ -166,6 +182,35 @@ function taskPrompt(task: AgentTask): string {
   return task.prompt ?? task.description ?? "(no description)";
 }
 
+function toIsoTimestamp(value: string | number | undefined): string | undefined {
+  if (typeof value === "number" && value > 0) {
+    return new Date(value * 1000).toISOString();
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value;
+  }
+  return undefined;
+}
+
+function runToAgentTask(run: OperatorRunRecord): AgentTask {
+  const metadata = run.metadata ?? {};
+  const priority =
+    typeof metadata.priority === "string" && metadata.priority.trim().length > 0
+      ? metadata.priority
+      : "normal";
+  return {
+    id: run.id,
+    agent: run.agent_id,
+    prompt: run.summary ?? "",
+    description: run.summary ?? "",
+    priority,
+    status: run.status,
+    model: run.provider_lane ?? run.runtime_lane,
+    created_at: toIsoTimestamp(run.created_at),
+    started_at: toIsoTimestamp(run.latest_attempt?.started_at) ?? toIsoTimestamp(run.created_at),
+  };
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function AgentRosterItem({
@@ -257,9 +302,10 @@ export function AgentWorkbench() {
     queryKey: ["workbench-running", selectedAgentId],
     queryFn: async (): Promise<AgentTask[]> => {
       const data = await requestJson(
-          `/api/workforce/tasks?agent=${encodeURIComponent(selectedAgentId)}&status=running`
+        `/api/operator/runs?agent=${encodeURIComponent(selectedAgentId)}&status=running`
       );
-      return (data?.tasks ?? data ?? []) as AgentTask[];
+      const runs = (data?.runs ?? data ?? []) as OperatorRunRecord[];
+      return runs.map(runToAgentTask);
     },
     enabled: !!selectedAgentId && liveReadEnabled,
     refetchInterval: 5_000,
@@ -270,9 +316,10 @@ export function AgentWorkbench() {
     queryKey: ["workbench-pending", selectedAgentId],
     queryFn: async (): Promise<AgentTask[]> => {
       const data = await requestJson(
-          `/api/workforce/tasks?agent=${encodeURIComponent(selectedAgentId)}&status=pending`
+        `/api/operator/runs?agent=${encodeURIComponent(selectedAgentId)}&status=queued`
       );
-      return (data?.tasks ?? data ?? []) as AgentTask[];
+      const runs = (data?.runs ?? data ?? []) as OperatorRunRecord[];
+      return runs.map(runToAgentTask);
     },
     enabled: !!selectedAgentId && liveReadEnabled,
     refetchInterval: 10_000,

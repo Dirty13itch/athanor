@@ -1,0 +1,41 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T16:00:00Z",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/source-policy-registry.json",
+  "sources": [
+    {
+      "id": "crawl_miniflux_internal",
+      "domain": "crawling",
+      "status": "live",
+      "enabled": true,
+      "auth_required": true,
+      "fetch_mode": "api",
+      "sensitivity": "internal",
+      "cloud_allowed": false,
+      "cadence": "15m"
+    },
+    {
+      "id": "crawl_manual_public_source_template",
+      "domain": "crawling",
+      "status": "template",
+      "enabled": false,
+      "auth_required": false,
+      "fetch_mode": "http",
+      "sensitivity": "public",
+      "cloud_allowed": false,
+      "cadence": "manual"
+    },
+    {
+      "id": "adult_finder_source_template",
+      "domain": "adult_finder",
+      "status": "template",
+      "enabled": false,
+      "auth_required": true,
+      "fetch_mode": "browser",
+      "sensitivity": "adult_sensitive",
+      "cloud_allowed": false,
+      "cadence": "manual"
+    }
+  ]
+}

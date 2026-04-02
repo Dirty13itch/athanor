@@ -166,6 +166,8 @@ export async function getOperatorTests(): Promise<OperatorTestsSnapshot> {
   );
 }
 
+// Legacy workforce compatibility helpers. First-class surfaces should use
+// canonical operator routes instead of these projections.
 export async function getWorkforce(): Promise<WorkforceSnapshot> {
   return fetchJson("/api/workforce", { cache: "no-store" }, workforceSnapshotResponseSchema);
 }
@@ -180,18 +182,36 @@ export async function getOperatorStream(limit = 12): Promise<OperatorStreamRespo
 
 export async function getExecutionRuns(limit = 25): Promise<ExecutionRunsResponse> {
   return fetchJson(
-    `/api/workforce/runs?limit=${encodeURIComponent(String(limit))}`,
+    `/api/operator/runs?limit=${encodeURIComponent(String(limit))}`,
     { cache: "no-store" },
     executionRunsResponseSchema
   );
 }
 
+// Legacy workforce compatibility helpers. First-class surfaces should use
+// canonical operator routes instead of these projections.
 export async function getScheduledJobs(limit = 25): Promise<ScheduledJobsResponse> {
   return fetchJson(
     `/api/workforce/scheduled?limit=${encodeURIComponent(String(limit))}`,
     { cache: "no-store" },
     scheduledJobsResponseSchema
   );
+}
+
+export async function getOperatorSummaryData(): Promise<Record<string, unknown>> {
+  const res = await fetch("/api/operator/summary", { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Operator summary request failed: ${res.status}`);
+  }
+  return (await res.json()) as Record<string, unknown>;
+}
+
+export async function getBootstrapProgramsData(): Promise<Record<string, unknown>> {
+  const res = await fetch("/api/bootstrap/programs", { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`Bootstrap programs request failed: ${res.status}`);
+  }
+  return (await res.json()) as Record<string, unknown>;
 }
 
 export async function getSubscriptionSummary(limit = 10): Promise<SubscriptionSummaryResponse> {

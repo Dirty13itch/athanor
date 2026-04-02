@@ -65,6 +65,131 @@ interface StalledResponse {
   count: number;
 }
 
+interface ProjectPacketData {
+  id: string;
+  name: string;
+  stage: string;
+  template: string;
+  class: string;
+  visibility: string;
+  sensitivity: string;
+  runtime_target: string;
+  deploy_target: string;
+  workspace_root: string;
+  primary_route: string;
+  owner_domain: string;
+  operators: string[];
+  agents: string[];
+  acceptance_bundle: string[];
+  rollback_contract: string;
+  maintenance_cadence: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface ArchitecturePacketData {
+  project_id: string;
+  service_shape: Record<string, unknown>;
+  data_contracts: unknown[];
+  auth_boundary: Record<string, unknown>;
+  deploy_shape: Record<string, unknown>;
+  risk_notes: unknown[];
+  test_plan: unknown[];
+  rollback_notes: unknown[];
+}
+
+interface FoundryRunData {
+  id: string;
+  project_id: string;
+  slice_id: string;
+  execution_run_id: string;
+  status: string;
+  summary: string;
+  artifact_refs: string[];
+  review_refs: string[];
+}
+
+interface FoundryRunsResponse {
+  runs: FoundryRunData[];
+  count: number;
+}
+
+interface ExecutionSliceData {
+  id: string;
+  project_id: string;
+  owner_agent: string;
+  lane: string;
+  base_sha: string;
+  worktree_path: string;
+  acceptance_target: string;
+  status: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface ExecutionSlicesResponse {
+  slices: ExecutionSliceData[];
+  count: number;
+}
+
+interface DeployCandidateData {
+  id: string;
+  project_id: string;
+  channel: string;
+  artifact_refs: string[];
+  env_contract: Record<string, unknown>;
+  smoke_results: Record<string, unknown>;
+  rollback_target: Record<string, unknown>;
+  promotion_status: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface DeploymentsResponse {
+  deployments: DeployCandidateData[];
+  count: number;
+}
+
+interface RollbackEventData {
+  id: string;
+  project_id: string;
+  candidate_id: string;
+  reason: string;
+  rollback_target: Record<string, unknown>;
+  status: string;
+  metadata?: Record<string, unknown>;
+  created_at: number | string;
+}
+
+interface RollbacksResponse {
+  rollbacks: RollbackEventData[];
+  count: number;
+}
+
+interface MaintenanceRunData {
+  id: string;
+  project_id: string;
+  kind: string;
+  trigger: string;
+  status: string;
+  evidence_ref: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface MaintenanceRunsResponse {
+  maintenance_runs: MaintenanceRunData[];
+  count: number;
+}
+
+interface ProjectFoundrySnapshot {
+  packet: ProjectPacketData | null;
+  architecture: ArchitecturePacketData | null;
+  slices: ExecutionSlicesResponse;
+  runs: FoundryRunsResponse;
+  deployments: DeploymentsResponse;
+  rollbacks: RollbacksResponse;
+  maintenance: MaintenanceRunsResponse;
+}
+
+type ProvingStage = "slice_execution" | "candidate_evidence" | "rollback_record";
+
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function statusBadgeVariant(status: string) {
@@ -88,6 +213,52 @@ function projectStatusTone(status: string) {
   return "default" as const;
 }
 
+function getNextProvingStageAction(
+  foundry: ProjectFoundrySnapshot | undefined,
+  projectId: string
+): { stage: ProvingStage; label: string; description: string } | null {
+  if (projectId !== "athanor") {
+    return null;
+  }
+
+  const hasArchitecture = Boolean(foundry?.architecture);
+  const hasSlice = (foundry?.slices.slices.length ?? 0) > 0;
+  const hasRun = (foundry?.runs.runs.length ?? 0) > 0;
+  const candidateWithRollback = foundry?.deployments.deployments.find(
+    (candidate) => Object.keys(candidate.rollback_target ?? {}).length > 0
+  );
+  const hasRollbackEvidence =
+    (foundry?.rollbacks.rollbacks.length ?? 0) > 0 ||
+    Boolean(
+      foundry?.deployments.deployments.find((candidate) =>
+        ["promoted", "rolled_back"].includes(candidate.promotion_status)
+      )
+    );
+
+  if (!hasArchitecture || !hasSlice || !hasRun) {
+    return {
+      stage: "slice_execution",
+      label: "Prime Proving Slice",
+      description: "Write the Athanor architecture packet, first execution slice, and first foundry run into governed foundry records.",
+    };
+  }
+  if (!candidateWithRollback) {
+    return {
+      stage: "candidate_evidence",
+      label: "Attach Candidate Evidence",
+      description: "Record the proving deploy candidate with acceptance evidence and a rollback target before any promotion decision.",
+    };
+  }
+  if (!hasRollbackEvidence) {
+    return {
+      stage: "rollback_record",
+      label: "Record Rollback Proof",
+      description: "Capture a bounded rollback record so the proving path has real rollback evidence without pretending a live promotion already happened.",
+    };
+  }
+  return null;
+}
+
 // ── Component ────────────────────────────────────────────────────────
 
 export function ProjectsConsole() {
@@ -98,7 +269,9 @@ export function ProjectsConsole() {
   const [milestoneCache, setMilestoneCache] = useState<
     Record<string, MilestonesResponse>
   >({});
+  const [foundryCache, setFoundryCache] = useState<Record<string, ProjectFoundrySnapshot>>({});
   const [loadingMilestones, setLoadingMilestones] = useState<string | null>(null);
+  const [loadingFoundry, setLoadingFoundry] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -128,6 +301,86 @@ export function ProjectsConsole() {
   );
   const totalAgents = new Set(projects.flatMap((p) => p.agents)).size;
 
+  const loadProjectFoundry = useCallback(async (projectId: string) => {
+    setLoadingFoundry(projectId);
+    try {
+      const [
+        packetResponse,
+        architectureResponse,
+        slicesResponse,
+        runsResponse,
+        deploymentsResponse,
+        rollbacksResponse,
+        maintenanceResponse,
+      ] =
+        await Promise.all([
+          requestJson(`/api/projects/${encodeURIComponent(projectId)}/packet`).catch(() => null),
+          requestJson(`/api/projects/${encodeURIComponent(projectId)}/architecture`).catch(() => null),
+          requestJson(`/api/projects/${encodeURIComponent(projectId)}/slices`).catch(
+            () => ({ slices: [], count: 0 })
+          ),
+          requestJson(`/api/projects/${encodeURIComponent(projectId)}/foundry/runs`).catch(
+            () => ({ runs: [], count: 0 })
+          ),
+          requestJson(`/api/projects/${encodeURIComponent(projectId)}/deployments`).catch(
+            () => ({ deployments: [], count: 0 })
+          ),
+          requestJson(`/api/projects/${encodeURIComponent(projectId)}/rollbacks`).catch(
+            () => ({ rollbacks: [], count: 0 })
+          ),
+          requestJson(`/api/projects/${encodeURIComponent(projectId)}/maintenance`).catch(
+            () => ({ maintenance_runs: [], count: 0 })
+          ),
+        ]);
+
+      setFoundryCache((prev) => ({
+        ...prev,
+        [projectId]: {
+          packet:
+            packetResponse && typeof packetResponse === "object" && "packet" in packetResponse
+              ? (packetResponse.packet as ProjectPacketData)
+              : null,
+          architecture:
+            architectureResponse &&
+            typeof architectureResponse === "object" &&
+            "architecture" in architectureResponse
+              ? (architectureResponse.architecture as ArchitecturePacketData)
+              : null,
+          slices:
+            slicesResponse &&
+            typeof slicesResponse === "object" &&
+            "slices" in slicesResponse
+              ? (slicesResponse as ExecutionSlicesResponse)
+              : { slices: [], count: 0 },
+          runs:
+            runsResponse && typeof runsResponse === "object" && "runs" in runsResponse
+              ? (runsResponse as FoundryRunsResponse)
+              : { runs: [], count: 0 },
+          deployments:
+            deploymentsResponse &&
+            typeof deploymentsResponse === "object" &&
+            "deployments" in deploymentsResponse
+              ? (deploymentsResponse as DeploymentsResponse)
+              : { deployments: [], count: 0 },
+          rollbacks:
+            rollbacksResponse &&
+            typeof rollbacksResponse === "object" &&
+            "rollbacks" in rollbacksResponse
+              ? (rollbacksResponse as RollbacksResponse)
+              : { rollbacks: [], count: 0 },
+          maintenance:
+            maintenanceResponse &&
+            typeof maintenanceResponse === "object" &&
+            "maintenance_runs" in maintenanceResponse
+              ? (maintenanceResponse as MaintenanceRunsResponse)
+              : { maintenance_runs: [], count: 0 },
+        },
+      }));
+    } finally {
+      setLoadingFoundry(null);
+    }
+  }, []);
+
   const toggleExpand = useCallback(
     async (projectId: string) => {
       if (expandedProject === projectId) {
@@ -135,25 +388,33 @@ export function ProjectsConsole() {
         return;
       }
       setExpandedProject(projectId);
+      const loadPromises: Promise<unknown>[] = [];
       if (!milestoneCache[projectId]) {
         setLoadingMilestones(projectId);
-        try {
-          const data: MilestonesResponse = await requestJson(
-            `/api/projects/${encodeURIComponent(projectId)}/milestones`
-          );
-          setMilestoneCache((prev) => ({ ...prev, [projectId]: data }));
-        } catch {
-          // Milestones endpoint may not exist for this project yet
-          setMilestoneCache((prev) => ({
-            ...prev,
-            [projectId]: { milestones: [], count: 0 },
-          }));
-        } finally {
-          setLoadingMilestones(null);
-        }
+        loadPromises.push(
+          requestJson(`/api/projects/${encodeURIComponent(projectId)}/milestones`)
+            .then((data: MilestonesResponse) => {
+              setMilestoneCache((prev) => ({ ...prev, [projectId]: data }));
+            })
+            .catch(() => {
+              setMilestoneCache((prev) => ({
+                ...prev,
+                [projectId]: { milestones: [], count: 0 },
+              }));
+            })
+            .finally(() => {
+              setLoadingMilestones(null);
+            })
+        );
+      }
+      if (!foundryCache[projectId]) {
+        loadPromises.push(loadProjectFoundry(projectId));
+      }
+      if (loadPromises.length > 0) {
+        await Promise.all(loadPromises);
       }
     },
-    [expandedProject, milestoneCache]
+    [expandedProject, foundryCache, loadProjectFoundry, milestoneCache]
   );
 
   async function handleAdvance(projectId: string) {
@@ -170,6 +431,60 @@ export function ProjectsConsole() {
     } catch (error) {
       setFeedback(
         error instanceof Error ? error.message : "Advance request failed."
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handlePromote(projectId: string, candidateId: string, channel: string) {
+    setBusy(`promote-${candidateId}`);
+    setFeedback(null);
+    try {
+      await postJson(`/api/projects/${encodeURIComponent(projectId)}/promote`, {
+        candidate_id: candidateId,
+        channel,
+      });
+      await loadProjectFoundry(projectId);
+      setFeedback(`Promoted ${candidateId} for ${projectId}`);
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : "Failed to promote deploy candidate."
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleRollback(projectId: string, candidateId: string) {
+    setBusy(`rollback-${candidateId}`);
+    setFeedback(null);
+    try {
+      await postJson(`/api/projects/${encodeURIComponent(projectId)}/rollback`, {
+        candidate_id: candidateId,
+        protected_mode: true,
+      });
+      await loadProjectFoundry(projectId);
+      setFeedback(`Rolled back ${candidateId} for ${projectId}`);
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : "Failed to roll back deploy candidate."
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleProvingStage(projectId: string, stage: ProvingStage) {
+    setBusy(`proving-${projectId}-${stage}`);
+    setFeedback(null);
+    try {
+      await postJson(`/api/projects/${encodeURIComponent(projectId)}/proving`, { stage });
+      await loadProjectFoundry(projectId);
+      setFeedback(`Recorded ${stage} for ${projectId}`);
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : "Failed to materialize proving stage."
       );
     } finally {
       setBusy(null);
@@ -285,11 +600,20 @@ export function ProjectsConsole() {
               project={project}
               expanded={expandedProject === project.id}
               milestones={milestoneCache[project.id]}
+              foundry={foundryCache[project.id]}
               loadingMilestones={loadingMilestones === project.id}
+              loadingFoundry={loadingFoundry === project.id}
               milestoneProgress={getMilestoneProgress(project.id)}
               busy={busy}
               onToggle={() => toggleExpand(project.id)}
               onAdvance={() => handleAdvance(project.id)}
+              onMaterializeProvingStage={(stage) =>
+                handleProvingStage(project.id, stage)
+              }
+              onPromote={(candidateId, channel) =>
+                handlePromote(project.id, candidateId, channel)
+              }
+              onRollback={(candidateId) => handleRollback(project.id, candidateId)}
             />
           ))}
         </div>
@@ -361,21 +685,33 @@ function ProjectCard({
   project,
   expanded,
   milestones,
+  foundry,
   loadingMilestones,
+  loadingFoundry,
   milestoneProgress,
   busy,
   onToggle,
   onAdvance,
+  onMaterializeProvingStage,
+  onPromote,
+  onRollback,
 }: {
   project: ProjectSnapshot;
   expanded: boolean;
   milestones: MilestonesResponse | undefined;
+  foundry: ProjectFoundrySnapshot | undefined;
   loadingMilestones: boolean;
+  loadingFoundry: boolean;
   milestoneProgress: number | null;
   busy: string | null;
   onToggle: () => void;
   onAdvance: () => void;
+  onMaterializeProvingStage: (stage: ProvingStage) => void;
+  onPromote: (candidateId: string, channel: string) => void;
+  onRollback: (candidateId: string) => void;
 }) {
+  const provingAction = getNextProvingStageAction(foundry, project.id);
+
   return (
     <Card className="surface-tile">
       <CardHeader className="pb-2">
@@ -434,7 +770,7 @@ function ProjectCard({
             ) : (
               <ChevronRight className="mr-1 h-3.5 w-3.5" />
             )}
-            {expanded ? "Hide" : "View"} Milestones
+            {expanded ? "Hide" : "View"} Details
           </Button>
           <Button
             variant="outline"
@@ -448,7 +784,107 @@ function ProjectCard({
 
         {/* Expanded milestones */}
         {expanded && (
-          <div className="border-t border-border/30 pt-3">
+          <div className="space-y-4 border-t border-border/30 pt-3">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                  Foundry Packet
+                </p>
+                {loadingFoundry && (
+                  <span className="text-[11px] text-muted-foreground">Loading foundry…</span>
+                )}
+              </div>
+              {!foundry?.packet ? (
+                <p className="text-xs text-muted-foreground">
+                  No governed packet loaded for this project yet.
+                </p>
+              ) : (
+                <div className="rounded-lg border border-border/30 bg-background/30 p-3 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={statusBadgeVariant(foundry.packet.stage)}>
+                      {foundry.packet.stage}
+                    </Badge>
+                    <Badge variant="outline">{foundry.packet.template}</Badge>
+                    <Badge variant="secondary">{foundry.packet.runtime_target}</Badge>
+                    <Badge variant="secondary">{foundry.packet.deploy_target}</Badge>
+                  </div>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <div>
+                      <p className="font-medium text-foreground">Owner domain</p>
+                      <p>{foundry.packet.owner_domain}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Maintenance cadence</p>
+                      <p>{foundry.packet.maintenance_cadence}</p>
+                    </div>
+                  </div>
+                  {foundry.packet.acceptance_bundle.length > 0 && (
+                    <div className="mt-3">
+                      <p className="font-medium text-foreground">Acceptance bundle</p>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {foundry.packet.acceptance_bundle.map((item) => (
+                          <Badge key={item} variant="outline" className="text-[10px]">
+                            {item}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {foundry.architecture && (
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div>
+                        <p className="font-medium text-foreground">Service shape</p>
+                        <p>
+                          {String(foundry.architecture.service_shape.app ?? "service")} on{" "}
+                          {String(foundry.architecture.service_shape.runtime ?? "runtime")}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">Auth boundary</p>
+                        <p>
+                          {String(
+                            foundry.architecture.auth_boundary.product_auth ??
+                              foundry.architecture.auth_boundary.operator_auth_shared ??
+                              "governed"
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {provingAction && (
+                    <div className="mt-3 flex flex-col gap-3 rounded-lg border border-border/30 bg-background/40 p-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">{provingAction.label}</p>
+                        <p>{provingAction.description}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busy === `proving-${project.id}-${provingAction.stage}`}
+                        onClick={() => onMaterializeProvingStage(provingAction.stage)}
+                      >
+                        {busy === `proving-${project.id}-${provingAction.stage}`
+                          ? "Recording..."
+                          : provingAction.label}
+                      </Button>
+                    </div>
+                  )}
+                  {!provingAction && project.id === "athanor" && (
+                    <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
+                      <p className="font-medium text-foreground">Athanor proving path is recorded</p>
+                      <p className="mt-1">
+                        The governed packet, slice, run, candidate, and rollback evidence are all present in foundry records.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                Milestones
+              </p>
             {loadingMilestones ? (
               <p className="text-xs text-muted-foreground">
                 Loading milestones...
@@ -464,6 +900,207 @@ function ProjectCard({
                 ))}
               </div>
             )}
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                  Execution Slices
+                </p>
+                {!foundry || foundry.slices.slices.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No execution slices recorded yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {foundry.slices.slices.slice(0, 3).map((slice) => (
+                      <div
+                        key={slice.id}
+                        className="rounded-lg border border-border/30 bg-background/30 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">{slice.id}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {slice.owner_agent} via {slice.lane}
+                            </p>
+                          </div>
+                          <Badge variant={statusBadgeVariant(slice.status)}>{slice.status}</Badge>
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Acceptance target: {slice.acceptance_target || "n/a"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                  Foundry Runs
+                </p>
+                {!foundry || foundry.runs.runs.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No foundry runs recorded yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {foundry.runs.runs.slice(0, 3).map((run) => (
+                      <div
+                        key={run.id}
+                        className="rounded-lg border border-border/30 bg-background/30 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">{run.id}</p>
+                            <p className="text-xs text-muted-foreground">{run.summary}</p>
+                          </div>
+                          <Badge variant={statusBadgeVariant(run.status)}>{run.status}</Badge>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {run.artifact_refs.map((artifact) => (
+                            <Badge key={artifact} variant="outline" className="text-[10px]">
+                              {artifact}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                  Deploy Candidates
+                </p>
+                {!foundry || foundry.deployments.deployments.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No deploy candidates recorded yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {foundry.deployments.deployments.slice(0, 3).map((deployment) => (
+                      <div
+                        key={deployment.id}
+                        className="rounded-lg border border-border/30 bg-background/30 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">
+                              {deployment.channel}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{deployment.id}</p>
+                          </div>
+                          <Badge variant={statusBadgeVariant(deployment.promotion_status)}>
+                            {deployment.promotion_status}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          <Badge variant="secondary" className="text-[10px]">
+                            smoke {String(deployment.smoke_results.status ?? "unknown")}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            rollback {Object.keys(deployment.rollback_target ?? {}).length > 0 ? "ready" : "missing"}
+                          </Badge>
+                        </div>
+                        {deployment.promotion_status !== "promoted" &&
+                          Object.keys(deployment.rollback_target ?? {}).length > 0 && (
+                            <div className="mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={busy === `promote-${deployment.id}`}
+                                onClick={() => onPromote(deployment.id, deployment.channel)}
+                              >
+                                {busy === `promote-${deployment.id}` ? "Promoting..." : "Promote"}
+                              </Button>
+                            </div>
+                          )}
+                        {deployment.promotion_status === "promoted" &&
+                          Object.keys(deployment.rollback_target ?? {}).length > 0 && (
+                            <div className="mt-3">
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={busy === `rollback-${deployment.id}`}
+                                onClick={() => onRollback(deployment.id)}
+                              >
+                                {busy === `rollback-${deployment.id}` ? "Rolling back..." : "Rollback"}
+                              </Button>
+                            </div>
+                          )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                Rollback Events
+              </p>
+              {!foundry || foundry.rollbacks.rollbacks.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No rollback events recorded yet.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {foundry.rollbacks.rollbacks.slice(0, 3).map((rollback) => (
+                    <div
+                      key={rollback.id}
+                      className="rounded-lg border border-border/30 bg-background/30 p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {rollback.candidate_id}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{rollback.reason}</p>
+                        </div>
+                        <Badge variant={statusBadgeVariant(rollback.status)}>{rollback.status}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                Maintenance Runs
+              </p>
+              {!foundry || foundry.maintenance.maintenance_runs.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No maintenance runs recorded yet.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {foundry.maintenance.maintenance_runs.slice(0, 3).map((maintenance) => (
+                    <div
+                      key={maintenance.id}
+                      className="rounded-lg border border-border/30 bg-background/30 p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {maintenance.kind}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Trigger: {maintenance.trigger}
+                          </p>
+                        </div>
+                        <Badge variant={statusBadgeVariant(maintenance.status)}>
+                          {maintenance.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CardContent>

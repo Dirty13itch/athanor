@@ -5,6 +5,7 @@ import { DELETE, GET, POST } from "./route";
 describe("operator session route", () => {
   const env = process.env as Record<string, string | undefined>;
   const originalDashboardToken = env.ATHANOR_DASHBOARD_OPERATOR_TOKEN;
+  const originalAgentToken = env.ATHANOR_AGENT_API_TOKEN;
   const originalNodeEnv = env.NODE_ENV;
   const originalFixtureMode = env.DASHBOARD_FIXTURE_MODE;
 
@@ -13,6 +14,12 @@ describe("operator session route", () => {
       delete env.ATHANOR_DASHBOARD_OPERATOR_TOKEN;
     } else {
       env.ATHANOR_DASHBOARD_OPERATOR_TOKEN = originalDashboardToken;
+    }
+
+    if (originalAgentToken === undefined) {
+      delete env.ATHANOR_AGENT_API_TOKEN;
+    } else {
+      env.ATHANOR_AGENT_API_TOKEN = originalAgentToken;
     }
 
     if (originalNodeEnv === undefined) {
@@ -43,6 +50,20 @@ describe("operator session route", () => {
     });
   });
 
+  it("stays unlocked when only the agent api token is configured", async () => {
+    env.NODE_ENV = "production";
+    delete env.ATHANOR_DASHBOARD_OPERATOR_TOKEN;
+    env.ATHANOR_AGENT_API_TOKEN = "agent-secret";
+
+    const response = await GET(new NextRequest("http://localhost/api/operator/session"));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      configured: false,
+      requiresSession: false,
+      unlocked: true,
+    });
+  });
+
   it("rejects invalid unlock attempts and sets the cookie for valid ones", async () => {
     env.NODE_ENV = "production";
     env.ATHANOR_DASHBOARD_OPERATOR_TOKEN = "operator-secret";
@@ -69,5 +90,26 @@ describe("operator session route", () => {
     const response = await DELETE();
     expect(response.status).toBe(200);
     expect(response.headers.get("Set-Cookie")).toContain("Max-Age=0");
+  });
+
+  it("treats unlock as a no-op when no dedicated dashboard token is configured", async () => {
+    env.NODE_ENV = "production";
+    delete env.ATHANOR_DASHBOARD_OPERATOR_TOKEN;
+    env.ATHANOR_AGENT_API_TOKEN = "agent-secret";
+
+    const response = await POST(
+      new NextRequest("http://localhost/api/operator/session", {
+        method: "POST",
+        body: JSON.stringify({ token: "anything" }),
+      })
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      unlocked: true,
+      configured: false,
+    });
+    expect(response.headers.get("Set-Cookie")).toBeNull();
   });
 });

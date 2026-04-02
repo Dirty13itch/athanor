@@ -15,7 +15,7 @@ Do not edit manually.
 ## Drift Items
 
 - `additional-operator-clients-hostname-rollout-gap` on `athanor_command_center`: DESK now resolves the canonical command-center and node-host aliases, but any additional operator clients still need the same scripted hosts-file rollout or internal DNS before athanor.local and the *.athanor.local deep links work there.
-- `implementation-runtime-split` on `authority model`: Implementation truth and runtime authority still live in different roots. Drift must reconcile from DEV back into C:/Athanor until deployment becomes a strict mirror.
+- `implementation-runtime-split` on `authority model`: Implementation truth, runtime authority, and deployed runtime state still live in different roots. The runtime-ownership contract now governs that split explicitly, so it remains governed maintenance debt rather than a full-system autonomy blocker.
 
 ## Retired Runtime Migration Seams
 

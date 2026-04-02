@@ -6,6 +6,10 @@ export const OPERATOR_UNLOCK_HEADER = "x-athanor-operator-token";
 
 const PRIVILEGED_MUTATION_PATHS: RegExp[] = [
   /^\/api\/agents\/proxy$/,
+  /^\/api\/bootstrap\/programs\/[^/]+\/promote$/,
+  /^\/api\/bootstrap\/programs\/[^/]+\/nudge$/,
+  /^\/api\/bootstrap\/slices\/[^/]+\/(?:claim|handoff|complete)$/,
+  /^\/api\/bootstrap\/integrations\/[^/]+\/replay$/,
   /^\/api\/consolidation$/,
   /^\/api\/gallery\/rate$/,
   /^\/api\/containers\/[^/]+\/restart$/,
@@ -19,11 +23,14 @@ const PRIVILEGED_MUTATION_PATHS: RegExp[] = [
   /^\/api\/models\/governance\/promotions(?:\/[^/]+\/(?:advance|hold|rollback))?$/,
   /^\/api\/models\/governance\/retirements(?:\/[^/]+\/(?:advance|hold|rollback))?$/,
   /^\/api\/operator\/context\/(?:agent-threads(?:\/[^/]+)?|direct-chats(?:\/[^/]+)?)$/,
+  /^\/api\/operator\/approvals\/[^/]+\/(?:approve|reject)$/,
+  /^\/api\/operator\/system-mode$/,
   /^\/api\/operator\/nav-attention$/,
   /^\/api\/operator\/ui-preferences$/,
   /^\/api\/preferences$/,
   /^\/api\/pipeline\/(?:boost|cycle|suppress|react|preview|plans\/[^/]+\/(?:approve|reject))$/,
-  /^\/api\/projects\/[^/]+\/(?:advance|state|milestones)$/,
+  /^\/api\/projects\/[^/]+\/(?:advance|state|milestones|packet|architecture|deployments|promote|rollback|slices|maintenance)$/,
+  /^\/api\/projects\/[^/]+\/foundry\/runs$/,
   /^\/api\/push\/send$/,
   /^\/api\/research\/jobs(?:\/[^/]+\/execute)?$/,
   /^\/api\/feedback(?:\/implicit)?$/,
@@ -85,12 +92,53 @@ function isFixtureBypassEnabled(): boolean {
   );
 }
 
+function parseForwardedToken(headerValue: string | null, key: string): string | null {
+  if (!headerValue) {
+    return null;
+  }
+
+  const firstEntry = headerValue.split(",")[0]?.trim();
+  if (!firstEntry) {
+    return null;
+  }
+
+  for (const part of firstEntry.split(";")) {
+    const [candidateKey, rawValue] = part.split("=", 2);
+    if (candidateKey?.trim().toLowerCase() !== key) {
+      continue;
+    }
+
+    const value = rawValue?.trim();
+    if (!value) {
+      return null;
+    }
+
+    return value.replace(/^"|"$/g, "");
+  }
+
+  return null;
+}
+
+function getRequestOrigin(request: Request): string {
+  const forwardedProto =
+    request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+    parseForwardedToken(request.headers.get("forwarded"), "proto");
+  const forwardedHost =
+    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+    parseForwardedToken(request.headers.get("forwarded"), "host");
+
+  if (forwardedProto && forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  return new URL(request.url).origin;
+}
+
 export function getOperatorMutationToken(): string {
-  return (
-    process.env.ATHANOR_DASHBOARD_OPERATOR_TOKEN?.trim() ||
-    process.env.ATHANOR_AGENT_API_TOKEN?.trim() ||
-    ""
-  );
+  // Browser-facing operator session auth is intentionally separate from the
+  // server-to-server agent API token. If no dedicated dashboard token is set,
+  // the local operator surface stays unlocked.
+  return process.env.ATHANOR_DASHBOARD_OPERATOR_TOKEN?.trim() || "";
 }
 
 export function isPrivilegedMutationPath(pathname: string, method: string): boolean {
@@ -134,21 +182,21 @@ export function getOperatorSessionId(request: Request): string | null {
 }
 
 function hasSameOriginOperatorContext(request: Request): boolean {
-  const requestUrl = new URL(request.url);
+  const requestOrigin = getRequestOrigin(request);
   const explicitOrigin = request.headers.get("x-athanor-request-origin")?.trim();
   if (explicitOrigin) {
-    return originsMatch(explicitOrigin, requestUrl.origin);
+    return originsMatch(explicitOrigin, requestOrigin);
   }
 
   const origin = request.headers.get("origin")?.trim();
   if (origin) {
-    return originsMatch(origin, requestUrl.origin);
+    return originsMatch(origin, requestOrigin);
   }
 
   const referer = request.headers.get("referer")?.trim();
   if (referer) {
     try {
-      return originsMatch(new URL(referer).origin, requestUrl.origin);
+      return originsMatch(new URL(referer).origin, requestOrigin);
     } catch {
       return false;
     }
@@ -189,12 +237,6 @@ export function requireOperatorMutationAccess(request: Request): NextResponse | 
 
   const token = getOperatorMutationToken();
   if (!token) {
-    if (process.env.NODE_ENV === "production") {
-      return NextResponse.json(
-        { error: "ATHANOR_DASHBOARD_OPERATOR_TOKEN is required for privileged dashboard mutations" },
-        { status: 503 }
-      );
-    }
     return null;
   }
 
@@ -234,12 +276,6 @@ export function requireOperatorSessionAccess(request: Request): NextResponse | n
 
   const token = getOperatorMutationToken();
   if (!token) {
-    if (process.env.NODE_ENV === "production") {
-      return NextResponse.json(
-        { error: "ATHANOR_DASHBOARD_OPERATOR_TOKEN is required for operator session access" },
-        { status: 503 }
-      );
-    }
     return null;
   }
 

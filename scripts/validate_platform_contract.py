@@ -16,7 +16,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = REPO_ROOT / "config" / "automation-backbone"
 PROVIDER_USAGE_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "provider-usage-evidence.json"
 VAULT_LITELLM_ENV_AUDIT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "vault-litellm-env-audit.json"
+VAULT_REDIS_AUDIT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "vault-redis-audit.json"
 TRUTH_SNAPSHOT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "latest.json"
+BOOTSTRAP_SNAPSHOT_PATH = REPO_ROOT / "reports" / "bootstrap" / "latest.json"
+BOOTSTRAP_COMPATIBILITY_CENSUS_PATH = REPO_ROOT / "reports" / "bootstrap" / "compatibility-retirement-census.json"
+BOOTSTRAP_OPERATOR_SURFACE_CENSUS_PATH = REPO_ROOT / "reports" / "bootstrap" / "operator-surface-census.json"
+BOOTSTRAP_OPERATOR_SUMMARY_ALIGNMENT_PATH = REPO_ROOT / "reports" / "bootstrap" / "operator-summary-alignment.json"
+BOOTSTRAP_OPERATOR_FIXTURE_PARITY_PATH = REPO_ROOT / "reports" / "bootstrap" / "operator-fixture-parity.json"
+BOOTSTRAP_OPERATOR_NAV_LOCK_PATH = REPO_ROOT / "reports" / "bootstrap" / "operator-nav-lock.json"
+BOOTSTRAP_DURABLE_PERSISTENCE_PACKET_PATH = REPO_ROOT / "reports" / "bootstrap" / "durable-persistence-packet.json"
+BOOTSTRAP_DURABLE_RESTART_PROOF_PATH = REPO_ROOT / "reports" / "bootstrap" / "durable-restart-proof.json"
+BOOTSTRAP_FOUNDRY_PROVING_PACKET_PATH = REPO_ROOT / "reports" / "bootstrap" / "foundry-proving-packet.json"
+BOOTSTRAP_GOVERNANCE_DRILL_PACKETS_PATH = REPO_ROOT / "reports" / "bootstrap" / "governance-drill-packets.json"
+BOOTSTRAP_TAKEOVER_PROMOTION_PACKET_PATH = REPO_ROOT / "reports" / "bootstrap" / "takeover-promotion-packet.json"
 LITELLM_TEMPLATE_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "templates" / "litellm_config.yaml.j2"
 VAULT_LITELLM_TASKS_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "tasks" / "main.yml"
 
@@ -90,6 +102,16 @@ GENERATED_DOC_GENERATORS = {
         "--report",
         "repo_roots",
     ],
+    "docs/operations/RUNTIME-OWNERSHIP-REPORT.md": [
+        "scripts/generate_truth_inventory_reports.py",
+        "--report",
+        "runtime_ownership",
+    ],
+    "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md": [
+        "scripts/generate_truth_inventory_reports.py",
+        "--report",
+        "runtime_ownership_packets",
+    ],
     "docs/operations/OPERATOR-SURFACE-REPORT.md": [
         "scripts/generate_truth_inventory_reports.py",
         "--report",
@@ -109,6 +131,11 @@ GENERATED_DOC_GENERATORS = {
         "scripts/generate_truth_inventory_reports.py",
         "--report",
         "vault_litellm_repair_packet",
+    ],
+    "docs/operations/VAULT-REDIS-REPAIR-PACKET.md": [
+        "scripts/generate_truth_inventory_reports.py",
+        "--report",
+        "vault_redis_repair_packet",
     ],
     "docs/operations/AUTONOMY-ACTIVATION-REPORT.md": [
         "scripts/generate_truth_inventory_reports.py",
@@ -283,6 +310,22 @@ ALLOWED_RUNTIME_MIGRATION_STATUSES = {"runtime_pending", "repo_ready", "cutover_
 ALLOWED_RUNTIME_IMPLEMENTATION_STATES = {"repo_pending", "migrated", "retired"}
 ALLOWED_RUNTIME_CUTOVER_STATES = {"pending_dev_cutover", "cutover_in_progress", "cutover_verified"}
 ALLOWED_RUNTIME_SYNC_STRATEGIES = {"backup_then_replace_from_implementation_authority"}
+ALLOWED_RUNTIME_OWNERSHIP_LANE_STATUSES = {"active", "recovery_only", "planned", "retired"}
+ALLOWED_RUNTIME_OWNERSHIP_DEPLOYMENT_MODES = {
+    "repo_worktree_systemd",
+    "repo_worktree_script",
+    "opt_compose_service",
+    "opt_systemd_service",
+    "host_state_surface",
+    "vault_host_state",
+}
+ALLOWED_RUNTIME_OWNERSHIP_CRITERION_STATUSES = {"met", "open", "planned"}
+ALLOWED_RUNTIME_OWNERSHIP_PACKET_STATUSES = {
+    "ready_for_approval",
+    "approved_pending_execution",
+    "executed",
+    "retired",
+}
 ALLOWED_AUTONOMY_REGISTRY_STATUSES = {"configured", "live_partial", "live", "degraded"}
 ALLOWED_AUTONOMY_ACTIVATION_STATES = {
     "blocked",
@@ -360,10 +403,31 @@ REQUIRED_CANONICAL_DOC_HEADERS = {
     "docs/runbooks/rebuild-dev.md": {
         "sources": [
             "config/automation-backbone/platform-topology.json",
+            "config/automation-backbone/runtime-ownership-contract.json",
+            "config/automation-backbone/runtime-ownership-packets.json",
             "docs/RECOVERY.md",
+            "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+            "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
         ],
         "versions": [
             "platform-topology.json",
+            "runtime-ownership-contract.json",
+            "runtime-ownership-packets.json",
+            "program-operating-system.json",
+        ],
+    },
+    "docs/runbooks/runtime-ownership-contract.md": {
+        "sources": [
+            "config/automation-backbone/runtime-ownership-contract.json",
+            "config/automation-backbone/runtime-ownership-packets.json",
+            "config/automation-backbone/repo-roots-registry.json",
+            "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+            "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        ],
+        "versions": [
+            "runtime-ownership-contract.json",
+            "runtime-ownership-packets.json",
+            "repo-roots-registry.json",
             "program-operating-system.json",
         ],
     },
@@ -435,6 +499,415 @@ REQUIRED_CANONICAL_DOC_HEADERS = {
 def _load_json(name: str) -> dict[str, Any]:
     path = CONFIG_DIR / name
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _validate_bootstrap_zero_ambiguity_contracts(
+    *,
+    errors: list[str],
+    bootstrap_programs: dict[str, Any],
+    bootstrap_takeover: dict[str, Any],
+    bootstrap_slice_catalog: dict[str, Any],
+    bootstrap_execution_policy: dict[str, Any],
+    foundry_proving: dict[str, Any],
+    governance_drills: dict[str, Any],
+    approval_packets: dict[str, Any],
+    operator_runbooks: dict[str, Any],
+    project_packets: dict[str, Any],
+    latest_bootstrap_snapshot: dict[str, Any],
+    operator_surface_census: dict[str, Any],
+    operator_summary_alignment: dict[str, Any],
+    operator_fixture_parity: dict[str, Any],
+    operator_nav_lock: dict[str, Any],
+    durable_persistence_packet: dict[str, Any],
+    foundry_proving_packet: dict[str, Any],
+    governance_drill_packets: dict[str, Any],
+    takeover_promotion_packet: dict[str, Any],
+) -> None:
+    family_ids = {
+        str(item.get("id") or "").strip()
+        for item in bootstrap_programs.get("families", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    slice_catalog_family_ids = {
+        str(item.get("id") or "").strip()
+        for item in bootstrap_slice_catalog.get("families", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    if family_ids != slice_catalog_family_ids:
+        errors.append(
+            "bootstrap-slice-catalog.json families must match bootstrap-program-registry.json families exactly"
+        )
+
+    required_slice_fields = {
+        "id",
+        "family",
+        "order",
+        "objective",
+        "write_scope",
+        "read_scope",
+        "phase_scope",
+        "host_mode",
+        "mutates_repo",
+        "mutates_runtime",
+        "approval_class",
+        "validator_bundle",
+        "integration_priority",
+        "retry_class",
+        "blocker_class",
+        "completion_evidence",
+        "next_on_success",
+        "next_on_block",
+    }
+    allowed_host_modes = {"report_only", "code_mutation", "validation_only", "governed_packet"}
+    allowed_approval_classes = {
+        "none",
+        "approval_packet",
+        "runtime_mutation_blocked",
+        "promotion_explicit",
+    }
+    family_slice_counts = {family_id: 0 for family_id in family_ids}
+    for entry in bootstrap_slice_catalog.get("slices", []):
+        if not isinstance(entry, dict):
+            errors.append("bootstrap-slice-catalog.json slices entries must be objects")
+            continue
+        missing_fields = sorted(required_slice_fields - set(entry.keys()))
+        if missing_fields:
+            errors.append(
+                "bootstrap-slice-catalog.json slice "
+                f"{entry.get('id')!r} is missing fields: {', '.join(missing_fields)}"
+            )
+        slice_id = str(entry.get("id") or "").strip()
+        family = str(entry.get("family") or "").strip()
+        if not slice_id:
+            errors.append("bootstrap-slice-catalog.json contains a slice without id")
+        if family not in family_ids:
+            errors.append(
+                f"bootstrap-slice-catalog.json slice {slice_id or '<unknown>'} references unknown family {family!r}"
+            )
+        else:
+            family_slice_counts[family] += 1
+        if entry.get("host_mode") not in allowed_host_modes:
+            errors.append(
+                f"bootstrap-slice-catalog.json slice {slice_id or '<unknown>'} has invalid host_mode {entry.get('host_mode')!r}"
+            )
+        if entry.get("approval_class") not in allowed_approval_classes:
+            errors.append(
+                f"bootstrap-slice-catalog.json slice {slice_id or '<unknown>'} has invalid approval_class {entry.get('approval_class')!r}"
+            )
+        for field_name in (
+            "write_scope",
+            "read_scope",
+            "validator_bundle",
+            "completion_evidence",
+            "next_on_success",
+            "next_on_block",
+        ):
+            if not isinstance(entry.get(field_name), list):
+                errors.append(
+                    f"bootstrap-slice-catalog.json slice {slice_id or '<unknown>'} field {field_name} must be a list"
+                )
+    for family_id, count in family_slice_counts.items():
+        if count == 0:
+            errors.append(f"bootstrap-slice-catalog.json must define at least one slice for family {family_id}")
+
+    worktree = dict(bootstrap_execution_policy.get("worktree") or {})
+    branch_patterns = dict(worktree.get("branch_name_patterns") or {})
+    if str(worktree.get("root_path_pattern") or "").strip() != "C:\\Athanor_worktrees\\{family}\\{slice_id}":
+        errors.append("bootstrap-execution-policy.json worktree.root_path_pattern must be C:\\Athanor_worktrees\\{family}\\{slice_id}")
+    for host_id in ("codex_external", "claude_external"):
+        if host_id not in branch_patterns:
+            errors.append(
+                f"bootstrap-execution-policy.json worktree.branch_name_patterns is missing {host_id}"
+            )
+    integration = dict(bootstrap_execution_policy.get("integration") or {})
+    if str(integration.get("target_ref") or "").strip() != "main":
+        errors.append("bootstrap-execution-policy.json integration.target_ref must be 'main'")
+    if integration.get("allow_merge_commits") is not False:
+        errors.append("bootstrap-execution-policy.json integration.allow_merge_commits must be false")
+
+    project_packet_ids = {
+        str(item.get("id") or "").strip()
+        for item in project_packets.get("projects", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    if str(foundry_proving.get("project_id") or "").strip() != "athanor":
+        errors.append("foundry-proving-registry.json project_id must be 'athanor'")
+    if str(foundry_proving.get("project_id") or "").strip() not in project_packet_ids:
+        errors.append("foundry-proving-registry.json project_id must exist in project-packet-registry.json")
+    if not [str(item).strip() for item in foundry_proving.get("validator_bundle", []) if str(item).strip()]:
+        errors.append("foundry-proving-registry.json validator_bundle must be non-empty")
+    if bool(dict(foundry_proving.get("promotion_gate") or {}).get("allow_direct_ad_hoc_bypass")):
+        errors.append("foundry-proving-registry.json promotion_gate.allow_direct_ad_hoc_bypass must be false")
+
+    runbook_ids = {
+        str(item.get("id") or "").strip()
+        for item in operator_runbooks.get("runbooks", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    drill_ids: set[str] = set()
+    for drill in governance_drills.get("drills", []):
+        if not isinstance(drill, dict):
+            errors.append("governance-drill-registry.json drills entries must be objects")
+            continue
+        drill_id = str(drill.get("drill_id") or "").strip()
+        if not drill_id:
+            errors.append("governance-drill-registry.json contains a drill without drill_id")
+            continue
+        if drill_id in drill_ids:
+            errors.append(f"governance-drill-registry.json drill_id {drill_id!r} is duplicated")
+        drill_ids.add(drill_id)
+        runbook_id = str(drill.get("runbook_id") or "").strip()
+        if runbook_id not in runbook_ids:
+            errors.append(
+                f"governance-drill-registry.json drill {drill_id} references unknown runbook_id {runbook_id!r}"
+            )
+        if not isinstance(drill.get("evidence_artifacts"), list) or not drill.get("evidence_artifacts"):
+            errors.append(
+                f"governance-drill-registry.json drill {drill_id} must declare evidence_artifacts"
+            )
+        if not str(drill.get("health_effect") or "").strip():
+            errors.append(f"governance-drill-registry.json drill {drill_id} is missing health_effect")
+        if not str(drill.get("dashboard_effect") or "").strip():
+            errors.append(f"governance-drill-registry.json drill {drill_id} is missing dashboard_effect")
+        if not isinstance(drill.get("pass_criteria"), list) or not drill.get("pass_criteria"):
+            errors.append(f"governance-drill-registry.json drill {drill_id} must declare pass_criteria")
+
+    required_packets = {
+        "db_schema_change",
+        "vault_provider_auth_repair",
+        "systemd_runtime_change",
+        "destructive_branch_cleanup",
+        "runtime_host_reconfiguration",
+    }
+    packet_ids = {
+        str(item.get("id") or "").strip()
+        for item in approval_packets.get("packet_types", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    if packet_ids != required_packets:
+        errors.append("approval-packet-registry.json packet_types must match the required ask-first packet ids exactly")
+    for packet in approval_packets.get("packet_types", []):
+        if not isinstance(packet, dict):
+            errors.append("approval-packet-registry.json packet_types entries must be objects")
+            continue
+        packet_id = str(packet.get("id") or "").strip()
+        for field_name in ("boundary", "approval_authority"):
+            if not str(packet.get(field_name) or "").strip():
+                errors.append(f"approval-packet-registry.json packet {packet_id or '<unknown>'} is missing {field_name}")
+        for field_name in ("evidence_required", "exact_steps", "rollback_steps"):
+            if not isinstance(packet.get(field_name), list) or not packet.get(field_name):
+                errors.append(
+                    f"approval-packet-registry.json packet {packet_id or '<unknown>'} must declare non-empty {field_name}"
+                )
+
+    active_bootstrap_program = any(
+        str(item.get("status") or "").strip() in {"active", "ready_for_takeover_check", "takeover_promoted"}
+        for item in bootstrap_programs.get("programs", [])
+        if isinstance(item, dict)
+    )
+    required_bootstrap_artifacts = {
+        "reports/bootstrap/compatibility-retirement-census.json": BOOTSTRAP_COMPATIBILITY_CENSUS_PATH,
+        "reports/bootstrap/operator-surface-census.json": BOOTSTRAP_OPERATOR_SURFACE_CENSUS_PATH,
+        "reports/bootstrap/operator-summary-alignment.json": BOOTSTRAP_OPERATOR_SUMMARY_ALIGNMENT_PATH,
+        "reports/bootstrap/operator-fixture-parity.json": BOOTSTRAP_OPERATOR_FIXTURE_PARITY_PATH,
+        "reports/bootstrap/operator-nav-lock.json": BOOTSTRAP_OPERATOR_NAV_LOCK_PATH,
+        "reports/bootstrap/durable-persistence-packet.json": BOOTSTRAP_DURABLE_PERSISTENCE_PACKET_PATH,
+        "reports/bootstrap/foundry-proving-packet.json": BOOTSTRAP_FOUNDRY_PROVING_PACKET_PATH,
+        "reports/bootstrap/governance-drill-packets.json": BOOTSTRAP_GOVERNANCE_DRILL_PACKETS_PATH,
+        "reports/bootstrap/takeover-promotion-packet.json": BOOTSTRAP_TAKEOVER_PROMOTION_PACKET_PATH,
+    }
+    if active_bootstrap_program and not BOOTSTRAP_SNAPSHOT_PATH.exists():
+        errors.append("reports/bootstrap/latest.json is required while a bootstrap program is active")
+    if active_bootstrap_program:
+        for label, path in required_bootstrap_artifacts.items():
+            if not path.exists():
+                errors.append(f"{label} is required while a bootstrap program is active")
+    if BOOTSTRAP_SNAPSHOT_PATH.exists():
+        if not latest_bootstrap_snapshot:
+            errors.append("reports/bootstrap/latest.json must contain valid JSON")
+        else:
+            if not str(latest_bootstrap_snapshot.get("generated_at") or "").strip():
+                errors.append("reports/bootstrap/latest.json is missing generated_at")
+            if not isinstance(latest_bootstrap_snapshot.get("status"), dict):
+                errors.append("reports/bootstrap/latest.json must contain a status object")
+            else:
+                status = dict(latest_bootstrap_snapshot.get("status") or {})
+                if not isinstance(status.get("takeover"), dict):
+                    errors.append("reports/bootstrap/latest.json status.takeover must be an object")
+                if not isinstance(status.get("registry_snapshot"), dict):
+                    errors.append("reports/bootstrap/latest.json status.registry_snapshot must be an object")
+                if not isinstance(status.get("control_artifacts"), dict):
+                    errors.append("reports/bootstrap/latest.json status.control_artifacts must be an object")
+    if BOOTSTRAP_OPERATOR_SURFACE_CENSUS_PATH.exists():
+        if not operator_surface_census:
+            errors.append("reports/bootstrap/operator-surface-census.json must contain valid JSON")
+        else:
+            if "first_class_drift_count" not in operator_surface_census:
+                errors.append("reports/bootstrap/operator-surface-census.json first_class_drift_count is required")
+            if "canonical_hit_count" not in operator_surface_census:
+                errors.append("reports/bootstrap/operator-surface-census.json canonical_hit_count is required")
+            if "complete" not in operator_surface_census:
+                errors.append("reports/bootstrap/operator-surface-census.json complete is required")
+    if BOOTSTRAP_OPERATOR_SUMMARY_ALIGNMENT_PATH.exists():
+        if not operator_summary_alignment:
+            errors.append("reports/bootstrap/operator-summary-alignment.json must contain valid JSON")
+        else:
+            if "drift_count" not in operator_summary_alignment:
+                errors.append("reports/bootstrap/operator-summary-alignment.json drift_count is required")
+            if "missing_canonical_hit_count" not in operator_summary_alignment:
+                errors.append("reports/bootstrap/operator-summary-alignment.json missing_canonical_hit_count is required")
+            if "complete" not in operator_summary_alignment:
+                errors.append("reports/bootstrap/operator-summary-alignment.json complete is required")
+    if BOOTSTRAP_OPERATOR_FIXTURE_PARITY_PATH.exists():
+        if not operator_fixture_parity:
+            errors.append("reports/bootstrap/operator-fixture-parity.json must contain valid JSON")
+        else:
+            if "missing_file_count" not in operator_fixture_parity:
+                errors.append("reports/bootstrap/operator-fixture-parity.json missing_file_count is required")
+            if "missing_pattern_count" not in operator_fixture_parity:
+                errors.append("reports/bootstrap/operator-fixture-parity.json missing_pattern_count is required")
+            if "complete" not in operator_fixture_parity:
+                errors.append("reports/bootstrap/operator-fixture-parity.json complete is required")
+    if BOOTSTRAP_OPERATOR_NAV_LOCK_PATH.exists():
+        if not operator_nav_lock:
+            errors.append("reports/bootstrap/operator-nav-lock.json must contain valid JSON")
+        else:
+            if "missing_file_count" not in operator_nav_lock:
+                errors.append("reports/bootstrap/operator-nav-lock.json missing_file_count is required")
+            if "missing_pattern_count" not in operator_nav_lock:
+                errors.append("reports/bootstrap/operator-nav-lock.json missing_pattern_count is required")
+            if "forbidden_pattern_count" not in operator_nav_lock:
+                errors.append("reports/bootstrap/operator-nav-lock.json forbidden_pattern_count is required")
+            if "complete" not in operator_nav_lock:
+                errors.append("reports/bootstrap/operator-nav-lock.json complete is required")
+    if BOOTSTRAP_DURABLE_PERSISTENCE_PACKET_PATH.exists():
+        if not durable_persistence_packet:
+            errors.append("reports/bootstrap/durable-persistence-packet.json must contain valid JSON")
+        else:
+            contract = dict(durable_persistence_packet.get("contract") or {})
+            env_contract = dict(contract.get("env_contract") or {})
+            runtime_dependency_packet = dict(durable_persistence_packet.get("runtime_dependency_packet") or {})
+            schema_authority = dict(durable_persistence_packet.get("schema_authority") or {})
+            approval_packet = dict(durable_persistence_packet.get("approval_packet") or {})
+            restart_proof = dict(durable_persistence_packet.get("restart_proof") or {})
+            if str(env_contract.get("name") or "").strip() != "ATHANOR_POSTGRES_URL":
+                errors.append(
+                    "reports/bootstrap/durable-persistence-packet.json contract.env_contract.name must be ATHANOR_POSTGRES_URL"
+                )
+            required_packages = {
+                "langgraph-checkpoint-postgres>=3.0.5",
+                "psycopg[binary]>=3.2",
+            }
+            packet_packages = {str(item).strip() for item in runtime_dependency_packet.get("required_packages", [])}
+            if not required_packages.issubset(packet_packages):
+                errors.append(
+                    "reports/bootstrap/durable-persistence-packet.json runtime_dependency_packet.required_packages is incomplete"
+                )
+            if str(runtime_dependency_packet.get("env_var") or "").strip() != "ATHANOR_POSTGRES_URL":
+                errors.append(
+                    "reports/bootstrap/durable-persistence-packet.json runtime_dependency_packet.env_var must be ATHANOR_POSTGRES_URL"
+                )
+            if not str(schema_authority.get("checkpoint_setup_authority") or "").strip():
+                errors.append(
+                    "reports/bootstrap/durable-persistence-packet.json schema_authority.checkpoint_setup_authority is required"
+                )
+            if not isinstance(schema_authority.get("migration_order"), list) or not schema_authority.get("migration_order"):
+                errors.append(
+                    "reports/bootstrap/durable-persistence-packet.json schema_authority.migration_order must be non-empty"
+                )
+            if str(approval_packet.get("id") or "").strip() != "db_schema_change":
+                errors.append("reports/bootstrap/durable-persistence-packet.json approval_packet.id must be db_schema_change")
+            if not isinstance(restart_proof.get("steps"), list) or not restart_proof.get("steps"):
+                errors.append("reports/bootstrap/durable-persistence-packet.json restart_proof.steps must be non-empty")
+            if not str(restart_proof.get("artifact_path") or "").strip():
+                errors.append("reports/bootstrap/durable-persistence-packet.json restart_proof.artifact_path is required")
+            if bool(dict(durable_persistence_packet.get("criterion_status") or {}).get("restart_proof_passed")) and not BOOTSTRAP_DURABLE_RESTART_PROOF_PATH.exists():
+                errors.append(
+                    "reports/bootstrap/durable-restart-proof.json is required when durable-persistence restart proof is marked passed"
+                )
+    if BOOTSTRAP_DURABLE_RESTART_PROOF_PATH.exists():
+        try:
+            durable_restart_proof = json.loads(BOOTSTRAP_DURABLE_RESTART_PROOF_PATH.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            errors.append("reports/bootstrap/durable-restart-proof.json must contain valid JSON")
+        else:
+            if not isinstance(durable_restart_proof, dict):
+                errors.append("reports/bootstrap/durable-restart-proof.json must contain an object payload")
+            else:
+                if not str(durable_restart_proof.get("proof_id") or "").strip():
+                    errors.append("reports/bootstrap/durable-restart-proof.json proof_id is required")
+                if not str(durable_restart_proof.get("phase") or "").strip():
+                    errors.append("reports/bootstrap/durable-restart-proof.json phase is required")
+                if "passed" not in durable_restart_proof:
+                    errors.append("reports/bootstrap/durable-restart-proof.json passed is required")
+                if not str(durable_restart_proof.get("artifact_path") or "").strip():
+                    errors.append("reports/bootstrap/durable-restart-proof.json artifact_path is required")
+                if durable_restart_proof.get("phase") == "verified":
+                    post_restart = durable_restart_proof.get("post_restart") or {}
+                    if not isinstance(post_restart, dict):
+                        errors.append("reports/bootstrap/durable-restart-proof.json post_restart must be an object after verification")
+                    elif "effect_marker_count" not in post_restart:
+                        errors.append("reports/bootstrap/durable-restart-proof.json post_restart.effect_marker_count is required after verification")
+    if BOOTSTRAP_FOUNDRY_PROVING_PACKET_PATH.exists():
+        if not foundry_proving_packet:
+            errors.append("reports/bootstrap/foundry-proving-packet.json must contain valid JSON")
+        else:
+            first_slice_packet = dict(foundry_proving_packet.get("first_proving_slice_packet") or {})
+            promotion_gate = dict(foundry_proving_packet.get("promotion_gate") or {})
+            if str(foundry_proving_packet.get("project_id") or "").strip() != "athanor":
+                errors.append("reports/bootstrap/foundry-proving-packet.json project_id must be athanor")
+            if not str(foundry_proving_packet.get("project_packet_ref") or "").strip():
+                errors.append("reports/bootstrap/foundry-proving-packet.json project_packet_ref is required")
+            if not str(foundry_proving_packet.get("architecture_packet_ref") or "").strip():
+                errors.append("reports/bootstrap/foundry-proving-packet.json architecture_packet_ref is required")
+            if not str(foundry_proving_packet.get("first_proving_slice_id") or "").strip():
+                errors.append("reports/bootstrap/foundry-proving-packet.json first_proving_slice_id is required")
+            if not str(first_slice_packet.get("owner_agent") or "").strip():
+                errors.append("reports/bootstrap/foundry-proving-packet.json first_proving_slice_packet.owner_agent is required")
+            if not str(first_slice_packet.get("lane") or "").strip():
+                errors.append("reports/bootstrap/foundry-proving-packet.json first_proving_slice_packet.lane is required")
+            if not str(first_slice_packet.get("objective") or "").strip():
+                errors.append("reports/bootstrap/foundry-proving-packet.json first_proving_slice_packet.objective is required")
+            if not isinstance(foundry_proving_packet.get("acceptance_evidence_requirements"), list) or not foundry_proving_packet.get("acceptance_evidence_requirements"):
+                errors.append("reports/bootstrap/foundry-proving-packet.json acceptance_evidence_requirements must be non-empty")
+            if not isinstance(foundry_proving_packet.get("candidate_evidence_requirements"), list) or not foundry_proving_packet.get("candidate_evidence_requirements"):
+                errors.append("reports/bootstrap/foundry-proving-packet.json candidate_evidence_requirements must be non-empty")
+            if not isinstance(foundry_proving_packet.get("rollback_target_requirements"), list) or not foundry_proving_packet.get("rollback_target_requirements"):
+                errors.append("reports/bootstrap/foundry-proving-packet.json rollback_target_requirements must be non-empty")
+            if not isinstance(foundry_proving_packet.get("validator_bundle"), list) or not foundry_proving_packet.get("validator_bundle"):
+                errors.append("reports/bootstrap/foundry-proving-packet.json validator_bundle must be non-empty")
+            if not bool(promotion_gate.get("require_foundry_run")):
+                errors.append("reports/bootstrap/foundry-proving-packet.json promotion_gate.require_foundry_run must be true")
+            if not bool(promotion_gate.get("require_candidate")):
+                errors.append("reports/bootstrap/foundry-proving-packet.json promotion_gate.require_candidate must be true")
+            if not bool(promotion_gate.get("require_rollback_target")):
+                errors.append("reports/bootstrap/foundry-proving-packet.json promotion_gate.require_rollback_target must be true")
+            if not bool(promotion_gate.get("require_acceptance_evidence")):
+                errors.append("reports/bootstrap/foundry-proving-packet.json promotion_gate.require_acceptance_evidence must be true")
+            if bool(promotion_gate.get("allow_direct_ad_hoc_bypass")):
+                errors.append("reports/bootstrap/foundry-proving-packet.json promotion_gate.allow_direct_ad_hoc_bypass must be false")
+            if "ready" not in foundry_proving_packet:
+                errors.append("reports/bootstrap/foundry-proving-packet.json ready is required")
+    if BOOTSTRAP_GOVERNANCE_DRILL_PACKETS_PATH.exists():
+        if not governance_drill_packets:
+            errors.append("reports/bootstrap/governance-drill-packets.json must contain valid JSON")
+        else:
+            if not str(governance_drill_packets.get("evidence_root") or "").strip():
+                errors.append("reports/bootstrap/governance-drill-packets.json evidence_root is required")
+            if not isinstance(governance_drill_packets.get("drills"), list) or not governance_drill_packets.get("drills"):
+                errors.append("reports/bootstrap/governance-drill-packets.json drills must be non-empty")
+    if BOOTSTRAP_TAKEOVER_PROMOTION_PACKET_PATH.exists():
+        if not takeover_promotion_packet:
+            errors.append("reports/bootstrap/takeover-promotion-packet.json must contain valid JSON")
+        else:
+            if str(takeover_promotion_packet.get("promotion_rule") or "").strip() != "explicit_promotion_only":
+                errors.append(
+                    "reports/bootstrap/takeover-promotion-packet.json promotion_rule must be explicit_promotion_only"
+                )
+            if not isinstance(takeover_promotion_packet.get("criteria"), list) or not takeover_promotion_packet.get("criteria"):
+                errors.append("reports/bootstrap/takeover-promotion-packet.json criteria must be non-empty")
+            if not isinstance(takeover_promotion_packet.get("authority_flip_steps"), list) or not takeover_promotion_packet.get("authority_flip_steps"):
+                errors.append("reports/bootstrap/takeover-promotion-packet.json authority_flip_steps must be non-empty")
 
 
 def _parse_litellm_template_env_names() -> set[str]:
@@ -594,11 +1067,22 @@ def main() -> int:
     tooling_inventory = _load_json("tooling-inventory.json")
     credential_surfaces = _load_json("credential-surface-registry.json")
     operator_surfaces = _load_json("operator-surface-registry.json")
+    operator_runbooks = _load_json("operator-runbooks.json")
     repo_roots = _load_json("repo-roots-registry.json")
+    runtime_ownership = _load_json("runtime-ownership-contract.json")
+    runtime_ownership_packets = _load_json("runtime-ownership-packets.json")
     runtime_subsystems = _load_json("runtime-subsystem-registry.json")
     runtime_migrations = _load_json("runtime-migration-registry.json")
     routing_taxonomy = _load_json("routing-taxonomy-map.json")
     portfolio = _load_json("project-maturity-registry.json")
+    project_packets = _load_json("project-packet-registry.json")
+    bootstrap_programs = _load_json("bootstrap-program-registry.json")
+    bootstrap_takeover = _load_json("bootstrap-takeover-registry.json")
+    bootstrap_slice_catalog = _load_json("bootstrap-slice-catalog.json")
+    bootstrap_execution_policy = _load_json("bootstrap-execution-policy.json")
+    foundry_proving = _load_json("foundry-proving-registry.json")
+    governance_drills = _load_json("governance-drill-registry.json")
+    approval_packets = _load_json("approval-packet-registry.json")
     docs = _load_json("docs-lifecycle-registry.json")
     provider_usage_evidence = {}
     if PROVIDER_USAGE_EVIDENCE_PATH.exists():
@@ -606,9 +1090,39 @@ def main() -> int:
     vault_litellm_env_audit = {}
     if VAULT_LITELLM_ENV_AUDIT_PATH.exists():
         vault_litellm_env_audit = json.loads(VAULT_LITELLM_ENV_AUDIT_PATH.read_text(encoding="utf-8"))
+    vault_redis_audit = {}
+    if VAULT_REDIS_AUDIT_PATH.exists():
+        vault_redis_audit = json.loads(VAULT_REDIS_AUDIT_PATH.read_text(encoding="utf-8"))
     latest_truth_snapshot = {}
     if TRUTH_SNAPSHOT_PATH.exists():
         latest_truth_snapshot = json.loads(TRUTH_SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    latest_bootstrap_snapshot = {}
+    if BOOTSTRAP_SNAPSHOT_PATH.exists():
+        latest_bootstrap_snapshot = json.loads(BOOTSTRAP_SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    operator_surface_census = {}
+    if BOOTSTRAP_OPERATOR_SURFACE_CENSUS_PATH.exists():
+        operator_surface_census = json.loads(BOOTSTRAP_OPERATOR_SURFACE_CENSUS_PATH.read_text(encoding="utf-8"))
+    operator_summary_alignment = {}
+    if BOOTSTRAP_OPERATOR_SUMMARY_ALIGNMENT_PATH.exists():
+        operator_summary_alignment = json.loads(BOOTSTRAP_OPERATOR_SUMMARY_ALIGNMENT_PATH.read_text(encoding="utf-8"))
+    operator_fixture_parity = {}
+    if BOOTSTRAP_OPERATOR_FIXTURE_PARITY_PATH.exists():
+        operator_fixture_parity = json.loads(BOOTSTRAP_OPERATOR_FIXTURE_PARITY_PATH.read_text(encoding="utf-8"))
+    operator_nav_lock = {}
+    if BOOTSTRAP_OPERATOR_NAV_LOCK_PATH.exists():
+        operator_nav_lock = json.loads(BOOTSTRAP_OPERATOR_NAV_LOCK_PATH.read_text(encoding="utf-8"))
+    durable_persistence_packet = {}
+    if BOOTSTRAP_DURABLE_PERSISTENCE_PACKET_PATH.exists():
+        durable_persistence_packet = json.loads(BOOTSTRAP_DURABLE_PERSISTENCE_PACKET_PATH.read_text(encoding="utf-8"))
+    foundry_proving_packet = {}
+    if BOOTSTRAP_FOUNDRY_PROVING_PACKET_PATH.exists():
+        foundry_proving_packet = json.loads(BOOTSTRAP_FOUNDRY_PROVING_PACKET_PATH.read_text(encoding="utf-8"))
+    governance_drill_packets = {}
+    if BOOTSTRAP_GOVERNANCE_DRILL_PACKETS_PATH.exists():
+        governance_drill_packets = json.loads(BOOTSTRAP_GOVERNANCE_DRILL_PACKETS_PATH.read_text(encoding="utf-8"))
+    takeover_promotion_packet = {}
+    if BOOTSTRAP_TAKEOVER_PROMOTION_PACKET_PATH.exists():
+        takeover_promotion_packet = json.loads(BOOTSTRAP_TAKEOVER_PROMOTION_PACKET_PATH.read_text(encoding="utf-8"))
     operating_system = _load_json("program-operating-system.json")
     release_ritual = _load_json("release-ritual.json")
     workload_registry = _load_json("workload-class-registry.json")
@@ -625,14 +1139,46 @@ def main() -> int:
         "tooling-inventory.json": str(tooling_inventory.get("version") or ""),
         "credential-surface-registry.json": str(credential_surfaces.get("version") or ""),
         "operator-surface-registry.json": str(operator_surfaces.get("version") or ""),
+        "operator-runbooks.json": str(operator_runbooks.get("version") or ""),
         "repo-roots-registry.json": str(repo_roots.get("version") or ""),
+        "runtime-ownership-contract.json": str(runtime_ownership.get("version") or ""),
+        "runtime-ownership-packets.json": str(runtime_ownership_packets.get("version") or ""),
         "runtime-subsystem-registry.json": str(runtime_subsystems.get("version") or ""),
         "runtime-migration-registry.json": str(runtime_migrations.get("version") or ""),
         "routing-taxonomy-map.json": str(routing_taxonomy.get("version") or ""),
         "project-maturity-registry.json": str(portfolio.get("version") or ""),
+        "project-packet-registry.json": str(project_packets.get("version") or ""),
+        "bootstrap-program-registry.json": str(bootstrap_programs.get("version") or ""),
+        "bootstrap-takeover-registry.json": str(bootstrap_takeover.get("version") or ""),
+        "bootstrap-slice-catalog.json": str(bootstrap_slice_catalog.get("version") or ""),
+        "bootstrap-execution-policy.json": str(bootstrap_execution_policy.get("version") or ""),
+        "foundry-proving-registry.json": str(foundry_proving.get("version") or ""),
+        "governance-drill-registry.json": str(governance_drills.get("version") or ""),
+        "approval-packet-registry.json": str(approval_packets.get("version") or ""),
         "docs-lifecycle-registry.json": str(docs.get("version") or ""),
         "program-operating-system.json": str(operating_system.get("version") or ""),
     }
+    _validate_bootstrap_zero_ambiguity_contracts(
+        errors=errors,
+        bootstrap_programs=bootstrap_programs,
+        bootstrap_takeover=bootstrap_takeover,
+        bootstrap_slice_catalog=bootstrap_slice_catalog,
+        bootstrap_execution_policy=bootstrap_execution_policy,
+        foundry_proving=foundry_proving,
+        governance_drills=governance_drills,
+        approval_packets=approval_packets,
+        operator_runbooks=operator_runbooks,
+        project_packets=project_packets,
+        latest_bootstrap_snapshot=latest_bootstrap_snapshot,
+        operator_surface_census=operator_surface_census,
+        operator_summary_alignment=operator_summary_alignment,
+        operator_fixture_parity=operator_fixture_parity,
+        operator_nav_lock=operator_nav_lock,
+        durable_persistence_packet=durable_persistence_packet,
+        foundry_proving_packet=foundry_proving_packet,
+        governance_drill_packets=governance_drill_packets,
+        takeover_promotion_packet=takeover_promotion_packet,
+    )
     lifecycle_paths = {str(document.get("path") or "") for document in docs.get("documents", [])}
     workflow_steps = _workflow_step_names()
 
@@ -1420,6 +1966,176 @@ def main() -> int:
             errors.append(
                 f"repo-roots-registry.json path {entry.get('path')!r} has invalid authority_level {authority_level!r}"
             )
+    repo_root_ids = {
+        str(entry.get("id") or "")
+        for entry in repo_roots.get("roots", [])
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }
+    implementation_root_id = str(runtime_ownership.get("implementation_authority_root_id") or "")
+    runtime_root_id = str(runtime_ownership.get("runtime_authority_root_id") or "")
+    if implementation_root_id not in repo_root_ids:
+        errors.append(
+            "runtime-ownership-contract.json implementation_authority_root_id must reference a root id from repo-roots-registry.json"
+        )
+    if runtime_root_id not in repo_root_ids:
+        errors.append(
+            "runtime-ownership-contract.json runtime_authority_root_id must reference a root id from repo-roots-registry.json"
+        )
+    runtime_state_root_ids = [
+        str(root_id) for root_id in runtime_ownership.get("runtime_state_root_ids", []) if str(root_id).strip()
+    ]
+    if not runtime_state_root_ids:
+        errors.append("runtime-ownership-contract.json must declare runtime_state_root_ids")
+    for root_id in runtime_state_root_ids:
+        if root_id not in repo_root_ids:
+            errors.append(
+                f"runtime-ownership-contract.json runtime_state_root_ids references unknown root id {root_id!r}"
+            )
+
+    runtime_ownership_lanes = [
+        dict(entry) for entry in runtime_ownership.get("lanes", []) if isinstance(entry, dict)
+    ]
+    lane_ids = [str(entry.get("id") or "") for entry in runtime_ownership_lanes]
+    runtime_ownership_packet_entries = [
+        dict(entry) for entry in runtime_ownership_packets.get("packets", []) if isinstance(entry, dict)
+    ]
+    runtime_ownership_packet_ids = [str(entry.get("id") or "") for entry in runtime_ownership_packet_entries]
+    approval_packet_ids = {
+        str(item.get("id") or "").strip()
+        for item in approval_packets.get("packet_types", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    if not runtime_ownership_lanes:
+        errors.append("runtime-ownership-contract.json must declare at least one ownership lane")
+    if len(lane_ids) != len(set(lane_ids)):
+        errors.append("runtime-ownership-contract.json contains duplicate lane ids")
+    for lane in runtime_ownership_lanes:
+        lane_id = str(lane.get("id") or "")
+        if not lane_id:
+            errors.append("runtime-ownership-contract.json contains a lane without an id")
+            continue
+        lane_status = str(lane.get("status") or "")
+        if lane_status not in ALLOWED_RUNTIME_OWNERSHIP_LANE_STATUSES:
+            errors.append(
+                f"runtime-ownership-contract.json lane {lane_id} has invalid status {lane_status!r}"
+            )
+        deployment_mode = str(lane.get("deployment_mode") or "")
+        if deployment_mode not in ALLOWED_RUNTIME_OWNERSHIP_DEPLOYMENT_MODES:
+            errors.append(
+                f"runtime-ownership-contract.json lane {lane_id} has invalid deployment_mode {deployment_mode!r}"
+            )
+        owner_root_ids = [
+            str(root_id) for root_id in lane.get("owner_root_ids", []) if str(root_id).strip()
+        ]
+        if not owner_root_ids:
+            errors.append(f"runtime-ownership-contract.json lane {lane_id} must declare owner_root_ids")
+        for root_id in owner_root_ids:
+            if root_id not in repo_root_ids:
+                errors.append(
+                    f"runtime-ownership-contract.json lane {lane_id} references unknown owner_root_id {root_id!r}"
+                )
+        source_root_id = str(lane.get("source_root_id") or "")
+        if source_root_id and source_root_id not in repo_root_ids:
+            errors.append(
+                f"runtime-ownership-contract.json lane {lane_id} references unknown source_root_id {source_root_id!r}"
+            )
+        execution_packet_id = str(lane.get("execution_packet_id") or "")
+        if execution_packet_id and execution_packet_id not in runtime_ownership_packet_ids:
+            errors.append(
+                f"runtime-ownership-contract.json lane {lane_id} references unknown execution_packet_id {execution_packet_id!r}"
+            )
+        for field_name in (
+            "runtime_scope",
+            "rollback_contract",
+            "approval_boundary",
+            "next_action",
+        ):
+            if not str(lane.get(field_name) or "").strip():
+                errors.append(f"runtime-ownership-contract.json lane {lane_id} is missing {field_name}")
+        for list_field in ("runtime_paths", "active_surfaces", "evidence_paths", "verification_commands"):
+            values = [str(item) for item in lane.get(list_field, []) if str(item).strip()]
+            if not values:
+                errors.append(f"runtime-ownership-contract.json lane {lane_id} must declare {list_field}")
+
+    runtime_ownership_criteria = [
+        dict(entry) for entry in runtime_ownership.get("promotion_criteria", []) if isinstance(entry, dict)
+    ]
+    if not runtime_ownership_criteria:
+        errors.append("runtime-ownership-contract.json must declare promotion_criteria")
+    criterion_ids = [str(entry.get("id") or "") for entry in runtime_ownership_criteria]
+    if len(criterion_ids) != len(set(criterion_ids)):
+        errors.append("runtime-ownership-contract.json contains duplicate promotion criterion ids")
+    for criterion in runtime_ownership_criteria:
+        criterion_id = str(criterion.get("id") or "")
+        if not criterion_id:
+            errors.append("runtime-ownership-contract.json contains a promotion criterion without an id")
+            continue
+        criterion_status = str(criterion.get("status") or "")
+        if criterion_status not in ALLOWED_RUNTIME_OWNERSHIP_CRITERION_STATUSES:
+            errors.append(
+                f"runtime-ownership-contract.json promotion criterion {criterion_id} has invalid status {criterion_status!r}"
+            )
+        if not str(criterion.get("requirement") or "").strip():
+            errors.append(
+                f"runtime-ownership-contract.json promotion criterion {criterion_id} is missing requirement"
+            )
+        evidence_paths = [str(item) for item in criterion.get("evidence_paths", []) if str(item).strip()]
+        if not evidence_paths:
+            errors.append(
+                f"runtime-ownership-contract.json promotion criterion {criterion_id} must declare evidence_paths"
+            )
+
+    if not runtime_ownership_packet_entries:
+        errors.append("runtime-ownership-packets.json must declare packets")
+    if len(runtime_ownership_packet_ids) != len(set(runtime_ownership_packet_ids)):
+        errors.append("runtime-ownership-packets.json contains duplicate packet ids")
+    for packet in runtime_ownership_packet_entries:
+        packet_id = str(packet.get("id") or "")
+        if not packet_id:
+            errors.append("runtime-ownership-packets.json contains a packet without an id")
+            continue
+        packet_status = str(packet.get("status") or "")
+        if packet_status not in ALLOWED_RUNTIME_OWNERSHIP_PACKET_STATUSES:
+            errors.append(
+                f"runtime-ownership-packets.json packet {packet_id} has invalid status {packet_status!r}"
+            )
+        lane_id = str(packet.get("lane_id") or "")
+        if lane_id not in lane_ids:
+            errors.append(
+                f"runtime-ownership-packets.json packet {packet_id} references unknown lane_id {lane_id!r}"
+            )
+        approval_packet_type = str(packet.get("approval_packet_type") or "")
+        if approval_packet_type not in approval_packet_ids:
+            errors.append(
+                f"runtime-ownership-packets.json packet {packet_id} references unknown approval_packet_type {approval_packet_type!r}"
+            )
+        for field_name in ("label", "goal", "backup_root", "host"):
+            if not str(packet.get(field_name) or "").strip():
+                errors.append(f"runtime-ownership-packets.json packet {packet_id} is missing {field_name}")
+        for list_field in ("preflight_commands", "exact_steps", "verification_commands", "rollback_steps", "evidence_paths"):
+            values = [str(item) for item in packet.get(list_field, []) if str(item).strip()]
+            if not values:
+                errors.append(
+                    f"runtime-ownership-packets.json packet {packet_id} must declare non-empty {list_field}"
+                )
+        path_mappings = [dict(entry) for entry in packet.get("path_mappings", []) if isinstance(entry, dict)]
+        target_units = [str(item) for item in packet.get("target_units", []) if str(item).strip()]
+        if not path_mappings and not target_units:
+            errors.append(
+                f"runtime-ownership-packets.json packet {packet_id} must declare path_mappings or target_units"
+            )
+        for mapping in path_mappings:
+            source_path = str(mapping.get("source_path") or "").strip()
+            runtime_path = str(mapping.get("runtime_path") or "").strip()
+            restart_units = [str(item) for item in mapping.get("restart_units", []) if str(item).strip()]
+            if not source_path or not runtime_path:
+                errors.append(
+                    f"runtime-ownership-packets.json packet {packet_id} contains an incomplete path_mappings entry"
+                )
+            if not restart_units:
+                errors.append(
+                    f"runtime-ownership-packets.json packet {packet_id} path mapping {source_path or '<unknown>'} must declare restart_units"
+                )
 
     runtime_subsystem_entries = [
         dict(entry) for entry in runtime_subsystems.get("subsystems", []) if isinstance(entry, dict)
@@ -1917,6 +2633,87 @@ def main() -> int:
                 errors.append("reports/truth-inventory/vault-litellm-env-audit.json is missing runtime_owner_surface")
             if not str(vault_litellm_env_audit.get("container_name") or "").strip():
                 errors.append("reports/truth-inventory/vault-litellm-env-audit.json is missing container_name")
+
+    if not vault_redis_audit:
+        errors.append("reports/truth-inventory/vault-redis-audit.json is missing")
+    else:
+        if str(vault_redis_audit.get("surface_id") or "") != "vault-redis-persistence":
+            errors.append("reports/truth-inventory/vault-redis-audit.json surface_id must be vault-redis-persistence")
+        if str(vault_redis_audit.get("service_id") or "") != "redis":
+            errors.append("reports/truth-inventory/vault-redis-audit.json service_id must be redis")
+        if str(vault_redis_audit.get("host") or "") != "vault":
+            errors.append("reports/truth-inventory/vault-redis-audit.json host must be vault")
+        if not str(vault_redis_audit.get("observed_at") or "").strip():
+            errors.append("reports/truth-inventory/vault-redis-audit.json is missing observed_at")
+        if not str(vault_redis_audit.get("source") or "").strip():
+            errors.append("reports/truth-inventory/vault-redis-audit.json is missing source")
+        if not str(vault_redis_audit.get("runtime_owner_surface") or "").strip():
+            errors.append("reports/truth-inventory/vault-redis-audit.json is missing runtime_owner_surface")
+        if not str(vault_redis_audit.get("container_name") or "").strip():
+            errors.append("reports/truth-inventory/vault-redis-audit.json is missing container_name")
+        if not str(vault_redis_audit.get("data_mount_destination") or "").strip():
+            errors.append("reports/truth-inventory/vault-redis-audit.json is missing data_mount_destination")
+        if not str(vault_redis_audit.get("persistence_blocker_code") or "").strip():
+            errors.append("reports/truth-inventory/vault-redis-audit.json is missing persistence_blocker_code")
+        if not str(vault_redis_audit.get("operator_next_action") or "").strip():
+            errors.append("reports/truth-inventory/vault-redis-audit.json is missing operator_next_action")
+        filesystem = vault_redis_audit.get("filesystem", {})
+        if not isinstance(filesystem, dict):
+            errors.append("reports/truth-inventory/vault-redis-audit.json filesystem must be an object")
+            filesystem = {}
+        btrfs_usage = vault_redis_audit.get("btrfs_usage", {})
+        if not isinstance(btrfs_usage, dict):
+            errors.append("reports/truth-inventory/vault-redis-audit.json btrfs_usage must be an object")
+            btrfs_usage = {}
+        log_tail = vault_redis_audit.get("log_tail", [])
+        if not isinstance(log_tail, list):
+            errors.append("reports/truth-inventory/vault-redis-audit.json log_tail must be a list")
+            log_tail = []
+        for field_name in (
+            "appdatacache_top_consumers",
+            "appdata_top_consumers",
+            "backup_file_top_consumers",
+            "stash_generated_top_consumers",
+            "comfyui_model_top_consumers",
+        ):
+            value = vault_redis_audit.get(field_name, [])
+            if not isinstance(value, list):
+                errors.append(f"reports/truth-inventory/vault-redis-audit.json {field_name} must be a list")
+                continue
+            for index, entry in enumerate(value):
+                if not isinstance(entry, dict):
+                    errors.append(
+                        f"reports/truth-inventory/vault-redis-audit.json {field_name}[{index}] must be an object"
+                    )
+                    continue
+                if not str(entry.get('path') or '').strip():
+                    errors.append(
+                        f"reports/truth-inventory/vault-redis-audit.json {field_name}[{index}].path is missing"
+                    )
+                size_bytes = entry.get("size_bytes")
+                if not isinstance(size_bytes, int) or size_bytes < 0:
+                    errors.append(
+                        f"reports/truth-inventory/vault-redis-audit.json {field_name}[{index}].size_bytes must be a non-negative integer"
+                    )
+        for field_name in ("no_space_error_count", "background_save_error_count", "security_attack_count"):
+            value = vault_redis_audit.get(field_name)
+            if not isinstance(value, int) or value < 0:
+                errors.append(f"reports/truth-inventory/vault-redis-audit.json {field_name} must be a non-negative integer")
+        data_dir_size = vault_redis_audit.get("redis_data_dir_size_bytes")
+        if data_dir_size is not None and (not isinstance(data_dir_size, int) or data_dir_size < 0):
+            errors.append("reports/truth-inventory/vault-redis-audit.json redis_data_dir_size_bytes must be null or a non-negative integer")
+        if filesystem:
+            for field_name in ("filesystem", "mountpoint", "used_percent"):
+                if not str(filesystem.get(field_name) or "").strip():
+                    errors.append(f"reports/truth-inventory/vault-redis-audit.json filesystem.{field_name} is missing")
+            for field_name in ("size_bytes", "used_bytes", "available_bytes"):
+                value = filesystem.get(field_name)
+                if not isinstance(value, int) or value < 0:
+                    errors.append(f"reports/truth-inventory/vault-redis-audit.json filesystem.{field_name} must be a non-negative integer")
+        if btrfs_usage and "ok" not in btrfs_usage:
+            errors.append("reports/truth-inventory/vault-redis-audit.json btrfs_usage must include ok")
+        if any(_looks_like_secret(str(line)) for line in log_tail):
+            errors.append("reports/truth-inventory/vault-redis-audit.json log_tail appears to contain a secret value")
 
     for project in portfolio.get("projects", []):
         project_id = str(project["id"])

@@ -79,16 +79,14 @@ def _is_autonomy_managed_submission(source: str, metadata: dict | None) -> bool:
 
 
 async def _get_redis():
-    from . import governor as governor_facade
+    from . import governor_backbone as backbone
 
-    return await governor_facade._get_redis()
+    return await backbone._get_redis()
 
 
 def _governor_backbone():
-    from . import governor as governor_facade
     from . import governor_backbone as backbone
 
-    backbone._get_redis = governor_facade._get_redis
     return backbone
 
 

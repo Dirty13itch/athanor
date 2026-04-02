@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from pydantic import AliasChoices, Field
@@ -67,6 +68,24 @@ def _service_default_url(service_id: str, fallback: str) -> str:
     if not node_host or not scheme or port <= 0:
         return fallback
     return f"{scheme}://{node_host}:{port}{path}"
+
+
+def _default_agent_descriptor_path() -> str:
+    target_parts = ("config", "automation-backbone", "agent-descriptor-registry.json")
+    for base in Path(__file__).resolve().parents:
+        candidate = base.joinpath(*target_parts)
+        if candidate.exists():
+            return str(candidate)
+    return "/workspace/config/automation-backbone/agent-descriptor-registry.json"
+
+
+def _default_domain_packet_path() -> str:
+    target_parts = ("config", "automation-backbone", "domain-packets-registry.json")
+    for base in Path(__file__).resolve().parents:
+        candidate = base.joinpath(*target_parts)
+        if candidate.exists():
+            return str(candidate)
+    return "/workspace/config/automation-backbone/domain-packets-registry.json"
 
 
 class Settings(BaseSettings):
@@ -199,9 +218,21 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("ATHANOR_REDIS_PASSWORD"),
     )
+    postgres_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_POSTGRES_URL"),
+    )
     subscription_policy_path: str = Field(
         default="",
         validation_alias=AliasChoices("ATHANOR_SUBSCRIPTION_POLICY_PATH"),
+    )
+    agent_descriptor_path: str = Field(
+        default=_default_agent_descriptor_path(),
+        validation_alias=AliasChoices("ATHANOR_AGENT_DESCRIPTOR_PATH"),
+    )
+    domain_packet_path: str = Field(
+        default=_default_domain_packet_path(),
+        validation_alias=AliasChoices("ATHANOR_DOMAIN_PACKET_PATH"),
     )
     neo4j_url: str = Field(
         default_factory=lambda: _service_default_url("neo4j_http", "http://192.168.1.203:7474"),
@@ -257,9 +288,17 @@ class Settings(BaseSettings):
         default="http://192.168.1.203:9696",
         validation_alias=AliasChoices("ATHANOR_PROWLARR_URL"),
     )
+    prowlarr_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_PROWLARR_API_KEY"),
+    )
     sabnzbd_url: str = Field(
         default="http://192.168.1.203:8080",
         validation_alias=AliasChoices("ATHANOR_SABNZBD_URL"),
+    )
+    sabnzbd_api_key: str = Field(
+        default="",
+        validation_alias=AliasChoices("ATHANOR_SABNZBD_API_KEY"),
     )
     stash_url: str = Field(
         default_factory=lambda: _service_default_url("stash", "http://192.168.1.203:9999"),

@@ -35,7 +35,7 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     agents: ["general-assistant", "coding-agent"],
     sections: ["pulse", "briefing", "smartstack", "workplan", "gpus", "workloads", "crew", "stream", "links", "digest"],
     streamFilter: ["task", "system"],
-    navHighlight: ["/gpu", "/services", "/monitoring", "/tasks"],
+    navHighlight: ["/gpu", "/services", "/monitoring", "/runs"],
   },
   media: {
     id: "media",
@@ -68,7 +68,7 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     agents: ["creative-agent", "coding-agent"],
     sections: ["pulse", "eoq-content", "crew", "smartstack", "workplan", "stream", "workloads", "gpus", "links", "digest"],
     streamFilter: ["task", "agent"],
-    navHighlight: ["/chat", "/gallery", "/tasks"],
+    navHighlight: ["/chat", "/gallery", "/backlog"],
   },
   ulrich: {
     id: "ulrich",
@@ -79,7 +79,7 @@ export const LENS_CONFIG: Record<LensId, LensConfig> = {
     agents: ["general-assistant"],
     sections: ["pulse", "crew", "stream", "workloads", "links", "digest"],
     streamFilter: ["task"],
-    navHighlight: ["/tasks"],
+    navHighlight: ["/backlog"],
   },
 };
 

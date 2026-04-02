@@ -4,6 +4,7 @@ Covers Task dataclass, prompt building, priority ordering, and Redis-backed CRUD
 """
 
 import asyncio
+import importlib.util
 import json
 import os
 import sys
@@ -12,11 +13,16 @@ import types
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# Mock langchain_core before importing tasks.py — not installed on DEV
-if "langchain_core" not in sys.modules:
+# Mock langchain_core only when the package is genuinely unavailable.
+if "langchain_core" not in sys.modules and importlib.util.find_spec("langchain_core") is None:
     _lc_mock = MagicMock()
     sys.modules["langchain_core"] = _lc_mock
     sys.modules["langchain_core.messages"] = _lc_mock
+
+
+class SilentError(Exception):
+    def __str__(self) -> str:
+        return ""
 
 
 # ---------------------------------------------------------------------------
@@ -294,6 +300,41 @@ class TestTaskConstants(unittest.TestCase):
         self.assertLess(TASK_TTL_COMPLETED, TASK_TTL_FAILED)
 
 
+class TestTaskFailureFormatting(unittest.TestCase):
+    def test_describe_exception_falls_back_to_exception_type(self):
+        from athanor_agents.tasks import _describe_exception
+
+        details = _describe_exception(SilentError())
+
+        self.assertEqual("SilentError", details["type"])
+        self.assertEqual("SilentError", details["message"])
+        self.assertEqual("SilentError()", details["repr"])
+
+    def test_stamp_task_failure_records_structured_metadata(self):
+        from athanor_agents.tasks import Task, _stamp_task_failure
+
+        task = Task(id="failmeta", agent="coding-agent", prompt="fail")
+        completed_at = _stamp_task_failure(
+            task,
+            error_message="SilentError",
+            failure_type="SilentError",
+            retry_eligible=True,
+            exception_repr="SilentError()",
+            stage="execution_exception",
+            now=1234.5,
+        )
+
+        self.assertEqual(1234.5, completed_at)
+        self.assertEqual("failed", task.status)
+        self.assertEqual("SilentError", task.error)
+        self.assertEqual(1234.5, task.completed_at)
+        self.assertEqual("SilentError", task.metadata["failure"]["type"])
+        self.assertEqual("SilentError", task.metadata["failure"]["message"])
+        self.assertEqual("SilentError()", task.metadata["failure"]["repr"])
+        self.assertTrue(task.metadata["failure"]["retry_eligible"])
+        self.assertEqual("execution_exception", task.metadata["failure"]["stage"])
+
+
 # ---------------------------------------------------------------------------
 # Redis-backed async tests
 # ---------------------------------------------------------------------------
@@ -345,6 +386,23 @@ class TestGetTask(unittest.IsolatedAsyncioTestCase):
             result = await get_task("nonexistent")
 
         self.assertIsNone(result)
+
+    async def test_normalizes_legacy_failed_task_without_detail(self):
+        from athanor_agents.tasks import LEGACY_FAILED_TASK_DETAIL, Task, get_task
+
+        task_data = Task(id="legacy-fail", agent="home-agent", status="failed", error="", metadata={}).to_dict()
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_record", AsyncMock(return_value=task_data)),
+        ):
+            result = await get_task("legacy-fail")
+
+        self.assertIsNotNone(result)
+        self.assertEqual(LEGACY_FAILED_TASK_DETAIL, result.error)
+        self.assertTrue(result.metadata["failure_display"]["missing_detail"])
+        self.assertEqual("synthetic_legacy_gap", result.metadata["failure_display"]["source"])
 
 
 class TestListTasks(unittest.IsolatedAsyncioTestCase):
@@ -469,6 +527,23 @@ class TestListTasks(unittest.IsolatedAsyncioTestCase):
             result = await list_tasks(limit=3)
 
         self.assertEqual(len(result), 3)
+
+    async def test_normalizes_legacy_failed_task_rows(self):
+        from athanor_agents.tasks import LEGACY_FAILED_TASK_DETAIL, Task, list_tasks
+
+        records = [
+            Task(id="legacy-fail", agent="media-agent", status="failed", error="", metadata={}).to_dict(),
+        ]
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+        ):
+            result = await list_tasks(limit=10)
+
+        self.assertEqual(LEGACY_FAILED_TASK_DETAIL, result[0]["error"])
+        self.assertTrue(result[0]["metadata"]["failure_display"]["missing_detail"])
 
 
 class TestCancelTask(unittest.IsolatedAsyncioTestCase):
@@ -679,6 +754,112 @@ class TestMaybeRetry(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("pending_approval", stored["status"])
         self.assertTrue(stored["metadata"]["requires_approval"])
         self.assertEqual("D", stored["metadata"]["governor_autonomy_level"])
+
+    async def test_retry_uses_structured_failure_context_when_task_error_is_blank(self):
+        from athanor_agents.tasks import _maybe_retry, Task
+
+        task = Task(
+            id="fail4",
+            agent="coding-agent",
+            prompt="Retry with structured failure metadata",
+            status="failed",
+            error="",
+            retry_count=0,
+            metadata={
+                "failure": {
+                    "type": "SilentError",
+                    "message": "SilentError",
+                    "retry_eligible": True,
+                }
+            },
+        )
+        mock_r = _mock_redis()
+        decision = types.SimpleNamespace(
+            status_override="pending",
+            autonomy_level="B",
+            reason="Retry allowed inside autonomy phase",
+        )
+        governor = types.SimpleNamespace(gate_task_submission=AsyncMock(return_value=decision))
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.governor.Governor.get", return_value=governor),
+        ):
+            await _maybe_retry(task)
+
+        stored = json.loads(mock_r.hset.call_args[0][2])
+        self.assertEqual("SilentError", stored["previous_error"])
+
+
+class TestExecuteTaskFailures(unittest.IsolatedAsyncioTestCase):
+    async def test_execute_task_records_nonempty_error_for_blank_string_exceptions(self):
+        from athanor_agents.tasks import Task, _execute_task
+
+        class ExplodingAgent:
+            async def astream_events(self, *_args, **_kwargs):
+                if False:
+                    yield {}
+                raise SilentError()
+
+        breaker = types.SimpleNamespace(
+            can_execute=AsyncMock(return_value=True),
+            record_failure=AsyncMock(),
+            record_success=AsyncMock(),
+        )
+        breakers = types.SimpleNamespace(get_or_create=lambda _agent: breaker)
+
+        agents_stub = types.SimpleNamespace(get_agent=lambda _agent: ExplodingAgent())
+        context_stub = types.SimpleNamespace(enrich_context=AsyncMock(return_value=""))
+        activity_stub = types.SimpleNamespace(
+            log_activity=AsyncMock(),
+            log_event=AsyncMock(),
+            log_conversation=AsyncMock(),
+        )
+        workspace_stub = types.SimpleNamespace(post_item=AsyncMock())
+        escalation_stub = types.SimpleNamespace(add_notification=MagicMock())
+        circuit_stub = types.SimpleNamespace(get_circuit_breakers=lambda: breakers)
+
+        def _close_coro(coro):
+            coro.close()
+            return MagicMock()
+
+        task = Task(
+            id="explode1",
+            agent="coding-agent",
+            prompt="Force a blank-string failure",
+            status="running",
+            started_at=time.time(),
+            last_heartbeat=time.time(),
+            metadata={"source": "manual"},
+        )
+
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "athanor_agents.agents": agents_stub,
+                    "athanor_agents.context": context_stub,
+                    "athanor_agents.activity": activity_stub,
+                    "athanor_agents.workspace": workspace_stub,
+                    "athanor_agents.escalation": escalation_stub,
+                    "athanor_agents.circuit_breaker": circuit_stub,
+                },
+            ),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+            patch("athanor_agents.tasks._maybe_retry", AsyncMock()) as maybe_retry,
+            patch("athanor_agents.tasks._release_task_claim", AsyncMock()),
+            patch("athanor_agents.tasks._record_skill_execution_for_task", AsyncMock()),
+            patch("athanor_agents.tasks.asyncio.create_task", side_effect=_close_coro),
+        ):
+            await _execute_task(task)
+
+        failed_task = persist_task_state.await_args.args[0]
+        self.assertEqual("failed", failed_task.status)
+        self.assertEqual("SilentError", failed_task.error)
+        self.assertEqual("SilentError", failed_task.metadata["failure"]["type"])
+        self.assertTrue(failed_task.metadata["failure"]["retry_eligible"])
+        breaker.record_failure.assert_awaited_once()
+        maybe_retry.assert_awaited_once()
 
 
 class TestSubmitTask(unittest.IsolatedAsyncioTestCase):
@@ -1030,6 +1211,168 @@ class TestTaskStats(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(0, stats["stale_lease"])
         self.assertEqual(1, stats["by_status"]["pending"])
 
+    async def test_get_task_stats_falls_back_to_durable_state(self):
+        from athanor_agents.tasks import get_task_stats
+
+        with (
+            patch("athanor_agents.tasks._get_redis", AsyncMock(side_effect=RuntimeError("redis unavailable"))),
+            patch(
+                "athanor_agents.tasks.get_task_snapshot_stats",
+                AsyncMock(return_value={"total": 2, "by_status": {"pending": 1, "completed": 1}}),
+            ),
+        ):
+            stats = await get_task_stats()
+
+        self.assertEqual(2, stats["total"])
+        self.assertEqual(1, stats["pending"])
+        self.assertEqual(1, stats["completed"])
+        self.assertEqual("durable_state_fallback", stats["source"])
+        self.assertEqual(0, stats["failed_missing_detail"])
+
+    async def test_get_task_stats_breaks_out_failed_detail_quality(self):
+        from athanor_agents.tasks import Task, get_task_stats
+
+        records = [
+            Task(id="f1", status="failed", agent="home-agent", error="", metadata={}).to_dict(),
+            Task(id="f2", status="failed", agent="media-agent", error="Timed out", metadata={}).to_dict(),
+            Task(
+                id="f3",
+                status="failed",
+                agent="coding-agent",
+                error="",
+                metadata={"failure": {"message": "Circuit breaker open", "type": "circuit_breaker_open"}},
+            ).to_dict(),
+        ]
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+        ):
+            stats = await get_task_stats()
+
+        self.assertEqual(3, stats["failed"])
+        self.assertEqual(2, stats["failed_with_detail"])
+        self.assertEqual(2, stats["failed_actionable"])
+        self.assertEqual(0, stats["failed_historical_repaired"])
+        self.assertEqual(1, stats["failed_missing_detail"])
+        self.assertEqual(1, stats["failure_detail_quality"]["failed_missing_detail"])
+        self.assertEqual(2, stats["failure_detail_quality"]["failed_actionable"])
+
+    async def test_get_task_stats_separates_historical_repaired_failures(self):
+        from athanor_agents.tasks import Task, get_task_stats
+
+        records = [
+            Task(
+                id="legacy-repaired",
+                status="failed",
+                agent="general-assistant",
+                error="Legacy failed task missing recorded failure detail",
+                metadata={
+                    "failure": {
+                        "message": "Legacy failed task missing recorded failure detail",
+                        "type": "historical_failure_detail_missing",
+                        "historical_residue": True,
+                        "synthetic": True,
+                    },
+                    "failure_repair": {"source": "startup_legacy_failed_task_backfill"},
+                },
+            ).to_dict(),
+            Task(id="recent-fail", status="failed", agent="coding-agent", error="Timed out", metadata={}).to_dict(),
+        ]
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+        ):
+            stats = await get_task_stats()
+
+        self.assertEqual(2, stats["failed"])
+        self.assertEqual(2, stats["failed_with_detail"])
+        self.assertEqual(1, stats["failed_actionable"])
+        self.assertEqual(1, stats["failed_historical_repaired"])
+        self.assertEqual(0, stats["failed_missing_detail"])
+
+
+class TestDurableTaskPersistence(unittest.IsolatedAsyncioTestCase):
+    async def test_persist_task_state_dual_writes_to_durable_store(self):
+        from athanor_agents.tasks import Task, persist_task_state
+
+        task = Task(id="dual1", agent="coding-agent", prompt="Fix drift")
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.write_task_record", AsyncMock(return_value=task.to_dict())),
+            patch("athanor_agents.tasks.upsert_task_snapshot", AsyncMock(return_value=True)) as upsert_task_snapshot,
+            patch("athanor_agents.tasks.sync_task_execution_projection", AsyncMock(return_value=None)) as sync_task_execution_projection,
+        ):
+            await persist_task_state(task)
+
+        upsert_task_snapshot.assert_awaited_once()
+
+    async def test_repair_legacy_failed_task_details_backfills_durable_metadata(self):
+        from athanor_agents.tasks import LEGACY_FAILED_TASK_DETAIL, Task, repair_legacy_failed_task_details
+
+        legacy_task = Task(
+            id="legacy-fail",
+            agent="general-assistant",
+            status="failed",
+            error="",
+            created_at=1004,
+            updated_at=1005,
+            metadata={},
+        ).to_dict()
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_status", AsyncMock(return_value=[legacy_task])),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+        ):
+            repaired = await repair_legacy_failed_task_details()
+
+        self.assertEqual(1, repaired)
+        repaired_task = persist_task_state.await_args.args[0]
+        self.assertEqual(1005, repaired_task.updated_at)
+        self.assertEqual(LEGACY_FAILED_TASK_DETAIL, repaired_task.error)
+        self.assertTrue(repaired_task.metadata["failure"]["historical_residue"])
+        self.assertTrue(repaired_task.metadata["failure"]["synthetic"])
+        self.assertEqual("startup_legacy_failed_task_backfill", repaired_task.metadata["failure_repair"]["source"])
+        self.assertTrue(persist_task_state.await_args.kwargs["preserve_updated_at"])
+
+    async def test_get_task_falls_back_to_durable_snapshot(self):
+        from athanor_agents.tasks import Task, get_task
+
+        durable_record = Task(id="fallback1", agent="research-agent", prompt="Research").to_dict()
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_record", AsyncMock(return_value=None)),
+            patch("athanor_agents.tasks.fetch_task_snapshot", AsyncMock(return_value=durable_record)) as fetch_task_snapshot,
+        ):
+            task = await get_task("fallback1")
+
+        self.assertIsNotNone(task)
+        self.assertEqual("fallback1", task.id)
+        fetch_task_snapshot.assert_awaited_once_with("fallback1")
+
+    async def test_list_tasks_falls_back_to_durable_snapshot(self):
+        from athanor_agents.tasks import Task, list_tasks
+
+        durable_record = Task(id="fallback2", agent="coding-agent", prompt="Build", status="running").to_dict()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", AsyncMock(side_effect=RuntimeError("redis unavailable"))),
+            patch("athanor_agents.tasks.list_task_snapshots", AsyncMock(return_value=[durable_record])) as list_task_snapshots,
+        ):
+            tasks = await list_tasks(statuses=["running"], limit=5)
+
+        self.assertEqual(["fallback2"], [task["id"] for task in tasks])
+        list_task_snapshots.assert_awaited_once_with(statuses=["running"], agent="", limit=5)
+
 
 class TestListRecentTasks(unittest.IsolatedAsyncioTestCase):
     async def test_list_recent_tasks_uses_updated_index_order(self):
@@ -1075,6 +1418,35 @@ class TestListRecentTasks(unittest.IsolatedAsyncioTestCase):
             result = await list_recent_tasks(agent="coding-agent", statuses=["running", "completed"], limit=5)
 
         self.assertEqual(["t2", "t1"], [task["id"] for task in result])
+
+    async def test_list_recent_tasks_normalizes_legacy_failed_rows(self):
+        from athanor_agents.tasks import LEGACY_FAILED_TASK_DETAIL, Task, list_recent_tasks
+
+        mock_r = _mock_redis()
+        mock_r.zrevrange = AsyncMock(return_value=["legacy-fail"])
+        records = {
+            "legacy-fail": Task(
+                id="legacy-fail",
+                agent="general-assistant",
+                status="failed",
+                error="",
+                updated_at=1005,
+                created_at=1004,
+                metadata={},
+            ).to_dict(),
+        }
+
+        async def _read_task_record(_redis, task_id):
+            return records.get(task_id)
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_record", AsyncMock(side_effect=_read_task_record)),
+        ):
+            result = await list_recent_tasks(limit=5)
+
+        self.assertEqual(LEGACY_FAILED_TASK_DETAIL, result[0]["error"])
+        self.assertTrue(result[0]["metadata"]["failure_display"]["legacy_record"])
 
 
 class TestManualDispatch(unittest.TestCase):

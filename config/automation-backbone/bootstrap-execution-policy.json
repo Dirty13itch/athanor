@@ -1,0 +1,69 @@
+{
+  "version": "2026-03-31.1",
+  "updated_at": "2026-03-31T20:30:00Z",
+  "status": "active",
+  "handoff_schema_version": "2026-03-31.1",
+  "worktree": {
+    "root_path_pattern": "C:\\Athanor_worktrees\\{family}\\{slice_id}",
+    "one_active_slice_per_worktree": true,
+    "preserve_worktree_on_handoff": true,
+    "branch_name_patterns": {
+      "codex_external": "codex/bootstrap/{family}/{slice_id}",
+      "claude_external": "claude/bootstrap/{family}/{slice_id}"
+    }
+  },
+  "handoff": {
+    "record_path_pattern": "var/bootstrap/handoffs/{handoff_id}.json",
+    "required_fields": [
+      "program_id",
+      "family",
+      "slice_id",
+      "objective",
+      "current_ref",
+      "worktree_path",
+      "files_touched",
+      "validation_status",
+      "open_risks",
+      "next_step",
+      "stop_reason",
+      "resume_instructions"
+    ]
+  },
+  "integration": {
+    "queue_path_pattern": "var/bootstrap/integration/queue/{sequence}-{slice_id}.json",
+    "target_ref": "main",
+    "preferred_method": "squash_commit",
+    "fallback_method": "patch_replay",
+    "allow_merge_commits": false,
+    "replay_order": "fifo_with_repair_priority",
+    "conflict_classes": [
+      "clean_replay",
+      "patch_context_drift",
+      "semantic_conflict",
+      "approval_boundary_hit"
+    ],
+    "repair_slice_policy": {
+      "on_conflict": true,
+      "priority_bump": "ahead_of_family_fifo",
+      "block_original_slice": true
+    }
+  },
+  "host_cooldown_policy": {
+    "quota_exhausted_minutes": 30,
+    "context_exhausted_minutes": 30,
+    "session_exhausted_minutes": 30,
+    "cooldown_minutes": 30
+  },
+  "concurrency": {
+    "max_code_mutating_slices": 2,
+    "max_validation_slices": 1,
+    "max_integration_lanes": 1,
+    "allow_concurrent_destructive_admin": false
+  },
+  "scheduling": {
+    "supervisor_sweep_minutes": 10,
+    "blocked_retry_minutes": 30,
+    "nightly_acceptance_matrix": true,
+    "reschedule_on_slice_completion": true
+  }
+}

@@ -4,6 +4,7 @@ import {
   buildOperatorSessionCookie,
   clearOperatorSessionIdCookie,
   clearOperatorSessionCookie,
+  getOperatorMutationToken,
   getOperatorSessionId,
   hasValidOperatorSession,
   hasValidOperatorSessionValue,
@@ -60,6 +61,19 @@ describe("operator auth", () => {
     expect(isPrivilegedMutationPath("/api/insights/run", "POST")).toBe(true);
     expect(isPrivilegedMutationPath("/api/models/proving-ground", "POST")).toBe(true);
     expect(isPrivilegedMutationPath("/api/governor/heartbeat", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/projects/athanor/packet", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/projects/athanor/architecture", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/projects/athanor/foundry/runs", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/projects/athanor/deployments", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/projects/athanor/promote", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/projects/athanor/rollback", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/projects/athanor/slices", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/projects/athanor/maintenance", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/bootstrap/programs/launch-readiness-bootstrap/promote", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/bootstrap/programs/launch-readiness-bootstrap/nudge", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/operator/approvals/approval-1/approve", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/operator/approvals/approval-1/reject", "POST")).toBe(true);
+    expect(isPrivilegedMutationPath("/api/operator/system-mode", "POST")).toBe(true);
     expect(isPrivilegedMutationPath("/api/operator/context/direct-chats", "POST")).toBe(true);
     expect(isPrivilegedMutationPath("/api/operator/context/agent-threads/thread-1", "DELETE")).toBe(true);
     expect(isPrivilegedMutationPath("/api/preferences", "POST")).toBe(true);
@@ -94,6 +108,23 @@ describe("operator auth", () => {
         })
       )
     ).toBe("session-123");
+  });
+
+  it("does not treat the agent api token as a browser operator-session token", () => {
+    delete env.ATHANOR_DASHBOARD_OPERATOR_TOKEN;
+    env.ATHANOR_AGENT_API_TOKEN = "agent-secret";
+
+    expect(getOperatorMutationToken()).toBe("");
+    expect(hasValidOperatorSessionValue("agent-secret")).toBe(true);
+    expect(
+      hasValidOperatorSession(
+        new Request("http://localhost/api/governor/pause", {
+          headers: {
+            cookie: "athanor_operator_session=agent-secret; athanor_operator_session_id=session-123",
+          },
+        })
+      )
+    ).toBe(true);
   });
 
   it("requires same-origin context for cookie-backed privileged mutations", async () => {
@@ -133,6 +164,42 @@ describe("operator auth", () => {
         headers: {
           cookie: "athanor_operator_session=secret-token",
           "x-athanor-request-origin": "http://127.0.0.1:3005",
+        },
+      })
+    );
+
+    expect(accepted).toBeNull();
+  });
+
+  it("accepts forwarded canonical origins for protected read routes", () => {
+    env.ATHANOR_DASHBOARD_OPERATOR_TOKEN = "secret-token";
+
+    const accepted = requireSameOriginOperatorSessionAccess(
+      new Request("http://localhost:3001/api/bootstrap/programs/launch-readiness-bootstrap/approve", {
+        method: "POST",
+        headers: {
+          cookie: "athanor_operator_session=secret-token",
+          origin: "https://athanor.local",
+          "x-forwarded-proto": "https",
+          "x-forwarded-host": "athanor.local",
+        },
+      })
+    );
+
+    expect(accepted).toBeNull();
+  });
+
+  it("accepts forwarded canonical origins for cookie-backed privileged mutations", () => {
+    env.ATHANOR_DASHBOARD_OPERATOR_TOKEN = "secret-token";
+
+    const accepted = requireOperatorMutationAccess(
+      new Request("http://localhost:3001/api/gallery/rate", {
+        method: "POST",
+        headers: {
+          cookie: "athanor_operator_session=secret-token",
+          origin: "https://athanor.local",
+          "x-forwarded-proto": "https",
+          "x-forwarded-host": "athanor.local",
         },
       })
     );

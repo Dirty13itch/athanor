@@ -23,6 +23,13 @@ from dataclasses import asdict, dataclass, field
 from langchain_core.messages import HumanMessage
 
 from .config import settings
+from .durable_state import (
+    fetch_task_snapshot,
+    get_task_snapshot_stats,
+    list_task_snapshots,
+    upsert_task_snapshot,
+)
+from .execution_state import sync_task_execution_projection
 from .task_store import (
     TASKS_UPDATED_KEY,
     TASK_STATUS_VALUES,
@@ -221,6 +228,198 @@ def _build_task_prompt(task: Task) -> str:
     return "\n".join(parts)
 
 
+def _describe_exception(exc: BaseException) -> dict[str, str]:
+    """Render exceptions into durable task-safe strings.
+
+    Some runtime exceptions stringify to an empty string, which makes failed task
+    records impossible to diagnose. This helper guarantees a non-empty message and
+    preserves a compact type/repr trail for later analysis.
+    """
+
+    exc_type = type(exc).__name__ or "Exception"
+    raw_message = str(exc).strip()
+    repr_text = repr(exc).strip()
+    args = getattr(exc, "args", ()) or ()
+
+    if raw_message:
+        message = raw_message
+    else:
+        arg_messages = [str(arg).strip() for arg in args if str(arg).strip()]
+        if arg_messages:
+            message = "; ".join(arg_messages)
+        elif repr_text and repr_text != f"{exc_type}()":
+            message = repr_text
+        else:
+            message = exc_type
+
+    cause = exc.__cause__ or exc.__context__
+    if cause is not None:
+        cause_type = type(cause).__name__ or "Exception"
+        cause_message = str(cause).strip() or repr(cause).strip() or cause_type
+        if cause_message and cause_message != message:
+            message = f"{message} (cause: {cause_type}: {cause_message})"
+
+    return {
+        "type": exc_type,
+        "message": message[:2000],
+        "repr": repr_text[:2000],
+    }
+
+
+def _stamp_task_failure(
+    task: Task,
+    *,
+    error_message: str,
+    failure_type: str,
+    retry_eligible: bool,
+    exception_repr: str = "",
+    stage: str = "",
+    now: float | None = None,
+) -> float:
+    """Apply consistent failed-task state and structured failure metadata."""
+
+    completed_at = now or time.time()
+    metadata = task.metadata if isinstance(task.metadata, dict) else {}
+    failure = {
+        "type": failure_type,
+        "message": error_message[:2000],
+        "recorded_at": completed_at,
+        "retry_eligible": retry_eligible,
+    }
+    if stage:
+        failure["stage"] = stage
+    if exception_repr:
+        failure["repr"] = exception_repr[:2000]
+
+    task.status = "failed"
+    task.error = error_message[:2000]
+    task.completed_at = completed_at
+    task.metadata = {
+        **metadata,
+        "failure": failure,
+    }
+    return completed_at
+
+
+def _get_task_failure_context(task: Task) -> str:
+    """Return the best available human-readable failure context for retries."""
+
+    metadata = task.metadata if isinstance(task.metadata, dict) else {}
+    failure = metadata.get("failure", {}) if isinstance(metadata.get("failure"), dict) else {}
+    failure_message = str(failure.get("message") or "").strip()
+    if failure_message:
+        return failure_message[:2000]
+
+    task_error = str(task.error or "").strip()
+    if task_error:
+        return task_error[:2000]
+
+    failure_type = str(failure.get("type") or "").strip()
+    if failure_type:
+        return failure_type[:2000]
+
+    return "Task execution failed"
+
+
+LEGACY_FAILED_TASK_DETAIL = "Legacy failed task missing recorded failure detail"
+LEGACY_FAILURE_REPAIR_SOURCE = "startup_legacy_failed_task_backfill"
+
+
+def _build_failure_display(task: Task) -> dict[str, object] | None:
+    """Return operator-facing failure context for read models and stats.
+
+    Older failed-task rows can have blank ``error`` values and no structured
+    failure metadata. That makes dashboards report a failure count without any
+    actionable detail. This helper keeps current task execution semantics
+    unchanged while synthesizing an explicit read-model message for legacy rows.
+    """
+
+    if task.status != "failed":
+        return None
+
+    metadata = task.metadata if isinstance(task.metadata, dict) else {}
+    failure = metadata.get("failure", {}) if isinstance(metadata.get("failure"), dict) else {}
+
+    message = str(failure.get("message") or "").strip()
+    source = ""
+    if message:
+        source = "metadata.failure.message"
+    else:
+        task_error = str(task.error or "").strip()
+        if task_error:
+            message = task_error
+            source = "task.error"
+        else:
+            failure_type = str(failure.get("type") or "").strip()
+            if failure_type:
+                message = failure_type
+                source = "metadata.failure.type"
+            else:
+                message = LEGACY_FAILED_TASK_DETAIL
+                source = "synthetic_legacy_gap"
+
+    failure_display: dict[str, object] = {
+        "message": message[:2000],
+        "source": source,
+        "missing_detail": source == "synthetic_legacy_gap",
+        "legacy_record": source == "synthetic_legacy_gap" or bool(failure.get("historical_residue")),
+        "historical_residue": bool(failure.get("historical_residue")),
+        "repaired": bool(failure.get("synthetic")) or isinstance(metadata.get("failure_repair"), dict),
+    }
+
+    failure_type = str(failure.get("type") or "").strip()
+    if failure_type:
+        failure_display["type"] = failure_type[:2000]
+
+    return failure_display
+
+
+def _normalize_task_for_read(task: Task) -> Task:
+    """Return a safe read-model copy with operator-facing failure context."""
+
+    normalized = Task.from_dict(task.to_dict())
+    failure_display = _build_failure_display(normalized)
+    if not failure_display:
+        return normalized
+
+    metadata = dict(normalized.metadata or {})
+    metadata["failure_display"] = failure_display
+    normalized.metadata = metadata
+    if not str(normalized.error or "").strip():
+        normalized.error = str(failure_display.get("message") or "")[:2000]
+    return normalized
+
+
+def _needs_legacy_failed_task_repair(task: Task) -> bool:
+    failure_display = _build_failure_display(task)
+    return bool(isinstance(failure_display, dict) and failure_display.get("source") == "synthetic_legacy_gap")
+
+
+def _apply_legacy_failed_task_repair(task: Task) -> Task:
+    repaired = Task.from_dict(task.to_dict())
+    metadata = dict(repaired.metadata or {})
+    failure = dict(metadata.get("failure") or {})
+    repaired_at = time.time()
+    if not str(failure.get("message") or "").strip():
+        failure["message"] = LEGACY_FAILED_TASK_DETAIL
+    if not str(failure.get("type") or "").strip():
+        failure["type"] = "historical_failure_detail_missing"
+    failure["synthetic"] = True
+    failure["historical_residue"] = True
+    failure["repair_source"] = LEGACY_FAILURE_REPAIR_SOURCE
+    failure["repaired_at"] = repaired_at
+    metadata["failure"] = failure
+    metadata["failure_repair"] = {
+        "source": LEGACY_FAILURE_REPAIR_SOURCE,
+        "repaired_at": repaired_at,
+        "preserved_updated_at": repaired.updated_at,
+    }
+    repaired.metadata = metadata
+    if not str(repaired.error or "").strip():
+        repaired.error = LEGACY_FAILED_TASK_DETAIL
+    return repaired
+
+
 async def _maybe_retry(task: Task):
     """Auto-retry a failed task if under the retry limit.
 
@@ -259,7 +458,7 @@ async def _maybe_retry(task: Task):
             metadata=retry_metadata,
             parent_task_id=task.parent_task_id,
             retry_count=task.retry_count + 1,
-            previous_error=task.error[:2000],
+            previous_error=_get_task_failure_context(task),
             source="auto-retry",
             lane=task.lane or task.agent,
             retry_lineage=[*task.retry_lineage, task.id],
@@ -586,9 +785,15 @@ async def get_task(task_id: str) -> Task | None:
         r = await _get_redis()
         record = await read_task_record(r, task_id)
         if record:
-            return Task.from_dict(record)
+            return _normalize_task_for_read(Task.from_dict(record))
     except Exception as e:
         logger.warning("Failed to get task %s: %s", task_id, e)
+    try:
+        record = await fetch_task_snapshot(task_id)
+        if record:
+            return _normalize_task_for_read(Task.from_dict(record))
+    except Exception as e:
+        logger.warning("Durable fallback failed for task %s: %s", task_id, e)
     return None
 
 
@@ -629,11 +834,32 @@ async def list_tasks(
             return (1, 0, -t.created_at)
 
         tasks.sort(key=sort_key)
+        tasks = [_normalize_task_for_read(t) for t in tasks]
         if limit is None:
             return [t.to_dict() for t in tasks]
         return [t.to_dict() for t in tasks[: max(int(limit), 0)]]
     except Exception as e:
         logger.warning("Failed to list tasks: %s", e)
+    try:
+        records = await list_task_snapshots(
+            statuses=query_statuses if 'query_statuses' in locals() else statuses,
+            agent=agent,
+            limit=limit,
+        )
+        tasks = [Task.from_dict(record) for record in records]
+
+        def sort_key(t):
+            if t.status == "pending":
+                return (0, PRIORITY_ORDER.get(t.priority, 2), t.created_at)
+            return (1, 0, -t.created_at)
+
+        tasks.sort(key=sort_key)
+        tasks = [_normalize_task_for_read(t) for t in tasks]
+        if limit is None:
+            return [t.to_dict() for t in tasks]
+        return [t.to_dict() for t in tasks[: max(int(limit), 0)]]
+    except Exception as e:
+        logger.warning("Durable fallback failed while listing tasks: %s", e)
         return []
 
 
@@ -699,11 +925,26 @@ async def list_recent_tasks(
             ),
             reverse=True,
         )
+        tasks = [_normalize_task_for_read(task) for task in tasks]
         if target is None:
             return [task.to_dict() for task in tasks]
         return [task.to_dict() for task in tasks[:target]]
     except Exception as e:
         logger.warning("Failed to list recent tasks: %s", e)
+    try:
+        records = await list_task_snapshots(statuses=statuses, agent=agent, limit=limit)
+        tasks = [Task.from_dict(record) for record in records]
+        tasks.sort(
+            key=lambda task: (
+                task.updated_at or task.completed_at or task.started_at or task.created_at,
+                task.id,
+            ),
+            reverse=True,
+        )
+        tasks = [_normalize_task_for_read(task) for task in tasks]
+        return [task.to_dict() for task in tasks]
+    except Exception as durable_error:
+        logger.warning("Durable fallback failed while listing recent tasks: %s", durable_error)
         return []
 
 
@@ -748,15 +989,56 @@ async def cancel_task(task_id: str) -> bool:
         return False
 
 
-async def persist_task_state(task: Task):
+async def persist_task_state(task: Task, *, preserve_updated_at: bool = False):
     """Persist task state through the canonical durable task store."""
+    redis_error = None
     try:
         r = await _get_redis()
-        task.updated_at = time.time()
+        if not preserve_updated_at:
+            task.updated_at = time.time()
+        elif not task.updated_at:
+            task.updated_at = task.completed_at or task.started_at or task.created_at or time.time()
         stored = await write_task_record(r, task.to_dict())
         task.__dict__.update(Task.from_dict(stored).__dict__)
     except Exception as e:
-        logger.warning("Failed to update task %s: %s", task.id, e)
+        redis_error = e
+        logger.warning("Failed to update task %s in Redis: %s", task.id, e)
+
+    try:
+        await upsert_task_snapshot(task.to_dict())
+        await sync_task_execution_projection(task.to_dict())
+    except Exception as e:
+        logger.warning("Failed to update task %s in durable store: %s", task.id, e)
+        if redis_error is not None:
+            logger.warning("Task %s lost both Redis and durable-state persistence paths", task.id)
+
+
+async def repair_legacy_failed_task_details(*, limit: int | None = None) -> int:
+    """Backfill structured failure detail onto legacy blank-error failed rows.
+
+    This preserves the original timestamps so repaired historical residue does
+    not show up as a fresh operational failure wave.
+    """
+
+    try:
+        r = await _get_redis()
+        failed_records = await read_task_records_by_status(r, "failed", limit=limit)
+    except Exception as exc:
+        logger.warning("Failed to scan legacy failed tasks for repair: %s", exc)
+        return 0
+
+    repaired_count = 0
+    for record in failed_records:
+        task = Task.from_dict(record)
+        if not _needs_legacy_failed_task_repair(task):
+            continue
+        repaired_task = _apply_legacy_failed_task_repair(task)
+        await persist_task_state(repaired_task, preserve_updated_at=True)
+        repaired_count += 1
+
+    if repaired_count:
+        logger.info("Repaired %d legacy failed task records with durable failure metadata", repaired_count)
+    return repaired_count
 
 
 async def _get_next_pending() -> Task | None:
@@ -776,26 +1058,41 @@ async def _get_next_pending() -> Task | None:
         return None
 
 
-async def approve_task(task_id: str) -> bool:
+async def approve_task(task_id: str, *, decided_by: str = "operator") -> bool:
     """Approve a pending_approval task, moving it to pending for execution."""
     task = await get_task(task_id)
     if not task:
         return False
     if task.status != "pending_approval":
         return False
+    task.metadata = {
+        **dict(task.metadata or {}),
+        "approval_decided": True,
+        "approval_decided_at": time.time(),
+        "approval_decided_by": decided_by,
+        "approval_rejected": False,
+    }
     task.status = "pending"
     await persist_task_state(task)
     logger.info("Task %s approved for execution (agent=%s)", task_id, task.agent)
     return True
 
 
-async def reject_task(task_id: str, reason: str = "Rejected by operator") -> bool:
+async def reject_task(task_id: str, reason: str = "Rejected by operator", *, decided_by: str = "operator") -> bool:
     """Reject a pending_approval task."""
     task = await get_task(task_id)
     if not task:
         return False
     if task.status != "pending_approval":
         return False
+    task.metadata = {
+        **dict(task.metadata or {}),
+        "approval_decided": True,
+        "approval_decided_at": time.time(),
+        "approval_decided_by": decided_by,
+        "approval_rejected": True,
+        "approval_reason": reason,
+    }
     task.status = "cancelled"
     task.result = reason
     await persist_task_state(task)
@@ -868,17 +1165,25 @@ async def _execute_task(task: Task):
 
         agent = get_agent(task.agent)
         if agent is None:
-            task.status = "failed"
-            task.error = f"Agent '{task.agent}' not available"
-            task.completed_at = time.time()
+            _stamp_task_failure(
+                task,
+                error_message=f"Agent '{task.agent}' not available",
+                failure_type="agent_unavailable",
+                retry_eligible=False,
+                stage="agent_lookup",
+            )
             await persist_task_state(task)
             return
 
         # Circuit breaker check — if this agent has failed too many times recently, skip
         if not await _agent_breaker.can_execute():
-            task.status = "failed"
-            task.error = f"Circuit breaker open for {task.agent} — cooling down after repeated failures"
-            task.completed_at = time.time()
+            _stamp_task_failure(
+                task,
+                error_message=f"Circuit breaker open for {task.agent} — cooling down after repeated failures",
+                failure_type="circuit_breaker_open",
+                retry_eligible=False,
+                stage="circuit_breaker",
+            )
             await persist_task_state(task)
             logger.warning("Task %s skipped — circuit open for %s", task.id, task.agent)
             return
@@ -929,9 +1234,13 @@ async def _execute_task(task: Task):
             # Check timeout (per-agent override for deep work agents)
             agent_timeout = AGENT_TIMEOUTS.get(task.agent, TASK_TIMEOUT)
             if time.time() - task.started_at > agent_timeout:
-                task.status = "failed"
-                task.error = f"Task timed out after {agent_timeout}s"
-                task.completed_at = time.time()
+                _stamp_task_failure(
+                    task,
+                    error_message=f"Task timed out after {agent_timeout}s",
+                    failure_type="task_timeout",
+                    retry_eligible=False,
+                    stage="execution",
+                )
                 await persist_task_state(task)
                 return
 
@@ -1071,20 +1380,30 @@ async def _execute_task(task: Task):
         ))
 
     except Exception as e:
-        task.status = "failed"
-        task.error = str(e)
-        task.completed_at = time.time()
+        failure = _describe_exception(e)
+        _stamp_task_failure(
+            task,
+            error_message=failure["message"],
+            failure_type=failure["type"],
+            retry_eligible=task.retry_count < MAX_TASK_RETRIES,
+            exception_repr=failure["repr"],
+            stage="execution_exception",
+        )
         await persist_task_state(task)
         await _agent_breaker.record_failure()
-        logger.error("Task %s failed: %s", task.id, e, exc_info=True)
+        logger.error("Task %s failed: %s", task.id, failure["message"], exc_info=True)
 
         # Log failure event
         from .activity import log_event
         asyncio.create_task(log_event(
             event_type="task_failed",
             agent=task.agent,
-            description=f"{task.prompt[:150]} — {str(e)[:100]}",
-            data={"task_id": task.id, "error": str(e)[:500]},
+            description=f"{task.prompt[:150]} — {failure['message'][:100]}",
+            data={
+                "task_id": task.id,
+                "error": failure["message"][:500],
+                "error_type": failure["type"],
+            },
         ))
 
         # Notify on task failures (always — failures need attention)
@@ -1094,17 +1413,22 @@ async def _execute_task(task: Task):
             action=f"Task failed (retry={task.retry_count})",
             category="routine",
             confidence=0.6,
-            description=f"{task.prompt[:120]}\n\nError: {str(e)[:150]}",
+            description=f"{task.prompt[:120]}\n\nError: {failure['message'][:150]}",
         )
 
         # Broadcast failure
         from .workspace import post_item
         asyncio.create_task(post_item(
             source_agent=task.agent,
-            content=f"Task failed: {task.prompt[:80]} — {str(e)[:100]}",
+            content=f"Task failed: {task.prompt[:80]} — {failure['message'][:100]}",
             priority="high",
             ttl=600,
-            metadata={"task_id": task.id, "status": "failed", "error": str(e)},
+            metadata={
+                "task_id": task.id,
+                "status": "failed",
+                "error": failure["message"],
+                "error_type": failure["type"],
+            },
         ))
 
         # Record skill execution failure (learning feedback loop)
@@ -1289,6 +1613,9 @@ async def start_task_worker():
         indexed = await backfill_task_store_indexes(r)
         if indexed:
             logger.info("Task store index backfill complete for %d tasks", indexed)
+        repaired = await repair_legacy_failed_task_details()
+        if repaired:
+            logger.info("Legacy failed-task repair complete for %d tasks", repaired)
         await _recover_stale_tasks()
         _worker_task = asyncio.create_task(_task_worker_loop())
         logger.info("Task execution engine started")
@@ -1311,6 +1638,7 @@ async def stop_task_worker():
 
 async def get_task_stats() -> dict:
     """Get task execution statistics."""
+    redis_error: Exception | None = None
     try:
         r = await _get_redis()
         tasks = [Task.from_dict(record) for record in await read_task_records_by_statuses(r, *TASK_STATUS_VALUES)]
@@ -1328,6 +1656,17 @@ async def get_task_stats() -> dict:
             sum(t.duration_ms for t in completed) / len(completed)
             if completed else 0
         )
+        failed_displays = [_build_failure_display(t) for t in tasks if t.status == "failed"]
+        failed_historical_repaired = sum(
+            1 for display in failed_displays if isinstance(display, dict) and bool(display.get("historical_residue"))
+        )
+        failed_missing_detail = sum(
+            1 for display in failed_displays if isinstance(display, dict) and bool(display.get("missing_detail"))
+        )
+        failed_with_detail = sum(
+            1 for display in failed_displays if isinstance(display, dict) and not bool(display.get("missing_detail"))
+        )
+        failed_actionable = max(failed_with_detail - failed_historical_repaired, 0)
 
         return {
             "total": len(tasks),
@@ -1338,7 +1677,47 @@ async def get_task_stats() -> dict:
             "max_concurrent": MAX_CONCURRENT_TASKS,
             "avg_duration_ms": int(avg_duration),
             "worker_running": _worker_task is not None and not _worker_task.done(),
+            "failed_with_detail": failed_with_detail,
+            "failed_actionable": failed_actionable,
+            "failed_historical_repaired": failed_historical_repaired,
+            "failed_missing_detail": failed_missing_detail,
+            "failure_detail_quality": {
+                "failed_with_detail": failed_with_detail,
+                "failed_actionable": failed_actionable,
+                "failed_historical_repaired": failed_historical_repaired,
+                "failed_missing_detail": failed_missing_detail,
+            },
         }
     except Exception as e:
+        redis_error = e
         logger.warning("Failed to get task stats: %s", e)
-        return {"error": str(e)}
+    try:
+        snapshot = await get_task_snapshot_stats()
+        by_status = {
+            status: int(snapshot.get("by_status", {}).get(status, 0) or 0)
+            for status in TASK_STATUS_VALUES
+        }
+        return {
+            "total": int(snapshot.get("total", 0) or 0),
+            "by_status": dict(snapshot.get("by_status", {})),
+            "by_agent": {},
+            **by_status,
+            "currently_running": _running_count,
+            "max_concurrent": MAX_CONCURRENT_TASKS,
+            "avg_duration_ms": 0,
+            "worker_running": _worker_task is not None and not _worker_task.done(),
+            "failed_with_detail": max(int(by_status.get("failed", 0) or 0), 0),
+            "failed_actionable": max(int(by_status.get("failed", 0) or 0), 0),
+            "failed_historical_repaired": 0,
+            "failed_missing_detail": 0,
+            "failure_detail_quality": {
+                "failed_with_detail": max(int(by_status.get("failed", 0) or 0), 0),
+                "failed_actionable": max(int(by_status.get("failed", 0) or 0), 0),
+                "failed_historical_repaired": 0,
+                "failed_missing_detail": 0,
+            },
+            "source": "durable_state_fallback",
+        }
+    except Exception as durable_error:
+        logger.warning("Durable fallback failed while computing task stats: %s", durable_error)
+        return {"error": str(redis_error or durable_error)}
