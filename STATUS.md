@@ -1,6 +1,6 @@
 # Athanor Status
 
-**Last updated:** 2026-04-02  
+**Last updated: 2026-04-03 20:00 PDT
 **Program:** Truth convergence, branch normalization, and aggressive prune
 
 ## Program Health
@@ -205,4 +205,27 @@
 - Provider catalog truth is stable for the active scheduler lanes, the report now distinguishes routing-enabled CLI lanes lacking observed tools from Vault-observed LiteLLM API lanes, flags live-burn subscription lanes with cost-unverified monthly tiers, exposes inline pricing-truth status, and now emits explicit next-verification actions, but configured API and unverified-cost lanes still need deeper observed-usage evidence.
 - `runtime.subsystem.task-engine` now explicitly means durable task truth plus governor posture only, not alternate governor ownership and not a retained standalone facade implementation.
 
+## Next Actions
+
+1. **[URGENT] Diagnose FOUNDRY** — No route to host as of 2026-04-03 20:00 PDT. SSH in, check docker compose status on `/opt/athanor/agents`, check network. All 9 agents are dark.
+2. **Execute VAULT LiteLLM auth repair** — `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md` is the operator checklist. The missing env vars are blocking cloud provider fallbacks. This lane has been "in progress" for too long.
+3. **FOUNDRY drift cleanup** — Approved cleanup of `src/athanor_agents/athanor_agents/` nesting + `*.bak-codex` files. Needs redeploy after. Blocked on FOUNDRY being reachable.
+4. **Kimi/GLM verification or demotion** — Run a live completion test for both. If it passes, mark verified. If not, explicitly demote in the catalog. End the ambiguity.
+5. **Provider truth cleanup** — After VAULT LiteLLM auth repair, re-run collector and verify `anthropic_api`, `openai_api`, `google_gemini_api` lanes come up clean.
+
+## Session Log
+
+### 2026-04-03 (Evening review — no new session, COO review only)
+- **FOUNDRY unreachable** at review time. No agent pipeline data available. All 9 agents dark.
+- **WORKSHOP UP**: RTX 5090 (37F, 26516/32607 MB), RTX 5060 Ti (30F, 1000/16311 MB).
+- **VAULT unreachable** at review time.
+- No commits today (April 3). Last session was April 2.
+
+### 2026-04-02 (10 commits — DEV runtime sync hardening)
+- `sync_dev_runtime_repo.py` promoted to full policy-backed contract: binary stdin transport, retention policy (3 copies), backup hardening, branch pruning.
+- Truth report generation stabilized — collector no longer fails closed on transient SSH/auth issues.
+- runtime-ownership-packets.json and runbooks updated to reflect new contract.
+- Commit quality: iterative fix churn (4 commits to land 1-line pruning fix). Pre-test locally before committing plumbing changes.
+- Open lanes with zero progress: VAULT LiteLLM auth repair, provider truth cleanup, secret surface remediation.
+- **Session productivity: 4/10** — narrow execution, no progress on blocked remediation lanes.
 
