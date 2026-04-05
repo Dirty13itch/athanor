@@ -64,6 +64,18 @@ interface GovernanceSnapshot {
   };
 }
 
+interface TaskResidueSummary {
+  total?: number;
+  pending_approval?: number;
+  stale_lease?: number;
+  failed_actionable?: number;
+  failed_historical_repaired?: number;
+}
+
+interface OperatorSummaryPayload {
+  tasks?: TaskResidueSummary;
+}
+
 function createId(prefix: string) {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${prefix}-${crypto.randomUUID()}`;
@@ -79,6 +91,7 @@ const SUGGESTED_PROMPTS = [
 
 const PENDING_APPROVALS_KEY = ["operator-pending-approvals"] as const;
 const GOVERNANCE_KEY = ["operator-governance"] as const;
+const SUMMARY_KEY = ["operator-summary"] as const;
 
 export function OperatorConsole() {
   const queryClient = useQueryClient();
@@ -109,11 +122,26 @@ export function OperatorConsole() {
     refetchIntervalInBackground: false,
   });
 
+  const summaryQuery = useQuery({
+    queryKey: SUMMARY_KEY,
+    queryFn: async (): Promise<OperatorSummaryPayload> => {
+      const data = await requestJson("/api/operator/summary");
+      return (data ?? {}) as OperatorSummaryPayload;
+    },
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+  });
+
   const pendingApprovals = pendingApprovalsQuery.data ?? [];
   const governance = governanceQuery.data ?? {};
+  const taskResidue = summaryQuery.data?.tasks ?? {};
   const currentMode = governance.current_mode?.mode ?? "unknown";
   const launchBlockers = governance.launch_blockers ?? [];
   const attentionBreaches = governance.attention_posture?.breaches ?? [];
+  const approvalHeldTasks = Number(taskResidue.pending_approval ?? 0);
+  const actionableFailures = Number(taskResidue.failed_actionable ?? 0);
+  const staleLeases = Number(taskResidue.stale_lease ?? 0);
+  const repairedHistorical = Number(taskResidue.failed_historical_repaired ?? 0);
 
   const approveMutation = useMutation({
     mutationFn: async (approvalId: string) => {
@@ -122,6 +150,7 @@ export function OperatorConsole() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_APPROVALS_KEY });
       void queryClient.invalidateQueries({ queryKey: GOVERNANCE_KEY });
+      void queryClient.invalidateQueries({ queryKey: SUMMARY_KEY });
     },
   });
 
@@ -132,6 +161,7 @@ export function OperatorConsole() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PENDING_APPROVALS_KEY });
       void queryClient.invalidateQueries({ queryKey: GOVERNANCE_KEY });
+      void queryClient.invalidateQueries({ queryKey: SUMMARY_KEY });
     },
   });
 
@@ -231,12 +261,13 @@ export function OperatorConsole() {
             onClick={() => {
               void pendingApprovalsQuery.refetch();
               void governanceQuery.refetch();
+              void summaryQuery.refetch();
             }}
-            disabled={pendingApprovalsQuery.isFetching || governanceQuery.isFetching}
+            disabled={pendingApprovalsQuery.isFetching || governanceQuery.isFetching || summaryQuery.isFetching}
           >
             <RefreshCcw
               className={`mr-2 h-4 w-4 ${
-                pendingApprovalsQuery.isFetching || governanceQuery.isFetching ? "animate-spin" : ""
+                pendingApprovalsQuery.isFetching || governanceQuery.isFetching || summaryQuery.isFetching ? "animate-spin" : ""
               }`}
             />
             Refresh
@@ -245,17 +276,22 @@ export function OperatorConsole() {
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
-            label="Messages"
-            value={`${messages.length}`}
-            detail="This session"
+            label="Actionable Failures"
+            value={`${actionableFailures}`}
+            detail={
+              repairedHistorical > 0 || staleLeases > 0
+                ? `${repairedHistorical} repaired historical · ${staleLeases} stale leases`
+                : "No repaired residue or stale leases recorded."
+            }
             icon={<MessageSquare className="h-5 w-5" />}
+            tone={actionableFailures > 0 ? "warning" : "success"}
           />
           <StatCard
-            label="Pending Approvals"
-            value={`${pendingApprovals.length}`}
-            detail="Canonical approval requests."
+            label="Approval-Held Tasks"
+            value={`${approvalHeldTasks}`}
+            detail={`${pendingApprovals.length} approval request record${pendingApprovals.length === 1 ? "" : "s"}.`}
             icon={<Inbox className="h-5 w-5" />}
-            tone={pendingApprovals.length > 0 ? "warning" : "success"}
+            tone={approvalHeldTasks > 0 ? "warning" : "success"}
           />
           <StatCard
             label="System Mode"
@@ -424,6 +460,14 @@ export function OperatorConsole() {
                   ) : (
                     <p className="text-xs text-emerald-600">Launch posture is clear.</p>
                   )}
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                      Task residue
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {actionableFailures} actionable failures, {repairedHistorical} repaired historical, {staleLeases} stale leases, {approvalHeldTasks} approval-held tasks.
+                    </p>
+                  </div>
                   {attentionBreaches.length > 0 ? (
                     <p className="text-xs text-muted-foreground">
                       Attention pressure: {attentionBreaches.join(", ")}

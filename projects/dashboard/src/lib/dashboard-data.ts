@@ -314,6 +314,16 @@ const operatorSummarySectionSchema = z.object({
   by_status: operatorStatusCountsSchema,
 });
 
+const operatorTaskSummarySchema = z.object({
+  total: z.number().int().nonnegative().default(0),
+  by_status: operatorStatusCountsSchema,
+  pending_approval: z.number().int().nonnegative().default(0),
+  stale_lease: z.number().int().nonnegative().default(0),
+  failed_actionable: z.number().int().nonnegative().default(0),
+  failed_historical_repaired: z.number().int().nonnegative().default(0),
+  failed_missing_detail: z.number().int().nonnegative().default(0),
+});
+
 const operatorSummaryResponseSchema = z
   .object({
     ideas: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
@@ -322,6 +332,15 @@ const operatorSummaryResponseSchema = z
     backlog: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
     runs: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
     approvals: operatorSummarySectionSchema.default({ total: 0, by_status: {} }),
+    tasks: operatorTaskSummarySchema.default({
+      total: 0,
+      by_status: {},
+      pending_approval: 0,
+      stale_lease: 0,
+      failed_actionable: 0,
+      failed_historical_repaired: 0,
+      failed_missing_detail: 0,
+    }),
   })
   .passthrough();
 
@@ -1412,6 +1431,15 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
         backlog: { total: 0, by_status: {} },
         runs: { total: 0, by_status: {} },
         approvals: { total: 0, by_status: {} },
+        tasks: {
+          total: 0,
+          by_status: {},
+          pending_approval: 0,
+          stale_lease: 0,
+          failed_actionable: 0,
+          failed_historical_repaired: 0,
+          failed_missing_detail: 0,
+        },
       }),
       fetchAgentJson("/v1/operator/runs?limit=120", operatorRunsResponseSchema, {
         runs: [],

@@ -17,6 +17,7 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 from truth_inventory import (
+    BOOTSTRAP_REPORTS_DIR,
     CONFIG_DIR,
     IMPLEMENTATION_AUTHORITY_ROOT,
     PROVIDER_USAGE_EVIDENCE_PATH,
@@ -300,6 +301,33 @@ def _run_inline_python_json(command: list[str], script: str) -> dict[str, Any]:
         return {"ok": True, "detail": json.loads(output) if output else {}}
     except json.JSONDecodeError:
         return {"ok": False, "detail": "invalid json from remote probe"}
+
+
+def _run_json_stdout_command(command: list[str], script: str) -> dict[str, Any]:
+    try:
+        completed = subprocess.run(
+            command,
+            input=script,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except Exception as exc:  # pragma: no cover - best effort collector
+        return {"ok": False, "detail": str(exc)}
+
+    output = (completed.stdout or "").strip()
+    if completed.returncode != 0:
+        failure_detail = (completed.stderr or completed.stdout or "").strip().splitlines()
+        return {
+            "ok": False,
+            "detail": failure_detail[0][:240] if failure_detail else f"returncode={completed.returncode}",
+        }
+
+    try:
+        return {"ok": True, "detail": json.loads(output) if output else {}}
+    except json.JSONDecodeError:
+        return {"ok": False, "detail": "invalid json from command output"}
 
 
 def _probe_dev_runtime(topology: dict[str, Any], runtime_migrations: dict[str, Any]) -> dict[str, Any]:
@@ -1408,6 +1436,111 @@ print(json.dumps(payload))
     return {"ok": False, "detail": "unable to reach FOUNDRY agents runtime probe", "attempts": attempts}
 
 
+def _write_json_artifact(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _sync_foundry_bootstrap_artifacts(topology: dict[str, Any]) -> dict[str, Any]:
+    artifact_names = [
+        "compatibility-retirement-census.json",
+        "durable-persistence-packet.json",
+        "durable-restart-proof.json",
+        "foundry-proving-packet.json",
+        "governance-drill-packets.json",
+        "latest.json",
+        "operator-fixture-parity.json",
+        "operator-nav-lock.json",
+        "operator-summary-alignment.json",
+        "operator-surface-census.json",
+        "takeover-promotion-packet.json",
+    ]
+    probe_script = f"""
+from pathlib import Path
+import hashlib
+import json
+
+artifact_names = {json.dumps(artifact_names)}
+candidate_roots = [
+    Path("/output/reports/bootstrap"),
+    Path("/workspace/reports/bootstrap"),
+    Path("/app/reports/bootstrap"),
+]
+
+def _sha256(path: Path):
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+payload = {{
+    "artifact_root": "",
+    "artifacts": {{}},
+    "artifact_meta": {{}},
+    "missing_artifacts": [],
+}}
+for root in candidate_roots:
+    if not root.is_dir():
+        continue
+    if not any((root / name).is_file() for name in artifact_names):
+        continue
+    payload["artifact_root"] = str(root)
+    for name in artifact_names:
+        artifact_path = root / name
+        if not artifact_path.is_file():
+            payload["missing_artifacts"].append(name)
+            continue
+        payload["artifacts"][name] = json.loads(artifact_path.read_text(encoding="utf-8"))
+        payload["artifact_meta"][name] = {{
+            "sha256": _sha256(artifact_path),
+            "size_bytes": artifact_path.stat().st_size,
+        }}
+    break
+
+print(json.dumps(payload))
+""".strip()
+
+    attempts: list[dict[str, Any]] = []
+    for target in _ssh_targets_for_node(topology, "foundry"):
+        result = _run_json_stdout_command(
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", target, "docker", "exec", "-i", "athanor-agents", "python3", "-"],
+            probe_script,
+        )
+        attempts.append({"target": target, "ok": result.get("ok"), "detail": result.get("detail")})
+        if not result.get("ok"):
+            continue
+        detail = dict(result.get("detail") or {})
+        artifacts = {
+            str(name): payload
+            for name, payload in dict(detail.get("artifacts") or {}).items()
+            if str(name).strip()
+        }
+        if not artifacts:
+            continue
+        synced_artifacts: list[dict[str, Any]] = []
+        for name, payload in artifacts.items():
+            destination = BOOTSTRAP_REPORTS_DIR / name
+            _write_json_artifact(destination, payload)
+            synced_artifacts.append(
+                {
+                    "name": name,
+                    "destination": str(destination),
+                    "local_sha256": _file_sha256(destination),
+                    "remote_sha256": str(dict(detail.get("artifact_meta") or {}).get(name, {}).get("sha256") or ""),
+                    "size_bytes": dict(detail.get("artifact_meta") or {}).get(name, {}).get("size_bytes"),
+                }
+            )
+        detail["synced_artifacts"] = synced_artifacts
+        detail["local_root"] = str(BOOTSTRAP_REPORTS_DIR)
+        detail["synced_artifact_count"] = len(synced_artifacts)
+        return {"ok": True, "target": target, "detail": detail, "attempts": attempts}
+
+    return {"ok": False, "detail": "unable to reach live FOUNDRY bootstrap artifacts", "attempts": attempts}
+
+
 async def _probe_operator_surfaces(
     topology: dict[str, Any],
     operator_surfaces: dict[str, Any],
@@ -1578,6 +1711,7 @@ async def build_snapshot() -> dict[str, Any]:
     _annotate_governor_facade_probe(dev_runtime_probe, runtime_migrations)
     vault_litellm_env_audit = collect_vault_litellm_env_audit()
     vault_redis_audit = collect_vault_redis_audit()
+    foundry_bootstrap_artifact_probe = _sync_foundry_bootstrap_artifacts(topology)
 
     return {
         "collected_at": datetime.now(timezone.utc).isoformat(),
@@ -1595,6 +1729,7 @@ async def build_snapshot() -> dict[str, Any]:
         ),
         "dev_runtime_probe": dev_runtime_probe,
         "foundry_agents_runtime_probe": _probe_foundry_agents_runtime(topology),
+        "foundry_bootstrap_artifact_probe": foundry_bootstrap_artifact_probe,
         "operator_surface_probe": await _probe_operator_surfaces(topology, operator_surfaces),
         "service_probes": await _probe_services(topology),
         "model_endpoint_probes": await _probe_urls(model_urls),

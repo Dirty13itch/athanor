@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { TaskResidueSummary } from "@/lib/task-residue";
 
 export interface GpuSnapshot {
   index: number;
@@ -18,12 +19,7 @@ export interface SystemSnapshot {
   gpus: GpuSnapshot[];
   agents: { online: boolean; count: number; names: string[] };
   services: { up: number; total: number; down: string[] };
-  tasks: {
-    total: number;
-    by_status: { completed: number; running: number; failed: number; pending: number };
-    currently_running: number;
-    worker_running: boolean;
-  } | null;
+  tasks: TaskResidueSummary | null;
   media: { streamCount: number; downloadCount: number; sessions: { title: string; state: string }[] } | null;
   timestamp: string;
 }

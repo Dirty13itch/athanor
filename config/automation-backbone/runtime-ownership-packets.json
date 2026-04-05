@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-02.5",
-  "updated_at": "2026-04-02T20:10:00Z",
+  "version": "2026-04-02.6",
+  "updated_at": "2026-04-03T00:10:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-packets.json",
   "packets": [
@@ -111,6 +111,59 @@
       ]
     },
     {
+      "id": "dev-dashboard-compose-deploy-packet",
+      "label": "DEV command center compose deploy packet",
+      "status": "executed",
+      "lane_id": "dev-dashboard-compose",
+      "host": "dev",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Make the active /opt/athanor/dashboard compose lane explicit so dashboard updates replace the governed compose build context instead of relying on remembered manual copy steps.",
+      "path_mappings": [
+        {
+          "source_path": "projects/dashboard",
+          "runtime_path": "/opt/athanor/dashboard",
+          "restart_units": [
+            "athanor-dashboard"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/dashboard/<timestamp>",
+      "preflight_commands": [
+        "cd projects/dashboard && npm run typecheck",
+        "cd projects/dashboard && npm run build",
+        "ssh dev \"docker compose -f /opt/athanor/dashboard/docker-compose.yml ps dashboard\"",
+        "ssh dev \"test -d /opt/athanor/dashboard\"",
+        "ssh dev \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/api/operator/session && curl -sk -o /dev/null -w '%{http_code}' https://athanor.local/api/operator/session\""
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /opt/athanor/backups/dashboard/<timestamp> and back up the current /opt/athanor/dashboard bundle before replacement.",
+        "Run scripts/deploy-dashboard.sh so the active compose build context is replaced from implementation authority.",
+        "Let the script rebuild and recreate the dashboard service from the governed /opt/athanor/dashboard compose root instead of editing the live container by hand.",
+        "Refresh truth inventory and reports immediately after the rollout."
+      ],
+      "verification_commands": [
+        "ssh dev \"docker compose -f /opt/athanor/dashboard/docker-compose.yml ps dashboard\"",
+        "ssh dev \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/api/operator/session && curl -sk -o /dev/null -w '%{http_code}' https://athanor.local/api/operator/session\"",
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
+        "python scripts/generate_truth_inventory_reports.py --report operator_surfaces --report repo_roots --report runtime_ownership --report runtime_ownership_packets --report drift",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /opt/athanor/dashboard bundle from /opt/athanor/backups/dashboard/<timestamp>.",
+        "Rebuild and restart the dashboard service from the restored compose root.",
+        "Re-run the same truth refresh and validator sequence to confirm rollback."
+      ],
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/OPERATOR-SURFACE-REPORT.md",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/TRUTH-DRIFT-REPORT.md",
+        "scripts/deploy-dashboard.sh"
+      ]
+    },
+    {
       "id": "dev-heartbeat-opt-deploy-packet",
       "label": "DEV heartbeat /opt deploy packet",
       "status": "executed",
@@ -160,7 +213,7 @@
     {
       "id": "foundry-agents-compose-deploy-packet",
       "label": "FOUNDRY athanor-agents compose deploy packet",
-      "status": "ready_for_approval",
+      "status": "executed",
       "lane_id": "foundry-agents-compose",
       "host": "foundry",
       "approval_packet_type": "runtime_host_reconfiguration",

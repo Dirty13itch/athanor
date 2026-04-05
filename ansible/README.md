@@ -14,7 +14,8 @@ ansible-playbook playbooks/vault.yml --tags monitoring
 Current command-center note:
 - Production command-center runtime is on DEV `:3001`, with `https://athanor.local/` as the canonical front-door target.
 - The default site and deploy playbooks no longer deploy a production command center on WORKSHOP.
-- Use `playbooks/command-center-dev.yml` for the approval-gated DEV containerized command-center lane.
+- Use `playbooks/command-center-dev.yml` for the approval-gated DEV command-center cutover or recovery lane.
+- Ordinary approved dashboard updates for the active `/opt/athanor/dashboard` runtime now go through the runtime-ownership packet plus `scripts/deploy-dashboard.sh`.
 - Use `playbooks/front-door.yml` for the approval-gated Caddy front-door lane on DEV.
 - Use `playbooks/workshop-shadow-dashboard.yml` only for a deliberate WORKSHOP shadow/recovery portal.
 

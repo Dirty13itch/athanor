@@ -31,8 +31,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `0`
-- Local dirty sample: none
+- Local dirty file count: `32`
+- Local dirty sample: ` M STATUS.md`, ` M ansible/README.md`, ` M ansible/playbooks/command-center-dev.yml`, ` M config/automation-backbone/runtime-ownership-contract.json`, ` M config/automation-backbone/runtime-ownership-packets.json`, ` M docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, ` M docs/runbooks/rebuild-dev.md`, ` M docs/runbooks/runtime-ownership-contract.md`, ` M projects/agents/src/athanor_agents/launch_governance.py`, ` M projects/agents/src/athanor_agents/routes/operator_work.py`
 
 ## dev-runtime-repo
 
@@ -40,8 +40,6 @@ Do not edit manually.
 - Host: `dev`
 - Authority: `runtime-authority`
 - Notes: `Runtime and deployment authority until deployment is mirror-clean.`, `Observed 2026-04-02 runtime probe shows the retired governor-facade caller set still mirror-clean with zero sync-required runtime-owned callers.`, `Repo-root systemd services on DEV still launch from this root while the active command-center container is deployed from /opt/athanor/dashboard.`, `Broader runtime-owned deployment surfaces still live across the DEV runtime repo and /opt/athanor, but the runtime-ownership contract now governs that split explicitly so it is governed maintenance rather than a promotion blocker.`
-- Runtime dirty file count: `0`
-- Runtime dirty sample: none
 
 ## dev-opt-athanor
 
@@ -112,10 +110,6 @@ Do not edit manually.
 - Host: `foundry`
 - Authority: `runtime-state`
 - Notes: `Observed 2026-04-02 FOUNDRY runtime probe shows the live athanor-agents compose bundle rooted at /opt/athanor/agents.`, `The installed Python package under /usr/local/lib/python3.12/site-packages/athanor_agents is the expected image layout for this lane, while /workspace remains a read-only runtime mirror.`
-- Compose root matches expected: `True`
-- Build root clean: `True`
-- Container running: `True`
-- Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 
 ## athanor-next
 

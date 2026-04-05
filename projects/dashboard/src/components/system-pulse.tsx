@@ -31,6 +31,24 @@ export function SystemPulse({ sticky = false }: { sticky?: boolean }) {
 
   const intensity = Math.min(1, avgUtil / 80);
   const glowHue = lensConfig.accentHue || 65;
+  const taskSignals: string[] = [];
+  if (data.tasks) {
+    if (data.tasks.currently_running > 0) {
+      taskSignals.push(`${data.tasks.currently_running} running`);
+    }
+    if (data.tasks.pending > 0) {
+      taskSignals.push(`${data.tasks.pending} queued`);
+    }
+    if (data.tasks.pending_approval > 0) {
+      taskSignals.push(`${data.tasks.pending_approval} approval-held`);
+    }
+    if (data.tasks.stale_lease > 0) {
+      taskSignals.push(`${data.tasks.stale_lease} stale`);
+    }
+    if (data.tasks.failed_actionable > 0) {
+      taskSignals.push(`${data.tasks.failed_actionable} actionable`);
+    }
+  }
 
   return (
     <Card
@@ -104,13 +122,10 @@ export function SystemPulse({ sticky = false }: { sticky?: boolean }) {
           )}
 
           {/* Tasks — hidden on mobile if nothing running */}
-          {data.tasks && (data.tasks.currently_running > 0 || data.tasks.by_status.pending > 0) && (
+          {taskSignals.length > 0 && (
             <div className="hidden text-xs sm:block">
               <span className="text-muted-foreground">Tasks</span>{" "}
-              <span className="font-mono font-medium">
-                {data.tasks.currently_running} running
-                {data.tasks.by_status.pending > 0 && `, ${data.tasks.by_status.pending} queued`}
-              </span>
+              <span className="font-mono font-medium">{taskSignals.join(", ")}</span>
             </div>
           )}
 

@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-02.5",
-  "updated_at": "2026-04-02T19:30:00Z",
+  "version": "2026-04-02.6",
+  "updated_at": "2026-04-03T00:10:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-contract.json",
   "promotion_gate_id": "runtime_ownership_maturity",
@@ -73,34 +73,33 @@
       "source_root_id": "desk-main",
       "runtime_scope": "Active command center deployment behind Caddy, built from the dashboard project and running from /opt/athanor/dashboard.",
       "source_paths": [
-        "projects/dashboard/Dockerfile",
-        "projects/dashboard/docker-compose.yml"
+        "projects/dashboard",
+        "scripts/deploy-dashboard.sh"
       ],
       "runtime_paths": [
-        "/home/shaun/repos/athanor/projects/dashboard/Dockerfile",
-        "/home/shaun/repos/athanor/projects/dashboard/docker-compose.yml",
-        "/opt/athanor/dashboard/Dockerfile",
-        "/opt/athanor/dashboard/docker-compose.yml"
+        "/home/shaun/repos/athanor/projects/dashboard",
+        "/opt/athanor/dashboard"
       ],
       "active_surfaces": [
         "athanor-dashboard container",
         "caddy.service",
         "https://athanor.local/"
       ],
-      "execution_packet_id": "dev-dashboard-shadow-retirement-packet",
+      "execution_packet_id": "dev-dashboard-compose-deploy-packet",
       "evidence_paths": [
         "reports/truth-inventory/latest.json",
         "docs/operations/OPERATOR-SURFACE-REPORT.md",
         "docs/operations/REPO-ROOTS-REPORT.md",
-        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "scripts/deploy-dashboard.sh"
       ],
       "verification_commands": [
-        "ssh dev \"docker compose -f /opt/athanor/dashboard/docker-compose.yml ps\"",
+        "ssh dev \"docker compose -f /opt/athanor/dashboard/docker-compose.yml ps dashboard\"",
         "ssh dev \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ && curl -sk -o /dev/null -w '%{http_code}' https://athanor.local/\""
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/dashboard bundle under /opt/athanor/backups/dashboard/<timestamp>/ before replacing the compose root.",
       "approval_boundary": "Replacing /opt/athanor/dashboard contents or restarting the live dashboard container remains approval-gated.",
-      "next_action": "Keep athanor-dashboard.service masked as a recovery-only shadow; the active /opt/athanor/dashboard compose lane is the sole ordinary dashboard path."
+      "next_action": "Use the dev-dashboard-compose-deploy-packet and scripts/deploy-dashboard.sh as the only ordinary dashboard update path; keep athanor-dashboard.service masked as a recovery-only shadow."
     },
     {
       "id": "dev-heartbeat-opt",

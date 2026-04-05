@@ -3,16 +3,17 @@
 Generated from `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/runtime-ownership-contract.json`, and the cached truth snapshot in `reports/truth-inventory/latest.json` by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Registry version: `2026-04-02.5`
-- Cached truth snapshot: `2026-04-02T19:40:35.257979+00:00`
-- Packets tracked: `4`
+- Registry version: `2026-04-02.6`
+- Cached truth snapshot: `2026-04-03T03:48:09.972834+00:00`
+- Packets tracked: `5`
 
 | Packet | Status | Lane | Approval type | Goal |
 | --- | --- | --- | --- | --- |
 | `dev-runtime-repo-sync-packet` | `ready_for_approval` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone. |
 | `dev-dashboard-shadow-retirement-packet` | `executed` | `dev-dashboard-compose` | `systemd_runtime_change` | Retire or explicitly downgrade the inactive athanor-dashboard.service unit so the active /opt/athanor/dashboard compose lane is the only ordinary dashboard deployment path. |
+| `dev-dashboard-compose-deploy-packet` | `executed` | `dev-dashboard-compose` | `runtime_host_reconfiguration` | Make the active /opt/athanor/dashboard compose lane explicit so dashboard updates replace the governed compose build context instead of relying on remembered manual copy steps. |
 | `dev-heartbeat-opt-deploy-packet` | `executed` | `dev-heartbeat-opt` | `runtime_host_reconfiguration` | Make the source-to-/opt heartbeat bundle replacement explicit so the live athanor-heartbeat.service lane no longer depends on undocumented manual copy steps. |
-| `foundry-agents-compose-deploy-packet` | `ready_for_approval` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |
+| `foundry-agents-compose-deploy-packet` | `executed` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |
 
 ## dev-runtime-repo-sync-packet
 
@@ -75,7 +76,7 @@ Do not edit manually.
 - Approval type: `systemd_runtime_change` (Systemd runtime change)
 - Host: `dev`
 - Goal: Retire or explicitly downgrade the inactive athanor-dashboard.service unit so the active /opt/athanor/dashboard compose lane is the only ordinary dashboard deployment path.
-- Lane next action: Keep athanor-dashboard.service masked as a recovery-only shadow; the active /opt/athanor/dashboard compose lane is the sole ordinary dashboard path.
+- Lane next action: Use the dev-dashboard-compose-deploy-packet and scripts/deploy-dashboard.sh as the only ordinary dashboard update path; keep athanor-dashboard.service masked as a recovery-only shadow.
 - Backup root: `/home/shaun/.athanor/backups/runtime-ownership/dashboard-shadow/<timestamp>`
 - Evidence: `reports/truth-inventory/latest.json`, `docs/operations/OPERATOR-SURFACE-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
@@ -83,11 +84,11 @@ Do not edit manually.
 
 ### Live evidence
 
-- Legacy service state: `inactive` / `dead`
-- Legacy unit file state: `masked`
-- Legacy fragment path: `/etc/systemd/system/athanor-dashboard.service`
-- Container running: `True`
-- Canonical probe status: `200`
+- Legacy service state: `unknown` / `unknown`
+- Legacy unit file state: `unknown`
+- Legacy fragment path: `unknown`
+- Container running: `False`
+- Canonical probe status: `unknown`
 
 ### Preflight Commands
 
@@ -116,6 +117,51 @@ Do not edit manually.
 - Restore the backed up unit file into the active systemd estate if it was moved.
 - Reload systemd and verify the compose lane still serves the dashboard before considering any legacy start path.
 
+## dev-dashboard-compose-deploy-packet
+
+- Label: `DEV command center compose deploy packet`
+- Status: `executed`
+- Lane: `dev-dashboard-compose`
+- Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
+- Host: `dev`
+- Goal: Make the active /opt/athanor/dashboard compose lane explicit so dashboard updates replace the governed compose build context instead of relying on remembered manual copy steps.
+- Lane next action: Use the dev-dashboard-compose-deploy-packet and scripts/deploy-dashboard.sh as the only ordinary dashboard update path; keep athanor-dashboard.service masked as a recovery-only shadow.
+- Backup root: `/opt/athanor/backups/dashboard/<timestamp>`
+- Evidence: `reports/truth-inventory/latest.json`, `docs/operations/OPERATOR-SURFACE-REPORT.md`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `docs/operations/TRUTH-DRIFT-REPORT.md`, `scripts/deploy-dashboard.sh`
+
+| Source path | Runtime path | Restart units |
+| --- | --- | --- |
+| `projects/dashboard` | `/opt/athanor/dashboard` | `athanor-dashboard` |
+
+### Preflight Commands
+
+- cd projects/dashboard && npm run typecheck
+- cd projects/dashboard && npm run build
+- ssh dev "docker compose -f /opt/athanor/dashboard/docker-compose.yml ps dashboard"
+- ssh dev "test -d /opt/athanor/dashboard"
+- ssh dev "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/api/operator/session && curl -sk -o /dev/null -w '%{http_code}' https://athanor.local/api/operator/session"
+
+### Exact Steps
+
+- Create a timestamped backup root under /opt/athanor/backups/dashboard/<timestamp> and back up the current /opt/athanor/dashboard bundle before replacement.
+- Run scripts/deploy-dashboard.sh so the active compose build context is replaced from implementation authority.
+- Let the script rebuild and recreate the dashboard service from the governed /opt/athanor/dashboard compose root instead of editing the live container by hand.
+- Refresh truth inventory and reports immediately after the rollout.
+
+### Verification Commands
+
+- ssh dev "docker compose -f /opt/athanor/dashboard/docker-compose.yml ps dashboard"
+- ssh dev "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/api/operator/session && curl -sk -o /dev/null -w '%{http_code}' https://athanor.local/api/operator/session"
+- python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json
+- python scripts/generate_truth_inventory_reports.py --report operator_surfaces --report repo_roots --report runtime_ownership --report runtime_ownership_packets --report drift
+- python scripts/validate_platform_contract.py
+
+### Rollback Steps
+
+- Restore the backed up /opt/athanor/dashboard bundle from /opt/athanor/backups/dashboard/<timestamp>.
+- Rebuild and restart the dashboard service from the restored compose root.
+- Re-run the same truth refresh and validator sequence to confirm rollback.
+
 ## dev-heartbeat-opt-deploy-packet
 
 - Label: `DEV heartbeat /opt deploy packet`
@@ -134,10 +180,10 @@ Do not edit manually.
 
 ### Live evidence
 
-- Deployed script exists: `True`
-- Implementation matches deploy root: `True`
-- Host-local env exists: `True`
-- Runtime venv exists: `True`
+- Deployed script exists: `False`
+- Implementation matches deploy root: `False`
+- Host-local env exists: `False`
+- Runtime venv exists: `False`
 
 ### Preflight Commands
 
@@ -168,7 +214,7 @@ Do not edit manually.
 ## foundry-agents-compose-deploy-packet
 
 - Label: `FOUNDRY athanor-agents compose deploy packet`
-- Status: `ready_for_approval`
+- Status: `executed`
 - Lane: `foundry-agents-compose`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `foundry`
@@ -187,13 +233,13 @@ Do not edit manually.
 
 ### Live evidence
 
-- Compose root matches expected: `True`
-- Build root clean: `True`
+- Compose root matches expected: `False`
+- Build root clean: `False`
 - Nested source dir present: `False`
 - bak-codex files: none
-- Container running: `True`
-- Container status: `Up 2 minutes`
-- Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
+- Container running: `False`
+- Container status: `unknown`
+- Runtime import path: `unknown`
 
 ### Preflight Commands
 

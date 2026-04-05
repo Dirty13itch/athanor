@@ -7,29 +7,29 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 
 - Credential surface version: `2026-04-02.1`
 - Provider catalog version: `2026-03-29.1`
-- Cached truth snapshot: `2026-04-02T19:40:35.257979+00:00`
-- Cached env audit: `2026-04-02T19:40:26Z`
+- Cached truth snapshot: `2026-04-03T03:48:09.972834+00:00`
+- Cached env audit: `2026-04-03T03:47:59Z`
 - Surface id: `vault-litellm-container-env`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
 - Container: `litellm`
-- Container image: `ghcr.io/berriai/litellm:main-v1.81.9-stable`
-- Restart policy: `unless-stopped`
+- Container image: ``
+- Restart policy: ``
 - Env-change boundary: `container_recreate_or_redeploy`
 - Config-only boundary: `docker_restart_litellm`
-- Launch command: `docker/prod_entrypoint.sh --config /app/config.yaml --port 4000 --num_workers 4`
+- Launch command: `unknown`
 - Managed source matches: docker template none, compose manager none
-- Boot-config references: `/boot/config/plugins/dynamix.my.servers/configs/docker.config.json`
+- Boot-config references: none
 - Detailed runbook: [vault-litellm-provider-auth-repair.md](/C:/Athanor/docs/runbooks/vault-litellm-provider-auth-repair.md)
 - Companion reports: [PROVIDER-CATALOG-REPORT.md](/C:/Athanor/docs/operations/PROVIDER-CATALOG-REPORT.md), [SECRET-SURFACE-REPORT.md](/C:/Athanor/docs/operations/SECRET-SURFACE-REPORT.md)
 
 ## Current Runtime Truth
 
-- Container envs present: `CODESTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`, `VENICE_API_KEY`
-- Container envs missing: `ANTHROPIC_API_KEY`, `DASHSCOPE_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENROUTER_API_KEY`, `ZAI_API_KEY`
+- Container envs present: none
+- Container envs missing: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `VENICE_API_KEY`, `ZAI_API_KEY`
 - Host shell envs present: none
 - Host shell envs missing: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `VENICE_API_KEY`, `ZAI_API_KEY`
-- Runtime appdata files: `/mnt/user/appdata/litellm/backups/config.yaml.20260329-191944.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260329-192005.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260330-022430.bak`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260329-191944.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022430.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.rollback-source.20260330-022725.json`, `/mnt/user/appdata/litellm/config.yaml`, `/mnt/user/appdata/litellm/config.yaml.bak`, `/mnt/user/appdata/litellm/config.yaml.bak-20260318-2354`, `/mnt/user/appdata/litellm/config.yaml.bak-20260319-0936`, `/mnt/user/appdata/litellm/config.yaml.bak-tier24`, `/mnt/user/appdata/litellm/config.yaml.bak.1344`, `/mnt/user/appdata/litellm/config.yaml.bak.1772921405`, `/mnt/user/appdata/litellm/config.yaml.bak.1773047728`, `/mnt/user/appdata/litellm/config.yaml.bak.1773469196`, `/mnt/user/appdata/litellm/config.yaml.bak.1773546264`, `/mnt/user/appdata/litellm/config.yaml.broken`, `/mnt/user/appdata/litellm/config.yaml.pre-reroute`
+- Runtime appdata files: none
 
 ## Auth-Failed Provider Lanes
 
@@ -39,7 +39,7 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 | `dashscope_qwen_api` | `qwen-max` | `DASHSCOPE_API_KEY` | `2026-04-02T02:26:51Z` | Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. |
 | `google_gemini_api` | `gemini` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | `2026-04-02T02:26:52Z` | Restore `GEMINI_API_KEY`, `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. |
 | `moonshot_api` | `kimi-k2.5` | `MOONSHOT_API_KEY` | `2026-04-02T02:26:53Z` | Inspect the latest auth failure for served model `kimi-k2.5` and reconcile `Moonshot API` on VAULT. Check `MOONSHOT_API_KEY` while reconciling the auth path. |
-| `openai_api` | `gpt` | none | `2026-04-02T02:26:53Z` | Rotate `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
+| `openai_api` | `gpt` | `OPENAI_API_KEY` | `2026-04-02T02:26:53Z` | Restore `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
 | `openrouter_api` | `openrouter` | `OPENROUTER_API_KEY` | `2026-04-02T02:26:53Z` | Verify the upstream auth mode for served model `openrouter` before re-probing `OpenRouter API`. Ensure `OPENROUTER_API_KEY` is delivered to `litellm`. |
 | `zai_api` | `glm-4.7` | `ZAI_API_KEY` | `2026-04-02T02:26:54Z` | Inspect the latest auth failure for served model `glm-4.7` and reconcile `Z.ai API` on VAULT. Check `ZAI_API_KEY` while reconciling the auth path. |
 
@@ -47,15 +47,17 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 
 | Provider | Served alias | Present env names | Missing env names | Current posture | Latest verification |
 | --- | --- | --- | --- | --- | --- |
-| `mistral_codestral_api` | `codestral` | `CODESTRAL_API_KEY` | `MISTRAL_API_KEY` | `vault_provider_specific_api_observed` | `2026-04-02T02:26:52Z` |
+| `deepseek_api` | `deepseek` | none | `DEEPSEEK_API_KEY` | `vault_provider_specific_api_observed` | `2026-04-02T02:26:52Z` |
+| `mistral_codestral_api` | `codestral` | none | `CODESTRAL_API_KEY`, `MISTRAL_API_KEY` | `vault_provider_specific_api_observed` | `2026-04-02T02:26:52Z` |
+| `venice_api` | `venice-uncensored` | none | `VENICE_API_KEY` | `vault_provider_specific_api_observed` | `2026-04-02T02:26:53Z` |
 
 ## Already Proven Provider Lanes
 
 | Provider | Served alias | Present env names | Latest proof |
 | --- | --- | --- | --- |
-| `deepseek_api` | `deepseek` | `DEEPSEEK_API_KEY` | `2026-04-02T02:26:52Z` |
-| `mistral_codestral_api` | `codestral` | `CODESTRAL_API_KEY` | `2026-04-02T02:26:52Z` |
-| `venice_api` | `venice-uncensored` | `VENICE_API_KEY` | `2026-04-02T02:26:53Z` |
+| `deepseek_api` | `deepseek` | none | `2026-04-02T02:26:52Z` |
+| `mistral_codestral_api` | `codestral` | none | `2026-04-02T02:26:52Z` |
+| `venice_api` | `venice-uncensored` | none | `2026-04-02T02:26:53Z` |
 
 ## Approved Maintenance Sequence
 

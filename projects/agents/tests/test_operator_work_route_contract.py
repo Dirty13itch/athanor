@@ -19,6 +19,14 @@ class OperatorWorkRouteContractTests(unittest.TestCase):
     def test_summary_includes_governance_payload(self) -> None:
         client = _make_client()
         governance = {"launch_ready": False, "launch_blockers": ["providers:evidence_missing"]}
+        task_stats = {
+            "total": 12,
+            "by_status": {"completed": 3, "failed": 4, "pending_approval": 2, "stale_lease": 1},
+            "failed_actionable": 2,
+            "failed_historical_repaired": 2,
+            "failed_missing_detail": 0,
+            "worker_running": True,
+        }
         with (
             patch("athanor_agents.operator_work.idea_stats", AsyncMock(return_value={"total": 1, "by_status": {}})),
             patch("athanor_agents.operator_work.inbox_stats", AsyncMock(return_value={"total": 1, "by_status": {}})),
@@ -26,6 +34,7 @@ class OperatorWorkRouteContractTests(unittest.TestCase):
             patch("athanor_agents.operator_work.backlog_stats", AsyncMock(return_value={"total": 1, "by_status": {}})),
             patch("athanor_agents.operator_work.run_stats", AsyncMock(return_value={"total": 1, "by_status": {}})),
             patch("athanor_agents.operator_work.approval_stats", AsyncMock(return_value={"total": 1, "by_status": {}})),
+            patch("athanor_agents.tasks.get_task_stats", AsyncMock(return_value=task_stats)),
             patch("athanor_agents.operator_work.digest_summary", AsyncMock(return_value={"summary": "digest"})),
             patch("athanor_agents.operator_work.project_summary", AsyncMock(return_value={"stalled_total": 0, "stalled_preview": []})),
             patch("athanor_agents.operator_work.output_summary", AsyncMock(return_value={"total": 0, "recent": []})),
@@ -38,6 +47,7 @@ class OperatorWorkRouteContractTests(unittest.TestCase):
         payload = response.json()
         self.assertEqual(governance, payload["governance"])
         self.assertEqual("digest", payload["digest"]["summary"])
+        self.assertEqual(task_stats, payload["tasks"])
         self.assertIn("projects", payload)
         self.assertIn("outputs", payload)
         self.assertIn("patterns", payload)

@@ -17,6 +17,18 @@ from athanor_agents import server  # noqa: E402
 
 
 class ServerHealthContractTests(unittest.TestCase):
+    def test_load_governor_runtime_continues_when_governor_load_fails(self) -> None:
+        class _FakeGovernor:
+            async def load(self) -> None:
+                raise RuntimeError("redis unavailable")
+
+        with patch("athanor_agents.governor.Governor.get", return_value=_FakeGovernor()):
+            with self.assertLogs("athanor_agents.server", level="WARNING") as logs:
+                result = asyncio.run(server._load_governor_runtime())
+
+        self.assertFalse(result)
+        self.assertTrue(any("continuing in degraded mode" in entry for entry in logs.output))
+
     def test_probe_redis_dependency_uses_real_ping(self) -> None:
         class _FakeRedisClient:
             def ping(self) -> None:

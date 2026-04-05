@@ -1,7 +1,8 @@
 ---
-# DEV command-center cutover lane
+# DEV command-center cutover / recovery lane
 # Usage: ansible-playbook playbooks/command-center-dev.yml --tags dashboard
-# Approval-gated: this stages the containerized DEV command-center runtime on the canonical host.
+# Approval-gated: this stages or recovers the containerized DEV command-center runtime on the canonical host.
+# Ordinary approved dashboard updates for the active runtime are governed by scripts/deploy-dashboard.sh.
 
 - name: Deploy DEV command center runtime
   hosts: dev
