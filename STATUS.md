@@ -1,6 +1,6 @@
 # Athanor Status
 
-**Last updated: 2026-04-03 20:03 PDT
+**Last updated: 2026-04-04 20:00 PDT
 **Program:** Truth convergence, branch normalization, and aggressive prune
 
 ## Program Health
@@ -207,13 +207,21 @@
 
 ## Next Actions
 
-1. **[URGENT] Diagnose FOUNDRY** — No route to host as of 2026-04-03 20:00 PDT. SSH in, check docker compose status on `/opt/athanor/agents`, check network. All 9 agents are dark.
-2. **Execute VAULT LiteLLM auth repair** — `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md` is the operator checklist. The missing env vars are blocking cloud provider fallbacks. This lane has been "in progress" for too long.
-3. **FOUNDRY drift cleanup** — Approved cleanup of `src/athanor_agents/athanor_agents/` nesting + `*.bak-codex` files. Needs redeploy after. Blocked on FOUNDRY being reachable.
-4. **Kimi/GLM verification or demotion** — Run a live completion test for both. If it passes, mark verified. If not, explicitly demote in the catalog. End the ambiguity.
-5. **Provider truth cleanup** — After VAULT LiteLLM auth repair, re-run collector and verify `anthropic_api`, `openai_api`, `google_gemini_api` lanes come up clean.
+1. **[URGENT] Diagnose FOUNDRY** — Unreachable as of 2026-04-04 20:00 PDT (second consecutive evening). SSH in, check docker compose status on `/opt/athanor/agents`, check network, check if node is up at all. All 9 agents are dark. This is P0 — nothing else matters until FOUNDRY is back.
+2. **[URGENT] Restore VAULT SSH** — SSH key rejection was the known issue. Re-authorize DEV key on Unraid web UI (Settings → SSH). Without this: no Ansible to VAULT, no `vault-ssh.py`, no LiteLLM env repair.
+3. **Execute VAULT LiteLLM auth repair** — `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md` is the checklist. Missing env vars blocking all cloud provider fallbacks. Unblocks provider truth cleanup.
+4. **FOUNDRY drift cleanup** — Approved: remove `src/athanor_agents/athanor_agents/` nesting + `*.bak-codex` files, redeploy. Can proceed once FOUNDRY is reachable.
+5. **Kimi/GLM verification or demotion** — Run a live completion test. Pass → mark verified. Fail → demote in catalog. End the ambiguity.
 
 ## Session Log
+
+### 2026-04-04 (Evening review — dark day, COO review only)
+- **Score: 1/10** — Zero productive commits after 07:02 auto-save. Pipeline dark all day.
+- **FOUNDRY unreachable** second consecutive evening. Root cause unknown. All 9 agents dark.
+- **VAULT unreachable** — likely SSH key rejection (known issue from March).
+- **WORKSHOP UP**: RTX 5090 (99°F, 26516/32607 MB), RTX 5060 Ti (86°F, 1000/16311 MB). Both GPUs idle.
+- No agent pipeline activity. No tasks completed, failed, or stalled.
+- Top priorities tomorrow: restore FOUNDRY connectivity, fix VAULT SSH, then resume in-progress lanes.
 
 ### 2026-04-03 (Evening review — no new session, COO review only)
 - **FOUNDRY unreachable** at review time. No agent pipeline data available. All 9 agents dark.
