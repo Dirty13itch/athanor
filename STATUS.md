@@ -1,6 +1,6 @@
 # Athanor Status
 
-**Last updated: 2026-04-04 20:00 PDT
+**Last updated: 2026-04-05 07:00 PDT
 **Program:** Truth convergence, branch normalization, and aggressive prune
 
 ## Program Health
@@ -214,6 +214,15 @@
 5. **Kimi/GLM verification or demotion** — Run a live completion test. Pass → mark verified. Fail → demote in catalog. End the ambiguity.
 
 ## Session Log
+
+### 2026-04-05 07:00 (Morning review — day 3 of outage)
+- **FOUNDRY DOWN** — 3rd consecutive day. `No route to host` from DEV. Network-level failure, not service-level.
+- **VAULT DOWN** — SSH auth rejected. Known key deauthorization on Unraid.
+- **WORKSHOP UP**: RTX 5090 (97°F, 26516/32607 MB), RTX 5060 Ti (86°F, 1000/16311 MB). 9 containers up 39h.
+- **DEV UP**: 8 containers up 37h. Dashboard, embedding, reranker stable.
+- Zero overnight commits. Zero agent activity. System effectively idle since April 2.
+- **Requires Shaun**: (1) Physical check on FOUNDRY — power, NIC, switch port. (2) VAULT SSH re-auth via Unraid web UI.
+- **Today's plan**: Restore FOUNDRY (P0), restore VAULT SSH (P1), repo-local work while waiting (P2).
 
 ### 2026-04-04 (Evening review — dark day, COO review only)
 - **Score: 1/10** — Zero productive commits after 07:02 auto-save. Pipeline dark all day.
