@@ -5,15 +5,15 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-02.5`
-- Cached truth snapshot: `2026-04-02T19:40:35.257979+00:00`
+- Registry version: `2026-04-02.6`
+- Cached truth snapshot: `2026-04-03T03:48:09.972834+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
 - Implementation authority: `desk-main` -> `C:/Athanor`
 - Runtime authority: `dev-runtime-repo` -> `/home/shaun/repos/athanor`
 - Runtime state roots: `dev-opt-athanor`, `dev-state`, `dev-systemd`, `dev-cron`, `vault-boot-config`, `vault-appdata`, `vault-appdatacache`, `vault-docker-root`, `foundry-opt-athanor`
 - Ownership lanes tracked: `6`
-- Execution packets tracked: `4`
+- Execution packets tracked: `5`
 
 | Criterion status | Count |
 | --- | --- |
@@ -21,18 +21,16 @@ Do not edit manually.
 
 ## Repo Evidence
 
-- Implementation dirty file count: `0`
-- DEV runtime dirty file count: `0`
-- FOUNDRY compose root matches expected: `True`
-- FOUNDRY build root clean: `True`
-- FOUNDRY runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
+- Implementation dirty file count: `32`
+- DEV runtime probe: `unable to reach DEV via ssh`
+- FOUNDRY agents runtime probe: `unable to reach FOUNDRY agents runtime probe`
 
 ## Ownership Lanes
 
 | Lane | Host | Mode | Status | Owner roots | Packet | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
 | `dev-runtime-repo-systemd` | `dev` | `repo_worktree_mirror` | `active` | `dev-runtime-repo`, `dev-systemd` | `dev-runtime-repo-sync-packet` | Execute the dev-runtime-repo-sync-packet to make /home/shaun/repos/athanor a clean mirror of implementation authority, then restart only the repo-root services that actually changed. |
-| `dev-dashboard-compose` | `dev` | `opt_compose_service` | `active` | `dev-opt-athanor`, `dev-runtime-repo` | `dev-dashboard-shadow-retirement-packet` | Keep athanor-dashboard.service masked as a recovery-only shadow; the active /opt/athanor/dashboard compose lane is the sole ordinary dashboard path. |
+| `dev-dashboard-compose` | `dev` | `opt_compose_service` | `active` | `dev-opt-athanor`, `dev-runtime-repo` | `dev-dashboard-compose-deploy-packet` | Use the dev-dashboard-compose-deploy-packet and scripts/deploy-dashboard.sh as the only ordinary dashboard update path; keep athanor-dashboard.service masked as a recovery-only shadow. |
 | `dev-heartbeat-opt` | `dev` | `opt_systemd_service` | `active` | `dev-opt-athanor`, `dev-systemd` | `dev-heartbeat-opt-deploy-packet` | Use the executed heartbeat deploy packet as the governed replacement path for future /opt/athanor/heartbeat updates. |
 | `dev-runtime-state` | `dev` | `host_state_surface` | `active` | `dev-state`, `dev-systemd`, `dev-cron`, `dev-logs` | `none` | Keep these state surfaces explicit in reports so runtime maintenance is tied to named roots instead of operator memory. |
 | `foundry-agents-compose` | `foundry` | `opt_compose_service` | `active` | `foundry-opt-athanor` | `foundry-agents-compose-deploy-packet` | Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container. |
@@ -64,11 +62,11 @@ Do not edit manually.
 | Unit | Working directories | ExecStart | EnvFiles |
 | --- | --- | --- | --- |
 | `/home/shaun/repos/athanor` | none | none | 0 |
-| `athanor-brain.service` | `/home/shaun/repos/athanor/services/brain` | `/home/shaun/repos/athanor/services/brain/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8780` | 0 |
-| `athanor-classifier.service` | `/home/shaun/repos/athanor/services/classifier` | `/home/shaun/repos/athanor/services/classifier/.venv/bin/python main.py` | 1 |
-| `athanor-quality-gate.service` | `/home/shaun/repos/athanor/services/quality-gate` | `/home/shaun/repos/athanor/services/quality-gate/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8790` | 0 |
-| `athanor-sentinel.service` | `/home/shaun/repos/athanor/services/sentinel` | `/home/shaun/repos/athanor/services/sentinel/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8770` | 0 |
-| `athanor-overnight.service` | `/home/shaun/repos/athanor` | `/home/shaun/repos/athanor/scripts/overnight-ops.sh` | 0 |
+| `athanor-brain.service` | none | none | 0 |
+| `athanor-classifier.service` | none | none | 0 |
+| `athanor-quality-gate.service` | none | none | 0 |
+| `athanor-sentinel.service` | none | none | 0 |
+| `athanor-overnight.service` | none | none | 0 |
 
 ## dev-dashboard-compose
 
@@ -79,36 +77,31 @@ Do not edit manually.
 - Owner roots: `dev-opt-athanor -> /opt/athanor`, `dev-runtime-repo -> /home/shaun/repos/athanor`
 - Source root: `desk-main`
 - Runtime scope: Active command center deployment behind Caddy, built from the dashboard project and running from /opt/athanor/dashboard.
-- Source paths: `projects/dashboard/Dockerfile`, `projects/dashboard/docker-compose.yml`
-- Runtime paths: `/home/shaun/repos/athanor/projects/dashboard/Dockerfile`, `/home/shaun/repos/athanor/projects/dashboard/docker-compose.yml`, `/opt/athanor/dashboard/Dockerfile`, `/opt/athanor/dashboard/docker-compose.yml`
+- Source paths: `projects/dashboard`, `scripts/deploy-dashboard.sh`
+- Runtime paths: `/home/shaun/repos/athanor/projects/dashboard`, `/opt/athanor/dashboard`
 - Active surfaces: `athanor-dashboard container`, `caddy.service`, `https://athanor.local/`
-- Execution packet: `dev-dashboard-shadow-retirement-packet`
-- Evidence: `reports/truth-inventory/latest.json`, `docs/operations/OPERATOR-SURFACE-REPORT.md`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-- Verification commands: `ssh dev "docker compose -f /opt/athanor/dashboard/docker-compose.yml ps"`, `ssh dev "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ && curl -sk -o /dev/null -w '%{http_code}' https://athanor.local/"`
+- Execution packet: `dev-dashboard-compose-deploy-packet`
+- Evidence: `reports/truth-inventory/latest.json`, `docs/operations/OPERATOR-SURFACE-REPORT.md`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `scripts/deploy-dashboard.sh`
+- Verification commands: `ssh dev "docker compose -f /opt/athanor/dashboard/docker-compose.yml ps dashboard"`, `ssh dev "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/ && curl -sk -o /dev/null -w '%{http_code}' https://athanor.local/"`
 - Rollback contract: Preserve the previous /opt/athanor/dashboard bundle under /opt/athanor/backups/dashboard/<timestamp>/ before replacing the compose root.
 - Approval boundary: Replacing /opt/athanor/dashboard contents or restarting the live dashboard container remains approval-gated.
-- Next action: Keep athanor-dashboard.service masked as a recovery-only shadow; the active /opt/athanor/dashboard compose lane is the sole ordinary dashboard path.
+- Next action: Use the dev-dashboard-compose-deploy-packet and scripts/deploy-dashboard.sh as the only ordinary dashboard update path; keep athanor-dashboard.service masked as a recovery-only shadow.
 - Packet status: `executed`
-- Packet approval type: `systemd_runtime_change`
+- Packet approval type: `runtime_host_reconfiguration`
 
 ### Live dashboard evidence
 
-- Deployment mode: `containerized_service_behind_caddy`
-- Active root: `/opt/athanor/dashboard`
-- Runtime repo compose controls container: `True`
-- Container running: `True`
-- Container status: `Up 22 hours`
-- Compose working dir: `/opt/athanor/dashboard`
-- Legacy service state: `inactive` / `dead`
-- Legacy unit file state: `masked`
+- Deployment mode: `unknown`
+- Active root: `unknown`
+- Runtime repo compose controls container: `False`
+- Container running: `False`
+- Container status: `unknown`
+- Compose working dir: `unknown`
+- Legacy service state: `unknown` / `unknown`
+- Legacy unit file state: `unknown`
 - Legacy service root-cause hint: `none`
-- Runtime probe status: `200`
-- Canonical probe status: `200`
-
-| Control file | Impl -> runtime repo | Impl -> deploy root | Runtime repo -> deploy root |
-| --- | --- | --- | --- |
-| `Dockerfile` | `True` | `True` | `True` |
-| `docker-compose.yml` | `True` | `True` | `True` |
+- Runtime probe status: `unknown`
+- Canonical probe status: `unknown`
 
 ## dev-heartbeat-opt
 
@@ -133,14 +126,14 @@ Do not edit manually.
 
 ### Live heartbeat evidence
 
-- Unit file state: `enabled`
+- Unit file state: `unknown`
 - Working directories: none
-- ExecStart: `/opt/athanor/heartbeat/venv/bin/python3 /opt/athanor/heartbeat/node-heartbeat.py`
-- EnvFiles: `1`
-- Deployed script exists: `True`
-- Host-local env exists: `True`
-- Runtime venv exists: `True`
-- Implementation matches deploy root: `True`
+- ExecStart: none
+- EnvFiles: `0`
+- Deployed script exists: `False`
+- Host-local env exists: `False`
+- Runtime venv exists: `False`
+- Implementation matches deploy root: `False`
 
 ## dev-runtime-state
 
@@ -163,9 +156,9 @@ Do not edit manually.
 
 ### Live runtime-state evidence
 
-- /opt entries: `backups`, `dashboard`, `draftsman`, `heartbeat`, `scripts`
-- /home/shaun/.athanor entries: `backups`, `cli-router-embeddings.npz`, `overnight-queue.yaml`, `provider-execution`, `runtime.env`, `subscription-burn-state.json`, `subscription-tasks`, `systemd`, `worktrees`
-- Cron files: `/etc/cron.d/athanor-drift-check`, `/etc/cron.d/athanor-overnight`
+- /opt entries: none
+- /home/shaun/.athanor entries: none
+- Cron files: none
 
 ## foundry-agents-compose
 
@@ -185,31 +178,23 @@ Do not edit manually.
 - Rollback contract: Preserve the previous /opt/athanor/agents bundle under /opt/athanor/backups/agents/<timestamp>/ before replacement, and rebuild the compose lane from that backup if the rollout regresses.
 - Approval boundary: Replacing /opt/athanor/agents contents or rebuilding the live athanor-agents container remains approval-gated.
 - Next action: Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container.
-- Packet status: `ready_for_approval`
+- Packet status: `executed`
 - Packet approval type: `runtime_host_reconfiguration`
 
 ### Live FOUNDRY agents evidence
 
-- Expected root exists: `True`
-- Compose root matches expected: `True`
-- Build root clean: `True`
+- Expected root exists: `False`
+- Compose root matches expected: `False`
+- Build root clean: `False`
 - Nested source dir present: `False`
 - bak-codex files: none
-- Container running: `True`
-- Container status: `Up 2 minutes`
-- Compose working dir: `/opt/athanor/agents`
-- Compose config files: `/opt/athanor/agents/docker-compose.yml`
-- Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
-- Site-packages import: `True`
-- Source mirrors: `/workspace/projects/agents/src/athanor_agents`, `/workspace/agents/src/athanor_agents`, `/app/src/athanor_agents`
-
-| Control path | Kind | Impl exists | Runtime exists | Impl -> runtime |
-| --- | --- | --- | --- | --- |
-| `Dockerfile` | `file` | `True` | `True` | `True` |
-| `pyproject.toml` | `file` | `True` | `True` | `True` |
-| `docker-compose.yml` | `file` | `True` | `True` | `True` |
-| `config/subscription-routing-policy.yaml` | `file` | `True` | `True` | `True` |
-| `src/athanor_agents` | `directory` | `True` | `True` | `False` |
+- Container running: `False`
+- Container status: `unknown`
+- Compose working dir: `unknown`
+- Compose config files: `unknown`
+- Runtime import path: `unknown`
+- Site-packages import: `False`
+- Source mirrors: none
 
 ## vault-runtime-maintenance
 
@@ -246,5 +231,6 @@ Do not edit manually.
 | --- | --- | --- | --- | --- |
 | `dev-runtime-repo-sync-packet` | `ready_for_approval` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone. |
 | `dev-dashboard-shadow-retirement-packet` | `executed` | `dev-dashboard-compose` | `systemd_runtime_change` | Retire or explicitly downgrade the inactive athanor-dashboard.service unit so the active /opt/athanor/dashboard compose lane is the only ordinary dashboard deployment path. |
+| `dev-dashboard-compose-deploy-packet` | `executed` | `dev-dashboard-compose` | `runtime_host_reconfiguration` | Make the active /opt/athanor/dashboard compose lane explicit so dashboard updates replace the governed compose build context instead of relying on remembered manual copy steps. |
 | `dev-heartbeat-opt-deploy-packet` | `executed` | `dev-heartbeat-opt` | `runtime_host_reconfiguration` | Make the source-to-/opt heartbeat bundle replacement explicit so the live athanor-heartbeat.service lane no longer depends on undocumented manual copy steps. |
-| `foundry-agents-compose-deploy-packet` | `ready_for_approval` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |
+| `foundry-agents-compose-deploy-packet` | `executed` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |

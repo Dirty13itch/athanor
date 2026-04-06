@@ -98,6 +98,21 @@ def _build_launch_governance_posture() -> dict[str, object]:
     return build_launch_governance_posture()
 
 
+async def _load_governor_runtime() -> bool:
+    from .governor import Governor
+
+    try:
+        await Governor.get().load()
+        return True
+    except Exception as exc:
+        logger.warning(
+            "Governor runtime unavailable during startup; continuing in degraded mode: %s",
+            exc,
+            exc_info=True,
+        )
+        return False
+
+
 async def _probe_redis_dependency(checked_at: str) -> dict[str, object]:
     def _ping() -> dict[str, object]:
         import redis as _redis
@@ -159,8 +174,7 @@ async def lifespan(app: FastAPI):
     await start_task_worker()
     await start_scheduler()
 
-    from .governor import Governor
-    await Governor.get().load()
+    await _load_governor_runtime()
 
     agent_metadata = get_agent_metadata()
     for name, meta in agent_metadata.items():
@@ -194,6 +208,8 @@ async def lifespan(app: FastAPI):
         print(f"[lifespan] Core memory seeding failed: {e}", flush=True)
 
     yield
+    from .governor import Governor
+
     await Governor.get().shutdown()
     await stop_scheduler()
     await stop_task_worker()

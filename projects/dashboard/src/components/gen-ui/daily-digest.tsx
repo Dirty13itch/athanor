@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { extractTaskResidueSummary } from "@/lib/task-residue";
 
 interface DigestData {
   tasksCompleted: number;
-  tasksFailed: number;
+  actionableFailures: number;
   tasksRunning: number;
-  agentsOnline: number;
   pendingApprovals: number;
+  staleLeases: number;
 }
 
 export function DailyDigest() {
@@ -21,10 +22,10 @@ export function DailyDigest() {
     async function fetchDigest() {
       const digest: DigestData = {
         tasksCompleted: 0,
-        tasksFailed: 0,
+        actionableFailures: 0,
         tasksRunning: 0,
-        agentsOnline: 0,
         pendingApprovals: 0,
+        staleLeases: 0,
       };
 
       try {
@@ -34,10 +35,12 @@ export function DailyDigest() {
 
         if (operatorRes?.ok) {
           const operator = await operatorRes.json();
-          digest.tasksCompleted = operator?.runs?.by_status?.completed ?? 0;
-          digest.tasksFailed = operator?.runs?.by_status?.failed ?? 0;
-          digest.tasksRunning = operator?.runs?.by_status?.running ?? 0;
+          const taskSummary = extractTaskResidueSummary(operator?.tasks);
+          digest.tasksCompleted = taskSummary.completed;
+          digest.actionableFailures = taskSummary.failed_actionable;
+          digest.tasksRunning = taskSummary.currently_running;
           digest.pendingApprovals = operator?.approvals?.by_status?.pending ?? 0;
+          digest.staleLeases = taskSummary.stale_lease;
         }
       } catch {
         // Best effort
@@ -56,7 +59,12 @@ export function DailyDigest() {
 
   if (!data) return null;
 
-  const hasActivity = data.tasksCompleted > 0 || data.tasksFailed > 0 || data.tasksRunning > 0 || data.pendingApprovals > 0;
+  const hasActivity =
+    data.tasksCompleted > 0 ||
+    data.actionableFailures > 0 ||
+    data.tasksRunning > 0 ||
+    data.pendingApprovals > 0 ||
+    data.staleLeases > 0;
   if (!hasActivity) return null;
 
   return (
@@ -78,15 +86,20 @@ export function DailyDigest() {
               <span>{data.tasksRunning} running</span>
             </div>
           )}
-          {data.tasksFailed > 0 && (
+          {data.actionableFailures > 0 && (
             <div className="flex items-center gap-1">
               <span className="inline-block h-2 w-2 rounded-full bg-red-500" />
-              <span>{data.tasksFailed} failed</span>
+              <span>{data.actionableFailures} actionable failures</span>
             </div>
           )}
           {data.pendingApprovals > 0 && (
             <Badge variant="outline" className="text-xs">
               {data.pendingApprovals} pending approval{data.pendingApprovals > 1 ? "s" : ""}
+            </Badge>
+          )}
+          {data.staleLeases > 0 && (
+            <Badge variant="outline" className="text-xs">
+              {data.staleLeases} stale lease{data.staleLeases > 1 ? "s" : ""}
             </Badge>
           )}
         </div>

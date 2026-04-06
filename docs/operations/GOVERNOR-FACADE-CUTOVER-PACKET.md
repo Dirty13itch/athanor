@@ -6,7 +6,7 @@ Do not edit manually.
 This packet is retained as the verified record of the completed DEV `:8760` cutover. Use it to audit what was backed up, replaced, and verified, and only rerun the commands if drift reopens the seam.
 
 - Registry version: `2026-03-29.2`
-- Cached truth snapshot: `2026-04-02T19:40:35.257979+00:00`
+- Cached truth snapshot: `2026-04-03T03:48:09.972834+00:00`
 - Migrations included: `1`
 
 ## dev-governor-facade-8760-callers
@@ -39,7 +39,7 @@ ssh dev 'journalctl -u athanor-governor.service -n 400 --no-pager > "/home/shaun
 - Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/scripts/drift-check.sh`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh`
-- Rollback ready: `True`
+- Rollback ready: `None`
 - Cutover check: Script runs cleanly from implementation authority without any :8760 reference and the DEV runtime copy no longer journals facade traffic.
 
 ```bash
@@ -61,7 +61,7 @@ PY'
 - Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/scripts/smoke-test.sh`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh`
-- Rollback ready: `True`
+- Rollback ready: `None`
 - Cutover check: Script runs cleanly from implementation authority and the DEV runtime copy no longer hits :8760.
 
 ```bash
@@ -83,7 +83,7 @@ PY'
 - Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/cluster_config.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py`
-- Rollback ready: `True`
+- Rollback ready: `None`
 - Cutover check: DEV runtime repo no longer exports or defaults any localhost:8760 governor URL.
 
 ```bash
@@ -105,7 +105,7 @@ PY'
 - Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/gateway/main.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py`
-- Rollback ready: `True`
+- Rollback ready: `None`
 - Cutover check: Gateway health references canonical task-engine stats and topology-owned dependency ids instead of localhost:8760.
 
 ```bash
@@ -127,7 +127,7 @@ PY'
 - Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/governor/status_report.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py`
-- Rollback ready: `True`
+- Rollback ready: `None`
 - Cutover check: Helper reads canonical task and subscription summary surfaces only.
 
 ```bash
@@ -149,7 +149,7 @@ PY'
 - Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/governor/overnight.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py`
-- Rollback ready: `True`
+- Rollback ready: `None`
 - Cutover check: Helper dispatches through /v1/tasks/dispatch and no longer reads /queue or /dispatch-and-run.
 
 ```bash
@@ -171,7 +171,7 @@ PY'
 - Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/governor/act_first.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py`
-- Rollback ready: `True`
+- Rollback ready: `None`
 - Cutover check: Helper reads the canonical task list instead of mutating a local queue snapshot.
 
 ```bash
@@ -193,7 +193,7 @@ PY'
 - Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/governor/self_improve.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py`
-- Rollback ready: `True`
+- Rollback ready: `None`
 - Cutover check: Helper submits durable tasks through /v1/tasks and no longer relies on governor-owned queue surfaces.
 
 ```bash
@@ -215,7 +215,7 @@ PY'
 - Sync decision: `already_synced`
 - Runtime target: `/home/shaun/repos/athanor/services/sentinel/checks.py`
 - Backup target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py`
-- Rollback ready: `True`
+- Rollback ready: `None`
 - Cutover check: Sentinel integration checks use canonical task-engine stats and topology-owned service health URLs.
 
 ```bash

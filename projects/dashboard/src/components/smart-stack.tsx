@@ -14,6 +14,10 @@ interface TaskStats {
   running: number;
   pending: number;
   total: number;
+  pendingApproval: number;
+  staleLease: number;
+  failedActionable: number;
+  failedHistoricalRepaired: number;
 }
 
 interface PatternReport {
@@ -22,12 +26,17 @@ interface PatternReport {
 }
 
 interface OperatorSummaryPayload {
-  runs?: {
+  tasks?: {
     total?: number;
     by_status?: Record<string, number>;
-  };
-  approvals?: {
-    by_status?: Record<string, number>;
+    completed?: number;
+    failed?: number;
+    running?: number;
+    pending?: number;
+    pending_approval?: number;
+    stale_lease?: number;
+    failed_actionable?: number;
+    failed_historical_repaired?: number;
   };
   patterns?: PatternReport;
 }
@@ -35,7 +44,6 @@ interface OperatorSummaryPayload {
 interface StackData {
   taskStats: TaskStats | null;
   patterns: PatternReport | null;
-  pendingApprovals: number;
 }
 
 function getTimeContext(): TimeContext {
@@ -48,19 +56,27 @@ function getTimeContext(): TimeContext {
 
 function contextLabel(ctx: TimeContext): string {
   switch (ctx) {
-    case "morning": return "Good morning";
-    case "afternoon": return "Afternoon";
-    case "evening": return "Evening";
-    case "night": return "Overnight";
+    case "morning":
+      return "Good morning";
+    case "afternoon":
+      return "Afternoon";
+    case "evening":
+      return "Evening";
+    case "night":
+      return "Overnight";
   }
 }
 
 function contextEmoji(ctx: TimeContext): string {
   switch (ctx) {
-    case "morning": return "\u2600\uFE0F";
-    case "afternoon": return "\u26A1";
-    case "evening": return "\uD83C\uDF19";
-    case "night": return "\uD83D\uDD53";
+    case "morning":
+      return "\u2600\uFE0F";
+    case "afternoon":
+      return "\u26A1";
+    case "evening":
+      return "\uD83C\uDF19";
+    case "night":
+      return "\uD83D\uDD53";
   }
 }
 
@@ -87,27 +103,29 @@ export function SmartStack() {
         }).catch(() => null);
 
         let taskStats: TaskStats | null = null;
-        let pendingApprovals = 0;
         let patterns: PatternReport | null = null;
         if (operatorRes?.ok) {
           const operator = (await operatorRes.json()) as OperatorSummaryPayload;
-          const runSummary = operator?.runs?.by_status ?? {};
-          const approvalSummary = operator?.approvals?.by_status ?? {};
-          taskStats = operator?.runs
+          const taskSummary = operator?.tasks;
+          const byStatus = taskSummary?.by_status ?? {};
+          taskStats = taskSummary
             ? {
-                completed: runSummary.completed ?? 0,
-                failed: runSummary.failed ?? 0,
-                running: runSummary.running ?? 0,
-                pending: runSummary.queued ?? 0,
-                total: operator.runs.total ?? 0,
+                completed: taskSummary.completed ?? byStatus.completed ?? 0,
+                failed: taskSummary.failed ?? byStatus.failed ?? 0,
+                running: taskSummary.running ?? byStatus.running ?? 0,
+                pending: taskSummary.pending ?? byStatus.pending ?? 0,
+                total: taskSummary.total ?? 0,
+                pendingApproval: taskSummary.pending_approval ?? byStatus.pending_approval ?? 0,
+                staleLease: taskSummary.stale_lease ?? byStatus.stale_lease ?? 0,
+                failedActionable: taskSummary.failed_actionable ?? 0,
+                failedHistoricalRepaired: taskSummary.failed_historical_repaired ?? 0,
               }
             : null;
-          pendingApprovals = approvalSummary.pending ?? 0;
           patterns = operator?.patterns ?? null;
         }
 
         if (mounted) {
-          setData({ taskStats, patterns, pendingApprovals });
+          setData({ taskStats, patterns });
           setLoading(false);
         }
       } catch {
@@ -115,8 +133,11 @@ export function SmartStack() {
       }
     }
 
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
+    void fetchData();
+    const interval = setInterval(() => {
+      void fetchData();
+    }, 30000);
+
     return () => {
       mounted = false;
       clearInterval(interval);
@@ -156,9 +177,11 @@ export function SmartStack() {
 
   const stats = data?.taskStats;
   const patterns = data?.patterns;
-  const approvals = data?.pendingApprovals ?? 0;
+  const approvalHeld = stats?.pendingApproval ?? 0;
+  const actionableFailures = stats?.failedActionable ?? 0;
+  const staleLeases = stats?.staleLease ?? 0;
+  const repairedHistory = stats?.failedHistoricalRepaired ?? 0;
 
-  // Filter actionable patterns
   const warnings = (patterns?.patterns ?? []).filter(
     (p) => p.severity === "high" || p.severity === "medium"
   );
@@ -170,29 +193,25 @@ export function SmartStack() {
         <CardTitle className="flex items-center gap-2 text-sm">
           <span>{contextEmoji(ctx)}</span>
           <span>{contextLabel(ctx)}</span>
-          <span className="text-xs font-normal text-muted-foreground ml-auto">
-            Smart Stack
-          </span>
+          <span className="ml-auto text-xs font-normal text-muted-foreground">Smart Stack</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Pending approvals — always show if any */}
-        {approvals > 0 && (
+        {approvalHeld > 0 && (
           <a
             href="/operator"
             className="flex items-center gap-2 rounded-md border border-primary/25 bg-primary/10 px-3 py-2 text-xs transition-colors hover:bg-primary/15"
           >
             <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             <span className="font-medium text-primary">
-              {approvals} pending approval{approvals > 1 ? "s" : ""}
+              {approvalHeld} approval-held task{approvalHeld > 1 ? "s" : ""}
             </span>
           </a>
         )}
 
-        {/* Task summary */}
         {stats && (
-          <div className="flex items-center gap-3 text-xs">
-            <span className="text-muted-foreground">Tasks (24h):</span>
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <span className="text-muted-foreground">Task plane:</span>
             {stats.completed > 0 && (
               <span className="flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
@@ -205,26 +224,32 @@ export function SmartStack() {
                 {stats.running} running
               </span>
             )}
-            {stats.failed > 0 && (
+            {actionableFailures > 0 && (
               <span className="flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                {stats.failed} failed
+                {actionableFailures} actionable failure{actionableFailures > 1 ? "s" : ""}
               </span>
             )}
-            {stats.total === 0 && (
-              <span className="text-muted-foreground">No tasks yet</span>
+            {staleLeases > 0 && (
+              <span className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                {staleLeases} stale lease{staleLeases > 1 ? "s" : ""}
+              </span>
             )}
+            {repairedHistory > 0 && (
+              <span className="flex items-center gap-1 text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" />
+                {repairedHistory} repaired historical
+              </span>
+            )}
+            {stats.total === 0 && <span className="text-muted-foreground">No tasks yet</span>}
           </div>
         )}
 
-        {/* Pattern warnings */}
         {warnings.length > 0 && (
           <div className="space-y-1">
             {warnings.slice(0, 3).map((w, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 text-xs text-muted-foreground"
-              >
+              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Badge
                   variant={w.severity === "high" ? "destructive" : "outline"}
                   className="text-[10px] px-1.5 py-0"
@@ -238,22 +263,20 @@ export function SmartStack() {
           </div>
         )}
 
-        {/* Recommendations */}
         {recommendations.length > 0 && ctx === "morning" && (
           <div className="space-y-1 border-t border-border pt-2">
-            <span className="text-[10px] uppercase text-muted-foreground tracking-wider">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Recommendations
             </span>
             {recommendations.slice(0, 2).map((r, i) => (
-              <p key={i} className="text-xs text-muted-foreground leading-relaxed">
+              <p key={i} className="text-xs leading-relaxed text-muted-foreground">
                 {r}
               </p>
             ))}
           </div>
         )}
 
-        {/* Context-specific content */}
-        {ctx === "morning" && !stats?.total && !approvals && !warnings.length && (
+        {ctx === "morning" && !stats?.total && !approvalHeld && !warnings.length && (
           <p className="text-xs text-muted-foreground">
             All clear. No overnight issues detected.
           </p>

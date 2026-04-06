@@ -1,5 +1,6 @@
 import { queryPrometheus, type PrometheusResult } from "@/lib/api";
 import { agentServerHeaders, config, getNodeNameFromInstance } from "@/lib/config";
+import { extractTaskResidueSummary, type TaskResidueSummary } from "@/lib/task-residue";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ interface StreamPayload {
   }[];
   agents: { online: boolean; count: number; names: string[] };
   services: { up: number; total: number; down: string[] };
-  tasks: Record<string, unknown> | null;
+  tasks: TaskResidueSummary | null;
   notifications: { pending: number; total: number };
   media: { streamCount: number; downloadCount: number; sessions: { title: string; state: string }[] } | null;
   timestamp: string;
@@ -116,21 +117,17 @@ async function fetchSnapshot(): Promise<StreamPayload> {
       const data = await res.json();
       const runSummary = data?.runs ?? {};
       const runByStatus = runSummary?.by_status ?? {};
-      const queued = toCount(runByStatus.queued ?? runByStatus.pending);
-      const running = toCount(runByStatus.running);
-      const completed = toCount(runByStatus.completed);
-      const failed = toCount(runByStatus.failed);
-      tasks = {
-        total: toCount(runSummary?.total),
-        by_status: {
-          completed,
-          running,
-          failed,
-          pending: queued,
-        },
-        currently_running: running,
-        worker_running: running > 0,
-      };
+      tasks = data?.tasks
+        ? extractTaskResidueSummary(data.tasks)
+        : extractTaskResidueSummary({
+            total: runSummary?.total,
+            completed: runByStatus.completed,
+            running: runByStatus.running,
+            failed: runByStatus.failed,
+            pending: runByStatus.queued ?? runByStatus.pending,
+            currently_running: runByStatus.running,
+            worker_running: toCount(runByStatus.running) > 0,
+          });
 
       const inboxSummary = data?.inbox ?? {};
       const inboxByStatus = inboxSummary?.by_status ?? {};

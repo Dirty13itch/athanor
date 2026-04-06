@@ -62,6 +62,7 @@ async def get_operator_work_summary():
     )
     from ..bootstrap_state import build_bootstrap_runtime_snapshot
     from ..governance_state import build_governance_snapshot
+    from ..tasks import get_task_stats
 
     (
         ideas,
@@ -70,6 +71,7 @@ async def get_operator_work_summary():
         backlog,
         runs,
         approvals,
+        tasks,
         bootstrap,
         governance,
         digest,
@@ -83,6 +85,7 @@ async def get_operator_work_summary():
         backlog_stats(),
         run_stats(),
         approval_stats(),
+        get_task_stats(),
         build_bootstrap_runtime_snapshot(include_snapshot_write=False),
         build_governance_snapshot(),
         digest_summary(),
@@ -98,6 +101,7 @@ async def get_operator_work_summary():
         "backlog": backlog,
         "runs": runs,
         "approvals": approvals,
+        "tasks": tasks,
         "bootstrap": bootstrap,
         "governance": governance,
         "digest": digest,

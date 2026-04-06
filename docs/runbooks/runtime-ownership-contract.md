@@ -1,7 +1,7 @@
 # Runtime Ownership Contract
 
 Source of truth: `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/repo-roots-registry.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-Validated against registry version: `runtime-ownership-contract.json@2026-04-02.5`, `runtime-ownership-packets.json@2026-04-02.5`, `repo-roots-registry.json@2026-04-02.5`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `runtime-ownership-contract.json@2026-04-02.6`, `runtime-ownership-packets.json@2026-04-02.6`, `repo-roots-registry.json@2026-04-02.5`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: implementation authority, runtime authority, deployed roots, and live deployment modes come from the registries plus the latest truth snapshot. This runbook describes how code and runtime state move between those roots.
 
 ---
@@ -51,11 +51,11 @@ The live dashboard is not the inactive `athanor-dashboard.service` unit. The act
 
 Contract:
 
-- control files are `Dockerfile` and `docker-compose.yml`
-- runtime truth must keep those files aligned between implementation authority, runtime repo, and `/opt/athanor/dashboard`
+- ordinary updates are governed by `scripts/deploy-dashboard.sh`
+- runtime truth must keep the dashboard build root aligned between implementation authority, runtime repo, and `/opt/athanor/dashboard`
 - replacing the live `/opt/athanor/dashboard` bundle is approval-gated and must preserve a timestamped backup first
 - the inactive `athanor-dashboard.service` unit is masked as a recovery-only shadow and must stay out of ordinary dashboard startup paths
-- packet id: `dev-dashboard-shadow-retirement-packet`
+- packet ids: `dev-dashboard-shadow-retirement-packet` for the masked legacy unit, `dev-dashboard-compose-deploy-packet` for ordinary compose updates
 
 ### 3. DEV heartbeat /opt lane
 
@@ -114,11 +114,11 @@ Use the packet report as the execution checklist. This runbook defines the lane 
 
 1. Change `C:\Athanor\projects\dashboard`.
 2. Verify locally.
-3. Sync the dashboard project into `/home/shaun/repos/athanor/projects/dashboard`.
+3. Sync the dashboard project into the governed DEV root.
 4. Back up `/opt/athanor/dashboard`.
-5. Replace or rebuild the `/opt/athanor/dashboard` compose bundle.
+5. Run `scripts/deploy-dashboard.sh` so the active compose lane is rebuilt from implementation authority.
 6. Verify:
-   - `docker compose -f /opt/athanor/dashboard/docker-compose.yml ps`
+   - `docker compose -f /opt/athanor/dashboard/docker-compose.yml ps dashboard`
    - `curl http://127.0.0.1:3001/`
    - `curl -k https://athanor.local/`
 7. Refresh truth reports.
@@ -144,6 +144,7 @@ Use the packet report as the execution checklist. This runbook defines the lane 
 ## Open Gaps
 
 - `athanor-dashboard.service` is still present but inactive; the active dashboard is the `/opt/athanor/dashboard` compose lane.
+- `dev-dashboard-compose-deploy-packet` now governs ordinary dashboard updates so `/opt/athanor/dashboard` and `/opt/athanor/ws-pty-bridge` are replaced through one explicit backup/rebuild path instead of remembered manual copy steps.
 - `dev-runtime-repo-sync-packet` remains the governed maintenance path for bringing implementation authority and the DEV runtime repo closer to mirror-clean.
 - `athanor-dashboard.service` remains masked as a recovery-only shadow; keep it out of ordinary startup and deployment paths.
 - `foundry-agents-compose-deploy-packet` now governs the FOUNDRY `athanor-agents` lane explicitly. The live container importing from `/usr/local/lib/python3.12/site-packages/athanor_agents` is expected image layout, while `/workspace/projects/agents/src`, `/workspace/agents/src`, and `/app/src` remain read-only mirrors. Ordinary updates should go through the compose deploy packet and repo-owned deploy script, not ad hoc hotfixes.
