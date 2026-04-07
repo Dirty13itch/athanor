@@ -1,6 +1,6 @@
 # Athanor Status
 
-**Last updated: 2026-04-06 20:00 PDT
+**Last updated: 2026-04-07 07:00 PDT
 **Program:** Truth convergence, live bootstrap artifact sync, provider weak-lane closure, runtime recovery, and aggressive prune
 
 ## Program Health
@@ -196,7 +196,7 @@
 
 ## Current Open Risks
 
-- The live cluster is currently degraded because `FOUNDRY`, `DEV`, and `WORKSHOP` are still offline or unreachable from DESK after the maintenance window. VAULT `.203` is reachable again and its core Redis, Postgres, Qdrant, and LiteLLM probes answer from DESK, but durable persistence and end-to-end Athanor health cannot be re-verified until the compute and ops nodes return.
+- All nodes are back online (FOUNDRY 13h, WORKSHOP 15h, DEV 3d, VAULT reachable). 24/26 services UP. Dashboard health probe reports DOWN but container is up and `/api/operator/session` responds 200 — likely a stale probe path. Prowlarr on VAULT returns 401 (auth issue, needs VAULT container-level access to fix). VAULT SSH auth still fails from MCP/Redis bridge.
 - Runtime ownership is now explicit enough for promotion, but implementation authority and runtime authority are still not mirror-clean. The remaining repo-root sync work stays governed by `dev-runtime-repo-sync-packet` instead of living as undocumented drift.
 - The auth-failed VAULT LiteLLM API lanes remain explicit maintenance debt that must stay demoted or be repaired intentionally instead of drifting back into ordinary routing.
 - The repo now syncs live bootstrap artifacts out of the running FOUNDRY container during truth collection, but that path is still only collector-driven; running the DESK-local bootstrap supervisor directly can still recreate stale local snapshots until the deploy/runtime authority contract is tightened further.
@@ -211,15 +211,26 @@
 
 ## Next Actions
 
-1. **[P0] Fix pipeline task submission** — Five consecutive cycles: 158 intents mined, 8 plans created, 0 submitted, 0 held. Not capacity — code bug in submission gate. Check `task_engine` submission logic, circuit breaker state, `tasks_held` counter. Pipeline is useless until fixed.
-2. **[P0] Restore WORKSHOP vLLM worker** — `worker=DOWN` in health check. SSH to WORKSHOP, `docker compose ps` for vLLM service, check VRAM state. Last known: 5090 at 26516/32607 MB. Restart if not running. `fast`/`uncensored` slots are dark.
-3. **[P1] Restore VAULT SSH** — SSH key rejection ongoing. Re-authorize DEV key on Unraid web UI (Settings → SSH). Blocks VAULT LiteLLM auth repair, Ansible to VAULT, provider truth work.
+1. **[P0] Fix pipeline task submission** — Still zero tasks submitted despite mining 158 intents and creating plans. Submission gate bug persists from April 6. Check `task_engine` submission logic, circuit breaker state, `tasks_held` counter. Pipeline is useless until fixed.
+2. **[P0] Drain failed task backlog** — 128 failed tasks (47 actionable, 81 historical/repaired), 21 stale leases. Investigate actionable failures, clear stale leases, stop the recursive self_improve timeout loop.
+3. **[P1] Restore VAULT SSH** — SSH key rejection ongoing. Re-authorize DEV key on Unraid web UI (Settings → SSH). Blocks VAULT LiteLLM auth repair, Ansible to VAULT, provider truth work, Prowlarr 401 fix.
 4. **[P1] FOUNDRY drift cleanup** — FOUNDRY is back and healthy. Remove `src/athanor_agents/athanor_agents/` nesting + `*.bak-codex` files, redeploy. Quick, approved, unblocked.
 5. **[P1] Execute VAULT LiteLLM auth repair** — `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md` is the checklist. Missing env vars blocking cloud provider fallbacks. Unblocks provider truth cleanup.
-6. **Fix self_improve_loop proposal scoping** — Coding-agent tasks spawned by self_improve have no scope bounds → 1200s timeout every time. Add bounded-scope constraints or human-review gate for open-ended investigation proposals. Stop the recursive failure loop.
-7. **Kimi/GLM verification or demotion** — Run a live completion test. Pass → mark verified. Fail → demote in catalog. End the ambiguity.
+6. **[P2] Fix Dashboard health probe** — Container is UP, `/api/operator/session` returns 200, but system_status reports DOWN. Likely probe path mismatch.
+7. **[P2] Kimi/GLM verification or demotion** — Run a live completion test. Pass → mark verified. Fail → demote in catalog. End the ambiguity.
 
 ## Session Log
+
+### 2026-04-07 07:00 (Morning review — cluster recovered)
+- **All nodes back online.** FOUNDRY (13h), WORKSHOP (15h), DEV (3d). 24/26 services UP.
+- **DOWN:** Dashboard probe (false negative — container is up, API responds), Prowlarr (401 auth, needs VAULT SSH).
+- **Governor:** Active, presence=away, all 6 lanes running. 2 creative-agent tasks running (portrait generation).
+- **Task queue:** 185 total. 128 failed (47 actionable), 21 stale leases, 13 pending approval (now 5 after review).
+- **Morning review actions:** Approved 1 task (code improvement cycle `7882cd`). Cancelled 7 stale/resolved tasks (5 duplicate Qdrant checks, 1 resolved agent-server timeout, 1 scope-creep Qdrant refactor). Flagged 5 for Shaun: 4 EoBQ feature tasks + Prowlarr 401 investigation.
+- **Pipeline:** Still mining 158 intents, creating plans, submitting zero tasks. Bug from April 6 persists — P0.
+- **Overnight activity:** Creative-agent ran portrait refinement rounds for EoBQ. No other agent activity since April 2 (home-agent HA monitoring cycle).
+- **VAULT SSH:** Still failing. Blocks Prowlarr fix, LiteLLM auth repair, Ansible.
+- **24 pending plans** in pipeline — none actionable until submission bug is fixed.
 
 ### 2026-04-06 20:00 (Evening review — recovery day, score 4/10)
 - **Score: 4/10** — FOUNDRY back after 3+ day network outage. First real agent pipeline activity since April 2.
