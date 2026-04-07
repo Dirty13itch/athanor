@@ -1,6 +1,6 @@
 # Athanor Status
 
-**Last updated: 2026-04-05 20:03 PDT
+**Last updated: 2026-04-06 20:00 PDT
 **Program:** Truth convergence, live bootstrap artifact sync, provider weak-lane closure, runtime recovery, and aggressive prune
 
 ## Program Health
@@ -211,13 +211,26 @@
 
 ## Next Actions
 
-1. **[URGENT] Diagnose FOUNDRY** — Unreachable as of 2026-04-04 20:00 PDT (second consecutive evening). SSH in, check docker compose status on `/opt/athanor/agents`, check network, check if node is up at all. All 9 agents are dark. This is P0 — nothing else matters until FOUNDRY is back.
-2. **[URGENT] Restore VAULT SSH** — SSH key rejection was the known issue. Re-authorize DEV key on Unraid web UI (Settings → SSH). Without this: no Ansible to VAULT, no `vault-ssh.py`, no LiteLLM env repair.
-3. **Execute VAULT LiteLLM auth repair** — `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md` is the checklist. Missing env vars blocking all cloud provider fallbacks. Unblocks provider truth cleanup.
-4. **FOUNDRY drift cleanup** — Approved: remove `src/athanor_agents/athanor_agents/` nesting + `*.bak-codex` files, redeploy. Can proceed once FOUNDRY is reachable.
-5. **Kimi/GLM verification or demotion** — Run a live completion test. Pass → mark verified. Fail → demote in catalog. End the ambiguity.
+1. **[P0] Fix pipeline task submission** — Five consecutive cycles: 158 intents mined, 8 plans created, 0 submitted, 0 held. Not capacity — code bug in submission gate. Check `task_engine` submission logic, circuit breaker state, `tasks_held` counter. Pipeline is useless until fixed.
+2. **[P0] Restore WORKSHOP vLLM worker** — `worker=DOWN` in health check. SSH to WORKSHOP, `docker compose ps` for vLLM service, check VRAM state. Last known: 5090 at 26516/32607 MB. Restart if not running. `fast`/`uncensored` slots are dark.
+3. **[P1] Restore VAULT SSH** — SSH key rejection ongoing. Re-authorize DEV key on Unraid web UI (Settings → SSH). Blocks VAULT LiteLLM auth repair, Ansible to VAULT, provider truth work.
+4. **[P1] FOUNDRY drift cleanup** — FOUNDRY is back and healthy. Remove `src/athanor_agents/athanor_agents/` nesting + `*.bak-codex` files, redeploy. Quick, approved, unblocked.
+5. **[P1] Execute VAULT LiteLLM auth repair** — `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md` is the checklist. Missing env vars blocking cloud provider fallbacks. Unblocks provider truth cleanup.
+6. **Fix self_improve_loop proposal scoping** — Coding-agent tasks spawned by self_improve have no scope bounds → 1200s timeout every time. Add bounded-scope constraints or human-review gate for open-ended investigation proposals. Stop the recursive failure loop.
+7. **Kimi/GLM verification or demotion** — Run a live completion test. Pass → mark verified. Fail → demote in catalog. End the ambiguity.
 
 ## Session Log
+
+### 2026-04-06 20:00 (Evening review — recovery day, score 4/10)
+- **Score: 4/10** — FOUNDRY back after 3+ day network outage. First real agent pipeline activity since April 2.
+- **FOUNDRY UP**: load=4.2, coordinator=ok, coder=ok. Outage resolved. 9 agents accessible again.
+- **WORKSHOP**: healthy overall but `worker=DOWN` — vLLM 5090 service not running. `fast`/`uncensored` slots dark.
+- **DEV**: healthy, embedding=ok, reranker=ok. 1 active alert firing.
+- **Completed today**: stash-agent deep org cycle (203s, 113K scenes/78.1TB audited, queens gap identified), creative-agent portrait generation pass.
+- **Failed today**: 10 coding-agent tasks — all 1200s timeouts from self_improve_loop open-ended investigation prompts. Recursive trap: system generates proposals to fix failures → submits to coding-agent → coding-agent times out → repeat.
+- **Pipeline bug confirmed**: 5+ consecutive cycles, 8 plans created, 0 submitted. Systemic submission gate failure. Not transient.
+- **No commits during day session**. Only auto-commit from session start. Status, health cache changed.
+- **VAULT SSH still broken**: key rejection not yet resolved. Blocks LiteLLM auth repair and Ansible.
 
 ### 2026-04-05 20:00 (Evening review — day 3 of outage, score 1/10)
 - **Score: 1/10** — Zero productive commits after 07:03 auto-save. Third consecutive 1/10.
