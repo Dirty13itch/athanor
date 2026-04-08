@@ -1,6 +1,6 @@
 ﻿# Athanor Status
 
-**Last updated:** 2026-04-07 19:20 CDT
+**Last updated:** 2026-04-07 20:00 PDT
 **Program:** Truth convergence, Ralph-loop control activation, live bootstrap artifact sync, provider weak-lane closure, runtime recovery, and aggressive prune
 
 ## Program Health
@@ -230,7 +230,28 @@
 
 ## Session Log
 
-### 2026-04-05 20:00 (Evening review â€” day 3 of outage, score 1/10)
+### 2026-04-07 20:00 (Evening review — score 5/10)
+- **Score: 5/10** — Infrastructure hardening day. Autonomous intelligence layer stalled.
+- **3 substantive commits**: Ralph loop control-plane drift closed (`d7b25c8`), generated runtime reports refreshed (`6c3f41c`), reconciliation control plane + runtime evidence hardened (`62d92b5`).
+- **Ralph loop closed**: `scripts/run_ralph_loop_pass.py`, `reports/ralph-loop/latest.json`, and `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md` are now wired. Loop controller is real — ad hoc sequencing is no longer the default.
+- **Portfolio classification closed**: All 35 Dirty13itch repos locked. Remaining work is execution, not classification.
+- **Creative agent**: 2 EoBQ portrait tasks completed (13:55 Nikki Benz refinement, 18:04 fewest-assets portrait). Tool use correct. Output delivered.
+- **Pipeline dead**: 5+ consecutive cycles — 158 intents mined, 0 new, 0 plans, 0 tasks submitted. 24 pending plans unconverted. Root cause unknown.
+- **Self-improvement loop failure pattern**: 10 coding-agent tasks timed out (1200s) on broad “investigate all agents” prompts from `self_improve_loop`. Scope is too wide for the timeout budget.
+- **DEV embedding + reranker DOWN**: `DEV:8001`, `DEV:8003` still offline. Blocking knowledge pipeline and signal ingestion.
+- **Dashboard DOWN on DEV**: Command center dark.
+- **Improvement proposals**: 31 pending, 0 validated, 0 deployed. Loop ran but nothing moved.
+- **System health**: 22/26 UP. DOWN: DEV Embedding, DEV Reranker, Dashboard (DEV), Prowlarr (VAULT). Core inference healthy.
+- **1 active alert** firing (source not investigated tonight).
+
+### 2026-04-07 (Next Actions update)
+1. **Diagnose pipeline conversion block** — Why are 24 pending plans generating 0 tasks? Check plan-to-task submission threshold, plan quality scores, and pipeline cycle error logs.
+2. **Restart DEV embedding + reranker** — `systemctl start athanor-embedding athanor-reranker` on DEV. Check crash logs first.
+3. **Restart DEV dashboard** — Container died or Caddy routing broke. Quick fix.
+4. **Scope self-improvement coding tasks** — 1200s timeout on broad prompts wastes task quota. Either set smaller atomic scope (one agent/file per pass) or disable `self_improve_loop` source until pipeline is healthy.
+5. **VAULT LiteLLM credential repair** — `VAULT-LITELLM-AUTH-REPAIR-PACKET.md` is the checklist. 7 API lanes `vault_provider_specific_auth_failed`. This is the approved maintenance window item.
+
+### 2026-04-05 20:00 (Evening review — day 3 of outage, score 1/10)
 - **Score: 1/10** â€” Zero productive commits after 07:03 auto-save. Third consecutive 1/10.
 - **FOUNDRY DOWN** â€” Day 3. `No route to host` from DEV. Network-level failure (power/switch/NIC). All 9 agents dark.
 - **VAULT DOWN** â€” SSH key rejection continues. Blocks all Ansible, LiteLLM env repair, provider truth work.
