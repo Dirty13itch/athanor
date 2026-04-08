@@ -32,8 +32,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `4`
-- Local dirty sample: ` M STATUS.md`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`
+- Local dirty file count: `34`
+- Local dirty sample: ` M STATUS.md`, ` M ansible/host_vars/interface.yml`, ` M ansible/roles/dashboard/defaults/main.yml`, ` M ansible/roles/dashboard/templates/docker-compose.yml.j2`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/autonomy-activation-registry.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/docs-lifecycle-registry.json`, ` M config/automation-backbone/provider-catalog.json`, ` M config/automation-backbone/reconciliation-source-registry.json`
 
 ## dev-runtime-repo
 

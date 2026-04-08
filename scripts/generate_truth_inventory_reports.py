@@ -3262,6 +3262,10 @@ def render_vault_litellm_repair_packet() -> str:
         f"- Config-only boundary: `{vault_litellm_env_audit.get('config_only_boundary', 'unknown')}`",
         f"- Launch command: `{launch_command}`" if launch_command else "- Launch command: `unknown`",
         f"- Managed source matches: docker template {list_or_none(vault_litellm_env_audit.get('docker_template_matches', []))}, compose manager {list_or_none(vault_litellm_env_audit.get('compose_manager_matches', []))}",
+        f"- docker.config.json template mapping: `{vault_litellm_env_audit.get('docker_config_template_mapping')}`"
+        if vault_litellm_env_audit.get("docker_config_template_mapping") is not None
+        else "- docker.config.json template mapping: `none`",
+        f"- container-watchdog monitors litellm: `{str(bool(vault_litellm_env_audit.get('container_watchdog_monitored'))).lower()}`",
         f"- Boot-config references: {list_or_none(vault_litellm_env_audit.get('boot_config_reference_files', []))}",
         f"- Detailed runbook: [vault-litellm-provider-auth-repair.md](/C:/Athanor/docs/runbooks/vault-litellm-provider-auth-repair.md)",
         f"- Companion reports: [PROVIDER-CATALOG-REPORT.md](/C:/Athanor/docs/operations/PROVIDER-CATALOG-REPORT.md), [SECRET-SURFACE-REPORT.md](/C:/Athanor/docs/operations/SECRET-SURFACE-REPORT.md)",
@@ -3273,6 +3277,16 @@ def render_vault_litellm_repair_packet() -> str:
         f"- Host shell envs present: {list_or_none(vault_litellm_env_audit.get('host_shell_present_env_names', []))}",
         f"- Host shell envs missing: {list_or_none(vault_litellm_env_audit.get('host_shell_missing_env_names', []))}",
         f"- Runtime appdata files: {list_or_none(vault_litellm_env_audit.get('appdata_files', []))}",
+        (
+            "- Historical inspect backups: "
+            + "; ".join(
+                f"`{entry.get('path', 'unknown')}` -> {list_or_none(entry.get('env_names', []))}"
+                for entry in vault_litellm_env_audit.get("historical_backup_env_snapshots", [])
+                if isinstance(entry, dict)
+            )
+            if vault_litellm_env_audit.get("historical_backup_env_snapshots")
+            else "- Historical inspect backups: none"
+        ),
         "",
         "## Auth-Failed Provider Lanes",
         "",
@@ -3581,9 +3595,25 @@ def render_secret_surface_report() -> str:
                     f"- Host shell envs missing: {list_or_none(list(vault_litellm_env_audit.get('host_shell_missing_env_names', [])))}",
                     f"- dockerMan template matches: {list_or_none(list(vault_litellm_env_audit.get('docker_template_matches', [])))}",
                     f"- Compose-manager matches: {list_or_none(list(vault_litellm_env_audit.get('compose_manager_matches', [])))}",
+                    (
+                        f"- docker.config.json template mapping: `{vault_litellm_env_audit.get('docker_config_template_mapping')}`"
+                        if vault_litellm_env_audit.get("docker_config_template_mapping") is not None
+                        else "- docker.config.json template mapping: `none`"
+                    ),
+                    f"- container-watchdog monitors litellm: `{str(bool(vault_litellm_env_audit.get('container_watchdog_monitored'))).lower()}`",
                     f"- Boot-config references: {list_or_none(list(vault_litellm_env_audit.get('boot_config_reference_files', [])))}",
                     f"- Container launch command: `{launch_command}`" if launch_command else "- Container launch command: `unknown`",
                     f"- Appdata files: {list_or_none(list(vault_litellm_env_audit.get('appdata_files', [])))}",
+                    (
+                        "- Historical inspect backups: "
+                        + "; ".join(
+                            f"`{entry.get('path', 'unknown')}` -> {list_or_none(entry.get('env_names', []))}"
+                            for entry in vault_litellm_env_audit.get("historical_backup_env_snapshots", [])
+                            if isinstance(entry, dict)
+                        )
+                        if vault_litellm_env_audit.get("historical_backup_env_snapshots")
+                        else "- Historical inspect backups: none"
+                    ),
                     "- Repair packet: [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md)",
                 ]
             )

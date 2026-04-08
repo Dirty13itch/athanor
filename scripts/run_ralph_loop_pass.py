@@ -64,6 +64,12 @@ LOOP_FAMILY_NEXT_COMMANDS: dict[str, list[list[str]]] = {
 
 PRIORITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 TERMINAL_EXECUTION_STATES = {"completed", "steady_state_monitoring"}
+TERMINAL_RECONCILIATION_GATE_STATES = {
+    "completed",
+    "ready_for_operator_approval",
+    "external_dependency_blocked",
+    "steady_state_monitoring",
+}
 FRESHNESS_TARGETS: dict[str, dict[str, Any]] = {
     "truth_snapshot": {
         "path": REPO_ROOT / "reports" / "truth-inventory" / "latest.json",
@@ -302,6 +308,67 @@ def _build_next_actions(selected_family: str, selected_workstream: dict[str, Any
     return actions
 
 
+def _summarize_reconciliation_end_state(
+    completion_program: dict[str, Any],
+    *,
+    validation_passed: bool | None,
+    any_stale_evidence: bool,
+) -> dict[str, Any]:
+    end_state = dict(completion_program.get("reconciliation_end_state") or {})
+    gate_rows = [
+        dict(entry) for entry in end_state.get("project_exit_gates", []) if isinstance(entry, dict)
+    ]
+    gate_summary = {
+        "total": len(gate_rows),
+        "active": 0,
+        "ready_for_operator_approval": 0,
+        "external_dependency_blocked": 0,
+        "steady_state_monitoring": 0,
+        "completed": 0,
+        "all_non_steady_state_gates_terminal": True,
+    }
+    active_non_steady_state_gate_ids: list[str] = []
+    for gate in gate_rows:
+        gate_id = str(gate.get("id") or "")
+        gate_status = str(gate.get("status") or "active")
+        if gate_status in gate_summary:
+            gate_summary[gate_status] += 1
+        if gate_id != "steady_state_gate" and gate_status not in TERMINAL_RECONCILIATION_GATE_STATES:
+            gate_summary["all_non_steady_state_gates_terminal"] = False
+            active_non_steady_state_gate_ids.append(gate_id)
+
+    steady_state_acceptance = dict(end_state.get("steady_state_acceptance") or {})
+    required_clean_cycles = int(steady_state_acceptance.get("required_consecutive_clean_cycles") or 2)
+    previous_clean_cycles = int(steady_state_acceptance.get("current_consecutive_clean_cycles") or 0)
+    if validation_passed is None:
+        clean_cycle_observed = False
+        current_clean_cycles = previous_clean_cycles
+        ready_to_transition = bool(steady_state_acceptance.get("ready_to_transition"))
+        last_clean_cycle_at = steady_state_acceptance.get("last_clean_cycle_at")
+    else:
+        clean_cycle_observed = bool(
+            validation_passed
+            and not any_stale_evidence
+            and gate_summary["all_non_steady_state_gates_terminal"]
+        )
+        current_clean_cycles = previous_clean_cycles + 1 if clean_cycle_observed else 0
+        ready_to_transition = current_clean_cycles >= required_clean_cycles
+        last_clean_cycle_at = _iso_now() if clean_cycle_observed else None
+    steady_state_acceptance["current_consecutive_clean_cycles"] = current_clean_cycles
+    steady_state_acceptance["last_clean_cycle_at"] = last_clean_cycle_at
+    steady_state_acceptance["ready_to_transition"] = ready_to_transition
+    end_state["steady_state_acceptance"] = steady_state_acceptance
+    end_state["gate_summary"] = gate_summary
+    end_state["active_non_steady_state_gate_ids"] = active_non_steady_state_gate_ids
+    end_state["status"] = (
+        "steady_state_monitoring"
+        if str(next((gate.get("status") for gate in gate_rows if str(gate.get("id") or "") == "steady_state_gate"), "active"))
+        == "steady_state_monitoring"
+        else "active_remediation"
+    )
+    return end_state
+
+
 def _sync_registry_loop_state(
     completion_program: dict[str, Any],
     autonomy_activation: dict[str, Any],
@@ -400,6 +467,7 @@ def main() -> int:
             "autonomy_activation_registry": "config/automation-backbone/autonomy-activation-registry.json",
             "program_operating_system": "config/automation-backbone/program-operating-system.json",
             "routing_policy": "projects/agents/config/subscription-routing-policy.yaml",
+            "reconciliation_end_state_doc": "docs/operations/ATHANOR-RECONCILIATION-END-STATE.md",
             "status_doc": "STATUS.md",
             "backlog_doc": "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
         },
@@ -440,6 +508,7 @@ def main() -> int:
             "artifacts": list(freshness_index.values()),
         },
         "truth_snapshot_collected_at": truth_snapshot.get("collected_at"),
+        "reconciliation_end_state": dict(completion_program.get("reconciliation_end_state") or {}),
         "workstreams": [
             {
                 "id": str(row["workstream"].get("id") or ""),
@@ -477,9 +546,22 @@ def main() -> int:
         "all_passed": all(result["returncode"] == 0 for result in validation_results) if validation_results else None,
     }
     completion_program = _load_json(CONFIG_DIR / "completion-program-registry.json")
+    end_state_summary = _summarize_reconciliation_end_state(
+        completion_program,
+        validation_passed=report["validation"]["all_passed"],
+        any_stale_evidence=any_stale_evidence,
+    )
+    completion_program["reconciliation_end_state"] = end_state_summary
     if isinstance(completion_program.get("ralph_loop"), dict):
         completion_program["ralph_loop"]["last_validation_run"] = report["generated_at"]
+        completion_program["ralph_loop"]["execution_posture"] = (
+            "steady_state" if end_state_summary.get("status") == "steady_state_monitoring" else "active_remediation"
+        )
         _write_json(CONFIG_DIR / "completion-program-registry.json", completion_program)
+    report["reconciliation_end_state"] = end_state_summary
+    report["loop_state"]["execution_posture"] = str(
+        dict(completion_program.get("ralph_loop") or {}).get("execution_posture") or report["loop_state"]["execution_posture"]
+    )
 
     record = AutomationRunRecord(
         automation_id="ralph-loop",

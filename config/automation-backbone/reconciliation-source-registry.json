@@ -1,6 +1,6 @@
 {
   "version": "2026-04-07.14",
-  "updated_at": "2026-04-08T02:59:45.223966+00:00",
+  "updated_at": "2026-04-08T04:32:04.752357+00:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/reconciliation-source-registry.json",
   "source_kinds": [
@@ -816,7 +816,7 @@
   ],
   "github_portfolio": {
     "owner": "Dirty13itch",
-    "last_verified_at": "2026-04-08T02:59:45.223966+00:00",
+    "last_verified_at": "2026-04-08T04:32:04.752357+00:00",
     "repo_count": 35,
     "doc_repo_count": 35,
     "live_repo_count": 35,
@@ -936,7 +936,7 @@
         "description": "Unified local AI/media/creative/home automation system",
         "is_private": false,
         "is_fork": false,
-        "updated_at": "2026-04-07T14:04:38Z",
+        "updated_at": "2026-04-08T03:01:59Z",
         "ecosystem_role": "core",
         "working_clone": "C:\\Athanor",
         "current_maturity": "canonical",

@@ -44,8 +44,8 @@
       "status": "verified",
       "phase_scope": "expanded_core_phase_2",
       "notes": [
-        "Expanded-core sidecar activation is now bounded to the local machine lane: `home-agent`, `media-agent`, `stash-agent`, and `data-curator` are explicitly local-only in the canonical routing policy, so the auth-failed VAULT API lanes do not gate this promotion.",
-        "The generated packet remains the maintenance source of truth for repairing the auth-failed VAULT API lanes, but those lanes stay demoted out of ordinary auto-routing until real credentials or explicit operator scope changes exist."
+        "Expanded-core sidecar activation is now bounded to the local machine lane: `home-agent`, `media-agent`, `stash-agent`, and `data-curator` are explicitly local-only in the canonical routing policy, so the blocked or demoted VAULT API lanes do not gate this promotion.",
+        "The generated packet remains the maintenance source of truth for repairing the blocked or demoted VAULT API lanes, but those lanes stay demoted out of ordinary auto-routing until real credentials or explicit operator scope changes exist."
       ],
       "evidence_paths": [
         "projects/agents/config/subscription-routing-policy.yaml",
@@ -196,7 +196,7 @@
         "creative or refusal-sensitive autonomy"
       ],
       "entry_criteria": [
-        "The currently auth-failed VAULT API lanes are either repaired or explicitly kept out of ordinary auto-routing with packet-backed evidence.",
+        "The currently blocked or demoted VAULT API lanes are either repaired, contract-corrected, or explicitly kept out of ordinary auto-routing with packet-backed evidence.",
         "Weak CLI and billing lanes have either been verified or explicitly kept demoted."
       ],
       "success_criteria": [

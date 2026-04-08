@@ -75,7 +75,7 @@ No next phase is registered beyond the current active scope.
 - Blocked workload classes: `refusal_sensitive_creative`, `explicit_dialogue`
 - Allowed loop families: `software-core loops`, `data curation`, `bounded media and home automation`, `background transforms on approved lanes`
 - Blocked without approval: `runtime mutations`, `VAULT provider expansion without repaired auth posture`, `creative or refusal-sensitive autonomy`
-- Entry criteria: `The currently auth-failed VAULT API lanes are either repaired or explicitly kept out of ordinary auto-routing with packet-backed evidence.`, `Weak CLI and billing lanes have either been verified or explicitly kept demoted.`
+- Entry criteria: `The currently blocked or demoted VAULT API lanes are either repaired, contract-corrected, or explicitly kept out of ordinary auto-routing with packet-backed evidence.`, `Weak CLI and billing lanes have either been verified or explicitly kept demoted.`
 - Success criteria: `The broader live roster can execute within the same governed provider and approval boundaries as software-core autonomy.`
 
 ### Full-system autonomy

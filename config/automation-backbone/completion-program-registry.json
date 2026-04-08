@@ -95,11 +95,14 @@
   ],
   "current_phase": "active_reconciliation_and_runtime_split",
   "final_acceptance": [
-    "Implementation authority is singular at C:\\Athanor.",
-    "Runtime authority and implementation authority are either mirror-clean or explicitly packeted.",
-    "Every meaningful local root and Dirty13itch repo has a governed disposition.",
-    "Provider, deployment, monitoring, and startup truth layers do not internally contradict each other.",
-    "Validator, generated docs, and checkpoint evidence remain green."
+    "Authority Gate: no shadow implementation authority remains.",
+    "Current-State Truth Gate: top-entry docs and Ralph state agree.",
+    "Runtime Gate: major live drift is reconciled, packet-ready, or explicitly externally blocked.",
+    "Provider Gate: all provider lanes have explicit evidence-backed posture.",
+    "Portfolio Gate: all in-scope roots and repos have final disposition.",
+    "Product Gate: Field Inspect and RFI reconciliation lanes are closed as active cleanup items.",
+    "Validation Gate: the standard validator and generated-doc suite remains green.",
+    "Steady-State Gate: reconciliation workstreams can move to steady-state monitoring or completed."
   ],
   "loop_blocker_types": [
     "none",
@@ -176,12 +179,231 @@
     "current_loop_family": "repo_safe_repair_planning",
     "current_phase_scope": "full_system_phase_3",
     "evidence_freshness": "fresh",
-    "execution_posture": "active_remediation",
-    "last_validation_run": "2026-04-08T03:01:03.654040+00:00",
+    "execution_posture": "steady_state",
+    "last_validation_run": "2026-04-08T04:52:35.239718+00:00",
     "next_action_family": "repo_safe_repair",
     "report_path": "reports/ralph-loop/latest.json",
     "selected_workstream": "authority-and-mainline",
     "status": "active"
+  },
+  "reconciliation_end_state": {
+    "active_non_steady_state_gate_ids": [],
+    "gate_summary": {
+      "active": 0,
+      "all_non_steady_state_gates_terminal": true,
+      "completed": 5,
+      "external_dependency_blocked": 0,
+      "ready_for_operator_approval": 2,
+      "steady_state_monitoring": 1,
+      "total": 8
+    },
+    "project_exit_gates": [
+      {
+        "blocker_type": "none",
+        "evidence_paths": [
+          "STATUS.md",
+          "docs/operations/REPO-ROOTS-REPORT.md",
+          "config/automation-backbone/repo-roots-registry.json"
+        ],
+        "id": "authority_gate",
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "startup-docs-and-prune"
+        ],
+        "status": "completed",
+        "success_criteria": [
+          "C:\\Athanor remains the only implementation authority.",
+          "No current-root workflow depends on a side root as hidden authority.",
+          "Runtime authority remains explicitly governed instead of implicit."
+        ],
+        "title": "Authority Gate"
+      },
+      {
+        "blocker_type": "none",
+        "evidence_paths": [
+          "STATUS.md",
+          "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+          "docs/operations/ATHANOR-OPERATING-SYSTEM.md",
+          "reports/ralph-loop/latest.json"
+        ],
+        "id": "current_state_truth_gate",
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication",
+          "startup-docs-and-prune"
+        ],
+        "status": "completed",
+        "success_criteria": [
+          "Top-entry operator docs agree on the active workstream and posture.",
+          "Ralph loop, status, backlog, and operating-system truth do not contradict each other.",
+          "Stale outage-era or bootstrap-era prose is removed from active-root surfaces."
+        ],
+        "title": "Current-State Truth Gate"
+      },
+      {
+        "blocker_type": "approval_gate",
+        "evidence_paths": [
+          "config/automation-backbone/runtime-ownership-packets.json",
+          "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+          "docs/operations/RUNTIME-OWNERSHIP-REPORT.md"
+        ],
+        "id": "runtime_gate",
+        "owner_workstreams": [
+          "runtime-sync-and-governed-packets"
+        ],
+        "status": "ready_for_operator_approval",
+        "success_criteria": [
+          "Every major runtime drift surface is reconciled, packet-ready, or explicitly externally blocked.",
+          "No live host depends on undocumented manual edits.",
+          "Packet execution always ends with live re-probe."
+        ],
+        "title": "Runtime Gate"
+      },
+      {
+        "blocker_type": "approval_gate",
+        "evidence_paths": [
+          "config/automation-backbone/provider-catalog.json",
+          "reports/truth-inventory/provider-usage-evidence.json",
+          "reports/truth-inventory/vault-litellm-env-audit.json",
+          "docs/operations/PROVIDER-CATALOG-REPORT.md",
+          "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md"
+        ],
+        "id": "provider_gate",
+        "owner_workstreams": [
+          "provider-and-secret-remediation"
+        ],
+        "status": "ready_for_operator_approval",
+        "success_criteria": [
+          "Every provider lane is proven, intentionally demoted, blocked for a named reason, or governed handoff only.",
+          "Provider catalog, provider evidence, and VAULT env audit agree materially.",
+          "No provider remains in a vague probably-works posture."
+        ],
+        "title": "Provider Gate"
+      },
+      {
+        "blocker_type": "none",
+        "evidence_paths": [
+          "config/automation-backbone/reconciliation-source-registry.json",
+          "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
+          "docs/operations/ATHANOR-TENANT-QUEUE.md"
+        ],
+        "id": "portfolio_gate",
+        "owner_workstreams": [
+          "portfolio-and-source-reconciliation",
+          "lineage-and-shared-extraction",
+          "tenant-architecture-and-classification"
+        ],
+        "status": "completed",
+        "success_criteria": [
+          "Every in-scope local root has a final disposition.",
+          "Every Dirty13itch GitHub repo has a final ecosystem role.",
+          "No repo, root, or family remains in maybe-important limbo."
+        ],
+        "title": "Portfolio Gate"
+      },
+      {
+        "blocker_type": "none",
+        "evidence_paths": [
+          "docs/operations/FIELD-INSPECT-OPERATIONS-RUNTIME-REPLAY-PACKET.md",
+          "docs/operations/RFI-HERS-PRIMARY-ROOT-STABILIZATION-PACKET.md",
+          "reports/reconciliation/field-inspect-operations-runtime-replay-latest.json",
+          "reports/reconciliation/rfi-hers-primary-root-stabilization-latest.json"
+        ],
+        "id": "product_gate",
+        "owner_workstreams": [
+          "tenant-architecture-and-classification",
+          "portfolio-and-source-reconciliation"
+        ],
+        "status": "completed",
+        "success_criteria": [
+          "Field Inspect no longer has an unresolved half-landed replay lane.",
+          "RFI and HERS no longer has unresolved stabilization ambiguity.",
+          "Product-root reconciliation no longer depends on human memory."
+        ],
+        "title": "Product Gate"
+      },
+      {
+        "blocker_type": "none",
+        "evidence_paths": [
+          "scripts/validate_platform_contract.py",
+          "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md",
+          "docs/DOCUMENTATION-INDEX.md",
+          "reports/ralph-loop/latest.json"
+        ],
+        "id": "validation_gate",
+        "owner_workstreams": [
+          "validation-and-publication"
+        ],
+        "status": "completed",
+        "success_criteria": [
+          "The validator and generated-doc freshness suite pass from repo authority.",
+          "Checkpoint publication stays bounded and repeatable.",
+          "Generated reports are trusted outputs instead of stale decoration."
+        ],
+        "title": "Validation Gate"
+      },
+      {
+        "blocker_type": "none",
+        "evidence_paths": [
+          "reports/ralph-loop/latest.json",
+          "STATUS.md",
+          "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md"
+        ],
+        "id": "steady_state_gate",
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "runtime-sync-and-governed-packets",
+          "provider-and-secret-remediation",
+          "validation-and-publication",
+          "startup-docs-and-prune"
+        ],
+        "status": "steady_state_monitoring",
+        "success_criteria": [
+          "Reconciliation work no longer dominates the operating posture.",
+          "Ralph-loop execution can shift from active remediation to steady-state monitoring.",
+          "The backlog is dominated by maintenance and planned evolution instead of ambiguity cleanup."
+        ],
+        "title": "Steady-State Gate"
+      }
+    ],
+    "source_of_truth": "docs/operations/ATHANOR-RECONCILIATION-END-STATE.md",
+    "status": "steady_state_monitoring",
+    "steady_state_acceptance": {
+      "conditions": [
+        "No non-steady-state exit gate remains in active remediation.",
+        "No stale-doc contradiction remains across the top-entry truth surfaces.",
+        "Validation and generated-doc checks pass cleanly.",
+        "No new authority, provider, or portfolio ambiguity reopens on consecutive Ralph cycles."
+      ],
+      "current_consecutive_clean_cycles": 4,
+      "last_clean_cycle_at": "2026-04-08T04:52:37.875959+00:00",
+      "ready_to_transition": true,
+      "required_consecutive_clean_cycles": 2
+    },
+    "success_levels": [
+      {
+        "description": "The reconciliation project can be declared closed without hidden authority or ambiguity debt.",
+        "id": "hard_closure",
+        "title": "Hard Closure"
+      },
+      {
+        "description": "Athanor runs as a low-drift, auditable, and governable platform in daily use.",
+        "id": "operational_success",
+        "title": "Operational Success"
+      },
+      {
+        "description": "The system moves from remediation mode into ongoing Ralph-loop maintenance without reopening ambiguity.",
+        "id": "steady_state_transition",
+        "title": "Steady-state Transition"
+      }
+    ],
+    "top_entry_truth_surfaces": [
+      "STATUS.md",
+      "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+      "docs/operations/ATHANOR-OPERATING-SYSTEM.md",
+      "config/automation-backbone/completion-program-registry.json",
+      "reports/ralph-loop/latest.json"
+    ]
   },
   "source_of_truth": "config/automation-backbone/completion-program-registry.json",
   "standing_rules": [
@@ -193,7 +415,7 @@
   ],
   "status": "active",
   "tenant_depth_default": "light-tenant",
-  "version": "2026-04-07.6",
+  "version": "2026-04-07.7",
   "workstream_statuses": [
     "planned",
     "active",
@@ -341,7 +563,7 @@
       ],
       "evidence_artifacts": [
         "reports/truth-inventory/latest.json",
-        "reports/deployment-drift/vault-prometheus.diff",
+        "reports/deployment-drift/summary.md",
         "docs/operations/OPERATOR-SURFACE-REPORT.md"
       ],
       "execution_state": "ready_for_execution",
@@ -357,7 +579,7 @@
       "primary_artifacts": [
         "ansible/host_vars/vault.yml",
         "ansible/roles/vault-monitoring/templates/prometheus.yml.j2",
-        "reports/deployment-drift/vault-prometheus.diff",
+        "reports/deployment-drift/summary.md",
         "config/automation-backbone/operator-surface-registry.json",
         "docs/operations/OPERATOR-SURFACE-REPORT.md"
       ],

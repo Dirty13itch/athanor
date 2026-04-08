@@ -1,19 +1,20 @@
 # Athanor Total Completion Program
 
-Source of truth: `config/automation-backbone/completion-program-registry.json`, `config/automation-backbone/program-operating-system.json`, `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-Validated against registry version: `completion-program-registry.json@2026-04-07.6`, `program-operating-system.json@2026-03-25.1`
+Source of truth: `config/automation-backbone/completion-program-registry.json`, `config/automation-backbone/program-operating-system.json`, `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`, `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+Validated against registry version: `completion-program-registry.json@2026-04-07.7`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: runtime truth outranks stale narrative, registry truth outranks helper prose, and this document must be updated whenever the completion-program registry, active checkpoint sequence, or final acceptance posture changes.
 
 Sources:
 - `config/automation-backbone/completion-program-registry.json`
 - `config/automation-backbone/program-operating-system.json`
 - `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`
+- `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`
 - `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
 - `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`
 - `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
 Versions:
-- `completion-program-registry.json`: `2026-04-07.6`
+- `completion-program-registry.json`: `2026-04-07.7`
 - `program-operating-system.json`: `2026-03-25.1`
 
 Last updated: 2026-04-07
@@ -42,6 +43,8 @@ The program assumes:
 - Every meaningful local source root and Dirty13itch repo has a governed role and disposition.
 - Provider, deployment, monitoring, startup, and operator truth layers do not contradict each other.
 - Side roots remain preserved only as lineage, archive, incubation, or tenant surfaces, never as hidden active authority.
+
+The detailed closure gates and steady-state transition contract now live in [ATHANOR-RECONCILIATION-END-STATE.md](/C:/Athanor/docs/operations/ATHANOR-RECONCILIATION-END-STATE.md), with machine-readable markers in `completion-program-registry.json` and the live Ralph artifact at `reports/ralph-loop/latest.json`.
 
 ## Execution Model
 
@@ -84,9 +87,7 @@ Objective:
 - stop live deploy surfaces from contradicting registries and Ansible truth
 
 Current scope:
-- Foundry vLLM lane truth
-- Workshop worker lane truth
-- VAULT monitoring targets
+- executed deployment-authority packets and report hygiene
 - Qdrant host ownership
 - LiteLLM upstream lane metadata
 
@@ -102,10 +103,8 @@ Objective:
 
 Current scope:
 - DEV runtime sync
-- Foundry deploy lane
-- DEV dashboard deploy lane
 - VAULT auth repair packet
-- future live config repair packets for stale Foundry and VAULT runtime files
+- any reopened runtime-owned drift that is packet-backed instead of ad hoc
 
 Completion conditions:
 - runtime-owned surfaces are mirror-clean or explicitly packeted
@@ -119,8 +118,8 @@ Objective:
 - stop secret-delivery ambiguity from poisoning routing truth
 
 Current scope:
-- VAULT LiteLLM env audit
-- provider-specific evidence capture
+- VAULT LiteLLM auth/config repair follow-through
+- provider-specific evidence re-probe after live repair
 - Kimi and GLM verification
 - missing-env versus invalid-key versus auth-mode mismatch classification
 
@@ -135,10 +134,9 @@ Objective:
 - remove stale portal, node, and service assumptions from monitoring config
 
 Current scope:
-- VAULT Prometheus probe targets
-- blackbox target hygiene
 - metrics scrape coverage
 - alert rule drift
+- operator-surface monitoring report hygiene after governed runtime repairs
 
 Completion conditions:
 - repo-side monitoring truth follows platform and operator registries

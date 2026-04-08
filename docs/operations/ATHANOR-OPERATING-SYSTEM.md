@@ -27,6 +27,7 @@ Live loop surfaces:
 - `scripts/run_ralph_loop_pass.py`
 - `reports/ralph-loop/latest.json`
 - `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`
+- `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`
 
 ## Authority Model
 
@@ -40,10 +41,23 @@ Live loop surfaces:
 - Registry truth outranks helper scripts and hardcoded literals.
 - Official provider terms, observed runtime state, and heuristic estimates are distinct classes and must not be conflated.
 - The DEV `:8760` cutover is complete; any autonomy expansion now depends on policy scope and provider confidence, not the retired governor facade.
-- Post-cutover autonomy scope is owned by `autonomy-activation-registry.json` and starts at software-core only.
+- Post-cutover autonomy scope is owned by `autonomy-activation-registry.json` and the current live phase is `full_system_phase_3`.
 - Runtime mutations remain approval-gated even after first activation.
 - Secret surfaces may be reported by presence, location, owner, and env contract only. Secret values never belong in tracked truth.
 - If a doc cannot justify its lifecycle class, it should be archived or deleted.
+
+## End-State Contract
+
+The reconciliation closure contract lives in [ATHANOR-RECONCILIATION-END-STATE.md](/C:/Athanor/docs/operations/ATHANOR-RECONCILIATION-END-STATE.md).
+
+That contract is machine-backed by:
+- `config/automation-backbone/completion-program-registry.json` `reconciliation_end_state`
+- `reports/ralph-loop/latest.json` `reconciliation_end_state`
+
+The operating rule is simple:
+- non-steady-state exit gates may be `completed`, `ready_for_operator_approval`, or `external_dependency_blocked`
+- the steady-state gate remains active until Ralph-loop clean-cycle acceptance is satisfied
+- runtime approval gates do not count as ambiguity if the packeted state is explicit and current
 
 ## Execution Loop
 

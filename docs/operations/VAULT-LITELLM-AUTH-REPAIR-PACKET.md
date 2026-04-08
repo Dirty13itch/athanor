@@ -7,8 +7,8 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 
 - Credential surface version: `2026-04-02.1`
 - Provider catalog version: `2026-03-29.1`
-- Cached truth snapshot: `2026-04-08T02:59:05.294390+00:00`
-- Cached env audit: `2026-04-08T02:58:51Z`
+- Cached truth snapshot: `2026-04-08T04:31:18.729300+00:00`
+- Cached env audit: `2026-04-08T04:30:51Z`
 - Surface id: `vault-litellm-container-env`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
@@ -19,6 +19,8 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 - Config-only boundary: `docker_restart_litellm`
 - Launch command: `docker/prod_entrypoint.sh --config /app/config.yaml --port 4000 --num_workers 4`
 - Managed source matches: docker template none, compose manager none
+- docker.config.json template mapping: `none`
+- container-watchdog monitors litellm: `true`
 - Boot-config references: `/boot/config/custom/backup-scripts/container-watchdog.sh`, `/boot/config/plugins/dynamix.my.servers/configs/docker.config.json`
 - Detailed runbook: [vault-litellm-provider-auth-repair.md](/C:/Athanor/docs/runbooks/vault-litellm-provider-auth-repair.md)
 - Companion reports: [PROVIDER-CATALOG-REPORT.md](/C:/Athanor/docs/operations/PROVIDER-CATALOG-REPORT.md), [SECRET-SURFACE-REPORT.md](/C:/Athanor/docs/operations/SECRET-SURFACE-REPORT.md)
@@ -30,6 +32,7 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 - Host shell envs present: none
 - Host shell envs missing: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `VENICE_API_KEY`, `ZAI_API_KEY`
 - Runtime appdata files: `/mnt/user/appdata/litellm/backups/config.yaml.20260329-191944.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260329-192005.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260330-022430.bak`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260329-191944.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022430.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.rollback-source.20260330-022725.json`, `/mnt/user/appdata/litellm/config.yaml`, `/mnt/user/appdata/litellm/config.yaml.bak`, `/mnt/user/appdata/litellm/config.yaml.bak-20260318-2354`, `/mnt/user/appdata/litellm/config.yaml.bak-20260319-0936`, `/mnt/user/appdata/litellm/config.yaml.bak-20260407`, `/mnt/user/appdata/litellm/config.yaml.bak-tier24`, `/mnt/user/appdata/litellm/config.yaml.bak.1344`, `/mnt/user/appdata/litellm/config.yaml.bak.1772921405`, `/mnt/user/appdata/litellm/config.yaml.bak.1773047728`, `/mnt/user/appdata/litellm/config.yaml.bak.1773469196`, `/mnt/user/appdata/litellm/config.yaml.bak.1773546264`, `/mnt/user/appdata/litellm/config.yaml.broken`, `/mnt/user/appdata/litellm/config.yaml.pre-reroute`
+- Historical inspect backups: `/mnt/user/appdata/litellm/backups/litellm.inspect.20260329-191944.json` -> `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`; `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022430.json` -> `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `OPENAI_API_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`; `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json` -> `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`; `/mnt/user/appdata/litellm/backups/litellm.inspect.rollback-source.20260330-022725.json` -> `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`
 
 ## Auth-Failed Provider Lanes
 

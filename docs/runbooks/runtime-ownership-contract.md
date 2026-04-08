@@ -1,7 +1,7 @@
 # Runtime Ownership Contract
 
 Source of truth: `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/repo-roots-registry.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-Validated against registry version: `runtime-ownership-contract.json@2026-04-07.7`, `runtime-ownership-packets.json@2026-04-08.1`, `repo-roots-registry.json@2026-04-06.1`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `runtime-ownership-contract.json@2026-04-08.3`, `runtime-ownership-packets.json@2026-04-08.3`, `repo-roots-registry.json@2026-04-06.1`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: implementation authority, runtime authority, deployed roots, and live deployment modes come from the registries plus the latest truth snapshot. This runbook describes how code and runtime state move between those roots.
 
 ---

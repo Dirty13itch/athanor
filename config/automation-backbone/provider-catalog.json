@@ -311,7 +311,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-03-28T06:00:00Z"
+        "last_verified_at": "2026-04-08T00:08:34Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -324,18 +324,20 @@
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "pending",
-          "last_verified_at": null,
-          "source": "pending_capture",
-          "proof_kind": "litellm_alias_request"
+          "status": "not_supported",
+          "last_verified_at": "2026-04-08T00:08:29Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_inventory_scan"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM served model `claude` and record the timestamp.",
-        "Capture evidence that the request exercised `Anthropic API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Refresh the VAULT LiteLLM model inventory and confirm whether a served model id still matches the `claude` alias contract.",
+        "If Anthropic should remain on the VAULT proxy, correct the served-model contract before re-enabling provider-specific probe expectations.",
+        "If no Anthropic-served model will be exposed on VAULT, keep the lane explicitly demoted instead of treating it as pending provider-specific proof."
       ],
-      "notes": []
+      "notes": [
+        "Latest live VAULT inventory scan classified this lane as not supported because no current LiteLLM-served model id matched the `claude` alias contract."
+      ]
     },
     {
       "id": "openai_api",
@@ -380,17 +382,19 @@
         },
         "provider_specific_usage": {
           "status": "pending",
-          "last_verified_at": null,
-          "source": "pending_capture",
-          "proof_kind": "litellm_alias_request"
+          "last_verified_at": "2026-04-08T00:08:34Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM served model `gpt` and record the timestamp.",
-        "Capture evidence that the request exercised `OpenAI API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Repair or rotate `OPENAI_API_KEY` in the live VAULT LiteLLM secret-delivery surface.",
+        "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
+        "Re-probe the served model `gpt` and keep the lane demoted until the provider-specific completion succeeds."
       ],
-      "notes": []
+      "notes": [
+        "Latest live VAULT provider probe classified this lane as auth_failed even though the proxy route remains configured."
+      ]
     },
     {
       "id": "mistral_codestral_api",
@@ -421,7 +425,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-03-29T03:46:16Z"
+        "last_verified_at": "2026-04-08T00:08:32Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -435,17 +439,19 @@
         },
         "provider_specific_usage": {
           "status": "observed",
-          "last_verified_at": "2026-03-29T03:46:16Z",
+          "last_verified_at": "2026-04-08T00:08:32Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM alias `codestral` and record the timestamp.",
-        "Capture evidence that the request exercised `Codestral API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Keep the lane in ordinary routing only while provider-specific completion probes continue succeeding.",
+        "Re-probe `codestral` after any VAULT LiteLLM config or secret-source change.",
+        "If a future probe fails, demote the lane and route it back into the VAULT repair packet."
       ],
-      "notes": []
+      "notes": [
+        "Codestral is currently provider-specific observed through the VAULT LiteLLM proxy."
+      ]
     },
     {
       "id": "google_gemini_api",
@@ -484,7 +490,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-03-28T06:00:00Z"
+        "last_verified_at": "2026-04-08T00:08:32Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -498,17 +504,19 @@
         },
         "provider_specific_usage": {
           "status": "pending",
-          "last_verified_at": null,
-          "source": "pending_capture",
-          "proof_kind": "litellm_alias_request"
+          "last_verified_at": "2026-04-08T00:08:32Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM served model `gemini` and record the timestamp.",
-        "Capture evidence that the request exercised `Gemini API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Restore `GEMINI_API_KEY` and `GOOGLE_API_KEY` in the live VAULT LiteLLM secret-delivery surface.",
+        "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
+        "Re-probe the served model `gemini` and keep the lane demoted until the provider-specific completion succeeds."
       ],
-      "notes": []
+      "notes": [
+        "Latest live VAULT provider probe classified this lane as auth_failed because the Gemini credential contract is not satisfied at runtime."
+      ]
     },
     {
       "id": "deepseek_api",
@@ -539,7 +547,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-03-29T03:46:16Z"
+        "last_verified_at": "2026-04-08T00:08:31Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -553,19 +561,19 @@
         },
         "provider_specific_usage": {
           "status": "observed",
-          "last_verified_at": "2026-03-29T03:46:16Z",
+          "last_verified_at": "2026-04-08T00:08:31Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM served model `deepseek` and record the timestamp.",
-        "Capture evidence that the request exercised `DeepSeek API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Keep the lane in ordinary routing only while provider-specific completion probes continue succeeding.",
+        "Re-probe `deepseek` after any VAULT LiteLLM config or secret-source change.",
+        "If a future probe fails, demote the lane and route it back into the VAULT repair packet."
       ],
       "notes": [
         "DeepSeek is configured as an API lane via LiteLLM.",
-        "This catalog tracks the lane as configured but not recently observed in burn state."
+        "Provider-specific completion proof is current through 2026-04-08."
       ]
     },
     {
@@ -597,7 +605,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-03-28T06:00:00Z"
+        "last_verified_at": "2026-04-08T00:08:33Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -611,18 +619,19 @@
         },
         "provider_specific_usage": {
           "status": "pending",
-          "last_verified_at": null,
-          "source": "pending_capture",
-          "proof_kind": "litellm_alias_request"
+          "last_verified_at": "2026-04-08T00:08:33Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM served model `kimi-k2.5` and record the timestamp.",
-        "Capture evidence that the request exercised `Moonshot API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Restore `MOONSHOT_API_KEY` in the live VAULT LiteLLM secret-delivery surface.",
+        "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
+        "Re-probe the served model `kimi-k2.5` and keep the lane demoted until the provider-specific completion succeeds."
       ],
       "notes": [
-        "Moonshot still exposes public API pricing through a pricing-specific official post rather than a dedicated stable pricing reference page."
+        "Moonshot still exposes public API pricing through a pricing-specific official post rather than a dedicated stable pricing reference page.",
+        "Latest live VAULT provider probe classified this lane as auth_failed."
       ]
     },
     {
@@ -654,7 +663,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-03-28T06:00:00Z"
+        "last_verified_at": "2026-04-08T00:08:30Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -668,18 +677,19 @@
         },
         "provider_specific_usage": {
           "status": "pending",
-          "last_verified_at": null,
-          "source": "pending_capture",
-          "proof_kind": "litellm_alias_request"
+          "last_verified_at": "2026-04-08T00:08:30Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM served model `qwen-max` and record the timestamp.",
-        "Capture evidence that the request exercised `DashScope Qwen API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Restore `DASHSCOPE_API_KEY` in the live VAULT LiteLLM secret-delivery surface.",
+        "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
+        "Re-probe the served model `qwen-max` and keep the lane demoted until the provider-specific completion succeeds."
       ],
       "notes": [
-        "Official Model Studio pricing is published on the per-model list and can vary by deployment region."
+        "Official Model Studio pricing is published on the per-model list and can vary by deployment region.",
+        "Latest live VAULT provider probe classified this lane as auth_failed."
       ]
     },
     {
@@ -711,7 +721,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-03-29T03:46:17Z"
+        "last_verified_at": "2026-04-08T00:08:35Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -725,18 +735,19 @@
         },
         "provider_specific_usage": {
           "status": "observed",
-          "last_verified_at": "2026-03-29T03:46:17Z",
+          "last_verified_at": "2026-04-08T00:08:35Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM served model `venice-uncensored` and record the timestamp.",
-        "Capture evidence that the request exercised `Venice API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Keep the lane in ordinary routing only while provider-specific completion probes continue succeeding.",
+        "Re-probe `venice-uncensored` after any VAULT LiteLLM config or secret-source change.",
+        "If a future probe fails, demote the lane and route it back into the VAULT repair packet."
       ],
       "notes": [
-        "Venice remains configured as an API lane and still needs observed runtime usage evidence."
+        "Venice remains configured as an API lane.",
+        "Provider-specific completion proof is current through 2026-04-08."
       ]
     },
     {
@@ -768,7 +779,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-03-28T06:00:00Z"
+        "last_verified_at": "2026-04-08T00:08:35Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -782,17 +793,19 @@
         },
         "provider_specific_usage": {
           "status": "pending",
-          "last_verified_at": null,
-          "source": "pending_capture",
-          "proof_kind": "litellm_alias_request"
+          "last_verified_at": "2026-04-08T00:08:35Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM served model `glm-4.7` and record the timestamp.",
-        "Capture evidence that the request exercised `Z.ai API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Restore `ZAI_API_KEY` in the live VAULT LiteLLM secret-delivery surface.",
+        "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
+        "Re-probe the served model `glm-4.7` and keep the lane demoted until the provider-specific completion succeeds."
       ],
-      "notes": []
+      "notes": [
+        "Latest live VAULT provider probe classified this lane as auth_failed."
+      ]
     },
     {
       "id": "openrouter_api",
@@ -823,7 +836,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-03-28T06:00:00Z"
+        "last_verified_at": "2026-04-08T00:08:34Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -837,18 +850,19 @@
         },
         "provider_specific_usage": {
           "status": "pending",
-          "last_verified_at": null,
-          "source": "pending_capture",
-          "proof_kind": "litellm_alias_request"
+          "last_verified_at": "2026-04-08T00:08:34Z",
+          "source": "reports/truth-inventory/provider-usage-evidence.json",
+          "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Run a provider-specific request through the VAULT LiteLLM served model `openrouter` and record the timestamp.",
-        "Capture evidence that the request exercised `OpenRouter API` upstream specifically, not just generic proxy activity.",
-        "If provider-specific evidence cannot be captured, demote the lane to configured-only."
+        "Restore `OPENROUTER_API_KEY` and confirm the expected upstream auth mode in the live VAULT LiteLLM secret-delivery surface.",
+        "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
+        "Re-probe the served model `openrouter` and keep the lane demoted until the provider-specific completion succeeds."
       ],
       "notes": [
-        "Official OpenRouter pricing is pay-as-you-go and states there is no markup over listed provider model prices."
+        "Official OpenRouter pricing is pay-as-you-go and states there is no markup over listed provider model prices.",
+        "Latest live VAULT provider probe classified this lane as auth_failed."
       ]
     }
   ],

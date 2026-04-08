@@ -1,7 +1,7 @@
 # Athanor Ralph-Loop Program
 
-Source of truth: `config/automation-backbone/completion-program-registry.json`, `config/automation-backbone/program-operating-system.json`, `config/automation-backbone/autonomy-activation-registry.json`, `projects/agents/config/subscription-routing-policy.yaml`, `reports/ralph-loop/latest.json`
-Validated against registry version: `completion-program-registry.json@2026-04-07.6`, `program-operating-system.json@2026-03-25.1`, `autonomy-activation-registry.json@2026-04-02.4`
+Source of truth: `config/automation-backbone/completion-program-registry.json`, `config/automation-backbone/program-operating-system.json`, `config/automation-backbone/autonomy-activation-registry.json`, `projects/agents/config/subscription-routing-policy.yaml`, `reports/ralph-loop/latest.json`, `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`
+Validated against registry version: `completion-program-registry.json@2026-04-07.7`, `program-operating-system.json@2026-03-25.1`, `autonomy-activation-registry.json@2026-04-02.4`
 Mutable facts policy: runtime truth outranks stale narrative, registry truth outranks helper prose, and the Ralph-loop report is the live execution surface while this document records the standing contract.
 
 Sources:
@@ -10,9 +10,10 @@ Sources:
 - `config/automation-backbone/autonomy-activation-registry.json`
 - `projects/agents/config/subscription-routing-policy.yaml`
 - `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
+- `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`
 
 Versions:
-- `completion-program-registry.json`: `2026-04-07.6`
+- `completion-program-registry.json`: `2026-04-07.7`
 - `program-operating-system.json`: `2026-03-25.1`
 - `autonomy-activation-registry.json`: `2026-04-02.4`
 
@@ -31,6 +32,7 @@ It is not a second planning framework. It is the recurring execution layer that 
 
 The live controller is `scripts/run_ralph_loop_pass.py`.
 The live artifact is `reports/ralph-loop/latest.json`.
+The reconciliation closure contract it mirrors is `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`.
 
 ## Loop Families
 
@@ -133,3 +135,5 @@ The Ralph loop is healthy when:
 - no known source or portfolio ambiguity lacks a disposition
 - no active provider lane is ordinary routing without both config and observation
 - status docs, backlog, registry truth, and runtime evidence do not contradict each other
+
+The Ralph report now also carries `reconciliation_end_state`, which mirrors the machine-readable exit-gate posture from `completion-program-registry.json` and tracks the current clean-cycle count for steady-state eligibility.

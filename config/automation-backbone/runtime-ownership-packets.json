@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-08.1",
-  "updated_at": "2026-04-08T03:05:00Z",
+  "version": "2026-04-08.3",
+  "updated_at": "2026-04-08T05:15:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-packets.json",
   "packets": [
@@ -20,8 +20,7 @@
             "athanor-brain.service",
             "athanor-classifier.service",
             "athanor-quality-gate.service",
-            "athanor-sentinel.service",
-            "athanor-overnight.service"
+            "athanor-sentinel.service"
           ]
         }
       ],
@@ -36,7 +35,7 @@
         "python scripts/sync_dev_runtime_repo.py",
         "python scripts/sync_dev_runtime_repo.py --cleanup-only",
         "ssh dev \"git -C /home/shaun/repos/athanor rev-parse --short HEAD && git -C /home/shaun/repos/athanor status --short | wc -l\"",
-        "ssh dev \"systemctl show athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service --property=WorkingDirectory,ExecStart --no-pager\""
+        "ssh dev \"systemctl show athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service --property=WorkingDirectory,ExecStart --no-pager\""
       ],
       "exact_steps": [
         "Create a timestamped backup root under /home/shaun/.athanor/backups/runtime-ownership/runtime-repo-sync/<timestamp>.",
@@ -44,13 +43,14 @@
         "Capture the pre-sync DEV repo state both as a timestamped archive and as a timestamped backup branch before any reset.",
         "Push the approved implementation commit to a temporary ref in /home/shaun/repos/athanor/.git from implementation authority instead of copying files ad hoc.",
         "Reset DEV main to that approved mirror commit so tracked files and new tracked paths match implementation authority exactly.",
-        "Clean leftover pre-sync residue that is not present in the approved commit, then restart only the repo-root services that actually changed.",
+        "Clean leftover pre-sync residue that is not present in the approved commit, then restart only the long-running repo-root services that actually changed.",
+        "Do not restart athanor-overnight.service in the immediate post-sync path; that timer-backed one-shot rewrites tracked truth artifacts and should remain outside the mirror-clean verification window.",
         "Prune all consumed runtime-sync/* refs immediately after the reset and retain only the newest 3 backup/runtime-sync-* branches plus the newest 3 timestamped backup directories under the runtime-repo-sync backup root.",
         "Refresh the truth snapshot and generated reports immediately after the sync."
       ],
       "verification_commands": [
         "ssh dev \"cd /home/shaun/repos/athanor && git status --short | wc -l && git rev-parse --short HEAD\"",
-        "ssh dev \"systemctl is-active athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service\"",
+        "ssh dev \"systemctl is-active athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service\"",
         "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
         "python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets",
         "python scripts/validate_platform_contract.py"
@@ -337,7 +337,7 @@
         "Re-run the deployment-drift audit and validator to confirm rollback."
       ],
       "evidence_paths": [
-        "reports/deployment-drift/foundry-vllm.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/foundry-vllm.rendered.yml",
         "reports/live/foundry-vllm.live.yml",
         "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
@@ -347,7 +347,7 @@
     {
       "id": "workshop-control-surface-compose-reconciliation-packet",
       "label": "WORKSHOP control-surface compose reconciliation packet",
-      "status": "ready_for_approval",
+      "status": "executed",
       "lane_id": "workshop-control-surface-compose",
       "host": "workshop",
       "approval_packet_type": "runtime_host_reconfiguration",
@@ -405,7 +405,7 @@
         "Re-run the deployment-drift audit and validator to confirm rollback."
       ],
       "evidence_paths": [
-        "reports/deployment-drift/workshop-dashboard.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/workshop-dashboard.rendered.yml",
         "reports/live/workshop-dashboard.live.yml",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
@@ -456,7 +456,7 @@
         "Re-run the deployment-drift audit and validator to confirm rollback."
       ],
       "evidence_paths": [
-        "reports/deployment-drift/workshop-vllm.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/workshop-vllm.rendered.yml",
         "reports/live/workshop-vllm.live.yml",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
@@ -560,7 +560,7 @@
         "Re-run the deployment-drift audit and validator to confirm rollback."
       ],
       "evidence_paths": [
-        "reports/deployment-drift/vault-prometheus.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/vault-prometheus.rendered.yml",
         "reports/live/vault-prometheus.live.yml",
         "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",

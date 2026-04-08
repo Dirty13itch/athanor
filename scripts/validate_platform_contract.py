@@ -148,6 +148,7 @@ REQUIRED_RECONCILIATION_DOCS = {
 REQUIRED_COMPLETION_PROGRAM_DOCS = {
     "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md",
     "docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md",
+    "docs/operations/ATHANOR-RECONCILIATION-END-STATE.md",
 }
 REQUIRED_COMPLETION_LOOP_FAMILY_IDS = {
     "governor_scheduling",
@@ -189,6 +190,29 @@ REQUIRED_COMPLETION_CHECKPOINT_IDS = {
     "ecosystem-classification",
     "runtime-repair-and-sync-packets",
     "final-publication-and-freeze",
+}
+REQUIRED_RECONCILIATION_END_STATE_GATE_IDS = {
+    "authority_gate",
+    "current_state_truth_gate",
+    "runtime_gate",
+    "provider_gate",
+    "portfolio_gate",
+    "product_gate",
+    "validation_gate",
+    "steady_state_gate",
+}
+REQUIRED_RECONCILIATION_SUCCESS_LEVEL_IDS = {
+    "hard_closure",
+    "operational_success",
+    "steady_state_transition",
+}
+ALLOWED_RECONCILIATION_END_STATE_STATUSES = {"active_remediation", "steady_state_monitoring"}
+ALLOWED_RECONCILIATION_END_STATE_GATE_STATUSES = {
+    "active",
+    "ready_for_operator_approval",
+    "external_dependency_blocked",
+    "steady_state_monitoring",
+    "completed",
 }
 REQUIRED_LENSES = {
     "security",
@@ -634,6 +658,7 @@ REQUIRED_CANONICAL_DOC_HEADERS = {
         "sources": [
             "config/automation-backbone/completion-program-registry.json",
             "config/automation-backbone/program-operating-system.json",
+            "docs/operations/ATHANOR-RECONCILIATION-END-STATE.md",
             "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
             "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
             "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
@@ -641,6 +666,18 @@ REQUIRED_CANONICAL_DOC_HEADERS = {
         "versions": [
             "completion-program-registry.json",
             "program-operating-system.json",
+        ],
+    },
+    "docs/operations/ATHANOR-RECONCILIATION-END-STATE.md": {
+        "sources": [
+            "config/automation-backbone/completion-program-registry.json",
+            "reports/ralph-loop/latest.json",
+            "STATUS.md",
+            "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+            "docs/operations/ATHANOR-OPERATING-SYSTEM.md",
+        ],
+        "versions": [
+            "completion-program-registry.json",
         ],
     },
 }
@@ -3152,6 +3189,135 @@ def main() -> int:
                 f"completion-program-registry.json {field_name} must be a non-empty string list"
             )
 
+    reconciliation_end_state = dict(completion_program.get("reconciliation_end_state") or {})
+    if str(reconciliation_end_state.get("source_of_truth") or "") != "docs/operations/ATHANOR-RECONCILIATION-END-STATE.md":
+        errors.append(
+            "completion-program-registry.json reconciliation_end_state.source_of_truth must be docs/operations/ATHANOR-RECONCILIATION-END-STATE.md"
+        )
+    if str(reconciliation_end_state.get("status") or "") not in ALLOWED_RECONCILIATION_END_STATE_STATUSES:
+        errors.append(
+            "completion-program-registry.json reconciliation_end_state.status must be a valid reconciliation end-state status"
+        )
+    top_entry_truth_surfaces = reconciliation_end_state.get("top_entry_truth_surfaces", [])
+    expected_top_entry_truth_surfaces = [
+        "STATUS.md",
+        "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+        "docs/operations/ATHANOR-OPERATING-SYSTEM.md",
+        "config/automation-backbone/completion-program-registry.json",
+        "reports/ralph-loop/latest.json",
+    ]
+    if top_entry_truth_surfaces != expected_top_entry_truth_surfaces:
+        errors.append(
+            "completion-program-registry.json reconciliation_end_state.top_entry_truth_surfaces must match the canonical top-entry truth surface order"
+        )
+    success_levels = [
+        dict(entry) for entry in reconciliation_end_state.get("success_levels", []) if isinstance(entry, dict)
+    ]
+    success_level_ids = [str(entry.get("id") or "").strip() for entry in success_levels]
+    if set(success_level_ids) != REQUIRED_RECONCILIATION_SUCCESS_LEVEL_IDS:
+        missing = sorted(REQUIRED_RECONCILIATION_SUCCESS_LEVEL_IDS - set(success_level_ids))
+        extra = sorted(set(success_level_ids) - REQUIRED_RECONCILIATION_SUCCESS_LEVEL_IDS)
+        if missing:
+            errors.append(
+                "completion-program-registry.json reconciliation_end_state.success_levels is missing ids: "
+                + ", ".join(missing)
+            )
+        if extra:
+            errors.append(
+                "completion-program-registry.json reconciliation_end_state.success_levels has unexpected ids: "
+                + ", ".join(extra)
+            )
+    for entry in success_levels:
+        for field_name in ("id", "title", "description"):
+            if not str(entry.get(field_name) or "").strip():
+                errors.append(
+                    f"completion-program-registry.json reconciliation_end_state.success_levels entry is missing {field_name}"
+                )
+    project_exit_gates = [
+        dict(entry) for entry in reconciliation_end_state.get("project_exit_gates", []) if isinstance(entry, dict)
+    ]
+    gate_ids = [str(entry.get("id") or "").strip() for entry in project_exit_gates]
+    if set(gate_ids) != REQUIRED_RECONCILIATION_END_STATE_GATE_IDS:
+        missing = sorted(REQUIRED_RECONCILIATION_END_STATE_GATE_IDS - set(gate_ids))
+        extra = sorted(set(gate_ids) - REQUIRED_RECONCILIATION_END_STATE_GATE_IDS)
+        if missing:
+            errors.append(
+                "completion-program-registry.json reconciliation_end_state.project_exit_gates is missing ids: "
+                + ", ".join(missing)
+            )
+        if extra:
+            errors.append(
+                "completion-program-registry.json reconciliation_end_state.project_exit_gates has unexpected ids: "
+                + ", ".join(extra)
+            )
+    workstream_id_set = set(workstream_ids)
+    for entry in project_exit_gates:
+        gate_id = str(entry.get("id") or "").strip()
+        if not gate_id:
+            errors.append("completion-program-registry.json reconciliation_end_state contains a gate without id")
+            continue
+        if str(entry.get("status") or "") not in ALLOWED_RECONCILIATION_END_STATE_GATE_STATUSES:
+            errors.append(
+                f"completion-program-registry.json reconciliation_end_state gate {gate_id} has invalid status {entry.get('status')!r}"
+            )
+        if str(entry.get("blocker_type") or "") not in ALLOWED_COMPLETION_LOOP_BLOCKER_TYPES:
+            errors.append(
+                f"completion-program-registry.json reconciliation_end_state gate {gate_id} has invalid blocker_type {entry.get('blocker_type')!r}"
+            )
+        if not str(entry.get("title") or "").strip():
+            errors.append(
+                f"completion-program-registry.json reconciliation_end_state gate {gate_id} is missing title"
+            )
+        owner_workstreams = entry.get("owner_workstreams", [])
+        if not isinstance(owner_workstreams, list) or not all(str(item).strip() for item in owner_workstreams):
+            errors.append(
+                f"completion-program-registry.json reconciliation_end_state gate {gate_id} owner_workstreams must be a non-empty string list"
+            )
+        else:
+            for owner_workstream in owner_workstreams:
+                if str(owner_workstream) not in workstream_id_set:
+                    errors.append(
+                        f"completion-program-registry.json reconciliation_end_state gate {gate_id} references unknown owner_workstream {owner_workstream!r}"
+                    )
+        evidence_paths = entry.get("evidence_paths", [])
+        if not isinstance(evidence_paths, list) or not all(str(item).strip() for item in evidence_paths):
+            errors.append(
+                f"completion-program-registry.json reconciliation_end_state gate {gate_id} evidence_paths must be a non-empty string list"
+            )
+        else:
+            for evidence_path in evidence_paths:
+                if not (REPO_ROOT / str(evidence_path)).exists():
+                    errors.append(
+                        f"completion-program-registry.json reconciliation_end_state gate {gate_id} evidence path is missing: {evidence_path}"
+                    )
+        success_criteria = entry.get("success_criteria", [])
+        if not isinstance(success_criteria, list) or not all(str(item).strip() for item in success_criteria):
+            errors.append(
+                f"completion-program-registry.json reconciliation_end_state gate {gate_id} success_criteria must be a non-empty string list"
+            )
+    steady_state_acceptance = dict(reconciliation_end_state.get("steady_state_acceptance") or {})
+    if not isinstance(steady_state_acceptance.get("required_consecutive_clean_cycles"), int) or int(
+        steady_state_acceptance.get("required_consecutive_clean_cycles")
+    ) < 1:
+        errors.append(
+            "completion-program-registry.json reconciliation_end_state.steady_state_acceptance.required_consecutive_clean_cycles must be an integer >= 1"
+        )
+    if not isinstance(steady_state_acceptance.get("current_consecutive_clean_cycles"), int) or int(
+        steady_state_acceptance.get("current_consecutive_clean_cycles")
+    ) < 0:
+        errors.append(
+            "completion-program-registry.json reconciliation_end_state.steady_state_acceptance.current_consecutive_clean_cycles must be an integer >= 0"
+        )
+    if not isinstance(steady_state_acceptance.get("ready_to_transition"), bool):
+        errors.append(
+            "completion-program-registry.json reconciliation_end_state.steady_state_acceptance.ready_to_transition must be boolean"
+        )
+    steady_state_conditions = steady_state_acceptance.get("conditions", [])
+    if not isinstance(steady_state_conditions, list) or not all(str(item).strip() for item in steady_state_conditions):
+        errors.append(
+            "completion-program-registry.json reconciliation_end_state.steady_state_acceptance.conditions must be a non-empty string list"
+        )
+
     runtime_ownership_lanes = [
         dict(entry) for entry in runtime_ownership.get("lanes", []) if isinstance(entry, dict)
     ]
@@ -4016,11 +4182,18 @@ def main() -> int:
     completion_program_text = (REPO_ROOT / "docs" / "operations" / "ATHANOR-TOTAL-COMPLETION-PROGRAM.md").read_text(encoding="utf-8")
     if "completion-program-registry.json" not in completion_program_text:
         errors.append("ATHANOR-TOTAL-COMPLETION-PROGRAM.md must point readers to completion-program-registry.json")
+    if "ATHANOR-RECONCILIATION-END-STATE.md" not in completion_program_text:
+        errors.append("ATHANOR-TOTAL-COMPLETION-PROGRAM.md must point readers to ATHANOR-RECONCILIATION-END-STATE.md")
     ralph_loop_program_text = (REPO_ROOT / "docs" / "operations" / "ATHANOR-RALPH-LOOP-PROGRAM.md").read_text(encoding="utf-8")
     if "scripts/run_ralph_loop_pass.py" not in ralph_loop_program_text:
         errors.append("ATHANOR-RALPH-LOOP-PROGRAM.md must point readers to scripts/run_ralph_loop_pass.py")
     if "reports/ralph-loop/latest.json" not in ralph_loop_program_text:
         errors.append("ATHANOR-RALPH-LOOP-PROGRAM.md must point readers to reports/ralph-loop/latest.json")
+    if "ATHANOR-RECONCILIATION-END-STATE.md" not in ralph_loop_program_text:
+        errors.append("ATHANOR-RALPH-LOOP-PROGRAM.md must point readers to ATHANOR-RECONCILIATION-END-STATE.md")
+    operating_system_text = (REPO_ROOT / "docs" / "operations" / "ATHANOR-OPERATING-SYSTEM.md").read_text(encoding="utf-8")
+    if "ATHANOR-RECONCILIATION-END-STATE.md" not in operating_system_text:
+        errors.append("ATHANOR-OPERATING-SYSTEM.md must point readers to ATHANOR-RECONCILIATION-END-STATE.md")
     if not RALPH_LOOP_REPORT_PATH.exists():
         errors.append("reports/ralph-loop/latest.json is missing")
     else:
@@ -4062,6 +4235,40 @@ def main() -> int:
             errors.append("completion-program-registry.json ralph_loop.execution_posture must match reports/ralph-loop/latest.json loop_state.execution_posture")
         if str(ralph_loop.get("evidence_freshness") or "") != str(loop_state.get("evidence_freshness") or ""):
             errors.append("completion-program-registry.json ralph_loop.evidence_freshness must match reports/ralph-loop/latest.json loop_state.evidence_freshness")
+        report_end_state = dict(ralph_loop_report.get("reconciliation_end_state") or {})
+        if str(report_end_state.get("source_of_truth") or "") != str(reconciliation_end_state.get("source_of_truth") or ""):
+            errors.append("reports/ralph-loop/latest.json reconciliation_end_state.source_of_truth must match completion-program-registry.json")
+        if str(report_end_state.get("status") or "") != str(reconciliation_end_state.get("status") or ""):
+            errors.append("reports/ralph-loop/latest.json reconciliation_end_state.status must match completion-program-registry.json")
+        report_gate_rows = [
+            dict(entry) for entry in report_end_state.get("project_exit_gates", []) if isinstance(entry, dict)
+        ]
+        report_gate_ids = {str(entry.get("id") or "").strip() for entry in report_gate_rows}
+        registry_gate_ids = {
+            str(entry.get("id") or "").strip() for entry in reconciliation_end_state.get("project_exit_gates", []) if isinstance(entry, dict)
+        }
+        if report_gate_ids != registry_gate_ids:
+            errors.append("reports/ralph-loop/latest.json reconciliation_end_state.project_exit_gates must match completion-program-registry.json gate ids")
+        for gate in report_gate_rows:
+            gate_id = str(gate.get("id") or "").strip()
+            if str(gate.get("status") or "") not in ALLOWED_RECONCILIATION_END_STATE_GATE_STATUSES:
+                errors.append(
+                    f"reports/ralph-loop/latest.json reconciliation_end_state gate {gate_id} has invalid status {gate.get('status')!r}"
+                )
+        report_steady_state = dict(report_end_state.get("steady_state_acceptance") or {})
+        registry_steady_state = dict(reconciliation_end_state.get("steady_state_acceptance") or {})
+        if int(report_steady_state.get("current_consecutive_clean_cycles") or 0) != int(
+            registry_steady_state.get("current_consecutive_clean_cycles") or 0
+        ):
+            errors.append(
+                "reports/ralph-loop/latest.json reconciliation_end_state.steady_state_acceptance.current_consecutive_clean_cycles must match completion-program-registry.json"
+            )
+        if bool(report_steady_state.get("ready_to_transition")) != bool(
+            registry_steady_state.get("ready_to_transition")
+        ):
+            errors.append(
+                "reports/ralph-loop/latest.json reconciliation_end_state.steady_state_acceptance.ready_to_transition must match completion-program-registry.json"
+            )
 
     lens_ids = {str(item) for item in operating_system.get("lenses", [])}
     if lens_ids != REQUIRED_LENSES:

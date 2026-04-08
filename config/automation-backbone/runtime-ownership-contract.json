@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-07.7",
-  "updated_at": "2026-04-08T01:40:00Z",
+  "version": "2026-04-08.3",
+  "updated_at": "2026-04-08T05:15:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-contract.json",
   "promotion_gate_id": "runtime_ownership_maturity",
@@ -59,7 +59,7 @@
       ],
       "rollback_contract": "Back up the pre-sync DEV repo state under /home/shaun/.athanor/backups/runtime-ownership/<timestamp>/ and preserve a timestamped backup branch before resetting main to the approved mirror commit.",
       "approval_boundary": "Resetting the DEV runtime repo or restarting repo-root services remains approval-gated.",
-      "next_action": "Re-run the dev-runtime-repo-sync-packet after the current implementation-authority tranche settles; the 2026-04-07 live probe showed /home/shaun/repos/athanor back on commit d7b25c8 with generated-artifact drift, so the lane is open again even though the earlier sync path was proven."
+      "next_action": "Re-run the dev-runtime-repo-sync-packet with the immediate post-sync restart limited to athanor-brain, athanor-classifier, athanor-quality-gate, and athanor-sentinel; the 2026-04-08 reprobe showed the mirror reset succeeds, but starting athanor-overnight.service immediately re-dirties tracked generated artifacts."
     },
     {
       "id": "dev-dashboard-compose",
@@ -251,7 +251,7 @@
       ],
       "execution_packet_id": "foundry-vllm-compose-reconciliation-packet",
       "evidence_paths": [
-        "reports/deployment-drift/foundry-vllm.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/foundry-vllm.rendered.yml",
         "reports/live/foundry-vllm.live.yml",
         "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
@@ -298,7 +298,7 @@
       ],
       "execution_packet_id": "workshop-control-surface-compose-reconciliation-packet",
       "evidence_paths": [
-        "reports/deployment-drift/workshop-dashboard.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/workshop-dashboard.rendered.yml",
         "reports/live/workshop-dashboard.live.yml",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
@@ -310,7 +310,7 @@
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/dashboard compose bundle and /opt/athanor/ws-pty-bridge source under /opt/athanor/backups/dashboard-shadow/<timestamp>/ before replacement, and restore both if the approved reconcile pass regresses bridge access or the shadow recovery surface.",
       "approval_boundary": "Replacing Workshop control-surface compose roots or recreating the live dashboard shadow or ws-pty-bridge containers remains approval-gated.",
-      "next_action": "Keep the live ws-pty bridge healthy but leave the Workshop dashboard-shadow compose root in ready-for-approval state until the workshop-control-surface-compose-reconciliation-packet is executed; the lane is still pending because workshop-dashboard.live.yml continues to differ from implementation authority."
+      "next_action": "Keep the live Workshop dashboard shadow and ws-pty bridge healthy and treat any future compose or source change as packet-backed runtime work; the 2026-04-08 backup-first reconcile pass synced the source bundles, replaced /opt/athanor/dashboard/docker-compose.yml from implementation authority, and re-probed both :3001 and :3100/health at 200."
     },
     {
       "id": "workshop-vllm-compose",
@@ -338,7 +338,7 @@
       ],
       "execution_packet_id": "workshop-vllm-compose-reconciliation-packet",
       "evidence_paths": [
-        "reports/deployment-drift/workshop-vllm.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/workshop-vllm.rendered.yml",
         "reports/live/workshop-vllm.live.yml",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
@@ -484,7 +484,7 @@
       ],
       "execution_packet_id": "vault-prometheus-config-reconciliation-packet",
       "evidence_paths": [
-        "reports/deployment-drift/vault-prometheus.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/vault-prometheus.rendered.yml",
         "reports/live/vault-prometheus.live.yml",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",

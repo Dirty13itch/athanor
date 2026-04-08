@@ -7,7 +7,7 @@ Do not edit manually.
 
 - Registry version: `2026-04-02.1`
 - Surfaces tracked: `5`
-- VAULT LiteLLM env audit: `2026-04-08T02:58:51Z`
+- VAULT LiteLLM env audit: `2026-04-08T04:30:51Z`
 
 ### Remediation states
 
@@ -65,7 +65,7 @@ Do not edit manually.
 - Evidence sources: `VAULT LiteLLM template and appdata layout review 2026-03-25`, `VAULT live docker inspect env-presence audit 2026-03-29`, `VAULT provider-specific LiteLLM probe 2026-03-29`, `VAULT LiteLLM implementation-authority role parity review 2026-03-29`
 - Recommended actions: `Keep LiteLLM provider keys in the managed VAULT container env surface or an equivalent host-local secret source.`, `Keep the live VAULT container env aligned with every provider key referenced by ansible/roles/vault-litellm/templates/litellm_config.yaml.j2.`, `Use the generated VAULT auth-repair packet to decide whether a lane needs missing-key restoration, present-key rotation, or auth-mode review before recreating or redeploying the container.`, `Keep repo truth focused on env contracts, delivery boundaries, and repair sequencing rather than freezing point-in-time live env presence into this registry.`, `Do not move provider keys into tracked source or ad hoc shell history during future routing changes.`
 - Notes: `Backed by the current LiteLLM template and runtime appdata layout.`, `Implementation-authority LiteLLM env-contract parity is already fixed and validator-enforced; the remaining work is runtime-only and should be driven by the current env-audit plus provider-probe artifacts.`, `This registry tracks contract names, delivery surface, and remediation posture; the generated reports own point-in-time present or missing env observations.`, `The running VAULT LiteLLM surface currently appears as a standalone Docker container with a config bind mount, not a discovered compose-managed env source.`, `This registry tracks contract names only, not secret material.`
-- Latest live env audit: `2026-04-08T02:58:51Z`
+- Latest live env audit: `2026-04-08T04:30:51Z`
 - Audit status: `ok`
 - Runtime owner surface: `standalone_docker_container`
 - Container image: `ghcr.io/berriai/litellm:main-stable`
@@ -78,9 +78,12 @@ Do not edit manually.
 - Host shell envs missing: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `VENICE_API_KEY`, `ZAI_API_KEY`
 - dockerMan template matches: none
 - Compose-manager matches: none
+- docker.config.json template mapping: `none`
+- container-watchdog monitors litellm: `true`
 - Boot-config references: `/boot/config/custom/backup-scripts/container-watchdog.sh`, `/boot/config/plugins/dynamix.my.servers/configs/docker.config.json`
 - Container launch command: `docker/prod_entrypoint.sh --config /app/config.yaml --port 4000 --num_workers 4`
 - Appdata files: `/mnt/user/appdata/litellm/backups/config.yaml.20260329-191944.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260329-192005.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260330-022430.bak`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260329-191944.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022430.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.rollback-source.20260330-022725.json`, `/mnt/user/appdata/litellm/config.yaml`, `/mnt/user/appdata/litellm/config.yaml.bak`, `/mnt/user/appdata/litellm/config.yaml.bak-20260318-2354`, `/mnt/user/appdata/litellm/config.yaml.bak-20260319-0936`, `/mnt/user/appdata/litellm/config.yaml.bak-20260407`, `/mnt/user/appdata/litellm/config.yaml.bak-tier24`, `/mnt/user/appdata/litellm/config.yaml.bak.1344`, `/mnt/user/appdata/litellm/config.yaml.bak.1772921405`, `/mnt/user/appdata/litellm/config.yaml.bak.1773047728`, `/mnt/user/appdata/litellm/config.yaml.bak.1773469196`, `/mnt/user/appdata/litellm/config.yaml.bak.1773546264`, `/mnt/user/appdata/litellm/config.yaml.broken`, `/mnt/user/appdata/litellm/config.yaml.pre-reroute`
+- Historical inspect backups: `/mnt/user/appdata/litellm/backups/litellm.inspect.20260329-191944.json` -> `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`; `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022430.json` -> `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `OPENAI_API_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`; `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json` -> `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`; `/mnt/user/appdata/litellm/backups/litellm.inspect.rollback-source.20260330-022725.json` -> `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`
 - Repair packet: [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md)
 
 ## script-lane-redis-auth

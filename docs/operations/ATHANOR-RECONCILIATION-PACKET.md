@@ -112,6 +112,12 @@ Program control now lives in these Athanor-owned artifacts:
   - `vault-prometheus-config-reconciliation-packet` is now executed and the live Prometheus container answers `/-/healthy`
   - `foundry-vllm-compose-reconciliation-packet` is now executed and both `vllm-coordinator` and `vllm-coder` are healthy on `athanor/vllm:qwen35-20260315`
   - `workshop-vllm-compose-reconciliation-packet` is now executed and `vllm-node2` is healthy on the same pinned image lineage
+- The remaining VAULT LiteLLM blocker is also narrower now because the owner-surface audit is stronger:
+  - `/boot/config/plugins/dynamix.my.servers/configs/docker.config.json` has no `litellm` template mapping
+  - `container-watchdog.sh` explicitly monitors `litellm`
+  - the live container still runs as a standalone Docker surface rather than a discovered compose-manager or template-managed service
+  - historical `/mnt/user/appdata/litellm/backups/litellm.inspect.*.json` captures prove the container env set changed inline over time, including a broader provider-key set on 2026-03-30
+- That means the unresolved VAULT LiteLLM work is no longer "find the management plane." The current blocker is "restore or formalize the secret owner for a container that is already behaving like the practical owner surface."
 - The vLLM closure also changed the governing runtime story:
   - the old floating `athanor/vllm:qwen35` tag was not deterministic across hosts
   - Workshop and Foundry are now intentionally converged on the same pinned artifact, `athanor/vllm:qwen35-20260315`
@@ -126,13 +132,14 @@ Program control now lives in these Athanor-owned artifacts:
 - One source-truth hole was closed in the same pass:
   - `ansible/roles/dashboard/defaults/main.yml` now points `dashboard_vllm_worker_url` at the live `:8010` worker lane
   - the Workshop shadow dashboard role now templates `ws-pty-bridge` and syncs `projects/ws-pty-bridge` into `/opt/athanor/ws-pty-bridge` for recovery-only governance
-- The remaining Workshop drift is therefore better classified:
-  - `workshop-dashboard` still has an explicit ready-for-approval runtime packet
+- The remaining Workshop drift is therefore narrower and now closed on the control-surface lane:
+  - repo truth was corrected to the actual shadow-dashboard/ws-pty contract before any live mutation
+  - the 2026-04-08 backup-first `workshop-control-surface-compose-reconciliation-packet` then synced the Workshop shadow-dashboard and `ws-pty-bridge` source bundles, replaced `/opt/athanor/dashboard/docker-compose.yml` from `reports/rendered/workshop-dashboard.rendered.yml`, and re-probed both `http://127.0.0.1:3001/` and `http://127.0.0.1:3100/health` at `200`
   - `workshop-vllm` is now an executed runtime packet with a healthy reprobe on the pinned image lane
   - `workshop-open-webui`, `workshop-comfyui`, `workshop-eoq`, and `workshop-ulrich-energy` are explicit runtime-owned surfaces even where they are not yet split into narrower repair packets
 - The governed DEV runtime-repo sync lane is now more precise too:
   - the sync path itself has already been proven
-  - fresh 2026-04-07 runtime probing shows `/home/shaun/repos/athanor` back on commit `d7b25c8` with generated-artifact drift
+- fresh 2026-04-08 runtime probing shows the DEV mirror reset succeeds, but `athanor-overnight.service` immediately re-dirties tracked generated artifacts after the clean reset window
   - the remaining DEV runtime blocker is therefore a reopened mirror-clean rerun, not uncertainty about how the packet should work
 
 ## Ecosystem Model

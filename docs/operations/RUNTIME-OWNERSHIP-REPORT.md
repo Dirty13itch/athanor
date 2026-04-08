@@ -5,8 +5,8 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-07.7`
-- Cached truth snapshot: `2026-04-08T02:59:05.294390+00:00`
+- Registry version: `2026-04-08.3`
+- Cached truth snapshot: `2026-04-08T04:31:18.729300+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
 - Implementation authority: `desk-main` -> `C:/Athanor`
@@ -21,7 +21,7 @@ Do not edit manually.
 
 ## Repo Evidence
 
-- Implementation dirty file count: `4`
+- Implementation dirty file count: `34`
 - DEV runtime dirty file count: `13`
 - FOUNDRY compose root matches expected: `True`
 - FOUNDRY build root clean: `True`
@@ -31,13 +31,13 @@ Do not edit manually.
 
 | Lane | Host | Mode | Status | Owner roots | Packet | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
-| `dev-runtime-repo-systemd` | `dev` | `repo_worktree_mirror` | `active` | `dev-runtime-repo`, `dev-systemd` | `dev-runtime-repo-sync-packet` | Re-run the dev-runtime-repo-sync-packet after the current implementation-authority tranche settles; the 2026-04-07 live probe showed /home/shaun/repos/athanor back on commit d7b25c8 with generated-artifact drift, so the lane is open again even though the earlier sync path was proven. |
+| `dev-runtime-repo-systemd` | `dev` | `repo_worktree_mirror` | `active` | `dev-runtime-repo`, `dev-systemd` | `dev-runtime-repo-sync-packet` | Re-run the dev-runtime-repo-sync-packet with the immediate post-sync restart limited to athanor-brain, athanor-classifier, athanor-quality-gate, and athanor-sentinel; the 2026-04-08 reprobe showed the mirror reset succeeds, but starting athanor-overnight.service immediately re-dirties tracked generated artifacts. |
 | `dev-dashboard-compose` | `dev` | `opt_compose_service` | `active` | `dev-opt-athanor`, `dev-runtime-repo` | `dev-dashboard-compose-deploy-packet` | Use the dev-dashboard-compose-deploy-packet and scripts/deploy-dashboard.sh as the only ordinary dashboard update path; keep athanor-dashboard.service masked as a recovery-only shadow. |
 | `dev-heartbeat-opt` | `dev` | `opt_systemd_service` | `active` | `dev-opt-athanor`, `dev-systemd` | `dev-heartbeat-opt-deploy-packet` | Use the executed heartbeat deploy packet as the governed replacement path for future /opt/athanor/heartbeat updates. |
 | `dev-runtime-state` | `dev` | `host_state_surface` | `active` | `dev-state`, `dev-systemd`, `dev-cron`, `dev-logs` | `none` | Keep these state surfaces explicit in reports so runtime maintenance is tied to named roots instead of operator memory. |
 | `foundry-agents-compose` | `foundry` | `opt_compose_service` | `active` | `foundry-opt-athanor` | `foundry-agents-compose-deploy-packet` | Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container. |
 | `foundry-vllm-compose` | `foundry` | `opt_compose_service` | `active` | `foundry-opt-athanor` | `foundry-vllm-compose-reconciliation-packet` | Keep the FOUNDRY vLLM lane pinned to athanor/vllm:qwen35-20260315 and treat any future image or compose change as a deliberate packet-backed rollout; the 2026-04-07 reprobe showed healthy coordinator and coder lanes on the pinned artifact. |
-| `workshop-control-surface-compose` | `workshop` | `opt_compose_service` | `active` | `workshop-opt-athanor` | `workshop-control-surface-compose-reconciliation-packet` | Keep the live ws-pty bridge healthy but leave the Workshop dashboard-shadow compose root in ready-for-approval state until the workshop-control-surface-compose-reconciliation-packet is executed; the lane is still pending because workshop-dashboard.live.yml continues to differ from implementation authority. |
+| `workshop-control-surface-compose` | `workshop` | `opt_compose_service` | `active` | `workshop-opt-athanor` | `workshop-control-surface-compose-reconciliation-packet` | Keep the live Workshop dashboard shadow and ws-pty bridge healthy and treat any future compose or source change as packet-backed runtime work; the 2026-04-08 backup-first reconcile pass synced the source bundles, replaced /opt/athanor/dashboard/docker-compose.yml from implementation authority, and re-probed both :3001 and :3100/health at 200. |
 | `workshop-vllm-compose` | `workshop` | `opt_compose_service` | `active` | `workshop-opt-athanor` | `workshop-vllm-compose-reconciliation-packet` | Keep the Workshop worker pinned to athanor/vllm:qwen35-20260315 and treat future image or launch-flag changes as deliberate packet-backed rollouts; the 2026-04-07 reprobe showed the worker healthy on the pinned artifact. |
 | `workshop-product-compose` | `workshop` | `opt_compose_service` | `active` | `workshop-opt-athanor` | `none` | Keep these roots explicit and split them into narrower per-surface repair packets only when a specific Workshop product or creative service is intentionally reconciled. |
 | `vault-litellm-config` | `vault` | `vault_host_state` | `active` | `vault-appdata`, `vault-docker-root` | `vault-litellm-config-reconciliation-packet` | Keep the VAULT LiteLLM config lane in ready-for-approval state until the live config stops differing from implementation authority; the current packet remains separate from the missing-secret provider-auth repair and the 2026-04-07 drift evidence still shows config divergence. |
@@ -61,7 +61,7 @@ Do not edit manually.
 - Verification commands: `ssh dev "systemctl show athanor-brain.service athanor-classifier.service athanor-quality-gate.service athanor-sentinel.service athanor-overnight.service --property=WorkingDirectory,ExecStart --no-pager"`, `ssh dev "git -C /home/shaun/repos/athanor rev-parse --short HEAD && git -C /home/shaun/repos/athanor status --short | wc -l"`
 - Rollback contract: Back up the pre-sync DEV repo state under /home/shaun/.athanor/backups/runtime-ownership/<timestamp>/ and preserve a timestamped backup branch before resetting main to the approved mirror commit.
 - Approval boundary: Resetting the DEV runtime repo or restarting repo-root services remains approval-gated.
-- Next action: Re-run the dev-runtime-repo-sync-packet after the current implementation-authority tranche settles; the 2026-04-07 live probe showed /home/shaun/repos/athanor back on commit d7b25c8 with generated-artifact drift, so the lane is open again even though the earlier sync path was proven.
+- Next action: Re-run the dev-runtime-repo-sync-packet with the immediate post-sync restart limited to athanor-brain, athanor-classifier, athanor-quality-gate, and athanor-sentinel; the 2026-04-08 reprobe showed the mirror reset succeeds, but starting athanor-overnight.service immediately re-dirties tracked generated artifacts.
 - Packet status: `ready_for_approval`
 - Packet approval type: `runtime_host_reconfiguration`
 
@@ -202,7 +202,7 @@ Do not edit manually.
 - Nested source dir present: `False`
 - bak-codex files: none
 - Container running: `True`
-- Container status: `Up 26 hours`
+- Container status: `Up 27 hours`
 - Compose working dir: `/opt/athanor/agents`
 - Compose config files: `/opt/athanor/agents/docker-compose.yml`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
@@ -230,7 +230,7 @@ Do not edit manually.
 - Runtime paths: `/opt/athanor/vllm/docker-compose.yml`
 - Active surfaces: `vllm-coordinator container`, `vllm-coder container`, `http://foundry:8000/v1/models`, `http://foundry:8006/v1/models`
 - Execution packet: `foundry-vllm-compose-reconciliation-packet`
-- Evidence: `reports/deployment-drift/foundry-vllm.diff`, `reports/rendered/foundry-vllm.rendered.yml`, `reports/live/foundry-vllm.live.yml`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+- Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/foundry-vllm.rendered.yml`, `reports/live/foundry-vllm.live.yml`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 - Verification commands: `ssh foundry "cd /opt/athanor/vllm && docker compose ps"`, `ssh foundry "docker inspect vllm-coder --format '{{json .Config.Cmd}}'"`, `ssh foundry "curl -sS http://localhost:8006/v1/models"`
 - Rollback contract: Preserve the previous /opt/athanor/vllm bundle under /opt/athanor/backups/vllm/<timestamp>/ before replacing the compose root, and restore that bundle if the approved reconcile pass regresses the active coder or coordinator lanes.
 - Approval boundary: Replacing /opt/athanor/vllm/docker-compose.yml or recreating the live FOUNDRY vLLM containers remains approval-gated.
@@ -251,12 +251,12 @@ Do not edit manually.
 - Runtime paths: `/opt/athanor/dashboard/docker-compose.yml`, `/opt/athanor/ws-pty-bridge`
 - Active surfaces: `athanor-dashboard container (shadow recovery)`, `athanor-ws-pty-bridge container`, `http://workshop:3001/`, `http://workshop:3100/health`
 - Execution packet: `workshop-control-surface-compose-reconciliation-packet`
-- Evidence: `reports/deployment-drift/workshop-dashboard.diff`, `reports/rendered/workshop-dashboard.rendered.yml`, `reports/live/workshop-dashboard.live.yml`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+- Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/workshop-dashboard.rendered.yml`, `reports/live/workshop-dashboard.live.yml`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 - Verification commands: `ssh workshop "cd /opt/athanor/dashboard && docker compose ps"`, `ssh workshop "docker inspect athanor-ws-pty-bridge --format '{{.Name}}|{{.State.Status}}'"`, `ssh workshop "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/health"`
 - Rollback contract: Preserve the previous /opt/athanor/dashboard compose bundle and /opt/athanor/ws-pty-bridge source under /opt/athanor/backups/dashboard-shadow/<timestamp>/ before replacement, and restore both if the approved reconcile pass regresses bridge access or the shadow recovery surface.
 - Approval boundary: Replacing Workshop control-surface compose roots or recreating the live dashboard shadow or ws-pty-bridge containers remains approval-gated.
-- Next action: Keep the live ws-pty bridge healthy but leave the Workshop dashboard-shadow compose root in ready-for-approval state until the workshop-control-surface-compose-reconciliation-packet is executed; the lane is still pending because workshop-dashboard.live.yml continues to differ from implementation authority.
-- Packet status: `ready_for_approval`
+- Next action: Keep the live Workshop dashboard shadow and ws-pty bridge healthy and treat any future compose or source change as packet-backed runtime work; the 2026-04-08 backup-first reconcile pass synced the source bundles, replaced /opt/athanor/dashboard/docker-compose.yml from implementation authority, and re-probed both :3001 and :3100/health at 200.
+- Packet status: `executed`
 - Packet approval type: `runtime_host_reconfiguration`
 
 ## workshop-vllm-compose
@@ -272,7 +272,7 @@ Do not edit manually.
 - Runtime paths: `/opt/athanor/vllm-node2/docker-compose.yml`
 - Active surfaces: `vllm-node2 container`, `http://workshop:8010/v1/models`
 - Execution packet: `workshop-vllm-compose-reconciliation-packet`
-- Evidence: `reports/deployment-drift/workshop-vllm.diff`, `reports/rendered/workshop-vllm.rendered.yml`, `reports/live/workshop-vllm.live.yml`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+- Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/workshop-vllm.rendered.yml`, `reports/live/workshop-vllm.live.yml`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 - Verification commands: `ssh workshop "cd /opt/athanor/vllm-node2 && docker compose ps"`, `ssh workshop "docker inspect vllm-node2 --format '{{json .Config.Cmd}}'"`, `ssh workshop "curl -sS http://127.0.0.1:8010/v1/models"`
 - Rollback contract: Preserve the previous /opt/athanor/vllm-node2 compose bundle under /opt/athanor/backups/vllm-node2/<timestamp>/ before replacement, and restore it if the approved reconcile pass regresses the active Workshop worker lane.
 - Approval boundary: Replacing /opt/athanor/vllm-node2/docker-compose.yml or recreating the live Workshop vLLM worker container remains approval-gated.
@@ -333,7 +333,7 @@ Do not edit manually.
 - Runtime paths: `/mnt/user/appdata/prometheus/prometheus.yml`
 - Active surfaces: `prometheus container`, `/mnt/user/appdata/prometheus/prometheus.yml`, `http://vault:9090/-/healthy`
 - Execution packet: `vault-prometheus-config-reconciliation-packet`
-- Evidence: `reports/deployment-drift/vault-prometheus.diff`, `reports/rendered/vault-prometheus.rendered.yml`, `reports/live/vault-prometheus.live.yml`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`
+- Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/vault-prometheus.rendered.yml`, `reports/live/vault-prometheus.live.yml`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`
 - Verification commands: `python scripts/vault-ssh.py "docker inspect prometheus --format '{{.Name}}|{{.State.Status}}|{{.HostConfig.RestartPolicy.Name}}'"`, `python scripts/vault-ssh.py "test -f /mnt/user/appdata/prometheus/prometheus.yml && sed -n '1,220p' /mnt/user/appdata/prometheus/prometheus.yml"`, `python scripts/vault-ssh.py "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9090/-/healthy"`
 - Rollback contract: Back up the current /mnt/user/appdata/prometheus/prometheus.yml and the current Prometheus container definition before replacement, and restore them if the approved reconcile pass regresses monitoring coverage or the Prometheus service state.
 - Approval boundary: Mutating /mnt/user/appdata/prometheus/prometheus.yml or recreating the live Prometheus container on VAULT remains approval-gated.
@@ -380,7 +380,7 @@ Do not edit manually.
 | `dev-heartbeat-opt-deploy-packet` | `executed` | `dev-heartbeat-opt` | `runtime_host_reconfiguration` | Make the source-to-/opt heartbeat bundle replacement explicit so the live athanor-heartbeat.service lane no longer depends on undocumented manual copy steps. |
 | `foundry-agents-compose-deploy-packet` | `executed` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |
 | `foundry-vllm-compose-reconciliation-packet` | `executed` | `foundry-vllm-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/vllm compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the FOUNDRY coordinator and coder lanes stop drifting by host-local floating image state. |
-| `workshop-control-surface-compose-reconciliation-packet` | `ready_for_approval` | `workshop-control-surface-compose` | `runtime_host_reconfiguration` | Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service and the correct worker lane URL. |
+| `workshop-control-surface-compose-reconciliation-packet` | `executed` | `workshop-control-surface-compose` | `runtime_host_reconfiguration` | Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service and the correct worker lane URL. |
 | `workshop-vllm-compose-reconciliation-packet` | `executed` | `workshop-vllm-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/vllm-node2 compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the Workshop worker lane stops drifting by host-local floating image state. |
 | `vault-litellm-config-reconciliation-packet` | `ready_for_approval` | `vault-litellm-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/litellm/config.yaml file with implementation authority so the coder lane and other routed model definitions stop drifting independently of the repo. |
 | `vault-prometheus-config-reconciliation-packet` | `executed` | `vault-prometheus-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml file with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels. |
