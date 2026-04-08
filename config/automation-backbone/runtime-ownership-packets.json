@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-06.2",
-  "updated_at": "2026-04-06T23:15:00Z",
+  "version": "2026-04-08.1",
+  "updated_at": "2026-04-08T03:05:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-packets.json",
   "packets": [
@@ -293,11 +293,11 @@
     {
       "id": "foundry-vllm-compose-reconciliation-packet",
       "label": "FOUNDRY vLLM compose reconciliation packet",
-      "status": "ready_for_approval",
+      "status": "executed",
       "lane_id": "foundry-vllm-compose",
       "host": "foundry",
       "approval_packet_type": "runtime_host_reconfiguration",
-      "goal": "Reconcile the live /opt/athanor/vllm compose root with implementation authority so the FOUNDRY coder lane, coordinator tuning, and extra runtime-only services stop drifting silently.",
+      "goal": "Reconcile the live /opt/athanor/vllm compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the FOUNDRY coordinator and coder lanes stop drifting by host-local floating image state.",
       "path_mappings": [
         {
           "source_path": "reports/rendered/foundry-vllm.rendered.yml",
@@ -320,7 +320,7 @@
       "exact_steps": [
         "Create a timestamped backup root under /opt/athanor/backups/vllm/<timestamp> and back up the current /opt/athanor/vllm/docker-compose.yml before replacement.",
         "Re-render the canonical compose file through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.",
-        "Review the live-only vllm-vlm service and any remaining coordinator tuning deltas explicitly before restart; do not silently preserve a runtime-only extra service without a written decision.",
+        "Promote the deterministic athanor/vllm:qwen35-20260315 artifact to FOUNDRY so the coordinator and coder lanes use the same known-good image lineage as Workshop instead of a host-local floating qwen35 tag.",
         "Replace /opt/athanor/vllm/docker-compose.yml from the rendered canonical artifact inside the approved maintenance window.",
         "Recreate only the affected vLLM services from the governed compose root, then refresh drift evidence immediately."
       ],
@@ -414,11 +414,11 @@
     {
       "id": "workshop-vllm-compose-reconciliation-packet",
       "label": "WORKSHOP vLLM compose reconciliation packet",
-      "status": "ready_for_approval",
+      "status": "executed",
       "lane_id": "workshop-vllm-compose",
       "host": "workshop",
       "approval_packet_type": "runtime_host_reconfiguration",
-      "goal": "Reconcile the live /opt/athanor/vllm-node2 compose root with implementation authority so the Workshop worker lane stops carrying ungoverned image and launch-flag drift.",
+      "goal": "Reconcile the live /opt/athanor/vllm-node2 compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the Workshop worker lane stops drifting by host-local floating image state.",
       "path_mappings": [
         {
           "source_path": "reports/rendered/workshop-vllm.rendered.yml",
@@ -439,7 +439,7 @@
       "exact_steps": [
         "Create a timestamped backup root under /opt/athanor/backups/vllm-node2/<timestamp> and back up the current /opt/athanor/vllm-node2 compose bundle before replacement.",
         "Re-render the canonical Workshop vLLM compose file through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.",
-        "Review the current custom-image and runtime-only launch delta explicitly before restart; do not preserve it silently without either promoting it into source truth or removing it.",
+        "Promote the deterministic athanor/vllm:qwen35-20260315 image on Workshop from the last known-good custom lineage, including the DeltaNet compatibility patch needed by the Qwen3.5 worker lane.",
         "Replace /opt/athanor/vllm-node2/docker-compose.yml from the rendered canonical artifact during the approved maintenance window.",
         "Recreate the Workshop worker container and refresh deployment-drift evidence immediately."
       ],
@@ -518,7 +518,7 @@
     {
       "id": "vault-prometheus-config-reconciliation-packet",
       "label": "VAULT Prometheus config reconciliation packet",
-      "status": "ready_for_approval",
+      "status": "executed",
       "lane_id": "vault-prometheus-config",
       "host": "vault",
       "approval_packet_type": "runtime_host_reconfiguration",

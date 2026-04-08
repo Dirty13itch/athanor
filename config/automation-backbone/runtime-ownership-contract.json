@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-06.2",
-  "updated_at": "2026-04-06T23:15:00Z",
+  "version": "2026-04-07.7",
+  "updated_at": "2026-04-08T01:40:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-contract.json",
   "promotion_gate_id": "runtime_ownership_maturity",
@@ -59,7 +59,7 @@
       ],
       "rollback_contract": "Back up the pre-sync DEV repo state under /home/shaun/.athanor/backups/runtime-ownership/<timestamp>/ and preserve a timestamped backup branch before resetting main to the approved mirror commit.",
       "approval_boundary": "Resetting the DEV runtime repo or restarting repo-root services remains approval-gated.",
-      "next_action": "Execute the dev-runtime-repo-sync-packet to make /home/shaun/repos/athanor a clean mirror of implementation authority, then restart only the repo-root services that actually changed."
+      "next_action": "Re-run the dev-runtime-repo-sync-packet after the current implementation-authority tranche settles; the 2026-04-07 live probe showed /home/shaun/repos/athanor back on commit d7b25c8 with generated-artifact drift, so the lane is open again even though the earlier sync path was proven."
     },
     {
       "id": "dev-dashboard-compose",
@@ -233,7 +233,7 @@
         "foundry-opt-athanor"
       ],
       "source_root_id": "desk-main",
-      "runtime_scope": "Active FOUNDRY vLLM deployment under /opt/athanor/vllm that serves the coordinator and coder lanes and currently carries runtime-owned compose drift against the rendered repo config.",
+      "runtime_scope": "Active FOUNDRY vLLM deployment under /opt/athanor/vllm that serves the coordinator and coder lanes on the deterministic pinned image athanor/vllm:qwen35-20260315.",
       "source_paths": [
         "ansible/host_vars/core.yml",
         "ansible/roles/vllm/defaults/main.yml",
@@ -264,7 +264,7 @@
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/vllm bundle under /opt/athanor/backups/vllm/<timestamp>/ before replacing the compose root, and restore that bundle if the approved reconcile pass regresses the active coder or coordinator lanes.",
       "approval_boundary": "Replacing /opt/athanor/vllm/docker-compose.yml or recreating the live FOUNDRY vLLM containers remains approval-gated.",
-      "next_action": "Use the foundry-vllm-compose-reconciliation-packet to reconcile the live compose root to implementation authority and explicitly remove or reclassify any runtime-only extra service during an approved maintenance window."
+      "next_action": "Keep the FOUNDRY vLLM lane pinned to athanor/vllm:qwen35-20260315 and treat any future image or compose change as a deliberate packet-backed rollout; the 2026-04-07 reprobe showed healthy coordinator and coder lanes on the pinned artifact."
     },
     {
       "id": "workshop-control-surface-compose",
@@ -310,7 +310,7 @@
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/dashboard compose bundle and /opt/athanor/ws-pty-bridge source under /opt/athanor/backups/dashboard-shadow/<timestamp>/ before replacement, and restore both if the approved reconcile pass regresses bridge access or the shadow recovery surface.",
       "approval_boundary": "Replacing Workshop control-surface compose roots or recreating the live dashboard shadow or ws-pty-bridge containers remains approval-gated.",
-      "next_action": "Use the workshop-control-surface-compose-reconciliation-packet to align the live compose root with the newly formalized source contract while keeping the dashboard shadow explicitly recovery-only."
+      "next_action": "Keep the live ws-pty bridge healthy but leave the Workshop dashboard-shadow compose root in ready-for-approval state until the workshop-control-surface-compose-reconciliation-packet is executed; the lane is still pending because workshop-dashboard.live.yml continues to differ from implementation authority."
     },
     {
       "id": "workshop-vllm-compose",
@@ -322,7 +322,7 @@
         "workshop-opt-athanor"
       ],
       "source_root_id": "desk-main",
-      "runtime_scope": "Active Workshop vLLM worker deployment rooted at /opt/athanor/vllm-node2 and serving the Workshop worker lane on :8010.",
+      "runtime_scope": "Active Workshop vLLM worker deployment rooted at /opt/athanor/vllm-node2 and serving the Workshop worker lane on :8010 from the deterministic pinned image athanor/vllm:qwen35-20260315.",
       "source_paths": [
         "ansible/host_vars/interface.yml",
         "ansible/roles/vllm/defaults/main.yml",
@@ -350,7 +350,7 @@
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/vllm-node2 compose bundle under /opt/athanor/backups/vllm-node2/<timestamp>/ before replacement, and restore it if the approved reconcile pass regresses the active Workshop worker lane.",
       "approval_boundary": "Replacing /opt/athanor/vllm-node2/docker-compose.yml or recreating the live Workshop vLLM worker container remains approval-gated.",
-      "next_action": "Use the workshop-vllm-compose-reconciliation-packet to reconcile the live compose root to implementation authority and explicitly decide whether the current custom image and runtime-only launch posture should be promoted or removed."
+      "next_action": "Keep the Workshop worker pinned to athanor/vllm:qwen35-20260315 and treat future image or launch-flag changes as deliberate packet-backed rollouts; the 2026-04-07 reprobe showed the worker healthy on the pinned artifact."
     },
     {
       "id": "workshop-product-compose",
@@ -454,7 +454,7 @@
       ],
       "rollback_contract": "Back up the current /mnt/user/appdata/litellm/config.yaml plus the current litellm container definition before replacing the config, and restore both if the approved reconcile pass regresses routing or auth posture.",
       "approval_boundary": "Mutating /mnt/user/appdata/litellm/config.yaml or recreating the live litellm container on VAULT remains approval-gated.",
-      "next_action": "Use the vault-litellm-config-reconciliation-packet to align the live config with implementation authority while keeping provider-auth repair as a separate explicit maintenance decision."
+      "next_action": "Keep the VAULT LiteLLM config lane in ready-for-approval state until the live config stops differing from implementation authority; the current packet remains separate from the missing-secret provider-auth repair and the 2026-04-07 drift evidence still shows config divergence."
     },
     {
       "id": "vault-prometheus-config",
@@ -467,7 +467,7 @@
         "vault-docker-root"
       ],
       "source_root_id": "desk-main",
-      "runtime_scope": "Live VAULT Prometheus scrape config rooted at /mnt/user/appdata/prometheus/prometheus.yml, including blackbox targets and direct metrics jobs that currently drift from implementation authority.",
+      "runtime_scope": "Live VAULT Prometheus scrape config rooted at /mnt/user/appdata/prometheus/prometheus.yml, aligned to implementation authority after the governed reconcile pass and still subject to packet-backed maintenance for future changes.",
       "source_paths": [
         "ansible/host_vars/vault.yml",
         "ansible/roles/vault-monitoring/defaults/main.yml",
@@ -497,7 +497,7 @@
       ],
       "rollback_contract": "Back up the current /mnt/user/appdata/prometheus/prometheus.yml and the current Prometheus container definition before replacement, and restore them if the approved reconcile pass regresses monitoring coverage or the Prometheus service state.",
       "approval_boundary": "Mutating /mnt/user/appdata/prometheus/prometheus.yml or recreating the live Prometheus container on VAULT remains approval-gated.",
-      "next_action": "Use the vault-prometheus-config-reconciliation-packet to align the live scrape config with implementation authority and retire stale shadow targets in one governed maintenance window."
+      "next_action": "Keep the executed vault-prometheus-config-reconciliation-packet as the governed update path; the 2026-04-07 reprobe showed the Prometheus container healthy after the reconcile pass."
     },
     {
       "id": "vault-runtime-maintenance",

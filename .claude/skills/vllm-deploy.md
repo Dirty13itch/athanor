@@ -1,25 +1,29 @@
 ---
 name: vLLM Deploy
-description: Deploy and manage vLLM inference on Athanor nodes. Custom image v0.16.0 on NGC base.
+description: Deploy and manage vLLM inference on Athanor nodes. Live production lanes use the pinned deterministic image athanor/vllm:qwen35-20260315.
 disable-model-invocation: true
 ---
 
 # vLLM Deploy
 
-Deploy vLLM inference services on Athanor. Uses custom Docker image (NGC 26.01-py3 base + vLLM v0.16.0 via pip cu130 wheels).
+Deploy vLLM inference services on Athanor. Live production lanes on Foundry and Workshop use the pinned deterministic image `athanor/vllm:qwen35-20260315`, which comes from the known-good custom Blackwell lineage.
 
 ## Architecture
 
 | Instance | Node | Port | GPUs | Model | Purpose |
 |----------|------|------|------|-------|---------|
 | vllm-coordinator | Foundry | 8000 | 0,1,3,4 (4x 5070Ti) TP=4 | Qwen3.5-27B-FP8 | Reasoning, agents |
-| vllm-utility | Foundry | 8002 | 2 (4090) | Huihui-Qwen3-8B | Utility/fast |
+| vllm-coder | Foundry | 8006 | 2 (4090) | devstral-small-2 | Coding |
 | vllm-embedding | DEV | 8001 | 0 (5060Ti), 0.40 mem | Qwen3-Embedding-0.6B | Embeddings (1024-dim) |
-| vllm (secondary) | Workshop | 8000 | 0 (5090) | Qwen3.5-35B-A3B-AWQ | Fast inference |
+| vllm (secondary) | Workshop | 8010 | 0 (5090) | Qwen3.5-35B-A3B-AWQ | Fast inference |
 
-## Custom Image Build
+## Image Strategy
 
-The standard vLLM Docker images don't support Blackwell (sm_120). NGC images ship stale vLLM versions. Our solution: NGC base + pip install vLLM from cu130 wheel index.
+The standard vLLM Docker images don't support Blackwell (sm_120) cleanly enough for Athanor. NGC images also ship stale vLLM versions. The live production solution is:
+
+1. maintain a custom-capable build path in `ansible/roles/vllm/`
+2. promote known-good output into a deterministic pinned tag
+3. run Foundry and Workshop on the same pinned tag instead of a floating `athanor/vllm:qwen35`
 
 ```dockerfile
 # Ansible template: ansible/roles/vllm/templates/Dockerfile.j2
@@ -28,7 +32,7 @@ RUN pip install vllm=={{ vllm_pip_version }} \
     --extra-index-url https://download.pytorch.org/whl/cu{{ vllm_cuda_suffix }}
 ```
 
-Built image: `athanor/vllm:latest` (34.6 GB). Verified: v0.16.0, sm_120 compatible.
+Current pinned production image: `athanor/vllm:qwen35-20260315`
 
 ## Deployment via Ansible
 
@@ -38,10 +42,9 @@ ansible-playbook playbooks/site.yml --vault-password-file vault-password -i inve
 ```
 
 Ansible vars (in `host_vars/`):
-- `vllm_custom_build: true` — builds from Dockerfile instead of pulling NGC
-- `vllm_pip_version: "0.16.0"` — vLLM version to install
-- `vllm_cuda_suffix: "130"` — cu130 for Blackwell
-- `vllm_ngc_tag: "26.01"` — NGC base image tag
+- `vllm_image: "athanor/vllm:qwen35-20260315"` — current deterministic production image on Foundry and Workshop
+- `vllm_custom_build: true` — only when intentionally rebuilding the custom lineage
+- `vllm_pip_version: "0.16.0"` — vLLM version to install in the custom lineage
 
 ## Critical Blackwell (sm_120) Settings
 
@@ -93,6 +96,6 @@ curl http://192.168.1.189:8001/v1/embeddings \
   -H "Content-Type: application/json" \
   -d '{"model":"/models/Qwen3-Embedding-0.6B","input":"test"}'
 
-# Check utility (Foundry GPU 2)
-curl http://192.168.1.244:8002/v1/models
+# Check coder (Foundry GPU 2)
+curl http://192.168.1.244:8006/v1/models
 ```

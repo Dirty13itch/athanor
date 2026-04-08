@@ -15,10 +15,10 @@ vllm_dtype: auto
 vllm_extra_env:
   - "NVIDIA_VISIBLE_DEVICES=0"
   - "CUDA_VISIBLE_DEVICES=0"
+  - "FLASHINFER_DISABLE_VERSION_CHECK=1"
 vllm_extra_volumes:
   - /home/athanor/.cache/triton:/root/.cache/triton
 vllm_extra_args:
-  - --language-model-only
   - --enforce-eager  # Qwen3.5 DeltaNet Triton kernels OOM during CUDA graph capture
   - --enable-auto-tool-choice
   - --tool-call-parser
@@ -32,12 +32,10 @@ vllm_extra_args:
   - --safetensors-load-strategy
   - eager
 
-# Custom vLLM image: NGC CUDA 13.1 base + nightly vLLM (Qwen3.5 support)
-# Upstream cu130 image fails with CUDA 13.0 vs Blackwell driver mismatch — NGC 13.1 base required
-vllm_custom_build: true
-vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
-vllm_pip_version: ""  # Empty = nightly (latest, unpinned) for Qwen3.5 qwen3_5 model type
-vllm_custom_image_tag: "qwen35"  # Match FOUNDRY image tag
+# Use the pinned prebuilt image shared with Foundry instead of rebuilding the
+# floating qwen35 tag independently on Workshop.
+vllm_custom_build: false
+vllm_image: "athanor/vllm:qwen35-20260315"
 
 # Network interfaces — 5GbE primary + DHCP secondary
 network_interfaces:

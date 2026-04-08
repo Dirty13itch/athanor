@@ -1,6 +1,6 @@
 ﻿# Athanor Status
 
-**Last updated:** 2026-04-07 19:20 CDT
+**Last updated:** 2026-04-07 20:45 CDT
 **Program:** Truth convergence, Ralph-loop control activation, live bootstrap artifact sync, provider weak-lane closure, runtime recovery, and aggressive prune
 
 ## Program Health
@@ -15,7 +15,7 @@
 | Ralph-loop control | In progress | `config/automation-backbone/completion-program-registry.json` now carries loop families, live workstream posture, and the controller/report locations for the autonomous Ralph loop. `scripts/run_ralph_loop_pass.py` is the recurring controller, `reports/ralph-loop/latest.json` is the live selection artifact, and `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md` is the standing contract. Remaining work is to keep the loop artifact fresh and use it as the current execution selector instead of falling back to ad hoc sequencing. |
 | Generated reports | In progress | Truth inventory reports generate and freshness-check cleanly; collector depth now includes repo-safe DEV runtime, DESK runtime-env, and FOUNDRY `athanor-agents` deployment evidence, service probes now honor topology-owned non-default health paths and classify `bolt://` plus `redis://` planes by TCP-connect truth instead of fake broken HTTP requests, the collector now captures live and retired `athanor-governor` evidence instead of relying on repo inference alone, the generated runtime-migration report carries the caller-by-caller `:8760` cutover map, the live collector cross-checks the observed DEV caller set against that migration map with zero unmapped callers, persists a cached truth snapshot under `reports/truth-inventory/latest.json`, hashes each observed runtime-owned caller against implementation authority, and now proves the retired listener is absent while still flagging the remaining governed runtime sync lanes. `docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md` now serves as audit and rollback evidence for the completed 2026-03-29 maintenance window, direct DESK probes now show VAULT `.203`, FOUNDRY `.244`, WORKSHOP `.225`, and DEV `.189` reachable again, the collector still syncs the live bootstrap JSON artifact set out of the running FOUNDRY `athanor-agents` container back into `reports/bootstrap/`, and the current report pass preserves the live FOUNDRY compose-root and import-path evidence from the governed deploy lane. The VAULT container-level LiteLLM audit no longer depends on the broken Paramiko-only helper path because `scripts/vault-ssh.py` now falls back to native OpenSSH when Paramiko auth fails, so the repair packet and secret-surface report now read real container env evidence again instead of a false `Authentication failed` state. |
 | Operator front door | Completed | `config/automation-backbone/operator-surface-registry.json` and `docs/operations/OPERATOR-SURFACE-REPORT.md` own human-facing surface truth, the dashboard IA is regrouped into command-center/operate/build/domains/catalog, the DEV command center runs as a containerized dashboard behind Caddy at `https://athanor.local/`, WORKSHOP `:3001` is retired as a command-center surface, the live container is standardized onto `/opt/athanor/dashboard`, DESK now resolves `athanor.local` plus the node-host aliases through the scripted hosts-file rollout, and both canonical browser verification plus runtime fallback smoke are green. The topology-owned dashboard health probe uses `/api/operator/session`, so the generic service-health lane no longer reports a false red from the heavyweight `/api/overview` aggregate. |
-| Runtime drift closure | In progress | Foundry `:8006` and Workshop `:8010` are aligned, the undeployed DESK `provider_bridge` has been demoted out of canonical live topology, and the 2026-03-29 collector now proves DEV no longer runs the retired governor facade on `:8760`. The post-cutover snapshot shows zero observed runtime references, all 9 mapped callers content-matched to implementation authority, and the last repo-side facade file is deleted, so the remaining runtime-drift work is governed runtime ownership rather than more governor-facade cleanup. The `foundry-agents-compose` lane and the new `dev-dashboard-compose` lane are now both backed by packet-compliant, DESK-executable deploy scripts with backup-first rollouts, and the 2026-04-03 governed FOUNDRY redeploy pass proved the packet path still rebuilds the live container from `/opt/athanor/agents` without falling back to ad hoc hotpatching. The current live posture is no longer blocked by unreachable hosts: VAULT `.203`, FOUNDRY `.244`, WORKSHOP `.225`, and DEV `.189` all answer from DESK again, so the remaining runtime work is the approval-gated packet set itself, especially the governed DEV runtime-repo sync lane plus the VAULT, FOUNDRY, and WORKSHOP reconcile packets. |
+| Runtime drift closure | In progress | Foundry `:8006` and Workshop `:8010` are aligned, the undeployed DESK `provider_bridge` has been demoted out of canonical live topology, and the 2026-03-29 collector now proves DEV no longer runs the retired governor facade on `:8760`. The post-cutover snapshot shows zero observed runtime references, all 9 mapped callers content-matched to implementation authority, and the last repo-side facade file is deleted, so the remaining runtime-drift work is governed runtime ownership rather than more governor-facade cleanup. The `foundry-agents-compose` lane and the `dev-dashboard-compose` lane are backed by packet-compliant, DESK-executable deploy scripts with backup-first rollouts, VAULT Prometheus is now re-probed healthy after its governed reconcile pass, and both FOUNDRY and WORKSHOP vLLM are now serving from the deterministic pinned image `athanor/vllm:qwen35-20260315`. The remaining runtime blockers are narrower: the DEV runtime repo sync lane has reopened because the runtime repo is dirty again on `d7b25c8`, the WORKSHOP control-surface packet is still pending, and the VAULT LiteLLM auth/config repair still depends on the missing secret-source tranche. |
 | Autonomy activation | Completed | `full_system_phase_3` is now live on the current FOUNDRY runtime, `broad_autonomy_enabled` is true, and the live roster includes the sidecar and creative lanes under registry-backed scope. Runtime mutations still remain approval-gated, provider scope still follows canonical routing posture, sovereign-only creative routing remains in force, and the runtime-ownership contract continues to govern the remaining DEV repo-sync maintenance without acting as a promotion blocker. |
 | Provider truth cleanup | In progress | Active routing and burn lanes are now catalog-backed end to end, and the current routing contract keeps the auth-failed VAULT API lanes demoted out of ordinary auto-routing instead of pretending they are required for expanded-core autonomy. `deepseek_api`, `mistral_codestral_api`, and `venice_api` remain proven through live completions; `anthropic_api`, `openai_api`, `google_gemini_api`, `moonshot_api`, `dashscope_qwen_api`, `zai_api`, and `openrouter_api` remain explicit maintenance work on the VAULT LiteLLM packet. The weak non-API lanes are now also explicit instead of fuzzy: Kimi is still `live_burn_observed_cost_unverified`, GLM remains `supported_tool_subscription_unverified`, and `reports/truth-inventory/provider-usage-evidence.json` is now treated as VAULT-proxy-only evidence rather than a catch-all lane for CLI or supported-tool subscriptions. The live launch-governance posture now derives its weak-lane summary and verification queue from the provider catalog, latest provider-specific capture per provider, and the VAULT env-name audit instead of flattening raw capture row counts. Remaining work is to either repair the VAULT API lanes through an approved maintenance pass or keep them deliberately demoted while subscribed-tier verification is tightened for Kimi and GLM in the catalog-backed runbook path. |
 | Secret-surface remediation | In progress | DEV cron now sources `/home/shaun/.athanor/runtime.env` through `BASH_ENV`, the reviewed Athanor systemd estate is envfile-or-envless by contract, DESK runtime env is present, and recovery artifacts now redact credential-bearing URLs before being written. The new 2026-03-29 VAULT LiteLLM runtime env-name audit reopened this lane: the container currently exposes only a subset of the upstream provider-key contract, so the secret-surface report now treats `vault-litellm-container-env` as an active remediation surface rather than a closed one. That audit is now persisted at `reports/truth-inventory/vault-litellm-env-audit.json`, the platform validator requires it for the VAULT credential surface, the generated provider plus secret-surface reports now surface exact missing env names instead of generic auth-repair follow-up text, the new `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md` is the current operator checklist for the approved maintenance window, and the latest owner-surface deepening now captures the live container launch command, backup/appdata file inventory, and the `/boot/config` reference surface without changing the `standalone_docker_container` classification. The remaining live blocker is now the real secret-source repair itself, not another broken audit path. |
@@ -28,6 +28,8 @@
 - `main` is the only live local branch, `origin/main` is the only remaining remote ref, and `C:\Athanor` is the only registered worktree; the deleted branch/worktree state is preserved under `C:\Athanor_cleanup_archive\2026-03-30-branch-normalization`.
 - `/home/shaun/repos/athanor` on DEV is still the runtime and deployment authority until deployment becomes mirror-clean and broader runtime-authority convergence is complete.
 - `/opt/athanor/agents` on FOUNDRY is now an explicit governed deployment root for `athanor-agents`; the live container imports from installed `site-packages`, and the remaining cleanup there is the approved build-root hygiene plus redeploy packet rather than an undocumented hotfix path.
+- FOUNDRY coordinator `:8000`, FOUNDRY coder `:8006`, and WORKSHOP worker `:8010` are all currently healthy on the same deterministic vLLM image tag: `athanor/vllm:qwen35-20260315`.
+- VAULT Prometheus is currently healthy after the governed config reconcile pass, while VAULT LiteLLM still needs secret-source repair before its remaining auth-failed upstream lanes can be promoted.
 - `C:\Users\Shaun\dev\athanor-next` is an incubation lane and cannot silently become primary.
 - VAULT `.203` is reachable again from DESK, and direct probes now show Redis `:6379`, Postgres `:5434`, Qdrant `:6333`, and LiteLLM `:4000` answering there.
 - `FOUNDRY`, `DEV`, and `WORKSHOP` are reachable again from DESK, so the runtime lane is no longer blocked on host return; the remaining blocker is the approval-gated packet work itself.
@@ -207,8 +209,8 @@
 
 ## Current Open Risks
 
-- The live cluster is reachable again from DESK, but the governed runtime packet tranche is still open. Until the DEV runtime repo sync plus the VAULT, FOUNDRY, and WORKSHOP reconciliation packets execute and re-probe cleanly, implementation authority and live runtime authority are still not fully converged.
-- Runtime ownership is now explicit enough for promotion, but implementation authority and runtime authority are still not mirror-clean. The remaining repo-root sync work stays governed by `dev-runtime-repo-sync-packet` instead of living as undocumented drift.
+- The live cluster is reachable again from DESK, and the VAULT Prometheus plus FOUNDRY/WORKSHOP vLLM runtime packets are now re-probed closed, but implementation authority and live runtime authority are still not fully converged because the DEV runtime repo sync lane has reopened and the WORKSHOP control-surface plus VAULT LiteLLM lanes are still pending.
+- Runtime ownership is explicit enough for promotion, but implementation authority and runtime authority are still not mirror-clean. The remaining repo-root sync work stays governed by `dev-runtime-repo-sync-packet`, which needs a fresh rerun because the DEV runtime repo is dirty again on `d7b25c8`.
 - The auth-failed VAULT LiteLLM API lanes remain explicit maintenance debt that must stay demoted or be repaired intentionally instead of drifting back into ordinary routing.
 - The repo now syncs live bootstrap artifacts out of the running FOUNDRY container during truth collection, but that path is still only collector-driven; running the DESK-local bootstrap supervisor directly can still recreate stale local snapshots until the deploy/runtime authority contract is tightened further.
 - Some runtime ownership facts still live outside the registries in DEV systemd, cron, `/opt/athanor`, and `/home/shaun/.athanor`, even though the collector can now audit them and the reviewed secret-delivery surfaces are normalized.
@@ -224,51 +226,8 @@
 
 1. **Close authority/current-state convergence** — Normalize `STATUS.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-OPERATING-SYSTEM.md`, and `config/automation-backbone/completion-program-registry.json` so they match the live Ralph-loop report and current collector evidence.
 2. **Publish the Ralph-loop control tranche** — Track `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md` and `scripts/run_ralph_loop_pass.py`, regenerate the derived truth layer, and checkpoint the control-plane updates as the canonical operating model.
-3. **Execute the governed runtime packet order** — DEV runtime repo sync, then VAULT LiteLLM auth/config repair, VAULT Prometheus reconciliation, FOUNDRY vLLM reconciliation, and finally WORKSHOP control-surface/vLLM reconciliation.
-4. **Re-probe provider truth after runtime repair** — Promote only repaired lanes with both config and observed proof; keep unrepaired VAULT API lanes and weak-proof Kimi/GLM lanes explicitly demoted where evidence still does not support promotion.
+3. **Close the remaining governed runtime packet set** — Re-run the DEV runtime repo sync against the current control-plane changes, repair VAULT LiteLLM auth/config once the missing secret source is available, and then close the remaining WORKSHOP control-surface reconcile lane. VAULT Prometheus plus FOUNDRY/WORKSHOP vLLM are already re-probed closed.
+4. **Re-probe provider truth after VAULT repair** — Promote only repaired lanes with both config and observed proof; keep unrepaired VAULT API lanes and weak-proof Kimi/GLM lanes explicitly demoted where evidence still does not support promotion.
 5. **Finish freeze/prune follow-through** — Remove remaining stale current-root operational narratives and keep the Ralph loop as the permanent steady-state execution model.
-
-## Session Log
-
-### 2026-04-05 20:00 (Evening review â€” day 3 of outage, score 1/10)
-- **Score: 1/10** â€” Zero productive commits after 07:03 auto-save. Third consecutive 1/10.
-- **FOUNDRY DOWN** â€” Day 3. `No route to host` from DEV. Network-level failure (power/switch/NIC). All 9 agents dark.
-- **VAULT DOWN** â€” SSH key rejection continues. Blocks all Ansible, LiteLLM env repair, provider truth work.
-- **WORKSHOP UP**: RTX 5090 (37Â°F, 26516/32607 MB), RTX 5060 Ti (31Â°F, 1000/16311 MB). Both GPUs idle and stable.
-- **DEV UP**: Dashboard, embedding, reranker containers holding. No regressions.
-- Zero agent pipeline activity. No tasks submitted, completed, failed, or stalled.
-- **Requires Shaun â€” nothing moves without these two actions**: (1) Physical check FOUNDRY (power, NIC, switch port). (2) Re-authorize DEV key on Unraid web UI (Settings â†’ SSH).
-- Once FOUNDRY+VAULT are restored: VAULT LiteLLM auth repair packet â†’ FOUNDRY drift cleanup â†’ Kimi/GLM verification.
-
-### 2026-04-05 07:00 (Morning review â€” day 3 of outage)
-- **FOUNDRY DOWN** â€” 3rd consecutive day. `No route to host` from DEV. Network-level failure, not service-level.
-- **VAULT DOWN** â€” SSH auth rejected. Known key deauthorization on Unraid.
-- **WORKSHOP UP**: RTX 5090 (97Â°F, 26516/32607 MB), RTX 5060 Ti (86Â°F, 1000/16311 MB). 9 containers up 39h.
-- **DEV UP**: 8 containers up 37h. Dashboard, embedding, reranker stable.
-- Zero overnight commits. Zero agent activity. System effectively idle since April 2.
-- **Requires Shaun**: (1) Physical check on FOUNDRY â€” power, NIC, switch port. (2) VAULT SSH re-auth via Unraid web UI.
-- **Today's plan**: Restore FOUNDRY (P0), restore VAULT SSH (P1), repo-local work while waiting (P2).
-
-### 2026-04-04 (Evening review â€” dark day, COO review only)
-- **Score: 1/10** â€” Zero productive commits after 07:02 auto-save. Pipeline dark all day.
-- **FOUNDRY unreachable** second consecutive evening. Root cause unknown. All 9 agents dark.
-- **VAULT unreachable** â€” likely SSH key rejection (known issue from March).
-- **WORKSHOP UP**: RTX 5090 (99Â°F, 26516/32607 MB), RTX 5060 Ti (86Â°F, 1000/16311 MB). Both GPUs idle.
-- No agent pipeline activity. No tasks completed, failed, or stalled.
-- Top priorities tomorrow: restore FOUNDRY connectivity, fix VAULT SSH, then resume in-progress lanes.
-
-### 2026-04-03 (Evening review â€” no new session, COO review only)
-- **FOUNDRY unreachable** at review time. No agent pipeline data available. All 9 agents dark.
-- **WORKSHOP UP**: RTX 5090 (37F, 26516/32607 MB), RTX 5060 Ti (30F, 1000/16311 MB).
-- **VAULT unreachable** at review time.
-- No commits today (April 3). Last session was April 2.
-
-### 2026-04-02 (10 commits â€” DEV runtime sync hardening)
-- `sync_dev_runtime_repo.py` promoted to full policy-backed contract: binary stdin transport, retention policy (3 copies), backup hardening, branch pruning.
-- Truth report generation stabilized â€” collector no longer fails closed on transient SSH/auth issues.
-- runtime-ownership-packets.json and runbooks updated to reflect new contract.
-- Commit quality: iterative fix churn (4 commits to land 1-line pruning fix). Pre-test locally before committing plumbing changes.
-- Open lanes with zero progress: VAULT LiteLLM auth repair, provider truth cleanup, secret surface remediation.
-- **Session productivity: 4/10** â€” narrow execution, no progress on blocked remediation lanes.
 
 

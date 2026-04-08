@@ -32,8 +32,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `14`
-- Local dirty sample: ` M STATUS.md`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/docs-lifecycle-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`, ` M docs/DOCUMENTATION-INDEX.md`, ` M docs/operations/ATHANOR-OPERATING-SYSTEM.md`, ` M docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md`, ` M docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, ` M scripts/README.md`
+- Local dirty file count: `17`
+- Local dirty sample: ` M .claude/rules/vllm.md`, ` M .claude/skills/vllm-deploy.md`, ` M STATUS.md`, ` M ansible/host_vars/core.yml`, ` M ansible/host_vars/interface.yml`, ` M ansible/roles/vllm/defaults/main.yml`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`, ` M config/automation-backbone/runtime-ownership-contract.json`
 
 ## dev-runtime-repo
 
@@ -41,8 +41,8 @@ Do not edit manually.
 - Host: `dev`
 - Authority: `runtime-authority`
 - Notes: `Runtime and deployment authority until deployment is mirror-clean.`, `Observed 2026-04-02 runtime probe shows the retired governor-facade caller set still mirror-clean with zero sync-required runtime-owned callers.`, `Repo-root systemd services on DEV still launch from this root while the active command-center container is deployed from /opt/athanor/dashboard.`, `Broader runtime-owned deployment surfaces still live across the DEV runtime repo and /opt/athanor, but the runtime-ownership contract now governs that split explicitly so it is governed maintenance rather than a promotion blocker.`
-- Runtime dirty file count: `2`
-- Runtime dirty sample: ` M .claude/.health-cache`, ` M STATUS.md`
+- Runtime dirty file count: `13`
+- Runtime dirty sample: ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`, ` M docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md`, ` M docs/operations/OPERATOR-SURFACE-REPORT.md`, ` M docs/operations/PROVIDER-CATALOG-REPORT.md`, ` M docs/operations/REPO-ROOTS-REPORT.md`, ` M docs/operations/RUNTIME-MIGRATION-REPORT.md`, ` M docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, ` M docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, ` M docs/operations/SECRET-SURFACE-REPORT.md`, ` M docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, ` M docs/operations/VAULT-REDIS-REPAIR-PACKET.md`
 
 ## dev-opt-athanor
 

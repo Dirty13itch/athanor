@@ -10,11 +10,12 @@ nvidia_gpu_power_limits:
   - { index: 3, watts: 250 }   # RTX 5070 Ti (PCI 82:00)
   - { index: 4, watts: 250 }   # RTX 5070 Ti (PCI C1:00, embedding)
 
-# vLLM image build settings (shared by all instances)
-vllm_custom_build: true
-vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
-vllm_pip_version: ""  # Empty = nightly for Qwen3.5
-vllm_custom_image_tag: "qwen35"
+# vLLM image settings (shared by all instances)
+# Use a pinned prebuilt image tag instead of rebuilding the floating qwen35 tag
+# independently on each host. The rebuilt host-local qwen35 tags diverged and broke
+# runtime parity across Foundry and Workshop.
+vllm_custom_build: false
+vllm_image: "athanor/vllm:qwen35-20260315"
 vllm_models_volume: "/mnt/local-fast/models:/models:ro"
 
 # Multi-instance vLLM: coordinator (TP=4 on 4x 5070 Ti) + coder (4090)
@@ -29,6 +30,8 @@ vllm_instances:
     network_mode: host
     extra_volumes:
       - /home/athanor/.cache/triton:/root/.cache/triton
+    extra_env:
+      - FLASHINFER_DISABLE_VERSION_CHECK=1
     speculative_config: '{"method": "mtp", "num_speculative_tokens": 1}'
     extra_args:
       - --enforce-eager
@@ -58,6 +61,8 @@ vllm_instances:
     models_volume: "/home/athanor/models/devstral-small-2-awq:/model:ro"
     extra_volumes:
       - /home/athanor/.cache/triton:/root/.cache/triton
+    extra_env:
+      - FLASHINFER_DISABLE_VERSION_CHECK=1
     extra_args:
       - --enable-auto-tool-choice
       - --tool-call-parser

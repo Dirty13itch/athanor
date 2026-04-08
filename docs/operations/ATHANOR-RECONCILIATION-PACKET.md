@@ -108,6 +108,14 @@ Program control now lives in these Athanor-owned artifacts:
   - repo-side truth stays in Athanor
   - live FOUNDRY and VAULT config changes move through approval packets with backup, verification, and rollback
   - the remaining disagreement is no longer an undocumented operator-memory lane
+- The 2026-04-07 runtime packet tranche then closed three of those live lanes with direct reprobe:
+  - `vault-prometheus-config-reconciliation-packet` is now executed and the live Prometheus container answers `/-/healthy`
+  - `foundry-vllm-compose-reconciliation-packet` is now executed and both `vllm-coordinator` and `vllm-coder` are healthy on `athanor/vllm:qwen35-20260315`
+  - `workshop-vllm-compose-reconciliation-packet` is now executed and `vllm-node2` is healthy on the same pinned image lineage
+- The vLLM closure also changed the governing runtime story:
+  - the old floating `athanor/vllm:qwen35` tag was not deterministic across hosts
+  - Workshop and Foundry are now intentionally converged on the same pinned artifact, `athanor/vllm:qwen35-20260315`
+  - the remaining vLLM work is to keep repo truth, packet docs, and operator guidance pinned to that deterministic image contract instead of drifting back toward a floating-tag model
 - Workshop vLLM also had one narrow tuning delta worth importing into source truth:
   - live `docker inspect` on `vllm-node2` confirms `--max-num-batched-tokens 2096`
   - `ansible/host_vars/interface.yml` now carries that flag so the tracked worker lane preserves the current batching ceiling without yet asserting broader image or launch-flag parity
@@ -119,8 +127,13 @@ Program control now lives in these Athanor-owned artifacts:
   - `ansible/roles/dashboard/defaults/main.yml` now points `dashboard_vllm_worker_url` at the live `:8010` worker lane
   - the Workshop shadow dashboard role now templates `ws-pty-bridge` and syncs `projects/ws-pty-bridge` into `/opt/athanor/ws-pty-bridge` for recovery-only governance
 - The remaining Workshop drift is therefore better classified:
-  - `workshop-dashboard` and `workshop-vllm` now have explicit ready-for-approval runtime packets
+  - `workshop-dashboard` still has an explicit ready-for-approval runtime packet
+  - `workshop-vllm` is now an executed runtime packet with a healthy reprobe on the pinned image lane
   - `workshop-open-webui`, `workshop-comfyui`, `workshop-eoq`, and `workshop-ulrich-energy` are explicit runtime-owned surfaces even where they are not yet split into narrower repair packets
+- The governed DEV runtime-repo sync lane is now more precise too:
+  - the sync path itself has already been proven
+  - fresh 2026-04-07 runtime probing shows `/home/shaun/repos/athanor` back on commit `d7b25c8` with generated-artifact drift
+  - the remaining DEV runtime blocker is therefore a reopened mirror-clean rerun, not uncertainty about how the packet should work
 
 ## Ecosystem Model
 

@@ -37,7 +37,7 @@ ENDPOINTS = {
     },
     "coder (Qwen3.5-35B-A3B-AWQ)": {
         "url": "${VLLM_CODER_URL}/v1/completions",
-        "model": "qwen35-coder",
+        "model": "devstral-small-2",
     },
     "worker (Qwen3.5-35B-A3B-AWQ)": {
         "url": "${VLLM_VISION_URL}/v1/completions",

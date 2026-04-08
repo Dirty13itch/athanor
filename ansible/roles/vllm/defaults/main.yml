@@ -16,26 +16,27 @@ vllm_extra_args:
   - --enable-auto-tool-choice
   - --tool-call-parser
   - hermes
-# Speculative decoding — set to JSON string to enable, empty to disable
+# Speculative decoding: set to JSON string to enable, empty to disable.
 # Example: '{"model": "/models/Qwen3-0.6B", "num_speculative_tokens": 5, "draft_tensor_parallel_size": 1}'
-# Requires: draft model on NFS, sufficient GPU memory headroom on at least one TP GPU
+# Requires: draft model on NFS, sufficient GPU memory headroom on at least one TP GPU.
 vllm_speculative_config: ""
 vllm_deploy_dir: /opt/athanor/vllm
 
-# Custom image build: NGC base + upstream vLLM nightly
-# When true, builds a custom Docker image instead of pulling NGC directly.
-# Required for vLLM v0.15.0+ features (Qwen3.5, NVFP4, sleep mode, SageAttention2).
+# Custom image build path: NGC base plus upstream or patched vLLM.
+# When true, builds a custom Docker image instead of pulling a prebuilt tag directly.
+# Production node truth may still pin vllm_image to a deterministic Athanor tag
+# (for example athanor/vllm:qwen35-20260315) while leaving vllm_custom_build false.
 vllm_custom_build: false
 vllm_base_image: "nvcr.io/nvidia/vllm:26.01-py3"
-# Pin to specific version for stability, or leave empty for nightly (Qwen3.5 support)
-# NGC flash-attn is removed in Dockerfile (ABI mismatch) — vLLM uses FlashInfer instead
+# Pin to a specific version for stability, or leave empty for nightly.
+# NGC flash-attn is removed in Dockerfile (ABI mismatch) and vLLM uses FlashInfer instead.
 vllm_pip_version: "0.16.0"  # Override to "" in host_vars for nightly
 vllm_pip_extra_index: "https://wheels.vllm.ai/nightly/cu130"
 
-# Multi-instance support: list of vLLM services in one compose file
-# When empty, falls back to single-instance mode using the vars above
+# Multi-instance support: list of vLLM services in one compose file.
+# When empty, falls back to single-instance mode using the vars above.
 vllm_instances: []
-# Custom image tag (used with vllm_custom_build)
+# Custom image tag (used with vllm_custom_build).
 vllm_custom_image_tag: "custom"
-# Default models volume mount
+# Default models volume mount.
 vllm_models_volume: "/mnt/vault/models:/models:ro"

@@ -74,7 +74,7 @@
       "id": "runtime-repair-and-sync-packets",
       "order": 5,
       "scope": "Approval-gated runtime packets for stale live Foundry, VAULT, DEV, and WORKSHOP configs that still contradict implementation authority.",
-      "status": "planned"
+      "status": "active"
     },
     {
       "dependencies": [
@@ -177,7 +177,7 @@
     "current_phase_scope": "full_system_phase_3",
     "evidence_freshness": "fresh",
     "execution_posture": "active_remediation",
-    "last_validation_run": "2026-04-08T01:10:46.178204+00:00",
+    "last_validation_run": "2026-04-08T02:52:36.604229+00:00",
     "next_action_family": "repo_safe_repair",
     "report_path": "reports/ralph-loop/latest.json",
     "selected_workstream": "authority-and-mainline",
