@@ -6,7 +6,7 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-07.7`
-- Cached truth snapshot: `2026-04-08T02:49:45.200756+00:00`
+- Cached truth snapshot: `2026-04-08T02:59:05.294390+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
 - Implementation authority: `desk-main` -> `C:/Athanor`
@@ -21,7 +21,7 @@ Do not edit manually.
 
 ## Repo Evidence
 
-- Implementation dirty file count: `17`
+- Implementation dirty file count: `4`
 - DEV runtime dirty file count: `13`
 - FOUNDRY compose root matches expected: `True`
 - FOUNDRY build root clean: `True`

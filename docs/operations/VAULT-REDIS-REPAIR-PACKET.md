@@ -3,8 +3,8 @@
 Generated from the cached truth snapshot plus the read-only VAULT Redis audit by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Cached truth snapshot: `2026-04-08T02:49:45.200756+00:00`
-- Cached redis audit: `2026-04-08T02:49:44Z`
+- Cached truth snapshot: `2026-04-08T02:59:05.294390+00:00`
+- Cached redis audit: `2026-04-08T02:59:04Z`
 - Surface id: `vault-redis-persistence`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
@@ -26,41 +26,41 @@ Do not edit manually.
 - Temp-RDB no-space error count in audit tail: `0`
 - Background-save error count in audit tail: `0`
 - Cross-protocol warning count in audit tail: `0`
-- Redis data directory size: `11.97 MiB`
+- Redis data directory size: `12.46 MiB`
 - Filesystem device: `/dev/nvme0n1p1`
 - Filesystem size: `931.51 GiB`
-- Filesystem used: `472.78 GiB`
-- Filesystem available: `456.40 GiB`
+- Filesystem used: `473.25 GiB`
+- Filesystem available: `455.94 GiB`
 - Filesystem used percent: `51%`
 - Filesystem mountpoint: `/mnt/appdatacache`
 - Btrfs device allocated: `557.04GiB`
 - Btrfs device unallocated: `374.48GiB`
-- Btrfs free estimate: `456.41GiB	(min: 269.17GiB)`
+- Btrfs free estimate: `455.94GiB	(min: 268.70GiB)`
 - Next live action: No Redis repair action required.
 
 ## Largest Consumers On The Backing Filesystem
 
 ### /mnt/appdatacache
 
-- `/mnt/appdatacache/appdata`: `378.12 GiB`
+- `/mnt/appdatacache/appdata`: `378.60 GiB`
 - `/mnt/appdatacache/data`: `50.51 GiB`
 - `/mnt/appdatacache/system`: `18.80 GiB`
 - `/mnt/appdatacache/dev`: `3.80 GiB`
 - `/mnt/appdatacache/databases`: `1.35 GiB`
-- `/mnt/appdatacache/n8n`: `329.76 MiB`
-- `/mnt/appdatacache/miniflux-postgres`: `147.45 MiB`
+- `/mnt/appdatacache/n8n`: `329.77 MiB`
+- `/mnt/appdatacache/miniflux-postgres`: `147.48 MiB`
 - `/mnt/appdatacache/backups`: `132.38 MiB`
 
 ### /mnt/appdatacache/appdata
 
-- `/mnt/appdatacache/appdata/stash`: `344.39 GiB`
+- `/mnt/appdatacache/appdata/stash`: `344.42 GiB`
 - `/mnt/appdatacache/appdata/plex`: `23.64 GiB`
-- `/mnt/appdatacache/appdata/prometheus`: `3.93 GiB`
-- `/mnt/appdatacache/appdata/tdarr`: `2.79 GiB`
+- `/mnt/appdatacache/appdata/prometheus`: `3.94 GiB`
+- `/mnt/appdatacache/appdata/tdarr`: `2.80 GiB`
 - `/mnt/appdatacache/appdata/Field Inspect`: `1.45 GiB`
-- `/mnt/appdatacache/appdata/sonarr`: `1.39 GiB`
+- `/mnt/appdatacache/appdata/sonarr`: `1.38 GiB`
 - `/mnt/appdatacache/appdata/neo4j`: `521.80 MiB`
-- `/mnt/appdatacache/appdata/field-inspect`: `82.86 MiB`
+- `/mnt/appdatacache/appdata/field-inspect`: `82.97 MiB`
 
 ### /mnt/appdatacache/backups (top files)
 
@@ -68,12 +68,12 @@ Do not edit manually.
 
 ### /mnt/appdatacache/appdata/stash/generated
 
-- `/mnt/appdatacache/appdata/stash/generated/screenshots`: `138.86 GiB`
+- `/mnt/appdatacache/appdata/stash/generated/screenshots`: `138.88 GiB`
 - `/mnt/appdatacache/appdata/stash/generated/thumbnails`: `82.96 GiB`
-- `/mnt/appdatacache/appdata/stash/generated/vtt`: `65.73 GiB`
+- `/mnt/appdatacache/appdata/stash/generated/vtt`: `65.74 GiB`
 - `/mnt/appdatacache/appdata/stash/generated/markers`: `38.03 GiB`
 - `/mnt/appdatacache/appdata/stash/generated/blobs`: `12.01 GiB`
-- `/mnt/appdatacache/appdata/stash/generated/tmp`: `636.00 KiB`
+- `/mnt/appdatacache/appdata/stash/generated/tmp`: `104.00 KiB`
 - `/mnt/appdatacache/appdata/stash/generated/transcodes`: `0 B`
 - `/mnt/appdatacache/appdata/stash/generated/download_stage`: `0 B`
 

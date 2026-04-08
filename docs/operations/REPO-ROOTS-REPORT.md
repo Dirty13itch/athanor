@@ -32,8 +32,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `17`
-- Local dirty sample: ` M .claude/rules/vllm.md`, ` M .claude/skills/vllm-deploy.md`, ` M STATUS.md`, ` M ansible/host_vars/core.yml`, ` M ansible/host_vars/interface.yml`, ` M ansible/roles/vllm/defaults/main.yml`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`, ` M config/automation-backbone/runtime-ownership-contract.json`
+- Local dirty file count: `4`
+- Local dirty sample: ` M STATUS.md`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`
 
 ## dev-runtime-repo
 
