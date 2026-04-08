@@ -32,8 +32,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `67`
-- Local dirty sample: ` M AGENTS.md`, ` M README.md`, ` M STATUS.md`, ` M ansible/host_vars/core.yml`, ` M ansible/host_vars/interface.yml`, ` M ansible/host_vars/vault.yml`, ` M ansible/playbooks/node1.yml`, ` M ansible/playbooks/site.yml`, ` M ansible/playbooks/vault.yml`, ` M ansible/roles/dashboard/defaults/main.yml`
+- Local dirty file count: `0`
+- Local dirty sample: none
 
 ## dev-runtime-repo
 
