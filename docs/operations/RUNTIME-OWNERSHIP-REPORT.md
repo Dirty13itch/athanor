@@ -21,7 +21,7 @@ Do not edit manually.
 
 ## Repo Evidence
 
-- Implementation dirty file count: `34`
+- Implementation dirty file count: `0`
 - DEV runtime dirty file count: `13`
 - FOUNDRY compose root matches expected: `True`
 - FOUNDRY build root clean: `True`
