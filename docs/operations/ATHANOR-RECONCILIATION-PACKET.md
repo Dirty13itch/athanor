@@ -69,32 +69,29 @@ Program control now lives in these Athanor-owned artifacts:
   - `docker ps` shows a live `qdrant` container on VAULT and no corresponding container on FOUNDRY
 - The stale node1/FOUNDRY Qdrant playbook assignment has therefore been removed from `ansible/playbooks/site.yml` and `ansible/playbooks/node1.yml` so Ansible no longer advertises the wrong deployment host.
 - The remaining Qdrant gap is narrower: Athanor still lacks a VAULT-native managed role/path for Qdrant, so current Ansible truth is "do not deploy it on FOUNDRY" rather than a full VAULT playbook ownership story.
-- Current Ansible-versus-live deployment drift remains materially larger in active runtime surfaces such as:
-  - `vault-prometheus`
-  - `vault-litellm`
-  - `foundry-vllm`
-  - `workshop-dashboard`
-  - `workshop-vllm`
+- Current deployment drift is no longer concentrated in the old Foundry vLLM or VAULT LiteLLM lanes.
+- The 2026-04-08 governed runtime pass closed those core surfaces directly:
+  - `foundry-vllm` is now identical
+  - `vault-litellm` is now identical
+  - `vault-prometheus` is now identical
+  - `workshop-vllm` is now identical
+  - `workshop-dashboard` is now identical
+  - `workshop-open-webui` is now identical
+- The remaining deployment drift is the narrower packet-and-product set:
+  - `foundry-agents`
+  - `foundry-gpu-orchestrator`
+  - `vault-alert-rules`
   - `workshop-comfyui`
-- `foundry-qdrant` and `vault-backup-alerts` are currently identical in the deployment drift audit and can be treated as low-priority on this lane.
-- The Foundry coder lane also had an internal repo split: `model-deployment-registry.json` already classified `foundry-coder` as `devstral-small-2`, but both `ansible/host_vars/core.yml` and the VAULT LiteLLM defaults still advertised the older Qwen coder slot.
-- Live `docker inspect` on `vllm-coder` on 2026-04-06 confirmed the stronger runtime truth:
-  - `--served-model-name devstral-small-2`
-  - dedicated bind `/home/athanor/models/devstral-small-2-awq:/model:ro`
-  - `--tool-call-parser mistral`
-  - `--max-model-len 16384`
-  - `--gpu-memory-utilization 0.90`
-  - `--max-num-seqs 8`
-- The accepted repo correction on this pass is intentionally narrow:
-  - `ansible/host_vars/core.yml` now matches the live Foundry coder lane
-  - `ansible/roles/vault-litellm/defaults/main.yml` now advertises `openai/devstral-small-2` instead of `openai/qwen35-coder`
-  - the LiteLLM template comment no longer describes the coder lane as a Qwen slot
-- Coordinator and Workshop vLLM tuning drift remain open until the repo distinguishes cleanly between canonical deploy truth and hot runtime residue.
-- The post-fix audit makes the ownership split explicit:
-  - rendered repo truth now says the Foundry coder lane is `devstral-small-2`
-  - the live Foundry compose file at `/opt/athanor/vllm/docker-compose.yml` still advertises the older Qwen coder slot
-  - the live VAULT LiteLLM config still advertises `openai/qwen35-coder`
-- That remaining mismatch is now runtime-owned drift on FOUNDRY and VAULT, not a contradiction inside implementation authority.
+  - `workshop-eoq`
+  - `workshop-ulrich-energy`
+- The Foundry coder runtime truth is now explicit and reconciled into implementation authority:
+  - direct `/v1/models` probing on `http://192.168.1.244:8006` returns `qwen3-coder-30b`
+  - live `docker inspect vllm-coder` shows `--served-model-name qwen3-coder-30b`, `--tool-call-parser qwen3_xml`, `--max-num-seqs 16`, and a bind mount from `/mnt/local-fast/models/Qwen3-Coder-30B-A3B-Instruct-AWQ:/model:ro`
+  - repo truth now matches that runtime instead of preserving the older Devstral-era assumption
+- The VAULT LiteLLM config lane is also closed as a config-reconciliation problem:
+  - the live `/mnt/user/appdata/litellm/config.yaml` now carries the canonical Athanor-owned header and matches the rendered authority artifact
+  - the `litellm` container restarts healthy on the reconciled config and re-enables Redis cache wiring through the tracked env contract
+  - provider-specific closure now lives in the auth and secret lane rather than the config lane
 - VAULT Prometheus also had a smaller repo-side lag that could be corrected without touching runtime-owned host configs:
   - the Workshop worker probe was still targeting the retired `:8000` lane instead of the current `:8010` worker runtime
   - the dashboard probe now follows platform-topology truth directly at the DEV runtime health path (`/api/operator/session`) instead of using a root-level URL
@@ -112,7 +109,11 @@ Program control now lives in these Athanor-owned artifacts:
   - `vault-prometheus-config-reconciliation-packet` is now executed and the live Prometheus container answers `/-/healthy`
   - `foundry-vllm-compose-reconciliation-packet` is now executed and both `vllm-coordinator` and `vllm-coder` are healthy on `athanor/vllm:qwen35-20260315`
   - `workshop-vllm-compose-reconciliation-packet` is now executed and `vllm-node2` is healthy on the same pinned image lineage
-- The remaining VAULT LiteLLM blocker is also narrower now because the owner-surface audit is stronger:
+- The 2026-04-08 follow-on runtime pass then closed the VAULT LiteLLM config lane itself:
+  - `vault-litellm-config-reconciliation-packet` is now executed
+  - the drift audit now reports `vault-litellm` as identical
+  - the remaining VAULT LiteLLM work is provider-auth and secret-source repair, not config divergence
+- The owner-surface audit remains important because the remaining VAULT blocker is now purely secret and auth oriented:
   - `/boot/config/plugins/dynamix.my.servers/configs/docker.config.json` has no `litellm` template mapping
   - `container-watchdog.sh` explicitly monitors `litellm`
   - the live container still runs as a standalone Docker surface rather than a discovered compose-manager or template-managed service
@@ -141,6 +142,11 @@ Program control now lives in these Athanor-owned artifacts:
   - the sync path itself has already been proven
 - fresh 2026-04-08 runtime probing shows the DEV mirror reset succeeds, but `athanor-overnight.service` immediately re-dirties tracked generated artifacts after the clean reset window
   - the remaining DEV runtime blocker is therefore a reopened mirror-clean rerun, not uncertainty about how the packet should work
+- fresh 2026-04-08 runtime probing also superseded the older Foundry coder assumption that had been imported into repo truth on the previous pass:
+  - direct `/v1/models` probing on `http://192.168.1.244:8006` now returns `qwen3-coder-30b`
+  - live `docker inspect vllm-coder` shows `--served-model-name qwen3-coder-30b`, `--tool-call-parser qwen3_xml`, `--max-num-seqs 16`, and a bind mount from `/mnt/local-fast/models/Qwen3-Coder-30B-A3B-Instruct-AWQ:/model:ro`
+  - the host compose file at `/opt/athanor/vllm/docker-compose.yml` is itself stale and still advertises the older Devstral lane, so this is now a split between implementation truth, host compose residue, and the actually running container rather than a simple repo-only mismatch
+  - Athanor source truth is being re-aligned to the live container/runtime evidence first; the remaining live compose correction stays runtime-owned until the packet rerun installs the same Qwen3-coder contract on the host source surface
 
 ## Ecosystem Model
 

@@ -1,5 +1,8 @@
 ---
 comfyui_deploy_dir: /opt/athanor/comfyui
 comfyui_port: 8188
-comfyui_gpu_device: "1"
-comfyui_image: "athanor/comfyui:blackwell"
+comfyui_gpu_device: "0"
+comfyui_image: "athanor/comfyui:blackwell-sm120"
+comfyui_restart_policy: "no"
+comfyui_extra_env:
+  - "CUDA_DEVICE_ORDER=PCI_BUS_ID"

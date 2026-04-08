@@ -30,15 +30,15 @@
       "health_path": "/v1/models",
       "runtime_class": "text_generation",
       "state_class": "deployed",
-      "expected_model_id": "devstral-small-2",
-      "observed_model_id": "devstral-small-2",
+      "expected_model_id": "qwen3-coder-30b",
+      "observed_model_id": "qwen3-coder-30b",
       "source_repo": "/home/shaun/repos/athanor",
-      "verified_at": "2026-03-26T12:00:00Z",
+      "verified_at": "2026-04-08T05:56:00Z",
       "drift_status": "aligned",
       "evidence_source": "live /v1/models probe",
       "notes": [
-        "Runtime truth is devstral-small-2.",
-        "Active control-plane consumers were updated on 2026-03-26 to stop treating this lane as a Qwen coder runtime."
+        "Current live runtime serves qwen3-coder-30b on :8006.",
+        "The repo and packet layer were re-aligned on 2026-04-08 after direct /v1/models and docker inspect evidence superseded the older Devstral-era assumption."
       ]
     },
     {
@@ -97,18 +97,18 @@
       "id": "workshop-vision",
       "service_id": "vllm_vision",
       "node_id": "workshop",
-      "endpoint": "http://192.168.1.225:8000",
-      "health_path": "/health",
+      "endpoint": "http://192.168.1.225:8012/v1/models",
+      "health_path": "/v1/models",
       "runtime_class": "vision_generation",
-      "state_class": "configured",
-      "expected_model_id": null,
-      "observed_model_id": null,
+      "state_class": "deployed",
+      "expected_model_id": "/models/Qwen3-VL-8B-Instruct-FP8",
+      "observed_model_id": "/models/Qwen3-VL-8B-Instruct-FP8",
       "source_repo": "/home/shaun/repos/athanor",
-      "verified_at": "2026-03-25T18:05:00Z",
-      "drift_status": "unverified-runtime",
+      "verified_at": "2026-04-08T05:56:00Z",
+      "drift_status": "aligned",
       "evidence_source": "topology and current docs",
       "notes": [
-        "Vision lane still needs an explicit observed model binding in the truth layer."
+        "Live /v1/models probing on 2026-04-08 confirmed the Workshop 5060 Ti vision lane on :8012."
       ]
     }
   ],

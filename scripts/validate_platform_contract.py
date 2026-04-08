@@ -402,7 +402,7 @@ ALLOWED_PROVIDER_BILLING_STATUSES = {
     "published_tiers_known_subscribed_tier_unverified",
 }
 ALLOWED_PROVIDER_INTEGRATION_STATUSES = {"verified", "unverified", "degraded"}
-ALLOWED_PROVIDER_SPECIFIC_USAGE_STATUSES = {"pending", "observed", "verified", "not_supported"}
+ALLOWED_PROVIDER_SPECIFIC_USAGE_STATUSES = {"pending", "observed", "verified", "not_supported", "auth_failed", "request_failed"}
 ALLOWED_PROVIDER_USAGE_CAPTURE_STATUSES = {"observed", "verified", "not_supported", "auth_failed", "request_failed"}
 ALLOWED_PROVIDER_STATES = {
     "active-routing",

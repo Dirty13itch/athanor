@@ -180,7 +180,7 @@
     "current_phase_scope": "full_system_phase_3",
     "evidence_freshness": "fresh",
     "execution_posture": "steady_state",
-    "last_validation_run": "2026-04-08T04:52:35.239718+00:00",
+    "last_validation_run": "2026-04-08T06:47:40.552868+00:00",
     "next_action_family": "repo_safe_repair",
     "report_path": "reports/ralph-loop/latest.json",
     "selected_workstream": "authority-and-mainline",
@@ -191,9 +191,9 @@
     "gate_summary": {
       "active": 0,
       "all_non_steady_state_gates_terminal": true,
-      "completed": 5,
-      "external_dependency_blocked": 0,
-      "ready_for_operator_approval": 2,
+      "completed": 6,
+      "external_dependency_blocked": 1,
+      "ready_for_operator_approval": 0,
       "steady_state_monitoring": 1,
       "total": 8
     },
@@ -241,7 +241,7 @@
         "title": "Current-State Truth Gate"
       },
       {
-        "blocker_type": "approval_gate",
+        "blocker_type": "none",
         "evidence_paths": [
           "config/automation-backbone/runtime-ownership-packets.json",
           "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
@@ -251,7 +251,7 @@
         "owner_workstreams": [
           "runtime-sync-and-governed-packets"
         ],
-        "status": "ready_for_operator_approval",
+        "status": "completed",
         "success_criteria": [
           "Every major runtime drift surface is reconciled, packet-ready, or explicitly externally blocked.",
           "No live host depends on undocumented manual edits.",
@@ -260,7 +260,7 @@
         "title": "Runtime Gate"
       },
       {
-        "blocker_type": "approval_gate",
+        "blocker_type": "external_dependency",
         "evidence_paths": [
           "config/automation-backbone/provider-catalog.json",
           "reports/truth-inventory/provider-usage-evidence.json",
@@ -272,7 +272,7 @@
         "owner_workstreams": [
           "provider-and-secret-remediation"
         ],
-        "status": "ready_for_operator_approval",
+        "status": "external_dependency_blocked",
         "success_criteria": [
           "Every provider lane is proven, intentionally demoted, blocked for a named reason, or governed handoff only.",
           "Provider catalog, provider evidence, and VAULT env audit agree materially.",
@@ -375,8 +375,8 @@
         "Validation and generated-doc checks pass cleanly.",
         "No new authority, provider, or portfolio ambiguity reopens on consecutive Ralph cycles."
       ],
-      "current_consecutive_clean_cycles": 4,
-      "last_clean_cycle_at": "2026-04-08T04:52:37.875959+00:00",
+      "current_consecutive_clean_cycles": 5,
+      "last_clean_cycle_at": "2026-04-08T06:47:42.859533+00:00",
       "ready_to_transition": true,
       "required_consecutive_clean_cycles": 2
     },
@@ -415,7 +415,7 @@
   ],
   "status": "active",
   "tenant_depth_default": "light-tenant",
-  "version": "2026-04-07.7",
+  "version": "2026-04-08.1",
   "workstream_statuses": [
     "planned",
     "active",
@@ -492,7 +492,7 @@
     },
     {
       "approval_required": true,
-      "blocker_type": "approval_gate",
+      "blocker_type": "none",
       "dependencies": [
         "deployment-authority-reconciliation"
       ],
@@ -501,15 +501,15 @@
         "config/automation-backbone/runtime-ownership-packets.json",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
       ],
-      "execution_state": "ready_for_operator_approval",
+      "execution_state": "steady_state_monitoring",
       "exit_criteria": [
         "Runtime-owned surfaces are packeted or mirror-clean.",
         "No host-level mutation path depends on undocumented operator memory."
       ],
       "id": "runtime-sync-and-governed-packets",
       "loop_family": "governed_runtime_packets",
-      "next_action_family": "packet_execution_or_reprobe",
-      "objective": "Execute only approval-gated runtime repairs and sync operations through packeted, backup-first paths on DEV, FOUNDRY, WORKSHOP, and VAULT.",
+      "next_action_family": "packet_reprobe_and_governed_maintenance",
+      "objective": "Keep runtime-owned repairs and sync operations on DEV, FOUNDRY, WORKSHOP, and VAULT explicit, packet-backed, and re-probed instead of allowing undocumented host drift to return.",
       "owner_role": "infra_sre",
       "primary_artifacts": [
         "config/automation-backbone/runtime-ownership-contract.json",
@@ -519,12 +519,12 @@
         "scripts/deploy-dashboard.sh"
       ],
       "priority": "critical",
-      "status": "governed-runtime",
+      "status": "continuous",
       "title": "Runtime Sync and Governed Packets"
     },
     {
       "approval_required": true,
-      "blocker_type": "approval_gate",
+      "blocker_type": "external_dependency",
       "dependencies": [
         "runtime-sync-and-governed-packets"
       ],
@@ -534,7 +534,7 @@
         "reports/truth-inventory/vault-litellm-env-audit.json",
         "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md"
       ],
-      "execution_state": "ready_for_operator_approval",
+      "execution_state": "external_dependency_blocked",
       "exit_criteria": [
         "Auth-failed provider lanes are either repaired or deliberately demoted.",
         "Provider evidence, billing posture, and env contracts no longer disagree."
@@ -552,7 +552,7 @@
         "reports/truth-inventory/vault-litellm-env-audit.json"
       ],
       "priority": "critical",
-      "status": "active",
+      "status": "blocked",
       "title": "Provider and Secret Remediation"
     },
     {

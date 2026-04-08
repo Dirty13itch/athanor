@@ -32,8 +32,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `0`
-- Local dirty sample: none
+- Local dirty file count: `41`
+- Local dirty sample: ` M STATUS.md`, ` M ansible/host_vars/core.yml`, ` M ansible/host_vars/interface.yml`, ` M ansible/roles/agents/defaults/main.yml`, ` M ansible/roles/agents/templates/docker-compose.yml.j2`, ` M ansible/roles/comfyui/defaults/main.yml`, ` M ansible/roles/comfyui/templates/docker-compose.yml.j2`, ` M ansible/roles/eoq/defaults/main.yml`, ` M ansible/roles/eoq/templates/docker-compose.yml.j2`, ` M ansible/roles/gpu-orchestrator/defaults/main.yml`
 
 ## dev-runtime-repo
 

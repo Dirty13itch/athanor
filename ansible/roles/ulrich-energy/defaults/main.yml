@@ -9,5 +9,6 @@ ulrich_database_url: "{{ athanor_ulrich_database_url | default('') }}"
 
 # LiteLLM for AI report generation
 ulrich_litellm_url: "http://{{ vault_ip | default('192.168.1.203') }}:4000"
+ulrich_litellm_base_url: "http://{{ vault_ip | default('192.168.1.203') }}:4000/v1"
 ulrich_litellm_api_key: "{{ ulrich_litellm_key | default(athanor_litellm_api_key | default('')) }}"
 ulrich_litellm_key: "{{ ulrich_litellm_api_key }}"

@@ -114,7 +114,7 @@ ZONES: dict[str, Zone] = {
         node="node1",
         gpus=[2],
         vllm_url=settings.vllm_coder_url,
-        default_workload="vLLM devstral-small-2 (coder)",
+        default_workload="vLLM qwen3-coder-30b (coder)",
         sleep_ttl=1800,  # 30 min
         runtime="vllm",
     ),

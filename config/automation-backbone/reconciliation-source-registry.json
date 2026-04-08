@@ -1,6 +1,6 @@
 {
   "version": "2026-04-07.14",
-  "updated_at": "2026-04-08T04:32:04.752357+00:00",
+  "updated_at": "2026-04-08T06:46:23.729090+00:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/reconciliation-source-registry.json",
   "source_kinds": [
@@ -816,7 +816,7 @@
   ],
   "github_portfolio": {
     "owner": "Dirty13itch",
-    "last_verified_at": "2026-04-08T04:32:04.752357+00:00",
+    "last_verified_at": "2026-04-08T06:46:23.729090+00:00",
     "repo_count": 35,
     "doc_repo_count": 35,
     "live_repo_count": 35,

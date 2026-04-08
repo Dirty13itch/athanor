@@ -8,13 +8,14 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - GPU_ORCH_REDIS_URL={{ gpu_orch_redis_url }}
+      - GPU_ORCH_REDIS_URL=${ATHANOR_REDIS_URL:-{{ gpu_orch_redis_fallback_url }}}
       - GPU_ORCH_PORT={{ gpu_orch_port }}
-      - GPU_ORCH_NODE1_IP={{ gpu_orch_node1_ip }}
-      - GPU_ORCH_NODE2_IP={{ gpu_orch_node2_ip }}
-      - GPU_ORCH_VLLM_NODE1_URL={{ gpu_orch_vllm_node1_url }}
-      - GPU_ORCH_VLLM_NODE1_EMBED_URL={{ gpu_orch_vllm_node1_embed_url }}
+      - GPU_ORCH_NODE1_IP=${ATHANOR_NODE1_HOST:-{{ gpu_orch_node1_ip }}}
+      - GPU_ORCH_NODE2_IP=${ATHANOR_NODE2_HOST:-{{ gpu_orch_node2_ip }}}
+      - GPU_ORCH_VLLM_NODE1_URL=${ATHANOR_VLLM_COORDINATOR_URL:-{{ gpu_orch_vllm_node1_url }}}
+      - GPU_ORCH_VLLM_CODER_URL={{ gpu_orch_vllm_coder_url }}
+      - GPU_ORCH_VLLM_NODE1_EMBED_URL=${ATHANOR_VLLM_EMBEDDING_URL:-{{ gpu_orch_vllm_node1_embed_url }}}
       - GPU_ORCH_VLLM_NODE2_URL={{ gpu_orch_vllm_node2_url }}
-      - GPU_ORCH_DCGM_NODE1_URL={{ gpu_orch_dcgm_node1_url }}
-      - GPU_ORCH_DCGM_NODE2_URL={{ gpu_orch_dcgm_node2_url }}
-      - GPU_ORCH_PROMETHEUS_URL={{ gpu_orch_prometheus_url }}
+      - GPU_ORCH_DCGM_NODE1_URL=${GPU_ORCH_DCGM_NODE1_URL:-{{ gpu_orch_dcgm_node1_url }}}
+      - GPU_ORCH_DCGM_NODE2_URL=${GPU_ORCH_DCGM_NODE2_URL:-{{ gpu_orch_dcgm_node2_url }}}
+      - GPU_ORCH_PROMETHEUS_URL=${ATHANOR_PROMETHEUS_URL:-{{ gpu_orch_prometheus_url }}}

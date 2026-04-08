@@ -3,37 +3,42 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: {{ comfyui_image }}
     container_name: comfyui
-    restart: unless-stopped
-    ports:
-      - "{{ comfyui_port }}:8188"
-    volumes:
-      - comfyui-output:/opt/ComfyUI/output
-      - comfyui-input:/opt/ComfyUI/input
-      - comfyui-custom-nodes:/opt/ComfyUI/custom_nodes
-      - comfyui-user:/opt/ComfyUI/user
-      - /mnt/vault/models:/mnt/vault/models:ro
-      - /mnt/fast2/comfyui:/mnt/fast2/comfyui:ro
-      - {{ comfyui_deploy_dir }}/extra_model_paths.yaml:/opt/ComfyUI/extra_model_paths.yaml:ro
-      - /mnt/vault/appdata/eoq-references:/opt/ComfyUI/input/references:ro
-      - /mnt/vault/models/comfyui/insightface:/opt/ComfyUI/models/insightface:ro
-    ipc: host
-    ulimits:
-      memlock: -1
-      stack: 67108864
     deploy:
       resources:
         reservations:
           devices:
-            - driver: nvidia
-              device_ids: ["{{ comfyui_gpu_device }}"]
-              capabilities: [gpu]
+          - capabilities:
+            - gpu
+            device_ids:
+            - "{{ comfyui_gpu_device }}"
+            driver: nvidia
     environment:
-      - NVIDIA_VISIBLE_DEVICES={{ comfyui_gpu_device }}
+    - NVIDIA_VISIBLE_DEVICES={{ comfyui_gpu_device }}
+{%- for env_line in comfyui_extra_env %}
+    - {{ env_line }}
+{%- endfor %}
+    image: {{ comfyui_image }}
+    ipc: host
+    ports:
+    - {{ comfyui_port }}:8188
+    restart: "{{ comfyui_restart_policy }}"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    volumes:
+    - comfyui-output:/opt/ComfyUI/output
+    - comfyui-input:/opt/ComfyUI/input
+    - comfyui-custom-nodes:/opt/ComfyUI/custom_nodes
+    - comfyui-user:/opt/ComfyUI/user
+    - /mnt/vault/models:/mnt/vault/models:ro
+    - /mnt/fast2/comfyui:/mnt/fast2/comfyui:ro
+    - {{ comfyui_deploy_dir }}/extra_model_paths.yaml:/opt/ComfyUI/extra_model_paths.yaml:ro
+    - /mnt/vault/appdata/eoq-references:/opt/ComfyUI/input/references:ro
+    - /mnt/vault/models/comfyui/insightface:/opt/ComfyUI/models/insightface:ro
 
 volumes:
-  comfyui-output:
-  comfyui-input:
-  comfyui-custom-nodes:
-  comfyui-user:
+  comfyui-custom-nodes: null
+  comfyui-input: null
+  comfyui-output: null
+  comfyui-user: null

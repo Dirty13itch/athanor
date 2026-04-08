@@ -50,15 +50,15 @@ vllm_instances:
   - name: coder
     container_name: vllm-coder
     model: /model
-    served_model_name: devstral-small-2
+    served_model_name: qwen3-coder-30b
     port: 8006
     internal_port: 8000
     max_model_len: 16384
     gpu_devices: ["2"]
     gpu_memory_util: "0.90"
-    max_num_seqs: 8
+    max_num_seqs: 16
     shm_size: "8g"
-    models_volume: "/home/athanor/models/devstral-small-2-awq:/model:ro"
+    models_volume: "/mnt/local-fast/models/Qwen3-Coder-30B-A3B-Instruct-AWQ:/model:ro"
     extra_volumes:
       - /home/athanor/.cache/triton:/root/.cache/triton
     extra_env:
@@ -66,7 +66,7 @@ vllm_instances:
     extra_args:
       - --enable-auto-tool-choice
       - --tool-call-parser
-      - mistral
+      - qwen3_xml
       - --kv-cache-dtype
       - auto
       - --enable-prefix-caching

@@ -6,7 +6,7 @@ Do not edit manually.
 ## Front Door Contract
 
 - Registry version: `2026-03-29.1`
-- Cached truth snapshot: `2026-04-08T04:31:18.729300+00:00`
+- Cached truth snapshot: `2026-04-08T06:45:40.502384+00:00`
 - Canonical portal id: `athanor_command_center`
 - Canonical operator URL: `https://athanor.local/`
 - Canonical node: `dev`
@@ -98,7 +98,7 @@ No shadow portals are currently registered.
 | `Stash` | `vault` | `specialist_tool` | `http://vault.athanor.local:9999/` | `media` | `200` |
 | `Plex` | `vault` | `specialist_tool` | `http://vault.athanor.local:32400/web` | `media` | `200` |
 | `Open WebUI (WORKSHOP)` | `workshop` | `specialist_tool` | `http://interface.athanor.local:3000/` | `chat` | `200` |
-| `ComfyUI` | `workshop` | `specialist_tool` | `http://interface.athanor.local:8188/` | `creative` | `TimeoutError: timed out` |
+| `ComfyUI` | `workshop` | `specialist_tool` | `http://interface.athanor.local:8188/` | `creative` | `200` |
 | `Empire of Broken Queens` | `workshop` | `domain_app` | `http://interface.athanor.local:3002/` | `domain_product` | `200` |
 | `Ulrich Energy` | `workshop` | `domain_app` | `http://interface.athanor.local:3003/` | `domain_product` | `200` |
 | `Speaches` | `foundry` | `specialist_tool` | `http://core.athanor.local:8200/` | `creative` | `200` |
@@ -109,7 +109,7 @@ No shadow portals are currently registered.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `athanor_command_center` | `portal` | `dev` | `active_production` | `front_door` | `https://athanor.local/` | `http://dev.athanor.local:3001/` | `200` |
 | `workshop_shadow_command_center` | `retired` | `workshop` | `retired` | `hidden` | `https://athanor.local/` | `http://interface.athanor.local:3001/` | `200` |
-| `quality_gate` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `URLError: [WinError 10061] No connection could b` |
+| `quality_gate` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `200` |
 | `semantic_router` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8060/health` | `http://192.168.1.189:8060/health` | `URLError: [WinError 10061] No connection could b` |
 | `subscription_burn` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8065/health` | `http://192.168.1.189:8065/health` | `URLError: [WinError 10061] No connection could b` |
 | `embedding_api` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8001/health` | `http://192.168.1.189:8001/health` | `URLError: [WinError 10061] No connection could b` |
@@ -133,11 +133,11 @@ No shadow portals are currently registered.
 | `stash` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:9999/` | `http://192.168.1.203:9999/` | `200` |
 | `plex` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:32400/web` | `http://192.168.1.203:32400/web` | `200` |
 | `workshop_open_webui` | `specialist_tool` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3000/` | `http://192.168.1.225:3000/` | `200` |
-| `comfyui` | `specialist_tool` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:8188/` | `http://192.168.1.225:8188/` | `TimeoutError: timed out` |
+| `comfyui` | `specialist_tool` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:8188/` | `http://192.168.1.225:8188/` | `200` |
 | `eoq` | `domain_app` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3002/` | `http://192.168.1.225:3002/` | `200` |
 | `ulrich_energy` | `domain_app` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3003/` | `http://192.168.1.225:3003/` | `200` |
 | `ws_pty_bridge` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:3100/health` | `http://192.168.1.225:3100/health` | `200` |
-| `workshop_worker_api` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:8010/health` | `http://192.168.1.225:8010/health` | `200` |
+| `workshop_worker_api` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:8010/health` | `http://192.168.1.225:8010/health` | `URLError: [WinError 10061] No connection could b` |
 | `aesthetic_scorer_api` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:8050/` | `http://192.168.1.225:8050/` | `404` |
 | `agent_server` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:9000/health` | `http://192.168.1.244:9000/health` | `200` |
 | `gpu_orchestrator` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:9200/health` | `http://192.168.1.244:9200/health` | `200` |

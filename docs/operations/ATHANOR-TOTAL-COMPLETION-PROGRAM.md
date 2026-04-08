@@ -1,7 +1,7 @@
 # Athanor Total Completion Program
 
 Source of truth: `config/automation-backbone/completion-program-registry.json`, `config/automation-backbone/program-operating-system.json`, `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`, `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-Validated against registry version: `completion-program-registry.json@2026-04-07.7`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `completion-program-registry.json@2026-04-08.1`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: runtime truth outranks stale narrative, registry truth outranks helper prose, and this document must be updated whenever the completion-program registry, active checkpoint sequence, or final acceptance posture changes.
 
 Sources:
@@ -14,10 +14,10 @@ Sources:
 - `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
 Versions:
-- `completion-program-registry.json`: `2026-04-07.7`
+- `completion-program-registry.json`: `2026-04-08.1`
 - `program-operating-system.json`: `2026-03-25.1`
 
-Last updated: 2026-04-07
+Last updated: 2026-04-08
 
 ## Purpose
 
@@ -33,7 +33,7 @@ It exists to prevent the work from fragmenting across:
 The program assumes:
 - `C:\Athanor` is the only implementation-authority root
 - `Dirty13itch/athanor` `main` is the only remote mainline
-- `/home/shaun/repos/athanor` on `DEV` remains runtime authority until governed runtime sync finishes
+- `/home/shaun/repos/athanor` on `DEV` remains runtime authority under a governed sync contract
 - the Athanor ecosystem includes core, shared modules, tenants, lineage roots, and archive roots
 
 ## Program End State
@@ -102,8 +102,8 @@ Objective:
 - replace undocumented runtime repairs with packeted execution
 
 Current scope:
-- DEV runtime sync
 - VAULT auth repair packet
+- provider-facing re-probe after live VAULT repair
 - any reopened runtime-owned drift that is packet-backed instead of ad hoc
 
 Completion conditions:

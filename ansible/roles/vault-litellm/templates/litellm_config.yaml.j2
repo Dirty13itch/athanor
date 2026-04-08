@@ -1,19 +1,15 @@
 # Athanor LiteLLM Proxy Configuration
-# Managed by Ansible — canonical source of truth for model routing
+# Managed by Ansible - canonical source of truth for model routing
 #
-# Coder-era local layout:
-#   FOUNDRY (.244): coordinator TP=4 (Qwen3.5-27B-FP8) :8000, coder (devstral-small-2) :8006
-#   WORKSHOP (.225): worker (Qwen3.5-35B-A3B-AWQ) :8000, vision (Qwen3-VL-8B-FP8) :8010
-#   DEV (.189): embedding :8001, reranker :8003
+# Layout (verified live 2026-04-08):
+#   FOUNDRY (.244): Qwen3.5-27B-FP8 :8000, Qwen3-Coder-30B :8006
+#   WORKSHOP (.225): Qwen3.5-35B-A3B-AWQ-4bit :8010, Qwen3-VL-8B-Instruct-FP8 :8012
+#   DEV (.189): embedding :8001, reranker :8003, CLI proxy :{{ litellm_cliproxy_port }}
 
 model_list:
-  # === LOCAL MODELS ===
-  # Frozen slot map:
-  #   reasoning / coding -> Foundry coordinator (:8000)
-  #   creative / utility / fast / worker / uncensored -> Workshop worker (:8000)
-  #   coder -> Foundry coder (:8006)
-  #   vision -> Workshop 5060Ti (:8010)
-  #   embedding / reranker -> DEV retrieval runtimes
+  # ============================================================
+  # LOCAL MODELS (vLLM - always available)
+  # ============================================================
 
   - model_name: "reasoning"
     litellm_params:
@@ -33,7 +29,13 @@ model_list:
         chat_template_kwargs:
           enable_thinking: false
 
-  - model_name: "utility"
+  - model_name: "coder"
+    litellm_params:
+      model: "hosted_vllm/{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
+      api_key: "not-needed"
+
+  - model_name: "fast"
     litellm_params:
       model: "hosted_vllm/{{ vllm_node2_model }}"
       api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
@@ -42,7 +44,7 @@ model_list:
         chat_template_kwargs:
           enable_thinking: false
 
-  - model_name: "fast"
+  - model_name: "utility"
     litellm_params:
       model: "hosted_vllm/{{ vllm_node2_model }}"
       api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
@@ -87,15 +89,6 @@ model_list:
         chat_template_kwargs:
           enable_thinking: false
 
-  - model_name: "coder"
-    litellm_params:
-      model: "{{ vllm_node1_coder_public_model }}"
-      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
-      api_key: "not-needed"
-      extra_body:
-        chat_template_kwargs:
-          enable_thinking: false
-
   - model_name: "vision"
     litellm_params:
       model: "hosted_vllm/{{ vllm_vision_model }}"
@@ -116,27 +109,113 @@ model_list:
       api_base: "http://{{ vllm_reranker_host }}:{{ vllm_reranker_port }}/v1"
       api_key: "not-needed"
 
-  # === CLOUD APIS ===
+  # ============================================================
+  # SUBSCRIPTION MODELS via CLI proxy on DEV
+  # ============================================================
 
-  - model_name: "claude-opus-4-6"
+  - model_name: "gpt-5.4-sub"
     litellm_params:
-      model: "anthropic/claude-opus-4-6"
-      api_key: "os.environ/ANTHROPIC_API_KEY"
-
-  - model_name: "claude-haiku-4-5"
-    litellm_params:
-      model: "anthropic/claude-haiku-4-5-20251001"
-      api_key: "os.environ/ANTHROPIC_API_KEY"
-
-  - model_name: "claude-sonnet-4-6"
-    litellm_params:
-      model: "anthropic/claude-sonnet-4-6"
-      api_key: "os.environ/ANTHROPIC_API_KEY"
+      model: "openai/gpt-5.4"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 16384
+    model_info:
+      max_input_tokens: 1048576
+      max_output_tokens: 16384
 
   - model_name: "claude"
     litellm_params:
-      model: "anthropic/claude-sonnet-4-6"
-      api_key: "os.environ/ANTHROPIC_API_KEY"
+      model: "openai/gpt-5.4"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 16384
+    model_info:
+      max_input_tokens: 1048576
+      max_output_tokens: 16384
+
+  - model_name: "claude-sonnet-4-6"
+    litellm_params:
+      model: "openai/gpt-5.4"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 16384
+    model_info:
+      max_input_tokens: 1048576
+      max_output_tokens: 16384
+
+  - model_name: "claude-opus-4-6"
+    litellm_params:
+      model: "openai/gpt-5.4"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 16384
+    model_info:
+      max_input_tokens: 1048576
+      max_output_tokens: 16384
+
+  - model_name: "claude-haiku-4-5"
+    litellm_params:
+      model: "openai/gpt-5.4"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 16384
+    model_info:
+      max_input_tokens: 1048576
+      max_output_tokens: 16384
+
+  - model_name: "gpt-codex-sub"
+    litellm_params:
+      model: "openai/gpt-5.3-codex"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 32768
+    model_info:
+      max_input_tokens: 1048576
+      max_output_tokens: 32768
+
+  - model_name: "gemini-sub"
+    litellm_params:
+      model: "openai/gemini-3.1-pro-preview"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 65536
+    model_info:
+      max_input_tokens: 1048576
+      max_output_tokens: 65536
+
+  - model_name: "gemini-25-sub"
+    litellm_params:
+      model: "openai/gemini-2.5-pro"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 65536
+    model_info:
+      max_input_tokens: 1048576
+      max_output_tokens: 65536
+
+  - model_name: "kimi-sub"
+    litellm_params:
+      model: "openai/kimi-k2.5"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 32768
+    model_info:
+      max_input_tokens: 262144
+      max_output_tokens: 32768
+
+  - model_name: "kimi-k2.5"
+    litellm_params:
+      model: "openai/kimi-k2.5"
+      api_base: "http://{{ litellm_cliproxy_host }}:{{ litellm_cliproxy_port }}/v1"
+      api_key: "{{ litellm_cliproxy_api_key }}"
+      max_tokens: 32768
+    model_info:
+      max_input_tokens: 262144
+      max_output_tokens: 32768
+
+  # ============================================================
+  # DIRECT CLOUD API LANES
+  # ============================================================
 
   - model_name: "gpt-5.4"
     litellm_params:
@@ -188,11 +267,6 @@ model_list:
       model: "deepseek/deepseek-chat"
       api_key: "os.environ/DEEPSEEK_API_KEY"
 
-  - model_name: "kimi-k2.5"
-    litellm_params:
-      model: "moonshot/kimi-k2.5"
-      api_key: "os.environ/MOONSHOT_API_KEY"
-
   - model_name: "qwen-max"
     litellm_params:
       model: "dashscope/qwen-max-latest"
@@ -230,18 +304,43 @@ router_settings:
   num_retries: 2
   timeout: 120
   fallbacks:
-    - reasoning: ["worker", "deepseek", "claude"]
-    - coding: ["coder", "reasoning", "deepseek", "claude"]
-    - creative: ["worker", "reasoning", "deepseek"]
-    - utility: ["worker", "deepseek"]
-    - fast: ["worker", "deepseek"]
+    - reasoning: ["fast", "gemini-sub", "deepseek"]
+    - coding: ["coder", "reasoning", "gpt-codex-sub", "deepseek"]
+    - creative: ["fast", "reasoning", "venice-uncensored"]
+    - utility: ["fast", "deepseek"]
+    - fast: ["reasoning", "deepseek"]
     - worker: ["reasoning", "deepseek"]
-    - uncensored: ["worker", "deepseek"]
-    - coder: ["reasoning", "claude", "deepseek"]
+    - coder: ["reasoning", "gpt-codex-sub", "deepseek"]
+    - gpt-5.4-sub: ["gemini-sub", "kimi-sub", "deepseek"]
+    - gpt-codex-sub: ["gpt-5.4-sub", "gemini-sub"]
+    - gemini-sub: ["gpt-5.4-sub", "deepseek"]
+    - kimi-sub: ["gemini-sub", "deepseek"]
+  context_window_fallbacks:
+    - reasoning: ["gemini-sub"]
+    - coding: ["gemini-sub"]
+    - fast: ["gemini-sub"]
+    - coder: ["gemini-sub"]
+    - gpt-5.4-sub: ["gemini-sub"]
+    - kimi-sub: ["gemini-sub"]
   model_group_alias:
-    "gpt-4": { model: "reasoning", hidden: false }
-    "gpt-3.5-turbo": { model: "fast", hidden: false }
-    "text-embedding-ada-002": { model: "embedding", hidden: false }
+    "gpt-4": { model: "gpt-5.4-sub", hidden: true }
+    "gpt-4o": { model: "gpt-5.4-sub", hidden: true }
+    "gpt-4o-mini": { model: "fast", hidden: true }
+    "gpt-3.5-turbo": { model: "fast", hidden: true }
+    "gpt-5.4": { model: "gpt-5.4-sub", hidden: true }
+    "claude-sonnet-4": { model: "gpt-5.4-sub", hidden: true }
+    "claude-opus-4": { model: "gpt-5.4-sub", hidden: true }
+    "claude-sonnet-4-20250514": { model: "gpt-5.4-sub", hidden: true }
+    "claude-sonnet-4-6": { model: "gpt-5.4-sub", hidden: true }
+    "claude-opus-4-6": { model: "gpt-5.4-sub", hidden: true }
+    "claude-haiku-4-5-20251001": { model: "fast", hidden: true }
+    "gemini-2.5-pro": { model: "gemini-25-sub", hidden: true }
+    "gemini-3.1-pro": { model: "gemini-sub", hidden: true }
+    "gemini-pro": { model: "gemini-sub", hidden: true }
+    "kimi-k2.5": { model: "kimi-sub", hidden: true }
+    "deepseek-coder": { model: "coder", hidden: true }
+    "codestral-latest": { model: "coder", hidden: true }
+    "text-embedding-ada-002": { model: "embedding", hidden: true }
 
 litellm_settings:
   drop_params: true
@@ -249,6 +348,13 @@ litellm_settings:
   success_callback: ["prometheus", "langfuse"]
   service_callback: ["prometheus_system"]
   failure_callback: ["langfuse"]
+  cache: true
+  cache_params:
+    type: "redis"
+    host: "{{ litellm_redis_host }}"
+    port: {{ litellm_redis_port }}
+    password: "os.environ/REDIS_PASSWORD"
+    ttl: 3600
 
 general_settings:
   master_key: "os.environ/LITELLM_MASTER_KEY"

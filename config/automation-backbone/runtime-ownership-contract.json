@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-08.3",
-  "updated_at": "2026-04-08T05:15:00Z",
+  "version": "2026-04-08.5",
+  "updated_at": "2026-04-08T06:40:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-contract.json",
   "promotion_gate_id": "runtime_ownership_maturity",
@@ -59,7 +59,7 @@
       ],
       "rollback_contract": "Back up the pre-sync DEV repo state under /home/shaun/.athanor/backups/runtime-ownership/<timestamp>/ and preserve a timestamped backup branch before resetting main to the approved mirror commit.",
       "approval_boundary": "Resetting the DEV runtime repo or restarting repo-root services remains approval-gated.",
-      "next_action": "Re-run the dev-runtime-repo-sync-packet with the immediate post-sync restart limited to athanor-brain, athanor-classifier, athanor-quality-gate, and athanor-sentinel; the 2026-04-08 reprobe showed the mirror reset succeeds, but starting athanor-overnight.service immediately re-dirties tracked generated artifacts."
+      "next_action": "Keep the executed dev-runtime-repo-sync-packet as the governed resync path for future repo-root maintenance. The 2026-04-08 execution left /home/shaun/repos/athanor mirror-clean at commit 5148170 with athanor-brain, athanor-classifier, athanor-quality-gate, and athanor-sentinel healthy; athanor-overnight.service remains outside the immediate mirror-clean verification window because it rewrites tracked generated artifacts."
     },
     {
       "id": "dev-dashboard-compose",
@@ -224,6 +224,50 @@
       "next_action": "Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container."
     },
     {
+      "id": "foundry-gpu-orchestrator-compose",
+      "label": "FOUNDRY GPU Orchestrator compose lane",
+      "host": "foundry",
+      "status": "active",
+      "deployment_mode": "opt_compose_service",
+      "owner_root_ids": [
+        "foundry-opt-athanor"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Active FOUNDRY GPU Orchestrator deployment rooted at /opt/athanor/gpu-orchestrator and aligned to implementation authority after the governed 2026-04-08 redeploy.",
+      "source_paths": [
+        "projects/gpu-orchestrator/Dockerfile",
+        "projects/gpu-orchestrator/pyproject.toml",
+        "projects/gpu-orchestrator/docker-compose.yml",
+        "projects/gpu-orchestrator/src/gpu_orchestrator",
+        "scripts/deploy-gpu-orchestrator.sh"
+      ],
+      "runtime_paths": [
+        "/opt/athanor/gpu-orchestrator/Dockerfile",
+        "/opt/athanor/gpu-orchestrator/pyproject.toml",
+        "/opt/athanor/gpu-orchestrator/docker-compose.yml",
+        "/opt/athanor/gpu-orchestrator/src/gpu_orchestrator"
+      ],
+      "active_surfaces": [
+        "gpu-orchestrator container",
+        "http://foundry:9200/health",
+        "http://foundry:9200/zones"
+      ],
+      "execution_packet_id": "foundry-gpu-orchestrator-compose-deploy-packet",
+      "evidence_paths": [
+        "reports/deployment-drift/summary.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "scripts/deploy-gpu-orchestrator.sh"
+      ],
+      "verification_commands": [
+        "ssh foundry \"cd /opt/athanor/gpu-orchestrator && docker compose ps\"",
+        "ssh foundry \"curl -sS http://127.0.0.1:9200/health && curl -sS http://127.0.0.1:9200/zones\""
+      ],
+      "rollback_contract": "Preserve the previous /opt/athanor/gpu-orchestrator bundle under /opt/athanor/backups/gpu-orchestrator/<timestamp>/ before replacement, and restore it if the approved deploy regresses the active coordinator or zone-reporting surface.",
+      "approval_boundary": "Replacing /opt/athanor/gpu-orchestrator contents or rebuilding the live gpu-orchestrator container remains approval-gated.",
+      "next_action": "Use scripts/deploy-gpu-orchestrator.sh as the governed update path for future FOUNDRY GPU Orchestrator changes; the 2026-04-08 redeploy restored live runtime parity and re-probed /health plus /zones successfully."
+    },
+    {
       "id": "foundry-vllm-compose",
       "label": "FOUNDRY vLLM compose lane",
       "host": "foundry",
@@ -233,7 +277,7 @@
         "foundry-opt-athanor"
       ],
       "source_root_id": "desk-main",
-      "runtime_scope": "Active FOUNDRY vLLM deployment under /opt/athanor/vllm that serves the coordinator and coder lanes on the deterministic pinned image athanor/vllm:qwen35-20260315.",
+      "runtime_scope": "Active FOUNDRY vLLM deployment under /opt/athanor/vllm that serves the coordinator lane and the reconciled qwen3-coder-30b coder lane on the deterministic pinned image athanor/vllm:qwen35-20260315.",
       "source_paths": [
         "ansible/host_vars/core.yml",
         "ansible/roles/vllm/defaults/main.yml",
@@ -264,7 +308,7 @@
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/vllm bundle under /opt/athanor/backups/vllm/<timestamp>/ before replacing the compose root, and restore that bundle if the approved reconcile pass regresses the active coder or coordinator lanes.",
       "approval_boundary": "Replacing /opt/athanor/vllm/docker-compose.yml or recreating the live FOUNDRY vLLM containers remains approval-gated.",
-      "next_action": "Keep the FOUNDRY vLLM lane pinned to athanor/vllm:qwen35-20260315 and treat any future image or compose change as a deliberate packet-backed rollout; the 2026-04-07 reprobe showed healthy coordinator and coder lanes on the pinned artifact."
+      "next_action": "Keep the FOUNDRY vLLM lane pinned to athanor/vllm:qwen35-20260315 and treat any future image or compose change as a deliberate packet-backed rollout; the 2026-04-08 reprobe showed the live host compose root identical to implementation authority while the running coder lane served qwen3-coder-30b on the pinned artifact."
     },
     {
       "id": "workshop-control-surface-compose",
@@ -423,7 +467,7 @@
         "vault-docker-root"
       ],
       "source_root_id": "desk-main",
-      "runtime_scope": "Live VAULT LiteLLM proxy config and container state rooted at /mnt/user/appdata/litellm/config.yaml, including the coder lane mapping that still differs from implementation authority.",
+      "runtime_scope": "Live VAULT LiteLLM proxy config and container state rooted at /mnt/user/appdata/litellm/config.yaml, aligned to implementation authority after the governed 2026-04-08 reconcile pass and still subject to packet-backed maintenance for future changes.",
       "source_paths": [
         "ansible/host_vars/vault.yml",
         "ansible/roles/vault-litellm/defaults/main.yml",
@@ -440,7 +484,7 @@
       ],
       "execution_packet_id": "vault-litellm-config-reconciliation-packet",
       "evidence_paths": [
-        "reports/deployment-drift/vault-litellm.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/vault-litellm-config.rendered.yaml",
         "reports/live/vault-litellm-config.live.yaml",
         "reports/truth-inventory/vault-litellm-env-audit.json",
@@ -454,7 +498,7 @@
       ],
       "rollback_contract": "Back up the current /mnt/user/appdata/litellm/config.yaml plus the current litellm container definition before replacing the config, and restore both if the approved reconcile pass regresses routing or auth posture.",
       "approval_boundary": "Mutating /mnt/user/appdata/litellm/config.yaml or recreating the live litellm container on VAULT remains approval-gated.",
-      "next_action": "Keep the VAULT LiteLLM config lane in ready-for-approval state until the live config stops differing from implementation authority; the current packet remains separate from the missing-secret provider-auth repair and the 2026-04-07 drift evidence still shows config divergence."
+      "next_action": "Keep the executed VAULT LiteLLM config packet as the governed update path for future routing changes; the 2026-04-08 reprobe showed /mnt/user/appdata/litellm/config.yaml identical to implementation authority, the litellm container healthy, and provider-auth follow-through narrowed to the separate missing-secret and upstream-auth lane."
     },
     {
       "id": "vault-prometheus-config",
@@ -472,21 +516,27 @@
         "ansible/host_vars/vault.yml",
         "ansible/roles/vault-monitoring/defaults/main.yml",
         "ansible/roles/vault-monitoring/templates/prometheus.yml.j2",
-        "reports/rendered/vault-prometheus.rendered.yml"
+        "ansible/roles/vault-monitoring/templates/alert-rules.yml.j2",
+        "reports/rendered/vault-prometheus.rendered.yml",
+        "reports/rendered/vault-alert-rules.rendered.yml"
       ],
       "runtime_paths": [
-        "/mnt/user/appdata/prometheus/prometheus.yml"
+        "/mnt/user/appdata/prometheus/prometheus.yml",
+        "/mnt/user/appdata/prometheus/alert-rules.yml"
       ],
       "active_surfaces": [
         "prometheus container",
         "/mnt/user/appdata/prometheus/prometheus.yml",
+        "/mnt/user/appdata/prometheus/alert-rules.yml",
         "http://vault:9090/-/healthy"
       ],
       "execution_packet_id": "vault-prometheus-config-reconciliation-packet",
       "evidence_paths": [
         "reports/deployment-drift/summary.md",
         "reports/rendered/vault-prometheus.rendered.yml",
+        "reports/rendered/vault-alert-rules.rendered.yml",
         "reports/live/vault-prometheus.live.yml",
+        "reports/live/vault-alert-rules.live.yml",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
         "docs/operations/ATHANOR-RECONCILIATION-PACKET.md"
       ],
@@ -495,9 +545,9 @@
         "python scripts/vault-ssh.py \"test -f /mnt/user/appdata/prometheus/prometheus.yml && sed -n '1,220p' /mnt/user/appdata/prometheus/prometheus.yml\"",
         "python scripts/vault-ssh.py \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9090/-/healthy\""
       ],
-      "rollback_contract": "Back up the current /mnt/user/appdata/prometheus/prometheus.yml and the current Prometheus container definition before replacement, and restore them if the approved reconcile pass regresses monitoring coverage or the Prometheus service state.",
-      "approval_boundary": "Mutating /mnt/user/appdata/prometheus/prometheus.yml or recreating the live Prometheus container on VAULT remains approval-gated.",
-      "next_action": "Keep the executed vault-prometheus-config-reconciliation-packet as the governed update path; the 2026-04-07 reprobe showed the Prometheus container healthy after the reconcile pass."
+      "rollback_contract": "Back up the current /mnt/user/appdata/prometheus/prometheus.yml, /mnt/user/appdata/prometheus/alert-rules.yml, and the current Prometheus container definition before replacement, and restore them if the approved reconcile pass regresses monitoring coverage or the Prometheus service state.",
+      "approval_boundary": "Mutating /mnt/user/appdata/prometheus/prometheus.yml or /mnt/user/appdata/prometheus/alert-rules.yml, or recreating the live Prometheus container on VAULT, remains approval-gated.",
+      "next_action": "Keep the executed vault-prometheus-config-reconciliation-packet as the governed update path; the 2026-04-08 reprobe showed both Prometheus config surfaces identical to implementation authority and the Prometheus container healthy after restart."
     },
     {
       "id": "vault-runtime-maintenance",

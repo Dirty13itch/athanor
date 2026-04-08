@@ -43,6 +43,8 @@ function Protect-SensitiveText {
 
     $result = $Text
     $result = [regex]::Replace($result, 'redis://:([^@/\s]+)@', 'redis://:<redacted>@')
+    $result = [regex]::Replace($result, '(?im)^(\s*-\s*[A-Z0-9_]*REDIS_URL[A-Z0-9_]*=).+$', '$1<redacted>')
+    $result = [regex]::Replace($result, '(?im)^(\s*[A-Z0-9_]*REDIS_URL[A-Z0-9_]*:\s*).+$', '$1<redacted>')
     $result = [regex]::Replace($result, '(?im)^(\s*-\s*[A-Z0-9_]*(?:KEY|PASSWORD|TOKEN|SECRET|DATABASE_URL)[A-Z0-9_]*=).+$', '$1<redacted>')
     $result = [regex]::Replace($result, '(?im)^(\s*[A-Z0-9_]*(?:KEY|PASSWORD|TOKEN|SECRET|DATABASE_URL)[A-Z0-9_]*:\s*).+$', '$1<redacted>')
     $result = [regex]::Replace($result, '(?im)^(\s*api_key:\s*)"(?!not-needed|os\.environ/)[^"]+"', '$1"<redacted>"')
@@ -153,14 +155,6 @@ $comparisons = @(
         LiveFile = "workshop-dashboard-project.live.yml"
     }
     [pscustomobject]@{
-        Id = "workshop-dashboard-src-project"
-        HostAlias = "workshop"
-        SourcePath = "C:\Athanor\projects\dashboard\docker-compose.yml"
-        LivePath = "/opt/athanor/dashboard-src/docker-compose.yml"
-        SourceFile = "workshop-dashboard-src-project.source.yml"
-        LiveFile = "workshop-dashboard-src-project.live.yml"
-    }
-    [pscustomobject]@{
         Id = "foundry-gpu-orchestrator-project"
         HostAlias = "foundry"
         SourcePath = "C:\Athanor\projects\gpu-orchestrator\docker-compose.yml"
@@ -184,7 +178,8 @@ foreach ($comparison in $comparisons) {
     $diffPath = Join-Path -Path $OutputDir -ChildPath ($comparison.Id + ".diff")
 
     $sourceContent = Get-Content -Path $comparison.SourcePath -Raw -Encoding utf8
-    Write-Utf8File -PathText $sourceOutputPath -Content $sourceContent
+    $sanitizedSourceContent = Protect-SensitiveText -Text $sourceContent
+    Write-Utf8File -PathText $sourceOutputPath -Content $sanitizedSourceContent
 
     $liveContent = Get-RemoteFileContent -HostAlias $comparison.HostAlias -RemotePath $comparison.LivePath
     if ($null -eq $liveContent) {

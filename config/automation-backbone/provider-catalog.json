@@ -310,8 +310,8 @@
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
-        "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-04-08T00:08:34Z"
+        "provider_specific_usage_observed": true,
+        "last_verified_at": "2026-04-08T05:48:41Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -324,19 +324,19 @@
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "not_supported",
-          "last_verified_at": "2026-04-08T00:08:29Z",
+          "status": "observed",
+          "last_verified_at": "2026-04-08T05:48:41Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
-          "proof_kind": "litellm_model_inventory_scan"
+          "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Refresh the VAULT LiteLLM model inventory and confirm whether a served model id still matches the `claude` alias contract.",
-        "If Anthropic should remain on the VAULT proxy, correct the served-model contract before re-enabling provider-specific probe expectations.",
-        "If no Anthropic-served model will be exposed on VAULT, keep the lane explicitly demoted instead of treating it as pending provider-specific proof."
+        "Keep the Anthropic provider-specific probe in the regular VAULT LiteLLM evidence refresh now that the `claude` compatibility lane is callable again.",
+        "Treat any future Anthropic breakage as either secret-delivery regression or upstream auth failure, not as a served-model-contract ambiguity unless `/v1/models` drops the `claude` alias again.",
+        "If Athanor later removes the `claude` compatibility lane from VAULT on purpose, demote the provider explicitly instead of letting the lane drift back into ambiguous not-supported status."
       ],
       "notes": [
-        "Latest live VAULT inventory scan classified this lane as not supported because no current LiteLLM-served model id matched the `claude` alias contract."
+        "The 2026-04-08 live VAULT provider probe now succeeds through the `claude` compatibility alias after the governed LiteLLM config reconcile restored the served-model contract."
       ]
     },
     {
@@ -368,7 +368,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-03-28T06:00:00Z"
+        "last_verified_at": "2026-04-08T05:24:28Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -381,8 +381,8 @@
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "pending",
-          "last_verified_at": "2026-04-08T00:08:34Z",
+          "status": "auth_failed",
+          "last_verified_at": "2026-04-08T05:24:28Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -393,7 +393,7 @@
         "Re-probe the served model `gpt` and keep the lane demoted until the provider-specific completion succeeds."
       ],
       "notes": [
-        "Latest live VAULT provider probe classified this lane as auth_failed even though the proxy route remains configured."
+        "Latest live VAULT provider probe classified this lane as auth_failed even though OPENAI_API_KEY is now present in the container env."
       ]
     },
     {
@@ -425,7 +425,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-04-08T00:08:32Z"
+        "last_verified_at": "2026-04-08T05:24:28Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -439,7 +439,7 @@
         },
         "provider_specific_usage": {
           "status": "observed",
-          "last_verified_at": "2026-04-08T00:08:32Z",
+          "last_verified_at": "2026-04-08T05:24:28Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -450,7 +450,8 @@
         "If a future probe fails, demote the lane and route it back into the VAULT repair packet."
       ],
       "notes": [
-        "Codestral is currently provider-specific observed through the VAULT LiteLLM proxy."
+        "Codestral is currently provider-specific observed through the VAULT LiteLLM proxy.",
+        "MISTRAL_API_KEY is now present in the container env, so the remaining observed lane does not depend on a partial missing-env contract."
       ]
     },
     {
@@ -503,19 +504,19 @@
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "pending",
-          "last_verified_at": "2026-04-08T00:08:32Z",
+          "status": "auth_failed",
+          "last_verified_at": "2026-04-08T05:24:28Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Restore `GEMINI_API_KEY` and `GOOGLE_API_KEY` in the live VAULT LiteLLM secret-delivery surface.",
-        "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
+        "Treat this as a present-key auth failure until upstream Gemini credentials or auth mode are corrected.",
+        "Recreate or redeploy the `litellm` container only if the VAULT env surface changes again.",
         "Re-probe the served model `gemini` and keep the lane demoted until the provider-specific completion succeeds."
       ],
       "notes": [
-        "Latest live VAULT provider probe classified this lane as auth_failed because the Gemini credential contract is not satisfied at runtime."
+        "Latest live VAULT provider probe classified this lane as auth_failed even though GEMINI_API_KEY and GOOGLE_API_KEY are now present in the container env."
       ]
     },
     {
@@ -604,8 +605,8 @@
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
-        "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-04-08T00:08:33Z"
+        "provider_specific_usage_observed": true,
+        "last_verified_at": "2026-04-08T05:24:28Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -618,20 +619,20 @@
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "pending",
-          "last_verified_at": "2026-04-08T00:08:33Z",
+          "status": "observed",
+          "last_verified_at": "2026-04-08T05:24:28Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Restore `MOONSHOT_API_KEY` in the live VAULT LiteLLM secret-delivery surface.",
-        "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
-        "Re-probe the served model `kimi-k2.5` and keep the lane demoted until the provider-specific completion succeeds."
+        "Treat the provider-specific proof as current while `kimi-sub` remains callable through the live VAULT alias surface.",
+        "Do not promote this lane as a direct-provider contract until Athanor chooses whether the live `kimi-sub` indirection remains canonical.",
+        "If the direct Moonshot lane becomes authoritative later, restore `MOONSHOT_API_KEY` and re-probe against the chosen direct served model."
       ],
       "notes": [
         "Moonshot still exposes public API pricing through a pricing-specific official post rather than a dedicated stable pricing reference page.",
-        "Latest live VAULT provider probe classified this lane as auth_failed."
+        "Latest live VAULT provider probe classified this lane as observed through the subscription-backed `kimi-sub` alias rather than a direct provider-owned Moonshot endpoint."
       ]
     },
     {
@@ -663,7 +664,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-04-08T00:08:30Z"
+        "last_verified_at": "2026-04-08T05:24:28Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -676,8 +677,8 @@
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "pending",
-          "last_verified_at": "2026-04-08T00:08:30Z",
+          "status": "auth_failed",
+          "last_verified_at": "2026-04-08T05:24:28Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -721,7 +722,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-04-08T00:08:35Z"
+        "last_verified_at": "2026-04-08T05:24:29Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -792,8 +793,8 @@
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "pending",
-          "last_verified_at": "2026-04-08T00:08:35Z",
+          "status": "auth_failed",
+          "last_verified_at": "2026-04-08T05:24:29Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -836,7 +837,7 @@
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-04-08T00:08:34Z"
+        "last_verified_at": "2026-04-08T05:24:28Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
@@ -849,20 +850,20 @@
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "pending",
-          "last_verified_at": "2026-04-08T00:08:34Z",
+          "status": "auth_failed",
+          "last_verified_at": "2026-04-08T05:24:28Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Restore `OPENROUTER_API_KEY` and confirm the expected upstream auth mode in the live VAULT LiteLLM secret-delivery surface.",
-        "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
+        "Treat this as an auth-mode or credential-validity mismatch even though OPENROUTER_API_KEY is now present in the container env.",
+        "Recreate or redeploy the `litellm` container only if the VAULT env surface changes again.",
         "Re-probe the served model `openrouter` and keep the lane demoted until the provider-specific completion succeeds."
       ],
       "notes": [
         "Official OpenRouter pricing is pay-as-you-go and states there is no markup over listed provider model prices.",
-        "Latest live VAULT provider probe classified this lane as auth_failed."
+        "Latest live VAULT provider probe still classified this lane as auth_failed after OPENROUTER_API_KEY was restored, so the remaining issue is upstream auth mode or credential validity rather than pure env absence."
       ]
     }
   ],

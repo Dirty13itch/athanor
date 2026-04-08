@@ -51,6 +51,8 @@ function Protect-SensitiveText {
     $result = $result -replace "`0", ""
     $result = [regex]::Replace($result, '(?m)(\s+)#.*$', '')
     $result = [regex]::Replace($result, 'redis://:([^@/\s]+)@', 'redis://:<redacted>@')
+    $result = [regex]::Replace($result, '(?im)^(\s*-\s*[A-Z0-9_]*REDIS_URL[A-Z0-9_]*=).+$', '$1<redacted>')
+    $result = [regex]::Replace($result, '(?im)^(\s*[A-Z0-9_]*REDIS_URL[A-Z0-9_]*:\s*).+$', '$1<redacted>')
     $result = [regex]::Replace($result, '(?im)^(\s*-\s*[A-Z0-9_]*(?:KEY|PASSWORD|TOKEN|SECRET|DATABASE_URL)[A-Z0-9_]*=).+$', '$1<redacted>')
     $result = [regex]::Replace($result, '(?im)^(\s*[A-Z0-9_]*(?:KEY|PASSWORD|TOKEN|SECRET|DATABASE_URL)[A-Z0-9_]*:\s*).+$', '$1<redacted>')
     $result = [regex]::Replace($result, '(?im)^(\s*api_key:\s*)"(?!not-needed|os\.environ/)[^"]+"', '$1"<redacted>"')

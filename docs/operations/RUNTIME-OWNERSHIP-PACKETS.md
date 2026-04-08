@@ -3,32 +3,33 @@
 Generated from `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/runtime-ownership-contract.json`, and the cached truth snapshot in `reports/truth-inventory/latest.json` by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Registry version: `2026-04-08.3`
-- Cached truth snapshot: `2026-04-08T04:31:18.729300+00:00`
-- Packets tracked: `10`
+- Registry version: `2026-04-08.5`
+- Cached truth snapshot: `2026-04-08T06:45:40.502384+00:00`
+- Packets tracked: `11`
 
 | Packet | Status | Lane | Approval type | Goal |
 | --- | --- | --- | --- | --- |
-| `dev-runtime-repo-sync-packet` | `ready_for_approval` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone. |
+| `dev-runtime-repo-sync-packet` | `executed` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone. |
 | `dev-dashboard-shadow-retirement-packet` | `executed` | `dev-dashboard-compose` | `systemd_runtime_change` | Retire or explicitly downgrade the inactive athanor-dashboard.service unit so the active /opt/athanor/dashboard compose lane is the only ordinary dashboard deployment path. |
 | `dev-dashboard-compose-deploy-packet` | `executed` | `dev-dashboard-compose` | `runtime_host_reconfiguration` | Make the active /opt/athanor/dashboard compose lane explicit so dashboard updates replace the governed compose build context instead of relying on remembered manual copy steps. |
 | `dev-heartbeat-opt-deploy-packet` | `executed` | `dev-heartbeat-opt` | `runtime_host_reconfiguration` | Make the source-to-/opt heartbeat bundle replacement explicit so the live athanor-heartbeat.service lane no longer depends on undocumented manual copy steps. |
 | `foundry-agents-compose-deploy-packet` | `executed` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |
+| `foundry-gpu-orchestrator-compose-deploy-packet` | `executed` | `foundry-gpu-orchestrator-compose` | `runtime_host_reconfiguration` | Keep the active /opt/athanor/gpu-orchestrator compose root aligned to implementation authority so host-local runtime identity does not drift away from the repo-owned coordinator and zone-routing contract. |
 | `foundry-vllm-compose-reconciliation-packet` | `executed` | `foundry-vllm-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/vllm compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the FOUNDRY coordinator and coder lanes stop drifting by host-local floating image state. |
 | `workshop-control-surface-compose-reconciliation-packet` | `executed` | `workshop-control-surface-compose` | `runtime_host_reconfiguration` | Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service and the correct worker lane URL. |
 | `workshop-vllm-compose-reconciliation-packet` | `executed` | `workshop-vllm-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/vllm-node2 compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the Workshop worker lane stops drifting by host-local floating image state. |
-| `vault-litellm-config-reconciliation-packet` | `ready_for_approval` | `vault-litellm-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/litellm/config.yaml file with implementation authority so the coder lane and other routed model definitions stop drifting independently of the repo. |
-| `vault-prometheus-config-reconciliation-packet` | `executed` | `vault-prometheus-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml file with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels. |
+| `vault-litellm-config-reconciliation-packet` | `executed` | `vault-litellm-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/litellm/config.yaml file with implementation authority so the coder lane and other routed model definitions stop drifting independently of the repo. |
+| `vault-prometheus-config-reconciliation-packet` | `executed` | `vault-prometheus-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml and alert-rules.yml files with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels. |
 
 ## dev-runtime-repo-sync-packet
 
 - Label: `DEV runtime repo sync packet`
-- Status: `ready_for_approval`
+- Status: `executed`
 - Lane: `dev-runtime-repo-systemd`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `dev`
 - Goal: Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone.
-- Lane next action: Re-run the dev-runtime-repo-sync-packet with the immediate post-sync restart limited to athanor-brain, athanor-classifier, athanor-quality-gate, and athanor-sentinel; the 2026-04-08 reprobe showed the mirror reset succeeds, but starting athanor-overnight.service immediately re-dirties tracked generated artifacts.
+- Lane next action: Keep the executed dev-runtime-repo-sync-packet as the governed resync path for future repo-root maintenance. The 2026-04-08 execution left /home/shaun/repos/athanor mirror-clean at commit 5148170 with athanor-brain, athanor-classifier, athanor-quality-gate, and athanor-sentinel healthy; athanor-overnight.service remains outside the immediate mirror-clean verification window because it rewrites tracked generated artifacts.
 - Backup root: `/home/shaun/.athanor/backups/runtime-ownership/runtime-repo-sync/<timestamp>`
 - Evidence: `config/automation-backbone/runtime-ownership-contract.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `scripts/sync_dev_runtime_repo.py`
 
@@ -244,7 +245,7 @@ Do not edit manually.
 - Nested source dir present: `False`
 - bak-codex files: none
 - Container running: `True`
-- Container status: `Up 27 hours`
+- Container status: `Up 29 hours`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 
 ### Preflight Commands
@@ -276,6 +277,53 @@ Do not edit manually.
 - Rebuild and restart athanor-agents from the restored compose root.
 - Re-run the same truth refresh and validator sequence to confirm rollback.
 
+## foundry-gpu-orchestrator-compose-deploy-packet
+
+- Label: `FOUNDRY GPU Orchestrator compose deploy packet`
+- Status: `executed`
+- Lane: `foundry-gpu-orchestrator-compose`
+- Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
+- Host: `foundry`
+- Goal: Keep the active /opt/athanor/gpu-orchestrator compose root aligned to implementation authority so host-local runtime identity does not drift away from the repo-owned coordinator and zone-routing contract.
+- Lane next action: Use scripts/deploy-gpu-orchestrator.sh as the governed update path for future FOUNDRY GPU Orchestrator changes; the 2026-04-08 redeploy restored live runtime parity and re-probed /health plus /zones successfully.
+- Backup root: `/opt/athanor/backups/gpu-orchestrator/<timestamp>`
+- Evidence: `reports/deployment-drift/summary.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `scripts/deploy-gpu-orchestrator.sh`
+
+| Source path | Runtime path | Restart units |
+| --- | --- | --- |
+| `projects/gpu-orchestrator/Dockerfile` | `/opt/athanor/gpu-orchestrator/Dockerfile` | `gpu-orchestrator` |
+| `projects/gpu-orchestrator/pyproject.toml` | `/opt/athanor/gpu-orchestrator/pyproject.toml` | `gpu-orchestrator` |
+| `projects/gpu-orchestrator/docker-compose.yml` | `/opt/athanor/gpu-orchestrator/docker-compose.yml` | `gpu-orchestrator` |
+| `projects/gpu-orchestrator/src/gpu_orchestrator` | `/opt/athanor/gpu-orchestrator/src/gpu_orchestrator` | `gpu-orchestrator` |
+
+### Preflight Commands
+
+- python scripts/validate_platform_contract.py
+- powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-DeploymentDriftAudit.ps1
+- ssh foundry "cd /opt/athanor/gpu-orchestrator && docker compose ps"
+- ssh foundry "curl -sS http://127.0.0.1:9200/health && curl -sS http://127.0.0.1:9200/zones"
+
+### Exact Steps
+
+- Create a timestamped backup root under /opt/athanor/backups/gpu-orchestrator/<timestamp> and back up the current /opt/athanor/gpu-orchestrator bundle before replacement.
+- Run scripts/deploy-gpu-orchestrator.sh so the full compose build context is replaced from implementation authority: src/, Dockerfile, pyproject.toml, and docker-compose.yml.
+- Let the script rebuild and recreate the gpu-orchestrator container from the governed /opt/athanor/gpu-orchestrator compose root instead of leaving runtime identity to host-local drift.
+- Refresh truth inventory and deployment-drift evidence immediately after the rollout.
+
+### Verification Commands
+
+- ssh foundry "cd /opt/athanor/gpu-orchestrator && docker compose ps"
+- ssh foundry "curl -sS http://127.0.0.1:9200/health && curl -sS http://127.0.0.1:9200/zones"
+- powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-DeploymentDriftAudit.ps1
+- python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets --report drift
+- python scripts/validate_platform_contract.py
+
+### Rollback Steps
+
+- Restore the backed up /opt/athanor/gpu-orchestrator bundle from /opt/athanor/backups/gpu-orchestrator/<timestamp>.
+- Rebuild and restart the gpu-orchestrator container from the restored compose root.
+- Re-run the deployment-drift audit and validator to confirm rollback.
+
 ## foundry-vllm-compose-reconciliation-packet
 
 - Label: `FOUNDRY vLLM compose reconciliation packet`
@@ -284,7 +332,7 @@ Do not edit manually.
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `foundry`
 - Goal: Reconcile the live /opt/athanor/vllm compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the FOUNDRY coordinator and coder lanes stop drifting by host-local floating image state.
-- Lane next action: Keep the FOUNDRY vLLM lane pinned to athanor/vllm:qwen35-20260315 and treat any future image or compose change as a deliberate packet-backed rollout; the 2026-04-07 reprobe showed healthy coordinator and coder lanes on the pinned artifact.
+- Lane next action: Keep the FOUNDRY vLLM lane pinned to athanor/vllm:qwen35-20260315 and treat any future image or compose change as a deliberate packet-backed rollout; the 2026-04-08 reprobe showed the live host compose root identical to implementation authority while the running coder lane served qwen3-coder-30b on the pinned artifact.
 - Backup root: `/opt/athanor/backups/vllm/<timestamp>`
 - Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/foundry-vllm.rendered.yml`, `reports/live/foundry-vllm.live.yml`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
@@ -419,14 +467,14 @@ Do not edit manually.
 ## vault-litellm-config-reconciliation-packet
 
 - Label: `VAULT LiteLLM config reconciliation packet`
-- Status: `ready_for_approval`
+- Status: `executed`
 - Lane: `vault-litellm-config`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `vault`
 - Goal: Reconcile the live /mnt/user/appdata/litellm/config.yaml file with implementation authority so the coder lane and other routed model definitions stop drifting independently of the repo.
-- Lane next action: Keep the VAULT LiteLLM config lane in ready-for-approval state until the live config stops differing from implementation authority; the current packet remains separate from the missing-secret provider-auth repair and the 2026-04-07 drift evidence still shows config divergence.
+- Lane next action: Keep the executed VAULT LiteLLM config packet as the governed update path for future routing changes; the 2026-04-08 reprobe showed /mnt/user/appdata/litellm/config.yaml identical to implementation authority, the litellm container healthy, and provider-auth follow-through narrowed to the separate missing-secret and upstream-auth lane.
 - Backup root: `/mnt/user/appdata/litellm/backups/config-reconcile/<timestamp>`
-- Evidence: `reports/deployment-drift/vault-litellm.diff`, `reports/rendered/vault-litellm-config.rendered.yaml`, `reports/live/vault-litellm-config.live.yaml`, `reports/truth-inventory/vault-litellm-env-audit.json`, `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+- Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/vault-litellm-config.rendered.yaml`, `reports/live/vault-litellm-config.live.yaml`, `reports/truth-inventory/vault-litellm-env-audit.json`, `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
 | Source path | Runtime path | Restart units |
 | --- | --- | --- |
@@ -469,14 +517,15 @@ Do not edit manually.
 - Lane: `vault-prometheus-config`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `vault`
-- Goal: Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml file with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels.
-- Lane next action: Keep the executed vault-prometheus-config-reconciliation-packet as the governed update path; the 2026-04-07 reprobe showed the Prometheus container healthy after the reconcile pass.
+- Goal: Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml and alert-rules.yml files with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels.
+- Lane next action: Keep the executed vault-prometheus-config-reconciliation-packet as the governed update path; the 2026-04-08 reprobe showed both Prometheus config surfaces identical to implementation authority and the Prometheus container healthy after restart.
 - Backup root: `/mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp>`
-- Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/vault-prometheus.rendered.yml`, `reports/live/vault-prometheus.live.yml`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+- Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/vault-prometheus.rendered.yml`, `reports/rendered/vault-alert-rules.rendered.yml`, `reports/live/vault-prometheus.live.yml`, `reports/live/vault-alert-rules.live.yml`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
 | Source path | Runtime path | Restart units |
 | --- | --- | --- |
 | `reports/rendered/vault-prometheus.rendered.yml` | `/mnt/user/appdata/prometheus/prometheus.yml` | `prometheus` |
+| `reports/rendered/vault-alert-rules.rendered.yml` | `/mnt/user/appdata/prometheus/alert-rules.yml` | `prometheus` |
 
 ### Preflight Commands
 
@@ -484,13 +533,14 @@ Do not edit manually.
 - powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-DeploymentDriftAudit.ps1
 - python scripts/vault-ssh.py "docker inspect prometheus --format '{{.Name}}|{{.State.Status}}|{{.HostConfig.RestartPolicy.Name}}'"
 - python scripts/vault-ssh.py "test -f /mnt/user/appdata/prometheus/prometheus.yml && sed -n '1,260p' /mnt/user/appdata/prometheus/prometheus.yml"
+- python scripts/vault-ssh.py "test -f /mnt/user/appdata/prometheus/alert-rules.yml && sed -n '1,220p' /mnt/user/appdata/prometheus/alert-rules.yml"
 - python scripts/vault-ssh.py "curl -s http://127.0.0.1:9090/api/v1/targets | head -c 4000"
 
 ### Exact Steps
 
-- Create a timestamped backup root under /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp> and back up the current prometheus.yml plus a docker inspect snapshot of the prometheus container before replacement.
-- Re-render the canonical Prometheus config through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.
-- Replace /mnt/user/appdata/prometheus/prometheus.yml during the approved maintenance window and keep any live-only targets only if they are explicitly reclassified into source truth later.
+- Create a timestamped backup root under /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp> and back up the current prometheus.yml, alert-rules.yml, plus a docker inspect snapshot of the prometheus container before replacement.
+- Re-render the canonical Prometheus config and alert-rules files through the governed deployment-drift audit or render_ansible_template.py so the replacement artifacts match implementation authority exactly.
+- Replace /mnt/user/appdata/prometheus/prometheus.yml and /mnt/user/appdata/prometheus/alert-rules.yml during the approved maintenance window and keep any live-only targets only if they are explicitly reclassified into source truth later.
 - Recreate or restart only the Prometheus container after the config replacement.
 - Refresh deployment-drift evidence and confirm the active targets set no longer certifies stale Workshop shadow or outdated node labels.
 
@@ -504,6 +554,6 @@ Do not edit manually.
 
 ### Rollback Steps
 
-- Restore the backed up /mnt/user/appdata/prometheus/prometheus.yml and saved container definition from /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp>.
+- Restore the backed up /mnt/user/appdata/prometheus/prometheus.yml, /mnt/user/appdata/prometheus/alert-rules.yml, and saved container definition from /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp>.
 - Restart the Prometheus container with the restored config.
 - Re-run the deployment-drift audit and validator to confirm rollback.

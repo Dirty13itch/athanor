@@ -180,8 +180,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Athanor Command Center is down"
-          description: "The Athanor Command Center runtime at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+          summary: "Dashboard is down"
+          description: "Dashboard at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
 
       - alert: ComfyUIDown
         expr: probe_success{service_id="comfyui"} == 0
@@ -218,3 +218,75 @@ groups:
         annotations:
           summary: "n8n is down"
           description: "n8n at {{ "{{" }} $labels.instance {{ "}}" }} has been unreachable for more than 3 minutes."
+
+      - alert: RedisDown
+        expr: probe_success{service_id="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis TCP probe at 192.168.1.203:6379 has failed for more than 2 minutes. Agent state, workspace, scheduler all impacted."
+
+      - alert: PostgresDown
+        expr: probe_success{service_id="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Postgres is down"
+          description: "Postgres TCP probe at 192.168.1.203:5432 has failed. Dashboard, LangFuse, Ulrich Energy all impacted."
+
+      - alert: LangFuseDown
+        expr: probe_success{service_id="langfuse"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LangFuse is down"
+          description: "LangFuse at 192.168.1.203:3030 has been unreachable. Trace collection is impaired."
+
+      - alert: NtfyDown
+        expr: probe_success{service_id="ntfy"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ntfy notification service is down"
+          description: "ntfy at 192.168.1.203:8880 is unreachable. Alert notification pipeline is broken."
+
+      - alert: QdrantDown
+        expr: probe_success{service_id="qdrant"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Qdrant vector database is down"
+          description: "Qdrant at 192.168.1.203:6333 is unreachable. Knowledge search, activity logging, context enrichment all impacted."
+
+      - alert: Neo4jDown
+        expr: probe_success{service_id="neo4j"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Neo4j graph database is down"
+          description: "Neo4j at 192.168.1.203:7474 is unreachable. Graph context expansion degraded."
+
+      - alert: GPUOrchestratorDown
+        expr: probe_success{service_id="gpu-orchestrator"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU Orchestrator is down"
+          description: "GPU Orchestrator at 192.168.1.244:9200 is unreachable."
+
+      - alert: WorkerVLLMDown
+        expr: probe_success{service_id="workshop-worker"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Workshop Worker vLLM is down"
+          description: "Worker vLLM at 192.168.1.225:8010 is unreachable. Tactical routing capacity reduced."

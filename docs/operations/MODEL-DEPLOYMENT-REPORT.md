@@ -12,11 +12,11 @@ Do not edit manually.
 | Lane | Service | Node | State | Expected | Observed | Drift |
 | --- | --- | --- | --- | --- | --- | --- |
 | `foundry-coordinator` | `vllm_coordinator` | `foundry` | `deployed` | `Qwen3.5-27B-FP8` | `Qwen3.5-27B-FP8` | `aligned` |
-| `foundry-coder` | `vllm_coder` | `foundry` | `deployed` | `devstral-small-2` | `devstral-small-2` | `aligned` |
+| `foundry-coder` | `vllm_coder` | `foundry` | `deployed` | `qwen3-coder-30b` | `qwen3-coder-30b` | `aligned` |
 | `dev-embedding` | `embedding` | `dev` | `deployed` | `Qwen3-Embedding-0.6B` | `Qwen3-Embedding-0.6B` | `aligned` |
 | `dev-reranker` | `reranker` | `dev` | `deployed` | `Qwen3-Reranker-0.6B` | `Qwen3-Reranker-0.6B` | `aligned` |
 | `workshop-worker` | `vllm_worker` | `workshop` | `deployed` | `/models/Qwen3.5-35B-A3B-AWQ-4bit` | `/models/Qwen3.5-35B-A3B-AWQ-4bit` | `aligned` |
-| `workshop-vision` | `vllm_vision` | `workshop` | `configured` | unset | unset | `unverified-runtime` |
+| `workshop-vision` | `vllm_vision` | `workshop` | `deployed` | `/models/Qwen3-VL-8B-Instruct-FP8` | `/models/Qwen3-VL-8B-Instruct-FP8` | `aligned` |
 
 ## Stored Model Artifacts
 

@@ -49,6 +49,7 @@
       VENICE_API_KEY: "{{ litellm_venice_api_key }}"
       ZAI_API_KEY: "{{ litellm_zai_api_key }}"
       OPENROUTER_API_KEY: "{{ litellm_openrouter_api_key }}"
+      REDIS_PASSWORD: "{{ litellm_redis_password }}"
     restart: "{{ litellm_config.changed | default(false) }}"
   when: not ansible_check_mode
 

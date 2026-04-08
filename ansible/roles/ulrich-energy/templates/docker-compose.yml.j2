@@ -10,10 +10,7 @@ services:
       - "{{ ulrich_port }}:{{ ulrich_container_port }}"
     environment:
       - DATABASE_URL={{ ulrich_database_url }}
-      - ATHANOR_ULRICH_DATABASE_URL={{ ulrich_database_url }}
-      - ATHANOR_LITELLM_URL={{ ulrich_litellm_url }}
-      - ATHANOR_LITELLM_API_KEY={{ ulrich_litellm_api_key }}
-      - LITELLM_BASE_URL={{ ulrich_litellm_url }}
+      - LITELLM_BASE_URL={{ ulrich_litellm_base_url }}
       - LITELLM_API_KEY={{ ulrich_litellm_api_key }}
       - TZ=America/Chicago
     logging:

@@ -1,13 +1,13 @@
 {
-  "version": "2026-04-08.3",
-  "updated_at": "2026-04-08T05:15:00Z",
+  "version": "2026-04-08.5",
+  "updated_at": "2026-04-08T06:40:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-packets.json",
   "packets": [
     {
       "id": "dev-runtime-repo-sync-packet",
       "label": "DEV runtime repo sync packet",
-      "status": "ready_for_approval",
+      "status": "executed",
       "lane_id": "dev-runtime-repo-systemd",
       "host": "dev",
       "approval_packet_type": "runtime_host_reconfiguration",
@@ -291,6 +291,76 @@
       ]
     },
     {
+      "id": "foundry-gpu-orchestrator-compose-deploy-packet",
+      "label": "FOUNDRY GPU Orchestrator compose deploy packet",
+      "status": "executed",
+      "lane_id": "foundry-gpu-orchestrator-compose",
+      "host": "foundry",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Keep the active /opt/athanor/gpu-orchestrator compose root aligned to implementation authority so host-local runtime identity does not drift away from the repo-owned coordinator and zone-routing contract.",
+      "path_mappings": [
+        {
+          "source_path": "projects/gpu-orchestrator/Dockerfile",
+          "runtime_path": "/opt/athanor/gpu-orchestrator/Dockerfile",
+          "restart_units": [
+            "gpu-orchestrator"
+          ]
+        },
+        {
+          "source_path": "projects/gpu-orchestrator/pyproject.toml",
+          "runtime_path": "/opt/athanor/gpu-orchestrator/pyproject.toml",
+          "restart_units": [
+            "gpu-orchestrator"
+          ]
+        },
+        {
+          "source_path": "projects/gpu-orchestrator/docker-compose.yml",
+          "runtime_path": "/opt/athanor/gpu-orchestrator/docker-compose.yml",
+          "restart_units": [
+            "gpu-orchestrator"
+          ]
+        },
+        {
+          "source_path": "projects/gpu-orchestrator/src/gpu_orchestrator",
+          "runtime_path": "/opt/athanor/gpu-orchestrator/src/gpu_orchestrator",
+          "restart_units": [
+            "gpu-orchestrator"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/gpu-orchestrator/<timestamp>",
+      "preflight_commands": [
+        "python scripts/validate_platform_contract.py",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "ssh foundry \"cd /opt/athanor/gpu-orchestrator && docker compose ps\"",
+        "ssh foundry \"curl -sS http://127.0.0.1:9200/health && curl -sS http://127.0.0.1:9200/zones\""
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /opt/athanor/backups/gpu-orchestrator/<timestamp> and back up the current /opt/athanor/gpu-orchestrator bundle before replacement.",
+        "Run scripts/deploy-gpu-orchestrator.sh so the full compose build context is replaced from implementation authority: src/, Dockerfile, pyproject.toml, and docker-compose.yml.",
+        "Let the script rebuild and recreate the gpu-orchestrator container from the governed /opt/athanor/gpu-orchestrator compose root instead of leaving runtime identity to host-local drift.",
+        "Refresh truth inventory and deployment-drift evidence immediately after the rollout."
+      ],
+      "verification_commands": [
+        "ssh foundry \"cd /opt/athanor/gpu-orchestrator && docker compose ps\"",
+        "ssh foundry \"curl -sS http://127.0.0.1:9200/health && curl -sS http://127.0.0.1:9200/zones\"",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets --report drift",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /opt/athanor/gpu-orchestrator bundle from /opt/athanor/backups/gpu-orchestrator/<timestamp>.",
+        "Rebuild and restart the gpu-orchestrator container from the restored compose root.",
+        "Re-run the deployment-drift audit and validator to confirm rollback."
+      ],
+      "evidence_paths": [
+        "reports/deployment-drift/summary.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "scripts/deploy-gpu-orchestrator.sh"
+      ]
+    },
+    {
       "id": "foundry-vllm-compose-reconciliation-packet",
       "label": "FOUNDRY vLLM compose reconciliation packet",
       "status": "executed",
@@ -465,7 +535,7 @@
     {
       "id": "vault-litellm-config-reconciliation-packet",
       "label": "VAULT LiteLLM config reconciliation packet",
-      "status": "ready_for_approval",
+      "status": "executed",
       "lane_id": "vault-litellm-config",
       "host": "vault",
       "approval_packet_type": "runtime_host_reconfiguration",
@@ -507,7 +577,7 @@
         "Re-run the VAULT env audit, deployment-drift audit, and validator to confirm rollback."
       ],
       "evidence_paths": [
-        "reports/deployment-drift/vault-litellm.diff",
+        "reports/deployment-drift/summary.md",
         "reports/rendered/vault-litellm-config.rendered.yaml",
         "reports/live/vault-litellm-config.live.yaml",
         "reports/truth-inventory/vault-litellm-env-audit.json",
@@ -522,11 +592,18 @@
       "lane_id": "vault-prometheus-config",
       "host": "vault",
       "approval_packet_type": "runtime_host_reconfiguration",
-      "goal": "Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml file with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels.",
+      "goal": "Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml and alert-rules.yml files with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels.",
       "path_mappings": [
         {
           "source_path": "reports/rendered/vault-prometheus.rendered.yml",
           "runtime_path": "/mnt/user/appdata/prometheus/prometheus.yml",
+          "restart_units": [
+            "prometheus"
+          ]
+        },
+        {
+          "source_path": "reports/rendered/vault-alert-rules.rendered.yml",
+          "runtime_path": "/mnt/user/appdata/prometheus/alert-rules.yml",
           "restart_units": [
             "prometheus"
           ]
@@ -538,12 +615,13 @@
         "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
         "python scripts/vault-ssh.py \"docker inspect prometheus --format '{{.Name}}|{{.State.Status}}|{{.HostConfig.RestartPolicy.Name}}'\"",
         "python scripts/vault-ssh.py \"test -f /mnt/user/appdata/prometheus/prometheus.yml && sed -n '1,260p' /mnt/user/appdata/prometheus/prometheus.yml\"",
+        "python scripts/vault-ssh.py \"test -f /mnt/user/appdata/prometheus/alert-rules.yml && sed -n '1,220p' /mnt/user/appdata/prometheus/alert-rules.yml\"",
         "python scripts/vault-ssh.py \"curl -s http://127.0.0.1:9090/api/v1/targets | head -c 4000\""
       ],
       "exact_steps": [
-        "Create a timestamped backup root under /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp> and back up the current prometheus.yml plus a docker inspect snapshot of the prometheus container before replacement.",
-        "Re-render the canonical Prometheus config through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.",
-        "Replace /mnt/user/appdata/prometheus/prometheus.yml during the approved maintenance window and keep any live-only targets only if they are explicitly reclassified into source truth later.",
+        "Create a timestamped backup root under /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp> and back up the current prometheus.yml, alert-rules.yml, plus a docker inspect snapshot of the prometheus container before replacement.",
+        "Re-render the canonical Prometheus config and alert-rules files through the governed deployment-drift audit or render_ansible_template.py so the replacement artifacts match implementation authority exactly.",
+        "Replace /mnt/user/appdata/prometheus/prometheus.yml and /mnt/user/appdata/prometheus/alert-rules.yml during the approved maintenance window and keep any live-only targets only if they are explicitly reclassified into source truth later.",
         "Recreate or restart only the Prometheus container after the config replacement.",
         "Refresh deployment-drift evidence and confirm the active targets set no longer certifies stale Workshop shadow or outdated node labels."
       ],
@@ -555,14 +633,16 @@
         "python scripts/validate_platform_contract.py"
       ],
       "rollback_steps": [
-        "Restore the backed up /mnt/user/appdata/prometheus/prometheus.yml and saved container definition from /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp>.",
+        "Restore the backed up /mnt/user/appdata/prometheus/prometheus.yml, /mnt/user/appdata/prometheus/alert-rules.yml, and saved container definition from /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp>.",
         "Restart the Prometheus container with the restored config.",
         "Re-run the deployment-drift audit and validator to confirm rollback."
       ],
       "evidence_paths": [
         "reports/deployment-drift/summary.md",
         "reports/rendered/vault-prometheus.rendered.yml",
+        "reports/rendered/vault-alert-rules.rendered.yml",
         "reports/live/vault-prometheus.live.yml",
+        "reports/live/vault-alert-rules.live.yml",
         "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
       ]

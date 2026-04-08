@@ -8,20 +8,12 @@ services:
     restart: unless-stopped
     ports:
       - "{{ eoq_port }}:{{ eoq_container_port }}"
+    volumes:
+      - {{ eoq_references_dir }}:/references:rw
     environment:
-      - ATHANOR_LITELLM_URL={{ eoq_litellm_url }}
-      - ATHANOR_LITELLM_API_KEY={{ eoq_litellm_api_key }}
-      - ATHANOR_COMFYUI_URL={{ eoq_comfyui_url }}
-      - ATHANOR_QDRANT_URL={{ eoq_qdrant_url }}
       - LITELLM_URL={{ eoq_litellm_url }}
       - LITELLM_KEY={{ eoq_litellm_api_key }}
       - COMFYUI_URL={{ eoq_comfyui_url }}
       - QDRANT_URL={{ eoq_qdrant_url }}
       - DIALOGUE_MODEL={{ eoq_dialogue_model }}
-      - ATHANOR_SPEACHES_URL={{ eoq_speaches_url }}
-      - TZ=America/Chicago
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - REFERENCES_DIR=/references
