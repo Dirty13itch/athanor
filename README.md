@@ -24,6 +24,7 @@ Read these in order:
 - [STATUS.md](/C:/Athanor/STATUS.md)
 - [docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md](/C:/Athanor/docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md)
 - [docs/operations/ATHANOR-OPERATING-SYSTEM.md](/C:/Athanor/docs/operations/ATHANOR-OPERATING-SYSTEM.md)
+- [PROJECT.md](/C:/Athanor/PROJECT.md)
 - [config/automation-backbone](/C:/Athanor/config/automation-backbone)
 
 Runtime truth outranks memory or historical docs when they disagree.
@@ -35,6 +36,7 @@ The active control plane lives under [config/automation-backbone](/C:/Athanor/co
 Primary registries:
 - `platform-topology.json`
 - `project-maturity-registry.json`
+- `reconciliation-source-registry.json`
 - `docs-lifecycle-registry.json`
 - `program-operating-system.json`
 - `hardware-inventory.json`

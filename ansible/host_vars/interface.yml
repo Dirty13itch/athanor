@@ -25,6 +25,8 @@ vllm_extra_args:
   - qwen3_xml
   - --kv-cache-dtype
   - auto
+  - --max-num-batched-tokens
+  - "2096"
   - --enable-prefix-caching
   # NFS optimization: eager loading converts random page faults to sequential reads
   - --safetensors-load-strategy

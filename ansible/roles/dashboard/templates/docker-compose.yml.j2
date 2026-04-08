@@ -8,6 +8,12 @@ services:
     restart: unless-stopped
     ports:
       - "{{ dashboard_port }}:3001"
+{% if dashboard_bind_docker_socket %}
+    group_add:
+      - "{{ dashboard_docker_group_gid }}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+{% endif %}
     environment:
       - ATHANOR_COMMAND_CENTER_URL={{ dashboard_command_center_url }}
       - NEXT_PUBLIC_PROMETHEUS_URL={{ dashboard_prometheus_url }}
@@ -51,3 +57,20 @@ services:
       - ATHANOR_LANGFUSE_PUBLIC_KEY={{ dashboard_langfuse_public_key }}
       - ATHANOR_LANGFUSE_SECRET_KEY={{ dashboard_langfuse_secret_key }}
       - ATHANOR_WS_PTY_BRIDGE_ALLOWED_NODES={{ dashboard_ws_pty_bridge_allowed_nodes }}
+{% if dashboard_include_ws_pty_bridge %}
+
+  ws-pty-bridge:
+    build:
+      context: ../ws-pty-bridge
+      dockerfile: Dockerfile
+    image: {{ dashboard_ws_pty_bridge_image }}
+    container_name: athanor-ws-pty-bridge
+    restart: unless-stopped
+    ports:
+      - "{{ dashboard_ws_pty_bridge_port }}:3100"
+    volumes:
+      - {{ dashboard_ws_pty_bridge_ssh_dir }}:/home/node/.ssh:ro
+    environment:
+      - PORT=3100
+      - HOME=/home/node
+{% endif %}

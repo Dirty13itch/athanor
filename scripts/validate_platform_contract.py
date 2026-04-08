@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,11 @@ BOOTSTRAP_DURABLE_RESTART_PROOF_PATH = REPO_ROOT / "reports" / "bootstrap" / "du
 BOOTSTRAP_FOUNDRY_PROVING_PACKET_PATH = REPO_ROOT / "reports" / "bootstrap" / "foundry-proving-packet.json"
 BOOTSTRAP_GOVERNANCE_DRILL_PACKETS_PATH = REPO_ROOT / "reports" / "bootstrap" / "governance-drill-packets.json"
 BOOTSTRAP_TAKEOVER_PROMOTION_PACKET_PATH = REPO_ROOT / "reports" / "bootstrap" / "takeover-promotion-packet.json"
+GITHUB_PORTFOLIO_SNAPSHOT_PATH = REPO_ROOT / "reports" / "reconciliation" / "github-portfolio-latest.json"
+TENANT_FAMILY_AUDIT_PATH = REPO_ROOT / "reports" / "reconciliation" / "tenant-family-audit-latest.json"
+FIELD_INSPECT_REPLAY_PACKET_REPORT_PATH = REPO_ROOT / "reports" / "reconciliation" / "field-inspect-operations-runtime-replay-latest.json"
+RFI_HERS_DUPLICATE_EVIDENCE_PACKET_REPORT_PATH = REPO_ROOT / "reports" / "reconciliation" / "rfi-hers-duplicate-evidence-packet-latest.json"
+RFI_HERS_PRIMARY_ROOT_STABILIZATION_REPORT_PATH = REPO_ROOT / "reports" / "reconciliation" / "rfi-hers-primary-root-stabilization-latest.json"
 LITELLM_TEMPLATE_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "templates" / "litellm_config.yaml.j2"
 VAULT_LITELLM_TASKS_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "tasks" / "main.yml"
 
@@ -54,6 +60,109 @@ ALLOWED_PROJECT_CLASSES = {
     "archive",
 }
 ALLOWED_DOC_CLASSES = {"canonical", "generated", "reference", "archive"}
+ALLOWED_RECONCILIATION_SOURCE_KINDS = {
+    "local_repo",
+    "github_repo",
+    "local_docs_stash",
+    "local_reference_stash",
+    "prototype_root",
+    "runtime_root",
+    "archive_evidence",
+    "excluded",
+}
+ALLOWED_ECOSYSTEM_ROLES = {
+    "core",
+    "shared-module",
+    "tenant",
+    "lineage",
+    "operator-tooling",
+    "reference",
+    "archive",
+    "excluded",
+}
+ALLOWED_SOURCE_AUTHORITY_STATUSES = {"authoritative", "candidate", "non-authoritative", "frozen"}
+ALLOWED_SOURCE_REVIEW_STATUSES = {"unreviewed", "fact-gathered", "proposed", "confirmed", "completed"}
+ALLOWED_SOURCE_DEFAULT_DISPOSITIONS = {
+    "import",
+    "extract-shared",
+    "tenant-queue",
+    "lineage-only",
+    "archive",
+    "reject",
+}
+ALLOWED_FIELD_INSPECT_REPLAY_EXECUTION_POSTURES = {
+    "ready_for_safe_replay",
+    "ready_for_safe_runtime_only",
+    "blocked_by_overlap",
+}
+ALLOWED_RFI_PRIMARY_ROOT_EXECUTION_POSTURES = {
+    "ready_for_ordered_stabilization",
+    "clean_root_no_stabilization_needed",
+}
+ALLOWED_SOURCE_PRESERVATION_STATUSES = {
+    "authoritative-live",
+    "snapshot-required",
+    "snapshot-created",
+    "candidate-freeze",
+    "not-applicable",
+    "excluded",
+}
+ALLOWED_SOURCE_PRIORITIES = {"critical", "high", "medium", "low"}
+ALLOWED_COMPLETION_WORKSTREAM_STATUSES = {
+    "planned",
+    "active",
+    "blocked",
+    "governed-runtime",
+    "continuous",
+    "completed",
+}
+ALLOWED_COMPLETION_CHECKPOINT_STATUSES = {"planned", "active", "blocked", "completed"}
+ALLOWED_COMPLETION_PRIORITY_LEVELS = {"critical", "high", "medium", "low"}
+REQUIRED_RECONCILIATION_DOCS = {
+    "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
+    "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
+    "docs/operations/ATHANOR-SHARED-EXTRACTION-QUEUE.md",
+    "docs/operations/ATHANOR-TENANT-QUEUE.md",
+    "docs/operations/FIELD-INSPECT-OPERATIONS-RUNTIME-REPLAY-PACKET.md",
+    "docs/operations/RFI-HERS-DUPLICATE-EVIDENCE-PACKET.md",
+    "docs/operations/RFI-HERS-PRIMARY-ROOT-STABILIZATION-PACKET.md",
+    "docs/operations/ATHANOR-RECONCILIATION-LEDGER.md",
+}
+REQUIRED_COMPLETION_PROGRAM_DOCS = {
+    "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md",
+}
+REQUIRED_RECONCILIATION_SOURCE_IDS = {
+    "athanor-core",
+    "athanor-origin-main",
+    "dev-runtime-root",
+    "athanor-next",
+    "reconcile-workspace",
+    "local-system",
+    "agentic-coding-tools-root",
+    "codex-system-config",
+    "docs-stash",
+    "reference-stash",
+}
+REQUIRED_COMPLETION_WORKSTREAM_IDS = {
+    "authority-and-mainline",
+    "deployment-authority-reconciliation",
+    "runtime-sync-and-governed-packets",
+    "provider-and-secret-remediation",
+    "monitoring-and-observability-truth",
+    "portfolio-and-source-reconciliation",
+    "lineage-and-shared-extraction",
+    "tenant-architecture-and-classification",
+    "startup-docs-and-prune",
+    "validation-and-publication",
+}
+REQUIRED_COMPLETION_CHECKPOINT_IDS = {
+    "control-surface-foundation",
+    "deployment-truth-narrowing",
+    "lineage-and-side-root-harvest",
+    "ecosystem-classification",
+    "runtime-repair-and-sync-packets",
+    "final-publication-and-freeze",
+}
 REQUIRED_LENSES = {
     "security",
     "truth",
@@ -494,7 +603,65 @@ REQUIRED_CANONICAL_DOC_HEADERS = {
             "program-operating-system.json",
         ],
     },
+    "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md": {
+        "sources": [
+            "config/automation-backbone/completion-program-registry.json",
+            "config/automation-backbone/program-operating-system.json",
+            "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+            "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
+            "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        ],
+        "versions": [
+            "completion-program-registry.json",
+            "program-operating-system.json",
+        ],
+    },
 }
+
+
+def _clean_markdown_cell(value: str) -> str:
+    return re.sub(r"`([^`]+)`", r"\1", value).strip()
+
+
+def _parse_ecosystem_registry_rows(markdown_text: str) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    current_batch: str | None = None
+    table_headers: list[str] | None = None
+
+    for raw_line in markdown_text.splitlines():
+        line = raw_line.strip()
+        if line.startswith("## Batch "):
+            current_batch = line.removeprefix("## ").strip()
+            table_headers = None
+            continue
+        if not line.startswith("|"):
+            table_headers = None
+            continue
+
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if not cells:
+            continue
+        if cells[0] == "Repo":
+            table_headers = cells
+            continue
+        if all(set(cell) <= {"-", " "} for cell in cells):
+            continue
+        if not current_batch or not table_headers or len(cells) != len(table_headers):
+            continue
+
+        row = {header: _clean_markdown_cell(value) for header, value in zip(table_headers, cells)}
+        repo_value = row.get("Repo", "")
+        if not repo_value.startswith("Dirty13itch/"):
+            continue
+        row["Batch"] = current_batch
+        row["github_repo"] = repo_value
+        row["ecosystem_role"] = row.get("Proposed role", "")
+        row["working_clone"] = row.get("Working clone", "")
+        row["likely_tenant_status"] = row.get("Likely tenant status", "")
+        row["shaun_decision"] = row.get("Shaun decision", "")
+        rows.append(row)
+
+    return rows
 
 
 def _load_json(name: str) -> dict[str, Any]:
@@ -1075,6 +1242,8 @@ def main() -> int:
     runtime_subsystems = _load_json("runtime-subsystem-registry.json")
     runtime_migrations = _load_json("runtime-migration-registry.json")
     routing_taxonomy = _load_json("routing-taxonomy-map.json")
+    reconciliation_sources = _load_json("reconciliation-source-registry.json")
+    completion_program = _load_json("completion-program-registry.json")
     portfolio = _load_json("project-maturity-registry.json")
     project_packets = _load_json("project-packet-registry.json")
     bootstrap_programs = _load_json("bootstrap-program-registry.json")
@@ -1147,6 +1316,8 @@ def main() -> int:
         "runtime-subsystem-registry.json": str(runtime_subsystems.get("version") or ""),
         "runtime-migration-registry.json": str(runtime_migrations.get("version") or ""),
         "routing-taxonomy-map.json": str(routing_taxonomy.get("version") or ""),
+        "reconciliation-source-registry.json": str(reconciliation_sources.get("version") or ""),
+        "completion-program-registry.json": str(completion_program.get("version") or ""),
         "project-maturity-registry.json": str(portfolio.get("version") or ""),
         "project-packet-registry.json": str(project_packets.get("version") or ""),
         "bootstrap-program-registry.json": str(bootstrap_programs.get("version") or ""),
@@ -1991,6 +2162,874 @@ def main() -> int:
         if root_id not in repo_root_ids:
             errors.append(
                 f"runtime-ownership-contract.json runtime_state_root_ids references unknown root id {root_id!r}"
+            )
+
+    if str(reconciliation_sources.get("source_of_truth") or "") != "config/automation-backbone/reconciliation-source-registry.json":
+        errors.append(
+            "reconciliation-source-registry.json source_of_truth must be config/automation-backbone/reconciliation-source-registry.json"
+        )
+    if str(reconciliation_sources.get("status") or "") != "active":
+        errors.append("reconciliation-source-registry.json status must be active")
+    if set(str(item) for item in reconciliation_sources.get("source_kinds", [])) != ALLOWED_RECONCILIATION_SOURCE_KINDS:
+        errors.append("reconciliation-source-registry.json source_kinds must match the allowed source-kind set")
+    if set(str(item) for item in reconciliation_sources.get("ecosystem_roles", [])) != ALLOWED_ECOSYSTEM_ROLES:
+        errors.append("reconciliation-source-registry.json ecosystem_roles must match the allowed ecosystem-role set")
+    if set(str(item) for item in reconciliation_sources.get("authority_statuses", [])) != ALLOWED_SOURCE_AUTHORITY_STATUSES:
+        errors.append("reconciliation-source-registry.json authority_statuses must match the allowed authority-status set")
+    if set(str(item) for item in reconciliation_sources.get("review_statuses", [])) != ALLOWED_SOURCE_REVIEW_STATUSES:
+        errors.append("reconciliation-source-registry.json review_statuses must match the allowed review-status set")
+    if set(str(item) for item in reconciliation_sources.get("default_dispositions", [])) != ALLOWED_SOURCE_DEFAULT_DISPOSITIONS:
+        errors.append("reconciliation-source-registry.json default_dispositions must match the allowed disposition set")
+    if set(str(item) for item in reconciliation_sources.get("preservation_statuses", [])) != ALLOWED_SOURCE_PRESERVATION_STATUSES:
+        errors.append("reconciliation-source-registry.json preservation_statuses must match the allowed preservation-status set")
+    if set(str(item) for item in reconciliation_sources.get("priorities", [])) != ALLOWED_SOURCE_PRIORITIES:
+        errors.append("reconciliation-source-registry.json priorities must match the allowed priority set")
+
+    reconciliation_source_entries = [
+        dict(entry) for entry in reconciliation_sources.get("sources", []) if isinstance(entry, dict)
+    ]
+    if not reconciliation_source_entries:
+        errors.append("reconciliation-source-registry.json must declare at least one source entry")
+    reconciliation_source_ids = [str(entry.get("id") or "").strip() for entry in reconciliation_source_entries]
+    if len(reconciliation_source_ids) != len(set(reconciliation_source_ids)):
+        errors.append("reconciliation-source-registry.json contains duplicate source ids")
+    missing_reconciliation_source_ids = sorted(
+        required_id
+        for required_id in REQUIRED_RECONCILIATION_SOURCE_IDS
+        if required_id not in set(reconciliation_source_ids)
+    )
+    if missing_reconciliation_source_ids:
+        errors.append(
+            "reconciliation-source-registry.json is missing required source ids: "
+            + ", ".join(missing_reconciliation_source_ids)
+        )
+
+    github_repo_pattern = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+    for entry in reconciliation_source_entries:
+        source_id = str(entry.get("id") or "").strip()
+        if not source_id:
+            errors.append("reconciliation-source-registry.json contains a source without an id")
+            continue
+        path_value = str(entry.get("path") or "").strip()
+        if not path_value:
+            errors.append(f"reconciliation-source-registry.json source {source_id} is missing path")
+        source_kind = str(entry.get("source_kind") or "")
+        if source_kind not in ALLOWED_RECONCILIATION_SOURCE_KINDS:
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} has invalid source_kind {source_kind!r}"
+            )
+        ecosystem_role = str(entry.get("ecosystem_role") or "")
+        if ecosystem_role not in ALLOWED_ECOSYSTEM_ROLES:
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} has invalid ecosystem_role {ecosystem_role!r}"
+            )
+        authority_status = str(entry.get("authority_status") or "")
+        if authority_status not in ALLOWED_SOURCE_AUTHORITY_STATUSES:
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} has invalid authority_status {authority_status!r}"
+            )
+        review_status = str(entry.get("review_status") or "")
+        if review_status not in ALLOWED_SOURCE_REVIEW_STATUSES:
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} has invalid review_status {review_status!r}"
+            )
+        disposition = str(entry.get("default_disposition") or "")
+        if disposition not in ALLOWED_SOURCE_DEFAULT_DISPOSITIONS:
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} has invalid default_disposition {disposition!r}"
+            )
+        preservation_status = str(entry.get("preservation_status") or "")
+        if preservation_status not in ALLOWED_SOURCE_PRESERVATION_STATUSES:
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} has invalid preservation_status {preservation_status!r}"
+            )
+        priority = str(entry.get("priority") or "")
+        if priority not in ALLOWED_SOURCE_PRIORITIES:
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} has invalid priority {priority!r}"
+            )
+        github_repo = str(entry.get("github_repo") or "").strip()
+        if github_repo and not github_repo_pattern.match(github_repo):
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} has invalid github_repo {github_repo!r}"
+            )
+        if not isinstance(entry.get("shaun_decision_required"), bool):
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} must set shaun_decision_required as a boolean"
+            )
+        duplicate_of = str(entry.get("duplicate_of") or "").strip()
+        if duplicate_of and duplicate_of not in set(reconciliation_source_ids):
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} duplicate_of references unknown source id {duplicate_of!r}"
+            )
+        notes = entry.get("notes", [])
+        if not isinstance(notes, list) or not all(str(item).strip() for item in notes):
+            errors.append(f"reconciliation-source-registry.json source {source_id} notes must be a non-empty string list")
+        evidence_paths = entry.get("evidence_paths", [])
+        if not isinstance(evidence_paths, list) or not all(str(item).strip() for item in evidence_paths):
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} evidence_paths must be a non-empty string list"
+            )
+        else:
+            for evidence_path in evidence_paths:
+                evidence_value = str(evidence_path).strip()
+                if re.match(r"^[A-Za-z]:/", evidence_value) or re.match(r"^[A-Za-z]:\\\\", evidence_value):
+                    if not Path(evidence_value).exists():
+                        errors.append(
+                            f"reconciliation-source-registry.json source {source_id} evidence path is missing: {evidence_value}"
+                        )
+                elif evidence_value.startswith("http://") or evidence_value.startswith("https://"):
+                    continue
+                else:
+                    if not (REPO_ROOT / evidence_value).exists():
+                        errors.append(
+                            f"reconciliation-source-registry.json source {source_id} evidence path is missing: {evidence_value}"
+                        )
+        if path_value and re.match(r"^[A-Za-z]:/", path_value):
+            if not Path(path_value).exists():
+                errors.append(f"reconciliation-source-registry.json source {source_id} path is missing: {path_value}")
+        if source_kind == "github_repo" and not path_value.startswith("https://github.com/"):
+            errors.append(
+                f"reconciliation-source-registry.json source {source_id} github_repo entries must use a GitHub URL path"
+            )
+
+    github_portfolio = dict(reconciliation_sources.get("github_portfolio") or {})
+    if not github_portfolio:
+        errors.append("reconciliation-source-registry.json must declare github_portfolio")
+    else:
+        if str(github_portfolio.get("owner") or "") != "Dirty13itch":
+            errors.append("reconciliation-source-registry.json github_portfolio owner must be Dirty13itch")
+        if not str(github_portfolio.get("last_verified_at") or "").strip():
+            errors.append("reconciliation-source-registry.json github_portfolio last_verified_at must be set")
+
+        github_portfolio_repos = [
+            dict(entry) for entry in github_portfolio.get("repos", []) if isinstance(entry, dict)
+        ]
+        if not github_portfolio_repos:
+            errors.append("reconciliation-source-registry.json github_portfolio must declare repos")
+
+        repo_count = github_portfolio.get("repo_count")
+        if not isinstance(repo_count, int) or repo_count != len(github_portfolio_repos):
+            errors.append("reconciliation-source-registry.json github_portfolio repo_count must match repos length")
+        doc_repo_count = github_portfolio.get("doc_repo_count")
+        if not isinstance(doc_repo_count, int) or doc_repo_count != len(github_portfolio_repos):
+            errors.append("reconciliation-source-registry.json github_portfolio doc_repo_count must match repos length")
+        live_repo_count = github_portfolio.get("live_repo_count")
+        if not isinstance(live_repo_count, int) or live_repo_count != len(github_portfolio_repos):
+            errors.append("reconciliation-source-registry.json github_portfolio live_repo_count must match repos length")
+
+        doc_only_repos = github_portfolio.get("doc_only_repos", [])
+        github_only_repos = github_portfolio.get("github_only_repos", [])
+        repos_without_confirmed_local_clone = github_portfolio.get("repos_without_confirmed_local_clone", [])
+        for field_name, value in (
+            ("doc_only_repos", doc_only_repos),
+            ("github_only_repos", github_only_repos),
+            ("repos_without_confirmed_local_clone", repos_without_confirmed_local_clone),
+        ):
+            if not isinstance(value, list) or not all(str(item).strip() for item in value):
+                errors.append(
+                    f"reconciliation-source-registry.json github_portfolio {field_name} must be a string list"
+                )
+        if doc_only_repos:
+            errors.append(
+                "reconciliation-source-registry.json github_portfolio doc_only_repos must be empty after sync"
+            )
+        if github_only_repos:
+            errors.append(
+                "reconciliation-source-registry.json github_portfolio github_only_repos must be empty after sync"
+            )
+
+        role_counts_value = github_portfolio.get("role_counts", {})
+        batch_counts_value = github_portfolio.get("batch_counts", {})
+        if not isinstance(role_counts_value, dict) or not all(
+            isinstance(key, str) and key.strip() and isinstance(value, int)
+            for key, value in role_counts_value.items()
+        ):
+            errors.append("reconciliation-source-registry.json github_portfolio role_counts must be a string->int map")
+        if not isinstance(batch_counts_value, dict) or not all(
+            isinstance(key, str) and key.strip() and isinstance(value, int)
+            for key, value in batch_counts_value.items()
+        ):
+            errors.append("reconciliation-source-registry.json github_portfolio batch_counts must be a string->int map")
+
+        github_portfolio_ids = [str(entry.get("id") or "").strip() for entry in github_portfolio_repos]
+        if len(github_portfolio_ids) != len(set(github_portfolio_ids)):
+            errors.append("reconciliation-source-registry.json github_portfolio contains duplicate repo ids")
+        github_portfolio_repo_names = [str(entry.get("github_repo") or "").strip() for entry in github_portfolio_repos]
+        if len(github_portfolio_repo_names) != len(set(github_portfolio_repo_names)):
+            errors.append("reconciliation-source-registry.json github_portfolio contains duplicate github_repo values")
+
+        portfolio_role_counts = Counter()
+        portfolio_batch_counts = Counter()
+        portfolio_repo_set: set[str] = set()
+        unconfirmed_local_clone_repos: list[str] = []
+        for entry in github_portfolio_repos:
+            repo_name = str(entry.get("github_repo") or "").strip()
+            if not github_repo_pattern.match(repo_name):
+                errors.append(
+                    "reconciliation-source-registry.json github_portfolio contains invalid github_repo "
+                    + repr(repo_name)
+                )
+                continue
+            if not repo_name.startswith("Dirty13itch/"):
+                errors.append(
+                    f"reconciliation-source-registry.json github_portfolio repo {repo_name!r} must stay under Dirty13itch/"
+                )
+            portfolio_repo_set.add(repo_name)
+
+            role_value = str(entry.get("ecosystem_role") or "")
+            if role_value not in ALLOWED_ECOSYSTEM_ROLES:
+                errors.append(
+                    f"reconciliation-source-registry.json github_portfolio repo {repo_name!r} has invalid ecosystem_role {role_value!r}"
+                )
+            else:
+                portfolio_role_counts[role_value] += 1
+
+            batch_value = str(entry.get("batch") or "").strip()
+            if not batch_value:
+                errors.append(
+                    f"reconciliation-source-registry.json github_portfolio repo {repo_name!r} must set batch"
+                )
+            else:
+                portfolio_batch_counts[batch_value] += 1
+
+            for required_field in ("name", "url", "working_clone", "current_maturity", "shaun_decision"):
+                if not str(entry.get(required_field) or "").strip():
+                    errors.append(
+                        f"reconciliation-source-registry.json github_portfolio repo {repo_name!r} is missing {required_field}"
+                    )
+            if not isinstance(entry.get("is_private"), bool):
+                errors.append(
+                    f"reconciliation-source-registry.json github_portfolio repo {repo_name!r} must set is_private as a boolean"
+                )
+            if not isinstance(entry.get("is_fork"), bool):
+                errors.append(
+                    f"reconciliation-source-registry.json github_portfolio repo {repo_name!r} must set is_fork as a boolean"
+                )
+            if not isinstance(entry.get("doc_classified"), bool):
+                errors.append(
+                    f"reconciliation-source-registry.json github_portfolio repo {repo_name!r} must set doc_classified as a boolean"
+                )
+            if not isinstance(entry.get("live_on_github"), bool):
+                errors.append(
+                    f"reconciliation-source-registry.json github_portfolio repo {repo_name!r} must set live_on_github as a boolean"
+                )
+            if not isinstance(entry.get("has_confirmed_local_clone"), bool):
+                errors.append(
+                    f"reconciliation-source-registry.json github_portfolio repo {repo_name!r} must set has_confirmed_local_clone as a boolean"
+                )
+            elif not entry.get("has_confirmed_local_clone"):
+                unconfirmed_local_clone_repos.append(repo_name)
+
+        if role_counts_value != dict(sorted(portfolio_role_counts.items())):
+            errors.append(
+                "reconciliation-source-registry.json github_portfolio role_counts must match the counted repo roles"
+            )
+        if batch_counts_value != dict(sorted(portfolio_batch_counts.items())):
+            errors.append(
+                "reconciliation-source-registry.json github_portfolio batch_counts must match the counted repo batches"
+            )
+        if sorted(str(item) for item in repos_without_confirmed_local_clone) != sorted(unconfirmed_local_clone_repos):
+            errors.append(
+                "reconciliation-source-registry.json github_portfolio repos_without_confirmed_local_clone must match repo entries"
+            )
+
+        ecosystem_registry_text = (
+            REPO_ROOT / "docs" / "operations" / "ATHANOR-ECOSYSTEM-REGISTRY.md"
+        ).read_text(encoding="utf-8")
+        ecosystem_registry_rows = _parse_ecosystem_registry_rows(ecosystem_registry_text)
+        ecosystem_repo_map = {
+            str(entry.get("github_repo") or "").strip(): entry
+            for entry in ecosystem_registry_rows
+            if str(entry.get("github_repo") or "").strip()
+        }
+        if portfolio_repo_set != set(ecosystem_repo_map):
+            missing_from_portfolio = sorted(set(ecosystem_repo_map) - portfolio_repo_set)
+            missing_from_doc = sorted(portfolio_repo_set - set(ecosystem_repo_map))
+            if missing_from_portfolio:
+                errors.append(
+                    "reconciliation-source-registry.json github_portfolio is missing ecosystem-registry repos: "
+                    + ", ".join(missing_from_portfolio)
+                )
+            if missing_from_doc:
+                errors.append(
+                    "ATHANOR-ECOSYSTEM-REGISTRY.md is missing github_portfolio repos: "
+                    + ", ".join(missing_from_doc)
+                )
+
+        ecosystem_role_counts = Counter(
+            str(entry.get("ecosystem_role") or "")
+            for entry in ecosystem_registry_rows
+            if str(entry.get("ecosystem_role") or "") in ALLOWED_ECOSYSTEM_ROLES
+        )
+        if role_counts_value != dict(sorted(ecosystem_role_counts.items())):
+            errors.append(
+                "ATHANOR-ECOSYSTEM-REGISTRY.md role counts do not match github_portfolio role_counts"
+            )
+
+        for repo_name, row in ecosystem_repo_map.items():
+            portfolio_row = next((entry for entry in github_portfolio_repos if str(entry.get("github_repo") or "") == repo_name), None)
+            if portfolio_row is None:
+                continue
+            for portfolio_field, doc_field in (
+                ("ecosystem_role", "ecosystem_role"),
+                ("working_clone", "working_clone"),
+                ("likely_tenant_status", "likely_tenant_status"),
+                ("batch", "Batch"),
+                ("shaun_decision", "shaun_decision"),
+            ):
+                if str(portfolio_row.get(portfolio_field) or "").strip() != str(row.get(doc_field) or "").strip():
+                    errors.append(
+                        "reconciliation-source-registry.json github_portfolio does not match ATHANOR-ECOSYSTEM-REGISTRY.md "
+                        f"for {repo_name} field {portfolio_field}"
+                    )
+
+        if not GITHUB_PORTFOLIO_SNAPSHOT_PATH.exists():
+            errors.append("reports/reconciliation/github-portfolio-latest.json is missing")
+        else:
+            github_portfolio_snapshot = json.loads(GITHUB_PORTFOLIO_SNAPSHOT_PATH.read_text(encoding="utf-8"))
+            if github_portfolio_snapshot != github_portfolio:
+                errors.append(
+                    "reports/reconciliation/github-portfolio-latest.json must match reconciliation-source-registry.json github_portfolio"
+                )
+
+    tenant_family_roots = [
+        dict(entry)
+        for entry in reconciliation_source_entries
+        if str(entry.get("ecosystem_role") or "") == "tenant" and not str(entry.get("duplicate_of") or "").strip()
+    ]
+    tenant_family_roots_with_members = {
+        str(root.get("id") or ""): root
+        for root in tenant_family_roots
+        if any(str(entry.get("duplicate_of") or "").strip() == str(root.get("id") or "").strip() for entry in reconciliation_source_entries)
+    }
+    if not TENANT_FAMILY_AUDIT_PATH.exists():
+        errors.append("reports/reconciliation/tenant-family-audit-latest.json is missing")
+    else:
+        tenant_family_audit = json.loads(TENANT_FAMILY_AUDIT_PATH.read_text(encoding="utf-8"))
+        families = [dict(entry) for entry in tenant_family_audit.get("families", []) if isinstance(entry, dict)]
+        if tenant_family_audit.get("family_count") != len(families):
+            errors.append("tenant-family-audit-latest.json family_count must match families length")
+        family_map = {
+            str(family.get("root_id") or "").strip(): family
+            for family in families
+            if str(family.get("root_id") or "").strip()
+        }
+        if set(family_map) != set(tenant_family_roots_with_members):
+            errors.append(
+                "tenant-family-audit-latest.json roots must match tenant families with duplicate members from reconciliation-source-registry.json"
+            )
+        allowed_direct_replay_risks = {"high", "low", "not-applicable", "unknown"}
+        for root_id, root_entry in tenant_family_roots_with_members.items():
+            family = family_map.get(root_id)
+            if family is None:
+                continue
+            if str(family.get("root_authority_status") or "") != str(root_entry.get("authority_status") or ""):
+                errors.append(f"tenant-family-audit-latest.json root {root_id} authority status must match source registry")
+            if str(family.get("root_review_status") or "") != str(root_entry.get("review_status") or ""):
+                errors.append(f"tenant-family-audit-latest.json root {root_id} review status must match source registry")
+            if str(family.get("root_default_disposition") or "") != str(root_entry.get("default_disposition") or ""):
+                errors.append(f"tenant-family-audit-latest.json root {root_id} default disposition must match source registry")
+            if str(family.get("root_preservation_status") or "") != str(root_entry.get("preservation_status") or ""):
+                errors.append(f"tenant-family-audit-latest.json root {root_id} preservation status must match source registry")
+            if bool(family.get("root_shaun_decision_required")) != bool(root_entry.get("shaun_decision_required")):
+                errors.append(f"tenant-family-audit-latest.json root {root_id} Shaun-decision flag must match source registry")
+            if list(family.get("root_notes") or []) != list(root_entry.get("notes") or []):
+                errors.append(f"tenant-family-audit-latest.json root {root_id} notes must match source registry")
+
+            member_entries = [
+                dict(entry)
+                for entry in reconciliation_source_entries
+                if str(entry.get("duplicate_of") or "").strip() == root_id
+            ]
+            member_map = {str(entry.get("id") or "").strip(): entry for entry in member_entries}
+            audit_members = [dict(entry) for entry in family.get("members", []) if isinstance(entry, dict)]
+            audit_member_map = {str(entry.get("id") or "").strip(): entry for entry in audit_members if str(entry.get("id") or "").strip()}
+            if set(audit_member_map) != set(member_map):
+                errors.append(f"tenant-family-audit-latest.json family {root_id} members must match source registry duplicates")
+
+            risk_rows = [dict(entry) for entry in family.get("direct_replay_risk_summary", []) if isinstance(entry, dict)]
+            risk_map = {str(entry.get("id") or "").strip(): entry for entry in risk_rows if str(entry.get("id") or "").strip()}
+            if set(risk_map) != set(member_map):
+                errors.append(f"tenant-family-audit-latest.json family {root_id} direct replay risk rows must match family members")
+
+            for member_id, member_entry in member_map.items():
+                audit_member = audit_member_map.get(member_id)
+                if audit_member is None:
+                    continue
+                for field in (
+                    "authority_status",
+                    "review_status",
+                    "default_disposition",
+                    "preservation_status",
+                ):
+                    if str(audit_member.get(field) or "") != str(member_entry.get(field) or ""):
+                        errors.append(
+                            f"tenant-family-audit-latest.json member {member_id} field {field} must match source registry"
+                        )
+                if bool(audit_member.get("shaun_decision_required")) != bool(member_entry.get("shaun_decision_required")):
+                    errors.append(
+                        f"tenant-family-audit-latest.json member {member_id} Shaun-decision flag must match source registry"
+                    )
+                if list(audit_member.get("notes") or []) != list(member_entry.get("notes") or []):
+                    errors.append(f"tenant-family-audit-latest.json member {member_id} notes must match source registry")
+
+                risk_row = risk_map.get(member_id)
+                if risk_row is None:
+                    continue
+                risk_value = str(risk_row.get("direct_replay_risk") or "")
+                if risk_value not in allowed_direct_replay_risks:
+                    errors.append(
+                        f"tenant-family-audit-latest.json member {member_id} has invalid direct_replay_risk {risk_value!r}"
+                    )
+                overlap_paths = risk_row.get("overlapping_dirty_paths", [])
+                if not isinstance(overlap_paths, list) or not all(str(item).strip() for item in overlap_paths):
+                    if overlap_paths != []:
+                        errors.append(
+                            f"tenant-family-audit-latest.json member {member_id} overlapping_dirty_paths must be a string list"
+                        )
+
+    if not FIELD_INSPECT_REPLAY_PACKET_REPORT_PATH.exists():
+        errors.append("reports/reconciliation/field-inspect-operations-runtime-replay-latest.json is missing")
+    else:
+        replay_packet_report = json.loads(FIELD_INSPECT_REPLAY_PACKET_REPORT_PATH.read_text(encoding="utf-8"))
+        if str(replay_packet_report.get("field_inspect_root") or "") != r"C:\Field Inspect":
+            errors.append("field-inspect-operations-runtime-replay-latest.json must target C:\\Field Inspect")
+        if str(replay_packet_report.get("primary_branch") or "") != "codex/perpetual-coo-loop":
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json primary_branch must be codex/perpetual-coo-loop"
+            )
+        if str(replay_packet_report.get("replay_branch") or "") != "codex/reconcile-operations-runtime":
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json replay_branch must be codex/reconcile-operations-runtime"
+            )
+        execution_posture = str(replay_packet_report.get("execution_posture") or "")
+        if execution_posture not in ALLOWED_FIELD_INSPECT_REPLAY_EXECUTION_POSTURES:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json execution_posture must be one of: "
+                + ", ".join(sorted(ALLOWED_FIELD_INSPECT_REPLAY_EXECUTION_POSTURES))
+            )
+        overlap_paths = replay_packet_report.get("overlap_paths", [])
+        if not isinstance(overlap_paths, list) or not all(str(item).strip() for item in overlap_paths):
+            errors.append("field-inspect-operations-runtime-replay-latest.json overlap_paths must be a string list")
+            overlap_paths = []
+        overlap_count = replay_packet_report.get("overlap_count")
+        if not isinstance(overlap_count, int) or overlap_count < 0:
+            errors.append("field-inspect-operations-runtime-replay-latest.json overlap_count must be a non-negative integer")
+        elif overlap_count != len(overlap_paths):
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json overlap_count must match overlap_paths length"
+            )
+        safe_runtime_overlap_paths = replay_packet_report.get("safe_runtime_overlap_paths", [])
+        if not isinstance(safe_runtime_overlap_paths, list) or not all(str(item).strip() for item in safe_runtime_overlap_paths):
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json safe_runtime_overlap_paths must be a string list"
+            )
+            safe_runtime_overlap_paths = []
+        safe_runtime_overlap_count = replay_packet_report.get("safe_runtime_overlap_count")
+        if not isinstance(safe_runtime_overlap_count, int) or safe_runtime_overlap_count < 0:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json safe_runtime_overlap_count must be a non-negative integer"
+            )
+        elif safe_runtime_overlap_count != len(safe_runtime_overlap_paths):
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json safe_runtime_overlap_count must match safe_runtime_overlap_paths length"
+            )
+        if execution_posture == "ready_for_safe_replay" and overlap_paths:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json execution_posture ready_for_safe_replay requires overlap_paths to be empty"
+            )
+        if execution_posture == "ready_for_safe_replay" and safe_runtime_overlap_paths:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json execution_posture ready_for_safe_replay requires safe_runtime_overlap_paths to be empty"
+            )
+        if execution_posture == "ready_for_safe_runtime_only" and not overlap_paths:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json execution_posture ready_for_safe_runtime_only requires overlap_paths"
+            )
+        if execution_posture == "ready_for_safe_runtime_only" and safe_runtime_overlap_paths:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json execution_posture ready_for_safe_runtime_only requires safe_runtime_overlap_paths to be empty"
+            )
+        if execution_posture == "blocked_by_overlap" and not overlap_paths:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json execution_posture blocked_by_overlap requires overlap_paths"
+            )
+        if execution_posture == "blocked_by_overlap" and not safe_runtime_overlap_paths:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json execution_posture blocked_by_overlap requires safe_runtime_overlap_paths"
+            )
+        bucket_counts = replay_packet_report.get("bucket_counts", {})
+        buckets = replay_packet_report.get("buckets", {})
+        required_replay_buckets = {
+            "safe_operations_runtime_replay",
+            "shared_project_follow_through_hold",
+            "secondary_cross_surface_review",
+            "docs_meta_reference",
+            "blocked_overlap",
+        }
+        if set(buckets) != required_replay_buckets:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json buckets must match the required replay bucket set"
+            )
+        if set(bucket_counts) != required_replay_buckets:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json bucket_counts must match the required replay bucket set"
+            )
+        else:
+            for bucket_name in required_replay_buckets:
+                bucket_paths = buckets.get(bucket_name, [])
+                if not isinstance(bucket_paths, list) or not all(str(item).strip() for item in bucket_paths):
+                    errors.append(
+                        f"field-inspect-operations-runtime-replay-latest.json bucket {bucket_name} must be a string list"
+                    )
+                    continue
+                if bucket_counts.get(bucket_name) != len(bucket_paths):
+                    errors.append(
+                        f"field-inspect-operations-runtime-replay-latest.json bucket_counts[{bucket_name}] must match the bucket length"
+                    )
+        validation_commands = replay_packet_report.get("targeted_validation_commands", [])
+        if not isinstance(validation_commands, list) or len(validation_commands) < 2:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json targeted_validation_commands must declare at least two commands"
+            )
+
+        reconciliation_source_map = {
+            str(entry.get("id") or "").strip(): dict(entry) for entry in reconciliation_source_entries
+        }
+        ops_lane_entry = reconciliation_source_map.get("field-inspect-operations-runtime")
+        if ops_lane_entry is None:
+            errors.append(
+                "field-inspect-operations-runtime-replay-latest.json requires field-inspect-operations-runtime in reconciliation-source-registry.json"
+            )
+        else:
+            if str(ops_lane_entry.get("default_disposition") or "") != "tenant-queue":
+                errors.append(
+                    "field-inspect-operations-runtime must remain tenant-queue while the replay packet is active"
+                )
+            if str(ops_lane_entry.get("review_status") or "") != "completed":
+                errors.append(
+                    "field-inspect-operations-runtime must stay review_status=completed once the replay packet is generated"
+                )
+
+    if not RFI_HERS_DUPLICATE_EVIDENCE_PACKET_REPORT_PATH.exists():
+        errors.append("reports/reconciliation/rfi-hers-duplicate-evidence-packet-latest.json is missing")
+    else:
+        rfi_packet_report = json.loads(RFI_HERS_DUPLICATE_EVIDENCE_PACKET_REPORT_PATH.read_text(encoding="utf-8"))
+        if str(rfi_packet_report.get("family_root_id") or "") != "rfi-hers-rater-assistant-root":
+            errors.append(
+                "rfi-hers-duplicate-evidence-packet-latest.json family_root_id must be rfi-hers-rater-assistant-root"
+            )
+        variant_entries = rfi_packet_report.get("variants", [])
+        if not isinstance(variant_entries, list) or len(variant_entries) != 3:
+            errors.append(
+                "rfi-hers-duplicate-evidence-packet-latest.json variants must contain the three duplicate-tree entries"
+            )
+            variant_entries = []
+        expected_variant_ids = {
+            "codexbuild-rfi-hers-rater-assistant",
+            "codexbuild-rfi-hers-rater-assistant-safe",
+            "codexbuild-rfi-hers-rater-assistant-v2",
+        }
+        variant_ids = {str(entry.get("id") or "") for entry in variant_entries if isinstance(entry, dict)}
+        if variant_ids != expected_variant_ids:
+            errors.append(
+                "rfi-hers-duplicate-evidence-packet-latest.json variants must match the governed RFI duplicate ids"
+            )
+        reconciliation_source_map = {
+            str(entry.get("id") or "").strip(): dict(entry) for entry in reconciliation_source_entries
+        }
+        for variant in variant_entries:
+            if not isinstance(variant, dict):
+                continue
+            variant_id = str(variant.get("id") or "")
+            source_entry = reconciliation_source_map.get(variant_id)
+            if source_entry is None:
+                errors.append(
+                    f"rfi-hers-duplicate-evidence-packet-latest.json variant {variant_id} is missing from reconciliation-source-registry.json"
+                )
+                continue
+            if str(source_entry.get("authority_status") or "") != "non-authoritative":
+                errors.append(f"{variant_id} must remain non-authoritative while the duplicate-evidence packet is active")
+            if str(source_entry.get("default_disposition") or "") != "archive":
+                errors.append(f"{variant_id} must remain archive while the duplicate-evidence packet is active")
+            for field_name in (
+                "preserve_archive_evidence",
+                "superseded_by_root",
+                "disposable_artifacts",
+                "unclassified_artifacts",
+            ):
+                value = variant.get(field_name)
+                if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
+                    errors.append(
+                        f"rfi-hers-duplicate-evidence-packet-latest.json variant {variant_id} field {field_name} must be a string list"
+                    )
+            if list(variant.get("unclassified_artifacts") or []):
+                errors.append(
+                    f"rfi-hers-duplicate-evidence-packet-latest.json variant {variant_id} has unclassified artifacts"
+                )
+            if not list(variant.get("preserve_archive_evidence") or []):
+                errors.append(
+                    f"rfi-hers-duplicate-evidence-packet-latest.json variant {variant_id} must preserve at least one archive evidence artifact"
+                )
+
+    if not RFI_HERS_PRIMARY_ROOT_STABILIZATION_REPORT_PATH.exists():
+        errors.append("reports/reconciliation/rfi-hers-primary-root-stabilization-latest.json is missing")
+    else:
+        rfi_root_report = json.loads(RFI_HERS_PRIMARY_ROOT_STABILIZATION_REPORT_PATH.read_text(encoding="utf-8"))
+        if str(rfi_root_report.get("root_id") or "") != "rfi-hers-rater-assistant-root":
+            errors.append(
+                "rfi-hers-primary-root-stabilization-latest.json root_id must be rfi-hers-rater-assistant-root"
+            )
+        if str(rfi_root_report.get("root_path") or "") != r"C:\RFI & HERS Rater Assistant":
+            errors.append(
+                "rfi-hers-primary-root-stabilization-latest.json must target C:\\RFI & HERS Rater Assistant"
+            )
+        execution_posture = str(rfi_root_report.get("execution_posture") or "")
+        if execution_posture not in ALLOWED_RFI_PRIMARY_ROOT_EXECUTION_POSTURES:
+            errors.append(
+                "rfi-hers-primary-root-stabilization-latest.json execution_posture must be one of: "
+                + ", ".join(sorted(ALLOWED_RFI_PRIMARY_ROOT_EXECUTION_POSTURES))
+            )
+        for required_field in (
+            "authority_status",
+            "review_status",
+            "default_disposition",
+            "preservation_status",
+            "branch",
+            "head",
+        ):
+            if not str(rfi_root_report.get(required_field) or "").strip():
+                errors.append(
+                    f"rfi-hers-primary-root-stabilization-latest.json is missing {required_field}"
+                )
+        for count_field in ("dirty_file_count", "tracked_dirty_count", "untracked_count"):
+            if not isinstance(rfi_root_report.get(count_field), int):
+                errors.append(
+                    f"rfi-hers-primary-root-stabilization-latest.json {count_field} must be an integer"
+                )
+        for list_field in (
+            "dirty_paths",
+            "tracked_dirty_paths",
+            "untracked_paths",
+            "validation_commands",
+            "rules",
+            "recommended_tranche_order",
+        ):
+            value = rfi_root_report.get(list_field)
+            if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
+                errors.append(
+                    f"rfi-hers-primary-root-stabilization-latest.json field {list_field} must be a string list"
+                )
+        bucket_counts = rfi_root_report.get("bucket_counts", {})
+        buckets = rfi_root_report.get("buckets", {})
+        required_rfi_buckets = {
+            "repo_contracts_and_meta",
+            "docs_and_runbooks",
+            "canonical_project_data",
+            "generators_and_importers",
+            "workbook_outputs",
+            "operator_residue",
+        }
+        if set(bucket_counts) != required_rfi_buckets:
+            errors.append(
+                "rfi-hers-primary-root-stabilization-latest.json bucket_counts must match the required bucket set"
+            )
+        if set(buckets) != required_rfi_buckets:
+            errors.append(
+                "rfi-hers-primary-root-stabilization-latest.json buckets must match the required bucket set"
+            )
+        else:
+            for bucket_name in required_rfi_buckets:
+                bucket_paths = buckets.get(bucket_name, [])
+                if not isinstance(bucket_paths, list) or not all(isinstance(item, str) and item.strip() for item in bucket_paths):
+                    errors.append(
+                        f"rfi-hers-primary-root-stabilization-latest.json bucket {bucket_name} must be a string list"
+                    )
+                    continue
+                if bucket_counts.get(bucket_name) != len(bucket_paths):
+                    errors.append(
+                        f"rfi-hers-primary-root-stabilization-latest.json bucket_counts[{bucket_name}] must match the bucket length"
+                    )
+        root_source_entry = next(
+            (
+                dict(entry)
+                for entry in reconciliation_source_entries
+                if str(entry.get("id") or "") == "rfi-hers-rater-assistant-root"
+            ),
+            None,
+        )
+        if root_source_entry is None:
+            errors.append(
+                "reconciliation-source-registry.json must contain rfi-hers-rater-assistant-root while the primary-root stabilization packet is active"
+            )
+        else:
+            for report_field, source_field in (
+                ("authority_status", "authority_status"),
+                ("review_status", "review_status"),
+                ("default_disposition", "default_disposition"),
+                ("preservation_status", "preservation_status"),
+            ):
+                if str(rfi_root_report.get(report_field) or "") != str(root_source_entry.get(source_field) or ""):
+                    errors.append(
+                        "rfi-hers-primary-root-stabilization-latest.json does not match reconciliation-source-registry.json "
+                        f"for field {report_field}"
+                    )
+
+    if str(completion_program.get("source_of_truth") or "") != "config/automation-backbone/completion-program-registry.json":
+        errors.append(
+            "completion-program-registry.json source_of_truth must be config/automation-backbone/completion-program-registry.json"
+        )
+    if str(completion_program.get("status") or "") != "active":
+        errors.append("completion-program-registry.json status must be active")
+    if str(completion_program.get("program_id") or "") != "athanor-total-completion":
+        errors.append("completion-program-registry.json program_id must be athanor-total-completion")
+    if str(completion_program.get("tenant_depth_default") or "") != "light-tenant":
+        errors.append("completion-program-registry.json tenant_depth_default must be light-tenant")
+
+    authority_defaults = dict(completion_program.get("authority_defaults") or {})
+    if str(authority_defaults.get("implementation_root") or "") != "C:\\Athanor":
+        errors.append("completion-program-registry.json implementation_root must be C:\\Athanor")
+    if str(authority_defaults.get("runtime_root") or "") != "/home/shaun/repos/athanor":
+        errors.append("completion-program-registry.json runtime_root must be /home/shaun/repos/athanor")
+    if str(authority_defaults.get("runtime_node") or "") != "dev":
+        errors.append("completion-program-registry.json runtime_node must be dev")
+
+    if set(str(item) for item in completion_program.get("workstream_statuses", [])) != ALLOWED_COMPLETION_WORKSTREAM_STATUSES:
+        errors.append("completion-program-registry.json workstream_statuses must match the allowed workstream-status set")
+    if set(str(item) for item in completion_program.get("checkpoint_statuses", [])) != ALLOWED_COMPLETION_CHECKPOINT_STATUSES:
+        errors.append("completion-program-registry.json checkpoint_statuses must match the allowed checkpoint-status set")
+    if set(str(item) for item in completion_program.get("priority_levels", [])) != ALLOWED_COMPLETION_PRIORITY_LEVELS:
+        errors.append("completion-program-registry.json priority_levels must match the allowed priority set")
+
+    role_ids = {
+        str(item.get("id") or "").strip()
+        for item in operating_system.get("roles", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+
+    workstream_entries = [
+        dict(entry) for entry in completion_program.get("workstreams", []) if isinstance(entry, dict)
+    ]
+    if not workstream_entries:
+        errors.append("completion-program-registry.json must declare at least one workstream")
+    workstream_ids = [str(entry.get("id") or "").strip() for entry in workstream_entries]
+    if len(workstream_ids) != len(set(workstream_ids)):
+        errors.append("completion-program-registry.json contains duplicate workstream ids")
+    missing_workstream_ids = sorted(
+        required_id
+        for required_id in REQUIRED_COMPLETION_WORKSTREAM_IDS
+        if required_id not in set(workstream_ids)
+    )
+    if missing_workstream_ids:
+        errors.append(
+            "completion-program-registry.json is missing required workstream ids: "
+            + ", ".join(missing_workstream_ids)
+        )
+
+    for entry in workstream_entries:
+        workstream_id = str(entry.get("id") or "").strip()
+        if not workstream_id:
+            errors.append("completion-program-registry.json contains a workstream without id")
+            continue
+        if str(entry.get("status") or "") not in ALLOWED_COMPLETION_WORKSTREAM_STATUSES:
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} has invalid status {entry.get('status')!r}"
+            )
+        if str(entry.get("priority") or "") not in ALLOWED_COMPLETION_PRIORITY_LEVELS:
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} has invalid priority {entry.get('priority')!r}"
+            )
+        owner_role = str(entry.get("owner_role") or "").strip()
+        if owner_role not in role_ids:
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} has unknown owner_role {owner_role!r}"
+            )
+        for field_name in ("title", "objective"):
+            if not str(entry.get(field_name) or "").strip():
+                errors.append(
+                    f"completion-program-registry.json workstream {workstream_id} is missing {field_name}"
+                )
+        dependencies = entry.get("dependencies", [])
+        if not isinstance(dependencies, list):
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} dependencies must be a list"
+            )
+        primary_artifacts = entry.get("primary_artifacts", [])
+        if not isinstance(primary_artifacts, list) or not all(str(item).strip() for item in primary_artifacts):
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} primary_artifacts must be a non-empty string list"
+            )
+        else:
+            for artifact in primary_artifacts:
+                artifact_path = REPO_ROOT / str(artifact)
+                if not artifact_path.exists():
+                    errors.append(
+                        f"completion-program-registry.json workstream {workstream_id} artifact is missing: {artifact}"
+                    )
+        exit_criteria = entry.get("exit_criteria", [])
+        if not isinstance(exit_criteria, list) or not all(str(item).strip() for item in exit_criteria):
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} exit_criteria must be a non-empty string list"
+            )
+
+    checkpoint_entries = [
+        dict(entry) for entry in completion_program.get("checkpoints", []) if isinstance(entry, dict)
+    ]
+    if not checkpoint_entries:
+        errors.append("completion-program-registry.json must declare at least one checkpoint")
+    checkpoint_ids = [str(entry.get("id") or "").strip() for entry in checkpoint_entries]
+    if len(checkpoint_ids) != len(set(checkpoint_ids)):
+        errors.append("completion-program-registry.json contains duplicate checkpoint ids")
+    missing_checkpoint_ids = sorted(
+        required_id
+        for required_id in REQUIRED_COMPLETION_CHECKPOINT_IDS
+        if required_id not in set(checkpoint_ids)
+    )
+    if missing_checkpoint_ids:
+        errors.append(
+            "completion-program-registry.json is missing required checkpoint ids: "
+            + ", ".join(missing_checkpoint_ids)
+        )
+    checkpoint_id_set = set(checkpoint_ids)
+    for entry in checkpoint_entries:
+        checkpoint_id = str(entry.get("id") or "").strip()
+        if not checkpoint_id:
+            errors.append("completion-program-registry.json contains a checkpoint without id")
+            continue
+        if str(entry.get("status") or "") not in ALLOWED_COMPLETION_CHECKPOINT_STATUSES:
+            errors.append(
+                f"completion-program-registry.json checkpoint {checkpoint_id} has invalid status {entry.get('status')!r}"
+            )
+        if not isinstance(entry.get("order"), int):
+            errors.append(f"completion-program-registry.json checkpoint {checkpoint_id} must set integer order")
+        for field_name in ("scope",):
+            if not str(entry.get(field_name) or "").strip():
+                errors.append(
+                    f"completion-program-registry.json checkpoint {checkpoint_id} is missing {field_name}"
+                )
+        dependencies = entry.get("dependencies", [])
+        if not isinstance(dependencies, list):
+            errors.append(
+                f"completion-program-registry.json checkpoint {checkpoint_id} dependencies must be a list"
+            )
+        else:
+            for dependency in dependencies:
+                if str(dependency) not in checkpoint_id_set:
+                    errors.append(
+                        f"completion-program-registry.json checkpoint {checkpoint_id} references unknown dependency {dependency!r}"
+                    )
+        exit_criteria = entry.get("exit_criteria", [])
+        if not isinstance(exit_criteria, list) or not all(str(item).strip() for item in exit_criteria):
+            errors.append(
+                f"completion-program-registry.json checkpoint {checkpoint_id} exit_criteria must be a non-empty string list"
+            )
+
+    for field_name in ("standing_rules", "final_acceptance"):
+        values = completion_program.get(field_name, [])
+        if not isinstance(values, list) or not all(str(item).strip() for item in values):
+            errors.append(
+                f"completion-program-registry.json {field_name} must be a non-empty string list"
             )
 
     runtime_ownership_lanes = [
@@ -2839,6 +3878,24 @@ def main() -> int:
             relative = path.relative_to(REPO_ROOT).as_posix()
             if relative not in lifecycle_paths:
                 errors.append(f"Active doc is missing from docs lifecycle registry: {relative}")
+
+    missing_reconciliation_docs = sorted(REQUIRED_RECONCILIATION_DOCS - lifecycle_paths)
+    if missing_reconciliation_docs:
+        errors.append(
+            "docs-lifecycle-registry.json is missing reconciliation docs: " + ", ".join(missing_reconciliation_docs)
+        )
+    missing_completion_docs = sorted(REQUIRED_COMPLETION_PROGRAM_DOCS - lifecycle_paths)
+    if missing_completion_docs:
+        errors.append(
+            "docs-lifecycle-registry.json is missing completion-program docs: " + ", ".join(missing_completion_docs)
+        )
+    portfolio_registry_text = (REPO_ROOT / "docs" / "projects" / "PORTFOLIO-REGISTRY.md").read_text(encoding="utf-8")
+    if "ATHANOR-ECOSYSTEM-REGISTRY.md" not in portfolio_registry_text:
+        errors.append("docs/projects/PORTFOLIO-REGISTRY.md must point readers to ATHANOR-ECOSYSTEM-REGISTRY.md")
+
+    completion_program_text = (REPO_ROOT / "docs" / "operations" / "ATHANOR-TOTAL-COMPLETION-PROGRAM.md").read_text(encoding="utf-8")
+    if "completion-program-registry.json" not in completion_program_text:
+        errors.append("ATHANOR-TOTAL-COMPLETION-PROGRAM.md must point readers to completion-program-registry.json")
 
     lens_ids = {str(item) for item in operating_system.get("lenses", [])}
     if lens_ids != REQUIRED_LENSES:

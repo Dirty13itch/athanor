@@ -22,6 +22,67 @@ function parseFixtureBody(body: BodyInit | null | undefined) {
   }
 }
 
+function buildFixtureActivityStats(agentId: string | null) {
+  const byAgent: Record<string, { tasks_completed: number; tasks_failed: number; avg_duration_ms: number }> = {
+    "general-assistant": { tasks_completed: 28, tasks_failed: 1, avg_duration_ms: 4200 },
+    "coding-agent": { tasks_completed: 14, tasks_failed: 2, avg_duration_ms: 6800 },
+    "research-agent": { tasks_completed: 11, tasks_failed: 1, avg_duration_ms: 9100 },
+  };
+
+  return byAgent[agentId ?? ""] ?? {
+    tasks_completed: 9,
+    tasks_failed: 1,
+    avg_duration_ms: 5400,
+  };
+}
+
+function buildFixtureImprovementSummary(timestamp: string) {
+  return {
+    last_cycle: timestamp,
+    proposals_generated: 3,
+    proposals_deployed: 2,
+    cycle_duration_ms: 18420,
+    benchmark_pass_rate: 0.86,
+  };
+}
+
+function buildFixtureImprovementProposals() {
+  return [
+    {
+      id: "proposal-routing-tier",
+      agent_name: "Coding Agent",
+      variant_description: "Tighten routing fallback policy for repo-wide audits.",
+      status: "deployed",
+      improvement_pct: 12.4,
+    },
+    {
+      id: "proposal-review-packet",
+      agent_name: "Research Agent",
+      variant_description: "Bias toward packet-backed review summaries for long-running reconciliation work.",
+      status: "validated",
+      improvement_pct: 7.1,
+    },
+    {
+      id: "proposal-operator-brief",
+      agent_name: "General Assistant",
+      variant_description: "Shorten command-center daily brief framing while keeping residue counts explicit.",
+      status: "pending",
+      improvement_pct: null,
+    },
+  ];
+}
+
+function buildFixtureBenchmarkHistory(timestamp: string) {
+  const base = new Date(timestamp).getTime();
+  return [
+    { date: new Date(base - 4 * 86_400_000).toISOString(), pass_count: 16, total_count: 20, pass_rate: 0.8 },
+    { date: new Date(base - 3 * 86_400_000).toISOString(), pass_count: 17, total_count: 20, pass_rate: 0.85 },
+    { date: new Date(base - 2 * 86_400_000).toISOString(), pass_count: 18, total_count: 20, pass_rate: 0.9 },
+    { date: new Date(base - 1 * 86_400_000).toISOString(), pass_count: 17, total_count: 20, pass_rate: 0.85 },
+    { date: new Date(base).toISOString(), pass_count: 19, total_count: 22, pass_rate: 19 / 22 },
+  ];
+}
+
 const FIXTURE_GOVERNOR_LANES = [
   {
     id: "task_worker",
@@ -2928,6 +2989,31 @@ async function buildFixtureAgentResponse(path: string, init: RequestInit | undef
     return {
       activity,
       count: activity.length,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/activity/stats") {
+    return {
+      stats: buildFixtureActivityStats(agent),
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/improvement/summary") {
+    return buildFixtureImprovementSummary(timestamp);
+  }
+
+  if (method === "GET" && basePath === "/v1/improvement/proposals") {
+    return {
+      proposals: buildFixtureImprovementProposals(),
+      count: buildFixtureImprovementProposals().length,
+    };
+  }
+
+  if (method === "GET" && basePath === "/v1/improvement/benchmarks/history") {
+    const entries = buildFixtureBenchmarkHistory(timestamp);
+    return {
+      entries,
+      count: entries.length,
     };
   }
 

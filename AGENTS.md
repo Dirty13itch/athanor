@@ -46,6 +46,9 @@ Prefer runtime truth and current registries over historical analysis.
 - `python scripts/generate_truth_inventory_reports.py`
 - `python scripts/run_service_contract_tests.py`
 - `bash scripts/drift-check.sh`
+- `python scripts/render_ansible_template.py --ansible-root C:\Athanor\ansible --host vault --template roles\vault-litellm\templates\litellm_config.yaml.j2 --defaults roles\vault-litellm\defaults\main.yml`
+- `powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-DeploymentDriftAudit.ps1`
+- `powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-RepoDeploymentManifestAudit.ps1`
 - `cd projects/dashboard && npm run dev`
 - `cd projects/dashboard && npm test`
 - `cd projects/dashboard && npm run typecheck`

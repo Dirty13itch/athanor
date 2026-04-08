@@ -51,7 +51,7 @@ prometheus_probe_targets:
     node_id: node1
   - id: workshop-worker
     name: "Workshop Worker"
-    url: "http://{{ node2_ip }}:8000/v1/models"
+    url: "http://{{ node2_ip }}:8010/v1/models"
     category: inference
     node_id: node2
   - id: dev-embedding
@@ -121,9 +121,39 @@ prometheus_probe_targets:
     node_id: node2
   - id: dashboard
     name: "Athanor Command Center"
-    url: "https://athanor.local/"
+    url: "http://dev.athanor.local:3001/api/operator/session"
     category: experience
     node_id: dev
+  - id: gpu-orchestrator
+    name: "GPU Orchestrator"
+    url: "http://{{ node1_ip }}:9200/health"
+    category: platform
+    node_id: node1
+  - id: ntfy
+    name: "ntfy"
+    url: "http://{{ vault_ip }}:8880/v1/health"
+    category: platform
+    node_id: vault
+  - id: langfuse
+    name: "Langfuse"
+    url: "http://{{ vault_ip }}:3030/api/public/health"
+    category: observability
+    node_id: vault
+  - id: eoq
+    name: "Empire of Broken Queens"
+    url: "http://{{ node2_ip }}:3002"
+    category: experience
+    node_id: node2
+  - id: ulrich-energy
+    name: "Ulrich Energy"
+    url: "http://{{ node2_ip }}:3003"
+    category: experience
+    node_id: node2
+  - id: speaches
+    name: "Speaches"
+    url: "http://{{ node1_ip }}:8200/docs"
+    category: inference
+    node_id: node1
   - id: workshop-open-webui
     name: "Open WebUI (Workshop)"
     url: "http://{{ node2_ip }}:3000"
@@ -136,9 +166,9 @@ prometheus_probe_targets:
     node_id: vault
   - id: qdrant
     name: "Qdrant"
-    url: "http://{{ node1_ip }}:6333/collections"
+    url: "http://{{ vault_ip }}:6333/collections"
     category: knowledge
-    node_id: node1
+    node_id: vault
   - id: neo4j
     name: "Neo4j"
     url: "http://{{ vault_ip }}:7474"

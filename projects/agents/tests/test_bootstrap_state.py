@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from athanor_agents import bootstrap_state
+from bootstrap_test_harness import BootstrapStateHarness
 
 
 REPORT_ONLY_SLICE_ID = "opsurf-01-shell-census"
@@ -15,111 +15,27 @@ MUTATION_SLICE_ID = "foundry-02-slice-execution"
 WAITING_APPROVAL_SLICE_ID = "persist-04-activation-cutover"
 
 
-class BootstrapStateTests(unittest.IsolatedAsyncioTestCase):
-    async def asyncSetUp(self) -> None:
-        self.tempdir = tempfile.TemporaryDirectory()
-        self.root = Path(self.tempdir.name)
-        bootstrap_state.reset_bootstrap_state_cache()
-
-        self.root_patch = patch("athanor_agents.bootstrap_state.bootstrap_root_path", return_value=self.root / "var" / "bootstrap")
-        self.snapshot_patch = patch("athanor_agents.bootstrap_state.bootstrap_snapshot_path", return_value=self.root / "reports" / "bootstrap" / "latest.json")
-        self.compatibility_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_compatibility_census_path",
-            return_value=self.root / "reports" / "bootstrap" / "compatibility-retirement-census.json",
-        )
-        self.operator_surface_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_operator_surface_census_path",
-            return_value=self.root / "reports" / "bootstrap" / "operator-surface-census.json",
-        )
-        self.operator_summary_alignment_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_operator_summary_alignment_path",
-            return_value=self.root / "reports" / "bootstrap" / "operator-summary-alignment.json",
-        )
-        self.operator_fixture_parity_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_operator_fixture_parity_path",
-            return_value=self.root / "reports" / "bootstrap" / "operator-fixture-parity.json",
-        )
-        self.operator_nav_lock_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_operator_nav_lock_path",
-            return_value=self.root / "reports" / "bootstrap" / "operator-nav-lock.json",
-        )
-        self.persistence_packet_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_durable_persistence_packet_path",
-            return_value=self.root / "reports" / "bootstrap" / "durable-persistence-packet.json",
-        )
-        self.restart_proof_path_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_durable_restart_proof_path",
-            return_value=self.root / "reports" / "bootstrap" / "durable-restart-proof.json",
-        )
-        self.foundry_packet_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_foundry_proving_packet_path",
-            return_value=self.root / "reports" / "bootstrap" / "foundry-proving-packet.json",
-        )
-        self.governance_packet_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_governance_drill_packets_path",
-            return_value=self.root / "reports" / "bootstrap" / "governance-drill-packets.json",
-        )
-        self.takeover_packet_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_takeover_promotion_packet_path",
-            return_value=self.root / "reports" / "bootstrap" / "takeover-promotion-packet.json",
-        )
-        self.approval_registry_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_approval_packet_registry_path",
-            return_value=self.root / "config" / "automation-backbone" / "approval-packet-registry.json",
-        )
-        self.durable_sql_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_durable_state_sql_path",
-            return_value=self.root / "projects" / "agents" / "src" / "athanor_agents" / "sql" / "bootstrap_durable_state.sql",
-        )
-        self.restart_proof_read_patch = patch(
-            "athanor_agents.bootstrap_state.read_durable_restart_proof",
-            return_value={},
-        )
-        self.durable_patch = patch("athanor_agents.bootstrap_state.ensure_durable_state_schema", AsyncMock(return_value=False))
-        self.checkpointer_patch = patch("athanor_agents.bootstrap_state.get_checkpointer_status", return_value={"durable": False, "mode": "fallback"})
-        self.foundry_patch = patch("athanor_agents.bootstrap_state.list_foundry_run_records", AsyncMock(return_value=[]))
-
-        self.root_patch.start()
-        self.snapshot_patch.start()
-        self.compatibility_patch.start()
-        self.operator_surface_patch.start()
-        self.operator_summary_alignment_patch.start()
-        self.operator_fixture_parity_patch.start()
-        self.operator_nav_lock_patch.start()
-        self.persistence_packet_patch.start()
-        self.restart_proof_path_patch.start()
-        self.foundry_packet_patch.start()
-        self.governance_packet_patch.start()
-        self.takeover_packet_patch.start()
-        self.approval_registry_patch.start()
-        self.durable_sql_patch.start()
-        self.restart_proof_read_patch.start()
-        self.durable_patch.start()
-        self.checkpointer_patch.start()
-        self.foundry_patch.start()
-
-        await bootstrap_state.ensure_bootstrap_state(force=True)
-
-    async def asyncTearDown(self) -> None:
-        self.root_patch.stop()
-        self.snapshot_patch.stop()
-        self.compatibility_patch.stop()
-        self.operator_surface_patch.stop()
-        self.operator_summary_alignment_patch.stop()
-        self.operator_fixture_parity_patch.stop()
-        self.operator_nav_lock_patch.stop()
-        self.persistence_packet_patch.stop()
-        self.restart_proof_path_patch.stop()
-        self.foundry_packet_patch.stop()
-        self.governance_packet_patch.stop()
-        self.takeover_packet_patch.stop()
-        self.approval_registry_patch.stop()
-        self.durable_sql_patch.stop()
-        self.restart_proof_read_patch.stop()
-        self.durable_patch.stop()
-        self.checkpointer_patch.stop()
-        self.foundry_patch.stop()
-        self.tempdir.cleanup()
+class BootstrapStateTests(BootstrapStateHarness):
+    @classmethod
+    def additional_patches(cls, root: Path) -> list:
+        return [
+            patch(
+                "athanor_agents.bootstrap_state.bootstrap_durable_restart_proof_path",
+                return_value=root / "reports" / "bootstrap" / "durable-restart-proof.json",
+            ),
+            patch(
+                "athanor_agents.bootstrap_state.bootstrap_approval_packet_registry_path",
+                return_value=root / "config" / "automation-backbone" / "approval-packet-registry.json",
+            ),
+            patch(
+                "athanor_agents.bootstrap_state.bootstrap_durable_state_sql_path",
+                return_value=root / "projects" / "agents" / "src" / "athanor_agents" / "sql" / "bootstrap_durable_state.sql",
+            ),
+            patch(
+                "athanor_agents.bootstrap_state.read_durable_restart_proof",
+                return_value={},
+            ),
+        ]
 
     async def test_state_initializes_sqlite_ledger_and_seeds_programs(self) -> None:
         status = bootstrap_state.get_bootstrap_status()

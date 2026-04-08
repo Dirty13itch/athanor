@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 from athanor_agents import bootstrap_runtime, bootstrap_state
+from bootstrap_test_harness import BootstrapStateHarness
 
 
 REPORT_ONLY_SLICE_ID = "opsurf-01-shell-census"
@@ -13,91 +13,14 @@ NEXT_SLICE_ID = "foundry-02-slice-execution"
 MUTATION_SLICE_ID = "foundry-02-slice-execution"
 
 
-class BootstrapRuntimeTests(unittest.IsolatedAsyncioTestCase):
+class BootstrapRuntimeTests(BootstrapStateHarness):
+    @classmethod
+    def additional_patches(cls, root: Path) -> list:
+        return [patch("athanor_agents.bootstrap_runtime._repo_root", return_value=root / "repo")]
+
     async def asyncSetUp(self) -> None:
-        self.tempdir = tempfile.TemporaryDirectory()
-        self.root = Path(self.tempdir.name)
-        bootstrap_state.reset_bootstrap_state_cache()
-
-        self.root_patch = patch("athanor_agents.bootstrap_state.bootstrap_root_path", return_value=self.root / "var" / "bootstrap")
-        self.snapshot_patch = patch("athanor_agents.bootstrap_state.bootstrap_snapshot_path", return_value=self.root / "reports" / "bootstrap" / "latest.json")
-        self.compatibility_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_compatibility_census_path",
-            return_value=self.root / "reports" / "bootstrap" / "compatibility-retirement-census.json",
-        )
-        self.operator_surface_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_operator_surface_census_path",
-            return_value=self.root / "reports" / "bootstrap" / "operator-surface-census.json",
-        )
-        self.operator_summary_alignment_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_operator_summary_alignment_path",
-            return_value=self.root / "reports" / "bootstrap" / "operator-summary-alignment.json",
-        )
-        self.operator_fixture_parity_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_operator_fixture_parity_path",
-            return_value=self.root / "reports" / "bootstrap" / "operator-fixture-parity.json",
-        )
-        self.operator_nav_lock_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_operator_nav_lock_path",
-            return_value=self.root / "reports" / "bootstrap" / "operator-nav-lock.json",
-        )
-        self.persistence_packet_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_durable_persistence_packet_path",
-            return_value=self.root / "reports" / "bootstrap" / "durable-persistence-packet.json",
-        )
-        self.foundry_packet_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_foundry_proving_packet_path",
-            return_value=self.root / "reports" / "bootstrap" / "foundry-proving-packet.json",
-        )
-        self.governance_packet_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_governance_drill_packets_path",
-            return_value=self.root / "reports" / "bootstrap" / "governance-drill-packets.json",
-        )
-        self.takeover_packet_patch = patch(
-            "athanor_agents.bootstrap_state.bootstrap_takeover_promotion_packet_path",
-            return_value=self.root / "reports" / "bootstrap" / "takeover-promotion-packet.json",
-        )
-        self.durable_patch = patch("athanor_agents.bootstrap_state.ensure_durable_state_schema", AsyncMock(return_value=False))
-        self.checkpointer_patch = patch("athanor_agents.bootstrap_state.get_checkpointer_status", return_value={"durable": False, "mode": "fallback"})
-        self.foundry_patch = patch("athanor_agents.bootstrap_state.list_foundry_run_records", AsyncMock(return_value=[]))
-        self.repo_patch = patch("athanor_agents.bootstrap_runtime._repo_root", return_value=self.root / "repo")
-
-        self.root_patch.start()
-        self.snapshot_patch.start()
-        self.compatibility_patch.start()
-        self.operator_surface_patch.start()
-        self.operator_summary_alignment_patch.start()
-        self.operator_fixture_parity_patch.start()
-        self.operator_nav_lock_patch.start()
-        self.persistence_packet_patch.start()
-        self.foundry_packet_patch.start()
-        self.governance_packet_patch.start()
-        self.takeover_packet_patch.start()
-        self.durable_patch.start()
-        self.checkpointer_patch.start()
-        self.foundry_patch.start()
-        self.repo_patch.start()
-
+        await super().asyncSetUp()
         (self.root / "repo").mkdir(parents=True, exist_ok=True)
-        await bootstrap_state.ensure_bootstrap_state(force=True)
-
-    async def asyncTearDown(self) -> None:
-        self.root_patch.stop()
-        self.snapshot_patch.stop()
-        self.compatibility_patch.stop()
-        self.operator_surface_patch.stop()
-        self.operator_summary_alignment_patch.stop()
-        self.operator_fixture_parity_patch.stop()
-        self.operator_nav_lock_patch.stop()
-        self.persistence_packet_patch.stop()
-        self.foundry_packet_patch.stop()
-        self.governance_packet_patch.stop()
-        self.takeover_packet_patch.stop()
-        self.durable_patch.stop()
-        self.checkpointer_patch.stop()
-        self.foundry_patch.stop()
-        self.repo_patch.stop()
-        self.tempdir.cleanup()
 
     async def test_prepare_worktree_plans_path_without_execution(self) -> None:
         slice_record = await bootstrap_state.get_bootstrap_slice(MUTATION_SLICE_ID)

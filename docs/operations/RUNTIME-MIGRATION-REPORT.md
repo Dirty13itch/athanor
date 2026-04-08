@@ -21,8 +21,16 @@ Do not edit manually.
 | --- | --- |
 | `cutover_verified` | 9 |
 
-- Latest live content evidence snapshot: `2026-04-03T03:48:09.972834+00:00`
-- Live content sync detail is unavailable until `python scripts/collect_truth_inventory.py` refreshes the cached truth snapshot.
+- Latest live content evidence snapshot: `2026-04-08T00:13:15.964104+00:00`
+- Observed live `:8760` references: `0`
+- Planned callers no longer observed in the live runtime grep scan: `9`
+- Sync-required callers: `0`
+- Already-synced callers: `9`
+- Blocked callers: `0`
+
+| Live content state | Count |
+| --- | --- |
+| `content_match` | 9 |
 
 ## dev-governor-facade-8760-callers
 
@@ -39,7 +47,7 @@ Do not edit manually.
 - Observed at: `2026-03-29T02:48:53Z`
 - Observed runtime repo head: `075490f`
 - Runbook: [`docs/runbooks/governor-facade-retirement.md`](/C:/Athanor/docs/runbooks/governor-facade-retirement.md)
-- Live content evidence snapshot: `2026-04-03T03:48:09.972834+00:00`
+- Live content evidence snapshot: `2026-04-08T00:13:15.964104+00:00`
 - Live observed `:8760` references: `0`
 
 ### Acceptance Criteria
@@ -59,29 +67,29 @@ Do not edit manually.
 
 | Order | Caller | Implementation | Runtime cutover | Sync strategy | Runtime target | Content sync | Rollback target | Observed `:8760` ref | Ask-first |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `1` | `scripts/drift-check.sh` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/scripts/drift-check.sh` | `unknown` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh` | `None` | `True` |
-| `2` | `scripts/smoke-test.sh` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/scripts/smoke-test.sh` | `unknown` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh` | `None` | `True` |
-| `3` | `services/cluster_config.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/cluster_config.py` | `unknown` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py` | `None` | `True` |
-| `4` | `services/gateway/main.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/gateway/main.py` | `unknown` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py` | `None` | `True` |
-| `5` | `services/governor/status_report.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/status_report.py` | `unknown` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py` | `None` | `True` |
-| `6` | `services/governor/overnight.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/overnight.py` | `unknown` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py` | `None` | `True` |
-| `7` | `services/governor/act_first.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/act_first.py` | `unknown` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py` | `None` | `True` |
-| `8` | `services/governor/self_improve.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/self_improve.py` | `unknown` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py` | `None` | `True` |
-| `9` | `services/sentinel/checks.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/sentinel/checks.py` | `unknown` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py` | `None` | `True` |
+| `1` | `scripts/drift-check.sh` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/scripts/drift-check.sh` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh` | `False` | `True` |
+| `2` | `scripts/smoke-test.sh` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/scripts/smoke-test.sh` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh` | `False` | `True` |
+| `3` | `services/cluster_config.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/cluster_config.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py` | `False` | `True` |
+| `4` | `services/gateway/main.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/gateway/main.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py` | `False` | `True` |
+| `5` | `services/governor/status_report.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/status_report.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py` | `False` | `True` |
+| `6` | `services/governor/overnight.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/overnight.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py` | `False` | `True` |
+| `7` | `services/governor/act_first.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/act_first.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py` | `False` | `True` |
+| `8` | `services/governor/self_improve.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/governor/self_improve.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py` | `False` | `True` |
+| `9` | `services/sentinel/checks.py` | `migrated` | `cutover_verified` | `backup_then_replace_from_implementation_authority` | `/home/shaun/repos/athanor/services/sentinel/checks.py` | `content_match` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py` | `False` | `True` |
 
 ### Runtime Sync Verification Checklist
 
 | Order | Caller | Sync decision | Implementation source | Runtime target | Backup target | Rollback ready |
 | --- | --- | --- | --- | --- | --- | --- |
-| `1` | `scripts/drift-check.sh` | `unknown` | unset | unset | unset | `None` |
-| `2` | `scripts/smoke-test.sh` | `unknown` | unset | unset | unset | `None` |
-| `3` | `services/cluster_config.py` | `unknown` | unset | unset | unset | `None` |
-| `4` | `services/gateway/main.py` | `unknown` | unset | unset | unset | `None` |
-| `5` | `services/governor/status_report.py` | `unknown` | unset | unset | unset | `None` |
-| `6` | `services/governor/overnight.py` | `unknown` | unset | unset | unset | `None` |
-| `7` | `services/governor/act_first.py` | `unknown` | unset | unset | unset | `None` |
-| `8` | `services/governor/self_improve.py` | `unknown` | unset | unset | unset | `None` |
-| `9` | `services/sentinel/checks.py` | `unknown` | unset | unset | unset | `None` |
+| `1` | `scripts/drift-check.sh` | `already_synced` | `C:\Athanor\scripts\drift-check.sh` | `/home/shaun/repos/athanor/scripts/drift-check.sh` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh` | `True` |
+| `2` | `scripts/smoke-test.sh` | `already_synced` | `C:\Athanor\scripts\smoke-test.sh` | `/home/shaun/repos/athanor/scripts/smoke-test.sh` | `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh` | `True` |
+| `3` | `services/cluster_config.py` | `already_synced` | `C:\Athanor\services\cluster_config.py` | `/home/shaun/repos/athanor/services/cluster_config.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py` | `True` |
+| `4` | `services/gateway/main.py` | `already_synced` | `C:\Athanor\services\gateway\main.py` | `/home/shaun/repos/athanor/services/gateway/main.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py` | `True` |
+| `5` | `services/governor/status_report.py` | `already_synced` | `C:\Athanor\services\governor\status_report.py` | `/home/shaun/repos/athanor/services/governor/status_report.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py` | `True` |
+| `6` | `services/governor/overnight.py` | `already_synced` | `C:\Athanor\services\governor\overnight.py` | `/home/shaun/repos/athanor/services/governor/overnight.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py` | `True` |
+| `7` | `services/governor/act_first.py` | `already_synced` | `C:\Athanor\services\governor\act_first.py` | `/home/shaun/repos/athanor/services/governor/act_first.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py` | `True` |
+| `8` | `services/governor/self_improve.py` | `already_synced` | `C:\Athanor\services\governor\self_improve.py` | `/home/shaun/repos/athanor/services/governor/self_improve.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py` | `True` |
+| `9` | `services/sentinel/checks.py` | `already_synced` | `C:\Athanor\services\sentinel\checks.py` | `/home/shaun/repos/athanor/services/sentinel/checks.py` | `/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py` | `True` |
 
 #### scripts/drift-check.sh
 
@@ -92,25 +100,25 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/scripts/drift-check.sh`
 - Canonical replacement: Use the implementation-authority drift-check helper with cluster-config-owned service URLs and canonical health or /v1 probes instead of :8760.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `unknown`
+- Sync decision: `already_synced`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/drift-check.sh`
-- Rollback ready: `None`
-- Next action: Refresh collector evidence and reopen the seam only if post-cutover drift is real.
+- Rollback ready: `True`
+- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
 - Cutover check: Script runs cleanly from implementation authority without any :8760 reference and the DEV runtime copy no longer journals facade traffic.
 - Repo-side gates: `projects/agents/tests/test_repo_contracts.py::test_legacy_governor_local_helper_scripts_match_live_runtime_truth`, `bash scripts/drift-check.sh`
-- Runtime file: `unset`
-- Runtime file exists: `None`
-- Runtime target matches registry: `None`
-- Implementation file: `unset`
-- Implementation file exists: `None`
-- Live content sync: `unknown`
-- Live `:8760` reference observed: `None`
-- Runtime hash: unset
-- Runtime size: `unset`
-- Runtime lines: `unset`
-- Implementation hash: unset
-- Implementation size: `unset`
-- Implementation lines: `unset`
+- Runtime file: `/home/shaun/repos/athanor/scripts/drift-check.sh`
+- Runtime file exists: `True`
+- Runtime target matches registry: `True`
+- Implementation file: `C:\Athanor\scripts\drift-check.sh`
+- Implementation file exists: `True`
+- Live content sync: `content_match`
+- Live `:8760` reference observed: `False`
+- Runtime hash: `157c37b73ef2`
+- Runtime size: `7101` bytes
+- Runtime lines: `226`
+- Implementation hash: `157c37b73ef2`
+- Implementation size: `7101` bytes
+- Implementation lines: `226`
 - Notes: `2026-03-29 maintenance window verified the DEV runtime copy matches implementation authority and the post-cutover collector observed no live facade traffic.`
 
 #### scripts/smoke-test.sh
@@ -122,25 +130,25 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/scripts/smoke-test.sh`
 - Canonical replacement: Use the implementation-authority smoke-test helper with cluster-config-owned canonical service URLs and no :8760 dependency.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `unknown`
+- Sync decision: `already_synced`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/scripts/smoke-test.sh`
-- Rollback ready: `None`
-- Next action: Refresh collector evidence and reopen the seam only if post-cutover drift is real.
+- Rollback ready: `True`
+- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
 - Cutover check: Script runs cleanly from implementation authority and the DEV runtime copy no longer hits :8760.
 - Repo-side gates: `python scripts/validate_platform_contract.py`, `bash scripts/smoke-test.sh`
-- Runtime file: `unset`
-- Runtime file exists: `None`
-- Runtime target matches registry: `None`
-- Implementation file: `unset`
-- Implementation file exists: `None`
-- Live content sync: `unknown`
-- Live `:8760` reference observed: `None`
-- Runtime hash: unset
-- Runtime size: `unset`
-- Runtime lines: `unset`
-- Implementation hash: unset
-- Implementation size: `unset`
-- Implementation lines: `unset`
+- Runtime file: `/home/shaun/repos/athanor/scripts/smoke-test.sh`
+- Runtime file exists: `True`
+- Runtime target matches registry: `True`
+- Implementation file: `C:\Athanor\scripts\smoke-test.sh`
+- Implementation file exists: `True`
+- Live content sync: `content_match`
+- Live `:8760` reference observed: `False`
+- Runtime hash: `1d791553df11`
+- Runtime size: `1987` bytes
+- Runtime lines: `51`
+- Implementation hash: `1d791553df11`
+- Implementation size: `1987` bytes
+- Implementation lines: `51`
 - Notes: none
 
 #### services/cluster_config.py
@@ -152,25 +160,25 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/services/cluster_config.py`
 - Canonical replacement: Use platform-topology-backed service resolution and remove any runtime-local governor URL fallback.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `unknown`
+- Sync decision: `already_synced`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/cluster_config.py`
-- Rollback ready: `None`
-- Next action: Refresh collector evidence and reopen the seam only if post-cutover drift is real.
+- Rollback ready: `True`
+- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
 - Cutover check: DEV runtime repo no longer exports or defaults any localhost:8760 governor URL.
 - Repo-side gates: `projects/agents/tests/test_repo_contracts.py::test_legacy_governor_local_helper_scripts_match_live_runtime_truth`, `python scripts/validate_platform_contract.py`
-- Runtime file: `unset`
-- Runtime file exists: `None`
-- Runtime target matches registry: `None`
-- Implementation file: `unset`
-- Implementation file exists: `None`
-- Live content sync: `unknown`
-- Live `:8760` reference observed: `None`
-- Runtime hash: unset
-- Runtime size: `unset`
-- Runtime lines: `unset`
-- Implementation hash: unset
-- Implementation size: `unset`
-- Implementation lines: `unset`
+- Runtime file: `/home/shaun/repos/athanor/services/cluster_config.py`
+- Runtime file exists: `True`
+- Runtime target matches registry: `True`
+- Implementation file: `C:\Athanor\services\cluster_config.py`
+- Implementation file exists: `True`
+- Live content sync: `content_match`
+- Live `:8760` reference observed: `False`
+- Runtime hash: `af150099834b`
+- Runtime size: `4584` bytes
+- Runtime lines: `138`
+- Implementation hash: `a4a1987f6cc4`
+- Implementation size: `4722` bytes
+- Implementation lines: `138`
 - Notes: `This is the shared replacement seam for helper scripts that should consume topology-owned service URLs.`
 
 #### services/gateway/main.py
@@ -182,25 +190,25 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/services/gateway/main.py`
 - Canonical replacement: Monitor topology-owned service ids through get_health_url(service_id) and shared health snapshots instead of :8760.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `unknown`
+- Sync decision: `already_synced`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/gateway/main.py`
-- Rollback ready: `None`
-- Next action: Refresh collector evidence and reopen the seam only if post-cutover drift is real.
+- Rollback ready: `True`
+- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
 - Cutover check: Gateway health references canonical task-engine stats and topology-owned dependency ids instead of localhost:8760.
 - Repo-side gates: `python scripts/run_service_contract_tests.py`, `projects/agents/tests/test_repo_contracts.py::test_legacy_governor_local_helper_scripts_match_live_runtime_truth`
-- Runtime file: `unset`
-- Runtime file exists: `None`
-- Runtime target matches registry: `None`
-- Implementation file: `unset`
-- Implementation file exists: `None`
-- Live content sync: `unknown`
-- Live `:8760` reference observed: `None`
-- Runtime hash: unset
-- Runtime size: `unset`
-- Runtime lines: `unset`
-- Implementation hash: unset
-- Implementation size: `unset`
-- Implementation lines: `unset`
+- Runtime file: `/home/shaun/repos/athanor/services/gateway/main.py`
+- Runtime file exists: `True`
+- Runtime target matches registry: `True`
+- Implementation file: `C:\Athanor\services\gateway\main.py`
+- Implementation file exists: `True`
+- Live content sync: `content_match`
+- Live `:8760` reference observed: `False`
+- Runtime hash: `629bc9d45426`
+- Runtime size: `4299` bytes
+- Runtime lines: `152`
+- Implementation hash: `6a7d008aced9`
+- Implementation size: `4338` bytes
+- Implementation lines: `152`
 - Notes: none
 
 #### services/governor/status_report.py
@@ -212,25 +220,25 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/services/governor/status_report.py`
 - Canonical replacement: Read posture, task, proposal, skill, and subscription truth from canonical agent-server and dashboard surfaces.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `unknown`
+- Sync decision: `already_synced`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/status_report.py`
-- Rollback ready: `None`
-- Next action: Refresh collector evidence and reopen the seam only if post-cutover drift is real.
+- Rollback ready: `True`
+- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
 - Cutover check: Helper reads canonical task and subscription summary surfaces only.
 - Repo-side gates: `projects/agents/tests/test_repo_contracts.py::test_legacy_governor_automation_uses_canonical_task_routes`, `python scripts/validate_platform_contract.py`
-- Runtime file: `unset`
-- Runtime file exists: `None`
-- Runtime target matches registry: `None`
-- Implementation file: `unset`
-- Implementation file exists: `None`
-- Live content sync: `unknown`
-- Live `:8760` reference observed: `None`
-- Runtime hash: unset
-- Runtime size: `unset`
-- Runtime lines: `unset`
-- Implementation hash: unset
-- Implementation size: `unset`
-- Implementation lines: `unset`
+- Runtime file: `/home/shaun/repos/athanor/services/governor/status_report.py`
+- Runtime file exists: `True`
+- Runtime target matches registry: `True`
+- Implementation file: `C:\Athanor\services\governor\status_report.py`
+- Implementation file exists: `True`
+- Live content sync: `content_match`
+- Live `:8760` reference observed: `False`
+- Runtime hash: `cc4a69872ee5`
+- Runtime size: `4072` bytes
+- Runtime lines: `105`
+- Implementation hash: `cc4a69872ee5`
+- Implementation size: `4072` bytes
+- Implementation lines: `105`
 - Notes: none
 
 #### services/governor/overnight.py
@@ -242,25 +250,25 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/services/governor/overnight.py`
 - Canonical replacement: Dispatch pending work only through the canonical task engine.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `unknown`
+- Sync decision: `already_synced`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/overnight.py`
-- Rollback ready: `None`
-- Next action: Refresh collector evidence and reopen the seam only if post-cutover drift is real.
+- Rollback ready: `True`
+- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
 - Cutover check: Helper dispatches through /v1/tasks/dispatch and no longer reads /queue or /dispatch-and-run.
 - Repo-side gates: `projects/agents/tests/test_repo_contracts.py::test_legacy_governor_automation_uses_canonical_task_routes`, `services/governor/tests/test_helper_contracts.py`
-- Runtime file: `unset`
-- Runtime file exists: `None`
-- Runtime target matches registry: `None`
-- Implementation file: `unset`
-- Implementation file exists: `None`
-- Live content sync: `unknown`
-- Live `:8760` reference observed: `None`
-- Runtime hash: unset
-- Runtime size: `unset`
-- Runtime lines: `unset`
-- Implementation hash: unset
-- Implementation size: `unset`
-- Implementation lines: `unset`
+- Runtime file: `/home/shaun/repos/athanor/services/governor/overnight.py`
+- Runtime file exists: `True`
+- Runtime target matches registry: `True`
+- Implementation file: `C:\Athanor\services\governor\overnight.py`
+- Implementation file exists: `True`
+- Live content sync: `content_match`
+- Live `:8760` reference observed: `False`
+- Runtime hash: `0e4c24916ae7`
+- Runtime size: `3373` bytes
+- Runtime lines: `124`
+- Implementation hash: `0e4c24916ae7`
+- Implementation size: `3373` bytes
+- Implementation lines: `124`
 - Notes: none
 
 #### services/governor/act_first.py
@@ -272,25 +280,25 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/services/governor/act_first.py`
 - Canonical replacement: Read recent canonical task truth from the task engine and never touch legacy queue surfaces.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `unknown`
+- Sync decision: `already_synced`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/act_first.py`
-- Rollback ready: `None`
-- Next action: Refresh collector evidence and reopen the seam only if post-cutover drift is real.
+- Rollback ready: `True`
+- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
 - Cutover check: Helper reads the canonical task list instead of mutating a local queue snapshot.
 - Repo-side gates: `projects/agents/tests/test_repo_contracts.py::test_legacy_governor_automation_uses_canonical_task_routes`, `services/governor/tests/test_helper_contracts.py`
-- Runtime file: `unset`
-- Runtime file exists: `None`
-- Runtime target matches registry: `None`
-- Implementation file: `unset`
-- Implementation file exists: `None`
-- Live content sync: `unknown`
-- Live `:8760` reference observed: `None`
-- Runtime hash: unset
-- Runtime size: `unset`
-- Runtime lines: `unset`
-- Implementation hash: unset
-- Implementation size: `unset`
-- Implementation lines: `unset`
+- Runtime file: `/home/shaun/repos/athanor/services/governor/act_first.py`
+- Runtime file exists: `True`
+- Runtime target matches registry: `True`
+- Implementation file: `C:\Athanor\services\governor\act_first.py`
+- Implementation file exists: `True`
+- Live content sync: `content_match`
+- Live `:8760` reference observed: `False`
+- Runtime hash: `373befc7eb31`
+- Runtime size: `2223` bytes
+- Runtime lines: `79`
+- Implementation hash: `373befc7eb31`
+- Implementation size: `2223` bytes
+- Implementation lines: `79`
 - Notes: none
 
 #### services/governor/self_improve.py
@@ -302,25 +310,25 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/services/governor/self_improve.py`
 - Canonical replacement: Read and patch proposals on the agent server, then create durable tasks through canonical /v1/tasks.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `unknown`
+- Sync decision: `already_synced`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/governor/self_improve.py`
-- Rollback ready: `None`
-- Next action: Refresh collector evidence and reopen the seam only if post-cutover drift is real.
+- Rollback ready: `True`
+- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
 - Cutover check: Helper submits durable tasks through /v1/tasks and no longer relies on governor-owned queue surfaces.
 - Repo-side gates: `projects/agents/tests/test_repo_contracts.py::test_legacy_governor_automation_uses_canonical_task_routes`, `services/governor/tests/test_helper_contracts.py`
-- Runtime file: `unset`
-- Runtime file exists: `None`
-- Runtime target matches registry: `None`
-- Implementation file: `unset`
-- Implementation file exists: `None`
-- Live content sync: `unknown`
-- Live `:8760` reference observed: `None`
-- Runtime hash: unset
-- Runtime size: `unset`
-- Runtime lines: `unset`
-- Implementation hash: unset
-- Implementation size: `unset`
-- Implementation lines: `unset`
+- Runtime file: `/home/shaun/repos/athanor/services/governor/self_improve.py`
+- Runtime file exists: `True`
+- Runtime target matches registry: `True`
+- Implementation file: `C:\Athanor\services\governor\self_improve.py`
+- Implementation file exists: `True`
+- Live content sync: `content_match`
+- Live `:8760` reference observed: `False`
+- Runtime hash: `eeaf40daffc8`
+- Runtime size: `5440` bytes
+- Runtime lines: `163`
+- Implementation hash: `eeaf40daffc8`
+- Implementation size: `5440` bytes
+- Implementation lines: `163`
 - Notes: none
 
 #### services/sentinel/checks.py
@@ -332,23 +340,23 @@ Do not edit manually.
 - Expected runtime owner path: `/home/shaun/repos/athanor/services/sentinel/checks.py`
 - Canonical replacement: Probe topology-owned health surfaces and canonical /v1/tasks/stats instead of :8760.
 - Sync strategy: `backup_then_replace_from_implementation_authority`
-- Sync decision: `unknown`
+- Sync decision: `already_synced`
 - Rollback target: `/home/shaun/.athanor/backups/governor-facade-cutover/services/sentinel/checks.py`
-- Rollback ready: `None`
-- Next action: Refresh collector evidence and reopen the seam only if post-cutover drift is real.
+- Rollback ready: `True`
+- Next action: Cutover is verified; no further runtime file action is required unless drift reappears.
 - Cutover check: Sentinel integration checks use canonical task-engine stats and topology-owned service health URLs.
 - Repo-side gates: `python scripts/run_service_contract_tests.py`, `projects/agents/tests/test_repo_contracts.py::test_legacy_governor_main_is_deleted_from_implementation_authority`
-- Runtime file: `unset`
-- Runtime file exists: `None`
-- Runtime target matches registry: `None`
-- Implementation file: `unset`
-- Implementation file exists: `None`
-- Live content sync: `unknown`
-- Live `:8760` reference observed: `None`
-- Runtime hash: unset
-- Runtime size: `unset`
-- Runtime lines: `unset`
-- Implementation hash: unset
-- Implementation size: `unset`
-- Implementation lines: `unset`
+- Runtime file: `/home/shaun/repos/athanor/services/sentinel/checks.py`
+- Runtime file exists: `True`
+- Runtime target matches registry: `True`
+- Implementation file: `C:\Athanor\services\sentinel\checks.py`
+- Implementation file exists: `True`
+- Live content sync: `content_match`
+- Live `:8760` reference observed: `False`
+- Runtime hash: `d0f74ed51d3a`
+- Runtime size: `9028` bytes
+- Runtime lines: `282`
+- Implementation hash: `2d7a06ad3103`
+- Implementation size: `9235` bytes
+- Implementation lines: `282`
 - Notes: none

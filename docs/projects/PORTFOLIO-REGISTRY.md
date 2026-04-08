@@ -2,6 +2,8 @@
 
 This document mirrors the current project maturity assignments from [`project-maturity-registry.json`](../../config/automation-backbone/project-maturity-registry.json).
 
+It is intentionally narrower than the full Dirty13itch ecosystem view. For the portfolio-wide Athanor program map, use [ATHANOR-ECOSYSTEM-REGISTRY.md](/C:/Athanor/docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md).
+
 | Project | Class | Reason |
 | --- | --- | --- |
 | `agents` | `platform-core` | Primary control-plane runtime. |

@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-02.5",
-  "updated_at": "2026-04-02T18:10:00Z",
+  "version": "2026-04-06.1",
+  "updated_at": "2026-04-06T23:15:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/repo-roots-registry.json",
   "roots": [
@@ -147,6 +147,18 @@
       ]
     },
     {
+      "id": "workshop-opt-athanor",
+      "path": "/opt/athanor",
+      "host": "workshop",
+      "authority_level": "runtime-state",
+      "runtime_scope": "deployed compose bundles and supporting assets for Workshop control-surface, creative, and tenant runtimes",
+      "status": "active",
+      "notes": [
+        "Observed deployment-drift evidence covers live Workshop compose roots under /opt/athanor/dashboard, /opt/athanor/ws-pty-bridge, /opt/athanor/vllm-node2, /opt/athanor/open-webui, /opt/athanor/comfyui, /opt/athanor/eoq, and /opt/athanor/ulrich-energy.",
+        "The Workshop dashboard root is not the canonical command center anymore, but it still carries the live ws-pty-bridge surface and recovery-only dashboard state."
+      ]
+    },
+    {
       "id": "athanor-next",
       "path": "C:/Users/Shaun/dev/athanor-next",
       "host": "desk",
@@ -190,6 +202,13 @@
       "severity": "medium",
       "surface": "deployment packaging",
       "description": "The FOUNDRY athanor-agents lane is now governed explicitly as a compose deployment rooted at /opt/athanor/agents. Imports from /usr/local/lib/python3.12/site-packages/athanor_agents are expected image layout, and ordinary updates must go through the repo-owned compose deploy path instead of ad hoc site-packages hotfixes."
+    },
+    {
+      "id": "workshop-runtime-surface-drift",
+      "status": "active",
+      "severity": "medium",
+      "surface": "runtime ownership",
+      "description": "Workshop runtime compose surfaces are now explicit roots, but several live configs under /opt/athanor still drift from implementation authority and require governed per-surface reconciliation instead of ad hoc node memory."
     }
   ]
 }

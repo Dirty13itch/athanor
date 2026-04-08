@@ -28,8 +28,8 @@ vllm_node1_host: 192.168.1.244
 vllm_node1_port: 8000
 vllm_node1_model: "/models/Qwen3.5-27B-FP8"
 vllm_node1_coder_port: 8006
-vllm_node1_coder_model: "/models/Qwen3.5-35B-A3B-AWQ-4bit"
-vllm_node1_coder_public_model: "openai/qwen35-coder"
+vllm_node1_coder_model: "devstral-small-2"
+vllm_node1_coder_public_model: "openai/devstral-small-2"
 
 vllm_node2_host: 192.168.1.225
 vllm_node2_port: 8000

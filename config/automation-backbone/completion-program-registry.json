@@ -1,0 +1,357 @@
+{
+  "version": "2026-04-07.5",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/completion-program-registry.json",
+  "program_id": "athanor-total-completion",
+  "program_title": "Athanor Total Completion Program",
+  "current_phase": "active_reconciliation_and_runtime_split",
+  "tenant_depth_default": "light-tenant",
+  "authority_defaults": {
+    "implementation_root": "C:\\Athanor",
+    "remote_mainline": "Dirty13itch/athanor:main",
+    "runtime_root": "/home/shaun/repos/athanor",
+    "runtime_node": "dev"
+  },
+  "workstream_statuses": [
+    "planned",
+    "active",
+    "blocked",
+    "governed-runtime",
+    "continuous",
+    "completed"
+  ],
+  "checkpoint_statuses": [
+    "planned",
+    "active",
+    "blocked",
+    "completed"
+  ],
+  "priority_levels": [
+    "critical",
+    "high",
+    "medium",
+    "low"
+  ],
+  "workstreams": [
+    {
+      "id": "authority-and-mainline",
+      "title": "Authority and Mainline Convergence",
+      "status": "active",
+      "priority": "critical",
+      "owner_role": "program_manager",
+      "objective": "Keep Athanor implementation truth singular, align local work to GitHub mainline, and prevent side roots or stale local history from becoming shadow authority.",
+      "dependencies": [],
+      "primary_artifacts": [
+        "STATUS.md",
+        "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+        "docs/operations/ATHANOR-OPERATING-SYSTEM.md",
+        "config/automation-backbone/repo-roots-registry.json",
+        "docs/operations/REPO-ROOTS-REPORT.md"
+      ],
+      "exit_criteria": [
+        "C:\\Athanor is the only active implementation-authority root.",
+        "origin/main and local mainline are explicitly aligned or drift is packeted.",
+        "Startup docs do not route operators or agents to shadow roots."
+      ]
+    },
+    {
+      "id": "deployment-authority-reconciliation",
+      "title": "Deployment Authority Reconciliation",
+      "status": "active",
+      "priority": "critical",
+      "owner_role": "runtime_architect",
+      "objective": "Bring repo-side Ansible and deployment contracts into line with live evidence where the evidence is strong, and push remaining mismatches into explicit runtime-owned drift packets.",
+      "dependencies": [
+        "authority-and-mainline"
+      ],
+      "primary_artifacts": [
+        "scripts/Invoke-DeploymentDriftAudit.ps1",
+        "reports/deployment-drift/summary.md",
+        "ansible/host_vars/core.yml",
+        "ansible/host_vars/interface.yml",
+        "ansible/host_vars/vault.yml",
+        "docs/operations/ATHANOR-RECONCILIATION-LEDGER.md"
+      ],
+      "exit_criteria": [
+        "High-confidence repo-side deployment drift is closed.",
+        "Remaining live mismatches are explicitly classified as runtime-owned host state or approval-gated runtime repair."
+      ]
+    },
+    {
+      "id": "runtime-sync-and-governed-packets",
+      "title": "Runtime Sync and Governed Packets",
+      "status": "governed-runtime",
+      "priority": "critical",
+      "owner_role": "infra_sre",
+      "objective": "Execute only approval-gated runtime repairs and sync operations through packeted, backup-first paths on DEV, FOUNDRY, WORKSHOP, and VAULT.",
+      "dependencies": [
+        "deployment-authority-reconciliation"
+      ],
+      "primary_artifacts": [
+        "config/automation-backbone/runtime-ownership-contract.json",
+        "config/automation-backbone/runtime-ownership-packets.json",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "scripts/deploy-agents.sh",
+        "scripts/deploy-dashboard.sh"
+      ],
+      "exit_criteria": [
+        "Runtime-owned surfaces are packeted or mirror-clean.",
+        "No host-level mutation path depends on undocumented operator memory."
+      ]
+    },
+    {
+      "id": "provider-and-secret-remediation",
+      "title": "Provider and Secret Remediation",
+      "status": "active",
+      "priority": "critical",
+      "owner_role": "security_auditor",
+      "objective": "Repair or explicitly demote auth-failed provider lanes and keep secret-surface truth, provider truth, and LiteLLM runtime evidence coherent.",
+      "dependencies": [
+        "runtime-sync-and-governed-packets"
+      ],
+      "primary_artifacts": [
+        "config/automation-backbone/provider-catalog.json",
+        "config/automation-backbone/credential-surface-registry.json",
+        "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md",
+        "docs/operations/SECRET-SURFACE-REPORT.md",
+        "reports/truth-inventory/vault-litellm-env-audit.json"
+      ],
+      "exit_criteria": [
+        "Auth-failed provider lanes are either repaired or deliberately demoted.",
+        "Provider evidence, billing posture, and env contracts no longer disagree."
+      ]
+    },
+    {
+      "id": "monitoring-and-observability-truth",
+      "title": "Monitoring and Observability Truth",
+      "status": "active",
+      "priority": "high",
+      "owner_role": "infra_sre",
+      "objective": "Make Prometheus, Grafana alerts, and operator-surface monitoring follow registry-backed service truth instead of stale shadow targets or historical topology assumptions.",
+      "dependencies": [
+        "deployment-authority-reconciliation"
+      ],
+      "primary_artifacts": [
+        "ansible/host_vars/vault.yml",
+        "ansible/roles/vault-monitoring/templates/prometheus.yml.j2",
+        "reports/deployment-drift/vault-prometheus.diff",
+        "config/automation-backbone/operator-surface-registry.json",
+        "docs/operations/OPERATOR-SURFACE-REPORT.md"
+      ],
+      "exit_criteria": [
+        "Repo-side monitoring truth follows platform-topology and operator-surface truth.",
+        "Remaining live Prometheus drift is classified as runtime-owned config shape, not repo ambiguity."
+      ]
+    },
+    {
+      "id": "portfolio-and-source-reconciliation",
+      "title": "Portfolio and Source Reconciliation",
+      "status": "active",
+      "priority": "high",
+      "owner_role": "portfolio_curator",
+      "objective": "Inventory, classify, and govern every meaningful local root and Dirty13itch GitHub repo under one Athanor ecosystem model.",
+      "dependencies": [
+        "authority-and-mainline"
+      ],
+      "primary_artifacts": [
+        "config/automation-backbone/reconciliation-source-registry.json",
+        "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
+        "docs/operations/ATHANOR-TENANT-QUEUE.md",
+        "docs/operations/FIELD-INSPECT-OPERATIONS-RUNTIME-REPLAY-PACKET.md",
+        "docs/operations/RFI-HERS-DUPLICATE-EVIDENCE-PACKET.md",
+        "reports/reconciliation/discovery-latest.json",
+        "reports/reconciliation/github-portfolio-latest.json",
+        "reports/reconciliation/tenant-family-audit-latest.json",
+        "reports/reconciliation/field-inspect-operations-runtime-replay-latest.json",
+        "reports/reconciliation/rfi-hers-duplicate-evidence-packet-latest.json"
+      ],
+      "exit_criteria": [
+        "Every in-scope local root has a governed disposition.",
+        "Every Dirty13itch repo has an explicit ecosystem role."
+      ]
+    },
+    {
+      "id": "lineage-and-shared-extraction",
+      "title": "Lineage and Shared Extraction",
+      "status": "active",
+      "priority": "high",
+      "owner_role": "portfolio_curator",
+      "objective": "Mine Local-System, Agentic Coding Tools, AI-Dev-Control-Plane, Reconcile, and athanor-next for reusable value without reviving parallel authorities.",
+      "dependencies": [
+        "portfolio-and-source-reconciliation"
+      ],
+      "primary_artifacts": [
+        "docs/operations/ATHANOR-SHARED-EXTRACTION-QUEUE.md",
+        "docs/operations/ATHANOR-RECONCILIATION-LEDGER.md",
+        "docs/operations/ATHANOR-RECONCILIATION-PACKET.md"
+      ],
+      "exit_criteria": [
+        "Shared value is imported, queued, archived, or rejected explicitly.",
+        "Lineage repos remain non-authoritative after harvest."
+      ]
+    },
+    {
+      "id": "tenant-architecture-and-classification",
+      "title": "Tenant Architecture and Classification",
+      "status": "active",
+      "priority": "high",
+      "owner_role": "portfolio_curator",
+      "objective": "Turn separate product repos and local app roots into an intentional tenant surface with explicit integration depth and platform relationship.",
+      "dependencies": [
+        "portfolio-and-source-reconciliation"
+      ],
+      "primary_artifacts": [
+        "docs/operations/ATHANOR-TENANT-QUEUE.md",
+        "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
+        "docs/projects/PORTFOLIO-REGISTRY.md",
+        "docs/operations/FIELD-INSPECT-OPERATIONS-RUNTIME-REPLAY-PACKET.md",
+        "docs/operations/RFI-HERS-DUPLICATE-EVIDENCE-PACKET.md"
+      ],
+      "exit_criteria": [
+        "Tenant candidates are classified as light-tenant, deep-tenant, standalone-external, or incubation only.",
+        "No meaningful product root remains a floating unmanaged side project."
+      ]
+    },
+    {
+      "id": "startup-docs-and-prune",
+      "title": "Startup Docs and Prune",
+      "status": "continuous",
+      "priority": "high",
+      "owner_role": "dx_enforcer",
+      "objective": "Keep startup docs, runbooks, reference indexes, and archive discipline aligned with current truth while deleting superseded guidance aggressively.",
+      "dependencies": [
+        "authority-and-mainline"
+      ],
+      "primary_artifacts": [
+        "README.md",
+        "AGENTS.md",
+        "PROJECT.md",
+        "STATUS.md",
+        "docs/DOCUMENTATION-INDEX.md",
+        "config/automation-backbone/docs-lifecycle-registry.json"
+      ],
+      "exit_criteria": [
+        "Startup docs point at current truth only.",
+        "Superseded active-root docs are archived or deleted after replacement verification."
+      ]
+    },
+    {
+      "id": "validation-and-publication",
+      "title": "Validation and Publication",
+      "status": "continuous",
+      "priority": "critical",
+      "owner_role": "dx_enforcer",
+      "objective": "Keep the registry/doc/validator layer green and publish reconciliation work in checkpointed slices instead of another unpublished pileup.",
+      "dependencies": [
+        "authority-and-mainline",
+        "deployment-authority-reconciliation",
+        "portfolio-and-source-reconciliation"
+      ],
+      "primary_artifacts": [
+        "scripts/validate_platform_contract.py",
+        "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+        "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md"
+      ],
+      "exit_criteria": [
+        "Validator and generated-doc freshness stay green after each landing.",
+        "Reconciliation work is staged into explicit checkpoints with publication readiness."
+      ]
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "control-surface-foundation",
+      "order": 1,
+      "status": "completed",
+      "scope": "Reconciliation control docs, source registry, tenant queue, ecosystem registry, validator wiring, and preservation baseline.",
+      "dependencies": [],
+      "exit_criteria": [
+        "Control artifacts exist in Athanor and are lifecycle-tracked.",
+        "Validator knows the reconciliation surface."
+      ]
+    },
+    {
+      "id": "deployment-truth-narrowing",
+      "order": 2,
+      "status": "active",
+      "scope": "High-confidence repo-side closure of deployment drift while pushing unresolved live-state mismatches into governed runtime debt.",
+      "dependencies": [
+        "control-surface-foundation"
+      ],
+      "exit_criteria": [
+        "Repo-side deployment truth is corrected where runtime and registry evidence agree.",
+        "Remaining drift is explicitly runtime-owned or packeted."
+      ]
+    },
+    {
+      "id": "lineage-and-side-root-harvest",
+      "order": 3,
+      "status": "active",
+      "scope": "Selective import, archive, and rejection decisions across athanor-next, Reconcile, Local-System, Agentic Coding Tools, and adjacent operator tooling roots.",
+      "dependencies": [
+        "control-surface-foundation"
+      ],
+      "exit_criteria": [
+        "Harvest decisions are reflected in the reconciliation ledger and extraction queue.",
+        "No harvested source remains ambiguous about authority."
+      ]
+    },
+    {
+      "id": "ecosystem-classification",
+      "order": 4,
+      "status": "active",
+      "scope": "Category-batch GitHub and local product classification into core, shared-module, tenant, lineage, operator-tooling, reference, or archive.",
+      "dependencies": [
+        "lineage-and-side-root-harvest"
+      ],
+      "exit_criteria": [
+        "GitHub portfolio classification is explicit and current.",
+        "Tenant queue and ecosystem registry reflect the same decisions."
+      ]
+    },
+    {
+      "id": "runtime-repair-and-sync-packets",
+      "order": 5,
+      "status": "planned",
+      "scope": "Approval-gated runtime packets for stale live Foundry, VAULT, DEV, and WORKSHOP configs that still contradict implementation authority.",
+      "dependencies": [
+        "deployment-truth-narrowing",
+        "ecosystem-classification"
+      ],
+      "exit_criteria": [
+        "Runtime-owned drift has an approved packet or a deliberate demotion.",
+        "Host-level repair work no longer depends on implicit operator memory."
+      ]
+    },
+    {
+      "id": "final-publication-and-freeze",
+      "order": 6,
+      "status": "planned",
+      "scope": "Checkpointed GitHub publication, side-root freeze, final truth normalization, and completion evidence refresh.",
+      "dependencies": [
+        "ecosystem-classification",
+        "runtime-repair-and-sync-packets",
+        "lineage-and-side-root-harvest"
+      ],
+      "exit_criteria": [
+        "Implementation authority is singular and published.",
+        "Side roots and lineage lanes are frozen or classified.",
+        "Acceptance matrix passes at the checkpoint boundary."
+      ]
+    }
+  ],
+  "standing_rules": [
+    "Do not publish from a stale local mainline.",
+    "Do not merge side roots wholesale.",
+    "Do not promote runtime-owned host state into implementation authority without corroborating registry or live evidence.",
+    "Do not leave any repo, local root, or runtime lane in a 'maybe important' state once reviewed.",
+    "Do not preserve stale startup guidance once replacement truth is verified."
+  ],
+  "final_acceptance": [
+    "Implementation authority is singular at C:\\Athanor.",
+    "Runtime authority and implementation authority are either mirror-clean or explicitly packeted.",
+    "Every meaningful local root and Dirty13itch repo has a governed disposition.",
+    "Provider, deployment, monitoring, and startup truth layers do not internally contradict each other.",
+    "Validator, generated docs, and checkpoint evidence remain green."
+  ]
+}

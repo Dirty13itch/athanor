@@ -51,6 +51,10 @@ interface BenchmarkEntry {
   pass_rate?: number;
 }
 
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
 function proposalBadgeVariant(status: string | undefined) {
   switch (status) {
     case "deployed":
@@ -92,7 +96,7 @@ export function ImprovementConsole() {
     queryKey: ["improvement-proposals"],
     queryFn: async (): Promise<Proposal[]> => {
       const data = await requestJson("/api/improvement/proposals");
-      return (data?.proposals ?? data ?? []) as Proposal[];
+      return asArray<Proposal>(data?.proposals ?? data);
     },
     enabled: liveReadEnabled,
     refetchInterval: 60_000,
@@ -105,7 +109,7 @@ export function ImprovementConsole() {
       const data = await requestJson(
         "/api/improvement/benchmarks/history"
       );
-      return (data?.entries ?? data ?? []) as BenchmarkEntry[];
+      return asArray<BenchmarkEntry>(data?.entries ?? data?.benchmarks ?? data);
     },
     enabled: liveReadEnabled,
     refetchInterval: 60_000,

@@ -9,6 +9,8 @@ The editable control plane lives in [config/automation-backbone](../../config/au
 Primary registries:
 - `platform-topology.json`
 - `project-maturity-registry.json`
+- `reconciliation-source-registry.json`
+- `completion-program-registry.json`
 - `docs-lifecycle-registry.json`
 - `program-operating-system.json`
 - `hardware-inventory.json`
@@ -43,9 +45,11 @@ Primary registries:
 1. Validate the registry and generated-doc layer.
 2. Generate fresh reports for hardware, model deployment, provider catalog, repo roots, drift, and secret surfaces.
 3. Compare runtime probes to registry truth and mark any divergence explicitly as drift.
-4. Close the highest-leverage drift or contract bug.
-5. Rerun the relevant gate.
-6. Delete superseded material once the replacement truth is verified.
+4. Route any cross-repo or side-root discovery into the reconciliation source registry and the ecosystem control docs before treating it as active program scope.
+5. Keep the total-completion program registry and completion doc aligned with the current execution frontier.
+6. Close the highest-leverage drift or contract bug.
+7. Rerun the relevant gate.
+8. Delete or freeze superseded material once the replacement truth is verified.
 
 ## Prune Policy
 

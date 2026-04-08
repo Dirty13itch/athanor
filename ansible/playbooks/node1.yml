@@ -10,7 +10,6 @@
     - docker
     - monitoring
     - vllm
-    - qdrant
     - agents
     - gpu-orchestrator
     - voice

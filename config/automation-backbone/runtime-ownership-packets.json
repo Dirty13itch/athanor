@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-02.6",
-  "updated_at": "2026-04-03T00:10:00Z",
+  "version": "2026-04-06.2",
+  "updated_at": "2026-04-06T23:15:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-packets.json",
   "packets": [
@@ -288,6 +288,283 @@
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
         "docs/operations/TRUTH-DRIFT-REPORT.md",
         "scripts/deploy-agents.sh"
+      ]
+    },
+    {
+      "id": "foundry-vllm-compose-reconciliation-packet",
+      "label": "FOUNDRY vLLM compose reconciliation packet",
+      "status": "ready_for_approval",
+      "lane_id": "foundry-vllm-compose",
+      "host": "foundry",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Reconcile the live /opt/athanor/vllm compose root with implementation authority so the FOUNDRY coder lane, coordinator tuning, and extra runtime-only services stop drifting silently.",
+      "path_mappings": [
+        {
+          "source_path": "reports/rendered/foundry-vllm.rendered.yml",
+          "runtime_path": "/opt/athanor/vllm/docker-compose.yml",
+          "restart_units": [
+            "vllm-coordinator",
+            "vllm-coder",
+            "vllm-vlm"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/vllm/<timestamp>",
+      "preflight_commands": [
+        "python scripts/validate_platform_contract.py",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "ssh foundry \"cd /opt/athanor/vllm && docker compose ps\"",
+        "ssh foundry \"docker inspect vllm-coder --format '{{json .Config.Cmd}}'\"",
+        "ssh foundry \"test -f /opt/athanor/vllm/docker-compose.yml && sed -n '1,220p' /opt/athanor/vllm/docker-compose.yml\""
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /opt/athanor/backups/vllm/<timestamp> and back up the current /opt/athanor/vllm/docker-compose.yml before replacement.",
+        "Re-render the canonical compose file through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.",
+        "Review the live-only vllm-vlm service and any remaining coordinator tuning deltas explicitly before restart; do not silently preserve a runtime-only extra service without a written decision.",
+        "Replace /opt/athanor/vllm/docker-compose.yml from the rendered canonical artifact inside the approved maintenance window.",
+        "Recreate only the affected vLLM services from the governed compose root, then refresh drift evidence immediately."
+      ],
+      "verification_commands": [
+        "ssh foundry \"cd /opt/athanor/vllm && docker compose ps\"",
+        "ssh foundry \"curl -sS http://localhost:8000/v1/models && curl -sS http://localhost:8006/v1/models\"",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /opt/athanor/vllm/docker-compose.yml from /opt/athanor/backups/vllm/<timestamp>.",
+        "Recreate the affected vLLM services from the restored compose root.",
+        "Re-run the deployment-drift audit and validator to confirm rollback."
+      ],
+      "evidence_paths": [
+        "reports/deployment-drift/foundry-vllm.diff",
+        "reports/rendered/foundry-vllm.rendered.yml",
+        "reports/live/foundry-vllm.live.yml",
+        "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
+      "id": "workshop-control-surface-compose-reconciliation-packet",
+      "label": "WORKSHOP control-surface compose reconciliation packet",
+      "status": "ready_for_approval",
+      "lane_id": "workshop-control-surface-compose",
+      "host": "workshop",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service and the correct worker lane URL.",
+      "path_mappings": [
+        {
+          "source_path": "projects/dashboard",
+          "runtime_path": "/opt/athanor/dashboard",
+          "restart_units": [
+            "athanor-dashboard",
+            "athanor-ws-pty-bridge"
+          ]
+        },
+        {
+          "source_path": "projects/ws-pty-bridge",
+          "runtime_path": "/opt/athanor/ws-pty-bridge",
+          "restart_units": [
+            "athanor-ws-pty-bridge"
+          ]
+        },
+        {
+          "source_path": "reports/rendered/workshop-dashboard.rendered.yml",
+          "runtime_path": "/opt/athanor/dashboard/docker-compose.yml",
+          "restart_units": [
+            "athanor-dashboard",
+            "athanor-ws-pty-bridge"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/dashboard-shadow/<timestamp>",
+      "preflight_commands": [
+        "python scripts/validate_platform_contract.py",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "ssh workshop \"cd /opt/athanor/dashboard && docker compose ps\"",
+        "ssh workshop \"docker inspect athanor-ws-pty-bridge --format '{{.Name}}|{{.State.Status}}|{{.Config.Image}}'\"",
+        "ssh workshop \"test -f /opt/athanor/dashboard/docker-compose.yml && sed -n '1,220p' /opt/athanor/dashboard/docker-compose.yml\""
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /opt/athanor/backups/dashboard-shadow/<timestamp> and back up the current /opt/athanor/dashboard compose bundle plus /opt/athanor/ws-pty-bridge source before replacement.",
+        "Re-render the Workshop control-surface compose file through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.",
+        "Replace the Workshop dashboard-shadow source bundle and ws-pty-bridge source bundle from implementation authority during the approved maintenance window.",
+        "Replace /opt/athanor/dashboard/docker-compose.yml from the rendered canonical artifact and keep the dashboard container explicitly recovery-only in operator posture.",
+        "Recreate the affected Workshop control-surface services and refresh deployment-drift evidence immediately."
+      ],
+      "verification_commands": [
+        "ssh workshop \"cd /opt/athanor/dashboard && docker compose ps\"",
+        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/health && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/\"",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /opt/athanor/dashboard compose bundle and /opt/athanor/ws-pty-bridge source from /opt/athanor/backups/dashboard-shadow/<timestamp>.",
+        "Recreate the affected Workshop control-surface services from the restored bundle.",
+        "Re-run the deployment-drift audit and validator to confirm rollback."
+      ],
+      "evidence_paths": [
+        "reports/deployment-drift/workshop-dashboard.diff",
+        "reports/rendered/workshop-dashboard.rendered.yml",
+        "reports/live/workshop-dashboard.live.yml",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
+      "id": "workshop-vllm-compose-reconciliation-packet",
+      "label": "WORKSHOP vLLM compose reconciliation packet",
+      "status": "ready_for_approval",
+      "lane_id": "workshop-vllm-compose",
+      "host": "workshop",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Reconcile the live /opt/athanor/vllm-node2 compose root with implementation authority so the Workshop worker lane stops carrying ungoverned image and launch-flag drift.",
+      "path_mappings": [
+        {
+          "source_path": "reports/rendered/workshop-vllm.rendered.yml",
+          "runtime_path": "/opt/athanor/vllm-node2/docker-compose.yml",
+          "restart_units": [
+            "vllm-node2"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/vllm-node2/<timestamp>",
+      "preflight_commands": [
+        "python scripts/validate_platform_contract.py",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "ssh workshop \"cd /opt/athanor/vllm-node2 && docker compose ps\"",
+        "ssh workshop \"docker inspect vllm-node2 --format '{{json .Config.Cmd}}'\"",
+        "ssh workshop \"test -f /opt/athanor/vllm-node2/docker-compose.yml && sed -n '1,220p' /opt/athanor/vllm-node2/docker-compose.yml\""
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /opt/athanor/backups/vllm-node2/<timestamp> and back up the current /opt/athanor/vllm-node2 compose bundle before replacement.",
+        "Re-render the canonical Workshop vLLM compose file through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.",
+        "Review the current custom-image and runtime-only launch delta explicitly before restart; do not preserve it silently without either promoting it into source truth or removing it.",
+        "Replace /opt/athanor/vllm-node2/docker-compose.yml from the rendered canonical artifact during the approved maintenance window.",
+        "Recreate the Workshop worker container and refresh deployment-drift evidence immediately."
+      ],
+      "verification_commands": [
+        "ssh workshop \"cd /opt/athanor/vllm-node2 && docker compose ps\"",
+        "ssh workshop \"curl -sS http://127.0.0.1:8010/v1/models\"",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /opt/athanor/vllm-node2 compose bundle from /opt/athanor/backups/vllm-node2/<timestamp>.",
+        "Recreate the Workshop worker container from the restored bundle.",
+        "Re-run the deployment-drift audit and validator to confirm rollback."
+      ],
+      "evidence_paths": [
+        "reports/deployment-drift/workshop-vllm.diff",
+        "reports/rendered/workshop-vllm.rendered.yml",
+        "reports/live/workshop-vllm.live.yml",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
+      "id": "vault-litellm-config-reconciliation-packet",
+      "label": "VAULT LiteLLM config reconciliation packet",
+      "status": "ready_for_approval",
+      "lane_id": "vault-litellm-config",
+      "host": "vault",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Reconcile the live /mnt/user/appdata/litellm/config.yaml file with implementation authority so the coder lane and other routed model definitions stop drifting independently of the repo.",
+      "path_mappings": [
+        {
+          "source_path": "reports/rendered/vault-litellm-config.rendered.yaml",
+          "runtime_path": "/mnt/user/appdata/litellm/config.yaml",
+          "restart_units": [
+            "litellm"
+          ]
+        }
+      ],
+      "backup_root": "/mnt/user/appdata/litellm/backups/config-reconcile/<timestamp>",
+      "preflight_commands": [
+        "python scripts/validate_platform_contract.py",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "python scripts/vault-ssh.py \"docker inspect litellm --format '{{.Name}}|{{.State.Status}}|{{.HostConfig.RestartPolicy.Name}}'\"",
+        "python scripts/vault-ssh.py \"test -f /mnt/user/appdata/litellm/config.yaml && sed -n '1,220p' /mnt/user/appdata/litellm/config.yaml\"",
+        "python scripts/vault_litellm_env_audit.py --write reports/truth-inventory/vault-litellm-env-audit.json"
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /mnt/user/appdata/litellm/backups/config-reconcile/<timestamp> and back up the current config.yaml plus a docker inspect snapshot of the litellm container before replacement.",
+        "Re-render the canonical LiteLLM config through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.",
+        "Replace only /mnt/user/appdata/litellm/config.yaml during the approved maintenance window; keep provider-secret delivery decisions under the separate VAULT auth-repair packet instead of mixing them into this config reconcile pass.",
+        "Recreate or restart only the litellm container after the config replacement.",
+        "Refresh both the deployment-drift evidence and the VAULT env audit immediately after restart."
+      ],
+      "verification_commands": [
+        "python scripts/vault-ssh.py \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/health\"",
+        "python scripts/vault_litellm_env_audit.py --write reports/truth-inventory/vault-litellm-env-audit.json",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /mnt/user/appdata/litellm/config.yaml and saved container definition from /mnt/user/appdata/litellm/backups/config-reconcile/<timestamp>.",
+        "Restart the litellm container with the restored config.",
+        "Re-run the VAULT env audit, deployment-drift audit, and validator to confirm rollback."
+      ],
+      "evidence_paths": [
+        "reports/deployment-drift/vault-litellm.diff",
+        "reports/rendered/vault-litellm-config.rendered.yaml",
+        "reports/live/vault-litellm-config.live.yaml",
+        "reports/truth-inventory/vault-litellm-env-audit.json",
+        "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
+      "id": "vault-prometheus-config-reconciliation-packet",
+      "label": "VAULT Prometheus config reconciliation packet",
+      "status": "ready_for_approval",
+      "lane_id": "vault-prometheus-config",
+      "host": "vault",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml file with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels.",
+      "path_mappings": [
+        {
+          "source_path": "reports/rendered/vault-prometheus.rendered.yml",
+          "runtime_path": "/mnt/user/appdata/prometheus/prometheus.yml",
+          "restart_units": [
+            "prometheus"
+          ]
+        }
+      ],
+      "backup_root": "/mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp>",
+      "preflight_commands": [
+        "python scripts/validate_platform_contract.py",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "python scripts/vault-ssh.py \"docker inspect prometheus --format '{{.Name}}|{{.State.Status}}|{{.HostConfig.RestartPolicy.Name}}'\"",
+        "python scripts/vault-ssh.py \"test -f /mnt/user/appdata/prometheus/prometheus.yml && sed -n '1,260p' /mnt/user/appdata/prometheus/prometheus.yml\"",
+        "python scripts/vault-ssh.py \"curl -s http://127.0.0.1:9090/api/v1/targets | head -c 4000\""
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp> and back up the current prometheus.yml plus a docker inspect snapshot of the prometheus container before replacement.",
+        "Re-render the canonical Prometheus config through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.",
+        "Replace /mnt/user/appdata/prometheus/prometheus.yml during the approved maintenance window and keep any live-only targets only if they are explicitly reclassified into source truth later.",
+        "Recreate or restart only the Prometheus container after the config replacement.",
+        "Refresh deployment-drift evidence and confirm the active targets set no longer certifies stale Workshop shadow or outdated node labels."
+      ],
+      "verification_commands": [
+        "python scripts/vault-ssh.py \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9090/-/healthy\"",
+        "python scripts/vault-ssh.py \"curl -s http://127.0.0.1:9090/api/v1/targets | head -c 4000\"",
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\Invoke-DeploymentDriftAudit.ps1",
+        "python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /mnt/user/appdata/prometheus/prometheus.yml and saved container definition from /mnt/user/appdata/prometheus/backups/config-reconcile/<timestamp>.",
+        "Restart the Prometheus container with the restored config.",
+        "Re-run the deployment-drift audit and validator to confirm rollback."
+      ],
+      "evidence_paths": [
+        "reports/deployment-drift/vault-prometheus.diff",
+        "reports/rendered/vault-prometheus.rendered.yml",
+        "reports/live/vault-prometheus.live.yml",
+        "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
       ]
     }
   ]

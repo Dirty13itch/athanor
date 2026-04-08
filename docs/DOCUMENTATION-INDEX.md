@@ -5,14 +5,14 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-02.2`
-- Total tracked entries: `119`
+- Registry version: `2026-04-07.1`
+- Total tracked entries: `132`
 
 | Class | Count |
 | --- | ---: |
-| `canonical` | 35 |
+| `canonical` | 47 |
 | `generated` | 18 |
-| `reference` | 20 |
+| `reference` | 21 |
 | `archive` | 46 |
 
 ## Canonical
@@ -20,17 +20,29 @@ Do not edit manually.
 | Path | Kind | Owner |
 | --- | --- | --- |
 | `AGENTS.md` | markdown | `shaun` |
+| `PROJECT.md` | markdown | `shaun` |
 | `README.md` | markdown | `shaun` |
 | `STATUS.md` | markdown | `shaun` |
+| `docs/CODEX-NEXT-STEPS.md` | markdown | `shaun` |
 | `docs/RECOVERY.md` | markdown | `shaun` |
 | `docs/SECURITY-FOLLOWUPS.md` | markdown | `shaun` |
 | `docs/SERVICES.md` | markdown | `shaun` |
 | `docs/SYSTEM-SPEC.md` | markdown | `shaun` |
 | `docs/TROUBLESHOOTING.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-OPERATING-SYSTEM.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-RECONCILIATION-LEDGER.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-RECONCILIATION-PACKET.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-SHARED-EXTRACTION-QUEUE.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-TENANT-QUEUE.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md` | markdown | `shaun` |
 | `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` | markdown | `shaun` |
+| `docs/operations/FIELD-INSPECT-OPERATIONS-RUNTIME-REPLAY-PACKET.md` | markdown | `shaun` |
 | `docs/operations/GOVERNOR-AUTHORITY-MATRIX.md` | markdown | `shaun` |
 | `docs/operations/OPERATOR_RUNBOOKS.md` | markdown | `shaun` |
+| `docs/operations/RFI-HERS-DUPLICATE-EVIDENCE-PACKET.md` | markdown | `shaun` |
+| `docs/operations/RFI-HERS-PRIMARY-ROOT-STABILIZATION-PACKET.md` | markdown | `shaun` |
+| `docs/operations/WAN2GP-REMOTE-ONLY-WATCH-PACKET.md` | markdown | `shaun` |
 | `docs/projects/PORTFOLIO-REGISTRY.md` | markdown | `shaun` |
 | `docs/runbooks/constrained-mode.md` | markdown | `shaun` |
 | `docs/runbooks/credential-rotation.md` | markdown | `shaun` |
@@ -94,6 +106,7 @@ Do not edit manually.
 | `docs/atlas/README.md` | markdown | `shaun` |
 | `docs/atlas/RUNTIME_ATLAS.md` | markdown | `shaun` |
 | `docs/atlas/SOURCE_RECONCILIATION.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-RECONCILIATION-PRESERVATION-BASELINE.md` | markdown | `shaun` |
 | `docs/projects/dashboard/README.md` | markdown | `shaun` |
 | `docs/projects/eoq/ARCHITECTURE.md` | markdown | `shaun` |
 | `docs/projects/kindred/CONCEPT.md` | markdown | `shaun` |

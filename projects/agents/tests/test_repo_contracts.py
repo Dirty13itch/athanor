@@ -752,7 +752,10 @@ class RepoContractsTest(unittest.TestCase):
 
         deploy_agents_text = read_text(DEPLOY_AGENTS_SCRIPT)
         self.assertIn("ATHANOR_AGENT_SERVER_URL", deploy_agents_text)
-        self.assertIn('config/" "${FOUNDRY}:${REMOTE_DIR}/config/"', deploy_agents_text)
+        self.assertIn("tar \\", deploy_agents_text)
+        self.assertIn("src \\", deploy_agents_text)
+        self.assertIn("config \\", deploy_agents_text)
+        self.assertIn("docker-compose.yml \\", deploy_agents_text)
 
         export_langfuse_text = read_text(EXPORT_LANGFUSE_TRACES_SCRIPT)
         self.assertIn("ATHANOR_LANGFUSE_URL", export_langfuse_text)

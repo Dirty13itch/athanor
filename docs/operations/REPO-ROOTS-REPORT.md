@@ -5,8 +5,8 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-02.5`
-- Roots tracked: `14`
+- Registry version: `2026-04-06.1`
+- Roots tracked: `15`
 
 | Root | Host | Authority | Status | Scope |
 | --- | --- | --- | --- | --- |
@@ -22,6 +22,7 @@ Do not edit manually.
 | `vault-appdatacache` | `vault` | `runtime-state` | `active` | high-throughput cache, model storage, service volumes, and Redis persistence pressure surface |
 | `vault-docker-root` | `vault` | `runtime-state` | `active` | directory-mode Docker root for VAULT containers |
 | `foundry-opt-athanor` | `foundry` | `runtime-state` | `active` | deployed compose bundles, runtime source mirrors, and active athanor-agents deployment state |
+| `workshop-opt-athanor` | `workshop` | `runtime-state` | `active` | deployed compose bundles and supporting assets for Workshop control-surface, creative, and tenant runtimes |
 | `athanor-next` | `desk` | `incubation` | `active` | parallel next-gen experimentation |
 | `desk-legacy` | `desk` | `vestigial` | `inactive` | historical root |
 
@@ -31,8 +32,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `32`
-- Local dirty sample: ` M STATUS.md`, ` M ansible/README.md`, ` M ansible/playbooks/command-center-dev.yml`, ` M config/automation-backbone/runtime-ownership-contract.json`, ` M config/automation-backbone/runtime-ownership-packets.json`, ` M docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, ` M docs/runbooks/rebuild-dev.md`, ` M docs/runbooks/runtime-ownership-contract.md`, ` M projects/agents/src/athanor_agents/launch_governance.py`, ` M projects/agents/src/athanor_agents/routes/operator_work.py`
+- Local dirty file count: `67`
+- Local dirty sample: ` M AGENTS.md`, ` M README.md`, ` M STATUS.md`, ` M ansible/host_vars/core.yml`, ` M ansible/host_vars/interface.yml`, ` M ansible/host_vars/vault.yml`, ` M ansible/playbooks/node1.yml`, ` M ansible/playbooks/site.yml`, ` M ansible/playbooks/vault.yml`, ` M ansible/roles/dashboard/defaults/main.yml`
 
 ## dev-runtime-repo
 
@@ -40,6 +41,8 @@ Do not edit manually.
 - Host: `dev`
 - Authority: `runtime-authority`
 - Notes: `Runtime and deployment authority until deployment is mirror-clean.`, `Observed 2026-04-02 runtime probe shows the retired governor-facade caller set still mirror-clean with zero sync-required runtime-owned callers.`, `Repo-root systemd services on DEV still launch from this root while the active command-center container is deployed from /opt/athanor/dashboard.`, `Broader runtime-owned deployment surfaces still live across the DEV runtime repo and /opt/athanor, but the runtime-ownership contract now governs that split explicitly so it is governed maintenance rather than a promotion blocker.`
+- Runtime dirty file count: `2`
+- Runtime dirty sample: ` M .claude/.health-cache`, ` M STATUS.md`
 
 ## dev-opt-athanor
 
@@ -110,6 +113,17 @@ Do not edit manually.
 - Host: `foundry`
 - Authority: `runtime-state`
 - Notes: `Observed 2026-04-02 FOUNDRY runtime probe shows the live athanor-agents compose bundle rooted at /opt/athanor/agents.`, `The installed Python package under /usr/local/lib/python3.12/site-packages/athanor_agents is the expected image layout for this lane, while /workspace remains a read-only runtime mirror.`
+- Compose root matches expected: `True`
+- Build root clean: `True`
+- Container running: `True`
+- Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
+
+## workshop-opt-athanor
+
+- Path: `/opt/athanor`
+- Host: `workshop`
+- Authority: `runtime-state`
+- Notes: `Observed deployment-drift evidence covers live Workshop compose roots under /opt/athanor/dashboard, /opt/athanor/ws-pty-bridge, /opt/athanor/vllm-node2, /opt/athanor/open-webui, /opt/athanor/comfyui, /opt/athanor/eoq, and /opt/athanor/ulrich-energy.`, `The Workshop dashboard root is not the canonical command center anymore, but it still carries the live ws-pty-bridge surface and recovery-only dashboard state.`
 
 ## athanor-next
 
@@ -128,6 +142,7 @@ Do not edit manually.
 ## Known Drift
 
 - `implementation-runtime-split` (medium): Implementation truth, runtime authority, and deployed runtime state still live in different roots. The runtime-ownership contract now governs that split explicitly, so it remains governed maintenance debt rather than a full-system autonomy blocker.
+- `workshop-runtime-surface-drift` (medium): Workshop runtime compose surfaces are now explicit roots, but several live configs under /opt/athanor still drift from implementation authority and require governed per-surface reconciliation instead of ad hoc node memory.
 
 ## Retired Drift
 

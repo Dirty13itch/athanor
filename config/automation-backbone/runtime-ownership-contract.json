@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-02.6",
-  "updated_at": "2026-04-03T00:10:00Z",
+  "version": "2026-04-06.2",
+  "updated_at": "2026-04-06T23:15:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-contract.json",
   "promotion_gate_id": "runtime_ownership_maturity",
@@ -16,7 +16,8 @@
     "vault-appdata",
     "vault-appdatacache",
     "vault-docker-root",
-    "foundry-opt-athanor"
+    "foundry-opt-athanor",
+    "workshop-opt-athanor"
   ],
   "lanes": [
     {
@@ -223,6 +224,282 @@
       "next_action": "Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container."
     },
     {
+      "id": "foundry-vllm-compose",
+      "label": "FOUNDRY vLLM compose lane",
+      "host": "foundry",
+      "status": "active",
+      "deployment_mode": "opt_compose_service",
+      "owner_root_ids": [
+        "foundry-opt-athanor"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Active FOUNDRY vLLM deployment under /opt/athanor/vllm that serves the coordinator and coder lanes and currently carries runtime-owned compose drift against the rendered repo config.",
+      "source_paths": [
+        "ansible/host_vars/core.yml",
+        "ansible/roles/vllm/defaults/main.yml",
+        "ansible/roles/vllm/templates/docker-compose.yml.j2",
+        "reports/rendered/foundry-vllm.rendered.yml"
+      ],
+      "runtime_paths": [
+        "/opt/athanor/vllm/docker-compose.yml"
+      ],
+      "active_surfaces": [
+        "vllm-coordinator container",
+        "vllm-coder container",
+        "http://foundry:8000/v1/models",
+        "http://foundry:8006/v1/models"
+      ],
+      "execution_packet_id": "foundry-vllm-compose-reconciliation-packet",
+      "evidence_paths": [
+        "reports/deployment-drift/foundry-vllm.diff",
+        "reports/rendered/foundry-vllm.rendered.yml",
+        "reports/live/foundry-vllm.live.yml",
+        "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ],
+      "verification_commands": [
+        "ssh foundry \"cd /opt/athanor/vllm && docker compose ps\"",
+        "ssh foundry \"docker inspect vllm-coder --format '{{json .Config.Cmd}}'\"",
+        "ssh foundry \"curl -sS http://localhost:8006/v1/models\""
+      ],
+      "rollback_contract": "Preserve the previous /opt/athanor/vllm bundle under /opt/athanor/backups/vllm/<timestamp>/ before replacing the compose root, and restore that bundle if the approved reconcile pass regresses the active coder or coordinator lanes.",
+      "approval_boundary": "Replacing /opt/athanor/vllm/docker-compose.yml or recreating the live FOUNDRY vLLM containers remains approval-gated.",
+      "next_action": "Use the foundry-vllm-compose-reconciliation-packet to reconcile the live compose root to implementation authority and explicitly remove or reclassify any runtime-only extra service during an approved maintenance window."
+    },
+    {
+      "id": "workshop-control-surface-compose",
+      "label": "WORKSHOP control-surface compose lane",
+      "host": "workshop",
+      "status": "active",
+      "deployment_mode": "opt_compose_service",
+      "owner_root_ids": [
+        "workshop-opt-athanor"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Recovery-only Workshop dashboard shadow plus the live ws-pty-bridge compose bundle rooted under /opt/athanor/dashboard and /opt/athanor/ws-pty-bridge.",
+      "source_paths": [
+        "ansible/host_vars/interface.yml",
+        "ansible/roles/dashboard/defaults/main.yml",
+        "ansible/roles/dashboard/tasks/main.yml",
+        "ansible/roles/dashboard/templates/docker-compose.yml.j2",
+        "projects/dashboard",
+        "projects/ws-pty-bridge",
+        "reports/rendered/workshop-dashboard.rendered.yml"
+      ],
+      "runtime_paths": [
+        "/opt/athanor/dashboard/docker-compose.yml",
+        "/opt/athanor/ws-pty-bridge"
+      ],
+      "active_surfaces": [
+        "athanor-dashboard container (shadow recovery)",
+        "athanor-ws-pty-bridge container",
+        "http://workshop:3001/",
+        "http://workshop:3100/health"
+      ],
+      "execution_packet_id": "workshop-control-surface-compose-reconciliation-packet",
+      "evidence_paths": [
+        "reports/deployment-drift/workshop-dashboard.diff",
+        "reports/rendered/workshop-dashboard.rendered.yml",
+        "reports/live/workshop-dashboard.live.yml",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ],
+      "verification_commands": [
+        "ssh workshop \"cd /opt/athanor/dashboard && docker compose ps\"",
+        "ssh workshop \"docker inspect athanor-ws-pty-bridge --format '{{.Name}}|{{.State.Status}}'\"",
+        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3100/health\""
+      ],
+      "rollback_contract": "Preserve the previous /opt/athanor/dashboard compose bundle and /opt/athanor/ws-pty-bridge source under /opt/athanor/backups/dashboard-shadow/<timestamp>/ before replacement, and restore both if the approved reconcile pass regresses bridge access or the shadow recovery surface.",
+      "approval_boundary": "Replacing Workshop control-surface compose roots or recreating the live dashboard shadow or ws-pty-bridge containers remains approval-gated.",
+      "next_action": "Use the workshop-control-surface-compose-reconciliation-packet to align the live compose root with the newly formalized source contract while keeping the dashboard shadow explicitly recovery-only."
+    },
+    {
+      "id": "workshop-vllm-compose",
+      "label": "WORKSHOP vLLM compose lane",
+      "host": "workshop",
+      "status": "active",
+      "deployment_mode": "opt_compose_service",
+      "owner_root_ids": [
+        "workshop-opt-athanor"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Active Workshop vLLM worker deployment rooted at /opt/athanor/vllm-node2 and serving the Workshop worker lane on :8010.",
+      "source_paths": [
+        "ansible/host_vars/interface.yml",
+        "ansible/roles/vllm/defaults/main.yml",
+        "ansible/roles/vllm/templates/docker-compose.yml.j2",
+        "reports/rendered/workshop-vllm.rendered.yml"
+      ],
+      "runtime_paths": [
+        "/opt/athanor/vllm-node2/docker-compose.yml"
+      ],
+      "active_surfaces": [
+        "vllm-node2 container",
+        "http://workshop:8010/v1/models"
+      ],
+      "execution_packet_id": "workshop-vllm-compose-reconciliation-packet",
+      "evidence_paths": [
+        "reports/deployment-drift/workshop-vllm.diff",
+        "reports/rendered/workshop-vllm.rendered.yml",
+        "reports/live/workshop-vllm.live.yml",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ],
+      "verification_commands": [
+        "ssh workshop \"cd /opt/athanor/vllm-node2 && docker compose ps\"",
+        "ssh workshop \"docker inspect vllm-node2 --format '{{json .Config.Cmd}}'\"",
+        "ssh workshop \"curl -sS http://127.0.0.1:8010/v1/models\""
+      ],
+      "rollback_contract": "Preserve the previous /opt/athanor/vllm-node2 compose bundle under /opt/athanor/backups/vllm-node2/<timestamp>/ before replacement, and restore it if the approved reconcile pass regresses the active Workshop worker lane.",
+      "approval_boundary": "Replacing /opt/athanor/vllm-node2/docker-compose.yml or recreating the live Workshop vLLM worker container remains approval-gated.",
+      "next_action": "Use the workshop-vllm-compose-reconciliation-packet to reconcile the live compose root to implementation authority and explicitly decide whether the current custom image and runtime-only launch posture should be promoted or removed."
+    },
+    {
+      "id": "workshop-product-compose",
+      "label": "WORKSHOP product and creative compose lane",
+      "host": "workshop",
+      "status": "active",
+      "deployment_mode": "opt_compose_service",
+      "owner_root_ids": [
+        "workshop-opt-athanor"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Active Workshop product and creative compose roots for Open WebUI, ComfyUI, EoBQ, and Ulrich Energy under /opt/athanor.",
+      "source_paths": [
+        "ansible/host_vars/interface.yml",
+        "ansible/roles/open-webui/defaults/main.yml",
+        "ansible/roles/open-webui/templates/docker-compose.yml.j2",
+        "ansible/roles/comfyui/defaults/main.yml",
+        "ansible/roles/comfyui/templates/docker-compose.yml.j2",
+        "ansible/roles/eoq/defaults/main.yml",
+        "ansible/roles/eoq/templates/docker-compose.yml.j2",
+        "ansible/roles/ulrich-energy/defaults/main.yml",
+        "ansible/roles/ulrich-energy/templates/docker-compose.yml.j2",
+        "projects/eoq",
+        "projects/ulrich-energy",
+        "projects/comfyui-workflows"
+      ],
+      "runtime_paths": [
+        "/opt/athanor/open-webui/docker-compose.yml",
+        "/opt/athanor/comfyui/docker-compose.yml",
+        "/opt/athanor/eoq/docker-compose.yml",
+        "/opt/athanor/ulrich-energy/docker-compose.yml"
+      ],
+      "active_surfaces": [
+        "open-webui container",
+        "comfyui container",
+        "athanor-eoq container",
+        "athanor-ulrich-energy container",
+        "http://workshop:3000/",
+        "http://workshop:8188/",
+        "http://workshop:3002/",
+        "http://workshop:3003/"
+      ],
+      "evidence_paths": [
+        "reports/deployment-drift/workshop-open-webui.diff",
+        "reports/deployment-drift/workshop-comfyui.diff",
+        "reports/deployment-drift/workshop-eoq.diff",
+        "reports/deployment-drift/workshop-ulrich-energy.diff",
+        "reports/live/workshop-open-webui.live.yml",
+        "reports/live/workshop-comfyui.live.yml",
+        "reports/live/workshop-eoq.live.yml",
+        "reports/live/workshop-ulrich-energy.live.yml",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md"
+      ],
+      "verification_commands": [
+        "ssh workshop \"docker compose -f /opt/athanor/open-webui/docker-compose.yml ps && docker compose -f /opt/athanor/comfyui/docker-compose.yml ps && docker compose -f /opt/athanor/eoq/docker-compose.yml ps && docker compose -f /opt/athanor/ulrich-energy/docker-compose.yml ps\"",
+        "ssh workshop \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8188/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3002/ && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3003/\""
+      ],
+      "rollback_contract": "Preserve the current product and creative compose bundles under timestamped /opt/athanor/backups/<service>/<timestamp>/ roots before any future runtime mutation on these Workshop surfaces.",
+      "approval_boundary": "Replacing Workshop product or creative compose roots or recreating their live containers remains approval-gated.",
+      "next_action": "Keep these roots explicit and split them into narrower per-surface repair packets only when a specific Workshop product or creative service is intentionally reconciled."
+    },
+    {
+      "id": "vault-litellm-config",
+      "label": "VAULT LiteLLM config lane",
+      "host": "vault",
+      "status": "active",
+      "deployment_mode": "vault_host_state",
+      "owner_root_ids": [
+        "vault-appdata",
+        "vault-docker-root"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Live VAULT LiteLLM proxy config and container state rooted at /mnt/user/appdata/litellm/config.yaml, including the coder lane mapping that still differs from implementation authority.",
+      "source_paths": [
+        "ansible/host_vars/vault.yml",
+        "ansible/roles/vault-litellm/defaults/main.yml",
+        "ansible/roles/vault-litellm/templates/litellm_config.yaml.j2",
+        "reports/rendered/vault-litellm-config.rendered.yaml"
+      ],
+      "runtime_paths": [
+        "/mnt/user/appdata/litellm/config.yaml"
+      ],
+      "active_surfaces": [
+        "litellm container",
+        "/mnt/user/appdata/litellm/config.yaml",
+        "http://vault:4000/health"
+      ],
+      "execution_packet_id": "vault-litellm-config-reconciliation-packet",
+      "evidence_paths": [
+        "reports/deployment-drift/vault-litellm.diff",
+        "reports/rendered/vault-litellm-config.rendered.yaml",
+        "reports/live/vault-litellm-config.live.yaml",
+        "reports/truth-inventory/vault-litellm-env-audit.json",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md"
+      ],
+      "verification_commands": [
+        "python scripts/vault-ssh.py \"docker inspect litellm --format '{{.Name}}|{{.State.Status}}|{{.HostConfig.RestartPolicy.Name}}'\"",
+        "python scripts/vault-ssh.py \"test -f /mnt/user/appdata/litellm/config.yaml && sed -n '1,120p' /mnt/user/appdata/litellm/config.yaml\"",
+        "python scripts/vault-ssh.py \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/health\""
+      ],
+      "rollback_contract": "Back up the current /mnt/user/appdata/litellm/config.yaml plus the current litellm container definition before replacing the config, and restore both if the approved reconcile pass regresses routing or auth posture.",
+      "approval_boundary": "Mutating /mnt/user/appdata/litellm/config.yaml or recreating the live litellm container on VAULT remains approval-gated.",
+      "next_action": "Use the vault-litellm-config-reconciliation-packet to align the live config with implementation authority while keeping provider-auth repair as a separate explicit maintenance decision."
+    },
+    {
+      "id": "vault-prometheus-config",
+      "label": "VAULT Prometheus config lane",
+      "host": "vault",
+      "status": "active",
+      "deployment_mode": "vault_host_state",
+      "owner_root_ids": [
+        "vault-appdata",
+        "vault-docker-root"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Live VAULT Prometheus scrape config rooted at /mnt/user/appdata/prometheus/prometheus.yml, including blackbox targets and direct metrics jobs that currently drift from implementation authority.",
+      "source_paths": [
+        "ansible/host_vars/vault.yml",
+        "ansible/roles/vault-monitoring/defaults/main.yml",
+        "ansible/roles/vault-monitoring/templates/prometheus.yml.j2",
+        "reports/rendered/vault-prometheus.rendered.yml"
+      ],
+      "runtime_paths": [
+        "/mnt/user/appdata/prometheus/prometheus.yml"
+      ],
+      "active_surfaces": [
+        "prometheus container",
+        "/mnt/user/appdata/prometheus/prometheus.yml",
+        "http://vault:9090/-/healthy"
+      ],
+      "execution_packet_id": "vault-prometheus-config-reconciliation-packet",
+      "evidence_paths": [
+        "reports/deployment-drift/vault-prometheus.diff",
+        "reports/rendered/vault-prometheus.rendered.yml",
+        "reports/live/vault-prometheus.live.yml",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/ATHANOR-RECONCILIATION-PACKET.md"
+      ],
+      "verification_commands": [
+        "python scripts/vault-ssh.py \"docker inspect prometheus --format '{{.Name}}|{{.State.Status}}|{{.HostConfig.RestartPolicy.Name}}'\"",
+        "python scripts/vault-ssh.py \"test -f /mnt/user/appdata/prometheus/prometheus.yml && sed -n '1,220p' /mnt/user/appdata/prometheus/prometheus.yml\"",
+        "python scripts/vault-ssh.py \"curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9090/-/healthy\""
+      ],
+      "rollback_contract": "Back up the current /mnt/user/appdata/prometheus/prometheus.yml and the current Prometheus container definition before replacement, and restore them if the approved reconcile pass regresses monitoring coverage or the Prometheus service state.",
+      "approval_boundary": "Mutating /mnt/user/appdata/prometheus/prometheus.yml or recreating the live Prometheus container on VAULT remains approval-gated.",
+      "next_action": "Use the vault-prometheus-config-reconciliation-packet to align the live scrape config with implementation authority and retire stale shadow targets in one governed maintenance window."
+    },
+    {
       "id": "vault-runtime-maintenance",
       "label": "VAULT maintenance and host-state lane",
       "host": "vault",
@@ -244,7 +521,7 @@
       "active_surfaces": [
         "repo-owned VAULT SSH helper path",
         "Docker-backed infrastructure on VAULT",
-        "LiteLLM, Redis, and storage maintenance packets"
+        "LiteLLM, Prometheus, Redis, and storage maintenance packets"
       ],
       "evidence_paths": [
         "reports/truth-inventory/vault-redis-audit.json",
@@ -259,14 +536,14 @@
       ],
       "rollback_contract": "Back up /boot/config and any targeted appdata bundle before mutating live VAULT runtime state.",
       "approval_boundary": "VAULT Docker, env, and host-level mutations remain approval-gated.",
-      "next_action": "Keep VAULT maintenance reachable through repo-owned SSH helpers instead of browser-only access."
+      "next_action": "Keep VAULT maintenance reachable through repo-owned SSH helpers and route specific config drift through the named LiteLLM and Prometheus packets instead of generic host-state edits."
     }
   ],
   "promotion_criteria": [
     {
       "id": "live_surface_mapping_complete",
       "status": "met",
-      "requirement": "Every live DEV and VAULT runtime surface relevant to Athanor has one declared ownership lane.",
+      "requirement": "Every live DEV, WORKSHOP, FOUNDRY, and VAULT runtime surface relevant to Athanor has one declared ownership lane.",
       "evidence_paths": [
         "config/automation-backbone/runtime-ownership-contract.json",
         "docs/operations/RUNTIME-OWNERSHIP-REPORT.md"
@@ -306,7 +583,7 @@
     {
       "id": "opt_root_deploy_contract_complete",
       "status": "met",
-      "requirement": "Each active /opt/athanor surface must declare source path, deploy mode, verification, and rollback contract.",
+      "requirement": "Each active /opt/athanor surface on DEV, WORKSHOP, and FOUNDRY must declare source path, deploy mode, verification, and rollback contract.",
       "evidence_paths": [
         "reports/truth-inventory/latest.json",
         "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",

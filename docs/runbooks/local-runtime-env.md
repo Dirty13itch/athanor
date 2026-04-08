@@ -1,7 +1,7 @@
 # Local Runtime Env Surface
 
 Source of truth: `config/automation-backbone/credential-surface-registry.json`, `config/automation-backbone/repo-roots-registry.json`, `docs/operations/OPERATOR_RUNBOOKS.md`
-Validated against registry version: `credential-surface-registry.json@2026-04-02.1`, `repo-roots-registry.json@2026-04-02.5`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `credential-surface-registry.json@2026-04-02.1`, `repo-roots-registry.json@2026-04-06.1`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: the managed local env path and credential surface contract come from the registries. This runbook owns the operator sequence for populating DESK-local runtime env state without tracking secret values.
 
 ---

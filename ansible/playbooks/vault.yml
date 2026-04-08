@@ -25,6 +25,10 @@
 # Note: VAULT uses paramiko (dropbear SSH) with root user.
 # Privilege escalation (become) is not needed — we're already root.
 
+# Qdrant currently lives on VAULT at runtime, but the generic qdrant role still
+# reflects an older Node 1 deployment contract. Keep it out of the Foundry
+# playbooks until a VAULT-native managed role/path is defined.
+
 - name: Configure VAULT (Storage)
   hosts: vault
   become: false  # Already root via ansible_user

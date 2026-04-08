@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "pretest:e2e:audit": "node scripts/ensure-completion-audit.mjs",
     "test:e2e:audit": "playwright test tests/e2e/api-census.spec.ts tests/e2e/audit-capture.spec.ts tests/e2e/smoke-api.spec.ts tests/e2e/smoke-routes.spec.ts tests/e2e/navigation.spec.ts tests/e2e/operator-controls.spec.ts --project=desktop-chromium --workers=1",
     "test:e2e:terminal": "playwright test tests/e2e/navigation.spec.ts --grep terminal --project=desktop-chromium",
     "typecheck": "node scripts/typecheck.mjs && next typegen && tsc --project tsconfig.typecheck.json --noEmit --incremental false",

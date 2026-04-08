@@ -30,6 +30,26 @@
       - "--exclude=.git"
   register: dashboard_src
 
+- name: Ensure ws-pty-bridge deploy directory exists
+  ansible.builtin.file:
+    path: "{{ dashboard_ws_pty_bridge_dir }}"
+    state: directory
+    owner: athanor
+    group: athanor
+    mode: "0755"
+  when: dashboard_include_ws_pty_bridge | bool
+
+- name: Sync ws-pty-bridge source code
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../projects/ws-pty-bridge/"
+    dest: "{{ dashboard_ws_pty_bridge_dir }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=node_modules"
+      - "--exclude=.git"
+  register: ws_pty_bridge_src
+  when: dashboard_include_ws_pty_bridge | bool
+
 - name: Deploy dashboard docker-compose.yml
   ansible.builtin.template:
     src: docker-compose.yml.j2
@@ -48,8 +68,8 @@
   community.docker.docker_compose_v2:
     project_src: "{{ dashboard_deploy_dir }}"
     state: present
-    build: "{{ 'always' if (dashboard_src.changed or dashboard_image_info.images | length == 0) else 'never' }}"
-    recreate: "{{ 'always' if (dashboard_compose.changed or dashboard_src.changed) else 'never' }}"
+    build: "{{ 'always' if (dashboard_src.changed or dashboard_image_info.images | length == 0 or (dashboard_include_ws_pty_bridge | bool and ws_pty_bridge_src.changed | default(false))) else 'never' }}"
+    recreate: "{{ 'always' if (dashboard_compose.changed or dashboard_src.changed or (dashboard_include_ws_pty_bridge | bool and ws_pty_bridge_src.changed | default(false))) else 'never' }}"
 
 - name: Wait for dashboard health
   ansible.builtin.uri:

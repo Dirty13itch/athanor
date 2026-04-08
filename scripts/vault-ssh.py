@@ -1,5 +1,6 @@
-"""SSH to VAULT and run commands via paramiko."""
+"""SSH to VAULT via Paramiko first, then native OpenSSH as a fallback."""
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -38,6 +39,33 @@ def _resolve_key_path() -> str:
 
 KEY_PATH = _resolve_key_path()
 
+
+def _native_ssh_run(command: str) -> int:
+    ssh_command = [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=10",
+    ]
+    if KEY_PATH:
+        ssh_command.extend(["-i", KEY_PATH])
+    ssh_command.append(f"{USER}@{HOST}")
+    ssh_command.append(command)
+
+    completed = subprocess.run(
+        ssh_command,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if completed.stdout:
+        print(completed.stdout, end="")
+    if completed.stderr:
+        print(completed.stderr, end="", file=sys.stderr)
+    return completed.returncode
+
+
 def run(command):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -65,8 +93,17 @@ def run(command):
             print(err, end="", file=sys.stderr)
         return rc
     except Exception as e:
-        print(f"SSH error: {e}", file=sys.stderr)
-        return 1
+        paramiko_error = str(e).strip() or e.__class__.__name__
+        if PASSWORD:
+            print(f"SSH error: {paramiko_error}", file=sys.stderr)
+            return 1
+
+        native_rc = _native_ssh_run(command)
+        if native_rc == 0:
+            return 0
+
+        print(f"SSH error: {paramiko_error}", file=sys.stderr)
+        return native_rc or 1
     finally:
         client.close()
 
