@@ -32,8 +32,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `0`
-- Local dirty sample: none
+- Local dirty file count: `14`
+- Local dirty sample: ` M STATUS.md`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/docs-lifecycle-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`, ` M docs/DOCUMENTATION-INDEX.md`, ` M docs/operations/ATHANOR-OPERATING-SYSTEM.md`, ` M docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md`, ` M docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, ` M scripts/README.md`
 
 ## dev-runtime-repo
 

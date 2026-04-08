@@ -23,6 +23,11 @@ Primary registries:
 - `repo-roots-registry.json`
 - `routing-taxonomy-map.json`
 
+Live loop surfaces:
+- `scripts/run_ralph_loop_pass.py`
+- `reports/ralph-loop/latest.json`
+- `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`
+
 ## Authority Model
 
 - `C:\Athanor` is the implementation authority for config, contracts, inventories, validation rules, and canonical current-state docs.
@@ -46,10 +51,11 @@ Primary registries:
 2. Generate fresh reports for hardware, model deployment, provider catalog, repo roots, drift, and secret surfaces.
 3. Compare runtime probes to registry truth and mark any divergence explicitly as drift.
 4. Route any cross-repo or side-root discovery into the reconciliation source registry and the ecosystem control docs before treating it as active program scope.
-5. Keep the total-completion program registry and completion doc aligned with the current execution frontier.
-6. Close the highest-leverage drift or contract bug.
-7. Rerun the relevant gate.
-8. Delete or freeze superseded material once the replacement truth is verified.
+5. Run the Ralph-loop controller so the next eligible workstream and blocker state are explicit in `reports/ralph-loop/latest.json`.
+6. Keep the total-completion program registry, Ralph-loop contract, and completion doc aligned with the current execution frontier.
+7. Close the highest-leverage drift or contract bug.
+8. Rerun the relevant gate.
+9. Delete or freeze superseded material once the replacement truth is verified.
 
 ## Prune Policy
 

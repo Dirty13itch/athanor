@@ -8,6 +8,7 @@
 | `contract-tests.sh` | Quick interface-shape and endpoint-presence contract checks for live runtime surfaces | `bash scripts/contract-tests.sh [--quiet]` |
 | `deploy-agents.sh` | Deploy agent server to FOUNDRY (sync, build, restart) | `./scripts/deploy-agents.sh [--no-build]` |
 | `run_autonomy_loop_pass.py` | Run one governed native loop pass across builtin and agent-schedule jobs, then write `reports/autonomy-loop/latest.json` | `python scripts/run_autonomy_loop_pass.py [--force-deferred] [--skip-agent-schedules]` |
+| `run_ralph_loop_pass.py` | Run one Ralph-loop control pass: refresh evidence, classify workstreams, and write `reports/ralph-loop/latest.json` | `python scripts/run_ralph_loop_pass.py [--skip-refresh] [--skip-validation]` |
 | `model-inventory.sh` | Scan NFS models and report available vs loaded | `bash scripts/model-inventory.sh` |
 | `run_service_contract_tests.py` | Create or reuse the disposable service-contract venv and run the service and script health-contract suites | `python scripts/run_service_contract_tests.py [--reinstall]` |
 | `requirements-test.txt` | Dependency bundle for script-service contract tests in the disposable service-contract venv | Consumed by `python scripts/run_service_contract_tests.py` |
@@ -105,7 +106,7 @@ Treat `contract-tests.sh` as a narrower live endpoint contract helper, not a rep
 | Script | Purpose | Usage |
 |--------|---------|-------|
 | `import-grafana-dashboards.sh` | Import Grafana dashboards on VAULT | Run on VAULT |
-| `overnight-ops.sh` | Scheduled overnight maintenance tasks | `./scripts/overnight-ops.sh [--dry-run]` |
+| `overnight-ops.sh` | Scheduled overnight maintenance tasks plus Ralph-loop evidence refresh and control-pass planning | `./scripts/overnight-ops.sh [--dry-run]` |
 
 ## Subdirectories
 

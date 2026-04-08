@@ -1,18 +1,19 @@
 # Athanor Total Completion Program
 
-Source of truth: `config/automation-backbone/completion-program-registry.json`, `config/automation-backbone/program-operating-system.json`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-Validated against registry version: `completion-program-registry.json@2026-04-07.5`, `program-operating-system.json@2026-03-25.1`
+Source of truth: `config/automation-backbone/completion-program-registry.json`, `config/automation-backbone/program-operating-system.json`, `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
+Validated against registry version: `completion-program-registry.json@2026-04-07.6`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: runtime truth outranks stale narrative, registry truth outranks helper prose, and this document must be updated whenever the completion-program registry, active checkpoint sequence, or final acceptance posture changes.
 
 Sources:
 - `config/automation-backbone/completion-program-registry.json`
 - `config/automation-backbone/program-operating-system.json`
+- `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`
 - `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
 - `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`
 - `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
 Versions:
-- `completion-program-registry.json`: `2026-04-07.5`
+- `completion-program-registry.json`: `2026-04-07.6`
 - `program-operating-system.json`: `2026-03-25.1`
 
 Last updated: 2026-04-07
@@ -54,6 +55,8 @@ The completion program runs as one continuous loop:
 6. Move the next bottleneck instead of leaving partial ambiguity behind.
 
 This keeps the work moving without treating runtime repair, portfolio classification, or source harvest as separate disconnected projects.
+
+That execution loop is now materialized through the Ralph-loop controller at `scripts/run_ralph_loop_pass.py`, which writes the live loop-state artifact to `reports/ralph-loop/latest.json`.
 
 ## Workstreams
 

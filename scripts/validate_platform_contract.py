@@ -35,6 +35,7 @@ TENANT_FAMILY_AUDIT_PATH = REPO_ROOT / "reports" / "reconciliation" / "tenant-fa
 FIELD_INSPECT_REPLAY_PACKET_REPORT_PATH = REPO_ROOT / "reports" / "reconciliation" / "field-inspect-operations-runtime-replay-latest.json"
 RFI_HERS_DUPLICATE_EVIDENCE_PACKET_REPORT_PATH = REPO_ROOT / "reports" / "reconciliation" / "rfi-hers-duplicate-evidence-packet-latest.json"
 RFI_HERS_PRIMARY_ROOT_STABILIZATION_REPORT_PATH = REPO_ROOT / "reports" / "reconciliation" / "rfi-hers-primary-root-stabilization-latest.json"
+RALPH_LOOP_REPORT_PATH = REPO_ROOT / "reports" / "ralph-loop" / "latest.json"
 LITELLM_TEMPLATE_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "templates" / "litellm_config.yaml.j2"
 VAULT_LITELLM_TASKS_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "tasks" / "main.yml"
 
@@ -118,6 +119,22 @@ ALLOWED_COMPLETION_WORKSTREAM_STATUSES = {
 }
 ALLOWED_COMPLETION_CHECKPOINT_STATUSES = {"planned", "active", "blocked", "completed"}
 ALLOWED_COMPLETION_PRIORITY_LEVELS = {"critical", "high", "medium", "low"}
+ALLOWED_COMPLETION_LOOP_EXECUTION_STATES = {
+    "active",
+    "ready_for_execution",
+    "ready_for_operator_approval",
+    "external_dependency_blocked",
+    "steady_state_monitoring",
+    "completed",
+}
+ALLOWED_COMPLETION_LOOP_BLOCKER_TYPES = {
+    "none",
+    "approval_gate",
+    "external_dependency",
+    "stale_evidence",
+    "runtime_authority",
+    "human_decision",
+}
 REQUIRED_RECONCILIATION_DOCS = {
     "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
     "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
@@ -130,6 +147,16 @@ REQUIRED_RECONCILIATION_DOCS = {
 }
 REQUIRED_COMPLETION_PROGRAM_DOCS = {
     "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md",
+    "docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md",
+}
+REQUIRED_COMPLETION_LOOP_FAMILY_IDS = {
+    "governor_scheduling",
+    "evidence_refresh",
+    "classification_backlog",
+    "repo_safe_repair_planning",
+    "governed_runtime_packets",
+    "publication_freeze",
+    "steady_state_maintenance",
 }
 REQUIRED_RECONCILIATION_SOURCE_IDS = {
     "athanor-core",
@@ -1287,6 +1314,9 @@ def main() -> int:
     foundry_proving_packet = {}
     if BOOTSTRAP_FOUNDRY_PROVING_PACKET_PATH.exists():
         foundry_proving_packet = json.loads(BOOTSTRAP_FOUNDRY_PROVING_PACKET_PATH.read_text(encoding="utf-8"))
+    ralph_loop_report = {}
+    if RALPH_LOOP_REPORT_PATH.exists():
+        ralph_loop_report = json.loads(RALPH_LOOP_REPORT_PATH.read_text(encoding="utf-8"))
     governance_drill_packets = {}
     if BOOTSTRAP_GOVERNANCE_DRILL_PACKETS_PATH.exists():
         governance_drill_packets = json.loads(BOOTSTRAP_GOVERNANCE_DRILL_PACKETS_PATH.read_text(encoding="utf-8"))
@@ -2899,8 +2929,66 @@ def main() -> int:
         errors.append("completion-program-registry.json workstream_statuses must match the allowed workstream-status set")
     if set(str(item) for item in completion_program.get("checkpoint_statuses", [])) != ALLOWED_COMPLETION_CHECKPOINT_STATUSES:
         errors.append("completion-program-registry.json checkpoint_statuses must match the allowed checkpoint-status set")
+    if set(str(item) for item in completion_program.get("loop_execution_states", [])) != ALLOWED_COMPLETION_LOOP_EXECUTION_STATES:
+        errors.append("completion-program-registry.json loop_execution_states must match the allowed loop-execution-state set")
+    if set(str(item) for item in completion_program.get("loop_blocker_types", [])) != ALLOWED_COMPLETION_LOOP_BLOCKER_TYPES:
+        errors.append("completion-program-registry.json loop_blocker_types must match the allowed loop-blocker-type set")
     if set(str(item) for item in completion_program.get("priority_levels", [])) != ALLOWED_COMPLETION_PRIORITY_LEVELS:
         errors.append("completion-program-registry.json priority_levels must match the allowed priority set")
+
+    loop_family_entries = [
+        dict(entry) for entry in completion_program.get("loop_families", []) if isinstance(entry, dict)
+    ]
+    if not loop_family_entries:
+        errors.append("completion-program-registry.json must declare loop_families")
+    loop_family_ids = [str(entry.get("id") or "").strip() for entry in loop_family_entries]
+    if len(loop_family_ids) != len(set(loop_family_ids)):
+        errors.append("completion-program-registry.json contains duplicate loop_families ids")
+    missing_loop_family_ids = sorted(
+        required_id
+        for required_id in REQUIRED_COMPLETION_LOOP_FAMILY_IDS
+        if required_id not in set(loop_family_ids)
+    )
+    if missing_loop_family_ids:
+        errors.append(
+            "completion-program-registry.json is missing required loop_families ids: "
+            + ", ".join(missing_loop_family_ids)
+        )
+    for entry in loop_family_entries:
+        loop_family_id = str(entry.get("id") or "").strip()
+        if not loop_family_id:
+            errors.append("completion-program-registry.json contains a loop_family without id")
+            continue
+        if not str(entry.get("title") or "").strip():
+            errors.append(f"completion-program-registry.json loop_family {loop_family_id} is missing title")
+        if not str(entry.get("description") or "").strip():
+            errors.append(f"completion-program-registry.json loop_family {loop_family_id} is missing description")
+        if not isinstance(entry.get("approval_sensitive"), bool):
+            errors.append(f"completion-program-registry.json loop_family {loop_family_id} must set boolean approval_sensitive")
+
+    ralph_loop = dict(completion_program.get("ralph_loop") or {})
+    if str(ralph_loop.get("status") or "") != "active":
+        errors.append("completion-program-registry.json ralph_loop.status must be active")
+    if str(ralph_loop.get("current_phase_scope") or "") != str(autonomy_activation.get("current_phase_id") or ""):
+        errors.append("completion-program-registry.json ralph_loop.current_phase_scope must match autonomy-activation-registry current_phase_id")
+    if str(ralph_loop.get("controller_script") or "") != "scripts/run_ralph_loop_pass.py":
+        errors.append("completion-program-registry.json ralph_loop.controller_script must be scripts/run_ralph_loop_pass.py")
+    if str(ralph_loop.get("report_path") or "") != "reports/ralph-loop/latest.json":
+        errors.append("completion-program-registry.json ralph_loop.report_path must be reports/ralph-loop/latest.json")
+    if str(ralph_loop.get("current_loop_family") or "") not in REQUIRED_COMPLETION_LOOP_FAMILY_IDS:
+        errors.append("completion-program-registry.json ralph_loop.current_loop_family must be a known loop_family id")
+    if str(ralph_loop.get("selected_workstream") or "") not in REQUIRED_COMPLETION_WORKSTREAM_IDS:
+        errors.append("completion-program-registry.json ralph_loop.selected_workstream must be a known required workstream id")
+    if str(ralph_loop.get("blocker_type") or "") not in ALLOWED_COMPLETION_LOOP_BLOCKER_TYPES:
+        errors.append("completion-program-registry.json ralph_loop.blocker_type must be a valid loop blocker type")
+    if not str(ralph_loop.get("next_action_family") or "").strip():
+        errors.append("completion-program-registry.json ralph_loop.next_action_family is missing")
+    if not str(ralph_loop.get("approval_status") or "").strip():
+        errors.append("completion-program-registry.json ralph_loop.approval_status is missing")
+    if not str(ralph_loop.get("last_validation_run") or "").strip():
+        errors.append("completion-program-registry.json ralph_loop.last_validation_run is missing")
+    if str(ralph_loop.get("execution_posture") or "") not in {"active_remediation", "steady_state"}:
+        errors.append("completion-program-registry.json ralph_loop.execution_posture must be active_remediation or steady_state")
 
     role_ids = {
         str(item.get("id") or "").strip()
@@ -2945,6 +3033,26 @@ def main() -> int:
             errors.append(
                 f"completion-program-registry.json workstream {workstream_id} has unknown owner_role {owner_role!r}"
             )
+        if str(entry.get("loop_family") or "") not in REQUIRED_COMPLETION_LOOP_FAMILY_IDS:
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} has invalid loop_family {entry.get('loop_family')!r}"
+            )
+        if str(entry.get("execution_state") or "") not in ALLOWED_COMPLETION_LOOP_EXECUTION_STATES:
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} has invalid execution_state {entry.get('execution_state')!r}"
+            )
+        if str(entry.get("blocker_type") or "") not in ALLOWED_COMPLETION_LOOP_BLOCKER_TYPES:
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} has invalid blocker_type {entry.get('blocker_type')!r}"
+            )
+        if not isinstance(entry.get("approval_required"), bool):
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} must set boolean approval_required"
+            )
+        if not str(entry.get("next_action_family") or "").strip():
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} is missing next_action_family"
+            )
         for field_name in ("title", "objective"):
             if not str(entry.get(field_name) or "").strip():
                 errors.append(
@@ -2966,6 +3074,18 @@ def main() -> int:
                 if not artifact_path.exists():
                     errors.append(
                         f"completion-program-registry.json workstream {workstream_id} artifact is missing: {artifact}"
+                    )
+        evidence_artifacts = entry.get("evidence_artifacts", [])
+        if not isinstance(evidence_artifacts, list) or not all(str(item).strip() for item in evidence_artifacts):
+            errors.append(
+                f"completion-program-registry.json workstream {workstream_id} evidence_artifacts must be a non-empty string list"
+            )
+        else:
+            for artifact in evidence_artifacts:
+                artifact_path = REPO_ROOT / str(artifact)
+                if not artifact_path.exists():
+                    errors.append(
+                        f"completion-program-registry.json workstream {workstream_id} evidence artifact is missing: {artifact}"
                     )
         exit_criteria = entry.get("exit_criteria", [])
         if not isinstance(exit_criteria, list) or not all(str(item).strip() for item in exit_criteria):
@@ -3896,6 +4016,52 @@ def main() -> int:
     completion_program_text = (REPO_ROOT / "docs" / "operations" / "ATHANOR-TOTAL-COMPLETION-PROGRAM.md").read_text(encoding="utf-8")
     if "completion-program-registry.json" not in completion_program_text:
         errors.append("ATHANOR-TOTAL-COMPLETION-PROGRAM.md must point readers to completion-program-registry.json")
+    ralph_loop_program_text = (REPO_ROOT / "docs" / "operations" / "ATHANOR-RALPH-LOOP-PROGRAM.md").read_text(encoding="utf-8")
+    if "scripts/run_ralph_loop_pass.py" not in ralph_loop_program_text:
+        errors.append("ATHANOR-RALPH-LOOP-PROGRAM.md must point readers to scripts/run_ralph_loop_pass.py")
+    if "reports/ralph-loop/latest.json" not in ralph_loop_program_text:
+        errors.append("ATHANOR-RALPH-LOOP-PROGRAM.md must point readers to reports/ralph-loop/latest.json")
+    if not RALPH_LOOP_REPORT_PATH.exists():
+        errors.append("reports/ralph-loop/latest.json is missing")
+    else:
+        if str(ralph_loop_report.get("generated_at") or "").strip() == "":
+            errors.append("reports/ralph-loop/latest.json is missing generated_at")
+        loop_state = dict(ralph_loop_report.get("loop_state") or {})
+        if str(loop_state.get("current_loop_family") or "") not in REQUIRED_COMPLETION_LOOP_FAMILY_IDS:
+            errors.append("reports/ralph-loop/latest.json loop_state.current_loop_family must be a known loop family")
+        if str(loop_state.get("selected_workstream") or "") not in REQUIRED_COMPLETION_WORKSTREAM_IDS:
+            errors.append("reports/ralph-loop/latest.json loop_state.selected_workstream must be a known workstream id")
+        if str(loop_state.get("selected_execution_state") or "") not in ALLOWED_COMPLETION_LOOP_EXECUTION_STATES:
+            errors.append("reports/ralph-loop/latest.json loop_state.selected_execution_state must be a valid execution state")
+        if str(loop_state.get("blocker_type") or "") not in ALLOWED_COMPLETION_LOOP_BLOCKER_TYPES:
+            errors.append("reports/ralph-loop/latest.json loop_state.blocker_type must be a valid blocker type")
+        controller = dict(ralph_loop_report.get("controller") or {})
+        if str(controller.get("phase_scope") or "") != str(autonomy_activation.get("current_phase_id") or ""):
+            errors.append("reports/ralph-loop/latest.json controller.phase_scope must match autonomy current_phase_id")
+        freshness = dict(ralph_loop_report.get("freshness") or {})
+        artifact_rows = freshness.get("artifacts", [])
+        if not isinstance(artifact_rows, list) or not artifact_rows:
+            errors.append("reports/ralph-loop/latest.json freshness.artifacts must be a non-empty list")
+        workstream_rows = ralph_loop_report.get("workstreams", [])
+        if not isinstance(workstream_rows, list) or not workstream_rows:
+            errors.append("reports/ralph-loop/latest.json workstreams must be a non-empty list")
+        next_actions = ralph_loop_report.get("next_actions", [])
+        if not isinstance(next_actions, list):
+            errors.append("reports/ralph-loop/latest.json next_actions must be a list")
+        if str(dict(ralph_loop_report.get("source_of_truth") or {}).get("completion_program_registry") or "") != "config/automation-backbone/completion-program-registry.json":
+            errors.append("reports/ralph-loop/latest.json source_of_truth.completion_program_registry must point at completion-program-registry.json")
+        if str(ralph_loop.get("current_loop_family") or "") != str(loop_state.get("current_loop_family") or ""):
+            errors.append("completion-program-registry.json ralph_loop.current_loop_family must match reports/ralph-loop/latest.json loop_state.current_loop_family")
+        if str(ralph_loop.get("selected_workstream") or "") != str(loop_state.get("selected_workstream") or ""):
+            errors.append("completion-program-registry.json ralph_loop.selected_workstream must match reports/ralph-loop/latest.json loop_state.selected_workstream")
+        if str(ralph_loop.get("blocker_type") or "") != str(loop_state.get("blocker_type") or ""):
+            errors.append("completion-program-registry.json ralph_loop.blocker_type must match reports/ralph-loop/latest.json loop_state.blocker_type")
+        if str(ralph_loop.get("approval_status") or "") != str(loop_state.get("approval_status") or ""):
+            errors.append("completion-program-registry.json ralph_loop.approval_status must match reports/ralph-loop/latest.json loop_state.approval_status")
+        if str(ralph_loop.get("execution_posture") or "") != str(loop_state.get("execution_posture") or ""):
+            errors.append("completion-program-registry.json ralph_loop.execution_posture must match reports/ralph-loop/latest.json loop_state.execution_posture")
+        if str(ralph_loop.get("evidence_freshness") or "") != str(loop_state.get("evidence_freshness") or ""):
+            errors.append("completion-program-registry.json ralph_loop.evidence_freshness must match reports/ralph-loop/latest.json loop_state.evidence_freshness")
 
     lens_ids = {str(item) for item in operating_system.get("lenses", [])}
     if lens_ids != REQUIRED_LENSES:

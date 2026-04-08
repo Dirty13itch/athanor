@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-07.1",
+  "version": "2026-04-07.2",
   "status": "active",
   "source_of_truth": "config/automation-backbone/docs-lifecycle-registry.json",
   "classes": [
@@ -58,6 +58,7 @@
     { "path": "docs/operations/RFI-HERS-PRIMARY-ROOT-STABILIZATION-PACKET.md", "class": "canonical", "owner": "shaun" },
     { "path": "docs/operations/WAN2GP-REMOTE-ONLY-WATCH-PACKET.md", "class": "canonical", "owner": "shaun" },
     { "path": "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md", "class": "canonical", "owner": "shaun" },
+    { "path": "docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md", "class": "canonical", "owner": "shaun" },
     { "path": "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md", "class": "canonical", "owner": "shaun" },
     { "path": "docs/operations/GOVERNOR-AUTHORITY-MATRIX.md", "class": "canonical", "owner": "shaun" },
     { "path": "docs/operations/OPERATOR_RUNBOOKS.md", "class": "canonical", "owner": "shaun" },

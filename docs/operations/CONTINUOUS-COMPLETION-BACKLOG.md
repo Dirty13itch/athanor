@@ -6,6 +6,10 @@ The full execution system now has two control layers:
 - [ATHANOR-TOTAL-COMPLETION-PROGRAM.md](/C:/Athanor/docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md) for the canonical deep program narrative
 - `config/automation-backbone/completion-program-registry.json` for the machine-readable workstream and checkpoint model
 
+The live loop controller now adds one execution artifact on top of those layers:
+- [ATHANOR-RALPH-LOOP-PROGRAM.md](/C:/Athanor/docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md) for the standing autonomous loop contract
+- `reports/ralph-loop/latest.json` for the current selected loop family, workstream, freshness posture, and escalation state
+
 ## Lane Status
 
 | Lane | Scope | Exit Criteria | Current Blockers | Last Verification |
@@ -75,10 +79,10 @@ The full execution system now has two control layers:
 3. Use the restored SSH-backed VAULT operator path to keep repo-side truth collectors and operator diagnostics on direct Docker-backed runtime evidence instead of browser-only recovery.
 4. Keep the repo-safe VAULT auth-classification tranche current on clean `main`, including the generated repair packets, provider report, secret-surface report, and the explicit runbook boundary that `provider-usage-evidence.json` is VAULT-proxy-only.
 5. Keep `foundry-agents-compose-deploy-packet` and `dev-dashboard-compose-deploy-packet` current as the only ordinary host-level update paths for those live surfaces; both packets executed cleanly on 2026-04-02, so the next drift work there is report hygiene and keeping the scripts aligned with the active roots rather than another deploy-path invention pass.
-6. Treat the current offline-cluster state as the active runtime blocker: VAULT `.203` is reachable again and DESK can probe Redis, Postgres, Qdrant, and LiteLLM there, but `FOUNDRY`, `DEV`, and `WORKSHOP` are still offline or unreachable, so durable persistence and live end-to-end Athanor health stay blocked until those nodes return.
+6. Treat the governed runtime packet order as the active runtime blocker: execute the DEV runtime repo sync first, then the VAULT LiteLLM auth/config and Prometheus packets, then the FOUNDRY and WORKSHOP reconciliation packets, and require live re-probe after each mutation instead of carrying stale reachability-era blockers forward.
 7. Verify the subscribed Kimi billing tier, restore or explicitly keep GLM CLI evidence demoted, and keep launch-governance provider summaries tied to the provider catalog, latest per-provider capture truth, and the VAULT env-name audit instead of historical row counts.
 8. Keep dashboard work in sidecar mode for lower-risk breadth only after provider truth, runtime sync, and canonical residue surfaces stay coherent on clean `main`.
-9. Treat any further scope change as an explicit registry change now that full-system promotion is live and runtime ownership is explicit enough that VAULT, DEV, and FOUNDRY maintenance no longer depend on undocumented operator memory or ad hoc browser access.
+9. Treat any further scope change as an explicit registry change now that full-system promotion is live and runtime ownership is explicit enough that VAULT, DEV, FOUNDRY, and WORKSHOP maintenance no longer depend on undocumented operator memory or ad hoc browser access.
 10. Keep the runbook, cutover packet, and backup root as rollback evidence only; do not recreate a standalone governor facade in implementation authority.
 
 ## Acceptance Matrix

@@ -10,7 +10,8 @@
 # 2. Neo4j graph maintenance (stale node pruning)
 # 3. Research job execution (pending research queue)
 # 4. Ansible convergence dry-run (drift detection)
-# 5. Gitea push (mirror current state)
+# 5. Ralph-loop control pass
+# 6. Gitea push (mirror current state)
 
 set -euo pipefail
 
@@ -133,8 +134,16 @@ else
     log "  SKIP: ansible-playbook not found or site.yml missing"
 fi
 
-# --- 5. Git mirror to Gitea ---
-log "Phase 5: Gitea mirror push"
+# --- 5. Ralph-loop control pass ---
+log "Phase 5: Ralph-loop control pass"
+if [ -f "$REPO_DIR/scripts/run_ralph_loop_pass.py" ]; then
+    run_or_skip python3 "$REPO_DIR/scripts/run_ralph_loop_pass.py" 2>&1 | tee -a "$LOG_FILE" || log "  WARN: Ralph-loop control pass failed"
+else
+    log "  SKIP: scripts/run_ralph_loop_pass.py missing"
+fi
+
+# --- 6. Git mirror to Gitea ---
+log "Phase 6: Gitea mirror push"
 cd "$REPO_DIR"
 if git remote get-url gitea >/dev/null 2>&1; then
     run_or_skip git push gitea main 2>&1 | tee -a "$LOG_FILE" || log "  WARN: Gitea push failed"

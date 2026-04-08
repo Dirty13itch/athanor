@@ -5,12 +5,12 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-07.1`
-- Total tracked entries: `132`
+- Registry version: `2026-04-07.2`
+- Total tracked entries: `133`
 
 | Class | Count |
 | --- | ---: |
-| `canonical` | 47 |
+| `canonical` | 48 |
 | `generated` | 18 |
 | `reference` | 21 |
 | `archive` | 46 |
@@ -31,6 +31,7 @@ Do not edit manually.
 | `docs/TROUBLESHOOTING.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-OPERATING-SYSTEM.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-RECONCILIATION-LEDGER.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-RECONCILIATION-PACKET.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-SHARED-EXTRACTION-QUEUE.md` | markdown | `shaun` |

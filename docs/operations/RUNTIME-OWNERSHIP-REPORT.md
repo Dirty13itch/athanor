@@ -6,7 +6,7 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-06.2`
-- Cached truth snapshot: `2026-04-08T00:13:15.964104+00:00`
+- Cached truth snapshot: `2026-04-08T01:08:49.735175+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
 - Implementation authority: `desk-main` -> `C:/Athanor`
@@ -21,7 +21,7 @@ Do not edit manually.
 
 ## Repo Evidence
 
-- Implementation dirty file count: `0`
+- Implementation dirty file count: `14`
 - DEV runtime dirty file count: `2`
 - FOUNDRY compose root matches expected: `True`
 - FOUNDRY build root clean: `True`
@@ -103,7 +103,7 @@ Do not edit manually.
 - Active root: `/opt/athanor/dashboard`
 - Runtime repo compose controls container: `True`
 - Container running: `True`
-- Container status: `Up 3 days`
+- Container status: `Up 4 days`
 - Compose working dir: `/opt/athanor/dashboard`
 - Legacy service state: `inactive` / `dead`
 - Legacy unit file state: `masked`
@@ -202,7 +202,7 @@ Do not edit manually.
 - Nested source dir present: `False`
 - bak-codex files: none
 - Container running: `True`
-- Container status: `Up 23 hours`
+- Container status: `Up 24 hours`
 - Compose working dir: `/opt/athanor/agents`
 - Compose config files: `/opt/athanor/agents/docker-compose.yml`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`

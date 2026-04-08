@@ -6,7 +6,7 @@ Do not edit manually.
 ## Front Door Contract
 
 - Registry version: `2026-03-29.1`
-- Cached truth snapshot: `2026-04-08T00:13:15.964104+00:00`
+- Cached truth snapshot: `2026-04-08T01:08:49.735175+00:00`
 - Canonical portal id: `athanor_command_center`
 - Canonical operator URL: `https://athanor.local/`
 - Canonical node: `dev`
@@ -58,7 +58,7 @@ Do not edit manually.
 - DEV runtime probe target: `dev`
 - DEV deployment mode observed: `containerized_service_behind_caddy`
 - Dashboard container running: `True`
-- Dashboard container status: `Up 3 days`
+- Dashboard container status: `Up 4 days`
 - Dashboard container image: `athanor/dashboard:latest`
 - Dashboard container ports: `0.0.0.0:3001->3001/tcp, [::]:3001->3001/tcp`
 - Dashboard compose working dir: `/opt/athanor/dashboard`
