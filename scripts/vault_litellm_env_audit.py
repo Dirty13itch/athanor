@@ -13,7 +13,7 @@ from truth_inventory import REPO_ROOT, VAULT_LITELLM_ENV_AUDIT_PATH, load_regist
 
 VAULT_SSH_PATH = REPO_ROOT / "scripts" / "vault-ssh.py"
 VAULT_LITELLM_CONTAINER_NAME = "litellm"
-AUDIT_VERSION = "2026-03-29.2"
+AUDIT_VERSION = "2026-04-08.1"
 
 
 def utc_now() -> str:
@@ -40,7 +40,8 @@ def _vault_expected_env_names() -> list[str]:
 
 
 def _build_remote_probe_script(container_name: str, expected_env_names: list[str]) -> str:
-    return f"""import json
+    return f"""import glob
+import json
 import os
 import pathlib
 import shlex
@@ -89,6 +90,32 @@ def grep_matches(roots, pattern, max_results=20):
     return sorted({{line.strip() for line in result.stdout.splitlines() if line.strip()}})
 
 
+def read_json_file(path):
+    try:
+        return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def inspect_backup_env_snapshots(pattern):
+    snapshots = []
+    for raw_path in sorted(glob.glob(pattern))[:20]:
+        payload = read_json_file(raw_path)
+        if payload is None:
+            continue
+        obj = payload[0] if isinstance(payload, list) and payload else payload
+        if not isinstance(obj, dict):
+            continue
+        snapshots.append(
+            {{
+                "path": raw_path,
+                "env_names": env_names((obj.get("Config") or {{}}).get("Env") or []),
+                "image": str(((obj.get("Config") or {{}}).get("Image")) or ""),
+            }}
+        )
+    return snapshots
+
+
 inspect_result = subprocess.run(
     ["docker", "inspect", container_name],
     capture_output=True,
@@ -135,6 +162,20 @@ boot_config_reference_files = grep_matches(
     r"ghcr.io/berriai/litellm|/mnt/user/appdata/litellm|docker/prod_entrypoint\\.sh|(^|[^A-Za-z])litellm([^A-Za-z]|$)",
 )
 appdata_files = limited_matches("/mnt/user/appdata/litellm", needle="", max_depth=2, require_file=True)
+historical_backup_env_snapshots = inspect_backup_env_snapshots("/mnt/user/appdata/litellm/backups/litellm.inspect*.json")
+docker_config = read_json_file("/boot/config/plugins/dynamix.my.servers/configs/docker.config.json") or {{}}
+template_mappings = docker_config.get("templateMappings") if isinstance(docker_config, dict) else {{}}
+docker_config_template_mapping = None
+if isinstance(template_mappings, dict) and "litellm" in template_mappings:
+    value = template_mappings.get("litellm")
+    docker_config_template_mapping = value if value is None or isinstance(value, str) else str(value)
+container_watchdog_monitored = False
+watchdog_path = pathlib.Path("/boot/config/custom/backup-scripts/container-watchdog.sh")
+if watchdog_path.exists():
+    try:
+        container_watchdog_monitored = "litellm" in watchdog_path.read_text(encoding="utf-8", errors="ignore").lower()
+    except Exception:
+        container_watchdog_monitored = False
 
 print(
     json.dumps(
@@ -166,8 +207,11 @@ print(
             "container_label_keys": label_keys,
             "docker_template_matches": docker_template_matches,
             "compose_manager_matches": compose_manager_matches,
+            "docker_config_template_mapping": docker_config_template_mapping,
+            "container_watchdog_monitored": container_watchdog_monitored,
             "boot_config_reference_files": boot_config_reference_files,
             "appdata_files": appdata_files,
+            "historical_backup_env_snapshots": historical_backup_env_snapshots,
         }},
         sort_keys=True,
     )
@@ -230,7 +274,30 @@ def _normalize_audit_payload(remote_payload: dict[str, Any], expected_env_names:
     compose_manager_matches = [
         str(path).strip() for path in remote_payload.get("compose_manager_matches", []) if str(path).strip()
     ]
+    docker_config_template_mapping = remote_payload.get("docker_config_template_mapping")
     appdata_files = [str(path).strip() for path in remote_payload.get("appdata_files", []) if str(path).strip()]
+    historical_backup_env_snapshots = []
+    for snapshot in remote_payload.get("historical_backup_env_snapshots", []):
+        if not isinstance(snapshot, dict):
+            continue
+        path = str(snapshot.get("path") or "").strip()
+        env_names = sorted(
+            {
+                str(name).strip()
+                for name in snapshot.get("env_names", [])
+                if str(name).strip()
+            }
+        )
+        image = str(snapshot.get("image") or "").strip()
+        if not path:
+            continue
+        historical_backup_env_snapshots.append(
+            {
+                "path": path,
+                "env_names": env_names,
+                "image": image,
+            }
+        )
     runtime_owner_surface = (
         "standalone_docker_container"
         if not docker_template_matches
@@ -277,12 +344,19 @@ def _normalize_audit_payload(remote_payload: dict[str, Any], expected_env_names:
         ],
         "docker_template_matches": docker_template_matches,
         "compose_manager_matches": compose_manager_matches,
+        "docker_config_template_mapping": (
+            None
+            if docker_config_template_mapping is None
+            else str(docker_config_template_mapping).strip() or None
+        ),
+        "container_watchdog_monitored": bool(remote_payload.get("container_watchdog_monitored")),
         "boot_config_reference_files": [
             str(path).strip()
             for path in remote_payload.get("boot_config_reference_files", [])
             if str(path).strip()
         ],
         "appdata_files": appdata_files,
+        "historical_backup_env_snapshots": historical_backup_env_snapshots,
         "container_mounts": [
             {
                 "source": str(mount.get("source") or ""),
@@ -326,8 +400,11 @@ def _failed_audit_payload(expected_env_names: list[str], error: str) -> dict[str
         "container_label_keys": [],
         "docker_template_matches": [],
         "compose_manager_matches": [],
+        "docker_config_template_mapping": None,
+        "container_watchdog_monitored": False,
         "boot_config_reference_files": [],
         "appdata_files": [],
+        "historical_backup_env_snapshots": [],
         "container_mounts": [],
         "error": error,
     }

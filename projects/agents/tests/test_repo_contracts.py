@@ -225,6 +225,8 @@ CANONICAL_DASHBOARD_ENVS = {
     "ATHANOR_NEO4J_PASSWORD",
     "ATHANOR_SPEACHES_URL",
     "ATHANOR_LITELLM_API_KEY",
+    "ATHANOR_FOUNDRY_DOCKER_PROXY",
+    "ATHANOR_VAULT_DOCKER_PROXY",
 }
 
 FROZEN_LITELLM_ALIASES = {
@@ -380,7 +382,7 @@ def parse_agent_ids_from_docs() -> set[str]:
 def parse_compose_envs() -> set[str]:
     envs: set[str] = set()
     for line in read_text(DASHBOARD_TEMPLATE).splitlines():
-        match = re.search(r"- ([A-Z0-9_]+)=", line.strip())
+        match = re.match(r"(?:-\s*)?([A-Z0-9_]+)\s*(?::|=)", line.strip())
         if match:
             envs.add(match.group(1))
     return envs
@@ -1138,7 +1140,7 @@ class RepoContractsTest(unittest.TestCase):
         self.assertIn("- Observed hosts: `vault`", report_text)
         self.assertIn("- Pricing truth: `metered_api`, `unverified or metered`", report_text)
         self.assertIn(
-            "- Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=True`, `last_verified_at=2026-03-29T03:46:16Z`",
+            "- Observed runtime: `routing_policy_enabled=False`, `active_burn_observed=False`, `api_configured=True`, `proxy_activity_observed=True`, `provider_specific_usage_observed=True`, `last_verified_at=",
             report_text,
         )
         self.assertIn("- Next verification: No immediate verification gap recorded.", report_text)

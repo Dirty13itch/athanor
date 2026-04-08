@@ -1,7 +1,7 @@
 ---
 dashboard_deploy_dir: /opt/athanor/dashboard
 dashboard_port: 3001
-dashboard_prometheus_url: "{{ prometheus_url }}"
+dashboard_prometheus_url: "http://{{ vault_ip | default('192.168.1.203') }}:9090"
 dashboard_image: "athanor/dashboard:latest"
 dashboard_surface_mode: "canonical_production"
 dashboard_legacy_systemd_service_name: "athanor-dashboard.service"
@@ -25,7 +25,7 @@ dashboard_vault_host: "{{ vault_ip | default('192.168.1.203') }}"
 dashboard_dev_host: "{{ dev_ip | default('192.168.1.189') }}"
 
 dashboard_agent_server_url: "http://{{ node1_ip | default('192.168.1.244') }}:9000"
-dashboard_grafana_url: "{{ grafana_url }}"
+dashboard_grafana_url: "http://{{ vault_ip | default('192.168.1.203') }}:3000"
 dashboard_litellm_url: "http://{{ vault_ip | default('192.168.1.203') }}:4000"
 dashboard_vllm_coordinator_url: "http://{{ node1_ip | default('192.168.1.244') }}:8000"
 dashboard_vllm_coder_url: "http://{{ node1_ip | default('192.168.1.244') }}:8006"
@@ -51,6 +51,8 @@ dashboard_neo4j_password: "{{ athanor_neo4j_password | default(neo4j_password | 
 dashboard_speaches_url: "http://{{ node1_ip | default('192.168.1.244') }}:8200"
 dashboard_litellm_api_key: "{{ athanor_litellm_api_key | default(agent_litellm_api_key | default('')) }}"
 dashboard_agent_api_token: "{{ athanor_agent_api_token | default('') }}"
+dashboard_foundry_docker_proxy: "http://{{ node1_ip | default('192.168.1.244') }}:2375"
+dashboard_vault_docker_proxy: "http://{{ vault_ip | default('192.168.1.203') }}:2375"
 dashboard_operator_token: "{{ athanor_dashboard_operator_token | default('') }}"
 dashboard_langfuse_public_key: "{{ athanor_langfuse_public_key | default('') }}"
 dashboard_langfuse_secret_key: "{{ athanor_langfuse_secret_key | default('') }}"

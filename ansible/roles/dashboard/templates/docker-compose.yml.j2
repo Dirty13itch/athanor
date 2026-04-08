@@ -15,48 +15,43 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 {% endif %}
     environment:
-      - ATHANOR_COMMAND_CENTER_URL={{ dashboard_command_center_url }}
-      - NEXT_PUBLIC_PROMETHEUS_URL={{ dashboard_prometheus_url }}
-      - NEXT_PUBLIC_VAPID_PUBLIC_KEY={{ dashboard_vapid_public_key }}
-      - VAPID_PRIVATE_KEY={{ dashboard_vapid_private_key }}
-      - ATHANOR_NODE1_HOST={{ dashboard_node1_host }}
-      - ATHANOR_NODE2_HOST={{ dashboard_node2_host }}
-      - ATHANOR_VAULT_HOST={{ dashboard_vault_host }}
-      - ATHANOR_DEV_HOST={{ dashboard_dev_host }}
-      - ATHANOR_WORKSHOP_LINK_HOST={{ dashboard_workshop_link_host }}
-      - ATHANOR_VAULT_LINK_HOST={{ dashboard_vault_link_host }}
-      - ATHANOR_AGENT_SERVER_URL={{ dashboard_agent_server_url }}
-      - ATHANOR_PROMETHEUS_URL={{ dashboard_prometheus_url }}
-      - ATHANOR_GRAFANA_URL={{ dashboard_grafana_url }}
-      - ATHANOR_LITELLM_URL={{ dashboard_litellm_url }}
-      - ATHANOR_VLLM_COORDINATOR_URL={{ dashboard_vllm_coordinator_url }}
-      - ATHANOR_VLLM_CODER_URL={{ dashboard_vllm_coder_url }}
-      - ATHANOR_VLLM_WORKER_URL={{ dashboard_vllm_worker_url }}
-      - ATHANOR_VLLM_EMBEDDING_URL={{ dashboard_vllm_embedding_url }}
-      - ATHANOR_VLLM_RERANKER_URL={{ dashboard_vllm_reranker_url }}
-      - ATHANOR_COMFYUI_URL={{ dashboard_comfyui_url }}
-      - ATHANOR_OPEN_WEBUI_URL={{ dashboard_open_webui_url }}
-      - ATHANOR_VAULT_OPEN_WEBUI_URL={{ dashboard_vault_open_webui_url }}
-      - ATHANOR_EOQ_URL={{ dashboard_eoq_url }}
-      - ATHANOR_SONARR_URL={{ dashboard_sonarr_url }}
-      - ATHANOR_RADARR_URL={{ dashboard_radarr_url }}
-      - ATHANOR_TAUTULLI_URL={{ dashboard_tautulli_url }}
-      - ATHANOR_PLEX_URL={{ dashboard_plex_url }}
-      - ATHANOR_STASH_URL={{ dashboard_stash_url }}
-      - ATHANOR_PROWLARR_URL={{ dashboard_prowlarr_url }}
-      - ATHANOR_SABNZBD_URL={{ dashboard_sabnzbd_url }}
-      - ATHANOR_HOME_ASSISTANT_URL={{ dashboard_home_assistant_url }}
-      - ATHANOR_QDRANT_URL={{ dashboard_qdrant_url }}
-      - ATHANOR_NEO4J_URL={{ dashboard_neo4j_url }}
-      - ATHANOR_NEO4J_USER={{ dashboard_neo4j_user }}
-      - ATHANOR_NEO4J_PASSWORD={{ dashboard_neo4j_password }}
-      - ATHANOR_SPEACHES_URL={{ dashboard_speaches_url }}
-      - ATHANOR_LITELLM_API_KEY={{ dashboard_litellm_api_key }}
-      - ATHANOR_AGENT_API_TOKEN={{ dashboard_agent_api_token }}
-      - ATHANOR_DASHBOARD_OPERATOR_TOKEN={{ dashboard_operator_token }}
-      - ATHANOR_LANGFUSE_PUBLIC_KEY={{ dashboard_langfuse_public_key }}
-      - ATHANOR_LANGFUSE_SECRET_KEY={{ dashboard_langfuse_secret_key }}
-      - ATHANOR_WS_PTY_BRIDGE_ALLOWED_NODES={{ dashboard_ws_pty_bridge_allowed_nodes }}
+      NEXT_PUBLIC_PROMETHEUS_URL: ${NEXT_PUBLIC_PROMETHEUS_URL:-{{ dashboard_prometheus_url }}}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-{{ dashboard_vapid_public_key }}}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-{{ dashboard_vapid_private_key }}}
+      ATHANOR_NODE1_HOST: ${ATHANOR_NODE1_HOST:-{{ dashboard_node1_host }}}
+      ATHANOR_NODE2_HOST: ${ATHANOR_NODE2_HOST:-{{ dashboard_node2_host }}}
+      ATHANOR_VAULT_HOST: ${ATHANOR_VAULT_HOST:-{{ dashboard_vault_host }}}
+      ATHANOR_DEV_HOST: ${ATHANOR_DEV_HOST:-{{ dashboard_dev_host }}}
+      ATHANOR_AGENT_SERVER_URL: ${ATHANOR_AGENT_SERVER_URL:-{{ dashboard_agent_server_url }}}
+      ATHANOR_PROMETHEUS_URL: ${ATHANOR_PROMETHEUS_URL:-{{ dashboard_prometheus_url }}}
+      ATHANOR_GRAFANA_URL: ${ATHANOR_GRAFANA_URL:-{{ dashboard_grafana_url }}}
+      ATHANOR_LITELLM_URL: ${ATHANOR_LITELLM_URL:-{{ dashboard_litellm_url }}}
+      ATHANOR_VLLM_COORDINATOR_URL: ${ATHANOR_VLLM_COORDINATOR_URL:-{{ dashboard_vllm_coordinator_url }}}
+      ATHANOR_VLLM_CODER_URL: ${ATHANOR_VLLM_CODER_URL:-{{ dashboard_vllm_coder_url }}}
+      ATHANOR_VLLM_WORKER_URL: ${ATHANOR_VLLM_WORKER_URL:-{{ dashboard_vllm_worker_url }}}
+      ATHANOR_VLLM_EMBEDDING_URL: ${ATHANOR_VLLM_EMBEDDING_URL:-{{ dashboard_vllm_embedding_url }}}
+      ATHANOR_VLLM_RERANKER_URL: ${ATHANOR_VLLM_RERANKER_URL:-{{ dashboard_vllm_reranker_url }}}
+      ATHANOR_COMFYUI_URL: ${ATHANOR_COMFYUI_URL:-{{ dashboard_comfyui_url }}}
+      ATHANOR_OPEN_WEBUI_URL: ${ATHANOR_OPEN_WEBUI_URL:-{{ dashboard_open_webui_url }}}
+      ATHANOR_VAULT_OPEN_WEBUI_URL: ${ATHANOR_VAULT_OPEN_WEBUI_URL:-{{ dashboard_vault_open_webui_url }}}
+      ATHANOR_EOQ_URL: ${ATHANOR_EOQ_URL:-{{ dashboard_eoq_url }}}
+      ATHANOR_SONARR_URL: ${ATHANOR_SONARR_URL:-{{ dashboard_sonarr_url }}}
+      ATHANOR_RADARR_URL: ${ATHANOR_RADARR_URL:-{{ dashboard_radarr_url }}}
+      ATHANOR_TAUTULLI_URL: ${ATHANOR_TAUTULLI_URL:-{{ dashboard_tautulli_url }}}
+      ATHANOR_PLEX_URL: ${ATHANOR_PLEX_URL:-{{ dashboard_plex_url }}}
+      ATHANOR_STASH_URL: ${ATHANOR_STASH_URL:-{{ dashboard_stash_url }}}
+      ATHANOR_PROWLARR_URL: ${ATHANOR_PROWLARR_URL:-{{ dashboard_prowlarr_url }}}
+      ATHANOR_SABNZBD_URL: ${ATHANOR_SABNZBD_URL:-{{ dashboard_sabnzbd_url }}}
+      ATHANOR_HOME_ASSISTANT_URL: ${ATHANOR_HOME_ASSISTANT_URL:-{{ dashboard_home_assistant_url }}}
+      ATHANOR_QDRANT_URL: ${ATHANOR_QDRANT_URL:-{{ dashboard_qdrant_url }}}
+      ATHANOR_NEO4J_URL: ${ATHANOR_NEO4J_URL:-{{ dashboard_neo4j_url }}}
+      ATHANOR_NEO4J_USER: ${ATHANOR_NEO4J_USER:-{{ dashboard_neo4j_user }}}
+      ATHANOR_NEO4J_PASSWORD: ${ATHANOR_NEO4J_PASSWORD:-}
+      ATHANOR_SPEACHES_URL: ${ATHANOR_SPEACHES_URL:-{{ dashboard_speaches_url }}}
+      ATHANOR_LITELLM_API_KEY: ${ATHANOR_LITELLM_API_KEY:-}
+      ATHANOR_AGENT_API_TOKEN: ${ATHANOR_AGENT_API_TOKEN:-}
+      ATHANOR_FOUNDRY_DOCKER_PROXY: ${ATHANOR_FOUNDRY_DOCKER_PROXY:-{{ dashboard_foundry_docker_proxy }}}
+      ATHANOR_VAULT_DOCKER_PROXY: ${ATHANOR_VAULT_DOCKER_PROXY:-{{ dashboard_vault_docker_proxy }}}
 {% if dashboard_include_ws_pty_bridge %}
 
   ws-pty-bridge:

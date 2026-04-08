@@ -32,6 +32,10 @@ function Write-Utf8File {
     )
 
     $normalized = $Content -replace "`r`n", "`n"
+    while ($normalized.Contains("`n`n`n")) {
+        $normalized = $normalized -replace "(`n){3,}", "`n`n"
+    }
+    $normalized = $normalized.TrimEnd("`r", "`n")
     if (-not $normalized.EndsWith("`n")) {
         $normalized += "`n"
     }
@@ -44,10 +48,13 @@ function Protect-SensitiveText {
     param([string]$Text)
 
     $result = $Text
+    $result = $result -replace "`0", ""
+    $result = [regex]::Replace($result, '(?m)(\s+)#.*$', '')
     $result = [regex]::Replace($result, 'redis://:([^@/\s]+)@', 'redis://:<redacted>@')
     $result = [regex]::Replace($result, '(?im)^(\s*-\s*[A-Z0-9_]*(?:KEY|PASSWORD|TOKEN|SECRET|DATABASE_URL)[A-Z0-9_]*=).+$', '$1<redacted>')
     $result = [regex]::Replace($result, '(?im)^(\s*[A-Z0-9_]*(?:KEY|PASSWORD|TOKEN|SECRET|DATABASE_URL)[A-Z0-9_]*:\s*).+$', '$1<redacted>')
     $result = [regex]::Replace($result, '(?im)^(\s*api_key:\s*)"(?!not-needed|os\.environ/)[^"]+"', '$1"<redacted>"')
+    $result = [regex]::Replace($result, '(?m)^[ \t]*\r?\n', '')
     return $result
 }
 
@@ -89,7 +96,7 @@ function Get-GitNumStat {
         [string]$LivePath
     )
 
-    $output = @(& git -c core.autocrlf=false -c core.safecrlf=false diff --no-index --ignore-cr-at-eol --numstat -- $RenderedPath $LivePath 2>$null)
+    $output = @(& git -c core.autocrlf=false -c core.safecrlf=false diff --no-index --ignore-cr-at-eol --text --numstat -- $RenderedPath $LivePath 2>$null)
     $exitCode = $LASTEXITCODE
 
     if ($exitCode -eq 0 -or -not $output -or $output.Count -eq 0) {
@@ -110,10 +117,15 @@ function Get-GitNumStat {
         }
     }
 
+    $addedLines = 0
+    $deletedLines = 0
+    [void][int]::TryParse($parts[0], [ref]$addedLines)
+    [void][int]::TryParse($parts[1], [ref]$deletedLines)
+
     return [pscustomobject]@{
         Status = "different"
-        AddedLines = [int]$parts[0]
-        DeletedLines = [int]$parts[1]
+        AddedLines = $addedLines
+        DeletedLines = $deletedLines
     }
 }
 
@@ -124,8 +136,11 @@ function Write-DiffFile {
         [string]$DiffPath
     )
 
-    $diffText = @(& git -c core.autocrlf=false -c core.safecrlf=false diff --no-index --no-color --ignore-cr-at-eol --unified=3 -- $RenderedPath $LivePath 2>$null)
+    $diffText = @(& git -c core.autocrlf=false -c core.safecrlf=false diff --no-index --no-color --ignore-cr-at-eol --text --unified=3 -- $RenderedPath $LivePath 2>$null)
     if ($LASTEXITCODE -eq 0 -or -not $diffText -or $diffText.Count -eq 0) {
+        if (Test-Path -LiteralPath $DiffPath) {
+            Remove-Item -LiteralPath $DiffPath -Force
+        }
         return $false
     }
 
@@ -315,6 +330,10 @@ foreach ($comparison in $comparisons) {
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to render template for $($comparison.Id)."
     }
+
+    $renderedContent = Get-Content -LiteralPath $renderedPath -Raw -Encoding utf8
+    $sanitizedRenderedContent = Protect-SensitiveText -Text $renderedContent
+    Write-Utf8File -PathText $renderedPath -Content $sanitizedRenderedContent
 
     $liveContent = Get-RemoteFileContent -HostAlias $comparison.HostAlias -RemotePath $comparison.LivePath
     if ($null -eq $liveContent) {

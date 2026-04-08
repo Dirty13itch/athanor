@@ -46,10 +46,19 @@ def test_normalize_audit_payload_marks_standalone_runtime_owner_surface() -> Non
             "container_has_compose_labels": False,
             "docker_template_matches": [],
             "compose_manager_matches": [],
+            "docker_config_template_mapping": None,
+            "container_watchdog_monitored": True,
             "boot_config_reference_files": [
                 "/boot/config/plugins/dynamix.my.servers/configs/docker.config.json"
             ],
             "appdata_files": ["/mnt/user/appdata/litellm/config.yaml"],
+            "historical_backup_env_snapshots": [
+                {
+                    "path": "/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json",
+                    "env_names": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"],
+                    "image": "ghcr.io/berriai/litellm:main-v1.81.9-stable",
+                }
+            ],
             "container_mounts": [
                 {
                     "source": "/mnt/user/appdata/litellm/config.yaml",
@@ -71,6 +80,15 @@ def test_normalize_audit_payload_marks_standalone_runtime_owner_surface() -> Non
     assert payload["container_missing_env_names"] == ["OPENAI_API_KEY"]
     assert payload["container_entrypoint"] == ["docker/prod_entrypoint.sh"]
     assert payload["container_args"] == ["--config", "/app/config.yaml", "--port", "4000"]
+    assert payload["docker_config_template_mapping"] is None
+    assert payload["container_watchdog_monitored"] is True
+    assert payload["historical_backup_env_snapshots"] == [
+        {
+            "path": "/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json",
+            "env_names": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"],
+            "image": "ghcr.io/berriai/litellm:main-v1.81.9-stable",
+        }
+    ]
     assert payload["boot_config_reference_files"] == [
         "/boot/config/plugins/dynamix.my.servers/configs/docker.config.json"
     ]

@@ -17,7 +17,6 @@ DEFAULT_RESTART_UNITS = [
     "athanor-classifier.service",
     "athanor-quality-gate.service",
     "athanor-sentinel.service",
-    "athanor-overnight.service",
 ]
 
 
@@ -157,9 +156,9 @@ git rev-parse --short HEAD > "$backup_root/head.after.txt"
 if [[ "$restart_flag" == "1" ]]; then
   IFS=',' read -r -a restart_units <<< "$restart_units_csv"
   for unit in "${restart_units[@]}"; do
-    systemctl restart "$unit"
+    sudo systemctl restart "$unit"
   done
-  systemctl is-active "${restart_units[@]}" > "$backup_root/systemd.after.txt"
+  sudo systemctl is-active "${restart_units[@]}" > "$backup_root/systemd.after.txt"
 fi
 
 prune_sync_artifacts "$retention_count"

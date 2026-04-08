@@ -59,4 +59,4 @@ open_webui_port: 3000
 open_webui_vllm_url: "http://{{ node1_ip }}:8000/v1"
 
 dashboard_port: 3001
-dashboard_prometheus_url: "{{ prometheus_url }}"
+dashboard_prometheus_url: "http://{{ vault_ip | default('192.168.1.203') }}:9090"
