@@ -1,0 +1,30 @@
+You are participating in an Athanor pilot evaluation for memory and continuity tooling.
+
+TASK ID: {{task_id}}
+CATEGORY: {{task_category}}
+
+OBJECTIVE
+{{task}}
+
+HARD BOUNDS
+- Work only from the supplied material in this prompt.
+- Treat the task as read-only continuity analysis.
+- Do not claim to have run commands, queried external systems, or remembered anything beyond the supplied session history.
+- No secrets, credentials, destructive changes, or network access.
+- If a next action depends on missing memory, say what memory should be retained rather than inventing it.
+
+SUCCESS CRITERIA
+{{success_criteria}}
+
+WORKING MATERIAL
+{{artifact}}
+
+Return strict JSON with no surrounding commentary:
+{
+  "task_id": "{{task_id}}",
+  "summary": "one short paragraph",
+  "deliverable": "the continuity-aware answer or recommendation",
+  "memory_to_retain": ["memory item 1", "memory item 2"],
+  "safe_next_steps": ["step 1", "step 2"],
+  "confidence": "low|medium|high"
+}

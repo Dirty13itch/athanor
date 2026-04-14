@@ -1,0 +1,772 @@
+{
+  "lane_eval_policy": {
+    "freshness_window_days": 30,
+    "promotion_rule": "two_consecutive_fresh_wins_or_one_decisive_win_plus_operator_smoke",
+    "stale_on_material_version_change": true
+  },
+  "runs": [
+    {
+      "approval_gated_remaining": [],
+      "baseline_id": "athanor_agents_current_retrieval_stack",
+      "blocking_checks": [],
+      "challenger_id": "devstack_graphrag_hybrid_retrieval_v1",
+      "champion_id": "athanor_agents_current_retrieval_stack",
+      "corpus_id": "golden_core_workloads",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/services/graphrag/README.md",
+        "C:/athanor-devstack/services/graphrag/main.py",
+        "C:/athanor-devstack/designs/graphrag-and-grpo-pipeline.md",
+        "C:/athanor-devstack/docs/promotion-packets/graphrag-hybrid-retrieval.md",
+        "C:/Athanor/config/automation-backbone/runtime-ownership-contract.json",
+        "C:/Athanor/config/automation-backbone/runtime-ownership-packets.json",
+        "C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json"
+      ],
+      "freshness_window_days": 30,
+      "green_result_advances_release_tier_to": "shadow",
+      "initiative_id": "graphrag-hybrid-retrieval",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "functional_quality",
+          "operational_quality",
+          "judge_scores"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "private_but_cloud_allowed"
+      },
+      "last_run_at": "2026-04-12T03:06:02.069223+00:00",
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/graphrag-hybrid-retrieval.md",
+      "notes": [
+        "The adoption shape is now fixed to the governed knowledge subsystem rooted in foundry-graphrag plus Athanor agents integration.",
+        "The 2026-04-12 rerun follows the governed Foundry compose redeploy and now passes /health, /status, graph queries, and /query/hybrid end to end against the refreshed live container.",
+        "The current hybrid response is valid shadow evidence even though it returns route=graph_fallback with a vector-path ReadTimeout warning; that warning is follow-on retrieval hardening rather than a promotion blocker.",
+        "Release tier can now advance to shadow-tier packet review, and the next runtime delta is Athanor agents integration rather than more GraphRAG recovery work."
+      ],
+      "promotion_validity": "valid",
+      "run_id": "graphrag-hybrid-retrieval-golden-core-2026q1",
+      "source_safe_remaining": [],
+      "status": "completed",
+      "thresholds": {
+        "functional_quality_min": "parity",
+        "judge_delta_requirement": "positive_operator_review",
+        "operational_quality_min": "better_or_equal",
+        "policy_pass_required": true
+      }
+    },
+    {
+      "baseline_id": "athanor_gateway_onboarding_current_contract",
+      "challenger_id": "devstack_gateway_agent_onboarding_hardening_v1",
+      "champion_id": "athanor_gateway_onboarding_current_contract",
+      "corpus_id": "golden_core_workloads",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/docs/agent-setup.md",
+        "C:/athanor-devstack/scripts/test-gateway.sh",
+        "C:/athanor-devstack/docs/promotion-packets/gateway-agent-onboarding-hardening.md"
+      ],
+      "freshness_window_days": 30,
+      "initiative_id": "gateway-agent-onboarding-hardening",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "operational_quality",
+          "behavioral_quality",
+          "judge_scores"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "cloud_safe"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/gateway-agent-onboarding-hardening.md",
+      "notes": [
+        "This run should happen after the packet locks onto one bounded onboarding delta."
+      ],
+      "promotion_validity": "requires_formal_eval_run",
+      "run_id": "gateway-agent-onboarding-hardening-golden-core-2026q1",
+      "status": "planned",
+      "thresholds": {
+        "functional_quality_min": "parity",
+        "judge_delta_requirement": "no_regression_on_operator_smoke",
+        "operational_quality_min": "better_or_equal",
+        "policy_pass_required": true
+      }
+    },
+    {
+      "baseline_id": "current_local_identity_image_pipeline",
+      "challenger_id": "devstack_creative_identity_pipeline_v1",
+      "champion_id": "current_local_identity_image_pipeline",
+      "corpus_id": "refusal_sovereignty_pack",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/docs/CODEX-STATE.md",
+        "C:/athanor-devstack/scripts/generate-kayla-realism-test.py",
+        "C:/athanor-devstack/scripts/generate-kayla-i2v-test.py",
+        "C:/athanor-devstack/docs/promotion-packets/creative-identity-pipeline.md"
+      ],
+      "freshness_window_days": 30,
+      "initiative_id": "creative-identity-pipeline",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "functional_quality",
+          "behavioral_quality",
+          "refusal_and_sovereignty"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "sovereign_only"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/creative-identity-pipeline.md",
+      "notes": [
+        "Identity and I2V proof exists, but the packet is not promotion-valid until the sovereignty-sensitive eval pack is formalized."
+      ],
+      "promotion_validity": "requires_formal_eval_run",
+      "run_id": "creative-identity-pipeline-refusal-sovereignty-2026q1",
+      "status": "evidence_only",
+      "thresholds": {
+        "functional_quality_min": "identity_consistent",
+        "judge_delta_requirement": "no_cloud_leakage_and_repeatable_output",
+        "operational_quality_min": "drive_manifest_disciplined",
+        "policy_pass_required": true
+      }
+    },
+    {
+      "baseline_id": "manual_operator_runtime_guard",
+      "challenger_id": "devstack_watchdog_runtime_guard_v1",
+      "champion_id": "manual_operator_runtime_guard",
+      "corpus_id": "private_local_regressions",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/services/watchdog/README.md",
+        "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
+        "C:/athanor-devstack/designs/watchdog-mvw-implementation-plan.md",
+        "C:/athanor-devstack/docs/promotion-packets/watchdog-runtime-guard.md"
+      ],
+      "freshness_window_days": 30,
+      "initiative_id": "watchdog-runtime-guard",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "operational_quality",
+          "behavioral_quality",
+          "judge_scores"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "sovereign_only"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/watchdog-runtime-guard.md",
+      "notes": [
+        "The safety boundary is the gate; this run should not be marked valid until rollback evidence is attached."
+      ],
+      "promotion_validity": "requires_formal_eval_run",
+      "run_id": "watchdog-runtime-guard-private-local-2026q1",
+      "status": "planned",
+      "thresholds": {
+        "functional_quality_min": "bounded_guard_actions_only",
+        "judge_delta_requirement": "safe_pause_resume_restart_boundary",
+        "operational_quality_min": "rollback_proven",
+        "policy_pass_required": true
+      }
+    },
+    {
+      "approval_gated_remaining": [],
+      "baseline_id": "athanor_gpu_orchestrator_current_state",
+      "blocking_checks": [],
+      "challenger_id": "devstack_gpu_scheduler_extension_v1",
+      "champion_id": "athanor_gpu_orchestrator_current_state",
+      "corpus_id": "private_local_regressions",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
+        "C:/athanor-devstack/designs/gpu-scheduler-mutation-contract.md",
+        "C:/athanor-devstack/docs/promotion-packets/gpu-scheduler-extension.md",
+        "C:/Athanor/reports/truth-inventory/gpu-scheduler-baseline-eval.json"
+      ],
+      "freshness_window_days": 30,
+      "green_result_advances_release_tier_to": "shadow",
+      "initiative_id": "gpu-scheduler-extension",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "functional_quality",
+          "operational_quality",
+          "judge_scores"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "private_but_cloud_allowed"
+      },
+      "last_run_at": "2026-04-12T02:58:13.845665+00:00",
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/gpu-scheduler-extension.md",
+      "notes": [
+        "The 2026-04-12 baseline rerun now pins the live six-zone orchestrator current state after the governed Foundry rollout.",
+        "Live runtime now exposes /scheduler/state plus the bounded request/preload/release routes with the expected write-capability posture.",
+        "The baseline lane no longer blocks promotion; the next step is shadow-tier packet review and evidence capture."
+      ],
+      "promotion_validity": "requires_formal_eval_run",
+      "run_id": "gpu-scheduler-extension-private-local-2026q1",
+      "source_safe_remaining": [],
+      "status": "completed",
+      "thresholds": {
+        "functional_quality_min": "better_or_equal",
+        "judge_delta_requirement": "bounded_extension_to_existing_orchestrator",
+        "operational_quality_min": "no_parallel_control_plane",
+        "policy_pass_required": true
+      }
+    },
+    {
+      "approval_gated_remaining": [],
+      "baseline_id": "athanor_gpu_orchestrator_current_state",
+      "blocking_checks": [],
+      "challenger_id": "devstack_gpu_scheduler_extension_v1",
+      "champion_id": "athanor_gpu_orchestrator_current_state",
+      "corpus_id": "scheduler_extension_trials_v1",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
+        "C:/athanor-devstack/designs/gpu-scheduler-mutation-contract.md",
+        "C:/athanor-devstack/docs/promotion-packets/gpu-scheduler-extension.md",
+        "C:/Athanor/reports/truth-inventory/gpu-scheduler-baseline-eval.json",
+        "C:/Athanor/reports/truth-inventory/gpu-scheduler-promotion-eval.json",
+        "C:/Athanor/scripts/run_gpu_scheduler_promotion_eval.py"
+      ],
+      "freshness_window_days": 30,
+      "green_result_advances_release_tier_to": "shadow",
+      "initiative_id": "gpu-scheduler-extension",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "bounded_mutation_surface",
+          "live_rollout_integrity",
+          "rollback_clarity",
+          "policy_pass"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "private_but_cloud_allowed"
+      },
+      "last_run_at": "2026-04-12T02:58:12.811017+00:00",
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/gpu-scheduler-extension.md",
+      "notes": [
+        "The governed Foundry rollout is now live and the bounded scheduler surface exists with write-capability posture enabled in runtime.",
+        "This formal eval reran green on 2026-04-12, so the GPU scheduler extension can advance beyond offline_eval into shadow-tier packet review."
+      ],
+      "promotion_validity": "valid",
+      "run_id": "gpu-scheduler-extension-formal-eval-2026q2",
+      "source_safe_remaining": [],
+      "status": "completed",
+      "task_class": "scheduler_extension_comparison",
+      "thresholds": {
+        "functional_quality_min": "better_or_equal",
+        "judge_delta_requirement": "live_rollout_plus_bounded_mutation_surface",
+        "operational_quality_min": "bounded_extension_to_existing_orchestrator",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "service_runtime"
+    },
+    {
+      "baseline_id": "sovereign_coder",
+      "challenger_id": "glm_cloudsafe_bulk",
+      "champion_id": "codex_cloudsafe",
+      "corpus_id": "implementation_core_v1",
+      "evidence_artifacts": [
+        "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+        "C:/Athanor/config/automation-backbone/coding-lane-registry.json",
+        "C:/Athanor/config/automation-backbone/economic-dispatch-ledger.json"
+      ],
+      "freshness_window_days": 30,
+      "initiative_id": "codex_cloudsafe",
+      "initiative_kind": "lane_evaluation",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "quality",
+          "cost",
+          "latency",
+          "policy_pass"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "private_but_cloud_allowed"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+      "notes": [
+        "This proves premium implementation routing against sovereign local and GLM overflow choices."
+      ],
+      "promotion_validity": "requires_formal_eval_run",
+      "run_id": "lane-multi-file-implementation-2026q2",
+      "status": "planned",
+      "task_class": "multi_file_implementation",
+      "thresholds": {
+        "functional_quality_min": "high",
+        "judge_delta_requirement": "two_consecutive_fresh_wins",
+        "operational_quality_min": "repeatable",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "direct_cli"
+    },
+    {
+      "baseline_id": "claude_review_cloudsafe",
+      "challenger_id": "codex_cloudsafe",
+      "champion_id": "gemini_audit_cloudsafe",
+      "corpus_id": "architecture_review_v1",
+      "evidence_artifacts": [
+        "C:/Athanor/config/automation-backbone/migration-map.json",
+        "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+        "C:/Athanor/config/automation-backbone/vendor-policy-registry.json"
+      ],
+      "freshness_window_days": 30,
+      "initiative_id": "gemini_audit_cloudsafe",
+      "initiative_kind": "lane_evaluation",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "quality",
+          "coverage",
+          "latency",
+          "policy_pass"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "cloud_safe"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+      "notes": [
+        "This is one of the retirement gates for the Claude review lane."
+      ],
+      "promotion_validity": "requires_formal_eval_run",
+      "run_id": "lane-architecture-review-2026q2",
+      "status": "planned",
+      "task_class": "architecture_review",
+      "thresholds": {
+        "functional_quality_min": "high",
+        "judge_delta_requirement": "two_consecutive_fresh_wins",
+        "operational_quality_min": "repeatable",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "direct_cli"
+    },
+    {
+      "baseline_id": "codex_cloudsafe",
+      "challenger_id": "glm_cloudsafe_bulk",
+      "champion_id": "aider_repo_mechanic",
+      "corpus_id": "deterministic_refactor_v1",
+      "evidence_artifacts": [
+        "C:/Athanor/config/automation-backbone/coding-lane-registry.json",
+        "C:/Athanor/config/automation-backbone/economic-dispatch-ledger.json",
+        "C:/Athanor/config/automation-backbone/lane-selection-matrix.json"
+      ],
+      "freshness_window_days": 30,
+      "initiative_id": "aider_repo_mechanic",
+      "initiative_kind": "lane_evaluation",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "quality",
+          "cost",
+          "diff_discipline",
+          "policy_pass"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "private_but_cloud_allowed"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+      "notes": [
+        "This locks Aider into a permanent role as repo mechanic rather than general shell."
+      ],
+      "promotion_validity": "requires_formal_eval_run",
+      "run_id": "lane-deterministic-refactor-2026q2",
+      "status": "planned",
+      "task_class": "deterministic_refactor",
+      "thresholds": {
+        "functional_quality_min": "mechanically_correct",
+        "judge_delta_requirement": "one_decisive_win_plus_operator_smoke",
+        "operational_quality_min": "repeatable",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "litellm_routed"
+    },
+    {
+      "baseline_id": "glm_cloudsafe_bulk",
+      "challenger_id": "responses_background_cloudsafe",
+      "champion_id": "deepseek_cloudsafe_bulk",
+      "corpus_id": "cheap_bulk_transform_v1",
+      "evidence_artifacts": [
+        "C:/Athanor/config/automation-backbone/provider-catalog.json",
+        "C:/Athanor/config/automation-backbone/economic-dispatch-ledger.json",
+        "C:/Athanor/reports/truth-inventory/provider-usage-evidence.json"
+      ],
+      "freshness_window_days": 30,
+      "initiative_id": "deepseek_cloudsafe_bulk",
+      "initiative_kind": "lane_evaluation",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "cost",
+          "throughput",
+          "acceptable_quality",
+          "policy_pass"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "cloud_safe"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+      "notes": [
+        "This proves the cheap cloud-safe bulk champion and validates DeepSeek against GLM overflow."
+      ],
+      "promotion_validity": "requires_formal_eval_run",
+      "run_id": "lane-cheap-bulk-transform-2026q2",
+      "status": "planned",
+      "task_class": "cheap_bulk_transform",
+      "thresholds": {
+        "functional_quality_min": "acceptable",
+        "judge_delta_requirement": "two_consecutive_fresh_wins",
+        "operational_quality_min": "repeatable",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "litellm_routed"
+    },
+    {
+      "baseline_id": "sovereign_supervisor",
+      "challenger_id": "sovereign_bulk",
+      "champion_id": "sovereign_coder",
+      "corpus_id": "sovereign_coding_v1",
+      "evidence_artifacts": [
+        "C:/Athanor/config/automation-backbone/coding-lane-registry.json",
+        "C:/Athanor/config/automation-backbone/vendor-policy-registry.json",
+        "C:/Athanor/config/automation-backbone/capacity-envelope-registry.json"
+      ],
+      "freshness_window_days": 30,
+      "initiative_id": "sovereign_coder",
+      "initiative_kind": "lane_evaluation",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "quality",
+          "policy_pass",
+          "privacy_integrity",
+          "latency"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "sovereign_only"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+      "notes": [
+        "This validates the primary sovereign coding champion."
+      ],
+      "promotion_validity": "requires_formal_eval_run",
+      "run_id": "lane-sovereign-coding-2026q2",
+      "status": "planned",
+      "task_class": "sovereign_private_coding",
+      "thresholds": {
+        "functional_quality_min": "high",
+        "judge_delta_requirement": "two_consecutive_fresh_wins",
+        "operational_quality_min": "repeatable",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "litellm_routed"
+    },
+    {
+      "approval_gated_remaining": [
+        "Approve the DESK Goose operator-shell rollout packet before changing the preferred shell helper or local Goose runtime defaults.",
+        "Review the shadow-tier packet and accept the bounded Goose operator-shell adoption scope before routing daily operator work through Goose by default."
+      ],
+      "baseline_id": "direct_terminal_plus_cli_operator_path",
+      "blocking_checks": [],
+      "challenger_id": "devstack_goose_operator_shell_v1",
+      "champion_id": "direct_terminal_plus_cli_operator_path",
+      "corpus_id": "operator_shell_trials_v1",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+        "C:/athanor-devstack/docs/promotion-packets/goose-operator-shell.md",
+        "C:/Athanor/reports/truth-inventory/goose-boundary-evidence.md",
+        "C:/Athanor/config/automation-backbone/lane-selection-matrix.json"
+      ],
+      "execution_requirements": {
+        "preferred_hosts": [
+          "desk",
+          "dev"
+        ],
+        "request_surface_hint": "dashboard-routed bounded shell task",
+        "required_commands": [
+          "goose"
+        ]
+      },
+      "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/goose-operator-shell-formal-eval.json",
+      "freshness_window_days": 30,
+      "green_result_advances_release_tier_to": "shadow",
+      "initiative_id": "goose-operator-shell",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "orchestration_quality",
+          "execution_boundary_discipline",
+          "policy_pass",
+          "operator_smoke"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "private_but_cloud_allowed"
+      },
+      "last_run_at": "2026-04-12T08:44:35.466323+00:00",
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/goose-operator-shell.md",
+      "not_handoff_critical_until_formal_preflight_ready": true,
+      "notes": [
+        "This run compares direct CLI orchestration against a bounded Goose shell pilot.",
+        "The 2026-04-12 formal rerun passes 8 of 8 once Goose is pinned to the intended LiteLLM DeepSeek lane instead of the weaker workstation-local default model.",
+        "The remaining work is bounded Athanor shell adoption evidence, not more rubric or Promptfoo repair."
+      ],
+      "operator_test_flow_id": "goose_operator_shell",
+      "preflight_command_probe": {
+        "args": [
+          "run",
+          "--text",
+          "{probe_prompt}",
+          "--no-session",
+          "--no-profile",
+          "--quiet",
+          "--output-format",
+          "text",
+          "--max-turns",
+          "1"
+        ],
+        "command": "goose",
+        "cwd": "C:/",
+        "probe_prompt": "Reply with READY only.",
+        "success_substrings": [
+          "READY"
+        ],
+        "timeout_ms": 60000
+      },
+      "preflight_only_allowed": true,
+      "promotion_validity": "valid",
+      "promptfoo_config_path": "C:/Athanor/evals/pilot-agent-compare/goose-vs-direct-cli.yaml",
+      "required_env_vars": [],
+      "required_result_files": [
+        "C:/Athanor/reports/truth-inventory/goose-operator-shell-promptfoo-results.json"
+      ],
+      "run_id": "goose-operator-shell-lane-eval-2026q2",
+      "source_safe_remaining": [
+        "Keep the bounded DESK operator-shell rollout packet and Goose helper current as the governed shell handoff path.",
+        "The shell-boundary, representative dashboard-routed shell evidence, MCP allowlist proof, and failure-fallback proof are now captured in C:/Athanor/reports/truth-inventory/goose-boundary-evidence.md."
+      ],
+      "status": "completed",
+      "task_class": "operator_shell_comparison",
+      "thresholds": {
+        "functional_quality_min": "better_or_equal",
+        "judge_delta_requirement": "one_decisive_win_plus_operator_smoke",
+        "operational_quality_min": "clear_execution_boundaries",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "goose_wrapped"
+    },
+    {
+      "baseline_id": "codex_aider_worker_stack",
+      "challenger_id": "devstack_openhands_bounded_worker_lane_v1",
+      "champion_id": "codex_aider_worker_stack",
+      "corpus_id": "bounded_worker_trials_v1",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+        "C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md",
+        "C:/Athanor/config/automation-backbone/sidecar-retention-policy.json"
+      ],
+      "execution_requirements": {
+        "preferred_hosts": [
+          "desk",
+          "dev"
+        ],
+        "request_surface_hint": "cloud-safe bounded worker task",
+        "required_commands": [
+          "openhands"
+        ]
+      },
+      "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/openhands-bounded-worker-formal-eval.json",
+      "freshness_window_days": 30,
+      "initiative_id": "openhands-bounded-worker-lane",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "quality",
+          "cost",
+          "reproducibility",
+          "policy_pass"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "cloud_safe"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md",
+      "not_handoff_critical_until_formal_preflight_ready": true,
+      "notes": [
+        "This run validates whether OpenHands adds unique bounded-worker value over native worker lanes."
+      ],
+      "operator_test_flow_id": "openhands_bounded_worker",
+      "preflight_only_allowed": true,
+      "promotion_validity": "requires_formal_eval_run",
+      "promptfoo_config_path": "C:/Athanor/evals/pilot-agent-compare/openhands-vs-native-worker.yaml",
+      "required_env_vars": [
+        "OPENAI_API_KEY",
+        "PROMPTFOO_OPENHANDS_CMD",
+        "PROMPTFOO_OPENHANDS_ARGS_JSON"
+      ],
+      "required_result_files": [
+        "C:/Athanor/reports/truth-inventory/openhands-bounded-worker-promptfoo-results.json"
+      ],
+      "run_id": "openhands-bounded-worker-lane-eval-2026q2",
+      "status": "planned",
+      "task_class": "bounded_worker_comparison",
+      "thresholds": {
+        "functional_quality_min": "better_or_equal",
+        "judge_delta_requirement": "one_decisive_win_plus_operator_smoke",
+        "operational_quality_min": "reviewable",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "direct_cli"
+    },
+    {
+      "baseline_id": "repo_native_context_stack",
+      "challenger_id": "devstack_letta_memory_plane_v1",
+      "champion_id": "repo_native_context_stack",
+      "corpus_id": "continuity_memory_trials_v1",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+        "C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md",
+        "C:/Athanor/config/automation-backbone/memory-namespace-registry.json"
+      ],
+      "execution_requirements": {
+        "preferred_hosts": [
+          "desk",
+          "dev"
+        ],
+        "request_surface_hint": "repeat-session continuity benchmark",
+        "required_commands": [
+          "letta"
+        ]
+      },
+      "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/letta-memory-plane-formal-eval.json",
+      "freshness_window_days": 30,
+      "initiative_id": "letta-memory-plane",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "continuity_gain",
+          "auditability",
+          "prunability",
+          "policy_pass"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "private_but_cloud_allowed"
+      },
+      "last_run_at": null,
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md",
+      "not_handoff_critical_until_formal_preflight_ready": true,
+      "notes": [
+        "This run compares repo-native continuity against a bounded Letta-backed memory pilot.",
+        "Local tool readiness and operator-smoke proof do not count as continuity proof until the Promptfoo scaffold is exercised."
+      ],
+      "operator_test_flow_id": "letta_memory_plane",
+      "preflight_command_probe": {
+        "args": [
+          "-p",
+          "{probe_prompt}",
+          "--output-format",
+          "text"
+        ],
+        "command": "letta",
+        "cwd": "C:/Athanor/evals",
+        "probe_prompt": "Reply with READY only.",
+        "success_substrings": [
+          "READY"
+        ],
+        "timeout_ms": 20000
+      },
+      "preflight_only_allowed": true,
+      "promotion_validity": "requires_formal_eval_run",
+      "promptfoo_config_path": "C:/Athanor/evals/pilot-agent-compare/letta-vs-repo-native.yaml",
+      "required_env_vars": [
+        "LETTA_API_KEY"
+      ],
+      "required_result_files": [
+        "C:/Athanor/reports/truth-inventory/letta-memory-plane-promptfoo-results.json"
+      ],
+      "run_id": "letta-memory-plane-eval-2026q2",
+      "status": "planned",
+      "task_class": "continuity_memory_comparison",
+      "thresholds": {
+        "functional_quality_min": "better_or_equal",
+        "judge_delta_requirement": "one_decisive_win_plus_operator_smoke",
+        "operational_quality_min": "auditable_and_prunable",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "service_runtime"
+    },
+    {
+      "approval_gated_remaining": [],
+      "baseline_id": "athanor_native_policy_stack",
+      "benchmark_spec_path": "C:/Athanor/evals/pilot-agent-compare/agt-policy-bridge.yaml",
+      "blocking_checks": [],
+      "challenger_id": "devstack_agent_governance_toolkit_policy_plane_v1",
+      "champion_id": "athanor_native_policy_stack",
+      "corpus_id": "governance_policy_bridge_v1",
+      "evidence_artifacts": [
+        "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+        "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md",
+        "C:/Athanor/config/automation-backbone/approval-matrix.json"
+      ],
+      "execution_requirements": {
+        "preferred_hosts": [
+          "dev"
+        ],
+        "request_surface_hint": "narrow protocol-boundary policy bridge pilot",
+        "required_commands": []
+      },
+      "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/agt-policy-plane-formal-eval.json",
+      "freshness_window_days": 30,
+      "initiative_id": "agent-governance-toolkit-policy-plane",
+      "initiative_kind": "capability_promotion",
+      "judge_config": {
+        "evaluation_dimensions": [
+          "guardrail_value",
+          "auditability",
+          "policy_pass",
+          "rollback_clarity"
+        ],
+        "judge_role": "judge_verifier",
+        "policy_class": "sovereign_only"
+      },
+      "last_run_at": "2026-04-12T09:21:32.688812+00:00",
+      "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md",
+      "not_handoff_critical_until_formal_preflight_ready": true,
+      "notes": [
+        "This run keeps AGT scoped to a narrow policy-bridge slice before any broader governance claims.",
+        "The benchmark scaffold is contract-driven for now because there is not yet a concrete AGT bridge adapter to run through Promptfoo.",
+        "The 2026-04-12 benchmark-spec bundle is now materialized and valid for manual contract review, but that evidence does not yet justify promotion-valid status.",
+        "Manual review completed at 2026-04-12T09:21:32.688812+00:00: The narrow approval-held-mutation bundle preserves native Athanor approval and audit lineage, but it does not yet prove non-duplicative operational value strong enough to justify a bounded AGT adapter or release-tier advancement.",
+        "Manual review note: C:\\Athanor\\reports\\truth-inventory\\agt-policy-plane-manual-review.md"
+      ],
+      "operator_test_flow_id": "agt_policy_plane",
+      "preflight_only_allowed": true,
+      "promotion_validity": "requires_formal_eval_run",
+      "required_env_vars": [],
+      "required_fixture_files": [
+        "C:/Athanor/evals/pilot-agent-compare/fixtures/agt-native-decision-trace.json",
+        "C:/Athanor/evals/pilot-agent-compare/fixtures/agt-bridge-decision-trace.json"
+      ],
+      "required_result_files": [
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-native-decision-trace.json",
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-bridge-decision-trace.json",
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-policy-diff-summary.md",
+        "C:/Athanor/reports/truth-inventory/agt-policy-plane-rollback-note.md"
+      ],
+      "run_id": "agt-policy-plane-eval-2026q2",
+      "source_safe_remaining": [
+        "Complete the manual contract review for the approval-held-mutation bundle and record whether AGT earns a bounded policy-verdict adapter or is rejected as a redundant governance sidecar.",
+        "If the review is favorable, draft the narrow Athanor adapter boundary without widening permissions beyond the native approval matrix."
+      ],
+      "status": "completed",
+      "task_class": "policy_bridge_comparison",
+      "thresholds": {
+        "functional_quality_min": "better_or_equal",
+        "judge_delta_requirement": "one_decisive_win_plus_operator_smoke",
+        "operational_quality_min": "non_duplicative",
+        "policy_pass_required": true
+      },
+      "wrapper_mode": "service_runtime"
+    }
+  ],
+  "source_of_truth": "config/automation-backbone/eval-run-ledger.json",
+  "status": "active",
+  "updated_at": "2026-04-12T04:05:00-05:00",
+  "version": "2026-04-11.10"
+}

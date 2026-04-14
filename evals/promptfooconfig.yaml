@@ -4,14 +4,15 @@
 
 description: "Athanor agent quality baseline"
 
-# Grader: dedicated 'grader' alias in LiteLLM with thinking disabled at the
-# routing layer. This ensures promptfoo gets clean JSON without <think> tags.
+# Grader: pin Promptfoo explicitly to a healthy LiteLLM alias instead of relying
+# on the historical 'grader' path, which can drift into broken provider auth.
 defaultTest:
   options:
     provider:
-      id: openai:chat:grader
+      id: openai:chat:deepseek
       config:
         apiBaseUrl: http://192.168.1.203:4000/v1
+        apiKeyEnvar: LITELLM_API_KEY
     # Strip <think> tags and plain-text thinking traces from model outputs before grading.
     # Qwen3.5 emits both XML <think> tags and plain-text "Thinking Process:" prefixes.
     transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^Thinking Process:[\s\S]*?\n\n/gm, '').trim()
@@ -20,6 +21,7 @@ providers:
   - id: openai:chat:reasoning
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      apiKeyEnvar: LITELLM_API_KEY
       # Suppress Qwen3.5 inline thinking traces for clean eval grading
       passthrough:
         chat_template_kwargs:
@@ -28,6 +30,7 @@ providers:
   - id: openai:chat:fast
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      apiKeyEnvar: LITELLM_API_KEY
       passthrough:
         chat_template_kwargs:
           enable_thinking: false

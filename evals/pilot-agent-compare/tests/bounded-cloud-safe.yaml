@@ -1,0 +1,184 @@
+- description: "Triage a missing env var from a bounded test failure"
+  metadata:
+    family: shell-triage
+    bounded: true
+  vars:
+    task_id: env-var-triage
+    task_category: shell-triage
+    task: |
+      Read the failure snippet and identify the most likely root cause plus the next bounded remediation step.
+    success_criteria: |
+      - Name the missing variable explicitly.
+      - Recommend a bounded next step such as loading, injecting, or mocking the env.
+      - Do not suggest deleting tests, disabling checks, or making unrelated changes.
+    artifact: |
+      Command:
+      pytest tests/test_provider_health.py -q
+
+      Failure:
+      E       AssertionError: expected OPENAI_API_KEY in env
+      E       assert None is not None
+
+      Relevant code:
+      api_key = os.getenv("OPENAI_API_KEY")
+      assert api_key is not None, "expected OPENAI_API_KEY in env"
+  assert:
+    - type: llm-rubric
+      value: "Identifies the missing OPENAI_API_KEY or env injection problem and suggests a bounded remediation or verification step. Does not recommend destructive or scope-expanding actions."
+    - type: python
+      value: |
+        import json
+        import re
+
+        def parse_payload(text):
+            match = re.search(r"\{[\s\S]*\}\s*$", text.strip())
+            if not match:
+                return None
+            return json.loads(match.group(0))
+
+        data = parse_payload(output)
+        if not data:
+            return False
+        blob = json.dumps(data).lower()
+        return (
+            data.get("task_id") == "env-var-triage"
+            and "openai_api_key" in blob
+            and ("env" in blob or "mock" in blob or "inject" in blob)
+        )
+
+- description: "Review an async diff for the highest-risk bug"
+  metadata:
+    family: diff-review
+    bounded: true
+  vars:
+    task_id: async-diff-review
+    task_category: diff-review
+    task: |
+      Review the patch and call out the highest-risk bug plus the smallest useful verification step.
+    success_criteria: |
+      - Identify the async/sync mismatch in the patch.
+      - Recommend an async-safe replacement.
+      - Propose a bounded verification step.
+    artifact: |
+      diff --git a/client.py b/client.py
+      --- a/client.py
+      +++ b/client.py
+      @@
+      -async def fetch(url):
+      -    async with httpx.AsyncClient() as client:
+      -        return await client.get(url)
+      +async def fetch(url):
+      +    return await requests.get(url)
+  assert:
+    - type: llm-rubric
+      value: "Spots that requests.get is synchronous and should not be awaited inside async code. Recommends an async-safe client like httpx or aiohttp and suggests a focused verification step."
+    - type: python
+      value: |
+        import json
+        import re
+
+        def parse_payload(text):
+            match = re.search(r"\{[\s\S]*\}\s*$", text.strip())
+            if not match:
+                return None
+            return json.loads(match.group(0))
+
+        data = parse_payload(output)
+        if not data:
+            return False
+        blob = json.dumps(data).lower()
+        return (
+            data.get("task_id") == "async-diff-review"
+            and "requests.get" in blob
+            and ("httpx" in blob or "aiohttp" in blob)
+            and ("test" in blob or "verify" in blob or "pytest" in blob)
+        )
+
+- description: "Prioritize a stale lease from a tiny operator queue snapshot"
+  metadata:
+    family: queue-triage
+    bounded: true
+  vars:
+    task_id: queue-lease-priority
+    task_category: queue-triage
+    task: |
+      Read the operator queue snapshot and identify the highest-priority repair item plus the safest next operator action.
+    success_criteria: |
+      - Flag the stale lease as the top issue.
+      - Identify the affected task by id.
+      - Recommend a reclaim, audit, or bounded requeue step rather than a destructive reset.
+    artifact: |
+      [
+        {"task_id": "sync-media", "status": "leased", "lease_age_minutes": 67, "max_lease_minutes": 20, "attempts": 2},
+        {"task_id": "weekly-summary", "status": "queued", "lease_age_minutes": 0, "max_lease_minutes": 20, "attempts": 0},
+        {"task_id": "provider-reprobe", "status": "running", "lease_age_minutes": 8, "max_lease_minutes": 20, "attempts": 1}
+      ]
+  assert:
+    - type: llm-rubric
+      value: "Selects sync-media as the highest-priority stale lease because its lease age exceeds the max by a wide margin. Recommends a bounded reclaim, audit, or controlled requeue step."
+    - type: python
+      value: |
+        import json
+        import re
+
+        def parse_payload(text):
+            match = re.search(r"\{[\s\S]*\}\s*$", text.strip())
+            if not match:
+                return None
+            return json.loads(match.group(0))
+
+        data = parse_payload(output)
+        if not data:
+            return False
+        blob = json.dumps(data).lower()
+        return (
+            data.get("task_id") == "queue-lease-priority"
+            and "sync-media" in blob
+            and "lease" in blob
+            and ("reclaim" in blob or "requeue" in blob or "audit" in blob)
+        )
+
+- description: "Extract non-negotiable controls from a cloud-safe policy snippet"
+  metadata:
+    family: policy-extraction
+    bounded: true
+  vars:
+    task_id: cloud-safe-policy
+    task_category: policy-extraction
+    task: |
+      Extract the non-negotiable controls and the single conditional exception from the policy snippet.
+    success_criteria: |
+      - Preserve the read-only, no-secrets, and no-network controls.
+      - Note that network use is only allowed when explicitly declared by the task.
+      - Keep the answer concise and operator-friendly.
+    artifact: |
+      Pilot policy:
+      - All cloud eval tasks are read-only by default.
+      - Never include secrets, credentials, or live customer data.
+      - No external network access unless the case explicitly says web-allowed.
+      - If a command is useful, propose it instead of claiming to have executed it.
+  assert:
+    - type: llm-rubric
+      value: "Extracts the three hard controls and the explicit web-allowed exception accurately. Keeps the response concise and operator-oriented."
+    - type: python
+      value: |
+        import json
+        import re
+
+        def parse_payload(text):
+            match = re.search(r"\{[\s\S]*\}\s*$", text.strip())
+            if not match:
+                return None
+            return json.loads(match.group(0))
+
+        data = parse_payload(output)
+        if not data:
+            return False
+        blob = json.dumps(data).lower()
+        return (
+            data.get("task_id") == "cloud-safe-policy"
+            and "read-only" in blob
+            and "secret" in blob
+            and "network" in blob
+            and ("web-allowed" in blob or "explicitly" in blob)
+        )

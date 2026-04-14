@@ -1,0 +1,21 @@
+{
+  "allowed_actions": [
+    "capture_operator_action_envelope",
+    "emit_command_decision_record",
+    "emit_operator_stream_event",
+    "prepare_runtime_packet_review"
+  ],
+  "blocked_actions": [
+    "apply_runtime_packet_without_operator_approval",
+    "widen_scope_beyond_requested_packet",
+    "skip_audit_lineage"
+  ],
+  "command_decision_record_ref": "config/automation-backbone/contract-registry.json#command_decision_record",
+  "decision_reason": "The request maps to the `approval_required` class because runtime packet application is an approval-gated mutation in `approval-matrix.json`, so Athanor must hold execution until an operator-approved envelope exists and preserve audit lineage.",
+  "decision_summary": "Native Athanor governance holds the runtime mutation for operator approval, records the decision, and allows only bounded review preparation until the approval gate is satisfied.",
+  "operator_stream_event_ref": "config/automation-backbone/contract-registry.json#operator_stream_event",
+  "policy_class": "approval_required",
+  "request_surface": "operator_action_envelope_for_approval_gated_mutations",
+  "scenario_id": "approval-held-mutation",
+  "trace_id": "agt-native-approval-held-mutation-2026-04-12"
+}

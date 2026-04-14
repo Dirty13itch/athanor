@@ -1,0 +1,30 @@
+You are participating in an Athanor pilot evaluation for agent tooling.
+
+TASK ID: {{task_id}}
+CATEGORY: {{task_category}}
+
+OBJECTIVE
+{{task}}
+
+HARD BOUNDS
+- Work only from the supplied material in this prompt.
+- Treat the task as read-only analysis unless the task explicitly asks for a transform.
+- Do not claim to have run commands, touched files, or queried external systems.
+- No secrets, credentials, customer data, destructive changes, or network access.
+- If commands would help, propose them as next steps instead of claiming execution.
+
+SUCCESS CRITERIA
+{{success_criteria}}
+
+WORKING MATERIAL
+{{artifact}}
+
+Return strict JSON with no surrounding commentary:
+{
+  "task_id": "{{task_id}}",
+  "summary": "one short paragraph",
+  "deliverable": "the main answer, recommendation, or transform result",
+  "safe_next_steps": ["step 1", "step 2"],
+  "risks": ["risk 1"],
+  "confidence": "low|medium|high"
+}

@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import shutil
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Awaitable, Callable
 from urllib.parse import urlsplit, urlunsplit
 
@@ -91,6 +94,47 @@ FLOW_DEFINITIONS: dict[str, dict[str, Any]] = {
         "evidence": ["OPERATOR_RUNBOOKS.md", "backup-restore-readiness.json"],
         "status_if_pass": "configured",
     },
+    "goose_operator_shell": {
+        "title": "Goose operator shell pilot",
+        "description": "Checks the bounded Goose shell pilot contract, execution-mode policy, and local tool readiness without treating Goose as a second control plane.",
+        "evidence": [
+            "test_operator_tests.py",
+            "lane-selection-matrix.json",
+            "goose-boundary-evidence.md",
+            "eval-run-ledger.json",
+        ],
+        "status_if_pass": "live_partial",
+    },
+    "openhands_bounded_worker": {
+        "title": "OpenHands bounded worker pilot",
+        "description": "Checks the bounded-worker pilot contract, sidecar retention policy, and local tool readiness for OpenHands.",
+        "evidence": [
+            "test_operator_tests.py",
+            "sidecar-retention-policy.json",
+            "eval-run-ledger.json",
+        ],
+        "status_if_pass": "live_partial",
+    },
+    "letta_memory_plane": {
+        "title": "Letta memory plane pilot",
+        "description": "Checks the continuity-memory pilot contract, artifact retention posture, and local tool readiness for Letta.",
+        "evidence": [
+            "test_operator_tests.py",
+            "memory-namespace-registry.json",
+            "artifact-topology-registry.json",
+        ],
+        "status_if_pass": "live_partial",
+    },
+    "agt_policy_plane": {
+        "title": "AGT policy plane pilot",
+        "description": "Checks the AGT policy-bridge pilot contract against existing approval, audit, and decision-governance surfaces.",
+        "evidence": [
+            "test_operator_tests.py",
+            "approval-matrix.json",
+            "contract-registry.json",
+        ],
+        "status_if_pass": "live_partial",
+    },
 }
 
 
@@ -117,6 +161,16 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _repo_root() -> Path:
+    for base in Path(__file__).resolve().parents:
+        if base.joinpath("STATUS.md").exists() and base.joinpath("config", "automation-backbone").exists():
+            return base
+    for base in Path(__file__).resolve().parents:
+        if base.joinpath("config", "automation-backbone").exists():
+            return base
+    return Path("/workspace")
+
+
 def _is_auth_protected_reachable(status_code: int) -> bool:
     return status_code in {200, 401, 403}
 
@@ -137,8 +191,140 @@ def _sanitize_artifact_reference(value: Any) -> Any:
     return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
 
 
+def _goose_boundary_evidence() -> dict[str, Any]:
+    path = _repo_root() / "reports" / "truth-inventory" / "goose-boundary-evidence.md"
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "evidence_complete": False,
+            "missing_sections": [
+                "Dashboard-Routed Shell Evidence",
+                "MCP Allowlist Proof",
+                "Failure-Fallback Proof",
+            ],
+        }
+
+    text = path.read_text(encoding="utf-8")
+    required_sections = [
+        "## Dashboard-Routed Shell Evidence",
+        "## MCP Allowlist Proof",
+        "## Failure-Fallback Proof",
+        "## Closure Status",
+    ]
+    missing_sections = [section for section in required_sections if section not in text]
+    return {
+        "path": str(path),
+        "exists": True,
+        "evidence_complete": not missing_sections,
+        "missing_sections": missing_sections,
+    }
+
+
 def _sanitize_artifact_references(values: list[Any]) -> list[Any]:
     return [_sanitize_artifact_reference(value) for value in values]
+
+
+def _operator_test_host_id() -> str:
+    return str(os.getenv("ATHANOR_PILOT_HOST_ID") or "desk").strip().lower() or "desk"
+
+
+def _tool_command_probe(command: str, *, host_id: str | None = None) -> dict[str, Any]:
+    from .model_governance import get_tooling_inventory_registry
+
+    resolved_host_id = str(host_id or _operator_test_host_id()).strip().lower() or "desk"
+    inventory_entry: dict[str, Any] = {}
+    inventory = get_tooling_inventory_registry()
+    for host in inventory.get("hosts", []):
+        if str(host.get("id") or "").strip().lower() != resolved_host_id:
+            continue
+        inventory_entry = next(
+            (
+                dict(tool)
+                for tool in host.get("tools", [])
+                if isinstance(tool, dict) and str(tool.get("command") or "").strip() == command
+            ),
+            {},
+        )
+        break
+
+    local_path = shutil.which(command)
+    inventory_status = str(inventory_entry.get("status") or "missing")
+    return {
+        "command": command,
+        "host_id": resolved_host_id,
+        "inventory_status": inventory_status,
+        "inventory_version": str(inventory_entry.get("version") or "") or None,
+        "available_locally": bool(local_path),
+        "local_path": local_path,
+        "available": bool(local_path) or inventory_status == "installed",
+    }
+
+
+def _eval_run_by_id(run_id: str) -> dict[str, Any]:
+    from .model_governance import get_eval_run_ledger
+
+    ledger = get_eval_run_ledger()
+    return next(
+        (
+            dict(run)
+            for run in ledger.get("runs", [])
+            if isinstance(run, dict) and str(run.get("run_id") or "").strip() == run_id
+        ),
+        {},
+    )
+
+
+def _capability_by_id(capability_id: str) -> dict[str, Any]:
+    from .model_governance import get_capability_adoption_registry
+
+    registry = get_capability_adoption_registry()
+    return next(
+        (
+            dict(capability)
+            for capability in registry.get("capabilities", [])
+            if isinstance(capability, dict) and str(capability.get("id") or "").strip() == capability_id
+        ),
+        {},
+    )
+
+
+def _finalize_pilot_flow(
+    *,
+    flow_id: str,
+    checks_passed: int,
+    checks_total: int,
+    started_at: float,
+    notes: list[str] | None = None,
+    details: dict[str, Any] | None = None,
+    blocking_reasons: list[str] | None = None,
+) -> OperatorTestFlowRecord:
+    blockers = [str(item).strip() for item in (blocking_reasons or []) if str(item).strip()]
+    merged_notes = list(notes or [])
+    if blockers:
+        merged_notes.append(f"Blocking reasons: {', '.join(blockers)}.")
+        return _finalize_flow(
+            flow_id=flow_id,
+            last_outcome="blocked",
+            checks_passed=checks_passed,
+            checks_total=checks_total,
+            started_at=started_at,
+            status="configured",
+            notes=merged_notes,
+            details={**(details or {}), "blocking_reasons": blockers},
+        )
+
+    outcome = "passed" if checks_passed == checks_total else "failed"
+    return _finalize_flow(
+        flow_id=flow_id,
+        last_outcome=outcome,
+        checks_passed=checks_passed,
+        checks_total=checks_total,
+        started_at=started_at,
+        status="live_partial" if outcome == "passed" else "degraded",
+        notes=merged_notes,
+        details={**(details or {}), "blocking_reasons": []},
+    )
 
 
 def _service_health_probe_url(service_id: str, base_url: str, default_path: str) -> str:
@@ -1197,7 +1383,7 @@ async def _run_restore_drill_flow() -> OperatorTestFlowRecord:
         notes.append("Critical store recovery order is missing or non-deterministic.")
 
     if all(
-        str(store.get("restore_status", "planned")) in {"planned", "configured", "live", "live_partial"}
+        str(store.get("restore_status", "planned")) in {"planned", "configured", "live", "live_partial", "drill_backed"}
         for store in stores
     ):
         checks_passed += 1
@@ -1400,6 +1586,382 @@ async def _run_restore_drill_flow() -> OperatorTestFlowRecord:
     )
 
 
+async def _run_goose_operator_shell_flow() -> OperatorTestFlowRecord:
+    from .model_governance import get_lane_selection_matrix
+
+    started_at = time.perf_counter()
+    notes: list[str] = []
+    blockers: list[str] = []
+    checks_passed = 0
+    checks_total = 6
+    host_id = _operator_test_host_id()
+
+    run = _eval_run_by_id("goose-operator-shell-lane-eval-2026q2")
+    capability = _capability_by_id("goose-operator-shell")
+    execution_requirements = dict(run.get("execution_requirements") or {})
+    required_commands = [
+        str(item).strip()
+        for item in execution_requirements.get("required_commands", [])
+        if str(item).strip()
+    ]
+    command_probe = _tool_command_probe("goose", host_id=host_id)
+    lane_selection = get_lane_selection_matrix()
+    boundary_evidence = _goose_boundary_evidence()
+
+    if run and str(run.get("wrapper_mode") or "").strip() == "goose_wrapped":
+        checks_passed += 1
+    else:
+        blockers.append("missing_eval_run")
+        notes.append("Goose pilot eval run is missing or does not declare goose_wrapped execution.")
+
+    if capability and str(capability.get("authority_class") or "") in {
+        "build_system",
+        "adopted_system",
+    }:
+        checks_passed += 1
+    else:
+        blockers.append("missing_capability_contract")
+        notes.append("Goose capability contract is missing from the adoption registry.")
+
+    if "goose" in required_commands:
+        checks_passed += 1
+    else:
+        notes.append("Goose pilot eval does not require the goose command explicitly.")
+
+    if command_probe["available"]:
+        checks_passed += 1
+    else:
+        blockers.append("missing_command:goose")
+        notes.append(
+            f"Goose is not available on host {host_id}; inventory_status={command_probe['inventory_status']}."
+        )
+
+    goose_mode = next(
+        (
+            dict(item)
+            for item in lane_selection.get("execution_mode_defaults", [])
+            if isinstance(item, dict) and str(item.get("mode") or "").strip() == "goose_wrapped"
+        ),
+        {},
+    )
+    repo_audit_profile = next(
+        (
+            dict(item)
+            for item in lane_selection.get("selection_profiles", [])
+            if isinstance(item, dict) and str(item.get("task_class") or "").strip() == "repo_wide_audit"
+        ),
+        {},
+    )
+    if (
+        "multi_step_orchestration" in list(goose_mode.get("use_for") or [])
+        and str(repo_audit_profile.get("default_execution_mode") or "").strip() == "goose_wrapped"
+    ):
+        checks_passed += 1
+    else:
+        notes.append("Lane-selection policy does not yet expose Goose as the bounded orchestration default.")
+
+    if bool(boundary_evidence.get("evidence_complete")):
+        checks_passed += 1
+    else:
+        blockers.append("missing_boundary_evidence")
+        notes.append(
+            "Goose boundary evidence is missing or incomplete; regenerate the boundary artifact before treating Goose as packet-review ready."
+        )
+
+    notes.append(
+        f"Goose pilot targets host {host_id}; local_available={str(command_probe['available_locally']).lower()}."
+    )
+    notes.append(
+        "Goose remains bounded to shell orchestration only; packet review still gates adoption of the preferred daily shell path."
+    )
+    return _finalize_pilot_flow(
+        flow_id="goose_operator_shell",
+        checks_passed=checks_passed,
+        checks_total=checks_total,
+        started_at=started_at,
+        notes=notes,
+        blocking_reasons=blockers,
+        details={
+            "run_id": str(run.get("run_id") or "goose-operator-shell-lane-eval-2026q2"),
+            "capability_id": "goose-operator-shell",
+            "host_id": host_id,
+            "required_commands": required_commands,
+            "command_probe": command_probe,
+            "wrapper_mode": str(run.get("wrapper_mode") or ""),
+            "default_task_class": "repo_wide_audit",
+            "default_execution_mode": str(repo_audit_profile.get("default_execution_mode") or ""),
+            "boundary_evidence": boundary_evidence,
+        },
+    )
+
+
+async def _run_openhands_bounded_worker_flow() -> OperatorTestFlowRecord:
+    from .model_governance import get_sidecar_retention_policy
+
+    started_at = time.perf_counter()
+    notes: list[str] = []
+    blockers: list[str] = []
+    checks_passed = 0
+    checks_total = 5
+    host_id = _operator_test_host_id()
+
+    run = _eval_run_by_id("openhands-bounded-worker-lane-eval-2026q2")
+    capability = _capability_by_id("openhands-bounded-worker-lane")
+    execution_requirements = dict(run.get("execution_requirements") or {})
+    required_commands = [
+        str(item).strip()
+        for item in execution_requirements.get("required_commands", [])
+        if str(item).strip()
+    ]
+    command_probe = _tool_command_probe("openhands", host_id=host_id)
+    sidecar_policy = get_sidecar_retention_policy()
+    openhands_policy = next(
+        (
+            dict(item)
+            for item in sidecar_policy.get("sidecars", [])
+            if isinstance(item, dict) and str(item.get("id") or "").strip() == "openhands_sidecar"
+        ),
+        {},
+    )
+
+    if run and str(run.get("wrapper_mode") or "").strip() == "direct_cli":
+        checks_passed += 1
+    else:
+        blockers.append("missing_eval_run")
+        notes.append("OpenHands pilot eval run is missing or does not declare direct CLI execution.")
+
+    if capability and str(capability.get("authority_class") or "") == "build_system":
+        checks_passed += 1
+    else:
+        blockers.append("missing_capability_contract")
+        notes.append("OpenHands capability contract is missing from the adoption registry.")
+
+    if "openhands" in required_commands:
+        checks_passed += 1
+    else:
+        notes.append("OpenHands pilot eval does not require the openhands command explicitly.")
+
+    if command_probe["available"]:
+        checks_passed += 1
+    else:
+        blockers.append("missing_command:openhands")
+        notes.append(
+            f"OpenHands is not available on host {host_id}; inventory_status={command_probe['inventory_status']}."
+        )
+
+    remove_rules = [str(item).lower() for item in openhands_policy.get("remove_if", [])]
+    if (
+        str(openhands_policy.get("role") or "") == "bounded_worker_lane"
+        and "operator_selected_sidecar_runs" in list(openhands_policy.get("allowed_scope") or [])
+        and any(
+            "second control plane" in item or "competing orchestration truth" in item
+            for item in remove_rules
+        )
+    ):
+        checks_passed += 1
+    else:
+        notes.append("OpenHands sidecar retention policy is missing a bounded-worker or second-control-plane guard.")
+
+    return _finalize_pilot_flow(
+        flow_id="openhands_bounded_worker",
+        checks_passed=checks_passed,
+        checks_total=checks_total,
+        started_at=started_at,
+        notes=notes,
+        blocking_reasons=blockers,
+        details={
+            "run_id": str(run.get("run_id") or "openhands-bounded-worker-lane-eval-2026q2"),
+            "capability_id": "openhands-bounded-worker-lane",
+            "host_id": host_id,
+            "required_commands": required_commands,
+            "command_probe": command_probe,
+            "wrapper_mode": str(run.get("wrapper_mode") or ""),
+            "sidecar_policy_id": str(openhands_policy.get("id") or "openhands_sidecar"),
+            "allowed_scope": list(openhands_policy.get("allowed_scope") or []),
+        },
+    )
+
+
+async def _run_letta_memory_plane_flow() -> OperatorTestFlowRecord:
+    from .model_governance import get_artifact_topology_registry, get_memory_namespace_registry
+
+    started_at = time.perf_counter()
+    notes: list[str] = []
+    blockers: list[str] = []
+    checks_passed = 0
+    checks_total = 5
+    host_id = _operator_test_host_id()
+
+    run = _eval_run_by_id("letta-memory-plane-eval-2026q2")
+    capability = _capability_by_id("letta-memory-plane")
+    execution_requirements = dict(run.get("execution_requirements") or {})
+    required_commands = [
+        str(item).strip()
+        for item in execution_requirements.get("required_commands", [])
+        if str(item).strip()
+    ]
+    command_probe = _tool_command_probe("letta", host_id=host_id)
+    memory_namespaces = get_memory_namespace_registry()
+    artifact_topology = get_artifact_topology_registry()
+
+    if run and str(run.get("wrapper_mode") or "").strip() == "service_runtime":
+        checks_passed += 1
+    else:
+        blockers.append("missing_eval_run")
+        notes.append("Letta pilot eval run is missing or does not declare service-runtime execution.")
+
+    if capability and str(capability.get("authority_class") or "") == "build_system":
+        checks_passed += 1
+    else:
+        blockers.append("missing_capability_contract")
+        notes.append("Letta capability contract is missing from the adoption registry.")
+
+    if "letta" in required_commands:
+        checks_passed += 1
+    else:
+        notes.append("Letta pilot eval does not require the letta command explicitly.")
+
+    if command_probe["available"]:
+        checks_passed += 1
+    else:
+        blockers.append("missing_command:letta")
+        notes.append(
+            f"Letta is not available on host {host_id}; inventory_status={command_probe['inventory_status']}."
+        )
+
+    namespaces = list(memory_namespaces.get("namespaces") or [])
+    artifacts = {
+        str(item.get("artifact_class") or ""): dict(item)
+        for item in artifact_topology.get("artifacts", [])
+        if isinstance(item, dict) and str(item.get("artifact_class") or "").strip()
+    }
+    if (
+        namespaces
+        and all(item.get("cloud_allowed") is False for item in namespaces if isinstance(item, dict))
+        and "eval_artifacts" in artifacts
+    ):
+        checks_passed += 1
+    else:
+        notes.append("Memory namespace or artifact-topology contracts are not strict enough for a bounded Letta pilot.")
+    notes.append(
+        "This flow is operator-smoke evidence only; the repeat-session continuity benchmark still needs to run before Letta can claim formal pilot proof."
+    )
+
+    return _finalize_pilot_flow(
+        flow_id="letta_memory_plane",
+        checks_passed=checks_passed,
+        checks_total=checks_total,
+        started_at=started_at,
+        notes=notes,
+        blocking_reasons=blockers,
+        details={
+            "run_id": str(run.get("run_id") or "letta-memory-plane-eval-2026q2"),
+            "capability_id": "letta-memory-plane",
+            "host_id": host_id,
+            "required_commands": required_commands,
+            "command_probe": command_probe,
+            "wrapper_mode": str(run.get("wrapper_mode") or ""),
+            "namespace_count": len(namespaces),
+            "eval_artifact_home": str(dict(artifacts.get("eval_artifacts") or {}).get("canonical_home") or ""),
+        },
+    )
+
+
+async def _run_agt_policy_plane_flow() -> OperatorTestFlowRecord:
+    from .model_governance import (
+        get_approval_matrix,
+        get_command_rights_registry,
+        get_contract_registry,
+    )
+
+    started_at = time.perf_counter()
+    notes: list[str] = []
+    blockers: list[str] = []
+    checks_passed = 0
+    checks_total = 5
+
+    run = _eval_run_by_id("agt-policy-plane-eval-2026q2")
+    capability = _capability_by_id("agent-governance-toolkit-policy-plane")
+    execution_requirements = dict(run.get("execution_requirements") or {})
+    required_commands = [
+        str(item).strip()
+        for item in execution_requirements.get("required_commands", [])
+        if str(item).strip()
+    ]
+    approval_matrix = get_approval_matrix()
+    command_rights = get_command_rights_registry()
+    contract_registry = get_contract_registry()
+    contract_ids = {
+        str(item.get("id") or "").strip()
+        for item in contract_registry.get("contracts", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    governor_profile = next(
+        (
+            dict(profile)
+            for profile in command_rights.get("profiles", [])
+            if isinstance(profile, dict) and str(profile.get("subject") or "").strip() == "Athanor Governor"
+        ),
+        {},
+    )
+    rights = {str(item).strip() for item in governor_profile.get("can", []) if str(item).strip()}
+
+    if run and str(run.get("wrapper_mode") or "").strip() == "service_runtime":
+        checks_passed += 1
+    else:
+        blockers.append("missing_eval_run")
+        notes.append("AGT pilot eval run is missing or does not declare service-runtime execution.")
+
+    if capability and str(capability.get("authority_class") or "") == "build_system":
+        checks_passed += 1
+    else:
+        blockers.append("missing_capability_contract")
+        notes.append("AGT capability contract is missing from the adoption registry.")
+
+    if not required_commands:
+        checks_passed += 1
+    else:
+        notes.append("AGT pilot eval unexpectedly requires local CLI commands.")
+
+    approval_classes = {
+        str(item.get("id") or "").strip()
+        for item in approval_matrix.get("classes", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    if {"approval_required", "always_manual"} <= approval_classes:
+        checks_passed += 1
+    else:
+        notes.append("Approval matrix does not expose the required governance classes for the AGT pilot.")
+
+    if {"command_decision_record", "operator_stream_event"} <= contract_ids and {
+        "choose fallback or degraded mode",
+        "pause or resume automation",
+    } <= rights:
+        checks_passed += 1
+    else:
+        notes.append("Governor audit or decision contracts are too weak for an AGT policy-bridge pilot.")
+    notes.append(
+        "This flow is operator-smoke evidence only; the AGT lane still depends on narrow contract-trace review rather than smoke proof alone."
+    )
+
+    return _finalize_pilot_flow(
+        flow_id="agt_policy_plane",
+        checks_passed=checks_passed,
+        checks_total=checks_total,
+        started_at=started_at,
+        notes=notes,
+        blocking_reasons=blockers,
+        details={
+            "run_id": str(run.get("run_id") or "agt-policy-plane-eval-2026q2"),
+            "capability_id": "agent-governance-toolkit-policy-plane",
+            "required_commands": required_commands,
+            "wrapper_mode": str(run.get("wrapper_mode") or ""),
+            "approval_classes": sorted(approval_classes),
+            "contract_ids": sorted(contract_ids),
+        },
+    )
+
+
 FLOW_RUNNERS = {
     "pause_resume": _run_pause_resume_flow,
     "presence_tier": _run_presence_tier_flow,
@@ -1414,6 +1976,10 @@ FLOW_RUNNERS = {
     "retirement_policy": _run_retirement_policy_flow,
     "data_lifecycle": _run_data_lifecycle_flow,
     "restore_drill": _run_restore_drill_flow,
+    "goose_operator_shell": _run_goose_operator_shell_flow,
+    "openhands_bounded_worker": _run_openhands_bounded_worker_flow,
+    "letta_memory_plane": _run_letta_memory_plane_flow,
+    "agt_policy_plane": _run_agt_policy_plane_flow,
 }
 
 

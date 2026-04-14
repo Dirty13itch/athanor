@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import os
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 AUTONOMY_ACTIVE_STATES: frozenset[str] = frozenset(
@@ -148,6 +152,14 @@ def get_model_intelligence_lane() -> dict[str, Any]:
 
 def get_contract_registry() -> dict[str, Any]:
     return _load_registry("contract-registry.json")
+
+
+def get_capability_adoption_registry() -> dict[str, Any]:
+    return _load_registry("capability-adoption-registry.json")
+
+
+def get_eval_run_ledger() -> dict[str, Any]:
+    return _load_registry("eval-run-ledger.json")
 
 
 def get_eval_corpus_registry() -> dict[str, Any]:
@@ -365,6 +377,30 @@ def get_coding_lane_registry() -> dict[str, Any]:
     return _load_registry("coding-lane-registry.json")
 
 
+def get_lane_selection_matrix() -> dict[str, Any]:
+    return _load_registry("lane-selection-matrix.json")
+
+
+def get_approval_matrix() -> dict[str, Any]:
+    return _load_registry("approval-matrix.json")
+
+
+def get_failure_routing_matrix() -> dict[str, Any]:
+    return _load_registry("failure-routing-matrix.json")
+
+
+def get_artifact_topology_registry() -> dict[str, Any]:
+    return _load_registry("artifact-topology-registry.json")
+
+
+def get_vendor_policy_registry() -> dict[str, Any]:
+    return _load_registry("vendor-policy-registry.json")
+
+
+def get_sidecar_retention_policy() -> dict[str, Any]:
+    return _load_registry("sidecar-retention-policy.json")
+
+
 def get_memory_namespace_registry() -> dict[str, Any]:
     return _load_registry("memory-namespace-registry.json")
 
@@ -402,6 +438,8 @@ def _build_registry_versions() -> dict[str, str]:
         "command_rights": get_command_rights_registry().get("version", "unknown"),
         "policy_classes": get_policy_class_registry().get("version", "unknown"),
         "contract_registry": get_contract_registry().get("version", "unknown"),
+        "capability_adoption": get_capability_adoption_registry().get("version", "unknown"),
+        "eval_run_ledger": get_eval_run_ledger().get("version", "unknown"),
         "eval_corpora": get_eval_corpus_registry().get("version", "unknown"),
         "model_roles": get_model_role_registry().get("version", "unknown"),
         "workload_classes": get_workload_class_registry().get("version", "unknown"),
@@ -431,6 +469,12 @@ def _build_registry_versions() -> dict[str, str]:
         "docs_lifecycle": get_docs_lifecycle_registry().get("version", "unknown"),
         "program_operating_system": get_program_operating_system().get("version", "unknown"),
         "coding_lanes": get_coding_lane_registry().get("version", "unknown"),
+        "lane_selection_matrix": get_lane_selection_matrix().get("version", "unknown"),
+        "approval_matrix": get_approval_matrix().get("version", "unknown"),
+        "failure_routing_matrix": get_failure_routing_matrix().get("version", "unknown"),
+        "artifact_topology": get_artifact_topology_registry().get("version", "unknown"),
+        "vendor_policy": get_vendor_policy_registry().get("version", "unknown"),
+        "sidecar_retention": get_sidecar_retention_policy().get("version", "unknown"),
         "memory_namespaces": get_memory_namespace_registry().get("version", "unknown"),
         "source_policy": get_source_policy_registry().get("version", "unknown"),
         "project_packets": get_project_packet_registry().get("version", "unknown"),
@@ -785,12 +829,74 @@ async def build_live_model_governance_snapshot() -> dict[str, Any]:
     from .promotion_control import build_promotion_controls_snapshot
     from .retirement_control import build_retirement_controls_snapshot
 
+    baseline_snapshot = build_model_governance_snapshot()
     roles = get_model_role_registry()
     workloads = get_workload_class_registry()
-    proving_ground = await build_proving_ground_snapshot(limit=12)
-    model_intelligence = await build_model_intelligence_snapshot()
-    promotion_controls = await build_promotion_controls_snapshot(limit=12)
-    retirement_controls = await build_retirement_controls_snapshot(limit=12)
+
+    async def _await_live_component(
+        label: str,
+        coroutine: Any,
+        fallback: dict[str, Any],
+        *,
+        timeout_seconds: float = 2.5,
+    ) -> dict[str, Any]:
+        task = asyncio.create_task(coroutine)
+
+        def _drain_task_result(completed: asyncio.Task[Any]) -> None:
+            try:
+                completed.result()
+            except asyncio.CancelledError:
+                return
+            except Exception as exc:
+                logger.debug(
+                    "Model-governance component %s finished with background exception after cancellation: %s",
+                    label,
+                    exc,
+                )
+
+        try:
+            done, _ = await asyncio.wait({task}, timeout=timeout_seconds)
+            if task not in done:
+                task.cancel()
+                task.add_done_callback(_drain_task_result)
+                raise TimeoutError(f"{label} timed out after {timeout_seconds:.1f}s")
+            result = task.result()
+        except Exception as exc:
+            logger.warning("Model-governance live component %s unavailable; using fallback: %s", label, exc)
+            degraded = dict(fallback)
+            if isinstance(degraded.get("status"), str):
+                degraded["status"] = "degraded"
+            next_actions = degraded.get("next_actions")
+            if isinstance(next_actions, list):
+                degraded["next_actions"] = [
+                    *next_actions,
+                    f"Live {label.replace('_', ' ')} snapshot degraded: {str(exc)[:120]}",
+                ]
+            return degraded
+        return result if isinstance(result, dict) else dict(fallback)
+
+    proving_ground, model_intelligence, promotion_controls, retirement_controls = await asyncio.gather(
+        _await_live_component(
+            "proving_ground",
+            build_proving_ground_snapshot(limit=12),
+            dict(baseline_snapshot.get("proving_ground") or {}),
+        ),
+        _await_live_component(
+            "model_intelligence",
+            build_model_intelligence_snapshot(),
+            dict(baseline_snapshot.get("model_intelligence") or {}),
+        ),
+        _await_live_component(
+            "promotion_controls",
+            build_promotion_controls_snapshot(limit=12),
+            dict(baseline_snapshot.get("promotion_controls") or {}),
+        ),
+        _await_live_component(
+            "retirement_controls",
+            build_retirement_controls_snapshot(limit=12),
+            dict(baseline_snapshot.get("retirement_controls") or {}),
+        ),
+    )
 
     role_items = roles.get("roles", [])
     champion_summary = [

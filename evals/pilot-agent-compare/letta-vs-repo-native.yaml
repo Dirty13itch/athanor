@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+# Run: npx promptfoo@latest eval -c evals/pilot-agent-compare/letta-vs-repo-native.yaml
+
+description: "Athanor pilot: Letta vs repo-native context on bounded repeat-session continuity tasks"
+
+commandLineOptions:
+  maxConcurrency: 1
+  cache: false
+
+defaultTest:
+  options:
+    provider:
+      id: openai:chat:deepseek
+      config:
+        apiBaseUrl: http://192.168.1.203:4000/v1
+        apiKeyEnvar: LITELLM_API_KEY
+        temperature: 0
+        max_tokens: 1536
+    transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^Thinking Process:[\s\S]*?\n\n/gm, '').trim()
+
+providers:
+  - id: file://providers/agent_command_provider.py
+    label: Letta
+    config:
+      providerId: letta
+      command: letta
+      args:
+        - -p
+        - "{prompt}"
+        - --output-format
+        - text
+      stdinMode: none
+      timeoutMs: 180000
+      cwd: C:/Athanor/evals
+      stripAnsi: true
+
+  - id: file://providers/agent_command_provider.py
+    label: Repo-native context
+    config:
+      providerId: repo-native-context
+      command: codex
+      args:
+        - exec
+        - --skip-git-repo-check
+        - --sandbox
+        - read-only
+        - --color
+        - never
+        - --json
+        - "-"
+      stdinMode: prompt
+      timeoutMs: 180000
+      cwd: C:/Athanor/evals
+      stripAnsi: true
+      extractJsonlField: item.text
+      matchJsonlType: item.completed
+
+prompts:
+  - file://prompts/repeat-session-continuity-task.txt
+
+tests: file://tests/repeat-session-continuity.yaml

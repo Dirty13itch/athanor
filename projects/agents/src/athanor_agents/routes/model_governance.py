@@ -4,6 +4,11 @@ These endpoints handle model promotions, retirements, and the proving ground.
 Extracted from the backbone branch and reconciled into main as a router module.
 """
 
+import asyncio
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
@@ -14,6 +19,107 @@ from ..operator_contract import (
 )
 
 router = APIRouter(tags=["model-governance"])
+logger = logging.getLogger(__name__)
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _drain_task_result(task: asyncio.Task[Any]) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        return
+    except Exception as exc:  # pragma: no cover - defensive cleanup
+        logger.debug("Model-governance background task finished after cancellation: %s", exc)
+
+
+async def _await_snapshot(
+    label: str,
+    coroutine: Any,
+    *,
+    fallback_factory,
+    timeout_seconds: float = 4.0,
+) -> dict[str, Any]:
+    task = asyncio.create_task(coroutine)
+    try:
+        done, _ = await asyncio.wait({task}, timeout=timeout_seconds)
+        if task not in done:
+            task.cancel()
+            task.add_done_callback(_drain_task_result)
+            raise TimeoutError(f"{label} timed out after {timeout_seconds:.1f}s")
+        result = task.result()
+    except Exception as exc:
+        logger.warning("Model-governance route %s unavailable; using degraded snapshot: %s", label, exc)
+        return fallback_factory(str(exc))
+    return result if isinstance(result, dict) else fallback_factory(f"{label} returned invalid payload")
+
+
+def _degraded_proving_ground_snapshot(detail: str) -> dict[str, Any]:
+    from ..model_governance import (
+        build_model_governance_snapshot,
+        get_eval_corpus_registry,
+        get_experiment_ledger_policy,
+        get_model_role_registry,
+    )
+
+    baseline = build_model_governance_snapshot()
+    registry = dict(baseline.get("proving_ground") or {})
+    eval_corpus_registry = get_eval_corpus_registry()
+    experiment_policy = get_experiment_ledger_policy()
+    role_registry = get_model_role_registry()
+
+    return {
+        "generated_at": _now_iso(),
+        "version": str(registry.get("version") or "unknown"),
+        "status": "degraded",
+        "purpose": str(registry.get("purpose") or ""),
+        "evaluation_dimensions": list(registry.get("evaluation_dimensions", [])),
+        "corpora": list(registry.get("corpora", [])),
+        "pipeline_phases": list(registry.get("pipeline_phases", [])),
+        "promotion_path": list(registry.get("promotion_path", [])),
+        "rollback_rule": str(registry.get("rollback_rule") or ""),
+        "latest_run": None,
+        "recent_results": [],
+        "corpus_registry_version": str(eval_corpus_registry.get("version") or "unknown"),
+        "governed_corpora": list(eval_corpus_registry.get("corpora", [])),
+        "experiment_ledger": {
+            "version": str(experiment_policy.get("version") or "unknown"),
+            "status": "degraded",
+            "required_fields": list(experiment_policy.get("required_fields", [])),
+            "retention": str(experiment_policy.get("retention") or "unknown"),
+            "promotion_linkage": str(experiment_policy.get("promotion_linkage") or ""),
+            "evidence_count": 0,
+        },
+        "recent_experiments": [],
+        "improvement_summary": {
+            "total_proposals": 0,
+            "pending": 0,
+            "validated": 0,
+            "deployed": 0,
+            "failed": 0,
+            "archive_entries": 0,
+            "benchmark_results": 0,
+            "latest_baseline": {},
+            "last_cycle": None,
+            "detail": detail[:160],
+        },
+        "lane_coverage": [
+            {
+                "role_id": str(role.get("id") or "role"),
+                "label": str(role.get("label") or "Role"),
+                "plane": str(role.get("plane") or "unknown"),
+                "status": str(role.get("status") or "configured"),
+                "champion": str(role.get("champion") or "unknown"),
+                "challenger_count": len(role.get("challengers", [])),
+                "workload_count": len(role.get("workload_classes", [])),
+            }
+            for role in role_registry.get("roles", [])
+            if isinstance(role, dict)
+        ],
+        "promotion_controls": dict(baseline.get("promotion_controls") or {}),
+    }
 
 
 async def _load_candidate_action(request: Request, *, default_reason: str):
@@ -300,7 +406,11 @@ async def transition_model_governance_retirement(retirement_id: str, action: str
 async def model_proving_ground(limit: int = 12):
     from ..proving_ground import build_proving_ground_snapshot
 
-    return await build_proving_ground_snapshot(limit=limit)
+    return await _await_snapshot(
+        "proving_ground",
+        build_proving_ground_snapshot(limit=limit),
+        fallback_factory=_degraded_proving_ground_snapshot,
+    )
 
 
 @router.post("/v1/models/proving-ground/run")

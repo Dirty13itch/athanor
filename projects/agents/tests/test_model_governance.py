@@ -78,6 +78,33 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertIn("recent_experiments", snapshot["governance_layers"]["experiment_ledger"])
         self.assertIn("deprecation_retirement", snapshot["governance_layers"])
 
+    def test_live_snapshot_falls_back_when_runtime_components_timeout(self):
+        with (
+            patch(
+                "athanor_agents.proving_ground.build_proving_ground_snapshot",
+                AsyncMock(side_effect=TimeoutError("proving ground timed out")),
+            ),
+            patch(
+                "athanor_agents.model_governance.build_model_intelligence_snapshot",
+                AsyncMock(side_effect=TimeoutError("model intelligence timed out")),
+            ),
+            patch(
+                "athanor_agents.promotion_control.build_promotion_controls_snapshot",
+                AsyncMock(side_effect=TimeoutError("promotion controls timed out")),
+            ),
+            patch(
+                "athanor_agents.retirement_control.build_retirement_controls_snapshot",
+                AsyncMock(side_effect=TimeoutError("retirement controls timed out")),
+            ),
+        ):
+            snapshot = asyncio.run(build_live_model_governance_snapshot())
+
+        self.assertEqual("degraded", snapshot["proving_ground"]["status"])
+        self.assertEqual("degraded", snapshot["model_intelligence"]["status"])
+        self.assertEqual("degraded", snapshot["promotion_controls"]["status"])
+        self.assertEqual("degraded", snapshot["retirement_controls"]["status"])
+        self.assertIn("governance_layers", snapshot)
+
     def test_registry_dir_supports_env_override(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             registry_dir = os.path.join(tmpdir, "custom")

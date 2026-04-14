@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+# Run: npx promptfoo@latest eval -c evals/pilot-agent-compare/openhands-vs-native-worker.yaml
+
+description: "Athanor pilot: OpenHands vs native worker on bounded cloud-safe tasks"
+
+commandLineOptions:
+  maxConcurrency: 1
+  cache: false
+
+defaultTest:
+  options:
+    provider:
+      id: openai:chat:deepseek
+      config:
+        apiBaseUrl: http://192.168.1.203:4000/v1
+        apiKeyEnvar: LITELLM_API_KEY
+        temperature: 0
+        max_tokens: 1536
+    transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/^Thinking Process:[\s\S]*?\n\n/gm, '').trim()
+
+providers:
+  - id: file://providers/agent_command_provider.py
+    label: OpenHands
+    config:
+      providerId: openhands
+      commandEnv: PROMPTFOO_OPENHANDS_CMD
+      argsEnv: PROMPTFOO_OPENHANDS_ARGS_JSON
+      stdinMode: json
+      timeoutMs: 180000
+      cwd: C:/Athanor/evals
+      stripAnsi: true
+
+  - id: file://providers/agent_command_provider.py
+    label: Native Worker
+    config:
+      providerId: native-worker
+      command: codex
+      args:
+        - exec
+        - --skip-git-repo-check
+        - --sandbox
+        - read-only
+        - --color
+        - never
+        - --json
+        - "-"
+      stdinMode: prompt
+      timeoutMs: 180000
+      cwd: C:/Athanor/evals
+      stripAnsi: true
+      extractJsonlField: item.text
+      matchJsonlType: item.completed
+
+prompts:
+  - file://prompts/bounded-cloud-safe-task.txt
+
+tests: file://tests/bounded-cloud-safe.yaml

@@ -1,0 +1,23 @@
+{
+  "allowed_actions": [
+    "capture_operator_action_envelope",
+    "emit_command_decision_record",
+    "emit_operator_stream_event",
+    "attach_bridge_policy_verdict",
+    "prepare_runtime_packet_review"
+  ],
+  "blocked_actions": [
+    "apply_runtime_packet_without_operator_approval",
+    "approve_mutation_on_behalf_of_operator",
+    "widen_scope_beyond_requested_packet",
+    "replace_native_audit_lineage"
+  ],
+  "command_decision_record_ref": "config/automation-backbone/contract-registry.json#command_decision_record",
+  "decision_reason": "The AGT bridge is constrained to a protocol-boundary trust verdict only. It preserves Athanor's `approval_required` decision for runtime packet application, adds explanatory bridge metadata, and must not widen permissions beyond the native approval matrix.",
+  "decision_summary": "AGT-backed bridge enforcement keeps the runtime mutation on approval hold, enriches the decision with a protocol-boundary policy verdict, and returns control to native Athanor approval and audit surfaces for execution.",
+  "operator_stream_event_ref": "config/automation-backbone/contract-registry.json#operator_stream_event",
+  "policy_class": "approval_required",
+  "request_surface": "operator_action_envelope_for_approval_gated_mutations",
+  "scenario_id": "approval-held-mutation",
+  "trace_id": "agt-bridge-approval-held-mutation-2026-04-12"
+}

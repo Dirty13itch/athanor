@@ -14,6 +14,7 @@ defaultTest:
       id: openai:chat:reasoning
       config:
         apiBaseUrl: http://192.168.1.203:4000/v1
+        apiKeyEnvar: LITELLM_API_KEY
         temperature: 0
         max_tokens: 2048
         extra_body:
@@ -27,6 +28,7 @@ providers:
     label: "Qwen3.5-27B-FP8 (reasoning)"
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      apiKeyEnvar: LITELLM_API_KEY
       extra_body:
         chat_template_kwargs:
           enable_thinking: false
@@ -35,6 +37,7 @@ providers:
     label: "Qwen3.5-35B-A3B-AWQ (creative)"
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      apiKeyEnvar: LITELLM_API_KEY
       extra_body:
         chat_template_kwargs:
           enable_thinking: false
@@ -43,6 +46,7 @@ providers:
     label: "Qwen3.5-35B-A3B-AWQ (coder)"
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      apiKeyEnvar: LITELLM_API_KEY
       extra_body:
         chat_template_kwargs:
           enable_thinking: false

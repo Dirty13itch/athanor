@@ -7,15 +7,17 @@ description: "EoBQ character voice, breaking stage, and content quality"
 defaultTest:
   options:
     provider:
-      id: openai:chat:grader
+      id: openai:chat:deepseek
       config:
         apiBaseUrl: http://192.168.1.203:4000/v1
+        apiKeyEnvar: LITELLM_API_KEY
     transform: output.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
 
 providers:
   - id: openai:chat:uncensored
     config:
       apiBaseUrl: http://192.168.1.203:4000/v1
+      apiKeyEnvar: LITELLM_API_KEY
       passthrough:
         chat_template_kwargs:
           enable_thinking: false

@@ -454,6 +454,66 @@ class OperatorTestsRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(1, flow["details"]["stream_event_count"])
         self.assertEqual(1, flow["details"]["run_count"])
 
+    async def test_goose_operator_shell_flow_passes_when_command_is_available(self) -> None:
+        fake_redis = FakeRedis()
+        with (
+            patch("athanor_agents.operator_tests._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.operator_tests.shutil.which", side_effect=lambda command: f"/tmp/{command}" if command == "goose" else None),
+            patch("athanor_agents.activity.log_event", AsyncMock()),
+        ):
+            snapshot = await run_operator_tests(flow_ids=["goose_operator_shell"], actor="test-suite")
+
+        flow = next(flow for flow in snapshot["flows"] if flow["id"] == "goose_operator_shell")
+        self.assertEqual("passed", flow["last_outcome"])
+        self.assertEqual("live_partial", flow["status"])
+        self.assertEqual("goose_wrapped", flow["details"]["wrapper_mode"])
+        self.assertTrue(flow["details"]["command_probe"]["available"])
+        self.assertTrue(flow["details"]["boundary_evidence"]["exists"])
+        self.assertTrue(flow["details"]["boundary_evidence"]["evidence_complete"])
+
+    async def test_openhands_bounded_worker_flow_blocks_without_command(self) -> None:
+        fake_redis = FakeRedis()
+        with (
+            patch("athanor_agents.operator_tests._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.operator_tests.shutil.which", return_value=None),
+            patch("athanor_agents.activity.log_event", AsyncMock()),
+        ):
+            snapshot = await run_operator_tests(flow_ids=["openhands_bounded_worker"], actor="test-suite")
+
+        flow = next(flow for flow in snapshot["flows"] if flow["id"] == "openhands_bounded_worker")
+        self.assertEqual("blocked", flow["last_outcome"])
+        self.assertEqual("configured", flow["status"])
+        self.assertIn("missing_command:openhands", flow["details"]["blocking_reasons"])
+
+    async def test_letta_memory_plane_flow_passes_when_command_is_available(self) -> None:
+        fake_redis = FakeRedis()
+        with (
+            patch("athanor_agents.operator_tests._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.operator_tests.shutil.which", side_effect=lambda command: f"/tmp/{command}" if command == "letta" else None),
+            patch("athanor_agents.activity.log_event", AsyncMock()),
+        ):
+            snapshot = await run_operator_tests(flow_ids=["letta_memory_plane"], actor="test-suite")
+
+        flow = next(flow for flow in snapshot["flows"] if flow["id"] == "letta_memory_plane")
+        self.assertEqual("passed", flow["last_outcome"])
+        self.assertEqual("live_partial", flow["status"])
+        self.assertEqual("service_runtime", flow["details"]["wrapper_mode"])
+        self.assertGreater(flow["details"]["namespace_count"], 0)
+
+    async def test_agt_policy_plane_flow_uses_existing_governance_contracts(self) -> None:
+        fake_redis = FakeRedis()
+        with (
+            patch("athanor_agents.operator_tests._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.activity.log_event", AsyncMock()),
+        ):
+            snapshot = await run_operator_tests(flow_ids=["agt_policy_plane"], actor="test-suite")
+
+        flow = next(flow for flow in snapshot["flows"] if flow["id"] == "agt_policy_plane")
+        self.assertEqual("passed", flow["last_outcome"])
+        self.assertEqual("live_partial", flow["status"])
+        self.assertIn("approval_required", flow["details"]["approval_classes"])
+        self.assertIn("command_decision_record", flow["details"]["contract_ids"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,89 @@
+- description: "Recover the most important prior decision from a bounded two-session handoff"
+  metadata:
+    family: continuity-handoff
+    bounded: true
+  vars:
+    task_id: continuity-handoff
+    task_category: continuity-handoff
+    task: |
+      Read the two-session handoff and identify the highest-priority carried decision plus the safest next step.
+    success_criteria: |
+      - Preserve the chosen runtime boundary.
+      - Name the blocked dependency explicitly.
+      - Recommend the smallest useful next step without inventing new context.
+    artifact: |
+      Session 1:
+      - Decision: Keep GraphRAG behind the governed FOUNDRY compose packet.
+      - Blocker: /status still times out from a real client.
+      - Next step: fix /status and hybrid query before promotion.
+
+      Session 2:
+      - Question: What should happen next on GraphRAG?
+  assert:
+    - type: llm-rubric
+      value: "Carries forward that GraphRAG stays behind the governed FOUNDRY compose packet, identifies the /status timeout as the blocker, and recommends fixing /status and hybrid query before promotion."
+    - type: python
+      value: |
+        import json
+        import re
+
+        def parse_payload(text):
+            match = re.search(r"\{[\s\S]*\}\s*$", text.strip())
+            if not match:
+                return None
+            return json.loads(match.group(0))
+
+        data = parse_payload(output)
+        if not data:
+            return False
+        blob = json.dumps(data).lower()
+        return (
+            data.get("task_id") == "continuity-handoff"
+            and "graphrag" in blob
+            and "status" in blob
+            and "hybrid" in blob
+        )
+
+- description: "Carry forward the right next action from a small operator thread"
+  metadata:
+    family: continuity-queue
+    bounded: true
+  vars:
+    task_id: continuity-queue
+    task_category: continuity-queue
+    task: |
+      Read the thread history and identify the agreed next action plus the memory items worth retaining.
+    success_criteria: |
+      - Preserve the selected next action exactly.
+      - Retain the key operator preference that shaped it.
+      - Keep the answer short and specific.
+    artifact: |
+      Thread history:
+      - User preference: Do not invent a second scheduler.
+      - Agreed next action: Deploy the read-only /scheduler/state slice through the governed Foundry packet.
+      - Deferred work: Mutation endpoints can wait until the deploy is verified.
+  assert:
+    - type: llm-rubric
+      value: "Preserves the governed Foundry packet deploy for /scheduler/state as the next action, retains the no-second-scheduler preference, and keeps mutation endpoints deferred."
+    - type: python
+      value: |
+        import json
+        import re
+
+        def parse_payload(text):
+            match = re.search(r"\{[\s\S]*\}\s*$", text.strip())
+            if not match:
+                return None
+            return json.loads(match.group(0))
+
+        data = parse_payload(output)
+        if not data:
+            return False
+        blob = json.dumps(data).lower()
+        memory = json.dumps(data.get("memory_to_retain") or []).lower()
+        return (
+            data.get("task_id") == "continuity-queue"
+            and "scheduler/state" in blob
+            and "foundry" in blob
+            and "second scheduler" in memory
+        )
