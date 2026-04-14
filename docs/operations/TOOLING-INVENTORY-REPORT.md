@@ -5,13 +5,13 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-03-29.1`
+- Registry version: `2026-04-11.1`
 - Hosts tracked: `2`
-- Tool entries tracked: `14`
+- Tool entries tracked: `16`
 
 ## DESK (`desk`)
 
-- Last verified: `2026-03-29T06:17:44Z`
+- Last verified: `2026-04-11T22:55:00Z`
 
 | Tool | Provider | Command | Status | Version |
 | --- | --- | --- | --- | --- |
@@ -22,6 +22,8 @@ Do not edit manually.
 | `aider` | none | `aider` | `degraded` | unset |
 | `claude-squad` | none | `claude-squad` | `missing` | unset |
 | `claudeman` | none | `claudeman` | `missing` | unset |
+| `goose` | none | `goose` | `installed` | `1.30.0` |
+| `letta` | none | `letta` | `installed` | `0.22.4` |
 
 ## DEV (`dev`)
 

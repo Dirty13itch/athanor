@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -13,7 +14,7 @@ from truth_inventory import REPO_ROOT, VAULT_LITELLM_ENV_AUDIT_PATH, load_regist
 
 VAULT_SSH_PATH = REPO_ROOT / "scripts" / "vault-ssh.py"
 VAULT_LITELLM_CONTAINER_NAME = "litellm"
-AUDIT_VERSION = "2026-04-08.1"
+AUDIT_VERSION = "2026-04-13.1"
 
 
 def utc_now() -> str:
@@ -44,6 +45,7 @@ def _build_remote_probe_script(container_name: str, expected_env_names: list[str
 import json
 import os
 import pathlib
+import re
 import shlex
 import subprocess
 
@@ -116,6 +118,23 @@ def inspect_backup_env_snapshots(pattern):
     return snapshots
 
 
+def config_env_refs(config_path):
+    path = pathlib.Path(config_path)
+    if not path.exists():
+        return []
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return []
+    return sorted(
+        {{
+            match.strip()
+            for match in re.findall(r"os\\.environ/([A-Z0-9_]+)", text)
+            if str(match).strip()
+        }}
+    )
+
+
 inspect_result = subprocess.run(
     ["docker", "inspect", container_name],
     capture_output=True,
@@ -163,6 +182,9 @@ boot_config_reference_files = grep_matches(
 )
 appdata_files = limited_matches("/mnt/user/appdata/litellm", needle="", max_depth=2, require_file=True)
 historical_backup_env_snapshots = inspect_backup_env_snapshots("/mnt/user/appdata/litellm/backups/litellm.inspect*.json")
+config_referenced_env_names = config_env_refs("/mnt/user/appdata/litellm/config.yaml")
+config_referenced_present = sorted(name for name in config_referenced_env_names if name in container_env_names)
+config_referenced_missing = sorted(name for name in config_referenced_env_names if name not in container_env_names)
 docker_config = read_json_file("/boot/config/plugins/dynamix.my.servers/configs/docker.config.json") or {{}}
 template_mappings = docker_config.get("templateMappings") if isinstance(docker_config, dict) else {{}}
 docker_config_template_mapping = None
@@ -205,6 +227,9 @@ print(
             ],
             "container_has_compose_labels": compose_labels_present,
             "container_label_keys": label_keys,
+            "config_referenced_env_names": config_referenced_env_names,
+            "config_referenced_present_env_names": config_referenced_present,
+            "config_referenced_missing_env_names": config_referenced_missing,
             "docker_template_matches": docker_template_matches,
             "compose_manager_matches": compose_manager_matches,
             "docker_config_template_mapping": docker_config_template_mapping,
@@ -268,6 +293,27 @@ def _normalize_audit_payload(remote_payload: dict[str, Any], expected_env_names:
             if str(name).strip()
         }
     )
+    config_referenced = sorted(
+        {
+            str(name).strip()
+            for name in remote_payload.get("config_referenced_env_names", [])
+            if str(name).strip()
+        }
+    )
+    config_referenced_present = sorted(
+        {
+            str(name).strip()
+            for name in remote_payload.get("config_referenced_present_env_names", [])
+            if str(name).strip()
+        }
+    )
+    config_referenced_missing = sorted(
+        {
+            str(name).strip()
+            for name in remote_payload.get("config_referenced_missing_env_names", [])
+            if str(name).strip()
+        }
+    )
     docker_template_matches = [
         str(path).strip() for path in remote_payload.get("docker_template_matches", []) if str(path).strip()
     ]
@@ -320,6 +366,9 @@ def _normalize_audit_payload(remote_payload: dict[str, Any], expected_env_names:
         "container_missing_env_names": container_missing,
         "host_shell_present_env_names": host_present,
         "host_shell_missing_env_names": host_missing,
+        "config_referenced_env_names": config_referenced,
+        "config_referenced_present_env_names": config_referenced_present,
+        "config_referenced_missing_env_names": config_referenced_missing,
         "container_image": str(remote_payload.get("container_image") or ""),
         "container_entrypoint": [
             str(item).strip()
@@ -388,6 +437,9 @@ def _failed_audit_payload(expected_env_names: list[str], error: str) -> dict[str
         "container_missing_env_names": expected,
         "host_shell_present_env_names": [],
         "host_shell_missing_env_names": expected,
+        "config_referenced_env_names": [],
+        "config_referenced_present_env_names": [],
+        "config_referenced_missing_env_names": [],
         "container_image": "",
         "container_entrypoint": [],
         "container_args": [],

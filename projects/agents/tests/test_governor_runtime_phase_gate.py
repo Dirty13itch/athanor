@@ -171,6 +171,43 @@ class GovernorRuntimePhaseGateTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("outside autonomy phase", decision.reason)
         record_decision.assert_awaited_once()
 
+    async def test_operator_backlog_submission_runs_when_marked_autonomy_managed(self) -> None:
+        governor = Governor()
+        policy = self._policy(broad_autonomy_enabled=True)
+
+        with (
+            patch.object(governor, "_get_state", AsyncMock(return_value={"global_mode": "active"})),
+            patch.object(governor, "_get_paused_lanes", AsyncMock(return_value=set())),
+            patch.object(governor, "_get_agent_trust", AsyncMock(return_value=0.21)),
+            patch.object(governor, "get_effective_presence", AsyncMock(return_value={"state": "away"})),
+            patch.object(governor, "_record_decision", AsyncMock()) as record_decision,
+            patch(
+                "athanor_agents.governor_runtime._load_autonomy_policy",
+                return_value=policy,
+            ),
+            patch(
+                "athanor_agents.governor_runtime._autonomy_workload_class",
+                return_value="private_automation",
+            ),
+        ):
+            decision = await governor.gate_task_submission(
+                agent="coding-agent",
+                prompt="Advance governed dispatch follow-through.",
+                source="operator_backlog",
+                metadata={
+                    "_autonomy_managed": True,
+                    "_autonomy_source": "pipeline",
+                    "task_class": "private_automation",
+                    "workload_class": "private_automation",
+                },
+            )
+
+        self.assertTrue(decision.allowed)
+        self.assertEqual("pending", decision.status_override)
+        self.assertEqual("A", decision.autonomy_level)
+        self.assertIn("operator_backlog", decision.reason)
+        record_decision.assert_awaited_once()
+
     async def test_scheduler_source_holds_blocked_workload_for_approval(self) -> None:
         governor = Governor()
         policy = self._policy(
@@ -240,6 +277,20 @@ class GovernorRuntimePhaseGateTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("D", decision.autonomy_level)
         self.assertIn("approval-gated", decision.reason)
         record_decision.assert_awaited_once()
+
+    async def test_record_heartbeat_preserves_dashboard_presence_state(self) -> None:
+        governor = Governor()
+        backbone = AsyncMock()
+
+        with patch("athanor_agents.governor_runtime._governor_backbone", return_value=backbone):
+            await governor.record_heartbeat(source="dashboard_heartbeat", state="away")
+
+        backbone.record_presence_heartbeat.assert_awaited_once_with(
+            "away",
+            source="dashboard_heartbeat",
+            reason="Dashboard heartbeat updated operator presence.",
+            actor="dashboard_heartbeat",
+        )
 
 
 if __name__ == "__main__":

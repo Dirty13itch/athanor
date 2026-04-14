@@ -60,7 +60,7 @@ comfyui_extra_env:
   - "CUDA_DEVICE_ORDER=PCI_BUS_ID"
 
 open_webui_port: 3000
-open_webui_vllm_url: "http://{{ node1_ip }}:8000/v1"
+open_webui_api_base: "http://{{ vault_ip | default('192.168.1.203') }}:4000/v1"
 
 dashboard_port: 3001
 dashboard_prometheus_url: "http://{{ vault_ip | default('192.168.1.203') }}:9090"

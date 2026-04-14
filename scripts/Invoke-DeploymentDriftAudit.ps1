@@ -44,6 +44,23 @@ function Write-Utf8File {
     [System.IO.File]::WriteAllText($PathText, $normalized, $utf8NoBom)
 }
 
+function Invoke-RemoteScript {
+    param(
+        [string]$HostAlias,
+        [string]$CommandText
+    )
+
+    $encoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($CommandText))
+    $remotePayload = "printf %s " + (ConvertTo-BashLiteral -Text $encoded) + " | base64 -d | bash"
+    $bashCommand = "bash -lc " + (ConvertTo-BashLiteral -Text $remotePayload)
+    $output = @(& ssh -o BatchMode=yes $HostAlias $bashCommand 2>$null)
+
+    return [pscustomobject]@{
+        ExitCode = $LASTEXITCODE
+        Output = ($output -join "`n")
+    }
+}
+
 function Protect-SensitiveText {
     param([string]$Text)
 
@@ -75,11 +92,8 @@ function Get-RemoteFileContent {
         'fi'
     ) -join "`n"
 
-    $encoded = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($commandText))
-    $remotePayload = "printf %s " + (ConvertTo-BashLiteral -Text $encoded) + " | base64 -d | bash"
-    $bashCommand = "bash -lc " + (ConvertTo-BashLiteral -Text $remotePayload)
-    $output = @(& ssh -o BatchMode=yes $HostAlias $bashCommand 2>$null)
-    $exitCode = $LASTEXITCODE
+    $result = Invoke-RemoteScript -HostAlias $HostAlias -CommandText $commandText
+    $exitCode = $result.ExitCode
 
     if ($exitCode -eq 4) {
         return $null
@@ -89,7 +103,111 @@ function Get-RemoteFileContent {
         throw "Failed to read remote file '$RemotePath' on host '$HostAlias'."
     }
 
-    return ($output -join "`n")
+    return $result.Output
+}
+
+function Get-ComposeRuntimeSnapshot {
+    param(
+        [string]$HostAlias,
+        [string]$RemotePath
+    )
+
+    $commandText = @(
+        "target=" + (ConvertTo-BashLiteral -Text $RemotePath)
+        'if [ ! -f "$target" ]; then'
+        '  exit 4'
+        'fi'
+        'project_dir=$(dirname "$target")'
+        'project_name=$(basename "$project_dir")'
+        'primary_output=$(docker compose -f "$target" ps -a --format json 2>&1)'
+        'primary_status=$?'
+        'if [ $primary_status -eq 0 ] && [ -n "$(printf %s "$primary_output" | tr -d ''[:space:]'')" ]; then'
+        '  printf "%s\n" "$primary_output"'
+        '  exit 0'
+        'fi'
+        'fallback_output=$(docker ps -a --filter "label=com.docker.compose.project=$project_name" --format json 2>&1)'
+        'fallback_status=$?'
+        'if [ $fallback_status -eq 0 ] && [ -n "$(printf %s "$fallback_output" | tr -d ''[:space:]'')" ]; then'
+        '  printf "%s\n" "$fallback_output"'
+        '  exit 0'
+        'fi'
+        'if [ $primary_status -ne 0 ]; then'
+        '  printf "%s\n" "$primary_output"'
+        '  exit $primary_status'
+        'fi'
+        'if [ $fallback_status -ne 0 ]; then'
+        '  printf "%s\n" "$fallback_output"'
+        '  exit $fallback_status'
+        'fi'
+    ) -join "`n"
+
+    $result = Invoke-RemoteScript -HostAlias $HostAlias -CommandText $commandText
+    if ($result.ExitCode -eq 4) {
+        return [pscustomobject]@{
+            RuntimeState = "missing_live_file"
+            ContainerCount = 0
+            RunningCount = 0
+            Services = @()
+        }
+    }
+
+    if ($result.ExitCode -ne 0) {
+        return [pscustomobject]@{
+            RuntimeState = "probe_failed"
+            ContainerCount = 0
+            RunningCount = 0
+            Services = @()
+        }
+    }
+
+    $serviceRecords = New-Object System.Collections.Generic.List[object]
+    $rawOutput = [string]$result.Output
+    $rawOutput = $rawOutput.Trim()
+    if (-not [string]::IsNullOrWhiteSpace($rawOutput)) {
+        foreach ($line in ($rawOutput -split "`r?`n")) {
+            $trimmed = $line.Trim()
+            if ([string]::IsNullOrWhiteSpace($trimmed)) {
+                continue
+            }
+
+            $parsed = $trimmed | ConvertFrom-Json
+            $name = if ($null -ne $parsed.Name -and [string]$parsed.Name) {
+                [string]$parsed.Name
+            } elseif ($null -ne $parsed.Names -and [string]$parsed.Names) {
+                [string]$parsed.Names
+            } else {
+                ""
+            }
+            $serviceRecords.Add([pscustomobject]@{
+                Name = $name
+                Service = [string]$parsed.Service
+                State = [string]$parsed.State
+                Status = [string]$parsed.Status
+                Image = [string]$parsed.Image
+                Ports = [string]$parsed.Ports
+            })
+        }
+    }
+
+    $services = $serviceRecords.ToArray()
+    $containerCount = $services.Count
+    $runningCount = @($services | Where-Object { $_.State -eq "running" }).Count
+    $runtimeState = if ($containerCount -eq 0) {
+        "no_containers"
+    } elseif ($runningCount -eq $containerCount) {
+        "running"
+    } elseif ($runningCount -gt 0) {
+        "partial"
+    } else {
+        "not_running"
+    }
+
+    return [pscustomobject]@{
+        RuntimeState = $runtimeState
+        ContainerCount = $containerCount
+        RunningCount = $runningCount
+        Services = $services
+    }
 }
 
 function Get-GitNumStat {
@@ -309,6 +427,8 @@ foreach ($comparison in $comparisons) {
     $renderedPath = Join-Path -Path $RenderedDir -ChildPath $comparison.RenderedFile
     $livePath = Join-Path -Path $LiveDir -ChildPath $comparison.LiveFile
     $diffPath = Join-Path -Path $OutputDir -ChildPath ($comparison.Id + ".diff")
+    $runtimePath = Join-Path -Path $LiveDir -ChildPath ($comparison.Id + ".runtime.json")
+    $isComposeComparison = $comparison.LivePath.EndsWith("/docker-compose.yml")
 
     $defaultsArgs = @()
     foreach ($defaultsPath in $comparison.Defaults) {
@@ -342,6 +462,9 @@ foreach ($comparison in $comparisons) {
         if (Test-Path -LiteralPath $livePath) {
             Remove-Item -LiteralPath $livePath -Force
         }
+        if (Test-Path -LiteralPath $runtimePath) {
+            Remove-Item -LiteralPath $runtimePath -Force
+        }
 
         $summaryRecords.Add([pscustomobject]@{
             Id = $comparison.Id
@@ -354,6 +477,10 @@ foreach ($comparison in $comparisons) {
             RenderedPath = $renderedPath
             LiveOutputPath = ""
             DiffPath = ""
+            RuntimeState = "missing_live_file"
+            RuntimeContainerCount = 0
+            RuntimeRunningCount = 0
+            RuntimeOutputPath = ""
         })
         continue
     }
@@ -362,6 +489,23 @@ foreach ($comparison in $comparisons) {
     Write-Utf8File -PathText $livePath -Content $sanitizedLiveContent
     $numStat = Get-GitNumStat -RenderedPath $renderedPath -LivePath $livePath
     $hasDiff = Write-DiffFile -RenderedPath $renderedPath -LivePath $livePath -DiffPath $diffPath
+    $runtimeSnapshot = $null
+    if ($isComposeComparison) {
+        $runtimeSnapshot = Get-ComposeRuntimeSnapshot -HostAlias $comparison.HostAlias -RemotePath $comparison.LivePath
+        $runtimePayload = @{
+            id = $comparison.Id
+            host_alias = $comparison.HostAlias
+            live_path = $comparison.LivePath
+            observed_at = (Get-Date).ToUniversalTime().ToString("o")
+            runtime_state = $runtimeSnapshot.RuntimeState
+            container_count = $runtimeSnapshot.ContainerCount
+            running_count = $runtimeSnapshot.RunningCount
+            services = @($runtimeSnapshot.Services)
+        } | ConvertTo-Json -Depth 6
+        Write-Utf8File -PathText $runtimePath -Content $runtimePayload
+    } elseif (Test-Path -LiteralPath $runtimePath) {
+        Remove-Item -LiteralPath $runtimePath -Force
+    }
 
     $summaryRecords.Add([pscustomobject]@{
         Id = $comparison.Id
@@ -374,6 +518,10 @@ foreach ($comparison in $comparisons) {
         RenderedPath = $renderedPath
         LiveOutputPath = $livePath
         DiffPath = if ($hasDiff) { $diffPath } else { "" }
+        RuntimeState = if ($runtimeSnapshot) { $runtimeSnapshot.RuntimeState } else { "not_applicable" }
+        RuntimeContainerCount = if ($runtimeSnapshot) { $runtimeSnapshot.ContainerCount } else { 0 }
+        RuntimeRunningCount = if ($runtimeSnapshot) { $runtimeSnapshot.RunningCount } else { 0 }
+        RuntimeOutputPath = if ($runtimeSnapshot) { $runtimePath } else { "" }
     })
 }
 
@@ -386,17 +534,20 @@ $sortedSummary | Export-Csv -Path $summaryCsvPath -NoTypeInformation -Encoding u
 $summaryLines = New-Object System.Collections.Generic.List[string]
 $summaryLines.Add("# Deployment Drift Summary")
 $summaryLines.Add("")
-$summaryLines.Add("| Comparison | Host | Status | Added | Deleted | Live Path | Diff |")
-$summaryLines.Add("| --- | --- | --- | --- | --- | --- | --- |")
+$summaryLines.Add("| Comparison | Host | Drift | Runtime | Added | Deleted | Live Path | Diff | Runtime Evidence |")
+$summaryLines.Add("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
 foreach ($record in $sortedSummary) {
     $diffLabel = if ([string]::IsNullOrWhiteSpace($record.DiffPath)) { "none" } else { $record.DiffPath }
-    $summaryLines.Add("| $($record.Id) | $($record.HostAlias) | $($record.Status) | $($record.AddedLines) | $($record.DeletedLines) | $($record.LivePath) | $diffLabel |")
+    $runtimeLabel = "$($record.RuntimeState) ($($record.RuntimeRunningCount)/$($record.RuntimeContainerCount))"
+    $runtimeEvidence = if ([string]::IsNullOrWhiteSpace($record.RuntimeOutputPath)) { "none" } else { $record.RuntimeOutputPath }
+    $summaryLines.Add("| $($record.Id) | $($record.HostAlias) | $($record.Status) | $runtimeLabel | $($record.AddedLines) | $($record.DeletedLines) | $($record.LivePath) | $diffLabel | $runtimeEvidence |")
 }
 
 $summaryLines.Add("")
 $summaryLines.Add("Rendered files are stored in reports/rendered/.")
 $summaryLines.Add("Fetched live files are stored in reports/live/.")
 $summaryLines.Add("Unified diffs are stored in reports/deployment-drift/.")
+$summaryLines.Add("Compose runtime snapshots are stored in reports/live/*.runtime.json.")
 $summaryLines.Add("Live files are sanitized before storage and comparison; secret-only substitutions can still appear as drift.")
 
 Write-Utf8File -PathText $summaryMdPath -Content ($summaryLines -join "`n")

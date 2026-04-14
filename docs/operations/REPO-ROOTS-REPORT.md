@@ -6,7 +6,7 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-06.1`
-- Roots tracked: `15`
+- Roots tracked: `17`
 
 | Root | Host | Authority | Status | Scope |
 | --- | --- | --- | --- | --- |
@@ -24,6 +24,8 @@ Do not edit manually.
 | `foundry-opt-athanor` | `foundry` | `runtime-state` | `active` | deployed compose bundles, runtime source mirrors, and active athanor-agents deployment state |
 | `workshop-opt-athanor` | `workshop` | `runtime-state` | `active` | deployed compose bundles and supporting assets for Workshop control-surface, creative, and tenant runtimes |
 | `athanor-next` | `desk` | `incubation` | `active` | parallel next-gen experimentation |
+| `athanor-devstack` | `desk` | `build-system` | `active` | strategy, prototype services, proving harnesses, migration work, and promotion packets for future Athanor capabilities |
+| `codex-home` | `desk` | `operator-local` | `active` | global assistant behavior, automations, migration audits, and workstation-local control surfaces |
 | `desk-legacy` | `desk` | `vestigial` | `inactive` | historical root |
 
 ## desk-main
@@ -32,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `41`
-- Local dirty sample: ` M STATUS.md`, ` M ansible/host_vars/core.yml`, ` M ansible/host_vars/interface.yml`, ` M ansible/roles/agents/defaults/main.yml`, ` M ansible/roles/agents/templates/docker-compose.yml.j2`, ` M ansible/roles/comfyui/defaults/main.yml`, ` M ansible/roles/comfyui/templates/docker-compose.yml.j2`, ` M ansible/roles/eoq/defaults/main.yml`, ` M ansible/roles/eoq/templates/docker-compose.yml.j2`, ` M ansible/roles/gpu-orchestrator/defaults/main.yml`
+- Local dirty file count: `215`
+- Local dirty sample: ` M .claude/rules/litellm.md`, ` M .claude/rules/vllm.md`, ` M .claude/skills/vllm-deploy.md`, ` M AGENTS.md`, ` M MEMORY.md`, ` M PROJECT.md`, ` M README.md`, ` M STATUS.md`, `M  ansible/host_vars/interface.yml`, `M  ansible/host_vars/vault.yml`
 
 ## dev-runtime-repo
 
@@ -42,7 +44,7 @@ Do not edit manually.
 - Authority: `runtime-authority`
 - Notes: `Runtime and deployment authority until deployment is mirror-clean.`, `Observed 2026-04-02 runtime probe shows the retired governor-facade caller set still mirror-clean with zero sync-required runtime-owned callers.`, `Repo-root systemd services on DEV still launch from this root while the active command-center container is deployed from /opt/athanor/dashboard.`, `Broader runtime-owned deployment surfaces still live across the DEV runtime repo and /opt/athanor, but the runtime-ownership contract now governs that split explicitly so it is governed maintenance rather than a promotion blocker.`
 - Runtime dirty file count: `13`
-- Runtime dirty sample: ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`, ` M docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md`, ` M docs/operations/OPERATOR-SURFACE-REPORT.md`, ` M docs/operations/PROVIDER-CATALOG-REPORT.md`, ` M docs/operations/REPO-ROOTS-REPORT.md`, ` M docs/operations/RUNTIME-MIGRATION-REPORT.md`, ` M docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, ` M docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, ` M docs/operations/SECRET-SURFACE-REPORT.md`, ` M docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, ` M docs/operations/VAULT-REDIS-REPAIR-PACKET.md`
+- Runtime dirty sample: ` M STATUS.md`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`, ` M docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md`, ` M docs/operations/OPERATOR-SURFACE-REPORT.md`, ` M docs/operations/PROVIDER-CATALOG-REPORT.md`, ` M docs/operations/RUNTIME-MIGRATION-REPORT.md`, ` M docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, ` M docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, ` M docs/operations/SECRET-SURFACE-REPORT.md`, ` M docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, ` M docs/operations/VAULT-REDIS-REPAIR-PACKET.md`
 
 ## dev-opt-athanor
 
@@ -131,6 +133,20 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `incubation`
 - Notes: `Cannot silently become primary.`
+
+## athanor-devstack
+
+- Path: `C:/athanor-devstack`
+- Host: `desk`
+- Authority: `build-system`
+- Notes: `Primary capability forge for future Athanor development.`, `Cannot define live operational truth without an explicit promotion packet and Athanor-side canonical representation.`
+
+## codex-home
+
+- Path: `C:/Users/Shaun/.codex`
+- Host: `desk`
+- Authority: `operator-local`
+- Notes: `Operator-local and cross-repo only.`, `Must not silently become Athanor or devstack project truth.`
 
 ## desk-legacy
 

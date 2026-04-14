@@ -3,28 +3,31 @@
 Generated from `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/runtime-ownership-contract.json`, and the cached truth snapshot in `reports/truth-inventory/latest.json` by `scripts/generate_truth_inventory_reports.py`.
 Do not edit manually.
 
-- Registry version: `2026-04-08.5`
-- Cached truth snapshot: `2026-04-08T06:45:40.502384+00:00`
-- Packets tracked: `11`
+- Registry version: `2026-04-11.4`
+- Cached truth snapshot: `2026-04-14T21:22:24.245183+00:00`
+- Packets tracked: `14`
 
 | Packet | Status | Lane | Approval type | Goal |
 | --- | --- | --- | --- | --- |
-| `dev-runtime-repo-sync-packet` | `executed` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone. |
+| `dev-runtime-repo-sync-packet` | `retired` | `dev-runtime-repo-systemd` | `runtime_host_reconfiguration` | Make /home/shaun/repos/athanor a mirror-clean runtime repo that matches implementation authority instead of leaving DEV on a broad dirty clone. |
 | `dev-dashboard-shadow-retirement-packet` | `executed` | `dev-dashboard-compose` | `systemd_runtime_change` | Retire or explicitly downgrade the inactive athanor-dashboard.service unit so the active /opt/athanor/dashboard compose lane is the only ordinary dashboard deployment path. |
 | `dev-dashboard-compose-deploy-packet` | `executed` | `dev-dashboard-compose` | `runtime_host_reconfiguration` | Make the active /opt/athanor/dashboard compose lane explicit so dashboard updates replace the governed compose build context instead of relying on remembered manual copy steps. |
 | `dev-heartbeat-opt-deploy-packet` | `executed` | `dev-heartbeat-opt` | `runtime_host_reconfiguration` | Make the source-to-/opt heartbeat bundle replacement explicit so the live athanor-heartbeat.service lane no longer depends on undocumented manual copy steps. |
 | `foundry-agents-compose-deploy-packet` | `executed` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Make the repo-owned athanor-agents deploy path explicit so FOUNDRY updates replace the full compose build context and stop relying on ad hoc site-packages hotfixes. |
+| `foundry-graphrag-compose-deploy-packet` | `executed` | `foundry-graphrag-compose` | `runtime_host_reconfiguration` | Make the live /opt/athanor/graphrag compose root a governed knowledge-subsystem lane so GraphRAG rollout and rollback stop depending on remembered host-local steps. |
 | `foundry-gpu-orchestrator-compose-deploy-packet` | `executed` | `foundry-gpu-orchestrator-compose` | `runtime_host_reconfiguration` | Keep the active /opt/athanor/gpu-orchestrator compose root aligned to implementation authority so host-local runtime identity does not drift away from the repo-owned coordinator and zone-routing contract. |
-| `foundry-vllm-compose-reconciliation-packet` | `executed` | `foundry-vllm-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/vllm compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the FOUNDRY coordinator and coder lanes stop drifting by host-local floating image state. |
+| `foundry-gpu-orchestrator-scheduler-state-rollout-packet` | `executed` | `foundry-gpu-orchestrator-compose` | `runtime_host_reconfiguration` | Roll out the bounded scheduler surface through the existing FOUNDRY GPU Orchestrator lane so live runtime explicitly proves both /scheduler/state and the governed mutation-route envelope instead of relying on source-only claims. |
+| `desk-goose-operator-shell-rollout-packet` | `executed` | `desk-goose-operator-shell` | `runtime_host_reconfiguration` | Roll out the bounded DESK Goose shell helper so the preferred Athanor shell path is pinned to the intended LiteLLM DeepSeek lane with explicit fallback behavior instead of relying on remembered workstation-local defaults. |
+| `foundry-vllm-compose-reconciliation-packet` | `executed` | `foundry-vllm-compose` | `runtime_host_reconfiguration` | Reconcile the live FOUNDRY coordinator compose root and the llama-dolphin dolphin3-r1-24b coder runtime so the active coordinator and coder lanes stop drifting through host-local state. |
 | `workshop-control-surface-compose-reconciliation-packet` | `executed` | `workshop-control-surface-compose` | `runtime_host_reconfiguration` | Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service and the correct worker lane URL. |
-| `workshop-vllm-compose-reconciliation-packet` | `executed` | `workshop-vllm-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/vllm-node2 compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the Workshop worker lane stops drifting by host-local floating image state. |
+| `workshop-vllm-compose-reconciliation-packet` | `executed` | `workshop-vllm-compose` | `runtime_host_reconfiguration` | Retire the stale /opt/athanor/vllm-node2 worker contract now that the pinned Workshop worker model directory is absent and the live Workshop data-plane is ComfyUI plus vllm-vision instead of a reachable :8010 worker lane. |
 | `vault-litellm-config-reconciliation-packet` | `executed` | `vault-litellm-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/litellm/config.yaml file with implementation authority so the coder lane and other routed model definitions stop drifting independently of the repo. |
 | `vault-prometheus-config-reconciliation-packet` | `executed` | `vault-prometheus-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml and alert-rules.yml files with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels. |
 
 ## dev-runtime-repo-sync-packet
 
 - Label: `DEV runtime repo sync packet`
-- Status: `executed`
+- Status: `retired`
 - Lane: `dev-runtime-repo-systemd`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `dev`
@@ -245,7 +248,7 @@ Do not edit manually.
 - Nested source dir present: `False`
 - bak-codex files: none
 - Container running: `True`
-- Container status: `Up 29 hours`
+- Container status: `Up 42 minutes`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 
 ### Preflight Commands
@@ -277,6 +280,50 @@ Do not edit manually.
 - Rebuild and restart athanor-agents from the restored compose root.
 - Re-run the same truth refresh and validator sequence to confirm rollback.
 
+## foundry-graphrag-compose-deploy-packet
+
+- Label: `FOUNDRY GraphRAG compose deploy packet`
+- Status: `executed`
+- Lane: `foundry-graphrag-compose`
+- Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
+- Host: `foundry`
+- Goal: Make the live /opt/athanor/graphrag compose root a governed knowledge-subsystem lane so GraphRAG rollout and rollback stop depending on remembered host-local steps.
+- Lane next action: Keep the executed foundry-graphrag-compose-deploy-packet as the governed runtime update path for future GraphRAG changes; the runtime and promotion eval are already green, so the remaining boundary is packet review and adoption acceptance for widening beyond shadow-tier evidence.
+- Backup root: `/opt/athanor/backups/graphrag/<timestamp>`
+- Evidence: `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `C:/athanor-devstack/docs/promotion-packets/graphrag-hybrid-retrieval.md`, `C:/athanor-devstack/services/graphrag/README.md`, `C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json`
+
+| Source path | Runtime path | Restart units |
+| --- | --- | --- |
+| `services/graphrag` | `/opt/athanor/graphrag` | `athanor-graphrag` |
+
+### Preflight Commands
+
+- ssh foundry "cd /opt/athanor/graphrag && docker compose ps"
+- ssh foundry "test -f /opt/athanor/graphrag/docker-compose.yml && sed -n '1,220p' /opt/athanor/graphrag/docker-compose.yml"
+- ssh foundry "curl -sS --max-time 20 http://127.0.0.1:9300/health"
+
+### Exact Steps
+
+- Create a timestamped backup root under /opt/athanor/backups/graphrag/<timestamp> and back up the current /opt/athanor/graphrag bundle before replacement.
+- Replace the full /opt/athanor/graphrag compose bundle from devstack implementation authority during the approved maintenance window instead of patching container files by hand.
+- Rebuild and recreate only the athanor-graphrag container from the governed compose root.
+- Re-run GraphRAG health verification, then run the governed promotion-eval contract so the rollout proves live /status and /query/hybrid behavior instead of relying on source-only recovery claims.
+- Refresh truth/report surfaces immediately after the rollout.
+
+### Verification Commands
+
+- ssh foundry "cd /opt/athanor/graphrag && docker compose ps"
+- ssh foundry "curl -sS --max-time 20 http://127.0.0.1:9300/health"
+- python scripts/run_graphrag_promotion_eval.py
+- python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets --report drift
+- python scripts/validate_platform_contract.py
+
+### Rollback Steps
+
+- Restore the backed up /opt/athanor/graphrag bundle from /opt/athanor/backups/graphrag/<timestamp>.
+- Rebuild and restart athanor-graphrag from the restored compose root.
+- Re-run the same truth refresh and validator sequence to confirm rollback.
+
 ## foundry-gpu-orchestrator-compose-deploy-packet
 
 - Label: `FOUNDRY GPU Orchestrator compose deploy packet`
@@ -285,7 +332,7 @@ Do not edit manually.
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `foundry`
 - Goal: Keep the active /opt/athanor/gpu-orchestrator compose root aligned to implementation authority so host-local runtime identity does not drift away from the repo-owned coordinator and zone-routing contract.
-- Lane next action: Use scripts/deploy-gpu-orchestrator.sh as the governed update path for future FOUNDRY GPU Orchestrator changes; the 2026-04-08 redeploy restored live runtime parity and re-probed /health plus /zones successfully.
+- Lane next action: Use scripts/deploy-gpu-orchestrator.sh as the governed update path for future FOUNDRY GPU Orchestrator changes; the bounded scheduler surface should roll through foundry-gpu-orchestrator-scheduler-state-rollout-packet so /scheduler/state, write-capability posture, and scheduler request/preload/release route presence are verified explicitly before the lane advances beyond offline proof.
 - Backup root: `/opt/athanor/backups/gpu-orchestrator/<timestamp>`
 - Evidence: `reports/deployment-drift/summary.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `scripts/deploy-gpu-orchestrator.sh`
 
@@ -324,42 +371,133 @@ Do not edit manually.
 - Rebuild and restart the gpu-orchestrator container from the restored compose root.
 - Re-run the deployment-drift audit and validator to confirm rollback.
 
+## foundry-gpu-orchestrator-scheduler-state-rollout-packet
+
+- Label: `FOUNDRY GPU Orchestrator scheduler surface rollout packet`
+- Status: `executed`
+- Lane: `foundry-gpu-orchestrator-compose`
+- Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
+- Host: `foundry`
+- Goal: Roll out the bounded scheduler surface through the existing FOUNDRY GPU Orchestrator lane so live runtime explicitly proves both /scheduler/state and the governed mutation-route envelope instead of relying on source-only claims.
+- Lane next action: Use scripts/deploy-gpu-orchestrator.sh as the governed update path for future FOUNDRY GPU Orchestrator changes; the bounded scheduler surface should roll through foundry-gpu-orchestrator-scheduler-state-rollout-packet so /scheduler/state, write-capability posture, and scheduler request/preload/release route presence are verified explicitly before the lane advances beyond offline proof.
+- Backup root: `/opt/athanor/backups/gpu-orchestrator/<timestamp>`
+- Evidence: `reports/deployment-drift/summary.md`, `reports/truth-inventory/gpu-scheduler-baseline-eval.json`, `reports/truth-inventory/gpu-scheduler-promotion-eval.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `scripts/deploy-gpu-orchestrator.sh`, `scripts/run_gpu_scheduler_baseline_eval.py`, `scripts/run_gpu_scheduler_promotion_eval.py`
+
+| Source path | Runtime path | Restart units |
+| --- | --- | --- |
+| `projects/gpu-orchestrator/src/gpu_orchestrator` | `/opt/athanor/gpu-orchestrator/src/gpu_orchestrator` | `gpu-orchestrator` |
+| `projects/gpu-orchestrator/Dockerfile` | `/opt/athanor/gpu-orchestrator/Dockerfile` | `gpu-orchestrator` |
+| `projects/gpu-orchestrator/pyproject.toml` | `/opt/athanor/gpu-orchestrator/pyproject.toml` | `gpu-orchestrator` |
+| `projects/gpu-orchestrator/docker-compose.yml` | `/opt/athanor/gpu-orchestrator/docker-compose.yml` | `gpu-orchestrator` |
+
+### Preflight Commands
+
+- python scripts/validate_platform_contract.py
+- python scripts/run_gpu_scheduler_baseline_eval.py
+- ssh foundry "cd /opt/athanor/gpu-orchestrator && docker compose ps"
+- ssh foundry "curl -sS http://127.0.0.1:9200/health && curl -sS http://127.0.0.1:9200/zones"
+
+### Exact Steps
+
+- Create a timestamped backup root under /opt/athanor/backups/gpu-orchestrator/<timestamp> and preserve the current /opt/athanor/gpu-orchestrator bundle before replacement.
+- Run GPU_ORCH_EXPECT_SCHEDULER_STATE=1 GPU_ORCH_EXPECT_SCHEDULER_MUTATION_SURFACE=1 scripts/deploy-gpu-orchestrator.sh after the approved runtime expectation update. The packet-scoped expectation update is those two deploy-time env flags; no broader env-surface widening is implied. The governed compose lane should rebuild the container, wait for /scheduler/state, and verify the scheduler request/preload/release routes exist live as POST-only surfaces.
+- Re-run the pinned baseline eval immediately after deploy so live runtime captures the bounded scheduler surface instead of relying only on generic health and zone probes.
+- Run the bounded scheduler promotion-eval contract after the rollout; it should remain blocked until the live mutation surface is both present and write-enabled, but the post-deploy artifact must prove the governed scheduler delta landed cleanly.
+
+### Verification Commands
+
+- ssh foundry "cd /opt/athanor/gpu-orchestrator && docker compose ps"
+- ssh foundry "curl -sS http://127.0.0.1:9200/health && curl -sS http://127.0.0.1:9200/zones && curl -sS http://127.0.0.1:9200/scheduler/state"
+- ssh foundry "test \"$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9200/scheduler/request)\" = '405' && test \"$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9200/scheduler/preload)\" = '405' && test \"$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9200/scheduler/release)\" = '405'"
+- python scripts/run_gpu_scheduler_baseline_eval.py
+- python scripts/run_gpu_scheduler_promotion_eval.py
+- python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets --report drift
+- python scripts/validate_platform_contract.py
+
+### Rollback Steps
+
+- Restore the backed up /opt/athanor/gpu-orchestrator bundle from /opt/athanor/backups/gpu-orchestrator/<timestamp>.
+- Rebuild and restart the gpu-orchestrator container from the restored compose root.
+- Re-run the baseline eval, promotion eval, deployment-drift audit, and validator to confirm the rollback returned the lane to the prior state.
+
+## desk-goose-operator-shell-rollout-packet
+
+- Label: `DESK Goose operator-shell rollout packet`
+- Status: `executed`
+- Lane: `desk-goose-operator-shell`
+- Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
+- Host: `desk`
+- Goal: Roll out the bounded DESK Goose shell helper so the preferred Athanor shell path is pinned to the intended LiteLLM DeepSeek lane with explicit fallback behavior instead of relying on remembered workstation-local defaults.
+- Lane next action: Treat the DESK Goose helper as the adopted bounded shell path; keep future shell-path changes packet-backed through desk-goose-operator-shell-rollout-packet instead of drifting through workstation-local defaults.
+- Backup root: `C:/Users/Shaun/AppData/Local/Athanor/backups/operator-shell/<timestamp>`
+- Evidence: `reports/truth-inventory/goose-operator-shell-formal-eval.json`, `reports/truth-inventory/goose-operator-shell-promptfoo-results.json`, `reports/truth-inventory/goose-boundary-evidence.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `scripts/run-goose-athanor-shell.ps1`
+
+| Source path | Runtime path | Restart units |
+| --- | --- | --- |
+| `scripts/run-goose-athanor-shell.ps1` | `C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1` | `goose-cli` |
+
+### Preflight Commands
+
+- powershell -ExecutionPolicy Bypass -File .\scripts\run-goose-athanor-shell.ps1 run --text "Reply with READY only." --no-session --no-profile --quiet --output-format text --max-turns 1
+- python scripts/run_capability_pilot_formal_eval.py --run-id goose-operator-shell-lane-eval-2026q2
+- python scripts/validate_platform_contract.py
+
+### Exact Steps
+
+- Create a timestamped backup root under C:/Users/Shaun/AppData/Local/Athanor/backups/operator-shell/<timestamp> and preserve any prior DESK Goose helper before replacement.
+- Copy scripts/run-goose-athanor-shell.ps1 into the operator-local path so the bounded DESK Goose shell helper becomes the governed launch path for Athanor shell trials instead of relying on the weaker local default provider/model selection.
+- Keep the rollout scoped to provider pinning, fallback behavior, and bounded helper plumbing; do not mutate Goose tokens, provider secrets, or unreviewed profile state as part of this packet.
+- Re-run the Goose formal eval contract after the helper is in place so the shadow-tier packet continues to point at current evidence.
+
+### Verification Commands
+
+- powershell -ExecutionPolicy Bypass -File .\scripts\run-goose-athanor-shell.ps1 run --text "Reply with READY only." --no-session --no-profile --quiet --output-format text --max-turns 1
+- python scripts/run_capability_pilot_formal_eval.py --run-id goose-operator-shell-lane-eval-2026q2
+- python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets
+- python scripts/validate_platform_contract.py
+
+### Rollback Steps
+
+- Remove the DESK Goose helper from the operator-local path and restore any prior helper or shell default captured in the timestamped backup root.
+- Return the preferred shell posture to direct terminal plus specialist CLI lanes if the Goose helper rollout regresses shell behavior or obscures fallback boundaries.
+- Re-run the Goose formal eval and validator sequence to confirm the rollback restored the prior shell path.
+
 ## foundry-vllm-compose-reconciliation-packet
 
-- Label: `FOUNDRY vLLM compose reconciliation packet`
+- Label: `FOUNDRY coder runtime reconciliation packet`
 - Status: `executed`
 - Lane: `foundry-vllm-compose`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `foundry`
-- Goal: Reconcile the live /opt/athanor/vllm compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the FOUNDRY coordinator and coder lanes stop drifting by host-local floating image state.
-- Lane next action: Keep the FOUNDRY vLLM lane pinned to athanor/vllm:qwen35-20260315 and treat any future image or compose change as a deliberate packet-backed rollout; the 2026-04-08 reprobe showed the live host compose root identical to implementation authority while the running coder lane served qwen3-coder-30b on the pinned artifact.
+- Goal: Reconcile the live FOUNDRY coordinator compose root and the llama-dolphin dolphin3-r1-24b coder runtime so the active coordinator and coder lanes stop drifting through host-local state.
+- Lane next action: Keep the FOUNDRY compose root packet-backed, but treat :8100 as the canonical healthy text lane and :8000 as degraded nonblocking lineage until a future bounded packet either restores real completion health or retires the coordinator lane explicitly.
 - Backup root: `/opt/athanor/backups/vllm/<timestamp>`
 - Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/foundry-vllm.rendered.yml`, `reports/live/foundry-vllm.live.yml`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
 | Source path | Runtime path | Restart units |
 | --- | --- | --- |
-| `reports/rendered/foundry-vllm.rendered.yml` | `/opt/athanor/vllm/docker-compose.yml` | `vllm-coordinator`, `vllm-coder`, `vllm-vlm` |
+| `reports/rendered/foundry-vllm.rendered.yml` | `/opt/athanor/vllm/docker-compose.yml` | `vllm-coordinator`, `llama-dolphin`, `vllm-vlm` |
 
 ### Preflight Commands
 
 - python scripts/validate_platform_contract.py
 - powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-DeploymentDriftAudit.ps1
 - ssh foundry "cd /opt/athanor/vllm && docker compose ps"
-- ssh foundry "docker inspect vllm-coder --format '{{json .Config.Cmd}}'"
+- ssh foundry "docker inspect llama-dolphin --format '{{json .Config.Cmd}}'"
 - ssh foundry "test -f /opt/athanor/vllm/docker-compose.yml && sed -n '1,220p' /opt/athanor/vllm/docker-compose.yml"
 
 ### Exact Steps
 
 - Create a timestamped backup root under /opt/athanor/backups/vllm/<timestamp> and back up the current /opt/athanor/vllm/docker-compose.yml before replacement.
 - Re-render the canonical compose file through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.
-- Promote the deterministic athanor/vllm:qwen35-20260315 artifact to FOUNDRY so the coordinator and coder lanes use the same known-good image lineage as Workshop instead of a host-local floating qwen35 tag.
+- Promote the deterministic coordinator artifact to FOUNDRY and keep the llama-dolphin dolphin3-r1-24b coder runtime pinned to its governed host configuration instead of drifting through host-local edits.
 - Replace /opt/athanor/vllm/docker-compose.yml from the rendered canonical artifact inside the approved maintenance window.
-- Recreate only the affected vLLM services from the governed compose root, then refresh drift evidence immediately.
+- Recreate only the affected coordinator and coder services from the governed runtime roots, then refresh drift evidence immediately.
 
 ### Verification Commands
 
 - ssh foundry "cd /opt/athanor/vllm && docker compose ps"
-- ssh foundry "curl -sS http://localhost:8000/v1/models && curl -sS http://localhost:8006/v1/models"
+- ssh foundry "curl -sS http://localhost:8000/v1/models && curl -sS http://localhost:8100/v1/models"
 - powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-DeploymentDriftAudit.ps1
 - python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets
 - python scripts/validate_platform_contract.py
@@ -425,8 +563,8 @@ Do not edit manually.
 - Lane: `workshop-vllm-compose`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `workshop`
-- Goal: Reconcile the live /opt/athanor/vllm-node2 compose root onto the deterministic pinned image athanor/vllm:qwen35-20260315 so the Workshop worker lane stops drifting by host-local floating image state.
-- Lane next action: Keep the Workshop worker pinned to athanor/vllm:qwen35-20260315 and treat future image or launch-flag changes as deliberate packet-backed rollouts; the 2026-04-07 reprobe showed the worker healthy on the pinned artifact.
+- Goal: Retire the stale /opt/athanor/vllm-node2 worker contract now that the pinned Workshop worker model directory is absent and the live Workshop data-plane is ComfyUI plus vllm-vision instead of a reachable :8010 worker lane.
+- Lane next action: Keep this lane retired and rely on Workshop ComfyUI plus vllm-vision as the active Workshop data-plane surfaces unless a future packet deliberately restores a real :8010 worker runtime.
 - Backup root: `/opt/athanor/backups/vllm-node2/<timestamp>`
 - Evidence: `reports/deployment-drift/summary.md`, `reports/rendered/workshop-vllm.rendered.yml`, `reports/live/workshop-vllm.live.yml`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
@@ -444,25 +582,23 @@ Do not edit manually.
 
 ### Exact Steps
 
-- Create a timestamped backup root under /opt/athanor/backups/vllm-node2/<timestamp> and back up the current /opt/athanor/vllm-node2 compose bundle before replacement.
-- Re-render the canonical Workshop vLLM compose file through the governed deployment-drift audit or render_ansible_template.py so the replacement artifact matches implementation authority exactly.
-- Promote the deterministic athanor/vllm:qwen35-20260315 image on Workshop from the last known-good custom lineage, including the DeltaNet compatibility patch needed by the Qwen3.5 worker lane.
-- Replace /opt/athanor/vllm-node2/docker-compose.yml from the rendered canonical artifact during the approved maintenance window.
-- Recreate the Workshop worker container and refresh deployment-drift evidence immediately.
+- Preserve the governed /opt/athanor/vllm-node2 compose lineage as historical evidence instead of treating it as an active runtime target.
+- Retire the Workshop worker lane in Athanor source truth because /mnt/vault/models/Qwen3.5-35B-A3B-AWQ-4bit is absent and the latest runtime reprobe confirmed the container crashes on startup.
+- Use Workshop ComfyUI plus vllm-vision as the active creative and vision surfaces unless a future bounded packet intentionally restores a real :8010 worker lane.
 
 ### Verification Commands
 
-- ssh workshop "cd /opt/athanor/vllm-node2 && docker compose ps"
-- ssh workshop "curl -sS http://127.0.0.1:8010/v1/models"
+- ssh workshop "docker ps -a --filter name=vllm-node2 --format 'table {{.Names}}\t{{.Status}}'"
+- ssh workshop "ls -ld /mnt/vault/models /mnt/vault/models/Qwen3.5-35B-A3B-AWQ-4bit 2>/dev/null || true"
 - powershell -ExecutionPolicy Bypass -File .\scripts\Invoke-DeploymentDriftAudit.ps1
 - python scripts/generate_truth_inventory_reports.py --report runtime_ownership --report runtime_ownership_packets
 - python scripts/validate_platform_contract.py
 
 ### Rollback Steps
 
-- Restore the backed up /opt/athanor/vllm-node2 compose bundle from /opt/athanor/backups/vllm-node2/<timestamp>.
-- Recreate the Workshop worker container from the restored bundle.
-- Re-run the deployment-drift audit and validator to confirm rollback.
+- Restore the backed up /opt/athanor/vllm-node2 compose bundle from /opt/athanor/backups/vllm-node2/<timestamp> only if a future bounded packet intentionally revives a real worker lane.
+- Recreate the Workshop worker container only after the missing model directory is restored or the lane is rebound to a new explicit model path.
+- Re-run the deployment-drift audit and validator to confirm the restored lane is genuinely back before clearing retirement.
 
 ## vault-litellm-config-reconciliation-packet
 

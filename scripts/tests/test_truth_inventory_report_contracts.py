@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import uuid
 from pathlib import Path
@@ -84,6 +85,35 @@ def test_report_check_still_flags_real_content_drift() -> None:
     rendered = "- Cached truth snapshot: `2026-03-29T06:58:00.000000+00:00`\n- Status: `active`\n"
 
     assert module._report_is_stale("runtime_cutover", existing=existing, rendered=rendered) is True
+
+
+def test_load_vault_litellm_env_audit_prefers_newer_file_payload(tmp_path: Path) -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+    audit_path = tmp_path / "vault-litellm-env-audit.json"
+    audit_path.write_text(
+        json.dumps(
+            {
+                "collected_at": "2026-04-13T19:07:53Z",
+                "config_referenced_missing_env_names": ["DASHSCOPE_API_KEY"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    module.VAULT_LITELLM_ENV_AUDIT_PATH = audit_path
+
+    loaded = module._load_vault_litellm_env_audit(
+        {
+            "vault_litellm_env_audit": {
+                "collected_at": "2026-04-13T15:33:43Z",
+                "config_referenced_missing_env_names": [],
+            }
+        }
+    )
+
+    assert loaded["config_referenced_missing_env_names"] == ["DASHSCOPE_API_KEY"]
 
 
 def test_runtime_ownership_report_includes_foundry_agents_lane_evidence() -> None:
@@ -186,6 +216,154 @@ def test_runtime_ownership_report_includes_foundry_agents_lane_evidence() -> Non
     assert "### Live FOUNDRY agents evidence" in rendered
     assert "- Build root clean: `False`" in rendered
     assert "/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py" in rendered
+
+
+def test_runtime_ownership_report_interprets_workshop_drift_for_operator_truth() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+
+    registries = {
+        "runtime-ownership-contract.json": {
+            "version": "test",
+            "promotion_gate_id": "runtime_ownership_maturity",
+            "goal": "test goal",
+            "implementation_authority_root_id": "desk-main",
+            "runtime_authority_root_id": "dev-runtime-repo",
+            "runtime_state_root_ids": ["workshop-opt-athanor"],
+            "lanes": [
+                {
+                    "id": "workshop-vllm-compose",
+                    "label": "WORKSHOP vLLM compose lane",
+                    "host": "workshop",
+                    "status": "active",
+                    "deployment_mode": "opt_compose_service",
+                    "owner_root_ids": ["workshop-opt-athanor"],
+                    "source_root_id": "desk-main",
+                    "runtime_scope": "Workshop worker contract",
+                    "source_paths": ["ansible/roles/vllm/templates/docker-compose.yml.j2"],
+                    "runtime_paths": ["/opt/athanor/vllm-node2/docker-compose.yml"],
+                    "active_surfaces": ["http://workshop:8010/v1/models"],
+                    "execution_packet_id": "workshop-vllm-compose-reconciliation-packet",
+                    "evidence_paths": ["reports/deployment-drift/summary.md"],
+                    "verification_commands": ["ssh workshop \"curl -sS http://127.0.0.1:8010/v1/models\""],
+                    "rollback_contract": "backup first",
+                    "approval_boundary": "approval-gated",
+                    "next_action": "reconcile worker",
+                },
+                {
+                    "id": "workshop-product-compose",
+                    "label": "WORKSHOP product compose lane",
+                    "host": "workshop",
+                    "status": "active",
+                    "deployment_mode": "opt_compose_service",
+                    "owner_root_ids": ["workshop-opt-athanor"],
+                    "source_root_id": "desk-main",
+                    "runtime_scope": "Workshop product services",
+                    "source_paths": ["ansible/roles/open-webui/templates/docker-compose.yml.j2"],
+                    "runtime_paths": [
+                        "/opt/athanor/open-webui/docker-compose.yml",
+                        "/opt/athanor/comfyui/docker-compose.yml",
+                    ],
+                    "active_surfaces": ["http://workshop:3000/", "http://workshop:8188/"],
+                    "execution_packet_id": "none",
+                    "evidence_paths": ["reports/deployment-drift/summary.md"],
+                    "verification_commands": ["ssh workshop \"docker compose ps\""],
+                    "rollback_contract": "backup first",
+                    "approval_boundary": "approval-gated",
+                    "next_action": "repair product lane",
+                },
+            ],
+            "promotion_criteria": [],
+            "known_gaps": [],
+        },
+        "runtime-ownership-packets.json": {"version": "test", "packets": []},
+        "repo-roots-registry.json": {
+            "roots": [
+                {"id": "desk-main", "path": "C:/Athanor"},
+                {"id": "dev-runtime-repo", "path": "/home/shaun/repos/athanor"},
+                {"id": "workshop-opt-athanor", "path": "/opt/athanor"},
+            ]
+        },
+        "model-deployment-registry.json": {
+            "lanes": [
+                {
+                    "id": "workshop-worker",
+                    "endpoint": "http://192.168.1.225:8010/v1/models",
+                    "drift_status": "drifted",
+                    "evidence_source": "worker probe on :8010 was refused while vision remained live",
+                },
+                {
+                    "id": "workshop-vision",
+                    "endpoint": "http://192.168.1.225:8012/v1/models",
+                    "drift_status": "aligned",
+                },
+            ]
+        },
+    }
+    module.load_registry = lambda name: registries.get(name, {})
+    module._load_latest_truth_snapshot = lambda: {
+        "collected_at": "2026-04-14T01:48:22Z",
+        "operator_surface_probe": {
+            "surfaces": [
+                {
+                    "id": "workshop_worker_api",
+                    "runtime_probe": {"detail": "URLError: timed out", "ok": False},
+                },
+                {
+                    "id": "workshop_open_webui",
+                    "runtime_probe": {
+                        "detail": "URLError: [WinError 10061] No connection could be made because the target machine actively refused it",
+                        "ok": False,
+                    },
+                },
+                {
+                    "id": "comfyui",
+                    "runtime_probe": {"detail": "URLError: timed out", "ok": False},
+                },
+            ]
+        },
+    }
+    module._load_deployment_drift_summary = lambda: [
+        {
+            "Id": "workshop-vllm",
+            "LivePath": "/opt/athanor/vllm-node2/docker-compose.yml",
+            "Status": "identical",
+            "RuntimeState": "no_containers",
+            "RuntimeRunningCount": "0",
+            "RuntimeContainerCount": "0",
+            "RuntimeOutputPath": ".\\reports\\live\\workshop-vllm.runtime.json",
+        },
+        {
+            "Id": "workshop-open-webui",
+            "LivePath": "/opt/athanor/open-webui/docker-compose.yml",
+            "Status": "identical",
+            "RuntimeState": "no_containers",
+            "RuntimeRunningCount": "0",
+            "RuntimeContainerCount": "0",
+            "RuntimeOutputPath": ".\\reports\\live\\workshop-open-webui.runtime.json",
+        },
+        {
+            "Id": "workshop-comfyui",
+            "LivePath": "/opt/athanor/comfyui/docker-compose.yml",
+            "Status": "different",
+            "RuntimeState": "running",
+            "RuntimeRunningCount": "1",
+            "RuntimeContainerCount": "1",
+            "RuntimeOutputPath": ".\\reports\\live\\workshop-comfyui.runtime.json",
+        },
+    ]
+    module._local_git_probe = lambda path: {"head": "abc1234", "dirty_count": 0, "status_sample": []}
+
+    rendered = module.render_runtime_ownership_report()
+
+    assert "Latest deployment-drift evidence found no running containers under `/opt/athanor/vllm-node2`." in rendered
+    assert "The currently aligned Workshop model lane is `workshop-vision` on `http://192.168.1.225:8012/v1/models`." in rendered
+    assert "Treat the `:8010` Workshop worker as restore-or-retire debt" in rendered
+    assert "Latest deployment-drift evidence found no running Open WebUI containers under `/opt/athanor/open-webui`." in rendered
+    assert "ComfyUI is still running locally on WORKSHOP under `/opt/athanor/comfyui`." in rendered
+    assert "reachability problem rather than a missing container" in rendered
 
 
 def test_autonomy_activation_report_includes_next_phase_boundary() -> None:
@@ -328,3 +506,31 @@ def test_classify_vault_auth_failure_auth_mode_mismatch() -> None:
 
     assert classification["code"] == "auth_mode_mismatch"
     assert "Verify the upstream auth mode" in classification["next_action"]
+
+
+def test_classify_vault_auth_failure_auth_surface_mismatch() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+    provider = {
+        "id": "dashscope_qwen_api",
+        "env_contracts": ["DASHSCOPE_API_KEY"],
+        "vault_runtime_contract": {"env_rules": [{"name": "DASHSCOPE_API_KEY", "role": "required"}]},
+        "evidence": {"proxy": {"alias": "qwen-max"}},
+    }
+    capture = {
+        "requested_model": "qwen-max",
+        "error_snippet": "AuthenticationError: DashscopeException - Incorrect API key provided.",
+    }
+    audit = {
+        "container_missing_env_names": ["DASHSCOPE_API_KEY"],
+        "container_present_env_names": [],
+        "config_referenced_missing_env_names": ["DASHSCOPE_API_KEY"],
+    }
+
+    classification = module._classify_vault_auth_failure(provider, capture, audit)
+
+    assert classification["code"] == "auth_surface_mismatch"
+    assert "credential-delivery path" in classification["next_action"]
+    assert "os.environ" in classification["next_action"]

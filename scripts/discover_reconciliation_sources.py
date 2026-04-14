@@ -155,7 +155,13 @@ def _git_snapshot(path: Path) -> dict[str, Any]:
 
 
 def _indicators_for(path: Path) -> list[str]:
-    indicators = [marker for marker in sorted(ALL_MARKERS) if (path / marker).exists()]
+    indicators: list[str] = []
+    for marker in sorted(ALL_MARKERS):
+        try:
+            if (path / marker).exists():
+                indicators.append(marker)
+        except (PermissionError, FileNotFoundError, OSError):
+            continue
     return indicators
 
 

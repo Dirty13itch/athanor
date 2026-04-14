@@ -50,6 +50,7 @@ REPORT_PATHS = {
 TRUTH_SNAPSHOT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "latest.json"
 BOOTSTRAP_REPORTS_DIR = REPO_ROOT / "reports" / "bootstrap"
 PROVIDER_USAGE_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "provider-usage-evidence.json"
+PLANNED_SUBSCRIPTION_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "planned-subscription-evidence.json"
 VAULT_LITELLM_ENV_AUDIT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "vault-litellm-env-audit.json"
 VAULT_REDIS_AUDIT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "vault-redis-audit.json"
 DASHBOARD_OPERATOR_SURFACES_PATH = (

@@ -1,9 +1,9 @@
 # Athanor LiteLLM Proxy Configuration
 # Managed by Ansible - canonical source of truth for model routing
 #
-# Layout (verified live 2026-04-08):
-#   FOUNDRY (.244): Qwen3.5-27B-FP8 :8000, Qwen3-Coder-30B :8006
-#   WORKSHOP (.225): Qwen3.5-35B-A3B-AWQ-4bit :8010, Qwen3-VL-8B-Instruct-FP8 :8012
+# Layout (verified live 2026-04-14):
+#   FOUNDRY (.244): dolphin3-r1-24b :8100 primary chat lane, legacy Qwen3.5-27B-FP8 :8000 non-canonical
+#   WORKSHOP (.225): Qwen3-VL-8B-Instruct-FP8 :8012
 #   DEV (.189): embedding :8001, reranker :8003, CLI proxy :{{ litellm_cliproxy_port }}
 
 model_list:
@@ -13,8 +13,8 @@ model_list:
 
   - model_name: "reasoning"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node1_model }}"
-      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
+      model: "openai/{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
       extra_body:
         chat_template_kwargs:
@@ -22,8 +22,8 @@ model_list:
 
   - model_name: "coding"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node1_model }}"
-      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1"
+      model: "openai/{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
       extra_body:
         chat_template_kwargs:
@@ -31,14 +31,14 @@ model_list:
 
   - model_name: "coder"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node1_coder_public_model }}"
+      model: "openai/{{ vllm_node1_coder_public_model }}"
       api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
 
   - model_name: "fast"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node2_model }}"
-      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
+      model: "openai/{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
       extra_body:
         chat_template_kwargs:
@@ -46,8 +46,8 @@ model_list:
 
   - model_name: "utility"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node2_model }}"
-      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
+      model: "openai/{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
       extra_body:
         chat_template_kwargs:
@@ -55,17 +55,14 @@ model_list:
 
   - model_name: "creative"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node2_model }}"
-      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
+      model: "openai/{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
-      extra_body:
-        chat_template_kwargs:
-          enable_thinking: false
 
   - model_name: "worker"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node2_model }}"
-      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
+      model: "openai/{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
       extra_body:
         chat_template_kwargs:
@@ -73,17 +70,14 @@ model_list:
 
   - model_name: "uncensored"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node2_model }}"
-      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
+      model: "openai/{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
-      extra_body:
-        chat_template_kwargs:
-          enable_thinking: false
 
   - model_name: "grader"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_node2_model }}"
-      api_base: "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1"
+      model: "openai/{{ vllm_node1_coder_public_model }}"
+      api_base: "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1"
       api_key: "not-needed"
       extra_body:
         chat_template_kwargs:
@@ -97,7 +91,7 @@ model_list:
 
   - model_name: "embedding"
     litellm_params:
-      model: "hosted_vllm/{{ vllm_embedding_model }}"
+      model: "{{ vllm_embedding_served_model_name }}"
       api_base: "http://{{ vllm_embedding_host }}:8001/v1"
       api_key: "not-needed"
     model_info:

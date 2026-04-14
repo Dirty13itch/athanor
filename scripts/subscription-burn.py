@@ -37,7 +37,16 @@ from operator_contract import (
     emit_operator_audit_event,
     require_operator_action,
 )
+from routing_contract_support import (
+    append_history,
+    confidence_from_age,
+    dump_json,
+    iso_now,
+    load_optional_json,
+    parse_dt,
+)
 from service_contract import build_health_snapshot, dependency_record
+from automation_records import AutomationRunRecord, emit_automation_run_record
 
 try:
     from zoneinfo import ZoneInfo
@@ -71,6 +80,10 @@ NTFY_URL = get_url("ntfy_topic")
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROVIDER_CATALOG_PATH = REPO_ROOT / "config" / "automation-backbone" / "provider-catalog.json"
 BURN_REGISTRY_PATH = REPO_ROOT / "config" / "automation-backbone" / "subscription-burn-registry.json"
+PROVIDER_USAGE_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "provider-usage-evidence.json"
+PLANNED_SUBSCRIPTION_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "planned-subscription-evidence.json"
+CAPACITY_TELEMETRY_PATH = REPO_ROOT / "reports" / "truth-inventory" / "capacity-telemetry.json"
+QUOTA_TRUTH_PATH = REPO_ROOT / "reports" / "truth-inventory" / "quota-truth.json"
 SERVICE_STARTED_AT = datetime.now(timezone.utc).isoformat()
 SERVICE_NAME = "subscription-burn"
 DEFAULT_WORKING_DIR = Path(
@@ -293,12 +306,487 @@ def get_subscription_truth(sub_name: str) -> dict[str, Any]:
         "pricing_status": pricing_status,
     }
 
+
+def _next_reset_iso(sub: dict[str, Any], *, now: datetime) -> str | None:
+    sub_type = str(sub.get("type") or "")
+    if sub_type == "daily_reset":
+        raw_reset = str(sub.get("reset_time") or "00:00")
+        hour_str, minute_str = raw_reset.split(":")
+        target = now.replace(hour=int(hour_str), minute=int(minute_str), second=0, microsecond=0)
+        if target <= now:
+            target += timedelta(days=1)
+        return target.astimezone(timezone.utc).isoformat()
+    if sub_type == "rolling_window":
+        window_hours = int(sub.get("window_hours") or 5)
+        last = parse_dt(state.last_burn.get(str(sub.get("id") or "")))
+        if last is None:
+            return (now + timedelta(hours=window_hours)).astimezone(timezone.utc).isoformat()
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=TZ)
+        return (last + timedelta(hours=window_hours)).astimezone(timezone.utc).isoformat()
+    return None
+
+
+def _latest_provider_capture(provider_id: str) -> dict[str, Any] | None:
+    captures = load_optional_json(PROVIDER_USAGE_EVIDENCE_PATH).get("captures", [])
+    latest: dict[str, Any] | None = None
+    latest_seen: datetime | None = None
+    for capture in captures:
+        if not isinstance(capture, dict):
+            continue
+        if str(capture.get("provider_id") or "").strip() != provider_id:
+            continue
+        observed_at = parse_dt(capture.get("observed_at"))
+        if observed_at is None:
+            continue
+        if latest_seen is None or observed_at > latest_seen:
+            latest_seen = observed_at
+            latest = dict(capture)
+    return latest
+
+
+def _latest_planned_subscription_capture(family_id: str) -> dict[str, Any] | None:
+    captures = load_optional_json(PLANNED_SUBSCRIPTION_EVIDENCE_PATH).get("captures", [])
+    latest: dict[str, Any] | None = None
+    latest_seen: datetime | None = None
+    for capture in captures:
+        if not isinstance(capture, dict):
+            continue
+        if str(capture.get("family_id") or "").strip() != family_id:
+            continue
+        observed_at = parse_dt(capture.get("observed_at"))
+        if observed_at is None:
+            continue
+        if latest_seen is None or observed_at > latest_seen:
+            latest_seen = observed_at
+            latest = dict(capture)
+    return latest
+
+
+def _local_compute_snapshot() -> dict[str, Any]:
+    telemetry = load_optional_json(CAPACITY_TELEMETRY_PATH)
+    if not telemetry:
+        return {
+            "remaining_units": 0,
+            "confidence": "low",
+            "evidence_source": "capacity_telemetry_missing",
+            "last_observed_at": None,
+            "degraded_reason": "capacity_telemetry_missing",
+        }
+    generated_at = parse_dt(telemetry.get("generated_at"))
+    age_seconds = None
+    if generated_at is not None:
+        age_seconds = int((datetime.now(timezone.utc) - generated_at.astimezone(timezone.utc)).total_seconds())
+    capacity_summary = dict(telemetry.get("capacity_summary") or {})
+    harvestable = [
+        record
+        for record in telemetry.get("harvest_admission", [])
+        if isinstance(record, dict) and bool(record.get("harvest_admissible"))
+    ]
+    provisional_harvestable = [
+        record
+        for record in telemetry.get("harvest_admission", [])
+        if isinstance(record, dict) and bool(record.get("provisional_harvest_candidate"))
+    ]
+    harvestable_by_slot = {
+        str(slot_id): int(count or 0)
+        for slot_id, count in dict(capacity_summary.get("harvestable_by_slot") or {}).items()
+        if str(slot_id).strip()
+    }
+    harvestable_by_zone = {
+        str(zone_id): int(count or 0)
+        for zone_id, count in dict(capacity_summary.get("harvestable_by_zone") or {}).items()
+        if str(zone_id).strip()
+    }
+    slot_samples: dict[str, dict[str, Any]] = {}
+    harvest_admission_by_gpu = {
+        str(record.get("gpu_id") or "").strip(): dict(record)
+        for record in telemetry.get("harvest_admission", [])
+        if isinstance(record, dict) and str(record.get("gpu_id") or "").strip()
+    }
+    telemetry_slot_samples = telemetry.get("scheduler_slot_samples")
+    if isinstance(telemetry_slot_samples, list) and telemetry_slot_samples:
+        for sample in telemetry_slot_samples:
+            if not isinstance(sample, dict):
+                continue
+            scheduler_slot_id = str(sample.get("scheduler_slot_id") or "").strip()
+            if not scheduler_slot_id:
+                continue
+            projection_conflicts = [
+                str(item).strip()
+                for item in (sample.get("projection_conflicts") or [])
+                if str(item).strip()
+            ]
+            legacy_conflict = str(sample.get("projection_conflict") or "").strip()
+            if legacy_conflict and legacy_conflict not in projection_conflicts:
+                projection_conflicts.append(legacy_conflict)
+            slot_samples[scheduler_slot_id] = {
+                "scheduler_slot_id": scheduler_slot_id,
+                "scheduler_zone_id": str(sample.get("scheduler_zone_id") or "").strip() or None,
+                "slot_target_id": str(sample.get("slot_target_id") or "").strip() or None,
+                "harvest_intent": str(sample.get("harvest_intent") or "").strip() or None,
+                "node_ids": sorted({str(item).strip() for item in (sample.get("node_ids") or []) if str(item).strip()}),
+                "member_gpu_ids": sorted(
+                    {str(item).strip() for item in (sample.get("member_gpu_ids") or []) if str(item).strip()}
+                ),
+                "admissible_gpu_ids": sorted(
+                    {str(item).strip() for item in (sample.get("admissible_gpu_ids") or []) if str(item).strip()}
+                ),
+                "blocked_by": sorted(
+                    {str(item).strip() for item in (sample.get("blocked_by") or []) if str(item).strip()}
+                ),
+                "harvestable_gpu_count": int(sample.get("harvestable_gpu_count") or 0),
+                "idle_window_open": bool(sample.get("idle_window_open")),
+                "scheduler_state": str(sample.get("scheduler_state") or "").strip() or None,
+                "projection_conflict": projection_conflicts[0] if projection_conflicts else None,
+                "projection_conflicts": projection_conflicts,
+                "observed_at": sample.get("observed_at"),
+                "sample_state": sample.get("sample_state"),
+                "queue_depth": int(sample.get("queue_depth") or 0),
+                "utilization_percent": int(
+                    sample.get("max_utilization_percent")
+                    or sample.get("utilization_percent")
+                    or 0
+                ),
+            }
+        if not harvestable_by_slot:
+            harvestable_by_slot = {
+                slot_id: len(dict(slot).get("admissible_gpu_ids") or [])
+                for slot_id, slot in slot_samples.items()
+                if len(dict(slot).get("admissible_gpu_ids") or []) > 0
+            }
+        if not harvestable_by_zone:
+            zone_counts: dict[str, int] = {}
+            for slot in slot_samples.values():
+                zone_id = str(slot.get("scheduler_zone_id") or "").strip()
+                if not zone_id:
+                    continue
+                zone_counts[zone_id] = int(zone_counts.get(zone_id) or 0) + len(slot.get("admissible_gpu_ids") or [])
+            harvestable_by_zone = zone_counts
+    else:
+        for sample in telemetry.get("gpu_samples", []):
+            if not isinstance(sample, dict):
+                continue
+            gpu_id = str(sample.get("gpu_id") or "").strip()
+            scheduler_slot_id = str(sample.get("scheduler_slot_id") or "").strip()
+            if not gpu_id or not scheduler_slot_id:
+                continue
+            harvest_admission = dict(harvest_admission_by_gpu.get(gpu_id) or {})
+            scheduler_zone_id = scheduler_slot_id.split(":", 1)[0]
+            slot_entry = slot_samples.setdefault(
+                scheduler_slot_id,
+                {
+                    "scheduler_slot_id": scheduler_slot_id,
+                    "scheduler_zone_id": scheduler_zone_id,
+                    "slot_target_id": None,
+                    "harvest_intent": None,
+                    "node_ids": [],
+                    "member_gpu_ids": [],
+                    "admissible_gpu_ids": [],
+                    "blocked_by": [],
+                    "harvestable_gpu_count": 0,
+                    "idle_window_open": False,
+                    "scheduler_state": None,
+                    "projection_conflict": None,
+                    "projection_conflicts": [],
+                    "observed_at": sample.get("observed_at"),
+                    "sample_state": sample.get("sample_state"),
+                    "queue_depth": int(sample.get("queue_depth") or 0),
+                    "utilization_percent": int(sample.get("utilization_percent") or 0),
+                },
+            )
+            slot_entry["member_gpu_ids"].append(gpu_id)
+            node_id = str(sample.get("node_id") or "").strip()
+            if node_id:
+                slot_entry["node_ids"].append(node_id)
+            if bool(harvest_admission.get("harvest_admissible")):
+                slot_entry["idle_window_open"] = True
+                slot_entry["admissible_gpu_ids"].append(gpu_id)
+                harvestable_by_slot[scheduler_slot_id] = int(harvestable_by_slot.get(scheduler_slot_id) or 0) + 1
+                harvestable_by_zone[scheduler_zone_id] = int(harvestable_by_zone.get(scheduler_zone_id) or 0) + 1
+            else:
+                for blocked in harvest_admission.get("blocked_by", []) or []:
+                    blocked_reason = str(blocked or "").strip()
+                    if blocked_reason:
+                        slot_entry["blocked_by"].append(blocked_reason)
+            slot_entry["harvestable_gpu_count"] = len(slot_entry["admissible_gpu_ids"])
+            slot_entry["node_ids"] = sorted(set(slot_entry["node_ids"]))
+            slot_entry["member_gpu_ids"] = sorted(set(slot_entry["member_gpu_ids"]))
+            slot_entry["admissible_gpu_ids"] = sorted(set(slot_entry["admissible_gpu_ids"]))
+            slot_entry["blocked_by"] = sorted(set(slot_entry["blocked_by"]))
+            slot_entry["scheduler_state"] = str(sample.get("scheduler_state") or "").strip() or None
+            slot_entry["projection_conflict"] = str(sample.get("projection_conflict") or "").strip() or None
+            if slot_entry["projection_conflict"]:
+                slot_entry["projection_conflicts"] = [slot_entry["projection_conflict"]]
+            observed_at = str(sample.get("observed_at") or "").strip()
+            if observed_at:
+                current_observed_at = str(slot_entry.get("observed_at") or "").strip()
+                if not current_observed_at or observed_at > current_observed_at:
+                    slot_entry["observed_at"] = observed_at
+    harvestable_by_node = {
+        str(node_id): int(count or 0)
+        for node_id, count in dict(capacity_summary.get("harvestable_by_node") or {}).items()
+        if str(node_id).strip()
+    }
+    provisional_harvestable_by_node = {
+        str(node_id): int(count or 0)
+        for node_id, count in dict(capacity_summary.get("provisional_harvestable_by_node") or {}).items()
+        if str(node_id).strip()
+    }
+    sample_posture = str(capacity_summary.get("sample_posture") or "registry_seed_only")
+    queue_depth = int(capacity_summary.get("scheduler_queue_depth") or 0)
+    active_transitions = int(capacity_summary.get("scheduler_active_transitions") or 0)
+    harvestable_gpu_ids = [
+        str(record.get("gpu_id") or "").strip()
+        for record in harvestable
+        if str(record.get("gpu_id") or "").strip()
+    ]
+    provisional_harvestable_gpu_ids = [
+        str(record.get("gpu_id") or "").strip()
+        for record in provisional_harvestable
+        if str(record.get("gpu_id") or "").strip()
+    ]
+    return {
+        "remaining_units": int(capacity_summary.get("harvestable_gpu_count") or len(harvestable)),
+        "confidence": confidence_from_age(age_seconds, high_within=120, medium_within=300),
+        "evidence_source": "reports/truth-inventory/capacity-telemetry.json",
+        "last_observed_at": telemetry.get("generated_at"),
+        "degraded_reason": (
+            None
+            if harvestable
+            else ("scheduler_backing_required" if provisional_harvestable else "no_harvestable_capacity_visible")
+        ),
+        "capacity_breakdown": {
+            "sample_posture": sample_posture,
+            "harvestable_by_node": harvestable_by_node,
+            "provisional_harvestable_by_node": provisional_harvestable_by_node,
+            "harvestable_by_zone": harvestable_by_zone,
+            "harvestable_by_slot": harvestable_by_slot,
+            "scheduler_slot_count": int(capacity_summary.get("scheduler_slot_count") or len(slot_samples)),
+            "harvestable_scheduler_slot_count": int(
+                capacity_summary.get("harvestable_scheduler_slot_count")
+                or sum(1 for sample in slot_samples.values() if bool(sample.get("idle_window_open")))
+            ),
+            "provisional_harvest_candidate_count": int(
+                capacity_summary.get("provisional_harvest_candidate_count") or len(provisional_harvestable)
+            ),
+            "scheduler_slot_samples": list(slot_samples.values()),
+            "harvestable_gpu_ids": harvestable_gpu_ids,
+            "provisional_harvestable_gpu_ids": provisional_harvestable_gpu_ids,
+            "scheduler_queue_depth": queue_depth,
+            "scheduler_active_transitions": active_transitions,
+            "scheduler_observed_at": capacity_summary.get("scheduler_observed_at"),
+            "scheduler_source": capacity_summary.get("scheduler_source"),
+        },
+    }
+
+
+def build_quota_truth_snapshot() -> dict[str, Any]:
+    now_local = datetime.now(TZ)
+    now_utc = datetime.now(timezone.utc)
+    quota_contract = dict(BURN_REGISTRY.get("quota_truth_contract") or {})
+    records: list[dict[str, Any]] = []
+
+    for sub_name, sub in SUBSCRIPTIONS.items():
+        util = state.get_utilization(sub_name)
+        truth = get_subscription_truth(sub_name)
+        sub_type = str(sub.get("type") or "")
+        remaining_units: int | None = None
+        if sub_type == "daily_reset":
+            remaining_units = max(0, int(sub.get("daily_limit") or 0) - int(util.get("used_today") or 0))
+        elif sub_type == "rolling_window":
+            max_concurrent = int(sub.get("max_concurrent") or 1)
+            running = 1 if bool(util.get("running")) else 0
+            remaining_units = max(0, max_concurrent - running)
+        reserve_floor = dict(sub.get("reserve_floor") or {})
+        records.append(
+            {
+                "family_id": str(sub.get("family_id") or sub_name),
+                "product_id": sub_name,
+                "provider_id": truth["provider_id"],
+                "usage_mode": "subscription",
+                "window_type": sub_type,
+                "remaining_units": remaining_units,
+                "budget_remaining_usd": None,
+                "next_reset_at": _next_reset_iso({"id": sub_name, **sub}, now=now_local),
+                "reserve_floor": reserve_floor,
+                "harvest_priority": str(sub.get("harvest_priority") or "normal"),
+                "collector_id": str(sub.get("collector_id") or "subscription_burn_service"),
+                "evidence_source": f"{SERVICE_NAME} state",
+                "confidence": "high",
+                "last_observed_at": now_utc.isoformat(),
+                "stale_after": (
+                    now_utc + timedelta(seconds=int(quota_contract.get("subscription_high_confidence_within_seconds") or 21600))
+                ).isoformat(),
+                "degraded_reason": None,
+                "pricing_status": truth["pricing_status"],
+                "running": bool(util.get("running")),
+            }
+        )
+
+    for entry in BURN_REGISTRY.get("planned_subscriptions", []):
+        if not isinstance(entry, dict):
+            continue
+        reserve_floor = dict(entry.get("reserve_floor") or {})
+        family_id = str(entry.get("family_id") or entry.get("id") or "")
+        capture = _latest_planned_subscription_capture(family_id) if family_id else None
+        observed_at = parse_dt(capture.get("observed_at")) if capture else None
+        age_seconds = None
+        if observed_at is not None:
+            age_seconds = int((now_utc - observed_at.astimezone(timezone.utc)).total_seconds())
+        capture_status = str(capture.get("status") or "").strip() if capture else ""
+        confidence = "medium"
+        preferred_supported_tools = [str(item).strip() for item in entry.get("preferred_supported_tools", []) if str(item).strip()]
+        required_env_contracts = [str(item).strip() for item in entry.get("required_env_contracts", []) if str(item).strip()]
+        next_proof_step = str(entry.get("next_proof_step") or "").strip() or None
+        proof_record_command = str(entry.get("proof_record_command") or "").strip() or None
+        if capture:
+            confidence = confidence_from_age(
+                age_seconds,
+                high_within=int(quota_contract.get("subscription_high_confidence_within_seconds") or 21600),
+                medium_within=int(quota_contract.get("subscription_high_confidence_within_seconds") or 21600) * 4,
+            )
+            if capture_status != "supported_tool_usage_observed" and confidence == "high":
+                confidence = "medium"
+        degraded_reason = (
+            None
+            if capture_status == "supported_tool_usage_observed"
+            else (
+                capture_status
+                or str(capture.get("activation_gate") or "").strip()
+                or str(entry.get("activation_gate") or "not_live")
+            )
+        )
+        records.append(
+            {
+                "family_id": family_id,
+                "product_id": str(entry.get("id") or ""),
+                "provider_id": str(entry.get("provider_id") or ""),
+                "usage_mode": "subscription",
+                "window_type": str(entry.get("type") or "planned"),
+                "remaining_units": None,
+                "budget_remaining_usd": None,
+                "next_reset_at": None,
+                "reserve_floor": reserve_floor,
+                "harvest_priority": str(entry.get("harvest_priority") or "planned"),
+                "collector_id": str(entry.get("collector_id") or "tooling_probe"),
+                "evidence_source": str(capture.get("source") or "").strip() if capture else "planned_subscription_contract",
+                "confidence": confidence,
+                "last_observed_at": capture.get("observed_at") if capture else None,
+                "stale_after": None,
+                "degraded_reason": degraded_reason,
+                "pricing_status": "planned_with_activation_evidence" if capture else "planned",
+                "next_proof_step": next_proof_step,
+                "proof_record_command": proof_record_command,
+                "activation_evidence": {
+                    "status": capture_status or "unobserved",
+                    "request_surface": str(capture.get("request_surface") or "").strip() or None if capture else None,
+                    "preferred_supported_tools": preferred_supported_tools,
+                    "required_commands": list(capture.get("required_commands") or []) if capture else preferred_supported_tools,
+                    "available_commands": list(capture.get("available_commands") or []) if capture else [],
+                    "required_env_contracts": list(capture.get("required_env_contracts") or []) if capture else required_env_contracts,
+                    "present_env_contracts": list(capture.get("present_env_contracts") or []) if capture else [],
+                    "notes": list(capture.get("notes") or []) if capture else [],
+                },
+                "running": False,
+            }
+        )
+
+    for entry in BURN_REGISTRY.get("metered_families", []):
+        if not isinstance(entry, dict):
+            continue
+        provider_id = str(entry.get("provider_id") or "")
+        capture = _latest_provider_capture(provider_id)
+        observed_at = parse_dt(capture.get("observed_at")) if capture else None
+        age_seconds = None
+        if observed_at is not None:
+            age_seconds = int((now_utc - observed_at.astimezone(timezone.utc)).total_seconds())
+        daily_ceiling = float(entry.get("daily_budget_ceiling_usd") or 0)
+        records.append(
+            {
+                "family_id": str(entry.get("id") or ""),
+                "product_id": str(entry.get("id") or ""),
+                "provider_id": provider_id,
+                "usage_mode": "metered_api",
+                "window_type": "daily_budget",
+                "remaining_units": None,
+                "budget_remaining_usd": daily_ceiling,
+                "next_reset_at": (now_local.replace(hour=23, minute=59, second=59, microsecond=0)).astimezone(timezone.utc).isoformat(),
+                "reserve_floor": {
+                    "kind": "usd",
+                    "value": float(entry.get("reserve_floor_usd") or 0)
+                },
+                "harvest_priority": str(entry.get("harvest_priority") or "metered"),
+                "collector_id": str(entry.get("collector_id") or "litellm_provider_usage"),
+                "evidence_source": str(capture.get("source") or "budget_ceiling_only") if capture else "budget_ceiling_only",
+                "confidence": confidence_from_age(age_seconds, high_within=3600, medium_within=14400),
+                "last_observed_at": capture.get("observed_at") if capture else None,
+                "stale_after": (
+                    now_utc + timedelta(seconds=int(quota_contract.get("metered_high_confidence_within_seconds") or 3600))
+                ).isoformat(),
+                "degraded_reason": None if capture else "no_provider_usage_capture",
+                "pricing_status": "metered",
+                "running": False,
+                "capture_status": str(capture.get("status") or "unknown") if capture else "missing",
+            }
+        )
+
+    for entry in BURN_REGISTRY.get("local_compute_families", []):
+        if not isinstance(entry, dict):
+            continue
+        local_snapshot = _local_compute_snapshot()
+        records.append(
+            {
+                "family_id": str(entry.get("id") or ""),
+                "product_id": str(entry.get("id") or ""),
+                "provider_id": str(entry.get("provider_id") or ""),
+                "usage_mode": "local_compute",
+                "window_type": "continuous_capacity",
+                "remaining_units": local_snapshot["remaining_units"],
+                "budget_remaining_usd": 0,
+                "next_reset_at": None,
+                "reserve_floor": {
+                    "kind": "capacity_contract",
+                    "value": "protect_reserve_then_harvest"
+                },
+                "harvest_priority": str(entry.get("harvest_priority") or "local"),
+                "collector_id": str(entry.get("collector_id") or "capacity_telemetry"),
+                "evidence_source": local_snapshot["evidence_source"],
+                "confidence": local_snapshot["confidence"],
+                "last_observed_at": local_snapshot["last_observed_at"],
+                "stale_after": (
+                    now_utc + timedelta(seconds=int(quota_contract.get("local_compute_high_confidence_within_seconds") or 120))
+                ).isoformat(),
+                "degraded_reason": local_snapshot["degraded_reason"],
+                "pricing_status": "sunk_cost",
+                "running": False,
+                "capacity_breakdown": dict(local_snapshot.get("capacity_breakdown") or {}),
+            }
+        )
+
+    return {
+        "version": str(BURN_REGISTRY.get("version") or ""),
+        "generated_at": now_utc.isoformat(),
+        "source_of_truth": "reports/truth-inventory/quota-truth.json",
+        "service": SERVICE_NAME,
+        "default_timezone": DEFAULT_TIMEZONE,
+        "records": records,
+    }
+
+
+def write_quota_truth_snapshot() -> dict[str, Any]:
+    snapshot = build_quota_truth_snapshot()
+    dump_json(QUOTA_TRUTH_PATH, snapshot)
+    append_history("quota-truth", snapshot)
+    return snapshot
+
 class BurnState:
     """Track subscription usage and active processes."""
 
     def __init__(self):
         self.active_pids: dict[str, int] = {}
         self.active_procs: dict[str, subprocess.Popen] = {}  # Popen objects for reaping
+        self.active_task_metadata: dict[str, dict[str, Any]] = {}
         self.daily_usage: dict[str, int] = {}
         self.last_burn: dict[str, str] = {}
         self.total_burns_today: dict[str, int] = {}
@@ -326,6 +814,10 @@ class BurnState:
             "total_burns_today": self.total_burns_today,
             "last_burn": self.last_burn,
         }, indent=2))
+        try:
+            write_quota_truth_snapshot()
+        except Exception as exc:
+            log.warning("Failed to refresh quota-truth snapshot: %s", exc)
 
     def record_burn(self, sub_name: str):
         now = datetime.now(TZ)
@@ -343,6 +835,7 @@ class BurnState:
             # Process exited -- clean up
             self.active_procs.pop(sub_name, None)
             self.active_pids.pop(sub_name, None)
+            self.active_task_metadata.pop(sub_name, None)
             return False
         pid = self.active_pids.get(sub_name)
         if pid is None:
@@ -522,8 +1015,17 @@ async def execute_burn(sub_name: str, manual: bool = False) -> dict:
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
             start_new_session=True,
         )
+        task_id = str(task.get("id") or "").strip() if isinstance(task, dict) else ""
+        task_title = str(task.get("title") or "").strip() if isinstance(task, dict) else ""
         state.active_pids[sub_name] = proc.pid
         state.active_procs[sub_name] = proc  # store for reaping
+        state.active_task_metadata[sub_name] = {
+            "task_id": task_id or None,
+            "task_title": task_title or None,
+            "task_prompt": prompt,
+            "working_dir": working_dir,
+            "source": "manual" if manual else "scheduled",
+        }
         state.record_burn(sub_name)
 
         source = "manual" if manual else "scheduled"
@@ -654,6 +1156,7 @@ async def reaper_loop():
                 rc = proc.poll()
                 if rc is not None:
                     pid = proc.pid
+                    task_metadata = dict(state.active_task_metadata.get(sub_name) or {})
                     duration_s = None
                     last_str = state.last_burn.get(sub_name)
                     if last_str:
@@ -667,12 +1170,55 @@ async def reaper_loop():
 
                     state.active_procs.pop(sub_name, None)
                     state.active_pids.pop(sub_name, None)
+                    state.active_task_metadata.pop(sub_name, None)
                     state.save()
 
                     status_str = "success" if rc == 0 else f"failed (exit {rc})"
                     dur_str = f" in {duration_s // 60}m{duration_s % 60}s" if duration_s else ""
                     log.info(f"[reaper] {sub_name} PID {pid} completed: {status_str}{dur_str}")
                     mark_task_done(sub_name, "")
+
+                    completed_at = datetime.now(TZ).isoformat()
+                    truth = get_subscription_truth(sub_name)
+                    record = AutomationRunRecord(
+                        automation_id=f"subscription-burn:{sub_name}",
+                        lane="subscription_burn",
+                        action_class="burn_reaper_completion",
+                        inputs={
+                            "subscription": sub_name,
+                            "provider_id": truth.get("provider_id"),
+                            "task_id": task_metadata.get("task_id"),
+                            "task_title": task_metadata.get("task_title"),
+                            "task_prompt": task_metadata.get("task_prompt"),
+                            "working_dir": task_metadata.get("working_dir"),
+                            "source": task_metadata.get("source"),
+                        },
+                        result={
+                            "subscription": sub_name,
+                            "provider_id": truth.get("provider_id"),
+                            "provider_label": truth.get("label"),
+                            "success": rc == 0,
+                            "dispatch_outcome": "success" if rc == 0 else "failed",
+                            "exit_code": rc,
+                            "pid": pid,
+                            "started_at": last_str,
+                            "completed_at": completed_at,
+                            "duration_seconds": duration_s,
+                            "source": task_metadata.get("source"),
+                        },
+                        rollback={
+                            "mode": "none",
+                            "note": "Subscription burn completion records are observational and do not mutate runtime state.",
+                        },
+                        duration=float(duration_s or 0.0),
+                        operator_visible_summary=(
+                            f"Subscription burn {sub_name} completed with "
+                            f"{'success' if rc == 0 else f'exit {rc}'}."
+                        ),
+                    )
+                    emit_result = await emit_automation_run_record(record)
+                    if not emit_result.persisted:
+                        log.warning("[reaper] Failed to persist automation run record for %s: %s", sub_name, emit_result.error)
 
                     await ntfy(
                         f"Burn Complete: {sub_name}",
@@ -689,6 +1235,7 @@ async def reaper_loop():
                     os.kill(pid, 0)
                 except (ProcessLookupError, PermissionError):
                     state.active_pids.pop(sub_name, None)
+                    state.active_task_metadata.pop(sub_name, None)
                     state.save()
                     log.info(f"[reaper] Cleared stale PID {pid} for {sub_name}")
         except Exception as e:
@@ -770,6 +1317,10 @@ async def lifespan(app: FastAPI):
 
     _scheduler_task = asyncio.create_task(scheduler_loop())
     _reaper_task = asyncio.create_task(reaper_loop())
+    try:
+        write_quota_truth_snapshot()
+    except Exception as exc:
+        log.warning("Failed to write initial quota-truth snapshot: %s", exc)
     await ntfy("Subscription Burn Online", f"Tracking {len(SUBSCRIPTIONS)} subscriptions", tags="rocket")
     yield
 
@@ -908,6 +1459,10 @@ async def health():
 @app.get("/status")
 async def get_status():
     now = datetime.now(TZ)
+    try:
+        write_quota_truth_snapshot()
+    except Exception as exc:
+        log.warning("Failed to refresh quota-truth snapshot during status read: %s", exc)
     subs = {}
     for name, sub in SUBSCRIPTIONS.items():
         truth = get_subscription_truth(name)

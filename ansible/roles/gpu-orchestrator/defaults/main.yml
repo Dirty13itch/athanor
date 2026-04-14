@@ -11,9 +11,12 @@ gpu_orch_node2_ip: "{{ node2_ip | default('192.168.1.225') }}"
 
 # vLLM endpoints
 gpu_orch_vllm_node1_url: "http://{{ node1_ip | default('192.168.1.244') }}:8000"
-gpu_orch_vllm_coder_url: "http://{{ node1_ip | default('192.168.1.244') }}:8006"
+gpu_orch_vllm_coder_url: "http://{{ node1_ip | default('192.168.1.244') }}:8100"
 gpu_orch_vllm_node1_embed_url: "http://{{ dev_ip | default('192.168.1.189') }}:8001"
+gpu_orch_vllm_reranker_url: "http://{{ dev_ip | default('192.168.1.189') }}:8003"
 gpu_orch_vllm_node2_url: "http://{{ node2_ip | default('192.168.1.225') }}:8010"
+gpu_orch_vllm_vision_url: "http://{{ node2_ip | default('192.168.1.225') }}:8012"
+gpu_orch_embedding_auto_sleep_enabled: false
 
 # DCGM-exporter endpoints (GPU metrics)
 gpu_orch_dcgm_node1_url: "http://{{ node1_ip | default('192.168.1.244') }}:9400"

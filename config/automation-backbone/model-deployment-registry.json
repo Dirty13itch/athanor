@@ -1,6 +1,6 @@
 {
-  "version": "2026-03-26.1",
-  "updated_at": "2026-03-26T12:00:00Z",
+  "version": "2026-04-11.1",
+  "updated_at": "2026-04-11T22:35:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/model-deployment-registry.json",
   "lanes": [
@@ -11,34 +11,35 @@
       "endpoint": "http://192.168.1.244:8000/v1/models",
       "health_path": "/v1/models",
       "runtime_class": "text_generation",
-      "state_class": "deployed",
-      "expected_model_id": "Qwen3.5-27B-FP8",
-      "observed_model_id": "Qwen3.5-27B-FP8",
+      "state_class": "degraded",
+      "expected_model_id": "/models/Qwen3.5-27B-FP8",
+      "observed_model_id": "/models/Qwen3.5-27B-FP8",
       "source_repo": "/home/shaun/repos/athanor",
-      "verified_at": "2026-03-25T18:00:00Z",
-      "drift_status": "aligned",
-      "evidence_source": "live /v1/models probe",
+      "verified_at": "2026-04-14T19:20:00Z",
+      "drift_status": "drifted",
+      "evidence_source": "live /v1/models probe still returns /models/Qwen3.5-27B-FP8, but 2026-04-14 direct chat completion attempts on :8000 timed out while :8100 and LiteLLM-backed aliases remained healthy",
       "notes": [
-        "Current coordinator lane is aligned with runtime evidence."
+        "Treat Foundry :8000 as degraded secondary lineage, not the canonical healthy text lane.",
+        "The shared work economy is no longer blocked because VAULT LiteLLM aliases were consolidated onto the healthy Foundry :8100 dolphin lane."
       ]
     },
     {
       "id": "foundry-coder",
       "service_id": "vllm_coder",
       "node_id": "foundry",
-      "endpoint": "http://192.168.1.244:8006/v1/models",
+      "endpoint": "http://192.168.1.244:8100/v1/models",
       "health_path": "/v1/models",
       "runtime_class": "text_generation",
-      "state_class": "deployed",
-      "expected_model_id": "qwen3-coder-30b",
-      "observed_model_id": "qwen3-coder-30b",
+      "state_class": "historical",
+      "expected_model_id": "dolphin3-r1-24b",
+      "observed_model_id": "dolphin3-r1-24b",
       "source_repo": "/home/shaun/repos/athanor",
-      "verified_at": "2026-04-08T05:56:00Z",
+      "verified_at": "2026-04-11T22:35:00Z",
       "drift_status": "aligned",
-      "evidence_source": "live /v1/models probe",
+      "evidence_source": "live /health and /v1/models probes plus live orchestrator /zones evidence",
       "notes": [
-        "Current live runtime serves qwen3-coder-30b on :8006.",
-        "The repo and packet layer were re-aligned on 2026-04-08 after direct /v1/models and docker inspect evidence superseded the older Devstral-era assumption."
+        "Current live runtime serves dolphin3-r1-24b on Foundry :8100 via llama.cpp.",
+        "The live GPU orchestrator zone map and direct probes on 2026-04-11 showed the coder lane moved away from the older :8006 vLLM slot."
       ]
     },
     {
@@ -49,13 +50,15 @@
       "health_path": "/v1/models",
       "runtime_class": "embedding",
       "state_class": "deployed",
-      "expected_model_id": "Qwen3-Embedding-0.6B",
-      "observed_model_id": "Qwen3-Embedding-0.6B",
+      "expected_model_id": "qwen3-embed-8b",
+      "observed_model_id": "qwen3-embed-8b",
       "source_repo": "/home/shaun/repos/athanor",
-      "verified_at": "2026-03-25T17:45:00Z",
+      "verified_at": "2026-04-11T22:35:00Z",
       "drift_status": "aligned",
-      "evidence_source": "live /v1/models probe",
-      "notes": []
+      "evidence_source": "live /v1/models probe plus live orchestrator /zones evidence",
+      "notes": [
+        "Current live DEV embedding lane serves qwen3-embed-8b on :8001."
+      ]
     },
     {
       "id": "dev-reranker",
@@ -68,10 +71,12 @@
       "expected_model_id": "Qwen3-Reranker-0.6B",
       "observed_model_id": "Qwen3-Reranker-0.6B",
       "source_repo": "/home/shaun/repos/athanor",
-      "verified_at": "2026-03-25T17:45:00Z",
+      "verified_at": "2026-04-11T22:35:00Z",
       "drift_status": "aligned",
       "evidence_source": "live /v1/models probe",
-      "notes": []
+      "notes": [
+        "Current live DEV reranker lane serves Qwen3-Reranker-0.6B on :8003."
+      ]
     },
     {
       "id": "workshop-worker",
@@ -82,15 +87,14 @@
       "runtime_class": "text_generation",
       "state_class": "deployed",
       "expected_model_id": "/models/Qwen3.5-35B-A3B-AWQ-4bit",
-      "observed_model_id": "/models/Qwen3.5-35B-A3B-AWQ-4bit",
+      "observed_model_id": null,
       "source_repo": "/home/shaun/repos/athanor",
-      "verified_at": "2026-03-26T12:00:00Z",
-      "drift_status": "aligned",
-      "evidence_source": "live /v1/models probe",
+      "verified_at": "2026-04-14T19:20:00Z",
+      "drift_status": "drifted",
+      "evidence_source": "2026-04-14 restore attempt left vllm-node2 crash-looping because /mnt/vault/models/Qwen3.5-35B-A3B-AWQ-4bit is absent; live Workshop runtime is ComfyUI plus vllm-vision, not a reachable :8010 worker lane",
       "notes": [
-        "Topology binds vllm_worker to workshop:8010.",
-        "Runtime truth is a live vLLM worker lane serving /models/Qwen3.5-35B-A3B-AWQ-4bit.",
-        "Active dashboard and gateway consumers were updated on 2026-03-26 to stop treating this lane as Ollama or an unresolved degraded surface."
+        "The old Workshop worker lane is retired historical lineage until a future packet restores a real :8010 worker runtime with an existing model directory.",
+        "The active Workshop model lane is workshop-vision on :8012, with ComfyUI on :8188 as the aligned creative surface."
       ]
     },
     {
@@ -104,11 +108,11 @@
       "expected_model_id": "/models/Qwen3-VL-8B-Instruct-FP8",
       "observed_model_id": "/models/Qwen3-VL-8B-Instruct-FP8",
       "source_repo": "/home/shaun/repos/athanor",
-      "verified_at": "2026-04-08T05:56:00Z",
+      "verified_at": "2026-04-11T22:35:00Z",
       "drift_status": "aligned",
-      "evidence_source": "topology and current docs",
+      "evidence_source": "live /v1/models probe",
       "notes": [
-        "Live /v1/models probing on 2026-04-08 confirmed the Workshop 5060 Ti vision lane on :8012."
+        "Live /v1/models probing on 2026-04-11 confirmed the Workshop 5060 Ti vision lane on :8012."
       ]
     }
   ],
@@ -143,5 +147,33 @@
       ]
     }
   ],
-  "known_drifts": []
+  "known_drifts": [
+    {
+      "id": "workshop-worker-lane-missing-2026-04-11",
+      "lane_id": "workshop-worker",
+      "recorded_at": "2026-04-11T22:35:00Z",
+      "severity": "medium",
+      "status": "retired",
+      "summary": "Workshop :8010 no longer answered /v1/models during the 2026-04-11 live probe, while the live GPU orchestrator modeled worker as a ComfyUI-only zone and workshop docker ps showed only vllm-vision plus ComfyUI containers.",
+      "evidence": [
+        "live local probe http://192.168.1.225:8010/v1/models -> connection refused",
+        "live probe http://192.168.1.225:8012/v1/models -> Qwen3-VL-8B-Instruct-FP8",
+        "live workshop docker ps -> comfyui + vllm-vision"
+      ]
+    },
+    {
+      "id": "foundry-coordinator-completion-degraded-2026-04-14",
+      "lane_id": "foundry-coordinator",
+      "recorded_at": "2026-04-14T19:20:00Z",
+      "severity": "medium",
+      "status": "active",
+      "summary": "Foundry :8000 still answers /v1/models, but direct chat completions on /models/Qwen3.5-27B-FP8 timed out during the 2026-04-14 reprobe while the shared proxy remained healthy on the Foundry :8100 dolphin lane.",
+      "evidence": [
+        "live local probe http://127.0.0.1:8000/v1/models -> /models/Qwen3.5-27B-FP8",
+        "live local POST http://127.0.0.1:8000/v1/chat/completions model=/models/Qwen3.5-27B-FP8 -> read timeout",
+        "live local POST http://127.0.0.1:8100/v1/chat/completions -> 200",
+        "live LiteLLM alias probes from athanor-agents -> reasoning/fast/utility/worker/coder/creative all 200 after consolidation"
+      ]
+    }
+  ]
 }

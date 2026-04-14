@@ -122,7 +122,7 @@
             SET s.port = 8000, s.model = 'Qwen3.5-35B-A3B-AWQ-4bit', s.type = 'inference'
         - statement: >
             MERGE (s:Service {name: 'dev-embedding'})
-            SET s.port = 8001, s.model = 'Qwen3-Embedding-0.6B', s.type = 'embedding'
+            SET s.port = 8001, s.model = 'qwen3-embed-8b', s.type = 'embedding'
         - statement: >
             MERGE (s:Service {name: 'dev-reranker'})
             SET s.port = 8003, s.model = 'Qwen3-Reranker-0.6B', s.type = 'reranker'

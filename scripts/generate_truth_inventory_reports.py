@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import subprocess
 from collections import Counter
@@ -38,6 +39,17 @@ def _short_hash(value: str | None) -> str:
     if not value:
         return "unset"
     return f"`{value[:12]}`"
+
+
+def _load_deployment_drift_summary() -> list[dict[str, str]]:
+    summary_path = REPO_ROOT / "reports" / "deployment-drift" / "summary.csv"
+    if not summary_path.exists():
+        return []
+    try:
+        with summary_path.open("r", encoding="utf-8-sig", newline="") as handle:
+            return [dict(row) for row in csv.DictReader(handle)]
+    except Exception:
+        return []
 
 
 GENERATED_LOCAL_GIT_IGNORE_PATHS = {
@@ -236,16 +248,25 @@ def _root_path_by_id(registry: dict[str, Any], root_id: str) -> str:
 
 
 def _load_vault_litellm_env_audit(snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
+    embedded: dict[str, Any] = {}
+    file_payload: dict[str, Any] = {}
     if isinstance(snapshot, dict):
-        embedded = snapshot.get("vault_litellm_env_audit")
-        if isinstance(embedded, dict) and embedded:
-            return embedded
+        maybe_embedded = snapshot.get("vault_litellm_env_audit")
+        if isinstance(maybe_embedded, dict) and maybe_embedded:
+            embedded = maybe_embedded
     if VAULT_LITELLM_ENV_AUDIT_PATH.exists():
         try:
-            return load_json(VAULT_LITELLM_ENV_AUDIT_PATH)
+            loaded = load_json(VAULT_LITELLM_ENV_AUDIT_PATH)
+            if isinstance(loaded, dict):
+                file_payload = loaded
         except Exception:
-            return {}
-    return {}
+            file_payload = {}
+
+    if embedded and file_payload:
+        embedded_stamp = str(embedded.get("collected_at") or embedded.get("observed_at") or "")
+        file_stamp = str(file_payload.get("collected_at") or file_payload.get("observed_at") or "")
+        return file_payload if file_stamp >= embedded_stamp else embedded
+    return file_payload or embedded
 
 
 def _load_vault_redis_audit(snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -386,6 +407,7 @@ def _provider_evidence_posture(
     billing_status = str(billing.get("status") or "")
     provider_specific_status = str(provider_specific_usage.get("status") or "")
     capture_status = str(provider_usage_capture.get("status") or "")
+    state_classes = {str(item) for item in provider.get("state_classes", []) if str(item).strip()}
     installed_tools = [entry for entry in tooling_entries if entry.get("status") == "installed"]
     degraded_tools = [entry for entry in tooling_entries if entry.get("status") == "degraded"]
     provider_envs = {str(item) for item in provider.get("env_contracts", []) if str(item).strip()}
@@ -397,6 +419,8 @@ def _provider_evidence_posture(
     if evidence_kind == "coding_tool_subscription":
         integration_status = str(tooling_probe.get("integration_status") or evidence.get("integration_status") or "")
         if integration_status in {"verified", "observed"}:
+            if active_burn_observed or "active-burn" in state_classes:
+                return "live_burn_observed"
             return "tool_installed_no_recent_burn"
         return "supported_tool_subscription_unverified"
     if access_mode == "local" and routing_policy_enabled:
@@ -792,6 +816,21 @@ def _provider_usage_capture_index(evidence_document: dict[str, Any]) -> dict[str
 
 
 def _vault_env_names_for_provider(provider: dict[str, Any], audit: dict[str, Any], field_name: str) -> list[str]:
+    remediation = dict(provider.get("vault_remediation") or {})
+    explicit_field = {
+        "container_missing_env_names": "missing_env_names",
+        "container_present_env_names": "present_env_names",
+    }.get(field_name)
+    if explicit_field:
+        explicit_names = sorted(
+            {
+                str(name).strip()
+                for name in remediation.get(explicit_field, [])
+                if str(name).strip()
+            }
+        )
+        if explicit_names:
+            return explicit_names
     provider_envs = {
         str(name).strip()
         for name in provider.get("env_contracts", [])
@@ -813,9 +852,11 @@ def _classify_vault_auth_failure(
 ) -> dict[str, str]:
     capture = dict(capture or {})
     audit = dict(audit or {})
+    remediation = dict(provider.get("vault_remediation") or {})
     provider_label = str(provider.get("label") or provider.get("id") or "provider")
     requested_model = str(
         capture.get("requested_model")
+        or remediation.get("canonical_served_alias")
         or (dict(dict(provider.get("evidence") or {}).get("proxy") or {}).get("alias") or provider_label)
     )
     error_snippet = str(capture.get("error_snippet") or "").strip()
@@ -829,10 +870,44 @@ def _classify_vault_auth_failure(
             if str(rule.get("name") or "").strip() and str(rule.get("role") or "").strip() == "required"
         }
     )
+    explicit_required_envs = sorted(
+        {
+            str(name).strip()
+            for name in remediation.get("required_env_names", [])
+            if str(name).strip()
+        }
+    )
+    if explicit_required_envs:
+        required_envs = explicit_required_envs
     if not missing_names and required_envs:
         missing_names = [name for name in required_envs if name not in present_names]
     if not present_names and required_envs:
         present_names = [name for name in required_envs if name not in missing_names]
+    config_referenced_missing = sorted(
+        {
+            str(name).strip()
+            for name in (audit or {}).get("config_referenced_missing_env_names", [])
+            if str(name).strip()
+        }
+    )
+    missing_config_refs = [name for name in missing_names if name in config_referenced_missing]
+
+    invalid_key_markers = (
+        "incorrect api key",
+        "invalid api key",
+        "api key not valid",
+        "api key not found",
+        "invalid x-api-key",
+        "user not found",
+    )
+    present_key_failure_markers = invalid_key_markers + (
+        "authenticationerror",
+        "unauthorized",
+        "token expired",
+        "expired or incorrect",
+    )
+    explicit_code = str(remediation.get("classification") or "").strip()
+    explicit_unknown_fallback = explicit_code == "auth_failed_unknown"
 
     if "cookie auth" in lowered_error:
         env_names = missing_names or required_envs or list(present_names)
@@ -844,6 +919,56 @@ def _classify_vault_auth_failure(
                 f"{env_suffix}"
             ),
         }
+    if missing_names and any(marker in lowered_error for marker in invalid_key_markers):
+        env_names = missing_names or required_envs or list(present_names)
+        config_hint = (
+            f" The config still references {list_or_none(missing_config_refs)} via `os.environ/...` while the runtime env audit marks it missing, "
+            "so LiteLLM may be forwarding an unresolved placeholder or stale runtime state instead of a live secret."
+            if missing_config_refs
+            else ""
+        )
+        return {
+            "code": "auth_surface_mismatch",
+            "next_action": (
+                f"Reconcile the actual VAULT credential-delivery path for served model `{requested_model}` before rotating secrets blindly. "
+                f"The env audit still marks {list_or_none(env_names)} as missing, but the latest upstream auth failure shows a bad or expired credential is reaching `{provider_label}`. "
+                f"Inspect alternate secret-delivery surfaces or stale runtime state, then recreate or redeploy `litellm` and re-probe.{config_hint}"
+            ),
+        }
+    if explicit_code == "missing_required_env":
+        return {
+            "code": "missing_required_env",
+            "next_action": (
+                f"Restore {list_or_none(missing_names or required_envs)} in the managed VAULT secret source, recreate or redeploy `litellm`, "
+                f"then re-probe served model `{requested_model}`."
+            ),
+        }
+    if explicit_code == "present_key_invalid":
+        return {
+            "code": "present_key_invalid",
+            "next_action": (
+                f"Rotate {list_or_none(present_names or required_envs)} in the managed VAULT secret source, recreate or redeploy `litellm`, "
+                f"then re-probe served model `{requested_model}`."
+            ),
+        }
+    if explicit_code == "auth_mode_mismatch":
+        env_names = missing_names or required_envs or list(present_names)
+        env_suffix = f" Ensure {list_or_none(env_names)} is delivered to `litellm`." if env_names else ""
+        return {
+            "code": "auth_mode_mismatch",
+            "next_action": (
+                f"Verify the upstream auth mode for served model `{requested_model}` before re-probing `{provider_label}`."
+                f"{env_suffix}"
+            ),
+        }
+    if explicit_code == "direct_env_gap_not_currently_blocking":
+        return {
+            "code": "direct_env_gap_not_currently_blocking",
+            "next_action": (
+                f"Keep the observed served model `{requested_model}` as the canonical live path for now, and only restore "
+                f"{list_or_none(missing_names or required_envs)} if Athanor chooses to make the direct provider env-backed lane authoritative again."
+            ),
+        }
     if missing_names and any(
         marker in lowered_error
         for marker in (
@@ -851,6 +976,8 @@ def _classify_vault_auth_failure(
             "no key is set",
             "api key",
             "auth token",
+            "token expired",
+            "expired or incorrect",
         )
     ):
         return {
@@ -862,13 +989,7 @@ def _classify_vault_auth_failure(
         }
     if present_names and any(
         marker in lowered_error
-        for marker in (
-            "incorrect api key",
-            "invalid api key",
-            "authenticationerror",
-            "unauthorized",
-            "invalid x-api-key",
-        )
+        for marker in present_key_failure_markers
     ):
         return {
             "code": "present_key_invalid",
@@ -877,12 +998,46 @@ def _classify_vault_auth_failure(
                 f"then re-probe served model `{requested_model}`."
             ),
         }
+    if explicit_unknown_fallback:
+        env_names = missing_names or present_names or required_envs
+        env_suffix = f" Check {list_or_none(env_names)} while reconciling the auth path." if env_names else ""
+        return {
+            "code": "auth_failed_unknown",
+            "next_action": (
+                f"Inspect the latest auth failure for served model `{requested_model}` and reconcile `{provider_label}` on VAULT."
+                f"{env_suffix}"
+            ),
+        }
     env_names = missing_names or present_names or required_envs
     env_suffix = f" Check {list_or_none(env_names)} while reconciling the auth path." if env_names else ""
     return {
         "code": "auth_failed_unknown",
         "next_action": f"Inspect the latest auth failure for served model `{requested_model}` and reconcile `{provider_label}` on VAULT.{env_suffix}",
     }
+
+
+def _provider_verification_class(
+    provider: dict[str, Any],
+    evidence_posture: str,
+    provider_usage_capture: dict[str, Any] | None,
+    vault_litellm_env_audit: dict[str, Any] | None,
+) -> str:
+    if evidence_posture == "vault_provider_specific_auth_failed":
+        return str(
+            _classify_vault_auth_failure(
+                provider,
+                provider_usage_capture,
+                vault_litellm_env_audit,
+            ).get("code")
+            or "auth_failed_unknown"
+        )
+    if evidence_posture == "supported_tool_subscription_unverified":
+        return "supported_tool_proof_missing"
+    if evidence_posture == "live_burn_observed_cost_unverified":
+        return "pricing_verification_missing"
+    if evidence_posture == "vault_proxy_active_no_provider_specific_evidence":
+        return "provider_probe_missing"
+    return "routine_or_none"
 
 
 def render_hardware_report() -> str:
@@ -1047,7 +1202,8 @@ def render_provider_report() -> str:
     credential_env_names = _credential_env_names(credential_surfaces)
     state_counts = Counter(state for provider in providers for state in list(provider.get("state_classes", [])))
     evidence_counts: Counter[str] = Counter()
-    verification_queue: list[tuple[int, str, str, str, str]] = []
+    verification_queue: list[tuple[int, str, str, str, str, str]] = []
+    auth_failure_class_counts: Counter[str] = Counter()
     for provider in providers:
         provider_id = str(provider.get("id") or "")
         tooling_entries = tooling_by_provider.get(provider_id, [])
@@ -1060,6 +1216,14 @@ def render_provider_report() -> str:
         )
         evidence_counts[evidence_posture] += 1
         pricing_truth_label = _provider_pricing_truth_label(provider)
+        verification_class = _provider_verification_class(
+            provider,
+            evidence_posture,
+            provider_usage_capture,
+            vault_litellm_env_audit,
+        )
+        if evidence_posture == "vault_provider_specific_auth_failed":
+            auth_failure_class_counts[verification_class] += 1
         next_verification = _provider_next_verification(
             provider,
             evidence_posture,
@@ -1073,6 +1237,7 @@ def render_provider_report() -> str:
                 _provider_verification_priority(evidence_posture, pricing_truth_label),
                 provider_id,
                 evidence_posture,
+                verification_class,
                 pricing_truth_label,
                 next_verification,
             )
@@ -1110,6 +1275,18 @@ def render_provider_report() -> str:
                 ),
             ]
         )
+    if auth_failure_class_counts:
+        lines.extend(
+            [
+                "",
+                "## Auth Failure Classes",
+                "",
+                *_render_table(
+                    ["Failure class", "Count"],
+                    [[f"`{state}`", str(count)] for state, count in sorted(auth_failure_class_counts.items())],
+                ),
+            ]
+        )
     if verification_queue:
         lines.extend(
             [
@@ -1117,15 +1294,16 @@ def render_provider_report() -> str:
                 "## Verification Queue",
                 "",
                 *_render_table(
-                    ["Provider", "Evidence posture", "Pricing truth", "Next verification"],
+                    ["Provider", "Evidence posture", "Verification class", "Pricing truth", "Next verification"],
                     [
                         [
                             f"`{provider_id}`",
                             f"`{evidence_posture}`",
+                            f"`{verification_class}`",
                             f"`{pricing_truth}`",
                             next_verification,
                         ]
-                        for _, provider_id, evidence_posture, pricing_truth, next_verification in sorted(
+                        for _, provider_id, evidence_posture, verification_class, pricing_truth, next_verification in sorted(
                             verification_queue,
                             key=lambda item: (item[0], item[1]),
                         )
@@ -1570,6 +1748,7 @@ def render_repo_roots_report() -> str:
 def render_runtime_ownership_report() -> str:
     contract = load_registry("runtime-ownership-contract.json")
     ownership_packets = load_registry("runtime-ownership-packets.json")
+    model_deployments = load_registry("model-deployment-registry.json")
     repo_roots = load_registry("repo-roots-registry.json")
     latest_snapshot = _load_latest_truth_snapshot() or {}
     dev_runtime_probe = dict(latest_snapshot.get("dev_runtime_probe") or {})
@@ -1585,6 +1764,20 @@ def render_runtime_ownership_report() -> str:
         else {}
     )
     operator_surface_probe = dict(latest_snapshot.get("operator_surface_probe") or {})
+    operator_surfaces = [
+        dict(entry)
+        for entry in operator_surface_probe.get("surfaces", [])
+        if isinstance(entry, dict)
+    ]
+    operator_surface_by_id = {
+        str(entry.get("id") or ""): entry for entry in operator_surfaces if str(entry.get("id") or "")
+    }
+    model_lanes = [
+        dict(entry) for entry in model_deployments.get("lanes", []) if isinstance(entry, dict)
+    ]
+    model_lane_by_id = {
+        str(entry.get("id") or ""): entry for entry in model_lanes if str(entry.get("id") or "")
+    }
     dev_command_center_runtime = dict(operator_surface_probe.get("dev_command_center_runtime") or {})
     dev_command_center_detail = (
         dict(dev_command_center_runtime.get("detail") or {})
@@ -1592,6 +1785,7 @@ def render_runtime_ownership_report() -> str:
         else {}
     )
     local_repo_probe = _local_git_probe(str(REPO_ROOT))
+    deployment_drift_rows = _load_deployment_drift_summary()
     lanes = [dict(entry) for entry in contract.get("lanes", []) if isinstance(entry, dict)]
     packets = [
         dict(entry) for entry in ownership_packets.get("packets", []) if isinstance(entry, dict)
@@ -1716,7 +1910,121 @@ def render_runtime_ownership_report() -> str:
                 f"- Next action: {lane.get('next_action', 'unset')}",
             ]
         )
+        lane_runtime_paths = {str(item) for item in lane.get("runtime_paths", []) if str(item)}
+        lane_drift_rows = [
+            row
+            for row in deployment_drift_rows
+            if str(row.get("LivePath") or "") in lane_runtime_paths
+        ]
+        if lane_drift_rows:
+            lines.extend(
+                [
+                    "",
+                    "### Latest deployment drift evidence",
+                    "",
+                    *_render_table(
+                        ["Comparison", "Drift", "Runtime", "Containers", "Runtime evidence"],
+                        [
+                            [
+                                f"`{row.get('Id', 'unknown')}`",
+                                f"`{row.get('Status', 'unknown')}`",
+                                f"`{row.get('RuntimeState', 'unknown')}`",
+                                f"`{row.get('RuntimeRunningCount', '0')}/{row.get('RuntimeContainerCount', '0')}`",
+                                str(row.get("RuntimeOutputPath") or "none"),
+                            ]
+                            for row in lane_drift_rows
+                        ],
+                    ),
+                ]
+            )
         lane_id = str(lane.get("id") or "")
+        if lane_id == "workshop-vllm-compose":
+            workshop_vllm_row = next(
+                (row for row in lane_drift_rows if str(row.get("Id") or "") == "workshop-vllm"),
+                None,
+            )
+            workshop_worker_lane = model_lane_by_id.get("workshop-worker", {})
+            workshop_vision_lane = model_lane_by_id.get("workshop-vision", {})
+            workshop_worker_surface = operator_surface_by_id.get("workshop_worker_api", {})
+            workshop_notes = []
+            if workshop_vllm_row and str(workshop_vllm_row.get("RuntimeState") or "") == "no_containers":
+                workshop_notes.append(
+                    "Latest deployment-drift evidence found no running containers under `/opt/athanor/vllm-node2`."
+                )
+            if workshop_worker_lane:
+                workshop_notes.append(
+                    f"Model-deployment truth keeps `workshop-worker` `{workshop_worker_lane.get('drift_status', 'unknown')}` on `{workshop_worker_lane.get('endpoint', 'unknown')}`."
+                )
+                evidence_source = str(workshop_worker_lane.get("evidence_source") or "").strip()
+                if evidence_source:
+                    workshop_notes.append(evidence_source)
+            if workshop_vision_lane:
+                workshop_notes.append(
+                    f"The currently aligned Workshop model lane is `workshop-vision` on `{workshop_vision_lane.get('endpoint', 'unknown')}`."
+                )
+            if workshop_worker_surface:
+                workshop_worker_probe = dict(workshop_worker_surface.get("runtime_probe") or {})
+                workshop_worker_probe_detail = _operator_surface_probe_detail_text(workshop_worker_probe)
+                if workshop_worker_probe_detail:
+                    workshop_notes.append(
+                        f"Operator-side `workshop_worker_api` probing currently reports `{workshop_worker_probe_detail}`."
+                    )
+            workshop_notes.append(
+                "Treat the `:8010` Workshop worker as restore-or-retire debt until Athanor runtime truth explicitly restores it or retires it."
+            )
+            lines.extend(
+                [
+                    "",
+                    "### Workshop runtime interpretation",
+                    "",
+                    *[f"- {note}" for note in workshop_notes],
+                ]
+            )
+        elif lane_id == "workshop-product-compose":
+            workshop_open_webui_row = next(
+                (row for row in lane_drift_rows if str(row.get("Id") or "") == "workshop-open-webui"),
+                None,
+            )
+            workshop_comfyui_row = next(
+                (row for row in lane_drift_rows if str(row.get("Id") or "") == "workshop-comfyui"),
+                None,
+            )
+            workshop_open_webui_surface = operator_surface_by_id.get("workshop_open_webui", {})
+            workshop_comfyui_surface = operator_surface_by_id.get("comfyui", {})
+            workshop_product_notes = []
+            if workshop_open_webui_row and str(workshop_open_webui_row.get("RuntimeState") or "") == "no_containers":
+                workshop_product_notes.append(
+                    "Latest deployment-drift evidence found no running Open WebUI containers under `/opt/athanor/open-webui`."
+                )
+            if workshop_open_webui_surface:
+                runtime_probe = dict(workshop_open_webui_surface.get("runtime_probe") or {})
+                runtime_detail = _operator_surface_probe_detail_text(runtime_probe)
+                if runtime_detail:
+                    workshop_product_notes.append(
+                        f"Operator-side Open WebUI probing currently reports `{runtime_detail}`."
+                    )
+            if workshop_comfyui_row and str(workshop_comfyui_row.get("RuntimeState") or "") == "running":
+                workshop_product_notes.append(
+                    "ComfyUI is still running locally on WORKSHOP under `/opt/athanor/comfyui`."
+                )
+            if workshop_comfyui_surface:
+                runtime_probe = dict(workshop_comfyui_surface.get("runtime_probe") or {})
+                runtime_detail = _operator_surface_probe_detail_text(runtime_probe)
+                if runtime_detail:
+                    workshop_product_notes.append(
+                        f"Operator-side ComfyUI probing currently reports `{runtime_detail}`, so this is a reachability problem rather than a missing container."
+                    )
+            workshop_product_notes.append(
+                "Use this lane to retire or deliberately restore Open WebUI, and treat ComfyUI as a reachability repair path instead of a dead-service resurrection."
+            )
+            lines.extend(
+                [
+                    "",
+                    "### Workshop runtime interpretation",
+                    "",
+                    *[f"- {note}" for note in workshop_product_notes],
+                ]
+            )
         packet = packet_by_id.get(str(lane.get("execution_packet_id") or ""))
         if packet:
             lines.extend(
@@ -2151,6 +2459,37 @@ def _operator_surface_probe_summary(probe: dict[str, Any] | None) -> str:
         return "`ok`"
     detail = str(probe.get("detail") or "failed").strip()
     return f"`{detail[:48]}`"
+
+
+def _operator_surface_probe_state(probe: dict[str, Any] | None) -> str:
+    if not isinstance(probe, dict) or not probe:
+        return "not_probed"
+    status_code = probe.get("status_code")
+    if status_code is not None:
+        try:
+            status_code_int = int(status_code)
+        except (TypeError, ValueError):
+            status_code_int = None
+        if probe.get("ok") and status_code_int is not None and 200 <= status_code_int < 400:
+            return "reachable"
+        return "http_error"
+    if probe.get("ok"):
+        return "reachable"
+    return "unreachable"
+
+
+def _operator_surface_probe_detail_text(probe: dict[str, Any] | None) -> str | None:
+    if not isinstance(probe, dict) or not probe:
+        return None
+    detail = str(probe.get("detail") or "").strip()
+    if detail:
+        return detail[:200]
+    status_code = probe.get("status_code")
+    if status_code is not None:
+        return str(status_code)
+    if probe.get("ok"):
+        return "ok"
+    return None
 
 
 def render_operator_surface_report() -> str:
@@ -3213,6 +3552,8 @@ def render_vault_litellm_repair_packet() -> str:
                 [
                     f"`{provider_id}`",
                     f"`{alias}`",
+                    f"`{classification['code']}`",
+                    list_or_none(present_names),
                     list_or_none(missing_names),
                     f"`{latest_activity}`",
                     classification["next_action"],
@@ -3274,6 +3615,8 @@ def render_vault_litellm_repair_packet() -> str:
         "",
         f"- Container envs present: {list_or_none(vault_litellm_env_audit.get('container_present_env_names', []))}",
         f"- Container envs missing: {list_or_none(vault_litellm_env_audit.get('container_missing_env_names', []))}",
+        f"- Config-referenced envs present at runtime: {list_or_none(vault_litellm_env_audit.get('config_referenced_present_env_names', []))}",
+        f"- Config-referenced envs missing at runtime: {list_or_none(vault_litellm_env_audit.get('config_referenced_missing_env_names', []))}",
         f"- Host shell envs present: {list_or_none(vault_litellm_env_audit.get('host_shell_present_env_names', []))}",
         f"- Host shell envs missing: {list_or_none(vault_litellm_env_audit.get('host_shell_missing_env_names', []))}",
         f"- Runtime appdata files: {list_or_none(vault_litellm_env_audit.get('appdata_files', []))}",
@@ -3294,10 +3637,19 @@ def render_vault_litellm_repair_packet() -> str:
     if auth_failed_rows:
         lines.extend(
             _render_table(
-                ["Provider", "Served alias", "Missing env names", "Latest auth failure", "Next live action"],
+                ["Provider", "Served alias", "Failure class", "Present env names", "Missing env names", "Latest auth failure", "Next live action"],
                 auth_failed_rows,
             )
         )
+        active_failure_codes = sorted({str(row[2]).strip("`") for row in auth_failed_rows if len(row) > 2})
+        if active_failure_codes:
+            rendered_codes = ", ".join(f"`{code}`" for code in active_failure_codes)
+            lines.extend(
+                [
+                    "",
+                    f"Current snapshot note: active VAULT auth failures are presently classified as {rendered_codes}. Treat these as the live remediation buckets for this snapshot and refresh the env audit plus provider probe together after each repair.",
+                ]
+            )
     else:
         lines.append("No VAULT LiteLLM providers are currently classified as `vault_provider_specific_auth_failed`.")
 
@@ -3309,6 +3661,13 @@ def render_vault_litellm_repair_packet() -> str:
                 partial_contract_rows,
             )
         )
+        if any(str(row[0]) == "`moonshot_api`" for row in partial_contract_rows):
+            lines.extend(
+                [
+                    "",
+                    "Current snapshot note: `moonshot_api` is a non-blocking direct-env gap while the served `kimi-k2.5` alias remains provider-observed through VAULT LiteLLM.",
+                ]
+            )
     else:
         lines.append("No additional provider lanes currently show partial env-contract gaps.")
 
@@ -3324,11 +3683,13 @@ def render_vault_litellm_repair_packet() -> str:
             "## Approved Maintenance Sequence",
             "",
             "1. Refresh the live env audit and confirm the current missing env-name set before touching VAULT runtime state.",
-            "2. Use the `Auth-Failed Provider Lanes` table to limit changes to the exact missing provider env names instead of changing unrelated LiteLLM settings.",
+            "2. Use the `Auth-Failed Provider Lanes` table to classify each broken lane before changing runtime. The current snapshot can legitimately include `missing_required_env`, `present_key_invalid`, `auth_surface_mismatch`, or `auth_mode_mismatch` depending on how the probe and env audit line up.",
             "3. Back up the live `litellm` container metadata and the current config bind-mount file before editing the runtime-managed env surface.",
-            "4. Add or restore only the missing provider env names in the managed VAULT secret source. Do not print values to shell history or tracked files.",
-            "5. Recreate or redeploy only the `litellm` container so the updated env set is applied. Use `docker restart litellm` only when the config file changed and the env set did not.",
-            "6. Re-run the env audit, provider-specific probe, truth collector, and generated reports so the provider and secret-surface reports reflect the new posture immediately.",
+            "4. For `missing_required_env`, add or restore only the missing provider env names in the managed VAULT secret source. Do not print values to shell history or tracked files.",
+            "5. For `present_key_invalid`, rotate or correct the already-present provider env names instead of widening the env surface.",
+            "6. For `auth_mode_mismatch`, verify the upstream auth mode or alias contract before changing secrets, and only redeploy if the chosen auth path requires a config or env update.",
+            "7. Recreate or redeploy only the `litellm` container when the env set or config actually changed. Use `docker restart litellm` only when the config file changed and the env set did not.",
+            "8. Re-run the env audit, provider-specific probe, truth collector, and generated reports so the provider and secret-surface reports reflect the new posture immediately.",
             "",
             "## Backup Commands",
             "",
@@ -3505,10 +3866,76 @@ def render_vault_redis_repair_packet() -> str:
     return "\n".join(lines)
 
 
+def _vault_provider_blocker_groups(
+    provider_catalog: dict[str, Any],
+    provider_usage_capture_index: dict[str, dict[str, Any]],
+    vault_litellm_env_audit: dict[str, Any],
+    credential_env_names: set[str],
+) -> dict[str, list[str]]:
+    providers = [
+        dict(provider)
+        for provider in provider_catalog.get("providers", [])
+        if isinstance(provider, dict) and str((dict(provider.get("evidence") or {}).get("kind") or "")) == "vault_litellm_proxy"
+    ]
+    groups = {
+        "missing_secret_env_blockers": [],
+        "present_key_or_auth_mode_failures": [],
+        "unresolved_auth_failures": [],
+        "direct_env_gap_not_currently_blocking": [],
+    }
+    for provider in sorted(providers, key=lambda entry: str(entry.get("id") or "")):
+        provider_id = str(provider.get("id") or "").strip()
+        if not provider_id:
+            continue
+        explicit_code = str(dict(provider.get("vault_remediation") or {}).get("classification") or "").strip()
+        provider_usage_capture = provider_usage_capture_index.get(provider_id, {})
+        evidence_posture = _provider_evidence_posture(
+            provider,
+            tooling_entries=[],
+            credential_env_names=credential_env_names,
+            provider_usage_capture=provider_usage_capture,
+        )
+        missing_names = _vault_env_names_for_provider(provider, vault_litellm_env_audit, "container_missing_env_names")
+        present_names = _vault_env_names_for_provider(provider, vault_litellm_env_audit, "container_present_env_names")
+        if evidence_posture == "vault_provider_specific_auth_failed":
+            classification = _classify_vault_auth_failure(
+                provider,
+                provider_usage_capture,
+                vault_litellm_env_audit,
+            )
+            code = str(classification.get("code") or "auth_failed_unknown")
+            if code == "missing_required_env":
+                groups["missing_secret_env_blockers"].append(provider_id)
+            elif code in {"present_key_invalid", "auth_mode_mismatch", "auth_surface_mismatch"}:
+                groups["present_key_or_auth_mode_failures"].append(f"{provider_id} ({code})")
+            elif code == "auth_failed_unknown":
+                groups["unresolved_auth_failures"].append(f"{provider_id} ({code})")
+            elif present_names:
+                groups["present_key_or_auth_mode_failures"].append(f"{provider_id} ({code})")
+            else:
+                groups["unresolved_auth_failures"].append(f"{provider_id} ({code})")
+            continue
+        if explicit_code == "direct_env_gap_not_currently_blocking":
+            groups["direct_env_gap_not_currently_blocking"].append(provider_id)
+            continue
+        if missing_names:
+            groups["direct_env_gap_not_currently_blocking"].append(provider_id)
+    return groups
+
+
 def render_secret_surface_report() -> str:
     registry = load_registry("credential-surface-registry.json")
     latest_snapshot = _load_latest_truth_snapshot()
     vault_litellm_env_audit = _load_vault_litellm_env_audit(latest_snapshot)
+    provider_catalog = load_registry("provider-catalog.json")
+    provider_usage_capture_index = _provider_usage_capture_index(load_optional_json(PROVIDER_USAGE_EVIDENCE_PATH))
+    credential_env_names = _credential_env_names(registry)
+    vault_provider_blocker_groups = _vault_provider_blocker_groups(
+        provider_catalog,
+        provider_usage_capture_index,
+        vault_litellm_env_audit,
+        credential_env_names,
+    )
     launch_command = _vault_container_launch_command(vault_litellm_env_audit)
     surfaces = list(registry.get("surfaces", []))
     remediation_counts = Counter(str(surface.get("remediation_state") or "unknown") for surface in surfaces)
@@ -3534,6 +3961,13 @@ def render_secret_surface_report() -> str:
             ["Remediation state", "Count"],
             [[f"`{state}`", str(count)] for state, count in sorted(remediation_counts.items())],
         ),
+        "",
+        "### VAULT provider blockers",
+        "",
+        f"- Missing-secret env blockers: {list_or_none(vault_provider_blocker_groups['missing_secret_env_blockers'])}",
+        f"- Present-key, auth-mode, or auth-surface mismatch failures: {list_or_none(vault_provider_blocker_groups['present_key_or_auth_mode_failures'])}",
+        f"- Unresolved auth failures: {list_or_none(vault_provider_blocker_groups['unresolved_auth_failures'])}",
+        f"- Direct env gaps not currently blocking a live observed path: {list_or_none(vault_provider_blocker_groups['direct_env_gap_not_currently_blocking'])}",
         "",
         *_render_table(
             ["Surface", "Host", "Delivery", "Target", "Risk", "Remediation"],
@@ -3591,6 +4025,8 @@ def render_secret_surface_report() -> str:
                     f"- Config-only boundary: `{vault_litellm_env_audit.get('config_only_boundary', 'unknown')}`",
                     f"- Container envs present: {list_or_none(list(vault_litellm_env_audit.get('container_present_env_names', [])))}",
                     f"- Container envs missing: {list_or_none(list(vault_litellm_env_audit.get('container_missing_env_names', [])))}",
+                    f"- Config-referenced envs present at runtime: {list_or_none(list(vault_litellm_env_audit.get('config_referenced_present_env_names', [])))}",
+                    f"- Config-referenced envs missing at runtime: {list_or_none(list(vault_litellm_env_audit.get('config_referenced_missing_env_names', [])))}",
                     f"- Host shell envs present: {list_or_none(list(vault_litellm_env_audit.get('host_shell_present_env_names', [])))}",
                     f"- Host shell envs missing: {list_or_none(list(vault_litellm_env_audit.get('host_shell_missing_env_names', [])))}",
                     f"- dockerMan template matches: {list_or_none(list(vault_litellm_env_audit.get('docker_template_matches', [])))}",
@@ -3633,7 +4069,18 @@ def render_secret_surface_report() -> str:
 
 def render_dashboard_operator_surfaces() -> str:
     registry = load_registry("operator-surface-registry.json")
+    latest_snapshot = _load_latest_truth_snapshot()
+    operator_surface_probe = (
+        dict(latest_snapshot.get("operator_surface_probe") or {})
+        if isinstance(latest_snapshot, dict)
+        else {}
+    )
     surfaces = [dict(entry) for entry in registry.get("surfaces", []) if isinstance(entry, dict)]
+    probed_surfaces = {
+        str(surface.get("id") or "").strip(): dict(surface)
+        for surface in operator_surface_probe.get("surfaces", [])
+        if isinstance(surface, dict) and str(surface.get("id") or "").strip()
+    }
     front_door = next(
         (
             entry
@@ -3642,6 +4089,29 @@ def render_dashboard_operator_surfaces() -> str:
         ),
         {},
     )
+
+    def dashboard_surface_payload(entry: dict[str, Any]) -> dict[str, str | None]:
+        surface_id = str(entry.get("id") or "").strip()
+        probe_entry = probed_surfaces.get(surface_id, {})
+        canonical_probe = dict(probe_entry.get("canonical_probe") or {})
+        runtime_probe = dict(probe_entry.get("runtime_probe") or {})
+        return {
+            "id": surface_id,
+            "label": str(entry.get("label") or "").strip(),
+            "description": _surface_description(entry),
+            "url": str(entry.get("canonical_url") or "").strip(),
+            "canonicalUrl": str(entry.get("canonical_url") or "").strip(),
+            "runtimeUrl": str(entry.get("runtime_url") or "").strip(),
+            "node": _surface_node_label(str(entry.get("node") or "").strip()),
+            "category": _surface_category(str(entry.get("operator_role") or "").strip()),
+            "operatorRole": str(entry.get("operator_role") or "").strip(),
+            "status": str(entry.get("status") or "").strip(),
+            "canonicalState": _operator_surface_probe_state(canonical_probe),
+            "canonicalDetail": _operator_surface_probe_detail_text(canonical_probe),
+            "runtimeState": _operator_surface_probe_state(runtime_probe),
+            "runtimeDetail": _operator_surface_probe_detail_text(runtime_probe),
+        }
+
     launchpad_surfaces = [
         entry
         for entry in surfaces
@@ -3651,16 +4121,7 @@ def render_dashboard_operator_surfaces() -> str:
     ]
     launchpad_surfaces.sort(key=lambda entry: (str(entry.get("operator_role") or ""), str(entry.get("label") or "")))
     external_tools = [
-        {
-            "id": str(entry.get("id") or "").strip(),
-            "label": str(entry.get("label") or "").strip(),
-            "description": _surface_description(entry),
-            "url": str(entry.get("canonical_url") or "").strip(),
-            "node": _surface_node_label(str(entry.get("node") or "").strip()),
-            "category": _surface_category(str(entry.get("operator_role") or "").strip()),
-            "operatorRole": str(entry.get("operator_role") or "").strip(),
-            "status": str(entry.get("status") or "").strip(),
-        }
+        dashboard_surface_payload(entry)
         for entry in launchpad_surfaces
         if str(entry.get("id") or "").strip() and str(entry.get("canonical_url") or "").strip()
     ]
@@ -3673,9 +4134,24 @@ def render_dashboard_operator_surfaces() -> str:
         }
         for entry in external_tools
     ]
+    front_door_probe = probed_surfaces.get(str(front_door.get("id") or "").strip(), {})
+    front_door_canonical_probe = dict(front_door_probe.get("canonical_probe") or {})
+    front_door_runtime_probe = dict(front_door_probe.get("runtime_probe") or {})
     payload = {
-        "generatedAt": str(registry.get("updated_at") or ""),
-        "sourceOfTruth": "config/automation-backbone/operator-surface-registry.json",
+        "generatedAt": str(
+            (
+                latest_snapshot.get("collected_at")
+                if isinstance(latest_snapshot, dict)
+                else ""
+            )
+            or registry.get("updated_at")
+            or ""
+        ),
+        "registryUpdatedAt": str(registry.get("updated_at") or ""),
+        "runtimeObservedAt": str(
+            latest_snapshot.get("collected_at") if isinstance(latest_snapshot, dict) else ""
+        ),
+        "sourceOfTruth": "config/automation-backbone/operator-surface-registry.json + reports/truth-inventory/latest.json#operator_surface_probe",
         "frontDoor": {
             "id": str(front_door.get("id") or "").strip(),
             "label": str(front_door.get("label") or "").strip(),
@@ -3686,6 +4162,10 @@ def render_dashboard_operator_surfaces() -> str:
             "deploymentMode": str(front_door.get("deployment_mode") or "").strip(),
             "targetDeploymentMode": str(front_door.get("target_deployment_mode") or "").strip(),
             "description": _surface_description(front_door),
+            "canonicalState": _operator_surface_probe_state(front_door_canonical_probe),
+            "canonicalDetail": _operator_surface_probe_detail_text(front_door_canonical_probe),
+            "runtimeState": _operator_surface_probe_state(front_door_runtime_probe),
+            "runtimeDetail": _operator_surface_probe_detail_text(front_door_runtime_probe),
         },
         "externalTools": external_tools,
         "quickLinks": quick_links,

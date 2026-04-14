@@ -12,11 +12,11 @@ agent_dev_host: "{{ dev_ip | default('192.168.1.189') }}"
 agent_litellm_url: "http://{{ agent_vault_host }}:4000"
 agent_litellm_api_key: "{{ athanor_litellm_api_key | default('') }}"
 agent_llm_model: "reasoning"
-agent_llm_model_fast: "fast"
+agent_llm_model_fast: "coder"
 
 # Direct runtime endpoints
 agent_vllm_coordinator_url: "http://{{ agent_node1_host }}:8000"
-agent_vllm_coder_url: "http://{{ agent_node1_host }}:8006"
+agent_vllm_coder_url: "http://{{ agent_node1_host }}:8100"
 agent_vllm_worker_url: "http://{{ agent_node2_host }}:8010"
 agent_vllm_embedding_url: "http://{{ agent_dev_host }}:8001"
 agent_vllm_reranker_url: "http://{{ agent_dev_host }}:8003"

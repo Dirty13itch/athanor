@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Deploy agent server to FOUNDRY - sync, build, restart
-# Usage: ./scripts/deploy-agents.sh [--no-build]
+# Usage: ./scripts/deploy-agents.sh [--no-build] [--project-only]
 
 # Source cluster config
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,32 +11,89 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FOUNDRY="${ATHANOR_FOUNDRY_SSH_HOST:-foundry}"
 REMOTE_DIR="/opt/athanor/agents"
+REMOTE_WORKSPACE_ROOT="/opt/athanor"
 SRC_DIR="${REPO_DIR}/projects/agents"
 AGENT_URL="${ATHANOR_AGENT_SERVER_URL:-${AGENT_SERVER_URL}}"
 BACKUP_ROOT="/opt/athanor/backups/agents/$(date +%Y%m%d-%H%M%S)"
+NO_BUILD=0
+PROJECT_ONLY=0
+SSH_OPTS=(
+    -o BatchMode=yes
+    -o ConnectTimeout=15
+    -o ServerAliveInterval=15
+    -o ServerAliveCountMax=2
+)
+REMOTE_STEP_TIMEOUT="10m"
+REMOTE_BUILD_TIMEOUT="30m"
+REMOTE_LOG_TIMEOUT="2m"
+LOCAL_SYNC_ARCHIVE="$(mktemp "${TMPDIR:-/tmp}/athanor-agents-sync.XXXXXX.tar")"
+
+cleanup() {
+    rm -f "${LOCAL_SYNC_ARCHIVE}"
+}
+
+trap cleanup EXIT
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --no-build)
+            NO_BUILD=1
+            shift
+            ;;
+        --project-only)
+            PROJECT_ONLY=1
+            shift
+            ;;
+        *)
+            echo "Usage: ./scripts/deploy-agents.sh [--no-build] [--project-only]"
+            exit 2
+            ;;
+    esac
+done
 
 echo "=== Deploying Athanor Agent Server to FOUNDRY ==="
 
 # Back up current compose root
 echo "[1/4] Backing up current compose root..."
-ssh "${FOUNDRY}" "sudo mkdir -p '${BACKUP_ROOT}' && if [ -d '${REMOTE_DIR}' ]; then sudo cp -a '${REMOTE_DIR}' '${BACKUP_ROOT}/agents'; fi"
+ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_STEP_TIMEOUT} bash -lc \"sudo mkdir -p '${BACKUP_ROOT}' && if [ -d '${REMOTE_DIR}' ]; then sudo cp -a '${REMOTE_DIR}' '${BACKUP_ROOT}/agents'; fi\""
 
 # Sync source code and build-context inputs
 echo "[2/4] Syncing source..."
-ssh "${FOUNDRY}" "mkdir -p '${REMOTE_DIR}' && rm -rf '${REMOTE_DIR}/src' '${REMOTE_DIR}/config' '${REMOTE_DIR}/Dockerfile' '${REMOTE_DIR}/pyproject.toml' '${REMOTE_DIR}/docker-compose.yml'"
+ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_STEP_TIMEOUT} bash -lc \"mkdir -p '${REMOTE_DIR}' && rm -rf '${REMOTE_DIR}/src' '${REMOTE_DIR}/config' '${REMOTE_DIR}/Dockerfile' '${REMOTE_DIR}/pyproject.toml' '${REMOTE_DIR}/docker-compose.yml'\""
 tar \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
     -C "${SRC_DIR}" \
-    -cf - \
+    -cf "${LOCAL_SYNC_ARCHIVE}" \
     src \
     config \
     Dockerfile \
     pyproject.toml \
-    docker-compose.yml \
-    | ssh "${FOUNDRY}" "cd '${REMOTE_DIR}' && tar -xf -"
+    docker-compose.yml
+scp "${SSH_OPTS[@]}" "${LOCAL_SYNC_ARCHIVE}" "${FOUNDRY}:/tmp/athanor-agents-sync.tar"
+ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_STEP_TIMEOUT} bash -lc \"cd '${REMOTE_DIR}' && tar -xf /tmp/athanor-agents-sync.tar && rm -f /tmp/athanor-agents-sync.tar\""
 
-if [[ "${1:-}" == "--no-build" ]]; then
+echo "[2b/4] Syncing shared control-plane config and truth inventory..."
+if [[ "${PROJECT_ONLY}" == "1" ]]; then
+    echo "[2b/4] Skipped shared control-plane sync (--project-only)"
+else
+    ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_STEP_TIMEOUT} bash -lc \"sudo mkdir -p '${REMOTE_WORKSPACE_ROOT}/config' '${REMOTE_WORKSPACE_ROOT}/reports'\""
+    tar \
+        -C "${REPO_DIR}/config" \
+        -cf - \
+        automation-backbone \
+        | ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_STEP_TIMEOUT} bash -lc \"rm -rf ~/automation-backbone.sync && mkdir -p ~/automation-backbone.sync && cd ~ && tar -xf - && sudo rm -rf '${REMOTE_WORKSPACE_ROOT}/config/automation-backbone' && sudo cp -a ~/automation-backbone '${REMOTE_WORKSPACE_ROOT}/config/automation-backbone' && rm -rf ~/automation-backbone\""
+
+    if [[ -d "${REPO_DIR}/reports/truth-inventory" ]]; then
+        tar \
+            -C "${REPO_DIR}/reports" \
+            -cf - \
+            truth-inventory \
+            | ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_STEP_TIMEOUT} bash -lc \"rm -rf ~/truth-inventory.sync && mkdir -p ~/truth-inventory.sync && cd ~ && tar -xf - && sudo rm -rf '${REMOTE_WORKSPACE_ROOT}/reports/truth-inventory' && sudo cp -a ~/truth-inventory '${REMOTE_WORKSPACE_ROOT}/reports/truth-inventory' && rm -rf ~/truth-inventory\""
+    fi
+fi
+
+if [[ "${NO_BUILD}" == "1" ]]; then
     echo "[3/4] Skipped (--no-build)"
     echo "[4/4] Code synced - container not rebuilt"
     exit 0
@@ -44,13 +101,13 @@ fi
 
 # Rebuild and restart
 echo "[3/4] Building and restarting..."
-ssh "${FOUNDRY}" "cd ${REMOTE_DIR} && docker compose build -q && docker compose up -d"
+ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_BUILD_TIMEOUT} bash -lc \"cd ${REMOTE_DIR} && docker compose build -q && docker compose up -d\""
 
 # Wait for health
 echo "[4/4] Verifying health..."
 for i in $(seq 1 20); do
-    if curl -sf "${AGENT_URL%/}/health" > /dev/null 2>&1; then
-        AGENTS=$(curl -s "${AGENT_URL%/}/health" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'{len(d[\"agents\"])} agents healthy')")
+    if curl -sf --max-time 10 "${AGENT_URL%/}/v1/agents" > /dev/null 2>&1; then
+        AGENTS=$(curl -sS --max-time 10 "${AGENT_URL%/}/v1/agents" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'{len(d.get(\"agents\", []))} agents healthy')")
         echo "=== Deploy complete - ${AGENTS} ==="
         exit 0
     fi
@@ -58,5 +115,5 @@ for i in $(seq 1 20); do
 done
 
 echo "ERROR: Agent server did not become healthy within 40s"
-ssh "${FOUNDRY}" "docker logs athanor-agents --tail 20"
+ssh "${SSH_OPTS[@]}" "${FOUNDRY}" "timeout --preserve-status --kill-after=30s ${REMOTE_LOG_TIMEOUT} bash -lc \"docker logs athanor-agents --tail 20\""
 exit 1

@@ -24,6 +24,8 @@ services:
     command:
       - --model
       - {{ vllm_embedding_model }}
+      - --served-model-name
+      - {{ vllm_embedding_served_model_name }}
       - --task
       - embedding
       - --host

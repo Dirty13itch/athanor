@@ -3,9 +3,11 @@ from unittest.mock import AsyncMock, patch
 
 from athanor_agents.provider_execution import (
     HANDOFFS_KEY,
+    HANDOFF_EVENTS_KEY,
     build_provider_execution_snapshot,
     create_handoff_bundle,
     execute_provider_request,
+    list_handoff_events,
     list_handoff_bundles,
     record_handoff_outcome,
 )
@@ -85,6 +87,21 @@ class FakeImprovementEngine:
 
 
 class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_list_handoff_events_sorts_iso_and_unix_timestamps(self) -> None:
+        fake_redis = FakeRedis()
+        await fake_redis.lpush(
+            HANDOFF_EVENTS_KEY,
+            '{"id":"older","event":"provider_execution","timestamp":1710000000}',
+        )
+        await fake_redis.lpush(
+            HANDOFF_EVENTS_KEY,
+            '{"id":"newer","event":"provider_execution","timestamp":"2026-03-24T16:32:47Z"}',
+        )
+        with patch("athanor_agents.provider_execution._get_redis", AsyncMock(return_value=fake_redis)):
+            events = await list_handoff_events(limit=5)
+
+        self.assertEqual(["newer", "older"], [event["id"] for event in events])
+
     async def test_list_handoff_bundles_sorts_iso_and_unix_timestamps(self) -> None:
         fake_redis = FakeRedis()
         await fake_redis.hset(
@@ -160,8 +177,8 @@ class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("catalog_version", snapshot)
         self.assertIn("catalog_source", snapshot)
         glm_posture = next(entry for entry in snapshot["provider_posture"] if entry["provider"] == "zai_glm_coding")
-        self.assertEqual("governed_handoff_only", glm_posture["routing_posture"])
-        self.assertIn("policy_governed_handoff_only", glm_posture["state_reasons"])
+        self.assertEqual("ordinary_auto", glm_posture["routing_posture"])
+        self.assertIn("handoff_only_execution_path", glm_posture["state_reasons"])
         self.assertGreaterEqual(
             snapshot["provider_state_counts"].get("handoff_only", 0)
             + snapshot["provider_state_counts"].get("degraded", 0),
@@ -340,6 +357,24 @@ class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(1, snapshot["direct_execution_count"])
         self.assertEqual(1, snapshot["handoff_only_count"])
 
+    async def test_execute_provider_request_records_handoff_created_lease_outcome(self) -> None:
+        fake_redis = FakeRedis()
+        with (
+            patch("athanor_agents.provider_execution._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.subscriptions._get_redis", AsyncMock(return_value=fake_redis)),
+            patch("athanor_agents.provider_execution._resolve_command", return_value=None),
+        ):
+            result = await execute_provider_request(
+                requester="coding-agent",
+                prompt="Advance the next governed async backlog claim.",
+                task_class="async_backlog_execution",
+            )
+            leases = await list_execution_leases(limit=5)
+
+        self.assertEqual("handoff_created", result["status"])
+        self.assertEqual("pending", result["handoff"]["status"])
+        self.assertEqual("handoff_created", leases[0]["outcome"])
+
     async def test_execute_provider_request_falls_back_to_handoff_after_direct_failure(self) -> None:
         fake_redis = FakeRedis()
         with (
@@ -372,6 +407,7 @@ class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
                 prompt="Implement the next multi-file batch.",
                 task_class="multi_file_implementation",
             )
+            leases = await list_execution_leases(limit=5)
 
         self.assertEqual("fallback_to_handoff", result["status"])
         self.assertEqual("direct_cli", result["adapter"]["execution_mode"])
@@ -379,6 +415,7 @@ class ProviderExecutionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("direct_cli", result["handoff"]["fallback_from_execution_mode"])
         self.assertIn("simulated failure", result["handoff"]["fallback_reason"])
         self.assertIn("downgraded to handoff mode", " ".join(result["handoff"]["notes"]))
+        self.assertEqual("fallback_to_handoff", leases[0]["outcome"])
 
     async def test_record_handoff_outcome_serializes_timestamps_and_updates_linked_lease(self) -> None:
         fake_redis = FakeRedis()

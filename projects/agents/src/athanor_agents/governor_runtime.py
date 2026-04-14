@@ -589,9 +589,9 @@ class Governor:
             {"mode": mode, "state": state, "reason": reason, "actor": actor},
         )
 
-    async def record_heartbeat(self, source: str = "dashboard"):
+    async def record_heartbeat(self, source: str = "dashboard", state: str = "at_desk"):
         await _governor_backbone().record_presence_heartbeat(
-            "at_desk",
+            state,
             source=source,
             reason="Dashboard heartbeat updated operator presence.",
             actor=source or "dashboard-heartbeat",
@@ -724,80 +724,7 @@ class Governor:
         ]
 
     async def _build_capacity(self) -> dict:
-        from .scheduler import get_scheduler_health
-        from .tasks import get_task_stats
-
-        try:
-            task_stats = await get_task_stats()
-        except Exception:
-            task_stats = {}
-
-        try:
-            ws_stats = await get_workspace_stats()
-        except Exception:
-            ws_stats = {}
-
-        try:
-            sched = await get_scheduler_health()
-        except Exception:
-            sched = {}
-
-        by_status = task_stats.get("by_status", {})
-        pending = by_status.get("pending", 0)
-        running = task_stats.get("currently_running", 0)
-        failed = by_status.get("failed", 0)
-        max_concurrent = task_stats.get("max_concurrent", 2)
-
-        ws_items = ws_stats.get("item_count", 0) if isinstance(ws_stats, dict) else 0
-        ws_capacity = 7
-
-        if pending > 20:
-            q_posture = "overloaded"
-        elif pending > 10:
-            q_posture = "busy"
-        elif running > 0:
-            q_posture = "working"
-        else:
-            q_posture = "idle"
-
-        if q_posture == "overloaded":
-            posture = "constrained"
-        elif failed > 5:
-            posture = "degraded"
-        else:
-            posture = "healthy"
-
-        sched_running = sched.get("running", False)
-        agent_schedules = sched.get("agent_schedules", {})
-        enabled_count = sum(1 for schedule in agent_schedules.values() if schedule.get("enabled", True))
-
-        return {
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "posture": posture,
-            "queue": {
-                "posture": q_posture,
-                "pending": pending,
-                "running": running,
-                "max_concurrent": max_concurrent,
-                "failed": failed,
-            },
-            "workspace": {
-                "broadcast_items": ws_items,
-                "capacity": ws_capacity,
-                "utilization": round(ws_items / ws_capacity, 2) if ws_capacity else 0,
-            },
-            "scheduler": {
-                "running": sched_running,
-                "enabled_count": enabled_count,
-            },
-            "provider_reserve": {
-                "posture": "healthy",
-                "constrained_count": 0,
-            },
-            "active_time_windows": [],
-            "nodes": await self._probe_nodes(),
-            "recommendations": [],
-        }
+        return await _governor_backbone().build_capacity_snapshot()
 
     async def _probe_nodes(self) -> list[dict]:
         import httpx

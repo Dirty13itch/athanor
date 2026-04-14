@@ -39,41 +39,41 @@ prometheus_scrape_targets:
     targets: ["localhost:9199"]
 
 prometheus_probe_targets:
-  - id: foundry-coordinator
-    name: "Foundry Coordinator"
-    url: "http://{{ node1_ip }}:8000/v1/models"
+  - id: foundry_coordinator_api
+    name: "Foundry Coordinator API"
+    url: "http://{{ node1_ip }}:8000/health"
     category: inference
-    node_id: node1
-  - id: foundry-coder
-    name: "Foundry Coder"
+    node_id: foundry
+  - id: foundry_coder_api
+    name: "Foundry Coder API"
     url: "http://{{ node1_ip }}:8006/health"
     category: inference
-    node_id: node1
-  - id: workshop-worker
-    name: "Workshop Worker"
-    url: "http://{{ node2_ip }}:8010/v1/models"
+    node_id: foundry
+  - id: workshop_worker_api
+    name: "Workshop Worker API"
+    url: "http://{{ node2_ip }}:8010/health"
     category: inference
-    node_id: node2
-  - id: dev-embedding
-    name: "DEV Embedding"
+    node_id: workshop
+  - id: embedding_api
+    name: "Embedding API"
     url: "http://{{ dev_ip }}:8001/health"
     category: knowledge
     node_id: dev
-  - id: dev-reranker
-    name: "DEV Reranker"
+  - id: reranker_api
+    name: "Reranker API"
     url: "http://{{ dev_ip }}:8003/health"
     category: knowledge
     node_id: dev
-  - id: litellm
+  - id: vault_litellm_proxy
     name: "LiteLLM Proxy"
     url: "http://{{ vault_ip }}:4000/health/readiness"
     category: inference
     node_id: vault
-  - id: agent-server
+  - id: agent_server
     name: "Agent Server"
     url: "http://{{ node1_ip }}:9000/health"
     category: platform
-    node_id: node1
+    node_id: foundry
   - id: prometheus
     name: "Prometheus"
     url: "http://{{ vault_ip }}:9090/-/healthy"
@@ -84,26 +84,31 @@ prometheus_probe_targets:
     url: "http://{{ vault_ip }}:3000/api/health"
     category: observability
     node_id: vault
+  - id: uptime_kuma
+    name: "Uptime Kuma"
+    url: "http://{{ vault_ip }}:3009/"
+    category: observability
+    node_id: vault
   - id: node1-node-exporter
-    name: "Node Exporter (Node 1)"
+    name: "Node Exporter (FOUNDRY)"
     url: "http://{{ node1_ip }}:9100/metrics"
     category: observability
-    node_id: node1
+    node_id: foundry
   - id: node2-node-exporter
-    name: "Node Exporter (Node 2)"
+    name: "Node Exporter (WORKSHOP)"
     url: "http://{{ node2_ip }}:9100/metrics"
     category: observability
-    node_id: node2
+    node_id: workshop
   - id: node1-dcgm-exporter
-    name: "DCGM Exporter (Node 1)"
+    name: "DCGM Exporter (FOUNDRY)"
     url: "http://{{ node1_ip }}:9400/metrics"
     category: observability
-    node_id: node1
+    node_id: foundry
   - id: node2-dcgm-exporter
-    name: "DCGM Exporter (Node 2)"
+    name: "DCGM Exporter (WORKSHOP)"
     url: "http://{{ node2_ip }}:9400/metrics"
     category: observability
-    node_id: node2
+    node_id: workshop
   - id: dev-node-exporter
     name: "Node Exporter (DEV)"
     url: "http://{{ dev_ip }}:9100/metrics"
@@ -118,17 +123,32 @@ prometheus_probe_targets:
     name: "ComfyUI"
     url: "http://{{ node2_ip }}:8188/system_stats"
     category: experience
-    node_id: node2
-  - id: dashboard
+    node_id: workshop
+  - id: athanor_command_center
     name: "Athanor Command Center"
     url: "http://dev.athanor.local:3001/api/operator/session"
     category: experience
     node_id: dev
-  - id: gpu-orchestrator
+  - id: quality_gate
+    name: "Quality Gate"
+    url: "http://{{ dev_ip }}:8790/health"
+    category: platform
+    node_id: dev
+  - id: semantic_router
+    name: "Semantic Router"
+    url: "http://{{ dev_ip }}:8060/health"
+    category: platform
+    node_id: dev
+  - id: subscription_burn
+    name: "Subscription Burn"
+    url: "http://{{ dev_ip }}:8065/health"
+    category: platform
+    node_id: dev
+  - id: gpu_orchestrator
     name: "GPU Orchestrator"
     url: "http://{{ node1_ip }}:9200/health"
     category: platform
-    node_id: node1
+    node_id: foundry
   - id: ntfy
     name: "ntfy"
     url: "http://{{ vault_ip }}:8880/v1/health"
@@ -143,34 +163,44 @@ prometheus_probe_targets:
     name: "Empire of Broken Queens"
     url: "http://{{ node2_ip }}:3002"
     category: experience
-    node_id: node2
-  - id: ulrich-energy
+    node_id: workshop
+  - id: ulrich_energy
     name: "Ulrich Energy"
     url: "http://{{ node2_ip }}:3003"
     category: experience
-    node_id: node2
+    node_id: workshop
+  - id: ws_pty_bridge
+    name: "WS PTY Bridge"
+    url: "http://{{ node2_ip }}:3100/health"
+    category: platform
+    node_id: workshop
+  - id: aesthetic_scorer_api
+    name: "Aesthetic Scorer API"
+    url: "http://{{ node2_ip }}:8050/health"
+    category: creative
+    node_id: workshop
   - id: speaches
     name: "Speaches"
     url: "http://{{ node1_ip }}:8200/docs"
     category: inference
-    node_id: node1
-  - id: workshop-open-webui
-    name: "Open WebUI (Workshop)"
+    node_id: foundry
+  - id: workshop_open_webui
+    name: "Open WebUI (WORKSHOP)"
     url: "http://{{ node2_ip }}:3000"
     category: experience
-    node_id: node2
-  - id: vault-open-webui
+    node_id: workshop
+  - id: vault_open_webui
     name: "Open WebUI (VAULT)"
     url: "http://{{ vault_ip }}:3090"
     category: experience
     node_id: vault
-  - id: qdrant
-    name: "Qdrant"
+  - id: qdrant_api
+    name: "Qdrant API"
     url: "http://{{ vault_ip }}:6333/collections"
     category: knowledge
     node_id: vault
-  - id: neo4j
-    name: "Neo4j"
+  - id: neo4j_browser
+    name: "Neo4j Browser"
     url: "http://{{ vault_ip }}:7474"
     category: knowledge
     node_id: vault
@@ -194,6 +224,11 @@ prometheus_probe_targets:
     url: "http://{{ vault_ip }}:8080/api?mode=version&output=json"
     category: media
     node_id: vault
+  - id: stash
+    name: "Stash"
+    url: "http://{{ vault_ip }}:9999"
+    category: media
+    node_id: vault
   - id: tautulli
     name: "Tautulli"
     url: "http://{{ vault_ip }}:8181"
@@ -204,7 +239,7 @@ prometheus_probe_targets:
     url: "http://{{ vault_ip }}:32400/identity"
     category: media
     node_id: vault
-  - id: home-assistant
+  - id: home_assistant
     name: "Home Assistant"
     url: "http://{{ vault_ip }}:8123/"
     category: home

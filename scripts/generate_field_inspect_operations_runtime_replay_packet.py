@@ -85,6 +85,40 @@ def _run_git(*args: str) -> str:
     return completed.stdout.strip()
 
 
+def _git_ref_exists(ref: str) -> bool:
+    completed = subprocess.run(
+        ["git", "-C", str(FIELD_INSPECT_ROOT), "rev-parse", "--verify", "--quiet", ref],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+        check=False,
+    )
+    return completed.returncode == 0
+
+
+def _load_existing_report() -> dict[str, Any]:
+    if not OUTPUT_PATH.exists():
+        return {}
+    try:
+        payload = json.loads(OUTPUT_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _cached_replay_paths(existing_report: dict[str, Any]) -> list[str]:
+    buckets = existing_report.get("buckets", {})
+    if not isinstance(buckets, dict):
+        return []
+    replay_paths: set[str] = set()
+    for bucket_paths in buckets.values():
+        if isinstance(bucket_paths, list):
+            replay_paths.update(str(path).strip() for path in bucket_paths if str(path).strip())
+    return sorted(replay_paths)
+
+
 def _status_dirty_paths() -> list[str]:
     status_lines = _run_git("status", "--porcelain").splitlines()
     paths: list[str] = []
@@ -130,10 +164,22 @@ def _execution_posture(overlap_paths: list[str], safe_runtime_overlap_paths: lis
 
 
 def main() -> int:
+    existing_report = _load_existing_report()
     dirty_paths = _status_dirty_paths()
-    replay_paths = [
-        path for path in _run_git("diff", "--name-only", f"{PRIMARY_BRANCH}..{REPLAY_BRANCH}").splitlines() if path
-    ]
+    primary_branch_available = _git_ref_exists(PRIMARY_BRANCH)
+    replay_branch_available = _git_ref_exists(REPLAY_BRANCH)
+    replay_inventory_source = "live_branch_diff"
+    if primary_branch_available and replay_branch_available:
+        primary_head = _run_git("rev-parse", "--short", PRIMARY_BRANCH)
+        replay_head = _run_git("rev-parse", "--short", REPLAY_BRANCH)
+        replay_paths = [
+            path for path in _run_git("diff", "--name-only", f"{PRIMARY_BRANCH}..{REPLAY_BRANCH}").splitlines() if path
+        ]
+    else:
+        primary_head = str(existing_report.get("primary_head") or "").strip() or _run_git("rev-parse", "--short", "HEAD")
+        replay_head = str(existing_report.get("replay_head") or "").strip() or None
+        replay_paths = _cached_replay_paths(existing_report)
+        replay_inventory_source = "cached_branch_inventory" if replay_paths else "no_branch_inventory_available"
     overlap_paths = sorted(set(dirty_paths) & set(replay_paths))
     safe_runtime_overlap_paths = [
         path for path in overlap_paths if _matches_prefixes(path, SAFE_RUNTIME_PREFIXES)
@@ -153,9 +199,12 @@ def main() -> int:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "field_inspect_root": str(FIELD_INSPECT_ROOT),
         "primary_branch": PRIMARY_BRANCH,
-        "primary_head": _run_git("rev-parse", "--short", PRIMARY_BRANCH),
+        "primary_head": primary_head,
         "replay_branch": REPLAY_BRANCH,
-        "replay_head": _run_git("rev-parse", "--short", REPLAY_BRANCH),
+        "replay_head": replay_head,
+        "replay_inventory_source": replay_inventory_source,
+        "primary_branch_available": primary_branch_available,
+        "replay_branch_available": replay_branch_available,
         "execution_posture": _execution_posture(overlap_paths, safe_runtime_overlap_paths),
         "dirty_primary_paths": dirty_paths,
         "dirty_primary_count": len(dirty_paths),

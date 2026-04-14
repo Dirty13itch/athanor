@@ -11,6 +11,10 @@ services:
     volumes:
       - {{ eoq_references_dir }}:/references:rw
     environment:
+      - ATHANOR_LITELLM_URL={{ eoq_litellm_url }}
+      - ATHANOR_LITELLM_API_KEY={{ eoq_litellm_api_key }}
+      - ATHANOR_COMFYUI_URL={{ eoq_comfyui_url }}
+      - ATHANOR_QDRANT_URL={{ eoq_qdrant_url }}
       - LITELLM_URL={{ eoq_litellm_url }}
       - LITELLM_KEY={{ eoq_litellm_api_key }}
       - COMFYUI_URL={{ eoq_comfyui_url }}

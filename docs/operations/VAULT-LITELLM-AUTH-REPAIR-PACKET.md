@@ -6,9 +6,9 @@ Do not edit manually.
 This packet is the repo-safe execution guide for an approved VAULT LiteLLM provider-auth maintenance window. It scopes the live work to the `litellm` container env surface only and keeps runtime mutation approval-gated.
 
 - Credential surface version: `2026-04-02.1`
-- Provider catalog version: `2026-03-29.1`
-- Cached truth snapshot: `2026-04-08T06:45:40.502384+00:00`
-- Cached env audit: `2026-04-08T06:45:26Z`
+- Provider catalog version: `2026-04-13.0`
+- Cached truth snapshot: `2026-04-14T21:22:24.245183+00:00`
+- Cached env audit: `2026-04-14T21:22:11Z`
 - Surface id: `vault-litellm-container-env`
 - Host: `vault`
 - Runtime owner surface: `standalone_docker_container`
@@ -27,47 +27,55 @@ This packet is the repo-safe execution guide for an approved VAULT LiteLLM provi
 
 ## Current Runtime Truth
 
-- Container envs present: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `VENICE_API_KEY`
-- Container envs missing: `DASHSCOPE_API_KEY`, `MOONSHOT_API_KEY`, `ZAI_API_KEY`
+- Container envs present: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `VENICE_API_KEY`, `ZAI_API_KEY`
+- Container envs missing: `DASHSCOPE_API_KEY`, `MOONSHOT_API_KEY`
+- Config-referenced envs present at runtime: `CODESTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `GOOGLE_API_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `VENICE_API_KEY`, `ZAI_API_KEY`
+- Config-referenced envs missing at runtime: `DASHSCOPE_API_KEY`
 - Host shell envs present: none
 - Host shell envs missing: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `VENICE_API_KEY`, `ZAI_API_KEY`
-- Runtime appdata files: `/mnt/user/appdata/litellm/backups/config.yaml.$ts.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260329-191944.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260329-192005.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260330-022430.bak`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260329-191944.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022430.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.rollback-source.20260330-022725.json`, `/mnt/user/appdata/litellm/config.yaml`, `/mnt/user/appdata/litellm/config.yaml.bak`, `/mnt/user/appdata/litellm/config.yaml.bak-20260318-2354`, `/mnt/user/appdata/litellm/config.yaml.bak-20260319-0936`, `/mnt/user/appdata/litellm/config.yaml.bak-20260407`, `/mnt/user/appdata/litellm/config.yaml.bak-tier24`, `/mnt/user/appdata/litellm/config.yaml.bak.1344`, `/mnt/user/appdata/litellm/config.yaml.bak.1772921405`, `/mnt/user/appdata/litellm/config.yaml.bak.1773047728`, `/mnt/user/appdata/litellm/config.yaml.bak.1773469196`, `/mnt/user/appdata/litellm/config.yaml.bak.1773546264`, `/mnt/user/appdata/litellm/config.yaml.broken`, `/mnt/user/appdata/litellm/config.yaml.pre-reroute`
+- Runtime appdata files: `/mnt/user/appdata/litellm/backups/config.yaml.$ts.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260329-191944.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260329-192005.bak`, `/mnt/user/appdata/litellm/backups/config.yaml.20260330-022430.bak`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260329-191944.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022430.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json`, `/mnt/user/appdata/litellm/backups/litellm.inspect.rollback-source.20260330-022725.json`, `/mnt/user/appdata/litellm/config.yaml`, `/mnt/user/appdata/litellm/config.yaml.bak`, `/mnt/user/appdata/litellm/config.yaml.bak-20260318-2354`, `/mnt/user/appdata/litellm/config.yaml.bak-20260319-0936`, `/mnt/user/appdata/litellm/config.yaml.bak-20260407`, `/mnt/user/appdata/litellm/config.yaml.bak-20260408`, `/mnt/user/appdata/litellm/config.yaml.bak-20260409-session4`, `/mnt/user/appdata/litellm/config.yaml.bak-tier24`, `/mnt/user/appdata/litellm/config.yaml.bak.1344`, `/mnt/user/appdata/litellm/config.yaml.bak.1772921405`, `/mnt/user/appdata/litellm/config.yaml.bak.1773047728`, `/mnt/user/appdata/litellm/config.yaml.bak.1773469196`, `/mnt/user/appdata/litellm/config.yaml.bak.1773546264`, `/mnt/user/appdata/litellm/config.yaml.broken`, `/mnt/user/appdata/litellm/config.yaml.pre-reroute`
 - Historical inspect backups: `/mnt/user/appdata/litellm/backups/litellm.inspect.20260329-191944.json` -> `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`; `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022430.json` -> `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `OPENAI_API_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`; `/mnt/user/appdata/litellm/backups/litellm.inspect.20260330-022603.json` -> `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`; `/mnt/user/appdata/litellm/backups/litellm.inspect.rollback-source.20260330-022725.json` -> `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DATABASE_URL`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `PATH`, `SSL_CERT_FILE`, `VENICE_API_KEY`
 
 ## Auth-Failed Provider Lanes
 
-| Provider | Served alias | Missing env names | Latest auth failure | Next live action |
-| --- | --- | --- | --- | --- |
-| `dashscope_qwen_api` | `qwen-max` | `DASHSCOPE_API_KEY` | `2026-04-08T05:48:42Z` | Restore `DASHSCOPE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `qwen-max`. |
-| `google_gemini_api` | `gemini` | none | `2026-04-08T05:48:42Z` | Inspect the latest auth failure for served model `gemini` and reconcile `Gemini API` on VAULT. Check `GEMINI_API_KEY`, `GOOGLE_API_KEY` while reconciling the auth path. |
-| `openai_api` | `gpt` | none | `2026-04-08T05:48:44Z` | Rotate `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
-| `openrouter_api` | `openrouter` | none | `2026-04-08T05:48:44Z` | Rotate `OPENROUTER_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `openrouter`. |
-| `zai_api` | `glm-4.7` | `ZAI_API_KEY` | `2026-04-08T05:48:45Z` | Inspect the latest auth failure for served model `glm-4.7` and reconcile `Z.ai API` on VAULT. Check `ZAI_API_KEY` while reconciling the auth path. |
+| Provider | Served alias | Failure class | Present env names | Missing env names | Latest auth failure | Next live action |
+| --- | --- | --- | --- | --- | --- | --- |
+| `dashscope_qwen_api` | `qwen-max` | `auth_surface_mismatch` | none | `DASHSCOPE_API_KEY` | `2026-04-14T00:51:20Z` | Reconcile the actual VAULT credential-delivery path for served model `qwen-max` before rotating secrets blindly. The env audit still marks `DASHSCOPE_API_KEY` as missing, but the latest upstream auth failure shows a bad or expired credential is reaching `DashScope Qwen API`. Inspect alternate secret-delivery surfaces or stale runtime state, then recreate or redeploy `litellm` and re-probe. The config still references `DASHSCOPE_API_KEY` via `os.environ/...` while the runtime env audit marks it missing, so LiteLLM may be forwarding an unresolved placeholder or stale runtime state instead of a live secret. |
+| `google_gemini_api` | `gemini` | `present_key_invalid` | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | none | `2026-04-14T00:51:21Z` | Rotate `GEMINI_API_KEY`, `GOOGLE_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gemini`. |
+| `openai_api` | `gpt` | `present_key_invalid` | `OPENAI_API_KEY` | none | `2026-04-14T00:51:24Z` | Rotate `OPENAI_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `gpt`. |
+| `openrouter_api` | `openrouter` | `present_key_invalid` | `OPENROUTER_API_KEY` | none | `2026-04-14T00:51:24Z` | Rotate `OPENROUTER_API_KEY` in the managed VAULT secret source, recreate or redeploy `litellm`, then re-probe served model `openrouter`. |
+
+Current snapshot note: active VAULT auth failures are presently classified as `auth_surface_mismatch`, `present_key_invalid`. Treat these as the live remediation buckets for this snapshot and refresh the env audit plus provider probe together after each repair.
 
 ## Partial Contract Gaps Without Current Auth Failure
 
 | Provider | Served alias | Present env names | Missing env names | Current posture | Latest verification |
 | --- | --- | --- | --- | --- | --- |
-| `moonshot_api` | `kimi-k2.5` | none | `MOONSHOT_API_KEY` | `vault_provider_specific_api_observed` | `2026-04-08T05:48:44Z` |
+| `moonshot_api` | `kimi-k2.5` | none | `MOONSHOT_API_KEY` | `vault_provider_specific_api_observed` | `2026-04-14T00:51:24Z` |
+
+Current snapshot note: `moonshot_api` is a non-blocking direct-env gap while the served `kimi-k2.5` alias remains provider-observed through VAULT LiteLLM.
 
 ## Already Proven Provider Lanes
 
 | Provider | Served alias | Present env names | Latest proof |
 | --- | --- | --- | --- |
-| `anthropic_api` | `claude` | `ANTHROPIC_API_KEY` | `2026-04-08T05:48:41Z` |
-| `deepseek_api` | `deepseek` | `DEEPSEEK_API_KEY` | `2026-04-08T05:48:42Z` |
-| `mistral_codestral_api` | `codestral` | `CODESTRAL_API_KEY`, `MISTRAL_API_KEY` | `2026-04-08T05:48:42Z` |
-| `moonshot_api` | `kimi-k2.5` | none | `2026-04-08T05:48:44Z` |
-| `venice_api` | `venice-uncensored` | `VENICE_API_KEY` | `2026-04-08T05:48:44Z` |
+| `anthropic_api` | `claude` | `ANTHROPIC_API_KEY` | `2026-04-14T00:51:19Z` |
+| `deepseek_api` | `deepseek` | `DEEPSEEK_API_KEY` | `2026-04-14T00:51:21Z` |
+| `mistral_codestral_api` | `codestral` | `CODESTRAL_API_KEY`, `MISTRAL_API_KEY` | `2026-04-14T00:51:21Z` |
+| `moonshot_api` | `kimi-k2.5` | none | `2026-04-14T00:51:24Z` |
+| `venice_api` | `venice-uncensored` | `VENICE_API_KEY` | `2026-04-14T00:51:24Z` |
+| `zai_api` | `glm-4.7` | `ZAI_API_KEY` | `2026-04-14T00:51:25Z` |
 
 ## Approved Maintenance Sequence
 
 1. Refresh the live env audit and confirm the current missing env-name set before touching VAULT runtime state.
-2. Use the `Auth-Failed Provider Lanes` table to limit changes to the exact missing provider env names instead of changing unrelated LiteLLM settings.
+2. Use the `Auth-Failed Provider Lanes` table to classify each broken lane before changing runtime. The current snapshot can legitimately include `missing_required_env`, `present_key_invalid`, `auth_surface_mismatch`, or `auth_mode_mismatch` depending on how the probe and env audit line up.
 3. Back up the live `litellm` container metadata and the current config bind-mount file before editing the runtime-managed env surface.
-4. Add or restore only the missing provider env names in the managed VAULT secret source. Do not print values to shell history or tracked files.
-5. Recreate or redeploy only the `litellm` container so the updated env set is applied. Use `docker restart litellm` only when the config file changed and the env set did not.
-6. Re-run the env audit, provider-specific probe, truth collector, and generated reports so the provider and secret-surface reports reflect the new posture immediately.
+4. For `missing_required_env`, add or restore only the missing provider env names in the managed VAULT secret source. Do not print values to shell history or tracked files.
+5. For `present_key_invalid`, rotate or correct the already-present provider env names instead of widening the env surface.
+6. For `auth_mode_mismatch`, verify the upstream auth mode or alias contract before changing secrets, and only redeploy if the chosen auth path requires a config or env update.
+7. Recreate or redeploy only the `litellm` container when the env set or config actually changed. Use `docker restart litellm` only when the config file changed and the env set did not.
+8. Re-run the env audit, provider-specific probe, truth collector, and generated reports so the provider and secret-surface reports reflect the new posture immediately.
 
 ## Backup Commands
 

@@ -1,8 +1,14 @@
 {
-  "version": "2026-03-31.1",
-  "updated_at": "2026-03-31T16:00:00Z",
+  "version": "2026-04-11.2",
+  "updated_at": "2026-04-11T11:15:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/project-packet-registry.json",
+  "routing_class_map": {
+    "sovereign_private": "sovereign_only",
+    "adult_sensitive": "sovereign_only",
+    "private": "private_but_cloud_allowed",
+    "public": "public_product_only"
+  },
   "projects": [
     {
       "id": "athanor",
@@ -13,13 +19,23 @@
       "class": "core",
       "visibility": "private",
       "sensitivity": "sovereign_private",
+      "routing_class": "sovereign_only",
+      "routing_reason": "Athanor is the sovereign control plane and runtime truth surface.",
       "runtime_target": "cluster",
       "deploy_target": "cluster",
       "workspace_root": "C:\\Athanor",
       "primary_route": "/projects",
       "owner_domain": "product_foundry",
-      "operators": ["Shaun", "Claude"],
-      "agents": ["coding-agent", "general-assistant", "knowledge-agent", "research-agent"],
+      "operators": [
+        "Shaun",
+        "Claude"
+      ],
+      "agents": [
+        "coding-agent",
+        "general-assistant",
+        "knowledge-agent",
+        "research-agent"
+      ],
       "acceptance_bundle": [
         "Durable operator work surfaces",
         "Registry-backed runtime authority",
@@ -38,13 +54,22 @@
       "class": "tenant",
       "visibility": "private",
       "sensitivity": "adult_sensitive",
+      "routing_class": "sovereign_only",
+      "routing_reason": "Adult-sensitive creative work must stay on sovereign local lanes.",
       "runtime_target": "cluster",
       "deploy_target": "cluster",
       "workspace_root": "C:\\Athanor\\projects\\eoq",
       "primary_route": "/projects",
       "owner_domain": "creative",
-      "operators": ["Shaun", "Claude"],
-      "agents": ["creative-agent", "coding-agent", "research-agent"],
+      "operators": [
+        "Shaun",
+        "Claude"
+      ],
+      "agents": [
+        "creative-agent",
+        "coding-agent",
+        "research-agent"
+      ],
       "acceptance_bundle": [
         "Sovereign-only routing",
         "Narrative + asset pipeline regression checks"
@@ -61,13 +86,21 @@
       "class": "tenant",
       "visibility": "pilot",
       "sensitivity": "private",
+      "routing_class": "private_but_cloud_allowed",
+      "routing_reason": "Private product work may use cloud-safe coding and audit lanes when policy allows.",
       "runtime_target": "vercel",
       "deploy_target": "vercel",
       "workspace_root": "C:\\Athanor\\projects\\kindred",
       "primary_route": "/projects",
       "owner_domain": "product_foundry",
-      "operators": ["Shaun", "Claude"],
-      "agents": ["research-agent", "coding-agent"],
+      "operators": [
+        "Shaun",
+        "Claude"
+      ],
+      "agents": [
+        "research-agent",
+        "coding-agent"
+      ],
       "acceptance_bundle": [
         "Packet-approved scaffold only",
         "No public launch without auth, analytics, and rollback"
@@ -84,13 +117,22 @@
       "class": "tenant",
       "visibility": "pilot",
       "sensitivity": "private",
+      "routing_class": "private_but_cloud_allowed",
+      "routing_reason": "Private field workflow product work may use cloud-safe implementation lanes when packet rules permit.",
       "runtime_target": "vercel",
       "deploy_target": "vercel",
       "workspace_root": "C:\\Athanor\\projects\\ulrich-energy",
       "primary_route": "/projects",
       "owner_domain": "product_foundry",
-      "operators": ["Shaun", "Claude"],
-      "agents": ["coding-agent", "research-agent", "knowledge-agent"],
+      "operators": [
+        "Shaun",
+        "Claude"
+      ],
+      "agents": [
+        "coding-agent",
+        "research-agent",
+        "knowledge-agent"
+      ],
       "acceptance_bundle": [
         "Field workflow packet",
         "Offline-first PWA checklist"
@@ -107,13 +149,20 @@
       "class": "domain",
       "visibility": "private",
       "sensitivity": "sovereign_private",
+      "routing_class": "sovereign_only",
+      "routing_reason": "Media-domain automation and destructive controls remain local-first and approval-gated.",
       "runtime_target": "cluster",
       "deploy_target": "cluster",
       "workspace_root": "C:\\Athanor",
       "primary_route": "/media",
       "owner_domain": "media",
-      "operators": ["Shaun"],
-      "agents": ["media-agent", "stash-agent"],
+      "operators": [
+        "Shaun"
+      ],
+      "agents": [
+        "media-agent",
+        "stash-agent"
+      ],
       "acceptance_bundle": [
         "Sonarr/Radarr/Prowlarr/SAB/Plex/Tautulli health",
         "Approval-gated destructive operations"

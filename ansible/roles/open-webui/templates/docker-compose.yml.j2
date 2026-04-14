@@ -8,10 +8,14 @@ services:
     volumes:
       - open-webui-data:/app/backend/data
     environment:
-      - OPENAI_API_BASE_URL={{ open_webui_vllm_url }}
-      - OPENAI_API_KEY=not-needed
+      - OPENAI_API_BASE_URL={{ open_webui_api_base }}
+      - OPENAI_API_KEY={{ open_webui_api_key }}
       - WEBUI_AUTH=false
       - ENABLE_OLLAMA_API=false
+      - RAG_EMBEDDING_ENGINE=openai
+      - RAG_OPENAI_API_BASE_URL={{ open_webui_api_base }}
+      - RAG_OPENAI_API_KEY={{ open_webui_api_key }}
+      - TZ=America/Chicago
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

@@ -1,7 +1,7 @@
 # VAULT LiteLLM Provider Auth Repair
 
 Source of truth: `config/automation-backbone/credential-surface-registry.json`, `config/automation-backbone/provider-catalog.json`, `docs/operations/SECRET-SURFACE-REPORT.md`, `docs/operations/PROVIDER-CATALOG-REPORT.md`
-Validated against registry version: `credential-surface-registry.json@2026-04-02.1`, `provider-catalog.json@2026-03-29.1`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `credential-surface-registry.json@2026-04-02.1`, `provider-catalog.json@2026-04-13.0`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: live env names and provider auth posture come from the generated audit artifact and reports; this runbook owns the operator sequence and must never record secret values.
 
 ---
@@ -34,16 +34,18 @@ Current runtime evidence should come from:
 
 ## Repair packet
 
-1. Refresh `reports/truth-inventory/vault-litellm-env-audit.json` and confirm which env names are still missing by contract.
+1. Refresh `reports/truth-inventory/vault-litellm-env-audit.json` and confirm the current failure class per provider from [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md): `missing_required_env`, `present_key_invalid`, `auth_mode_mismatch`, or `auth_failed_unknown`.
 2. Back up the current `docker inspect litellm` metadata before touching the runtime-managed env surface.
 3. Confirm the intended provider env vars exist in the managed VAULT LiteLLM secret source by name only; do not print values into shell history or tracked files.
-4. Add or restore only the missing env vars in the runtime-managed container surface for `litellm`.
-5. Keep the config bind mount unchanged unless the served model ids themselves need repair.
-6. Recreate or redeploy the `litellm` container so the updated env set is applied.
-7. Use `docker restart litellm` only when the config file changed but the env set did not.
-8. Re-run `python scripts/vault_litellm_env_audit.py --write reports/truth-inventory/vault-litellm-env-audit.json`.
-9. Re-run `python scripts/probe_provider_usage_evidence.py --all-vault-proxy`.
-10. Regenerate the truth reports so the provider catalog report and secret-surface report reflect the new posture.
+4. For `missing_required_env`, add or restore only the named missing provider env vars in the runtime-managed container surface for `litellm`.
+5. For `present_key_invalid`, rotate or replace the already-present provider env vars instead of widening the env surface.
+6. For `auth_mode_mismatch` or `auth_failed_unknown`, inspect the latest provider failure first and verify the served alias plus upstream auth path before changing the env set.
+7. Keep the config bind mount unchanged unless the served model ids themselves need repair.
+8. Recreate or redeploy the `litellm` container when the env set changed.
+9. Use `docker restart litellm` only when the config file changed but the env set did not.
+10. Re-run `python scripts/vault_litellm_env_audit.py --write reports/truth-inventory/vault-litellm-env-audit.json`.
+11. Re-run `python scripts/probe_provider_usage_evidence.py --all-vault-proxy`.
+12. Regenerate the truth reports so the provider catalog report and secret-surface report reflect the new posture.
 
 ## Read-only verification commands
 
@@ -60,6 +62,6 @@ python scripts/generate_truth_inventory_reports.py --report providers --report s
 
 - This runbook tracks env var names and runtime boundaries only. It must never record secret values.
 - Successful provider-specific probes for `mistral_codestral_api`, `deepseek_api`, and `venice_api` already prove the current runtime surface works when the upstream env var is present.
-- The remaining auth-failed lanes are a runtime credential-delivery problem first, not a missing-probe problem.
+- The remaining auth-failed lanes are not all the same problem anymore: some are missing-env repairs, some are present-key rotations, and some require auth-path inspection before any secret change.
 - Because no dockerMan template or host envfile source was identified by name during the 2026-03-29 read-only scan, any live repair pass should begin by backing up the current `docker inspect litellm` metadata before editing the runtime-managed env surface.
 - The 2026-03-29 host-env check also showed the missing provider keys are absent from the VAULT shell env, so the live repair pass requires an actual secret-source update rather than only a container restart.

@@ -38,6 +38,9 @@ def test_normalize_audit_payload_marks_standalone_runtime_owner_surface() -> Non
             "container_missing_env_names": ["OPENAI_API_KEY"],
             "host_shell_present_env_names": [],
             "host_shell_missing_env_names": ["OPENAI_API_KEY"],
+            "config_referenced_env_names": ["OPENAI_API_KEY", "VENICE_API_KEY"],
+            "config_referenced_present_env_names": ["VENICE_API_KEY"],
+            "config_referenced_missing_env_names": ["OPENAI_API_KEY"],
             "container_image": "ghcr.io/berriai/litellm:test",
             "container_entrypoint": ["docker/prod_entrypoint.sh"],
             "container_args": ["--config", "/app/config.yaml", "--port", "4000"],
@@ -78,6 +81,9 @@ def test_normalize_audit_payload_marks_standalone_runtime_owner_surface() -> Non
     assert payload["runtime_owner_surface"] == "standalone_docker_container"
     assert payload["container_present_env_names"] == ["CODESTRAL_API_KEY", "VENICE_API_KEY"]
     assert payload["container_missing_env_names"] == ["OPENAI_API_KEY"]
+    assert payload["config_referenced_env_names"] == ["OPENAI_API_KEY", "VENICE_API_KEY"]
+    assert payload["config_referenced_present_env_names"] == ["VENICE_API_KEY"]
+    assert payload["config_referenced_missing_env_names"] == ["OPENAI_API_KEY"]
     assert payload["container_entrypoint"] == ["docker/prod_entrypoint.sh"]
     assert payload["container_args"] == ["--config", "/app/config.yaml", "--port", "4000"]
     assert payload["docker_config_template_mapping"] is None
@@ -135,6 +141,9 @@ def test_write_audit_persists_contract_payload(tmp_path: Path, monkeypatch) -> N
             "container_missing_env_names": ["OPENAI_API_KEY"],
             "host_shell_present_env_names": [],
             "host_shell_missing_env_names": ["OPENAI_API_KEY"],
+            "config_referenced_env_names": ["OPENAI_API_KEY"],
+            "config_referenced_present_env_names": [],
+            "config_referenced_missing_env_names": ["OPENAI_API_KEY"],
             "env_change_boundary": "container_recreate_or_redeploy",
             "config_only_boundary": "docker_restart_litellm",
             "runtime_owner_surface": "standalone_docker_container",
@@ -147,3 +156,4 @@ def test_write_audit_persists_contract_payload(tmp_path: Path, monkeypatch) -> N
     rendered = json.loads(output.read_text(encoding="utf-8"))
     assert rendered["container_name"] == "litellm"
     assert rendered["container_missing_env_names"] == ["OPENAI_API_KEY"]
+    assert rendered["config_referenced_missing_env_names"] == ["OPENAI_API_KEY"]

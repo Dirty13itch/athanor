@@ -27,9 +27,9 @@ litellm_openrouter_api_key: "{{ vault_openrouter_api_key | default('') }}"
 vllm_node1_host: 192.168.1.244
 vllm_node1_port: 8000
 vllm_node1_model: "/models/Qwen3.5-27B-FP8"
-vllm_node1_coder_port: 8006
-vllm_node1_coder_model: "qwen3-coder-30b"
-vllm_node1_coder_public_model: "qwen3-coder-30b"
+vllm_node1_coder_port: 8100
+vllm_node1_coder_model: "dolphin3-r1-24b"
+vllm_node1_coder_public_model: "dolphin3-r1-24b"
 
 vllm_node2_host: 192.168.1.225
 vllm_node2_port: 8010
@@ -41,7 +41,7 @@ vllm_vision_model: "/models/Qwen3-VL-8B-Instruct-FP8"
 
 vllm_embedding_host: "{{ dev_ip | default('192.168.1.189') }}"
 vllm_embedding_port: 8001
-vllm_embedding_model: "/models/Qwen3-Embedding-0.6B"
+vllm_embedding_served_model_name: "qwen3-embed-8b"
 vllm_reranker_host: "{{ dev_ip | default('192.168.1.189') }}"
 vllm_reranker_port: 8003
 vllm_reranker_model: "/models/Qwen3-Reranker-0.6B"

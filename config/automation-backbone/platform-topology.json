@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-01.1",
+  "version": "2026-04-11.2",
   "status": "active",
   "source_of_truth": "config/automation-backbone/platform-topology.json",
   "nodes": [
@@ -125,10 +125,10 @@
     },
     {
       "id": "vllm_coder",
-      "label": "vLLM Coder",
+      "label": "Foundry Coder Runtime",
       "node": "foundry",
       "scheme": "http",
-      "port": 8006,
+      "port": 8100,
       "url_env": "ATHANOR_VLLM_CODER_URL",
       "runtime_class": "data_plane",
       "auth_class": "internal_only",
@@ -136,12 +136,12 @@
     },
     {
       "id": "vllm_worker",
-      "label": "vLLM Worker",
+      "label": "Workshop Worker (Retired)",
       "node": "workshop",
       "scheme": "http",
       "port": 8010,
       "url_env": "ATHANOR_VLLM_WORKER_URL",
-      "runtime_class": "data_plane",
+      "runtime_class": "deprecated",
       "auth_class": "internal_only",
       "health_path": "/health"
     },

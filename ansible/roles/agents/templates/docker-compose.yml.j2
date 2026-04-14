@@ -38,6 +38,7 @@ services:
       - ATHANOR_REDIS_PASSWORD={{ agent_redis_password }}
       - ATHANOR_POSTGRES_URL=${ATHANOR_POSTGRES_URL:-{{ agent_postgres_url }}}
       - ATHANOR_SUBSCRIPTION_POLICY_PATH=${ATHANOR_SUBSCRIPTION_POLICY_PATH:-{{ agent_subscription_policy_path }}}
+      - ATHANOR_TRUTH_INVENTORY_DIR=${ATHANOR_TRUTH_INVENTORY_DIR:-/workspace/reports/truth-inventory}
       - ATHANOR_AGENT_DESCRIPTOR_PATH=${ATHANOR_AGENT_DESCRIPTOR_PATH:-{{ agent_descriptor_path }}}
       - ATHANOR_DOMAIN_PACKET_PATH=${ATHANOR_DOMAIN_PACKET_PATH:-{{ agent_domain_packet_path }}}
       - ATHANOR_NEO4J_URL=${ATHANOR_NEO4J_URL:-{{ agent_neo4j_url }}}
@@ -62,6 +63,9 @@ services:
       - ATHANOR_OPEN_WEBUI_URL=${ATHANOR_OPEN_WEBUI_URL:-{{ agent_open_webui_url }}}
       - ATHANOR_VAULT_OPEN_WEBUI_URL=${ATHANOR_VAULT_OPEN_WEBUI_URL:-{{ agent_vault_open_webui_url }}}
       - ATHANOR_EOQ_URL=${ATHANOR_EOQ_URL:-{{ agent_eoq_url }}}
+      - ATHANOR_PROVIDER_BRIDGE_URL=${ATHANOR_PROVIDER_BRIDGE_URL:-}
+      - ATHANOR_PROVIDER_BRIDGE_TOKEN=${ATHANOR_PROVIDER_BRIDGE_TOKEN:-}
+      - ATHANOR_PROVIDER_BRIDGE_TIMEOUT_SECONDS=${ATHANOR_PROVIDER_BRIDGE_TIMEOUT_SECONDS:-120}
       - ATHANOR_MINIFLUX_URL=${ATHANOR_MINIFLUX_URL:-{{ agent_miniflux_url }}}
       - ATHANOR_MINIFLUX_USER=${ATHANOR_MINIFLUX_USER:-{{ agent_miniflux_user }}}
       - ATHANOR_MINIFLUX_PASS=${ATHANOR_MINIFLUX_PASS:-{{ agent_miniflux_pass }}}

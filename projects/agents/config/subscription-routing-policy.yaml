@@ -1,5 +1,5 @@
 version: 1
-updated: 2026-03-28
+updated: 2026-04-13
 
 providers:
   athanor_local:
@@ -73,9 +73,9 @@ providers:
   zai_glm_coding:
     enabled: true
     category: subscription
-    routing_posture: governed_handoff_only
-    routing_reason: missing_cli_evidence
-    role: standby_bulk_overflow
+    routing_posture: ordinary_auto
+    routing_reason: verified_supported_tool_usage
+    role: bulk_overflow_coder
     strengths:
       - bulk_implementation
       - repeated_fix_loops
@@ -98,12 +98,15 @@ task_classes:
       - anthropic_claude_code
     fallback:
       - openai_codex
+      - zai_glm_coding
       - athanor_local
 
   async_backlog_execution:
     primary:
-      - openai_codex
+      - zai_glm_coding
     fallback:
+      - openai_codex
+      - google_gemini
       - athanor_local
 
   repo_wide_audit:
@@ -115,9 +118,18 @@ task_classes:
 
   cheap_bulk_transform:
     primary:
-      - google_gemini
-    fallback:
       - athanor_local
+    fallback:
+      - zai_glm_coding
+      - google_gemini
+      - openai_codex
+
+  overnight_harvest:
+    primary:
+      - athanor_local
+    fallback:
+      - zai_glm_coding
+      - google_gemini
       - openai_codex
 
   search_heavy_planning:
@@ -127,7 +139,7 @@ task_classes:
       - anthropic_claude_code
       - google_gemini
 
-  private_internal_automation:
+  private_automation:
     primary:
       - athanor_local
     fallback: []
@@ -140,6 +152,7 @@ agents:
       - athanor_local
       - anthropic_claude_code
       - openai_codex
+      - zai_glm_coding
       - google_gemini
       - moonshot_kimi
 
@@ -154,37 +167,37 @@ agents:
       - openai_codex
 
   general-assistant:
-    default_task_class: private_internal_automation
+    default_task_class: private_automation
     sensitivity_default: private
     allowed_providers:
       - athanor_local
 
   knowledge-agent:
-    default_task_class: private_internal_automation
+    default_task_class: private_automation
     sensitivity_default: private
     allowed_providers:
       - athanor_local
 
   home-agent:
-    default_task_class: private_internal_automation
+    default_task_class: private_automation
     sensitivity_default: private
     allowed_providers:
       - athanor_local
 
   media-agent:
-    default_task_class: private_internal_automation
+    default_task_class: private_automation
     sensitivity_default: private
     allowed_providers:
       - athanor_local
 
   stash-agent:
-    default_task_class: private_internal_automation
+    default_task_class: private_automation
     sensitivity_default: private
     allowed_providers:
       - athanor_local
 
   data-curator:
-    default_task_class: private_internal_automation
+    default_task_class: private_automation
     sensitivity_default: private
     allowed_providers:
       - athanor_local

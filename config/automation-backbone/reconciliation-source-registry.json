@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-07.14",
-  "updated_at": "2026-04-08T06:46:23.729090+00:00",
+  "version": "2026-04-11.3",
+  "updated_at": "2026-04-14T21:23:17.784717+00:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/reconciliation-source-registry.json",
   "source_kinds": [
@@ -154,6 +154,31 @@
         "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
         "config/automation-backbone/repo-roots-registry.json",
         "docs/operations/ATHANOR-RECONCILIATION-PRESERVATION-BASELINE.md"
+      ]
+    },
+    {
+      "id": "athanor-devstack-build-root",
+      "name": "Athanor devstack build-system root",
+      "path": "C:/athanor-devstack",
+      "github_repo": null,
+      "source_kind": "local_repo",
+      "ecosystem_role": "core",
+      "authority_status": "authoritative",
+      "review_status": "completed",
+      "default_disposition": "import",
+      "preservation_status": "authoritative-live",
+      "duplicate_of": null,
+      "priority": "critical",
+      "shaun_decision_required": false,
+      "notes": [
+        "Canonical build-system and proving root for future Athanor capabilities.",
+        "This root is authoritative for devstack strategy, packets, forge state, and atlas compilation but not for live runtime truth.",
+        "Discovery now tracks it explicitly so reconciliation reports cover both adopted-system and build-system roots."
+      ],
+      "evidence_paths": [
+        "C:/athanor-devstack/STATUS.md",
+        "C:/athanor-devstack/docs/DEVSTACK-STACK-CANON.md",
+        "C:/athanor-devstack/reports/master-atlas/latest.json"
       ]
     },
     {
@@ -395,9 +420,9 @@
       "notes": [
         "Primary local Field Inspect workspace discovered by the three-depth C drive sweep.",
         "Live product with active VAULT deployment posture and ongoing local changes.",
-        "Tenant-family audit now confirms the primary root is the git-backed workspace on branch codex/perpetual-coo-loop with six sibling git worktree lanes.",
-        "Sibling C:/Field Inspect-* roots are active git worktree lanes that should be preserved and reviewed for merge-or-freeze decisions before any collapse.",
-        "The surviving operations-runtime lane is now governed by the dedicated replay packet and generated report under docs/operations and reports/reconciliation.",
+        "Tenant-family audit now confirms the primary root is the only remaining live git-backed workspace in the family.",
+        "The older sibling C:/Field Inspect-* worktree lanes were captured into preserved evidence roots under reports/reconciliation/field-inspect-lane-archive after the replay review closed.",
+        "The surviving operations-runtime replay is now governed by the dedicated packet and generated report under docs/operations and reports/reconciliation rather than a standing sibling worktree.",
         "Use the generated tenant-family audit and replay packet report for live branch state and execution posture instead of relying on prose snapshots.",
         "The safe operations-runtime tranche plus its minimum support set was replayed into C:/Field Inspect on 2026-04-07 with npm run typecheck and the packet target tests green in the authority root."
       ],
@@ -413,54 +438,56 @@
     {
       "id": "field-inspect-mobile-followup",
       "name": "Field Inspect mobile followup lane",
-      "path": "C:/Field Inspect-mobile-followup",
+      "path": "C:/Athanor/reports/reconciliation/field-inspect-lane-archive/mobile-followup",
       "github_repo": "Dirty13itch/Field_Inspect",
-      "source_kind": "local_repo",
-      "ecosystem_role": "tenant",
-      "authority_status": "candidate",
+      "source_kind": "archive_evidence",
+      "ecosystem_role": "archive",
+      "authority_status": "non-authoritative",
       "review_status": "completed",
       "default_disposition": "archive",
-      "preservation_status": "candidate-freeze",
+      "preservation_status": "snapshot-created",
       "duplicate_of": "field-inspect-root",
       "priority": "medium",
       "shaun_decision_required": false,
       "notes": [
-        "Sibling Field Inspect working lane discovered by the C drive sweep.",
-        "Tenant-family audit confirms this is a clean git worktree lane on branch codex/reconcile-mobile-followup tracking Dirty13itch/Field_Inspect.",
-        "Ahead count is zero versus the primary root lineage, so this is now a freeze-first lane rather than an active replay candidate."
+        "Former sibling Field Inspect worktree discovered by the C drive sweep.",
+        "The original C:/Field Inspect-mobile-followup lane no longer exists locally, so this source now points at its preserved evidence root.",
+        "Ahead count was zero versus the primary root lineage at capture time, so the lane is archived rather than kept as an active replay candidate."
       ],
       "evidence_paths": [
+        "reports/reconciliation/field-inspect-lane-archive/mobile-followup/README.md",
         "docs/operations/ATHANOR-TENANT-QUEUE.md",
-        "reports/reconciliation/discovery-latest.json",
+        "reports/reconciliation/preservation-latest.json",
         "reports/reconciliation/tenant-family-audit-latest.json"
       ]
     },
     {
       "id": "field-inspect-operations-runtime",
       "name": "Field Inspect operations runtime lane",
-      "path": "C:/Field Inspect-operations-runtime",
+      "path": "C:/Athanor/reports/reconciliation/field-inspect-lane-archive/operations-runtime",
       "github_repo": "Dirty13itch/Field_Inspect",
-      "source_kind": "local_repo",
+      "source_kind": "archive_evidence",
       "ecosystem_role": "tenant",
       "authority_status": "candidate",
       "review_status": "completed",
       "default_disposition": "tenant-queue",
-      "preservation_status": "candidate-freeze",
+      "preservation_status": "snapshot-created",
       "duplicate_of": "field-inspect-root",
       "priority": "medium",
       "shaun_decision_required": false,
       "notes": [
-        "Sibling Field Inspect working lane focused on operations/runtime work.",
-        "Tenant-family audit confirms this is a clean git worktree lane on branch codex/reconcile-operations-runtime tracking Dirty13itch/Field_Inspect.",
-        "This is the only sibling lane that remains an active selective replay candidate because it carries real operations runtime product code, tests, and dashboards.",
+        "Former sibling Field Inspect worktree focused on operations/runtime work.",
+        "The original C:/Field Inspect-operations-runtime lane no longer exists locally, so this source now points at its preserved evidence root.",
+        "This remains the only selective replay candidate because it carried real operations runtime product code, tests, and dashboards before capture.",
         "Direct wholesale merge remains disallowed; replay should happen as targeted cherry-picks governed by the dedicated packet and generated report.",
         "The replay order, live execution posture, and acceptance commands are now captured in the dedicated Field Inspect operations-runtime replay packet.",
-        "A dedicated review worktree at C:/Field Inspect-ops-safe-review now carries the safe operations tranche plus the minimum support-set needed for contract-coherent validation; npm run typecheck and the targeted replay tests passed there on 2026-04-07.",
+        "The dedicated safe-review worktree that carried the first tranche has also been retired after replay and capture.",
         "The lane now has one executed outcome in the authority root: the safe operations-runtime tranche is landed and green in C:/Field Inspect, so the remaining lane scope is the shared-project/report-delivery second tranche plus freeze/reclassification follow-through."
       ],
       "evidence_paths": [
+        "reports/reconciliation/field-inspect-lane-archive/operations-runtime/README.md",
         "docs/operations/ATHANOR-TENANT-QUEUE.md",
-        "reports/reconciliation/discovery-latest.json",
+        "reports/reconciliation/preservation-latest.json",
         "reports/reconciliation/tenant-family-audit-latest.json",
         "docs/operations/FIELD-INSPECT-OPERATIONS-RUNTIME-REPLAY-PACKET.md",
         "reports/reconciliation/field-inspect-operations-runtime-replay-latest.json"
@@ -469,104 +496,108 @@
     {
       "id": "field-inspect-platform-ops",
       "name": "Field Inspect platform ops lane",
-      "path": "C:/Field Inspect-platform-ops",
+      "path": "C:/Athanor/reports/reconciliation/field-inspect-lane-archive/platform-ops",
       "github_repo": "Dirty13itch/Field_Inspect",
-      "source_kind": "local_repo",
-      "ecosystem_role": "tenant",
-      "authority_status": "candidate",
+      "source_kind": "archive_evidence",
+      "ecosystem_role": "reference",
+      "authority_status": "non-authoritative",
       "review_status": "completed",
       "default_disposition": "lineage-only",
-      "preservation_status": "candidate-freeze",
+      "preservation_status": "snapshot-created",
       "duplicate_of": "field-inspect-root",
       "priority": "medium",
       "shaun_decision_required": false,
       "notes": [
-        "Sibling Field Inspect working lane focused on platform operations.",
-        "Tenant-family audit confirms this is a clean git worktree lane on branch codex/reconcile-platform-ops tracking Dirty13itch/Field_Inspect.",
+        "Former sibling Field Inspect worktree focused on platform operations.",
+        "The original C:/Field Inspect-platform-ops lane no longer exists locally, so this source now points at its preserved evidence root.",
         "Observed unique value is narrow mobile client API work plus package manifest deltas, not a broader tenant branch.",
         "Keep as preserved lineage/reference only unless the mobile surface becomes active again."
       ],
       "evidence_paths": [
+        "reports/reconciliation/field-inspect-lane-archive/platform-ops/README.md",
         "docs/operations/ATHANOR-TENANT-QUEUE.md",
-        "reports/reconciliation/discovery-latest.json",
+        "reports/reconciliation/preservation-latest.json",
         "reports/reconciliation/tenant-family-audit-latest.json"
       ]
     },
     {
       "id": "field-inspect-postmark-build",
       "name": "Field Inspect postmark build lane",
-      "path": "C:/Field Inspect-postmark-build",
+      "path": "C:/Athanor/reports/reconciliation/field-inspect-lane-archive/postmark-build",
       "github_repo": "Dirty13itch/Field_Inspect",
-      "source_kind": "local_repo",
-      "ecosystem_role": "tenant",
-      "authority_status": "candidate",
+      "source_kind": "archive_evidence",
+      "ecosystem_role": "archive",
+      "authority_status": "non-authoritative",
       "review_status": "completed",
       "default_disposition": "archive",
-      "preservation_status": "candidate-freeze",
+      "preservation_status": "snapshot-created",
       "duplicate_of": "field-inspect-root",
       "priority": "low",
       "shaun_decision_required": false,
       "notes": [
-        "Release-oriented Field Inspect working lane.",
-        "Tenant-family audit confirms this is a clean git worktree lane on branch codex/release-52bed54-finish tracking Dirty13itch/Field_Inspect.",
+        "Former release-oriented Field Inspect worktree.",
+        "The original C:/Field Inspect-postmark-build lane no longer exists locally, so this source now points at its preserved evidence root.",
         "Most unique content is deploy output residue and release artifacts that should not be replayed as living tenant truth.",
         "The only surviving narrow code candidate is the Serwist/service-worker route slice; otherwise this lane should freeze into archive evidence."
       ],
       "evidence_paths": [
+        "reports/reconciliation/field-inspect-lane-archive/postmark-build/README.md",
         "docs/operations/ATHANOR-TENANT-QUEUE.md",
-        "reports/reconciliation/discovery-latest.json",
+        "reports/reconciliation/preservation-latest.json",
         "reports/reconciliation/tenant-family-audit-latest.json"
       ]
     },
     {
       "id": "field-inspect-proof-tooling",
       "name": "Field Inspect proof tooling lane",
-      "path": "C:/Field Inspect-proof-tooling",
+      "path": "C:/Athanor/reports/reconciliation/field-inspect-lane-archive/proof-tooling",
       "github_repo": "Dirty13itch/Field_Inspect",
-      "source_kind": "local_repo",
-      "ecosystem_role": "tenant",
-      "authority_status": "candidate",
+      "source_kind": "archive_evidence",
+      "ecosystem_role": "reference",
+      "authority_status": "non-authoritative",
       "review_status": "completed",
       "default_disposition": "lineage-only",
-      "preservation_status": "candidate-freeze",
+      "preservation_status": "snapshot-created",
       "duplicate_of": "field-inspect-root",
       "priority": "medium",
       "shaun_decision_required": false,
       "notes": [
-        "Sibling Field Inspect proof-tooling lane.",
-        "Tenant-family audit confirms this is a clean git worktree lane on branch codex/reconcile-proof-tooling tracking Dirty13itch/Field_Inspect.",
+        "Former sibling Field Inspect proof-tooling worktree.",
+        "The original C:/Field Inspect-proof-tooling lane no longer exists locally, so this source now points at its preserved evidence root.",
         "Unique value is bounded to proof scripts, proof tests, and CI helpers rather than a full tenant branch.",
         "Keep as preserved lineage/reference only and mine individual scripts if the primary tenant needs them."
       ],
       "evidence_paths": [
+        "reports/reconciliation/field-inspect-lane-archive/proof-tooling/README.md",
         "docs/operations/ATHANOR-TENANT-QUEUE.md",
-        "reports/reconciliation/discovery-latest.json",
+        "reports/reconciliation/preservation-latest.json",
         "reports/reconciliation/tenant-family-audit-latest.json"
       ]
     },
     {
       "id": "field-inspect-proof-truth",
       "name": "Field Inspect proof truth lane",
-      "path": "C:/Field Inspect-proof-truth",
+      "path": "C:/Athanor/reports/reconciliation/field-inspect-lane-archive/proof-truth",
       "github_repo": "Dirty13itch/Field_Inspect",
-      "source_kind": "local_repo",
-      "ecosystem_role": "tenant",
-      "authority_status": "candidate",
+      "source_kind": "archive_evidence",
+      "ecosystem_role": "reference",
+      "authority_status": "non-authoritative",
       "review_status": "completed",
       "default_disposition": "lineage-only",
-      "preservation_status": "candidate-freeze",
+      "preservation_status": "snapshot-created",
       "duplicate_of": "field-inspect-root",
       "priority": "medium",
       "shaun_decision_required": false,
       "notes": [
-        "Sibling Field Inspect proof-truth lane.",
-        "Tenant-family audit confirms this is a clean git worktree lane on branch codex/reconcile-proof-truth tracking Dirty13itch/Field_Inspect.",
+        "Former sibling Field Inspect proof-truth worktree.",
+        "The original C:/Field Inspect-proof-truth lane no longer exists locally, so this source now points at its preserved evidence root.",
         "Unique value is mostly engineering docs and runbooks such as branch classification, maturity, recovery, and cutover notes rather than active product code.",
         "Keep as lineage/reference truth to mine selectively, then freeze; do not treat it as a co-equal replay lane alongside operations-runtime."
       ],
       "evidence_paths": [
+        "reports/reconciliation/field-inspect-lane-archive/proof-truth/README.md",
         "docs/operations/ATHANOR-TENANT-QUEUE.md",
-        "reports/reconciliation/discovery-latest.json",
+        "reports/reconciliation/preservation-latest.json",
         "reports/reconciliation/tenant-family-audit-latest.json"
       ]
     },
@@ -647,15 +678,43 @@
       "priority": "medium",
       "shaun_decision_required": false,
       "notes": [
-        "Concrete local working root for the Ulrich energy website family.",
-        "Contains website, monitoring, services, and nested app residue beyond the portfolio clone reference.",
+        "Concrete git-backed working root for the Ulrich energy website family.",
+        "Owns the website, monitoring, services, and nested app residue for the standalone product line.",
+        "Separate from the non-git workspace wrapper at C:/Ulrich Energy Auditing Website, which now stays reference-only.",
         "Current local evidence shows a marketing-site posture with its own hosting and monitoring surfaces but no concrete Athanor dependency.",
         "Classified as standalone-external by default until future work proves a deeper Athanor integration requirement."
       ],
       "evidence_paths": [
+        "C:/Users/Shaun/Ulrich Energy Auditing Website/README.md",
         "docs/operations/ATHANOR-TENANT-QUEUE.md",
         "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
         "reports/reconciliation/discovery-latest.json"
+      ]
+    },
+    {
+      "id": "ulrich-energy-workspace-wrapper",
+      "name": "Ulrich Energy Auditing workspace wrapper",
+      "path": "C:/Ulrich Energy Auditing Website",
+      "github_repo": null,
+      "source_kind": "local_reference_stash",
+      "ecosystem_role": "reference",
+      "authority_status": "non-authoritative",
+      "review_status": "completed",
+      "default_disposition": "archive",
+      "preservation_status": "snapshot-required",
+      "duplicate_of": "ulrich-energy-auditing-website-root",
+      "priority": "low",
+      "shaun_decision_required": false,
+      "notes": [
+        "Non-git workspace and handoff shell for the Ulrich product family.",
+        "Useful for inventory, AI handoff, and safe-surface routing context, but not the implementation authority for the website repo.",
+        "The actual git-backed website root lives at C:/Users/Shaun/Ulrich Energy Auditing Website."
+      ],
+      "evidence_paths": [
+        "C:/Ulrich Energy Auditing Website/AGENTS.md",
+        "C:/Ulrich Energy Auditing Website/REPO_PATHS.txt",
+        "C:/Ulrich Energy Auditing Website/AI-HANDOFF/ceo-control-plane.md",
+        "C:/Ulrich Energy Auditing Website/AI-HANDOFF/codex-readiness-safe-repos.md"
       ]
     },
     {
@@ -708,6 +767,60 @@
       ]
     },
     {
+      "id": "rfi-hers-stabilization-review",
+      "name": "RFI & HERS stabilization review worktree",
+      "path": "C:/RFI & HERS Rater Assistant-stabilization-review",
+      "github_repo": null,
+      "source_kind": "local_repo",
+      "ecosystem_role": "tenant",
+      "authority_status": "non-authoritative",
+      "review_status": "completed",
+      "default_disposition": "archive",
+      "preservation_status": "candidate-freeze",
+      "duplicate_of": "rfi-hers-rater-assistant-root",
+      "priority": "medium",
+      "shaun_decision_required": false,
+      "notes": [
+        "Git-backed review worktree used for the first four stabilization tranches.",
+        "The branch-level stabilization fixes have already landed in the primary root, so this lane is now preserved review evidence rather than a second authority candidate.",
+        "Keep until the broader stabilization packet closes, then retire or archive deliberately."
+      ],
+      "evidence_paths": [
+        "docs/operations/ATHANOR-TENANT-QUEUE.md",
+        "reports/reconciliation/discovery-latest.json",
+        "reports/reconciliation/tenant-family-audit-latest.json",
+        "docs/operations/RFI-HERS-PRIMARY-ROOT-STABILIZATION-PACKET.md",
+        "reports/reconciliation/rfi-hers-primary-root-stabilization-latest.json"
+      ]
+    },
+    {
+      "id": "codexbuild-rfi-hers-stabilization-review",
+      "name": "RFI & HERS stabilization safe-path review worktree",
+      "path": "C:/CodexBuild/rfi-hers-stabilization-review",
+      "github_repo": null,
+      "source_kind": "local_repo",
+      "ecosystem_role": "tenant",
+      "authority_status": "non-authoritative",
+      "review_status": "completed",
+      "default_disposition": "archive",
+      "preservation_status": "candidate-freeze",
+      "duplicate_of": "rfi-hers-rater-assistant-root",
+      "priority": "medium",
+      "shaun_decision_required": false,
+      "notes": [
+        "Git-backed safe-path mirror of the stabilization review branch.",
+        "This lane exists because native npm install breaks under the spaced primary review path, so it remains a governed validation helper rather than an authority root.",
+        "Keep until the stabilization packet closes, then retire or archive deliberately."
+      ],
+      "evidence_paths": [
+        "docs/operations/ATHANOR-TENANT-QUEUE.md",
+        "reports/reconciliation/discovery-latest.json",
+        "reports/reconciliation/tenant-family-audit-latest.json",
+        "docs/operations/RFI-HERS-PRIMARY-ROOT-STABILIZATION-PACKET.md",
+        "reports/reconciliation/rfi-hers-primary-root-stabilization-latest.json"
+      ]
+    },
+    {
       "id": "codexbuild-rfi-hers-rater-assistant",
       "name": "RFI HERS Rater Assistant",
       "path": "C:/CodexBuild/rfi-hers-rater-assistant",
@@ -733,6 +846,29 @@
         "reports/reconciliation/tenant-family-audit-latest.json",
         "docs/operations/RFI-HERS-DUPLICATE-EVIDENCE-PACKET.md",
         "reports/reconciliation/rfi-hers-duplicate-evidence-packet-latest.json"
+      ]
+    },
+    {
+      "id": "downloads-staging-surface",
+      "name": "Downloads staging surface",
+      "path": "C:/Users/Shaun/Downloads",
+      "github_repo": null,
+      "source_kind": "excluded",
+      "ecosystem_role": "excluded",
+      "authority_status": "non-authoritative",
+      "review_status": "completed",
+      "default_disposition": "reject",
+      "preservation_status": "excluded",
+      "duplicate_of": null,
+      "priority": "low",
+      "shaun_decision_required": false,
+      "notes": [
+        "General staging and intake surface, not a governed product or code authority root.",
+        "Discovery may find AGENTS.md or downloaded repo artifacts here, but they should not be treated as ecosystem sources unless promoted elsewhere."
+      ],
+      "evidence_paths": [
+        "C:/Users/Shaun/Downloads/AGENTS.md",
+        "reports/reconciliation/discovery-latest.json"
       ]
     },
     {
@@ -816,7 +952,7 @@
   ],
   "github_portfolio": {
     "owner": "Dirty13itch",
-    "last_verified_at": "2026-04-08T06:46:23.729090+00:00",
+    "last_verified_at": "2026-04-14T21:23:17.784717+00:00",
     "repo_count": 35,
     "doc_repo_count": 35,
     "live_repo_count": 35,
@@ -1156,7 +1292,7 @@
         "description": "Multi-tenant field inspection platform for energy auditors, HERS raters, and construction teams",
         "is_private": true,
         "is_fork": false,
-        "updated_at": "2026-04-06T06:04:12Z",
+        "updated_at": "2026-04-08T15:16:32Z",
         "ecosystem_role": "tenant",
         "working_clone": "primary root C:\\Field Inspect plus six sibling git worktree lanes under C:\\Field Inspect-*",
         "current_maturity": "active separate product with one dirty primary workspace, one selective replay lane (operations-runtime), and the rest classified toward lineage/freeze/archive",

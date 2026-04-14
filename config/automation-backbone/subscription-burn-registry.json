@@ -1,13 +1,166 @@
 {
-  "version": "2026-03-28.1",
-  "updated_at": "2026-03-28T23:15:00Z",
+  "version": "2026-04-12.1",
+  "updated_at": "2026-04-12T18:30:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/subscription-burn-registry.json",
   "service": "subscription-burn",
   "default_timezone": "America/Chicago",
+  "quota_truth_contract": {
+    "output_path": "reports/truth-inventory/quota-truth.json",
+    "history_stream": "quota-truth",
+    "collector_id": "subscription_burn_service",
+    "subscription_high_confidence_within_seconds": 21600,
+    "metered_high_confidence_within_seconds": 3600,
+    "local_compute_high_confidence_within_seconds": 120,
+    "doc_only_confidence_cap": "medium"
+  },
+  "planned_subscription_evidence_contract": {
+    "output_path": "reports/truth-inventory/planned-subscription-evidence.json",
+    "history_stream": "planned-subscription-evidence",
+    "allowed_statuses": [
+      "tooling_present",
+      "tooling_ready",
+      "supported_tool_usage_observed",
+      "missing_tooling",
+      "activation_blocked"
+    ]
+  },
+  "reserve_policy": {
+    "quota_posture": "max_burn_with_thin_reserve",
+    "respect_vendor_policy_before_harvest": true,
+    "other_metered_disabled_for_auto_harvest_by_default": true
+  },
+  "shadow_rollout": {
+    "phase": 1,
+    "phase_label": "governed_dispatch_shadow",
+    "phase_targets": [
+      "build_ledgers",
+      "emit_recommendations",
+      "bind_safe_surface_queue",
+      "record_dispatch_outcomes",
+      "no_runtime_mutation"
+    ],
+    "promotion_gates": [
+      "seven_days_or_two_hundred_shadow_decisions",
+      "no_privacy_violations",
+      "no_reserve_breaches",
+      "shadow_disagreement_at_or_below_five_percent"
+    ]
+  },
+  "dispatch_policy": {
+    "ranked_dispatch_enabled": true,
+    "queue_source": "C:/Users/Shaun/.codex/control/safe-surface-queue.json",
+    "approved_mutation_classes": [
+      "auto_read_only",
+      "auto_harvest"
+    ],
+    "approved_work_classes": [
+      "repo_safe_implementation",
+      "eval_or_proof_run",
+      "truth_report_regeneration",
+      "non_runtime_devstack_proof",
+      "cheap_cloudsafe_backlog_execution"
+    ],
+    "record_outcomes": true,
+    "runtime_mutation_remains_gated": true
+  },
+  "burn_classes": [
+    {
+      "id": "premium_interactive",
+      "approved_task_families": [
+        "interactive_architecture",
+        "multi_file_implementation",
+        "final_review"
+      ],
+      "routing_chain": [
+        "anthropic_claude_code",
+        "openai_codex",
+        "athanor_local"
+      ],
+      "reserve_rule": "preserve_operator_spike_capacity",
+      "max_concurrency": 1
+    },
+    {
+      "id": "premium_async",
+      "approved_task_families": [
+        "async_backlog_execution",
+        "deep_research",
+        "secondary_validation"
+      ],
+      "routing_chain": [
+        "openai_codex",
+        "google_gemini",
+        "athanor_local"
+      ],
+      "reserve_rule": "preserve_one_async_slot_for_operator_use",
+      "max_concurrency": 2
+    },
+    {
+      "id": "cheap_bulk_cloud",
+      "approved_task_families": [
+        "cheap_bulk_transform",
+        "classification",
+        "extraction",
+        "background_cloud_batch"
+      ],
+      "routing_chain": [
+        "deepseek_api",
+        "zai_glm_coding",
+        "openai_codex"
+      ],
+      "reserve_rule": "spend_cheapest_eligible_cloud_lane_first",
+      "max_concurrency": 8
+    },
+    {
+      "id": "local_bulk_sovereign",
+      "approved_task_families": [
+        "repo_audit",
+        "background_transform",
+        "private_automation",
+        "creative_batch"
+      ],
+      "routing_chain": [
+        "athanor_local"
+      ],
+      "reserve_rule": "protect_interactive_reserve_then_harvest_idle_slots",
+      "max_concurrency": 6
+    },
+    {
+      "id": "promotion_eval",
+      "approved_task_families": [
+        "formal_eval_run",
+        "promotion_validation",
+        "governed_packet_proof"
+      ],
+      "routing_chain": [
+        "athanor_local",
+        "google_gemini",
+        "openai_codex"
+      ],
+      "reserve_rule": "prefer_local_then_use_audit_or_premium_when_quality_matters",
+      "max_concurrency": 3
+    },
+    {
+      "id": "overnight_harvest",
+      "approved_task_families": [
+        "cheap_bulk_transform",
+        "repo_wide_audit",
+        "background_transform",
+        "knowledge_refresh"
+      ],
+      "routing_chain": [
+        "athanor_local",
+        "deepseek_api",
+        "google_gemini"
+      ],
+      "reserve_rule": "burn_idle_local_capacity_first_then_use_cheap_overflow",
+      "max_concurrency": 8
+    }
+  ],
   "subscriptions": [
     {
       "id": "claude_max",
+      "family_id": "claude_current_state",
       "provider_id": "anthropic_claude_code",
       "stats_key": "claude_code",
       "type": "rolling_window",
@@ -20,10 +173,18 @@
         "-p",
         "--dangerously-skip-permissions"
       ],
-      "task_file": "claude-tasks.yaml"
+      "task_file": "claude-tasks.yaml",
+      "collector_id": "claude_cli_usage",
+      "reserve_floor": {
+        "kind": "window_percent",
+        "value": 15
+      },
+      "harvest_priority": "retirement_only",
+      "retirement_state": "planned"
     },
     {
       "id": "chatgpt_pro",
+      "family_id": "codex_subscription",
       "provider_id": "openai_codex",
       "stats_key": "codex_cli",
       "type": "daily_reset",
@@ -32,10 +193,17 @@
       "cli_env": "ATHANOR_CODEX_CLI",
       "cli_command": "codex",
       "cli_args": [],
-      "task_file": "codex-tasks.yaml"
+      "task_file": "codex-tasks.yaml",
+      "collector_id": "codex_cli_usage",
+      "reserve_floor": {
+        "kind": "actions_per_day",
+        "value": 20
+      },
+      "harvest_priority": "premium_high_value"
     },
     {
       "id": "gemini_advanced",
+      "family_id": "gemini_subscription",
       "provider_id": "google_gemini",
       "stats_key": "gemini_cli",
       "type": "daily_reset",
@@ -44,10 +212,17 @@
       "cli_env": "ATHANOR_GEMINI_CLI",
       "cli_command": "gemini",
       "cli_args": [],
-      "task_file": "gemini-tasks.yaml"
+      "task_file": "gemini-tasks.yaml",
+      "collector_id": "gemini_cli_usage",
+      "reserve_floor": {
+        "kind": "actions_per_day",
+        "value": 10
+      },
+      "harvest_priority": "burn_early_audit"
     },
     {
       "id": "kimi_allegretto",
+      "family_id": "kimi_subscription",
       "provider_id": "moonshot_kimi",
       "stats_key": "kimi_code",
       "type": "rolling_window",
@@ -56,7 +231,75 @@
       "cli_env": "ATHANOR_KIMI_CLI",
       "cli_command": "kimi",
       "cli_args": [],
-      "task_file": "kimi-tasks.yaml"
+      "task_file": "kimi-tasks.yaml",
+      "collector_id": "kimi_cli_usage",
+      "reserve_floor": {
+        "kind": "concurrent_sessions",
+        "value": 2
+      },
+      "harvest_priority": "bounded_burst",
+      "policy_scope": "personal_development_only"
+    }
+  ],
+  "planned_subscriptions": [
+    {
+      "id": "glm_coding_plan",
+      "family_id": "glm_coding_plan",
+      "provider_id": "zai_glm_coding",
+      "type": "rolling_window_plus_weekly",
+      "window_hours": 5,
+      "weekly_window_days": 7,
+      "collector_id": "glm_tooling_probe",
+      "reserve_floor": {
+        "kind": "percent_of_each_window",
+        "five_hour_window_percent": 10,
+        "weekly_window_percent": 10
+      },
+      "harvest_priority": "bulk_coding_overflow",
+      "activation_gate": "supported_tool_usage_observed",
+      "preferred_supported_tools": [
+        "codex",
+        "claude",
+        "gemini"
+      ],
+      "required_env_contracts": [
+        "ZAI_API_KEY",
+        "ZAI_CODING_API_KEY"
+      ],
+      "next_proof_step": "Keep supported_tool_usage_observed fresh with periodic bounded refreshes; demote the lane if the proof regresses.",
+      "proof_record_command": "python C:/Athanor/scripts/record_supported_tool_usage.py --family-id glm_coding_plan --tool-name <tool> --request-surface <surface> --note \"Bounded supported-tool request completed successfully.\""
+    }
+  ],
+  "metered_families": [
+    {
+      "id": "deepseek_api",
+      "provider_id": "deepseek_api",
+      "usage_mode": "metered_api",
+      "collector_id": "litellm_provider_usage",
+      "daily_budget_ceiling_usd": 10,
+      "reserve_floor_usd": 0,
+      "harvest_priority": "cheap_bulk_cloud",
+      "auto_harvest_enabled": true
+    },
+    {
+      "id": "zai_api",
+      "provider_id": "zai_api",
+      "usage_mode": "metered_api",
+      "collector_id": "litellm_provider_usage",
+      "daily_budget_ceiling_usd": 10,
+      "reserve_floor_usd": 0,
+      "harvest_priority": "glm_api_overflow",
+      "auto_harvest_enabled": false
+    }
+  ],
+  "local_compute_families": [
+    {
+      "id": "athanor_local_compute",
+      "provider_id": "athanor_local",
+      "usage_mode": "local_compute",
+      "collector_id": "capacity_telemetry",
+      "harvest_priority": "protect_reserve_then_harvest",
+      "respect_capacity_contract": true
     }
   ],
   "windows": [

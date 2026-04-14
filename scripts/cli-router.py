@@ -6,7 +6,7 @@ Routes tasks to the best subscription CLI based on task type, available
 quota, and learned performance. Imported by Subscription Burn.
 
 Classification approach (zero cloud spend):
-  1. Embedding similarity via local Qwen3-Embedding-0.6B (~10ms)
+  1. Embedding similarity via local qwen3-embed-8b (~10ms)
   2. Fallback: local Qwen3.5 via LiteLLM for ambiguous tasks (~200ms)
 
 Learning loop:
@@ -68,7 +68,7 @@ PROVIDER_CATALOG_PATH = REPO_ROOT / "config" / "automation-backbone" / "provider
 # Config
 # ---------------------------------------------------------------------------
 EMBEDDING_URL = f"{get_url('embedding')}/v1/embeddings"
-EMBEDDING_MODEL = "/models/Qwen3-Embedding-0.6B"
+EMBEDDING_MODEL = "qwen3-embed-8b"
 LITELLM_URL = get_url("litellm")
 SUBSCRIPTION_BURN_URL = get_url("subscription_burn")
 # LITELLM_KEY imported from cluster_config
@@ -566,7 +566,7 @@ class CLIRouter:
     # Embedding helpers
     # -------------------------------------------------------------------
     async def _embed(self, texts: list[str]) -> np.ndarray:
-        """Get embeddings from local Qwen3-Embedding-0.6B on DEV:8001."""
+        """Get embeddings from local qwen3-embed-8b on DEV:8001."""
         client = await self._client()
         resp = await client.post(
             EMBEDDING_URL,

@@ -1,0 +1,54 @@
+{
+  "version": "2026-04-11.1",
+  "updated_at": "2026-04-11T09:00:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/migration-map.json",
+  "current_state": {
+    "primary_shell": "codex_desktop_plus_terminal",
+    "review_lane": "claude_review_cloudsafe",
+    "active_external_hosts": [
+      "codex_external",
+      "claude_external"
+    ]
+  },
+  "target_state": {
+    "primary_shell": "goose_plus_terminal",
+    "review_lanes": [
+      "gemini_audit_cloudsafe",
+      "codex_cloudsafe"
+    ],
+    "active_external_hosts": [
+      "codex_external"
+    ]
+  },
+  "lane_transfers": [
+    {
+      "from": "claude_review_cloudsafe",
+      "to": [
+        "gemini_audit_cloudsafe",
+        "codex_cloudsafe"
+      ],
+      "scope": [
+        "architecture_review",
+        "final_review"
+      ],
+      "retirement_state": "planned"
+    },
+    {
+      "from": "claude_external",
+      "to": [
+        "codex_external"
+      ],
+      "scope": [
+        "bootstrap_handoff",
+        "overflow"
+      ],
+      "retirement_state": "planned"
+    }
+  ],
+  "retirement_gates": [
+    "no_target_state_workload_depends_on_claude",
+    "two_fresh_passing_lane_evals_cover_architecture_and_final_review",
+    "two_normal_quota_windows_complete_without_claude_emergency_relay"
+  ]
+}

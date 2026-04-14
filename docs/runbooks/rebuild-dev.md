@@ -1,7 +1,7 @@
 # DEV Node Rebuild Runbook
 
 Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `docs/RECOVERY.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-Validated against registry version: `platform-topology.json@2026-04-01.1`, `runtime-ownership-contract.json@2026-04-08.5`, `runtime-ownership-packets.json@2026-04-08.5`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `platform-topology.json@2026-04-11.2`, `runtime-ownership-contract.json@2026-04-11.5`, `runtime-ownership-packets.json@2026-04-11.4`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: DEV host responsibilities, service placement, port ownership, and runtime/deploy lanes come from the topology registry plus the runtime-ownership contract. This runbook covers the rebuild order for the current DEV role, not historical service layouts.
 
 ---

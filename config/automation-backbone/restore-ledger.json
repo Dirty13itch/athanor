@@ -1,0 +1,85 @@
+{
+  "version": "2026-04-10.1",
+  "updated_at": "2026-04-10T21:45:00-05:00",
+  "status": "live",
+  "source_of_truth": "config/automation-backbone/restore-ledger.json",
+  "stores": [
+    {
+      "store_id": "redis_critical_state",
+      "owner": "task_engine_and_runtime_control_plane",
+      "backup_status": "configured",
+      "restore_status": "drill_backed",
+      "last_drill_at": "2026-04-01T04:13:09.130171+00:00",
+      "evidence_path": "C:/Athanor/reports/governance/drills/restore.json",
+      "rto_target": "30m",
+      "rpo_target": "24h",
+      "recovery_order": 1,
+      "dependency_validations": [
+        "redis reachability",
+        "task-engine health",
+        "agent server /health"
+      ],
+      "current_confidence": "drill_backed",
+      "notes": [
+        "Restore drill passed for the critical Redis state bundle."
+      ]
+    },
+    {
+      "store_id": "qdrant_memory",
+      "owner": "knowledge_and_retrieval",
+      "backup_status": "configured",
+      "restore_status": "drill_backed",
+      "last_drill_at": "2026-04-01T04:13:09.130171+00:00",
+      "evidence_path": "C:/Athanor/reports/governance/drills/restore.json",
+      "rto_target": "2h",
+      "rpo_target": "24h",
+      "recovery_order": 2,
+      "dependency_validations": [
+        "qdrant collections",
+        "retrieval smoke probes"
+      ],
+      "current_confidence": "drill_backed",
+      "notes": [
+        "Restore drill passed for the vector memory surface."
+      ]
+    },
+    {
+      "store_id": "neo4j_graph",
+      "owner": "graph_memory_and_atlas_cache",
+      "backup_status": "configured",
+      "restore_status": "drill_backed",
+      "last_drill_at": "2026-04-01T04:13:09.130171+00:00",
+      "evidence_path": "C:/Athanor/reports/governance/drills/restore.json",
+      "rto_target": "2h",
+      "rpo_target": "24h",
+      "recovery_order": 3,
+      "dependency_validations": [
+        "neo4j bolt reachability",
+        "graph query smoke"
+      ],
+      "current_confidence": "drill_backed",
+      "notes": [
+        "Restore drill passed for the graph store."
+      ]
+    },
+    {
+      "store_id": "dashboard_agent_deploy_state",
+      "owner": "operator_surface_and_runtime_deploy_state",
+      "backup_status": "configured",
+      "restore_status": "drill_backed",
+      "last_drill_at": "2026-04-01T04:13:09.130171+00:00",
+      "evidence_path": "C:/Athanor/reports/governance/drills/restore.json",
+      "rto_target": "1h",
+      "rpo_target": "24h",
+      "recovery_order": 4,
+      "dependency_validations": [
+        "dashboard /api/operator/session",
+        "operator ingress smoke"
+      ],
+      "current_confidence": "drill_backed",
+      "notes": [
+        "Restore drill passed for the operator-facing deploy-state surface."
+      ]
+    }
+  ]
+}

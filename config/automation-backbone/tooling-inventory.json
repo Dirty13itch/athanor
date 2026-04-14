@@ -1,13 +1,13 @@
 {
-  "version": "2026-03-29.1",
-  "updated_at": "2026-03-29T06:17:44Z",
+  "version": "2026-04-11.1",
+  "updated_at": "2026-04-11T22:55:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/tooling-inventory.json",
   "hosts": [
     {
       "id": "desk",
       "host": "DESK",
-      "verified_at": "2026-03-29T06:17:44Z",
+      "verified_at": "2026-04-11T22:55:00Z",
       "tools": [
         {
           "tool_id": "claude",
@@ -60,6 +60,20 @@
           "command": "claudeman",
           "status": "missing",
           "version": null
+        },
+        {
+          "tool_id": "goose",
+          "provider_id": null,
+          "command": "goose",
+          "status": "installed",
+          "version": "1.30.0"
+        },
+        {
+          "tool_id": "letta",
+          "provider_id": null,
+          "command": "letta",
+          "status": "installed",
+          "version": "0.22.4"
         }
       ]
     },

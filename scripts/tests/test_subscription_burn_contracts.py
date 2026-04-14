@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import json
 import sys
 import uuid
 from collections.abc import Iterator
@@ -49,6 +50,10 @@ def subscription_burn_client(
     module.TASKS_DIR = task_dir
     module.STATE_FILE = tmp_path / "subscription-burn-state.json"
     module.DEFAULT_WORKING_DIR = default_repo
+    module.QUOTA_TRUTH_PATH = tmp_path / "quota-truth.json"
+    module.PROVIDER_USAGE_EVIDENCE_PATH = tmp_path / "provider-usage-evidence.json"
+    module.PLANNED_SUBSCRIPTION_EVIDENCE_PATH = tmp_path / "planned-subscription-evidence.json"
+    module.CAPACITY_TELEMETRY_PATH = tmp_path / "capacity-telemetry.json"
     registry = {
         "version": "test-burn-registry",
         "source_of_truth": "config/automation-backbone/subscription-burn-registry.json",
@@ -142,6 +147,7 @@ def subscription_burn_client(
     module.apply_burn_registry(registry)
     module.NTFY_URL = "http://ntfy.test/topic"
     module._scheduler_running = True
+    module._reaper_loop_impl = module.reaper_loop
 
     async def fake_ntfy(*args: object, **kwargs: object) -> None:
         return None
@@ -165,6 +171,7 @@ def subscription_burn_client(
     monkeypatch.setattr(module, "ntfy", fake_ntfy)
     monkeypatch.setattr(module, "scheduler_loop", idle_loop)
     monkeypatch.setattr(module, "reaper_loop", idle_loop)
+    monkeypatch.setattr(module, "append_history", lambda *args, **kwargs: None)
     monkeypatch.setattr(module._cli_router, "build_index", fake_build_index)
     monkeypatch.setattr(module._cli_router, "close", fake_close)
     monkeypatch.setattr(module, "emit_operator_audit_event", record_audit)
@@ -203,6 +210,17 @@ def test_health_uses_shared_snapshot_shape(
     assert "burn.execute" in payload["actions_allowed"]
     assert payload["timestamp"]
     assert payload["burn_registry_version"] == "test-burn-registry"
+
+
+def test_fixture_quota_truth_is_isolated_from_repo_truth(
+    subscription_burn_client: tuple[object, TestClient, list[dict[str, object]]],
+) -> None:
+    module, _, _ = subscription_burn_client
+
+    assert module.QUOTA_TRUTH_PATH.exists()
+    payload = json.loads(module.QUOTA_TRUTH_PATH.read_text(encoding="utf-8"))
+    assert payload["version"] == "test-burn-registry"
+    assert "C:\\Athanor\\reports\\truth-inventory\\quota-truth.json" not in str(module.QUOTA_TRUTH_PATH)
 
 
 def test_live_scheduler_surface_only_tracks_catalog_backed_burn_lanes(
@@ -257,6 +275,244 @@ def test_subscription_truth_comes_from_provider_catalog(
         "known_monthly_cost": None,
         "pricing_status": "official-source-present-cost-unverified",
     }
+
+
+def test_local_compute_snapshot_exposes_slot_level_capacity_breakdown(
+    subscription_burn_client: tuple[object, TestClient, list[dict[str, object]]],
+) -> None:
+    module, _, _ = subscription_burn_client
+    module.CAPACITY_TELEMETRY_PATH.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-13T15:00:00+00:00",
+                "source_of_truth": "reports/truth-inventory/capacity-telemetry.json",
+                "capacity_summary": {
+                    "sample_posture": "scheduler_projection_backed",
+                    "scheduler_source": "reports/truth-inventory/gpu-scheduler-promotion-eval.json",
+                    "scheduler_observed_at": "2026-04-13T15:00:00+00:00",
+                    "scheduler_queue_depth": 0,
+                    "scheduler_active_transitions": 0,
+                    "scheduler_slot_count": 1,
+                    "harvestable_scheduler_slot_count": 1,
+                    "harvestable_by_node": {"foundry": 1},
+                    "harvestable_by_zone": {"F": 1},
+                    "harvestable_by_slot": {"F:TP4": 1},
+                },
+                "gpu_samples": [
+                    {
+                        "node_id": "foundry",
+                        "gpu_id": "foundry-rtx5070ti-a",
+                        "scheduler_slot_id": "F:TP4",
+                        "sample_state": "live_projection",
+                        "observed_at": "2026-04-13T15:00:00+00:00",
+                        "queue_depth": 0,
+                        "utilization_percent": 0,
+                        "scheduler_state": "SLEEPING_L1",
+                        "projection_conflict": None,
+                        "harvest_target": True,
+                    }
+                ],
+                "scheduler_slot_samples": [
+                    {
+                        "scheduler_slot_id": "F:TP4",
+                        "scheduler_zone_id": "F",
+                        "slot_target_id": "foundry-bulk-pool",
+                        "harvest_intent": "primary_sovereign_bulk",
+                        "node_ids": ["foundry"],
+                        "member_gpu_ids": ["foundry-rtx5070ti-a"],
+                        "admissible_gpu_ids": ["foundry-rtx5070ti-a"],
+                        "blocked_by": [],
+                        "harvestable_gpu_count": 1,
+                        "idle_window_open": True,
+                        "scheduler_state": "SLEEPING_L1",
+                        "projection_conflicts": [],
+                        "observed_at": "2026-04-13T15:00:00+00:00",
+                        "sample_state": "live_projection",
+                        "queue_depth": 0,
+                        "max_utilization_percent": 0,
+                    }
+                ],
+                "harvest_admission": [
+                    {
+                        "node_id": "foundry",
+                        "gpu_id": "foundry-rtx5070ti-a",
+                        "scheduler_slot_id": "F:TP4",
+                        "harvest_admissible": True,
+                        "blocked_by": [],
+                        "harvest_target": True,
+                    }
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot = module._local_compute_snapshot()
+    breakdown = snapshot["capacity_breakdown"]
+
+    assert breakdown["harvestable_by_zone"] == {"F": 1}
+    assert breakdown["harvestable_by_slot"] == {"F:TP4": 1}
+    assert breakdown["harvestable_scheduler_slot_count"] == 1
+    assert breakdown["scheduler_slot_count"] == 1
+    assert breakdown["scheduler_slot_samples"][0]["scheduler_slot_id"] == "F:TP4"
+    assert breakdown["scheduler_slot_samples"][0]["admissible_gpu_ids"] == ["foundry-rtx5070ti-a"]
+    assert breakdown["scheduler_slot_samples"][0]["idle_window_open"] is True
+    assert breakdown["scheduler_slot_samples"][0]["slot_target_id"] == "foundry-bulk-pool"
+    assert breakdown["scheduler_slot_samples"][0]["harvest_intent"] == "primary_sovereign_bulk"
+
+
+def test_local_compute_snapshot_keeps_seed_only_capacity_provisional(
+    subscription_burn_client: tuple[object, TestClient, list[dict[str, object]]],
+) -> None:
+    module, _, _ = subscription_burn_client
+    module.CAPACITY_TELEMETRY_PATH.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-13T15:10:00+00:00",
+                "source_of_truth": "reports/truth-inventory/capacity-telemetry.json",
+                "capacity_summary": {
+                    "sample_posture": "scheduler_projection_backed",
+                    "scheduler_source": "reports/truth-inventory/gpu-scheduler-promotion-eval.json",
+                    "scheduler_observed_at": "2026-04-13T15:10:00+00:00",
+                    "scheduler_queue_depth": 0,
+                    "scheduler_active_transitions": 0,
+                    "scheduler_slot_count": 1,
+                    "harvestable_scheduler_slot_count": 1,
+                    "harvestable_gpu_count": 1,
+                    "provisional_harvest_candidate_count": 1,
+                    "harvestable_by_node": {"foundry": 1},
+                    "provisional_harvestable_by_node": {"vault": 1},
+                    "harvestable_by_zone": {"F": 1},
+                    "harvestable_by_slot": {"F:TP4": 1},
+                },
+                "gpu_samples": [
+                    {
+                        "node_id": "foundry",
+                        "gpu_id": "foundry-rtx5070ti-a",
+                        "scheduler_slot_id": "F:TP4",
+                        "sample_state": "live_projection",
+                        "observed_at": "2026-04-13T15:10:00+00:00",
+                        "queue_depth": 0,
+                        "utilization_percent": 0,
+                        "scheduler_state": "SLEEPING_L1",
+                        "projection_conflict": None,
+                        "harvest_target": True,
+                    },
+                    {
+                        "node_id": "vault",
+                        "gpu_id": "vault-arc-a380",
+                        "scheduler_slot_id": None,
+                        "sample_state": "registry_seed",
+                        "observed_at": "2026-04-13T15:10:00+00:00",
+                        "queue_depth": 0,
+                        "utilization_percent": 0,
+                        "scheduler_state": None,
+                        "projection_conflict": None,
+                        "harvest_target": True,
+                    },
+                ],
+                "scheduler_slot_samples": [
+                    {
+                        "scheduler_slot_id": "F:TP4",
+                        "scheduler_zone_id": "F",
+                        "slot_target_id": "foundry-bulk-pool",
+                        "harvest_intent": "primary_sovereign_bulk",
+                        "node_ids": ["foundry"],
+                        "member_gpu_ids": ["foundry-rtx5070ti-a"],
+                        "admissible_gpu_ids": ["foundry-rtx5070ti-a"],
+                        "blocked_by": [],
+                        "harvestable_gpu_count": 1,
+                        "idle_window_open": True,
+                        "scheduler_state": "SLEEPING_L1",
+                        "projection_conflicts": [],
+                        "observed_at": "2026-04-13T15:10:00+00:00",
+                        "sample_state": "live_projection",
+                        "queue_depth": 0,
+                        "max_utilization_percent": 0,
+                    }
+                ],
+                "harvest_admission": [
+                    {
+                        "node_id": "foundry",
+                        "gpu_id": "foundry-rtx5070ti-a",
+                        "scheduler_slot_id": "F:TP4",
+                        "harvest_admissible": True,
+                        "blocked_by": [],
+                        "harvest_target": True,
+                        "provisional_harvest_candidate": False,
+                    },
+                    {
+                        "node_id": "vault",
+                        "gpu_id": "vault-arc-a380",
+                        "scheduler_slot_id": None,
+                        "harvest_admissible": False,
+                        "blocked_by": ["requires_scheduler_backing"],
+                        "harvest_target": True,
+                        "provisional_harvest_candidate": True,
+                    },
+                ],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot = module._local_compute_snapshot()
+    breakdown = snapshot["capacity_breakdown"]
+
+    assert snapshot["remaining_units"] == 1
+    assert snapshot["degraded_reason"] is None
+    assert breakdown["provisional_harvest_candidate_count"] == 1
+    assert breakdown["provisional_harvestable_by_node"] == {"vault": 1}
+    assert breakdown["provisional_harvestable_gpu_ids"] == ["vault-arc-a380"]
+    assert breakdown["harvestable_gpu_ids"] == ["foundry-rtx5070ti-a"]
+
+
+def test_reaper_loop_emits_automation_run_record_for_completed_burn(
+    subscription_burn_client: tuple[object, TestClient, list[dict[str, object]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module, _, _ = subscription_burn_client
+
+    class DummyProc:
+        pid = 4242
+
+        def poll(self) -> int:
+            return 0
+
+    emit_record = AsyncMock(return_value=type("EmitResult", (), {"persisted": True, "error": None})())
+
+    async def stop_after_first_sleep(_: float) -> None:
+        module._scheduler_running = False
+        return None
+
+    module.state.active_procs["claude_max"] = DummyProc()
+    module.state.active_pids["claude_max"] = 4242
+    module.state.active_task_metadata["claude_max"] = {
+        "task_id": "task-42",
+        "task_title": "Close validator debt",
+        "task_prompt": "Close validator debt",
+        "working_dir": str(module.DEFAULT_WORKING_DIR),
+        "source": "scheduled",
+    }
+    module.state.last_burn["claude_max"] = "2026-04-13T10:00:00-05:00"
+    module._scheduler_running = True
+
+    monkeypatch.setattr(module, "emit_automation_run_record", emit_record)
+    monkeypatch.setattr(module, "mark_task_done", lambda *args, **kwargs: None)
+    monkeypatch.setattr(module.asyncio, "sleep", stop_after_first_sleep)
+
+    asyncio.run(module._reaper_loop_impl())
+
+    emit_record.assert_awaited_once()
+    record = emit_record.await_args.args[0]
+    assert record.automation_id == "subscription-burn:claude_max"
+    assert record.lane == "subscription_burn"
+    assert record.action_class == "burn_reaper_completion"
+    assert record.inputs["task_id"] == "task-42"
+    assert record.result["dispatch_outcome"] == "success"
+    assert record.result["subscription"] == "claude_max"
 
 
 def test_manual_burn_requires_operator_envelope_and_audits_denial(

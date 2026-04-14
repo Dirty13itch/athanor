@@ -30,3 +30,17 @@ class ReviewRouteContractTests(unittest.TestCase):
         self.assertEqual(3, payload["summary"]["pending_review_queue"])
         self.assertEqual(3, payload["summary"]["review_required"])
         self.assertEqual([], payload["recent_verdicts"])
+
+    def test_get_judge_plane_degrades_when_task_stats_timeout(self) -> None:
+        client = _make_client()
+        with patch(
+            "athanor_agents.tasks.get_task_stats",
+            AsyncMock(side_effect=TimeoutError("task stats timed out")),
+        ):
+            response = client.get("/v1/review/judges?limit=12")
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual("degraded", payload["status"])
+        self.assertEqual(0, payload["summary"]["pending_review_queue"])
+        self.assertEqual([], payload["recent_verdicts"])

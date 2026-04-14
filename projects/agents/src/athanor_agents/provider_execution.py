@@ -877,7 +877,7 @@ async def list_handoff_events(limit: int = 25) -> list[dict[str, Any]]:
     redis = await _get_redis()
     raw = await redis.lrange(HANDOFF_EVENTS_KEY, 0, max(limit - 1, 0))
     events = [json.loads(item) for item in raw]
-    events.sort(key=lambda item: float(item.get("timestamp", 0.0)), reverse=True)
+    events.sort(key=lambda item: _coerce_bundle_timestamp(item.get("timestamp", 0.0)), reverse=True)
     return events[:limit]
 
 
@@ -1307,12 +1307,19 @@ async def execute_provider_request(
         }
 
     if adapter["execution_mode"] == "handoff_bundle" or not adapter["adapter_available"]:
+        message = "Direct execution is unavailable; structured handoff bundle created."
+        if bundle.get("lease_id"):
+            await record_execution_outcome(
+                lease_id=str(bundle["lease_id"]),
+                outcome="handoff_created",
+                notes=message,
+            )
         return {
             "status": "handoff_created",
             "provider": bundle["provider"],
             "handoff": serialize_handoff_bundle(bundle),
             "adapter": adapter,
-            "message": "Direct execution is unavailable; structured handoff bundle created.",
+            "message": message,
         }
 
     await _record_handoff_event(
@@ -1420,6 +1427,13 @@ async def execute_provider_request(
                 "detail": failure_note,
             }
         )
+        if bundle.get("lease_id"):
+            await record_execution_outcome(
+                lease_id=str(bundle["lease_id"]),
+                outcome="fallback_to_handoff",
+                notes=failure_note,
+                latency_ms=int(execution.get("duration_ms", 0) or 0),
+            )
         return {
             "status": "fallback_to_handoff",
             "provider": bundle["provider"],

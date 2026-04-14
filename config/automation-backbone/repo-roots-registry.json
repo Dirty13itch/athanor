@@ -170,6 +170,30 @@
       ]
     },
     {
+      "id": "athanor-devstack",
+      "path": "C:/athanor-devstack",
+      "host": "desk",
+      "authority_level": "build-system",
+      "runtime_scope": "strategy, prototype services, proving harnesses, migration work, and promotion packets for future Athanor capabilities",
+      "status": "active",
+      "notes": [
+        "Primary capability forge for future Athanor development.",
+        "Cannot define live operational truth without an explicit promotion packet and Athanor-side canonical representation."
+      ]
+    },
+    {
+      "id": "codex-home",
+      "path": "C:/Users/Shaun/.codex",
+      "host": "desk",
+      "authority_level": "operator-local",
+      "runtime_scope": "global assistant behavior, automations, migration audits, and workstation-local control surfaces",
+      "status": "active",
+      "notes": [
+        "Operator-local and cross-repo only.",
+        "Must not silently become Athanor or devstack project truth."
+      ]
+    },
+    {
       "id": "desk-legacy",
       "path": "C:/Users/Shaun/athanor",
       "host": "desk",

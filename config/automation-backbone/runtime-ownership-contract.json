@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-08.5",
-  "updated_at": "2026-04-08T06:40:00Z",
+  "version": "2026-04-11.5",
+  "updated_at": "2026-04-12T04:05:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-contract.json",
   "promotion_gate_id": "runtime_ownership_maturity",
@@ -175,6 +175,50 @@
       "next_action": "Keep these state surfaces explicit in reports so runtime maintenance is tied to named roots instead of operator memory."
     },
     {
+      "id": "desk-goose-operator-shell",
+      "label": "DESK Goose operator-shell lane",
+      "host": "desk",
+      "status": "active",
+      "deployment_mode": "host_state_surface",
+      "owner_root_ids": [
+        "desk-main",
+        "athanor-devstack"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Bounded DESK Goose helper and local shell-state contract that pins the adopted Athanor shell path to the intended LiteLLM DeepSeek lane without letting Goose become a parallel control plane.",
+      "source_paths": [
+        "scripts/run-goose-athanor-shell.ps1",
+        "config/automation-backbone/lane-selection-matrix.json",
+        "config/automation-backbone/failure-routing-matrix.json",
+        "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
+      ],
+      "runtime_paths": [
+        "C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1",
+        "C:/Users/Shaun/AppData/Roaming/Block/goose/config"
+      ],
+      "active_surfaces": [
+        "goose CLI headless runner",
+        "Athanor-pinned Goose shell helper",
+        "DESK Goose local config root"
+      ],
+      "execution_packet_id": "desk-goose-operator-shell-rollout-packet",
+      "evidence_paths": [
+        "reports/truth-inventory/goose-operator-shell-formal-eval.json",
+        "reports/truth-inventory/goose-operator-shell-promptfoo-results.json",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/ATHANOR-OPERATING-SYSTEM.md",
+        "scripts/run-goose-athanor-shell.ps1"
+      ],
+      "verification_commands": [
+        "powershell -ExecutionPolicy Bypass -File .\\scripts\\run-goose-athanor-shell.ps1 run --text \"Reply with READY only.\" --no-session --no-profile --quiet --output-format text --max-turns 1",
+        "python scripts/run_capability_pilot_formal_eval.py --run-id goose-operator-shell-lane-eval-2026q2",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_contract": "Remove the DESK Goose helper from the local operator-shell path, restore direct terminal plus specialist CLI routing as the default shell path, and keep Goose-specific state outside Athanor adopted truth.",
+      "approval_boundary": "Changing the DESK Goose helper, fallback contract, or local Goose runtime defaults remains packet-gated.",
+      "next_action": "Treat the DESK Goose helper as the adopted bounded shell path; keep future shell-path changes packet-backed through desk-goose-operator-shell-rollout-packet instead of drifting through workstation-local defaults."
+    },
+    {
       "id": "foundry-agents-compose",
       "label": "FOUNDRY athanor-agents compose lane",
       "host": "foundry",
@@ -224,6 +268,57 @@
       "next_action": "Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container."
     },
     {
+      "id": "foundry-graphrag-compose",
+      "label": "FOUNDRY GraphRAG compose lane",
+      "host": "foundry",
+      "status": "active",
+      "deployment_mode": "opt_compose_service",
+      "owner_root_ids": [
+        "foundry-opt-athanor"
+      ],
+      "source_root_id": "athanor-devstack",
+      "runtime_scope": "Active FOUNDRY GraphRAG retrieval deployment rooted at /opt/athanor/graphrag and serving the governed knowledge-subsystem proof surface on :9300.",
+      "source_paths": [
+        "services/graphrag/Dockerfile",
+        "services/graphrag/docker-compose.yml",
+        "services/graphrag/main.py",
+        "services/graphrag/index_chunks.py",
+        "services/graphrag/index_json_registries.py",
+        "services/graphrag/requirements.txt",
+        "docs/promotion-packets/graphrag-hybrid-retrieval.md"
+      ],
+      "runtime_paths": [
+        "/opt/athanor/graphrag/Dockerfile",
+        "/opt/athanor/graphrag/docker-compose.yml",
+        "/opt/athanor/graphrag/main.py",
+        "/opt/athanor/graphrag/index_chunks.py",
+        "/opt/athanor/graphrag/index_json_registries.py",
+        "/opt/athanor/graphrag/requirements.txt"
+      ],
+      "active_surfaces": [
+        "athanor-graphrag container",
+        "/opt/athanor/graphrag compose bundle",
+        "http://foundry:9300/health"
+      ],
+      "execution_packet_id": "foundry-graphrag-compose-deploy-packet",
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/TRUTH-DRIFT-REPORT.md",
+        "reports/truth-inventory/provider-usage-evidence.json"
+      ],
+      "verification_commands": [
+        "ssh foundry \"cd /opt/athanor/graphrag && docker compose ps\"",
+        "ssh foundry \"docker inspect athanor-graphrag --format '{{.Name}}|{{.State.Status}}|{{index .Config.Labels \\\"com.docker.compose.project.working_dir\\\"}}'\"",
+        "ssh foundry \"curl -sS --max-time 20 http://127.0.0.1:9300/health && curl -sS --max-time 20 http://127.0.0.1:9300/status\"",
+        "python scripts/run_graphrag_promotion_eval.py"
+      ],
+      "rollback_contract": "Preserve the previous /opt/athanor/graphrag bundle under /opt/athanor/backups/graphrag/<timestamp>/ before replacement, and restore that bundle if the approved deploy regresses the GraphRAG retrieval surface or its Athanor integration path.",
+      "approval_boundary": "Replacing /opt/athanor/graphrag contents or rebuilding the live athanor-graphrag container remains approval-gated.",
+      "next_action": "Keep the executed foundry-graphrag-compose-deploy-packet as the governed runtime update path for future GraphRAG changes; the runtime and promotion eval are already green, so the remaining boundary is packet review and adoption acceptance for widening beyond shadow-tier evidence."
+    },
+    {
       "id": "foundry-gpu-orchestrator-compose",
       "label": "FOUNDRY GPU Orchestrator compose lane",
       "host": "foundry",
@@ -265,11 +360,11 @@
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/gpu-orchestrator bundle under /opt/athanor/backups/gpu-orchestrator/<timestamp>/ before replacement, and restore it if the approved deploy regresses the active coordinator or zone-reporting surface.",
       "approval_boundary": "Replacing /opt/athanor/gpu-orchestrator contents or rebuilding the live gpu-orchestrator container remains approval-gated.",
-      "next_action": "Use scripts/deploy-gpu-orchestrator.sh as the governed update path for future FOUNDRY GPU Orchestrator changes; the 2026-04-08 redeploy restored live runtime parity and re-probed /health plus /zones successfully."
+      "next_action": "Use scripts/deploy-gpu-orchestrator.sh as the governed update path for future FOUNDRY GPU Orchestrator changes; the bounded scheduler surface should roll through foundry-gpu-orchestrator-scheduler-state-rollout-packet so /scheduler/state, write-capability posture, and scheduler request/preload/release route presence are verified explicitly before the lane advances beyond offline proof."
     },
     {
       "id": "foundry-vllm-compose",
-      "label": "FOUNDRY vLLM compose lane",
+      "label": "FOUNDRY llama-dolphin coder lane",
       "host": "foundry",
       "status": "active",
       "deployment_mode": "opt_compose_service",
@@ -277,7 +372,7 @@
         "foundry-opt-athanor"
       ],
       "source_root_id": "desk-main",
-      "runtime_scope": "Active FOUNDRY vLLM deployment under /opt/athanor/vllm that serves the coordinator lane and the reconciled qwen3-coder-30b coder lane on the deterministic pinned image athanor/vllm:qwen35-20260315.",
+      "runtime_scope": "Active FOUNDRY vLLM compose root under /opt/athanor/vllm, with dolphin3-r1-24b on :8100 as the canonical healthy coder lane and the legacy coordinator lane on :8000 retained only as a degraded secondary surface.",
       "source_paths": [
         "ansible/host_vars/core.yml",
         "ansible/roles/vllm/defaults/main.yml",
@@ -288,10 +383,10 @@
         "/opt/athanor/vllm/docker-compose.yml"
       ],
       "active_surfaces": [
-        "vllm-coordinator container",
-        "vllm-coder container",
-        "http://foundry:8000/v1/models",
-        "http://foundry:8006/v1/models"
+        "vllm-coordinator container (degraded)",
+        "llama-dolphin container",
+        "http://foundry:8000/v1/models (list-only, completion-degraded)",
+        "http://foundry:8100/v1/models"
       ],
       "execution_packet_id": "foundry-vllm-compose-reconciliation-packet",
       "evidence_paths": [
@@ -303,18 +398,18 @@
       ],
       "verification_commands": [
         "ssh foundry \"cd /opt/athanor/vllm && docker compose ps\"",
-        "ssh foundry \"docker inspect vllm-coder --format '{{json .Config.Cmd}}'\"",
-        "ssh foundry \"curl -sS http://localhost:8006/v1/models\""
+        "ssh foundry \"docker inspect llama-dolphin --format '{{json .Config.Cmd}}'\"",
+        "ssh foundry \"curl -sS http://localhost:8100/v1/models\""
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/vllm bundle under /opt/athanor/backups/vllm/<timestamp>/ before replacing the compose root, and restore that bundle if the approved reconcile pass regresses the active coder or coordinator lanes.",
       "approval_boundary": "Replacing /opt/athanor/vllm/docker-compose.yml or recreating the live FOUNDRY vLLM containers remains approval-gated.",
-      "next_action": "Keep the FOUNDRY vLLM lane pinned to athanor/vllm:qwen35-20260315 and treat any future image or compose change as a deliberate packet-backed rollout; the 2026-04-08 reprobe showed the live host compose root identical to implementation authority while the running coder lane served qwen3-coder-30b on the pinned artifact."
+      "next_action": "Keep the FOUNDRY compose root packet-backed, but treat :8100 as the canonical healthy text lane and :8000 as degraded nonblocking lineage until a future bounded packet either restores real completion health or retires the coordinator lane explicitly."
     },
     {
       "id": "workshop-control-surface-compose",
       "label": "WORKSHOP control-surface compose lane",
       "host": "workshop",
-      "status": "active",
+      "status": "retired",
       "deployment_mode": "opt_compose_service",
       "owner_root_ids": [
         "workshop-opt-athanor"
@@ -366,7 +461,7 @@
         "workshop-opt-athanor"
       ],
       "source_root_id": "desk-main",
-      "runtime_scope": "Active Workshop vLLM worker deployment rooted at /opt/athanor/vllm-node2 and serving the Workshop worker lane on :8010 from the deterministic pinned image athanor/vllm:qwen35-20260315.",
+      "runtime_scope": "Retired Workshop vLLM worker lineage rooted at /opt/athanor/vllm-node2. The old :8010 worker contract is no longer a live runtime because the pinned model directory is absent and the container crashes on startup.",
       "source_paths": [
         "ansible/host_vars/interface.yml",
         "ansible/roles/vllm/defaults/main.yml",
@@ -377,8 +472,8 @@
         "/opt/athanor/vllm-node2/docker-compose.yml"
       ],
       "active_surfaces": [
-        "vllm-node2 container",
-        "http://workshop:8010/v1/models"
+        "/opt/athanor/vllm-node2 compose lineage",
+        "retired Workshop :8010 worker contract"
       ],
       "execution_packet_id": "workshop-vllm-compose-reconciliation-packet",
       "evidence_paths": [
@@ -392,9 +487,9 @@
         "ssh workshop \"docker inspect vllm-node2 --format '{{json .Config.Cmd}}'\"",
         "ssh workshop \"curl -sS http://127.0.0.1:8010/v1/models\""
       ],
-      "rollback_contract": "Preserve the previous /opt/athanor/vllm-node2 compose bundle under /opt/athanor/backups/vllm-node2/<timestamp>/ before replacement, and restore it if the approved reconcile pass regresses the active Workshop worker lane.",
-      "approval_boundary": "Replacing /opt/athanor/vllm-node2/docker-compose.yml or recreating the live Workshop vLLM worker container remains approval-gated.",
-      "next_action": "Keep the Workshop worker pinned to athanor/vllm:qwen35-20260315 and treat future image or launch-flag changes as deliberate packet-backed rollouts; the 2026-04-07 reprobe showed the worker healthy on the pinned artifact."
+      "rollback_contract": "Restore the previous /opt/athanor/vllm-node2 compose bundle only if a future bounded packet intentionally revives a real worker lane with an existing model path and passing live probes.",
+      "approval_boundary": "Restoring /opt/athanor/vllm-node2 as a live Workshop worker lane remains packet-gated until a real model path exists and the lane reproves healthy.",
+      "next_action": "Keep this lane retired and rely on Workshop ComfyUI plus vllm-vision as the active Workshop data-plane surfaces unless a future packet deliberately restores a real :8010 worker runtime."
     },
     {
       "id": "workshop-product-compose",
