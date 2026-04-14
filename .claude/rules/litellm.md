@@ -17,14 +17,14 @@ Config file on VAULT: `/mnt/user/appdata/litellm/config.yaml`
 
 | Alias | Backend Model | Location | Use |
 |-------|---------------|----------|-----|
-| `reasoning` | Qwen3.5-27B-FP8 TP=4 | FOUNDRY:8000 | Complex reasoning, architecture, agents |
-| `fast` | /models/Qwen3.5-35B-A3B-AWQ-4bit | WORKSHOP:8010 | Quick responses, low-latency |
-| `coder` | devstral-small-2 | FOUNDRY:8006 | Code generation |
-| `grader` | /models/Qwen3.5-35B-A3B-AWQ-4bit | WORKSHOP:8010 | Eval grading - thinking disabled at routing layer |
+| `reasoning` | dolphin3-r1-24b | FOUNDRY:8100 | Complex reasoning and agent fallbacks on the consolidated live lane |
+| `fast` | dolphin3-r1-24b | FOUNDRY:8100 | Quick responses on the current healthy primary lane |
+| `coder` | dolphin3-r1-24b | FOUNDRY:8100 | Code generation and primary chat routing |
+| `grader` | dolphin3-r1-24b | FOUNDRY:8100 | Eval grading - thinking disabled at routing layer |
 | `embedding` | Qwen3-Embedding-0.6B | DEV:8001 | 1024-dim vectors |
 | `reranker` | Qwen3-Reranker-0.6B | DEV:8003 | Cross-encoder scoring |
 
-Additional aliases on WORKSHOP (`worker`, `utility`, `creative`, `uncensored`) all route to the same 35B-A3B worker backend on `:8010`. Ollama on `:11434` is a separate workshop-local surface and not the canonical worker lane.
+Additional aliases (`worker`, `utility`, `creative`, `uncensored`, `coding`) currently consolidate onto the same Dolphin lane on `:8100` so the text-generation surface stays healthy while the legacy `:8000` and Workshop `:8010` chat lanes are not canonical. Ollama on `:11434` is a separate workshop-local surface and not the canonical worker lane.
 
 ## Config Changes
 

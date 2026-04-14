@@ -1,7 +1,7 @@
 # Athanor System Specification
 
 Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/project-maturity-registry.json`, `config/automation-backbone/program-operating-system.json`
-Validated against registry version: `platform-topology.json@2026-04-01.1`, `project-maturity-registry.json@2026-03-27.1`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `platform-topology.json@2026-04-11.2`, `project-maturity-registry.json@2026-03-27.1`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: node membership, service placement, endpoints, auth classes, project maturity, and review cadence live in the registry set under `config/automation-backbone`. This document keeps architecture, operating boundaries, and stable contracts only.
 
 ---

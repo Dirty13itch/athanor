@@ -2,6 +2,9 @@
 
 Athanor is a sovereign AI cluster and operator control plane. This repository is the durable implementation authority for the control layer, inventories, validation rules, and canonical current-state docs.
 
+For a fast current-state restart, run:
+- `python scripts/session_restart_brief.py --refresh`
+
 ## Authority Model
 
 Implementation authority: `C:\Athanor`
@@ -58,7 +61,9 @@ Generated reports derived from those registries live under [docs/operations](/C:
 - [config](/C:/Athanor/config) — registry-backed control-plane truth
 - [scripts](/C:/Athanor/scripts) — validation, reporting, maintenance, and collectors
 - [docs](/C:/Athanor/docs) — canonical, generated, reference, and archive docs classified by lifecycle registry
-- [services](/C:/Athanor/services) — legacy and shared service surfaces still being normalized
+- [services](/C:/Athanor/services) — transitional legacy and shared service surfaces under no-growth normalization
+
+Structure placement rules live in [docs/operations/REPO-STRUCTURE-RULES.md](/C:/Athanor/docs/operations/REPO-STRUCTURE-RULES.md).
 
 ## Core Validation
 

@@ -17,7 +17,7 @@ describe("buildChatUpstreamHeaders", () => {
   });
 
   it("keeps direct backend requests unauthenticated", () => {
-    const result = buildChatUpstreamHeaders("workshop-worker", "");
+    const result = buildChatUpstreamHeaders("foundry-coder", "");
 
     expect(result.error).toBeUndefined();
     expect(result.headers).toEqual({ "Content-Type": "application/json" });

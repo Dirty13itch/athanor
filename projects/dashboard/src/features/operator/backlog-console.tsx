@@ -36,10 +36,30 @@ interface OperatorSummary {
   };
 }
 
+interface BacklogFeedStatus {
+  available?: boolean;
+  degraded?: boolean;
+  detail?: string;
+  source?: string;
+}
+
+interface BacklogFeedPayload extends BacklogFeedStatus {
+  backlog?: BacklogItem[];
+  count?: number;
+}
+
 const STATUS_FILTERS: BacklogStatus[] = ["ready", "running", "waiting_approval", "blocked", "captured", "archived", "all"];
 
-export function BacklogConsole() {
-  const [status, setStatus] = useState<BacklogStatus>("ready");
+function normalizeBacklogStatus(value: string | null | undefined): BacklogStatus {
+  if (!value) {
+    return "ready";
+  }
+
+  return STATUS_FILTERS.includes(value as BacklogStatus) ? (value as BacklogStatus) : "ready";
+}
+
+export function BacklogConsole({ initialStatus = "ready" }: { initialStatus?: string }) {
+  const [status, setStatus] = useState<BacklogStatus>(normalizeBacklogStatus(initialStatus));
   const [title, setTitle] = useState("");
   const [prompt, setPrompt] = useState("");
   const [ownerAgent, setOwnerAgent] = useState("coding-agent");
@@ -48,10 +68,10 @@ export function BacklogConsole() {
 
   const backlogQuery = useQuery({
     queryKey: ["operator-backlog", status],
-    queryFn: async (): Promise<BacklogItem[]> => {
+    queryFn: async (): Promise<BacklogFeedPayload> => {
       const query = status === "all" ? "" : `?status=${encodeURIComponent(status)}`;
       const data = await requestJson(`/api/operator/backlog${query}`);
-      return (data?.backlog ?? data ?? []) as BacklogItem[];
+      return (data ?? {}) as BacklogFeedPayload;
     },
     refetchInterval: 20_000,
     refetchIntervalInBackground: false,
@@ -89,8 +109,10 @@ export function BacklogConsole() {
     );
   }
 
-  const backlog = backlogQuery.data ?? [];
+  const backlog = backlogQuery.data?.backlog ?? [];
   const byStatus = summaryQuery.data?.backlog?.by_status ?? {};
+  const backlogFeedStatus = backlogQuery.data;
+  const backlogFeedUnavailable = backlogFeedStatus?.available === false || backlogFeedStatus?.degraded;
 
   return (
     <div className="space-y-8">
@@ -113,6 +135,15 @@ export function BacklogConsole() {
           <StatCard label="Archived" value={`${byStatus.archived ?? 0}`} detail="Operator-retired backlog items." icon={<Archive className="h-5 w-5" />} />
         </div>
       </PageHeader>
+
+      {backlogFeedUnavailable ? (
+        <div className="surface-panel rounded-[24px] border border-[color:var(--signal-warning)]/40 px-5 py-4 sm:px-6">
+          <p className="page-eyebrow text-[color:var(--signal-warning)]">Backlog feed degraded</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            The operator backlog is still usable, but the dashboard is falling back to empty state data because the upstream backlog feed is temporarily unavailable.
+          </p>
+        </div>
+      ) : null}
 
       {feedback ? <ErrorPanel title="Backlog feedback" description={feedback} /> : null}
 
@@ -228,7 +259,15 @@ export function BacklogConsole() {
               ))}
             </div>
           ) : (
-            <EmptyState title="No backlog items here" description="Capture agent work or change the current filter." className="py-10" />
+            <EmptyState
+              title={backlogFeedUnavailable ? "Backlog feed unavailable" : "No backlog items here"}
+              description={
+                backlogFeedUnavailable
+                  ? "The dashboard cannot currently read the live operator backlog, so this view is showing the fail-soft fallback."
+                  : "Capture agent work or change the current filter."
+              }
+              className="py-10"
+            />
           )}
         </CardContent>
       </Card>

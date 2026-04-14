@@ -77,6 +77,34 @@ const backendModelsResponseSchema = z.object({
   ),
 });
 
+const passThroughHealthyServiceIds = new Set([
+  "litellm-proxy",
+  "qdrant",
+  "neo4j",
+  "prometheus",
+  "grafana",
+  "foundry-node-exporter",
+  "workshop-node-exporter",
+  "vault-node-exporter",
+  "foundry-dcgm-exporter",
+  "workshop-dcgm-exporter",
+  "vault-open-webui",
+  "comfyui",
+  "workshop-open-webui",
+  "eoq",
+  "home-assistant",
+  "speaches",
+  "plex",
+  "sonarr",
+  "radarr",
+  "tautulli",
+  "prowlarr",
+  "sabnzbd",
+  "stash",
+]);
+
+const serviceWarningOverrides: Record<string, string> = {};
+
 const rawAgentMetadataSchema = z.object({
   name: z.string(),
   description: z.string(),
@@ -759,6 +787,20 @@ async function tryParseServiceHealthSnapshot(response: Response) {
   }
 }
 
+async function isModelCatalogResponse(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return false;
+  }
+
+  try {
+    const payload = await response.clone().json();
+    return backendModelsResponseSchema.safeParse(payload).success;
+  } catch {
+    return false;
+  }
+}
+
 function isHealthyHealthStatus(status: string) {
   return status === "healthy";
 }
@@ -826,20 +868,48 @@ function describeServiceCondition(service: ServiceSnapshot) {
 async function checkService(service: MonitoredService): Promise<ServiceSnapshot> {
   const start = Date.now();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), service.probeTimeoutMs ?? 5000);
   const checkedAt = nowIso();
+  const requestHeaders: HeadersInit | undefined =
+    service.headers && Object.keys(service.headers).length > 0
+      ? service.headers
+      : service.token
+        ? { Authorization: `Bearer ${service.token}` }
+        : undefined;
 
   try {
     const response = await fetch(service.url, {
       signal: controller.signal,
       cache: "no-store",
+      headers: requestHeaders,
     });
     const latencyMs = Date.now() - start;
     const healthSnapshot = await tryParseServiceHealthSnapshot(response);
+    const modelCatalogHealthy =
+      !healthSnapshot && response.ok && (await isModelCatalogResponse(response));
+    const passThroughHealthy =
+      !healthSnapshot &&
+      !modelCatalogHealthy &&
+      response.ok &&
+      passThroughHealthyServiceIds.has(service.id);
+    const authGuardedPassThrough =
+      !healthSnapshot &&
+      !modelCatalogHealthy &&
+      (response.status === 401 || response.status === 403) &&
+      passThroughHealthyServiceIds.has(service.id);
     const contractDrift =
-      !healthSnapshot && (response.ok || response.status === 401 || response.status === 403);
-    const healthStatus = healthSnapshot?.status ?? null;
-    const healthy = healthSnapshot ? isHealthyHealthStatus(healthSnapshot.status) : false;
+      !healthSnapshot &&
+      !modelCatalogHealthy &&
+      !passThroughHealthy &&
+      !authGuardedPassThrough &&
+      (response.ok || response.status === 401 || response.status === 403);
+    const healthStatus =
+      healthSnapshot?.status ?? (modelCatalogHealthy || passThroughHealthy || authGuardedPassThrough ? "healthy" : null);
+    const healthy = healthSnapshot
+      ? isHealthyHealthStatus(healthSnapshot.status)
+      : modelCatalogHealthy || passThroughHealthy || authGuardedPassThrough;
+    const warningOverride = serviceWarningOverrides[service.id] ?? null;
+    const derivedState = deriveServiceState(healthStatus, healthy, latencyMs, contractDrift);
     return {
       id: service.id,
       name: service.name,
@@ -851,17 +921,39 @@ async function checkService(service: MonitoredService): Promise<ServiceSnapshot>
       healthy,
       latencyMs,
       checkedAt,
-      state: deriveServiceState(healthStatus, healthy, latencyMs, contractDrift),
+      state: warningOverride || authGuardedPassThrough ? "warning" : derivedState,
       authClass: healthSnapshot?.auth_class,
       startedAt: healthSnapshot?.started_at ?? null,
       actionsAllowed: healthSnapshot?.actions_allowed,
       lastError:
+        warningOverride ??
+        (authGuardedPassThrough ? "Service is reachable but requires auth for the health probe." : null) ??
         healthSnapshot?.last_error ??
         (contractDrift ? "Service health endpoint did not return the shared snapshot contract." : null),
       dependencies: healthSnapshot?.dependencies,
       healthSnapshot: healthSnapshot ?? undefined,
     };
-  } catch {
+  } catch (error) {
+    const errorName =
+      typeof error === "object" && error !== null && "name" in error && typeof error.name === "string"
+        ? error.name
+        : null;
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null && "message" in error && typeof error.message === "string"
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : null;
+    const isAbort =
+      errorName === "AbortError" ||
+      Boolean(errorMessage && errorMessage.toLowerCase().includes("aborted"));
+    const message = isAbort
+      ? `Probe timed out after ${service.probeTimeoutMs ?? 5000}ms`
+      : errorMessage
+        ? errorMessage
+          : "Dashboard probe failed.";
     return {
       id: service.id,
       name: service.name,
@@ -874,6 +966,7 @@ async function checkService(service: MonitoredService): Promise<ServiceSnapshot>
       latencyMs: null,
       checkedAt,
       state: "degraded",
+      lastError: message,
     };
   } finally {
     clearTimeout(timeout);
@@ -1441,7 +1534,7 @@ export async function getWorkforceSnapshot(): Promise<WorkforceSnapshot> {
           failed_missing_detail: 0,
         },
       }),
-      fetchAgentJson("/v1/operator/runs?limit=120", operatorRunsResponseSchema, {
+      fetchAgentJson("/v1/operator/runs?limit=50", operatorRunsResponseSchema, {
         runs: [],
         count: 0,
       }),
@@ -1842,6 +1935,8 @@ export const __testing = {
   checkService,
   deriveServiceState,
   tryParseServiceHealthSnapshot,
+  isModelCatalogResponse,
+  passThroughHealthyServiceIds,
 };
 
 export async function getGpuSnapshot(): Promise<GpuSnapshotResponse> {

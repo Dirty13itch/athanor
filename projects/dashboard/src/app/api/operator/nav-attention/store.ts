@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import {
   navAttentionPersistenceStateSchema,
@@ -15,6 +16,7 @@ interface NavAttentionStoreFile {
 
 const STORE_FILENAME = "nav-attention.json";
 const DEFAULT_STORE_PATH = path.join(process.cwd(), ".data", STORE_FILENAME);
+const FALLBACK_STORE_PATH = path.join(os.tmpdir(), "athanor-dashboard", STORE_FILENAME);
 
 let writeQueue: Promise<void> = Promise.resolve();
 
@@ -22,8 +24,18 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-function resolveStorePath(): string {
-  return process.env.DASHBOARD_NAV_ATTENTION_PATH?.trim() || DEFAULT_STORE_PATH;
+function resolveCandidateStorePaths(): string[] {
+  const configuredPath = process.env.DASHBOARD_NAV_ATTENTION_PATH?.trim();
+  if (configuredPath) {
+    return [configuredPath, FALLBACK_STORE_PATH];
+  }
+
+  return [DEFAULT_STORE_PATH, FALLBACK_STORE_PATH];
+}
+
+function isRetryableFilesystemError(error: unknown): boolean {
+  const code = typeof error === "object" && error && "code" in error ? String((error as { code?: string }).code) : "";
+  return code === "EACCES" || code === "EPERM" || code === "EROFS";
 }
 
 function defaultStore(): NavAttentionStoreFile {
@@ -35,26 +47,42 @@ function defaultStore(): NavAttentionStoreFile {
 }
 
 async function readStoreFile(): Promise<NavAttentionStoreFile> {
-  const storePath = resolveStorePath();
-  try {
-    const raw = await readFile(storePath, "utf8");
-    const parsed = JSON.parse(raw) as Partial<NavAttentionStoreFile>;
-    return {
-      version: 1,
-      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : nowIso(),
-      state: navAttentionPersistenceStateSchema.parse(parsed.state ?? {}),
-    };
-  } catch {
-    return defaultStore();
+  for (const storePath of resolveCandidateStorePaths()) {
+    try {
+      const raw = await readFile(storePath, "utf8");
+      const parsed = JSON.parse(raw) as Partial<NavAttentionStoreFile>;
+      return {
+        version: 1,
+        updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : nowIso(),
+        state: navAttentionPersistenceStateSchema.parse(parsed.state ?? {}),
+      };
+    } catch {
+      continue;
+    }
   }
+
+  return defaultStore();
 }
 
 async function writeStoreFile(store: NavAttentionStoreFile): Promise<void> {
-  const storePath = resolveStorePath();
-  await mkdir(path.dirname(storePath), { recursive: true });
-  const tempPath = `${storePath}.${randomUUID()}.tmp`;
-  await writeFile(tempPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
-  await rename(tempPath, storePath);
+  let lastError: unknown = null;
+
+  for (const storePath of resolveCandidateStorePaths()) {
+    try {
+      await mkdir(path.dirname(storePath), { recursive: true });
+      const tempPath = `${storePath}.${randomUUID()}.tmp`;
+      await writeFile(tempPath, `${JSON.stringify(store, null, 2)}\n`, "utf8");
+      await rename(tempPath, storePath);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableFilesystemError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(`Failed to persist ${STORE_FILENAME}`);
 }
 
 function toSnapshot(store: NavAttentionStoreFile): NavAttentionSnapshot {

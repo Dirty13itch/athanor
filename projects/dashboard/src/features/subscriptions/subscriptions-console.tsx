@@ -149,7 +149,7 @@ export function SubscriptionsConsole() {
       <PageHeader
         eyebrow="Subscriptions"
         title="Subscription Burn"
-        description="Cloud subscription posture, spend tracking, provider capacity, active leases, and execution history."
+        description="Canonical home for provider burn posture, spend tracking, provider capacity, active leases, and execution history. Routing and model surfaces deep-link here for economics."
         actions={
           <>
             <LiveBadge

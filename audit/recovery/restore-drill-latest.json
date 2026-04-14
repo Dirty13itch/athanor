@@ -1,16 +1,34 @@
 {
-  "generated_at": "2026-04-01T04:10:26.717837+00:00",
+  "generated_at": "2026-04-14T22:28:12.093625+00:00",
   "lane": "recovery_evidence",
   "action_class": "restore_drill_rehearsal",
   "success": true,
   "artifact_mode": "non_destructive_live_probe",
   "snapshot": {
-    "generated_at": "2026-04-01T04:10:26.683174+00:00",
+    "generated_at": "2026-04-14T22:28:12.055787+00:00",
     "status": "live_partial",
     "last_outcome": "partial",
-    "last_run_at": "2026-04-01T04:10:26.682860+00:00",
-    "flow_count": 13,
+    "last_run_at": "2026-04-14T22:28:12.055436+00:00",
+    "flow_count": 17,
     "flows": [
+      {
+        "id": "agt_policy_plane",
+        "title": "AGT policy plane pilot",
+        "description": "Checks the AGT policy-bridge pilot contract against existing approval, audit, and decision-governance surfaces.",
+        "status": "configured",
+        "last_outcome": null,
+        "last_run_at": null,
+        "last_duration_ms": null,
+        "checks_passed": 0,
+        "checks_total": 0,
+        "evidence": [
+          "test_operator_tests.py",
+          "approval-matrix.json",
+          "contract-registry.json"
+        ],
+        "notes": [],
+        "details": {}
+      },
       {
         "id": "data_lifecycle",
         "title": "Data lifecycle verification",
@@ -46,6 +64,25 @@
         "details": {}
       },
       {
+        "id": "goose_operator_shell",
+        "title": "Goose operator shell pilot",
+        "description": "Checks the bounded Goose shell pilot contract, execution-mode policy, and local tool readiness without treating Goose as a second control plane.",
+        "status": "configured",
+        "last_outcome": null,
+        "last_run_at": null,
+        "last_duration_ms": null,
+        "checks_passed": 0,
+        "checks_total": 0,
+        "evidence": [
+          "test_operator_tests.py",
+          "lane-selection-matrix.json",
+          "goose-boundary-evidence.md",
+          "eval-run-ledger.json"
+        ],
+        "notes": [],
+        "details": {}
+      },
+      {
         "id": "incident_review",
         "title": "Incident review",
         "description": "Verifies that alerts, operator stream events, and execution-run lineage can be reviewed together without SSH or log scraping.",
@@ -58,6 +95,42 @@
         "evidence": [
           "test_operator_tests.py",
           "test_backbone.py"
+        ],
+        "notes": [],
+        "details": {}
+      },
+      {
+        "id": "letta_memory_plane",
+        "title": "Letta memory plane pilot",
+        "description": "Checks the continuity-memory pilot contract, artifact retention posture, and local tool readiness for Letta.",
+        "status": "configured",
+        "last_outcome": null,
+        "last_run_at": null,
+        "last_duration_ms": null,
+        "checks_passed": 0,
+        "checks_total": 0,
+        "evidence": [
+          "test_operator_tests.py",
+          "memory-namespace-registry.json",
+          "artifact-topology-registry.json"
+        ],
+        "notes": [],
+        "details": {}
+      },
+      {
+        "id": "openhands_bounded_worker",
+        "title": "OpenHands bounded worker pilot",
+        "description": "Checks the bounded-worker pilot contract, sidecar retention policy, and local tool readiness for OpenHands.",
+        "status": "configured",
+        "last_outcome": null,
+        "last_run_at": null,
+        "last_duration_ms": null,
+        "checks_passed": 0,
+        "checks_total": 0,
+        "evidence": [
+          "test_operator_tests.py",
+          "sidecar-retention-policy.json",
+          "eval-run-ledger.json"
         ],
         "notes": [],
         "details": {}
@@ -137,8 +210,8 @@
         "description": "Checks restore-drill readiness posture and recovery ordering for critical stores until live drill execution lands.",
         "status": "live_partial",
         "last_outcome": "passed",
-        "last_run_at": "2026-04-01T04:10:26.682860+00:00",
-        "last_duration_ms": 604,
+        "last_run_at": "2026-04-14T22:28:12.055436+00:00",
+        "last_duration_ms": 743,
         "checks_passed": 4,
         "checks_total": 4,
         "evidence": [
@@ -159,7 +232,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Redis ping and synthetic write/read/delete rehearsal succeeded.",
-              "checked_at": "2026-04-01T04:10:26.079071+00:00",
+              "checked_at": "2026-04-14T22:28:11.312734+00:00",
               "artifacts": [
                 "redis://192.168.1.203:6379/0"
               ]
@@ -169,8 +242,8 @@
               "label": "Qdrant memory",
               "verified": true,
               "probe_status": "verified",
-              "probe_summary": "Qdrant collections endpoint is healthy with 14 collections visible.",
-              "checked_at": "2026-04-01T04:10:26.602153+00:00",
+              "probe_summary": "Qdrant collections endpoint is healthy with 15 collections visible.",
+              "checked_at": "2026-04-14T22:28:11.825599+00:00",
               "artifacts": [
                 "http://192.168.1.203:6333/collections"
               ]
@@ -181,7 +254,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Neo4j endpoint is reachable; authenticated restore drill remains password-gated.",
-              "checked_at": "2026-04-01T04:10:26.602452+00:00",
+              "checked_at": "2026-04-14T22:28:11.825910+00:00",
               "artifacts": [
                 "http://192.168.1.203:7474"
               ]
@@ -192,7 +265,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Agent and dashboard recovery surfaces are reachable for ordered recovery.",
-              "checked_at": "2026-04-01T04:10:26.682829+00:00",
+              "checked_at": "2026-04-14T22:28:12.055406+00:00",
               "artifacts": [
                 "http://192.168.1.244:9000/health",
                 "http://192.168.1.189:3001/api/operator/session"

@@ -12,10 +12,11 @@ Deploy vLLM inference services on Athanor. Live production lanes on Foundry and 
 
 | Instance | Node | Port | GPUs | Model | Purpose |
 |----------|------|------|------|-------|---------|
-| vllm-coordinator | Foundry | 8000 | 0,1,3,4 (4x 5070Ti) TP=4 | Qwen3.5-27B-FP8 | Reasoning, agents |
+| vllm-coordinator | Foundry | 8000 | 0,1,3,4 (4x 5070Ti) TP=4 | Qwen3.5-27B-FP8 | Legacy degraded secondary reasoning lineage |
+| llama-dolphin | Foundry | 8100 | 2 (4090) | dolphin3-r1-24b | Canonical healthy shared text lane |
 | vllm-coder | Foundry | 8006 | 2 (4090) | devstral-small-2 | Coding |
 | vllm-embedding | DEV | 8001 | 0 (5060Ti), 0.40 mem | Qwen3-Embedding-0.6B | Embeddings (1024-dim) |
-| vllm (secondary) | Workshop | 8010 | 0 (5090) | Qwen3.5-35B-A3B-AWQ | Fast inference |
+| workshop-vision | Workshop | 8012 | 0 (5090) | Vision runtime | Current live Workshop inference lane |
 
 ## Image Strategy
 
@@ -75,8 +76,8 @@ command:
 
 | Model | Size | Quant | Deployed Where |
 |-------|------|-------|----------------|
-| Qwen3.5-27B-FP8 | ~27 GB | FP8 | Foundry TP=4 at :8000 (current) |
-| Qwen3.5-35B-A3B-AWQ | ~22 GB | AWQ | Workshop single GPU at :8000 (--language-model-only) |
+| Qwen3.5-27B-FP8 | ~27 GB | FP8 | Foundry TP=4 at :8000 (degraded secondary lineage) |
+| Qwen3.5-35B-A3B-AWQ | ~22 GB | AWQ | Historical Workshop worker lineage at :8010, not currently a healthy active lane |
 | Huihui-Qwen3-8B | ~8 GB | None | Foundry GPU 2 (4090) at :8002 |
 | Qwen3-Embedding-0.6B | ~1.2 GB | None | DEV GPU 0 at :8001 |
 
@@ -86,7 +87,7 @@ command:
 # Check model serving
 curl http://192.168.1.244:8000/v1/models
 
-# Test inference (Foundry coordinator)
+# Test degraded legacy coordinator surface
 curl http://192.168.1.244:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model":"/models/Qwen3.5-27B-FP8","messages":[{"role":"user","content":"Hello"}],"max_tokens":50}'
@@ -98,4 +99,7 @@ curl http://192.168.1.189:8001/v1/embeddings \
 
 # Check coder (Foundry GPU 2)
 curl http://192.168.1.244:8006/v1/models
+
+# Check canonical healthy text lane
+curl http://192.168.1.244:8100/v1/models
 ```

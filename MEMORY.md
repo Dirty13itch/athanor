@@ -1,6 +1,6 @@
 # Athanor Session Memory
 
-*Read this first. Updated 2026-03-23.*
+*Historical working memory. Prefer `C:\Athanor\STATUS.md` and current truth-inventory artifacts when they disagree. Lightly corrected on 2026-04-14 to avoid stale runtime assumptions.*
 
 ---
 
@@ -9,16 +9,16 @@
 ### Cluster
 | Node | IP | Role | GPUs | Key Services |
 |------|-----|------|------|-------------|
-| FOUNDRY | .244 | Heavy compute | 4x5070Ti (TP=4) + 4090 | vllm-coordinator:8000, vllm-coder:8006, agents:9000, gpu-orch:9200 |
-| WORKSHOP | .225 | Creative + Worker | 5090 (vLLM) + 5060Ti | vllm-node2:8010, ComfyUI:8188, Dashboard:3001, EoBQ:3002 |
+| FOUNDRY | .244 | Heavy compute | 4x5070Ti (TP=4) + 4090 | vllm-coordinator:8000 (degraded secondary lineage), dolphin text lane:8100, agents:9000, gpu-orch:9200 |
+| WORKSHOP | .225 | Creative | 5090 + 5060Ti | workshop-vision:8012, ComfyUI:8188, EoBQ:3002 |
 | DEV | .189 | Ops center | 5060Ti | Gateway:8700, Embedding:8001, Reranker:8003, all coding CLIs |
 | VAULT | .203 | Storage | ARC A380 | LiteLLM:4000, 51+ containers, Langfuse:3030, full media stack |
 | DESK | .50 | Windows | 3060 12GB | SSH terminal to DEV, VS Code Remote |
 
 ### Models Running (verified 2026-03-23)
-- FOUNDRY TP=4: Qwen3.5-27B-FP8 (reasoning/coding, port 8000)
+- FOUNDRY legacy coordinator: Qwen3.5-27B-FP8 at port 8000 now lists models but is completion-degraded; treat as secondary lineage, not the primary text lane
 - FOUNDRY 4090: devstral-small-2 (coder, port 8006)
-- WORKSHOP 5090: Qwen3.5-35B-A3B-AWQ-4bit (worker/fast/creative/utility/uncensored, port 8010)
+- WORKSHOP 5090 worker lineage at 8010 is historical/retired until a future bounded restore ships with a real model directory
 - WORKSHOP 5060Ti: ComfyUI (image gen)
 - DEV: Qwen3-Embedding-0.6B + Qwen3-Reranker-0.6B
 - **Ollama DISABLED on Workshop** (was conflicting with vLLM for GPU memory)

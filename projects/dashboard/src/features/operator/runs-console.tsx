@@ -47,6 +47,18 @@ interface OperatorSummary {
   };
 }
 
+interface RunsFeedStatus {
+  available?: boolean;
+  degraded?: boolean;
+  detail?: string;
+  source?: string;
+}
+
+interface RunsFeedPayload extends RunsFeedStatus {
+  runs?: OperatorRun[];
+  count?: number;
+}
+
 const STATUS_FILTERS: RunStatus[] = ["running", "waiting_approval", "completed", "failed", "all"];
 
 export function RunsConsole() {
@@ -54,10 +66,10 @@ export function RunsConsole() {
 
   const runsQuery = useQuery({
     queryKey: ["operator-runs", status],
-    queryFn: async (): Promise<OperatorRun[]> => {
+    queryFn: async (): Promise<RunsFeedPayload> => {
       const query = status === "all" ? "" : `?status=${encodeURIComponent(status)}`;
       const data = await requestJson(`/api/operator/runs${query}`);
-      return (data?.runs ?? data ?? []) as OperatorRun[];
+      return (data ?? {}) as RunsFeedPayload;
     },
     refetchInterval: 20_000,
     refetchIntervalInBackground: false,
@@ -82,8 +94,10 @@ export function RunsConsole() {
     );
   }
 
-  const runs = runsQuery.data ?? [];
+  const runs = runsQuery.data?.runs ?? [];
   const byStatus = summaryQuery.data?.runs?.by_status ?? {};
+  const runsFeedStatus = runsQuery.data;
+  const runsFeedUnavailable = runsFeedStatus?.available === false || runsFeedStatus?.degraded;
 
   return (
     <div className="space-y-8">
@@ -106,6 +120,15 @@ export function RunsConsole() {
           <StatCard label="Approval holds" value={`${byStatus.waiting_approval ?? 0}`} detail="Pending approval requests linked to execution runs." icon={<ShieldCheck className="h-5 w-5" />} />
         </div>
       </PageHeader>
+
+      {runsFeedUnavailable ? (
+        <div className="surface-panel rounded-[24px] border border-[color:var(--signal-warning)]/40 px-5 py-4 sm:px-6">
+          <p className="page-eyebrow text-[color:var(--signal-warning)]">Runs feed degraded</p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            The run ledger is still usable, but the dashboard is falling back to empty state data because the upstream runs feed is temporarily unavailable.
+          </p>
+        </div>
+      ) : null}
 
       <Card className="surface-panel">
         <CardHeader>
@@ -153,7 +176,15 @@ export function RunsConsole() {
               ))}
             </div>
           ) : (
-            <EmptyState title="No runs in this view" description="Dispatch backlog work or change the current filter." className="py-10" />
+            <EmptyState
+              title={runsFeedUnavailable ? "Runs feed unavailable" : "No runs in this view"}
+              description={
+                runsFeedUnavailable
+                  ? "The dashboard cannot currently read the live operator run ledger, so this view is showing the fail-soft fallback."
+                  : "Dispatch backlog work or change the current filter."
+              }
+              className="py-10"
+            />
           )}
         </CardContent>
       </Card>

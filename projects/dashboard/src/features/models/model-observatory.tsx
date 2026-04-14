@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCcw, Cpu, Server, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +22,7 @@ import { isOperatorSessionLocked, useOperatorSessionStatus } from "@/lib/operato
 import { queryKeys } from "@/lib/query-client";
 import { requestJson } from "@/features/workforce/helpers";
 
-// ── Model definitions (from server props) ───────────────────────────────────
+// Model definitions (from server props)
 
 interface LocalModelDef {
   alias: string;
@@ -36,20 +37,7 @@ export interface ModelObservatoryProps {
   localModels: LocalModelDef[];
 }
 
-interface ProviderStatus {
-  id: string;
-  name: string;
-  subscription?: string;
-  monthly_cost?: number | null;
-  pricing_status?: string;
-  category?: string;
-  status?: string;
-  provider_state?: string;
-  execution_mode?: string;
-  tasks_today?: number;
-}
-
-// ── Assignment matrix ────────────────────────────────────────────────────────
+// Assignment matrix
 
 type AssignmentKind = "primary" | "fallback";
 
@@ -88,7 +76,7 @@ const MATRIX_COLUMNS = [
   "aider",
 ];
 
-// ── Live data types ──────────────────────────────────────────────────────────
+// Live data types
 
 interface RoutingLogEntry {
   task_id?: string;
@@ -98,7 +86,7 @@ interface RoutingLogEntry {
   timestamp?: string;
 }
 
-// ── Helper functions ─────────────────────────────────────────────────────────
+// Helper functions
 
 function vramForModel(
   model: LocalModelDef,
@@ -117,8 +105,6 @@ function vramForModel(
     gpus = nodeGpus.filter((g) => !g.gpuName.includes("4090"));
   } else if (model.alias === "foundry-coder") {
     gpus = nodeGpus.filter((g) => g.gpuName.includes("4090"));
-  } else if (model.alias === "workshop-worker") {
-    gpus = nodeGpus.filter((g) => g.gpuName.includes("5090"));
   } else if (model.alias === "dev-embedding" || model.alias === "dev-reranker") {
     gpus = nodeGpus.filter((g) => g.gpuName.includes("5060"));
   }
@@ -146,27 +132,11 @@ function vramBarColor(pct: number): string {
   return "bg-[color:var(--signal-success)]";
 }
 
-function cliStatusDot(status: string | undefined): "healthy" | "warning" | "muted" {
-  if (status === "active" || status === "online" || status === "ok") return "healthy";
-  if (status === "degraded" || status === "warning") return "warning";
-  return "muted";
-}
-
-function formatMonthlyCost(monthlyCost: number | null | undefined, pricingStatus: string | undefined): string {
-  if (typeof monthlyCost === "number") {
-    return monthlyCost > 0 ? `$${monthlyCost}/mo` : "$0";
-  }
-  if (pricingStatus?.includes("unverified")) {
-    return "Cost unverified";
-  }
-  return "--";
-}
-
 function policyClass(entry: RoutingLogEntry): string {
   return entry.policy_class ?? "local_only";
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// Main component
 
 export function ModelObservatory({ localModels }: ModelObservatoryProps) {
   const operatorSession = useOperatorSessionStatus();
@@ -175,16 +145,6 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
     queryKey: queryKeys.gpuSnapshot,
     queryFn: getGpuSnapshot,
     refetchInterval: 15_000,
-    refetchIntervalInBackground: false,
-  });
-
-  const providerQuery = useQuery({
-    queryKey: ["routing-providers-models"],
-    queryFn: async (): Promise<ProviderStatus[]> => {
-      const data = await requestJson("/api/routing/providers");
-      return (data?.providers ?? data ?? []) as ProviderStatus[];
-    },
-    refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
 
@@ -202,14 +162,9 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
   });
 
   const snapshot = gpuQuery.data;
-  const providerStatuses = providerQuery.data ?? [];
-  const subscriptionProviders = providerStatuses.filter(
-    (provider) => provider.category === "subscription"
-  );
   const routingEntries = routingQuery.data ?? [];
 
-  const isFetching =
-    gpuQuery.isFetching || providerQuery.isFetching || routingQuery.isFetching;
+  const isFetching = gpuQuery.isFetching || routingQuery.isFetching;
 
   // Routing split
   const total = routingEntries.length;
@@ -226,40 +181,36 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
   const localPct = total > 0 ? (localCount / total) * 100 : 0;
   const cliReviewPct = total > 0 ? (cliReviewCount / total) * 100 : 0;
   const cliExecPct = total > 0 ? (cliExecCount / total) * 100 : 0;
-  const verifiedFixedMonthly = subscriptionProviders.reduce((sum, provider) => {
-    return typeof provider.monthly_cost === "number" && provider.monthly_cost > 0
-      ? sum + provider.monthly_cost
-      : sum;
-  }, 0);
-  const unverifiedSubscriptionCount = subscriptionProviders.filter((provider) => {
-    return provider.monthly_cost == null && provider.pricing_status?.includes("unverified");
-  }).length;
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Intelligence"
         title="Model Observatory"
-        description="Local inference fleet, subscription CLIs, routing split, and agent-to-model assignments."
+        description="Local inference fleet, routing split, and agent-to-model assignments. Provider economics now live in Subscriptions."
         attentionHref="/models"
         actions={
-          <Button
-            variant="outline"
-            onClick={() => {
-              void gpuQuery.refetch();
-              void providerQuery.refetch();
-              void routingQuery.refetch();
-            }}
-            disabled={isFetching}
-          >
-            <RefreshCcw
-              className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </Button>
+          <>
+            <Button asChild variant="outline">
+              <Link href="/subscriptions">Open Subscriptions</Link>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                void gpuQuery.refetch();
+                void routingQuery.refetch();
+              }}
+              disabled={isFetching}
+            >
+              <RefreshCcw
+                className={`mr-2 h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+          </>
         }
       >
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <StatCard
             label="Local Models"
             value={`${localModels.length}`}
@@ -268,9 +219,9 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
             tone="success"
           />
           <StatCard
-            label="Subscription CLIs"
-            value={`${subscriptionProviders.length}`}
-            detail="Catalog-backed CLI subscriptions"
+            label="Provider Economics"
+            value="Subscriptions"
+            detail="Open burn, leases, and handoffs."
             icon={<Server className="h-5 w-5" />}
           />
           <StatCard
@@ -280,26 +231,10 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
             icon={<Zap className="h-5 w-5" />}
             tone={localPct >= 80 ? "success" : "default"}
           />
-          <StatCard
-            label="Monthly Fixed"
-            value={
-              verifiedFixedMonthly > 0
-                ? `$${verifiedFixedMonthly}${unverifiedSubscriptionCount > 0 ? "+" : ""}`
-                : unverifiedSubscriptionCount > 0
-                  ? "Unverified"
-                  : "$0"
-            }
-            detail={
-              unverifiedSubscriptionCount > 0
-                ? `${unverifiedSubscriptionCount} lane${unverifiedSubscriptionCount === 1 ? "" : "s"} cost-unverified`
-                : "Variable cost: $0"
-            }
-            icon={<Server className="h-5 w-5" />}
-          />
         </div>
       </PageHeader>
 
-      {/* Section 1 — Local Models */}
+      {/* Section 1 - Local Models */}
       <Card className="surface-panel">
         <CardHeader>
           <CardTitle className="text-lg">Local Models</CardTitle>
@@ -381,65 +316,26 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
         </CardContent>
       </Card>
 
-      {/* Section 2 — Subscription CLIs */}
       <Card className="surface-panel">
         <CardHeader>
-          <CardTitle className="text-lg">Subscription CLIs</CardTitle>
+          <CardTitle className="text-lg">Provider economics</CardTitle>
           <CardDescription>
-            {`Catalog-backed CLI subscriptions. Verified fixed monthly: $${verifiedFixedMonthly}${unverifiedSubscriptionCount > 0 ? "+" : ""}`}
-            {" \u00b7 "}
-            Variable cost: $0
+            Burn, leases, and handoffs live in Subscriptions. This page keeps the model and routing view focused.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-1">
-            {/* Header row */}
-            <div className="surface-tile grid grid-cols-5 gap-2 rounded-xl px-4 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              <span>Tool</span>
-              <span>Subscription</span>
-              <span>Pricing</span>
-              <span>Execution</span>
-              <span className="text-right">Status</span>
-            </div>
-
-            {subscriptionProviders.map((provider) => {
-              const dotTone = cliStatusDot(provider.provider_state ?? provider.status);
-              return (
-                <div
-                  key={provider.id}
-                  className="surface-tile grid grid-cols-5 items-center gap-2 rounded-xl px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium">{provider.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      {provider.id}
-                    </p>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {provider.subscription ?? "CLI subscription"}
-                  </p>
-                  <span className="text-sm text-muted-foreground">
-                    {formatMonthlyCost(provider.monthly_cost, provider.pricing_status)}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {provider.execution_mode ?? "--"}
-                  </span>
-                  <div className="flex items-center justify-end gap-2">
-                    <StatusDot tone={dotTone} />
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {provider.tasks_today != null
-                        ? `${provider.tasks_today} today`
-                        : "--"}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="surface-instrument flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Open the canonical home for provider spend, lease tracking, and execution history.
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/subscriptions">Open Subscriptions</Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Section 3 — Routing Intelligence */}
+      {/* Section 2 - Routing Intelligence */}
       <Card className="surface-panel">
         <CardHeader>
           <CardTitle className="text-lg">Routing Intelligence</CardTitle>
@@ -550,7 +446,7 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
         </CardContent>
       </Card>
 
-      {/* Section 4 — Assignment Matrix */}
+      {/* Section 4 - Assignment Matrix */}
       <Card className="surface-panel">
         <CardHeader>
           <CardTitle className="text-lg">Agent Assignment Matrix</CardTitle>
@@ -633,3 +529,4 @@ export function ModelObservatory({ localModels }: ModelObservatoryProps) {
     </div>
   );
 }
+

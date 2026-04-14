@@ -757,7 +757,7 @@ class RepoContractsTest(unittest.TestCase):
         self.assertIn("tar \\", deploy_agents_text)
         self.assertIn("src \\", deploy_agents_text)
         self.assertIn("config \\", deploy_agents_text)
-        self.assertIn("docker-compose.yml \\", deploy_agents_text)
+        self.assertIn("docker-compose.yml", deploy_agents_text)
 
         export_langfuse_text = read_text(EXPORT_LANGFUSE_TRACES_SCRIPT)
         self.assertIn("ATHANOR_LANGFUSE_URL", export_langfuse_text)
@@ -1110,27 +1110,27 @@ class RepoContractsTest(unittest.TestCase):
                     violations.append(relative)
             self.assertEqual([], violations, f"Non-archive docs still reference stale active path {stale_reference}: {violations}")
 
-    def test_provider_catalog_report_flags_supported_tool_subscription_without_verified_integration(self) -> None:
+    def test_provider_catalog_report_keeps_glm_coding_live_when_supported_tool_usage_is_verified(self) -> None:
         report_text = read_text(PROVIDER_CATALOG_REPORT)
         self.assertIn("## Z.ai GLM Coding (`zai_glm_coding`)", report_text)
-        self.assertIn("- State classes: `configured-unused`", report_text)
-        self.assertIn("- Evidence posture: `supported_tool_subscription_unverified`", report_text)
+        self.assertIn("- State classes: `active-routing`, `active-burn`", report_text)
+        self.assertIn("- Evidence posture: `live_burn_observed`", report_text)
         self.assertIn(
-            "- Evidence contract: `kind=coding_tool_subscription`, `tooling_status=supported_tools_present`, `hosts=desk,dev`, `supported_tools=claude,codex,gemini`, `integration_status=unverified`, `billing_status=published_tiers_known_subscribed_tier_unverified`, `public_prices=lite:10,pro:30`",
+            "- Evidence contract: `kind=coding_tool_subscription`, `tooling_status=supported_tools_present`, `hosts=desk,dev`, `supported_tools=claude,codex,gemini`, `integration_status=verified`, `billing_status=published_tiers_known_subscribed_tier_unverified`, `public_prices=lite:10,pro:30`",
             report_text,
         )
         self.assertIn("- Tool evidence: none", report_text)
         self.assertIn(
-            "- Next verification: Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.",
+            "- Next verification: Keep GLM Coding Plan in ordinary routing while refreshing supported-tool evidence on DESK or DEV.",
             report_text,
         )
         self.assertIn("- Verification steps:", report_text)
         self.assertIn(
-            "`Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.`",
+            "`Keep GLM Coding Plan in ordinary routing while refreshing supported-tool evidence on DESK or DEV.`",
             report_text,
         )
         self.assertIn(
-            "`Record the first successful supported-tool proof with `python C:/Athanor/scripts/record_supported_tool_usage.py --family-id glm_coding_plan --tool-name <tool> --request-surface <surface> ...` so quota-truth can surface the lane as activation-proven.`",
+            "`Record future supported-tool refreshes with `python C:/Athanor/scripts/record_supported_tool_usage.py --family-id glm_coding_plan --tool-name <tool> --request-surface <surface> ...` so quota-truth can stay activation-proven.`",
             report_text,
         )
         self.assertIn(
@@ -1138,7 +1138,7 @@ class RepoContractsTest(unittest.TestCase):
             report_text,
         )
         self.assertIn(
-            "`Until supported-tool integration is proven, keep this lane configured-unused and out of ordinary auto-routing.`",
+            "`If supported-tool evidence regresses, demote the lane back out of ordinary auto-routing.`",
             report_text,
         )
 
@@ -1751,7 +1751,7 @@ class RepoContractsTest(unittest.TestCase):
             'url: "http://{{ vault_ip }}:8181"',
             '- id: plex',
             'url: "http://{{ vault_ip }}:32400/identity"',
-            '- id: home-assistant',
+            '- id: home_assistant',
             'url: "http://{{ vault_ip }}:8123/"',
         ]:
             self.assertIn(fragment, vault_host_vars_text)

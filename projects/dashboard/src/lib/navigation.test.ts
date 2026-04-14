@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getCompatibilityRoutes, getRouteFamiliesWithRoutes, getRouteLabel, getPrimaryRoutes } from "@/lib/navigation";
+import { getCompatibilityRoutes, getRouteByHref, getRouteFamiliesWithRoutes, getRouteLabel, getPrimaryRoutes } from "@/lib/navigation";
 
 describe("navigation", () => {
   it("exposes first-class operator work routes", () => {
@@ -22,6 +22,9 @@ describe("navigation", () => {
     expect(getRouteLabel("/todos")).toBe("Todos");
     expect(getRouteLabel("/backlog")).toBe("Backlog");
     expect(getRouteLabel("/runs")).toBe("Runs");
+    expect(getRouteByHref("/subscriptions")?.description).toContain("Canonical home for provider burn posture");
+    expect(getRouteByHref("/routing")?.description).toContain("burn posture lives in Subscriptions");
+    expect(getRouteByHref("/models")?.description).toContain("provider economics live in Subscriptions");
   });
 
   it("keeps the quick-access primary set focused", () => {

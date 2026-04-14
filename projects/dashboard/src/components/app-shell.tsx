@@ -3,24 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Menu, Search, Sparkles } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { AgentCrewBar } from "@/components/agent-crew-bar";
-import dynamic from "next/dynamic";
-const PushManager = dynamic(() => import("@/components/push-manager").then(m => m.PushManager), { ssr: false });
 import { LensSwitcher } from "@/components/lens-switcher";
 import { CommandPalette } from "@/components/command-palette";
 import { Kbd } from "@/components/kbd";
-import { MiniTrend } from "@/components/mini-trend";
 import { NavAttentionIndicator } from "@/components/nav-attention-indicator";
 import { NavAttentionLabel } from "@/components/nav-attention-label";
 import { NavAttentionProvider, useNavAttention } from "@/components/nav-attention-provider";
@@ -31,7 +27,6 @@ import { getOverview } from "@/lib/api";
 import {
   getRouteFamiliesWithRoutes,
   getRouteLabel,
-  getPrimaryRoutes,
   type RouteIconKey,
 } from "@/lib/navigation";
 import { useOperatorUiPreferences } from "@/lib/operator-ui-preferences";
@@ -39,9 +34,25 @@ import { queryKeys } from "@/lib/query-client";
 import { cn } from "@/lib/utils";
 import { formatLatency, formatPercent, formatRelativeTime } from "@/lib/format";
 
-const PRIMARY_ROUTES = getPrimaryRoutes();
+const PushManager = dynamic(() => import("@/components/push-manager").then((m) => m.PushManager), {
+  ssr: false,
+});
+
 const ROUTE_FAMILIES = getRouteFamiliesWithRoutes();
-const DESKTOP_ROUTE_FAMILIES = ROUTE_FAMILIES.filter((family) => family.id !== "command_center");
+const PRIMARY_NAV_HREFS = new Set([
+  "/",
+  "/operator",
+  "/services",
+  "/topology",
+  "/routing",
+  "/subscriptions",
+  "/projects",
+  "/catalog",
+]);
+const NAV_ROUTE_FAMILIES = ROUTE_FAMILIES.map((family) => ({
+  ...family,
+  routes: family.routes.filter((route) => PRIMARY_NAV_HREFS.has(route.href)),
+})).filter((family) => family.routes.length > 0);
 
 function NavRailItem({
   href,
@@ -63,8 +74,8 @@ function NavRailItem({
     <Link
       href={href}
       className={cn(
-        "nav-rail-link flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors",
-        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+        "nav-rail-link flex items-center justify-between rounded-lg px-3 py-2.5 text-sm transition-colors",
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
       )}
       data-active={active ? "true" : "false"}
       data-attention-tier={attention.displayTier}
@@ -90,9 +101,9 @@ function NavLinks({
 }) {
   return (
     <nav className={cn("space-y-4", compact && "space-y-3")}>
-      {ROUTE_FAMILIES.map((family) => (
+      {NAV_ROUTE_FAMILIES.map((family) => (
         <div key={family.id} className="space-y-1.5">
-          <p className="px-3 text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
+          <p className="px-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
             {family.label}
           </p>
           <div className="space-y-1">
@@ -116,6 +127,29 @@ function NavLinks({
   );
 }
 
+function HeaderMetric({
+  label,
+  value,
+  tone,
+  detail,
+}: {
+  label: string;
+  value: string;
+  tone: "healthy" | "warning" | "danger";
+  detail?: string;
+}) {
+  return (
+    <div className="flex min-w-[5.5rem] items-start gap-2 border-l border-border/70 pl-4 first:border-l-0 first:pl-0">
+      <StatusDot tone={tone} pulse={tone !== "healthy"} className="mt-1" />
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
+        <p className="font-mono text-sm font-medium tracking-tight text-foreground">{value}</p>
+        {detail ? <p className="text-[11px] text-muted-foreground">{detail}</p> : null}
+      </div>
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -129,82 +163,71 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const overview = overviewQuery.data;
   const warningCount = overview?.summary.warningServices ?? 0;
-  const routeLabel = getRouteLabel(pathname);
   const degradedCount = overview?.summary.degradedServices ?? 0;
+  const routeLabel = getRouteLabel(pathname);
   const shellIndicatorTone = degradedCount > 0 ? "danger" : warningCount > 0 ? "warning" : "healthy";
-  const shellChipTone = degradedCount > 0 || warningCount > 0 ? "warning" : "healthy";
+  const lastRefresh = overview ? formatRelativeTime(overview.generatedAt) : "Loading";
 
   return (
     <NavAttentionProvider overview={overview} pathname={pathname}>
       <div
         className={cn(
           "min-h-screen bg-background text-foreground",
-          preferences.density === "compact" && "[&_[data-density-block]]:py-3"
+          preferences.density === "compact" && "[&_[data-density-block]]:py-3",
         )}
       >
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} overview={overview} />
         <PushManager />
-          <LensSwitcher />
-          <OperatorPresenceHeartbeat />
+        <LensSwitcher />
+        <OperatorPresenceHeartbeat />
 
         <header className="surface-chrome fixed inset-x-0 top-0 z-40 border-b">
-          <div className="flex h-[4.5rem] items-center gap-3 px-4 sm:px-6 lg:pl-[18.5rem]">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-3">
-                <div className="hidden items-center gap-2 lg:flex">
-                  <StatusDot tone={shellIndicatorTone} pulse={degradedCount > 0 || warningCount > 0} />
-                  <p className="text-sm font-medium">{routeLabel}</p>
-                </div>
-                <Button
-                  variant="outline"
-                  className="surface-instrument hidden min-w-[16rem] justify-start gap-3 border text-[color:var(--text-secondary)] hover:bg-accent/70 md:inline-flex"
-                  onClick={() => setPaletteOpen(true)}
-                >
-                  <Search className="h-4 w-4" />
-                  Command palette
-                  <span className="ml-auto flex items-center gap-1">
-                    <Kbd>Ctrl</Kbd>
-                    <Kbd>K</Kbd>
-                  </span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="md:hidden"
-                  aria-label="Open command palette"
-                  onClick={() => setPaletteOpen(true)}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
+          <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:pl-[16.5rem]">
+            <div className="hidden min-w-0 lg:block">
+              <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Athanor</p>
+              <div className="mt-1 flex items-center gap-2">
+                <StatusDot tone={shellIndicatorTone} pulse={degradedCount > 0 || warningCount > 0} />
+                <p className="text-sm font-medium text-foreground">{routeLabel}</p>
               </div>
             </div>
 
-            <div className="hidden items-center gap-3 xl:flex">
-              <StatusChip
+            <div className="min-w-0 flex-1">
+              <Button
+                variant="outline"
+                className="h-10 w-full justify-start gap-3 border-border/80 bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--state-hover)] hover:text-foreground md:max-w-[21rem]"
+                onClick={() => setPaletteOpen(true)}
+              >
+                <Search className="h-4 w-4" />
+                Command palette
+                <span className="ml-auto hidden items-center gap-1 md:flex">
+                  <Kbd>Ctrl</Kbd>
+                  <Kbd>K</Kbd>
+                </span>
+              </Button>
+            </div>
+
+            <div className="hidden items-center gap-4 xl:flex">
+              <HeaderMetric
                 label="Services"
-                value={
-                  overview
-                    ? `${overview.summary.healthyServices}/${overview.summary.totalServices}`
-                    : "--"
-                }
-                tone={shellChipTone}
-                detail={
-                  overview
-                    ? `${overview.summary.warningServices} warning · ${overview.summary.degradedServices} degraded`
-                    : "Loading"
-                }
+                value={overview ? `${overview.summary.healthyServices}/${overview.summary.totalServices}` : "--"}
+                tone={shellIndicatorTone}
+                detail={degradedCount > 0 ? `${degradedCount} degraded` : `${warningCount} warnings`}
               />
-              <StatusChip
+              <HeaderMetric
                 label="Latency"
                 value={overview ? formatLatency(overview.summary.averageLatencyMs) : "--"}
-                tone="muted"
-                detail={overview ? formatRelativeTime(overview.generatedAt) : "Loading"}
-                detailVolatile
+                tone="healthy"
+                detail={lastRefresh}
               />
-              <StatusChip
+              <HeaderMetric
                 label="GPU"
                 value={overview ? formatPercent(overview.summary.averageGpuUtilization, 0) : "--"}
-                tone="healthy"
+                tone={
+                  overview?.summary.averageGpuUtilization !== null &&
+                  (overview?.summary.averageGpuUtilization ?? 0) >= 80
+                    ? "warning"
+                    : "healthy"
+                }
                 detail="Fleet load"
               />
             </div>
@@ -218,22 +241,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </SheetTrigger>
                 <SheetContent
                   side="left"
-                  className="surface-sidebar w-[18rem] border-r p-0"
+                  className="surface-sidebar w-[17rem] border-r p-0"
                   showCloseButton={false}
                 >
                   <SheetHeader className="border-b border-border/80 px-4 py-4 text-left">
-                    <div>
-                      <SheetTitle className="font-heading text-xl font-medium tracking-[-0.025em]">
-                        Athanor
-                      </SheetTitle>
-                      <SheetDescription>Canonical operator front door</SheetDescription>
-                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Mission Control</p>
+                    <SheetTitle className="mt-2 font-heading text-xl font-medium tracking-[-0.03em]">
+                      Athanor
+                    </SheetTitle>
                   </SheetHeader>
                   <div className="p-3">
                     <NavLinks pathname={pathname} compact />
-                  </div>
-                  <div className="border-t border-border/80 p-4 text-sm text-muted-foreground">
-                    Command center, launchpad, and deep links into specialist tools across the cluster.
                   </div>
                 </SheetContent>
               </Sheet>
@@ -241,160 +259,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <aside className="surface-sidebar fixed inset-y-0 left-0 hidden w-[17rem] flex-col border-r px-4 pb-6 pt-6 lg:flex">
-          <Link href="/" className="surface-brand rounded-[1.6rem] border p-4">
-            <p className="font-heading text-3xl font-medium tracking-[-0.03em]">Athanor</p>
-            <p className="mt-1 text-xs uppercase tracking-[0.28em] text-muted-foreground">
-              Command Center
+        <aside className="surface-sidebar fixed inset-y-0 left-0 hidden w-[15rem] flex-col border-r px-4 pb-5 pt-5 lg:flex">
+          <Link href="/" className="px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">Mission Control</p>
+            <p className="mt-2 font-heading text-[1.45rem] font-medium tracking-[-0.035em] text-foreground">
+              Athanor
             </p>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Canonical operator portal for posture, autonomy, incidents, and specialist-tool launch.
-            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Operate the cluster. Jump only when needed.</p>
           </Link>
 
-          <div className="mt-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <p className="px-3 text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                  Quick Access
-                </p>
-                <div className="space-y-1">
-                  {PRIMARY_ROUTES.map((item) => {
-                    const active = pathname === item.href;
-                    return (
-                      <NavRailItem
-                        key={item.href}
-                        href={item.href}
-                        icon={item.icon}
-                        label={item.label}
-                        shortLabel={item.shortLabel}
-                        active={active}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-              <nav className="space-y-4">
-                {DESKTOP_ROUTE_FAMILIES.map((family) => (
-                  <div key={family.id} className="space-y-1.5">
-                    <p className="px-3 text-[11px] uppercase tracking-[0.24em] text-muted-foreground">
-                      {family.label}
-                    </p>
-                    <div className="space-y-1">
-                      {family.routes.map((item) => {
-                        const active = pathname === item.href;
-                        return (
-                          <NavRailItem
-                            key={item.href}
-                            href={item.href}
-                            icon={item.icon}
-                            label={item.label}
-                            shortLabel={item.shortLabel}
-                            active={active}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </nav>
-            </div>
+          <div className="mt-5 flex-1">
+            <NavLinks pathname={pathname} />
           </div>
 
-          <div className="surface-instrument mt-6 space-y-3 rounded-2xl border p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Cluster</p>
+          <div className="mt-5 border-t border-border/70 px-3 pt-4">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Posture</p>
+            <div className="mt-2 flex items-center gap-2">
               <StatusDot tone={shellIndicatorTone} pulse={degradedCount > 0 || warningCount > 0} />
+              <p className="text-sm font-medium text-foreground">{routeLabel}</p>
             </div>
-            <div>
-              <p className="text-2xl font-semibold">
-                {overview ? `${overview.summary.healthyServices}/${overview.summary.totalServices}` : "--"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {degradedCount > 0
-                  ? `${degradedCount} degraded services need attention`
-                  : warningCount > 0
-                    ? `${warningCount} warning services under watch`
-                    : "No active incidents"}
-              </p>
-            </div>
-            <MiniTrend points={overview?.serviceTrend ?? []} />
-          </div>
-
-          <div className="surface-panel mt-4 space-y-3 rounded-2xl border p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Quick Actions</p>
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-            <Button className="w-full justify-between" variant="outline" onClick={() => setPaletteOpen(true)}>
-              Open palette
-              <span className="flex items-center gap-1">
-                <Kbd>Ctrl</Kbd>
-                <Kbd>K</Kbd>
-              </span>
-            </Button>
-            <Button asChild className="w-full justify-between" variant="ghost">
-              <Link href="/services?status=degraded">View incidents</Link>
-            </Button>
-            <Button asChild className="w-full justify-between" variant="ghost">
-              <Link href="/agents">Open agent console</Link>
-            </Button>
-            <Button asChild className="w-full justify-between" variant="ghost">
-              <Link href="/backlog">Project work planner</Link>
-            </Button>
-            <Button asChild className="w-full justify-between" variant="ghost">
-              <Link href="/catalog">Open catalog</Link>
-            </Button>
-          </div>
-
-          <div className="surface-instrument mt-auto rounded-2xl border p-4">
-            <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Shortcuts</p>
-            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-center justify-between">
-                <span>Command palette</span>
-                <span className="flex items-center gap-1">
-                  <Kbd>Ctrl</Kbd>
-                  <Kbd>K</Kbd>
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Switch density</span>
-                <Kbd>D</Kbd>
-              </div>
-            </div>
+            <p className="mt-2 text-xs text-muted-foreground">Overview refreshed {lastRefresh.toLowerCase()}.</p>
           </div>
         </aside>
 
-        <div className="fixed top-14 right-4 z-30 hidden lg:block"><AgentCrewBar /></div>
-        <main className="min-h-screen px-4 pb-8 pt-24 sm:px-6 lg:ml-[17rem] lg:px-8">{children}</main>
+        <main className="min-h-screen px-4 pb-8 pt-20 sm:px-6 lg:ml-[15rem] lg:px-8">{children}</main>
       </div>
     </NavAttentionProvider>
-  );
-}
-
-function StatusChip({
-  label,
-  value,
-  detail,
-  tone,
-  detailVolatile = false,
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  tone: "healthy" | "warning" | "muted";
-  detailVolatile?: boolean;
-}) {
-  return (
-    <div className="chrome-chip min-w-[8rem] rounded-2xl border px-3 py-2">
-      <div className="flex items-center gap-2">
-        <StatusDot tone={tone} />
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{label}</p>
-      </div>
-      <p className="mt-1 text-sm font-semibold">{value}</p>
-      <p className="text-xs text-muted-foreground" data-volatile={detailVolatile ? "true" : undefined}>
-        {detail}
-      </p>
-    </div>
   );
 }

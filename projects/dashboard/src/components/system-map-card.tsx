@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Cloud, Gavel, Shield, Users2 } from "lucide-react";
@@ -232,6 +233,81 @@ export function SystemMapCard() {
                 value={`${snapshot.operational_governance.data_lifecycle.class_count} classes`}
                 detail={`${snapshot.operational_governance.data_lifecycle.sovereign_only_classes.length} local-only`}
               />
+            </div>
+          </div>
+        ) : null}
+
+        {snapshot.master_atlas ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Master atlas</p>
+              <Link href="/topology#master-atlas-map" className="text-xs font-medium text-primary hover:underline">
+                Open relationship map
+              </Link>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <Metric
+                icon={<Shield className="h-4 w-4 text-primary" />}
+                label="Capabilities"
+                value={`${snapshot.master_atlas.capability_count}`}
+                detail={`${snapshot.master_atlas.adopted_count} adopted | ${snapshot.master_atlas.proving_count} proving`}
+              />
+              <Metric
+                icon={<Gavel className="h-4 w-4 text-primary" />}
+                label="Packet-ready"
+                value={`${snapshot.master_atlas.packet_ready_count}`}
+                detail={`${snapshot.master_atlas.blocked_packet_count} blocked packets`}
+              />
+              <Metric
+                icon={<Cloud className="h-4 w-4 text-primary" />}
+                label="Governance"
+                value={compactLabel(snapshot.master_atlas.governance_posture)}
+                detail={`${snapshot.master_atlas.governance_blocker_count} atlas gates`}
+              />
+              <Metric
+                icon={<Users2 className="h-4 w-4 text-primary" />}
+                label="Turnover"
+                value={compactLabel(snapshot.master_atlas.turnover_status)}
+                detail={
+                  snapshot.master_atlas.autonomous_top_task_title ??
+                  (snapshot.master_atlas.autonomous_dispatchable_queue_count !== undefined
+                    ? `${snapshot.master_atlas.autonomous_dispatchable_queue_count} autonomous tasks dispatchable`
+                    : null) ??
+                  snapshot.master_atlas.turnover_next_gate ??
+                  snapshot.master_atlas.next_checkpoint_slice?.title ??
+                  snapshot.master_atlas.best_next_promotion_candidate ??
+                  "no gate selected"
+                }
+              />
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="surface-metric rounded-xl border px-3 py-3 text-sm text-muted-foreground">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Atlas blockers</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {snapshot.master_atlas.governance_blockers.length > 0 ? (
+                    snapshot.master_atlas.governance_blockers.map((blocker) => (
+                      <Badge key={blocker} variant="secondary">
+                        {compactLabel(blocker)}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span>none</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="surface-metric rounded-xl border px-3 py-3 text-sm text-muted-foreground">
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Atlas recommendations</p>
+                <div className="mt-2 space-y-2">
+                  {snapshot.master_atlas.recommendation_summaries.slice(0, 2).map((item) => (
+                    <div key={item.id}>
+                      <p className="font-medium text-foreground">{item.summary}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{item.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         ) : null}

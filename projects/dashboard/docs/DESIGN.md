@@ -1,241 +1,407 @@
-# Athanor Design System
+# Athanor Mission-Control Rebuild Spec
 
-Dark, minimal, warm. Inspired by the Twelve Words — Cormorant Garamond, subtle warmth, no clutter. This is a crafted interface, not a generic admin panel.
+**Status:** Active design authority for the dashboard rebuild  
+**Last updated:** 2026-04-12 21:02 CDT  
+**Scope:** [C:\Athanor\projects\dashboard](/C:/Athanor/projects/dashboard)
 
----
+## Decision
 
-## Principles
+The dashboard should be rebuilt from first principles with current Athanor truth, not iterated from the older "themed admin panel" direction.
 
-1. **Dark-first** — Deep black backgrounds (7% lightness), never gray. Light mode exists in CSS for completeness but is unused.
-2. **Warm amber accent** — Primary color is warm amber/gold (oklch 0.75 0.08 65). Not neon, not cool. Everything warm.
-3. **Dense data, sparse chrome** — Maximize information density. Minimize decorative elements. Every pixel earns its place.
-4. **Serif for identity, sans for interface** — Cormorant Garamond for headings (h1-h4, brand text). Inter for everything else. Geist Mono for data/metrics.
-5. **Subtle borders** — 6% white opacity borders. Almost invisible. Enough to separate, not enough to distract.
+What stays:
 
----
+- Athanor remains the canonical operator front door.
+- The route split of command center / operate / build / domains / catalog is directionally right.
+- The dashboard stays dark-first and operator-oriented.
 
-## Color Palette
+What changes:
 
-All colors in OKLCh for perceptual uniformity.
+- `/` becomes a true mission-control surface, not a summary page with extra cards.
+- The visual system becomes authored and narrow instead of "custom shell over stock shadcn primitives."
+- We stop carrying multiple aesthetic theses inside the live product.
+- We design for long-session operation, high information density, strong keyboard flow, and explicit degraded states.
 
-### Core
+This file replaces the older warm/serif design thesis. That direction no longer matches the product, the current shell, or the operator use case.
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--background` | `oklch(0.07 0 0)` | Page background — near-black |
-| `--foreground` | `oklch(0.93 0.005 60)` | Primary text — warm off-white |
-| `--card` | `oklch(0.12 0.003 60)` | Card surfaces — slightly elevated |
-| `--primary` | `oklch(0.75 0.08 65)` | Amber accent — buttons, links, focus |
-| `--primary-foreground` | `oklch(0.07 0 0)` | Text on primary — black |
-| `--muted` | `oklch(0.18 0.005 60)` | Muted surfaces — disabled, inactive |
-| `--muted-foreground` | `oklch(0.55 0.01 60)` | Secondary text — labels, captions |
+## Research Baseline
 
-### Semantic
+This rebuild should be treated as a research-backed product reset, not a taste pass.
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--destructive` | `oklch(0.65 0.2 25)` | Errors, danger, delete |
-| `--success` | `oklch(0.65 0.18 145)` | Online, healthy, passed |
-| `--warning` | `oklch(0.75 0.15 85)` | Caution, degraded, high load |
-| `--info` | `oklch(0.65 0.12 230)` | Informational, neutral |
+Primary sources reviewed for this spec:
 
-### Surface Hierarchy
+- [W3C WCAG 2.2 Understanding Docs](https://www.w3.org/WAI/WCAG22/Understanding/)
+  - reviewed 2026-04-12
+  - page reports update date of 2026-02-11
+  - key constraints for the rebuild: reflow, non-text contrast, focus visibility and appearance, target size, and motion-from-interaction controls
+- [Carbon Design System Patterns Overview](https://carbondesignsystem.com/patterns/overview)
+  - reviewed 2026-04-12
+  - current Carbon guidance reinforces shared navigation structure, global header discipline, notifications, loading, and consistency across product surfaces
+- [Carbon Design System 2x Grid Overview](https://carbondesignsystem.com/elements/2x-grid/overview/)
+  - reviewed 2026-04-12
+  - current layout guidance reinforces stable shell structure, predictable alignment, and layout systems that scale across navigation-heavy products
+- [Carbon Data Table Usage](https://carbondesignsystem.com/components/data-table/usage/)
+  - reviewed 2026-04-12
+  - current guidance reinforces efficient data display, toolbar placement, row expansion as progressive disclosure, and table-first thinking over decorative summaries
+- [Vercel Web Interface Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md)
+  - fetched 2026-04-13
+  - key constraints for the rebuild: deep-link UI state, explicit focus treatments, reduced motion, semantic structure, text truncation discipline, and touch-safe interactions
 
-```
-background (0.07) → card (0.12) → secondary (0.18) → accent (0.18+chroma)
-```
+Local evidence reviewed alongside outside research:
 
-Each level is a step up in lightness. Cards float above background. Interactive elements get slightly more chroma.
+- live front door at [https://athanor.local/](https://athanor.local/)
+- current theme tokens in [C:\Athanor\projects\dashboard\src\app\globals.css](/C:/Athanor/projects/dashboard/src/app/globals.css)
+- shell structure in [C:\Athanor\projects\dashboard\src\components\app-shell.tsx](/C:/Athanor/projects/dashboard/src/components/app-shell.tsx)
+- current mission-control page in [C:\Athanor\projects\dashboard\src\features\overview\command-center.tsx](/C:/Athanor/projects/dashboard/src/features/overview/command-center.tsx)
+- route taxonomy in [C:\Athanor\projects\dashboard\src\lib\navigation.ts](/C:/Athanor/projects/dashboard/src/lib/navigation.ts)
+- current route index and catalog surface in [C:\Athanor\projects\dashboard\src\app\more\page.tsx](/C:/Athanor/projects/dashboard/src/app/more/page.tsx)
 
-### Borders
+## Product Thesis
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--border` | `oklch(1 0 0 / 6%)` | Default borders — barely visible |
-| `--input` | `oklch(1 0 0 / 10%)` | Input borders — slightly more visible |
+The Athanor dashboard is not a portfolio site, not a BI dashboard, and not a themed launchpad.
 
----
+It is a mission-control product for:
+
+- posture
+- dispatch
+- intervention
+- verification
+- launch into specialist surfaces
+
+The home page should answer only these questions:
+
+1. Is the system healthy enough to operate?
+2. What needs attention now?
+3. What is running, blocked, or approval-held now?
+4. What is the highest-leverage next action?
+5. Where do I go next for depth?
+
+Everything else belongs on a specialist route.
+
+## Information Architecture
+
+### Route roles
+
+- `/`
+  - mission control only
+  - posture, alerts, dispatch state, next action, specialist launch
+- `/operator`
+  - human-in-the-loop control, approvals, governance, overrides
+- `/topology`
+  - system map, atlas, nodes, GPUs, agents, runtime relationships
+- `/subscriptions`
+  - burn economy, provider posture, leases, execution history
+- `/routing`
+  - route policy, provider elasticity, lane decisions, weak-lane truth
+- `/projects`
+  - promotion waves, milestones, project governance
+- `/catalog`
+  - lower-frequency launchpad and specialist discovery
+- `/digest`
+  - narrative briefings and readouts, not live control
+
+### Command-center rules
+
+- Maximum of 5 zones on the home page.
+- Maximum of 8 top-level actionable blocks.
+- No deep-dive cards for route families that already have a dedicated page.
+- No inline "theme exploration," showcase, or catalog behavior on `/`.
+- No dashboard hero language. Utility copy only.
+
+### Specialist-route rules
+
+- Each route gets one dominant work surface.
+- Side panels and tables beat stacks of cards.
+- State is deep-linkable by default.
+- Filters, tabs, selections, and time windows belong in URL state unless clearly private.
+
+## Visual Thesis
+
+### Direction
+
+Use a **dark industrial mission-control system** with a graphite shell, a calmer data plane, and a restrained near-neutral structural accent.
+
+This is the working thesis:
+
+- serious, not startup
+- crisp, not glossy
+- data-first, not decorative
+- long-session friendly, not cinematic
+- distinct enough to feel like Athanor, but disciplined enough to scale
+
+### What this means in practice
+
+- Keep dark mode as the primary operating mode.
+- Remove diffuse decorative gradients from routine product surfaces.
+- Use blur and glass only where chrome genuinely benefits from depth.
+- Make state color do operational work, not branding work.
+- Reduce the number of surface recipes drastically.
+
+### Target palette model
+
+Base roles only:
+
+- `app`
+- `chrome`
+- `panel`
+- `well`
+- `selected`
+- `line`
+- `text`
+- `muted`
+- `accent`
+- semantic signals: `healthy`, `warning`, `danger`, `review`
+
+Rules:
+
+- one structural accent only
+- semantic colors reserved for system state
+- domain colors are secondary metadata, not a second accent system
+- no background should compete with live state colors
+
+Recommended accent:
+
+- near-neutral chalk / silver structure, never navy, cobalt, tan, or brown
+
+Recommended neutrals:
+
+- graphite to charcoal, with stronger separation than the current gray-on-gray stack
 
 ## Typography
 
-### Fonts
+The current three-font system is too split in personality.
 
-| Variable | Family | Role |
-|----------|--------|------|
-| `--font-heading` | Cormorant Garamond (400, 500, 600, 700) | h1-h4, brand text, page titles |
-| `--font-sans` | Inter | Body text, UI elements, labels |
-| `--font-mono` | Geist Mono | Metrics, data, code, numbers |
+### New rule
 
-### Scale
+Use only two active families by default:
 
-| Element | Font | Size | Weight | Tracking |
-|---------|------|------|--------|----------|
-| h1 (page title) | Cormorant | text-2xl (1.5rem) | semibold (600) | tracking-wide |
-| h2 (section) | Cormorant | text-lg (1.125rem) | semibold (600) | — |
-| h3 (card title) | Cormorant | text-sm (0.875rem) | medium (500) | — |
-| Body | Inter | text-sm (0.875rem) | normal (400) | — |
-| Label | Inter | text-xs (0.75rem) | medium (500) | — |
-| Caption | Inter | text-xs (0.75rem) | normal (400) | text-muted-foreground |
-| Data value | Geist Mono | text-xs (0.75rem) | medium (500) | — |
-| Brand mark | Cormorant | text-xl (1.25rem) | semibold (600) | tracking-wide |
+- `IBM Plex Sans` for UI, structure, and headings
+- `IBM Plex Mono` for metrics, tokens, and operational data
 
-### Rules
+If a third voice is required for compressed headers or rails, it must stay in the same family:
 
-- Headings (h1-h4) always use `font-heading` (Cormorant Garamond) via the CSS base layer rule.
-- Numeric data (temperatures, VRAM, power, percentages) uses `font-mono`.
-- Never use Cormorant below text-sm — it doesn't read well at tiny sizes.
-- `tracking-wide` only on brand text and page-level headings.
+- `IBM Plex Sans Condensed`
 
----
+### Explicit removals
 
-## Spacing
+- remove `Space Grotesk` from the primary UI system
+- remove any serif direction from active operator product surfaces
 
-Uses Tailwind's default 4px base scale. Key decisions:
+### Typography rules
 
-| Context | Value | Tailwind |
-|---------|-------|----------|
-| Page padding | 24px | `p-6` |
-| Card internal padding | 24px | `p-6` (via shadcn Card) |
-| Card header gap | 8px | `pb-2` |
-| Section gap | 24px | `space-y-6` |
-| Card grid gap | 16px | `gap-4` |
-| Compact item gap | 8px | `gap-2` |
-| Inline element gap | 6px | `gap-1.5` |
-| Sidebar width | 224px | `w-56` |
+- headings should read as product structure, not editorial branding
+- use `font-variant-numeric: tabular-nums` for comparisons and metrics
+- labels should be compact and scannable
+- big numbers should be louder than section chrome
+- title case for primary headings and buttons
 
-### Layout
+## Surface Grammar
 
-- Fixed sidebar (56 = 224px) on left
-- Main content: `ml-56 min-h-screen p-6`
-- Primary grid: 5 columns at lg+ (`lg:grid-cols-5`)
-- GPU grid: 5 columns for 5+ GPUs, 2 columns for fewer
+The dashboard should be cardless by default.
 
----
+### Default primitives
 
-## Border Radius
+- rails
+- strips
+- panels
+- wells
+- lists
+- tables
+- inspectors
+- status rows
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--radius-sm` | 6px | Small buttons, badges |
-| `--radius-md` | 8px | Buttons, inputs |
-| `--radius-lg` | 10px | Cards, dialogs |
-| `--radius-xl` | 14px | Large containers |
-| `rounded-full` | 9999px | Progress bars, status dots |
+### Use cards only when
 
----
+- the card is the interaction boundary
+- the card is the selection unit
+- the card is an isolated module with a single primary task
 
-## Status Indicators
+### Remove or minimize
 
-### GPU Load (3-tier)
+- repeated rounded-card mosaics
+- nested cards
+- decorative shadows on routine UI
+- "hero cards"
+- stacked micro-panels explaining the same state
 
-| Range | Color | Tailwind |
-|-------|-------|----------|
-| 0-50% | Green | `bg-green-500` / `text-green-400` |
-| 51-80% | Yellow | `bg-yellow-500` / `text-yellow-400` |
-| 81-100% | Red | `bg-red-500` / `text-red-400` |
+## Shell Model
 
-### Temperature (3-tier)
+The shell should act like infrastructure.
 
-| Range | Color | Tailwind |
-|-------|-------|----------|
-| < 65C | Green | `text-green-400` |
-| 65-80C | Yellow | `text-yellow-400` |
-| > 80C | Red | `text-red-400` |
+### Persistent zones
 
-### Service Health
+- left rail
+- top command strip
+- main workspace
+- optional right inspector on routes that need it
 
-| State | Indicator |
-|-------|-----------|
-| Online | `bg-green-500` dot (1.5px-3px) |
-| Offline | `bg-red-500` dot |
-| Degraded | `bg-yellow-500` dot |
+### Shell rules
 
----
+- left rail only contains first-class route families and the most important entries
+- command palette stays globally visible and keyboard-first
+- top strip carries route identity, current system signal, and a small amount of live posture
+- no duplicated launch surfaces in both the rail and the page body unless justified
 
-## Components
+## Motion
 
-### Card
+Motion should reinforce hierarchy and affordance, not create atmosphere for its own sake.
 
-Base shadcn Card with Athanor overrides. `bg-card` surface, `border-border` edges.
+Allowed:
 
-```tsx
-<Card>
-  <CardHeader className="pb-2">
-    <CardTitle className="text-sm">Section Name</CardTitle>
-  </CardHeader>
-  <CardContent>...</CardContent>
-</Card>
-```
+- command palette presence transitions
+- route and drawer transitions
+- hover-state sharpening
+- subtle list or panel entrance sequencing
 
-### Badge
+Required:
 
-CVA variants: `default` (amber fill), `outline` (border only), `destructive`, `secondary`, `ghost`.
+- support reduced motion
+- animate transform and opacity only
+- keep motion brief and interruptible
 
-### GpuCard
+Not allowed:
 
-Compact and full modes. Compact for overview grids, full for detail views. Always uses `font-mono` for metrics.
+- ornamental drift
+- animated gradients in routine operator views
+- long-loading shimmer as a design substitute for real state handling
 
-### ProgressBar
+## Data Display Rules
 
-Thin (`h-1.5`), rounded-full, color-coded by value. Red >80%, Yellow 50-80%, Green below.
+- Tables and structured lists are first-class citizens.
+- Important numbers should appear in stable columns or rows, not floating badges.
+- Toolbars belong with the thing they control.
+- Expansion is preferred over separate drill-down pages when the task is still local.
+- Empty, degraded, and stale states must be explicit.
+- Route-local summaries should point to the route that owns the full truth.
 
-### Sparkline
+## Accessibility and Performance Baseline
 
-Inline SVG, configurable color/fill. 1.5px stroke, 10% opacity fill.
+Every redesign slice must preserve or improve:
 
----
+- WCAG 2.2 focus visibility and focus appearance
+- 24x24 minimum pointer targets where required
+- 320px reflow behavior without content loss outside explicit exceptions
+- reduced-motion support
+- keyboard-complete command palette, navigation, drawers, and filters
+- visible degraded states rather than broken transport errors
 
-## Icon System
+Performance rules:
 
-Inline SVG icons in the sidebar (8 icons). No icon library dependency at runtime — keeps bundle small. Stroke-based, 24x24 viewBox, `currentColor`, `strokeWidth="2"`.
+- do not increase first-load chrome weight for visual novelty
+- keep dashboard-owned API boundaries thin
+- large lists or tables must avoid naive full renders
+- do not add ornamental client-side animation libraries where CSS is enough
 
-When adding new icons, follow the same pattern: functional component, `className` prop, `h-4 w-4` default size.
+## Autonomous Senior Team Model
 
----
+This rebuild should be executed like a small senior product team, even when automated.
 
-## Interaction States
+### Roles
 
-| State | Treatment |
-|-------|-----------|
-| Hover | `bg-accent` (subtle background shift) |
-| Focus | `ring-ring/50` (3px amber ring at 50% opacity) |
-| Active | `bg-primary text-primary-foreground` |
-| Disabled | `opacity-50 pointer-events-none` |
-| Loading | Pulse animation or skeleton (tbd) |
+- Front Door Program Lead
+  - owns charter, scope, acceptance, and cutover
+- Information Architecture Lead
+  - owns route roles, page ownership, and what belongs on `/`
+- UX Systems Designer
+  - owns composition, hierarchy, and interaction model
+- Design System Steward
+  - owns tokens, primitives, shell chrome, and variant discipline
+- Dashboard API and Contract Architect
+  - owns front-door DTOs and specialist-route contracts
+- Frontend Platform Architect
+  - owns feature structure, query policy, URL-state policy, and performance boundaries
+- Control Plane Integration Lead
+  - owns normalization of upstream truth and degraded-state handling
+- Operate Surfaces Lead
+  - owns operator-heavy route families
+- Build and Catalog Surfaces Lead
+  - owns project, routing, model, topology, and catalog surfaces
+- Verification and Release Lead
+  - owns tests, visual baselines, accessibility checks, and launch gates
 
----
+### Parallelization model
 
-## Chart Colors
+Can run in parallel:
 
-5-color sequential palette for data visualization:
+- IA definition
+- visual-system reset
+- contract definition
+- specialist route audits
+- verification harness planning
 
-1. `oklch(0.75 0.08 65)` — Amber (primary, always first)
-2. `oklch(0.65 0.12 160)` — Teal
-3. `oklch(0.55 0.1 230)` — Blue
-4. `oklch(0.7 0.1 330)` — Magenta
-5. `oklch(0.6 0.06 90)` — Olive
+Must stay sequential:
 
-Amber first. Warm tones preferred. Cool tones for contrast when needed.
+1. command-center charter
+2. route ownership and kill list
+3. token and primitive reset
+4. shell rewrite
+5. home-page rebuild
+6. specialist-route rebuilds
+7. deletion of superseded surfaces
 
----
+## Execution Order
 
-## Responsive Strategy
+### Phase 1: Charter reset
 
-| Breakpoint | Layout |
-|------------|--------|
-| < 1024px | Single column, sidebar collapses (tbd) |
-| >= 1024px (lg) | Full sidebar + multi-column grid |
-| >= 1280px (xl) | Wider cards, more data visible |
+- freeze the job of `/`
+- define route ownership and what is no longer allowed on the home page
+- explicitly retire the old themed-dashboard thesis
 
-Currently optimized for desktop (1920x1080+). Mobile responsive is future work.
+### Phase 2: Token and primitive reset
 
----
+- rewrite [C:\Athanor\projects\dashboard\src\app\globals.css](/C:/Athanor/projects/dashboard/src/app/globals.css)
+- replace generic shadcn-feeling variants in:
+  - [C:\Athanor\projects\dashboard\src\components\ui\button.tsx](/C:/Athanor/projects/dashboard/src/components/ui/button.tsx)
+  - [C:\Athanor\projects\dashboard\src\components\ui\card.tsx](/C:/Athanor/projects/dashboard/src/components/ui/card.tsx)
+  - [C:\Athanor\projects\dashboard\src\components\ui\badge.tsx](/C:/Athanor/projects/dashboard/src/components/ui/badge.tsx)
+  - [C:\Athanor\projects\dashboard\src\components\ui\input.tsx](/C:/Athanor/projects/dashboard/src/components/ui/input.tsx)
+- remove theme exploration from the live product path, starting with:
+  - [C:\Athanor\projects\dashboard\src\app\more\page.tsx](/C:/Athanor/projects/dashboard/src/app/more/page.tsx)
 
-## Anti-Patterns
+### Phase 3: Shell reset
 
-- **No bright neons.** No saturated cyan, lime, or hot pink.
-- **No gray backgrounds.** Background is black (0.07), not gray (0.2+).
-- **No generic shadcn defaults.** Every color was customized for Athanor.
-- **No decorative gradients.** Flat surfaces. Depth comes from lightness hierarchy only.
-- **No rounded-3xl+ on small elements.** Large radii are for modals/overlays only.
-- **No emoji in UI.** Activity feed uses them temporarily — replace with proper icons.
+- rebuild [C:\Athanor\projects\dashboard\src\components\app-shell.tsx](/C:/Athanor/projects/dashboard/src/components/app-shell.tsx)
+- simplify the rail
+- tighten the top strip
+- align shell chrome with route roles and live operator posture
+
+### Phase 4: Mission-control rebuild
+
+- rebuild [C:\Athanor\projects\dashboard\src\features\overview\command-center.tsx](/C:/Athanor/projects/dashboard/src/features/overview/command-center.tsx)
+- target one-screen triage on desktop
+- move everything non-essential to dedicated routes
+
+### Phase 5: Specialist-route rebuilds
+
+- operate family first
+- build family second
+- catalog and digest cleanup last
+
+### Phase 6: Verification and deletion
+
+- add direct component coverage for the rebuilt shell and mission-control page
+- expand mobile and navigation verification
+- delete superseded exploratory or duplicate UI
+
+## Acceptance Criteria
+
+The rebuild is not done when it "looks better." It is done when:
+
+- the first desktop viewport answers posture, attention, active work, and next action
+- the home page fits within roughly 1 to 1.5 view heights on desktop
+- the home page has no more than 8 top-level actionable blocks
+- theme exploration is out of the live operator surface
+- typography, shell chrome, and primitives all feel like one system
+- stateful UI is deep-linkable
+- card count is materially lower without loss of clarity
+- keyboard and reduced-motion behavior are explicit and tested
+- the front door feels like an operating console, not a themed admin kit
+
+## Immediate Next Slice
+
+The next implementation slice should be:
+
+1. update global tokens and font strategy
+2. rewrite shared primitives
+3. remove theme exploration from live routes
+4. rebuild the shell on the new primitives
+5. then rebuild `/` on top of that system

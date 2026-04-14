@@ -37,11 +37,36 @@ function groupToolsByCategory() {
     grouped.set(tool.category, existing);
   }
 
+   for (const [, tools] of grouped) {
+    tools.sort((left, right) => {
+      const leftPenalty = left.runtimeState === "reachable" ? 1 : 0;
+      const rightPenalty = right.runtimeState === "reachable" ? 1 : 0;
+      if (leftPenalty !== rightPenalty) {
+        return leftPenalty - rightPenalty;
+      }
+      return left.label.localeCompare(right.label);
+    });
+  }
+
   return Array.from(grouped.entries()).sort(([left], [right]) => left.localeCompare(right));
 }
 
 function formatDeploymentMode(value: string) {
   return value.replace(/_/g, " ");
+}
+
+function formatRuntimeState(value: string) {
+  return value.replace(/_/g, " ");
+}
+
+function runtimeBadgeVariant(value: string): "default" | "secondary" | "destructive" | "outline" {
+  if (value === "reachable") {
+    return "default";
+  }
+  if (value === "http_error" || value === "unreachable") {
+    return "destructive";
+  }
+  return "outline";
 }
 
 export function CatalogConsole() {
@@ -239,8 +264,16 @@ export function CatalogConsole() {
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-medium">{tool.label}</p>
                         <Badge variant="secondary">{tool.node}</Badge>
+                        <Badge variant={runtimeBadgeVariant(tool.runtimeState)}>
+                          {formatRuntimeState(tool.runtimeState)}
+                        </Badge>
                       </div>
                       <p className="mt-2 text-sm text-muted-foreground">{tool.description}</p>
+                      {tool.runtimeState !== "reachable" ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Runtime probe: {tool.runtimeDetail ?? "unreachable"}
+                        </p>
+                      ) : null}
                     </div>
                     <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </a>

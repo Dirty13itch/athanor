@@ -1,5 +1,12 @@
 # Scripts Inventory
 
+Placement contract:
+
+- stable operator entrypoints and reusable script libraries belong in `scripts/`
+- script contract tests belong in `scripts/tests/`
+- disposable probes belong in `tmp/` and should stay untracked
+- use [docs/operations/REPO-STRUCTURE-RULES.md](/C:/Athanor/docs/operations/REPO-STRUCTURE-RULES.md) when deciding whether something belongs in `scripts/`, `reports/`, `docs/operations/`, or `config/automation-backbone/`
+
 ## Operations
 
 | Script | Purpose | Usage |
@@ -9,6 +16,7 @@
 | `deploy-agents.sh` | Deploy agent server to FOUNDRY (sync, build, restart) | `./scripts/deploy-agents.sh [--no-build]` |
 | `run_autonomy_loop_pass.py` | Run one governed native loop pass across builtin and agent-schedule jobs, then write `reports/autonomy-loop/latest.json` | `python scripts/run_autonomy_loop_pass.py [--force-deferred] [--skip-agent-schedules]` |
 | `run_ralph_loop_pass.py` | Run one Ralph-loop control pass: refresh evidence, classify workstreams, and write `reports/ralph-loop/latest.json` | `python scripts/run_ralph_loop_pass.py [--skip-refresh] [--skip-validation]` |
+| `session_restart_brief.py` | Print a compact session-restart brief from live Ralph, governed-dispatch, atlas, capacity, and git state so a fresh session can re-enter quickly | `python scripts/session_restart_brief.py [--refresh] [--json] [--write output/session-restart-brief.md]` |
 | `model-inventory.sh` | Scan NFS models and report available vs loaded | `bash scripts/model-inventory.sh` |
 | `run_service_contract_tests.py` | Create or reuse the disposable service-contract venv and run the service and script health-contract suites | `python scripts/run_service_contract_tests.py [--reinstall]` |
 | `requirements-test.txt` | Dependency bundle for script-service contract tests in the disposable service-contract venv | Consumed by `python scripts/run_service_contract_tests.py` |
@@ -90,6 +98,13 @@ Treat `contract-tests.sh` as a narrower live endpoint contract helper, not a rep
 | Script | Purpose | Usage |
 |--------|---------|-------|
 | `run-evals.sh` | Run agent evaluation suite via promptfoo | `./scripts/run-evals.sh [--output FILE]` |
+| `run_capability_pilot_formal_preflight.py` | Validate whether Goose, OpenHands, Letta, and AGT have the env, scaffold, and artifact contract needed for a formal pilot eval without actually executing it | `python scripts/run_capability_pilot_formal_preflight.py [--run-id ...] [--host-id desk]` |
+| `run_capability_pilot_formal_eval.py` | Run one formal pilot eval when preflight is ready, or emit a blocked or manual-review artifact when it is not. Promptfoo pilots execute directly; benchmark-spec pilots materialize comparison artifacts for manual contract review once valid fixtures exist. | `python scripts/run_capability_pilot_formal_eval.py --run-id goose-operator-shell-lane-eval-2026q2` |
+| `generate_capability_pilot_readiness.py` | Build pilot-readiness truth for packet-drafting capabilities from lanes, evals, packets, and tooling inventory | `python scripts/generate_capability_pilot_readiness.py [--host-id desk]` |
+| `run_capability_pilot_evals.py` | Execute bounded pilot flows for Goose, OpenHands, Letta, and AGT, then write machine-readable pilot-eval evidence | `python scripts/run_capability_pilot_evals.py [--run-id ...] [--host-id desk]` |
+| `run_gpu_scheduler_baseline_eval.py` | Pin the current live GPU-orchestrator baseline and check whether the scheduler surface is source-aligned without overclaiming formal readiness | `python scripts/run_gpu_scheduler_baseline_eval.py` |
+| `run_gpu_scheduler_promotion_eval.py` | Execute the bounded scheduler promotion-eval contract and report whether live rollout plus bounded mutation surfaces exist yet | `python scripts/run_gpu_scheduler_promotion_eval.py` |
+| `record_supported_tool_usage.py` | Record a supported-tool usage proof for planned subscription families such as GLM Coding Plan | `python scripts/record_supported_tool_usage.py --family-id glm_coding_plan --tool-name codex --request-surface "<surface>"` |
 | `tp-benchmark.sh` | Live throughput benchmark for vLLM endpoints | `./scripts/tp-benchmark.sh [REQUESTS]` |
 
 ## Creative / Media

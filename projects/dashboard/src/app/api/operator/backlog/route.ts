@@ -1,11 +1,22 @@
 import { NextRequest } from "next/server";
 import { proxyAgentOperatorJson } from "@/lib/operator-actions";
-import { proxyAgentJson } from "@/lib/server-agent";
+import { proxyOperatorReadJson } from "@/app/api/operator/fail-soft";
 
 export async function GET(request: NextRequest) {
   const params = new URLSearchParams(request.nextUrl.searchParams);
+  const status = params.get("status")?.trim().toLowerCase() ?? "";
+  if (status === "all") {
+    params.delete("status");
+  }
   const query = params.toString();
-  return proxyAgentJson(`/v1/operator/backlog${query ? `?${query}` : ""}`, undefined, "Failed to fetch operator backlog");
+  return proxyOperatorReadJson(
+    `/v1/operator/backlog${query ? `?${query}` : ""}`,
+    "Failed to fetch operator backlog",
+    {
+      backlog: [],
+      count: 0,
+    },
+  );
 }
 
 export async function POST(request: NextRequest) {

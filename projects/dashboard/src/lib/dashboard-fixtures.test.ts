@@ -13,9 +13,7 @@ describe("dashboard fixtures", () => {
   it("keeps fixture services aligned with the canonical dashboard service registry", () => {
     const fixtureIds = getFixtureServicesSnapshot().services.map((service) => service.id);
     expect(fixtureIds).toEqual(config.services.map((service) => service.id));
-    expect(fixtureIds).toContain("foundry-coordinator");
     expect(fixtureIds).toContain("foundry-coder");
-    expect(fixtureIds).toContain("workshop-worker");
     expect(fixtureIds).toContain("dev-embedding");
     expect(fixtureIds).toContain("dev-reranker");
   });
@@ -39,11 +37,10 @@ describe("dashboard fixtures", () => {
     const services = getFixtureServicesSnapshot();
     const overview = getFixtureOverviewSnapshot();
 
-    expect(services.summary.warning).toBe(1);
+    expect(services.summary.warning).toBe(0);
     expect(services.summary.degraded).toBe(2);
-    expect(overview.summary.warningServices).toBe(1);
+    expect(overview.summary.warningServices).toBe(0);
     expect(overview.summary.degradedServices).toBe(2);
-    expect(services.services.find((service) => service.id === "workshop-worker")?.state).toBe("warning");
   });
 
   it("keeps fixture node summaries aligned with per-service state counts", () => {

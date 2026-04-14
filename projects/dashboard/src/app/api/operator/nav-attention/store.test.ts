@@ -30,6 +30,8 @@ describe("operator nav attention store", () => {
       await rm(tempDir, { recursive: true, force: true });
       tempDir = "";
     }
+
+    await rm(path.join(os.tmpdir(), "athanor-dashboard"), { recursive: true, force: true });
   });
 
   it("persists nav attention state to disk", async () => {

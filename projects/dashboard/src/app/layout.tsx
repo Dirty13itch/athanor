@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans, Space_Grotesk } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google";
 import { AppProviders } from "@/components/app-providers";
 import { AppShell } from "@/components/app-shell";
 import { RegisterSW } from "@/components/register-sw";
@@ -11,7 +11,7 @@ const plexSans = IBM_Plex_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
-const spaceGrotesk = Space_Grotesk({
+const plexSansCondensed = IBM_Plex_Sans_Condensed({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -39,7 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${plexSans.variable} ${spaceGrotesk.variable} ${plexMono.variable} font-sans antialiased`}
+        className={`${plexSans.variable} ${plexSansCondensed.variable} ${plexMono.variable} font-sans antialiased`}
       >
         <AppProviders>
           <RegisterSW />

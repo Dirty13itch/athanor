@@ -6,8 +6,9 @@ services:
     image: athanor/dashboard:latest
     container_name: athanor-dashboard
     restart: unless-stopped
-    ports:
-      - "3001:3001"
+    # The dashboard runs on DEV beside local retrieval runtimes, so host networking
+    # keeps service probes honest for same-host ports like 8001/8003.
+    network_mode: host
     group_add:
       - "988"  # docker group GID on WORKSHOP — grants socket access
     volumes:
@@ -25,7 +26,7 @@ services:
       ATHANOR_GRAFANA_URL: ${ATHANOR_GRAFANA_URL:-http://192.168.1.203:3000}
       ATHANOR_LITELLM_URL: ${ATHANOR_LITELLM_URL:-http://192.168.1.203:4000}
       ATHANOR_VLLM_COORDINATOR_URL: ${ATHANOR_VLLM_COORDINATOR_URL:-http://192.168.1.244:8000}
-      ATHANOR_VLLM_CODER_URL: ${ATHANOR_VLLM_CODER_URL:-http://192.168.1.244:8006}
+      ATHANOR_VLLM_CODER_URL: ${ATHANOR_VLLM_CODER_URL:-http://192.168.1.244:8100}
       ATHANOR_VLLM_WORKER_URL: ${ATHANOR_VLLM_WORKER_URL:-http://192.168.1.225:8010}
       ATHANOR_VLLM_EMBEDDING_URL: ${ATHANOR_VLLM_EMBEDDING_URL:-http://192.168.1.189:8001}
       ATHANOR_VLLM_RERANKER_URL: ${ATHANOR_VLLM_RERANKER_URL:-http://192.168.1.189:8003}
@@ -41,6 +42,7 @@ services:
       ATHANOR_PROWLARR_URL: ${ATHANOR_PROWLARR_URL:-http://192.168.1.203:9696}
       ATHANOR_SABNZBD_URL: ${ATHANOR_SABNZBD_URL:-http://192.168.1.203:8080}
       ATHANOR_HOME_ASSISTANT_URL: ${ATHANOR_HOME_ASSISTANT_URL:-http://192.168.1.203:8123}
+      ATHANOR_HOME_ASSISTANT_TOKEN: ${ATHANOR_HOME_ASSISTANT_TOKEN:-}
       ATHANOR_QDRANT_URL: ${ATHANOR_QDRANT_URL:-http://192.168.1.203:6333}
       ATHANOR_NEO4J_URL: ${ATHANOR_NEO4J_URL:-http://192.168.1.203:7474}
       ATHANOR_NEO4J_USER: ${ATHANOR_NEO4J_USER:-neo4j}

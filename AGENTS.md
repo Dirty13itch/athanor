@@ -41,6 +41,7 @@ Prefer runtime truth and current registries over historical analysis.
 ## Commands
 
 - `python scripts/validate_platform_contract.py`
+- `python scripts/session_restart_brief.py --refresh`
 - `python scripts/generate_documentation_index.py`
 - `python scripts/generate_project_maturity_report.py`
 - `python scripts/generate_truth_inventory_reports.py`

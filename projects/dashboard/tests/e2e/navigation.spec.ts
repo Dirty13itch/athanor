@@ -23,12 +23,12 @@ test.beforeEach(async ({ page }) => {
   await resetBrowserState(page);
 });
 
-test("navigates core routes from the shell", async ({ page }) => {
+test("navigates primary routes from the shell", async ({ page }) => {
   await gotoRoute(page, "/", "Command Center");
 
   await navigateFromShell(page, "Services", /\/services$/, "Services");
-  await navigateFromShell(page, "GPU Metrics", /\/gpu$/, "GPU Metrics");
-  await navigateFromShell(page, "Direct Chat", /\/chat$/, "Direct Chat");
+  await navigateFromShell(page, "Topology", /\/topology$/, "Topology");
+  await navigateFromShell(page, "Routing", /\/routing$/, "Routing");
 });
 
 test("opens the command palette and routes to incidents", async ({ page }) => {

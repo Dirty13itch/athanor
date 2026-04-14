@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-14T21:23:27.133914+00:00",
+  "generated_at": "2026-04-14T22:28:30.578025+00:00",
   "lane": "contract_healer",
   "action_class": "drift_report_generation",
   "success": true,
@@ -23,7 +23,7 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.037
+      "duration_seconds": 0.039
     },
     {
       "command": [
@@ -34,7 +34,7 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.037
+      "duration_seconds": 0.038
     }
   ],
   "operator_visible_summary": "Contract healer regenerated drift evidence successfully.",

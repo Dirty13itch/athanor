@@ -303,7 +303,7 @@ export const ROUTES: RouteDefinition[] = [
     href: "/subscriptions",
     label: "Subscriptions",
     shortLabel: "Subs",
-    description: "Cloud subscription spend, provider burn rates, lease tracking, and execution history.",
+    description: "Canonical home for provider burn posture, spend tracking, lease tracking, and execution history.",
     family: "build",
     icon: "routing",
     primary: true,
@@ -312,7 +312,7 @@ export const ROUTES: RouteDefinition[] = [
   {
     href: "/routing",
     label: "Routing",
-    description: "Provider routing, cost tracking, and execution lane visibility.",
+    description: "Execution-lane visibility and provider health; burn posture lives in Subscriptions.",
     family: "build",
     icon: "routing",
     primary: false,
@@ -321,7 +321,7 @@ export const ROUTES: RouteDefinition[] = [
   {
     href: "/models",
     label: "Models",
-    description: "Local models, subscription CLIs, routing intelligence, and assignment matrix.",
+    description: "Local models, routing intelligence, and assignment matrix; provider economics live in Subscriptions.",
     family: "build",
     icon: "models",
     primary: true,

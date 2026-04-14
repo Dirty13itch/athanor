@@ -38,7 +38,7 @@ These are the plain-language operating runbooks for the Athanor backbone.
 1. Start from the provider catalog report, secret-surface report, and [VAULT-LITELLM-AUTH-REPAIR-PACKET.md](/C:/Athanor/docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md), not guesswork.
 2. Refresh `reports/truth-inventory/vault-litellm-env-audit.json` with `python scripts/vault_litellm_env_audit.py --write reports/truth-inventory/vault-litellm-env-audit.json` before changing anything.
 3. Treat the `litellm` container env surface as the owner of upstream provider-key delivery on VAULT.
-4. Repair missing provider env vars in the managed host-local secret surface only; do not place values in tracked source.
+4. Use the generated packet's failure class before mutating anything: restore missing env names only for `missing_required_env`, rotate already-present keys for `present_key_invalid`, and inspect the served auth path first for `auth_mode_mismatch` or `auth_failed_unknown`.
 5. Recreate or redeploy only the `litellm` container after the env surface is repaired.
 6. Re-run `python scripts/probe_provider_usage_evidence.py --all-vault-proxy`.
 7. Regenerate the truth collector and truth reports before closing the maintenance pass.

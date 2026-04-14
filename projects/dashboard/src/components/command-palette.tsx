@@ -135,13 +135,19 @@ export function CommandPalette({
               {overview.externalTools.map((tool) => (
                 <Command.Item
                   key={tool.id}
-                  value={`${tool.label} ${tool.description}`}
+                  value={`${tool.label} ${tool.description} ${tool.runtimeState} ${tool.runtimeDetail ?? ""}`}
                   onSelect={() => openExternal(tool.url)}
-                  className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-3 text-sm outline-none data-[selected=true]:bg-accent"
+                  className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-3 py-3 text-sm outline-none data-[selected=true]:bg-accent"
                 >
-                  <span>
-                    <span className="font-medium">{tool.label}</span>
-                    <span className="ml-2 text-muted-foreground">{tool.description}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{tool.label}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {tool.runtimeState === "reachable"
+                        ? tool.description
+                        : `${tool.description} • runtime ${tool.runtimeState.replace(/_/g, " ")}${
+                            tool.runtimeDetail ? ` (${tool.runtimeDetail})` : ""
+                          }`}
+                    </span>
                   </span>
                   <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
                 </Command.Item>

@@ -19,7 +19,7 @@ from cluster_config import get_url
 COLLECTION = "preferences"
 DEFAULT_QDRANT_URL = get_url("qdrant")
 DEFAULT_EMBEDDING_URL = get_url("embedding")
-EMBEDDING_MODEL = os.environ.get("ATHANOR_EMBEDDING_MODEL", "/models/Qwen3-Embedding-0.6B")
+EMBEDDING_MODEL = os.environ.get("ATHANOR_EMBEDDING_MODEL", "qwen3-embed-8b")
 
 
 def _normalize_url(url: str) -> str:

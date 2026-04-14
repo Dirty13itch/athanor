@@ -6,6 +6,8 @@ export interface TaskResidueSummary {
   pending: number;
   pending_approval: number;
   stale_lease: number;
+  stale_lease_actionable: number;
+  stale_lease_recovered_historical: number;
   failed_actionable: number;
   failed_historical_repaired: number;
   failed_missing_detail: number;
@@ -43,6 +45,8 @@ export function extractTaskResidueSummary(source: unknown): TaskResidueSummary {
   const pending = toCount(record.pending ?? byStatus.pending ?? byStatus.queued);
   const pendingApproval = toCount(record.pending_approval ?? byStatus.pending_approval);
   const staleLease = toCount(record.stale_lease ?? byStatus.stale_lease);
+  const staleLeaseActionable = toCount(record.stale_lease_actionable ?? staleLease);
+  const staleLeaseRecoveredHistorical = toCount(record.stale_lease_recovered_historical);
   const failedActionable = toCount(record.failed_actionable);
   const failedHistoricalRepaired = toCount(record.failed_historical_repaired);
   const failedMissingDetail = toCount(record.failed_missing_detail);
@@ -57,6 +61,8 @@ export function extractTaskResidueSummary(source: unknown): TaskResidueSummary {
     pending,
     pending_approval: pendingApproval,
     stale_lease: staleLease,
+    stale_lease_actionable: staleLeaseActionable,
+    stale_lease_recovered_historical: staleLeaseRecoveredHistorical,
     failed_actionable: failedActionable,
     failed_historical_repaired: failedHistoricalRepaired,
     failed_missing_detail: failedMissingDetail,

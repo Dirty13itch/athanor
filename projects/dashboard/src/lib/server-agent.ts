@@ -775,6 +775,31 @@ function buildFixtureGovernorSnapshot(state: FixtureGovernorState, timestamp: st
         running: !globalPaused,
         enabled_count: 9,
       },
+      local_compute: {
+        sample_posture: "scheduler_projection_backed",
+        scheduler_slot_count: 5,
+        harvestable_scheduler_slot_count: 2,
+        idle_harvest_slots_open: true,
+        open_harvest_slots: [
+          {
+            id: "F:TP4",
+            zone_id: "F",
+            harvest_intent: "primary_sovereign_bulk",
+            harvestable_gpu_count: 4,
+            node_ids: ["foundry"],
+          },
+          {
+            id: "W:1",
+            zone_id: "W",
+            harvest_intent: "creative_batch_support",
+            harvestable_gpu_count: 1,
+            node_ids: ["workshop"],
+          },
+        ],
+        scheduler_queue_depth: 0,
+        scheduler_source: "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
+        scheduler_observed_at: timestamp,
+      },
       provider_reserve: {
         posture: "healthy",
         constrained_count: 0,

@@ -1,7 +1,7 @@
 # Athanor Recovery
 
 Source of truth: `config/automation-backbone/platform-topology.json`, `docs/operations/OPERATOR_RUNBOOKS.md`, `docs/runbooks/credential-rotation.md`
-Validated against registry version: `platform-topology.json@2026-04-01.1`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `platform-topology.json@2026-04-11.2`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: restore targets, node placement, and service dependencies must match the topology registry. This document owns recovery order, store ownership, and evidence expectations, not hand-maintained container inventories.
 
 ---

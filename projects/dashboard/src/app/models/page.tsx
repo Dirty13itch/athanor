@@ -5,12 +5,11 @@ export const revalidate = 15;
 
 export default async function ModelsPage() {
   // Maps inference backend IDs to their primary LiteLLM alias.
-  // All FOUNDRY chat aliases (reasoning, coding, fast, creative, etc.)
-  // currently route to the same vLLM coordinator endpoint (FOUNDRY:8000).
+  // The canonical healthy shared text lane is now the Foundry dolphin runtime;
+  // the legacy coordinator endpoint remains visible as degraded lineage only.
   const LITELLM_ALIAS_MAP: Record<string, string> = {
     "foundry-coordinator": "reasoning",
     "foundry-coder": "coding",
-    "workshop-worker": "fast",
     "dev-embedding": "embedding",
     "dev-reranker": "reranker",
   };

@@ -6,12 +6,12 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-07.3`
-- Total tracked entries: `134`
+- Total tracked entries: `137`
 
 | Class | Count |
 | --- | ---: |
-| `canonical` | 49 |
-| `generated` | 18 |
+| `canonical` | 53 |
+| `generated` | 17 |
 | `reference` | 21 |
 | `archive` | 46 |
 
@@ -29,6 +29,7 @@ Do not edit manually.
 | `docs/SERVICES.md` | markdown | `shaun` |
 | `docs/SYSTEM-SPEC.md` | markdown | `shaun` |
 | `docs/TROUBLESHOOTING.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-CAPABILITY-PROMOTION.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-OPERATING-SYSTEM.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md` | markdown | `shaun` |
@@ -42,8 +43,11 @@ Do not edit manually.
 | `docs/operations/FIELD-INSPECT-OPERATIONS-RUNTIME-REPLAY-PACKET.md` | markdown | `shaun` |
 | `docs/operations/GOVERNOR-AUTHORITY-MATRIX.md` | markdown | `shaun` |
 | `docs/operations/OPERATOR_RUNBOOKS.md` | markdown | `shaun` |
+| `docs/operations/REPO-ROOT-AUTHORITY-AUDIT.md` | markdown | `shaun` |
+| `docs/operations/REPO-STRUCTURE-RULES.md` | markdown | `shaun` |
 | `docs/operations/RFI-HERS-DUPLICATE-EVIDENCE-PACKET.md` | markdown | `shaun` |
 | `docs/operations/RFI-HERS-PRIMARY-ROOT-STABILIZATION-PACKET.md` | markdown | `shaun` |
+| `docs/operations/SESSION-RESTART-RUNBOOK.md` | markdown | `shaun` |
 | `docs/operations/WAN2GP-REMOTE-ONLY-WATCH-PACKET.md` | markdown | `shaun` |
 | `docs/projects/PORTFOLIO-REGISTRY.md` | markdown | `shaun` |
 | `docs/runbooks/constrained-mode.md` | markdown | `shaun` |
@@ -78,7 +82,6 @@ Do not edit manually.
 | `docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md` | markdown | `shaun` |
 | `docs/operations/HARDWARE-REPORT.md` | markdown | `shaun` |
 | `docs/operations/MODEL-DEPLOYMENT-REPORT.md` | markdown | `shaun` |
-| `docs/operations/OPERATOR-SURFACE-REPORT.md` | markdown | `shaun` |
 | `docs/operations/OPERATOR-SURFACE-REPORT.md` | markdown | `shaun` |
 | `docs/operations/PROJECT-MATURITY-REPORT.md` | markdown | `shaun` |
 | `docs/operations/PROVIDER-CATALOG-REPORT.md` | markdown | `shaun` |

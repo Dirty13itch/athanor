@@ -7,6 +7,7 @@ This file defines the standing operating model for Athanor after the shift to re
 The editable control plane lives in [config/automation-backbone](../../config/automation-backbone).
 
 Primary registries:
+- `capability-adoption-registry.json`
 - `platform-topology.json`
 - `project-maturity-registry.json`
 - `reconciliation-source-registry.json`
@@ -28,17 +29,21 @@ Live loop surfaces:
 - `reports/ralph-loop/latest.json`
 - `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`
 - `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`
+- `docs/operations/REPO-ROOT-AUTHORITY-AUDIT.md`
 
 ## Authority Model
 
 - `C:\Athanor` is the implementation authority for config, contracts, inventories, validation rules, and canonical current-state docs.
+- `C:\athanor-devstack` is the build-system authority for `concept`, `prototype`, and `proved` capability work and cannot define live truth without an explicit promotion packet recorded in `capability-adoption-registry.json`.
 - `/home/shaun/repos/athanor` on DEV is the runtime and deployment authority until deployment is clean enough to be a strict mirror.
 - `C:\Users\Shaun\dev\athanor-next` is an incubation lane and cannot define live truth without an explicit promotion packet.
+- `C:\Users\Shaun\.codex` is the operator-local control surface, is tracked as an operator-local root for audit purposes, and cannot silently become project truth.
 
 ## Truth Rules
 
 - Runtime truth outranks memory and stale docs.
 - Registry truth outranks helper scripts and hardcoded literals.
+- Devstack handoff posture, packet admissibility, and low-touch turnover state are owned by the atlas and packet-backed capability truth, not by older status prose or chat memory.
 - Official provider terms, observed runtime state, and heuristic estimates are distinct classes and must not be conflated.
 - The DEV `:8760` cutover is complete; any autonomy expansion now depends on policy scope and provider confidence, not the retired governor facade.
 - Post-cutover autonomy scope is owned by `autonomy-activation-registry.json` and the current live phase is `full_system_phase_3`.
@@ -70,6 +75,12 @@ The operating rule is simple:
 7. Close the highest-leverage drift or contract bug.
 8. Rerun the relevant gate.
 9. Delete or freeze superseded material once the replacement truth is verified.
+
+## Operator Shell Boundary
+
+- The bounded Goose shell path is owned by `config/automation-backbone/operator-surface-registry.json` surface `desk_goose_operator_shell` and runtime packet `desk-goose-operator-shell-rollout-packet`.
+- Goose is now the adopted bounded shell orchestrator path, but it must remain subordinate to Athanor control-plane truth and must not become a second control plane or bypass the dashboard plus terminal front door.
+- The DESK operator-local helper remains pinned to the governed LiteLLM lane with deny-by-default MCP extension posture and direct terminal plus specialist CLI as the rollback path.
 
 ## Prune Policy
 

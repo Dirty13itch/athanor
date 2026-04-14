@@ -5,8 +5,8 @@ Do not edit manually.
 
 ## Front Door Contract
 
-- Registry version: `2026-03-29.1`
-- Cached truth snapshot: `2026-04-08T06:45:40.502384+00:00`
+- Registry version: `2026-04-12.1`
+- Cached truth snapshot: `2026-04-14T21:50:57.735918+00:00`
 - Canonical portal id: `athanor_command_center`
 - Canonical operator URL: `https://athanor.local/`
 - Canonical node: `dev`
@@ -18,7 +18,7 @@ Do not edit manually.
 
 ## Summary
 
-- Human-facing surfaces tracked: `37`
+- Human-facing surfaces tracked: `38`
 - Launchpad-approved surfaces: `21`
 - Active production portal count: `1`
 - Shadow portal count: `0`
@@ -32,16 +32,16 @@ Do not edit manually.
 | `internal_api` | 14 |
 | `portal` | 1 |
 | `retired` | 1 |
-| `specialist_tool` | 19 |
+| `specialist_tool` | 20 |
 
 ### Statuses
 
 | Status | Count |
 | --- | --- |
-| `active_internal` | 14 |
+| `active_internal` | 13 |
 | `active_production` | 1 |
-| `active_specialist` | 21 |
-| `retired` | 1 |
+| `active_specialist` | 22 |
+| `retired` | 2 |
 
 ## Canonical Portal
 
@@ -58,9 +58,9 @@ Do not edit manually.
 - DEV runtime probe target: `dev`
 - DEV deployment mode observed: `containerized_service_behind_caddy`
 - Dashboard container running: `True`
-- Dashboard container status: `Up 4 days`
+- Dashboard container status: `Up About an hour`
 - Dashboard container image: `athanor/dashboard:latest`
-- Dashboard container ports: `0.0.0.0:3001->3001/tcp, [::]:3001->3001/tcp`
+- Dashboard container ports: ``
 - Dashboard compose working dir: `/opt/athanor/dashboard`
 - Dashboard compose config file(s): `/opt/athanor/dashboard/docker-compose.yml`
 - Expected dashboard deploy root: `/opt/athanor/dashboard`
@@ -109,11 +109,12 @@ No shadow portals are currently registered.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `athanor_command_center` | `portal` | `dev` | `active_production` | `front_door` | `https://athanor.local/` | `http://dev.athanor.local:3001/` | `200` |
 | `workshop_shadow_command_center` | `retired` | `workshop` | `retired` | `hidden` | `https://athanor.local/` | `http://interface.athanor.local:3001/` | `200` |
-| `quality_gate` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `200` |
+| `desk_goose_operator_shell` | `specialist_tool` | `desk` | `active_specialist` | `hidden` | `local-shell://desk/goose-operator-shell` | `C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1` | `not_probed` |
+| `quality_gate` | `internal_api` | `dev` | `retired` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `200` |
 | `semantic_router` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8060/health` | `http://192.168.1.189:8060/health` | `URLError: [WinError 10061] No connection could b` |
 | `subscription_burn` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8065/health` | `http://192.168.1.189:8065/health` | `URLError: [WinError 10061] No connection could b` |
-| `embedding_api` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8001/health` | `http://192.168.1.189:8001/health` | `URLError: [WinError 10061] No connection could b` |
-| `reranker_api` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8003/health` | `http://192.168.1.189:8003/health` | `URLError: [WinError 10061] No connection could b` |
+| `embedding_api` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8001/health` | `http://192.168.1.189:8001/health` | `200` |
+| `reranker_api` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8003/health` | `http://192.168.1.189:8003/health` | `200` |
 | `grafana` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:3000/` | `http://192.168.1.203:3000/` | `200` |
 | `prometheus` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:9090/` | `http://192.168.1.203:9090/` | `200` |
 | `uptime_kuma` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:3009/` | `http://192.168.1.203:3009/` | `200` |
@@ -137,13 +138,13 @@ No shadow portals are currently registered.
 | `eoq` | `domain_app` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3002/` | `http://192.168.1.225:3002/` | `200` |
 | `ulrich_energy` | `domain_app` | `workshop` | `active_specialist` | `launchpad` | `http://interface.athanor.local:3003/` | `http://192.168.1.225:3003/` | `200` |
 | `ws_pty_bridge` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:3100/health` | `http://192.168.1.225:3100/health` | `200` |
-| `workshop_worker_api` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:8010/health` | `http://192.168.1.225:8010/health` | `URLError: [WinError 10061] No connection could b` |
+| `workshop_worker_api` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:8010/health` | `http://192.168.1.225:8010/health` | `URLError: timed out` |
 | `aesthetic_scorer_api` | `internal_api` | `workshop` | `active_internal` | `hidden` | `http://interface.athanor.local:8050/` | `http://192.168.1.225:8050/` | `404` |
 | `agent_server` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:9000/health` | `http://192.168.1.244:9000/health` | `200` |
 | `gpu_orchestrator` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:9200/health` | `http://192.168.1.244:9200/health` | `200` |
 | `speaches` | `specialist_tool` | `foundry` | `active_specialist` | `launchpad` | `http://core.athanor.local:8200/` | `http://192.168.1.244:8200/` | `200` |
 | `foundry_coordinator_api` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:8000/health` | `http://192.168.1.244:8000/health` | `200` |
-| `foundry_coder_api` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:8006/health` | `http://192.168.1.244:8006/health` | `200` |
+| `foundry_coder_api` | `internal_api` | `foundry` | `active_internal` | `hidden` | `http://core.athanor.local:8100/health` | `http://192.168.1.244:8100/health` | `200` |
 
 ## Known Drift
 

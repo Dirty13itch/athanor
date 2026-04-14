@@ -6,8 +6,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/font/google", () => ({
   IBM_Plex_Sans: () => ({ variable: "--font-system", className: "font-system" }),
-  Space_Grotesk: () => ({ variable: "--font-display", className: "font-display" }),
+  IBM_Plex_Sans_Condensed: () => ({ variable: "--font-display", className: "font-display" }),
   IBM_Plex_Mono: () => ({ variable: "--font-data", className: "font-data" }),
+  Space_Grotesk: () => ({ variable: "--font-display", className: "font-display" }),
 }));
 
 const SUPPORT_MODULES = import.meta.glob("./**/{loading,error,global-error,not-found,layout}.tsx", {

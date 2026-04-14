@@ -1,7 +1,7 @@
 # Athanor Ralph-Loop Program
 
 Source of truth: `config/automation-backbone/completion-program-registry.json`, `config/automation-backbone/program-operating-system.json`, `config/automation-backbone/autonomy-activation-registry.json`, `projects/agents/config/subscription-routing-policy.yaml`, `reports/ralph-loop/latest.json`, `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`
-Validated against registry version: `completion-program-registry.json@2026-04-07.7`, `program-operating-system.json@2026-03-25.1`, `autonomy-activation-registry.json@2026-04-02.4`
+Validated against registry version: `completion-program-registry.json@2026-04-13.0`, `program-operating-system.json@2026-03-25.1`, `autonomy-activation-registry.json@2026-04-02.4`
 Mutable facts policy: runtime truth outranks stale narrative, registry truth outranks helper prose, and the Ralph-loop report is the live execution surface while this document records the standing contract.
 
 Sources:
@@ -13,11 +13,11 @@ Sources:
 - `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`
 
 Versions:
-- `completion-program-registry.json`: `2026-04-07.7`
+- `completion-program-registry.json`: `2026-04-13.0`
 - `program-operating-system.json`: `2026-03-25.1`
 - `autonomy-activation-registry.json`: `2026-04-02.4`
 
-Last updated: 2026-04-07
+Last updated: 2026-04-12
 
 ## Purpose
 
@@ -32,6 +32,7 @@ It is not a second planning framework. It is the recurring execution layer that 
 
 The live controller is `scripts/run_ralph_loop_pass.py`.
 The live artifact is `reports/ralph-loop/latest.json`.
+The live governed-dispatch artifact is `reports/truth-inventory/governed-dispatch-state.json`.
 The reconciliation closure contract it mirrors is `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`.
 
 ## Loop Families
@@ -41,11 +42,15 @@ The reconciliation closure contract it mirrors is `docs/operations/ATHANOR-RECON
 Wake on cadence, material drift, or completion of another loop and choose the highest-leverage eligible loop family.
 
 Priority order:
-1. security and auth drift
-2. control-plane truth drift
-3. repo contract failures
-4. topology and runtime drift
-5. productization and tenant follow-through
+1. provider and auth drift that blocks routing elasticity
+2. capacity-truth and dispatch-truth drift
+3. promotion-wave closure for force-multiplier lanes
+4. failing evals, validators, and repo contract failures
+5. repo-safe system hardening and tenant follow-through
+
+The live dispatch surface is the ranked autonomous queue in `reports/ralph-loop/latest.json`, not the safe-surface queue alone.
+Safe-surface remains one input, but the loop now ranks work from live workstream truth, provider-gate posture, and safe-surface state together.
+The governed-dispatch claim is also persisted separately in `reports/truth-inventory/governed-dispatch-state.json` so the active self-improvement item has a durable machine-readable execution surface without pretending that the separate safe-surface executor has already started a run.
 
 ### Evidence Refresh
 
@@ -83,6 +88,22 @@ Advance only implementation-authority work:
 
 This lane stays autonomous only while it remains inside `C:\Athanor` and inside the standing approval rules.
 
+## Ranked Autonomous Queue
+
+Each ranked item now carries:
+- value class
+- risk class
+- approved mutation class
+- preferred lane family
+- fallback lane family
+- proof command or eval surface
+- closure rule
+
+Dispatch readiness now follows the ranked autonomous queue for approved work classes.
+The provider gate still matters, but once turnover-critical providers are proven it becomes an advisory elasticity surface rather than a reason to shut down local-safe self-improvement lanes.
+Workstreams in `completed` or `steady_state_monitoring` execution state stay visible in the Ralph report for auditability, but they are excluded from the ranked autonomous queue until fresh drift reopens them.
+When convergence pushes most legacy workstreams into `steady_state_monitoring`, the next compounding tranche must be registered explicitly in `completion-program-registry.json` rather than assumed to emerge from safe-surface residue or historical chat memory.
+
 ### Governed Runtime Packets
 
 This loop never improvises host mutation.
@@ -102,12 +123,11 @@ Approval gates still apply to:
 
 ### Publication and Freeze
 
-Promote completed work into durable truth in bounded checkpoints:
-1. control-plane and truth-layer changes
-2. verification hardening
-3. source or tenant replay landings
-4. runtime packet and report closure
-5. freeze, prune, and archive follow-through
+Promote completed work into durable truth in bounded checkpoints.
+
+The legacy reconciliation checkpoints remain in `completion-program-registry.json` `checkpoints`, but the active publication order now lives in `completion-program-registry.json` `publication_slices`.
+
+Follow the machine-readable publication-slice order instead of batching one large sync.
 
 ### Steady-state Maintenance
 
@@ -125,7 +145,7 @@ Once active debt is reduced, the Ralph loop continues as the permanent maintenan
 - `/home/shaun/repos/athanor` on `DEV` remains runtime authority until the governed sync lane closes.
 - Full-system autonomy remains active through `full_system_phase_3`.
 - Runtime mutations remain approval-gated even inside full-system autonomy.
-- Weak-evidence or governed-handoff providers remain excluded from ordinary auto-routing until catalog-backed evidence promotes them.
+- Weak-evidence, optional-elasticity-demoted, or governed-handoff providers remain excluded from ordinary auto-routing until catalog-backed evidence promotes them.
 
 ## Acceptance
 

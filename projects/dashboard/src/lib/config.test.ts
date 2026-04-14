@@ -29,11 +29,8 @@ describe("config helpers", () => {
   it("provides backend-aware chat model fallbacks", () => {
     expect(resolveChatModel("agent-server", undefined)).toBe("general-assistant");
     expect(resolveChatModel("litellm-proxy", "default")).toBe("reasoning");
-    expect(resolveChatModel("workshop-worker", undefined)).toBe(
-      "/models/Qwen3.5-35B-A3B-AWQ-4bit"
-    );
-    expect(resolveChatModel("foundry-coder", undefined)).toBe("devstral-small-2");
-    expect(resolveChatModel("foundry-coordinator", "custom-model")).toBe("custom-model");
+    expect(resolveChatModel("foundry-coder", undefined)).toBe("dolphin3-r1-24b");
+    expect(resolveChatModel("foundry-coordinator", "custom-model")).toBe("/models/custom-model");
   });
 
   it("keeps the fallback project registry aligned with active and scaffolded tenants", () => {
@@ -47,6 +44,9 @@ describe("config helpers", () => {
     expect(config.frontDoor.runtimeUrl).toBe("http://dev.athanor.local:3001/");
     expect(config.externalTools.length).toBeGreaterThan(10);
     expect(config.externalTools.every((tool) => !tool.url.includes("192.168.1."))).toBe(true);
+    const workshopOpenWebUi = config.externalTools.find((tool) => tool.id === "workshop_open_webui");
+    expect(workshopOpenWebUi?.runtimeUrl).toBe("http://192.168.1.225:3000/");
+    expect(workshopOpenWebUi?.runtimeState).toMatch(/reachable|unreachable|http_error|not_probed/);
     expect(getProjectById("eoq")?.externalUrl).toMatch(/^http:\/\/interface\.athanor\.local:3002\/?$/);
     expect(getProjectById("ulrich-energy")?.externalUrl).toMatch(/^http:\/\/interface\.athanor\.local:3003\/?$/);
     expect(getProjectById("media")?.externalUrl).toBe("http://vault.athanor.local:32400/web");

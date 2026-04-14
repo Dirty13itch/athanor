@@ -402,6 +402,15 @@ export function GovernorCard({
                   scheduler {snapshot.capacity.scheduler.running ? "running" : "stopped"} |{" "}
                   {snapshot.capacity.scheduler.enabled_count} enabled jobs
                 </span>
+                {snapshot.capacity.local_compute ? (
+                  <span>
+                    local compute {snapshot.capacity.local_compute.harvestable_scheduler_slot_count}/
+                    {snapshot.capacity.local_compute.scheduler_slot_count} harvestable slots |{" "}
+                    {snapshot.capacity.local_compute.idle_harvest_slots_open
+                      ? "idle harvest open"
+                      : "idle harvest closed"}
+                  </span>
+                ) : null}
                 <span>
                   provider reserve {snapshot.capacity.provider_reserve.posture} |{" "}
                   {snapshot.capacity.provider_reserve.constrained_count} constrained
@@ -419,6 +428,16 @@ export function GovernorCard({
                   {snapshot.capacity.active_time_windows.map((window) => (
                     <Badge key={window.id} variant="outline">
                       {formatWindowLabel(window.id)} | {window.window}
+                    </Badge>
+                  ))}
+                </div>
+              ) : null}
+              {snapshot.capacity.local_compute?.open_harvest_slots?.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {snapshot.capacity.local_compute.open_harvest_slots.map((slot) => (
+                    <Badge key={slot.id} variant="outline">
+                      {slot.id}
+                      {slot.harvest_intent ? ` | ${formatLabel(slot.harvest_intent)}` : ""}
                     </Badge>
                   ))}
                 </div>

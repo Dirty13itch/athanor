@@ -1,7 +1,7 @@
 # Athanor Total Completion Program
 
 Source of truth: `config/automation-backbone/completion-program-registry.json`, `config/automation-backbone/program-operating-system.json`, `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`, `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-Validated against registry version: `completion-program-registry.json@2026-04-08.1`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `completion-program-registry.json@2026-04-13.0`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: runtime truth outranks stale narrative, registry truth outranks helper prose, and this document must be updated whenever the completion-program registry, active checkpoint sequence, or final acceptance posture changes.
 
 Sources:
@@ -14,10 +14,10 @@ Sources:
 - `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 
 Versions:
-- `completion-program-registry.json`: `2026-04-08.1`
+- `completion-program-registry.json`: `2026-04-13.0`
 - `program-operating-system.json`: `2026-03-25.1`
 
-Last updated: 2026-04-08
+Last updated: 2026-04-12
 
 ## Purpose
 
@@ -232,6 +232,10 @@ Completion conditions:
 
 ## Checkpoints
 
+The legacy `checkpoints` block in `completion-program-registry.json` remains the reconciliation-era closure sequence.
+
+For current bounded publication work, the machine-readable ordering now lives in `completion-program-registry.json` under `publication_slices`, owned by `validation-and-publication` and anchored to `final-publication-and-freeze`.
+
 ### Checkpoint 1: Control Surface Foundation
 
 Already landed.
@@ -280,6 +284,19 @@ Includes:
 - side-root freeze
 - final truth normalization
 - completion evidence refresh
+
+## Publication Checkpoint Slices
+
+These are the current bounded publication slices for the dirty tranche, in machine-readable order:
+
+1. Backbone Contracts and Truth Writers
+2. Runtime Ownership, Provider Truth, and Reconciliation
+3. Pilot Eval Substrate and Operator-Test Machinery
+4. GraphRAG Promotion Wave
+5. GPU Scheduler Extension Wave
+6. Forge, Atlas, Dashboard, and Startup Truth
+
+Use the registry-backed slice order for publication. Do not improvise a wider sync dump.
 
 ## Current Priority Order
 

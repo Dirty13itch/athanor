@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/server-agent", () => ({
@@ -19,7 +20,26 @@ describe("operator summary api route", () => {
     expect(proxyAgentJson).toHaveBeenCalledWith(
       "/v1/operator/summary",
       undefined,
-      "Failed to fetch operator work summary"
+      "Failed to fetch operator work summary",
+      25_000,
     );
+  });
+
+  it("fails soft when the operator summary upstream is unavailable", async () => {
+    vi.mocked(proxyAgentJson).mockResolvedValueOnce(
+      NextResponse.json({ error: "upstream down" }, { status: 502 }),
+    );
+
+    const response = await GET();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      available: false,
+      degraded: true,
+      tasks: {
+        pending_approval: 0,
+        failed_actionable: 0,
+      },
+    });
   });
 });

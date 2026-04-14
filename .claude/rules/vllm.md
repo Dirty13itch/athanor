@@ -32,11 +32,13 @@ paths:
 - `fix-vllm-qwen35.py` in `ansible/roles/vllm/files/` — idempotent patches (both present in nightly, needed for future stable releases).
 
 ## Current FOUNDRY Deployment
-- Coordinator: Qwen3.5-27B-FP8 TP=4 on GPUs 0,1,3,4 (4x5070Ti) at foundry:8000 — `--tool-call-parser qwen3_xml --enforce-eager --language-model-only`
+- Coordinator lineage: Qwen3.5-27B-FP8 TP=4 on GPUs 0,1,3,4 (4x5070Ti) at foundry:8000 — `--tool-call-parser qwen3_xml --enforce-eager --language-model-only`, but direct chat completions are currently degraded and this surface is not the canonical healthy text lane
+- Canonical healthy text lane: `dolphin3-r1-24b` at foundry:8100
 - Coder: `devstral-small-2` on GPU 2 (4090) at foundry:8006 — `--tool-call-parser mistral`
 - Container names: `vllm-coordinator`, `vllm-coder`
 - Image: `athanor/vllm:qwen35-20260315` (pinned deterministic artifact)
 
 ## Current WORKSHOP Deployment
-- Worker: Qwen3.5-35B-A3B-AWQ on GPU 0 (5090) at workshop:8010 — `--tool-call-parser qwen3_xml --kv-cache-dtype auto --max-num-batched-tokens 2096`
-- Image: `athanor/vllm:qwen35-20260315` (pinned deterministic artifact)
+- Current live text/runtime surface: workshop-vision at workshop:8012
+- Historical worker lineage: workshop:8010 is retired/unproven on current runtime evidence and should not be treated as a healthy active surface until a future bounded restore lands with a real model directory
+- Image lineage remains `athanor/vllm:qwen35-20260315` for the historical deployment family

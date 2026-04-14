@@ -19,6 +19,7 @@ The command center includes:
 | Route | Purpose |
 |-------|---------|
 | `/` | Command center with cluster posture, alerts, blockers, approvals, recent work, and launch paths |
+| `/topology` | Cluster topology plus the compiled master atlas relationship map for authority, promotion, capacity, and lane orchestration |
 | `/services` | Service operations surface with URL-persisted filters, probe history, and detail drawer |
 | `/gpu` | Fleet telemetry with node trends, hotspot triage, drill-down charts, and comparison |
 | `/chat` | Persisted direct-model chat sessions with export/copy/abort controls |
@@ -29,6 +30,7 @@ The command center includes:
 | Route | Purpose |
 |-------|---------|
 | `/api/overview` | Typed command center snapshot |
+| `/api/master-atlas` | Compiled federated relationship map used by the topology front door |
 | `/api/services` | Current service snapshot |
 | `/api/services/history` | Service probe history from Prometheus |
 | `/api/gpu` | Current GPU snapshot |

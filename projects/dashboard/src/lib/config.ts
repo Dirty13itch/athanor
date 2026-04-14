@@ -13,6 +13,7 @@ export type ServiceCategory =
 export interface DashboardEndpoint {
   url: string;
   token?: string;
+  headers?: Record<string, string>;
 }
 
 export interface InferenceBackend extends DashboardEndpoint {
@@ -30,13 +31,26 @@ export interface MonitoredService extends DashboardEndpoint {
   node: string;
   category: ServiceCategory;
   description: string;
+  probeTimeoutMs?: number;
 }
 
 export interface ExternalTool extends DashboardEndpoint {
   id: string;
   label: string;
   description: string;
+  canonicalUrl: string;
+  runtimeUrl: string;
+  node: string;
+  category: string;
+  operatorRole: string;
+  status: string;
+  canonicalState: "reachable" | "unreachable" | "http_error" | "not_probed";
+  canonicalDetail?: string | null;
+  runtimeState: "reachable" | "unreachable" | "http_error" | "not_probed";
+  runtimeDetail?: string | null;
 }
+
+type ExternalToolState = ExternalTool["runtimeState"];
 
 export interface QuickLink extends DashboardEndpoint {
   name: string;
@@ -119,6 +133,18 @@ function env(key: string, fallback: string): string {
   return value ? value.replace(/\/+$/, "") : fallback;
 }
 
+function normalizeExternalToolState(value: string): ExternalToolState {
+  switch (value) {
+    case "reachable":
+    case "unreachable":
+    case "http_error":
+    case "not_probed":
+      return value;
+    default:
+      return "not_probed";
+  }
+}
+
 function hostEnv(key: string, fallback: string): string {
   return process.env[key]?.trim() || fallback;
 }
@@ -145,8 +171,7 @@ const agentServerUrl = env("ATHANOR_AGENT_SERVER_URL", `http://${foundryHost}:90
 const agentServerToken = process.env.ATHANOR_AGENT_API_TOKEN?.trim() || "";
 const litellmUrl = env("ATHANOR_LITELLM_URL", `http://${vaultHost}:4000`);
 const foundryCoordinatorUrl = env("ATHANOR_VLLM_COORDINATOR_URL", `http://${foundryHost}:8000`);
-const foundryCoderUrl = env("ATHANOR_VLLM_CODER_URL", `http://${foundryHost}:8006`);
-const workshopWorkerUrl = env("ATHANOR_VLLM_WORKER_URL", `http://${workshopHost}:8010`);
+const foundryCoderUrl = env("ATHANOR_VLLM_CODER_URL", `http://${foundryHost}:8100`);
 const devEmbeddingUrl = env("ATHANOR_VLLM_EMBEDDING_URL", `http://${devHost}:8001`);
 const devRerankerUrl = env("ATHANOR_VLLM_RERANKER_URL", `http://${devHost}:8003`);
 const comfyUiUrl = env("ATHANOR_COMFYUI_URL", `http://${workshopHost}:8188`);
@@ -161,6 +186,10 @@ const stashUrl = env("ATHANOR_STASH_URL", `http://${vaultHost}:9999`);
 const prowlarrUrl = env("ATHANOR_PROWLARR_URL", `http://${vaultHost}:9696`);
 const sabnzbdUrl = env("ATHANOR_SABNZBD_URL", `http://${vaultHost}:8080`);
 const homeAssistantUrl = env("ATHANOR_HOME_ASSISTANT_URL", `http://${vaultHost}:8123`);
+const homeAssistantToken =
+  process.env.ATHANOR_HOME_ASSISTANT_TOKEN?.trim() ||
+  process.env.ATHANOR_HA_TOKEN?.trim() ||
+  "";
 const qdrantUrl = env("ATHANOR_QDRANT_URL", `http://${vaultHost}:6333`);
 const neo4jUrl = env("ATHANOR_NEO4J_URL", `http://${vaultHost}:7474`);
 const speachesUrl = env("ATHANOR_SPEACHES_URL", `http://${foundryHost}:8200`);
@@ -200,6 +229,16 @@ const launchpadExternalTools: ExternalTool[] = dashboardOperatorSurfaces.externa
   label: tool.label,
   description: tool.description,
   url: tool.url,
+  canonicalUrl: tool.canonicalUrl,
+  runtimeUrl: tool.runtimeUrl,
+  node: tool.node,
+  category: tool.category,
+  operatorRole: tool.operatorRole,
+  status: tool.status,
+  canonicalState: normalizeExternalToolState(tool.canonicalState),
+  canonicalDetail: tool.canonicalDetail ?? null,
+  runtimeState: normalizeExternalToolState(tool.runtimeState),
+  runtimeDetail: tool.runtimeDetail ?? null,
 }));
 
 const launchpadQuickLinks: QuickLink[] = dashboardOperatorSurfaces.quickLinks.map((link) => ({
@@ -211,10 +250,21 @@ const launchpadQuickLinks: QuickLink[] = dashboardOperatorSurfaces.quickLinks.ma
 
 const legacyChatTargetAliases: Record<string, string> = {
   "node1-vllm": "foundry-coordinator",
-  "node2-vllm": "workshop-worker",
   "node1-vllm-embedding": "dev-embedding",
   "foundry-utility": "foundry-coder",
 };
+
+const legacyInferenceBackends: InferenceBackend[] = [
+  {
+    id: "foundry-coordinator",
+    name: "Foundry Coordinator",
+    nodeId: "node1",
+    description:
+      "Legacy secondary reasoning lane retained only for compatibility-target resolution; not part of the active operator-facing backend catalog.",
+    primaryModel: "/models/Qwen3.5-27B-FP8",
+    url: foundryCoordinatorUrl,
+  },
+];
 
 export const config = {
   prometheus: {
@@ -290,35 +340,19 @@ export const config = {
       url: litellmUrl,
     },
     {
-      id: "foundry-coordinator",
-      name: "Foundry Coordinator",
-      nodeId: "node1",
-      description: "Primary reasoning runtime for large-model and coding-heavy work.",
-      primaryModel: "Qwen3.5-27B-FP8",
-      url: foundryCoordinatorUrl,
-    },
-    {
       id: "foundry-coder",
       name: "Foundry Coder",
       nodeId: "node1",
-      description: "Dedicated coding runtime for autonomous implementation and code-heavy tasks.",
-      primaryModel: "devstral-small-2",
+      description: "Dedicated dolphin coder runtime for autonomous implementation, patching, and code-heavy tasks.",
+      primaryModel: "dolphin3-r1-24b",
       url: foundryCoderUrl,
-    },
-    {
-      id: "workshop-worker",
-      name: "Workshop Worker",
-      nodeId: "node2",
-      description: "Interactive worker runtime for fast local chat, utility-class inference, and sovereign workloads.",
-      primaryModel: "/models/Qwen3.5-35B-A3B-AWQ-4bit",
-      url: workshopWorkerUrl,
     },
     {
       id: "dev-embedding",
       name: "DEV Embedding",
       nodeId: "dev",
       description: "Canonical embedding runtime for retrieval and knowledge indexing.",
-      primaryModel: "Qwen3-Embedding-0.6B",
+      primaryModel: "qwen3-embed-8b",
       url: devEmbeddingUrl,
     },
     {
@@ -341,36 +375,18 @@ export const config = {
       description: "Central alias routing and model auth edge.",
     },
     {
-      id: "foundry-coordinator",
-      name: "Foundry Coordinator",
-      url: joinUrl(foundryCoordinatorUrl, "/v1/models"),
-      nodeId: "node1",
-      node: "Foundry",
-      category: "inference",
-      description: "Primary reasoning and coding runtime.",
-    },
-    {
       id: "foundry-coder",
       name: "Foundry Coder",
       url: joinUrl(foundryCoderUrl, "/v1/models"),
       nodeId: "node1",
       node: "Foundry",
       category: "inference",
-      description: "Autonomous coding runtime on the 4090 lane.",
-    },
-    {
-      id: "workshop-worker",
-      name: "Workshop Worker",
-      url: joinUrl(workshopWorkerUrl, "/health"),
-      nodeId: "node2",
-      node: "Workshop",
-      category: "inference",
-      description: "Interactive worker runtime for direct operator requests.",
+      description: "Autonomous dolphin coding runtime on the 4090 lane.",
     },
     {
       id: "dev-embedding",
       name: "DEV Embedding",
-      url: joinUrl(devEmbeddingUrl, "/health"),
+      url: joinUrl(devEmbeddingUrl, "/v1/models"),
       nodeId: "dev",
       node: "DEV",
       category: "knowledge",
@@ -379,21 +395,22 @@ export const config = {
     {
       id: "dev-reranker",
       name: "DEV Reranker",
-      url: joinUrl(devRerankerUrl, "/health"),
+      url: joinUrl(devRerankerUrl, "/v1/models"),
       nodeId: "dev",
       node: "DEV",
       category: "knowledge",
       description: "Reranker runtime for retrieval precision.",
     },
-    {
-      id: "agent-server",
-      name: "Agent Server",
-      url: joinUrl(agentServerUrl, "/health"),
-      nodeId: "node1",
-      node: "Foundry",
-      category: "platform",
-      description: "FastAPI runtime for the Athanor workforce and task APIs.",
-    },
+      {
+        id: "agent-server",
+        name: "Agent Server",
+        url: joinUrl(agentServerUrl, "/health"),
+        nodeId: "node1",
+        node: "Foundry",
+        category: "platform",
+        description: "FastAPI runtime for the Athanor workforce and task APIs.",
+        probeTimeoutMs: 10000,
+      },
     {
       id: "qdrant",
       name: "Qdrant",
@@ -515,6 +532,7 @@ export const config = {
       id: "home-assistant",
       name: "Home Assistant",
       url: joinUrl(homeAssistantUrl, "/api/"),
+      headers: homeAssistantToken ? { Authorization: `Bearer ${homeAssistantToken}` } : undefined,
       nodeId: "vault",
       node: "VAULT",
       category: "home",
@@ -728,7 +746,11 @@ export const config = {
 
 export function getInferenceBackend(target: string): InferenceBackend | null {
   const normalizedTarget = legacyChatTargetAliases[target] ?? target;
-  return config.inferenceBackends.find((backend) => backend.id === normalizedTarget) ?? null;
+  return (
+    config.inferenceBackends.find((backend) => backend.id === normalizedTarget) ??
+    legacyInferenceBackends.find((backend) => backend.id === normalizedTarget) ??
+    null
+  );
 }
 
 export function getNodeById(nodeId: string): ClusterNode | null {

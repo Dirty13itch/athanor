@@ -298,7 +298,7 @@
     "current_phase_scope": "full_system_phase_3",
     "evidence_freshness": "fresh",
     "execution_posture": "steady_state",
-    "last_validation_run": "2026-04-14T21:23:27.234905+00:00",
+    "last_validation_run": "2026-04-14T21:49:10.217130+00:00",
     "next_action_family": "dispatch_truth_and_queue_replenishment",
     "report_path": "reports/ralph-loop/latest.json",
     "selected_workstream": "dispatch-and-work-economy-closure",

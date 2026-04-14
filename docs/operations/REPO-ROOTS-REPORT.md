@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `215`
-- Local dirty sample: ` M .claude/rules/litellm.md`, ` M .claude/rules/vllm.md`, ` M .claude/skills/vllm-deploy.md`, ` M AGENTS.md`, ` M MEMORY.md`, ` M PROJECT.md`, ` M README.md`, ` M STATUS.md`, `M  ansible/host_vars/interface.yml`, `M  ansible/host_vars/vault.yml`
+- Local dirty file count: `121`
+- Local dirty sample: `M  .claude/rules/litellm.md`, `M  .claude/rules/vllm.md`, `M  .claude/skills/vllm-deploy.md`, `M  AGENTS.md`, `M  MEMORY.md`, `M  PROJECT.md`, `M  README.md`, `M  STATUS.md`, `MM audit/automation/contract-healer-latest.json`, ` M audit/recovery/restore-drill-latest.json`
 
 ## dev-runtime-repo
 

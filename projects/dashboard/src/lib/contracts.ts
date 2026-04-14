@@ -144,6 +144,16 @@ export const externalToolSchema = z.object({
   label: z.string(),
   description: z.string(),
   url: z.string().url(),
+  canonicalUrl: z.string().url(),
+  runtimeUrl: z.string().url(),
+  node: z.string(),
+  category: z.string(),
+  operatorRole: z.string(),
+  status: z.string(),
+  canonicalState: z.enum(["reachable", "unreachable", "http_error", "not_probed"]),
+  canonicalDetail: z.string().nullable().optional(),
+  runtimeState: z.enum(["reachable", "unreachable", "http_error", "not_probed"]),
+  runtimeDetail: z.string().nullable().optional(),
 });
 
 export const modelInventoryEntrySchema = z.object({
@@ -863,6 +873,26 @@ export const capacitySnapshotSchema = z.object({
     running: z.boolean(),
     enabled_count: z.number().int().nonnegative(),
   }),
+  local_compute: z
+    .object({
+      sample_posture: z.string().nullable().optional(),
+      scheduler_slot_count: z.number().int().nonnegative(),
+      harvestable_scheduler_slot_count: z.number().int().nonnegative(),
+      idle_harvest_slots_open: z.boolean(),
+      open_harvest_slots: z.array(
+        z.object({
+          id: z.string(),
+          zone_id: z.string().nullable().optional(),
+          harvest_intent: z.string().nullable().optional(),
+          harvestable_gpu_count: z.number().int().nonnegative(),
+          node_ids: z.array(z.string()),
+        })
+      ),
+      scheduler_queue_depth: z.number().int().nonnegative(),
+      scheduler_source: z.string().nullable().optional(),
+      scheduler_observed_at: z.string().nullable().optional(),
+    })
+    .optional(),
   provider_reserve: z.object({
     posture: z.string(),
     constrained_count: z.number().int().nonnegative(),
@@ -1051,6 +1081,66 @@ export const toolPermissionSubjectSchema = z
   })
   .passthrough();
 
+export const masterAtlasSummarySchema = z.object({
+  generated_at: z.string(),
+  capability_count: z.number().int().nonnegative(),
+  adopted_count: z.number().int().nonnegative(),
+  packet_ready_count: z.number().int().nonnegative(),
+  proving_count: z.number().int().nonnegative(),
+  blocked_capability_count: z.number().int().nonnegative(),
+  blocked_packet_count: z.number().int().nonnegative(),
+  governance_posture: z.string(),
+  governance_blocker_count: z.number().int().nonnegative(),
+  governance_blockers: z.array(z.string()),
+  top_missing_proof: z.string().nullable().optional(),
+  best_next_implementation_wave: z.string().nullable().optional(),
+  best_next_promotion_candidate: z.string().nullable().optional(),
+  turnover_status: z.string(),
+  turnover_ready_now: z.boolean(),
+  turnover_next_gate: z.string().nullable().optional(),
+  turnover_current_mode: z.string(),
+  turnover_target_mode: z.string(),
+  turnover_blocker_count: z.number().int().nonnegative(),
+  self_acceleration_status: z.string().nullable().optional(),
+  self_acceleration_ready_now: z.boolean().optional(),
+  provider_elasticity_limited: z.boolean().optional(),
+  provider_elasticity_blocking_provider_count: z.number().int().nonnegative().optional(),
+  checkpoint_slice_count: z.number().int().nonnegative().optional(),
+  checkpoint_slice_ready_for_checkpoint_count: z.number().int().nonnegative().optional(),
+  pilot_formal_eval_complete_count: z.number().int().nonnegative().optional(),
+  pilot_formal_eval_failed_count: z.number().int().nonnegative().optional(),
+  pilot_ready_for_formal_eval_count: z.number().int().nonnegative().optional(),
+  pilot_operator_smoke_only_count: z.number().int().nonnegative().optional(),
+  pilot_readiness_blocked_count: z.number().int().nonnegative().optional(),
+  goose_stage: z.string().nullable().optional(),
+  goose_readiness: z.string().nullable().optional(),
+  goose_next_gate: z.string().nullable().optional(),
+  goose_next_action: z.string().nullable().optional(),
+  autonomous_queue_count: z.number().int().nonnegative().optional(),
+  autonomous_dispatchable_queue_count: z.number().int().nonnegative().optional(),
+  autonomous_top_task_id: z.string().nullable().optional(),
+  autonomous_top_task_title: z.string().nullable().optional(),
+  next_checkpoint_slice: z
+    .object({
+      id: z.string().nullable().optional(),
+      title: z.string().nullable().optional(),
+      order: z.number().int().nonnegative().nullable().optional(),
+      status: z.string().nullable().optional(),
+      blocking_gate: z.string().nullable().optional(),
+      owner_workstreams: z.array(z.string()).optional(),
+    })
+    .nullable()
+    .optional(),
+  recommendation_summaries: z.array(
+    z.object({
+      id: z.string(),
+      subject: z.string(),
+      summary: z.string(),
+      reason: z.string(),
+    })
+  ),
+});
+
 export const operationsReadinessSnapshotSchema = z.object({
   generated_at: z.string(),
   status: z.string(),
@@ -1144,6 +1234,7 @@ export const operationsReadinessSnapshotSchema = z.object({
     flow_count: z.number().int().nonnegative(),
     flows: z.array(syntheticOperatorTestFlowSchema),
   }),
+  master_atlas: masterAtlasSummarySchema.optional(),
 });
 
 export const systemMapSnapshotSchema = z.object({
@@ -1289,6 +1380,7 @@ export const systemMapSnapshotSchema = z.object({
       judge_lane: z.string(),
     })
   ),
+  master_atlas: masterAtlasSummarySchema.optional(),
   policy_source: z.string(),
 });
 

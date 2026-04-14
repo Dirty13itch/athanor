@@ -13,7 +13,7 @@ const ROUTES = loadRouteAuditRecords().map((route) => ({
 }));
 
 const MORE_LINKS: Array<{ label: string; path: RegExp; heading: RegExp | string }> = [
-  { label: "Command Center", path: /\/$/, heading: /ATHANOR|Command Center/i },
+  { label: "Command Center", path: /\/$/, heading: /Triage the system|Command Center/i },
   { label: "Monitoring", path: /\/monitoring$/, heading: "Monitoring" },
   { label: "Preferences", path: /\/preferences$/, heading: "Preferences" },
 ];
