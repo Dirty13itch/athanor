@@ -141,14 +141,15 @@ async def fetch_gpu_metrics(node: str, dcgm_url: str) -> list[GpuMetrics]:
 
 
 async def fetch_all_gpu_metrics() -> dict[str, list[GpuMetrics]]:
-    """Fetch GPU metrics from both nodes."""
+    """Fetch GPU metrics from all three nodes (FOUNDRY, WORKSHOP, DEV)."""
     import asyncio
 
-    node1, node2 = await asyncio.gather(
+    node1, node2, node3 = await asyncio.gather(
         fetch_gpu_metrics("node1", settings.dcgm_node1_url),
         fetch_gpu_metrics("node2", settings.dcgm_node2_url),
+        fetch_gpu_metrics("node3", settings.dcgm_node3_url),
     )
-    return {"node1": node1, "node2": node2}
+    return {"node1": node1, "node2": node2, "node3": node3}
 
 
 # --- vLLM Sleep/Wake Management ---
