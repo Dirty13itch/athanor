@@ -18,7 +18,9 @@ from collections import deque
 
 import httpx
 
+from .circuit_breaker import get_circuit_breakers
 from .config import settings
+from .graphrag_client import query_hybrid_knowledge
 
 logger = logging.getLogger(__name__)
 
@@ -125,13 +127,25 @@ _DEFAULT_CONFIG = {
 
 async def _get_embedding_async(text: str) -> list[float]:
     """Get embedding vector via LiteLLM (async)."""
-    resp = await _async_client.post(
-        f"{_EMBEDDING_URL}/embeddings",
-        json={"model": "embedding", "input": text[:2000]},
-        headers={"Authorization": f"Bearer {_EMBEDDING_KEY}"},
-    )
-    resp.raise_for_status()
-    return resp.json()["data"][0]["embedding"]
+    async def _request_embedding() -> list[float]:
+        resp = await _async_client.post(
+            f"{_EMBEDDING_URL}/embeddings",
+            json={"model": "embedding", "input": text[:2000]},
+            headers={"Authorization": f"Bearer {_EMBEDDING_KEY}"},
+        )
+        resp.raise_for_status()
+        return resp.json()["data"][0]["embedding"]
+
+    try:
+        vector = await get_circuit_breakers().execute_with_breaker(
+            "embedding",
+            _request_embedding,
+            fallback=lambda: [],
+        )
+        return vector or []
+    except Exception as exc:
+        logger.debug("Context embedding request failed, skipping context: %s", exc)
+        return []
 
 
 async def _search_collection(
@@ -244,6 +258,69 @@ async def _hybrid_search_collection(
     except Exception as e:
         logger.debug("Hybrid search failed for %s, falling back to vector: %s", collection, e)
         return await _search_collection(collection, vector, limit, filter_dict)
+
+
+async def _search_knowledge_context(
+    vector: list[float],
+    query_text: str,
+    limit: int,
+) -> tuple[list[dict], list[dict], dict]:
+    """Search knowledge with GraphRAG first, then fall back to the legacy path."""
+    if limit <= 0:
+        return [], [], {"backend": "disabled", "route": "disabled", "warnings": []}
+
+    warnings: list[str] = []
+    try:
+        graphrag_result = await query_hybrid_knowledge(
+            _async_client,
+            query_text,
+            top_k=limit,
+            score_threshold=SCORE_THRESHOLD,
+        )
+        warnings.extend(graphrag_result.warnings)
+        graphrag_timeout_degraded = graphrag_result.route == "graph_fallback" and any(
+            "readtimeout" in warning.lower() or "vector path unavailable" in warning.lower()
+            for warning in graphrag_result.warnings
+        )
+        if graphrag_timeout_degraded:
+            logger.debug(
+                "GraphRAG returned degraded graph_fallback route for knowledge search; falling back to legacy hybrid."
+            )
+            warnings.append("graphrag_degraded_timeout_fallback")
+        if graphrag_result.results:
+            if not graphrag_timeout_degraded:
+                return graphrag_result.results, [], {
+                    "backend": "graphrag",
+                    "route": graphrag_result.route,
+                    "warnings": warnings,
+                }
+        else:
+            warnings.append("graphrag_empty_result")
+    except Exception as e:
+        logger.debug("GraphRAG knowledge search failed, falling back: %s", e)
+        warnings.append(f"graphrag_unavailable:{type(e).__name__}")
+
+    knowledge = await _hybrid_search_collection("knowledge", vector, query_text, limit)
+    graph_related: list[dict] = []
+    if knowledge:
+        try:
+            from .graph_context import expand_knowledge_graph
+
+            sources = [
+                r.get("payload", {}).get("source", "")
+                for r in knowledge
+                if r.get("payload", {}).get("source")
+            ]
+            if sources:
+                graph_related = await expand_knowledge_graph(_async_client, sources, limit=3)
+        except Exception as e:
+            logger.debug("Legacy graph expansion failed: %s", e)
+
+    return knowledge, graph_related, {
+        "backend": "legacy_fallback",
+        "route": "hybrid_search",
+        "warnings": warnings,
+    }
 
 
 async def _scroll_activity(agent: str, limit: int) -> list[dict]:
@@ -520,6 +597,8 @@ async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0)
         boost = config.get("pref_boost", "")
         embed_text = f"{user_message[:800]} {boost}".strip()
         vector = await _get_embedding_async(embed_text)
+        if not vector:
+            return ""
     except Exception as e:
         logger.warning("Context enrichment: embedding failed: %s", e)
         return ""
@@ -551,7 +630,7 @@ async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0)
     tasks = [
         _search_preferences_with_decay(vector, prefs_limit, pref_filter),
         _scroll_activity(agent_name, activity_limit),
-        _hybrid_search_collection("knowledge", vector, user_message, knowledge_limit),
+        _search_knowledge_context(vector, user_message, knowledge_limit),
         _hybrid_search_collection("personal_data", vector, user_message, personal_limit),
         _search_collection("conversations", vector, conversations_limit, conv_filter),
     ]
@@ -560,24 +639,18 @@ async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0)
 
     prefs = results[0] if not isinstance(results[0], BaseException) else []
     activity = results[1] if not isinstance(results[1], BaseException) else []
-    knowledge = results[2] if not isinstance(results[2], BaseException) else []
+    knowledge_bundle = (
+        results[2]
+        if not isinstance(results[2], BaseException)
+        else ([], [], {"backend": "error", "route": "error", "warnings": ["knowledge_bundle_exception"]})
+    )
+    knowledge = knowledge_bundle[0]
     personal_data = results[3] if not isinstance(results[3], BaseException) else []
     conversations = results[4] if not isinstance(results[4], BaseException) else []
 
     # Step 2b: Graph expansion — find related docs via Neo4j (fast, ~10ms)
-    graph_related: list[dict] = []
-    if knowledge and knowledge_limit > 0:
-        try:
-            from .graph_context import expand_knowledge_graph
-            sources = [
-                r.get("payload", {}).get("source", "")
-                for r in knowledge
-                if r.get("payload", {}).get("source")
-            ]
-            if sources:
-                graph_related = await expand_knowledge_graph(_async_client, sources, limit=3)
-        except Exception as e:
-            logger.debug("Graph expansion failed: %s", e)
+    graph_related = knowledge_bundle[1]
+    knowledge_meta = knowledge_bundle[2]
 
     # Step 2c: Fetch CST state (Redis, fast)
     cst_line = ""
@@ -703,7 +776,7 @@ async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0)
 
     if total_hits > 0 or goal_lines or pattern_lines or convention_lines or skill_count:
         logger.info(
-            "Context enrichment for %s: %d prefs, %d activity, %d knowledge (+%d graph), %d personal, %d convos, %d goals, %d patterns, %d conventions, %d skills (%dms)",
+            "Context enrichment for %s: %d prefs, %d activity, %d knowledge (+%d graph), %d personal, %d convos, %d goals, %d patterns, %d conventions, %d skills via %s/%s (%dms)",
             agent_name,
             len(pref_lines),
             len(activity_lines) // 2,
@@ -715,7 +788,15 @@ async def enrich_context(agent_name: str, user_message: str, max_chars: int = 0)
             len(pattern_lines),
             len(convention_lines),
             skill_count,
+            knowledge_meta.get("backend", "unknown"),
+            knowledge_meta.get("route", "unknown"),
             elapsed_ms,
+        )
+    if knowledge_meta.get("warnings"):
+        logger.debug(
+            "Context enrichment %s knowledge warnings: %s",
+            agent_name,
+            "; ".join(str(item) for item in knowledge_meta.get("warnings", [])),
         )
 
     result = _build_context_message(

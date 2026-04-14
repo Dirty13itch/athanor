@@ -9,7 +9,7 @@ Architecture:
     Otherwise → call LLM → cache response → return
 
 Ported from Hydra's semantic_cache.py, adapted for Athanor:
-- Embedding via LiteLLM at VAULT:4000 (Qwen3-Embedding-0.6B, 1024-dim)
+- Embedding via LiteLLM at VAULT:4000 (qwen3-embed-8b, 1024-dim)
 - Qdrant at VAULT:6333, collection `llm_cache`
 - No Prometheus (use existing Grafana stack for monitoring)
 """
@@ -23,10 +23,13 @@ from typing import Any, Optional
 
 import httpx
 
+from .circuit_breaker import get_circuit_breakers
 from .config import settings
 from .services import ensure_openai_base_url, normalize_url
 
 logger = logging.getLogger(__name__)
+
+SEMANTIC_CACHE_EMBED_TIMEOUT = 12.0
 
 
 @dataclass
@@ -109,15 +112,25 @@ class SemanticCache:
 
     async def _embed(self, text: str) -> Optional[list[float]]:
         """Get embedding via LiteLLM → Qwen3-Embedding."""
-        try:
+        async def _request_embedding() -> list[float]:
             resp = await self._client.post(
                 f"{self.embedding_url}/embeddings",
                 json={"model": self.embedding_model, "input": text[:8000]},
                 headers={"Authorization": f"Bearer {self.embedding_api_key}"},
+                timeout=SEMANTIC_CACHE_EMBED_TIMEOUT,
             )
-            if resp.status_code == 200:
-                return resp.json()["data"][0]["embedding"]
-            logger.warning(f"Embedding error: {resp.status_code}")
+            resp.raise_for_status()
+            return resp.json()["data"][0]["embedding"]
+
+        try:
+            embedding = await get_circuit_breakers().execute_with_breaker(
+                "embedding",
+                _request_embedding,
+                fallback=lambda: None,
+            )
+            if embedding:
+                return embedding
+            logger.debug("Semantic cache embedding skipped because the embedding circuit is open")
             return None
         except Exception as e:
             logger.error(f"Embedding failed: {e}")

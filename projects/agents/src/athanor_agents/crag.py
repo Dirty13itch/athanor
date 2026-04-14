@@ -35,7 +35,7 @@ _LLM_API_KEY = settings.llm_api_key
 MAX_ITERATIONS = 3
 MIN_RELEVANT_DOCS = 2
 INITIAL_TOP_K = 8
-GRADING_MODEL = "fast"  # Use fast model for grading (cheap, parallel)
+GRADING_MODEL = settings.llm_model_fast  # Use the healthy low-latency local lane for grading.
 
 
 class RelevanceGrade(str, Enum):

@@ -68,6 +68,17 @@
       "health_path": "/health"
     },
     {
+      "id": "graphrag",
+      "label": "GraphRAG",
+      "node": "foundry",
+      "scheme": "http",
+      "port": 9300,
+      "url_env": "ATHANOR_GRAPHRAG_URL",
+      "runtime_class": "data_plane",
+      "auth_class": "internal_only",
+      "health_path": "/health"
+    },
+    {
       "id": "ws_pty_bridge",
       "label": "WS PTY Bridge",
       "node": "workshop",

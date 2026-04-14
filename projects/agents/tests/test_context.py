@@ -529,6 +529,116 @@ class TestSearchCollection(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(call_body["filter"], test_filter)
 
 
+class TestSearchKnowledgeContext(unittest.IsolatedAsyncioTestCase):
+    """Test GraphRAG-first knowledge search with fallback."""
+
+    async def test_graphrag_results_skip_legacy_fallback(self):
+        from athanor_agents.context import _search_knowledge_context
+
+        graphrag_hits = [
+            {
+                "id": "chunk-1",
+                "payload": {"title": "GraphRAG Doc", "source": "docs/x.md", "text": "context"},
+                "score": 0.91,
+            }
+        ]
+
+        with patch.object(
+            sys.modules["athanor_agents.context"],
+            "query_hybrid_knowledge",
+            AsyncMock(return_value=MagicMock(results=graphrag_hits, route="hybrid", warnings=["vector path unavailable"])),
+        ) as mock_graphrag, patch.object(
+            sys.modules["athanor_agents.context"],
+            "_hybrid_search_collection",
+            AsyncMock(),
+        ) as mock_legacy:
+            knowledge, graph_related, meta = await _search_knowledge_context(
+                [0.1] * 4, "dashboard routing", 3
+            )
+
+        self.assertEqual(knowledge, graphrag_hits)
+        self.assertEqual(graph_related, [])
+        self.assertEqual(meta["backend"], "graphrag")
+        self.assertEqual(meta["route"], "hybrid")
+        self.assertIn("vector path unavailable", meta["warnings"])
+        mock_graphrag.assert_awaited_once()
+        mock_legacy.assert_not_awaited()
+
+    async def test_graphrag_failure_falls_back_to_legacy_path(self):
+        from athanor_agents.context import _search_knowledge_context
+
+        legacy_hits = [
+            {"payload": {"source": "docs/fallback.md", "text": "fallback knowledge"}, "score": 0.7}
+        ]
+        related_hits = [{"source": "docs/related.md", "title": "Related"}]
+        fake_graph_module = MagicMock(expand_knowledge_graph=AsyncMock(return_value=related_hits))
+
+        with patch.object(
+            sys.modules["athanor_agents.context"],
+            "query_hybrid_knowledge",
+            AsyncMock(side_effect=RuntimeError("service down")),
+        ), patch.object(
+            sys.modules["athanor_agents.context"],
+            "_hybrid_search_collection",
+            AsyncMock(return_value=legacy_hits),
+        ) as mock_legacy, patch.dict(
+            sys.modules,
+            {"athanor_agents.graph_context": fake_graph_module},
+        ):
+            knowledge, graph_related, meta = await _search_knowledge_context(
+                [0.1] * 4, "dashboard routing", 3
+            )
+
+        self.assertEqual(knowledge, legacy_hits)
+        self.assertEqual(graph_related, related_hits)
+        self.assertEqual(meta["backend"], "legacy_fallback")
+        self.assertEqual(meta["route"], "hybrid_search")
+        self.assertIn("graphrag_unavailable:RuntimeError", meta["warnings"])
+        mock_legacy.assert_awaited_once()
+
+    async def test_graphrag_timeout_warning_falls_back_to_legacy_path(self):
+        from athanor_agents.context import _search_knowledge_context
+
+        graphrag_hits = [
+            {
+                "id": "chunk-1",
+                "payload": {"title": "GraphRAG Doc", "source": "docs/x.md", "text": "context"},
+                "score": 0.91,
+            }
+        ]
+        legacy_hits = [
+            {"payload": {"source": "docs/fallback.md", "text": "fallback knowledge"}, "score": 0.7}
+        ]
+
+        with patch.object(
+            sys.modules["athanor_agents.context"],
+            "query_hybrid_knowledge",
+            AsyncMock(
+                return_value=MagicMock(
+                    results=graphrag_hits,
+                    route="graph_fallback",
+                    warnings=["vector path unavailable: ReadTimeout"],
+                )
+            ),
+        ), patch.object(
+            sys.modules["athanor_agents.context"],
+            "_hybrid_search_collection",
+            AsyncMock(return_value=legacy_hits),
+        ) as mock_legacy:
+            knowledge, graph_related, meta = await _search_knowledge_context(
+                [0.1] * 4, "dashboard routing", 3
+            )
+
+        self.assertEqual(knowledge, legacy_hits)
+        self.assertEqual(graph_related, [])
+        self.assertEqual(meta["backend"], "legacy_fallback")
+        self.assertEqual(meta["route"], "hybrid_search")
+        self.assertIn("vector path unavailable: ReadTimeout", meta["warnings"])
+        self.assertIn("graphrag_degraded_timeout_fallback", meta["warnings"])
+        self.assertNotIn("graphrag_empty_result", meta["warnings"])
+        mock_legacy.assert_awaited_once()
+
+
 class TestScrollActivity(unittest.IsolatedAsyncioTestCase):
     """Test _scroll_activity() with mocked httpx."""
 
@@ -582,6 +692,19 @@ class TestEnrichContext(unittest.IsolatedAsyncioTestCase):
             mock_client.post = AsyncMock(side_effect=Exception("embedding down"))
             result = await enrich_context("general-assistant", "What is the GPU status?")
 
+        self.assertEqual(result, "")
+
+    async def test_embedding_breaker_open_returns_empty_without_upstream_call(self):
+        from athanor_agents.context import enrich_context
+
+        with (
+            patch("athanor_agents.context.get_circuit_breakers") as mock_breakers,
+            patch.object(sys.modules["athanor_agents.context"], "_async_client") as mock_client,
+        ):
+            mock_breakers.return_value.execute_with_breaker = AsyncMock(return_value=[])
+            result = await enrich_context("general-assistant", "What is the GPU status?")
+
+        mock_client.post.assert_not_called()
         self.assertEqual(result, "")
 
 
