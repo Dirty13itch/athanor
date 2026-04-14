@@ -63,7 +63,7 @@ def create_knowledge_agent():
     llm = ChatOpenAI(
         base_url=settings.llm_base_url,
         api_key=settings.llm_api_key,
-        model=settings.llm_model,  # "reasoning" — knowledge retrieval needs accuracy
+        model=settings.task_execution_model,  # Deliberative task lane for governed background work
         temperature=0.3,  # Low temp for factual retrieval
         streaming=True,
         extra_body={

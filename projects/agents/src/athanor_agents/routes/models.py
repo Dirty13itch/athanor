@@ -18,11 +18,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1", tags=["models"])
 
 VLLM_ENDPOINTS = [
-    {"id": "coordinator", "name": "Qwen3.5-27B-FP8", "node": "foundry", "url": settings.coordinator_url},
     {"id": "coder", "name": "devstral-small-2", "node": "foundry", "url": settings.coder_url},
     {"id": "worker", "name": "Qwen3.5-35B-A3B-AWQ-4bit", "node": "workshop", "url": settings.worker_url},
     {"id": "vision", "name": "Qwen3-VL-8B-Instruct-FP8", "node": "workshop", "url": settings.vision_url},
-    {"id": "embedding", "name": "Qwen3-Embedding-0.6B", "node": "dev", "url": settings.embedding_url},
+    {"id": "embedding", "name": "qwen3-embed-8b", "node": "dev", "url": settings.embedding_url},
     {"id": "reranker", "name": "Reranker", "node": "dev", "url": settings.reranker_url},
 ]
 

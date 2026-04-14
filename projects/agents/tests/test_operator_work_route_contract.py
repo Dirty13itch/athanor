@@ -52,6 +52,32 @@ class OperatorWorkRouteContractTests(unittest.TestCase):
         self.assertIn("outputs", payload)
         self.assertIn("patterns", payload)
 
+    def test_summary_degrades_individual_sections_when_components_timeout(self) -> None:
+        client = _make_client()
+        with (
+            patch("athanor_agents.operator_work.idea_stats", AsyncMock(side_effect=TimeoutError("ideas timed out"))),
+            patch("athanor_agents.operator_work.inbox_stats", AsyncMock(return_value={"total": 2, "by_status": {"new": 2}})),
+            patch("athanor_agents.operator_work.todo_stats", AsyncMock(return_value={"total": 1, "by_status": {"open": 1}})),
+            patch("athanor_agents.operator_work.backlog_stats", AsyncMock(return_value={"total": 1, "by_status": {"ready": 1}})),
+            patch("athanor_agents.operator_work.run_stats", AsyncMock(return_value={"total": 1, "by_status": {"running": 1}})),
+            patch("athanor_agents.operator_work.approval_stats", AsyncMock(return_value={"total": 0, "by_status": {}})),
+            patch("athanor_agents.tasks.get_task_stats", AsyncMock(return_value={"total": 0, "by_status": {}, "pending_approval": 0, "stale_lease": 0, "failed_actionable": 0, "failed_historical_repaired": 0, "failed_missing_detail": 0})),
+            patch("athanor_agents.bootstrap_state.build_bootstrap_runtime_snapshot", AsyncMock(side_effect=TimeoutError("bootstrap timed out"))),
+            patch("athanor_agents.governance_state.build_governance_snapshot", AsyncMock(return_value={"launch_ready": True, "launch_blockers": []})),
+            patch("athanor_agents.operator_work.digest_summary", AsyncMock(return_value={"summary": "digest"})),
+            patch("athanor_agents.operator_work.project_summary", AsyncMock(return_value={"stalled_total": 0, "stalled_preview": []})),
+            patch("athanor_agents.operator_work.output_summary", AsyncMock(return_value={"total": 0, "recent": []})),
+            patch("athanor_agents.operator_work.pattern_summary", AsyncMock(return_value={"available": True, "patterns": [], "recommendations": []})),
+        ):
+            response = client.get("/v1/operator/summary")
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual("degraded", payload["status"])
+        self.assertEqual(0, payload["ideas"]["total"])
+        self.assertEqual("degraded", payload["bootstrap"]["status"])
+        self.assertGreaterEqual(len(payload["degraded_sections"]), 2)
+
     def test_create_todo_requires_operator_envelope(self) -> None:
         client = _make_client()
         with (
@@ -157,6 +183,26 @@ class OperatorWorkRouteContractTests(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual(approvals, response.json()["approvals"])
         list_approvals.assert_awaited_once_with(status="pending", limit=50)
+
+    def test_list_runs_degrades_to_empty_when_runtime_times_out(self) -> None:
+        client = _make_client()
+        with patch("athanor_agents.operator_work.list_runs", AsyncMock(side_effect=TimeoutError("runs timed out"))):
+            response = client.get("/v1/operator/runs?limit=12")
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual([], payload["runs"])
+        self.assertEqual(0, payload["count"])
+
+    def test_list_backlog_degrades_to_empty_when_runtime_times_out(self) -> None:
+        client = _make_client()
+        with patch("athanor_agents.operator_work.list_backlog", AsyncMock(side_effect=TimeoutError("backlog timed out"))):
+            response = client.get("/v1/operator/backlog?limit=12")
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual([], payload["backlog"])
+        self.assertEqual(0, payload["count"])
 
     def test_approve_operator_approval_bridges_to_task_approval(self) -> None:
         client = _make_client()

@@ -1,0 +1,90 @@
+{
+  "version": "2026-04-11.1",
+  "updated_at": "2026-04-11T09:00:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/approval-matrix.json",
+  "classes": [
+    {
+      "id": "auto_read_only",
+      "label": "Auto read only",
+      "allowed_actions": [
+        "discovery",
+        "telemetry_collection",
+        "drift_check",
+        "queue_refresh",
+        "report_generation",
+        "dry_run_planning"
+      ],
+      "blocked_when_degraded": false
+    },
+    {
+      "id": "auto_harvest",
+      "label": "Auto harvest",
+      "allowed_actions": [
+        "bounded_cloud_safe_backlog",
+        "branch_bounded_devstack_proof",
+        "safe_surface_repo_task",
+        "eval_run",
+        "static_analysis",
+        "deterministic_refactor",
+        "non_destructive_batch_transform"
+      ],
+      "blocked_when_degraded": true
+    },
+    {
+      "id": "review_required",
+      "label": "Review required",
+      "allowed_actions": [
+        "athanor_contract_edit",
+        "promotion_packet_update",
+        "lane_eval_update",
+        "artifact_metadata_change"
+      ],
+      "blocked_when_degraded": true
+    },
+    {
+      "id": "approval_required",
+      "label": "Approval required",
+      "allowed_actions": [
+        "runtime_packet_apply",
+        "release_tier_change",
+        "provider_routing_config_change",
+        "public_deploy",
+        "cluster_mutation_outside_allowlist",
+        "budget_exceeding_action"
+      ],
+      "blocked_when_degraded": true
+    },
+    {
+      "id": "always_manual",
+      "label": "Always manual",
+      "allowed_actions": [
+        "destructive_delete_or_reset",
+        "credential_rotation",
+        "oauth_or_provider_auth_repair",
+        "break_glass_auth",
+        "new_paid_resource_creation",
+        "adult_sensitive_cloud_transfer",
+        "scope_crossing_mutation"
+      ],
+      "blocked_when_degraded": true
+    }
+  ],
+  "degraded_mode_override": {
+    "allowed_classes": [
+      "auto_read_only"
+    ],
+    "allowed_actions": [
+      "operator_ingress",
+      "incident_recovery",
+      "active_run_completion",
+      "bounded_verification"
+    ],
+    "blocked_classes": [
+      "auto_harvest",
+      "review_required",
+      "approval_required",
+      "always_manual"
+    ]
+  }
+}

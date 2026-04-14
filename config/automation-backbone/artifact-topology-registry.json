@@ -1,0 +1,108 @@
+{
+  "version": "2026-04-11.1",
+  "updated_at": "2026-04-11T09:00:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/artifact-topology-registry.json",
+  "artifacts": [
+    {
+      "artifact_class": "run_scratch",
+      "canonical_home": "node_local_ephemeral",
+      "staging_home": "DESK or DEV local scratch",
+      "backup_class": "none",
+      "retention_class": "48h_or_success_close",
+      "cloud_allowed": false,
+      "restore_source": "not_applicable",
+      "producer_lanes": [
+        "goose_wrapped",
+        "direct_cli",
+        "litellm_routed"
+      ],
+      "promotion_trigger": "never"
+    },
+    {
+      "artifact_class": "worktree_outputs",
+      "canonical_home": "repo_worktree",
+      "staging_home": "repo_worktree",
+      "backup_class": "repo_history",
+      "retention_class": "until_merged_or_pruned_by_policy",
+      "cloud_allowed": "scope_policy_dependent",
+      "restore_source": "git_history_or_preserved_worktree",
+      "producer_lanes": [
+        "goose_wrapped",
+        "direct_cli",
+        "aider_repo_mechanic"
+      ],
+      "promotion_trigger": "merge_or_archive"
+    },
+    {
+      "artifact_class": "eval_artifacts",
+      "canonical_home": "VAULT:/reports/evals",
+      "staging_home": "execution_node_local_then_vault",
+      "backup_class": "standard",
+      "retention_class": "90d_hot_then_archive",
+      "cloud_allowed": "corpus_policy_dependent",
+      "restore_source": "vault_history",
+      "producer_lanes": [
+        "lane_eval_ledger",
+        "devstack_proving"
+      ],
+      "promotion_trigger": "eval_completion"
+    },
+    {
+      "artifact_class": "creative_outputs",
+      "canonical_home": "VAULT:/creative",
+      "staging_home": "WORKSHOP_or_FOUNDRY_NVMe",
+      "backup_class": "critical_for_selected_outputs",
+      "retention_class": "14d_for_rejected_drafts_unless_pinned",
+      "cloud_allowed": false,
+      "restore_source": "vault_creative_archive",
+      "producer_lanes": [
+        "sovereign_bulk",
+        "creative_batch"
+      ],
+      "promotion_trigger": "manifest_selection"
+    },
+    {
+      "artifact_class": "model_weights_and_caches",
+      "canonical_home": "node_local_model_storage",
+      "staging_home": "FOUNDRY_or_WORKSHOP_NVMe",
+      "backup_class": "metadata_only",
+      "retention_class": "until_replaced",
+      "cloud_allowed": false,
+      "restore_source": "approved_mirror_or_source_redownload",
+      "producer_lanes": [
+        "athanor_local"
+      ],
+      "promotion_trigger": "deployment_manifest_only"
+    },
+    {
+      "artifact_class": "observability_logs",
+      "canonical_home": "VAULT observability stack",
+      "staging_home": "local_runtime_buffer",
+      "backup_class": "standard",
+      "retention_class": "rolling_window",
+      "cloud_allowed": false,
+      "restore_source": "vault_observability_history",
+      "producer_lanes": [
+        "operator_stream_event",
+        "service_runtime"
+      ],
+      "promotion_trigger": "continuous"
+    },
+    {
+      "artifact_class": "promotion_packets_and_ledgers",
+      "canonical_home": "repo_truth_plus_vault_backup",
+      "staging_home": "Athanor_or_devstack_repo",
+      "backup_class": "critical",
+      "retention_class": "long_term",
+      "cloud_allowed": false,
+      "restore_source": "repo_history_and_vault_backup",
+      "producer_lanes": [
+        "master_atlas",
+        "devstack_proving",
+        "capability_adoption"
+      ],
+      "promotion_trigger": "packet_or_report_write"
+    }
+  ]
+}

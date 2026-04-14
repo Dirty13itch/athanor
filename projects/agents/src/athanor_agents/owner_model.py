@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import time
+from pathlib import Path
 
 import httpx
 
@@ -24,9 +25,7 @@ OWNER_REACTIONS_KEY = "athanor:owner:reactions"
 OWNER_SUPPRESS_KEY = "athanor:owner:suppress"  # domain suppress TTL keys
 FULL_REBUILD_INTERVAL = 86400  # 24h
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__))
-))))
+TRUTH_INVENTORY_ENV_VAR = "ATHANOR_TRUTH_INVENTORY_DIR"
 
 # The Twelve Words — baseline behavioral parameters from VISION.md
 TWELVE_WORDS = {
@@ -48,6 +47,39 @@ TWELVE_WORDS = {
 async def _get_redis():
     from .workspace import get_redis
     return await get_redis()
+
+
+def _candidate_truth_inventory_dirs() -> list[Path]:
+    module_path = Path(__file__).resolve()
+    candidates: list[Path] = []
+    env_path = str(os.getenv(TRUTH_INVENTORY_ENV_VAR) or "").strip()
+    if env_path:
+        candidates.append(Path(env_path))
+    for parent in [module_path.parent, *module_path.parents]:
+        candidates.append(parent / "reports" / "truth-inventory")
+    candidates.extend(
+        [
+            Path("/workspace/reports/truth-inventory"),
+            Path("/opt/athanor/reports/truth-inventory"),
+            Path("/app/reports/truth-inventory"),
+        ]
+    )
+    unique_candidates: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        candidate_key = str(candidate)
+        if candidate_key in seen:
+            continue
+        seen.add(candidate_key)
+        unique_candidates.append(candidate)
+    return unique_candidates
+
+
+def _truth_inventory_dir() -> Path:
+    for candidate in _candidate_truth_inventory_dirs():
+        if candidate.exists():
+            return candidate
+    return _candidate_truth_inventory_dirs()[0]
 
 
 async def get_owner_profile() -> dict:
@@ -263,13 +295,35 @@ async def _gather_capacity() -> dict:
         "cloud_models_available": 13,
         "queue_depth": 0,
         "agents_idle": [],
+        "sample_posture": None,
+        "scheduler_slot_count": 0,
+        "harvestable_scheduler_slot_count": 0,
+        "idle_harvest_slots_open": False,
     }
+
+    telemetry_summary = _load_capacity_telemetry_summary()
+    if telemetry_summary:
+        scheduler_slot_count = int(telemetry_summary.get("scheduler_slot_count") or 0)
+        harvestable_slot_count = int(telemetry_summary.get("harvestable_scheduler_slot_count") or 0)
+        scheduler_backed_gpu_count = int(telemetry_summary.get("scheduler_backed_gpu_count") or 0)
+        harvestable_gpu_count = int(telemetry_summary.get("harvestable_gpu_count") or 0)
+        capacity["sample_posture"] = telemetry_summary.get("sample_posture")
+        capacity["scheduler_slot_count"] = scheduler_slot_count
+        capacity["harvestable_scheduler_slot_count"] = harvestable_slot_count
+        capacity["idle_harvest_slots_open"] = bool(
+            harvestable_slot_count > 0 and int(telemetry_summary.get("scheduler_queue_depth") or 0) == 0
+        )
+        if scheduler_backed_gpu_count > 0:
+            capacity["gpu_idle_pct"] = round((harvestable_gpu_count / scheduler_backed_gpu_count) * 100)
 
     # Queue depth
     try:
         from .tasks import get_task_stats
         stats = await get_task_stats()
-        capacity["queue_depth"] = stats.get("by_status", {}).get("pending", 0)
+        capacity["queue_depth"] = max(
+            int(stats.get("by_status", {}).get("pending", 0) or 0),
+            int(telemetry_summary.get("scheduler_queue_depth", 0) or 0) if telemetry_summary else 0,
+        )
     except Exception:
         pass
 
@@ -303,7 +357,23 @@ async def _gather_capacity() -> dict:
     except Exception:
         capacity["gpu_idle_pct"] = 85  # conservative estimate
 
+    if telemetry_summary:
+        scheduler_backed_gpu_count = int(telemetry_summary.get("scheduler_backed_gpu_count") or 0)
+        harvestable_gpu_count = int(telemetry_summary.get("harvestable_gpu_count") or 0)
+        if scheduler_backed_gpu_count > 0:
+            capacity["gpu_idle_pct"] = round((harvestable_gpu_count / scheduler_backed_gpu_count) * 100)
+
     return capacity
+
+
+def _load_capacity_telemetry_summary() -> dict | None:
+    path = _truth_inventory_dir() / "capacity-telemetry.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    summary = dict(payload.get("capacity_summary") or {})
+    return summary or None
 
 
 async def _gather_recent_interests() -> list[str]:

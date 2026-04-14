@@ -284,6 +284,45 @@ class SubscriptionPolicyTest(unittest.TestCase):
         self.assertEqual("athanor_local", lease.provider)
         self.assertEqual("lan_only", lease.privacy)
 
+    def test_private_agent_defaults_use_canonical_private_automation_class(self) -> None:
+        policy = load_policy()
+
+        self.assertIn("private_automation", policy["task_classes"])
+        self.assertNotIn("private_internal_automation", policy["task_classes"])
+
+        for agent_id in (
+            "general-assistant",
+            "knowledge-agent",
+            "home-agent",
+            "media-agent",
+            "stash-agent",
+            "data-curator",
+        ):
+            self.assertEqual("private_automation", policy["agents"][agent_id]["default_task_class"])
+
+        request = build_task_lease_request(
+            requester="general-assistant",
+            prompt="Refresh internal home context and summarize changes.",
+            metadata={"interactive": False},
+        )
+        lease = preview_execution_lease(request)
+
+        self.assertEqual("private_automation", request.task_class)
+        self.assertEqual("athanor_local", lease.provider)
+
+    def test_knowledge_agent_background_work_keeps_private_local_execution_hints(self) -> None:
+        request = build_task_lease_request(
+            requester="knowledge-agent",
+            prompt="Review the indexed knowledge gaps and summarize them.",
+            metadata={"interactive": False},
+        )
+        lease = preview_execution_lease(request)
+
+        self.assertEqual("private_automation", request.task_class)
+        self.assertEqual("private", request.sensitivity)
+        self.assertEqual("small", request.expected_context)
+        self.assertEqual("athanor_local", lease.provider)
+
     def test_large_repo_audit_prefers_gemini(self) -> None:
         lease = preview_execution_lease(
             LeaseRequest(
@@ -298,7 +337,7 @@ class SubscriptionPolicyTest(unittest.TestCase):
 
         self.assertEqual("google_gemini", lease.provider)
 
-    def test_async_coding_backlog_prefers_codex(self) -> None:
+    def test_async_coding_backlog_prefers_glm_bulk_lane(self) -> None:
         request = build_task_lease_request(
             requester="coding-agent",
             prompt="Take this backlog ticket queue and implement the next PR-sized change set in parallel.",
@@ -308,9 +347,9 @@ class SubscriptionPolicyTest(unittest.TestCase):
         lease = preview_execution_lease(request)
 
         self.assertEqual("async_backlog_execution", request.task_class)
-        self.assertEqual("openai_codex", lease.provider)
+        self.assertEqual("zai_glm_coding", lease.provider)
 
-    def test_bulk_transform_demotes_glm_without_observed_cli(self) -> None:
+    def test_bulk_transform_prefers_glm_when_observed_lane_is_ready(self) -> None:
         lease = preview_execution_lease(
             LeaseRequest(
                 requester="coding-agent",
@@ -322,12 +361,11 @@ class SubscriptionPolicyTest(unittest.TestCase):
             )
         )
 
-        self.assertEqual("google_gemini", lease.provider)
-        self.assertNotIn("zai_glm_coding", lease.fallback)
-        self.assertEqual("live_burn_observed", lease.metadata["provider_evidence_posture"])
+        self.assertEqual("zai_glm_coding", lease.provider)
+        self.assertEqual("live_burn_observed_cost_unverified", lease.metadata["provider_evidence_posture"])
         self.assertEqual("ordinary_auto", lease.metadata["provider_routing_posture"])
 
-    def test_multi_file_fallback_excludes_handoff_only_glm(self) -> None:
+    def test_multi_file_fallback_keeps_glm_when_ordinary_auto(self) -> None:
         lease = preview_execution_lease(
             LeaseRequest(
                 requester="coding-agent",
@@ -340,7 +378,7 @@ class SubscriptionPolicyTest(unittest.TestCase):
         )
 
         self.assertEqual("openai_codex", lease.provider)
-        self.assertNotIn("zai_glm_coding", lease.fallback)
+        self.assertIn("zai_glm_coding", lease.fallback)
 
     def test_allow_handoff_only_keeps_glm_in_fallback_pool(self) -> None:
         policy = {

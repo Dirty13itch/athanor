@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, call, patch
 
-from athanor_agents.workplanner import generate_work_plan
+from athanor_agents.workplanner import _LLM_MODEL, _build_planner_prompt, generate_work_plan
 
 
 class _FakeResponse:
@@ -48,6 +48,36 @@ class _FakeRedis:
 
 
 class WorkPlannerTests(unittest.IsolatedAsyncioTestCase):
+    def test_workplanner_uses_deliberative_model(self) -> None:
+        self.assertEqual(_LLM_MODEL, "reasoning")
+
+    def test_build_planner_prompt_includes_slot_aware_capacity_truth(self) -> None:
+        prompt = _build_planner_prompt(
+            recent_tasks=[],
+            pending_tasks=[],
+            time_context="Morning",
+            knowledge_context={"knowledge": [], "preferences": [], "goals": [], "completed_outputs": []},
+            capacity_context={
+                "posture": "degraded",
+                "queue_posture": "degraded",
+                "workspace_utilization": 0.42,
+                "provider_reserve_posture": "healthy",
+                "recommendations": ["2 harvestable scheduler slots are open"],
+                "local_compute": {
+                    "scheduler_slot_count": 5,
+                    "harvestable_scheduler_slot_count": 2,
+                    "idle_harvest_slots_open": True,
+                    "open_harvest_slots": [{"id": "F:TP4"}, {"id": "W:1"}],
+                    "scheduler_queue_depth": 0,
+                },
+            },
+        )
+
+        self.assertIn("CAPACITY POSTURE:", prompt)
+        self.assertIn("local harvest slots: 2/5", prompt)
+        self.assertIn("F:TP4, W:1", prompt)
+        self.assertIn("prefer work that can use local sovereign compute", prompt)
+
     async def test_generate_work_plan_reads_recent_and_pending_from_canonical_surfaces(self) -> None:
         with (
             patch("athanor_agents.tasks.list_recent_tasks", AsyncMock(side_effect=[[], []])) as list_recent_tasks,
@@ -56,6 +86,7 @@ class WorkPlannerTests(unittest.IsolatedAsyncioTestCase):
                 "athanor_agents.workplanner._gather_knowledge_context",
                 AsyncMock(return_value={"knowledge": [], "preferences": [], "goals": [], "completed_outputs": []}),
             ),
+            patch("athanor_agents.workplanner._load_capacity_context", AsyncMock(return_value={})),
             patch("athanor_agents.workplanner.httpx.AsyncClient", return_value=_FakeAsyncClient()),
         ):
             result = await generate_work_plan()
@@ -75,12 +106,37 @@ class WorkPlannerTests(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch("athanor_agents.tasks.get_task_stats", AsyncMock(return_value={"pending": 1, "pending_approval": 0})),
+            patch(
+                "athanor_agents.workplanner._load_capacity_context",
+                AsyncMock(
+                    return_value={
+                        "posture": "healthy",
+                        "local_compute": {"idle_harvest_slots_open": True},
+                    }
+                ),
+            ),
             patch("athanor_agents.workspace.get_redis", AsyncMock(return_value=_FakeRedis())),
         ):
             self.assertTrue(await should_refill())
 
         with (
             patch("athanor_agents.tasks.get_task_stats", AsyncMock(return_value={"pending": 2, "pending_approval": 0})),
+            patch("athanor_agents.workplanner._load_capacity_context", AsyncMock(return_value={})),
+            patch("athanor_agents.workspace.get_redis", AsyncMock(return_value=_FakeRedis())),
+        ):
+            self.assertFalse(await should_refill())
+
+        with (
+            patch("athanor_agents.tasks.get_task_stats", AsyncMock(return_value={"pending": 1, "pending_approval": 0})),
+            patch(
+                "athanor_agents.workplanner._load_capacity_context",
+                AsyncMock(
+                    return_value={
+                        "posture": "degraded",
+                        "local_compute": {"idle_harvest_slots_open": False},
+                    }
+                ),
+            ),
             patch("athanor_agents.workspace.get_redis", AsyncMock(return_value=_FakeRedis())),
         ):
             self.assertFalse(await should_refill())
@@ -104,6 +160,7 @@ class WorkPlannerTests(unittest.IsolatedAsyncioTestCase):
                 "athanor_agents.workplanner._gather_knowledge_context",
                 AsyncMock(return_value={"knowledge": [], "preferences": [], "goals": [], "completed_outputs": []}),
             ),
+            patch("athanor_agents.workplanner._load_capacity_context", AsyncMock(return_value={})),
             patch("athanor_agents.workplanner.httpx.AsyncClient", return_value=_FakeAsyncClient(response_payload)),
             patch("athanor_agents.tasks.submit_governed_task", AsyncMock(return_value=submission)) as submit_governed_task,
             patch("athanor_agents.workspace.get_redis", AsyncMock(return_value=_FakeRedis())),
@@ -156,6 +213,7 @@ class WorkPlannerTests(unittest.IsolatedAsyncioTestCase):
                 "athanor_agents.workplanner._gather_knowledge_context",
                 AsyncMock(return_value={"knowledge": [], "preferences": [], "goals": [], "completed_outputs": []}),
             ),
+            patch("athanor_agents.workplanner._load_capacity_context", AsyncMock(return_value={})),
             patch(
                 "athanor_agents.workplanner._load_autonomy_submission_scope",
                 return_value=({"coding-agent", "research-agent"}, "software_core_phase_1"),

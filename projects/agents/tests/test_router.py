@@ -81,7 +81,7 @@ class TestModelRouting:
     def test_simple_routes_to_fast(self):
         decision = routing.route("Hello there")
         assert decision.tier == routing.ModelTier.FAST
-        assert decision.model == "fast"
+        assert decision.model == "coder"
 
     def test_code_routes_to_reasoning(self):
         decision = routing.route("Write a Python function to sort a list")
@@ -118,19 +118,19 @@ class TestQueueDepthFallback:
     def test_fallback_on_high_queue(self):
         decision = routing.route(
             "Hello there",
-            queue_depths={"fast": 10, "worker": 2, "reasoning": 3},
+            queue_depths={"coder": 10, "worker": 2, "reasoning": 3},
         )
-        # fast is busy, should fallback
-        assert decision.model != "fast"
+        # coder is busy, should fallback
+        assert decision.model != "coder"
         assert decision.confidence == 0.7
         assert "busy" in decision.reason
 
     def test_no_fallback_on_low_queue(self):
         decision = routing.route(
             "Hello there",
-            queue_depths={"fast": 2, "worker": 1, "reasoning": 0},
+            queue_depths={"coder": 2, "worker": 1, "reasoning": 0},
         )
-        assert decision.model == "fast"
+        assert decision.model == "coder"
 
     def test_custom_threshold(self):
         decision = routing.route(
@@ -184,10 +184,10 @@ class TestFallbackChains:
     """Fallback chain configuration."""
 
     def test_reasoning_fallback_chain(self):
-        assert routing.FALLBACK_CHAINS["reasoning"] == ["worker", "fast", "claude"]
+        assert routing.FALLBACK_CHAINS["reasoning"] == ["fast", "claude", "worker"]
 
     def test_fast_fallback_chain(self):
-        assert routing.FALLBACK_CHAINS["fast"] == ["worker", "reasoning"]
+        assert routing.FALLBACK_CHAINS["fast"] == ["reasoning", "claude", "worker"]
 
     def test_all_tiers_have_fallbacks(self):
         for tier_model in routing.TIER_MODELS.values():

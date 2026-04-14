@@ -230,13 +230,13 @@ CANONICAL_DASHBOARD_ENVS = {
 }
 
 FROZEN_LITELLM_ALIASES = {
-    "reasoning": "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1",
-    "coding": "http://{{ vllm_node1_host }}:{{ vllm_node1_port }}/v1",
-    "utility": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
-    "creative": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
-    "fast": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
-    "worker": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
-    "uncensored": "http://{{ vllm_node2_host }}:{{ vllm_node2_port }}/v1",
+    "reasoning": "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1",
+    "coding": "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1",
+    "utility": "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1",
+    "creative": "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1",
+    "fast": "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1",
+    "worker": "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1",
+    "uncensored": "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1",
     "coder": "http://{{ vllm_node1_host }}:{{ vllm_node1_coder_port }}/v1",
     "embedding": "http://{{ vllm_embedding_host }}:8001/v1",
     "reranker": "http://{{ vllm_reranker_host }}:{{ vllm_reranker_port }}/v1",
@@ -1124,8 +1124,21 @@ class RepoContractsTest(unittest.TestCase):
             "- Next verification: Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.",
             report_text,
         )
+        self.assertIn("- Verification steps:", report_text)
         self.assertIn(
-            "- Verification steps: `Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.`, `Verify which public GLM Coding Plan tier is actually subscribed before treating any published USD price as this lane's monthly cost.`, `Until supported-tool integration is proven, keep this lane configured-unused and out of ordinary auto-routing.`",
+            "`Verify GLM Coding Plan execution through a supported coding tool on DESK or DEV before promoting `Z.ai GLM Coding` back into live routing.`",
+            report_text,
+        )
+        self.assertIn(
+            "`Record the first successful supported-tool proof with `python C:/Athanor/scripts/record_supported_tool_usage.py --family-id glm_coding_plan --tool-name <tool> --request-surface <surface> ...` so quota-truth can surface the lane as activation-proven.`",
+            report_text,
+        )
+        self.assertIn(
+            "`Verify which public GLM Coding Plan tier is actually subscribed before treating any published USD price as this lane's monthly cost.`",
+            report_text,
+        )
+        self.assertIn(
+            "`Until supported-tool integration is proven, keep this lane configured-unused and out of ordinary auto-routing.`",
             report_text,
         )
 
@@ -1193,13 +1206,17 @@ class RepoContractsTest(unittest.TestCase):
     def test_subscription_policy_declares_explicit_routing_posture_for_glm(self) -> None:
         policy_text = read_text(REPO_ROOT / "projects" / "agents" / "config" / "subscription-routing-policy.yaml")
         self.assertIn("zai_glm_coding:", policy_text)
-        self.assertIn("routing_posture: governed_handoff_only", policy_text)
-        self.assertIn("routing_reason: missing_cli_evidence", policy_text)
+        self.assertIn("routing_posture: ordinary_auto", policy_text)
+        self.assertIn("routing_reason: verified_supported_tool_usage", policy_text)
+        self.assertIn("private_automation:", policy_text)
+        self.assertNotIn("private_internal_automation:", policy_text)
+        self.assertNotIn("default_task_class: private_internal_automation", policy_text)
 
     def test_subscription_policy_no_longer_uses_builtin_fallback_policy(self) -> None:
         subscriptions_text = read_text(REPO_ROOT / "projects" / "agents" / "src" / "athanor_agents" / "subscriptions.py")
         self.assertNotIn("_fallback_policy", subscriptions_text)
         self.assertNotIn('builtin-fallback', subscriptions_text)
+        self.assertIn('"private_automation"', subscriptions_text)
 
     def test_provider_usage_evidence_artifact_and_runbook_exist(self) -> None:
         artifact = json.loads(read_text(REPO_ROOT / "reports" / "truth-inventory" / "provider-usage-evidence.json"))
@@ -1749,6 +1766,18 @@ class RepoContractsTest(unittest.TestCase):
         self.assertEqual(5434, athanor_postgres.get("port"))
         self.assertEqual("ATHANOR_POSTGRES_URL", athanor_postgres.get("url_env"))
         self.assertEqual("internal_only", athanor_postgres.get("auth_class"))
+
+    def test_topology_declares_graphrag_service(self) -> None:
+        topology = json.loads(read_text(PLATFORM_TOPOLOGY_REGISTRY))
+        service_map = {str(service["id"]): service for service in topology.get("services", [])}
+        self.assertIn("graphrag", service_map)
+        graphrag = service_map["graphrag"]
+        self.assertEqual("foundry", graphrag.get("node"))
+        self.assertEqual("http", graphrag.get("scheme"))
+        self.assertEqual(9300, graphrag.get("port"))
+        self.assertEqual("ATHANOR_GRAPHRAG_URL", graphrag.get("url_env"))
+        self.assertEqual("/health", graphrag.get("health_path"))
+        self.assertEqual("internal_only", graphrag.get("auth_class"))
 
     def test_durable_persistence_contract_uses_the_cluster_postgres_target(self) -> None:
         core_host_vars_text = read_text(CORE_HOST_VARS)

@@ -110,7 +110,67 @@
     }
   ],
   "backlog_policy": {
-    "ranking_axes": ["impact", "reversibility", "risk", "foundationality"],
-    "default_order": ["security", "control_plane", "repo_contract", "topology", "productization"]
+    "ranking_axes": [
+      "impact",
+      "reversibility",
+      "risk",
+      "foundationality",
+      "dispatch_economics",
+      "capacity_truth",
+      "provider_elasticity",
+      "promotion_multiplier"
+    ],
+    "default_order": [
+      "provider_gate",
+      "dispatch_truth",
+      "capacity_truth",
+      "promotion_multiplier",
+      "control_plane",
+      "repo_contract",
+      "productization"
+    ]
+  },
+  "autonomous_queue_policy": {
+    "default_rank_order": [
+      "provider_auth_drift",
+      "capacity_truth_drift",
+      "dispatch_truth_drift",
+      "promotion_wave_closure",
+      "failing_eval_or_validator",
+      "repo_safe_system_hardening",
+      "secondary_tenant_or_product_work"
+    ],
+    "required_item_fields": [
+      "value_class",
+      "risk_class",
+      "approved_mutation_class",
+      "preferred_lane_family",
+      "fallback_lane_family",
+      "proof_command_or_eval_surface",
+      "closure_rule"
+    ],
+    "live_fact_sources": [
+      "reports/ralph-loop/latest.json",
+      "reports/truth-inventory/quota-truth.json",
+      "reports/truth-inventory/capacity-telemetry.json",
+      "reports/truth-inventory/routing-proof.json",
+      "reports/truth-inventory/provider-usage-evidence.json",
+      "C:/Users/Shaun/.codex/control/safe-surface-queue.json",
+      "C:/Users/Shaun/.codex/control/safe-surface-state.json"
+    ],
+    "recurring_loops": {
+      "daytime": [
+        "proof_runs",
+        "promotion_closure",
+        "route_hardening",
+        "validation_closure"
+      ],
+      "overnight": [
+        "cheap_bulk_backlog",
+        "repo_wide_audits",
+        "knowledge_refresh",
+        "background_transforms"
+      ]
+    }
   }
 }

@@ -1,0 +1,159 @@
+{
+  "version": "2026-04-11.1",
+  "updated_at": "2026-04-11T09:00:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/vendor-policy-registry.json",
+  "review_cadence": "monthly_or_material_terms_change",
+  "families": [
+    {
+      "family_id": "athanor_local",
+      "allowed_sensitivity": [
+        "sovereign_only",
+        "private_but_cloud_allowed",
+        "cloud_safe",
+        "public_product_only"
+      ],
+      "disallowed_sensitivity": [],
+      "allowed_use_scope": "all_local_scopes",
+      "hosted_indexing_allowed": false,
+      "subscription_scope_limit": "not_applicable",
+      "api_vs_subscription_split": "not_applicable",
+      "adult_sensitive_allowed": true,
+      "commercial_status": "local_owned",
+      "reviewed_at": "2026-04-11",
+      "review_after": "2026-05-11"
+    },
+    {
+      "family_id": "openai_codex",
+      "allowed_sensitivity": [
+        "cloud_safe",
+        "private_but_cloud_allowed"
+      ],
+      "disallowed_sensitivity": [
+        "sovereign_only",
+        "adult_sensitive"
+      ],
+      "allowed_use_scope": "cloud_safe_and_private_cloud_allowed_only",
+      "hosted_indexing_allowed": false,
+      "subscription_scope_limit": "subscription_cli_use",
+      "api_vs_subscription_split": "subscription_cli_and_api_are_separate_families",
+      "adult_sensitive_allowed": false,
+      "commercial_status": "commercial_allowed",
+      "reviewed_at": "2026-04-11",
+      "review_after": "2026-05-11"
+    },
+    {
+      "family_id": "google_gemini",
+      "allowed_sensitivity": [
+        "cloud_safe"
+      ],
+      "disallowed_sensitivity": [
+        "sovereign_only",
+        "adult_sensitive"
+      ],
+      "allowed_use_scope": "cloud_safe_only",
+      "hosted_indexing_allowed": false,
+      "subscription_scope_limit": "cli_and_api_terms_must_match_live_docs",
+      "api_vs_subscription_split": "cli_subscription_and_api_usage_are_distinct",
+      "adult_sensitive_allowed": false,
+      "commercial_status": "commercial_allowed",
+      "reviewed_at": "2026-04-11",
+      "review_after": "2026-05-11"
+    },
+    {
+      "family_id": "moonshot_kimi",
+      "allowed_sensitivity": [
+        "cloud_safe"
+      ],
+      "disallowed_sensitivity": [
+        "sovereign_only",
+        "private_but_cloud_allowed",
+        "adult_sensitive"
+      ],
+      "allowed_use_scope": "personal_development_only",
+      "hosted_indexing_allowed": false,
+      "subscription_scope_limit": "personal_development_only",
+      "api_vs_subscription_split": "subscription_cli_and_api_usage_are_distinct",
+      "adult_sensitive_allowed": false,
+      "commercial_status": "restricted_by_documented_scope",
+      "reviewed_at": "2026-04-11",
+      "review_after": "2026-05-11"
+    },
+    {
+      "family_id": "zai_glm_coding",
+      "allowed_sensitivity": [
+        "cloud_safe",
+        "private_but_cloud_allowed"
+      ],
+      "disallowed_sensitivity": [
+        "sovereign_only",
+        "adult_sensitive"
+      ],
+      "allowed_use_scope": "supported_tool_usage_only",
+      "hosted_indexing_allowed": false,
+      "subscription_scope_limit": "coding_plan_supported_tools_only",
+      "api_vs_subscription_split": "coding_plan_and_zai_api_are_separate_families",
+      "adult_sensitive_allowed": false,
+      "commercial_status": "commercial_allowed",
+      "reviewed_at": "2026-04-11",
+      "review_after": "2026-05-11"
+    },
+    {
+      "family_id": "zai_api",
+      "allowed_sensitivity": [
+        "cloud_safe",
+        "private_but_cloud_allowed"
+      ],
+      "disallowed_sensitivity": [
+        "sovereign_only",
+        "adult_sensitive"
+      ],
+      "allowed_use_scope": "metered_api_only",
+      "hosted_indexing_allowed": false,
+      "subscription_scope_limit": "not_applicable",
+      "api_vs_subscription_split": "separate_from_glm_coding_plan",
+      "adult_sensitive_allowed": false,
+      "commercial_status": "commercial_allowed",
+      "reviewed_at": "2026-04-11",
+      "review_after": "2026-05-11"
+    },
+    {
+      "family_id": "deepseek_api",
+      "allowed_sensitivity": [
+        "cloud_safe",
+        "private_but_cloud_allowed"
+      ],
+      "disallowed_sensitivity": [
+        "sovereign_only",
+        "adult_sensitive"
+      ],
+      "allowed_use_scope": "metered_api_only",
+      "hosted_indexing_allowed": false,
+      "subscription_scope_limit": "not_applicable",
+      "api_vs_subscription_split": "api_only_family",
+      "adult_sensitive_allowed": false,
+      "commercial_status": "commercial_allowed",
+      "reviewed_at": "2026-04-11",
+      "review_after": "2026-05-11"
+    },
+    {
+      "family_id": "augment_context_engine",
+      "allowed_sensitivity": [
+        "cloud_safe"
+      ],
+      "disallowed_sensitivity": [
+        "sovereign_only",
+        "private_but_cloud_allowed",
+        "adult_sensitive"
+      ],
+      "allowed_use_scope": "cloud_safe_repo_context_only",
+      "hosted_indexing_allowed": true,
+      "subscription_scope_limit": "cloud_safe_workspace_only",
+      "api_vs_subscription_split": "not_applicable",
+      "adult_sensitive_allowed": false,
+      "commercial_status": "commercial_allowed",
+      "reviewed_at": "2026-04-11",
+      "review_after": "2026-05-11"
+    }
+  ]
+}

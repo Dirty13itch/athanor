@@ -145,16 +145,16 @@ class UserPreferences:
 
 # Athanor model defaults by task type (LiteLLM aliases)
 DEFAULT_MODELS: dict[TaskType, str] = {
-    TaskType.GENERAL: "fast",
+    TaskType.GENERAL: "coder",
     TaskType.CODE: "coding",
     TaskType.CREATIVE: "creative",
     TaskType.ANALYSIS: "reasoning",
-    TaskType.TRANSLATION: "fast",
-    TaskType.SUMMARIZATION: "fast",
+    TaskType.TRANSLATION: "coder",
+    TaskType.SUMMARIZATION: "coder",
     TaskType.RESEARCH: "reasoning",
-    TaskType.SYSTEM: "fast",
-    TaskType.HOME: "fast",
-    TaskType.MEDIA: "fast",
+    TaskType.SYSTEM: "coder",
+    TaskType.HOME: "coder",
+    TaskType.MEDIA: "coder",
 }
 
 DEFAULT_STYLE: dict[str, Any] = {

@@ -94,6 +94,7 @@ class TestTaskStoreWrites(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(updated, 1)
         mock_r.hset.assert_awaited_once()
+        mock_r.srem.assert_any_await("athanor:tasks:status:pending", "task-3")
         mock_r.sadd.assert_any_await("athanor:tasks:status:pending", "task-3")
 
     async def test_read_task_records_by_status_uses_secondary_index(self):
@@ -158,3 +159,46 @@ class TestTaskStoreWrites(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(["task-4", "task-5"], [record["id"] for record in records])
         mock_r.smembers.assert_any_await("athanor:tasks:status:pending")
         mock_r.smembers.assert_any_await("athanor:tasks:status:running")
+
+    async def test_read_task_records_by_status_skips_stale_index_membership(self):
+        from athanor_agents.task_store import read_task_records_by_status
+
+        mock_r = _mock_redis()
+        mock_r.smembers = AsyncMock(return_value={"task-6"})
+        mock_r.hget = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "id": "task-6",
+                    "agent": "coding-agent",
+                    "status": "stale_lease",
+                    "updated_at": 30.0,
+                }
+            )
+        )
+
+        records = await read_task_records_by_status(mock_r, "pending")
+
+        self.assertEqual([], records)
+        mock_r.srem.assert_any_await("athanor:tasks:status:pending", "task-6")
+
+    async def test_read_task_records_by_statuses_heals_mismatched_index_and_keeps_record(self):
+        from athanor_agents.task_store import read_task_records_by_statuses
+
+        mock_r = _mock_redis()
+        mock_r.smembers = AsyncMock(side_effect=[{"task-7"}, set()])
+        mock_r.hget = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "id": "task-7",
+                    "agent": "coding-agent",
+                    "status": "running",
+                    "updated_at": 40.0,
+                }
+            )
+        )
+
+        records = await read_task_records_by_statuses(mock_r, "pending", "running")
+
+        self.assertEqual(["task-7"], [record["id"] for record in records])
+        mock_r.srem.assert_any_await("athanor:tasks:status:pending", "task-7")
+        mock_r.sadd.assert_any_await("athanor:tasks:status:running", "task-7")

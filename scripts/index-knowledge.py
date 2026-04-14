@@ -83,7 +83,7 @@ COLLECTION = "knowledge"
 EMBEDDING_DIM = 1024
 CHUNK_SIZE = 1500  # chars per chunk (with overlap)
 CHUNK_OVERLAP = 200
-EMBEDDING_MODEL = "Qwen3-Embedding-0.6B"  # Model serving the `embedding` LiteLLM route
+EMBEDDING_MODEL = "qwen3-embed-8b"  # Model currently serving the `embedding` LiteLLM route
 MINICOIL_MODEL = "Qdrant/minicoil-v1"
 NER_MODEL = "reasoning"  # Qwen3.5-27B-FP8 — best NER quality for entity extraction
 
@@ -502,7 +502,7 @@ def extract_entities_llm(text: str, title: str) -> list[dict]:
 
 Entity types:
 - Service: deployed applications or APIs (e.g. "Qdrant", "LangFuse", "Sonarr", "Neo4j")
-- Model: AI/ML models (e.g. "Qwen3.5-27B-FP8", "Qwen3-Embedding-0.6B", "flux-uncensored")
+- Model: AI/ML models (e.g. "Qwen3.5-27B-FP8", "qwen3-embed-8b", "flux-uncensored")
 - Concept: abstract ideas or methods (e.g. "HippoRAG", "tensor parallelism", "context injection", "PPR traversal")
 - Technology: frameworks, libraries, or protocols (e.g. "LangGraph", "vLLM", "FastAPI", "LiteLLM", "Ansible")
 - Person: named people (e.g. "Shaun")

@@ -3,8 +3,9 @@ from __future__ import annotations
 import sys
 import types
 import unittest
+from contextlib import asynccontextmanager
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -13,7 +14,9 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from athanor_agents import durable_state as durable_state_module  # noqa: E402
 from athanor_agents.durable_state import (  # noqa: E402
+    _fetch_all,
     _as_datetime,
     durable_state_sql_path,
     ensure_durable_state_schema,
@@ -152,6 +155,35 @@ class DurableStateContractTests(unittest.IsolatedAsyncioTestCase):
         parsed = _as_datetime("2026-04-01T03:14:15+00:00")
         self.assertIsNotNone(parsed)
         self.assertEqual("2026-04-01T03:14:15+00:00", parsed.isoformat())
+
+    async def test_runtime_failure_opens_short_circuit_for_repeated_queries(self) -> None:
+        attempts = {"count": 0}
+
+        @asynccontextmanager
+        async def failing_open_connection():
+            attempts["count"] += 1
+            raise RuntimeError("too many clients already")
+            yield
+
+        durable_state_module._SCHEMA_READY = True
+        durable_state_module._SCHEMA_ATTEMPTED = True
+
+        with (
+            patch("athanor_agents.durable_state.settings.postgres_url", "postgresql://athanor:test@localhost/athanor"),
+            patch("athanor_agents.durable_state.ensure_durable_state_schema", AsyncMock(return_value=True)),
+            patch("athanor_agents.durable_state._open_connection", failing_open_connection),
+        ):
+            first = await _fetch_all("SELECT 1")
+            second = await _fetch_all("SELECT 1")
+            status = get_durable_state_status()
+
+        self.assertEqual([], first)
+        self.assertEqual([], second)
+        self.assertEqual(1, attempts["count"])
+        self.assertEqual("degraded", status["mode"])
+        self.assertFalse(status["available"])
+        self.assertTrue(status["schema_ready"])
+        self.assertIn("too many clients already", str(status["reason"]))
 
 
 if __name__ == "__main__":

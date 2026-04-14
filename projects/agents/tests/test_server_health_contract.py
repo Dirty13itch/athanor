@@ -4,7 +4,7 @@ import asyncio
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +17,68 @@ from athanor_agents import server  # noqa: E402
 
 
 class ServerHealthContractTests(unittest.TestCase):
+    def test_health_livez_stays_healthy_without_dependency_probes(self) -> None:
+        with patch("athanor_agents.server.list_agents", return_value=["general-assistant", "coding-agent"]):
+            payload = asyncio.run(server.health_livez())
+
+        self.assertEqual("agent-server", payload["service"])
+        self.assertEqual("healthy", payload["status"])
+        self.assertEqual(2, payload["agent_count"])
+        self.assertEqual("liveness_only", payload["mode"])
+        self.assertTrue(payload["launch_ready"])
+
+    def test_health_livez_reports_degraded_when_agent_roster_is_empty(self) -> None:
+        with patch("athanor_agents.server.list_agents", return_value=[]):
+            payload = asyncio.run(server.health_livez())
+
+        self.assertEqual("degraded", payload["status"])
+        self.assertEqual(0, payload["agent_count"])
+
+    def test_health_uses_stale_tolerant_bootstrap_snapshot(self) -> None:
+        redis_dep = {"id": "redis", "status": "healthy", "required": True}
+        fake_bootstrap = {"mode": "ready"}
+        fake_governance = {"launch_blockers": [], "issues": []}
+        fake_persistence = {
+            "mode": "postgres",
+            "durable": True,
+            "configured": True,
+            "driver": "postgres",
+            "reason": None,
+        }
+        fake_durable = {
+            "mode": "ready",
+            "configured": True,
+            "available": True,
+            "schema_ready": True,
+            "reason": None,
+        }
+
+        class _FakeResponse:
+            def __init__(self, latency_ms: int = 5) -> None:
+                self.elapsed = type("Elapsed", (), {"total_seconds": lambda self: latency_ms / 1000})()
+
+        class _FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, tb):
+                return None
+
+            async def get(self, url, headers=None):
+                return _FakeResponse()
+
+        with patch("athanor_agents.server.list_agents", return_value=["general-assistant"]):
+            with patch("athanor_agents.server.get_checkpointer_status", return_value=fake_persistence):
+                with patch("athanor_agents.server.get_durable_state_status", return_value=fake_durable):
+                    with patch("athanor_agents.server._probe_redis_dependency", new=AsyncMock(return_value=redis_dep)):
+                        with patch("athanor_agents.governance_state.build_governance_snapshot", new=AsyncMock(return_value=fake_governance)):
+                            with patch("athanor_agents.server.build_bootstrap_runtime_snapshot", new=AsyncMock(return_value=fake_bootstrap)) as bootstrap:
+                                with patch("httpx.AsyncClient", return_value=_FakeClient()):
+                                    payload = asyncio.run(server.health())
+
+        bootstrap.assert_awaited_once_with(include_snapshot_write=False, allow_stale=True)
+        self.assertEqual(fake_bootstrap, payload["bootstrap"])
+
     def test_load_governor_runtime_continues_when_governor_load_fails(self) -> None:
         class _FakeGovernor:
             async def load(self) -> None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
@@ -17,6 +17,23 @@ def _make_client() -> TestClient:
 
 
 class GovernorRouteContractTests(unittest.TestCase):
+    def test_governor_snapshot_uses_extended_timeout_budget(self) -> None:
+        with (
+            patch(
+                "athanor_agents.routes.governor._await_snapshot",
+                AsyncMock(return_value={"status": "live"}),
+            ) as await_snapshot,
+            patch("athanor_agents.governor.build_governor_snapshot", Mock(return_value=object())),
+        ):
+            response = _make_client().get("/v1/governor")
+
+        self.assertEqual(200, response.status_code)
+        await_snapshot.assert_awaited_once()
+        self.assertEqual(
+            governor_routes.GOVERNOR_SNAPSHOT_TIMEOUT_SECONDS,
+            await_snapshot.await_args.kwargs["timeout_seconds"],
+        )
+
     def test_governor_snapshot_reads_canonical_builder(self) -> None:
         client = _make_client()
         snapshot = {
@@ -87,6 +104,20 @@ class GovernorRouteContractTests(unittest.TestCase):
         self.assertEqual(snapshot, response.json())
         builder.assert_awaited_once_with()
 
+    def test_governor_snapshot_degrades_when_builder_times_out(self) -> None:
+        client = _make_client()
+        with patch(
+            "athanor_agents.governor.build_governor_snapshot",
+            AsyncMock(side_effect=TimeoutError("governor timed out")),
+        ):
+            response = client.get("/v1/governor")
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual("degraded", payload["status"])
+        self.assertEqual("degraded", payload["capacity"]["posture"])
+        self.assertIn("recommendations", payload["capacity"])
+
     def test_governor_router_does_not_redeclare_canonical_task_mutation_paths(self) -> None:
         client = _make_client()
         route_paths = {
@@ -125,12 +156,13 @@ class GovernorRouteContractTests(unittest.TestCase):
                     "actor": "dashboard-heartbeat",
                     "session_id": "sess-1",
                     "correlation_id": "corr-1",
+                    "state": "away",
                     "source": "dashboard_heartbeat",
                 },
             )
 
         self.assertEqual(200, response.status_code)
-        governor.record_heartbeat.assert_awaited_once_with(source="dashboard_heartbeat")
+        governor.record_heartbeat.assert_awaited_once_with(source="dashboard_heartbeat", state="away")
         audit.assert_awaited_once()
         self.assertEqual("accepted", audit.await_args.kwargs["decision"])
         self.assertEqual("dashboard_heartbeat", audit.await_args.kwargs["target"])
@@ -171,6 +203,20 @@ class GovernorRouteContractTests(unittest.TestCase):
         self.assertEqual(200, response.status_code)
         self.assertEqual(snapshot, response.json())
         builder.assert_awaited_once_with()
+
+    def test_governor_operations_degrades_when_builder_times_out(self) -> None:
+        client = _make_client()
+        with patch(
+            "athanor_agents.governor.build_operations_readiness_snapshot",
+            AsyncMock(side_effect=TimeoutError("operations timed out")),
+        ):
+            response = client.get("/v1/governor/operations")
+
+        self.assertEqual(200, response.status_code)
+        payload = response.json()
+        self.assertEqual("degraded", payload["status"])
+        self.assertEqual("degraded", payload["runbooks"]["status"])
+        self.assertEqual("degraded", payload["tool_permissions"]["status"])
 
     def test_governor_operator_tests_reads_canonical_snapshot(self) -> None:
         client = _make_client()
@@ -273,6 +319,62 @@ class GovernorRouteContractTests(unittest.TestCase):
         audit.assert_awaited_once()
         self.assertEqual("accepted", audit.await_args.kwargs["decision"])
         self.assertEqual(["pause_resume", "restore_drill"], audit.await_args.kwargs["metadata"]["flow_ids"])
+
+    def test_governor_run_operator_tests_preserves_pilot_flow_ids(self) -> None:
+        client = _make_client()
+        pilot_flow_ids = [
+            "goose_operator_shell",
+            "openhands_bounded_worker",
+            "letta_memory_plane",
+            "agt_policy_plane",
+        ]
+        snapshot = {
+            "generated_at": "2026-04-11T00:00:00Z",
+            "status": "live_partial",
+            "last_outcome": "partial",
+            "last_run_at": "2026-04-11T00:00:00Z",
+            "flow_count": len(pilot_flow_ids),
+            "flows": [
+                {
+                    "id": flow_id,
+                    "title": flow_id.replace("_", " "),
+                    "description": "Pilot flow",
+                    "status": "configured",
+                    "last_outcome": "blocked",
+                    "last_run_at": "2026-04-11T00:00:00Z",
+                    "last_duration_ms": 123,
+                    "checks_passed": 0,
+                    "checks_total": 1,
+                    "evidence": ["pilot"],
+                    "notes": [],
+                    "details": {},
+                }
+                for flow_id in pilot_flow_ids
+            ],
+        }
+        with (
+            patch("athanor_agents.routes.governor.emit_operator_audit_event", AsyncMock()) as audit,
+            patch(
+                "athanor_agents.operator_tests.run_operator_tests",
+                AsyncMock(return_value=snapshot),
+            ) as runner,
+        ):
+            response = client.post(
+                "/v1/governor/operator-tests/run",
+                json={
+                    "actor": "operator",
+                    "session_id": "sess-1",
+                    "correlation_id": "corr-1",
+                    "reason": "Run bounded pilot flows",
+                    "flow_ids": pilot_flow_ids,
+                },
+            )
+
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(snapshot, response.json())
+        runner.assert_awaited_once_with(flow_ids=pilot_flow_ids, actor="operator")
+        audit.assert_awaited_once()
+        self.assertEqual(pilot_flow_ids, audit.await_args.kwargs["metadata"]["flow_ids"])
 
     def test_governor_tool_permissions_reads_canonical_snapshot(self) -> None:
         client = _make_client()

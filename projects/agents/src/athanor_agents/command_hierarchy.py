@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import datetime, timezone
 from typing import Any
 
@@ -25,6 +27,8 @@ from .domain_registry import build_domain_metadata
 from .durable_state import get_durable_state_status
 from .persistence import get_checkpointer_status
 from .subscriptions import get_policy_snapshot
+
+logger = logging.getLogger(__name__)
 
 
 AUTHORITY_ORDER = [
@@ -329,15 +333,31 @@ async def _build_operational_governance() -> dict[str, Any]:
     from .governor import build_governor_snapshot, build_operations_readiness_snapshot
 
     runtime_status = "live"
-    runtime_error = ""
-    try:
-        governor_snapshot = await build_governor_snapshot()
-        readiness_snapshot = await build_operations_readiness_snapshot()
-    except Exception as exc:
-        governor_snapshot = {}
-        readiness_snapshot = {}
+    runtime_errors: list[str] = []
+
+    async def _await_runtime_component(
+        label: str,
+        coroutine: Any,
+        *,
+        timeout_seconds: float = 2.5,
+    ) -> dict[str, Any]:
+        try:
+            result = await asyncio.wait_for(coroutine, timeout=timeout_seconds)
+        except Exception as exc:
+            logger.warning("System-map runtime component %s unavailable; using degraded fallback: %s", label, exc)
+            runtime_errors.append(f"{label}: {str(exc)[:120]}")
+            return {}
+        if isinstance(result, dict):
+            return result
+        runtime_errors.append(f"{label}: invalid payload")
+        return {}
+
+    governor_snapshot, readiness_snapshot = await asyncio.gather(
+        _await_runtime_component("governor_snapshot", build_governor_snapshot()),
+        _await_runtime_component("operations_readiness", build_operations_readiness_snapshot()),
+    )
+    if runtime_errors:
         runtime_status = "degraded"
-        runtime_error = str(exc)[:160]
     capacity_snapshot = dict(governor_snapshot.get("capacity") or {})
     live_economic = dict(readiness_snapshot.get("economic_governance") or {})
     live_lifecycle = dict(readiness_snapshot.get("data_lifecycle") or {})
@@ -445,7 +465,7 @@ async def _build_operational_governance() -> dict[str, Any]:
         "autonomy_activation": autonomy_summary,
         "runtime_state": {
             "status": runtime_status,
-            "error": runtime_error or None,
+            "error": "; ".join(runtime_errors) if runtime_errors else None,
         },
     }
 

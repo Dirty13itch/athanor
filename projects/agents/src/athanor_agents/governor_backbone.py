@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import os
 from datetime import datetime, time as dt_time, timezone
+from pathlib import Path
 from typing import Any
 
 from .model_governance import (
@@ -17,6 +20,7 @@ from .tool_permissions import build_tool_permission_snapshot as build_tool_permi
 
 GOVERNOR_STATE_KEY = "athanor:governor:state"
 DEFAULT_PRESENCE_HEARTBEAT_TTL_SECONDS = 180
+TRUTH_INVENTORY_ENV_VAR = "ATHANOR_TRUTH_INVENTORY_DIR"
 
 DEFAULT_GOVERNOR_STATE = {
     "global_mode": "active",
@@ -209,6 +213,160 @@ def _now() -> datetime:
 
 def _now_iso() -> str:
     return _now().isoformat()
+
+
+def _candidate_truth_inventory_dirs() -> list[Path]:
+    module_path = Path(__file__).resolve()
+    candidates: list[Path] = []
+    env_path = str(os.getenv(TRUTH_INVENTORY_ENV_VAR) or "").strip()
+    if env_path:
+        candidates.append(Path(env_path))
+    for parent in [module_path.parent, *module_path.parents]:
+        candidates.append(parent / "reports" / "truth-inventory")
+    candidates.extend(
+        [
+            Path("/workspace/reports/truth-inventory"),
+            Path("/opt/athanor/reports/truth-inventory"),
+            Path("/app/reports/truth-inventory"),
+        ]
+    )
+    unique_candidates: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        candidate_key = str(candidate)
+        if candidate_key in seen:
+            continue
+        seen.add(candidate_key)
+        unique_candidates.append(candidate)
+    return unique_candidates
+
+
+def _truth_inventory_dir() -> Path:
+    for candidate in _candidate_truth_inventory_dirs():
+        if candidate.exists():
+            return candidate
+    return _candidate_truth_inventory_dirs()[0]
+
+
+def _load_truth_inventory_payload(name: str) -> dict[str, Any]:
+    path = _truth_inventory_dir() / name
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _load_local_compute_truth() -> dict[str, Any]:
+    capacity_payload = _load_truth_inventory_payload("capacity-telemetry.json")
+    quota_payload = _load_truth_inventory_payload("quota-truth.json")
+    summary = dict(capacity_payload.get("capacity_summary") or {})
+
+    records = quota_payload.get("records") or []
+    local_compute_record = next(
+        (
+            dict(item)
+            for item in records
+            if isinstance(item, dict)
+            and (
+                str(item.get("usage_mode") or "").strip() == "local_compute"
+                or str(item.get("provider_id") or "").strip() == "athanor_local"
+            )
+        ),
+        {},
+    )
+    breakdown = dict(local_compute_record.get("capacity_breakdown") or {})
+    slot_samples = [
+        dict(item)
+        for item in breakdown.get("scheduler_slot_samples", [])
+        if isinstance(item, dict)
+    ]
+    open_harvest_slots = [
+        {
+            "id": str(item.get("scheduler_slot_id") or "").strip(),
+            "zone_id": str(item.get("scheduler_zone_id") or "").strip() or None,
+            "harvest_intent": str(item.get("harvest_intent") or "").strip() or None,
+            "harvestable_gpu_count": int(item.get("harvestable_gpu_count") or 0),
+            "node_ids": [str(node_id) for node_id in item.get("node_ids", []) if str(node_id).strip()],
+        }
+        for item in slot_samples
+        if bool(item.get("idle_window_open")) and str(item.get("scheduler_slot_id") or "").strip()
+    ]
+    return {
+        "sample_posture": str(summary.get("sample_posture") or breakdown.get("sample_posture") or "").strip() or None,
+        "scheduler_slot_count": int(summary.get("scheduler_slot_count") or breakdown.get("scheduler_slot_count") or 0),
+        "harvestable_scheduler_slot_count": int(
+            summary.get("harvestable_scheduler_slot_count")
+            or breakdown.get("harvestable_scheduler_slot_count")
+            or 0
+        ),
+        "idle_harvest_slots_open": bool(any(bool(item.get("idle_window_open")) for item in slot_samples)),
+        "open_harvest_slots": open_harvest_slots,
+        "scheduler_queue_depth": int(summary.get("scheduler_queue_depth") or breakdown.get("scheduler_queue_depth") or 0),
+        "scheduler_source": str(summary.get("scheduler_source") or "").strip() or None,
+        "scheduler_observed_at": (
+            str(summary.get("scheduler_observed_at") or "").strip()
+            or str(breakdown.get("scheduler_observed_at") or "").strip()
+            or None
+        ),
+    }
+
+
+def _quota_summary_from_truth_inventory(limit: int = 5) -> dict[str, Any]:
+    quota_payload = _load_truth_inventory_payload("quota-truth.json")
+    provider_summaries: list[dict[str, Any]] = []
+    for item in quota_payload.get("records") or []:
+        if not isinstance(item, dict):
+            continue
+        provider_id = str(item.get("provider_id") or "").strip()
+        if not provider_id:
+            continue
+        remaining_units = item.get("remaining_units")
+        budget_remaining_usd = item.get("budget_remaining_usd")
+        degraded_reason = str(item.get("degraded_reason") or "").strip()
+        availability = "available"
+        if degraded_reason:
+            availability = "degraded"
+        else:
+            try:
+                if remaining_units is not None and int(remaining_units) <= 0:
+                    availability = "degraded"
+            except (TypeError, ValueError):
+                pass
+            try:
+                if budget_remaining_usd is not None and float(budget_remaining_usd) <= 0:
+                    availability = "degraded"
+            except (TypeError, ValueError):
+                pass
+        provider_summaries.append(
+            {
+                "provider": provider_id,
+                "availability": availability,
+                "provider_state": availability,
+                "limit": 0,
+                "remaining": int(remaining_units or 0) if remaining_units is not None else 0,
+                "state_reasons": [degraded_reason] if degraded_reason else [],
+                "reserve_state": str(item.get("harvest_priority") or item.get("usage_mode") or "standard"),
+                "last_observed_at": item.get("last_observed_at"),
+                "recent_execution_state": str(item.get("capture_status") or item.get("confidence") or "observed"),
+                "next_action": "refresh_provider_truth",
+            }
+        )
+    provider_summaries.sort(key=lambda item: str(item.get("provider") or ""))
+    return {
+        "policy_source": "truth_inventory_fallback",
+        "provider_summaries": provider_summaries[:limit],
+        "recent_leases": [],
+        "count": len(provider_summaries),
+    }
+
+
+async def _build_quota_summary_for_capacity(limit: int = 5, timeout_seconds: float = 1.5) -> dict[str, Any]:
+    from .backbone import build_quota_lease_summary
+
+    try:
+        return await asyncio.wait_for(build_quota_lease_summary(limit=limit), timeout=timeout_seconds)
+    except Exception:
+        return _quota_summary_from_truth_inventory(limit=limit)
 
 
 def _presence_registry() -> dict[str, Any]:
@@ -863,16 +1021,18 @@ async def evaluate_job_governance(
 
 
 async def build_capacity_snapshot() -> dict[str, Any]:
-    from .backbone import build_quota_lease_summary
     from .scheduler import get_schedule_status
     from .tasks import get_task_stats
     from .workspace import get_cluster_capacity, get_stats as get_workspace_stats
 
-    task_stats = await get_task_stats()
-    schedule_status = await get_schedule_status()
-    workspace_stats = await get_workspace_stats()
-    cluster_capacity = await get_cluster_capacity()
-    quota_summary = await build_quota_lease_summary(limit=5)
+    task_stats, schedule_status, workspace_stats, cluster_capacity, quota_summary = await asyncio.gather(
+        get_task_stats(),
+        get_schedule_status(),
+        get_workspace_stats(),
+        get_cluster_capacity(),
+        _build_quota_summary_for_capacity(limit=5),
+    )
+    local_compute_truth = _load_local_compute_truth()
 
     nodes: list[dict[str, Any]] = []
     stale_count = 0
@@ -915,6 +1075,21 @@ async def build_capacity_snapshot() -> dict[str, Any]:
         recommendations.append("Provider reserve pressure is elevated; favor local execution.")
     if not recommendations:
         recommendations.append("Capacity posture is healthy across queue, nodes, and provider reserves.")
+    if local_compute_truth["idle_harvest_slots_open"]:
+        open_slot_ids = ", ".join(
+            item["id"] for item in local_compute_truth["open_harvest_slots"] if item.get("id")
+        )
+        recommendations.append(
+            f"{local_compute_truth['harvestable_scheduler_slot_count']} harvestable scheduler slot(s) are open"
+            + (f": {open_slot_ids}" if open_slot_ids else ".")
+        )
+
+    workspace_capacity = int(workspace_stats.get("capacity", 0) or 0)
+    workspace_utilization = float(workspace_stats.get("utilization", 0.0) or 0.0)
+    if workspace_capacity <= 0 and local_compute_truth["scheduler_slot_count"] > 0:
+        workspace_capacity = int(local_compute_truth["scheduler_slot_count"])
+        open_slots = len(local_compute_truth["open_harvest_slots"])
+        workspace_utilization = round(max(workspace_capacity - open_slots, 0) / workspace_capacity, 2)
 
     return {
         "generated_at": _now_iso(),
@@ -928,13 +1103,14 @@ async def build_capacity_snapshot() -> dict[str, Any]:
         },
         "workspace": {
             "broadcast_items": int(workspace_stats.get("broadcast_items", 0) or 0),
-            "capacity": int(workspace_stats.get("capacity", 0) or 0),
-            "utilization": float(workspace_stats.get("utilization", 0.0) or 0.0),
+            "capacity": workspace_capacity,
+            "utilization": workspace_utilization,
         },
         "scheduler": {
             "running": bool(schedule_status.get("scheduler_running")),
             "enabled_count": sum(1 for item in schedule_status.get("schedules", []) if item.get("enabled")),
         },
+        "local_compute": local_compute_truth,
         "provider_reserve": {
             "posture": provider_posture,
             "constrained_count": sum(

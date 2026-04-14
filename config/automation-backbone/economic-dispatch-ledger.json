@@ -1,0 +1,259 @@
+{
+  "version": "2026-04-11.2",
+  "updated_at": "2026-04-11T11:15:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/economic-dispatch-ledger.json",
+  "decision_order": [
+    "policy_tos_eligibility",
+    "sensitivity_fit",
+    "degraded_failure_fit",
+    "approval_gate",
+    "reserve_protection",
+    "workload_capability",
+    "fresh_eval_rank",
+    "execution_mode_fit",
+    "economics",
+    "latency_continuity"
+  ],
+  "lanes": [
+    {
+      "lane_id": "sovereign_supervisor",
+      "provider_id": "athanor_local",
+      "reserve_class": "interactive_local",
+      "max_parallel_slots": 2,
+      "reserved_parallel_slots": 1,
+      "harvestable_parallel_slots": 1,
+      "roi_posture": "protect_interactive_then_harvest_sunk_cost",
+      "premium_reserve_consumption": "not_applicable_local",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "prefer local whenever privacy, sovereignty, or operator-briefing needs control",
+      "selection_reasons": [
+        "Primary supervisor lane for local-only or sensitive work.",
+        "Should stay available even when bulk local capacity is being harvested."
+      ],
+      "avoid_when": [
+        "A cheaper sovereign bulk lane can satisfy the task without consuming the supervisor reserve."
+      ],
+      "quality_tier": "high",
+      "availability_state": "live",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "sovereign_coder",
+      "provider_id": "athanor_local",
+      "reserve_class": "interactive_local",
+      "max_parallel_slots": 4,
+      "reserved_parallel_slots": 2,
+      "harvestable_parallel_slots": 2,
+      "roi_posture": "use local paid-for compute before cloud when quality is sufficient",
+      "premium_reserve_consumption": "not_applicable_local",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "prefer local for private code, migrations, and maintenance unless cloud review materially changes the outcome",
+      "selection_reasons": [
+        "Primary sovereign implementation lane.",
+        "Retains enough reserve for interactive coding while still allowing harvested local work."
+      ],
+      "avoid_when": [
+        "The task is explicitly cloud-safe and benefits materially from premium frontier implementation quality."
+      ],
+      "quality_tier": "high",
+      "availability_state": "live",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "sovereign_bulk",
+      "provider_id": "athanor_local",
+      "reserve_class": "harvest_local",
+      "max_parallel_slots": 8,
+      "reserved_parallel_slots": 2,
+      "harvestable_parallel_slots": 6,
+      "roi_posture": "maximize productive use of idle local capacity after reserves are protected",
+      "premium_reserve_consumption": "not_applicable_local",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "strongly prefer local for extraction, indexing, creative batches, and batch transforms",
+      "selection_reasons": [
+        "Primary lane for harvested local compute and sovereign creative batch work.",
+        "Should absorb batch work that would otherwise spend cloud budget with no quality advantage."
+      ],
+      "avoid_when": [
+        "Interactive reserves are degraded or a protected creative reserve is needed immediately."
+      ],
+      "quality_tier": "good_enough_batch",
+      "availability_state": "live",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "codex_cloudsafe",
+      "provider_id": "openai_codex",
+      "reserve_class": "premium_async",
+      "max_parallel_slots": 2,
+      "reserved_parallel_slots": 1,
+      "harvestable_parallel_slots": 1,
+      "roi_posture": "save for high-leverage implementation and final-review work",
+      "premium_reserve_consumption": "draws_from_paid_chatgpt_pro_reserve",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "use when the coding delta is worth premium frontier quality or faster issue resolution",
+      "selection_reasons": [
+        "Primary premium coding lane for cloud-safe implementation.",
+        "Protected so the reserve is still available for high-value coding spikes."
+      ],
+      "avoid_when": [
+        "The work is local-only or a sovereign local coding lane can finish it without meaningful quality loss."
+      ],
+      "quality_tier": "premium",
+      "availability_state": "live",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "gemini_audit_cloudsafe",
+      "provider_id": "google_gemini",
+      "reserve_class": "audit_cloud",
+      "max_parallel_slots": 2,
+      "reserved_parallel_slots": 1,
+      "harvestable_parallel_slots": 1,
+      "roi_posture": "burn early for large-context audits before spending scarcer premium coding reserve",
+      "premium_reserve_consumption": "draws_from_low_cost_cloud_audit_reserve",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "prefer for large-context, cloud-safe audits that would overconsume premium implementation lanes",
+      "selection_reasons": [
+        "Primary large-context audit and architecture-review lane.",
+        "Burn before premium implementation reserve when the task is analysis-heavy."
+      ],
+      "avoid_when": [
+        "The task contains sovereign-only, refusal-sensitive, or adult-sensitive material."
+      ],
+      "quality_tier": "premium_audit",
+      "availability_state": "live",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "aider_repo_mechanic",
+      "provider_id": "athanor_local",
+      "reserve_class": "policy_routed_mechanic",
+      "max_parallel_slots": 4,
+      "reserved_parallel_slots": 1,
+      "harvestable_parallel_slots": 3,
+      "roi_posture": "route deterministic refactors through the cheapest policy-legal model family that still meets quality",
+      "premium_reserve_consumption": "depends_on_selected_model_lane",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "prefer local or cheap metered routing for mechanical refactors before premium frontier spend",
+      "selection_reasons": [
+        "Permanent repo mechanic for structured multi-file patching.",
+        "Separates mechanical refactor economics from premium interactive reasoning lanes."
+      ],
+      "avoid_when": [
+        "The task is an open-ended architecture problem rather than a deterministic code mechanic."
+      ],
+      "quality_tier": "mechanical_high",
+      "availability_state": "live",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "glm_cloudsafe_bulk",
+      "provider_id": "zai_glm_coding",
+      "reserve_class": "subscription_bulk_cloud",
+      "max_parallel_slots": 4,
+      "reserved_parallel_slots": 0,
+      "harvestable_parallel_slots": 4,
+      "roi_posture": "spend subscription-backed GLM coding quota before metered overflow when the supported tooling path is healthy",
+      "premium_reserve_consumption": "draws_from_glm_coding_plan_quota",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "prefer for cloud-safe bulk coding and refactor overflow once support tooling is proven live",
+      "selection_reasons": [
+        "Target subscription-backed overflow lane for cloud-safe coding.",
+        "Should sit between premium cloud lanes and cheap metered APIs when tooling health is green."
+      ],
+      "avoid_when": [
+        "Provider auth or supported-tool evidence is stale or failed."
+      ],
+      "quality_tier": "good_enough_bulk",
+      "availability_state": "configured_transition",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "deepseek_cloudsafe_bulk",
+      "provider_id": "deepseek_api",
+      "reserve_class": "cheap_metered_cloud",
+      "max_parallel_slots": 8,
+      "reserved_parallel_slots": 0,
+      "harvestable_parallel_slots": 8,
+      "roi_posture": "use as the cheapest cloud-safe bulk lane inside acceptable-quality thresholds",
+      "premium_reserve_consumption": "none_metered_only",
+      "daily_budget_ceiling_usd": 10,
+      "local_vs_cloud_opportunity_cost": "prefer for low-cost cloud-safe transforms, extraction, and background throughput when local reserves are protected",
+      "selection_reasons": [
+        "Cheapest metered cloud lane for eligible bulk work.",
+        "Ideal overflow path for classification, extraction, and cheap background transforms."
+      ],
+      "avoid_when": [
+        "The work requires premium implementation quality or is not cloud-safe."
+      ],
+      "quality_tier": "acceptable_bulk",
+      "availability_state": "live",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "responses_background_cloudsafe",
+      "provider_id": "openai_codex",
+      "reserve_class": "background_cloud",
+      "max_parallel_slots": 2,
+      "reserved_parallel_slots": 0,
+      "harvestable_parallel_slots": 2,
+      "roi_posture": "use for bounded async research or background cloud-safe processing after higher-value lanes are protected",
+      "premium_reserve_consumption": "draws_from_paid_chatgpt_pro_reserve",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "prefer local harvested capacity first unless async cloud breadth materially improves throughput",
+      "selection_reasons": [
+        "Useful for deep research and async cloud-safe work, but not a protected premium reserve."
+      ],
+      "avoid_when": [
+        "A local harvested lane can perform the work without privacy or quality loss."
+      ],
+      "quality_tier": "premium_async",
+      "availability_state": "live",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "claude_review_cloudsafe",
+      "provider_id": "anthropic_claude_code",
+      "reserve_class": "retiring_premium_review",
+      "max_parallel_slots": 2,
+      "reserved_parallel_slots": 1,
+      "harvestable_parallel_slots": 1,
+      "roi_posture": "retire after review coverage migrates cleanly to Gemini and Codex",
+      "premium_reserve_consumption": "draws_from_paid_claude_max_reserve",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "current-state only until migration gates pass",
+      "selection_reasons": [
+        "Retained only as a migration lane until review coverage fully transfers."
+      ],
+      "avoid_when": [
+        "Target-state routing is available and healthy."
+      ],
+      "quality_tier": "premium_review",
+      "availability_state": "retiring",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    },
+    {
+      "lane_id": "public_edge_async",
+      "provider_id": "vercel",
+      "reserve_class": "product_async",
+      "max_parallel_slots": 8,
+      "reserved_parallel_slots": 0,
+      "harvestable_parallel_slots": 8,
+      "roi_posture": "product runtime lane, not a general-purpose reasoning reserve",
+      "premium_reserve_consumption": "metered_product_ops",
+      "daily_budget_ceiling_usd": 0,
+      "local_vs_cloud_opportunity_cost": "only use for public-product async work that already belongs on Vercel",
+      "selection_reasons": [
+        "Purpose-built product async lane for webhooks, cache refreshes, and transactional product work."
+      ],
+      "avoid_when": [
+        "The task is internal, private, sovereign, or better served by Athanor or local compute."
+      ],
+      "quality_tier": "product_runtime",
+      "availability_state": "live",
+      "last_verified_at": "2026-04-11T11:15:00-05:00"
+    }
+  ]
+}

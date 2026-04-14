@@ -94,6 +94,7 @@ class SettingsContractTest(unittest.TestCase):
                 "ATHANOR_VLLM_WORKER_URL": "http://workshop.internal:8000",
                 "ATHANOR_VLLM_EMBEDDING_URL": "http://dev.internal:8001",
                 "ATHANOR_VLLM_RERANKER_URL": "http://dev.internal:8003",
+                "ATHANOR_GRAPHRAG_URL": "http://foundry.internal:9300",
             },
             clear=True,
         ):
@@ -105,6 +106,7 @@ class SettingsContractTest(unittest.TestCase):
         self.assertEqual(cfg.vllm_node2_url, "http://workshop.internal:8000/v1")
         self.assertEqual(cfg.vllm_embedding_url, "http://dev.internal:8001/v1")
         self.assertEqual(cfg.vllm_reranker_url, "http://dev.internal:8003/v1")
+        self.assertEqual(cfg.graphrag_url, "http://foundry.internal:9300")
         self.assertEqual(cfg.llm_api_key, "test-key")
 
     def test_legacy_env_names_still_work_for_one_deploy_cycle(self) -> None:
@@ -160,14 +162,31 @@ class SettingsContractTest(unittest.TestCase):
         )
         self.assertEqual(registry.neo4j_auth, ("neo4j", "graph-secret"))
         self.assertEqual("VAULT", registry.qdrant.node)
+        self.assertEqual("Foundry", registry.graphrag.node)
         self.assertEqual("DEV", registry.dashboard.node)
 
         service_ids = {service.id for service in registry.service_checks}
         self.assertIn("litellm-proxy", service_ids)
         self.assertIn("dev-reranker", service_ids)
+        self.assertIn("graphrag", service_ids)
         self.assertIn("vault-open-webui", service_ids)
         self.assertIn("prowlarr", service_ids)
         self.assertIn("sabnzbd", service_ids)
+
+    def test_default_fast_and_router_models_follow_live_coder_lane(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "ATHANOR_LITELLM_URL": "http://router.internal:4000",
+                "ATHANOR_LITELLM_API_KEY": "router-key",
+            },
+            clear=True,
+        ):
+            cfg = Settings()
+
+        self.assertEqual(cfg.llm_model_fast, "coder")
+        self.assertEqual(cfg.router_reactive_model, "coder")
+        self.assertEqual(cfg.router_tactical_model, "coder")
 
 
 if __name__ == "__main__":

@@ -51,7 +51,7 @@ class RoutingDecision:
 
 # LiteLLM route names → Athanor models
 TIER_MODELS = {
-    ModelTier.FAST: "fast",          # Workshop worker lane optimized for fast interactive use
+    ModelTier.FAST: "coder",         # Healthy low-latency local lane on Foundry
     ModelTier.REASONING: "reasoning",  # Qwen3.5-27B-FP8 on Foundry TP=4
     ModelTier.WORKER: "worker",      # Qwen3.5-35B-A3B-AWQ on Workshop
     ModelTier.CLOUD: "claude",       # Anthropic Claude Sonnet — quality escalation
@@ -63,8 +63,9 @@ CLOUD_MODELS = ["claude", "gpt", "gemini", "deepseek"]
 # Fallback chains: if preferred model is busy, try these
 # Cloud escalation: when all local models are busy, escalate to cloud
 FALLBACK_CHAINS = {
-    "reasoning": ["worker", "fast", "claude"],
-    "fast": ["worker", "reasoning"],
+    "reasoning": ["fast", "claude", "worker"],
+    "fast": ["reasoning", "claude", "worker"],
+    "coder": ["reasoning", "claude", "worker"],
     "worker": ["reasoning", "fast", "claude"],
     "claude": ["gpt", "gemini", "deepseek", "reasoning"],
 }

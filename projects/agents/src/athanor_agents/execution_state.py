@@ -332,6 +332,69 @@ async def list_run_attempt_records(run_id: str, *, limit: int | None = 10) -> li
     return [_row_to_run_attempt_record(row) for row in rows]
 
 
+async def list_run_attempt_records_for_runs(
+    run_ids: list[str],
+    *,
+    limit_per_run: int | None = 10,
+) -> dict[str, list[dict[str, Any]]]:
+    normalized_run_ids = [str(run_id).strip() for run_id in run_ids if str(run_id).strip()]
+    if not normalized_run_ids:
+        return {}
+
+    query = """
+        SELECT
+            attempt_id,
+            run_id,
+            retry_of_attempt_id,
+            replay_of_attempt_id,
+            lease_json,
+            worker_id,
+            runtime_host,
+            started_at,
+            heartbeat_at,
+            completed_at,
+            status,
+            error,
+            metadata_json,
+            created_at
+        FROM (
+            SELECT
+                attempt_id,
+                run_id,
+                retry_of_attempt_id,
+                replay_of_attempt_id,
+                lease_json,
+                worker_id,
+                runtime_host,
+                started_at,
+                heartbeat_at,
+                completed_at,
+                status,
+                error,
+                metadata_json,
+                created_at,
+                ROW_NUMBER() OVER (
+                    PARTITION BY run_id
+                    ORDER BY created_at DESC, attempt_id DESC
+                ) AS row_num
+            FROM runs.run_attempts
+            WHERE run_id = ANY(%s)
+        ) ranked_attempts
+    """
+    params: list[Any] = [normalized_run_ids]
+    if limit_per_run is not None:
+        query += " WHERE row_num <= %s"
+        params.append(max(int(limit_per_run), 0))
+    query += " ORDER BY run_id ASC, created_at DESC, attempt_id DESC"
+
+    rows = await _fetch_all(query, tuple(params))
+    grouped: dict[str, list[dict[str, Any]]] = {run_id: [] for run_id in normalized_run_ids}
+    for row in rows:
+        record = _row_to_run_attempt_record(row)
+        grouped.setdefault(record["run_id"], []).append(record)
+    return grouped
+
+
 async def replace_run_step_records(run_id: str, attempt_id: str, steps: list[dict[str, Any]]) -> bool:
     if not await ensure_durable_state_schema():
         return False
@@ -427,6 +490,69 @@ async def list_run_step_records(
     return [_row_to_run_step_record(row) for row in rows]
 
 
+async def list_run_step_records_for_runs(
+    run_ids: list[str],
+    *,
+    limit_per_run: int | None = 100,
+) -> dict[str, list[dict[str, Any]]]:
+    normalized_run_ids = [str(run_id).strip() for run_id in run_ids if str(run_id).strip()]
+    if not normalized_run_ids:
+        return {}
+
+    query = """
+        SELECT
+            step_id,
+            attempt_id,
+            run_id,
+            step_key,
+            kind,
+            seq,
+            status,
+            input_ref,
+            output_ref,
+            checkpoint_ref,
+            detail_json,
+            started_at,
+            completed_at,
+            created_at
+        FROM (
+            SELECT
+                step_id,
+                attempt_id,
+                run_id,
+                step_key,
+                kind,
+                seq,
+                status,
+                input_ref,
+                output_ref,
+                checkpoint_ref,
+                detail_json,
+                started_at,
+                completed_at,
+                created_at,
+                ROW_NUMBER() OVER (
+                    PARTITION BY run_id
+                    ORDER BY created_at ASC, seq ASC, step_id ASC
+                ) AS row_num
+            FROM runs.run_steps
+            WHERE run_id = ANY(%s)
+        ) ranked_steps
+    """
+    params: list[Any] = [normalized_run_ids]
+    if limit_per_run is not None:
+        query += " WHERE row_num <= %s"
+        params.append(max(int(limit_per_run), 0))
+    query += " ORDER BY run_id ASC, created_at ASC, seq ASC, step_id ASC"
+
+    rows = await _fetch_all(query, tuple(params))
+    grouped: dict[str, list[dict[str, Any]]] = {run_id: [] for run_id in normalized_run_ids}
+    for row in rows:
+        record = _row_to_run_step_record(row)
+        grouped.setdefault(record["run_id"], []).append(record)
+    return grouped
+
+
 async def upsert_approval_request_record(record: dict[str, Any]) -> bool:
     query = """
         INSERT INTO audit.approval_requests (
@@ -504,6 +630,39 @@ async def list_approval_request_records(*, status: str = "", limit: int | None =
         params.append(max(int(limit), 0))
     rows = await _fetch_all(query, tuple(params))
     return [_row_to_approval_request_record(row) for row in rows]
+
+
+async def list_approval_request_records_for_runs(run_ids: list[str]) -> dict[str, list[dict[str, Any]]]:
+    normalized_run_ids = [str(run_id).strip() for run_id in run_ids if str(run_id).strip()]
+    if not normalized_run_ids:
+        return {}
+
+    rows = await _fetch_all(
+        """
+        SELECT
+            approval_id,
+            related_run_id,
+            related_attempt_id,
+            related_task_id,
+            requested_action,
+            privilege_class,
+            reason,
+            status,
+            requested_at,
+            decided_at,
+            decided_by,
+            metadata_json
+        FROM audit.approval_requests
+        WHERE related_run_id = ANY(%s)
+        ORDER BY related_run_id ASC, requested_at DESC, approval_id DESC
+        """,
+        (normalized_run_ids,),
+    )
+    grouped: dict[str, list[dict[str, Any]]] = {run_id: [] for run_id in normalized_run_ids}
+    for row in rows:
+        record = _row_to_approval_request_record(row)
+        grouped.setdefault(record["related_run_id"], []).append(record)
+    return grouped
 
 
 async def fetch_approval_request_record(approval_id: str) -> dict[str, Any] | None:

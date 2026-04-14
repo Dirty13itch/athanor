@@ -1,0 +1,459 @@
+{
+  "version": "2026-04-11.4",
+  "updated_at": "2026-04-11T23:45:00-05:00",
+  "status": "live",
+  "source_of_truth": "config/automation-backbone/artifact-provenance-ledger.json",
+  "records": [
+    {
+      "provenance_id": "forge-board-current",
+      "artifact_kind": "generated_board",
+      "artifact_path": "C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "generate_devstack_forge_board.py",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/configs/devstack-forge-loop.json",
+          "C:/athanor-devstack/configs/devstack-capability-lane-registry.json",
+          "C:/Athanor/config/automation-backbone/capability-adoption-registry.json"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/capability-adoption-registry.json"
+        ],
+        "lane_ids": [
+          "creative-identity-pipeline",
+          "gateway-agent-onboarding-hardening",
+          "graphrag-hybrid-retrieval",
+          "watchdog-runtime-guard",
+          "gpu-scheduler-extension",
+          "goose-operator-shell",
+          "openhands-bounded-worker-lane",
+          "letta-memory-plane",
+          "agent-governance-toolkit-policy-plane",
+          "migration-hygiene"
+        ],
+        "judge_record_ids": []
+      },
+      "evaluation_refs": [],
+      "last_verified_at": "2026-04-11T12:35:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "promotion-packet-creative-identity-pipeline",
+      "artifact_kind": "promotion_packet",
+      "artifact_path": "C:/athanor-devstack/docs/promotion-packets/creative-identity-pipeline.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "promotion_packet_draft",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/CODEX-STATE.md",
+          "C:/athanor-devstack/STATUS.md",
+          "C:/athanor-devstack/scripts/generate-kayla-realism-test.py",
+          "C:/athanor-devstack/scripts/generate-kayla-i2v-test.py"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/release-ritual.json",
+          "C:/Athanor/config/automation-backbone/system-constitution.json"
+        ],
+        "lane_ids": [
+          "creative-identity-pipeline"
+        ],
+        "judge_record_ids": [
+          "creative-identity-pipeline-refusal-sovereignty-2026q1"
+        ]
+      },
+      "evaluation_refs": [
+        "creative-identity-pipeline-refusal-sovereignty-2026q1"
+      ],
+      "last_verified_at": "2026-04-10T21:45:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "promotion-packet-gateway-agent-onboarding-hardening",
+      "artifact_kind": "promotion_packet",
+      "artifact_path": "C:/athanor-devstack/docs/promotion-packets/gateway-agent-onboarding-hardening.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "promotion_packet_draft",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/agent-setup.md",
+          "C:/athanor-devstack/scripts/test-gateway.sh",
+          "C:/Athanor/config/automation-backbone/provider-catalog.json",
+          "C:/Athanor/config/automation-backbone/routing-taxonomy-map.json"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/release-ritual.json",
+          "C:/Athanor/config/automation-backbone/approval-packet-registry.json"
+        ],
+        "lane_ids": [
+          "gateway-agent-onboarding-hardening"
+        ],
+        "judge_record_ids": [
+          "gateway-agent-onboarding-hardening-golden-core-2026q1"
+        ]
+      },
+      "evaluation_refs": [
+        "gateway-agent-onboarding-hardening-golden-core-2026q1"
+      ],
+      "last_verified_at": "2026-04-10T21:45:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "promotion-packet-graphrag-hybrid-retrieval",
+      "artifact_kind": "promotion_packet",
+      "artifact_path": "C:/athanor-devstack/docs/promotion-packets/graphrag-hybrid-retrieval.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "promotion_packet_draft",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/services/graphrag/README.md",
+          "C:/athanor-devstack/services/graphrag/main.py",
+          "C:/athanor-devstack/designs/graphrag-and-grpo-pipeline.md",
+          "C:/athanor-devstack/STATUS.md"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/release-ritual.json",
+          "C:/Athanor/config/automation-backbone/eval-corpus-registry.json"
+        ],
+        "lane_ids": [
+          "graphrag-hybrid-retrieval"
+        ],
+        "judge_record_ids": [
+          "graphrag-hybrid-retrieval-golden-core-2026q1"
+        ]
+      },
+      "evaluation_refs": [
+        "graphrag-hybrid-retrieval-golden-core-2026q1"
+      ],
+      "last_verified_at": "2026-04-11T23:59:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "graphrag-promotion-eval-2026-04-11",
+      "artifact_kind": "capability_eval_report",
+      "artifact_path": "C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json",
+      "produced_by": {
+        "system": "athanor",
+        "workflow": "run_graphrag_promotion_eval.py",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/services/graphrag/README.md",
+          "C:/athanor-devstack/services/graphrag/main.py",
+          "C:/athanor-devstack/designs/graphrag-and-grpo-pipeline.md",
+          "C:/athanor-devstack/docs/promotion-packets/graphrag-hybrid-retrieval.md"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/eval-run-ledger.json",
+          "C:/Athanor/config/automation-backbone/release-ritual.json"
+        ],
+        "lane_ids": [
+          "graphrag-hybrid-retrieval"
+        ],
+        "judge_record_ids": [
+          "graphrag-hybrid-retrieval-golden-core-2026q1"
+        ]
+      },
+      "evaluation_refs": [
+        "graphrag-hybrid-retrieval-golden-core-2026q1"
+      ],
+      "last_verified_at": "2026-04-11T22:13:21.695566+00:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "promotion-packet-watchdog-runtime-guard",
+      "artifact_kind": "promotion_packet",
+      "artifact_path": "C:/athanor-devstack/docs/promotion-packets/watchdog-runtime-guard.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "promotion_packet_draft",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/services/watchdog/README.md",
+          "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
+          "C:/athanor-devstack/designs/watchdog-mvw-implementation-plan.md"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/release-ritual.json",
+          "C:/Athanor/config/automation-backbone/operator-runbooks.json"
+        ],
+        "lane_ids": [
+          "watchdog-runtime-guard"
+        ],
+        "judge_record_ids": [
+          "watchdog-runtime-guard-private-local-2026q1"
+        ]
+      },
+      "evaluation_refs": [
+        "watchdog-runtime-guard-private-local-2026q1"
+      ],
+      "last_verified_at": "2026-04-10T21:45:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "promotion-packet-gpu-scheduler-extension",
+      "artifact_kind": "promotion_packet",
+      "artifact_path": "C:/athanor-devstack/docs/promotion-packets/gpu-scheduler-extension.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "promotion_packet_draft",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
+          "C:/athanor-devstack/STATUS.md"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/release-ritual.json",
+          "C:/Athanor/config/automation-backbone/runtime-subsystem-registry.json"
+        ],
+        "lane_ids": [
+          "gpu-scheduler-extension"
+        ],
+        "judge_record_ids": [
+          "gpu-scheduler-extension-private-local-2026q1"
+        ]
+      },
+      "evaluation_refs": [
+        "gpu-scheduler-extension-private-local-2026q1"
+      ],
+      "last_verified_at": "2026-04-10T21:45:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "gpu-scheduler-baseline-eval-2026-04-11",
+      "artifact_kind": "capability_eval_report",
+      "artifact_path": "C:/Athanor/reports/truth-inventory/gpu-scheduler-baseline-eval.json",
+      "produced_by": {
+        "system": "athanor",
+        "workflow": "run_gpu_scheduler_baseline_eval.py",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/Athanor/projects/gpu-orchestrator/src/gpu_orchestrator/main.py",
+          "C:/Athanor/projects/gpu-orchestrator/src/gpu_orchestrator/config.py",
+          "C:/Athanor/projects/gpu-orchestrator/src/gpu_orchestrator/gpu.py",
+          "C:/athanor-devstack/designs/gpu-scheduler-mutation-contract.md",
+          "C:/athanor-devstack/docs/promotion-packets/gpu-scheduler-extension.md"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/eval-run-ledger.json",
+          "C:/Athanor/config/automation-backbone/model-deployment-registry.json"
+        ],
+        "lane_ids": [
+          "gpu-scheduler-extension"
+        ],
+        "judge_record_ids": [
+          "gpu-scheduler-extension-private-local-2026q1"
+        ]
+      },
+      "evaluation_refs": [
+        "gpu-scheduler-extension-private-local-2026q1"
+      ],
+      "last_verified_at": "2026-04-11T22:38:24.757592+00:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "gpu-scheduler-promotion-eval-2026-04-11",
+      "artifact_kind": "capability_eval_report",
+      "artifact_path": "C:/Athanor/reports/truth-inventory/gpu-scheduler-promotion-eval.json",
+      "produced_by": {
+        "system": "athanor",
+        "workflow": "run_gpu_scheduler_promotion_eval.py",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/Athanor/projects/gpu-orchestrator/src/gpu_orchestrator/main.py",
+          "C:/athanor-devstack/designs/gpu-scheduler-mutation-contract.md",
+          "C:/athanor-devstack/docs/promotion-packets/gpu-scheduler-extension.md"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/eval-run-ledger.json",
+          "C:/Athanor/config/automation-backbone/runtime-ownership-packets.json"
+        ],
+        "lane_ids": [
+          "gpu-scheduler-extension"
+        ],
+        "judge_record_ids": [
+          "gpu-scheduler-extension-formal-eval-2026q2"
+        ]
+      },
+      "evaluation_refs": [
+        "gpu-scheduler-extension-formal-eval-2026q2"
+      ],
+      "last_verified_at": "2026-04-11T23:30:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "promotion-packet-goose-operator-shell",
+      "artifact_kind": "promotion_packet",
+      "artifact_path": "C:/athanor-devstack/docs/promotion-packets/goose-operator-shell.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "promotion_packet_draft",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+          "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+          "C:/Athanor/config/automation-backbone/vendor-policy-registry.json",
+          "C:/Athanor/config/automation-backbone/migration-map.json"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+          "C:/Athanor/config/automation-backbone/failure-routing-matrix.json"
+        ],
+        "lane_ids": [
+          "goose-operator-shell"
+        ],
+        "judge_record_ids": [
+          "goose-operator-shell-lane-eval-2026q2"
+        ]
+      },
+      "evaluation_refs": [
+        "goose-operator-shell-lane-eval-2026q2"
+      ],
+      "last_verified_at": "2026-04-11T12:35:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "promotion-packet-openhands-bounded-worker-lane",
+      "artifact_kind": "promotion_packet",
+      "artifact_path": "C:/athanor-devstack/docs/promotion-packets/openhands-bounded-worker-lane.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "promotion_packet_draft",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+          "C:/Athanor/config/automation-backbone/sidecar-retention-policy.json",
+          "C:/Athanor/config/automation-backbone/failure-routing-matrix.json"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/lane-selection-matrix.json",
+          "C:/Athanor/config/automation-backbone/vendor-policy-registry.json"
+        ],
+        "lane_ids": [
+          "openhands-bounded-worker-lane"
+        ],
+        "judge_record_ids": [
+          "openhands-bounded-worker-lane-eval-2026q2"
+        ]
+      },
+      "evaluation_refs": [
+        "openhands-bounded-worker-lane-eval-2026q2"
+      ],
+      "last_verified_at": "2026-04-11T12:35:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "promotion-packet-letta-memory-plane",
+      "artifact_kind": "promotion_packet",
+      "artifact_path": "C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "promotion_packet_draft",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+          "C:/Athanor/config/automation-backbone/memory-namespace-registry.json",
+          "C:/Athanor/config/automation-backbone/artifact-topology-registry.json"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/memory-namespace-registry.json",
+          "C:/Athanor/config/automation-backbone/vendor-policy-registry.json"
+        ],
+        "lane_ids": [
+          "letta-memory-plane"
+        ],
+        "judge_record_ids": [
+          "letta-memory-plane-eval-2026q2"
+        ]
+      },
+      "evaluation_refs": [
+        "letta-memory-plane-eval-2026q2"
+      ],
+      "last_verified_at": "2026-04-11T12:35:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "promotion-packet-agent-governance-toolkit-policy-plane",
+      "artifact_kind": "promotion_packet",
+      "artifact_path": "C:/athanor-devstack/docs/promotion-packets/agent-governance-toolkit-policy-plane.md",
+      "produced_by": {
+        "system": "devstack",
+        "workflow": "promotion_packet_draft",
+        "node": "desk"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/athanor-devstack/docs/research/2026-04-11-ai-os-agent-registry-review.md",
+          "C:/Athanor/config/automation-backbone/approval-matrix.json",
+          "C:/Athanor/config/automation-backbone/failure-routing-matrix.json"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/approval-matrix.json",
+          "C:/Athanor/config/automation-backbone/vendor-policy-registry.json"
+        ],
+        "lane_ids": [
+          "agent-governance-toolkit-policy-plane"
+        ],
+        "judge_record_ids": [
+          "agt-policy-plane-eval-2026q2"
+        ]
+      },
+      "evaluation_refs": [
+        "agt-policy-plane-eval-2026q2"
+      ],
+      "last_verified_at": "2026-04-11T12:35:00-05:00",
+      "status": "linked"
+    },
+    {
+      "provenance_id": "governance-restore-drill-2026-04-01",
+      "artifact_kind": "governance_drill_evidence",
+      "artifact_path": "C:/Athanor/reports/governance/drills/restore.json",
+      "produced_by": {
+        "system": "athanor",
+        "workflow": "governance_rehearsal",
+        "node": "dev"
+      },
+      "inputs": {
+        "source_artifacts": [
+          "C:/Athanor/reports/governance/drills/restore.json",
+          "C:/Athanor/reports/recovery/latest.json"
+        ],
+        "policy_artifacts": [
+          "C:/Athanor/config/automation-backbone/governance-drill-registry.json",
+          "C:/Athanor/config/automation-backbone/backup-restore-readiness.json"
+        ],
+        "lane_ids": [],
+        "judge_record_ids": []
+      },
+      "evaluation_refs": [],
+      "last_verified_at": "2026-04-01T04:13:09.130171+00:00",
+      "status": "linked"
+    }
+  ]
+}

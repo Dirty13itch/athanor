@@ -169,6 +169,14 @@ async def read_task_records_by_statuses(
             for status in source_statuses:
                 await redis_client.srem(_status_key(status), task_id)
             continue
+        canonical_status = str(record.get("status") or "")
+        stale_statuses = [status for status in source_statuses if status != canonical_status]
+        for status in stale_statuses:
+            await redis_client.srem(_status_key(status), task_id)
+        if canonical_status not in normalized_statuses:
+            continue
+        if canonical_status and canonical_status not in source_statuses:
+            await redis_client.sadd(_status_key(canonical_status), task_id)
         records.append(record)
 
     records.sort(
@@ -248,6 +256,8 @@ async def backfill_task_store_indexes(redis_client) -> int:
     updated = 0
     for task_id, payload in raw.items():
         record = normalize_task_record(_decode_record(payload))
+        for status in TASK_STATUS_VALUES:
+            await redis_client.srem(_status_key(status), str(record["id"]))
         await redis_client.hset(TASKS_KEY, str(record["id"]), json.dumps(record))
         await _update_indexes(redis_client, task_id=str(record["id"]), record=record)
         updated += 1

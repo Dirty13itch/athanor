@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,10 +15,20 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS_DIR = REPO_ROOT / "scripts"
+DOCS_DIR = REPO_ROOT / "docs"
+REPORTS_DIR = REPO_ROOT / "reports"
+PROJECTS_DIR = REPO_ROOT / "projects"
 CONFIG_DIR = REPO_ROOT / "config" / "automation-backbone"
 PROVIDER_USAGE_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "provider-usage-evidence.json"
+PLANNED_SUBSCRIPTION_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "planned-subscription-evidence.json"
 VAULT_LITELLM_ENV_AUDIT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "vault-litellm-env-audit.json"
 VAULT_REDIS_AUDIT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "vault-redis-audit.json"
+QUOTA_TRUTH_PATH = REPO_ROOT / "reports" / "truth-inventory" / "quota-truth.json"
+CAPACITY_TELEMETRY_PATH = REPO_ROOT / "reports" / "truth-inventory" / "capacity-telemetry.json"
+ACTIVE_OVERRIDES_PATH = REPO_ROOT / "reports" / "truth-inventory" / "active-overrides.json"
+ROUTING_PROOF_PATH = REPO_ROOT / "reports" / "truth-inventory" / "routing-proof.json"
+MASTER_ATLAS_DASHBOARD_FEED_PATH = REPO_ROOT / "projects" / "dashboard" / "src" / "generated" / "master-atlas.json"
 TRUTH_SNAPSHOT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "latest.json"
 BOOTSTRAP_SNAPSHOT_PATH = REPO_ROOT / "reports" / "bootstrap" / "latest.json"
 BOOTSTRAP_COMPATIBILITY_CENSUS_PATH = REPO_ROOT / "reports" / "bootstrap" / "compatibility-retirement-census.json"
@@ -38,6 +49,60 @@ RFI_HERS_PRIMARY_ROOT_STABILIZATION_REPORT_PATH = REPO_ROOT / "reports" / "recon
 RALPH_LOOP_REPORT_PATH = REPO_ROOT / "reports" / "ralph-loop" / "latest.json"
 LITELLM_TEMPLATE_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "templates" / "litellm_config.yaml.j2"
 VAULT_LITELLM_TASKS_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "tasks" / "main.yml"
+VAULT_HOST_VARS_PATH = REPO_ROOT / "ansible" / "host_vars" / "vault.yml"
+
+PROMETHEUS_INFRA_ONLY_PROBE_IDS = {
+    "node1-node-exporter",
+    "node2-node-exporter",
+    "dev-node-exporter",
+    "node1-dcgm-exporter",
+    "node2-dcgm-exporter",
+    "dev-dcgm-exporter",
+    "gitea",
+    "n8n",
+}
+PROMETHEUS_EXPECTED_OPERATOR_SURFACE_IDS = {
+    "aesthetic_scorer_api",
+    "agent_server",
+    "athanor_command_center",
+    "comfyui",
+    "embedding_api",
+    "eoq",
+    "foundry_coder_api",
+    "foundry_coordinator_api",
+    "gpu_orchestrator",
+    "grafana",
+    "home_assistant",
+    "langfuse",
+    "miniflux",
+    "neo4j_browser",
+    "ntfy",
+    "plex",
+    "prometheus",
+    "prowlarr",
+    "qdrant_api",
+    "quality_gate",
+    "radarr",
+    "reranker_api",
+    "sabnzbd",
+    "semantic_router",
+    "sonarr",
+    "speaches",
+    "stash",
+    "subscription_burn",
+    "tautulli",
+    "ulrich_energy",
+    "uptime_kuma",
+    "vault_litellm_proxy",
+    "vault_open_webui",
+    "workshop_open_webui",
+    "workshop_worker_api",
+    "ws_pty_bridge",
+}
+PROMETHEUS_EXCLUDED_OPERATOR_SURFACE_IDS = {
+    "desk_goose_operator_shell",
+    "workshop_shadow_command_center",
+}
 
 ALLOWED_RUNTIME_CLASSES = {
     "control_plane",
@@ -118,6 +183,13 @@ ALLOWED_COMPLETION_WORKSTREAM_STATUSES = {
     "completed",
 }
 ALLOWED_COMPLETION_CHECKPOINT_STATUSES = {"planned", "active", "blocked", "completed"}
+ALLOWED_PUBLICATION_SLICE_STATUSES = {
+    "planned",
+    "active",
+    "approval_gated",
+    "ready_for_checkpoint",
+    "published",
+}
 ALLOWED_COMPLETION_PRIORITY_LEVELS = {"critical", "high", "medium", "low"}
 ALLOWED_COMPLETION_LOOP_EXECUTION_STATES = {
     "active",
@@ -135,6 +207,8 @@ ALLOWED_COMPLETION_LOOP_BLOCKER_TYPES = {
     "runtime_authority",
     "human_decision",
 }
+DISALLOWED_REPO_ROOT_SCRATCH_PATTERNS = ("tmp_*",)
+DISALLOWED_SCRIPTS_TOP_LEVEL_SCRATCH_PATTERNS = ("tmp_*",)
 REQUIRED_RECONCILIATION_DOCS = {
     "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
     "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
@@ -176,12 +250,15 @@ REQUIRED_COMPLETION_WORKSTREAM_IDS = {
     "deployment-authority-reconciliation",
     "runtime-sync-and-governed-packets",
     "provider-and-secret-remediation",
+    "dispatch-and-work-economy-closure",
+    "graphrag-operational-hardening",
     "monitoring-and-observability-truth",
     "portfolio-and-source-reconciliation",
     "lineage-and-shared-extraction",
     "tenant-architecture-and-classification",
     "startup-docs-and-prune",
     "validation-and-publication",
+    "goose-shell-boundary-evidence",
 }
 REQUIRED_COMPLETION_CHECKPOINT_IDS = {
     "control-surface-foundation",
@@ -191,6 +268,50 @@ REQUIRED_COMPLETION_CHECKPOINT_IDS = {
     "runtime-repair-and-sync-packets",
     "final-publication-and-freeze",
 }
+
+
+def _validate_docs_lifecycle_registry_shape(errors: list[str], docs: dict) -> set[str]:
+    documents = list(docs.get("documents", []))
+    seen_paths: set[str] = set()
+    duplicate_paths: set[str] = set()
+    for document in documents:
+        relative_path = str(document.get("path") or "").strip()
+        if not relative_path:
+            errors.append("docs-lifecycle-registry.json contains an entry with an empty path")
+            continue
+        if relative_path in seen_paths:
+            duplicate_paths.add(relative_path)
+        seen_paths.add(relative_path)
+    if duplicate_paths:
+        errors.append(
+            "docs-lifecycle-registry.json contains duplicate paths: " + ", ".join(sorted(duplicate_paths))
+        )
+    return seen_paths
+
+
+def _validate_repo_structure_contract(errors: list[str]) -> None:
+    for pattern in DISALLOWED_REPO_ROOT_SCRATCH_PATTERNS:
+        for path in REPO_ROOT.glob(pattern):
+            if path.is_file():
+                errors.append(
+                    "Repo root contains scratch file outside tmp/: "
+                    f"{path.relative_to(REPO_ROOT).as_posix()}"
+                )
+    for pattern in DISALLOWED_SCRIPTS_TOP_LEVEL_SCRATCH_PATTERNS:
+        for path in SCRIPTS_DIR.glob(pattern):
+            if path.is_file():
+                errors.append(
+                    "scripts/ contains scratch-style top-level file: "
+                    f"{path.relative_to(REPO_ROOT).as_posix()}"
+                )
+REQUIRED_PUBLICATION_SLICE_IDS = [
+    "backbone-contracts-and-truth-writers",
+    "runtime-ownership-provider-truth-and-reconciliation",
+    "pilot-eval-substrate-and-operator-test-machinery",
+    "graphrag-promotion-wave",
+    "gpu-scheduler-extension-wave",
+    "forge-atlas-dashboard-and-startup-truth",
+]
 REQUIRED_RECONCILIATION_END_STATE_GATE_IDS = {
     "authority_gate",
     "current_state_truth_gate",
@@ -404,6 +525,13 @@ ALLOWED_PROVIDER_BILLING_STATUSES = {
 ALLOWED_PROVIDER_INTEGRATION_STATUSES = {"verified", "unverified", "degraded"}
 ALLOWED_PROVIDER_SPECIFIC_USAGE_STATUSES = {"pending", "observed", "verified", "not_supported", "auth_failed", "request_failed"}
 ALLOWED_PROVIDER_USAGE_CAPTURE_STATUSES = {"observed", "verified", "not_supported", "auth_failed", "request_failed"}
+ALLOWED_PLANNED_SUBSCRIPTION_CAPTURE_STATUSES = {
+    "tooling_present",
+    "tooling_ready",
+    "supported_tool_usage_observed",
+    "missing_tooling",
+    "activation_blocked",
+}
 ALLOWED_PROVIDER_STATES = {
     "active-routing",
     "active-burn",
@@ -437,9 +565,61 @@ ALLOWED_ROOT_AUTHORITY_LEVELS = {
     "implementation-authority",
     "runtime-authority",
     "runtime-state",
+    "build-system",
+    "operator-local",
     "incubation",
     "vestigial",
     "archive",
+}
+REQUIRED_CAPABILITY_AUTHORITY_CLASSES = {
+    "adopted_system",
+    "build_system",
+    "operator_local",
+    "archive_evidence",
+}
+REQUIRED_CAPABILITY_STAGE_IDS = {
+    "concept",
+    "prototype",
+    "proved",
+    "adopted",
+    "retired",
+}
+REQUIRED_MASTER_ATLAS_CONTRACT_IDS = {
+    "readiness_ledger",
+    "wave_admissibility_record",
+    "eval_run_ledger",
+    "artifact_provenance_record",
+    "economic_dispatch_ledger",
+    "capacity_envelope",
+    "restore_ledger",
+    "governance_confidence_record",
+    "recommendation_record",
+    "lane_selection_matrix",
+    "approval_matrix",
+    "failure_routing_matrix",
+    "artifact_topology_registry",
+    "capacity_telemetry_contract",
+    "vendor_policy_registry",
+    "migration_map",
+    "quota_truth_ledger",
+    "capacity_telemetry_snapshot",
+    "active_override_record",
+    "routing_proof_record",
+}
+ALLOWED_EVAL_INITIATIVE_KINDS = {"capability_promotion", "lane_evaluation"}
+ALLOWED_EVAL_LEDGER_STATUSES = {"seeded", "active", "live"}
+ALLOWED_EVAL_RUN_STATUSES = {"planned", "evidence_only", "active", "completed"}
+ALLOWED_PROMOTION_VALIDITY_STATES = {"requires_formal_eval_run", "valid", "stale", "superseded"}
+ALLOWED_PROVENANCE_LEDGER_STATUSES = {"seeded", "active", "live"}
+ALLOWED_ECONOMIC_DISPATCH_STATUSES = {"seeded", "active", "live"}
+ALLOWED_CAPACITY_ENVELOPE_STATUSES = {"seeded", "active", "live"}
+ALLOWED_RESTORE_LEDGER_STATUSES = {"seeded", "active", "live"}
+ALLOWED_GOVERNANCE_CONFIDENCE_STATUSES = {"healthy", "warning", "blocked"}
+ALLOWED_PROJECT_ROUTING_CLASSES = {
+    "sovereign_only",
+    "private_but_cloud_allowed",
+    "cloud_safe",
+    "public_product_only",
 }
 ALLOWED_MODEL_STATE_CLASSES = {
     "deployed",
@@ -731,6 +911,24 @@ def _parse_ecosystem_registry_rows(markdown_text: str) -> list[dict[str, str]]:
 def _load_json(name: str) -> dict[str, Any]:
     path = CONFIG_DIR / name
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _is_parseable_iso_datetime(raw: Any) -> bool:
+    if not isinstance(raw, str) or not raw.strip():
+        return False
+    try:
+        datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    return True
+
+
+def _resolve_declared_path(raw: Any) -> Path:
+    text = str(raw or "").strip()
+    path = Path(text)
+    if path.is_absolute():
+        return path
+    return REPO_ROOT / text
 
 
 def _validate_bootstrap_zero_ambiguity_contracts(
@@ -1226,6 +1424,10 @@ def _load_subscription_policy() -> dict[str, Any]:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
+def _load_yaml(path: Path) -> dict[str, Any]:
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
 def _run_generator_check(command_parts: list[str]) -> subprocess.CompletedProcess[str]:
     script_path = REPO_ROOT / command_parts[0]
     return subprocess.run(
@@ -1287,16 +1489,910 @@ def _validate_startup_doc_contract(relative_path: str, text: str) -> list[str]:
     return errors
 
 
+def _validate_vault_prometheus_probe_contract(
+    *,
+    errors: list[str],
+    operator_surfaces: dict[str, Any],
+    vault_host_vars: dict[str, Any],
+) -> None:
+    surface_entries = {
+        str(entry.get("id") or "").strip(): dict(entry)
+        for entry in operator_surfaces.get("surfaces", [])
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }
+    classified_surface_ids = (
+        PROMETHEUS_EXPECTED_OPERATOR_SURFACE_IDS | PROMETHEUS_EXCLUDED_OPERATOR_SURFACE_IDS
+    )
+    missing_classifications = sorted(set(surface_entries) - classified_surface_ids)
+    if missing_classifications:
+        errors.append(
+            "operator-surface-registry.json has unclassified Prometheus parity surface ids: "
+            + ", ".join(missing_classifications)
+        )
+
+    unknown_expected = sorted(PROMETHEUS_EXPECTED_OPERATOR_SURFACE_IDS - set(surface_entries))
+    if unknown_expected:
+        errors.append(
+            "validate_platform_contract.py PROMETHEUS_EXPECTED_OPERATOR_SURFACE_IDS references unknown surfaces: "
+            + ", ".join(unknown_expected)
+        )
+    unknown_excluded = sorted(PROMETHEUS_EXCLUDED_OPERATOR_SURFACE_IDS - set(surface_entries))
+    if unknown_excluded:
+        errors.append(
+            "validate_platform_contract.py PROMETHEUS_EXCLUDED_OPERATOR_SURFACE_IDS references unknown surfaces: "
+            + ", ".join(unknown_excluded)
+        )
+
+    probe_targets = [
+        dict(target)
+        for target in vault_host_vars.get("prometheus_probe_targets", [])
+        if isinstance(target, dict)
+    ]
+    probe_ids = [str(target.get("id") or "").strip() for target in probe_targets if str(target.get("id") or "").strip()]
+    duplicate_probe_ids = [probe_id for probe_id, count in Counter(probe_ids).items() if count > 1]
+    if duplicate_probe_ids:
+        errors.append(
+            "ansible/host_vars/vault.yml contains duplicate prometheus_probe_targets ids: "
+            + ", ".join(sorted(duplicate_probe_ids))
+        )
+
+    canonical_probe_ids: set[str] = set()
+    for target in probe_targets:
+        probe_id = str(target.get("id") or "").strip()
+        if not probe_id:
+            errors.append("ansible/host_vars/vault.yml contains a prometheus_probe_targets entry without id")
+            continue
+        if probe_id in surface_entries:
+            canonical_probe_ids.add(probe_id)
+            surface = surface_entries[probe_id]
+            expected_label = str(surface.get("label") or "").strip()
+            if str(target.get("name") or "").strip() != expected_label:
+                errors.append(
+                    "ansible/host_vars/vault.yml prometheus_probe_targets "
+                    f"{probe_id} must use canonical label {expected_label!r}"
+                )
+            expected_node = str(surface.get("node") or "").strip()
+            if str(target.get("node_id") or "").strip() != expected_node:
+                errors.append(
+                    "ansible/host_vars/vault.yml prometheus_probe_targets "
+                    f"{probe_id} must use canonical node_id {expected_node!r}"
+                )
+            continue
+        if probe_id not in PROMETHEUS_INFRA_ONLY_PROBE_IDS:
+            errors.append(
+                "ansible/host_vars/vault.yml prometheus_probe_targets "
+                f"{probe_id} is neither a canonical operator surface id nor an infra-only allowlisted probe"
+            )
+
+    missing_expected_ids = sorted(PROMETHEUS_EXPECTED_OPERATOR_SURFACE_IDS - canonical_probe_ids)
+    if missing_expected_ids:
+        errors.append(
+            "ansible/host_vars/vault.yml is missing canonical Prometheus probe targets for: "
+            + ", ".join(missing_expected_ids)
+        )
+
+    unexpected_excluded_ids = sorted(canonical_probe_ids & PROMETHEUS_EXCLUDED_OPERATOR_SURFACE_IDS)
+    if unexpected_excluded_ids:
+        errors.append(
+            "ansible/host_vars/vault.yml should not probe excluded operator surfaces: "
+            + ", ".join(unexpected_excluded_ids)
+        )
+
+
+def _validate_capability_adoption_registry(
+    *,
+    errors: list[str],
+    capability_adoption: dict[str, Any],
+    contract_registry: dict[str, Any],
+    repo_roots: dict[str, Any],
+    runtime_ownership: dict[str, Any],
+    runtime_ownership_packets: dict[str, Any],
+) -> None:
+    if str(capability_adoption.get("source_of_truth") or "") != "config/automation-backbone/capability-adoption-registry.json":
+        errors.append(
+            "capability-adoption-registry.json source_of_truth must be config/automation-backbone/capability-adoption-registry.json"
+        )
+    if str(capability_adoption.get("status") or "") != "active":
+        errors.append("capability-adoption-registry.json status must be active")
+
+    contract_ids = {
+        str(item.get("id") or "").strip()
+        for item in contract_registry.get("contracts", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    if "promotion_packet" not in contract_ids:
+        errors.append("contract-registry.json must declare the promotion_packet contract")
+    if str(capability_adoption.get("promotion_contract") or "").strip() != "promotion_packet":
+        errors.append("capability-adoption-registry.json promotion_contract must be promotion_packet")
+
+    authority_class_ids = {
+        str(item.get("id") or "").strip()
+        for item in capability_adoption.get("authority_classes", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    if authority_class_ids != REQUIRED_CAPABILITY_AUTHORITY_CLASSES:
+        errors.append("capability-adoption-registry.json authority_classes must match the required authority-class set")
+
+    stage_ids = {
+        str(item.get("id") or "").strip()
+        for item in capability_adoption.get("capability_stages", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    if stage_ids != REQUIRED_CAPABILITY_STAGE_IDS:
+        errors.append("capability-adoption-registry.json capability_stages must match the required stage set")
+
+    repo_root_by_path = {
+        str(entry.get("path") or "").strip(): dict(entry)
+        for entry in repo_roots.get("roots", [])
+        if isinstance(entry, dict) and str(entry.get("path") or "").strip()
+    }
+    runtime_lane_ids = {
+        str(item.get("id") or "").strip()
+        for item in runtime_ownership.get("lanes", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    runtime_packet_ids = {
+        str(item.get("id") or "").strip()
+        for item in runtime_ownership_packets.get("packets", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+
+    capabilities = [
+        dict(entry)
+        for entry in capability_adoption.get("capabilities", [])
+        if isinstance(entry, dict)
+    ]
+    if not capabilities:
+        errors.append("capability-adoption-registry.json must declare at least one capability")
+        return
+
+    seen_ids: set[str] = set()
+    required_scalar_fields = (
+        "id",
+        "label",
+        "owner",
+        "source_repo",
+        "stage",
+        "authority_class",
+        "runtime_target",
+        "promotion_packet_id",
+        "rollback_or_disable_path",
+        "archive_instructions",
+    )
+    required_list_fields = (
+        "source_artifacts",
+        "proof_artifacts",
+        "acceptance_criteria",
+        "athanor_target_surfaces",
+        "runtime_ownership_lanes",
+        "runtime_packet_ids",
+    )
+
+    for entry in capabilities:
+        capability_id = str(entry.get("id") or "").strip()
+        if not capability_id:
+            errors.append("capability-adoption-registry.json contains a capability without id")
+            continue
+        if capability_id in seen_ids:
+            errors.append(f"capability-adoption-registry.json capability id {capability_id!r} is duplicated")
+        seen_ids.add(capability_id)
+
+        for field_name in required_scalar_fields:
+            if not str(entry.get(field_name) or "").strip():
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} is missing {field_name}"
+                )
+        for field_name in required_list_fields:
+            if not isinstance(entry.get(field_name), list) or not entry.get(field_name):
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} must declare non-empty {field_name}"
+                )
+
+        stage = str(entry.get("stage") or "").strip()
+        authority_class = str(entry.get("authority_class") or "").strip()
+        if stage not in REQUIRED_CAPABILITY_STAGE_IDS:
+            errors.append(
+                f"capability-adoption-registry.json capability {capability_id} has invalid stage {stage!r}"
+            )
+        if authority_class not in REQUIRED_CAPABILITY_AUTHORITY_CLASSES:
+            errors.append(
+                f"capability-adoption-registry.json capability {capability_id} has invalid authority_class {authority_class!r}"
+            )
+        if authority_class == "adopted_system" and stage not in {"adopted", "retired"}:
+            errors.append(
+                f"capability-adoption-registry.json capability {capability_id} cannot use adopted_system authority while stage is {stage!r}"
+            )
+
+        source_repo = str(entry.get("source_repo") or "").strip()
+        source_root = repo_root_by_path.get(source_repo)
+        if not source_root:
+            errors.append(
+                f"capability-adoption-registry.json capability {capability_id} references unknown source_repo {source_repo!r}"
+            )
+        elif source_repo == "C:/athanor-devstack" and str(source_root.get("authority_level") or "") != "build-system":
+            errors.append(
+                "capability-adoption-registry.json requires C:/athanor-devstack to be registered as authority_level build-system"
+            )
+
+        packet_id = str(entry.get("promotion_packet_id") or "").strip()
+        if stage in {"adopted", "retired"} and packet_id.startswith("pending"):
+            errors.append(
+                f"capability-adoption-registry.json capability {capability_id} must not use a pending promotion_packet_id once stage is {stage!r}"
+            )
+
+        lane_values = [str(item).strip() for item in entry.get("runtime_ownership_lanes", []) if str(item).strip()]
+        packet_values = [str(item).strip() for item in entry.get("runtime_packet_ids", []) if str(item).strip()]
+        if stage in {"adopted", "retired"}:
+            if not lane_values:
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} must declare runtime_ownership_lanes once stage is {stage!r}"
+                )
+            if not packet_values:
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} must declare runtime_packet_ids once stage is {stage!r}"
+                )
+        for lane_id in lane_values:
+            if lane_id != "pending" and lane_id not in runtime_lane_ids:
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} references unknown runtime_ownership_lane {lane_id!r}"
+                )
+        for runtime_packet_id in packet_values:
+            if runtime_packet_id != "pending" and runtime_packet_id not in runtime_packet_ids:
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} references unknown runtime_packet_id {runtime_packet_id!r}"
+                )
+
+
+def _validate_master_atlas_contracts(
+    *,
+    errors: list[str],
+    contract_registry: dict[str, Any],
+    capability_adoption: dict[str, Any],
+    policy_registry: dict[str, Any],
+    topology: dict[str, Any],
+    coding_lanes: dict[str, Any],
+    eval_run_ledger: dict[str, Any],
+    artifact_provenance: dict[str, Any],
+    economic_dispatch: dict[str, Any],
+    capacity_envelope: dict[str, Any],
+    restore_ledger: dict[str, Any],
+    backup_restore_readiness: dict[str, Any],
+    master_atlas_dashboard_feed: dict[str, Any],
+    lane_selection_matrix: dict[str, Any],
+    approval_matrix: dict[str, Any],
+    failure_routing_matrix: dict[str, Any],
+    subscription_burn_registry: dict[str, Any],
+) -> None:
+    contract_ids = {
+        str(item.get("id") or "").strip()
+        for item in contract_registry.get("contracts", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    missing_contract_ids = sorted(REQUIRED_MASTER_ATLAS_CONTRACT_IDS - contract_ids)
+    if missing_contract_ids:
+        errors.append(
+            "contract-registry.json is missing required master-atlas contracts: "
+            + ", ".join(missing_contract_ids)
+        )
+
+    capability_ids = {
+        str(item.get("id") or "").strip()
+        for item in capability_adoption.get("capabilities", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    policy_ids = {
+        str(item.get("id") or "").strip()
+        for item in policy_registry.get("classes", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    coding_lane_ids = {
+        str(item.get("id") or "").strip()
+        for item in coding_lanes.get("lanes", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    topology_node_ids = {
+        str(item.get("id") or "").strip()
+        for item in topology.get("nodes", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    backup_store_by_id = {
+        str(item.get("id") or "").strip(): dict(item)
+        for item in backup_restore_readiness.get("critical_stores", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+
+    if str(eval_run_ledger.get("source_of_truth") or "").strip() != "config/automation-backbone/eval-run-ledger.json":
+        errors.append("eval-run-ledger.json source_of_truth must be config/automation-backbone/eval-run-ledger.json")
+    if str(eval_run_ledger.get("status") or "").strip() not in ALLOWED_EVAL_LEDGER_STATUSES:
+        errors.append("eval-run-ledger.json has invalid status")
+    eval_runs = [
+        dict(item)
+        for item in eval_run_ledger.get("runs", [])
+        if isinstance(item, dict)
+    ]
+    if not eval_runs:
+        errors.append("eval-run-ledger.json must declare at least one run")
+    eval_run_ids: set[str] = set()
+    for run in eval_runs:
+        run_id = str(run.get("run_id") or "").strip()
+        if not run_id:
+            errors.append("eval-run-ledger.json contains a run without run_id")
+            continue
+        if run_id in eval_run_ids:
+            errors.append(f"eval-run-ledger.json run_id {run_id!r} is duplicated")
+        eval_run_ids.add(run_id)
+        initiative_kind = str(run.get("initiative_kind") or "").strip()
+        if initiative_kind not in ALLOWED_EVAL_INITIATIVE_KINDS:
+            errors.append(f"eval-run-ledger.json run {run_id} has invalid initiative_kind {run.get('initiative_kind')!r}")
+        initiative_id = str(run.get("initiative_id") or "").strip()
+        if initiative_kind == "lane_evaluation":
+            if initiative_id not in coding_lane_ids:
+                errors.append(
+                    f"eval-run-ledger.json run {run_id} references unknown lane initiative_id {initiative_id!r}"
+                )
+            if not str(run.get("task_class") or "").strip():
+                errors.append(f"eval-run-ledger.json lane evaluation run {run_id} must declare task_class")
+            if not str(run.get("wrapper_mode") or "").strip():
+                errors.append(f"eval-run-ledger.json lane evaluation run {run_id} must declare wrapper_mode")
+        elif initiative_id not in capability_ids:
+            errors.append(
+                f"eval-run-ledger.json run {run_id} references unknown initiative_id {initiative_id!r}"
+            )
+        packet_path = _resolve_declared_path(run.get("linked_promotion_packet"))
+        if not packet_path.exists():
+            errors.append(f"eval-run-ledger.json run {run_id} linked_promotion_packet is missing: {packet_path}")
+        judge_config = dict(run.get("judge_config") or {})
+        policy_class = str(judge_config.get("policy_class") or "").strip()
+        if policy_class not in policy_ids:
+            errors.append(
+                f"eval-run-ledger.json run {run_id} references unknown judge_config.policy_class {policy_class!r}"
+            )
+        if not isinstance(judge_config.get("evaluation_dimensions"), list) or not judge_config.get("evaluation_dimensions"):
+            errors.append(f"eval-run-ledger.json run {run_id} must declare judge_config.evaluation_dimensions")
+        if not isinstance(run.get("evidence_artifacts"), list) or not run.get("evidence_artifacts"):
+            errors.append(f"eval-run-ledger.json run {run_id} must declare evidence_artifacts")
+        else:
+            for artifact in run["evidence_artifacts"]:
+                artifact_path = _resolve_declared_path(artifact)
+                if not artifact_path.exists():
+                    errors.append(f"eval-run-ledger.json run {run_id} references missing evidence artifact {artifact_path}")
+        freshness_window_days = run.get("freshness_window_days")
+        if not isinstance(freshness_window_days, int) or freshness_window_days <= 0:
+            errors.append(f"eval-run-ledger.json run {run_id} freshness_window_days must be a positive integer")
+        last_run_at = run.get("last_run_at")
+        if last_run_at is not None and not _is_parseable_iso_datetime(last_run_at):
+            errors.append(f"eval-run-ledger.json run {run_id} has invalid last_run_at {last_run_at!r}")
+        if str(run.get("status") or "").strip() not in ALLOWED_EVAL_RUN_STATUSES:
+            errors.append(f"eval-run-ledger.json run {run_id} has invalid status {run.get('status')!r}")
+        if str(run.get("promotion_validity") or "").strip() not in ALLOWED_PROMOTION_VALIDITY_STATES:
+            errors.append(
+                f"eval-run-ledger.json run {run_id} has invalid promotion_validity {run.get('promotion_validity')!r}"
+            )
+
+    if str(artifact_provenance.get("source_of_truth") or "").strip() != "config/automation-backbone/artifact-provenance-ledger.json":
+        errors.append(
+            "artifact-provenance-ledger.json source_of_truth must be config/automation-backbone/artifact-provenance-ledger.json"
+        )
+    if str(artifact_provenance.get("status") or "").strip() not in ALLOWED_PROVENANCE_LEDGER_STATUSES:
+        errors.append("artifact-provenance-ledger.json has invalid status")
+    provenance_records = [
+        dict(item)
+        for item in artifact_provenance.get("records", [])
+        if isinstance(item, dict)
+    ]
+    if not provenance_records:
+        errors.append("artifact-provenance-ledger.json must declare at least one provenance record")
+    provenance_ids: set[str] = set()
+    for record in provenance_records:
+        provenance_id = str(record.get("provenance_id") or "").strip()
+        if not provenance_id:
+            errors.append("artifact-provenance-ledger.json contains a record without provenance_id")
+            continue
+        if provenance_id in provenance_ids:
+            errors.append(f"artifact-provenance-ledger.json provenance_id {provenance_id!r} is duplicated")
+        provenance_ids.add(provenance_id)
+        artifact_path = _resolve_declared_path(record.get("artifact_path"))
+        if not artifact_path.exists():
+            errors.append(f"artifact-provenance-ledger.json record {provenance_id} artifact_path is missing: {artifact_path}")
+        produced_by = dict(record.get("produced_by") or {})
+        for field_name in ("system", "workflow", "node"):
+            if not str(produced_by.get(field_name) or "").strip():
+                errors.append(f"artifact-provenance-ledger.json record {provenance_id} is missing produced_by.{field_name}")
+        inputs = dict(record.get("inputs") or {})
+        for list_field in ("source_artifacts", "policy_artifacts", "lane_ids", "judge_record_ids"):
+            if not isinstance(inputs.get(list_field), list):
+                errors.append(f"artifact-provenance-ledger.json record {provenance_id} must declare list {list_field}")
+        for evaluation_ref in record.get("evaluation_refs", []) or []:
+            if str(evaluation_ref).strip() not in eval_run_ids:
+                errors.append(
+                    f"artifact-provenance-ledger.json record {provenance_id} references unknown evaluation_ref {evaluation_ref!r}"
+                )
+        if not _is_parseable_iso_datetime(record.get("last_verified_at")):
+            errors.append(f"artifact-provenance-ledger.json record {provenance_id} is missing a valid last_verified_at")
+
+    if str(economic_dispatch.get("source_of_truth") or "").strip() != "config/automation-backbone/economic-dispatch-ledger.json":
+        errors.append(
+            "economic-dispatch-ledger.json source_of_truth must be config/automation-backbone/economic-dispatch-ledger.json"
+        )
+    if str(economic_dispatch.get("status") or "").strip() not in ALLOWED_ECONOMIC_DISPATCH_STATUSES:
+        errors.append("economic-dispatch-ledger.json has invalid status")
+    economic_lanes = [
+        dict(item)
+        for item in economic_dispatch.get("lanes", [])
+        if isinstance(item, dict)
+    ]
+    if not economic_lanes:
+        errors.append("economic-dispatch-ledger.json must declare at least one lane")
+    economic_lane_ids: set[str] = set()
+    for lane in economic_lanes:
+        lane_id = str(lane.get("lane_id") or "").strip()
+        if not lane_id:
+            errors.append("economic-dispatch-ledger.json contains a lane without lane_id")
+            continue
+        if lane_id in economic_lane_ids:
+            errors.append(f"economic-dispatch-ledger.json lane_id {lane_id!r} is duplicated")
+        economic_lane_ids.add(lane_id)
+        if lane_id not in coding_lane_ids:
+            errors.append(f"economic-dispatch-ledger.json lane {lane_id} is missing from coding-lane-registry.json")
+        if not str(lane.get("provider_id") or "").strip():
+            errors.append(f"economic-dispatch-ledger.json lane {lane_id} is missing provider_id")
+        max_parallel_slots = lane.get("max_parallel_slots")
+        reserved_parallel_slots = lane.get("reserved_parallel_slots")
+        harvestable_parallel_slots = lane.get("harvestable_parallel_slots")
+        if not isinstance(max_parallel_slots, int) or max_parallel_slots < 0:
+            errors.append(f"economic-dispatch-ledger.json lane {lane_id} max_parallel_slots must be a non-negative integer")
+            continue
+        if not isinstance(reserved_parallel_slots, int) or reserved_parallel_slots < 0:
+            errors.append(f"economic-dispatch-ledger.json lane {lane_id} reserved_parallel_slots must be a non-negative integer")
+        if not isinstance(harvestable_parallel_slots, int) or harvestable_parallel_slots < 0:
+            errors.append(f"economic-dispatch-ledger.json lane {lane_id} harvestable_parallel_slots must be a non-negative integer")
+        if isinstance(reserved_parallel_slots, int) and reserved_parallel_slots > max_parallel_slots:
+            errors.append(f"economic-dispatch-ledger.json lane {lane_id} reserved_parallel_slots exceeds max_parallel_slots")
+        if isinstance(harvestable_parallel_slots, int) and harvestable_parallel_slots > max_parallel_slots:
+            errors.append(f"economic-dispatch-ledger.json lane {lane_id} harvestable_parallel_slots exceeds max_parallel_slots")
+        if (
+            isinstance(reserved_parallel_slots, int)
+            and isinstance(harvestable_parallel_slots, int)
+            and reserved_parallel_slots + harvestable_parallel_slots > max_parallel_slots
+        ):
+            errors.append(
+                f"economic-dispatch-ledger.json lane {lane_id} reserved_parallel_slots + harvestable_parallel_slots exceeds max_parallel_slots"
+            )
+        if not _is_parseable_iso_datetime(lane.get("last_verified_at")):
+            errors.append(f"economic-dispatch-ledger.json lane {lane_id} is missing a valid last_verified_at")
+    if economic_lane_ids != coding_lane_ids:
+        missing = sorted(coding_lane_ids - economic_lane_ids)
+        extra = sorted(economic_lane_ids - coding_lane_ids)
+        if missing:
+            errors.append("economic-dispatch-ledger.json is missing coding lanes: " + ", ".join(missing))
+        if extra:
+            errors.append("economic-dispatch-ledger.json has unexpected lanes: " + ", ".join(extra))
+
+    if str(capacity_envelope.get("source_of_truth") or "").strip() != "config/automation-backbone/capacity-envelope-registry.json":
+        errors.append(
+            "capacity-envelope-registry.json source_of_truth must be config/automation-backbone/capacity-envelope-registry.json"
+        )
+    if str(capacity_envelope.get("status") or "").strip() not in ALLOWED_CAPACITY_ENVELOPE_STATUSES:
+        errors.append("capacity-envelope-registry.json has invalid status")
+    capacity_nodes = [
+        dict(item)
+        for item in capacity_envelope.get("nodes", [])
+        if isinstance(item, dict)
+    ]
+    if not capacity_nodes:
+        errors.append("capacity-envelope-registry.json must declare at least one node")
+    capacity_node_ids: set[str] = set()
+    for node in capacity_nodes:
+        node_id = str(node.get("node_id") or "").strip()
+        if not node_id:
+            errors.append("capacity-envelope-registry.json contains a node without node_id")
+            continue
+        if node_id in capacity_node_ids:
+            errors.append(f"capacity-envelope-registry.json node_id {node_id!r} is duplicated")
+        capacity_node_ids.add(node_id)
+        if node_id not in topology_node_ids:
+            errors.append(f"capacity-envelope-registry.json references unknown topology node {node_id!r}")
+        gpus = [dict(item) for item in node.get("gpus", []) if isinstance(item, dict)]
+        if not gpus:
+            errors.append(f"capacity-envelope-registry.json node {node_id} must declare gpus")
+            continue
+        interactive_reserve = node.get("interactive_reserve_gpu_slots")
+        background_fill = node.get("background_fill_gpu_slots")
+        if not isinstance(interactive_reserve, int) or interactive_reserve < 0:
+            errors.append(f"capacity-envelope-registry.json node {node_id} interactive_reserve_gpu_slots must be a non-negative integer")
+        if not isinstance(background_fill, int) or background_fill < 0:
+            errors.append(f"capacity-envelope-registry.json node {node_id} background_fill_gpu_slots must be a non-negative integer")
+        if (
+            isinstance(interactive_reserve, int)
+            and isinstance(background_fill, int)
+            and interactive_reserve + background_fill > len(gpus)
+        ):
+            errors.append(
+                f"capacity-envelope-registry.json node {node_id} reserve plus background fill exceeds declared GPU count"
+            )
+        telemetry = dict(node.get("observed_telemetry") or {})
+        if not _is_parseable_iso_datetime(telemetry.get("last_verified_at")):
+            errors.append(f"capacity-envelope-registry.json node {node_id} is missing a valid observed_telemetry.last_verified_at")
+        gpu_ids: set[str] = set()
+        for gpu in gpus:
+            gpu_id = str(gpu.get("gpu_id") or "").strip()
+            if not gpu_id:
+                errors.append(f"capacity-envelope-registry.json node {node_id} contains a GPU without gpu_id")
+                continue
+            if gpu_id in gpu_ids:
+                errors.append(f"capacity-envelope-registry.json node {node_id} duplicates gpu_id {gpu_id!r}")
+            gpu_ids.add(gpu_id)
+            if not str(gpu.get("owner_lane") or "").strip():
+                errors.append(f"capacity-envelope-registry.json node {node_id} gpu {gpu_id} is missing owner_lane")
+            if not isinstance(gpu.get("allowed_workload_classes"), list) or not gpu.get("allowed_workload_classes"):
+                errors.append(
+                    f"capacity-envelope-registry.json node {node_id} gpu {gpu_id} must declare allowed_workload_classes"
+                )
+    if capacity_node_ids != topology_node_ids:
+        missing = sorted(topology_node_ids - capacity_node_ids)
+        extra = sorted(capacity_node_ids - topology_node_ids)
+        if missing:
+            errors.append("capacity-envelope-registry.json is missing topology nodes: " + ", ".join(missing))
+        if extra:
+            errors.append("capacity-envelope-registry.json has unexpected nodes: " + ", ".join(extra))
+
+    if str(restore_ledger.get("source_of_truth") or "").strip() != "config/automation-backbone/restore-ledger.json":
+        errors.append("restore-ledger.json source_of_truth must be config/automation-backbone/restore-ledger.json")
+    if str(restore_ledger.get("status") or "").strip() not in ALLOWED_RESTORE_LEDGER_STATUSES:
+        errors.append("restore-ledger.json has invalid status")
+    restore_stores = [
+        dict(item)
+        for item in restore_ledger.get("stores", [])
+        if isinstance(item, dict)
+    ]
+    if not restore_stores:
+        errors.append("restore-ledger.json must declare at least one store")
+    restore_store_ids: set[str] = set()
+    for store in restore_stores:
+        store_id = str(store.get("store_id") or "").strip()
+        if not store_id:
+            errors.append("restore-ledger.json contains a store without store_id")
+            continue
+        if store_id in restore_store_ids:
+            errors.append(f"restore-ledger.json store_id {store_id!r} is duplicated")
+        restore_store_ids.add(store_id)
+        if store_id not in backup_store_by_id:
+            errors.append(f"restore-ledger.json store {store_id} is missing from backup-restore-readiness.json")
+            continue
+        backup_entry = backup_store_by_id[store_id]
+        if store.get("recovery_order") != backup_entry.get("recovery_order"):
+            errors.append(
+                f"restore-ledger.json store {store_id} recovery_order must match backup-restore-readiness.json"
+            )
+        if store.get("restore_status") != backup_entry.get("restore_status"):
+            errors.append(
+                f"restore-ledger.json store {store_id} restore_status must match backup-restore-readiness.json"
+            )
+        evidence_path = _resolve_declared_path(store.get("evidence_path"))
+        if not evidence_path.exists():
+            errors.append(f"restore-ledger.json store {store_id} evidence_path is missing: {evidence_path}")
+        if store.get("restore_status") == "drill_backed" and not _is_parseable_iso_datetime(store.get("last_drill_at")):
+            errors.append(f"restore-ledger.json store {store_id} must declare valid last_drill_at once drill_backed")
+        for field_name in ("owner", "rto_target", "rpo_target", "current_confidence"):
+            if not str(store.get(field_name) or "").strip():
+                errors.append(f"restore-ledger.json store {store_id} is missing {field_name}")
+        if not isinstance(store.get("dependency_validations"), list) or not store.get("dependency_validations"):
+            errors.append(f"restore-ledger.json store {store_id} must declare dependency_validations")
+    if restore_store_ids != set(backup_store_by_id):
+        missing = sorted(set(backup_store_by_id) - restore_store_ids)
+        extra = sorted(restore_store_ids - set(backup_store_by_id))
+        if missing:
+            errors.append("restore-ledger.json is missing critical stores: " + ", ".join(missing))
+        if extra:
+            errors.append("restore-ledger.json has unexpected stores: " + ", ".join(extra))
+
+    if not MASTER_ATLAS_DASHBOARD_FEED_PATH.exists():
+        errors.append("projects/dashboard/src/generated/master-atlas.json is missing")
+        return
+    if not master_atlas_dashboard_feed:
+        errors.append("projects/dashboard/src/generated/master-atlas.json must contain valid JSON")
+        return
+    if not _is_parseable_iso_datetime(master_atlas_dashboard_feed.get("generated_at")):
+        errors.append("projects/dashboard/src/generated/master-atlas.json is missing valid generated_at")
+    required_feed_keys = {
+        "generated_at",
+        "readiness_ledger",
+        "wave_admissibility",
+        "governance_confidence",
+        "turnover_readiness",
+        "recommendations",
+        "dashboard_summary",
+        "eval_run_ledger",
+        "artifact_provenance_ledger",
+        "economic_dispatch_ledger",
+        "capacity_envelope_registry",
+        "restore_ledger",
+        "quota_truth",
+        "capacity_telemetry",
+        "active_overrides",
+        "routing_proof",
+        "lane_selection_matrix",
+        "approval_matrix",
+        "failure_routing_matrix",
+        "subscription_burn_registry",
+        "lane_recommendations",
+        "router_shadow_summary",
+        "routing_decisions_latest",
+        "safe_surface_summary",
+        "autonomous_queue_summary",
+        "coding_lane_registry",
+        "provider_catalog",
+    }
+    missing_feed_keys = sorted(required_feed_keys - set(master_atlas_dashboard_feed.keys()))
+    if missing_feed_keys:
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json is missing keys: "
+            + ", ".join(missing_feed_keys)
+        )
+    feed_readiness = dict(master_atlas_dashboard_feed.get("readiness_ledger") or {})
+    feed_records = feed_readiness.get("records")
+    if not isinstance(feed_records, list):
+        errors.append("projects/dashboard/src/generated/master-atlas.json readiness_ledger.records must be a list")
+    elif len(feed_records) != len(capability_ids):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json readiness_ledger.records must match capability-adoption-registry.json capability count"
+        )
+    feed_governance = dict(master_atlas_dashboard_feed.get("governance_confidence") or {})
+    if str(feed_governance.get("overall_status") or "").strip() not in ALLOWED_GOVERNANCE_CONFIDENCE_STATUSES:
+        errors.append("projects/dashboard/src/generated/master-atlas.json governance_confidence.overall_status is invalid")
+    feed_summary = dict(master_atlas_dashboard_feed.get("dashboard_summary") or {})
+    if feed_summary.get("capability_count") != len(feed_records or []):
+        errors.append("projects/dashboard/src/generated/master-atlas.json dashboard_summary.capability_count must match readiness_ledger.records")
+    for summary_key in (
+        "blocked_packet_count",
+        "governance_blocker_count",
+        "packet_ready_count",
+        "proving_count",
+        "turnover_status",
+        "turnover_ready_now",
+        "turnover_current_mode",
+        "turnover_target_mode",
+        "turnover_blocker_count",
+        "alert_state",
+        "quota_posture",
+        "shadow_phase",
+        "shadow_phase_label",
+        "shadow_disagreement_rate",
+        "lane_recommendation_count",
+        "active_override_count",
+        "safe_surface_queue_count",
+        "autonomous_queue_count",
+        "autonomous_dispatchable_queue_count",
+        "next_required_approval",
+    ):
+        if summary_key not in feed_summary:
+            errors.append(
+                f"projects/dashboard/src/generated/master-atlas.json dashboard_summary is missing {summary_key}"
+            )
+    turnover = dict(master_atlas_dashboard_feed.get("turnover_readiness") or {})
+    for field_name in ("current_mode", "target_mode", "autonomous_turnover_status", "operator_answer"):
+        if not str(turnover.get(field_name) or "").strip():
+            errors.append(
+                f"projects/dashboard/src/generated/master-atlas.json turnover_readiness is missing {field_name}"
+            )
+    if not isinstance(turnover.get("autonomous_turnover_ready_now"), bool):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json turnover_readiness.autonomous_turnover_ready_now must be boolean"
+        )
+    if not isinstance(turnover.get("blocker_count"), int) or int(turnover.get("blocker_count")) < 0:
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json turnover_readiness.blocker_count must be a non-negative integer"
+        )
+    autonomous_queue_summary = dict(master_atlas_dashboard_feed.get("autonomous_queue_summary") or {})
+    if not isinstance(autonomous_queue_summary.get("queue_count"), int):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json autonomous_queue_summary.queue_count must be an integer"
+        )
+    if not isinstance(autonomous_queue_summary.get("dispatchable_queue_count"), int):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json autonomous_queue_summary.dispatchable_queue_count must be an integer"
+        )
+    if dict(master_atlas_dashboard_feed.get("eval_run_ledger") or {}).get("version") != eval_run_ledger.get("version"):
+        errors.append("projects/dashboard/src/generated/master-atlas.json eval_run_ledger version must match eval-run-ledger.json")
+    if dict(master_atlas_dashboard_feed.get("artifact_provenance_ledger") or {}).get("version") != artifact_provenance.get("version"):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json artifact_provenance_ledger version must match artifact-provenance-ledger.json"
+        )
+    if dict(master_atlas_dashboard_feed.get("economic_dispatch_ledger") or {}).get("version") != economic_dispatch.get("version"):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json economic_dispatch_ledger version must match economic-dispatch-ledger.json"
+        )
+    if dict(master_atlas_dashboard_feed.get("capacity_envelope_registry") or {}).get("version") != capacity_envelope.get("version"):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json capacity_envelope_registry version must match capacity-envelope-registry.json"
+        )
+    if dict(master_atlas_dashboard_feed.get("restore_ledger") or {}).get("version") != restore_ledger.get("version"):
+        errors.append("projects/dashboard/src/generated/master-atlas.json restore_ledger version must match restore-ledger.json")
+    if dict(master_atlas_dashboard_feed.get("lane_selection_matrix") or {}).get("version") != lane_selection_matrix.get("version"):
+        errors.append("projects/dashboard/src/generated/master-atlas.json lane_selection_matrix version must match lane-selection-matrix.json")
+    if dict(master_atlas_dashboard_feed.get("approval_matrix") or {}).get("version") != approval_matrix.get("version"):
+        errors.append("projects/dashboard/src/generated/master-atlas.json approval_matrix version must match approval-matrix.json")
+    if dict(master_atlas_dashboard_feed.get("failure_routing_matrix") or {}).get("version") != failure_routing_matrix.get("version"):
+        errors.append("projects/dashboard/src/generated/master-atlas.json failure_routing_matrix version must match failure-routing-matrix.json")
+    if dict(master_atlas_dashboard_feed.get("subscription_burn_registry") or {}).get("version") != subscription_burn_registry.get("version"):
+        errors.append("projects/dashboard/src/generated/master-atlas.json subscription_burn_registry version must match subscription-burn-registry.json")
+    if not isinstance(master_atlas_dashboard_feed.get("lane_recommendations"), list):
+        errors.append("projects/dashboard/src/generated/master-atlas.json lane_recommendations must be a list")
+    elif int(feed_summary.get("lane_recommendation_count") or 0) != len(master_atlas_dashboard_feed.get("lane_recommendations") or []):
+        errors.append("projects/dashboard/src/generated/master-atlas.json dashboard_summary.lane_recommendation_count must match lane_recommendations length")
+    shadow_summary = dict(master_atlas_dashboard_feed.get("router_shadow_summary") or {})
+    if not isinstance(shadow_summary.get("phase"), int):
+        errors.append("projects/dashboard/src/generated/master-atlas.json router_shadow_summary.phase must be an integer")
+    if not str(shadow_summary.get("phase_label") or "").strip():
+        errors.append("projects/dashboard/src/generated/master-atlas.json router_shadow_summary.phase_label is required")
+    routing_latest = dict(master_atlas_dashboard_feed.get("routing_decisions_latest") or {})
+    if not str(routing_latest.get("alert_state") or "").strip():
+        errors.append("projects/dashboard/src/generated/master-atlas.json routing_decisions_latest.alert_state is required")
+    if not isinstance(routing_latest.get("lane_recommendations"), list):
+        errors.append("projects/dashboard/src/generated/master-atlas.json routing_decisions_latest.lane_recommendations must be a list")
+    if not isinstance(routing_latest.get("next_required_approval"), dict):
+        errors.append("projects/dashboard/src/generated/master-atlas.json routing_decisions_latest.next_required_approval must be an object")
+    safe_surface_summary = dict(master_atlas_dashboard_feed.get("safe_surface_summary") or {})
+    if not isinstance(safe_surface_summary.get("queue_count"), int):
+        errors.append("projects/dashboard/src/generated/master-atlas.json safe_surface_summary.queue_count must be an integer")
+    if feed_summary.get("turnover_status") != turnover.get("autonomous_turnover_status"):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json dashboard_summary.turnover_status must match turnover_readiness.autonomous_turnover_status"
+        )
+    if feed_summary.get("turnover_ready_now") != turnover.get("autonomous_turnover_ready_now"):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json dashboard_summary.turnover_ready_now must match turnover_readiness.autonomous_turnover_ready_now"
+        )
+    if feed_summary.get("turnover_current_mode") != turnover.get("current_mode"):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json dashboard_summary.turnover_current_mode must match turnover_readiness.current_mode"
+        )
+    if feed_summary.get("turnover_target_mode") != turnover.get("target_mode"):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json dashboard_summary.turnover_target_mode must match turnover_readiness.target_mode"
+        )
+    if int(feed_summary.get("turnover_blocker_count") or 0) != int(turnover.get("blocker_count") or 0):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json dashboard_summary.turnover_blocker_count must match turnover_readiness.blocker_count"
+        )
+    if int(feed_summary.get("safe_surface_queue_count") or 0) != int(safe_surface_summary.get("queue_count") or 0):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json dashboard_summary.safe_surface_queue_count must match safe_surface_summary.queue_count"
+        )
+    if int(feed_summary.get("autonomous_queue_count") or 0) != int(autonomous_queue_summary.get("queue_count") or 0):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json dashboard_summary.autonomous_queue_count must match autonomous_queue_summary.queue_count"
+        )
+    if int(feed_summary.get("autonomous_dispatchable_queue_count") or 0) != int(
+        autonomous_queue_summary.get("dispatchable_queue_count") or 0
+    ):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json dashboard_summary.autonomous_dispatchable_queue_count must match autonomous_queue_summary.dispatchable_queue_count"
+        )
+    if int(turnover.get("autonomous_queue_count") or 0) != int(autonomous_queue_summary.get("queue_count") or 0):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json turnover_readiness.autonomous_queue_count must match autonomous_queue_summary.queue_count"
+        )
+    if int(turnover.get("dispatchable_autonomous_queue_count") or 0) != int(
+        autonomous_queue_summary.get("dispatchable_queue_count") or 0
+    ):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json turnover_readiness.dispatchable_autonomous_queue_count must match autonomous_queue_summary.dispatchable_queue_count"
+        )
+    if int(routing_latest.get("safe_surface_summary", {}).get("queue_count") or 0) != int(
+        safe_surface_summary.get("queue_count") or 0
+    ):
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json routing_decisions_latest.safe_surface_summary.queue_count must match safe_surface_summary.queue_count"
+        )
+
+
+def _validate_routing_runtime_ledgers(
+    *,
+    errors: list[str],
+    quota_truth: dict[str, Any],
+    planned_subscription_evidence: dict[str, Any],
+    capacity_telemetry: dict[str, Any],
+    active_overrides: dict[str, Any],
+    routing_proof: dict[str, Any],
+    project_packets: dict[str, Any],
+) -> None:
+    if not QUOTA_TRUTH_PATH.exists():
+        errors.append("reports/truth-inventory/quota-truth.json is missing")
+    else:
+        if not _is_parseable_iso_datetime(quota_truth.get("generated_at")):
+            errors.append("reports/truth-inventory/quota-truth.json is missing valid generated_at")
+        records = quota_truth.get("records")
+        if not isinstance(records, list) or not records:
+            errors.append("reports/truth-inventory/quota-truth.json records must be a non-empty list")
+        if str(quota_truth.get("source_of_truth") or "").strip() != "reports/truth-inventory/quota-truth.json":
+            errors.append("reports/truth-inventory/quota-truth.json source_of_truth must point at itself")
+
+    if not PLANNED_SUBSCRIPTION_EVIDENCE_PATH.exists():
+        errors.append("reports/truth-inventory/planned-subscription-evidence.json is missing")
+    else:
+        if not _is_parseable_iso_datetime(planned_subscription_evidence.get("updated_at")):
+            errors.append("reports/truth-inventory/planned-subscription-evidence.json is missing valid updated_at")
+        planned_captures = planned_subscription_evidence.get("captures")
+        if not isinstance(planned_captures, list):
+            errors.append("reports/truth-inventory/planned-subscription-evidence.json captures must be a list")
+
+    if not CAPACITY_TELEMETRY_PATH.exists():
+        errors.append("reports/truth-inventory/capacity-telemetry.json is missing")
+    else:
+        if not _is_parseable_iso_datetime(capacity_telemetry.get("generated_at")):
+            errors.append("reports/truth-inventory/capacity-telemetry.json is missing valid generated_at")
+        if not isinstance(capacity_telemetry.get("node_samples"), list) or not capacity_telemetry.get("node_samples"):
+            errors.append("reports/truth-inventory/capacity-telemetry.json node_samples must be a non-empty list")
+        if not isinstance(capacity_telemetry.get("gpu_samples"), list) or not capacity_telemetry.get("gpu_samples"):
+            errors.append("reports/truth-inventory/capacity-telemetry.json gpu_samples must be a non-empty list")
+        capacity_summary = dict(capacity_telemetry.get("capacity_summary") or {})
+        sample_posture = str(capacity_summary.get("sample_posture") or "").strip()
+        if sample_posture == "scheduler_projection_backed":
+            if not isinstance(capacity_summary.get("harvestable_by_zone"), dict):
+                errors.append("reports/truth-inventory/capacity-telemetry.json capacity_summary.harvestable_by_zone must be a mapping when scheduler projection is active")
+            if not isinstance(capacity_summary.get("harvestable_by_slot"), dict):
+                errors.append("reports/truth-inventory/capacity-telemetry.json capacity_summary.harvestable_by_slot must be a mapping when scheduler projection is active")
+            scheduler_slot_samples = capacity_telemetry.get("scheduler_slot_samples")
+            if not isinstance(scheduler_slot_samples, list) or not scheduler_slot_samples:
+                errors.append("reports/truth-inventory/capacity-telemetry.json scheduler_slot_samples must be a non-empty list when scheduler projection is active")
+            else:
+                for sample in scheduler_slot_samples:
+                    if not isinstance(sample, dict):
+                        errors.append("reports/truth-inventory/capacity-telemetry.json scheduler_slot_samples entries must be objects")
+                        continue
+                    if not str(sample.get("scheduler_slot_id") or "").strip():
+                        errors.append("reports/truth-inventory/capacity-telemetry.json scheduler_slot_samples entries must include scheduler_slot_id")
+                    if not isinstance(sample.get("member_gpu_ids"), list):
+                        errors.append("reports/truth-inventory/capacity-telemetry.json scheduler_slot_samples entries must include member_gpu_ids lists")
+                    if not isinstance(sample.get("admissible_gpu_ids"), list):
+                        errors.append("reports/truth-inventory/capacity-telemetry.json scheduler_slot_samples entries must include admissible_gpu_ids lists")
+
+    if not ACTIVE_OVERRIDES_PATH.exists():
+        errors.append("reports/truth-inventory/active-overrides.json is missing")
+    else:
+        policy = dict(active_overrides.get("policy") or {})
+        allowed_types = policy.get("allowed_types")
+        if not isinstance(allowed_types, list) or not allowed_types:
+            errors.append("reports/truth-inventory/active-overrides.json policy.allowed_types must be a non-empty list")
+        if not isinstance(active_overrides.get("active_overrides"), list):
+            errors.append("reports/truth-inventory/active-overrides.json active_overrides must be a list")
+
+    if not ROUTING_PROOF_PATH.exists():
+        errors.append("reports/truth-inventory/routing-proof.json is missing")
+    else:
+        if not _is_parseable_iso_datetime(routing_proof.get("generated_at")):
+            errors.append("reports/truth-inventory/routing-proof.json is missing valid generated_at")
+        suites = routing_proof.get("suites")
+        if not isinstance(suites, list) or not suites:
+            errors.append("reports/truth-inventory/routing-proof.json suites must be a non-empty list")
+
+    for project in project_packets.get("projects", []):
+        if not isinstance(project, dict):
+            continue
+        project_id = str(project.get("id") or "").strip()
+        routing_class = str(project.get("routing_class") or "").strip()
+        if routing_class not in ALLOWED_PROJECT_ROUTING_CLASSES:
+            errors.append(f"project-packet-registry.json project {project_id} has invalid routing_class {routing_class!r}")
+        if not str(project.get("routing_reason") or "").strip():
+            errors.append(f"project-packet-registry.json project {project_id} is missing routing_reason")
+
+
 def main() -> int:
     errors: list[str] = []
 
+    vault_host_vars = _load_yaml(VAULT_HOST_VARS_PATH)
     topology = _load_json("platform-topology.json")
     hardware_inventory = _load_json("hardware-inventory.json")
     model_deployments = _load_json("model-deployment-registry.json")
     provider_catalog = _load_json("provider-catalog.json")
     subscription_burn = _load_json("subscription-burn-registry.json")
+    lane_selection_matrix = _load_json("lane-selection-matrix.json")
+    approval_matrix = _load_json("approval-matrix.json")
+    failure_routing_matrix = _load_json("failure-routing-matrix.json")
     autonomy_activation = _load_json("autonomy-activation-registry.json")
     tooling_inventory = _load_json("tooling-inventory.json")
+    coding_lanes = _load_json("coding-lane-registry.json")
     credential_surfaces = _load_json("credential-surface-registry.json")
     operator_surfaces = _load_json("operator-surface-registry.json")
     operator_runbooks = _load_json("operator-runbooks.json")
@@ -1317,10 +2413,21 @@ def main() -> int:
     foundry_proving = _load_json("foundry-proving-registry.json")
     governance_drills = _load_json("governance-drill-registry.json")
     approval_packets = _load_json("approval-packet-registry.json")
+    contract_registry = _load_json("contract-registry.json")
+    capability_adoption = _load_json("capability-adoption-registry.json")
+    eval_run_ledger = _load_json("eval-run-ledger.json")
+    artifact_provenance = _load_json("artifact-provenance-ledger.json")
+    economic_dispatch = _load_json("economic-dispatch-ledger.json")
+    capacity_envelope = _load_json("capacity-envelope-registry.json")
+    restore_ledger = _load_json("restore-ledger.json")
+    backup_restore_readiness = _load_json("backup-restore-readiness.json")
     docs = _load_json("docs-lifecycle-registry.json")
     provider_usage_evidence = {}
     if PROVIDER_USAGE_EVIDENCE_PATH.exists():
         provider_usage_evidence = json.loads(PROVIDER_USAGE_EVIDENCE_PATH.read_text(encoding="utf-8"))
+    planned_subscription_evidence = {}
+    if PLANNED_SUBSCRIPTION_EVIDENCE_PATH.exists():
+        planned_subscription_evidence = json.loads(PLANNED_SUBSCRIPTION_EVIDENCE_PATH.read_text(encoding="utf-8"))
     vault_litellm_env_audit = {}
     if VAULT_LITELLM_ENV_AUDIT_PATH.exists():
         vault_litellm_env_audit = json.loads(VAULT_LITELLM_ENV_AUDIT_PATH.read_text(encoding="utf-8"))
@@ -1330,6 +2437,18 @@ def main() -> int:
     latest_truth_snapshot = {}
     if TRUTH_SNAPSHOT_PATH.exists():
         latest_truth_snapshot = json.loads(TRUTH_SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    quota_truth = {}
+    if QUOTA_TRUTH_PATH.exists():
+        quota_truth = json.loads(QUOTA_TRUTH_PATH.read_text(encoding="utf-8"))
+    capacity_telemetry = {}
+    if CAPACITY_TELEMETRY_PATH.exists():
+        capacity_telemetry = json.loads(CAPACITY_TELEMETRY_PATH.read_text(encoding="utf-8"))
+    active_overrides = {}
+    if ACTIVE_OVERRIDES_PATH.exists():
+        active_overrides = json.loads(ACTIVE_OVERRIDES_PATH.read_text(encoding="utf-8"))
+    routing_proof = {}
+    if ROUTING_PROOF_PATH.exists():
+        routing_proof = json.loads(ROUTING_PROOF_PATH.read_text(encoding="utf-8"))
     latest_bootstrap_snapshot = {}
     if BOOTSTRAP_SNAPSHOT_PATH.exists():
         latest_bootstrap_snapshot = json.loads(BOOTSTRAP_SNAPSHOT_PATH.read_text(encoding="utf-8"))
@@ -1360,6 +2479,9 @@ def main() -> int:
     takeover_promotion_packet = {}
     if BOOTSTRAP_TAKEOVER_PROMOTION_PACKET_PATH.exists():
         takeover_promotion_packet = json.loads(BOOTSTRAP_TAKEOVER_PROMOTION_PACKET_PATH.read_text(encoding="utf-8"))
+    master_atlas_dashboard_feed = {}
+    if MASTER_ATLAS_DASHBOARD_FEED_PATH.exists():
+        master_atlas_dashboard_feed = json.loads(MASTER_ATLAS_DASHBOARD_FEED_PATH.read_text(encoding="utf-8"))
     operating_system = _load_json("program-operating-system.json")
     release_ritual = _load_json("release-ritual.json")
     workload_registry = _load_json("workload-class-registry.json")
@@ -1374,6 +2496,7 @@ def main() -> int:
         "subscription-burn-registry.json": str(subscription_burn.get("version") or ""),
         "autonomy-activation-registry.json": str(autonomy_activation.get("version") or ""),
         "tooling-inventory.json": str(tooling_inventory.get("version") or ""),
+        "coding-lane-registry.json": str(coding_lanes.get("version") or ""),
         "credential-surface-registry.json": str(credential_surfaces.get("version") or ""),
         "operator-surface-registry.json": str(operator_surfaces.get("version") or ""),
         "operator-runbooks.json": str(operator_runbooks.get("version") or ""),
@@ -1394,6 +2517,14 @@ def main() -> int:
         "foundry-proving-registry.json": str(foundry_proving.get("version") or ""),
         "governance-drill-registry.json": str(governance_drills.get("version") or ""),
         "approval-packet-registry.json": str(approval_packets.get("version") or ""),
+        "contract-registry.json": str(contract_registry.get("version") or ""),
+        "capability-adoption-registry.json": str(capability_adoption.get("version") or ""),
+        "eval-run-ledger.json": str(eval_run_ledger.get("version") or ""),
+        "artifact-provenance-ledger.json": str(artifact_provenance.get("version") or ""),
+        "economic-dispatch-ledger.json": str(economic_dispatch.get("version") or ""),
+        "capacity-envelope-registry.json": str(capacity_envelope.get("version") or ""),
+        "restore-ledger.json": str(restore_ledger.get("version") or ""),
+        "backup-restore-readiness.json": str(backup_restore_readiness.get("version") or ""),
         "docs-lifecycle-registry.json": str(docs.get("version") or ""),
         "program-operating-system.json": str(operating_system.get("version") or ""),
     }
@@ -1418,7 +2549,44 @@ def main() -> int:
         governance_drill_packets=governance_drill_packets,
         takeover_promotion_packet=takeover_promotion_packet,
     )
-    lifecycle_paths = {str(document.get("path") or "") for document in docs.get("documents", [])}
+    _validate_capability_adoption_registry(
+        errors=errors,
+        capability_adoption=capability_adoption,
+        contract_registry=contract_registry,
+        repo_roots=repo_roots,
+        runtime_ownership=runtime_ownership,
+        runtime_ownership_packets=runtime_ownership_packets,
+    )
+    _validate_repo_structure_contract(errors)
+    _validate_master_atlas_contracts(
+        errors=errors,
+        contract_registry=contract_registry,
+        capability_adoption=capability_adoption,
+        policy_registry=policy_registry,
+        topology=topology,
+        coding_lanes=coding_lanes,
+        eval_run_ledger=eval_run_ledger,
+        artifact_provenance=artifact_provenance,
+        economic_dispatch=economic_dispatch,
+        capacity_envelope=capacity_envelope,
+        restore_ledger=restore_ledger,
+        backup_restore_readiness=backup_restore_readiness,
+        master_atlas_dashboard_feed=master_atlas_dashboard_feed,
+        lane_selection_matrix=lane_selection_matrix,
+        approval_matrix=approval_matrix,
+        failure_routing_matrix=failure_routing_matrix,
+        subscription_burn_registry=subscription_burn,
+    )
+    _validate_routing_runtime_ledgers(
+        errors=errors,
+        quota_truth=quota_truth,
+        planned_subscription_evidence=planned_subscription_evidence,
+        capacity_telemetry=capacity_telemetry,
+        active_overrides=active_overrides,
+        routing_proof=routing_proof,
+        project_packets=project_packets,
+    )
+    lifecycle_paths = _validate_docs_lifecycle_registry_shape(errors, docs)
     workflow_steps = _workflow_step_names()
 
     if BUILD_MANIFEST_ACTIVE_PATH.exists():
@@ -1578,6 +2746,11 @@ def main() -> int:
         errors.append(
             "operator-surface-registry.json canonical_portal_id must reference the sole active production portal"
         )
+    _validate_vault_prometheus_probe_contract(
+        errors=errors,
+        operator_surfaces=operator_surfaces,
+        vault_host_vars=vault_host_vars,
+    )
     operator_surface_probe = dict(latest_truth_snapshot.get("operator_surface_probe") or {})
     dev_command_center_runtime = dict(operator_surface_probe.get("dev_command_center_runtime") or {})
     dev_runtime_detail = (
@@ -2114,6 +3287,79 @@ def main() -> int:
             errors.append(
                 "reports/truth-inventory/provider-usage-evidence.json capture for "
                 f"{provider_id} has non-integer http_status"
+            )
+
+    planned_subscription_index = {
+        str(entry.get("id") or ""): dict(entry)
+        for entry in subscription_burn.get("planned_subscriptions", [])
+        if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+    }
+    planned_captures = planned_subscription_evidence.get("captures", []) if isinstance(planned_subscription_evidence, dict) else []
+    if planned_captures and not isinstance(planned_captures, list):
+        errors.append("reports/truth-inventory/planned-subscription-evidence.json captures must be a list")
+        planned_captures = []
+    for capture in planned_captures:
+        if not isinstance(capture, dict):
+            errors.append("reports/truth-inventory/planned-subscription-evidence.json captures entries must be objects")
+            continue
+        family_id = str(capture.get("family_id") or "").strip()
+        provider_id = str(capture.get("provider_id") or "").strip()
+        status = str(capture.get("status") or "").strip()
+        observed_at = str(capture.get("observed_at") or "").strip()
+        source = str(capture.get("source") or "").strip()
+        request_surface = str(capture.get("request_surface") or "").strip()
+        required_commands = capture.get("required_commands")
+        available_commands = capture.get("available_commands")
+        required_env_contracts = capture.get("required_env_contracts")
+        present_env_contracts = capture.get("present_env_contracts")
+        family = planned_subscription_index.get(family_id)
+        if family is None:
+            errors.append(
+                "reports/truth-inventory/planned-subscription-evidence.json capture references unknown planned family "
+                f"{family_id!r}"
+            )
+            continue
+        expected_provider_id = str(family.get("provider_id") or "").strip()
+        if provider_id != expected_provider_id:
+            errors.append(
+                "reports/truth-inventory/planned-subscription-evidence.json capture for "
+                f"{family_id} has provider_id {provider_id!r} but expected {expected_provider_id!r}"
+            )
+        if status not in ALLOWED_PLANNED_SUBSCRIPTION_CAPTURE_STATUSES:
+            errors.append(
+                "reports/truth-inventory/planned-subscription-evidence.json capture for "
+                f"{family_id} has invalid status {status!r}"
+            )
+        if not observed_at or not _is_parseable_iso_datetime(observed_at):
+            errors.append(
+                "reports/truth-inventory/planned-subscription-evidence.json capture for "
+                f"{family_id} is missing valid observed_at"
+            )
+        if not source:
+            errors.append(
+                "reports/truth-inventory/planned-subscription-evidence.json capture for "
+                f"{family_id} is missing source"
+            )
+        if not request_surface:
+            errors.append(
+                "reports/truth-inventory/planned-subscription-evidence.json capture for "
+                f"{family_id} is missing request_surface"
+            )
+        for field_name, value in (
+            ("required_commands", required_commands),
+            ("available_commands", available_commands),
+            ("required_env_contracts", required_env_contracts),
+            ("present_env_contracts", present_env_contracts),
+        ):
+            if not isinstance(value, list):
+                errors.append(
+                    "reports/truth-inventory/planned-subscription-evidence.json capture for "
+                    f"{family_id} field {field_name} must be a list"
+                )
+        if status in {"tooling_ready", "supported_tool_usage_observed"} and not list(available_commands or []):
+            errors.append(
+                "reports/truth-inventory/planned-subscription-evidence.json capture for "
+                f"{family_id} requires available_commands when status is {status!r}"
             )
 
     routing_provider_ids = {str(item) for item in dict(subscription_policy.get("providers") or {}).keys()}
@@ -2972,6 +4218,71 @@ def main() -> int:
         errors.append("completion-program-registry.json loop_blocker_types must match the allowed loop-blocker-type set")
     if set(str(item) for item in completion_program.get("priority_levels", [])) != ALLOWED_COMPLETION_PRIORITY_LEVELS:
         errors.append("completion-program-registry.json priority_levels must match the allowed priority set")
+
+    publication_slices = dict(completion_program.get("publication_slices") or {})
+    if str(publication_slices.get("owner_workstream_id") or "") != "validation-and-publication":
+        errors.append("completion-program-registry.json publication_slices.owner_workstream_id must be validation-and-publication")
+    if str(publication_slices.get("checkpoint_id") or "") != "final-publication-and-freeze":
+        errors.append("completion-program-registry.json publication_slices.checkpoint_id must be final-publication-and-freeze")
+    if str(publication_slices.get("source_doc") or "") != "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md":
+        errors.append("completion-program-registry.json publication_slices.source_doc must be docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md")
+    if not str(publication_slices.get("active_sequence_id") or "").strip():
+        errors.append("completion-program-registry.json publication_slices.active_sequence_id is missing")
+    slice_statuses = set(str(item) for item in publication_slices.get("slice_statuses", []))
+    if slice_statuses != ALLOWED_PUBLICATION_SLICE_STATUSES:
+        errors.append("completion-program-registry.json publication_slices.slice_statuses must match the allowed publication-slice status set")
+    publication_rules = publication_slices.get("rules", [])
+    if not isinstance(publication_rules, list) or len(publication_rules) != 3 or not all(str(item).strip() for item in publication_rules):
+        errors.append("completion-program-registry.json publication_slices.rules must be a 3-item non-empty string list")
+
+    publication_slice_entries = [
+        dict(entry) for entry in publication_slices.get("slices", []) if isinstance(entry, dict)
+    ]
+    publication_slice_ids = [str(entry.get("id") or "").strip() for entry in publication_slice_entries]
+    if publication_slice_ids != REQUIRED_PUBLICATION_SLICE_IDS:
+        errors.append(
+            "completion-program-registry.json publication_slices.slices must contain the required slice ids in order: "
+            + ", ".join(REQUIRED_PUBLICATION_SLICE_IDS)
+        )
+    for expected_order, entry in enumerate(publication_slice_entries, start=1):
+        slice_id = str(entry.get("id") or "").strip()
+        if not slice_id:
+            errors.append("completion-program-registry.json publication_slices contains a slice without id")
+            continue
+        if str(entry.get("status") or "") not in ALLOWED_PUBLICATION_SLICE_STATUSES:
+            errors.append(
+                f"completion-program-registry.json publication_slices slice {slice_id} has invalid status {entry.get('status')!r}"
+            )
+        if int(entry.get("order") or 0) != expected_order:
+            errors.append(
+                f"completion-program-registry.json publication_slices slice {slice_id} must have order {expected_order}"
+            )
+        if not str(entry.get("title") or "").strip():
+            errors.append(f"completion-program-registry.json publication_slices slice {slice_id} is missing title")
+        if not str(entry.get("scope") or "").strip():
+            errors.append(f"completion-program-registry.json publication_slices slice {slice_id} is missing scope")
+        if not str(entry.get("blocking_gate") or "").strip():
+            errors.append(f"completion-program-registry.json publication_slices slice {slice_id} is missing blocking_gate")
+        dependencies = entry.get("dependencies", [])
+        if not isinstance(dependencies, list):
+            errors.append(
+                f"completion-program-registry.json publication_slices slice {slice_id} dependencies must be a list"
+            )
+        elif any(str(dependency).strip() not in REQUIRED_PUBLICATION_SLICE_IDS for dependency in dependencies):
+            errors.append(
+                f"completion-program-registry.json publication_slices slice {slice_id} has unknown dependency ids"
+            )
+        owner_workstreams = entry.get("owner_workstreams", [])
+        if not isinstance(owner_workstreams, list) or not all(str(item).strip() for item in owner_workstreams):
+            errors.append(
+                f"completion-program-registry.json publication_slices slice {slice_id} owner_workstreams must be a non-empty string list"
+            )
+        else:
+            for owner_workstream in owner_workstreams:
+                if str(owner_workstream) not in REQUIRED_COMPLETION_WORKSTREAM_IDS:
+                    errors.append(
+                        f"completion-program-registry.json publication_slices slice {slice_id} references unknown owner_workstream {owner_workstream!r}"
+                    )
 
     loop_family_entries = [
         dict(entry) for entry in completion_program.get("loop_families", []) if isinstance(entry, dict)

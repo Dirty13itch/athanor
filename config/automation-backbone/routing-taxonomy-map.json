@@ -1,6 +1,6 @@
 {
-  "version": "2026-03-25.1",
-  "updated_at": "2026-03-25T19:15:00Z",
+  "version": "2026-04-12.1",
+  "updated_at": "2026-04-12T20:40:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/routing-taxonomy-map.json",
   "mappings": [
@@ -56,6 +56,17 @@
       "notes": []
     },
     {
+      "task_class": "overnight_harvest",
+      "workload_class": "background_transform",
+      "policy_class": "private_but_cloud_allowed",
+      "presence_states": ["away", "asleep"],
+      "release_tiers": ["shadow", "sandbox", "canary", "production"],
+      "allowed_provider_categories": ["local", "subscription"],
+      "notes": [
+        "Prefer harvestable local capacity first and only spill into approved cloud lanes after reserve protection."
+      ]
+    },
+    {
       "task_class": "search_heavy_planning",
       "workload_class": "research_synthesis",
       "policy_class": "cloud_safe",
@@ -65,7 +76,7 @@
       "notes": []
     },
     {
-      "task_class": "private_internal_automation",
+      "task_class": "private_automation",
       "workload_class": "private_automation",
       "policy_class": "sovereign_only",
       "presence_states": ["at_desk", "away", "asleep", "phone_only"],

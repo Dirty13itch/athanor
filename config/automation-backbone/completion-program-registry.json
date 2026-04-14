@@ -172,18 +172,136 @@
   ],
   "program_id": "athanor-total-completion",
   "program_title": "Athanor Total Completion Program",
+  "publication_slices": {
+    "active_sequence_id": "2026-04-12-bounded-checkpoint-publication",
+    "checkpoint_id": "final-publication-and-freeze",
+    "owner_workstream_id": "validation-and-publication",
+    "rules": [
+      "Land slices in the order above.",
+      "Regenerate reports and atlas outputs after the source slices land.",
+      "Do not publish local-only noise such as `.pyc` artifacts or workstation-local settings files as part of a checkpoint."
+    ],
+    "slice_statuses": [
+      "planned",
+      "active",
+      "approval_gated",
+      "ready_for_checkpoint",
+      "published"
+    ],
+    "slices": [
+      {
+        "blocking_gate": "none",
+        "dependencies": [],
+        "id": "backbone-contracts-and-truth-writers",
+        "order": 1,
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "scope": "Core control-plane registries, quota/capacity/override writers, validator expansion, and the source-of-truth layer that must land coherently before downstream consumers.",
+        "status": "ready_for_checkpoint",
+        "title": "Backbone Contracts and Truth Writers"
+      },
+      {
+        "blocking_gate": "none",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers"
+        ],
+        "id": "runtime-ownership-provider-truth-and-reconciliation",
+        "order": 2,
+        "owner_workstreams": [
+          "deployment-authority-reconciliation",
+          "runtime-sync-and-governed-packets",
+          "provider-and-secret-remediation",
+          "portfolio-and-source-reconciliation",
+          "lineage-and-shared-extraction",
+          "tenant-architecture-and-classification",
+          "validation-and-publication"
+        ],
+        "scope": "Runtime-ownership contract and packets, provider catalog and burn truth, reconciliation roots, truth-report generator updates, and the linked operations reports and runbooks that make runtime handoff explicit.",
+        "status": "ready_for_checkpoint",
+        "title": "Runtime Ownership, Provider Truth, and Reconciliation"
+      },
+      {
+        "blocking_gate": "none",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers"
+        ],
+        "id": "pilot-eval-substrate-and-operator-test-machinery",
+        "order": 3,
+        "owner_workstreams": [
+          "validation-and-publication"
+        ],
+        "scope": "Eval corpus and run ledgers, pilot provenance, operator-test flows, formal preflight and eval runners, and their test contracts as one formal pilot-infrastructure slice.",
+        "status": "ready_for_checkpoint",
+        "title": "Pilot Eval Substrate and Operator-Test Machinery"
+      },
+      {
+        "blocking_gate": "none",
+        "dependencies": [
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "runtime-ownership-provider-truth-and-reconciliation"
+        ],
+        "id": "graphrag-promotion-wave",
+        "order": 4,
+        "owner_workstreams": [
+          "runtime-sync-and-governed-packets",
+          "validation-and-publication"
+        ],
+        "scope": "GraphRAG service, Athanor agents retrieval seam, promotion eval, packet, and linked capability truth as one governed knowledge-subsystem promotion slice.",
+        "status": "ready_for_checkpoint",
+        "title": "GraphRAG Promotion Wave"
+      },
+      {
+        "blocking_gate": "none",
+        "dependencies": [
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "runtime-ownership-provider-truth-and-reconciliation"
+        ],
+        "id": "gpu-scheduler-extension-wave",
+        "order": 5,
+        "owner_workstreams": [
+          "runtime-sync-and-governed-packets",
+          "validation-and-publication"
+        ],
+        "scope": "Scheduler delta, rollout script, formal eval, packet, and orchestrator tests as one bounded runtime-extension slice.",
+        "status": "ready_for_checkpoint",
+        "title": "GPU Scheduler Extension Wave"
+      },
+      {
+        "blocking_gate": "depends_on_prior_slices",
+        "dependencies": [
+          "backbone-contracts-and-truth-writers",
+          "runtime-ownership-provider-truth-and-reconciliation",
+          "pilot-eval-substrate-and-operator-test-machinery",
+          "graphrag-promotion-wave",
+          "gpu-scheduler-extension-wave"
+        ],
+        "id": "forge-atlas-dashboard-and-startup-truth",
+        "order": 6,
+        "owner_workstreams": [
+          "startup-docs-and-prune",
+          "validation-and-publication"
+        ],
+        "scope": "Devstack forge and atlas compilers, dashboard consumers, generated master-atlas outputs, and top-entry startup and status docs that should land last so they reflect the earlier slices.",
+        "status": "ready_for_checkpoint",
+        "title": "Forge, Atlas, Dashboard, and Startup Truth"
+      }
+    ],
+    "source_doc": "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md"
+  },
   "ralph_loop": {
     "approval_status": "not_required",
     "blocker_type": "none",
     "controller_script": "scripts/run_ralph_loop_pass.py",
-    "current_loop_family": "repo_safe_repair_planning",
+    "current_loop_family": "governor_scheduling",
     "current_phase_scope": "full_system_phase_3",
     "evidence_freshness": "fresh",
     "execution_posture": "steady_state",
-    "last_validation_run": "2026-04-08T06:47:40.552868+00:00",
-    "next_action_family": "repo_safe_repair",
+    "last_validation_run": "2026-04-14T21:23:27.234905+00:00",
+    "next_action_family": "dispatch_truth_and_queue_replenishment",
     "report_path": "reports/ralph-loop/latest.json",
-    "selected_workstream": "authority-and-mainline",
+    "selected_workstream": "dispatch-and-work-economy-closure",
     "status": "active"
   },
   "reconciliation_end_state": {
@@ -191,8 +309,8 @@
     "gate_summary": {
       "active": 0,
       "all_non_steady_state_gates_terminal": true,
-      "completed": 6,
-      "external_dependency_blocked": 1,
+      "completed": 7,
+      "external_dependency_blocked": 0,
       "ready_for_operator_approval": 0,
       "steady_state_monitoring": 1,
       "total": 8
@@ -260,7 +378,10 @@
         "title": "Runtime Gate"
       },
       {
-        "blocker_type": "external_dependency",
+        "blocker_type": "none",
+        "blocking_provider_count": 0,
+        "blocking_provider_ids": [],
+        "classification_counts": {},
         "evidence_paths": [
           "config/automation-backbone/provider-catalog.json",
           "reports/truth-inventory/provider-usage-evidence.json",
@@ -268,11 +389,17 @@
           "docs/operations/PROVIDER-CATALOG-REPORT.md",
           "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md"
         ],
+        "excluded_provider_ids": [
+          "openai_api",
+          "google_gemini_api",
+          "dashscope_qwen_api",
+          "openrouter_api"
+        ],
         "id": "provider_gate",
         "owner_workstreams": [
           "provider-and-secret-remediation"
         ],
-        "status": "external_dependency_blocked",
+        "status": "completed",
         "success_criteria": [
           "Every provider lane is proven, intentionally demoted, blocked for a named reason, or governed handoff only.",
           "Provider catalog, provider evidence, and VAULT env audit agree materially.",
@@ -375,8 +502,8 @@
         "Validation and generated-doc checks pass cleanly.",
         "No new authority, provider, or portfolio ambiguity reopens on consecutive Ralph cycles."
       ],
-      "current_consecutive_clean_cycles": 5,
-      "last_clean_cycle_at": "2026-04-08T06:47:42.859533+00:00",
+      "current_consecutive_clean_cycles": 2,
+      "last_clean_cycle_at": "2026-04-14T21:07:44.732317+00:00",
       "ready_to_transition": true,
       "required_consecutive_clean_cycles": 2
     },
@@ -415,7 +542,7 @@
   ],
   "status": "active",
   "tenant_depth_default": "light-tenant",
-  "version": "2026-04-08.1",
+  "version": "2026-04-13.0",
   "workstream_statuses": [
     "planned",
     "active",
@@ -435,7 +562,7 @@
         "reports/truth-inventory/latest.json",
         "docs/operations/REPO-ROOTS-REPORT.md"
       ],
-      "execution_state": "ready_for_execution",
+      "execution_state": "steady_state_monitoring",
       "exit_criteria": [
         "C:\\Athanor is the only active implementation-authority root.",
         "origin/main and local mainline are explicitly aligned or drift is packeted.",
@@ -454,7 +581,7 @@
         "docs/operations/REPO-ROOTS-REPORT.md"
       ],
       "priority": "critical",
-      "status": "active",
+      "status": "continuous",
       "title": "Authority and Mainline Convergence"
     },
     {
@@ -468,7 +595,7 @@
         "reports/deployment-drift/summary.md",
         "docs/operations/ATHANOR-RECONCILIATION-LEDGER.md"
       ],
-      "execution_state": "ready_for_execution",
+      "execution_state": "steady_state_monitoring",
       "exit_criteria": [
         "High-confidence repo-side deployment drift is closed.",
         "Remaining live mismatches are explicitly classified as runtime-owned host state or approval-gated runtime repair."
@@ -487,7 +614,7 @@
         "docs/operations/ATHANOR-RECONCILIATION-LEDGER.md"
       ],
       "priority": "critical",
-      "status": "active",
+      "status": "continuous",
       "title": "Deployment Authority Reconciliation"
     },
     {
@@ -524,7 +651,7 @@
     },
     {
       "approval_required": true,
-      "blocker_type": "external_dependency",
+      "blocker_type": "none",
       "dependencies": [
         "runtime-sync-and-governed-packets"
       ],
@@ -534,7 +661,7 @@
         "reports/truth-inventory/vault-litellm-env-audit.json",
         "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md"
       ],
-      "execution_state": "external_dependency_blocked",
+      "execution_state": "steady_state_monitoring",
       "exit_criteria": [
         "Auth-failed provider lanes are either repaired or deliberately demoted.",
         "Provider evidence, billing posture, and env contracts no longer disagree."
@@ -552,8 +679,108 @@
         "reports/truth-inventory/vault-litellm-env-audit.json"
       ],
       "priority": "critical",
-      "status": "blocked",
+      "status": "continuous",
       "title": "Provider and Secret Remediation"
+    },
+    {
+      "approval_required": false,
+      "blocker_type": "none",
+      "dependencies": [
+        "validation-and-publication"
+      ],
+      "evidence_artifacts": [
+        "reports/ralph-loop/latest.json",
+        "reports/truth-inventory/quota-truth.json",
+        "docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md"
+      ],
+      "execution_state": "ready_for_execution",
+      "exit_criteria": [
+        "Ranked autonomous dispatch exposes multiple dispatchable self-improvement work items instead of checkpoint hygiene alone.",
+        "Dispatch authority, startup truth, and the completion registry agree on the current live compounding order."
+      ],
+      "id": "dispatch-and-work-economy-closure",
+      "loop_family": "repo_safe_repair_planning",
+      "next_action_family": "dispatch_truth_and_queue_replenishment",
+      "objective": "Turn work-economy readiness into live compounding by making Athanor-native self-improvement work explicit, dispatchable, and visible in Ralph, atlas, and startup truth.",
+      "owner_role": "program_manager",
+      "primary_artifacts": [
+        "config/automation-backbone/completion-program-registry.json",
+        "scripts/run_ralph_loop_pass.py",
+        "reports/ralph-loop/latest.json",
+        "docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md",
+        "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+        "STATUS.md"
+      ],
+      "priority": "critical",
+      "status": "continuous",
+      "title": "Dispatch and Work-Economy Closure"
+    },
+    {
+      "approval_required": false,
+      "blocker_type": "none",
+      "dependencies": [
+        "dispatch-and-work-economy-closure",
+        "runtime-sync-and-governed-packets"
+      ],
+      "evidence_artifacts": [
+        "reports/truth-inventory/capacity-telemetry.json",
+        "config/automation-backbone/capacity-envelope-registry.json",
+        "config/automation-backbone/economic-dispatch-ledger.json",
+        "reports/truth-inventory/gpu-scheduler-promotion-eval.json"
+      ],
+      "execution_state": "ready_for_execution",
+      "exit_criteria": [
+        "Capacity telemetry reflects scheduler-backed live samples for the harvestable lanes instead of collapsing back to seeded posture.",
+        "Harvest admission and local compute reserve truth remain explicit in Ralph, atlas, and the economic dispatch layer."
+      ],
+      "id": "capacity-and-harvest-truth",
+      "loop_family": "repo_safe_repair_planning",
+      "next_action_family": "capacity_truth_and_harvest_admission",
+      "objective": "Turn scheduler-backed local compute truth into an explicit dispatch substrate by making harvestable slots, reserve protection, and queue-aware admission visible and reviewable.",
+      "owner_role": "infra_sre",
+      "primary_artifacts": [
+        "reports/truth-inventory/capacity-telemetry.json",
+        "config/automation-backbone/capacity-envelope-registry.json",
+        "config/automation-backbone/economic-dispatch-ledger.json",
+        "reports/truth-inventory/gpu-scheduler-promotion-eval.json",
+        "reports/ralph-loop/latest.json"
+      ],
+      "priority": "critical",
+      "status": "continuous",
+      "title": "Capacity and Harvest Truth"
+    },
+    {
+      "approval_required": false,
+      "blocker_type": "none",
+      "dependencies": [
+        "runtime-sync-and-governed-packets",
+        "validation-and-publication"
+      ],
+      "evidence_artifacts": [
+        "reports/truth-inventory/graphrag-promotion-eval.json",
+        "config/automation-backbone/eval-run-ledger.json",
+        "config/automation-backbone/runtime-ownership-packets.json"
+      ],
+      "execution_state": "steady_state_monitoring",
+      "exit_criteria": [
+        "The governed GraphRAG promotion eval no longer carries a hybrid vector-path timeout warning for the core Athanor scenario.",
+        "GraphRAG can remain shadow-tier promotion truth as a live knowledge multiplier instead of a packet-only candidate."
+      ],
+      "id": "graphrag-operational-hardening",
+      "loop_family": "repo_safe_repair_planning",
+      "next_action_family": "graphrag_hybrid_timeout_hardening",
+      "objective": "Keep GraphRAG shadow-tier evidence healthy as a live knowledge multiplier now that the governed hybrid timeout blocker is closed.",
+      "owner_role": "runtime_architect",
+      "primary_artifacts": [
+        "scripts/run_graphrag_promotion_eval.py",
+        "projects/agents/src/athanor_agents/graphrag_client.py",
+        "reports/truth-inventory/graphrag-promotion-eval.json",
+        "config/automation-backbone/eval-run-ledger.json",
+        "config/automation-backbone/runtime-ownership-packets.json"
+      ],
+      "priority": "critical",
+      "status": "continuous",
+      "title": "GraphRAG Operational Hardening"
     },
     {
       "approval_required": false,
@@ -566,14 +793,14 @@
         "reports/deployment-drift/summary.md",
         "docs/operations/OPERATOR-SURFACE-REPORT.md"
       ],
-      "execution_state": "ready_for_execution",
+      "execution_state": "steady_state_monitoring",
       "exit_criteria": [
         "Repo-side monitoring truth follows platform-topology and operator-surface truth.",
         "Remaining live Prometheus drift is classified as runtime-owned config shape, not repo ambiguity."
       ],
       "id": "monitoring-and-observability-truth",
-      "loop_family": "repo_safe_repair_planning",
-      "next_action_family": "monitoring_truth_narrowing",
+      "loop_family": "steady_state_maintenance",
+      "next_action_family": "monitoring_packet_reprobe_and_runtime_maintenance",
       "objective": "Make Prometheus, Grafana alerts, and operator-surface monitoring follow registry-backed service truth instead of stale shadow targets or historical topology assumptions.",
       "owner_role": "infra_sre",
       "primary_artifacts": [
@@ -584,7 +811,7 @@
         "docs/operations/OPERATOR-SURFACE-REPORT.md"
       ],
       "priority": "high",
-      "status": "active",
+      "status": "continuous",
       "title": "Monitoring and Observability Truth"
     },
     {
@@ -599,7 +826,7 @@
         "reports/reconciliation/tenant-family-audit-latest.json",
         "config/automation-backbone/reconciliation-source-registry.json"
       ],
-      "execution_state": "ready_for_execution",
+      "execution_state": "steady_state_monitoring",
       "exit_criteria": [
         "Every in-scope local root has a governed disposition.",
         "Every Dirty13itch repo has an explicit ecosystem role."
@@ -622,7 +849,7 @@
         "reports/reconciliation/rfi-hers-duplicate-evidence-packet-latest.json"
       ],
       "priority": "high",
-      "status": "active",
+      "status": "continuous",
       "title": "Portfolio and Source Reconciliation"
     },
     {
@@ -636,7 +863,7 @@
         "docs/operations/ATHANOR-RECONCILIATION-LEDGER.md",
         "docs/operations/ATHANOR-RECONCILIATION-PACKET.md"
       ],
-      "execution_state": "ready_for_execution",
+      "execution_state": "steady_state_monitoring",
       "exit_criteria": [
         "Shared value is imported, queued, archived, or rejected explicitly.",
         "Lineage repos remain non-authoritative after harvest."
@@ -652,7 +879,7 @@
         "docs/operations/ATHANOR-RECONCILIATION-PACKET.md"
       ],
       "priority": "high",
-      "status": "active",
+      "status": "continuous",
       "title": "Lineage and Shared Extraction"
     },
     {
@@ -666,7 +893,7 @@
         "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
         "reports/reconciliation/tenant-family-audit-latest.json"
       ],
-      "execution_state": "ready_for_execution",
+      "execution_state": "steady_state_monitoring",
       "exit_criteria": [
         "Tenant candidates are classified as light-tenant, deep-tenant, standalone-external, or incubation only.",
         "No meaningful product root remains a floating unmanaged side project."
@@ -684,7 +911,7 @@
         "docs/operations/RFI-HERS-DUPLICATE-EVIDENCE-PACKET.md"
       ],
       "priority": "high",
-      "status": "active",
+      "status": "continuous",
       "title": "Tenant Architecture and Classification"
     },
     {
@@ -751,6 +978,40 @@
       "priority": "critical",
       "status": "continuous",
       "title": "Validation and Publication"
+    },
+    {
+      "approval_required": false,
+      "blocker_type": "none",
+      "dependencies": [
+        "dispatch-and-work-economy-closure"
+      ],
+      "evidence_artifacts": [
+        "reports/truth-inventory/goose-boundary-evidence.md",
+        "reports/truth-inventory/capability-pilot-readiness.json",
+        "reports/truth-inventory/capability-pilot-formal-preflight.json",
+        "config/automation-backbone/eval-run-ledger.json"
+      ],
+      "execution_state": "steady_state_monitoring",
+      "exit_criteria": [
+        "Goose boundary and failure-fallback evidence remains current in the generated artifact and operator-test surface.",
+        "The bounded operator-shell lane is either promoted or explicitly retained through reviewed packet-backed scope."
+      ],
+      "id": "goose-shell-boundary-evidence",
+      "loop_family": "governed_runtime_packets",
+      "next_action_family": "packet_reprobe_and_governed_maintenance",
+      "objective": "Keep the adopted Goose operator-shell lane packet-backed and evidence-fresh without reopening solved promotion debt.",
+      "owner_role": "program_manager",
+      "primary_artifacts": [
+        "reports/truth-inventory/goose-boundary-evidence.md",
+        "reports/truth-inventory/capability-pilot-readiness.json",
+        "reports/truth-inventory/capability-pilot-formal-preflight.json",
+        "config/automation-backbone/eval-run-ledger.json",
+        "config/automation-backbone/runtime-ownership-packets.json",
+        "docs/operations/OPERATOR-SURFACE-REPORT.md"
+      ],
+      "priority": "medium",
+      "status": "continuous",
+      "title": "Goose Packet Review and Bounded Retention"
     }
   ]
 }

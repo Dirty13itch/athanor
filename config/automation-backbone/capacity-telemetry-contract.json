@@ -1,0 +1,85 @@
+{
+  "version": "2026-04-11.1",
+  "updated_at": "2026-04-11T09:00:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/capacity-telemetry-contract.json",
+  "writer": {
+    "node": "dev",
+    "script": "scripts/collect_capacity_telemetry.py",
+    "output_path": "reports/truth-inventory/capacity-telemetry.json"
+  },
+  "sample_cadence_seconds": {
+    "node_resources": 60,
+    "gpu_utilization": 15,
+    "model_queue_depth": 15,
+    "idle_window_reconciliation": 60
+  },
+  "idle_window_rule": {
+    "queue_depth_equals": 0,
+    "interactive_lease_required": false,
+    "max_utilization_percent": 20,
+    "continuous_minutes": 10
+  },
+  "slot_granularity": {
+    "enabled": true,
+    "scheduler_slot_targets_ref": "config/automation-backbone/capacity-envelope-registry.json#scheduler_slot_targets",
+    "required_gpu_fields": [
+      "scheduler_slot_id",
+      "scheduler_zone_id",
+      "harvest_target"
+    ],
+    "required_summary_fields": [
+      "harvestable_by_node",
+      "harvestable_by_zone",
+      "harvestable_by_slot",
+      "scheduler_slot_count",
+      "harvestable_scheduler_slot_count"
+    ],
+    "required_slot_fields": [
+      "scheduler_slot_id",
+      "scheduler_zone_id",
+      "member_gpu_ids",
+      "admissible_gpu_ids",
+      "blocked_by",
+      "idle_window_open",
+      "harvest_intent"
+    ]
+  },
+  "saturation_thresholds": {
+    "protected_lane_queue_depth": 2,
+    "protected_lane_oldest_wait_seconds": 90,
+    "support_lane_queue_depth": 4,
+    "support_lane_oldest_wait_seconds": 300,
+    "harvest_preemption_grace_seconds": 30
+  },
+  "sources": [
+    {
+      "source_id": "foundry_gpu_orchestrator",
+      "node": "foundry",
+      "surface": "gpu_orchestrator",
+      "kind": "internal_api"
+    },
+    {
+      "source_id": "workshop_worker_runtime",
+      "node": "workshop",
+      "surface": "worker_api_and_vision_runtime",
+      "kind": "internal_api"
+    },
+    {
+      "source_id": "dev_embedding_reranker",
+      "node": "dev",
+      "surface": "embedding_and_reranker_endpoints",
+      "kind": "internal_api"
+    },
+    {
+      "source_id": "vault_observability",
+      "node": "vault",
+      "surface": "prometheus_and_runtime_metrics",
+      "kind": "observability"
+    }
+  ],
+  "protected_reserves": [
+    "foundry-rtx4090",
+    "workshop-rtx5090"
+  ]
+}

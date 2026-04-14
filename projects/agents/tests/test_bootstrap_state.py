@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import unittest
 from pathlib import Path
+from time import monotonic
 from unittest.mock import AsyncMock, patch
 
 from athanor_agents import bootstrap_state
@@ -195,6 +196,42 @@ class BootstrapStateTests(BootstrapStateHarness):
             str(self.root / "reports" / "bootstrap" / "durable-restart-proof.json"),
             snapshot["control_artifacts"]["durable_restart_proof_path"],
         )
+
+    async def test_runtime_snapshot_can_return_stale_cache_while_refreshing(self) -> None:
+        bootstrap_state._BOOTSTRAP_RUNTIME_SNAPSHOT_CACHE = {
+            "mode": "ready",
+            "generated_at": "cached",
+        }
+        bootstrap_state._BOOTSTRAP_RUNTIME_SNAPSHOT_CACHE_EXPIRES_AT = monotonic() - 1
+        bootstrap_state._BOOTSTRAP_RUNTIME_SNAPSHOT_TASK = None
+        refresh_gate = asyncio.Event()
+        refreshed_snapshot = {
+            "mode": "ready",
+            "generated_at": "refreshed",
+        }
+
+        async def _fake_refresh(*, include_snapshot_write: bool) -> dict[str, str]:
+            self.assertFalse(include_snapshot_write)
+            await refresh_gate.wait()
+            return refreshed_snapshot
+
+        with patch(
+            "athanor_agents.bootstrap_state._build_bootstrap_runtime_snapshot_uncached",
+            AsyncMock(side_effect=_fake_refresh),
+        ):
+            cached = await bootstrap_state.build_bootstrap_runtime_snapshot(
+                include_snapshot_write=False,
+                allow_stale=True,
+            )
+            self.assertEqual("cached", cached["generated_at"])
+            task = bootstrap_state._BOOTSTRAP_RUNTIME_SNAPSHOT_TASK
+            self.assertIsNotNone(task)
+
+            refresh_gate.set()
+            await asyncio.wait_for(asyncio.shield(task), timeout=1.0)
+
+        refreshed = await bootstrap_state.build_bootstrap_runtime_snapshot(include_snapshot_write=False)
+        self.assertEqual("refreshed", refreshed["generated_at"])
 
     async def test_approve_bootstrap_packet_clears_waiting_approval_and_advances_next_slice(self) -> None:
         result = await bootstrap_state.approve_bootstrap_packet(

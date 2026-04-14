@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
 from datetime import datetime, timezone
@@ -21,9 +22,10 @@ from .execution_state import (
     get_approval_request_stats,
     get_execution_run_stats,
     list_approval_request_records,
+    list_approval_request_records_for_runs,
     list_execution_run_records,
-    list_run_attempt_records,
-    list_run_step_records,
+    list_run_attempt_records_for_runs,
+    list_run_step_records_for_runs,
 )
 from .operator_state import (
     fetch_backlog_record,
@@ -84,6 +86,53 @@ def _priority_to_task_priority(priority: int) -> str:
     if priority <= 2:
         return "low"
     return "normal"
+
+
+def _claim_id_from_dispatch_reason(reason: str) -> str:
+    prefix = "Auto-dispatched governed dispatch claim "
+    normalized = str(reason or "").strip()
+    if not normalized.startswith(prefix):
+        return ""
+    return normalized[len(prefix) :].strip()
+
+
+GOVERNED_DISPATCH_TASK_CLASS_DEFAULTS = {
+    "coding-agent": "async_backlog_execution",
+    "research-agent": "repo_wide_audit",
+}
+
+GOVERNED_DISPATCH_WORKLOAD_ALIASES = {
+    "multi_file_implementation": "coding_implementation",
+    "async_backlog_execution": "coding_implementation",
+    "repo_wide_audit": "repo_audit",
+    "private_internal_automation": "private_automation",
+}
+
+
+def _governed_dispatch_task_profile(
+    *,
+    owner_agent: str,
+    task_class: str | None = None,
+    workload_class: str | None = None,
+) -> dict[str, str]:
+    normalized_task_class = str(task_class or "").strip()
+    if not normalized_task_class or normalized_task_class == "private_automation":
+        normalized_task_class = GOVERNED_DISPATCH_TASK_CLASS_DEFAULTS.get(
+            str(owner_agent or "").strip(),
+            "async_backlog_execution",
+        )
+
+    normalized_workload_class = str(workload_class or "").strip()
+    if not normalized_workload_class or normalized_workload_class == "private_automation":
+        normalized_workload_class = GOVERNED_DISPATCH_WORKLOAD_ALIASES.get(
+            normalized_task_class,
+            "coding_implementation",
+        )
+
+    return {
+        "task_class": normalized_task_class,
+        "workload_class": normalized_workload_class,
+    }
 
 
 async def list_todos(*, status: str = "", limit: int = 50) -> list[dict[str, Any]]:
@@ -394,7 +443,10 @@ async def idea_stats() -> dict[str, Any]:
 
 
 async def list_backlog(*, status: str = "", owner_agent: str = "", limit: int = 50) -> list[dict[str, Any]]:
-    return await list_backlog_records(status=status, owner_agent=owner_agent, limit=limit)
+    normalized_status = ""
+    if status and status.strip().lower() != "all":
+        normalized_status = status
+    return await list_backlog_records(status=normalized_status, owner_agent=owner_agent, limit=limit)
 
 
 async def get_backlog_item(backlog_id: str) -> dict[str, Any] | None:
@@ -495,24 +547,48 @@ async def dispatch_backlog_item(
     if not record:
         return None
 
+    metadata = dict(record.get("metadata") or {})
+    if str(metadata.get("materialization_source") or "").strip() == "governed_dispatch_state":
+        governed_profile = _governed_dispatch_task_profile(
+            owner_agent=str(record.get("owner_agent") or "").strip(),
+            task_class=str(metadata.get("task_class") or "").strip() or None,
+            workload_class=str(metadata.get("workload_class") or "").strip() or None,
+        )
+        metadata.setdefault("_autonomy_managed", True)
+        metadata.setdefault("_autonomy_source", "pipeline")
+        metadata["task_class"] = governed_profile["task_class"]
+        metadata["workload_class"] = governed_profile["workload_class"]
+        claim_id = _claim_id_from_dispatch_reason(reason)
+        if claim_id:
+            metadata["claim_id"] = claim_id
+
+    submission_metadata = {
+        **metadata,
+        "backlog_id": backlog_id,
+        "work_class": str(record.get("work_class") or ""),
+        "scope_type": str(record.get("scope_type") or "global"),
+        "scope_id": str(record.get("scope_id") or "athanor"),
+        "lane_override": lane_override,
+        "dispatch_reason": reason,
+    }
+    for transient_key in (
+        "latest_task_id",
+        "latest_run_id",
+        "last_dispatch_reason",
+        "governor_reason",
+        "governor_level",
+    ):
+        submission_metadata.pop(transient_key, None)
+
     submission = await submit_governed_task(
         agent=str(record.get("owner_agent") or ""),
         prompt=str(record.get("prompt") or record.get("title") or ""),
         priority=_priority_to_task_priority(int(record.get("priority") or 3)),
-        metadata={
-            **dict(record.get("metadata") or {}),
-            "backlog_id": backlog_id,
-            "work_class": str(record.get("work_class") or ""),
-            "scope_type": str(record.get("scope_type") or "global"),
-            "scope_id": str(record.get("scope_id") or "athanor"),
-            "lane_override": lane_override,
-            "dispatch_reason": reason,
-        },
+        metadata=submission_metadata,
         source="operator_backlog",
     )
 
     task = submission.task.to_dict()
-    metadata = dict(record.get("metadata") or {})
     metadata.update(
         {
             "latest_task_id": task.get("id", ""),
@@ -540,13 +616,22 @@ async def backlog_stats() -> dict[str, Any]:
 
 async def list_runs(*, status: str = "", agent: str = "", limit: int = 50) -> list[dict[str, Any]]:
     runs = await list_execution_run_records(status=status, agent=agent, limit=limit)
+    if not runs:
+        return []
+
+    run_ids = [str(run.get("id") or "").strip() for run in runs if str(run.get("id") or "").strip()]
+    attempts_by_run, steps_by_run, approvals_by_run = await asyncio.gather(
+        list_run_attempt_records_for_runs(run_ids, limit_per_run=3),
+        list_run_step_records_for_runs(run_ids, limit_per_run=20),
+        list_approval_request_records_for_runs(run_ids),
+    )
     enriched: list[dict[str, Any]] = []
     for run in runs:
-        attempts = await list_run_attempt_records(run["id"], limit=3)
+        run_id = str(run.get("id") or "")
+        attempts = attempts_by_run.get(run_id, [])
         latest_attempt = attempts[0] if attempts else None
-        steps = await list_run_step_records(run_id=run["id"], limit=20)
-        approvals = await list_approval_request_records(limit=10)
-        run_approvals = [approval for approval in approvals if approval.get("related_run_id") == run["id"]]
+        steps = steps_by_run.get(run_id, [])
+        run_approvals = approvals_by_run.get(run_id, [])
         enriched.append(
             {
                 **run,

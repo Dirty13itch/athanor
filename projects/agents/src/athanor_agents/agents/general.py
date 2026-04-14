@@ -40,7 +40,7 @@ def create_general_assistant():
     llm = ChatOpenAI(
         base_url=settings.llm_base_url,
         api_key=settings.llm_api_key,
-        model=settings.llm_model,
+        model=settings.task_execution_model,
         temperature=0.5,  # Balanced — router + direct handler
         streaming=True,
         extra_body={

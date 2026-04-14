@@ -4,6 +4,7 @@ import asyncio
 import importlib
 import json
 import logging
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,6 +18,8 @@ _SCHEMA_READY = False
 _SCHEMA_ATTEMPTED = False
 _SCHEMA_LOCK = asyncio.Lock()
 _LAST_DURABLE_STATE_STATUS: dict[str, object] = {}
+_RUNTIME_FAILURE_BACKOFF_SECONDS = 30.0
+_RUNTIME_FAILURE_UNTIL = 0.0
 
 
 def _utc_now() -> str:
@@ -72,9 +75,10 @@ def get_durable_state_status() -> dict[str, object]:
 
 
 def reset_durable_state_cache() -> None:
-    global _SCHEMA_READY, _SCHEMA_ATTEMPTED
+    global _SCHEMA_READY, _SCHEMA_ATTEMPTED, _RUNTIME_FAILURE_UNTIL
     _SCHEMA_READY = False
     _SCHEMA_ATTEMPTED = False
+    _RUNTIME_FAILURE_UNTIL = 0.0
     configured = bool(str(settings.postgres_url or "").strip())
     _set_durable_state_status(
         "uninitialized",
@@ -87,6 +91,42 @@ def reset_durable_state_cache() -> None:
 
 def _load_psycopg_module():
     return importlib.import_module("psycopg")
+
+
+def _last_bootstrap_at() -> str | None:
+    return str(get_durable_state_status().get("last_bootstrap_at") or "").strip() or None
+
+
+def _runtime_failure_circuit_open() -> bool:
+    return _RUNTIME_FAILURE_UNTIL > time.monotonic()
+
+
+def _mark_runtime_failure(exc: Exception) -> None:
+    global _RUNTIME_FAILURE_UNTIL
+    _RUNTIME_FAILURE_UNTIL = time.monotonic() + _RUNTIME_FAILURE_BACKOFF_SECONDS
+    _set_durable_state_status(
+        "degraded",
+        configured=bool(str(settings.postgres_url or "").strip()),
+        available=False,
+        schema_ready=_SCHEMA_READY,
+        reason=f"Durable-state runtime unavailable: {exc}",
+        last_bootstrap_at=_last_bootstrap_at(),
+    )
+
+
+def _mark_runtime_ready() -> None:
+    global _RUNTIME_FAILURE_UNTIL
+    _RUNTIME_FAILURE_UNTIL = 0.0
+    if not _SCHEMA_READY:
+        return
+    _set_durable_state_status(
+        "ready",
+        configured=True,
+        available=True,
+        schema_ready=True,
+        reason=None,
+        last_bootstrap_at=_last_bootstrap_at() or _utc_now(),
+    )
 
 
 def _load_bootstrap_statements() -> list[str]:
@@ -356,6 +396,8 @@ def _row_to_workplan_snapshot(row: dict[str, Any]) -> dict[str, Any]:
 
 
 async def _fetch_all(query: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
+    if _runtime_failure_circuit_open():
+        return []
     if not await ensure_durable_state_schema():
         return []
 
@@ -367,12 +409,16 @@ async def _fetch_all(query: str, params: tuple[Any, ...] = ()) -> list[dict[str,
                 columns = [str(column.name) for column in (cur.description or [])]
     except Exception as exc:
         logger.warning("Durable-state query failed: %s", exc)
+        _mark_runtime_failure(exc)
         return []
 
+    _mark_runtime_ready()
     return [dict(zip(columns, row, strict=False)) for row in rows]
 
 
 async def _execute(query: str, params: tuple[Any, ...] = ()) -> bool:
+    if _runtime_failure_circuit_open():
+        return False
     if not await ensure_durable_state_schema():
         return False
 
@@ -380,9 +426,11 @@ async def _execute(query: str, params: tuple[Any, ...] = ()) -> bool:
         async with _open_connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(query, params)
+        _mark_runtime_ready()
         return True
     except Exception as exc:
         logger.warning("Durable-state write failed: %s", exc)
+        _mark_runtime_failure(exc)
         return False
 
 

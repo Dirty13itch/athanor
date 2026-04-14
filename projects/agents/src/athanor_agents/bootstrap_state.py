@@ -673,7 +673,7 @@ def _operator_nav_lock_patterns() -> dict[str, dict[str, tuple[str, ...]]]:
             "forbidden": ('href="/tasks"',),
         },
         "command_center": {
-            "required": ('href="/backlog">Backlog</Link>', 'href="/backlog"'),
+            "required": ('href="/backlog"',),
             "forbidden": ('href="/workplanner">Work planner</Link>', 'href="/workplanner"'),
         },
         "history_console": {
@@ -1478,6 +1478,22 @@ def _prime_bootstrap_runtime_snapshot_cache(snapshot: dict[str, Any]) -> None:
     global _BOOTSTRAP_RUNTIME_SNAPSHOT_CACHE, _BOOTSTRAP_RUNTIME_SNAPSHOT_CACHE_EXPIRES_AT
     _BOOTSTRAP_RUNTIME_SNAPSHOT_CACHE = dict(snapshot)
     _BOOTSTRAP_RUNTIME_SNAPSHOT_CACHE_EXPIRES_AT = monotonic() + _BOOTSTRAP_RUNTIME_SNAPSHOT_CACHE_TTL_SECONDS
+
+
+async def _refresh_bootstrap_runtime_snapshot_task(*, include_snapshot_write: bool) -> dict[str, Any]:
+    global _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK
+
+    try:
+        snapshot = await _build_bootstrap_runtime_snapshot_uncached(
+            include_snapshot_write=include_snapshot_write
+        )
+        _prime_bootstrap_runtime_snapshot_cache(snapshot)
+        return snapshot
+    finally:
+        current_task = asyncio.current_task()
+        async with _BOOTSTRAP_RUNTIME_SNAPSHOT_LOCK:
+            if _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK is current_task:
+                _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK = None
 
 
 def _query_rows_sync(query: str, params: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
@@ -4447,7 +4463,11 @@ async def _build_bootstrap_runtime_snapshot_uncached(*, include_snapshot_write: 
     return snapshot
 
 
-async def build_bootstrap_runtime_snapshot(*, include_snapshot_write: bool = True) -> dict[str, Any]:
+async def build_bootstrap_runtime_snapshot(
+    *,
+    include_snapshot_write: bool = True,
+    allow_stale: bool = False,
+) -> dict[str, Any]:
     global _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK
 
     if include_snapshot_write:
@@ -4469,17 +4489,11 @@ async def build_bootstrap_runtime_snapshot(*, include_snapshot_write: bool = Tru
 
         if _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK is None or _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK.done():
             _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK = asyncio.create_task(
-                _build_bootstrap_runtime_snapshot_uncached(include_snapshot_write=False)
+                _refresh_bootstrap_runtime_snapshot_task(include_snapshot_write=False)
             )
         task = _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK
+        if allow_stale and cached is not None:
+            return dict(cached)
 
-    try:
-        snapshot = await asyncio.shield(task)
-    finally:
-        if task is not None and task.done():
-            async with _BOOTSTRAP_RUNTIME_SNAPSHOT_LOCK:
-                if _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK is task:
-                    _BOOTSTRAP_RUNTIME_SNAPSHOT_TASK = None
-
-    _prime_bootstrap_runtime_snapshot_cache(snapshot)
+    snapshot = await asyncio.shield(task)
     return dict(snapshot)

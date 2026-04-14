@@ -203,7 +203,13 @@ class OperatorWorkTests(unittest.IsolatedAsyncioTestCase):
             "linked_goal_ids": [],
             "linked_todo_ids": [],
             "linked_idea_id": "",
-            "metadata": {},
+            "metadata": {
+                "latest_task_id": "task-old",
+                "latest_run_id": "task-old",
+                "last_dispatch_reason": "Dispatch old",
+                "governor_reason": "Old governor reason",
+                "governor_level": "C",
+            },
             "created_by": "operator",
             "origin": "operator",
             "ready_at": 1.0,
@@ -232,6 +238,136 @@ class OperatorWorkTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("scheduled", payload["backlog"]["status"])
         submit_governed_task.assert_awaited_once()
         upsert_backlog_record.assert_awaited_once()
+        submit_metadata = submit_governed_task.await_args.kwargs["metadata"]
+        self.assertNotIn("latest_task_id", submit_metadata)
+        self.assertNotIn("latest_run_id", submit_metadata)
+        self.assertNotIn("last_dispatch_reason", submit_metadata)
+        self.assertNotIn("governor_reason", submit_metadata)
+        self.assertNotIn("governor_level", submit_metadata)
+        self.assertEqual("task-1", payload["backlog"]["metadata"]["latest_task_id"])
+        self.assertEqual("task-1", payload["backlog"]["metadata"]["latest_run_id"])
+
+    async def test_dispatch_backlog_item_marks_governed_dispatch_records_autonomy_managed(self) -> None:
+        backlog = {
+            "id": "backlog-2",
+            "title": "Capacity and Harvest Truth",
+            "prompt": "Refresh scheduler-backed harvest truth.",
+            "owner_agent": "coding-agent",
+            "support_agents": [],
+            "scope_type": "global",
+            "scope_id": "athanor",
+            "work_class": "system_improvement",
+            "priority": 5,
+            "status": "captured",
+            "approval_mode": "none",
+            "dispatch_policy": "planner_eligible",
+            "preconditions": [],
+            "blocking_reason": "",
+            "linked_goal_ids": [],
+            "linked_todo_ids": [],
+            "linked_idea_id": "",
+            "metadata": {
+                "materialization_source": "governed_dispatch_state",
+                "claim_id": "ralph-claim-2",
+                "task_class": "private_automation",
+                "workload_class": "private_automation",
+            },
+            "created_by": "operator",
+            "origin": "operator",
+            "ready_at": 1.0,
+            "scheduled_for": 0.0,
+            "created_at": 1.0,
+            "updated_at": 1.0,
+            "completed_at": 0.0,
+        }
+        submission = type(
+            "Submission",
+            (),
+            {
+                "task": type("TaskRecord", (), {"to_dict": lambda self: {"id": "task-2", "status": "pending"}})(),
+                "decision": type("Decision", (), {"reason": "Allowed", "autonomy_level": "A"})(),
+            },
+        )()
+        with (
+            patch("athanor_agents.operator_work.fetch_backlog_record", AsyncMock(return_value=dict(backlog))),
+            patch("athanor_agents.operator_work.upsert_backlog_record", AsyncMock(return_value=True)),
+            patch("athanor_agents.tasks.submit_governed_task", AsyncMock(return_value=submission)) as submit_governed_task,
+        ):
+            payload = await operator_work.dispatch_backlog_item("backlog-2", reason="Dispatch governed work")
+
+        self.assertIsNotNone(payload)
+        assert payload is not None
+        submit_governed_task.assert_awaited_once()
+        submit_metadata = submit_governed_task.await_args.kwargs["metadata"]
+        self.assertTrue(submit_metadata["_autonomy_managed"])
+        self.assertEqual("pipeline", submit_metadata["_autonomy_source"])
+        self.assertEqual("async_backlog_execution", submit_metadata["task_class"])
+        self.assertEqual("coding_implementation", submit_metadata["workload_class"])
+
+    async def test_dispatch_backlog_item_refreshes_claim_id_from_governed_dispatch_reason(self) -> None:
+        backlog = {
+            "id": "backlog-3",
+            "title": "Dispatch and Work-Economy Closure",
+            "prompt": "Advance the governed dispatch claim.",
+            "owner_agent": "coding-agent",
+            "support_agents": [],
+            "scope_type": "global",
+            "scope_id": "athanor",
+            "work_class": "system_improvement",
+            "priority": 5,
+            "status": "captured",
+            "approval_mode": "none",
+            "dispatch_policy": "planner_eligible",
+            "preconditions": [],
+            "blocking_reason": "",
+            "linked_goal_ids": [],
+            "linked_todo_ids": [],
+            "linked_idea_id": "",
+            "metadata": {
+                "materialization_source": "governed_dispatch_state",
+                "claim_id": "ralph-claim-old",
+            },
+            "created_by": "operator",
+            "origin": "operator",
+            "ready_at": 1.0,
+            "scheduled_for": 0.0,
+            "created_at": 1.0,
+            "updated_at": 1.0,
+            "completed_at": 0.0,
+        }
+        submission = type(
+            "Submission",
+            (),
+            {
+                "task": type("TaskRecord", (), {"to_dict": lambda self: {"id": "task-3", "status": "pending"}})(),
+                "decision": type("Decision", (), {"reason": "Allowed", "autonomy_level": "A"})(),
+            },
+        )()
+        with (
+            patch("athanor_agents.operator_work.fetch_backlog_record", AsyncMock(return_value=dict(backlog))),
+            patch("athanor_agents.operator_work.upsert_backlog_record", AsyncMock(return_value=True)),
+            patch("athanor_agents.tasks.submit_governed_task", AsyncMock(return_value=submission)) as submit_governed_task,
+        ):
+            payload = await operator_work.dispatch_backlog_item(
+                "backlog-3",
+                reason="Auto-dispatched governed dispatch claim ralph-claim-new",
+            )
+
+        self.assertIsNotNone(payload)
+        assert payload is not None
+        submit_metadata = submit_governed_task.await_args.kwargs["metadata"]
+        self.assertEqual("ralph-claim-new", submit_metadata["claim_id"])
+        self.assertEqual("ralph-claim-new", payload["backlog"]["metadata"]["claim_id"])
+
+    async def test_list_backlog_normalizes_all_status_to_unfiltered_query(self) -> None:
+        with patch(
+            "athanor_agents.operator_work.list_backlog_records",
+            AsyncMock(return_value=[{"id": "backlog-1"}]),
+        ) as list_backlog_records:
+            backlog = await operator_work.list_backlog(status="all", owner_agent="coding-agent", limit=12)
+
+        self.assertEqual([{"id": "backlog-1"}], backlog)
+        list_backlog_records.assert_awaited_once_with(status="", owner_agent="coding-agent", limit=12)
 
     async def test_list_runs_enriches_with_attempts_and_approvals(self) -> None:
         run = {
@@ -255,15 +391,38 @@ class OperatorWorkTests(unittest.IsolatedAsyncioTestCase):
         approval = {"id": "approval-1", "related_run_id": "run-1", "status": "pending"}
         with (
             patch("athanor_agents.operator_work.list_execution_run_records", AsyncMock(return_value=[run])),
-            patch("athanor_agents.operator_work.list_run_attempt_records", AsyncMock(return_value=[attempt])),
-            patch("athanor_agents.operator_work.list_run_step_records", AsyncMock(return_value=[{"id": "step-1"}])),
-            patch("athanor_agents.operator_work.list_approval_request_records", AsyncMock(return_value=[approval])),
+            patch(
+                "athanor_agents.operator_work.list_run_attempt_records_for_runs",
+                AsyncMock(return_value={"run-1": [attempt]}),
+            ),
+            patch(
+                "athanor_agents.operator_work.list_run_step_records_for_runs",
+                AsyncMock(return_value={"run-1": [{"id": "step-1"}]}),
+            ),
+            patch(
+                "athanor_agents.operator_work.list_approval_request_records_for_runs",
+                AsyncMock(return_value={"run-1": [approval]}),
+            ),
         ):
             runs = await operator_work.list_runs(status="waiting_approval")
 
         self.assertEqual(1, len(runs))
         self.assertTrue(runs[0]["approval_pending"])
         self.assertEqual(attempt["id"], runs[0]["latest_attempt"]["id"])
+
+    async def test_list_runs_returns_empty_without_batch_queries_when_no_runs(self) -> None:
+        with (
+            patch("athanor_agents.operator_work.list_execution_run_records", AsyncMock(return_value=[])),
+            patch("athanor_agents.operator_work.list_run_attempt_records_for_runs", AsyncMock()) as attempts,
+            patch("athanor_agents.operator_work.list_run_step_records_for_runs", AsyncMock()) as steps,
+            patch("athanor_agents.operator_work.list_approval_request_records_for_runs", AsyncMock()) as approvals,
+        ):
+            runs = await operator_work.list_runs()
+
+        self.assertEqual([], runs)
+        attempts.assert_not_awaited()
+        steps.assert_not_awaited()
+        approvals.assert_not_awaited()
 
     async def test_list_approvals_enriches_with_related_task_snapshot(self) -> None:
         approval = {

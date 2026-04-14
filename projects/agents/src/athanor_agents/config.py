@@ -125,13 +125,17 @@ class Settings(BaseSettings):
         default="reasoning",
         validation_alias=AliasChoices("ATHANOR_LLM_MODEL"),
     )
+    task_execution_model: str = Field(
+        default="reasoning",
+        validation_alias=AliasChoices("ATHANOR_TASK_EXECUTION_MODEL"),
+    )
     llm_model_fast: str = Field(
-        default="fast",
+        default="coder",
         validation_alias=AliasChoices("ATHANOR_LLM_MODEL_FAST"),
     )
 
     router_reactive_model: str = Field(
-        default="fast",
+        default="coder",
         validation_alias=AliasChoices("ATHANOR_ROUTER_REACTIVE_MODEL"),
     )
     router_reactive_max_tokens: int = Field(
@@ -143,7 +147,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("ATHANOR_ROUTER_REACTIVE_TEMPERATURE"),
     )
     router_tactical_model: str = Field(
-        default="worker",
+        default="coder",
         validation_alias=AliasChoices("ATHANOR_ROUTER_TACTICAL_MODEL"),
     )
     router_tactical_max_tokens: int = Field(
@@ -167,7 +171,7 @@ class Settings(BaseSettings):
         ),
     )
     coder_url: str = Field(
-        default_factory=lambda: _service_default_url("vllm_coder", "http://192.168.1.244:8006"),
+        default_factory=lambda: _service_default_url("vllm_coder", "http://192.168.1.244:8100"),
         validation_alias=AliasChoices("ATHANOR_VLLM_CODER_URL", "ATHANOR_VLLM_UTILITY_URL"),
     )
     worker_url: str = Field(
@@ -209,6 +213,10 @@ class Settings(BaseSettings):
     qdrant_url: str = Field(
         default_factory=lambda: _service_default_url("qdrant", "http://192.168.1.203:6333"),
         validation_alias=AliasChoices("ATHANOR_QDRANT_URL"),
+    )
+    graphrag_url: str = Field(
+        default_factory=lambda: _service_default_url("graphrag", "http://192.168.1.244:9300"),
+        validation_alias=AliasChoices("ATHANOR_GRAPHRAG_URL"),
     )
     redis_url: str = Field(
         default_factory=lambda: _service_default_url("redis", "redis://192.168.1.203:6379/0"),

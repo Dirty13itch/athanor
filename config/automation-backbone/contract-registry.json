@@ -1,7 +1,7 @@
 {
-  "version": "2026-03-12",
-  "updated_at": "2026-03-12T18:15:00Z",
-  "status": "configured",
+  "version": "2026-04-13.1",
+  "updated_at": "2026-04-13T14:55:00-05:00",
+  "status": "live",
   "contracts": [
     {
       "id": "execution_run_record",
@@ -46,11 +46,179 @@
       "status": "live"
     },
     {
+      "id": "promotion_packet",
+      "label": "Promotion Packet",
+      "owner": "capability adoption",
+      "purpose": "normalized build-system-to-adopted-system handoff from devstack into Athanor canonical truth",
+      "status": "live"
+    },
+    {
+      "id": "readiness_ledger",
+      "label": "Readiness Ledger",
+      "owner": "master atlas",
+      "purpose": "cross-system implementation-readiness answer spanning devstack proof, Athanor adoption state, proof posture, approval state, and blockers",
+      "status": "live"
+    },
+    {
+      "id": "wave_admissibility_record",
+      "label": "Wave Admissibility Record",
+      "owner": "master atlas",
+      "purpose": "policy-backed decision record for whether a packet or implementation wave may execute automatically",
+      "status": "live"
+    },
+    {
+      "id": "eval_run_ledger",
+      "label": "Eval Run Ledger",
+      "owner": "proving ground",
+      "purpose": "machine-readable benchmark, champion-challenger, and promotion-validity evidence for major initiatives and lane champions",
+      "status": "live"
+    },
+    {
       "id": "artifact_provenance_record",
       "label": "Artifact Provenance Record",
       "owner": "proving ground and ledger",
       "purpose": "links outputs to runs, prompts, policies, lanes, and judges",
-      "status": "configured"
+      "status": "live"
+    },
+    {
+      "id": "economic_dispatch_ledger",
+      "label": "Economic Dispatch Ledger",
+      "owner": "coding orchestration",
+      "purpose": "lane-to-provider reserve allocation, ROI posture, and local-vs-cloud opportunity-cost guidance",
+      "status": "live"
+    },
+    {
+      "id": "capacity_envelope",
+      "label": "Capacity Envelope",
+      "owner": "capacity governor",
+      "purpose": "per-node and per-GPU admissibility, reserve, preemption, and utilization-target truth",
+      "status": "live"
+    },
+    {
+      "id": "restore_ledger",
+      "label": "Restore Ledger",
+      "owner": "recovery governance",
+      "purpose": "per-store restore evidence, drill freshness, recovery order, and confidence",
+      "status": "live"
+    },
+    {
+      "id": "governance_confidence_record",
+      "label": "Governance Confidence Record",
+      "owner": "governance drills",
+      "purpose": "compiled drill freshness and blocker posture for implementation admissibility",
+      "status": "live"
+    },
+    {
+      "id": "recommendation_record",
+      "label": "Recommendation Record",
+      "owner": "master atlas",
+      "purpose": "evidence-backed next-wave, lane-selection, capacity-use, and freshness-priority recommendations",
+      "status": "live"
+    },
+    {
+      "id": "lane_selection_matrix",
+      "label": "Lane Selection Matrix",
+      "owner": "routing governor",
+      "purpose": "lexicographic routing precedence, execution-mode defaults, tie-breakers, and task-class lane preferences",
+      "status": "live"
+    },
+    {
+      "id": "approval_matrix",
+      "label": "Approval Matrix",
+      "owner": "governor",
+      "purpose": "canonical approval classes, degraded-mode overrides, and allowed action sets",
+      "status": "live"
+    },
+    {
+      "id": "failure_routing_matrix",
+      "label": "Failure Routing Matrix",
+      "owner": "incident governor",
+      "purpose": "allowed fallbacks, blocked workloads, alert thresholds, and recovery gates per failure class",
+      "status": "live"
+    },
+    {
+      "id": "artifact_topology_registry",
+      "label": "Artifact Topology Registry",
+      "owner": "storage governance",
+      "purpose": "canonical homes, staging surfaces, retention classes, and restore sources for runtime and proving artifacts",
+      "status": "live"
+    },
+    {
+      "id": "capacity_telemetry_contract",
+      "label": "Capacity Telemetry Contract",
+      "owner": "capacity governor",
+      "purpose": "sample cadence, source surfaces, saturation thresholds, and protected-reserve telemetry rules",
+      "status": "live"
+    },
+    {
+      "id": "vendor_policy_registry",
+      "label": "Vendor Policy Registry",
+      "owner": "routing governance",
+      "purpose": "machine-readable allowed-use posture, hosted-indexing limits, and sensitivity restrictions per provider family",
+      "status": "live"
+    },
+    {
+      "id": "migration_map",
+      "label": "Migration Map",
+      "owner": "stack transition",
+      "purpose": "current-state to target-state handoff plan, lane transfers, and retirement gates",
+      "status": "live"
+    },
+    {
+      "id": "sidecar_retention_policy",
+      "label": "Sidecar Retention Policy",
+      "owner": "routing governance",
+      "purpose": "bounded keep, demote, and remove rules for sidecars and retiring lanes so optional tooling cannot silently become the system",
+      "status": "live"
+    },
+    {
+      "id": "quota_truth_ledger",
+      "label": "Quota Truth Ledger",
+      "owner": "subscription broker",
+      "purpose": "observed quota headroom, reset windows, spend ceilings, reserve floors, and confidence for subscription, metered, and local-compute families",
+      "status": "live"
+    },
+    {
+      "id": "planned_subscription_evidence_record",
+      "label": "Planned Subscription Evidence Record",
+      "owner": "subscription broker",
+      "purpose": "activation-readiness and supported-tool usage evidence for planned subscription families before they enter live routing",
+      "status": "live"
+    },
+    {
+      "id": "capacity_telemetry_snapshot",
+      "label": "Capacity Telemetry Snapshot",
+      "owner": "capacity governor",
+      "purpose": "current node, GPU, queue, idle-window, and harvest-admission observations",
+      "status": "live"
+    },
+    {
+      "id": "active_override_record",
+      "label": "Active Override Record",
+      "owner": "governor",
+      "purpose": "time-bounded Shaun-only override state with TTL, audit references, and expiry handling",
+      "status": "live"
+    },
+    {
+      "id": "routing_proof_record",
+      "label": "Routing Proof Record",
+      "owner": "routing governor",
+      "purpose": "full-stack acceptance harness output proving routing, failure, approval, scope, and override behavior",
+      "status": "live"
+    },
+    {
+      "id": "pilot_eval_evidence_record",
+      "label": "Pilot Eval Evidence Record",
+      "owner": "proving ground",
+      "purpose": "machine-readable evidence linking bounded pilot eval ids to executed operator-test flows, command readiness, and optional judged comparison packs",
+      "status": "live"
+    },
+    {
+      "id": "governed_dispatch_state",
+      "label": "Governed Dispatch State",
+      "owner": "ralph loop",
+      "purpose": "durable claim and runtime posture for the current ranked autonomous dispatch item, on-deck follow-through, and work-economy readiness without fabricating safe-surface executor activity",
+      "status": "live"
     }
   ]
 }

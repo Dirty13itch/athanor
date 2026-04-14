@@ -1,6 +1,6 @@
 {
-  "version": "2026-03-29.1",
-  "updated_at": "2026-03-29T21:32:20Z",
+  "version": "2026-04-12.1",
+  "updated_at": "2026-04-12T09:45:00Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/operator-surface-registry.json",
   "canonical_front_door": {
@@ -108,6 +108,34 @@
       ]
     },
     {
+      "id": "desk_goose_operator_shell",
+      "surface_group": "desk_goose_operator_shell",
+      "label": "DESK Goose Operator Shell",
+      "surface_kind": "specialist_tool",
+      "node": "desk",
+      "canonical_url": "local-shell://desk/goose-operator-shell",
+      "runtime_url": "C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1",
+      "auth_class": "operator",
+      "deployment_mode": "repo_standalone_process",
+      "navigation_role": "hidden",
+      "operator_role": "terminal",
+      "status": "active_specialist",
+      "owner": "shaun",
+      "retirement_state": "keep",
+      "runtime_packet_id": "desk-goose-operator-shell-rollout-packet",
+      "helper_path": "C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1",
+      "default_execution_mode": "goose_wrapped",
+      "allowed_execution_modes": ["direct_cli", "goose_wrapped", "litellm_routed"],
+      "fallback_operator_path": "Direct terminal plus specialist CLI lanes remain the bounded fallback path.",
+      "mcp_extension_policy": "deny_by_default_until_allowlist_evidence_lands",
+      "allowed_mcp_extensions": [],
+      "notes": [
+        "Bounded DESK Goose shell helper pinned to the LiteLLM OpenAI provider and DeepSeek model, with direct terminal plus specialist CLI as the fallback path.",
+        "This surface is the adopted bounded operator-shell path and must not become a second control plane.",
+        "Keep MCP extension use deny-by-default until explicit allowlist evidence and representative dashboard-routed shell traces are attached for future shell-path changes."
+      ]
+    },
+    {
       "id": "quality_gate",
       "surface_group": "quality_gate",
       "service_id": "quality_gate",
@@ -120,9 +148,9 @@
       "deployment_mode": "service_runtime",
       "navigation_role": "hidden",
       "operator_role": "control_plane",
-      "status": "active_internal",
+      "status": "retired",
       "owner": "shaun",
-      "retirement_state": "keep"
+      "retirement_state": "retired"
     },
     {
       "id": "semantic_router",
@@ -156,7 +184,11 @@
       "operator_role": "control_plane",
       "status": "active_internal",
       "owner": "shaun",
-      "retirement_state": "keep"
+      "retirement_state": "keep",
+      "notes": [
+        "Legacy secondary Foundry reasoning surface on :8000.",
+        "The models endpoint responds, but direct chat completions hang; :8100 and the shared VAULT proxy remain the canonical healthy text lanes."
+      ]
     },
     {
       "id": "embedding_api",
@@ -678,8 +710,8 @@
       "label": "Foundry Coder API",
       "surface_kind": "internal_api",
       "node": "foundry",
-      "canonical_url": "http://core.athanor.local:8006/health",
-      "runtime_url": "http://192.168.1.244:8006/health",
+      "canonical_url": "http://core.athanor.local:8100/health",
+      "runtime_url": "http://192.168.1.244:8100/health",
       "auth_class": "internal_only",
       "deployment_mode": "docker_container",
       "navigation_role": "hidden",

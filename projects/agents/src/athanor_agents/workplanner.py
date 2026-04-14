@@ -43,7 +43,7 @@ MIN_PENDING_TASKS = 2  # Generate more when queue drops below this
 # LLM config for planning
 _LLM_URL = settings.llm_base_url + "/chat/completions"
 _LLM_KEY = settings.llm_api_key
-_LLM_MODEL = "worker"  # Qwen3.5-35B-A3B-AWQ on WORKSHOP — avoids competing with FOUNDRY agent tasks
+_LLM_MODEL = settings.router_deliberative_model  # Keep planning on the live deliberative lane.
 
 # --- Project Definitions ---
 # The canonical project registry now lives in athanor_agents.projects.
@@ -108,6 +108,30 @@ def _load_autonomy_submission_scope() -> tuple[set[str], str]:
     if not policy.is_active:
         return set(), str(policy.phase_id or "")
     return set(policy.enabled_agents), str(policy.phase_id or "")
+
+
+async def _load_capacity_context() -> dict:
+    try:
+        from .governor_backbone import build_capacity_snapshot
+
+        snapshot = await build_capacity_snapshot()
+    except Exception as exc:
+        logger.debug("Work planner capacity snapshot unavailable: %s", exc)
+        return {}
+
+    workspace = dict(snapshot.get("workspace") or {})
+    queue = dict(snapshot.get("queue") or {})
+    provider_reserve = dict(snapshot.get("provider_reserve") or {})
+    local_compute = dict(snapshot.get("local_compute") or {})
+    return {
+        "posture": str(snapshot.get("posture") or "unknown"),
+        "queue_posture": str(queue.get("posture") or "unknown"),
+        "workspace_capacity": int(workspace.get("capacity") or 0),
+        "workspace_utilization": float(workspace.get("utilization") or 0.0),
+        "provider_reserve_posture": str(provider_reserve.get("posture") or "unknown"),
+        "recommendations": [str(item) for item in snapshot.get("recommendations", []) if str(item).strip()],
+        "local_compute": local_compute,
+    }
 
 
 async def _gather_knowledge_context(focus: str = "") -> dict:
@@ -225,6 +249,7 @@ def _build_planner_prompt(
     knowledge_context: dict,
     focus: str = "",
     *,
+    capacity_context: dict | None = None,
     allowed_agents: list[str] | None = None,
     autonomy_phase_id: str = "",
 ) -> str:
@@ -321,6 +346,24 @@ AUTONOMY PHASE CONSTRAINTS:
             items.append(f"  - [{c['project']}] {c['agent']}: {c['prompt'][:100]} → {c['result'][:300]}")
         completed_text = "\n".join(items)
 
+    capacity = dict(capacity_context or {})
+    local_compute = dict(capacity.get("local_compute") or {})
+    open_slots = [
+        str(item.get("id") or "").strip()
+        for item in local_compute.get("open_harvest_slots", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    ]
+    capacity_text = f"""CAPACITY POSTURE:
+  - overall: {capacity.get("posture", "unknown")}
+  - queue posture: {capacity.get("queue_posture", "unknown")}
+  - workspace utilization: {capacity.get("workspace_utilization", "unknown")}
+  - local harvest slots: {local_compute.get("harvestable_scheduler_slot_count", 0)}/{local_compute.get("scheduler_slot_count", 0)}
+  - idle harvest open: {bool(local_compute.get("idle_harvest_slots_open"))}
+  - open harvest slot ids: {", ".join(open_slots) if open_slots else "none"}
+  - scheduler queue depth: {local_compute.get("scheduler_queue_depth", 0)}
+  - provider reserve posture: {capacity.get("provider_reserve_posture", "unknown")}
+  - recommendations: {("; ".join(capacity.get("recommendations", [])) if capacity.get("recommendations") else "none")}"""
+
     return f"""You are the Athanor Work Planner. Generate actionable tasks for the agent workforce.
 
 OWNER PROFILE:
@@ -346,6 +389,8 @@ RELEVANT DOCUMENTATION (from knowledge base):
 
 RECENTLY COMPLETED OUTPUTS (build on these):
 {completed_text}
+
+{capacity_text}
 
 PROJECTS:
 {projects_text}
@@ -375,6 +420,7 @@ PRIORITIZE:
 - Building on completed outputs (see above) — continue the thread, don't restart
 - Tasks that produce real artifacts (files, images, research docs)
 - Tasks that maximize GPU utilization (image gen, video gen, embeddings)
+- When idle harvest slots are open, prefer work that can use local sovereign compute instead of creating extra cloud-only overhead
 - Quick wins that complete in one agent session (<10 min)
 
 DO NOT generate:
@@ -428,7 +474,10 @@ async def generate_work_plan(
         time_context = f"Night ({now.strftime('%I:%M %p')}). Autonomous mode — Shaun is likely away. Execute freely."
 
     # Gather knowledge context from Qdrant (docs, preferences, goals, completed outputs)
-    knowledge_context = await _gather_knowledge_context(focus=focus)
+    knowledge_context, capacity_context = await asyncio.gather(
+        _gather_knowledge_context(focus=focus),
+        _load_capacity_context(),
+    )
     logger.info(
         "Work planner context: %d knowledge, %d prefs, %d goals, %d completed",
         len(knowledge_context.get("knowledge", [])),
@@ -457,6 +506,7 @@ async def generate_work_plan(
         time_context=time_context,
         knowledge_context=knowledge_context,
         focus=focus,
+        capacity_context=capacity_context,
         allowed_agents=allowed_agents,
         autonomy_phase_id=autonomy_phase_id,
     )
@@ -738,9 +788,16 @@ async def should_refill() -> bool:
     try:
         stats = await get_task_stats()
         pending_count = int(stats.get("pending", 0) + stats.get("pending_approval", 0))
+        capacity_context = await _load_capacity_context()
+        local_compute = dict(capacity_context.get("local_compute") or {})
+        idle_harvest_open = bool(local_compute.get("idle_harvest_slots_open"))
+        capacity_posture = str(capacity_context.get("posture") or "unknown")
 
         # Don't refill if we have enough pending work
         if pending_count >= MIN_PENDING_TASKS:
+            return False
+
+        if capacity_posture in {"degraded", "constrained"} and not idle_harvest_open:
             return False
 
         # Don't refill if we just generated a plan recently (< 30 min)

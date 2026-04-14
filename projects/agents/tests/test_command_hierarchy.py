@@ -146,6 +146,34 @@ class CommandHierarchyTest(unittest.TestCase):
             snapshot["operational_governance"]["autonomy_activation"]["next_phase_blocker_ids"],
         )
 
+    def test_system_map_snapshot_degrades_when_runtime_components_timeout(self) -> None:
+        with (
+            patch(
+                "athanor_agents.governor.build_governor_snapshot",
+                AsyncMock(side_effect=TimeoutError("governor timed out")),
+            ),
+            patch(
+                "athanor_agents.governor.build_operations_readiness_snapshot",
+                AsyncMock(side_effect=TimeoutError("operations timed out")),
+            ),
+        ):
+            snapshot = run(
+                build_system_map_snapshot(
+                    {
+                        "coding-agent": {
+                            "description": "Controlled repo execution",
+                            "tools": ["write_file", "run_command"],
+                            "type": "proactive",
+                        },
+                    }
+                )
+            )
+
+        self.assertEqual("degraded", snapshot["operational_governance"]["runtime_state"]["status"])
+        self.assertIn("governor_snapshot", snapshot["operational_governance"]["runtime_state"]["error"])
+        self.assertIn("operations_readiness", snapshot["operational_governance"]["runtime_state"]["error"])
+        self.assertIn("frontier_cloud", {lane["id"] for lane in snapshot["meta_lanes"]})
+
     def test_subscription_task_classes_normalize_to_governance_workloads(self) -> None:
         self.assertEqual("coding_implementation", normalize_workload_class("multi_file_implementation"))
         self.assertEqual("repo_audit", normalize_workload_class("repo_wide_audit"))

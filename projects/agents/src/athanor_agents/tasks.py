@@ -19,6 +19,7 @@ import logging
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
+from typing import Any
 
 from langchain_core.messages import HumanMessage
 
@@ -135,6 +136,39 @@ class GovernedTaskSubmission:
 
 PRIORITY_ORDER = {"critical": 0, "high": 1, "normal": 2, "low": 3}
 ACTIVE_TASK_STATUSES = ("pending", "pending_approval", "running", "stale_lease")
+# Stale leases stay visible in operator truth, but they should not block a fresh
+# governed submission from re-arming the same work after restart recovery.
+DEDUP_TASK_STATUSES = ("pending", "pending_approval", "running")
+RETRY_TRANSIENT_METADATA_KEYS = {
+    "approval_decided",
+    "approval_decided_at",
+    "approval_decided_by",
+    "approval_reason",
+    "approval_rejected",
+    "approval_request_id",
+    "approval_requested_at",
+    "attempt_id",
+    "dispatch_reason",
+    "execution_claim",
+    "execution_run_id",
+    "failure",
+    "failure_display",
+    "failure_repair",
+    "governor_autonomy_level",
+    "governor_decision",
+    "governor_level",
+    "governor_reason",
+    "governor_status_override",
+    "last_dispatch_reason",
+    "latest_run_id",
+    "latest_task_id",
+    "manual_dispatch",
+    "recovery",
+    "replay_of_attempt_id",
+    "requires_approval",
+    "retry_of",
+    "retry_of_attempt_id",
+}
 
 # Agent-specific task capabilities for system prompt
 _AGENT_TASK_HINTS = {
@@ -172,6 +206,74 @@ _AGENT_TASK_HINTS = {
         "Search, browse, organize, and tag content as requested."
     ),
 }
+
+MAX_TASK_CONTEXT_CHARS = 4000
+MAX_TASK_INSTRUCTION_CHARS = 4000
+MAX_TASK_BODY_CHARS = 12000
+MAX_TASK_MESSAGE_CHARS = 16000
+BACKGROUND_TASK_EXECUTION_AGENTS = {
+    "coding-agent",
+    "general-assistant",
+    "knowledge-agent",
+    "research-agent",
+}
+PROVIDER_EXECUTION_TASK_CLASSES = {
+    "async_backlog_execution",
+    "multi_file_implementation",
+    "repo_wide_audit",
+    "search_heavy_planning",
+}
+
+
+def _compact_text_block(text: str, limit: int, *, label: str) -> str:
+    """Trim oversized task payload blocks without losing the fact that trimming happened."""
+
+    normalized = str(text or "").strip()
+    if limit <= 0:
+        return ""
+    if len(normalized) <= limit:
+        return normalized
+
+    suffix = f"\n\n[{label} truncated to stay within the task execution budget.]"
+    head_limit = max(limit - len(suffix), 0)
+    return normalized[:head_limit].rstrip() + suffix
+
+
+def _build_task_message_content(task: Task, context_str: str, task_prompt: str) -> str:
+    """Build a budget-aware HumanMessage body for autonomous task execution."""
+
+    compact_context = _compact_text_block(
+        context_str,
+        MAX_TASK_CONTEXT_CHARS,
+        label="Context",
+    )
+    compact_task_prompt = _compact_text_block(
+        task_prompt,
+        MAX_TASK_INSTRUCTION_CHARS,
+        label="Task instructions",
+    )
+    compact_task_body = _compact_text_block(
+        task.prompt,
+        MAX_TASK_BODY_CHARS,
+        label="Task prompt",
+    )
+
+    preamble_parts: list[str] = []
+    if compact_context:
+        preamble_parts.append(f"[Context]\n{compact_context}\n[/Context]")
+    preamble_parts.append(f"[Task Instructions]\n{compact_task_prompt}\n[/Task Instructions]")
+    content = "\n\n".join(preamble_parts) + "\n\n" + compact_task_body
+
+    if len(content) <= MAX_TASK_MESSAGE_CHARS:
+        return content
+
+    compact_task_body = _compact_text_block(
+        task.prompt,
+        max(MAX_TASK_MESSAGE_CHARS - len("\n\n".join(preamble_parts)) - 2, 512),
+        label="Task prompt",
+    )
+    content = "\n\n".join(preamble_parts) + "\n\n" + compact_task_body
+    return _compact_text_block(content, MAX_TASK_MESSAGE_CHARS, label="Task message")
 
 
 def _build_task_prompt(task: Task) -> str:
@@ -226,6 +328,41 @@ def _build_task_prompt(task: Task) -> str:
     ])
 
     return "\n".join(parts)
+
+
+def _stamp_task_execution_metadata(
+    agent: str,
+    prompt: str,
+    priority: str,
+    metadata: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Align governed background tasks with canonical subscription-policy hints."""
+
+    task_metadata = dict(metadata or {})
+    if agent not in BACKGROUND_TASK_EXECUTION_AGENTS:
+        return task_metadata
+
+    try:
+        from . import subscriptions as subscriptions_module
+    except Exception:
+        return task_metadata
+
+    build_task_lease_request = getattr(subscriptions_module, "build_task_lease_request", None)
+    if build_task_lease_request is None:
+        return task_metadata
+
+    lease_request = build_task_lease_request(
+        requester=agent,
+        prompt=prompt,
+        priority=priority,
+        metadata=task_metadata,
+    )
+    task_metadata.setdefault("task_class", lease_request.task_class)
+    task_metadata.setdefault("sensitivity", lease_request.sensitivity)
+    task_metadata.setdefault("interactive", lease_request.interactive)
+    task_metadata.setdefault("expected_context", lease_request.expected_context)
+    task_metadata.setdefault("parallelism", lease_request.parallelism)
+    return task_metadata
 
 
 def _describe_exception(exc: BaseException) -> dict[str, str]:
@@ -390,6 +527,69 @@ def _normalize_task_for_read(task: Task) -> Task:
     return normalized
 
 
+def _build_retry_metadata(task: Task) -> dict[str, object]:
+    source_metadata = task.metadata if isinstance(task.metadata, dict) else {}
+    retry_metadata = {
+        key: value
+        for key, value in source_metadata.items()
+        if key not in RETRY_TRANSIENT_METADATA_KEYS
+    }
+    retry_metadata["retry_of"] = task.id
+    retry_metadata["source"] = "auto-retry"
+    return retry_metadata
+
+
+async def _sync_retry_backlog_record(original_task: Task, retry_task: Task) -> None:
+    backlog_id = str((retry_task.metadata or {}).get("backlog_id") or "").strip()
+    if not backlog_id:
+        return
+
+    try:
+        from .operator_state import fetch_backlog_record, upsert_backlog_record
+
+        record = await fetch_backlog_record(backlog_id)
+        if not record:
+            return
+
+        metadata = dict(record.get("metadata") or {})
+        metadata["latest_task_id"] = retry_task.id
+        metadata["latest_run_id"] = retry_task.id
+        metadata["last_dispatch_reason"] = (
+            f"Auto-retried task {original_task.id} as {retry_task.id}"
+        )
+
+        governor_reason = str(
+            (retry_task.metadata or {}).get("governor_reason")
+            or (retry_task.metadata or {}).get("governor_decision")
+            or ""
+        ).strip()
+        if governor_reason:
+            metadata["governor_reason"] = governor_reason
+
+        governor_level = str(
+            (retry_task.metadata or {}).get("governor_level")
+            or (retry_task.metadata or {}).get("governor_autonomy_level")
+            or ""
+        ).strip()
+        if governor_level:
+            metadata["governor_level"] = governor_level
+
+        record["metadata"] = metadata
+        if retry_task.status == "pending_approval":
+            record["status"] = "waiting_approval"
+        elif str(record.get("status") or "") not in {"completed", "failed", "archived"}:
+            record["status"] = "scheduled"
+        record["updated_at"] = retry_task.created_at or time.time()
+        await upsert_backlog_record(record)
+    except Exception as exc:
+        logger.warning(
+            "Failed to sync retry backlog lineage for task %s (backlog=%s): %s",
+            retry_task.id,
+            backlog_id,
+            exc,
+        )
+
+
 def _needs_legacy_failed_task_repair(task: Task) -> bool:
     failure_display = _build_failure_display(task)
     return bool(isinstance(failure_display, dict) and failure_display.get("source") == "synthetic_legacy_gap")
@@ -436,7 +636,7 @@ async def _maybe_retry(task: Task):
     try:
         from .governor import Governor
 
-        retry_metadata = {**task.metadata, "retry_of": task.id, "source": "auto-retry"}
+        retry_metadata = _build_retry_metadata(task)
         decision = await Governor.get().gate_task_submission(
             agent=task.agent,
             prompt=task.prompt,
@@ -468,6 +668,7 @@ async def _maybe_retry(task: Task):
         )
 
         await persist_task_state(retry)
+        await _sync_retry_backlog_record(task, retry)
 
         logger.info(
             "Task %s auto-retry submitted as %s (attempt %d/%d)",
@@ -631,7 +832,7 @@ async def _has_duplicate_pending(agent: str, prompt: str) -> Task | None:
     """Check if there's already a pending/in-progress task for the same agent+prompt."""
     dedup_key = _task_dedup_key(agent, prompt)
     r = await _get_redis()
-    for record in await read_task_records_by_statuses(r, *ACTIVE_TASK_STATUSES):
+    for record in await read_task_records_by_statuses(r, *DEDUP_TASK_STATUSES):
         try:
             task = Task.from_dict(record)
             if task.agent != agent:
@@ -673,12 +874,12 @@ async def submit_task(
         )
         return existing
 
-    task_metadata = metadata or {}
+    task_metadata = _stamp_task_execution_metadata(agent, prompt, priority, metadata)
     is_scheduler_task = task_metadata.get("source") == "scheduler"
 
     # Scheduler-tagged tasks usually stay on local inference to avoid unnecessary lease churn.
     # Approval and phase scope still belong to the governor-mediated submission path.
-    if not is_scheduler_task and agent in {"coding-agent", "research-agent", "general-assistant"}:
+    if not is_scheduler_task and agent in BACKGROUND_TASK_EXECUTION_AGENTS:
         from .subscriptions import attach_task_execution_lease
 
         try:
@@ -1142,6 +1343,190 @@ async def _auto_extract_skill(task: Task):
         logger.debug("Skill extraction skipped for task %s: %s", task.id, e)
 
 
+def _task_execution_lease(task: Task) -> dict[str, Any]:
+    metadata = task.metadata if isinstance(task.metadata, dict) else {}
+    lease = metadata.get("execution_lease", {})
+    return dict(lease) if isinstance(lease, dict) else {}
+
+
+def _should_use_provider_execution(task: Task) -> bool:
+    metadata = task.metadata if isinstance(task.metadata, dict) else {}
+    lease = _task_execution_lease(task)
+    provider = str(lease.get("provider") or "").strip()
+    task_class = str(metadata.get("task_class") or lease.get("task_class") or "").strip()
+    if not provider or provider == "athanor_local":
+        return False
+    if task.agent not in BACKGROUND_TASK_EXECUTION_AGENTS:
+        return False
+    if bool(metadata.get("interactive", False)):
+        return False
+    return task_class in PROVIDER_EXECUTION_TASK_CLASSES
+
+
+def _build_provider_execution_metadata(provider_result: dict[str, Any]) -> dict[str, Any]:
+    handoff = dict(provider_result.get("handoff") or {})
+    adapter = dict(provider_result.get("adapter") or {})
+    execution = dict(provider_result.get("execution") or {})
+    payload: dict[str, Any] = {
+        "status": str(provider_result.get("status") or ""),
+        "provider": str(provider_result.get("provider") or handoff.get("provider") or ""),
+        "message": str(provider_result.get("message") or ""),
+        "recorded_at": time.time(),
+        "handoff_id": str(handoff.get("id") or ""),
+        "lease_id": str(handoff.get("lease_id") or ""),
+        "handoff_status": str(handoff.get("status") or ""),
+        "handoff_execution_mode": str(handoff.get("execution_mode") or ""),
+        "handoff_result_summary": str(handoff.get("result_summary") or ""),
+        "fallback_from_execution_mode": str(handoff.get("fallback_from_execution_mode") or ""),
+        "fallback_reason": str(handoff.get("fallback_reason") or ""),
+        "artifact_refs": list(handoff.get("artifact_refs") or []),
+        "adapter": {
+            "execution_mode": str(adapter.get("execution_mode") or ""),
+            "adapter_available": bool(adapter.get("adapter_available")),
+            "availability_state": str(adapter.get("availability_state") or ""),
+            "bridge_status": str(adapter.get("bridge_status") or ""),
+            "probe_status": str(adapter.get("probe_status") or ""),
+        },
+    }
+    if execution:
+        payload["execution"] = {
+            "summary": str(execution.get("summary") or ""),
+            "duration_ms": int(execution.get("duration_ms", 0) or 0),
+            "exit_code": execution.get("exit_code"),
+            "stderr": str(execution.get("stderr") or "")[:2000],
+        }
+    return payload
+
+
+def _render_provider_execution_result(provider_result: dict[str, Any]) -> str:
+    metadata = _build_provider_execution_metadata(provider_result)
+    adapter_meta = dict(metadata.get("adapter") or {})
+    execution_meta = dict(metadata.get("execution") or {})
+    summary = (
+        str(metadata.get("handoff_result_summary") or "").strip()
+        or str(execution_meta.get("summary") or "").strip()
+        or str(metadata.get("message") or "").strip()
+    )
+    execution_mode = str(
+        adapter_meta.get("execution_mode")
+        or metadata.get("handoff_execution_mode")
+        or ""
+    ).strip()
+    lines = [
+        f"Provider lane: {metadata.get('provider') or 'unknown'}",
+        f"Outcome: {metadata.get('status') or 'unknown'}",
+    ]
+    if metadata.get("handoff_id"):
+        lines.append(f"Handoff bundle: {metadata['handoff_id']}")
+    if execution_mode:
+        lines.append(f"Execution mode: {execution_mode}")
+    if summary:
+        lines.append(f"Summary: {summary}")
+    if metadata.get("fallback_reason"):
+        lines.append(f"Fallback reason: {metadata['fallback_reason']}")
+    return "\n".join(lines)
+
+
+def _provider_execution_failure_message(provider_result: dict[str, Any]) -> str:
+    metadata = _build_provider_execution_metadata(provider_result)
+    execution_meta = dict(metadata.get("execution") or {})
+    for candidate in (
+        str(execution_meta.get("stderr") or "").strip(),
+        str(execution_meta.get("summary") or "").strip(),
+        str(metadata.get("fallback_reason") or "").strip(),
+        str(metadata.get("message") or "").strip(),
+    ):
+        if candidate:
+            return candidate[:2000]
+    status = str(metadata.get("status") or "failed").strip() or "failed"
+    provider = str(metadata.get("provider") or "provider").strip() or "provider"
+    return f"{provider} execution {status}"
+
+
+async def _execute_task_via_provider(task: Task) -> bool:
+    from .provider_execution import execute_provider_request
+
+    metadata = dict(task.metadata or {})
+    lease = _task_execution_lease(task)
+    provider = str(lease.get("provider") or "").strip()
+    provider_meta = dict(lease.get("metadata") or {})
+    task_class = str(metadata.get("task_class") or lease.get("task_class") or "").strip()
+
+    provider_result = await execute_provider_request(
+        requester=task.agent,
+        prompt=task.prompt,
+        task_class=task_class,
+        sensitivity=str(metadata.get("sensitivity") or "repo_internal"),
+        interactive=bool(metadata.get("interactive", False)),
+        expected_context=str(
+            metadata.get("expected_context")
+            or provider_meta.get("expected_context")
+            or "medium"
+        ),
+        parallelism=str(
+            metadata.get("parallelism")
+            or provider_meta.get("parallelism")
+            or "low"
+        ),
+        metadata=metadata,
+        issue_lease=False,
+    )
+
+    provider_execution = _build_provider_execution_metadata(provider_result)
+    metadata["provider_execution"] = provider_execution
+    task.metadata = metadata
+    task.steps.append(
+        {
+            "index": len(task.steps),
+            "type": "provider_execution",
+            "provider": provider or provider_execution.get("provider") or "unknown",
+            "status": provider_execution.get("status") or "unknown",
+            "execution_mode": str(
+                (provider_execution.get("adapter") or {}).get("execution_mode")
+                or provider_execution.get("handoff_execution_mode")
+                or ""
+            ),
+            "handoff_id": provider_execution.get("handoff_id") or "",
+            "timestamp": time.time(),
+        }
+    )
+
+    status = str(provider_execution.get("status") or "").strip()
+    if status == "local_runtime":
+        return False
+
+    if status in {"completed", "handoff_created", "fallback_to_handoff"}:
+        task.status = "completed"
+        task.result = _render_provider_execution_result(provider_result)
+        task.completed_at = time.time()
+        await persist_task_state(task)
+        logger.info(
+            "Task %s closed via provider execution: provider=%s status=%s handoff=%s",
+            task.id,
+            provider_execution.get("provider") or provider or "unknown",
+            status,
+            provider_execution.get("handoff_id") or "none",
+        )
+        return True
+
+    _stamp_task_failure(
+        task,
+        error_message=_provider_execution_failure_message(provider_result),
+        failure_type=f"provider_execution_{status or 'failed'}",
+        retry_eligible=task.retry_count < MAX_TASK_RETRIES,
+        stage="provider_execution",
+    )
+    await persist_task_state(task)
+    logger.warning(
+        "Task %s provider execution failed: provider=%s status=%s",
+        task.id,
+        provider_execution.get("provider") or provider or "unknown",
+        status or "failed",
+    )
+    await _maybe_retry(task)
+    return True
+
+
 async def _execute_task(task: Task):
     """Execute a task through its agent, capturing tool call steps."""
     from .agents import get_agent
@@ -1162,6 +1547,10 @@ async def _execute_task(task: Task):
             task.started_at = task.started_at or time.time()
             task.last_heartbeat = task.started_at
             await persist_task_state(task)
+
+        if _should_use_provider_execution(task):
+            if await _execute_task_via_provider(task):
+                return
 
         agent = get_agent(task.agent)
         if agent is None:
@@ -1197,14 +1586,14 @@ async def _execute_task(task: Task):
         except Exception as e:
             logger.debug("Context enrichment failed, proceeding without: %s", e)
 
-        task_prompt = _build_task_prompt(task)
-        preamble_parts = []
-        if context_str:
-            preamble_parts.append(f"[Context]\n{context_str}\n[/Context]")
-        preamble_parts.append(f"[Task Instructions]\n{task_prompt}\n[/Task Instructions]")
-
         messages = [
-            HumanMessage(content="\n\n".join(preamble_parts) + "\n\n" + task.prompt),
+            HumanMessage(
+                content=_build_task_message_content(
+                    task,
+                    context_str,
+                    _build_task_prompt(task),
+                )
+            ),
         ]
 
         thread_id = f"task-{task.id}"
@@ -1667,20 +2056,39 @@ async def get_task_stats() -> dict:
             1 for display in failed_displays if isinstance(display, dict) and not bool(display.get("missing_detail"))
         )
         failed_actionable = max(failed_with_detail - failed_historical_repaired, 0)
+        stale_lease_total = int(by_status.get("stale_lease", 0) or 0)
+        stale_lease_recovered_historical = sum(
+            1
+            for t in tasks
+            if t.status == "stale_lease"
+            and isinstance(t.metadata, dict)
+            and isinstance(t.metadata.get("recovery"), dict)
+            and t.metadata["recovery"].get("event") == "stale_lease_recovered"
+        )
+        stale_lease_actionable = max(stale_lease_total - stale_lease_recovered_historical, 0)
+
+        currently_running = int(by_status.get("running", 0) or 0)
+        worker_running = bool(
+            currently_running > 0
+            or int(by_status.get("pending", 0) or 0) > 0
+            or (_worker_task is not None and not _worker_task.done())
+        )
 
         return {
             "total": len(tasks),
             "by_status": by_status,
             "by_agent": by_agent,
             **{status: int(by_status.get(status, 0) or 0) for status in TASK_STATUS_VALUES},
-            "currently_running": _running_count,
+            "currently_running": currently_running,
             "max_concurrent": MAX_CONCURRENT_TASKS,
             "avg_duration_ms": int(avg_duration),
-            "worker_running": _worker_task is not None and not _worker_task.done(),
+            "worker_running": worker_running,
             "failed_with_detail": failed_with_detail,
             "failed_actionable": failed_actionable,
             "failed_historical_repaired": failed_historical_repaired,
             "failed_missing_detail": failed_missing_detail,
+            "stale_lease_actionable": stale_lease_actionable,
+            "stale_lease_recovered_historical": stale_lease_recovered_historical,
             "failure_detail_quality": {
                 "failed_with_detail": failed_with_detail,
                 "failed_actionable": failed_actionable,
@@ -1697,19 +2105,27 @@ async def get_task_stats() -> dict:
             status: int(snapshot.get("by_status", {}).get(status, 0) or 0)
             for status in TASK_STATUS_VALUES
         }
+        currently_running = int(by_status.get("running", 0) or 0)
+        worker_running = bool(
+            currently_running > 0
+            or int(by_status.get("pending", 0) or 0) > 0
+            or (_worker_task is not None and not _worker_task.done())
+        )
         return {
             "total": int(snapshot.get("total", 0) or 0),
             "by_status": dict(snapshot.get("by_status", {})),
             "by_agent": {},
             **by_status,
-            "currently_running": _running_count,
+            "currently_running": currently_running,
             "max_concurrent": MAX_CONCURRENT_TASKS,
             "avg_duration_ms": 0,
-            "worker_running": _worker_task is not None and not _worker_task.done(),
+            "worker_running": worker_running,
             "failed_with_detail": max(int(by_status.get("failed", 0) or 0), 0),
             "failed_actionable": max(int(by_status.get("failed", 0) or 0), 0),
             "failed_historical_repaired": 0,
             "failed_missing_detail": 0,
+            "stale_lease_actionable": max(int(by_status.get("stale_lease", 0) or 0), 0),
+            "stale_lease_recovered_historical": 0,
             "failure_detail_quality": {
                 "failed_with_detail": max(int(by_status.get("failed", 0) or 0), 0),
                 "failed_actionable": max(int(by_status.get("failed", 0) or 0), 0),

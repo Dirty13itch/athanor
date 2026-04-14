@@ -219,6 +219,22 @@ class TestBuildTaskPrompt(unittest.TestCase):
         }
         self.assertTrue(expected_agents.issubset(set(_AGENT_TASK_HINTS.keys())))
 
+    def test_build_task_message_content_trims_large_payloads(self):
+        from athanor_agents.tasks import (
+            MAX_TASK_MESSAGE_CHARS,
+            Task,
+            _build_task_message_content,
+            _build_task_prompt,
+        )
+
+        task = Task(agent="coding-agent", prompt="A" * 40000)
+        content = _build_task_message_content(task, "B" * 12000, _build_task_prompt(task))
+
+        self.assertLessEqual(len(content), MAX_TASK_MESSAGE_CHARS)
+        self.assertIn("[Context]", content)
+        self.assertIn("[Task Instructions]", content)
+        self.assertIn("truncated", content)
+
 
 # ---------------------------------------------------------------------------
 # Task state transitions
@@ -790,6 +806,102 @@ class TestMaybeRetry(unittest.IsolatedAsyncioTestCase):
         stored = json.loads(mock_r.hset.call_args[0][2])
         self.assertEqual("SilentError", stored["previous_error"])
 
+    async def test_retry_strips_transient_metadata_and_updates_backlog_lineage(self):
+        from athanor_agents.tasks import _maybe_retry, Task
+
+        task = Task(
+            id="fail5",
+            agent="coding-agent",
+            prompt="Retry governed dispatch work",
+            status="failed",
+            error="stale lease",
+            retry_count=0,
+            metadata={
+                "backlog_id": "backlog-123",
+                "claim_id": "claim-123",
+                "work_class": "system_improvement",
+                "execution_lease": {"provider": "athanor_local"},
+                "latest_task_id": "task-old",
+                "latest_run_id": "task-old",
+                "last_dispatch_reason": "stale dispatch",
+                "governor_reason": "old reason",
+                "governor_level": "A",
+                "execution_claim": {"trigger": "worker"},
+                "recovery": {"event": "stale_lease_recovered"},
+                "failure": {"message": "old failure"},
+                "execution_run_id": "run-old",
+            },
+        )
+        mock_r = _mock_redis()
+        decision = types.SimpleNamespace(
+            status_override="pending",
+            autonomy_level="B",
+            reason="Retry allowed inside autonomy phase",
+        )
+        governor = types.SimpleNamespace(gate_task_submission=AsyncMock(return_value=decision))
+        backlog_record = {
+            "id": "backlog-123",
+            "title": "Dispatch and Work-Economy Closure",
+            "prompt": "Retry governed dispatch work",
+            "owner_agent": "coding-agent",
+            "support_agents": [],
+            "scope_type": "global",
+            "scope_id": "athanor",
+            "work_class": "system_improvement",
+            "priority": 4,
+            "status": "running",
+            "approval_mode": "none",
+            "dispatch_policy": "planner_eligible",
+            "preconditions": [],
+            "blocking_reason": "",
+            "linked_goal_ids": [],
+            "linked_todo_ids": [],
+            "linked_idea_id": "",
+            "metadata": {"latest_task_id": "task-old", "latest_run_id": "task-old"},
+            "created_by": "operator",
+            "origin": "operator",
+            "ready_at": 0.0,
+            "scheduled_for": 0.0,
+            "created_at": time.time(),
+            "updated_at": time.time(),
+            "completed_at": 0.0,
+        }
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.governor.Governor.get", return_value=governor),
+            patch(
+                "athanor_agents.operator_state.fetch_backlog_record",
+                AsyncMock(return_value=backlog_record),
+            ),
+            patch(
+                "athanor_agents.operator_state.upsert_backlog_record",
+                AsyncMock(),
+            ) as mock_upsert_backlog,
+        ):
+            await _maybe_retry(task)
+
+        stored = json.loads(mock_r.hset.call_args[0][2])
+        self.assertEqual("fail5", stored["metadata"]["retry_of"])
+        self.assertEqual("auto-retry", stored["metadata"]["source"])
+        self.assertEqual("backlog-123", stored["metadata"]["backlog_id"])
+        self.assertEqual({"provider": "athanor_local"}, stored["metadata"]["execution_lease"])
+        self.assertNotIn("latest_task_id", stored["metadata"])
+        self.assertNotIn("latest_run_id", stored["metadata"])
+        self.assertNotIn("last_dispatch_reason", stored["metadata"])
+        self.assertNotIn("governor_reason", stored["metadata"])
+        self.assertNotIn("governor_level", stored["metadata"])
+        self.assertNotIn("execution_claim", stored["metadata"])
+        self.assertNotIn("recovery", stored["metadata"])
+        self.assertNotIn("failure", stored["metadata"])
+        self.assertNotIn("execution_run_id", stored["metadata"])
+
+        updated_backlog = mock_upsert_backlog.await_args.args[0]
+        self.assertEqual("scheduled", updated_backlog["status"])
+        self.assertEqual(stored["id"], updated_backlog["metadata"]["latest_task_id"])
+        self.assertEqual(stored["id"], updated_backlog["metadata"]["latest_run_id"])
+        self.assertIn("fail5", updated_backlog["metadata"]["last_dispatch_reason"])
+
 
 class TestExecuteTaskFailures(unittest.IsolatedAsyncioTestCase):
     async def test_execute_task_records_nonempty_error_for_blank_string_exceptions(self):
@@ -862,7 +974,216 @@ class TestExecuteTaskFailures(unittest.IsolatedAsyncioTestCase):
         maybe_retry.assert_awaited_once()
 
 
+class TestExecuteTaskProviderExecution(unittest.IsolatedAsyncioTestCase):
+    async def test_execute_task_routes_async_backlog_leases_to_provider_execution(self):
+        from athanor_agents.tasks import Task, _execute_task
+
+        breaker = types.SimpleNamespace(
+            can_execute=AsyncMock(return_value=True),
+            record_failure=AsyncMock(),
+            record_success=AsyncMock(),
+        )
+        breakers = types.SimpleNamespace(get_or_create=lambda _agent: breaker)
+        agents_stub = types.SimpleNamespace(
+            get_agent=lambda _agent: (_ for _ in ()).throw(AssertionError("local agent path should not run"))
+        )
+        context_stub = types.SimpleNamespace(enrich_context=AsyncMock(return_value=""))
+        activity_stub = types.SimpleNamespace(
+            log_activity=AsyncMock(),
+            log_event=AsyncMock(),
+            log_conversation=AsyncMock(),
+        )
+        workspace_stub = types.SimpleNamespace(post_item=AsyncMock())
+        circuit_stub = types.SimpleNamespace(get_circuit_breakers=lambda: breakers)
+        provider_execution_stub = types.SimpleNamespace(
+            execute_provider_request=AsyncMock(
+                return_value={
+                    "status": "handoff_created",
+                    "provider": "zai_glm_coding",
+                    "message": "Direct execution is unavailable; structured handoff bundle created.",
+                    "adapter": {
+                        "execution_mode": "handoff_bundle",
+                        "adapter_available": False,
+                    },
+                    "handoff": {
+                        "id": "handoff-123",
+                        "lease_id": "lease-123",
+                        "status": "pending",
+                        "execution_mode": "handoff_bundle",
+                        "artifact_refs": [{"label": "tasks", "href": "/tasks"}],
+                    },
+                }
+            )
+        )
+
+        task = Task(
+            id="provider1",
+            agent="coding-agent",
+            prompt="Advance the governed dispatch claim.",
+            status="running",
+            started_at=time.time(),
+            last_heartbeat=time.time(),
+            metadata={
+                "source": "operator_backlog",
+                "task_class": "async_backlog_execution",
+                "execution_lease": {
+                    "id": "lease-123",
+                    "provider": "zai_glm_coding",
+                    "metadata": {
+                        "expected_context": "medium",
+                        "parallelism": "low",
+                    },
+                },
+            },
+        )
+
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "athanor_agents.agents": agents_stub,
+                    "athanor_agents.context": context_stub,
+                    "athanor_agents.activity": activity_stub,
+                    "athanor_agents.workspace": workspace_stub,
+                    "athanor_agents.circuit_breaker": circuit_stub,
+                    "athanor_agents.provider_execution": provider_execution_stub,
+                },
+            ),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+            patch("athanor_agents.tasks._maybe_retry", AsyncMock()) as maybe_retry,
+            patch("athanor_agents.tasks._release_task_claim", AsyncMock()),
+        ):
+            await _execute_task(task)
+
+        persisted_task = persist_task_state.await_args.args[0]
+        self.assertEqual("completed", persisted_task.status)
+        self.assertIn("Provider lane: zai_glm_coding", persisted_task.result)
+        self.assertEqual(
+            "handoff_created",
+            persisted_task.metadata["provider_execution"]["status"],
+        )
+        self.assertEqual(
+            "handoff-123",
+            persisted_task.metadata["provider_execution"]["handoff_id"],
+        )
+        provider_execution_stub.execute_provider_request.assert_awaited_once()
+        self.assertFalse(breaker.record_failure.await_count)
+        self.assertFalse(breaker.record_success.await_count)
+        maybe_retry.assert_not_awaited()
+
+    async def test_execute_task_records_provider_execution_failure_and_retries(self):
+        from athanor_agents.tasks import Task, _execute_task
+
+        breaker = types.SimpleNamespace(
+            can_execute=AsyncMock(return_value=True),
+            record_failure=AsyncMock(),
+            record_success=AsyncMock(),
+        )
+        breakers = types.SimpleNamespace(get_or_create=lambda _agent: breaker)
+        agents_stub = types.SimpleNamespace(
+            get_agent=lambda _agent: (_ for _ in ()).throw(AssertionError("local agent path should not run"))
+        )
+        context_stub = types.SimpleNamespace(enrich_context=AsyncMock(return_value=""))
+        activity_stub = types.SimpleNamespace(
+            log_activity=AsyncMock(),
+            log_event=AsyncMock(),
+            log_conversation=AsyncMock(),
+        )
+        workspace_stub = types.SimpleNamespace(post_item=AsyncMock())
+        circuit_stub = types.SimpleNamespace(get_circuit_breakers=lambda: breakers)
+        provider_execution_stub = types.SimpleNamespace(
+            execute_provider_request=AsyncMock(
+                return_value={
+                    "status": "failed",
+                    "provider": "zai_glm_coding",
+                    "message": "Provider execution failed and no governed handoff fallback is available.",
+                    "adapter": {
+                        "execution_mode": "direct_cli",
+                        "adapter_available": True,
+                    },
+                    "execution": {
+                        "summary": "Direct execution failed.",
+                        "stderr": "socket timeout",
+                    },
+                    "handoff": {
+                        "id": "handoff-456",
+                        "lease_id": "lease-456",
+                        "status": "failed",
+                        "execution_mode": "direct_cli",
+                    },
+                }
+            )
+        )
+
+        task = Task(
+            id="provider2",
+            agent="coding-agent",
+            prompt="Advance the governed dispatch claim.",
+            status="running",
+            started_at=time.time(),
+            last_heartbeat=time.time(),
+            metadata={
+                "source": "operator_backlog",
+                "task_class": "async_backlog_execution",
+                "execution_lease": {
+                    "id": "lease-456",
+                    "provider": "zai_glm_coding",
+                },
+            },
+        )
+
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "athanor_agents.agents": agents_stub,
+                    "athanor_agents.context": context_stub,
+                    "athanor_agents.activity": activity_stub,
+                    "athanor_agents.workspace": workspace_stub,
+                    "athanor_agents.circuit_breaker": circuit_stub,
+                    "athanor_agents.provider_execution": provider_execution_stub,
+                },
+            ),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()) as persist_task_state,
+            patch("athanor_agents.tasks._maybe_retry", AsyncMock()) as maybe_retry,
+            patch("athanor_agents.tasks._release_task_claim", AsyncMock()),
+        ):
+            await _execute_task(task)
+
+        failed_task = persist_task_state.await_args.args[0]
+        self.assertEqual("failed", failed_task.status)
+        self.assertEqual("socket timeout", failed_task.error)
+        self.assertEqual(
+            "provider_execution_failed",
+            failed_task.metadata["failure"]["type"],
+        )
+        maybe_retry.assert_awaited_once()
+
+
 class TestSubmitTask(unittest.IsolatedAsyncioTestCase):
+    async def test_duplicate_check_ignores_stale_lease_tasks(self):
+        from athanor_agents.tasks import Task, _has_duplicate_pending
+
+        mock_r = _mock_redis()
+        stale = Task(
+            id="stale1",
+            agent="coding-agent",
+            prompt="Write a contract test",
+            status="stale_lease",
+        ).to_dict()
+
+        async def fake_read_task_records_by_statuses(_redis, *statuses, limit=None):
+            return [stale] if "stale_lease" in statuses else []
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(side_effect=fake_read_task_records_by_statuses)) as read_records,
+        ):
+            existing = await _has_duplicate_pending("coding-agent", "Write a contract test")
+
+        self.assertIsNone(existing)
+        self.assertEqual(tuple(read_records.await_args.args[1:]), ("pending", "pending_approval", "running"))
+
     async def test_submit_task_persists_and_publishes_event(self):
         from athanor_agents.tasks import submit_task
 
@@ -893,6 +1214,78 @@ class TestSubmitTask(unittest.IsolatedAsyncioTestCase):
         published = publish_task_event.await_args.args[0]
         self.assertEqual("task_submitted", published["event"])
         self.assertEqual("coding-agent", published["agent"])
+
+    async def test_submit_task_stamps_policy_execution_hints_before_leasing(self):
+        from athanor_agents.tasks import submit_task
+
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks._has_duplicate_pending", AsyncMock(return_value=None)),
+            patch("athanor_agents.tasks.persist_task_state", AsyncMock()),
+            patch("athanor_agents.tasks.publish_task_event", AsyncMock()),
+            patch("athanor_agents.agents.list_agents", return_value=["knowledge-agent"]),
+            patch(
+                "athanor_agents.subscriptions.attach_task_execution_lease",
+                AsyncMock(side_effect=lambda **kwargs: kwargs["metadata"]),
+            ),
+        ):
+            task = await submit_task("knowledge-agent", "Review the indexed knowledge gaps and summarize them.")
+
+        self.assertEqual("private_automation", task.metadata["task_class"])
+        self.assertEqual("private", task.metadata["sensitivity"])
+        self.assertEqual("small", task.metadata["expected_context"])
+        self.assertEqual("low", task.metadata["parallelism"])
+
+    def test_should_use_provider_execution_for_bounded_cloud_background_work(self):
+        from athanor_agents.tasks import Task, _should_use_provider_execution
+
+        task = Task(
+            agent="coding-agent",
+            prompt="Implement the next PR-sized change set.",
+            metadata={
+                "task_class": "multi_file_implementation",
+                "interactive": False,
+                "execution_lease": {
+                    "provider": "openai_codex",
+                    "task_class": "multi_file_implementation",
+                },
+            },
+        )
+
+        self.assertTrue(_should_use_provider_execution(task))
+
+    def test_should_not_use_provider_execution_for_local_or_interactive_work(self):
+        from athanor_agents.tasks import Task, _should_use_provider_execution
+
+        local_task = Task(
+            agent="knowledge-agent",
+            prompt="Refresh internal context.",
+            metadata={
+                "task_class": "private_automation",
+                "interactive": False,
+                "execution_lease": {
+                    "provider": "athanor_local",
+                    "task_class": "private_automation",
+                },
+            },
+        )
+        interactive_task = Task(
+            agent="coding-agent",
+            prompt="Talk through the implementation tradeoffs.",
+            metadata={
+                "task_class": "multi_file_implementation",
+                "interactive": True,
+                "execution_lease": {
+                    "provider": "openai_codex",
+                    "task_class": "multi_file_implementation",
+                },
+            },
+        )
+
+        self.assertFalse(_should_use_provider_execution(local_task))
+        self.assertFalse(_should_use_provider_execution(interactive_task))
 
     async def test_submit_governed_task_records_governor_context(self):
         from athanor_agents.tasks import Task, submit_governed_task
@@ -927,6 +1320,32 @@ class TestSubmitTask(unittest.IsolatedAsyncioTestCase):
         self.assertEqual("gov1", submission.task.id)
         self.assertIs(submission.decision, decision)
         self.assertFalse(submission.held_for_approval)
+
+    async def test_submit_governed_task_preserves_execution_hints(self):
+        from athanor_agents.tasks import Task, submit_governed_task
+
+        decision = types.SimpleNamespace(
+            status_override="pending",
+            autonomy_level="B",
+            reason="Execute with notification",
+        )
+        task = Task(id="gov-hints", agent="coding-agent", prompt="Implement the next multi-file change")
+        governor = types.SimpleNamespace(gate_task_submission=AsyncMock(return_value=decision))
+
+        with (
+            patch("athanor_agents.governor.Governor.get", return_value=governor),
+            patch("athanor_agents.tasks.submit_task", AsyncMock(return_value=task)) as submit_task_mock,
+        ):
+            await submit_governed_task(
+                "coding-agent",
+                "Implement the next multi-file change",
+                metadata={"source": "manual", "task_class": "multi_file_implementation", "expected_context": "large"},
+                source="manual",
+            )
+
+        submit_metadata = submit_task_mock.await_args.kwargs["metadata"]
+        self.assertEqual("multi_file_implementation", submit_metadata["task_class"])
+        self.assertEqual("large", submit_metadata["expected_context"])
 
     async def test_submit_governed_task_persists_pending_approval_override(self):
         from athanor_agents.tasks import Task, submit_governed_task
@@ -1210,6 +1629,30 @@ class TestTaskStats(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(0, stats["cancelled"])
         self.assertEqual(0, stats["stale_lease"])
         self.assertEqual(1, stats["by_status"]["pending"])
+        self.assertEqual(1, stats["currently_running"])
+        self.assertTrue(stats["worker_running"])
+
+    async def test_get_task_stats_uses_recorded_running_and_pending_truth(self):
+        from athanor_agents.tasks import Task, get_task_stats
+
+        records = [
+            Task(id="p1", status="pending", agent="coding-agent", created_at=1000).to_dict(),
+            Task(id="r1", status="running", agent="research-agent", created_at=1001, started_at=1002).to_dict(),
+            Task(id="r2", status="running", agent="home-agent", created_at=1003, started_at=1004).to_dict(),
+        ]
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+            patch("athanor_agents.tasks._worker_task", None),
+            patch("athanor_agents.tasks._running_count", 0),
+        ):
+            stats = await get_task_stats()
+
+        self.assertEqual(2, stats["running"])
+        self.assertEqual(2, stats["currently_running"])
+        self.assertTrue(stats["worker_running"])
 
     async def test_get_task_stats_falls_back_to_durable_state(self):
         from athanor_agents.tasks import get_task_stats
@@ -1218,16 +1661,23 @@ class TestTaskStats(unittest.IsolatedAsyncioTestCase):
             patch("athanor_agents.tasks._get_redis", AsyncMock(side_effect=RuntimeError("redis unavailable"))),
             patch(
                 "athanor_agents.tasks.get_task_snapshot_stats",
-                AsyncMock(return_value={"total": 2, "by_status": {"pending": 1, "completed": 1}}),
+                AsyncMock(return_value={"total": 4, "by_status": {"pending": 1, "running": 2, "completed": 1}}),
             ),
+            patch("athanor_agents.tasks._worker_task", None),
+            patch("athanor_agents.tasks._running_count", 0),
         ):
             stats = await get_task_stats()
 
-        self.assertEqual(2, stats["total"])
+        self.assertEqual(4, stats["total"])
         self.assertEqual(1, stats["pending"])
+        self.assertEqual(2, stats["running"])
         self.assertEqual(1, stats["completed"])
+        self.assertEqual(2, stats["currently_running"])
+        self.assertTrue(stats["worker_running"])
         self.assertEqual("durable_state_fallback", stats["source"])
         self.assertEqual(0, stats["failed_missing_detail"])
+        self.assertEqual(0, stats["stale_lease_actionable"])
+        self.assertEqual(0, stats["stale_lease_recovered_historical"])
 
     async def test_get_task_stats_breaks_out_failed_detail_quality(self):
         from athanor_agents.tasks import Task, get_task_stats
@@ -1293,6 +1743,42 @@ class TestTaskStats(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(1, stats["failed_actionable"])
         self.assertEqual(1, stats["failed_historical_repaired"])
         self.assertEqual(0, stats["failed_missing_detail"])
+
+    async def test_get_task_stats_separates_recovered_stale_leases(self):
+        from athanor_agents.tasks import Task, get_task_stats
+
+        records = [
+            Task(
+                id="recovered-stale",
+                status="stale_lease",
+                agent="coding-agent",
+                error="Execution lease expired during server restart",
+                metadata={
+                    "recovery": {
+                        "event": "stale_lease_recovered",
+                        "reason": "server_restart",
+                    }
+                },
+            ).to_dict(),
+            Task(
+                id="live-stale",
+                status="stale_lease",
+                agent="research-agent",
+                error="Execution lease expired during remote disconnect",
+                metadata={},
+            ).to_dict(),
+        ]
+        mock_r = _mock_redis()
+
+        with (
+            patch("athanor_agents.tasks._get_redis", return_value=mock_r),
+            patch("athanor_agents.tasks.read_task_records_by_statuses", AsyncMock(return_value=records)),
+        ):
+            stats = await get_task_stats()
+
+        self.assertEqual(2, stats["stale_lease"])
+        self.assertEqual(1, stats["stale_lease_actionable"])
+        self.assertEqual(1, stats["stale_lease_recovered_historical"])
 
 
 class TestDurableTaskPersistence(unittest.IsolatedAsyncioTestCase):

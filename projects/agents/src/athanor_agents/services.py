@@ -231,6 +231,17 @@ class ServiceRegistry:
         )
 
     @cached_property
+    def graphrag(self) -> ServiceEndpoint:
+        return ServiceEndpoint(
+            id="graphrag",
+            name="GraphRAG",
+            node="Foundry",
+            base_url=self.config.graphrag_url,
+            description="Governed GraphRAG retrieval service.",
+            health_path="/health",
+        )
+
+    @cached_property
     def comfyui(self) -> ServiceEndpoint:
         return ServiceEndpoint(
             id="comfyui",
@@ -427,12 +438,11 @@ class ServiceRegistry:
     def service_checks(self) -> list[ServiceEndpoint]:
         return [
             self.litellm,
-            self.coordinator,
             self.coder,
-            self.worker,
             self.embedding,
             self.reranker,
             self.agent_server,
+            self.graphrag,
             self.qdrant,
             self.comfyui,
             self.dashboard,
@@ -458,18 +468,14 @@ class ServiceRegistry:
     def model_targets(self) -> list[tuple[str, ServiceEndpoint]]:
         return [
             ("LiteLLM proxy", self.litellm),
-            ("Foundry coordinator", self.coordinator),
             ("Foundry coder", self.coder),
-            ("Workshop worker", self.worker),
             ("DEV embedding", self.embedding),
         ]
 
     @cached_property
     def inference_health_checks(self) -> dict[str, ServiceEndpoint]:
         return {
-            "coordinator": self.coordinator,
             "coder": self.coder,
-            "worker": self.worker,
             "litellm": self.litellm,
             "embedding": self.embedding,
             "reranker": self.reranker,

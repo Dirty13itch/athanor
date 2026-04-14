@@ -1,0 +1,126 @@
+{
+  "version": "2026-04-11.1",
+  "updated_at": "2026-04-11T12:35:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/sidecar-retention-policy.json",
+  "default_policy": "bounded_non_core_only",
+  "sidecars": [
+    {
+      "id": "openhands_sidecar",
+      "label": "OpenHands",
+      "role": "bounded_worker_lane",
+      "truth_surface_owner": "Athanor dashboard, atlas, and routing contracts",
+      "allowed_scope": [
+        "cloud_safe_bounded_worker_experiments",
+        "governed_repo_worker_trials",
+        "operator_selected_sidecar_runs"
+      ],
+      "keep_if": [
+        "OpenHands proves unique value on bounded worker tasks without creating a second control plane.",
+        "Worker outputs remain reproducible, reviewable, and easy to demote back to native lanes.",
+        "Its tool and MCP posture stays within Athanor policy and repo-sensitivity contracts."
+      ],
+      "demote_if": [
+        "It matches existing Codex or Aider outcomes without offering meaningful worker-lane leverage.",
+        "The operator cost of configuration, session state, or auth drift outweighs the measured benefit.",
+        "The pilot needs ongoing exceptions to fit inside current routing or approval rules."
+      ],
+      "remove_if": [
+        "It starts accumulating competing orchestration truth outside Athanor registries and packets.",
+        "It requires broad default access instead of explicit bounded-worker selection.",
+        "A simpler native lane wins the same eval slice with lower overhead."
+      ]
+    },
+    {
+      "id": "roo_code_sidecar",
+      "label": "Roo Code",
+      "role": "ide_sidecar",
+      "truth_surface_owner": "Athanor dashboard, atlas, and routing contracts",
+      "allowed_scope": [
+        "ide_local_assistance",
+        "operator_selected_editor_flows",
+        "cloud_safe_or_local_repo_support"
+      ],
+      "keep_if": [
+        "Roo adds IDE-native value that is hard to reproduce through Goose or direct CLI work.",
+        "Its MCP and model-routing posture remains bounded by Athanor sensitivity and vendor-policy rules."
+      ],
+      "demote_if": [
+        "It duplicates terminal-first flows without improving throughput or review quality.",
+        "Its IDE-only posture makes it less useful than the primary dashboard plus terminal front door."
+      ],
+      "remove_if": [
+        "It causes state drift, operator confusion, or duplicate shell/control-plane behavior.",
+        "It no longer earns a place beyond occasional editor convenience."
+      ]
+    },
+    {
+      "id": "augment_context_engine",
+      "label": "Augment Context Engine",
+      "role": "cloud_safe_context_enhancer",
+      "truth_surface_owner": "Athanor dashboard, atlas, and routing contracts",
+      "allowed_scope": [
+        "cloud_safe_repo_indexing",
+        "bounded_context_enrichment",
+        "operator_selected_non_sovereign_context_work"
+      ],
+      "keep_if": [
+        "Hosted indexing remains restricted to cloud-safe repos and improves context quality measurably.",
+        "The memory and indexing boundary stays legible relative to Athanor registry truth."
+      ],
+      "demote_if": [
+        "Equivalent context quality is available from repo-native or local memory surfaces.",
+        "The hosted-indexing overhead or policy review burden outweighs the practical gain."
+      ],
+      "remove_if": [
+        "It is needed for private, sovereign, or adult-sensitive work.",
+        "It starts acting like a universal context substrate instead of a bounded enhancer."
+      ]
+    },
+    {
+      "id": "kimi_constrained_burst",
+      "label": "Kimi Code",
+      "role": "constrained_burst_lane",
+      "truth_surface_owner": "Athanor dashboard, atlas, and routing contracts",
+      "allowed_scope": [
+        "personal_development_only",
+        "operator_selected_burst_usage",
+        "cloud_safe_non_core_tasks"
+      ],
+      "keep_if": [
+        "The lane remains useful inside its vendor-limited personal-development scope.",
+        "It provides burst value without becoming part of the core execution doctrine."
+      ],
+      "demote_if": [
+        "The scope restrictions leave too little practical room for meaningful routing.",
+        "Other subscription or local lanes cover the same work with fewer contractual constraints."
+      ],
+      "remove_if": [
+        "Vendor-policy scope conflicts with the intended project or tenant usage.",
+        "The lane is mostly dead weight relative to the broader stack."
+      ]
+    }
+  ],
+  "retiring_lanes": [
+    {
+      "id": "claude_review_cloudsafe",
+      "label": "Claude Review Cloudsafe",
+      "role": "retiring_primary_review_lane",
+      "truth_surface_owner": "Athanor migration map and lane-selection matrix",
+      "allowed_scope": [
+        "current_state_only",
+        "explicit_migration_fallback"
+      ],
+      "keep_if": [
+        "Claude still covers a review slice that does not yet have fresh replacement evidence."
+      ],
+      "demote_if": [
+        "Gemini and Codex replacement coverage is fresh and passing for architecture review and final review."
+      ],
+      "remove_if": [
+        "The migration-map exit gates are satisfied and two normal quota windows pass without emergency relay.",
+        "No current routing profile depends on Claude to close a required task class."
+      ]
+    }
+  ]
+}

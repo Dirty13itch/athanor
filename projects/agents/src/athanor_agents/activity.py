@@ -7,7 +7,7 @@ Collections:
 - `implicit_feedback`: Behavioral signals (page views, dwell time, taps, lens changes)
 - `events`: Structured system events for pattern detection (ADR-021 Phase 2)
 
-All use 1024-dim Cosine embeddings from Qwen3-Embedding-0.6B via LiteLLM.
+All use 1024-dim Cosine embeddings from qwen3-embed-8b via LiteLLM.
 """
 
 import hashlib

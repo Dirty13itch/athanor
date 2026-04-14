@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+from typing import Any
 
 from fastapi import APIRouter, Request
 from starlette.responses import JSONResponse
@@ -14,6 +16,110 @@ from ..operator_contract import (
 )
 
 router = APIRouter(prefix="/v1/operator", tags=["operator-work"])
+logger = logging.getLogger(__name__)
+
+
+def _drain_task_result(task: asyncio.Task[Any]) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        return
+    except Exception as exc:  # pragma: no cover - defensive cleanup
+        logger.debug("Operator-work background task finished after cancellation: %s", exc)
+
+
+async def _await_component(
+    label: str,
+    coroutine: Any,
+    fallback: Any,
+    *,
+    timeout_seconds: float = 4.0,
+    degraded_sections: list[str] | None = None,
+) -> Any:
+    task = asyncio.create_task(coroutine)
+    try:
+        done, _ = await asyncio.wait({task}, timeout=timeout_seconds)
+        if task not in done:
+            task.cancel()
+            task.add_done_callback(_drain_task_result)
+            raise TimeoutError(f"{label} timed out after {timeout_seconds:.1f}s")
+        return task.result()
+    except Exception as exc:
+        logger.warning("Operator-work component %s unavailable; using fallback: %s", label, exc)
+        if degraded_sections is not None:
+            degraded_sections.append(f"{label}:{str(exc)[:120]}")
+        return fallback() if callable(fallback) else fallback
+
+
+def _summary_section_fallback() -> dict[str, Any]:
+    return {"total": 0, "by_status": {}}
+
+
+def _task_summary_fallback() -> dict[str, Any]:
+    return {
+        "total": 0,
+        "by_status": {},
+        "pending_approval": 0,
+        "stale_lease": 0,
+        "stale_lease_actionable": 0,
+        "stale_lease_recovered_historical": 0,
+        "failed_actionable": 0,
+        "failed_historical_repaired": 0,
+        "failed_missing_detail": 0,
+    }
+
+
+def _bootstrap_fallback() -> dict[str, Any]:
+    return {
+        "status": "degraded",
+        "environment": "unknown",
+        "next_actions": [],
+        "blocker_count": 0,
+        "blockers": [],
+    }
+
+
+def _governance_fallback() -> dict[str, Any]:
+    return {
+        "status": "degraded",
+        "launch_ready": False,
+        "launch_blockers": [],
+        "issues": [],
+    }
+
+
+def _digest_fallback() -> dict[str, Any]:
+    return {
+        "type": "degraded",
+        "generated_at": "",
+        "period": "unknown",
+        "summary": "Operator digest unavailable.",
+        "task_count": 0,
+        "completed_count": 0,
+        "failed_count": 0,
+        "recent_completions": [],
+        "recent_failures": [],
+    }
+
+
+def _project_fallback() -> dict[str, Any]:
+    return {"stalled_total": 0, "stalled_preview": [], "threshold_hours": 24}
+
+
+def _output_fallback() -> dict[str, Any]:
+    return {"total": 0, "recent": []}
+
+
+def _pattern_fallback() -> dict[str, Any]:
+    return {
+        "available": False,
+        "generated_at": "",
+        "warning_count": 0,
+        "high_count": 0,
+        "medium_count": 0,
+        "patterns": [],
+        "recommendations": [],
+    }
 
 
 async def _load_operator_body(
@@ -64,6 +170,7 @@ async def get_operator_work_summary():
     from ..governance_state import build_governance_snapshot
     from ..tasks import get_task_stats
 
+    degraded_sections: list[str] = []
     (
         ideas,
         inbox,
@@ -79,22 +186,32 @@ async def get_operator_work_summary():
         outputs,
         patterns,
     ) = await asyncio.gather(
-        idea_stats(),
-        inbox_stats(),
-        todo_stats(),
-        backlog_stats(),
-        run_stats(),
-        approval_stats(),
-        get_task_stats(),
-        build_bootstrap_runtime_snapshot(include_snapshot_write=False),
-        build_governance_snapshot(),
-        digest_summary(),
-        project_summary(),
-        output_summary(),
-        pattern_summary(),
+        _await_component("ideas", idea_stats(), _summary_section_fallback, degraded_sections=degraded_sections),
+        _await_component("inbox", inbox_stats(), _summary_section_fallback, degraded_sections=degraded_sections),
+        _await_component("todos", todo_stats(), _summary_section_fallback, degraded_sections=degraded_sections),
+        _await_component("backlog", backlog_stats(), _summary_section_fallback, degraded_sections=degraded_sections),
+        _await_component("runs", run_stats(), _summary_section_fallback, degraded_sections=degraded_sections),
+        _await_component("approvals", approval_stats(), _summary_section_fallback, degraded_sections=degraded_sections),
+        _await_component("tasks", get_task_stats(), _task_summary_fallback, degraded_sections=degraded_sections),
+        _await_component(
+            "bootstrap",
+            build_bootstrap_runtime_snapshot(include_snapshot_write=False, allow_stale=True),
+            _bootstrap_fallback,
+            degraded_sections=degraded_sections,
+        ),
+        _await_component(
+            "governance",
+            build_governance_snapshot(),
+            _governance_fallback,
+            degraded_sections=degraded_sections,
+        ),
+        _await_component("digest", digest_summary(), _digest_fallback, degraded_sections=degraded_sections),
+        _await_component("projects", project_summary(), _project_fallback, degraded_sections=degraded_sections),
+        _await_component("outputs", output_summary(), _output_fallback, degraded_sections=degraded_sections),
+        _await_component("patterns", pattern_summary(), _pattern_fallback, degraded_sections=degraded_sections),
     )
 
-    return {
+    payload = {
         "ideas": ideas,
         "inbox": inbox,
         "todos": todos,
@@ -109,6 +226,10 @@ async def get_operator_work_summary():
         "outputs": outputs,
         "patterns": patterns,
     }
+    if degraded_sections:
+        payload["status"] = "degraded"
+        payload["degraded_sections"] = degraded_sections
+    return payload
 
 
 @router.get("/todos")
@@ -571,7 +692,11 @@ async def promote_operator_idea_endpoint(idea_id: str, request: Request):
 async def get_operator_backlog(status: str = "", owner_agent: str = "", limit: int = 50):
     from ..operator_work import list_backlog
 
-    backlog = await list_backlog(status=status, owner_agent=owner_agent, limit=limit)
+    backlog = await _await_component(
+        "operator_backlog",
+        list_backlog(status=status, owner_agent=owner_agent, limit=limit),
+        lambda: [],
+    )
     return {"backlog": backlog, "count": len(backlog)}
 
 
@@ -744,7 +869,11 @@ async def dispatch_operator_backlog_endpoint(backlog_id: str, request: Request):
 async def get_operator_runs(status: str = "", agent: str = "", limit: int = 50):
     from ..operator_work import list_runs
 
-    runs = await list_runs(status=status, agent=agent, limit=limit)
+    runs = await _await_component(
+        "operator_runs",
+        list_runs(status=status, agent=agent, limit=limit),
+        lambda: [],
+    )
     return {"runs": runs, "count": len(runs)}
 
 

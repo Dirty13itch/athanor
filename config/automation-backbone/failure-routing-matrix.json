@@ -1,0 +1,128 @@
+{
+  "version": "2026-04-11.1",
+  "updated_at": "2026-04-11T09:00:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/failure-routing-matrix.json",
+  "alert_thresholds": {
+    "critical": [
+      "provider_auth_failed",
+      "degraded_mode_active",
+      "protected_reserve_breached",
+      "collector_stale_beyond_hard_threshold",
+      "privacy_legal_route_conflict"
+    ],
+    "warning": [
+      "family_below_reserve_floor_plus_ten_percent",
+      "eval_freshness_within_three_days_of_expiry",
+      "queue_saturation_on_harvest_lanes",
+      "glm_or_kimi_doc_vs_observed_contract_mismatch"
+    ],
+    "info": [
+      "quota_window_opening",
+      "successful_shadow_router_agreement_summary",
+      "planned_low_priority_harvest"
+    ]
+  },
+  "alert_surfaces": {
+    "always": [
+      "dashboard_operator_stream"
+    ],
+    "critical_immediate": [
+      "ntfy"
+    ],
+    "presence_profiles": {
+      "at_desk": "full_detail",
+      "away": "digest_plus_critical",
+      "asleep": "critical_only",
+      "phone_only": "compact_actionable_only"
+    }
+  },
+  "rows": [
+    {
+      "failure_class": "quota_exhausted",
+      "affected_family": "openai_codex",
+      "sensitivity_scope": "cloud_safe",
+      "allowed_fallbacks": [
+        "gemini_audit_cloudsafe",
+        "glm_cloudsafe_bulk",
+        "sovereign_coder"
+      ],
+      "blocked_workloads": [],
+      "operator_surface": "dashboard_operator_stream",
+      "recovery_gate": "next_quota_window_or_manual_override"
+    },
+    {
+      "failure_class": "provider_auth_failed",
+      "affected_family": "zai_api",
+      "sensitivity_scope": "cloud_safe",
+      "allowed_fallbacks": [
+        "deepseek_cloudsafe_bulk",
+        "sovereign_bulk"
+      ],
+      "blocked_workloads": [
+        "zai_api_direct_usage"
+      ],
+      "operator_surface": "dashboard_operator_stream",
+      "recovery_gate": "provider_auth_repair"
+    },
+    {
+      "failure_class": "model_lane_outage",
+      "affected_family": "athanor_local",
+      "sensitivity_scope": "sovereign_only",
+      "allowed_fallbacks": [
+        "sovereign_supervisor",
+        "sovereign_bulk"
+      ],
+      "blocked_workloads": [
+        "cloud_escalation_of_sovereign_work"
+      ],
+      "operator_surface": "dashboard_operator_stream",
+      "recovery_gate": "local_lane_health_restored"
+    },
+    {
+      "failure_class": "litellm_degraded",
+      "affected_family": "metered_api_router",
+      "sensitivity_scope": "cloud_safe",
+      "allowed_fallbacks": [
+        "direct_cli",
+        "sovereign_bulk"
+      ],
+      "blocked_workloads": [
+        "aider_repo_mechanic",
+        "metered_api_batch"
+      ],
+      "operator_surface": "dashboard_operator_stream",
+      "recovery_gate": "litellm_health_green"
+    },
+    {
+      "failure_class": "gpu_capacity_hit",
+      "affected_family": "athanor_local",
+      "sensitivity_scope": "mixed",
+      "allowed_fallbacks": [
+        "protected_reserve_wait",
+        "cloud_safe_overflow_only_when_policy_allows"
+      ],
+      "blocked_workloads": [
+        "reserve_breaching_auto_harvest"
+      ],
+      "operator_surface": "dashboard_operator_stream",
+      "recovery_gate": "capacity_telemetry_clear"
+    },
+    {
+      "failure_class": "cluster_degraded_mode",
+      "affected_family": "all",
+      "sensitivity_scope": "mixed",
+      "allowed_fallbacks": [
+        "read_only_checks",
+        "incident_recovery"
+      ],
+      "blocked_workloads": [
+        "promotion",
+        "launch",
+        "new_harvest_execution"
+      ],
+      "operator_surface": "dashboard_operator_stream",
+      "recovery_gate": "degraded_mode_cleared"
+    }
+  ]
+}

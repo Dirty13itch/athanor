@@ -1,8 +1,48 @@
 {
-  "version": "2026-03-31.1",
-  "updated_at": "2026-03-31T16:00:00Z",
+  "version": "2026-04-11.2",
+  "updated_at": "2026-04-11T11:15:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/coding-lane-registry.json",
+  "front_door": [
+    "dashboard",
+    "terminal"
+  ],
+  "primary_shell": {
+    "id": "goose_shell",
+    "status": "target_state_primary",
+    "role": "shell_level_operator_agent",
+    "execution_surface": "terminal",
+    "notes": [
+      "Goose is the main shell-level operator surface in the target stack.",
+      "Codex Desktop remains a client surface, not the center of gravity."
+    ]
+  },
+  "sidecars": [
+    {
+      "id": "openhands_sidecar",
+      "status": "bounded_optional",
+      "role": "autonomous_worker_platform",
+      "keep_if": "proves_unique_value_without_becoming_a_second_control_plane"
+    },
+    {
+      "id": "roo_code_sidecar",
+      "status": "bounded_optional",
+      "role": "ide_native_sidecar",
+      "keep_if": "ide_native_flow_outperforms_direct_cli_plus_goose_for_specific_tasks"
+    },
+    {
+      "id": "augment_context_engine",
+      "status": "cloud_safe_optional",
+      "role": "hosted_context_enhancer",
+      "keep_if": "repo_is_cloud_safe_and_hosted_indexing_is_acceptable"
+    },
+    {
+      "id": "kimi_constrained_burst",
+      "status": "bounded_optional",
+      "role": "personal_development_burst_lane",
+      "keep_if": "use_stays_inside_vendor_policy_scope"
+    }
+  ],
   "lanes": [
     {
       "id": "sovereign_supervisor",
@@ -12,8 +52,16 @@
       "runtime": "foundry",
       "privacy": "local_only",
       "max_parallel": 2,
-      "workloads": ["triage", "routing", "research_lite", "operator_briefing"],
-      "fallback": ["sovereign_coder"]
+      "task_classes": [
+        "triage",
+        "routing",
+        "research_lite",
+        "operator_briefing",
+        "architecture_review_local"
+      ],
+      "fallback": [
+        "sovereign_coder"
+      ]
     },
     {
       "id": "sovereign_coder",
@@ -23,8 +71,16 @@
       "runtime": "foundry",
       "privacy": "local_only",
       "max_parallel": 4,
-      "workloads": ["private_code", "domain_automation", "maintenance", "migration"],
-      "fallback": ["sovereign_supervisor"]
+      "task_classes": [
+        "private_code",
+        "domain_automation",
+        "maintenance",
+        "migration",
+        "sovereign_private_coding"
+      ],
+      "fallback": [
+        "sovereign_supervisor"
+      ]
     },
     {
       "id": "sovereign_bulk",
@@ -34,8 +90,16 @@
       "runtime": "foundry+workshop",
       "privacy": "local_only",
       "max_parallel": 8,
-      "workloads": ["classification", "extraction", "indexing", "creative_batch"],
-      "fallback": ["sovereign_supervisor"]
+      "task_classes": [
+        "classification",
+        "extraction",
+        "indexing",
+        "creative_batch",
+        "cheap_bulk_transform_local"
+      ],
+      "fallback": [
+        "sovereign_supervisor"
+      ]
     },
     {
       "id": "codex_cloudsafe",
@@ -45,19 +109,16 @@
       "runtime": "remote",
       "privacy": "cloud_safe_only",
       "max_parallel": 2,
-      "workloads": ["coding_implementation", "refactor", "review"],
-      "fallback": ["sovereign_coder"]
-    },
-    {
-      "id": "claude_review_cloudsafe",
-      "label": "Claude Review Cloudsafe",
-      "status": "live",
-      "provider": "anthropic_api",
-      "runtime": "remote",
-      "privacy": "cloud_safe_only",
-      "max_parallel": 2,
-      "workloads": ["architecture_review", "final_review"],
-      "fallback": ["sovereign_supervisor"]
+      "task_classes": [
+        "coding_implementation",
+        "multi_file_implementation",
+        "refactor",
+        "final_review"
+      ],
+      "fallback": [
+        "sovereign_coder",
+        "aider_repo_mechanic"
+      ]
     },
     {
       "id": "gemini_audit_cloudsafe",
@@ -67,8 +128,70 @@
       "runtime": "remote",
       "privacy": "cloud_safe_only",
       "max_parallel": 2,
-      "workloads": ["large_context_audit"],
-      "fallback": ["sovereign_supervisor"]
+      "task_classes": [
+        "large_context_audit",
+        "repo_wide_audit",
+        "architecture_review"
+      ],
+      "fallback": [
+        "codex_cloudsafe",
+        "sovereign_supervisor"
+      ]
+    },
+    {
+      "id": "aider_repo_mechanic",
+      "label": "Aider Repo Mechanic",
+      "status": "live",
+      "provider": "litellm_router",
+      "runtime": "local_or_remote_by_policy",
+      "privacy": "policy_routed",
+      "max_parallel": 4,
+      "task_classes": [
+        "deterministic_refactor",
+        "mechanical_patching",
+        "structured_multi_file_edit"
+      ],
+      "fallback": [
+        "codex_cloudsafe",
+        "sovereign_coder"
+      ]
+    },
+    {
+      "id": "glm_cloudsafe_bulk",
+      "label": "GLM Cloudsafe Bulk",
+      "status": "configured_transition",
+      "provider": "zai_glm_coding",
+      "runtime": "supported_tooling_or_api",
+      "privacy": "cloud_safe_only",
+      "max_parallel": 4,
+      "task_classes": [
+        "cloud_safe_bulk_coding",
+        "cheap_bulk_transform",
+        "overflow_refactor"
+      ],
+      "fallback": [
+        "deepseek_cloudsafe_bulk",
+        "sovereign_bulk"
+      ]
+    },
+    {
+      "id": "deepseek_cloudsafe_bulk",
+      "label": "DeepSeek Cloudsafe Bulk",
+      "status": "live",
+      "provider": "deepseek_api",
+      "runtime": "litellm_via_vault",
+      "privacy": "cloud_safe_only",
+      "max_parallel": 8,
+      "task_classes": [
+        "cheap_bulk_transform",
+        "classification",
+        "extraction",
+        "background_cloud_batch"
+      ],
+      "fallback": [
+        "glm_cloudsafe_bulk",
+        "sovereign_bulk"
+      ]
     },
     {
       "id": "responses_background_cloudsafe",
@@ -78,8 +201,32 @@
       "runtime": "remote",
       "privacy": "cloud_safe_only",
       "max_parallel": 2,
-      "workloads": ["deep_research", "edge_async"],
-      "fallback": ["codex_cloudsafe"]
+      "task_classes": [
+        "deep_research",
+        "edge_async",
+        "background_cloud_batch"
+      ],
+      "fallback": [
+        "gemini_audit_cloudsafe",
+        "deepseek_cloudsafe_bulk"
+      ]
+    },
+    {
+      "id": "claude_review_cloudsafe",
+      "label": "Claude Review Cloudsafe",
+      "status": "retiring",
+      "provider": "anthropic_api",
+      "runtime": "remote",
+      "privacy": "cloud_safe_only",
+      "max_parallel": 2,
+      "task_classes": [
+        "architecture_review",
+        "final_review"
+      ],
+      "fallback": [
+        "gemini_audit_cloudsafe",
+        "codex_cloudsafe"
+      ]
     },
     {
       "id": "public_edge_async",
@@ -89,8 +236,14 @@
       "runtime": "vercel",
       "privacy": "public_product_only",
       "max_parallel": 8,
-      "workloads": ["webhook_fanout", "cache_refresh", "transactional_email"],
-      "fallback": ["responses_background_cloudsafe"]
+      "task_classes": [
+        "webhook_fanout",
+        "cache_refresh",
+        "transactional_email"
+      ],
+      "fallback": [
+        "responses_background_cloudsafe"
+      ]
     }
   ]
 }

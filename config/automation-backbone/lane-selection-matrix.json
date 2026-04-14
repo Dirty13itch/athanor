@@ -1,0 +1,187 @@
+{
+  "version": "2026-04-11.2",
+  "updated_at": "2026-04-11T17:05:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/lane-selection-matrix.json",
+  "shadow_rollout": {
+    "phase": 1,
+    "phases": [
+      {
+        "id": 0,
+        "label": "build_ledgers_and_emit_recommendations_only",
+        "execution_effect": "none"
+      },
+      {
+        "id": 1,
+        "label": "router_shadow_mode",
+        "duration_gate": "7_days_or_200_decisions",
+        "execution_effect": "compare_recommendation_vs_actual_only"
+      },
+      {
+        "id": 2,
+        "label": "limited_auto_execution",
+        "execution_effect": "auto_read_only_and_auto_harvest_on_safe_classes"
+      },
+      {
+        "id": 3,
+        "label": "expanded_auto_harvest",
+        "promotion_gate": "two_clean_weeks_and_shadow_disagreement_at_or_below_5_percent",
+        "execution_effect": "all_auto_harvest_classes_except_runtime_mutation"
+      }
+    ]
+  },
+  "routing_precedence": [
+    "policy_tos_eligibility",
+    "sensitivity_fit",
+    "degraded_failure_fit",
+    "approval_gate",
+    "reserve_protection",
+    "workload_capability",
+    "fresh_eval_rank",
+    "execution_mode_fit",
+    "economics",
+    "latency_continuity"
+  ],
+  "execution_mode_defaults": [
+    {
+      "mode": "direct_cli",
+      "use_for": [
+        "single_lane_interactive_specialist_work"
+      ]
+    },
+    {
+      "mode": "goose_wrapped",
+      "use_for": [
+        "multi_step_orchestration",
+        "mcp_composition",
+        "resumable_shell_execution"
+      ]
+    },
+    {
+      "mode": "litellm_routed",
+      "use_for": [
+        "local_model_families",
+        "metered_api_families",
+        "aider_repo_mechanic",
+        "model_flexible_automation"
+      ]
+    }
+  ],
+  "tie_breakers": [
+    "prefer_expiring_quota_within_same_quality_tier",
+    "prefer_free_local_compute_before_metered_api_within_same_quality_tier",
+    "prefer_cheapest_metered_lane_within_same_quality_tier",
+    "prefer_active_session_for_continuity_last"
+  ],
+  "quality_overrides_economics_for": [
+    "multi_file_implementation",
+    "architecture_review",
+    "final_review"
+  ],
+  "selection_profiles": [
+    {
+      "task_class": "multi_file_implementation",
+      "sensitivity_class": "private_but_cloud_allowed",
+      "preferred_lane": "codex_cloudsafe",
+      "secondary_lane": "sovereign_coder",
+      "overflow_lane": "glm_cloudsafe_bulk",
+      "local_fallback": "sovereign_coder",
+      "default_execution_mode": "direct_cli",
+      "disallowed_lanes": [
+        "deepseek_cloudsafe_bulk",
+        "kimi_constrained_burst"
+      ],
+      "selection_reason": "Prefer premium implementation quality first, then fall back to sovereign local coding when privacy or reserve posture requires it."
+    },
+    {
+      "task_class": "architecture_review",
+      "sensitivity_class": "cloud_safe",
+      "preferred_lane": "gemini_audit_cloudsafe",
+      "secondary_lane": "codex_cloudsafe",
+      "overflow_lane": "responses_background_cloudsafe",
+      "local_fallback": "sovereign_supervisor",
+      "default_execution_mode": "direct_cli",
+      "disallowed_lanes": [
+        "deepseek_cloudsafe_bulk",
+        "kimi_constrained_burst"
+      ],
+      "selection_reason": "Large-context review work belongs on Gemini first, with Codex as the premium fallback."
+    },
+    {
+      "task_class": "repo_wide_audit",
+      "sensitivity_class": "cloud_safe",
+      "preferred_lane": "gemini_audit_cloudsafe",
+      "secondary_lane": "responses_background_cloudsafe",
+      "overflow_lane": "deepseek_cloudsafe_bulk",
+      "local_fallback": "sovereign_bulk",
+      "default_execution_mode": "goose_wrapped",
+      "disallowed_lanes": [
+        "kimi_constrained_burst"
+      ],
+      "selection_reason": "Prefer broad audit coverage and cheap overflow before consuming premium implementation reserves."
+    },
+    {
+      "task_class": "deterministic_refactor",
+      "sensitivity_class": "private_but_cloud_allowed",
+      "preferred_lane": "aider_repo_mechanic",
+      "secondary_lane": "codex_cloudsafe",
+      "overflow_lane": "glm_cloudsafe_bulk",
+      "local_fallback": "sovereign_coder",
+      "default_execution_mode": "litellm_routed",
+      "disallowed_lanes": [
+        "kimi_constrained_burst"
+      ],
+      "selection_reason": "Route mechanical patching through Aider first and let the model family vary behind the router."
+    },
+    {
+      "task_class": "cheap_bulk_transform",
+      "sensitivity_class": "cloud_safe",
+      "preferred_lane": "deepseek_cloudsafe_bulk",
+      "secondary_lane": "glm_cloudsafe_bulk",
+      "overflow_lane": "responses_background_cloudsafe",
+      "local_fallback": "sovereign_bulk",
+      "default_execution_mode": "litellm_routed",
+      "disallowed_lanes": [
+        "codex_cloudsafe",
+        "gemini_audit_cloudsafe"
+      ],
+      "selection_reason": "Cheap bulk work should spend the cheapest eligible lane first and only escalate when quality or availability requires it."
+    },
+    {
+      "task_class": "sovereign_private_coding",
+      "sensitivity_class": "sovereign_only",
+      "preferred_lane": "sovereign_coder",
+      "secondary_lane": "sovereign_supervisor",
+      "overflow_lane": "sovereign_bulk",
+      "local_fallback": "sovereign_supervisor",
+      "default_execution_mode": "litellm_routed",
+      "disallowed_lanes": [
+        "codex_cloudsafe",
+        "gemini_audit_cloudsafe",
+        "glm_cloudsafe_bulk",
+        "deepseek_cloudsafe_bulk",
+        "kimi_constrained_burst",
+        "responses_background_cloudsafe"
+      ],
+      "selection_reason": "Private implementation stays local even when throughput drops."
+    },
+    {
+      "task_class": "creative_batch",
+      "sensitivity_class": "sovereign_only",
+      "preferred_lane": "sovereign_bulk",
+      "secondary_lane": "sovereign_supervisor",
+      "overflow_lane": "sovereign_coder",
+      "local_fallback": "sovereign_supervisor",
+      "default_execution_mode": "litellm_routed",
+      "disallowed_lanes": [
+        "codex_cloudsafe",
+        "gemini_audit_cloudsafe",
+        "glm_cloudsafe_bulk",
+        "deepseek_cloudsafe_bulk",
+        "kimi_constrained_burst",
+        "responses_background_cloudsafe"
+      ],
+      "selection_reason": "Creative batch work stays sovereign and prefers harvestable local capacity."
+    }
+  ]
+}

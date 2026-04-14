@@ -413,7 +413,7 @@ def infer_task_class(requester: str, prompt: str = "", metadata: dict[str, Any] 
             return "interactive_architecture"
         return "multi_file_implementation"
 
-    return _agent_meta(load_policy(), requester).get("default_task_class", "private_internal_automation")
+    return _agent_meta(load_policy(), requester).get("default_task_class", "private_automation")
 
 
 def _infer_expected_context(prompt: str, metadata: dict[str, Any]) -> str:
@@ -516,9 +516,13 @@ def _score_provider(
         score += 12
         reasons.append("bulk_transform_bonus")
 
+    if request.task_class == "async_backlog_execution" and provider_id == "zai_glm_coding":
+        score += 26
+        reasons.append("async_backlog_bulk_bonus")
+
     if request.task_class == "async_backlog_execution" and provider_id == "openai_codex":
-        score += 16
-        reasons.append("async_backlog_bonus")
+        score += 8
+        reasons.append("async_backlog_fallback_bonus")
 
     if request.task_class == "repo_wide_audit" and provider_id == "google_gemini":
         score += 12
@@ -726,7 +730,7 @@ async def attach_task_execution_lease(
     meta = dict(metadata or {})
     if meta.get("execution_lease"):
         return meta
-    if requester not in {"coding-agent", "research-agent"}:
+    if requester not in {"coding-agent", "research-agent", "general-assistant", "knowledge-agent"}:
         return meta
 
     lease_request = build_task_lease_request(

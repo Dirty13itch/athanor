@@ -1,0 +1,386 @@
+{
+  "version": "2026-04-10.1",
+  "updated_at": "2026-04-10T21:45:00-05:00",
+  "status": "seeded",
+  "source_of_truth": "config/automation-backbone/capacity-envelope-registry.json",
+  "telemetry_contract_ref": "config/automation-backbone/capacity-telemetry-contract.json",
+  "history_stream": "capacity-telemetry",
+  "protected_reserves": [
+    "foundry-rtx4090",
+    "workshop-rtx5090"
+  ],
+  "harvest_rules": [
+    "Never auto-harvest protected reserve GPUs.",
+    "Foundry 5070 Ti pool is the primary sovereign bulk harvest target.",
+    "Workshop 5060 Ti may be harvested only when creative queue is clear.",
+    "DEV 5060 Ti may be harvested only while embedding and reranker health remain green."
+  ],
+  "admission_policy": [
+    "Protect interactive operator and control-plane reserve before harvesting batch capacity.",
+    "Preempt benchmark, proving, and noncritical creative batch work before operator-critical or sovereignty-critical lanes.",
+    "Do not allocate sovereign creative or refusal-sensitive work onto cloud-capable runtime envelopes."
+  ],
+  "scheduler_slot_targets": [
+    {
+      "id": "foundry-interactive-reserve",
+      "node_id": "foundry",
+      "scheduler_slot_id": "F:2",
+      "harvest_intent": "interactive_reserve_only",
+      "protected_reserve": true,
+      "gpu_ids": [
+        "foundry-rtx4090"
+      ],
+      "notes": [
+        "Never auto-harvest this slot.",
+        "Keep this reserve available for operator-critical and runtime-critical text lanes."
+      ]
+    },
+    {
+      "id": "foundry-bulk-pool",
+      "node_id": "foundry",
+      "scheduler_slot_id": "F:TP4",
+      "harvest_intent": "primary_sovereign_bulk",
+      "protected_reserve": false,
+      "gpu_ids": [
+        "foundry-rtx5070ti-a",
+        "foundry-rtx5070ti-b",
+        "foundry-rtx5070ti-c",
+        "foundry-rtx5070ti-d"
+      ],
+      "notes": [
+        "Primary sovereign bulk harvest pool.",
+        "Admissible only while the interactive reserve remains intact and the scheduler queue is clear."
+      ]
+    },
+    {
+      "id": "dev-shared-support",
+      "node_id": "dev",
+      "scheduler_slot_id": "D:0",
+      "harvest_intent": "support_lane_hold",
+      "protected_reserve": false,
+      "gpu_ids": [
+        "dev-rtx5060ti"
+      ],
+      "notes": [
+        "Shared support GPU for embeddings and reranker continuity.",
+        "Harvest stays blocked while shared-zone conflict or support-lane health constraints are present."
+      ]
+    },
+    {
+      "id": "workshop-creative-reserve",
+      "node_id": "workshop",
+      "scheduler_slot_id": "W:0",
+      "harvest_intent": "creative_interactive_reserve",
+      "protected_reserve": true,
+      "gpu_ids": [
+        "workshop-rtx5090"
+      ],
+      "notes": [
+        "Protected sovereign creative reserve.",
+        "Never surrender this slot to cloud-safe or noncreative workloads."
+      ]
+    },
+    {
+      "id": "workshop-batch-support",
+      "node_id": "workshop",
+      "scheduler_slot_id": "W:1",
+      "harvest_intent": "creative_batch_support",
+      "protected_reserve": false,
+      "gpu_ids": [
+        "workshop-rtx5060ti"
+      ],
+      "notes": [
+        "Harvestable only when creative queue is clear and the interactive reserve remains preserved."
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "node_id": "desk",
+      "node_role": "implementation_authority_workstation",
+      "interactive_reserve_gpu_slots": 1,
+      "background_fill_gpu_slots": 0,
+      "allowed_workload_classes": [
+        "architecture_planning",
+        "coding_implementation",
+        "repo_audit",
+        "private_automation"
+      ],
+      "defer_workload_classes": [
+        "background_transform",
+        "refusal_sensitive_creative",
+        "explicit_dialogue"
+      ],
+      "observed_telemetry": {
+        "last_verified_at": "2026-03-26T18:45:00Z",
+        "source": "hardware inventory and workstation role",
+        "busy_gpu_roles": [],
+        "idle_gpu_roles": [
+          "compatibility_local_experiments_only"
+        ],
+        "interactive_reserve_preserved": true
+      },
+      "utilization_targets": {
+        "interactive_reserve_floor_gpu_slots": 1,
+        "background_harvest_target_gpu_slots": 0,
+        "max_noncritical_preemptible_gpu_slots": 0
+      },
+      "gpus": [
+        {
+          "gpu_id": "desk-rtx3060",
+          "model": "NVIDIA RTX 3060",
+          "owner_lane": "compatibility_local_experiments_only",
+          "allowed_workload_classes": [
+            "private_automation",
+            "coding_implementation"
+          ],
+          "preemption_policy": "always preempt for operator-interactive work",
+          "headroom_rule": "do not assign long-running batch or creative work"
+        }
+      ]
+    },
+    {
+      "node_id": "dev",
+      "node_role": "runtime_authority_ops_center",
+      "interactive_reserve_gpu_slots": 1,
+      "background_fill_gpu_slots": 0,
+      "allowed_workload_classes": [
+        "retrieval_embedding",
+        "retrieval_reranking",
+        "private_automation",
+        "coding_implementation"
+      ],
+      "defer_workload_classes": [
+        "background_transform",
+        "refusal_sensitive_creative",
+        "explicit_dialogue"
+      ],
+      "observed_telemetry": {
+        "last_verified_at": "2026-03-25T17:45:00Z",
+        "source": "model deployment registry and hardware inventory",
+        "busy_gpu_roles": [
+          "embedding_support",
+          "reranker_support"
+        ],
+        "idle_gpu_roles": [],
+        "interactive_reserve_preserved": true
+      },
+      "utilization_targets": {
+        "interactive_reserve_floor_gpu_slots": 1,
+        "background_harvest_target_gpu_slots": 0,
+        "max_noncritical_preemptible_gpu_slots": 0
+      },
+      "gpus": [
+        {
+          "gpu_id": "dev-rtx5060ti",
+          "model": "NVIDIA RTX 5060 Ti",
+          "owner_lane": "embedding_and_reranker_support",
+          "allowed_workload_classes": [
+            "retrieval_embedding",
+            "retrieval_reranking",
+            "private_automation"
+          ],
+          "preemption_policy": "preempt only low-priority local experiments for support-lane health",
+          "headroom_rule": "protect embeddings and reranker service continuity"
+        }
+      ]
+    },
+    {
+      "node_id": "foundry",
+      "node_role": "heavy_compute",
+      "interactive_reserve_gpu_slots": 1,
+      "background_fill_gpu_slots": 4,
+      "allowed_workload_classes": [
+        "architecture_planning",
+        "repo_audit",
+        "coding_implementation",
+        "research_synthesis",
+        "background_transform",
+        "private_automation"
+      ],
+      "defer_workload_classes": [
+        "refusal_sensitive_creative"
+      ],
+      "observed_telemetry": {
+        "last_verified_at": "2026-04-08T05:56:00Z",
+        "source": "model deployment registry and runtime notes",
+        "busy_gpu_roles": [
+          "coordinator_lane",
+          "coder_lane"
+        ],
+        "idle_gpu_roles": [
+          "bulk_parallel_capacity"
+        ],
+        "interactive_reserve_preserved": true
+      },
+      "utilization_targets": {
+        "interactive_reserve_floor_gpu_slots": 1,
+        "background_harvest_target_gpu_slots": 3,
+        "max_noncritical_preemptible_gpu_slots": 4
+      },
+      "gpus": [
+        {
+          "gpu_id": "foundry-rtx4090",
+          "model": "NVIDIA RTX 4090",
+          "owner_lane": "interactive_text_generation_reserve",
+          "allowed_workload_classes": [
+            "architecture_planning",
+            "coding_implementation",
+            "research_synthesis"
+          ],
+          "preemption_policy": "preempt batch and proving work first",
+          "headroom_rule": "keep this reserve available for operator-critical and runtime-critical text lanes"
+        },
+        {
+          "gpu_id": "foundry-rtx5070ti-a",
+          "model": "NVIDIA RTX 5070 Ti",
+          "owner_lane": "sovereign_bulk",
+          "allowed_workload_classes": [
+            "repo_audit",
+            "background_transform",
+            "research_synthesis",
+            "coding_implementation"
+          ],
+          "preemption_policy": "preempt low-priority proving before operator-critical work",
+          "headroom_rule": "harvest when the interactive reserve is intact"
+        },
+        {
+          "gpu_id": "foundry-rtx5070ti-b",
+          "model": "NVIDIA RTX 5070 Ti",
+          "owner_lane": "sovereign_bulk",
+          "allowed_workload_classes": [
+            "repo_audit",
+            "background_transform",
+            "research_synthesis",
+            "coding_implementation"
+          ],
+          "preemption_policy": "preempt low-priority proving before operator-critical work",
+          "headroom_rule": "harvest when the interactive reserve is intact"
+        },
+        {
+          "gpu_id": "foundry-rtx5070ti-c",
+          "model": "NVIDIA RTX 5070 Ti",
+          "owner_lane": "sovereign_bulk",
+          "allowed_workload_classes": [
+            "repo_audit",
+            "background_transform",
+            "research_synthesis",
+            "coding_implementation"
+          ],
+          "preemption_policy": "preempt low-priority proving before operator-critical work",
+          "headroom_rule": "harvest when the interactive reserve is intact"
+        },
+        {
+          "gpu_id": "foundry-rtx5070ti-d",
+          "model": "NVIDIA RTX 5070 Ti",
+          "owner_lane": "sovereign_bulk",
+          "allowed_workload_classes": [
+            "repo_audit",
+            "background_transform",
+            "research_synthesis",
+            "coding_implementation"
+          ],
+          "preemption_policy": "preempt low-priority proving before operator-critical work",
+          "headroom_rule": "harvest when the interactive reserve is intact"
+        }
+      ]
+    },
+    {
+      "node_id": "workshop",
+      "node_role": "creative_compute",
+      "interactive_reserve_gpu_slots": 1,
+      "background_fill_gpu_slots": 1,
+      "allowed_workload_classes": [
+        "refusal_sensitive_creative",
+        "explicit_dialogue",
+        "background_transform",
+        "private_automation"
+      ],
+      "defer_workload_classes": [
+        "cloud_safe_only_product_work"
+      ],
+      "observed_telemetry": {
+        "last_verified_at": "2026-04-08T05:56:00Z",
+        "source": "hardware inventory, model deployment registry, and workshop runtime notes",
+        "busy_gpu_roles": [
+          "creative_interactive_reserve",
+          "vision_and_worker_runtime"
+        ],
+        "idle_gpu_roles": [],
+        "interactive_reserve_preserved": true
+      },
+      "utilization_targets": {
+        "interactive_reserve_floor_gpu_slots": 1,
+        "background_harvest_target_gpu_slots": 1,
+        "max_noncritical_preemptible_gpu_slots": 1
+      },
+      "gpus": [
+        {
+          "gpu_id": "workshop-rtx5090",
+          "model": "NVIDIA RTX 5090",
+          "owner_lane": "sovereign_creative_interactive_reserve",
+          "allowed_workload_classes": [
+            "refusal_sensitive_creative",
+            "explicit_dialogue",
+            "background_transform"
+          ],
+          "preemption_policy": "preempt all noncritical creative batch work before interactive sovereign work",
+          "headroom_rule": "never surrender this reserve to cloud-safe or noncreative workloads"
+        },
+        {
+          "gpu_id": "workshop-rtx5060ti",
+          "model": "NVIDIA RTX 5060 Ti",
+          "owner_lane": "vision_worker_and_batch_creative_support",
+          "allowed_workload_classes": [
+            "background_transform",
+            "refusal_sensitive_creative",
+            "private_automation"
+          ],
+          "preemption_policy": "preempt batch work before live vision or worker runtime continuity is threatened",
+          "headroom_rule": "keep enough headroom for the observed worker and vision lanes"
+        }
+      ]
+    },
+    {
+      "node_id": "vault",
+      "node_role": "storage_observability",
+      "interactive_reserve_gpu_slots": 0,
+      "background_fill_gpu_slots": 1,
+      "allowed_workload_classes": [
+        "background_transform"
+      ],
+      "defer_workload_classes": [
+        "architecture_planning",
+        "coding_implementation",
+        "refusal_sensitive_creative",
+        "explicit_dialogue"
+      ],
+      "observed_telemetry": {
+        "last_verified_at": "2026-03-25T18:10:00Z",
+        "source": "hardware inventory and storage-observability role",
+        "busy_gpu_roles": [],
+        "idle_gpu_roles": [
+          "utility_only"
+        ],
+        "interactive_reserve_preserved": true
+      },
+      "utilization_targets": {
+        "interactive_reserve_floor_gpu_slots": 0,
+        "background_harvest_target_gpu_slots": 1,
+        "max_noncritical_preemptible_gpu_slots": 1
+      },
+      "gpus": [
+        {
+          "gpu_id": "vault-arc-a380",
+          "model": "Intel Arc A380",
+          "owner_lane": "utility_only",
+          "allowed_workload_classes": [
+            "background_transform"
+          ],
+          "preemption_policy": "always preempt for storage, observability, or API aggregation health",
+          "headroom_rule": "do not assign latency-sensitive model work"
+        }
+      ]
+    }
+  ]
+}

@@ -220,8 +220,8 @@ app = FastAPI(title="Athanor Agent Server", version="0.3.0", lifespan=lifespan)
 
 
 # --- Auth middleware ---
-# Unauthenticated paths: health (monitoring), metrics (prometheus)
-AUTH_EXEMPT_PATHS = {"/health", "/metrics", "/docs", "/openapi.json"}
+# Unauthenticated paths: health/liveness (monitoring), metrics (prometheus)
+AUTH_EXEMPT_PATHS = {"/health", "/health/livez", "/metrics", "/docs", "/openapi.json"}
 
 
 class BearerAuthMiddleware(BaseHTTPMiddleware):
@@ -294,7 +294,6 @@ async def health():
         _probe("litellm", f"{settings.litellm_url}/health",
                headers={"Authorization": f"Bearer {settings.litellm_api_key}"} if settings.litellm_api_key else None),
         _probe("coordinator", f"{settings.coordinator_url}/health"),
-        _probe("worker", f"{settings.worker_url}/health"),
         _probe("embedding", f"{settings.embedding_url}/health"),
     )
 
@@ -302,7 +301,10 @@ async def health():
     persistence = get_checkpointer_status()
     durable_state = get_durable_state_status()
     governance = await build_governance_snapshot()
-    bootstrap = await build_bootstrap_runtime_snapshot(include_snapshot_write=False)
+    bootstrap = await build_bootstrap_runtime_snapshot(
+        include_snapshot_write=False,
+        allow_stale=True,
+    )
     summary = _build_health_summary(deps, active_agents, persistence, durable_state, governance)
 
     return {
@@ -321,6 +323,21 @@ async def health():
         ],
         "bootstrap": bootstrap,
         **summary,
+    }
+
+
+@app.get("/health/livez")
+async def health_livez():
+    """Cheap liveness check that avoids dependency fan-out."""
+    active_agents = list_agents()
+    return {
+        "service": "agent-server",
+        "status": "healthy" if active_agents else "degraded",
+        "started_at": SERVICE_STARTED_AT,
+        "agent_count": len(active_agents),
+        "agents": active_agents,
+        "launch_ready": True,
+        "mode": "liveness_only",
     }
 
 
