@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `2`
-- Local dirty sample: ` M docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md`, ` M docs/operations/PUBLICATION-TRIAGE-REPORT.md`
+- Local dirty file count: `0`
+- Local dirty sample: none
 
 ## dev-runtime-repo
 
