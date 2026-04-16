@@ -1,9 +1,9 @@
 # Publication Triage Summary
 
-Generated: `2026-04-16T19:49:29.829825+00:00`
+Generated: `2026-04-16T19:59:46.564270+00:00`
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `2`
-- Slice-matched entries: `2`
+- Dirty entries: `0`
+- Slice-matched entries: `0`
 - Deferred-family entries: `0`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
@@ -13,7 +13,7 @@ Generated: `2026-04-16T19:49:29.829825+00:00`
 
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
-| `backbone-contracts-and-truth-writers` | `published` | `2` | `0` | `0` |
+| `backbone-contracts-and-truth-writers` | `published` | `0` | `0` | `0` |
 | `runtime-ownership-provider-truth-and-reconciliation` | `published` | `0` | `0` | `0` |
 | `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
 | `graphrag-promotion-wave` | `published` | `0` | `0` | `0` |
@@ -22,15 +22,11 @@ Generated: `2026-04-16T19:49:29.829825+00:00`
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
-- Dirty matches: `2`
+- Dirty matches: `0`
 - Publication refs: `20`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
-
-Sample dirty paths:
-- `M` docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md
-- `M` docs/operations/PUBLICATION-TRIAGE-REPORT.md
 
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
