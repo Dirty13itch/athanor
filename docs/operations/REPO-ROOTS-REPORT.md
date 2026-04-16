@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `1`
-- Local dirty sample: ` M config/automation-backbone/completion-program-registry.json`
+- Local dirty file count: `0`
+- Local dirty sample: none
 
 ## dev-runtime-repo
 

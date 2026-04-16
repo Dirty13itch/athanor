@@ -1,8 +1,8 @@
 # Publication Deferred-Family Queue
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `1`
-- Slice-matched entries: `1`
+- Dirty entries: `0`
+- Slice-matched entries: `0`
 - Deferred-family entries: `0`
 - Deferred families: `7`
 
