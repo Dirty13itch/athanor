@@ -1,10 +1,10 @@
 # Publication Triage Summary
 
-Generated: `2026-04-16T19:34:45.078878+00:00`
+Generated: `2026-04-16T19:42:46.705492+00:00`
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `5`
-- Slice-matched entries: `5`
-- Deferred-family entries: `0`
+- Dirty entries: `14`
+- Slice-matched entries: `11`
+- Deferred-family entries: `3`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
 - Local-noise entries: `0`
@@ -13,37 +13,41 @@ Generated: `2026-04-16T19:34:45.078878+00:00`
 
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
-| `backbone-contracts-and-truth-writers` | `published` | `3` | `0` | `0` |
-| `runtime-ownership-provider-truth-and-reconciliation` | `published` | `2` | `0` | `0` |
+| `backbone-contracts-and-truth-writers` | `published` | `2` | `0` | `0` |
+| `runtime-ownership-provider-truth-and-reconciliation` | `published` | `7` | `0` | `0` |
 | `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
 | `graphrag-promotion-wave` | `published` | `0` | `0` | `0` |
 | `gpu-scheduler-extension-wave` | `published` | `0` | `0` | `0` |
-| `forge-atlas-dashboard-and-startup-truth` | `published` | `0` | `0` | `0` |
+| `forge-atlas-dashboard-and-startup-truth` | `published` | `2` | `0` | `0` |
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
-- Dirty matches: `3`
+- Dirty matches: `2`
 - Publication refs: `20`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
 
 Sample dirty paths:
-- `M` config/automation-backbone/completion-program-registry.json
 - `M` docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md
 - `M` docs/operations/PUBLICATION-TRIAGE-REPORT.md
 
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
-- Dirty matches: `2`
+- Dirty matches: `7`
 - Publication refs: `24`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
 
 Sample dirty paths:
+- `M` config/automation-backbone/runtime-ownership-packets.json
+- `M` docs/operations/PROVIDER-CATALOG-REPORT.md
 - `M` docs/operations/REPO-ROOTS-REPORT.md
+- `M` docs/operations/RUNTIME-OWNERSHIP-PACKETS.md
 - `M` docs/operations/RUNTIME-OWNERSHIP-REPORT.md
+- `M` docs/operations/SECRET-SURFACE-REPORT.md
+- `M` docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md
 
 ## Pilot Eval Substrate and Operator-Test Machinery (`pilot-eval-substrate-and-operator-test-machinery`)
 
@@ -71,11 +75,15 @@ Sample dirty paths:
 
 ## Forge, Atlas, Dashboard, and Startup Truth (`forge-atlas-dashboard-and-startup-truth`)
 
-- Dirty matches: `0`
+- Dirty matches: `2`
 - Publication refs: `9`
 - Working-tree hints: `9`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
+
+Sample dirty paths:
+- `M` docs/operations/OPERATOR-SURFACE-REPORT.md
+- `M` projects/dashboard/src/generated/operator-surfaces.json
 
 ## Deferred Family Coverage
 
@@ -86,7 +94,7 @@ Sample dirty paths:
 | `audit-and-eval-artifacts` | `audit_artifact` | `0` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `0` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `3` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
@@ -147,13 +155,18 @@ Sample dirty paths:
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `0`
+- Dirty matches: `3`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
 - Next action: Break the broad control-plane tail into explicit follow-on publication slices before any wider checkpoint publish.
 - Success condition: Control-plane residue is no longer one deferred mass; it is decomposed into explicit publication-ready tranches.
 - Owner workstreams: `authority-and-mainline`, `validation-and-publication`
+
+Sample dirty paths:
+- `M` docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md
+- `M` docs/operations/RUNTIME-MIGRATION-REPORT.md
+- `M` docs/operations/VAULT-REDIS-REPAIR-PACKET.md
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 

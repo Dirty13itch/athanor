@@ -4,7 +4,7 @@ Generated from `config/automation-backbone/runtime-ownership-packets.json`, `con
 Do not edit manually.
 
 - Registry version: `2026-04-16.2`
-- Cached truth snapshot: `2026-04-16T15:23:28.419424+00:00`
+- Cached truth snapshot: `2026-04-16T19:40:46.545673+00:00`
 - Packets tracked: `17`
 
 | Packet | Status | Lane | Approval type | Goal |
@@ -24,8 +24,8 @@ Do not edit manually.
 | `workshop-vllm-compose-reconciliation-packet` | `executed` | `workshop-vllm-compose` | `runtime_host_reconfiguration` | Retire the stale /opt/athanor/vllm-node2 worker contract now that the pinned Workshop worker model directory is absent and the live Workshop data-plane is ComfyUI plus vllm-vision instead of a reachable :8010 worker lane. |
 | `vault-litellm-config-reconciliation-packet` | `executed` | `vault-litellm-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/litellm/config.yaml file with implementation authority so the coder lane and other routed model definitions stop drifting independently of the repo. |
 | `vault-prometheus-config-reconciliation-packet` | `executed` | `vault-prometheus-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml and alert-rules.yml files with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels. |
-| `dev-runtime-ssh-access-recovery-packet` | `ready_for_approval` | `dev-runtime-state` | `runtime_host_reconfiguration` | Restore one governed DEV SSH access path so truth collection, runtime verification, and repo-root maintenance no longer depend on a broken alias or remembered fallback guesses. |
-| `foundry-agents-runtime-alignment-packet` | `ready_for_approval` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/agents source tree and imported `athanor_agents` module path with implementation authority when the truth collector reports a source/runtime mismatch. |
+| `dev-runtime-ssh-access-recovery-packet` | `executed` | `dev-runtime-state` | `runtime_host_reconfiguration` | Restore one governed DEV SSH access path so truth collection, runtime verification, and repo-root maintenance no longer depend on a broken alias or remembered fallback guesses. |
+| `foundry-agents-runtime-alignment-packet` | `executed` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/agents source tree and imported `athanor_agents` module path with implementation authority when the truth collector reports a source/runtime mismatch. |
 
 ## dev-runtime-repo-sync-packet
 
@@ -251,7 +251,7 @@ Do not edit manually.
 - Nested source dir present: `False`
 - bak-codex files: none
 - Container running: `True`
-- Container status: `Up 43 hours`
+- Container status: `Up 54 seconds`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 
 ### Preflight Commands
@@ -745,7 +745,7 @@ Do not edit manually.
 ## dev-runtime-ssh-access-recovery-packet
 
 - Label: `DEV runtime SSH access recovery packet`
-- Status: `ready_for_approval`
+- Status: `executed`
 - Lane: `dev-runtime-state`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `dev`
@@ -786,7 +786,7 @@ Do not edit manually.
 ## foundry-agents-runtime-alignment-packet
 
 - Label: `FOUNDRY athanor-agents runtime alignment packet`
-- Status: `ready_for_approval`
+- Status: `executed`
 - Lane: `foundry-agents-compose`
 - Approval type: `runtime_host_reconfiguration` (Runtime host reconfiguration)
 - Host: `foundry`

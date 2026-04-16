@@ -6,7 +6,7 @@ Do not edit manually.
 This packet is retained as the verified record of the completed DEV `:8760` cutover. Use it to audit what was backed up, replaced, and verified, and only rerun the commands if drift reopens the seam.
 
 - Registry version: `2026-03-29.2`
-- Cached truth snapshot: `2026-04-16T15:23:28.419424+00:00`
+- Cached truth snapshot: `2026-04-16T19:40:46.545673+00:00`
 - Migrations included: `1`
 
 ## dev-governor-facade-8760-callers

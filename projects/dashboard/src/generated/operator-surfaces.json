@@ -352,7 +352,7 @@
     "status": "active_production",
     "targetDeploymentMode": "containerized_service_behind_caddy"
   },
-  "generatedAt": "2026-04-16T15:23:28.419424+00:00",
+  "generatedAt": "2026-04-16T19:40:46.545673+00:00",
   "quickLinks": [
     {
       "category": "ai",
@@ -482,6 +482,6 @@
     }
   ],
   "registryUpdatedAt": "2026-04-12T09:45:00Z",
-  "runtimeObservedAt": "2026-04-16T15:23:28.419424+00:00",
+  "runtimeObservedAt": "2026-04-16T19:40:46.545673+00:00",
   "sourceOfTruth": "config/automation-backbone/operator-surface-registry.json + reports/truth-inventory/latest.json#operator_surface_probe"
 }
