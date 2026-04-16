@@ -5,15 +5,15 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-11.5`
-- Cached truth snapshot: `2026-04-14T21:50:57.735918+00:00`
+- Registry version: `2026-04-16.2`
+- Cached truth snapshot: `2026-04-16T15:23:28.419424+00:00`
 - Promotion gate: `runtime_ownership_maturity`
 - Goal: Make runtime ownership explicit enough that host-level maintenance no longer depends on undocumented operator memory.
 - Implementation authority: `desk-main` -> `C:/Athanor`
 - Runtime authority: `dev-runtime-repo` -> `/home/shaun/repos/athanor`
 - Runtime state roots: `dev-opt-athanor`, `dev-state`, `dev-systemd`, `dev-cron`, `vault-boot-config`, `vault-appdata`, `vault-appdatacache`, `vault-docker-root`, `foundry-opt-athanor`, `workshop-opt-athanor`
-- Ownership lanes tracked: `15`
-- Execution packets tracked: `14`
+- Ownership lanes tracked: `16`
+- Execution packets tracked: `17`
 
 | Criterion status | Count |
 | --- | --- |
@@ -21,11 +21,16 @@ Do not edit manually.
 
 ## Repo Evidence
 
-- Implementation dirty file count: `121`
-- DEV runtime dirty file count: `13`
+- Implementation dirty file count: `207`
+- DEV runtime probe: `unable to reach DEV via ssh`
+- DEV SSH targets attempted: `dev`, `shaun@192.168.1.189`
+- DEV SSH failure samples: `dev` -> `Traceback (most recent call last):`, `shaun@192.168.1.189` -> `shaun@192.168.1.189: Permission denied (publickey,password).`
 - FOUNDRY compose root matches expected: `True`
 - FOUNDRY build root clean: `True`
 - FOUNDRY runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
+- Runtime source-tree mismatches: `1`
+- Site-packages import is expected image layout; treat source-tree mismatch, not the import location alone, as the blocker.
+- Active alignment blocker: `src/athanor_agents`
 
 ## Ownership Lanes
 
@@ -34,11 +39,12 @@ Do not edit manually.
 | `dev-runtime-repo-systemd` | `dev` | `repo_worktree_mirror` | `active` | `dev-runtime-repo`, `dev-systemd` | `dev-runtime-repo-sync-packet` | Keep the executed dev-runtime-repo-sync-packet as the governed resync path for future repo-root maintenance. The 2026-04-08 execution left /home/shaun/repos/athanor mirror-clean at commit 5148170 with athanor-brain, athanor-classifier, athanor-quality-gate, and athanor-sentinel healthy; athanor-overnight.service remains outside the immediate mirror-clean verification window because it rewrites tracked generated artifacts. |
 | `dev-dashboard-compose` | `dev` | `opt_compose_service` | `active` | `dev-opt-athanor`, `dev-runtime-repo` | `dev-dashboard-compose-deploy-packet` | Use the dev-dashboard-compose-deploy-packet and scripts/deploy-dashboard.sh as the only ordinary dashboard update path; keep athanor-dashboard.service masked as a recovery-only shadow. |
 | `dev-heartbeat-opt` | `dev` | `opt_systemd_service` | `active` | `dev-opt-athanor`, `dev-systemd` | `dev-heartbeat-opt-deploy-packet` | Use the executed heartbeat deploy packet as the governed replacement path for future /opt/athanor/heartbeat updates. |
-| `dev-runtime-state` | `dev` | `host_state_surface` | `active` | `dev-state`, `dev-systemd`, `dev-cron`, `dev-logs` | `none` | Keep these state surfaces explicit in reports so runtime maintenance is tied to named roots instead of operator memory. |
+| `dev-runtime-state` | `dev` | `host_state_surface` | `active` | `dev-state`, `dev-systemd`, `dev-cron`, `dev-logs` | `dev-runtime-ssh-access-recovery-packet` | Keep this lane on access-path recovery only until either the governed `ssh dev` path or an explicitly blessed raw-host fallback is restored through `dev-runtime-ssh-access-recovery-packet`, then refresh collector evidence before treating broader DEV runtime maintenance as current. |
 | `desk-goose-operator-shell` | `desk` | `host_state_surface` | `active` | `desk-main`, `athanor-devstack` | `desk-goose-operator-shell-rollout-packet` | Treat the DESK Goose helper as the adopted bounded shell path; keep future shell-path changes packet-backed through desk-goose-operator-shell-rollout-packet instead of drifting through workstation-local defaults. |
-| `foundry-agents-compose` | `foundry` | `opt_compose_service` | `active` | `foundry-opt-athanor` | `foundry-agents-compose-deploy-packet` | Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container. |
+| `foundry-agents-compose` | `foundry` | `opt_compose_service` | `active` | `foundry-opt-athanor` | `foundry-agents-compose-deploy-packet` | Keep `foundry-agents-compose-deploy-packet` as the ordinary update path, but treat the current blocker as the narrower `foundry-agents-runtime-alignment-packet`: prove the governed `/opt/athanor/agents/src/athanor_agents` tree matches the approved implementation tree and that the imported module path is only the image-layout result of that same build before any manual runtime patching or site-packages edits. |
 | `foundry-graphrag-compose` | `foundry` | `opt_compose_service` | `active` | `foundry-opt-athanor` | `foundry-graphrag-compose-deploy-packet` | Keep the executed foundry-graphrag-compose-deploy-packet as the governed runtime update path for future GraphRAG changes; the runtime and promotion eval are already green, so the remaining boundary is packet review and adoption acceptance for widening beyond shadow-tier evidence. |
 | `foundry-gpu-orchestrator-compose` | `foundry` | `opt_compose_service` | `active` | `foundry-opt-athanor` | `foundry-gpu-orchestrator-compose-deploy-packet` | Use scripts/deploy-gpu-orchestrator.sh as the governed update path for future FOUNDRY GPU Orchestrator changes; the bounded scheduler surface should roll through foundry-gpu-orchestrator-scheduler-state-rollout-packet so /scheduler/state, write-capability posture, and scheduler request/preload/release route presence are verified explicitly before the lane advances beyond offline proof. |
+| `foundry-watchdog-runtime-guard` | `foundry` | `opt_compose_service` | `active` | `foundry-opt-athanor` | `foundry-watchdog-runtime-guard-rollout-packet` | Maintain the executed live canary as the packet-backed watchdog lane, keep operator-envelope and protected-service boundaries intact, and reopen only for a later production widening or rollback. |
 | `foundry-vllm-compose` | `foundry` | `opt_compose_service` | `active` | `foundry-opt-athanor` | `foundry-vllm-compose-reconciliation-packet` | Keep the FOUNDRY compose root packet-backed, but treat :8100 as the canonical healthy text lane and :8000 as degraded nonblocking lineage until a future bounded packet either restores real completion health or retires the coordinator lane explicitly. |
 | `workshop-control-surface-compose` | `workshop` | `opt_compose_service` | `retired` | `workshop-opt-athanor` | `workshop-control-surface-compose-reconciliation-packet` | Keep the live Workshop dashboard shadow and ws-pty bridge healthy and treat any future compose or source change as packet-backed runtime work; the 2026-04-08 backup-first reconcile pass synced the source bundles, replaced /opt/athanor/dashboard/docker-compose.yml from implementation authority, and re-probed both :3001 and :3100/health at 200. |
 | `workshop-vllm-compose` | `workshop` | `opt_compose_service` | `active` | `workshop-opt-athanor` | `workshop-vllm-compose-reconciliation-packet` | Keep this lane retired and rely on Workshop ComfyUI plus vllm-vision as the active Workshop data-plane surfaces unless a future packet deliberately restores a real :8010 worker runtime. |
@@ -73,11 +79,11 @@ Do not edit manually.
 | Unit | Working directories | ExecStart | EnvFiles |
 | --- | --- | --- | --- |
 | `/home/shaun/repos/athanor` | none | none | 0 |
-| `athanor-brain.service` | `/home/shaun/repos/athanor/services/brain` | `/home/shaun/repos/athanor/services/brain/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8780` | 0 |
-| `athanor-classifier.service` | `/home/shaun/repos/athanor/services/classifier` | `/home/shaun/repos/athanor/services/classifier/.venv/bin/python main.py` | 1 |
-| `athanor-quality-gate.service` | `/home/shaun/repos/athanor/services/quality-gate` | `/home/shaun/repos/athanor/services/quality-gate/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8790` | 0 |
-| `athanor-sentinel.service` | `/home/shaun/repos/athanor/services/sentinel` | `/home/shaun/repos/athanor/services/sentinel/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8770` | 0 |
-| `athanor-overnight.service` | `/home/shaun/repos/athanor` | `/home/shaun/repos/athanor/scripts/overnight-ops.sh` | 0 |
+| `athanor-brain.service` | none | none | 0 |
+| `athanor-classifier.service` | none | none | 0 |
+| `athanor-quality-gate.service` | none | none | 0 |
+| `athanor-sentinel.service` | none | none | 0 |
+| `athanor-overnight.service` | none | none | 0 |
 
 ## dev-dashboard-compose
 
@@ -106,7 +112,7 @@ Do not edit manually.
 - Active root: `/opt/athanor/dashboard`
 - Runtime repo compose controls container: `True`
 - Container running: `True`
-- Container status: `Up About an hour`
+- Container status: `Up 43 hours`
 - Compose working dir: `/opt/athanor/dashboard`
 - Legacy service state: `inactive` / `dead`
 - Legacy unit file state: `masked`
@@ -142,14 +148,14 @@ Do not edit manually.
 
 ### Live heartbeat evidence
 
-- Unit file state: `enabled`
+- Unit file state: `unknown`
 - Working directories: none
-- ExecStart: `/opt/athanor/heartbeat/venv/bin/python3 /opt/athanor/heartbeat/node-heartbeat.py`
-- EnvFiles: `1`
-- Deployed script exists: `True`
-- Host-local env exists: `True`
-- Runtime venv exists: `True`
-- Implementation matches deploy root: `True`
+- ExecStart: none
+- EnvFiles: `0`
+- Deployed script exists: `False`
+- Host-local env exists: `False`
+- Runtime venv exists: `False`
+- Implementation matches deploy root: `False`
 
 ## dev-runtime-state
 
@@ -159,22 +165,24 @@ Do not edit manually.
 - Mode: `host_state_surface`
 - Owner roots: `dev-state -> /home/shaun/.athanor`, `dev-systemd -> /etc/systemd/system/athanor-*`, `dev-cron -> /etc/cron.d/athanor-* and /var/spool/cron/crontabs/shaun`, `dev-logs -> /var/log/athanor`
 - Source root: `none`
-- Runtime scope: Runtime envfiles, work queues, systemd units, cron definitions, and service logs that support live DEV operation.
+- Runtime scope: Live DEV host-state estate for runtime envfiles, work queues, systemd units, cron definitions, and service logs; the current blocker is regaining the governed SSH access path needed to inspect or mutate it safely.
 - Source paths: none
 - Runtime paths: `/home/shaun/.athanor`, `/etc/systemd/system/athanor-*`, `/etc/cron.d/athanor-*`, `/var/log/athanor`
 - Active surfaces: `/home/shaun/.athanor/runtime.env`, `/home/shaun/.athanor/systemd`, `athanor-* systemd estate`, `athanor-* cron estate`
-- Execution packet: `none`
-- Evidence: `reports/truth-inventory/latest.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/runbooks/local-runtime-env.md`
+- Execution packet: `dev-runtime-ssh-access-recovery-packet`
+- Evidence: `reports/truth-inventory/latest.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/runbooks/local-runtime-env.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
 - Verification commands: `ssh dev "ls -1 /home/shaun/.athanor && systemctl list-unit-files 'athanor-*' --no-legend && ls -1 /etc/cron.d/athanor-* 2>/dev/null"`
 - Rollback contract: Capture timestamped backups under /home/shaun/.athanor/backups/runtime-state/<timestamp>/ before mutating envfiles, cron, or service units.
 - Approval boundary: Systemd, cron, and other host-level state mutations remain approval-gated.
-- Next action: Keep these state surfaces explicit in reports so runtime maintenance is tied to named roots instead of operator memory.
+- Next action: Keep this lane on access-path recovery only until either the governed `ssh dev` path or an explicitly blessed raw-host fallback is restored through `dev-runtime-ssh-access-recovery-packet`, then refresh collector evidence before treating broader DEV runtime maintenance as current.
+- Packet status: `ready_for_approval`
+- Packet approval type: `runtime_host_reconfiguration`
 
 ### Live runtime-state evidence
 
-- /opt entries: `backups`, `dashboard`, `draftsman`, `heartbeat`, `models`, `scripts`
-- /home/shaun/.athanor entries: `backups`, `cli-router-embeddings.npz`, `overnight-queue.yaml`, `provider-execution`, `runtime.env`, `subscription-burn-state.json`, `subscription-tasks`, `systemd`, `worktrees`
-- Cron files: `/etc/cron.d/athanor-drift-check`, `/etc/cron.d/athanor-overnight`
+- /opt entries: none
+- /home/shaun/.athanor entries: none
+- Cron files: none
 
 ## desk-goose-operator-shell
 
@@ -210,11 +218,11 @@ Do not edit manually.
 - Runtime paths: `/opt/athanor/agents/Dockerfile`, `/opt/athanor/agents/pyproject.toml`, `/opt/athanor/agents/docker-compose.yml`, `/opt/athanor/agents/config/subscription-routing-policy.yaml`, `/opt/athanor/agents/src/athanor_agents`, `/usr/local/lib/python3.12/site-packages/athanor_agents`
 - Active surfaces: `athanor-agents container`, `/opt/athanor/agents compose bundle`, `http://foundry:9000/health`
 - Execution packet: `foundry-agents-compose-deploy-packet`
-- Evidence: `reports/truth-inventory/latest.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `scripts/deploy-agents.sh`
+- Evidence: `reports/truth-inventory/latest.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `scripts/deploy-agents.sh`, `docs/operations/TRUTH-DRIFT-REPORT.md`
 - Verification commands: `ssh foundry "cd /opt/athanor/agents && docker compose ps athanor-agents"`, `ssh foundry "docker exec athanor-agents python3 -c \"import json, pathlib, athanor_agents, athanor_agents.bootstrap_state as bootstrap_state; print(json.dumps({'module': str(pathlib.Path(athanor_agents.__file__).resolve()), 'bootstrap_state': str(pathlib.Path(bootstrap_state.__file__).resolve())}))\""`, `ssh foundry "curl -sS http://localhost:9000/health"`
 - Rollback contract: Preserve the previous /opt/athanor/agents bundle under /opt/athanor/backups/agents/<timestamp>/ before replacement, and rebuild the compose lane from that backup if the rollout regresses.
 - Approval boundary: Replacing /opt/athanor/agents contents or rebuilding the live athanor-agents container remains approval-gated.
-- Next action: Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container.
+- Next action: Keep `foundry-agents-compose-deploy-packet` as the ordinary update path, but treat the current blocker as the narrower `foundry-agents-runtime-alignment-packet`: prove the governed `/opt/athanor/agents/src/athanor_agents` tree matches the approved implementation tree and that the imported module path is only the image-layout result of that same build before any manual runtime patching or site-packages edits.
 
 ### Latest deployment drift evidence
 
@@ -232,12 +240,15 @@ Do not edit manually.
 - Nested source dir present: `False`
 - bak-codex files: none
 - Container running: `True`
-- Container status: `Up About an hour`
+- Container status: `Up 43 hours`
 - Compose working dir: `/opt/athanor/agents`
 - Compose config files: `/opt/athanor/agents/docker-compose.yml`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
 - Site-packages import: `True`
 - Source mirrors: `/workspace/projects/agents/src/athanor_agents`, `/workspace/agents/src/athanor_agents`, `/app/src/athanor_agents`
+- Runtime source-tree mismatches: `1`
+- Site-packages import is expected image layout; treat source-tree mismatch, not the import location alone, as the blocker.
+- Active alignment blocker: `src/athanor_agents`
 
 | Control path | Kind | Impl exists | Runtime exists | Impl -> runtime |
 | --- | --- | --- | --- | --- |
@@ -292,6 +303,27 @@ Do not edit manually.
 | Comparison | Drift | Runtime | Containers | Runtime evidence |
 | --- | --- | --- | --- | --- |
 | `foundry-gpu-orchestrator` | `different` | `running` | `1/1` | .\reports\live\foundry-gpu-orchestrator.runtime.json |
+- Packet status: `executed`
+- Packet approval type: `runtime_host_reconfiguration`
+
+## foundry-watchdog-runtime-guard
+
+- Label: `FOUNDRY watchdog runtime-guard lane`
+- Host: `foundry`
+- Status: `active`
+- Mode: `opt_compose_service`
+- Owner roots: `foundry-opt-athanor -> /opt/athanor`
+- Source root: `desk-main`
+- Runtime scope: Athanor-owned FOUNDRY watchdog live canary bundle rooted at /opt/athanor/watchdog with operator-visible monitoring and bounded remediation controls. Runtime mutation is active through the executed packet and gate env contract, while protected-service and operator-envelope boundaries remain fail-closed.
+- Source paths: `projects/agents/watchdog/Dockerfile`, `projects/agents/watchdog/docker-compose.yml`, `projects/agents/watchdog/main.py`, `projects/agents/watchdog/catalog.py`, `projects/agents/watchdog/remediation.py`, `projects/agents/watchdog/circuit.py`, `projects/agents/watchdog/requirements.txt`
+- Runtime paths: `/opt/athanor/watchdog/Dockerfile`, `/opt/athanor/watchdog/docker-compose.yml`, `/opt/athanor/watchdog/main.py`, `/opt/athanor/watchdog/catalog.py`, `/opt/athanor/watchdog/remediation.py`, `/opt/athanor/watchdog/circuit.py`, `/opt/athanor/watchdog/requirements.txt`
+- Active surfaces: `athanor-watchdog container`, `http://foundry:9301/health`, `http://foundry:9301/status`
+- Execution packet: `foundry-watchdog-runtime-guard-rollout-packet`
+- Evidence: `projects/agents/watchdog/README.md`, `projects/agents/tests/test_watchdog_runtime_guard.py`, `projects/agents/tests/test_watchdog_route_contract.py`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `docs/operations/OPERATOR_RUNBOOKS.md`
+- Verification commands: `C:/Athanor/projects/agents/.venv/Scripts/python.exe -m pytest C:/Athanor/projects/agents/tests/test_watchdog_runtime_guard.py -q`, `C:/Athanor/projects/agents/.venv/Scripts/python.exe -m pytest C:/Athanor/projects/agents/tests/test_watchdog_route_contract.py -q`, `python scripts/validate_platform_contract.py`, `ssh foundry "cd /opt/athanor/watchdog && docker compose ps"`, `ssh foundry "curl -sS http://127.0.0.1:9301/health && curl -sS http://127.0.0.1:9301/status"`
+- Rollback contract: Preserve the previous /opt/athanor/watchdog bundle under /opt/athanor/backups/watchdog/<timestamp>/ before replacement, and close the mutation gate or restore the prior bundle if the live canary widens scope or regresses the bounded monitoring/remediation surface.
+- Approval boundary: Replacing /opt/athanor/watchdog contents, rebuilding the athanor-watchdog container, or widening protected-service or remediation scope remains approval-gated.
+- Next action: Maintain the executed live canary as the packet-backed watchdog lane, keep operator-envelope and protected-service boundaries intact, and reopen only for a later production widening or rollback.
 - Packet status: `executed`
 - Packet approval type: `runtime_host_reconfiguration`
 
@@ -487,7 +519,7 @@ Do not edit manually.
 - Runtime paths: `/boot/config`, `/mnt/user/appdata`, `/mnt/appdatacache`, `/mnt/docker`
 - Active surfaces: `repo-owned VAULT SSH helper path`, `Docker-backed infrastructure on VAULT`, `LiteLLM, Prometheus, Redis, and storage maintenance packets`
 - Execution packet: `none`
-- Evidence: `reports/truth-inventory/vault-redis-audit.json`, `reports/truth-inventory/vault-litellm-env-audit.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `scripts/vault-ssh.py`, `scripts/ssh-vault.ps1`
+- Evidence: `reports/truth-inventory/vault-redis-audit.json`, `reports/truth-inventory/vault-litellm-env-audit.json`, `docs/operations/REPO-ROOTS-REPORT.md`, `scripts/vault-ssh.py`
 - Verification commands: `python scripts/vault-ssh.py "echo CONNECTED && hostname"`, `python scripts/vault_redis_audit.py --write reports/truth-inventory/vault-redis-audit.json`
 - Rollback contract: Back up /boot/config and any targeted appdata bundle before mutating live VAULT runtime state.
 - Approval boundary: VAULT Docker, env, and host-level mutations remain approval-gated.
@@ -498,7 +530,7 @@ Do not edit manually.
 | Criterion | Status | Requirement | Evidence |
 | --- | --- | --- | --- |
 | `live_surface_mapping_complete` | `met` | Every live DEV, WORKSHOP, FOUNDRY, and VAULT runtime surface relevant to Athanor has one declared ownership lane. | `config/automation-backbone/runtime-ownership-contract.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md` |
-| `vault_operator_access_non_browser` | `met` | VAULT maintenance must be reachable through repo-owned helpers instead of depending on the browser terminal. | `scripts/vault-ssh.py`, `scripts/ssh-vault.ps1`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md` |
+| `vault_operator_access_non_browser` | `met` | VAULT maintenance must be reachable through repo-owned helpers instead of depending on the browser terminal. | `scripts/vault-ssh.py`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md` |
 | `dashboard_shadow_unit_retired_or_recovery_only` | `met` | The inactive athanor-dashboard.service unit must be explicitly retired or downgraded to recovery-only so it cannot be mistaken for the active dashboard deployment path. | `reports/truth-inventory/latest.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md` |
 | `repo_to_runtime_sync_packet_explicit` | `met` | The code path from C:/Athanor to /home/shaun/repos/athanor must have one explicit sync packet with verification and rollback instead of generic dirty-repo drift. | `docs/operations/REPO-ROOTS-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `config/automation-backbone/runtime-ownership-packets.json`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md` |
 | `opt_root_deploy_contract_complete` | `met` | Each active /opt/athanor surface on DEV, WORKSHOP, and FOUNDRY must declare source path, deploy mode, verification, and rollback contract. | `reports/truth-inventory/latest.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `config/automation-backbone/runtime-ownership-packets.json`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md` |
@@ -515,9 +547,12 @@ Do not edit manually.
 | `foundry-graphrag-compose-deploy-packet` | `executed` | `foundry-graphrag-compose` | `runtime_host_reconfiguration` | Make the live /opt/athanor/graphrag compose root a governed knowledge-subsystem lane so GraphRAG rollout and rollback stop depending on remembered host-local steps. |
 | `foundry-gpu-orchestrator-compose-deploy-packet` | `executed` | `foundry-gpu-orchestrator-compose` | `runtime_host_reconfiguration` | Keep the active /opt/athanor/gpu-orchestrator compose root aligned to implementation authority so host-local runtime identity does not drift away from the repo-owned coordinator and zone-routing contract. |
 | `foundry-gpu-orchestrator-scheduler-state-rollout-packet` | `executed` | `foundry-gpu-orchestrator-compose` | `runtime_host_reconfiguration` | Roll out the bounded scheduler surface through the existing FOUNDRY GPU Orchestrator lane so live runtime explicitly proves both /scheduler/state and the governed mutation-route envelope instead of relying on source-only claims. |
+| `foundry-watchdog-runtime-guard-rollout-packet` | `executed` | `foundry-watchdog-runtime-guard` | `runtime_host_reconfiguration` | Keep the Athanor-owned watchdog bundle under /opt/athanor/watchdog as the packet-backed live canary lane so monitoring, bounded restart controls, and rollback posture stay explicit while live remediation authority remains narrow. |
 | `desk-goose-operator-shell-rollout-packet` | `executed` | `desk-goose-operator-shell` | `runtime_host_reconfiguration` | Roll out the bounded DESK Goose shell helper so the preferred Athanor shell path is pinned to the intended LiteLLM DeepSeek lane with explicit fallback behavior instead of relying on remembered workstation-local defaults. |
 | `foundry-vllm-compose-reconciliation-packet` | `executed` | `foundry-vllm-compose` | `runtime_host_reconfiguration` | Reconcile the live FOUNDRY coordinator compose root and the llama-dolphin dolphin3-r1-24b coder runtime so the active coordinator and coder lanes stop drifting through host-local state. |
 | `workshop-control-surface-compose-reconciliation-packet` | `executed` | `workshop-control-surface-compose` | `runtime_host_reconfiguration` | Reconcile the live Workshop dashboard-shadow compose root with implementation authority now that the source contract explicitly includes the active ws-pty-bridge service and the correct worker lane URL. |
 | `workshop-vllm-compose-reconciliation-packet` | `executed` | `workshop-vllm-compose` | `runtime_host_reconfiguration` | Retire the stale /opt/athanor/vllm-node2 worker contract now that the pinned Workshop worker model directory is absent and the live Workshop data-plane is ComfyUI plus vllm-vision instead of a reachable :8010 worker lane. |
 | `vault-litellm-config-reconciliation-packet` | `executed` | `vault-litellm-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/litellm/config.yaml file with implementation authority so the coder lane and other routed model definitions stop drifting independently of the repo. |
 | `vault-prometheus-config-reconciliation-packet` | `executed` | `vault-prometheus-config` | `runtime_host_reconfiguration` | Reconcile the live /mnt/user/appdata/prometheus/prometheus.yml and alert-rules.yml files with implementation authority so monitoring truth stops drifting across stale shadow targets, extra jobs, and outdated node labels. |
+| `dev-runtime-ssh-access-recovery-packet` | `ready_for_approval` | `dev-runtime-state` | `runtime_host_reconfiguration` | Restore one governed DEV SSH access path so truth collection, runtime verification, and repo-root maintenance no longer depend on a broken alias or remembered fallback guesses. |
+| `foundry-agents-runtime-alignment-packet` | `ready_for_approval` | `foundry-agents-compose` | `runtime_host_reconfiguration` | Reconcile the live /opt/athanor/agents source tree and imported `athanor_agents` module path with implementation authority when the truth collector reports a source/runtime mismatch. |

@@ -1,17 +1,19 @@
 # Documentation Index
 
 Generated from `config/automation-backbone/docs-lifecycle-registry.json` by `scripts/generate_documentation_index.py`.
+This is a generated navigation and lifecycle surface only; it does not upgrade any document into live authority.
+Use each document's own class, authority plane, generator, and current canonical references before treating it as system truth.
 Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-07.3`
-- Total tracked entries: `137`
+- Registry version: `2026-04-15.4`
+- Total tracked entries: `143`
 
 | Class | Count |
 | --- | ---: |
-| `canonical` | 53 |
-| `generated` | 17 |
+| `canonical` | 55 |
+| `generated` | 21 |
 | `reference` | 21 |
 | `archive` | 46 |
 
@@ -30,7 +32,9 @@ Do not edit manually.
 | `docs/SYSTEM-SPEC.md` | markdown | `shaun` |
 | `docs/TROUBLESHOOTING.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-CAPABILITY-PROMOTION.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-COLD-START.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-OPERATING-SYSTEM.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md` | markdown | `shaun` |
 | `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md` | markdown | `shaun` |
@@ -85,11 +89,15 @@ Do not edit manually.
 | `docs/operations/OPERATOR-SURFACE-REPORT.md` | markdown | `shaun` |
 | `docs/operations/PROJECT-MATURITY-REPORT.md` | markdown | `shaun` |
 | `docs/operations/PROVIDER-CATALOG-REPORT.md` | markdown | `shaun` |
+| `docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md` | markdown | `shaun` |
+| `docs/operations/PUBLICATION-PROVENANCE-REPORT.md` | markdown | `shaun` |
+| `docs/operations/PUBLICATION-TRIAGE-REPORT.md` | markdown | `shaun` |
 | `docs/operations/REPO-ROOTS-REPORT.md` | markdown | `shaun` |
 | `docs/operations/RUNTIME-MIGRATION-REPORT.md` | markdown | `shaun` |
 | `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md` | markdown | `shaun` |
 | `docs/operations/RUNTIME-OWNERSHIP-REPORT.md` | markdown | `shaun` |
 | `docs/operations/SECRET-SURFACE-REPORT.md` | markdown | `shaun` |
+| `docs/operations/SURFACE-OWNER-MATRIX.md` | markdown | `shaun` |
 | `docs/operations/TOOLING-INVENTORY-REPORT.md` | markdown | `shaun` |
 | `docs/operations/TRUTH-DRIFT-REPORT.md` | markdown | `shaun` |
 | `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md` | markdown | `shaun` |

@@ -1,8 +1,10 @@
 # Athanor Build Manifest
 
-> **Atlas note:** [`docs/atlas/README.md`](../atlas/README.md) is the canonical cross-layer system map.
+> **Status:** Archive planning reference only.
+> **Canonical system map is tracked here:** [`docs/atlas/README.md`](../atlas/README.md)
+> **Current execution truth is tracked here:** [`STATUS.md`](../../STATUS.md), [`scripts/session_restart_brief.py --refresh`](../../scripts/session_restart_brief.py), [`reports/truth-inventory/finish-scoreboard.json`](../../reports/truth-inventory/finish-scoreboard.json), [`reports/truth-inventory/runtime-packet-inbox.json`](../../reports/truth-inventory/runtime-packet-inbox.json), [`docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`](../operations/CONTINUOUS-COMPLETION-BACKLOG.md), [`docs/SYSTEM-SPEC.md`](../SYSTEM-SPEC.md), and [`docs/SERVICES.md`](../SERVICES.md)
 >
-> This manifest is historical and tactical context only. It is not authoritative for runtime topology, routing, or governance.
+> This manifest is historical and tactical context only. It is not authoritative for runtime topology, routing, governance, or current closure priority.
 >
 > Use [`docs/SYSTEM-SPEC.md`](../SYSTEM-SPEC.md), [`docs/SERVICES.md`](../SERVICES.md), and the atlas for current canon.
 >
@@ -24,9 +26,9 @@ Use this order whenever sources disagree:
 3. Operational and design docs that explain intent and behavior
 4. Manifest and historical docs, which provide lineage and backlog context but do not own topology, ports, model routing, or authority
 
-- `docs/design/athanor-next.md` is the program north star
+- `docs/design/athanor-next.md` historically served as a program north star for this planning era
 - `docs/atlas/README.md` is the canonical cross-layer system map
-- this manifest is the tactical queue, not the source of truth for topology or secrets
+- this manifest historically captured a tactical queue; it is not the source of truth for topology, routing, or secrets
 - `ansible/` is the deployment truth
 - `docs/SYSTEM-SPEC.md` and `docs/SERVICES.md` are supporting operational references; runtime code, live config, audited inventory, and deployed manifests remain authoritative
 - historical tier entries below are retained as execution history and backlog context
@@ -40,7 +42,9 @@ Use this order whenever sources disagree:
 - **Infrastructure Convergence** — runtime map, centralized config, deployment alignment, secret cleanup
 - **Continuous Refinement** — hardening, observability, tests, docs, drift prevention
 
-## How This Works
+## Historical Working Method
+
+The process below describes how this manifest was used historically. Current startup and orchestration now flow through `STATUS.md`, `python scripts/session_restart_brief.py --refresh`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, and Ralph/generated report surfaces instead of this file.
 
 1. Claude Code starts a session (interactive or `-p` mode)
 2. Reads this manifest to find the highest-priority unblocked item

@@ -4,7 +4,9 @@
 
 Athanor is Shaun's sovereign local AI system: control plane, operator dashboard, agent runtime, knowledge layer, and the supporting infrastructure for personal, professional, and creative work.
 
-This repo is the implementation authority for that system. It is not a generic homelab repo and it is not the runtime authority.
+This repo is the implementation root for that system. It is not a generic homelab repo and it is not the runtime authority.
+
+> **Boundary:** This file is startup doctrine and project charter, not live queue or runtime truth. Use `STATUS.md`, `python scripts/session_restart_brief.py --refresh`, `reports/ralph-loop/latest.json`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, generated operations reports, and current probes when mutable state matters.
 
 ## Truth Order
 
@@ -19,12 +21,12 @@ Use this order when reorienting:
 
 Runtime truth and current registry truth outrank memory and historical prose when they disagree.
 
-For a fast re-entry into the live system, start with:
+For a fast re-entry into the current working state, start with:
 - `python scripts/session_restart_brief.py --refresh`
 
 ## Current Program Boundary
 
-The active meta-program is full reconciliation and ecosystem normalization:
+The current meta-program for this repo is full reconciliation and ecosystem normalization:
 - `C:\Athanor` is the only implementation-authority root
 - GitHub `Dirty13itch/athanor` `origin/main` is the only remote mainline
 - `/home/shaun/repos/athanor` on `DEV` remains runtime authority
@@ -33,6 +35,7 @@ The active meta-program is full reconciliation and ecosystem normalization:
 - the broader Dirty13itch GitHub portfolio is governed as part of the Athanor ecosystem, not merged blindly into core
 
 Use these control artifacts for that work:
+- `docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md`
 - `docs/operations/ATHANOR-RECONCILIATION-PACKET.md`
 - `config/automation-backbone/reconciliation-source-registry.json`
 - `docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md`
@@ -53,7 +56,7 @@ Use these as the default structure rules:
 For the deeper keep or separate or transitional decisions, use:
 - `docs/operations/REPO-STRUCTURE-RULES.md`
 
-## Required Live-Check Surfaces
+## Recommended Live-Check Surfaces
 
 - generated operations reports under `docs/operations`
 - cluster and service probes owned by current runbooks and scripts

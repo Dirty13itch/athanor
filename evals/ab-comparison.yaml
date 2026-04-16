@@ -1,3 +1,6 @@
+# Harness fixture only. Not routing truth or runtime authority.
+# Provider bindings here are benchmark inputs, not adopted-system canon.
+# Current closure posture, approved runtime packets, and live routing authority belong to the restart brief, finish scoreboard, and registry-backed reports, not this file.
 # A/B Model Comparison: reasoning (Qwen3.5-27B-FP8) vs creative (Qwen3.5-35B-A3B-AWQ)
 # Tests the same prompts against both models for quality comparison.
 # Run: npx promptfoo eval -c evals/ab-comparison.yaml

@@ -6,15 +6,15 @@ Do not edit manually.
 ## Front Door Contract
 
 - Registry version: `2026-04-12.1`
-- Cached truth snapshot: `2026-04-14T21:50:57.735918+00:00`
-- Canonical portal id: `athanor_command_center`
-- Canonical operator URL: `https://athanor.local/`
-- Canonical node: `dev`
+- Cached truth snapshot: `2026-04-16T15:23:28.419424+00:00`
+- Recorded portal id: `athanor_command_center`
+- Recorded operator URL: `https://athanor.local/`
+- Recorded front-door node: `dev`
 - Runtime service id: `dashboard`
 - Current runtime mode: `containerized_service_behind_caddy`
 - Target runtime mode: `containerized_service_behind_caddy`
 - Multiple active portals allowed: `False`
-- Promotion gate: Canonical DEV command center remains reachable from operator desktops at athanor.local, the WORKSHOP shadow portal stays retired, and browser smoke stays green.
+- Recorded front-door gate: The DEV command center remains reachable from operator desktops at athanor.local, the WORKSHOP shadow portal stays retired, and browser smoke stays green.
 
 ## Summary
 
@@ -51,14 +51,14 @@ Do not edit manually.
 - Runtime URL: `http://dev.athanor.local:3001/`
 - Deployment mode: `containerized_service_behind_caddy`
 - Target deployment mode: `containerized_service_behind_caddy`
-- Canonical probe: `200`
+- Canonical probe: `URLError: [SSL: CERTIFICATE_VERIFY_FAILED] certi`
 - Runtime probe: `200`
 - Runtime Next.js asset probe: `200` root, `0` failing sampled asset(s)
 - Sampled failing assets: none
 - DEV runtime probe target: `dev`
 - DEV deployment mode observed: `containerized_service_behind_caddy`
 - Dashboard container running: `True`
-- Dashboard container status: `Up About an hour`
+- Dashboard container status: `Up 43 hours`
 - Dashboard container image: `athanor/dashboard:latest`
 - Dashboard container ports: ``
 - Dashboard compose working dir: `/opt/athanor/dashboard`
@@ -111,8 +111,8 @@ No shadow portals are currently registered.
 | `workshop_shadow_command_center` | `retired` | `workshop` | `retired` | `hidden` | `https://athanor.local/` | `http://interface.athanor.local:3001/` | `200` |
 | `desk_goose_operator_shell` | `specialist_tool` | `desk` | `active_specialist` | `hidden` | `local-shell://desk/goose-operator-shell` | `C:/Users/Shaun/AppData/Local/Athanor/operator-shell/run-goose-athanor-shell.ps1` | `not_probed` |
 | `quality_gate` | `internal_api` | `dev` | `retired` | `hidden` | `http://dev.athanor.local:8790/health` | `http://192.168.1.189:8790/health` | `200` |
-| `semantic_router` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8060/health` | `http://192.168.1.189:8060/health` | `URLError: [WinError 10061] No connection could b` |
-| `subscription_burn` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8065/health` | `http://192.168.1.189:8065/health` | `URLError: [WinError 10061] No connection could b` |
+| `semantic_router` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8060/health` | `http://192.168.1.189:8060/health` | `URLError: [Errno 111] Connection refused` |
+| `subscription_burn` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8065/health` | `http://192.168.1.189:8065/health` | `200` |
 | `embedding_api` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8001/health` | `http://192.168.1.189:8001/health` | `200` |
 | `reranker_api` | `internal_api` | `dev` | `active_internal` | `hidden` | `http://dev.athanor.local:8003/health` | `http://192.168.1.189:8003/health` | `200` |
 | `grafana` | `specialist_tool` | `vault` | `active_specialist` | `launchpad` | `http://vault.athanor.local:3000/` | `http://192.168.1.203:3000/` | `200` |

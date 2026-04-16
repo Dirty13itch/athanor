@@ -1,5 +1,7 @@
 {
-  "generatedAt": "2026-03-30T07:30:57.370010+00:00",
+  "surfaceClass": "evidence_only",
+  "authorityNote": "UI audit uncovered-surface evidence only; not operator queue authority.",
+  "generatedAt": "2026-04-16T02:26:54.049006+00:00",
   "count": 0,
   "surfaces": []
 }

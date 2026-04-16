@@ -1,13 +1,19 @@
 # Athanor System Map - Complete Hardware Overview
 
-> Atlas note: [`docs/atlas/README.md`](../atlas/README.md) is now the canonical cross-layer system map. This file remains a hardware-focused reference and historical input.
+> **Status:** Archive reference only.
+> **Canonical map is tracked here:** [`docs/atlas/README.md`](../atlas/README.md)
+> **Current hardware/runtime truth is tracked here:** [`STATUS.md`](../../STATUS.md), [`reports/truth-inventory/finish-scoreboard.json`](../../reports/truth-inventory/finish-scoreboard.json), [`scripts/session_restart_brief.py --refresh`](../../scripts/session_restart_brief.py), [`docs/SERVICES.md`](../SERVICES.md), [`docs/SYSTEM-SPEC.md`](../SYSTEM-SPEC.md), and [`docs/operations/HARDWARE-REPORT.md`](../operations/HARDWARE-REPORT.md)
+> **Purpose:** preserve the older hardware snapshot and access notes without presenting current topology or runtime authority.
+> **Historical-only warning:** every IP, port, service label, and restart path below is archival context unless the current restart brief, generated reports, and current canonical surfaces independently confirm it.
 
 **Last Updated:** 2026-02-21
-**Status:** Current (after Node 1 5-GPU installation)
+**Status:** Historical snapshot from the pre-atlas hardware-mapping pass.
 
 ---
 
 ## Quick Reference Card
+
+> **Archive-only quick reference:** treat the card below as preserved historical operator context. Do not use it for current routing, restart, or runtime decisions without refreshing the restart brief and current generated reports first.
 
 ```
 CLUSTER RESOURCES:

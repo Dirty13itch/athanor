@@ -9,7 +9,7 @@ paths:
 
 # Documentation Sync
 
-After any operational change, update all affected docs atomically (same commit).
+After any operational change, update all affected docs atomically when the change is actually being published. Generated reports, the restart brief, finish scoreboard, and runtime packet inbox still outrank narrative doc edits for current mutable state.
 
 ## After Deploying a Service
 - `docs/SERVICES.md` - add or update entry

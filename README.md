@@ -5,6 +5,8 @@ Athanor is a sovereign AI cluster and operator control plane. This repository is
 For a fast current-state restart, run:
 - `python scripts/session_restart_brief.py --refresh`
 
+> **Boundary:** This is the onboarding surface, not the live runtime or queue oracle. When current mutable state matters, defer to `STATUS.md`, `python scripts/session_restart_brief.py --refresh`, `reports/ralph-loop/latest.json`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, `reports/truth-inventory/`, and generated reports under `docs/operations/`.
+
 ## Authority Model
 
 Implementation authority: `C:\Athanor`

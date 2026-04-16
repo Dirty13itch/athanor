@@ -2,7 +2,7 @@
 
 > **Last updated:** 2026-03-27
 > **Status:** Strategic reference only.
-> **Live truth lives here:** `config/automation-backbone/`, `docs/operations/ATHANOR-OPERATING-SYSTEM.md`, `docs/operations/PROVIDER-CATALOG-REPORT.md`, `docs/operations/HARDWARE-REPORT.md`, `docs/operations/MODEL-DEPLOYMENT-REPORT.md`, `docs/SERVICES.md`, `docs/RECOVERY.md`, `STATUS.md`, and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`.
+> **Current mutable facts are recorded in:** `config/automation-backbone/`, `python scripts/session_restart_brief.py --refresh`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, `docs/operations/ATHANOR-OPERATING-SYSTEM.md`, `docs/operations/PROVIDER-CATALOG-REPORT.md`, `docs/operations/HARDWARE-REPORT.md`, `docs/operations/MODEL-DEPLOYMENT-REPORT.md`, `docs/SERVICES.md`, `docs/RECOVERY.md`, `STATUS.md`, and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`.
 > **Historical implementation snapshot:** `docs/archive/planning-era/2026-03-18-athanor-coo-architecture-FULL.md`
 
 ---
@@ -24,7 +24,7 @@ The strategic posture remains:
 - swappable models, providers, and tools behind stable contracts
 - aggressive automation inside explicit safety rails
 
-This document does not own live topology, deployed model IDs, provider pricing, reset windows, quota posture, or runtime service state.
+This document does not own topology, deployed model IDs, pricing, reset windows, quota posture, or runtime service state.
 
 ## Operating Modes
 
@@ -68,9 +68,9 @@ The long-term operating model is organized across seven domains:
 
 The live implementation of those domains belongs to the registry-backed operating system, not this document.
 
-## Stable Strategic Decisions
+## Stable Strategic Positions
 
-These are the durable decisions this document still owns:
+These are the durable strategic assumptions this document preserves:
 
 - Athanor should choose tools and providers for the operator whenever practical.
 - Resettable, flat-rate, and local lanes should be used intentionally rather than left idle.
@@ -80,11 +80,11 @@ These are the durable decisions this document still owns:
 - Runtime truth outranks planning-era narrative whenever they disagree.
 - Aggressive deletion of stale truth is correct once a verified replacement exists.
 
-## Current Truth Pointers
+## Current Control-Plane Pointers
 
-Use these sources instead of this file for live facts:
+Use these sources for current facts; this file is a strategic reference snapshot only:
 
-- **Authority model and operating state:** `STATUS.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-OPERATING-SYSTEM.md`
+- **Authority model and operating state:** `STATUS.md`, `python scripts/session_restart_brief.py --refresh`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-OPERATING-SYSTEM.md`
 - **Topology and service/runtime truth:** `config/automation-backbone/platform-topology.json`, `docs/SERVICES.md`
 - **Hardware truth:** `config/automation-backbone/hardware-inventory.json`, `docs/operations/HARDWARE-REPORT.md`
 - **Model deployment truth:** `config/automation-backbone/model-deployment-registry.json`, `docs/operations/MODEL-DEPLOYMENT-REPORT.md`

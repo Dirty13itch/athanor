@@ -1,5 +1,11 @@
 # Session Log
 
+> **Status:** Historical session log only.
+> **Current execution truth lives here:** `STATUS.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `python scripts/session_restart_brief.py --refresh`, `reports/ralph-loop/latest.json`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, and `reports/truth-inventory/`.
+> **Purpose:** preserve old operator sessions without presenting the current execution queue or live runtime state.
+> **Use boundary:** do not reuse blockers, node status, credentials notes, or recovery steps below without rechecking the current canonical surfaces first.
+> **Hard boundary:** treat all factual detail below as archival until it is re-probed or re-derived from current reports, validators, or runtime evidence.
+
 ## 2026-03-13 — Repair & Optimization Session
 
 Tonight a simplified config was deployed over the real Athanor repo. The real repo was cloned back from GitHub. This session reconciles the environment.

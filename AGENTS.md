@@ -22,9 +22,13 @@ Archive criteria:
 
 Start in this order:
 1. [STATUS.md](/C:/Athanor/STATUS.md)
-2. [docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md](/C:/Athanor/docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md)
-3. [docs/operations/ATHANOR-OPERATING-SYSTEM.md](/C:/Athanor/docs/operations/ATHANOR-OPERATING-SYSTEM.md)
-4. [config/automation-backbone](/C:/Athanor/config/automation-backbone)
+2. `python scripts/session_restart_brief.py --refresh`
+3. [reports/truth-inventory/finish-scoreboard.json](/mnt/c/Athanor/reports/truth-inventory/finish-scoreboard.json)
+4. [reports/truth-inventory/runtime-packet-inbox.json](/mnt/c/Athanor/reports/truth-inventory/runtime-packet-inbox.json)
+5. [docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md](/C:/Athanor/docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md)
+6. [docs/operations/ATHANOR-OPERATING-SYSTEM.md](/C:/Athanor/docs/operations/ATHANOR-OPERATING-SYSTEM.md)
+7. [docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md](/C:/Athanor/docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md)
+8. [config/automation-backbone](/C:/Athanor/config/automation-backbone)
 
 Prefer runtime truth and current registries over historical analysis.
 
@@ -38,10 +42,12 @@ Prefer runtime truth and current registries over historical analysis.
 - [config/automation-backbone](/C:/Athanor/config/automation-backbone) — source of truth for topology, maturity, docs lifecycle, inventories, and cadence
 - [services](/C:/Athanor/services) — legacy/shared services still being normalized
 
-## Commands
+## Verification Helpers
 
 - `python scripts/validate_platform_contract.py`
 - `python scripts/session_restart_brief.py --refresh`
+- `python scripts/write_next_rotation_preflight.py --json`
+- `python scripts/preflight_burn_class.py local_bulk_sovereign --json`
 - `python scripts/generate_documentation_index.py`
 - `python scripts/generate_project_maturity_report.py`
 - `python scripts/generate_truth_inventory_reports.py`
@@ -59,7 +65,7 @@ Prefer runtime truth and current registries over historical analysis.
 - `cd projects/gpu-orchestrator && .\.venv\Scripts\python -m pytest tests -q`
 - `cd projects/ws-pty-bridge && npm run ci`
 
-## Live Agent Roster
+## Recorded Agent Roster
 
 | Agent | Type | Cadence | Status |
 |-------|------|---------|--------|

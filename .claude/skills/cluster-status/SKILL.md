@@ -10,6 +10,8 @@ disable-model-invocation: true
 
 # Athanor Cluster Status
 
+Treat this skill as a read-only status helper, not a live authority surface. Refresh `python scripts/session_restart_brief.py --refresh` and consult the finish scoreboard/runtime packet inbox before treating the probe output below as current queue or deployment truth.
+
 ## FOUNDRY (192.168.1.244) — EPYC 7663, 256GB, 5 GPUs
 
 ### GPUs

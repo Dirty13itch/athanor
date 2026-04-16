@@ -1,62 +1,41 @@
 #!/bin/bash
-# PreCompact hook: Save dynamic session state before context compaction
-# Captures real-time info that helps Claude recover context after compaction
+# PreCompact hook: save a reference-only handoff before compaction.
+# This snapshot is a hint, not authority. Live truth must be refreshed after compaction.
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 STATE_FILE="$REPO_ROOT/.claude/.session-state.md"
+CAPTURED_AT="$(date -Iseconds)"
+BRANCH="$(git -C "$REPO_ROOT" branch --show-current 2>/dev/null)"
+DIRTY_COUNT="$(git -C "$REPO_ROOT" status --short 2>/dev/null | wc -l | tr -d ' ')"
+LAST_COMMITS="$(git -C "$REPO_ROOT" log --oneline -5 2>/dev/null || true)"
 
 {
-  echo "# Athanor Session State (Pre-Compaction Snapshot)"
-  echo "Captured: $(date -Iseconds)"
+  echo "# Athanor Session State (Reference-Only Compaction Handoff)"
   echo ""
-
-  # Git state
-  echo "## Git State"
+  echo "> **Status:** Reference-only hint."
+  echo "> **Captured:** $CAPTURED_AT"
+  echo "> **Refresh live truth before relying on anything here.**"
+  echo "> **Current truth lives here:** `STATUS.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `reports/ralph-loop/latest.json`, `reports/truth-inventory/ralph-continuity-state.json`, `reports/truth-inventory/governed-dispatch-state.json`, `reports/truth-inventory/finish-scoreboard.json`, and `reports/truth-inventory/runtime-packet-inbox.json`."
+  echo ""
+  echo "## Minimal Git Context"
+  echo "- Branch: ${BRANCH:-unknown}"
+  echo "- Dirty file count: ${DIRTY_COUNT:-0}"
+  echo ""
+  echo "## Last 5 Commits"
   echo '```'
-  echo "Branch: $(git -C "$REPO_ROOT" branch --show-current 2>/dev/null)"
-  echo "Last 5 commits:"
-  git -C "$REPO_ROOT" log --oneline -5 2>/dev/null
-  echo ""
-  echo "Uncommitted changes:"
-  git -C "$REPO_ROOT" status --short 2>/dev/null || echo "  (none)"
+  echo "$LAST_COMMITS"
   echo '```'
   echo ""
-
-  # Modified files diff summary
-  CHANGED=$(git -C "$REPO_ROOT" diff --stat 2>/dev/null)
-  if [ -n "$CHANGED" ]; then
-    echo "## Changed Files (unstaged)"
-    echo '```'
-    echo "$CHANGED"
-    echo '```'
-    echo ""
-  fi
-
-  # Staged files
-  STAGED=$(git -C "$REPO_ROOT" diff --cached --stat 2>/dev/null)
-  if [ -n "$STAGED" ]; then
-    echo "## Staged Files"
-    echo '```'
-    echo "$STAGED"
-    echo '```'
-    echo ""
-  fi
-
-  # Quick infrastructure status (non-blocking, 2s timeout)
-  echo "## Infrastructure (quick check)"
-  N1=$(ssh -o ConnectTimeout=2 -o BatchMode=yes node1 'echo UP' 2>/dev/null && echo "UP" || echo "DOWN")
-  N2=$(ssh -o ConnectTimeout=2 -o BatchMode=yes node2 'echo UP' 2>/dev/null && echo "UP" || echo "DOWN")
-  echo "- Foundry (Node 1): $N1"
-  echo "- Workshop (Node 2): $N2"
+  echo "## Required Live Refresh After Compaction"
+  echo "- STATUS.md"
+  echo "- docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md"
+  echo "- reports/ralph-loop/latest.json"
+  echo "- reports/truth-inventory/ralph-continuity-state.json"
+  echo "- reports/truth-inventory/governed-dispatch-state.json"
+  echo "- reports/truth-inventory/finish-scoreboard.json"
+  echo "- reports/truth-inventory/runtime-packet-inbox.json"
   echo ""
-
-  # Remind what files to re-read
-  echo "## Re-read After Compaction"
-  echo "- CLAUDE.md (role, state, gotchas)"
-  echo "- MEMORY.md (session continuity)"
-  echo "- STATUS.md (current truth)"
-  echo "- docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md (live work queue)"
-  echo "- The plan file if one exists"
+  echo "Do not treat this handoff as runtime, queue, provider, or deployment authority."
 } > "$STATE_FILE" 2>/dev/null
 
-echo "Session state saved to $STATE_FILE (persistent)"
+echo "Reference-only session handoff saved to $STATE_FILE"

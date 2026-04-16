@@ -1,5 +1,7 @@
-At the start of every session, read STATUS.md in the repo root. It contains cluster state, sprint progress, and next actions from the previous session.
+For session bootstrap, read `STATUS.md` and prefer `python scripts/session_restart_brief.py --refresh` when fast current-state orientation is needed. live runtime truth outranks narrative docs when they disagree, and fresh validator output, the current worktree, and the generated restart brief should be trusted before supporting prose.
 
-At the end of every session or before compaction: update STATUS.md with what was done, update Next Actions, add a Session Log entry, then git add STATUS.md && git commit -m "status: update" && git push.
+Treat `STATUS.md`, `SESSION-LOG.md`, and similar narrative docs as supporting artifacts, not as authority. When they conflict with the restart brief, Ralph, governed dispatch, or the current generated reports, trust the live surfaces and update prose only when doing so materially improves the handoff, records a verified change, or keeps the restart brief honest.
 
-If STATUS.md doesn't exist, create it with a fresh cluster assessment.
+If the on-deck lane is a burn-class tranche, prefer the live `reports/truth-inventory/next-rotation-preflight.json` artifact or `python scripts/preflight_burn_class.py <burn_class_id> --json` before relying on helper prose about queue posture or local capacity. When deciding whether Athanor is actually close to done, prefer `reports/truth-inventory/finish-scoreboard.json` and `reports/truth-inventory/runtime-packet-inbox.json` over narrative summaries.
+
+Do not require automatic commit/push, session-log churn, or broad doc refresh at every stop. Keep continuity lightweight: preserve the smallest durable set of verified artifacts, avoid redundant narration, and only write additional session history when it adds real value.

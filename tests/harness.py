@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Athanor cluster endpoint validation harness.
 
+Evidence producer only; outputs from this harness are proof surfaces for endpoint verification, not runtime or queue authority.
 Tests every inference and service endpoint across the cluster.
 Writes results to logs/endpoint-tests/<timestamp>.json.
+The JSON written by this harness is evidence output only; it does not establish queue posture, runtime authority, or adopted-system routing truth.
 
 Usage:
     python3 tests/harness.py              # full test
@@ -19,6 +21,20 @@ from pathlib import Path
 from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+
+SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from runtime_env import load_runtime_env_contract
+
+load_runtime_env_contract(
+    env_names=[
+        "ATHANOR_LITELLM_URL",
+        "ATHANOR_LITELLM_API_KEY",
+        "OPENAI_API_KEY",
+    ]
+)
 
 
 def env(name: str, default: str) -> str:
@@ -214,7 +230,12 @@ def main():
         results.append(tester(host_port, info))
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    report = {"timestamp": timestamp, "results": results}
+    report = {
+        "timestamp": timestamp,
+        "surface_class": "evidence_only",
+        "authority_note": "Endpoint test evidence only; consult registry-backed reports and the restart brief for current runtime authority.",
+        "results": results,
+    }
 
     # Save to log file
     log_dir = Path(__file__).parent.parent / "logs" / "endpoint-tests"

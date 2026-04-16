@@ -1,8 +1,8 @@
 # Athanor Recovery
 
-Source of truth: `config/automation-backbone/platform-topology.json`, `docs/operations/OPERATOR_RUNBOOKS.md`, `docs/runbooks/credential-rotation.md`
+Source of truth: `config/automation-backbone/platform-topology.json`, `docs/operations/OPERATOR_RUNBOOKS.md`, `docs/runbooks/credential-rotation.md`, `python scripts/session_restart_brief.py --refresh`, and `reports/truth-inventory/runtime-packet-inbox.json`
 Validated against registry version: `platform-topology.json@2026-04-11.2`, `program-operating-system.json@2026-03-25.1`
-Mutable facts policy: restore targets, node placement, and service dependencies must match the topology registry. This document owns recovery order, store ownership, and evidence expectations, not hand-maintained container inventories.
+Mutable facts policy: restore targets, node placement, service dependencies, and approval-gated runtime follow-through must match the topology registry plus the current runtime packet inbox. This document records recovery order, store ownership, and evidence expectations, not hand-maintained container inventories.
 
 ---
 
@@ -10,11 +10,11 @@ Mutable facts policy: restore targets, node placement, and service dependencies 
 
 - Pause automation first. Recovery is an operator posture change before it is a service restart sequence.
 - Restore stateful dependencies before control-plane surfaces and control-plane surfaces before product surfaces.
-- Treat registry truth as authoritative for host placement and service URLs.
+- Use registry truth for current host placement and service URLs.
 - Do not reintroduce secrets through tracked docs while restoring a host.
 - Every drill or real recovery should produce evidence: what was restored, how it was verified, and what still needs cleanup.
 
-## Current Recovery Targets
+## Recovery Targets For This Snapshot
 
 | Target | Why it matters | Current owner |
 |--------|----------------|---------------|
@@ -24,7 +24,7 @@ Mutable facts policy: restore targets, node placement, and service dependencies 
 | LiteLLM auth and routing config | Shared model access path | `vault` |
 | Topology and deployment evidence | Ensures restored hosts match the declared platform contract | repo + host-local env |
 
-Additional product or observability stores may matter during an incident, but these are the first recovery scope for the current core-first program.
+Additional product or observability stores may matter during an incident, but these are the first recovery scope for the current recovery snapshot.
 
 ## Recovery Order
 
@@ -43,7 +43,7 @@ Additional product or observability stores may matter during an incident, but th
 
 ### Phase 1: Restore shared state on `vault`
 
-Restore and verify in this order:
+Suggested restore order for this snapshot:
 
 1. `redis`
 2. `qdrant`
@@ -105,7 +105,7 @@ Each monthly drill or real recovery should record:
 - rollback or reconnect notes
 - follow-up gaps
 
-Current artifact paths for the implemented non-destructive loop:
+Generated artifact paths for the current non-destructive loop:
 
 - `audit/recovery/restore-drill-latest.json`
 - `audit/automation/contract-healer-latest.json`
@@ -133,4 +133,4 @@ After each phase:
 - `docs/runbooks/credential-rotation.md` governs secret replacement when a recovery invalidates or exposes credentials.
 - `docs/runbooks/rebuild-dev.md` covers the `dev` host specifically.
 
-Historical container-by-container rebuild snippets should be treated as reference material only unless they are revalidated and promoted back into the registry-backed operating model.
+Historical container-by-container rebuild snippets should be treated as reference material only unless they are revalidated and promoted back into the registry-backed operating model. Approval-gated runtime packets stay in `reports/truth-inventory/runtime-packet-inbox.json`; do not infer mutation authority from older recovery prose.

@@ -1,8 +1,8 @@
 # Athanor System Specification
 
-Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/project-maturity-registry.json`, `config/automation-backbone/program-operating-system.json`
+Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/project-maturity-registry.json`, `config/automation-backbone/program-operating-system.json`, `python scripts/session_restart_brief.py --refresh`, and `reports/truth-inventory/finish-scoreboard.json`
 Validated against registry version: `platform-topology.json@2026-04-11.2`, `project-maturity-registry.json@2026-03-27.1`, `program-operating-system.json@2026-03-25.1`
-Mutable facts policy: node membership, service placement, endpoints, auth classes, project maturity, and review cadence live in the registry set under `config/automation-backbone`. This document keeps architecture, operating boundaries, and stable contracts only.
+Mutable facts policy: node membership, service placement, endpoints, auth classes, project maturity, review cadence, and closure posture live in the registry set under `config/automation-backbone` plus the generated finish surfaces. This document keeps architecture, operating boundaries, and stable contracts only.
 
 ---
 
@@ -15,11 +15,11 @@ Athanor is a registry-governed sovereign AI cluster operated by one person. The 
 - docs lifecycle truth
 - operating cadence and lens truth
 
-This document explains how those contracts fit together and what the cluster is supposed to optimize for.
+This document explains how those contracts fit together and what the cluster is supposed to optimize for. It is not the surface that decides queue order, active claim, or remaining typed brakes.
 
-## Validated Snapshot
+## Validated Registry Snapshot
 
-At registry version `2026-03-25.1`, Athanor is operating with:
+At registry version `2026-03-25.1`, the snapshot describes Athanor as:
 
 - 5 nodes: `dev`, `foundry`, `workshop`, `vault`, `desk`
 - 36 registry-managed services
@@ -48,13 +48,13 @@ The operating objective comes from `program-operating-system.json`:
 | `vault` | Storage + observability | Redis, Qdrant, Neo4j, LiteLLM, metrics, logs, shared stateful services |
 | `desk` | Workstation | Operator desktop and optional compatibility provider-bridge host when explicitly enabled |
 
-The registry is authoritative for host/IP mapping. This table only describes roles.
+Use the topology registry for current host/IP mapping. This table is a role summary only.
 
 ## Architecture Layers
 
 ### 1. Registry-backed control plane
 
-The control plane begins in `config/automation-backbone`.
+The control plane is defined in `config/automation-backbone`.
 
 - `platform-topology.json` defines nodes, services, runtime class, auth class, and health path.
 - `project-maturity-registry.json` defines what each project must satisfy before it can claim its class.
@@ -65,7 +65,7 @@ Every helper, env default, CI gate, and canonical doc should flow from that laye
 
 ### 2. Core platform runtimes
 
-The current `platform-core` set is:
+In this validated snapshot, the `platform-core` set is:
 
 - `projects/agents`
 - `projects/gpu-orchestrator`
@@ -75,7 +75,7 @@ These runtimes carry control-plane obligations. They are expected to pass full a
 
 ### 3. Production product surface
 
-The current `production-product` surface is:
+In this validated snapshot, the `production-product` surface is:
 
 - `projects/dashboard`
 
@@ -89,7 +89,7 @@ Everything else is explicitly classed as `active-scaffold`, `incubation`, or `ar
 
 ### Topology contract
 
-`platform-topology.json` is authoritative for:
+Use `platform-topology.json` for current:
 
 - node ids and default hosts
 - service ids, nodes, schemes, ports, and health paths
@@ -100,7 +100,7 @@ No code, doc, compose file, or operator runbook should hardcode a conflicting pl
 
 ### Project maturity contract
 
-`project-maturity-registry.json` is authoritative for:
+Use `project-maturity-registry.json` for current:
 
 - project class
 - owner
@@ -113,7 +113,7 @@ Promotion, demotion, and archive decisions happen through that registry.
 
 ### Docs lifecycle contract
 
-`docs-lifecycle-registry.json` is authoritative for whether a document is:
+Use `docs-lifecycle-registry.json` for the current lifecycle class of each document:
 
 - canonical
 - generated
@@ -135,7 +135,7 @@ The registry currently records service auth classes at the platform level (`oper
 
 ### Governor and task contract
 
-Redis remains the authoritative runtime store for task-engine and adjacent runtime coordination state in this cycle. Durable task truth is formalized around the existing `athanor:tasks` namespace, while governor posture stays separate from alternate queue ownership.
+For this cycle, Redis remains the current runtime store for task-engine and adjacent runtime coordination state. Durable task truth is formalized around the existing `athanor:tasks` namespace, while governor posture stays separate from alternate queue ownership.
 
 ## Operating Model
 

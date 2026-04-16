@@ -1,4 +1,6 @@
 {
+  "surfaceClass": "evidence_only",
+  "authorityNote": "UI audit run evidence only; not current product/runtime authority.",
   "generatedAt": "2026-03-10T22:20:47.215232+00:00",
   "failures": [],
   "results": [

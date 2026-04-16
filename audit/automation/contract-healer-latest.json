@@ -1,40 +1,45 @@
 {
-  "generated_at": "2026-04-14T22:28:30.578025+00:00",
+  "surfaceClass": "evidence_only",
+  "authorityNote": "Automation proof artifact only; consult validator-backed reports and restart brief for current operational authority.",
+  "generated_at": "2026-04-16T05:05:41.057109+00:00",
   "lane": "contract_healer",
   "action_class": "drift_report_generation",
   "success": true,
   "checks": [
     {
       "command": [
-        "C:\\Program Files\\Python313\\python.exe",
+        "/usr/bin/python3",
         "scripts/validate_platform_contract.py"
       ],
       "returncode": 0,
-      "stdout": "Platform contract OK: 5 nodes, 43 services, 11 projects, 137 doc lifecycle entries.",
+      "stdout": "Platform contract OK: 5 nodes, 43 services, 11 projects, 143 doc lifecycle entries.",
       "stderr": "",
-      "duration_seconds": 1.767
+      "duration_seconds": 5.465,
+      "timed_out": false
     },
     {
       "command": [
-        "C:\\Program Files\\Python313\\python.exe",
+        "/usr/bin/python3",
         "scripts/generate_documentation_index.py",
         "--check"
       ],
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.039
+      "duration_seconds": 0.181,
+      "timed_out": false
     },
     {
       "command": [
-        "C:\\Program Files\\Python313\\python.exe",
+        "/usr/bin/python3",
         "scripts/generate_project_maturity_report.py",
         "--check"
       ],
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.038
+      "duration_seconds": 0.067,
+      "timed_out": false
     }
   ],
   "operator_visible_summary": "Contract healer regenerated drift evidence successfully.",

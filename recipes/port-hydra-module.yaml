@@ -1,3 +1,5 @@
+# Task template only. Not approval, commit, or runtime authority.
+# Current queue posture, finish state, and approval-gated runtime work stay in the restart brief and generated truth surfaces, not this recipe.
 ---
 name: port-hydra-module
 description: Port a Python module from Hydra reference repo into Athanor
@@ -8,4 +10,4 @@ parameters:
     required: true
 ---
 Port ~/repos/reference/hydra/src/hydra_tools/{{ module_name }}.py into Athanor.
-Read the source, adapt Hydra patterns (TabbyAPI→LiteLLM, CrewAI→LangGraph, NixOS→Ansible), write tests, lint with ruff, commit.
+Read the source, adapt Hydra patterns (TabbyAPI→LiteLLM, CrewAI→LangGraph, NixOS→Ansible), write tests, lint with ruff, and prepare a changeset. Commit only if separately authorized.

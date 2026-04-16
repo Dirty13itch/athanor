@@ -1,17 +1,17 @@
 # Athanor Services Map
 
-Source of truth: `config/automation-backbone/platform-topology.json`, `docs/projects/PORTFOLIO-REGISTRY.md`
+Source of truth: `config/automation-backbone/platform-topology.json`, `docs/projects/PORTFOLIO-REGISTRY.md`, `python scripts/session_restart_brief.py --refresh`, and `reports/truth-inventory/finish-scoreboard.json`
 Validated against registry version: `platform-topology.json@2026-04-11.2`, `project-maturity-registry.json@2026-03-27.1`
-Mutable facts policy: service ids, nodes, ports, auth classes, and health paths belong to `platform-topology.json`. This document is the operator-facing map for the current validated registry snapshot and should be rewritten when topology changes.
+Mutable facts policy: service ids, nodes, ports, auth classes, and health paths belong to `platform-topology.json`. This document is the operator-facing map for the latest validated registry snapshot and should be rewritten when topology changes, but it does not outrank the restart brief, the finish scoreboard, or newer generated runtime reports.
 
 ---
 
 ## How To Read This Map
 
-- If a service is listed here, it is in the topology registry and is part of current live truth.
-- If a service is not listed here, it is not part of the canonical live map, even if a historical doc or host still references it.
+- If a service is listed here, it appears in the latest validated topology snapshot for this report.
+- If a service is not listed here, treat any mention elsewhere as historical or ungoverned until it is re-registered in the topology registry.
 - Use the topology registry for exact URLs and env overrides.
-- Use this document to understand service role, operator expectations, and which surfaces are core versus supporting.
+- Use this document to understand service role, operator expectations, and which surfaces are core versus supporting. Use the restart brief and generated truth artifacts first when queue posture or closure priority matters.
 
 ## Auth Classes
 
@@ -96,7 +96,7 @@ Mutable facts policy: service ids, nodes, ports, auth classes, and health paths 
 
 ## Core-First Surfaces
 
-The following services sit directly on the current `platform-core` or `production-product` path and should be treated as highest-priority runtime truth:
+The following services sit directly on the current `platform-core` or `production-product` path in this snapshot and should be treated as the highest-priority follow-through surfaces:
 
 - `agent_server`
 - `gpu_orchestrator`
@@ -109,7 +109,7 @@ The following services sit directly on the current `platform-core` or `productio
 - `neo4j` / `neo4j_http`
 - `litellm`
 
-If one of these drifts, the repo contract or operator surface drifts with it.
+If one of these drifts, refresh the registry-backed evidence and operator surfaces before treating older prose as current.
 
 ## Reference-Only / Historical Names
 
@@ -127,4 +127,4 @@ Historical docs and scripts may still mention services that are not in the curre
 - `headscale`
 - `arize-phoenix`
 
-Do not treat those names as part of current canonical service truth unless they are added back to `platform-topology.json`.
+Do not treat those names as part of the current validated service snapshot unless they are added back to `platform-topology.json`.

@@ -1,8 +1,12 @@
 # Blocked Tasks
 
+> **Status:** Archive only.
+> **Current blocker truth is tracked here:** [`STATUS.md`](../../STATUS.md), [`scripts/session_restart_brief.py --refresh`](../../scripts/session_restart_brief.py), [`reports/truth-inventory/finish-scoreboard.json`](../../reports/truth-inventory/finish-scoreboard.json), [`reports/truth-inventory/runtime-packet-inbox.json`](../../reports/truth-inventory/runtime-packet-inbox.json), and [`docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`](../operations/CONTINUOUS-COMPLETION-BACKLOG.md)
+> **Purpose:** preserve historical blocked-task context from earlier sessions without presenting the current operator queue or current approval-gated runtime inbox.
+
 *Updated: 2026-03-14 (Session 56)*
 
-Tasks that cannot proceed without Shaun's physical presence, credentials, or browser access.
+Tasks that could not proceed in that earlier session without Shaun's physical presence, credentials, or browser access. They are historical blocker examples, not the live closure queue or current runtime packet set.
 
 ---
 

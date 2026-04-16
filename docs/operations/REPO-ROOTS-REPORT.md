@@ -33,18 +33,19 @@ Do not edit manually.
 - Path: `C:/Athanor`
 - Host: `desk`
 - Authority: `implementation-authority`
-- Notes: `Primary code and control-plane authority.`
-- Local dirty file count: `121`
-- Local dirty sample: `M  .claude/rules/litellm.md`, `M  .claude/rules/vllm.md`, `M  .claude/skills/vllm-deploy.md`, `M  AGENTS.md`, `M  MEMORY.md`, `M  PROJECT.md`, `M  README.md`, `M  STATUS.md`, `MM audit/automation/contract-healer-latest.json`, ` M audit/recovery/restore-drill-latest.json`
+- Notes: `Primary code and control-plane root.`
+- Local dirty file count: `207`
+- Local dirty sample: ` M .claude/agents/architect.md`, ` M .claude/agents/doc-writer.md`, ` M .claude/agents/infra-auditor.md`, ` M .claude/commands/status.md`, ` M .claude/hooks/post-compact-reload.sh`, ` M .claude/hooks/pre-compact-save.sh`, ` M .claude/hooks/stop-autocommit.sh`, ` M .claude/rules/docs-sync.md`, ` M .claude/rules/litellm.md`, ` M .claude/rules/qdrant-operations.md`
 
 ## dev-runtime-repo
 
 - Path: `/home/shaun/repos/athanor`
 - Host: `dev`
 - Authority: `runtime-authority`
-- Notes: `Runtime and deployment authority until deployment is mirror-clean.`, `Observed 2026-04-02 runtime probe shows the retired governor-facade caller set still mirror-clean with zero sync-required runtime-owned callers.`, `Repo-root systemd services on DEV still launch from this root while the active command-center container is deployed from /opt/athanor/dashboard.`, `Broader runtime-owned deployment surfaces still live across the DEV runtime repo and /opt/athanor, but the runtime-ownership contract now governs that split explicitly so it is governed maintenance rather than a promotion blocker.`
-- Runtime dirty file count: `13`
-- Runtime dirty sample: ` M STATUS.md`, ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/reconciliation-source-registry.json`, ` M docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md`, ` M docs/operations/OPERATOR-SURFACE-REPORT.md`, ` M docs/operations/PROVIDER-CATALOG-REPORT.md`, ` M docs/operations/RUNTIME-MIGRATION-REPORT.md`, ` M docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, ` M docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, ` M docs/operations/SECRET-SURFACE-REPORT.md`, ` M docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, ` M docs/operations/VAULT-REDIS-REPAIR-PACKET.md`
+- Notes: `Runtime and deployment root until deployment is mirror-clean.`, `Observed 2026-04-02 runtime probe shows the retired governor-facade caller set still mirror-clean with zero sync-required runtime-owned callers.`, `Repo-root systemd services on DEV still launch from this root while the active command-center container is deployed from /opt/athanor/dashboard.`, `Broader runtime-owned deployment surfaces still live across the DEV runtime repo and /opt/athanor, but the runtime-ownership contract now governs that split explicitly so it is governed maintenance rather than a promotion blocker.`
+- DEV runtime probe: `unable to reach DEV via ssh`
+- DEV SSH targets attempted: `dev`, `shaun@192.168.1.189`
+- DEV SSH failure samples: `dev` -> `Traceback (most recent call last):`, `shaun@192.168.1.189` -> `shaun@192.168.1.189: Permission denied (publickey,password).`
 
 ## dev-opt-athanor
 
@@ -119,6 +120,9 @@ Do not edit manually.
 - Build root clean: `True`
 - Container running: `True`
 - Runtime import path: `/usr/local/lib/python3.12/site-packages/athanor_agents/__init__.py`
+- Runtime source-tree mismatches: `1`
+- Site-packages import is expected image layout; treat source-tree mismatch, not the import location alone, as the blocker.
+- Active alignment blocker: `src/athanor_agents`
 
 ## workshop-opt-athanor
 

@@ -1,8 +1,8 @@
 # Runtime Ownership Contract
 
-Source of truth: `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/repo-roots-registry.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`
-Validated against registry version: `runtime-ownership-contract.json@2026-04-11.5`, `runtime-ownership-packets.json@2026-04-11.4`, `repo-roots-registry.json@2026-04-06.1`, `program-operating-system.json@2026-03-25.1`
-Mutable facts policy: implementation authority, runtime authority, deployed roots, and live deployment modes come from the registries plus the latest truth snapshot. This runbook describes how code and runtime state move between those roots.
+Source of truth: `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `config/automation-backbone/repo-roots-registry.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `python scripts/session_restart_brief.py --refresh`, and `reports/truth-inventory/runtime-packet-inbox.json`
+Validated against registry version: `runtime-ownership-contract.json@2026-04-16.2`, `runtime-ownership-packets.json@2026-04-16.2`, `repo-roots-registry.json@2026-04-06.1`, `program-operating-system.json@2026-03-25.1`
+Mutable facts policy: implementation authority, runtime authority, deployed roots, live deployment modes, and approval-gated runtime follow-through come from the registries plus the latest truth snapshot and runtime packet inbox. This runbook describes how code and runtime state move between those roots.
 
 ---
 
@@ -38,6 +38,7 @@ Contract:
 - service verification comes from `systemctl show ... WorkingDirectory,ExecStart`
 - rollback requires a timestamped backup under `/home/shaun/.athanor/backups/runtime-ownership/<timestamp>/`
 - packet id: `dev-runtime-repo-sync-packet`
+- If the truth collector reports `unable to reach DEV via ssh`, route through `dev-runtime-ssh-access-recovery-packet` first; do not treat repo mirror drift, envfiles, or host-state repair as actionable until `ssh dev` or the intentionally blessed raw-host fallback is green again.
 
 ### 2. DEV command center compose lane
 
@@ -88,8 +89,8 @@ Contract:
 
 VAULT maintenance must use repo-owned helpers:
 
-- `python scripts/vault-ssh.py`
-- `python scripts/ssh-vault.ps1`
+- primary/current operator path: `python scripts/vault-ssh.py`
+- DESK PowerShell recovery-only fallback: `python scripts/ssh-vault.ps1`
 
 Contract:
 
@@ -145,8 +146,10 @@ Use the packet report as the execution checklist. This runbook defines the lane 
 
 - `athanor-dashboard.service` is still present but inactive; the active dashboard is the `/opt/athanor/dashboard` compose lane.
 - `dev-dashboard-compose-deploy-packet` now governs ordinary dashboard updates so `/opt/athanor/dashboard` and `/opt/athanor/ws-pty-bridge` are replaced through one explicit backup/rebuild path instead of remembered manual copy steps.
-- `dev-runtime-repo-sync-packet` remains the governed maintenance path for bringing implementation authority and the DEV runtime repo closer to mirror-clean.
+- `dev-runtime-ssh-access-recovery-packet` now owns the current DEV blocker. The live failure class is SSH transport/auth recovery, not repo content drift, until `ssh dev` or the intentionally blessed raw-host fallback succeeds again.
+- `dev-runtime-repo-sync-packet` remains the governed maintenance path for bringing implementation authority and the DEV runtime repo closer to mirror-clean once transport is restored.
 - `athanor-dashboard.service` remains masked as a recovery-only shadow; keep it out of ordinary startup and deployment paths.
 - `foundry-agents-compose-deploy-packet` now governs the FOUNDRY `athanor-agents` lane explicitly. The live container importing from `/usr/local/lib/python3.12/site-packages/athanor_agents` is expected image layout, while `/workspace/projects/agents/src`, `/workspace/agents/src`, and `/app/src` remain read-only mirrors. Ordinary updates should go through the compose deploy packet and repo-owned deploy script, not ad hoc hotfixes.
+- `foundry-agents-runtime-alignment-packet` now owns the current blocker: `/opt/athanor/agents/src/athanor_agents` no longer matches implementation authority even though the compose root is clean and the site-packages import path is expected.
 - The remaining FOUNDRY cleanup work is build-root hygiene under `/opt/athanor/agents`, especially nested `src/athanor_agents/athanor_agents` residue or stale `*.bak-codex` files before the next approved rollout.
 - Full-system promotion is no longer blocked by runtime ownership. The remaining work in this lane is governed maintenance and periodic truth refresh.

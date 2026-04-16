@@ -1,8 +1,10 @@
+# Read-only probe template only. Not endpoint inventory or runtime authority.
 ---
 name: test-all-endpoints
 description: Validate all inference endpoints across the cluster
 version: "1.0"
 ---
+Use the current governed endpoint inventory and restart brief when they differ from the sample list below. Finish-scoreboard and runtime-packet-inbox surfaces outrank this recipe for closure posture or approval state.
 Test every endpoint: foundry:8000, foundry:8006, workshop:8000, dev:8001, dev:8003, vault:4000.
 For each: health check, simple completion, tool call test, latency measurement.
 For LiteLLM: test tag-based routing (reasoning, coding, coder, fast, creative, utility, worker, uncensored tags).

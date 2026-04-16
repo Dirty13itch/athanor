@@ -1,4 +1,6 @@
 {
+  "surfaceClass": "evidence_only",
+  "authorityNote": "UI audit evidence ledger only; not an operational backlog or queue authority.",
   "lastUpdated": "2026-03-10T22:21:00Z",
   "policy": {
     "criticalityOrder": [

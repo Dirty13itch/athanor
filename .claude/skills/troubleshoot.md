@@ -5,32 +5,34 @@ description: Structured debugging methodology for infrastructure, services, agen
 
 # Troubleshoot
 
-Systematic debugging for Athanor. Follow this order — don't skip steps.
+Systematic debugging for Athanor. Treat this skill as governed helper guidance only. Follow this order and treat the restart brief, runtime ownership report, and registry-backed surfaces as primary evidence; direct probes and helper commands are confirmation steps, not authority.
 
 ## Step 1: Gather Evidence (Don't Guess)
 
+Start with `python scripts/session_restart_brief.py --refresh`, the relevant generated operations report, and the current registry-backed truth for the lane you are debugging. Use the direct probes below as confirmation after that first pass.
+
 ```bash
-# Service health
-curl -sf http://192.168.1.244:9000/health  # Agent server
+# Service health (confirmation probes)
+curl -sf http://core.athanor.local:9000/health  # Agent server
 curl -skf https://athanor.local/api/operator/session      # Canonical front door
 curl -sf http://dev.athanor.local:3001/api/operator/session  # Command Center runtime fallback
-curl -sf http://192.168.1.203:4000/health   # LiteLLM
+curl -sf http://vault.athanor.local:4000/health   # LiteLLM
 
 # Container status
-ssh node1 'docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
-ssh node2 'docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
+ssh foundry 'docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
+ssh workshop 'docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"'
 
 # Container logs (last 50 lines)
 ssh <node> 'docker logs --tail 50 <container> 2>&1'
 
 # GPU status
-ssh node1 'nvidia-smi --query-gpu=index,name,temperature.gpu,utilization.gpu,memory.used,memory.total --format=csv,noheader'
+ssh foundry 'nvidia-smi --query-gpu=index,name,temperature.gpu,utilization.gpu,memory.used,memory.total --format=csv,noheader'
 
 # NFS mounts
-ssh node1 'mount | grep vault; ls /mnt/vault/models/ | head -3'
+ssh foundry 'mount | grep vault; ls /mnt/vault/models/ | head -3'
 
 # Prometheus alerts
-curl -sf 'http://192.168.1.203:9090/api/v1/alerts' | jq '.data.alerts[] | {name: .labels.alertname, state: .state}'
+curl -sf 'http://vault.athanor.local:9090/api/v1/alerts' | jq '.data.alerts[] | {name: .labels.alertname, state: .state}'
 ```
 
 ## Step 2: Form Hypothesis
@@ -43,8 +45,8 @@ Based on evidence, identify the most likely cause. Common patterns:
 | NFS stale handle | VAULT rebooted | `sudo umount -f /mnt/vault/models && sudo mount -a` |
 | vLLM 503/timeout | Model loading or GPU OOM | Check vLLM logs for OOM, reduce `--max-num-seqs` |
 | Agent hangs | LiteLLM down or model asleep | Check VAULT LiteLLM health, restart if needed |
-| Dashboard 500 | API proxy target down | Check agent server health on Node 1 |
-| SSH timeout | Node down or network issue | `ping <ip>`, check power/BMC |
+| Dashboard 500 | API proxy target down | Check agent server health on FOUNDRY |
+| SSH timeout | Node down or network issue | `ping <alias-or-host>`, check power/BMC, then confirm current topology/runtime ownership before changing config |
 
 ## Step 3: Test Hypothesis
 
@@ -52,7 +54,7 @@ Run the minimal test to confirm or reject. Don't fix anything yet.
 
 ## Step 4: Fix
 
-Apply the smallest possible change. Verify the fix. Document if it's a new gotcha.
+Apply the smallest possible change only after the current owned lane is clear from canonical reports. Verify the fix. Document it if it becomes a recurring gotcha.
 
 ## Step 5: Verify + Document
 

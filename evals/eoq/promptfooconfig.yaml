@@ -1,3 +1,6 @@
+# Evaluation fixture only. Not runtime persona config or routing truth.
+# Provider bindings here are benchmark inputs, not adopted-system canon.
+# Live provider posture, approval state, and closure status belong to the restart brief, finish scoreboard, runtime packet inbox, and provider reports, not this fixture.
 # EoBQ Dialogue Quality Evaluation Suite
 # Run: npx promptfoo eval -c evals/eoq/promptfooconfig.yaml
 # View: npx promptfoo view

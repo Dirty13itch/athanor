@@ -6,6 +6,8 @@ paths:
 
 # Qdrant Operations
 
+This rule file is governed helper guidance only. Verify current topology, restart-brief posture, and runtime reports before treating the endpoint or collection notes below as current authority.
+
 Endpoint: `http://192.168.1.203:6333` (VAULT). No auth required (internal network).
 Python client: `from qdrant_client import QdrantClient` — `QdrantClient("192.168.1.203", port=6333)`.
 REST API also available. MCP tool `qdrant` is preferred over raw curl for ad-hoc queries.

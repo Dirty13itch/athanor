@@ -1,5 +1,10 @@
 # Athanor Session Memory
 
+> **Status:** Historical working memory only.
+> **Current truth lives here:** `STATUS.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `python scripts/session_restart_brief.py --refresh`, `reports/ralph-loop/latest.json`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, and `reports/truth-inventory/`.
+> **Purpose:** preserve older session notes and context without presenting live runtime, provider, or queue truth.
+> **Hard boundary:** do not reuse runtime facts, provider posture, blocker state, credentials notes, or operational steps below without rechecking current canonical surfaces first.
+
 *Historical working memory. Prefer `C:\Athanor\STATUS.md` and current truth-inventory artifacts when they disagree. Lightly corrected on 2026-04-14 to avoid stale runtime assumptions.*
 
 ---

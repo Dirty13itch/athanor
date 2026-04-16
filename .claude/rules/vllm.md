@@ -6,6 +6,8 @@ paths:
 
 # vLLM on Blackwell (sm_120)
 
+This rule file is stable operator guidance only. Verify the restart brief, provider/runtime reports, and current topology before treating any deployment lineage below as live authority.
+
 - Deterministic pinned image required on live Foundry and Workshop lanes: `athanor/vllm:qwen35-20260315`
 - That pinned tag is derived from the known-good custom Blackwell lineage rather than a floating upstream tag.
 - **NGC flash-attn must be removed** in Dockerfile — ABI mismatch with vLLM's PyTorch causes `ImportError: undefined symbol` in `flash_attn_2_cuda.so`. vLLM v0.16.0 uses FlashInfer instead.
