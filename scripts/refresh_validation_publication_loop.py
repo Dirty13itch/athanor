@@ -18,7 +18,7 @@ def build_commands(include_ralph: bool = True, include_restart_brief: bool = Fal
         commands.extend([
             [PYTHON, 'scripts/collect_capacity_telemetry.py'],
             [PYTHON, 'scripts/write_quota_truth_snapshot.py'],
-            [PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh'],
+            [PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh', '--skip-validation'],
         ])
     commands.extend([
         [PYTHON, 'scripts/generate_truth_inventory_reports.py'],

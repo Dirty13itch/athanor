@@ -21,7 +21,7 @@ def test_build_commands_runs_fixed_point_order_with_steady_state_writer():
     assert commands[0][1:] == ['scripts/generate_documentation_index.py']
     assert commands[1][1:] == ['scripts/collect_capacity_telemetry.py']
     assert commands[2][1:] == ['scripts/write_quota_truth_snapshot.py']
-    assert commands[3][1:] == ['scripts/run_ralph_loop_pass.py', '--skip-refresh']
+    assert commands[3][1:] == ['scripts/run_ralph_loop_pass.py', '--skip-refresh', '--skip-validation']
     assert commands[4][1:] == ['scripts/generate_truth_inventory_reports.py']
     assert commands[5][1:] == ['scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md']
     assert commands[6][1:] == ['scripts/generate_publication_deferred_family_queue.py']

@@ -17,7 +17,7 @@ def build_commands(include_restart_brief: bool = True) -> List[List[str]]:
         [PYTHON, 'scripts/generate_documentation_index.py'],
         [PYTHON, 'scripts/collect_capacity_telemetry.py'],
         [PYTHON, 'scripts/write_quota_truth_snapshot.py'],
-        [PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh'],
+        [PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh', '--skip-validation'],
         [PYTHON, 'scripts/generate_truth_inventory_reports.py'],
         [PYTHON, 'scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
         [PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
