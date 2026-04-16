@@ -78,6 +78,7 @@ def test_render_restart_brief_surfaces_current_queue_and_harvest_posture() -> No
             "next_rotation_preflight": "C:/Athanor/reports/truth-inventory/next-rotation-preflight.json",
             "finish_scoreboard": "C:/Athanor/reports/truth-inventory/finish-scoreboard.json",
             "runtime_packet_inbox": "C:/Athanor/reports/truth-inventory/runtime-packet-inbox.json",
+            "steady_state_status": "C:/Athanor/reports/truth-inventory/steady-state-status.json",
             "master_atlas_latest": "C:/athanor-devstack/reports/master-atlas/latest.json",
         },
         "finish_scoreboard": {
@@ -104,6 +105,12 @@ def test_render_restart_brief_surfaces_current_queue_and_harvest_posture() -> No
                 }
             ],
         },
+        "steady_state_status": {
+            "operator_mode": "active_closure",
+            "reopen_required": True,
+            "next_operator_action": "Re-enter closure work.",
+            "reopen_reasons": ["cash_now repo-safe debt remains (`3`)"]
+        },
     }
 
     rendered = module.render_restart_brief(snapshot)
@@ -117,6 +124,7 @@ def test_render_restart_brief_surfaces_current_queue_and_harvest_posture() -> No
     assert "https://athanor.local/" in rendered
     assert "## Closure Scoreboard" in rendered
     assert "## Runtime Packet Inbox" in rendered
+    assert "## Steady-State Status" in rendered
     assert "Reference and Archive Prune" in rendered
 
 
@@ -207,6 +215,7 @@ def test_build_restart_snapshot_reads_git_and_live_artifacts(tmp_path: Path) -> 
     next_rotation_preflight_path = tmp_path / "next-rotation-preflight.json"
     finish_scoreboard_path = tmp_path / "finish-scoreboard.json"
     runtime_packet_inbox_path = tmp_path / "runtime-packet-inbox.json"
+    steady_state_status_path = tmp_path / "steady-state-status.json"
 
     ralph_path.write_text(
         json.dumps(
@@ -215,6 +224,9 @@ def test_build_restart_snapshot_reads_git_and_live_artifacts(tmp_path: Path) -> 
                 "loop_mode": "governor_scheduling",
                 "provider_gate_state": "completed",
                 "work_economy_status": "ready",
+                "selected_workstream_id": "dispatch-and-work-economy-closure",
+                "selected_workstream": "dispatch-and-work-economy-closure",
+                "selected_workstream_title": "Dispatch and Work-Economy Closure",
                 "top_task": {"title": "Dispatch and Work-Economy Closure", "task_id": "workstream:dispatch"},
                 "ranked_autonomous_queue": [
                     {"title": "Dispatch and Work-Economy Closure", "id": "workstream:dispatch"}
@@ -265,6 +277,14 @@ def test_build_restart_snapshot_reads_git_and_live_artifacts(tmp_path: Path) -> 
         }),
         encoding="utf-8",
     )
+    steady_state_status_path.write_text(
+        json.dumps({
+            "operator_mode": "active_closure",
+            "reopen_required": True,
+            "next_operator_action": "Re-enter closure work.",
+        }),
+        encoding="utf-8",
+    )
 
     module.RALPH_LATEST_PATH = ralph_path
     module.DISPATCH_STATE_PATH = dispatch_path
@@ -272,6 +292,7 @@ def test_build_restart_snapshot_reads_git_and_live_artifacts(tmp_path: Path) -> 
     module.NEXT_ROTATION_PREFLIGHT_PATH = next_rotation_preflight_path
     module.FINISH_SCOREBOARD_PATH = finish_scoreboard_path
     module.RUNTIME_PACKET_INBOX_PATH = runtime_packet_inbox_path
+    module.STEADY_STATE_STATUS_PATH = steady_state_status_path
     module.ATLAS_LATEST_PATH = atlas_path
     module._run_git = lambda *args: {
         ("status", "--short"): [" M STATUS.md"],
@@ -291,6 +312,7 @@ def test_build_restart_snapshot_reads_git_and_live_artifacts(tmp_path: Path) -> 
     assert snapshot["next_rotation_preflight"]["next_candidate_task_id"] == "burn_class:local_bulk_sovereign"
     assert snapshot["finish_scoreboard"]["closure_state"] == "closure_in_progress"
     assert snapshot["runtime_packet_inbox"]["packet_count"] == 2
+    assert snapshot["steady_state_status"]["operator_mode"] == "active_closure"
     assert snapshot["dispatch_status"] == "claimed"
     assert snapshot["advisory_blockers"] == ["agent_runtime_restart_recovered"]
     assert snapshot["status_lines"] == [" M STATUS.md"]
@@ -544,6 +566,12 @@ def test_render_restart_brief_surfaces_finish_scoreboard_and_runtime_packet_inbo
                     "next_operator_action": "Review packet and approve the bounded runtime mutation.",
                 }
             ],
+        },
+        "steady_state_status": {
+            "operator_mode": "active_closure",
+            "reopen_required": True,
+            "next_operator_action": "Re-enter closure work.",
+            "reopen_reasons": ["cash_now repo-safe debt remains (`3`)"]
         },
     }
 

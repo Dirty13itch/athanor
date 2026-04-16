@@ -33,6 +33,7 @@ It is not a second planning framework. It is the recurring execution layer that 
 The live controller is `scripts/run_ralph_loop_pass.py`.
 The live artifact is `reports/ralph-loop/latest.json`.
 The standard source-truth refresh bundle is `python scripts/refresh_validation_publication_loop.py`.
+The canonical post-closure operator pass is `python scripts/run_steady_state_control_plane.py`, which reruns the control-plane in fixed-point order and then validates the resulting state.
 Use `python scripts/preflight_burn_class.py <burn_class_id> --json` when the next unblocked tranche is a burn-class lane and the operator or loop needs a compact queue/capacity preflight.
 The standard refresh bundle now writes `reports/truth-inventory/next-rotation-preflight.json` so the on-deck burn-class handoff is visible as a live artifact instead of only a command hint.
 The live continuity artifact is `reports/truth-inventory/ralph-continuity-state.json`.
@@ -185,6 +186,7 @@ The Ralph report now also carries `reconciliation_end_state`, which mirrors the 
 
 The Ralph control plane now also materializes two finish artifacts:
 - `reports/truth-inventory/finish-scoreboard.json` for repo-safe closure posture, deferred-family counts, and typed-brake status
+- `docs/operations/STEADY-STATE-STATUS.md` for the operator-facing reopen/monitor decision after core completion
 - `reports/truth-inventory/runtime-packet-inbox.json` for approval-gated runtime packet readiness
 
 Steady-state doctrine is split intentionally:

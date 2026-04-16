@@ -17,6 +17,7 @@ RALPH_CONTINUITY_STATE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "ralph
 NEXT_ROTATION_PREFLIGHT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "next-rotation-preflight.json"
 FINISH_SCOREBOARD_PATH = REPO_ROOT / "reports" / "truth-inventory" / "finish-scoreboard.json"
 RUNTIME_PACKET_INBOX_PATH = REPO_ROOT / "reports" / "truth-inventory" / "runtime-packet-inbox.json"
+STEADY_STATE_STATUS_PATH = REPO_ROOT / "reports" / "truth-inventory" / "steady-state-status.json"
 ATLAS_LATEST_PATH = Path(r"C:\athanor-devstack\reports\master-atlas\latest.json")
 CANONICAL_DOCS = [
     "STATUS.md",
@@ -195,6 +196,7 @@ def build_restart_snapshot() -> dict[str, Any]:
     next_rotation_preflight = _load_optional_json(NEXT_ROTATION_PREFLIGHT_PATH)
     finish_scoreboard = _load_optional_json(FINISH_SCOREBOARD_PATH)
     runtime_packet_inbox = _load_optional_json(RUNTIME_PACKET_INBOX_PATH)
+    steady_state_status = _load_optional_json(STEADY_STATE_STATUS_PATH)
     atlas = _load_optional_json(ATLAS_LATEST_PATH)
     queue = _pick_queue(ralph)
     queue_total, queue_dispatchable, queue_blocked = _pick_queue_summary(ralph, dispatch, queue)
@@ -301,6 +303,7 @@ def build_restart_snapshot() -> dict[str, Any]:
         "next_rotation_preflight": next_rotation_preflight if isinstance(next_rotation_preflight, dict) else {},
         "finish_scoreboard": finish_scoreboard if isinstance(finish_scoreboard, dict) else {},
         "runtime_packet_inbox": runtime_packet_inbox if isinstance(runtime_packet_inbox, dict) else {},
+        "steady_state_status": steady_state_status if isinstance(steady_state_status, dict) else {},
         "harvest_summary": harvest,
         "recent_commits": _run_git("log", "--oneline", "-5"),
         "status_lines": _run_git("status", "--short"),
@@ -316,6 +319,7 @@ def build_restart_snapshot() -> dict[str, Any]:
             "next_rotation_preflight": str(NEXT_ROTATION_PREFLIGHT_PATH),
             "finish_scoreboard": str(FINISH_SCOREBOARD_PATH),
             "runtime_packet_inbox": str(RUNTIME_PACKET_INBOX_PATH),
+            "steady_state_status": str(STEADY_STATE_STATUS_PATH),
             "master_atlas_latest": str(ATLAS_LATEST_PATH),
         },
     }
@@ -351,6 +355,7 @@ def render_restart_brief(snapshot: dict[str, Any]) -> str:
     executive_brief = snapshot.get("executive_brief") or {}
     finish_scoreboard = snapshot.get("finish_scoreboard") or {}
     runtime_packet_inbox = snapshot.get("runtime_packet_inbox") or {}
+    steady_state_status = snapshot.get("steady_state_status") or {}
 
     lines = [
         "# Athanor Session Restart Brief",
@@ -486,6 +491,7 @@ def render_restart_brief(snapshot: dict[str, Any]) -> str:
             f"- Next rotation preflight: `{artifacts.get('next_rotation_preflight', str(NEXT_ROTATION_PREFLIGHT_PATH))}`",
             f"- Finish scoreboard: `{artifacts.get('finish_scoreboard', str(FINISH_SCOREBOARD_PATH))}`",
             f"- Runtime packet inbox: `{artifacts.get('runtime_packet_inbox', str(RUNTIME_PACKET_INBOX_PATH))}`",
+            f"- Steady-state status: `{artifacts.get('steady_state_status', str(STEADY_STATE_STATUS_PATH))}`",
             f"- Master atlas: `{artifacts.get('master_atlas_latest', str(ATLAS_LATEST_PATH))}`",
             "",
             "## Control Surfaces",
@@ -578,6 +584,15 @@ def render_restart_brief(snapshot: dict[str, Any]) -> str:
                 )
         else:
             lines.append("- No approval-gated runtime packets are currently queued.")
+
+    if steady_state_status:
+        lines.extend(["", "## Steady-State Status", ""])
+        lines.append(f"- Operator mode: `{steady_state_status.get('operator_mode', 'unknown')}`")
+        lines.append(f"- Reopen required: `{steady_state_status.get('reopen_required', False)}`")
+        lines.append(f"- Next operator action: {steady_state_status.get('next_operator_action', 'unknown')}")
+        reopen_reasons = steady_state_status.get("reopen_reasons") if isinstance(steady_state_status.get("reopen_reasons"), list) else []
+        if reopen_reasons:
+            lines.append("- Active reopen reasons: " + "; ".join(str(item) for item in reopen_reasons[:3]))
 
     if publication_next_family_id:
         lines.extend(["", "## Publication Follow-On", ""])

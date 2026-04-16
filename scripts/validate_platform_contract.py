@@ -635,6 +635,9 @@ GENERATED_DOC_GENERATORS = {
         "--report",
         "secret_surfaces",
     ],
+    "docs/operations/STEADY-STATE-STATUS.md": [
+        "scripts/write_steady_state_status.py",
+    ],
     "docs/operations/SURFACE-OWNER-MATRIX.md": [
         "scripts/generate_truth_inventory_reports.py",
         "--report",

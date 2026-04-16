@@ -29,6 +29,7 @@ def test_build_commands_defaults_include_expected_sequence():
     assert commands[8][1:] == ['scripts/write_next_rotation_preflight.py', '--json']
     assert commands[9][1:] == ['scripts/write_finish_scoreboard.py', '--json']
     assert commands[10][1:] == ['scripts/write_runtime_packet_inbox.py', '--json']
+    assert commands[11][1:] == ['scripts/write_steady_state_status.py', '--json']
     assert all(cmd[1] != 'scripts/session_restart_brief.py' for cmd in commands)
 
 

@@ -21,7 +21,9 @@ LOCAL_NOISE_HINTS = [
 PUBLICATION_LOOP_SELF_OUTPUTS = {
     "docs/operations/PUBLICATION-TRIAGE-REPORT.md",
     "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md",
+    "docs/operations/STEADY-STATE-STATUS.md",
     "reports/truth-inventory/publication-deferred-family-queue.json",
+    "reports/truth-inventory/steady-state-status.json",
 }
 
 

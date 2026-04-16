@@ -74,6 +74,8 @@ GENERATED_LOCAL_GIT_IGNORE_PATHS = {
         REPO_ROOT / "docs" / "operations" / "PUBLICATION-TRIAGE-REPORT.md",
         REPO_ROOT / "docs" / "operations" / "PUBLICATION-DEFERRED-FAMILY-QUEUE.md",
         REPO_ROOT / "reports" / "truth-inventory" / "publication-deferred-family-queue.json",
+        REPO_ROOT / "docs" / "operations" / "STEADY-STATE-STATUS.md",
+        REPO_ROOT / "reports" / "truth-inventory" / "steady-state-status.json",
     ]
     if path.is_absolute() and REPO_ROOT in path.parents
 }

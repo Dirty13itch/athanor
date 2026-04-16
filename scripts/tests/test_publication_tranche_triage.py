@@ -132,7 +132,9 @@ def test_build_triage_bundle_ignores_self_managed_publication_outputs(monkeypatc
         lambda _repo_root: [
             {'status': ' M', 'path': 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'},
             {'status': ' M', 'path': 'docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md'},
+            {'status': ' M', 'path': 'docs/operations/STEADY-STATE-STATUS.md'},
             {'status': '??', 'path': 'reports/truth-inventory/publication-deferred-family-queue.json'},
+            {'status': '??', 'path': 'reports/truth-inventory/steady-state-status.json'},
         ],
     )
 

@@ -1453,6 +1453,24 @@
       "owner": "shaun"
     },
     {
+      "path": "docs/operations/STEADY-STATE-STATUS.md",
+      "class": "generated",
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/write_steady_state_status.py",
+      "validator": "python scripts/write_steady_state_status.py --check",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "codex_startup",
+        "operator_audit"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
+    },
+    {
       "path": "docs/operations/SURFACE-OWNER-MATRIX.md",
       "class": "generated",
       "owner": "shaun",

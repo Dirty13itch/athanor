@@ -7,7 +7,8 @@ Use this when a fresh Codex or operator session needs to re-enter Athanor quickl
 1. Run `python scripts/session_restart_brief.py --refresh`.
    This helper must surface `selected_workstream`, `active_claim_task`, `current_stop_state`, the next deferred publication family, and the COO brief sections `Program State`, `Landed / Delta`, `Proof`, `Risks`, `Delegation`, `Next Moves`, and `Decision Needed` from live artifacts.
 2. Trust the brief's canonical docs and live artifacts before any older narrative or chat memory.
-3. If the restart lane is source-heavy, prefer `python scripts/refresh_validation_publication_loop.py` to refresh documentation, truth-inventory, publication, validation, and Ralph surfaces in one pass before landing a real tranche.
+3. If the restart lane is source-heavy, prefer `python scripts/refresh_validation_publication_loop.py` to refresh documentation, truth-inventory, publication, validation, Ralph, and steady-state status surfaces in one pass before landing a real tranche.
+4. For post-closure monitoring, use `python scripts/run_steady_state_control_plane.py` as the canonical ordered control-plane pass.
 4. If the next queued tranche is a burn-class lane, inspect it directly with `python scripts/preflight_burn_class.py local_bulk_sovereign --json` (or the relevant burn class id) before changing queue-facing source truth. Prefer the generated `reports/truth-inventory/next-rotation-preflight.json` artifact when it is present so the on-deck handoff stays report-backed.
 5. If the restart lane is runtime- or autonomy-heavy, open the live control surfaces immediately:
    - `https://athanor.local/`
@@ -84,6 +85,7 @@ If the restart brief, Ralph, or operator prose disagrees with those artifacts, f
 - Dispatch closure reopens only on dispatch-scoped repo delta; validation and publication reopens on any material repo delta.
 - If workstreams are continuity-suppressed, prefer the highest-ranked `cash_now` deferred publication family before generic burn-class posture.
 - `finish-scoreboard.json` is the canonical `are we done yet?` answer for repo-safe closure.
+- `STEADY-STATE-STATUS.md` is the operator-facing answer to `did core completion reopen, and what do I do next?`.
 - `runtime-packet-inbox.json` stays visible in restart surfaces, but runtime packets remain approval-gated until explicitly approved.
 - Automatic steady-state refresh covers Ralph, the restart brief inputs, and truth/report regeneration needed to keep queue truth honest.
 - Publication triage, deferred-family recounting, and burn-class preflight generation remain source-drift-driven rather than always-on.
