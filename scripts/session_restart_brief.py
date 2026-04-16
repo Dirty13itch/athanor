@@ -78,7 +78,7 @@ def _pick_queue(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
-def _pick_queue_summary(ralph: dict[str, Any], dispatch: dict[str, Any], queue: list[dict[str, Any]]) -> tuple[Any, Any, Any]:
+def _pick_queue_summary(ralph: dict[str, Any], dispatch: dict[str, Any], queue: list[dict[str, Any]]) -> tuple[Any, Any, Any, Any]:
     summary = ralph.get("autonomous_queue_summary")
     if isinstance(summary, dict):
         total = summary.get("queue_count", summary.get("total_count", len(queue)))
@@ -89,8 +89,12 @@ def _pick_queue_summary(ralph: dict[str, Any], dispatch: dict[str, Any], queue: 
                 dispatch.get("dispatchable_queue_count", sum(1 for item in queue if item.get("dispatchable") is not False)),
             ),
         )
-        blocked = summary.get("blocked_queue_count", summary.get("blocked_count", 0))
-        return (total, dispatchable, blocked)
+        blocked = summary.get(
+            "blocked_queue_count",
+            summary.get("blocked_count", 0),
+        )
+        suppressed = summary.get("suppressed_queue_count", summary.get("suppressed_count", 0))
+        return (total, dispatchable, blocked, suppressed)
     summary = dispatch.get("autonomous_queue_summary")
     if isinstance(summary, dict):
         total = summary.get("queue_count", summary.get("total_count", len(queue)))
@@ -101,12 +105,17 @@ def _pick_queue_summary(ralph: dict[str, Any], dispatch: dict[str, Any], queue: 
                 dispatch.get("dispatchable_queue_count", sum(1 for item in queue if item.get("dispatchable") is not False)),
             ),
         )
-        blocked = summary.get("blocked_queue_count", summary.get("blocked_count", 0))
-        return (total, dispatchable, blocked)
+        blocked = summary.get(
+            "blocked_queue_count",
+            summary.get("blocked_count", 0),
+        )
+        suppressed = summary.get("suppressed_queue_count", summary.get("suppressed_count", 0))
+        return (total, dispatchable, blocked, suppressed)
     total = dispatch.get("eligible_queue_count", len(queue))
     dispatchable = dispatch.get("dispatchable_queue_count", sum(1 for item in queue if item.get("dispatchable") is not False))
     blocked = max(0, int(total) - int(dispatchable))
-    return (total, dispatchable, blocked)
+    suppressed = 0
+    return (total, dispatchable, blocked, suppressed)
 
 
 def _pick_harvest_summary(dispatch: dict[str, Any], capacity: dict[str, Any]) -> dict[str, Any]:
@@ -199,7 +208,7 @@ def build_restart_snapshot() -> dict[str, Any]:
     steady_state_status = _load_optional_json(STEADY_STATE_STATUS_PATH)
     atlas = _load_optional_json(ATLAS_LATEST_PATH)
     queue = _pick_queue(ralph)
-    queue_total, queue_dispatchable, queue_blocked = _pick_queue_summary(ralph, dispatch, queue)
+    queue_total, queue_dispatchable, queue_blocked, suppressed_queue_count = _pick_queue_summary(ralph, dispatch, queue)
     harvest = _pick_harvest_summary(dispatch, capacity)
     loop_state = dict(ralph.get("loop_state") or {})
     top_task = dict(ralph.get("top_task") or {})
@@ -299,7 +308,7 @@ def build_restart_snapshot() -> dict[str, Any]:
         "publication_next_family_matches": publication_next.get("match_count"),
         "next_unblocked_candidate": next_unblocked_candidate,
         "suppressed_task_ids": suppressed_task_ids,
-        "suppressed_task_count": len(suppressed_task_ids),
+        "suppressed_task_count": int(suppressed_queue_count or 0),
         "next_rotation_preflight": next_rotation_preflight if isinstance(next_rotation_preflight, dict) else {},
         "finish_scoreboard": finish_scoreboard if isinstance(finish_scoreboard, dict) else {},
         "runtime_packet_inbox": runtime_packet_inbox if isinstance(runtime_packet_inbox, dict) else {},
@@ -352,7 +361,7 @@ def render_restart_brief(snapshot: dict[str, Any]) -> str:
     docs = snapshot.get("canonical_docs") or []
     surfaces = snapshot.get("control_surfaces") or []
     artifacts = snapshot.get("artifacts") or {}
-    executive_brief = snapshot.get("executive_brief") or {}
+    executive_brief = snapshot.get("executive_brief") or _build_fallback_executive_brief(snapshot)
     finish_scoreboard = snapshot.get("finish_scoreboard") or {}
     runtime_packet_inbox = snapshot.get("runtime_packet_inbox") or {}
     steady_state_status = snapshot.get("steady_state_status") or {}

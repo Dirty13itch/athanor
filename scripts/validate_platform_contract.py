@@ -656,6 +656,15 @@ GENERATED_DOC_GENERATORS = {
     "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md": [
         "scripts/generate_publication_deferred_family_queue.py",
     ],
+    "docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md": [
+        "scripts/generate_full_system_audit.py",
+    ],
+    "docs/operations/DEVSTACK-MEMBRANE-AUDIT.md": [
+        "scripts/generate_full_system_audit.py",
+    ],
+    "docs/operations/AUDIT-REMEDIATION-BACKLOG.md": [
+        "scripts/generate_full_system_audit.py",
+    ],
 }
 CI_WORKFLOW_PATH = REPO_ROOT / ".gitea" / "workflows" / "ci.yml"
 BUILD_MANIFEST_ACTIVE_PATH = REPO_ROOT / "docs" / "BUILD-MANIFEST.md"

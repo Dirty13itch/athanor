@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `3`
-- Local dirty sample: ` M config/automation-backbone/completion-program-registry.json`, ` M scripts/tests/test_write_steady_state_status.py`, ` M scripts/write_steady_state_status.py`
+- Local dirty file count: `17`
+- Local dirty sample: ` M audit/automation/contract-healer-latest.json`, ` M config/automation-backbone/completion-program-registry.json`, ` M config/automation-backbone/docs-lifecycle-registry.json`, ` M docs/DOCUMENTATION-INDEX.md`, ` M docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md`, ` M docs/operations/AUDIT-REMEDIATION-BACKLOG.md`, ` M docs/operations/DEVSTACK-MEMBRANE-AUDIT.md`, ` M projects/dashboard/src/generated/master-atlas.json`, ` M scripts/closure_finish_common.py`, ` M scripts/generate_full_system_audit.py`
 
 ## dev-runtime-repo
 

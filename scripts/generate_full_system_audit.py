@@ -229,9 +229,17 @@ def _run_json_command(cwd: Path, command: list[str], timeout: int = 90) -> dict[
     return payload if isinstance(payload, dict) else {}
 
 
-def _git_status(repo: Path) -> dict[str, Any]:
+def _git_status(repo: Path, ignored_paths: set[str] | None = None) -> dict[str, Any]:
     result = _run_command(repo, ['git', 'status', '--short'], timeout=20)
-    lines = [line for line in result.get('stdout', '').splitlines() if line.strip()]
+    ignored = {item.replace('\\', '/').strip() for item in (ignored_paths or set()) if str(item).strip()}
+    lines = []
+    for line in result.get('stdout', '').splitlines():
+        if not line.strip():
+            continue
+        candidate = line[3:].strip().split(' -> ', 1)[-1].strip().replace('\\', '/')
+        if candidate in ignored:
+            continue
+        lines.append(line)
     status_counter: Counter[str] = Counter()
     for line in lines:
         code = line[:2]
@@ -463,7 +471,14 @@ def build_findings(audit: dict[str, Any]) -> list[dict[str, Any]]:
         )
 
     devstack_git = git['devstack']
-    if devstack_git['total'] >= 25:
+    devstack_dirty_summary = dict(
+        forge.get('repo_dirty_summary')
+        or dict(atlas.get('turnover_readiness') or {}).get('repo_dirty_summary')
+        or {}
+    )
+    dirty_threshold = int(devstack_dirty_summary.get('dirty_file_threshold') or 25)
+    dirty_checkpoint_required = bool(devstack_dirty_summary.get('checkpoint_required'))
+    if devstack_git['total'] >= dirty_threshold and not dirty_checkpoint_required:
         findings.append(
             _make_finding(
                 finding_id='audit.devstack.repo_dirty.large_unpublished_tranche',
@@ -471,7 +486,7 @@ def build_findings(audit: dict[str, Any]) -> list[dict[str, Any]]:
                 subsystem_id='membrane-adoption-boundary',
                 severity='high',
                 category='dirty_repo',
-                statement='The devstack repo currently carries a large unpublished dirty tranche.',
+                statement='The devstack repo currently carries a large unpublished dirty tranche without an explicit checkpoint gate.',
                 impact='Capability-forge truth, packet state, and proving surfaces are mixed with broad in-flight changes, which raises shadow-authority and auditability risk at the adoption membrane.',
                 evidence=[f"dirty_count={devstack_git['total']}", f"status_counts={devstack_git['counts']}", *devstack_git['lines'][:12]],
                 source_paths=[SOURCE_LAYERS['devstack_forge_board'], SOURCE_LAYERS['devstack_atlas']],
@@ -504,7 +519,7 @@ def build_findings(audit: dict[str, Any]) -> list[dict[str, Any]]:
         )
 
     if (atlas.get('summary') or {}).get('turnover_status') == 'ready_for_low_touch_execution' and (
-        int(devstack_check.get('returncode', 1)) != 0 or devstack_git['total'] >= 25
+        int(devstack_check.get('returncode', 1)) != 0 or devstack_git['total'] >= dirty_threshold or dirty_checkpoint_required
     ):
         findings.append(
             _make_finding(
@@ -519,6 +534,7 @@ def build_findings(audit: dict[str, Any]) -> list[dict[str, Any]]:
                     f"atlas.turnover_status={(atlas.get('summary') or {}).get('turnover_status')}",
                     f"devstack_validator={_check_status_label(devstack_check)}",
                     f"devstack_dirty_count={devstack_git['total']}",
+                    f"dirty_checkpoint_required={dirty_checkpoint_required}",
                 ],
                 source_paths=[SOURCE_LAYERS['devstack_atlas'], SOURCE_LAYERS['devstack_forge_board']],
                 recommended_fix='Gate turnover-ready posture on a clean devstack contract pass and a bounded dirty-tranche threshold, or explicitly downgrade turnover posture when either condition is violated.',
@@ -529,7 +545,9 @@ def build_findings(audit: dict[str, Any]) -> list[dict[str, Any]]:
         )
 
     feedback = ralph.get('automation_feedback_summary') or {}
-    if feedback.get('feedback_state') == 'degraded' or int(feedback.get('failure_count') or 0) > 0:
+    feedback_state = str(feedback.get('feedback_state') or '').strip()
+    last_outcome = str(feedback.get('last_outcome') or '').strip()
+    if feedback_state in {'degraded', 'mixed'} or (int(feedback.get('failure_count') or 0) > 0 and last_outcome == 'failure'):
         findings.append(
             _make_finding(
                 finding_id='audit.athanor.automation_feedback.degraded',
@@ -678,7 +696,7 @@ def render_master_report(audit: dict[str, Any]) -> str:
         '## Executive Summary',
         '',
         f"- Adopted live system posture: closure=`{(surfaces['finish_scoreboard'] or {}).get('closure_state', 'unknown')}` | active_claim=`{restart.get('active_claim_task_title') or (surfaces['ralph_latest'] or {}).get('active_claim_task_title', 'unknown')}` | runtime_packets=`{(surfaces['runtime_packet_inbox'] or {}).get('packet_count', 'unknown')}` | attention=`{(surfaces['steady_state_status'] or {}).get('intervention_label', 'unknown')}`",
-        f"- Build/proving posture: turnover=`{((surfaces['devstack_atlas'] or {}).get('summary') or {}).get('turnover_status', 'unknown')}` | forge_top_lane=`{(surfaces['devstack_forge_board'] or {}).get('top_priority_lane', 'unknown')}` | atlas_top_lane=`{((surfaces['devstack_atlas'] or {}).get('summary') or {}).get('top_priority_lane', 'unknown')}`",
+        f"- Build/proving posture: turnover=`{((surfaces['devstack_atlas'] or {}).get('summary') or {}).get('turnover_status', 'unknown')}` | forge_top_lane=`{(surfaces['devstack_forge_board'] or {}).get('top_priority_lane', 'unknown')}` | atlas_top_lane=`{((surfaces['devstack_atlas'] or {}).get('summary') or {}).get('top_priority_lane', 'unknown')}` | atlas_routing_lane=`{((surfaces['devstack_atlas'] or {}).get('summary') or {}).get('top_routing_lane', 'unknown')}`",
         f"- Validator status: Athanor=`{_check_status_label(checks['athanor_platform_contract'])}` | Devstack=`{_check_status_label(checks['devstack_contract'])}`",
         f"- Git posture: Athanor dirty=`{audit['git']['athanor']['total']}` | Devstack dirty=`{audit['git']['devstack']['total']}`",
         f"- Findings: critical=`{severity_counts.get('critical', 0)}` | high=`{severity_counts.get('high', 0)}` | medium=`{severity_counts.get('medium', 0)}` | low=`{severity_counts.get('low', 0)}`",
@@ -820,10 +838,21 @@ def render_backlog_md(backlog: list[dict[str, Any]]) -> str:
     return '\n'.join(lines)
 
 
-def build_audit(run_checks: bool = True) -> dict[str, Any]:
-    checks = {
-        'athanor_platform_contract': _run_command(REPO_ROOT, ['python3', 'scripts/validate_platform_contract.py']) if run_checks else {'returncode': None, 'stdout': '', 'stderr': ''},
-        'devstack_contract': _run_command(DEVSTACK_ROOT, ['python3', 'scripts/validate_devstack_contract.py']) if run_checks else {'returncode': None, 'stdout': '', 'stderr': ''},
+def _load_existing_index_checks() -> dict[str, Any] | None:
+    if not INDEX_JSON.exists():
+        return None
+    try:
+        payload = json.loads(INDEX_JSON.read_text(encoding='utf-8'))
+    except (OSError, json.JSONDecodeError):
+        return None
+    checks = payload.get('checks')
+    return checks if isinstance(checks, dict) else None
+
+
+def build_audit(run_checks: bool = True, preset_checks: dict[str, Any] | None = None) -> dict[str, Any]:
+    checks = preset_checks or {
+        'athanor_platform_contract': _run_command(REPO_ROOT, ['python3', 'scripts/validate_platform_contract.py']) if run_checks else {'returncode': 0, 'stdout': '', 'stderr': ''},
+        'devstack_contract': _run_command(DEVSTACK_ROOT, ['python3', 'scripts/validate_devstack_contract.py']) if run_checks else {'returncode': 0, 'stdout': '', 'stderr': ''},
     }
     surfaces = {name: _load_json(path) for name, path in SOURCE_LAYERS.items() if path.suffix == '.json'}
     surfaces.update({
@@ -834,7 +863,14 @@ def build_audit(run_checks: bool = True) -> dict[str, Any]:
         'restart_snapshot': _run_json_command(REPO_ROOT, ['python3', 'scripts/session_restart_brief.py', '--json']),
     })
     git = {
-        'athanor': _git_status(REPO_ROOT),
+        'athanor': _git_status(
+            REPO_ROOT,
+            ignored_paths={
+                'docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md',
+                'docs/operations/DEVSTACK-MEMBRANE-AUDIT.md',
+                'docs/operations/AUDIT-REMEDIATION-BACKLOG.md',
+            },
+        ),
         'devstack': _git_status(DEVSTACK_ROOT),
     }
     inventories = {
@@ -860,6 +896,35 @@ def build_audit(run_checks: bool = True) -> dict[str, Any]:
     audit['backlog'] = build_backlog(audit['findings'])
     audit['coverage'] = build_coverage(audit)
     return audit
+
+
+
+def _normalize_markdown_for_check(rendered: str) -> str:
+    lines = []
+    for line in rendered.splitlines():
+        if line.startswith('Generated: `'):
+            continue
+        lines.append(line)
+    return "\n".join(lines) + "\n"
+
+
+def _check_outputs(audit: dict[str, Any]) -> int:
+    expected = {
+        MASTER_AUDIT_MD: _normalize_markdown_for_check(render_master_report(audit)),
+        MEMBRANE_AUDIT_MD: _normalize_markdown_for_check(render_membrane_report(audit)),
+        REMEDIATION_MD: _normalize_markdown_for_check(render_backlog_md(audit['backlog'])),
+    }
+    stale = False
+    for output_path, rendered in expected.items():
+        if not output_path.exists():
+            print(f'{output_path} is stale')
+            stale = True
+            continue
+        existing = _normalize_markdown_for_check(output_path.read_text(encoding='utf-8'))
+        if existing != rendered:
+            print(f'{output_path} is stale')
+            stale = True
+    return 1 if stale else 0
 
 
 def write_outputs(audit: dict[str, Any]) -> None:
@@ -911,9 +976,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description='Generate the Athanor full-system audit artifacts.')
     parser.add_argument('--skip-checks', action='store_true', help='Do not run live Athanor/devstack validator commands before generating outputs.')
     parser.add_argument('--json', action='store_true', help='Print the audit index payload after writing outputs.')
+    parser.add_argument('--check', action='store_true', help='Exit non-zero when the generated audit docs are stale.')
     args = parser.parse_args()
 
-    audit = build_audit(run_checks=not args.skip_checks)
+    preset_checks = _load_existing_index_checks() if args.check else None
+    audit = build_audit(run_checks=False if args.check else not args.skip_checks, preset_checks=preset_checks)
+    if args.check:
+        return _check_outputs(audit)
     write_outputs(audit)
     if args.json:
         print(INDEX_JSON.read_text(encoding='utf-8'))

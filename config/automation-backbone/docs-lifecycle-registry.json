@@ -1181,6 +1181,24 @@
       "replacement_surface": null
     },
     {
+      "path": "docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md",
+      "class": "generated",
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_full_system_audit.py",
+      "validator": "python scripts/generate_full_system_audit.py --json",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
+    },
+    {
       "path": "docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md",
       "class": "canonical",
       "owner": "shaun",
@@ -1281,6 +1299,24 @@
       "owner": "shaun"
     },
     {
+      "path": "docs/operations/AUDIT-REMEDIATION-BACKLOG.md",
+      "class": "generated",
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_full_system_audit.py",
+      "validator": "python scripts/generate_full_system_audit.py --json",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "remediation_queue"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
+    },
+    {
       "path": "docs/operations/AUTONOMY-ACTIVATION-REPORT.md",
       "class": "generated",
       "owner": "shaun"
@@ -1299,6 +1335,24 @@
       "downstream_consumers": [
         "ralph_loop",
         "operators"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
+    },
+    {
+      "path": "docs/operations/DEVSTACK-MEMBRANE-AUDIT.md",
+      "class": "generated",
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_full_system_audit.py",
+      "validator": "python scripts/generate_full_system_audit.py --json",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "devstack_membrane"
       ],
       "deprecation_state": "active",
       "replacement_surface": null

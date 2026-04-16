@@ -1469,6 +1469,12 @@ def _build_dispatch_authority(
 
 def _automation_run_outcome(record: dict[str, Any]) -> str:
     result = dict(record.get("result") or {})
+    dispatch_outcome = str(result.get("dispatch_outcome") or "").strip().lower()
+    dispatch_execution_status = str(result.get("dispatch_execution_status") or "").strip().lower()
+    claimed_task_id = str(result.get("claimed_task_id") or "").strip()
+    if dispatch_outcome == "claimed" and claimed_task_id and dispatch_execution_status in {"", "claimed", "already_dispatched", "spin_detected"}:
+        return "success"
+
     for field in ("validation_passed", "all_passed", "success", "passed"):
         if field in result:
             return "success" if bool(result.get(field)) else "failure"

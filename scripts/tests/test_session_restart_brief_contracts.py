@@ -583,3 +583,76 @@ def test_render_restart_brief_surfaces_finish_scoreboard_and_runtime_packet_inbo
     assert "## Runtime Packet Inbox" in rendered
     assert "DEV Runtime SSH Access Recovery" in rendered
     assert "Restore governed SSH reachability for DEV." in rendered
+
+
+def test_build_restart_snapshot_prefers_live_suppressed_queue_count_over_continuity_history(tmp_path: Path) -> None:
+    module = _load_module(
+        f"session_restart_brief_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "session_restart_brief.py",
+    )
+
+    ralph_path = tmp_path / "ralph.json"
+    dispatch_path = tmp_path / "dispatch.json"
+    capacity_path = tmp_path / "capacity.json"
+    atlas_path = tmp_path / "atlas.json"
+    next_rotation_preflight_path = tmp_path / "next-rotation-preflight.json"
+    finish_scoreboard_path = tmp_path / "finish-scoreboard.json"
+    runtime_packet_inbox_path = tmp_path / "runtime-packet-inbox.json"
+    steady_state_status_path = tmp_path / "steady-state-status.json"
+    continuity_path = tmp_path / "continuity.json"
+    publication_queue_path = tmp_path / "publication.json"
+
+    ralph_path.write_text(
+        json.dumps(
+            {
+                "generated_at": "2026-04-16T21:06:52+00:00",
+                "active_claim_task_id": "burn_class:overnight_harvest",
+                "active_claim_task_title": "Overnight Harvest",
+                "autonomous_queue_summary": {
+                    "queue_count": 12,
+                    "dispatchable_queue_count": 5,
+                    "blocked_queue_count": 0,
+                    "suppressed_queue_count": 7,
+                },
+                "next_unblocked_candidate": {"task_id": "burn_class:cheap_bulk_cloud", "title": "Cheap Bulk Cloud"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    dispatch_path.write_text(json.dumps({"dispatchable_queue_count": 5, "eligible_queue_count": 5}), encoding="utf-8")
+    capacity_path.write_text(json.dumps({}), encoding="utf-8")
+    atlas_path.write_text(json.dumps({}), encoding="utf-8")
+    next_rotation_preflight_path.write_text(json.dumps({}), encoding="utf-8")
+    finish_scoreboard_path.write_text(json.dumps({}), encoding="utf-8")
+    runtime_packet_inbox_path.write_text(json.dumps({"packet_count": 0, "packets": []}), encoding="utf-8")
+    steady_state_status_path.write_text(json.dumps({}), encoding="utf-8")
+    continuity_path.write_text(
+        json.dumps(
+            {
+                "recent_no_delta_task_ids": [
+                    "a","b","c","d","e","f","g","h"
+                ],
+                "continue_allowed": True,
+                "current_stop_state": "none",
+            }
+        ),
+        encoding="utf-8",
+    )
+    publication_queue_path.write_text(json.dumps({}), encoding="utf-8")
+
+    module.RALPH_LATEST_PATH = ralph_path
+    module.DISPATCH_STATE_PATH = dispatch_path
+    module.CAPACITY_TELEMETRY_PATH = capacity_path
+    module.ATLAS_LATEST_PATH = atlas_path
+    module.NEXT_ROTATION_PREFLIGHT_PATH = next_rotation_preflight_path
+    module.FINISH_SCOREBOARD_PATH = finish_scoreboard_path
+    module.RUNTIME_PACKET_INBOX_PATH = runtime_packet_inbox_path
+    module.STEADY_STATE_STATUS_PATH = steady_state_status_path
+    module.RALPH_CONTINUITY_STATE_PATH = continuity_path
+    module.PUBLICATION_DEFERRED_QUEUE_PATH = publication_queue_path
+    module._run_git = lambda *args: []
+
+    snapshot = module.build_restart_snapshot()
+
+    assert snapshot["suppressed_task_count"] == 7
+    assert len(snapshot["suppressed_task_ids"]) == 8

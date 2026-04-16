@@ -11,6 +11,7 @@ PUBLICATION_DEFERRED_QUEUE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "p
 RUNTIME_OWNERSHIP_PACKETS_PATH = REPO_ROOT / "config" / "automation-backbone" / "runtime-ownership-packets.json"
 FINISH_SCOREBOARD_PATH = REPO_ROOT / "reports" / "truth-inventory" / "finish-scoreboard.json"
 RUNTIME_PACKET_INBOX_PATH = REPO_ROOT / "reports" / "truth-inventory" / "runtime-packet-inbox.json"
+DISPATCH_STATE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "governed-dispatch-state.json"
 
 
 def _clean_str(value: Any) -> str | None:
@@ -36,6 +37,47 @@ def load_publication_deferred_queue() -> dict[str, Any]:
 
 def load_runtime_packets() -> dict[str, Any]:
     return _load_json(RUNTIME_OWNERSHIP_PACKETS_PATH)
+
+
+def load_dispatch_state() -> dict[str, Any]:
+    return _load_json(DISPATCH_STATE_PATH)
+
+
+def _pick_queue_counts(ralph_report: dict[str, Any], dispatch_state: dict[str, Any]) -> tuple[int, int, int, int]:
+    queue_summary = dict(ralph_report.get("autonomous_queue_summary") or {})
+    dispatch_summary = dict(dispatch_state.get("autonomous_queue_summary") or {})
+
+    dispatchable = int(
+        dispatch_state.get("dispatchable_queue_count")
+        or dispatch_summary.get("dispatchable_queue_count")
+        or dispatch_summary.get("dispatchable_count")
+        or queue_summary.get("dispatchable_queue_count")
+        or queue_summary.get("dispatchable_count")
+        or 0
+    )
+    blocked = int(
+        dispatch_summary.get("blocked_queue_count")
+        or dispatch_summary.get("blocked_count")
+        or queue_summary.get("blocked_queue_count")
+        or queue_summary.get("blocked_count")
+        or max(0, int(dispatch_state.get("eligible_queue_count") or 0) - dispatchable)
+    )
+    total = int(
+        dispatch_state.get("eligible_queue_count")
+        or dispatch_summary.get("queue_count")
+        or dispatch_summary.get("total_count")
+        or queue_summary.get("queue_count")
+        or queue_summary.get("total_count")
+        or dispatchable + blocked
+    )
+    suppressed = int(
+        dispatch_summary.get("suppressed_queue_count")
+        or dispatch_summary.get("suppressed_count")
+        or queue_summary.get("suppressed_queue_count")
+        or queue_summary.get("suppressed_count")
+        or 0
+    )
+    return total, dispatchable, blocked, suppressed
 
 
 def _families_by_class(publication_queue: dict[str, Any], execution_class: str) -> list[dict[str, Any]]:
@@ -110,20 +152,18 @@ def build_finish_scoreboard(
     ralph_report: dict[str, Any],
     publication_queue: dict[str, Any],
     runtime_packet_inbox: dict[str, Any],
+    dispatch_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     cash_now = _families_by_class(publication_queue, "cash_now")
     bounded_follow_on = _families_by_class(publication_queue, "bounded_follow_on")
     program_slice = _families_by_class(publication_queue, "program_slice")
     tenant_lane = _families_by_class(publication_queue, "tenant_lane")
 
+    dispatch_state = dict(dispatch_state or {})
     queue_summary = dict(ralph_report.get("autonomous_queue_summary") or {})
     next_candidate = dict(ralph_report.get("next_unblocked_candidate") or {})
     next_deferred_family = dict(publication_queue.get("next_recommended_family") or {})
-    dispatchable_queue_count = int(
-        queue_summary.get("dispatchable_queue_count")
-        or ralph_report.get("dispatchable_queue_count")
-        or 0
-    )
+    queue_total_count, dispatchable_queue_count, blocked_queue_count, suppressed_queue_count = _pick_queue_counts(ralph_report, dispatch_state)
     approval_gated_runtime_packet_count = int(runtime_packet_inbox.get("packet_count") or 0)
     repo_safe_debt_remaining = bool(cash_now or bounded_follow_on or program_slice)
     only_typed_brakes_remain = (
@@ -141,8 +181,8 @@ def build_finish_scoreboard(
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "active_claim_task_id": _clean_str(ralph_report.get("active_claim_task_id")),
-        "active_claim_task_title": _clean_str(ralph_report.get("active_claim_task_title")),
+        "active_claim_task_id": _clean_str(dispatch_state.get("current_task_id") or ralph_report.get("active_claim_task_id")),
+        "active_claim_task_title": _clean_str(dispatch_state.get("current_task_title") or ralph_report.get("active_claim_task_title")),
         "selected_workstream_id": _clean_str(
             ralph_report.get("selected_workstream_id") or ralph_report.get("selected_workstream")
         ),
@@ -172,9 +212,10 @@ def build_finish_scoreboard(
             for item in runtime_packet_inbox.get("packets", [])
             if isinstance(item, dict) and _clean_str(item.get("id"))
         ],
+        "queue_total_count": queue_total_count,
         "queue_dispatchable_count": dispatchable_queue_count,
-        "queue_blocked_count": int(queue_summary.get("blocked_queue_count") or 0),
-        "suppressed_queue_count": int(queue_summary.get("suppressed_queue_count") or 0),
+        "queue_blocked_count": blocked_queue_count,
+        "suppressed_queue_count": suppressed_queue_count,
         "next_deferred_family_id": (
             _clean_str(next_deferred_family.get("id")) if include_next_candidate else None
         ),

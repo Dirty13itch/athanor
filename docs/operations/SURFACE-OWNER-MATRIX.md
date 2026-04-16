@@ -6,8 +6,8 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-15.4`
-- Total tracked surfaces: `144`
-- Generated surfaces: `5`
+- Total tracked surfaces: `147`
+- Generated surfaces: `8`
 
 ## Layer Counts
 
@@ -17,7 +17,7 @@ Do not edit manually.
 | `ecosystem_governance` | 3 |
 | `historical_working_memory` | 2 |
 | `live_execution` | 7 |
-| `operator_control` | 8 |
+| `operator_control` | 11 |
 | `startup_doctrine` | 4 |
 | `startup_reference` | 1 |
 | `strategic_reference` | 1 |

@@ -1849,6 +1849,36 @@ def test_automation_feedback_summary_surfaces_dispatch_claim_records() -> None:
     assert summary["recent_dispatch_outcomes"][0]["task_title"] == "Capacity and Harvest Truth"
 
 
+def test_automation_feedback_summary_treats_already_dispatched_claims_as_non_failures() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    recent_records = [
+        {
+            "timestamp": "2026-04-13T18:05:00+00:00",
+            "automation_id": "ralph-loop",
+            "lane": "ralph_loop",
+            "action_class": "autonomous_planning",
+            "status": "failure",
+            "result": {
+                "dispatch_outcome": "claimed",
+                "dispatch_execution_status": "already_dispatched",
+                "claimed_task_id": "workstream:capacity-and-harvest-truth",
+                "claimed_task_title": "Capacity and Harvest Truth",
+            },
+            "operator_visible_summary": "Ralph loop retained the current claim without issuing a duplicate dispatch.",
+        }
+    ]
+
+    summary = module._build_automation_feedback_summary(recent_records)
+
+    assert summary["success_count"] == 1
+    assert summary["failure_count"] == 0
+    assert summary["feedback_state"] == "healthy"
+    assert summary["dispatch_last_outcome"] == "claimed"
+
+
 def test_capture_automation_feedback_and_emit_includes_same_pass_claim_record() -> None:
     module = _load_module(
         f"run_ralph_loop_pass_{uuid.uuid4().hex}",

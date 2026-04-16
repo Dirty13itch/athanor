@@ -9,6 +9,7 @@ from closure_finish_common import (
     FINISH_SCOREBOARD_PATH,
     build_finish_scoreboard,
     build_runtime_packet_inbox,
+    load_dispatch_state,
     load_publication_deferred_queue,
     load_runtime_packets,
 )
@@ -32,7 +33,7 @@ def build_payload() -> dict:
     ralph_report = _load_json(RALPH_LATEST_PATH)
     publication_queue = load_publication_deferred_queue()
     runtime_inbox = build_runtime_packet_inbox(load_runtime_packets())
-    return build_finish_scoreboard(ralph_report, publication_queue, runtime_inbox)
+    return build_finish_scoreboard(ralph_report, publication_queue, runtime_inbox, load_dispatch_state())
 
 
 def main() -> int:

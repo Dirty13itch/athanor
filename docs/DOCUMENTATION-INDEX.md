@@ -8,12 +8,12 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-15.4`
-- Total tracked entries: `144`
+- Total tracked entries: `147`
 
 | Class | Count |
 | --- | ---: |
 | `canonical` | 55 |
-| `generated` | 22 |
+| `generated` | 25 |
 | `reference` | 21 |
 | `archive` | 46 |
 
@@ -82,7 +82,10 @@ Do not edit manually.
 | Path | Kind | Owner |
 | --- | --- | --- |
 | `docs/DOCUMENTATION-INDEX.md` | markdown | `shaun` |
+| `docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md` | markdown | `shaun` |
+| `docs/operations/AUDIT-REMEDIATION-BACKLOG.md` | markdown | `shaun` |
 | `docs/operations/AUTONOMY-ACTIVATION-REPORT.md` | markdown | `shaun` |
+| `docs/operations/DEVSTACK-MEMBRANE-AUDIT.md` | markdown | `shaun` |
 | `docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md` | markdown | `shaun` |
 | `docs/operations/HARDWARE-REPORT.md` | markdown | `shaun` |
 | `docs/operations/MODEL-DEPLOYMENT-REPORT.md` | markdown | `shaun` |

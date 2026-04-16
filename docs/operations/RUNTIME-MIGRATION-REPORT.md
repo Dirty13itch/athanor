@@ -21,7 +21,7 @@ Do not edit manually.
 | --- | --- |
 | `cutover_verified` | 9 |
 
-- Latest live content evidence snapshot: `2026-04-16T19:40:46.545673+00:00`
+- Latest live content evidence snapshot: `2026-04-16T22:16:30.872660+00:00`
 - Live content sync detail is unavailable until `python scripts/collect_truth_inventory.py` refreshes the cached truth snapshot.
 
 ## dev-governor-facade-8760-callers
@@ -39,7 +39,7 @@ Do not edit manually.
 - Observed at: `2026-03-29T02:48:53Z`
 - Observed runtime repo head: `075490f`
 - Runbook: [`docs/runbooks/governor-facade-retirement.md`](/C:/Athanor/docs/runbooks/governor-facade-retirement.md)
-- Live content evidence snapshot: `2026-04-16T19:40:46.545673+00:00`
+- Live content evidence snapshot: `2026-04-16T22:16:30.872660+00:00`
 - Live observed `:8760` references: `0`
 
 ### Acceptance Criteria

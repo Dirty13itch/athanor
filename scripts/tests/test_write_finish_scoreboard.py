@@ -139,3 +139,43 @@ def test_build_payload_reports_repo_safe_complete_when_only_background_queue_rem
     assert payload["approval_gated_runtime_packet_count"] == 0
     assert payload["next_deferred_family_id"] is None
     assert payload["next_unblocked_candidate_task_id"] is None
+
+
+def test_build_payload_prefers_governed_dispatch_truth_for_active_claim_and_queue(tmp_path: Path) -> None:
+    module = _load_module(
+        f"write_finish_scoreboard_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "write_finish_scoreboard.py",
+    )
+
+    ralph_path = tmp_path / "latest.json"
+    ralph_path.write_text(
+        json.dumps(
+            {
+                "active_claim_task_id": "burn_class:local_bulk_sovereign",
+                "active_claim_task_title": "Local Bulk Sovereign",
+                "autonomous_queue_summary": {
+                    "dispatchable_queue_count": 6,
+                    "blocked_queue_count": 0,
+                    "suppressed_queue_count": 6,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    module.RALPH_LATEST_PATH = ralph_path
+    module.load_publication_deferred_queue = lambda: {"families": [], "next_recommended_family": {}}
+    module.load_runtime_packets = lambda: {"packets": []}
+    module.load_dispatch_state = lambda: {
+        "current_task_id": "burn_class:overnight_harvest",
+        "current_task_title": "Overnight Harvest",
+        "dispatchable_queue_count": 5,
+        "eligible_queue_count": 5,
+        "autonomous_queue_summary": None,
+    }
+
+    payload = module.build_payload()
+
+    assert payload["active_claim_task_id"] == "burn_class:overnight_harvest"
+    assert payload["active_claim_task_title"] == "Overnight Harvest"
+    assert payload["queue_dispatchable_count"] == 5
+    assert payload["queue_total_count"] == 5
