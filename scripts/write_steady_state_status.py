@@ -10,6 +10,7 @@ from typing import Any
 from session_restart_brief import build_restart_snapshot
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+RALPH_LATEST_PATH = REPO_ROOT / "reports" / "ralph-loop" / "latest.json"
 STEADY_STATE_STATUS_JSON_PATH = REPO_ROOT / "reports" / "truth-inventory" / "steady-state-status.json"
 STEADY_STATE_STATUS_DOC_PATH = REPO_ROOT / "docs" / "operations" / "STEADY-STATE-STATUS.md"
 
@@ -25,16 +26,108 @@ def _pick_string(*values: Any) -> str | None:
     return None
 
 
+def _load_optional_json(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _pick_queue(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    for key in ("ranked_autonomous_queue", "autonomous_queue"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+def _find_task(queue: list[dict[str, Any]], task_id: str | None) -> dict[str, Any]:
+    if not task_id:
+        return {}
+    for item in queue:
+        if _pick_string(item.get("task_id"), item.get("id")) == task_id:
+            return item
+    return {}
+
+
+def _parse_event_time(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(float(value), tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return None
+        try:
+            return datetime.fromtimestamp(float(text), tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        except ValueError:
+            pass
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        except ValueError:
+            return text
+    return None
+
+
+def _attention_level(reopen_required: bool, closure_state: str, runtime_packet_count: int, stop_state: str) -> tuple[str, str]:
+    if stop_state and stop_state != "none":
+        return ("system_attention_required", f"Ralph surfaced stop_state={stop_state}.")
+    if runtime_packet_count > 0:
+        return ("approval_required", f"{runtime_packet_count} runtime packet(s) require approval or operator execution.")
+    if reopen_required or closure_state not in {"repo_safe_complete", "typed_brakes_only"}:
+        return ("review_recommended", "Closure debt or reopen conditions are active.")
+    return ("no_action_needed", "Core closure is complete and the live lane is running.")
+
+
+def _attention_label(level: str) -> str:
+    return {
+        "no_action_needed": "No action needed",
+        "review_recommended": "Review recommended",
+        "approval_required": "Approval required",
+        "system_attention_required": "System attention required",
+    }.get(level, level)
+
+
+def _recent_activity(ralph: dict[str, Any], limit: int = 8) -> list[dict[str, str]]:
+    summary = dict(ralph.get("automation_feedback_summary") or {})
+    outcomes = summary.get("recent_dispatch_outcomes")
+    if not isinstance(outcomes, list):
+        return []
+    items: list[dict[str, str]] = []
+    for outcome in outcomes:
+        if not isinstance(outcome, dict):
+            continue
+        items.append(
+            {
+                "at": _parse_event_time(outcome.get("completed_at")) or "unknown",
+                "task_id": _pick_string(outcome.get("task_id")) or "unknown",
+                "task_title": _pick_string(outcome.get("task_title"), outcome.get("task_id")) or "unknown",
+                "dispatch_outcome": _pick_string(outcome.get("dispatch_outcome")) or "unknown",
+                "summary": _pick_string(outcome.get("summary")) or "No summary available.",
+            }
+        )
+        if len(items) >= limit:
+            break
+    return items
+
+
 def build_payload() -> dict[str, Any]:
     snapshot = build_restart_snapshot()
     finish = dict(snapshot.get("finish_scoreboard") or {})
     runtime = dict(snapshot.get("runtime_packet_inbox") or {})
+    ralph = _load_optional_json(RALPH_LATEST_PATH)
+    queue = _pick_queue(ralph)
 
     closure_state = str(finish.get("closure_state") or "unknown")
     cash_now_remaining_count = int(finish.get("cash_now_remaining_count") or 0)
     bounded_follow_on_remaining_count = int(finish.get("bounded_follow_on_remaining_count") or 0)
     program_slice_remaining_count = int(finish.get("program_slice_remaining_count") or 0)
     runtime_packet_count = int(runtime.get("packet_count") or 0)
+    stop_state = _pick_string(snapshot.get("current_stop_state")) or "none"
 
     reopen_reasons: list[str] = []
     if cash_now_remaining_count > 0:
@@ -47,18 +140,45 @@ def build_payload() -> dict[str, Any]:
         reopen_reasons.append(f"runtime packet inbox still has `{runtime_packet_count}` packets")
     if closure_state not in {"repo_safe_complete", "typed_brakes_only"}:
         reopen_reasons.append(f"finish scoreboard closure_state is `{closure_state}`")
+    if stop_state != "none":
+        reopen_reasons.append(f"Ralph stop_state is `{stop_state}`")
 
     operator_mode = "steady_state_monitoring" if not reopen_reasons and closure_state == "repo_safe_complete" else "active_closure"
     reopen_required = operator_mode != "steady_state_monitoring"
+    intervention_level, intervention_summary = _attention_level(
+        reopen_required=reopen_required,
+        closure_state=closure_state,
+        runtime_packet_count=runtime_packet_count,
+        stop_state=stop_state,
+    )
+
+    active_claim_task_id = _pick_string(ralph.get("active_claim_task_id"), snapshot.get("active_claim_task_id"))
+    active_claim = _find_task(queue, active_claim_task_id)
+    next_candidate = dict(ralph.get("next_unblocked_candidate") or snapshot.get("next_unblocked_candidate") or {})
+
+    current_work = {
+        "task_id": active_claim_task_id,
+        "task_title": _pick_string(ralph.get("active_claim_task_title"), snapshot.get("active_claim_task_title")),
+        "lane_family": _pick_string(ralph.get("active_claim_lane_family"), snapshot.get("active_claim_lane_family")),
+        "provider_label": _pick_string(active_claim.get("selected_provider_label")),
+        "provider_id": _pick_string(active_claim.get("selected_provider_id")),
+        "dispatch_status": _pick_string(snapshot.get("dispatch_status"), active_claim.get("status")),
+        "proof_surface": _pick_string(active_claim.get("proof_command_or_eval_surface")),
+        "mutation_class": _pick_string(active_claim.get("approved_mutation_class")),
+        "value_class": _pick_string(active_claim.get("value_class")),
+        "max_concurrency": active_claim.get("max_concurrency"),
+    }
+    next_up = {
+        "task_id": _pick_string(next_candidate.get("task_id"), next_candidate.get("id")),
+        "task_title": _pick_string(next_candidate.get("title"), next_candidate.get("task_title"), finish.get("next_deferred_family_title"), finish.get("next_deferred_family_id")),
+        "provider_label": _pick_string(next_candidate.get("selected_provider_label")),
+        "lane_family": _pick_string(next_candidate.get("preferred_lane_family")),
+    }
 
     if reopen_required:
-        next_operator_action = (
-            "Re-enter closure work through `python scripts/session_restart_brief.py --refresh` and cash the next surfaced debt family or runtime packet."
-        )
+        next_operator_action = "Re-enter closure work through `python scripts/session_restart_brief.py --refresh` and cash the next surfaced debt family or runtime packet."
     else:
-        next_operator_action = (
-            "Monitor with `python scripts/run_steady_state_control_plane.py`; reopen only when finish-scoreboard debt reappears, runtime packets return, or a typed brake lands in live artifacts."
-        )
+        next_operator_action = "Run `python scripts/run_steady_state_control_plane.py` for a fresh pass. Intervene only if attention level rises above `No action needed`."
 
     artifacts = dict(snapshot.get("artifacts") or {})
     artifacts.update(
@@ -71,6 +191,10 @@ def build_payload() -> dict[str, Any]:
     return {
         "generated_at": _iso_now(),
         "operator_mode": operator_mode,
+        "intervention_level": intervention_level,
+        "intervention_label": _attention_label(intervention_level),
+        "intervention_summary": intervention_summary,
+        "needs_you": intervention_level != "no_action_needed",
         "reopen_required": reopen_required,
         "reopen_reasons": reopen_reasons,
         "closure_state": closure_state,
@@ -81,13 +205,12 @@ def build_payload() -> dict[str, Any]:
         "only_typed_brakes_remain": bool(finish.get("only_typed_brakes_remain")),
         "selected_workstream_id": snapshot.get("selected_workstream_id"),
         "selected_workstream_title": snapshot.get("selected_workstream_title"),
-        "active_claim_task_id": snapshot.get("active_claim_task_id"),
-        "active_claim_task_title": snapshot.get("active_claim_task_title"),
+        "current_work": current_work,
+        "next_up": next_up,
         "queue_total": snapshot.get("queue_total"),
         "queue_dispatchable": snapshot.get("queue_dispatchable"),
         "queue_blocked": snapshot.get("queue_blocked"),
-        "next_deferred_family_id": finish.get("next_deferred_family_id"),
-        "next_deferred_family_title": finish.get("next_deferred_family_title"),
+        "suppressed_task_count": finish.get("suppressed_queue_count", snapshot.get("suppressed_task_count")),
         "next_operator_action": next_operator_action,
         "reopen_triggers": [
             "finish-scoreboard reports non-zero repo-safe debt",
@@ -95,58 +218,92 @@ def build_payload() -> dict[str, Any]:
             "session restart brief or Ralph artifacts surface a typed brake",
             "live validation/probe evidence materially reopens Athanor core truth",
         ],
+        "recent_activity": _recent_activity(ralph),
         "artifacts": artifacts,
     }
 
 
 def render_markdown(payload: dict[str, Any]) -> str:
+    current_work = dict(payload.get("current_work") or {})
+    next_up = dict(payload.get("next_up") or {})
+    artifacts = dict(payload.get("artifacts") or {})
+    recent_activity = payload.get("recent_activity") if isinstance(payload.get("recent_activity"), list) else []
     lines = [
         "# Steady-State Status",
         "",
         "Do not edit manually.",
         "",
-        f"- Operator mode: `{payload.get('operator_mode', 'unknown')}`",
-        f"- Closure state: `{payload.get('closure_state', 'unknown')}`",
-        f"- Reopen required: `{payload.get('reopen_required', False)}`",
-        f"- Repo-safe debt: cash_now=`{payload.get('cash_now_remaining_count', 'unknown')}` | bounded_follow_on=`{payload.get('bounded_follow_on_remaining_count', 'unknown')}` | program_slice=`{payload.get('program_slice_remaining_count', 'unknown')}`",
-        f"- Runtime packet count: `{payload.get('runtime_packet_count', 'unknown')}`",
-        f"- Queue posture: total=`{payload.get('queue_total', 'unknown')}` | dispatchable=`{payload.get('queue_dispatchable', 'unknown')}` | blocked=`{payload.get('queue_blocked', 'unknown')}`",
+        "## At A Glance",
+        "",
+        f"- System state: `{payload.get('closure_state', 'unknown')}`",
+        f"- Attention level: `{payload.get('intervention_label', 'unknown')}`",
+        f"- Needs you: `{payload.get('needs_you', False)}`",
+        f"- Why: {payload.get('intervention_summary', 'unknown')}",
+        f"- Current work: `{_pick_string(current_work.get('task_title'), current_work.get('task_id')) or 'unknown'}`",
+        f"- Current provider: `{_pick_string(current_work.get('provider_label'), current_work.get('provider_id')) or 'unknown'}`",
+        f"- Current lane: `{_pick_string(current_work.get('lane_family')) or 'unknown'}`",
+        f"- Dispatch status: `{_pick_string(current_work.get('dispatch_status')) or 'unknown'}`",
+        f"- Next up: `{_pick_string(next_up.get('task_title'), next_up.get('task_id')) or 'unknown'}`",
+        f"- Queue posture: total=`{payload.get('queue_total', 'unknown')}` | dispatchable=`{payload.get('queue_dispatchable', 'unknown')}` | blocked=`{payload.get('queue_blocked', 'unknown')}` | suppressed=`{payload.get('suppressed_task_count', 'unknown')}`",
+        "",
+        "## Current Work",
+        "",
+        f"- Strategic workstream: `{_pick_string(payload.get('selected_workstream_title'), payload.get('selected_workstream_id')) or 'unknown'}`",
+        f"- Mutation class: `{_pick_string(current_work.get('mutation_class')) or 'unknown'}` | value class: `{_pick_string(current_work.get('value_class')) or 'unknown'}`",
+        f"- Proof surface: `{_pick_string(current_work.get('proof_surface')) or 'unknown'}`",
+        f"- Max concurrency: `{current_work.get('max_concurrency', 'unknown')}`",
+        f"- Repo-safe debt: cash_now=`{payload.get('cash_now_remaining_count', 'unknown')}` | bounded_follow_on=`{payload.get('bounded_follow_on_remaining_count', 'unknown')}` | program_slice=`{payload.get('program_slice_remaining_count', 'unknown')}` | runtime_packets=`{payload.get('runtime_packet_count', 'unknown')}`",
+        "",
+        "## What Changed Recently",
+        "",
     ]
-    if _pick_string(payload.get("active_claim_task_title"), payload.get("active_claim_task_id")):
-        lines.append(
-            f"- Active claim: `{_pick_string(payload.get('active_claim_task_title'), payload.get('active_claim_task_id'))}`"
-        )
-    if _pick_string(payload.get("selected_workstream_title"), payload.get("selected_workstream_id")):
-        lines.append(
-            f"- Strategic workstream: `{_pick_string(payload.get('selected_workstream_title'), payload.get('selected_workstream_id'))}`"
-        )
-    next_deferred_family = _pick_string(payload.get("next_deferred_family_title"), payload.get("next_deferred_family_id"))
-    if next_deferred_family:
-        lines.append(f"- Next deferred family if reopened: `{next_deferred_family}`")
+    if recent_activity:
+        for item in recent_activity[:6]:
+            lines.append(
+                f"- `{item.get('at', 'unknown')}` | `{item.get('task_title', 'unknown')}` | outcome=`{item.get('dispatch_outcome', 'unknown')}` | {item.get('summary', 'No summary available.')}"
+            )
+    else:
+        lines.append("- No recent activity was materialized from the live Ralph record.")
+
     lines.extend([
         "",
-        "## Next Operator Action",
+        "## Operator Action",
         "",
         f"- {payload.get('next_operator_action', 'unknown')}",
+    ])
+    if _pick_string(next_up.get("provider_label"), next_up.get("lane_family"), next_up.get("task_title")):
+        lines.append(
+            f"- Prepared next handoff: `{_pick_string(next_up.get('task_title'), next_up.get('task_id')) or 'unknown'}` via `{_pick_string(next_up.get('provider_label'), next_up.get('lane_family')) or 'unknown'}`"
+        )
+
+    lines.extend([
         "",
         "## Reopen Triggers",
         "",
     ])
     lines.extend(f"- {item}" for item in payload.get("reopen_triggers", []))
-    if payload.get("reopen_reasons"):
-        lines.extend(["", "## Active Reopen Reasons", ""])
-        lines.extend(f"- {item}" for item in payload.get("reopen_reasons", []))
-    artifacts = payload.get("artifacts") or {}
+
     lines.extend([
         "",
-        "## Artifacts",
+        "## Active Reopen Reasons",
         "",
+    ])
+    if payload.get("reopen_reasons"):
+        lines.extend(f"- {item}" for item in payload.get("reopen_reasons", []))
+    else:
+        lines.append("- None.")
+
+    lines.extend([
+        "",
+        "## Evidence",
+        "",
+        f"- Ralph loop: `{artifacts.get('ralph_latest', '')}`",
         f"- Finish scoreboard: `{artifacts.get('finish_scoreboard', '')}`",
         f"- Runtime packet inbox: `{artifacts.get('runtime_packet_inbox', '')}`",
         f"- Session restart brief source: `python scripts/session_restart_brief.py --refresh`",
         f"- Steady-state JSON: `{artifacts.get('steady_state_status_json', '')}`",
+        "",
     ])
-    lines.append("")
     return "\n".join(lines)
 
 
@@ -185,7 +342,6 @@ def main() -> int:
 
     if args.check:
         stale = False
-        existing_json = STEADY_STATE_STATUS_JSON_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_JSON_PATH.exists() else ""
         existing_markdown = STEADY_STATE_STATUS_DOC_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_DOC_PATH.exists() else ""
         existing_json_payload = _load_existing_json_payload()
         if _normalized_payload(existing_json_payload or {}) != _normalized_payload(payload):
@@ -198,9 +354,9 @@ def main() -> int:
 
     STEADY_STATE_STATUS_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
     STEADY_STATE_STATUS_DOC_PATH.parent.mkdir(parents=True, exist_ok=True)
-    if STEADY_STATE_STATUS_JSON_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_JSON_PATH.exists() else "" != rendered_json:
+    if (STEADY_STATE_STATUS_JSON_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_JSON_PATH.exists() else "") != rendered_json:
         STEADY_STATE_STATUS_JSON_PATH.write_text(rendered_json, encoding="utf-8")
-    if STEADY_STATE_STATUS_DOC_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_DOC_PATH.exists() else "" != rendered_markdown:
+    if (STEADY_STATE_STATUS_DOC_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_DOC_PATH.exists() else "") != rendered_markdown:
         STEADY_STATE_STATUS_DOC_PATH.write_text(rendered_markdown, encoding="utf-8")
     if args.json:
         print(json.dumps(payload, indent=2))

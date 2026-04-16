@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import sys
 import uuid
 from pathlib import Path
@@ -25,7 +24,7 @@ def _load_module(name: str, path: Path):
     return module
 
 
-def test_build_payload_reports_repo_safe_completion() -> None:
+def test_build_payload_reports_operator_front_door_state() -> None:
     module = _load_module(
         f"write_steady_state_status_{uuid.uuid4().hex}",
         SCRIPTS_DIR / "write_steady_state_status.py",
@@ -34,34 +33,76 @@ def test_build_payload_reports_repo_safe_completion() -> None:
     module.build_restart_snapshot = lambda: {
         "selected_workstream_id": "dispatch-and-work-economy-closure",
         "selected_workstream_title": "Dispatch and Work-Economy Closure",
-        "active_claim_task_id": "workstream:validation-and-publication",
-        "active_claim_task_title": "Validation and Publication",
-        "queue_total": 7,
-        "queue_dispatchable": 7,
+        "active_claim_task_id": "burn_class:overnight_harvest",
+        "active_claim_task_title": "Overnight Harvest",
+        "active_claim_lane_family": "capacity_truth_repair",
+        "queue_total": 12,
+        "queue_dispatchable": 6,
         "queue_blocked": 0,
+        "current_stop_state": "none",
+        "next_unblocked_candidate": {
+            "task_id": "burn_class:cheap_bulk_cloud",
+            "title": "Cheap Bulk Cloud",
+            "selected_provider_label": "DeepSeek API",
+            "preferred_lane_family": "dispatch_truth_repair",
+        },
         "finish_scoreboard": {
             "closure_state": "repo_safe_complete",
             "cash_now_remaining_count": 0,
             "bounded_follow_on_remaining_count": 0,
             "program_slice_remaining_count": 0,
             "only_typed_brakes_remain": False,
+            "suppressed_queue_count": 7,
         },
         "runtime_packet_inbox": {"packet_count": 0, "packets": []},
         "artifacts": {
+            "ralph_latest": "reports/ralph-loop/latest.json",
             "finish_scoreboard": "reports/truth-inventory/finish-scoreboard.json",
             "runtime_packet_inbox": "reports/truth-inventory/runtime-packet-inbox.json",
+        },
+    }
+    module._load_optional_json = lambda path: {
+        "active_claim_task_id": "burn_class:overnight_harvest",
+        "active_claim_task_title": "Overnight Harvest",
+        "active_claim_lane_family": "capacity_truth_repair",
+        "autonomous_queue": [
+            {
+                "task_id": "burn_class:overnight_harvest",
+                "title": "Overnight Harvest",
+                "selected_provider_label": "Athanor Local",
+                "selected_provider_id": "athanor_local",
+                "status": "already_dispatched",
+                "proof_command_or_eval_surface": "reports/truth-inventory/capacity-telemetry.json",
+                "approved_mutation_class": "auto_harvest",
+                "value_class": "capacity_truth_drift",
+                "max_concurrency": 8,
+            }
+        ],
+        "automation_feedback_summary": {
+            "recent_dispatch_outcomes": [
+                {
+                    "completed_at": "1776373613.147440",
+                    "task_id": "burn_class:overnight_harvest",
+                    "task_title": "Overnight Harvest",
+                    "dispatch_outcome": "claimed",
+                    "summary": "Ralph loop selected Overnight Harvest.",
+                }
+            ]
         },
     }
 
     payload = module.build_payload()
 
     assert payload["operator_mode"] == "steady_state_monitoring"
-    assert payload["reopen_required"] is False
-    assert payload["runtime_packet_count"] == 0
-    assert "run_steady_state_control_plane.py" in payload["next_operator_action"]
+    assert payload["intervention_level"] == "no_action_needed"
+    assert payload["needs_you"] is False
+    assert payload["current_work"]["task_title"] == "Overnight Harvest"
+    assert payload["current_work"]["provider_label"] == "Athanor Local"
+    assert payload["next_up"]["task_title"] == "Cheap Bulk Cloud"
+    assert payload["recent_activity"][0]["task_title"] == "Overnight Harvest"
 
 
-def test_render_markdown_surfaces_reopen_reasons() -> None:
+def test_render_markdown_surfaces_operator_sections() -> None:
     module = _load_module(
         f"write_steady_state_status_{uuid.uuid4().hex}",
         SCRIPTS_DIR / "write_steady_state_status.py",
@@ -69,23 +110,47 @@ def test_render_markdown_surfaces_reopen_reasons() -> None:
 
     rendered = module.render_markdown(
         {
-            "operator_mode": "active_closure",
-            "closure_state": "closure_in_progress",
-            "reopen_required": True,
-            "cash_now_remaining_count": 2,
-            "bounded_follow_on_remaining_count": 1,
-            "program_slice_remaining_count": 0,
-            "runtime_packet_count": 1,
-            "queue_total": 4,
-            "queue_dispatchable": 2,
+            "closure_state": "repo_safe_complete",
+            "intervention_label": "No action needed",
+            "needs_you": False,
+            "intervention_summary": "Core closure is complete and the live lane is running.",
+            "queue_total": 12,
+            "queue_dispatchable": 6,
             "queue_blocked": 0,
-            "active_claim_task_title": "Validation and Publication",
+            "suppressed_task_count": 7,
             "selected_workstream_title": "Dispatch and Work-Economy Closure",
-            "next_deferred_family_title": "Reference and Archive Prune",
-            "next_operator_action": "Re-enter closure work.",
+            "cash_now_remaining_count": 0,
+            "bounded_follow_on_remaining_count": 0,
+            "program_slice_remaining_count": 0,
+            "runtime_packet_count": 0,
+            "current_work": {
+                "task_title": "Overnight Harvest",
+                "task_id": "burn_class:overnight_harvest",
+                "provider_label": "Athanor Local",
+                "lane_family": "capacity_truth_repair",
+                "dispatch_status": "already_dispatched",
+                "mutation_class": "auto_harvest",
+                "value_class": "capacity_truth_drift",
+                "proof_surface": "reports/truth-inventory/capacity-telemetry.json",
+                "max_concurrency": 8,
+            },
+            "next_up": {
+                "task_title": "Cheap Bulk Cloud",
+                "provider_label": "DeepSeek API",
+            },
+            "next_operator_action": "Run `python scripts/run_steady_state_control_plane.py` for a fresh pass.",
             "reopen_triggers": ["finish-scoreboard reports non-zero repo-safe debt"],
-            "reopen_reasons": ["cash_now repo-safe debt remains (`2`)", "runtime packet inbox still has `1` packets"],
+            "reopen_reasons": [],
+            "recent_activity": [
+                {
+                    "at": "2026-04-16 21:06 UTC",
+                    "task_title": "Overnight Harvest",
+                    "dispatch_outcome": "claimed",
+                    "summary": "Ralph loop selected Overnight Harvest.",
+                }
+            ],
             "artifacts": {
+                "ralph_latest": "reports/ralph-loop/latest.json",
                 "finish_scoreboard": "reports/truth-inventory/finish-scoreboard.json",
                 "runtime_packet_inbox": "reports/truth-inventory/runtime-packet-inbox.json",
                 "steady_state_status_json": "reports/truth-inventory/steady-state-status.json",
@@ -94,10 +159,12 @@ def test_render_markdown_surfaces_reopen_reasons() -> None:
     )
 
     assert "# Steady-State Status" in rendered
-    assert "Validation and Publication" in rendered
-    assert "Reference and Archive Prune" in rendered
-    assert "Active Reopen Reasons" in rendered
-    assert "runtime packet inbox still has `1` packets" in rendered
+    assert "## At A Glance" in rendered
+    assert "## What Changed Recently" in rendered
+    assert "Overnight Harvest" in rendered
+    assert "Cheap Bulk Cloud" in rendered
+    assert "No action needed" in rendered
+    assert "None." in rendered
 
 
 def test_normalized_payload_ignores_generated_at() -> None:
