@@ -857,7 +857,7 @@
     "current_phase_scope": "full_system_phase_3",
     "evidence_freshness": "fresh",
     "execution_posture": "steady_state",
-    "last_validation_run": "2026-04-16T18:28:19.287254+00:00",
+    "last_validation_run": "2026-04-16T19:33:56.077142+00:00",
     "next_action_family": "dispatch_truth_and_queue_replenishment",
     "report_path": "reports/ralph-loop/latest.json",
     "selected_workstream": "dispatch-and-work-economy-closure",
@@ -1061,9 +1061,9 @@
         "Validation and generated-doc checks pass cleanly.",
         "No new authority, provider, or portfolio ambiguity reopens on consecutive Ralph cycles."
       ],
-      "current_consecutive_clean_cycles": 25,
-      "last_clean_cycle_at": "2026-04-16T18:28:35.623762+00:00",
-      "ready_to_transition": true,
+      "current_consecutive_clean_cycles": 0,
+      "last_clean_cycle_at": null,
+      "ready_to_transition": false,
       "required_consecutive_clean_cycles": 2
     },
     "success_levels": [
