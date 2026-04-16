@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-13.0",
-  "updated_at": "2026-04-13T21:09:06Z",
+  "version": "2026-04-16.3",
+  "updated_at": "2026-04-16T14:48:45Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/provider-catalog.json",
   "official_verified_at": "2026-03-28",
@@ -11,8 +11,12 @@
       "vendor": "Athanor",
       "category": "local",
       "access_mode": "local",
-      "execution_modes": ["local_runtime"],
-      "state_classes": ["active-routing"],
+      "execution_modes": [
+        "local_runtime"
+      ],
+      "state_classes": [
+        "active-routing"
+      ],
       "subscription_product": "Sovereign local cluster",
       "monthly_cost_usd": 0,
       "official_pricing_status": "not_applicable",
@@ -20,9 +24,15 @@
       "privacy_posture": "sovereign_only",
       "official_sources": [],
       "env_contracts": [],
-      "litellm_aliases": ["athanor_local"],
+      "litellm_aliases": [
+        "athanor_local"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["foundry", "workshop", "dev"],
+      "observed_hosts": [
+        "foundry",
+        "workshop",
+        "dev"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": true,
         "active_burn_observed": false,
@@ -40,8 +50,15 @@
       "vendor": "Anthropic",
       "category": "subscription",
       "access_mode": "cli",
-      "execution_modes": ["direct_cli", "bridge_cli", "handoff_bundle"],
-      "state_classes": ["active-routing", "active-burn"],
+      "execution_modes": [
+        "direct_cli",
+        "bridge_cli",
+        "handoff_bundle"
+      ],
+      "state_classes": [
+        "active-routing",
+        "active-burn"
+      ],
       "subscription_product": "Claude Max",
       "monthly_cost_usd": 200,
       "official_pricing_status": "official_verified",
@@ -57,10 +74,17 @@
           "url": "https://support.claude.com/en/articles/11049762-choosing-a-claude-plan"
         }
       ],
-      "env_contracts": ["ANTHROPIC_API_KEY"],
+      "env_contracts": [
+        "ANTHROPIC_API_KEY"
+      ],
       "litellm_aliases": [],
-      "cli_commands": ["claude"],
-      "observed_hosts": ["desk", "dev"],
+      "cli_commands": [
+        "claude"
+      ],
+      "observed_hosts": [
+        "desk",
+        "dev"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": true,
         "active_burn_observed": true,
@@ -77,8 +101,15 @@
       "vendor": "OpenAI",
       "category": "subscription",
       "access_mode": "cli",
-      "execution_modes": ["direct_cli", "bridge_cli", "handoff_bundle"],
-      "state_classes": ["active-routing", "active-burn"],
+      "execution_modes": [
+        "direct_cli",
+        "bridge_cli",
+        "handoff_bundle"
+      ],
+      "state_classes": [
+        "active-routing",
+        "active-burn"
+      ],
       "subscription_product": "ChatGPT Pro",
       "monthly_cost_usd": 200,
       "official_pricing_status": "official_verified",
@@ -90,10 +121,19 @@
           "url": "https://help.openai.com/en/articles/9793128"
         }
       ],
-      "env_contracts": ["OPENAI_API_KEY"],
-      "litellm_aliases": ["openai"],
-      "cli_commands": ["codex"],
-      "observed_hosts": ["desk", "dev"],
+      "env_contracts": [
+        "OPENAI_API_KEY"
+      ],
+      "litellm_aliases": [
+        "openai"
+      ],
+      "cli_commands": [
+        "codex"
+      ],
+      "observed_hosts": [
+        "desk",
+        "dev"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": true,
         "active_burn_observed": true,
@@ -110,8 +150,14 @@
       "vendor": "Google",
       "category": "subscription",
       "access_mode": "cli",
-      "execution_modes": ["direct_cli", "handoff_bundle"],
-      "state_classes": ["active-routing", "active-burn"],
+      "execution_modes": [
+        "direct_cli",
+        "handoff_bundle"
+      ],
+      "state_classes": [
+        "active-routing",
+        "active-burn"
+      ],
       "subscription_product": "Google AI Pro / Gemini CLI",
       "monthly_cost_usd": 20,
       "official_pricing_status": "official_verified",
@@ -131,10 +177,20 @@
           "url": "https://ai.google.dev/gemini-api/docs/quota"
         }
       ],
-      "env_contracts": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
-      "litellm_aliases": ["gemini"],
-      "cli_commands": ["gemini"],
-      "observed_hosts": ["desk", "dev"],
+      "env_contracts": [
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY"
+      ],
+      "litellm_aliases": [
+        "gemini"
+      ],
+      "cli_commands": [
+        "gemini"
+      ],
+      "observed_hosts": [
+        "desk",
+        "dev"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": true,
         "active_burn_observed": true,
@@ -152,8 +208,14 @@
       "vendor": "Moonshot AI",
       "category": "subscription",
       "access_mode": "cli",
-      "execution_modes": ["direct_cli", "handoff_bundle"],
-      "state_classes": ["active-routing", "active-burn"],
+      "execution_modes": [
+        "direct_cli",
+        "handoff_bundle"
+      ],
+      "state_classes": [
+        "active-routing",
+        "active-burn"
+      ],
       "subscription_product": "Kimi Membership / Kimi Code",
       "monthly_cost_usd": null,
       "official_pricing_status": "official-source-present-cost-unverified",
@@ -169,10 +231,20 @@
           "url": "https://www.kimi.com/code/docs/en/benefits.html"
         }
       ],
-      "env_contracts": ["MOONSHOT_API_KEY", "KIMI_API_KEY"],
-      "litellm_aliases": ["kimi-k2.5"],
-      "cli_commands": ["kimi"],
-      "observed_hosts": ["desk", "dev"],
+      "env_contracts": [
+        "MOONSHOT_API_KEY",
+        "KIMI_API_KEY"
+      ],
+      "litellm_aliases": [
+        "kimi-k2.5"
+      ],
+      "cli_commands": [
+        "kimi"
+      ],
+      "observed_hosts": [
+        "desk",
+        "dev"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": true,
         "active_burn_observed": true,
@@ -183,8 +255,13 @@
         "kind": "cli_subscription",
         "cli_probe": {
           "status": "installed",
-          "expected_hosts": ["desk", "dev"],
-          "required_commands": ["kimi"],
+          "expected_hosts": [
+            "desk",
+            "dev"
+          ],
+          "required_commands": [
+            "kimi"
+          ],
           "last_verified_at": "2026-03-29T06:17:44Z",
           "source": "config/automation-backbone/tooling-inventory.json"
         },
@@ -216,8 +293,14 @@
       "vendor": "Z.ai",
       "category": "subscription",
       "access_mode": "cli",
-      "execution_modes": ["direct_cli", "handoff_bundle"],
-      "state_classes": ["active-routing", "active-burn"],
+      "execution_modes": [
+        "direct_cli",
+        "handoff_bundle"
+      ],
+      "state_classes": [
+        "active-routing",
+        "active-burn"
+      ],
       "subscription_product": "GLM Coding Plan",
       "monthly_cost_usd": null,
       "official_pricing_status": "official-source-present-cost-unverified",
@@ -237,9 +320,17 @@
           "url": "https://docs.z.ai/guides/overview/pricing"
         }
       ],
-      "env_contracts": ["ZAI_API_KEY", "ZAI_CODING_API_KEY"],
-      "litellm_aliases": ["glm-4.7"],
-      "cli_commands": ["glm", "zai"],
+      "env_contracts": [
+        "ZAI_API_KEY",
+        "ZAI_CODING_API_KEY"
+      ],
+      "litellm_aliases": [
+        "glm-4.7"
+      ],
+      "cli_commands": [
+        "glm",
+        "zai"
+      ],
       "observed_hosts": [],
       "observed_runtime": {
         "routing_policy_enabled": true,
@@ -251,8 +342,15 @@
         "kind": "coding_tool_subscription",
         "tooling_probe": {
           "status": "supported_tools_present",
-          "expected_hosts": ["desk", "dev"],
-          "supported_commands": ["claude", "codex", "gemini"],
+          "expected_hosts": [
+            "desk",
+            "dev"
+          ],
+          "supported_commands": [
+            "claude",
+            "codex",
+            "gemini"
+          ],
           "integration_status": "verified",
           "last_verified_at": "2026-04-13T15:08:02Z",
           "source": "config/automation-backbone/tooling-inventory.json"
@@ -263,7 +361,10 @@
             "lite": 10,
             "pro": 30
           },
-          "quota_windows": ["5h_rolling", "7d_rolling"],
+          "quota_windows": [
+            "5h_rolling",
+            "7d_rolling"
+          ],
           "subscribed_tier": null,
           "verified_monthly_cost_usd": null,
           "last_verified_at": "2026-03-28",
@@ -289,8 +390,13 @@
       "vendor": "Anthropic",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "Anthropic API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -302,42 +408,58 @@
           "url": "https://www.anthropic.com/pricing"
         }
       ],
-      "env_contracts": ["ANTHROPIC_API_KEY"],
-      "litellm_aliases": ["claude", "claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"],
+      "env_contracts": [
+        "ANTHROPIC_API_KEY"
+      ],
+      "litellm_aliases": [
+        "claude",
+        "claude-sonnet-4-6",
+        "claude-opus-4-6",
+        "claude-haiku-4-5"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
-        "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-04-08T05:48:41Z"
+        "provider_specific_usage_observed": false,
+        "last_verified_at": "2026-04-16T14:43:41Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "claude",
-          "preferred_models": ["claude", "claude-sonnet-4-6", "claude-opus-4-6", "claude-haiku-4-5"],
-          "served_model_match_tokens": ["claude"],
+          "preferred_models": [
+            "claude",
+            "claude-sonnet-4-6",
+            "claude-opus-4-6",
+            "claude-haiku-4-5"
+          ],
+          "served_model_match_tokens": [
+            "claude"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "observed",
-          "last_verified_at": "2026-04-08T05:48:41Z",
+          "status": "request_failed",
+          "last_verified_at": "2026-04-16T14:43:41Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Keep the Anthropic provider-specific probe in the regular VAULT LiteLLM evidence refresh now that the `claude` compatibility lane is callable again.",
-        "Treat any future Anthropic breakage as either secret-delivery regression or upstream auth failure, not as a served-model-contract ambiguity unless `/v1/models` drops the `claude` alias again.",
-        "If Athanor later removes the `claude` compatibility lane from VAULT on purpose, demote the provider explicitly instead of letting the lane drift back into ambiguous not-supported status."
+        "Keep the `claude` alias in the regular VAULT provider-specific probe refresh so Athanor can distinguish transient cooldown pressure from real secret or served-model drift.",
+        "If repeated 429-style cooldown failures persist, inspect the current LiteLLM fallback and routing posture before rotating Anthropic credentials blindly.",
+        "Only reopen secret-delivery or served-model remediation if `/v1/models` drops the `claude` alias again or the lane falls back into explicit auth failure."
       ],
       "notes": [
-        "The 2026-04-08 live VAULT provider probe now succeeds through the `claude` compatibility alias after the governed LiteLLM config reconcile restored the served-model contract."
+        "The 2026-04-16 live VAULT provider probe hit `request_failed` on the `claude` alias because the fallback path reported cooling-down pressure instead of a fresh secret-delivery regression."
       ]
     },
     {
@@ -346,8 +468,13 @@
       "vendor": "OpenAI",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "OpenAI API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -359,32 +486,49 @@
           "url": "https://openai.com/api/pricing/"
         }
       ],
-      "env_contracts": ["OPENAI_API_KEY"],
-      "litellm_aliases": ["gpt", "gpt-5.4", "gpt-5-mini", "o4-mini"],
+      "env_contracts": [
+        "OPENAI_API_KEY"
+      ],
+      "litellm_aliases": [
+        "gpt",
+        "gpt-5.4",
+        "gpt-5-mini",
+        "o4-mini"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-04-08T05:24:28Z"
+        "last_verified_at": "2026-04-16T14:43:43Z"
       },
       "provider_gate_posture": "optional_elasticity_demoted",
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "gpt",
-          "preferred_models": ["gpt", "gpt-5-mini", "gpt-5.4", "o4-mini"],
-          "served_model_match_tokens": ["gpt", "o4"],
+          "preferred_models": [
+            "gpt",
+            "gpt-5-mini",
+            "gpt-5.4",
+            "o4-mini"
+          ],
+          "served_model_match_tokens": [
+            "gpt",
+            "o4"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
           "status": "auth_failed",
-          "last_verified_at": "2026-04-08T05:24:28Z",
+          "last_verified_at": "2026-04-16T14:43:43Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -392,8 +536,12 @@
       "vault_remediation": {
         "classification": "present_key_invalid",
         "canonical_served_alias": "gpt",
-        "required_env_names": ["OPENAI_API_KEY"],
-        "present_env_names": ["OPENAI_API_KEY"],
+        "required_env_names": [
+          "OPENAI_API_KEY"
+        ],
+        "present_env_names": [
+          "OPENAI_API_KEY"
+        ],
         "missing_env_names": [],
         "last_verified_at": "2026-04-11T22:00:21Z",
         "source": [
@@ -416,8 +564,13 @@
       "vendor": "Mistral",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "Codestral API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -429,31 +582,45 @@
           "url": "https://mistral.ai/pricing"
         }
       ],
-      "env_contracts": ["MISTRAL_API_KEY", "CODESTRAL_API_KEY"],
-      "litellm_aliases": ["codestral", "mistral-large"],
+      "env_contracts": [
+        "MISTRAL_API_KEY",
+        "CODESTRAL_API_KEY"
+      ],
+      "litellm_aliases": [
+        "codestral",
+        "mistral-large"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-04-08T05:24:28Z"
+        "last_verified_at": "2026-04-16T14:43:42Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "codestral",
-          "preferred_models": ["codestral", "mistral-large"],
-          "served_model_match_tokens": ["codestral", "mistral"],
+          "preferred_models": [
+            "codestral",
+            "mistral-large"
+          ],
+          "served_model_match_tokens": [
+            "codestral",
+            "mistral"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
           "status": "observed",
-          "last_verified_at": "2026-04-08T05:24:28Z",
+          "last_verified_at": "2026-04-16T14:43:42Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -474,8 +641,13 @@
       "vendor": "Google",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "Gemini API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -495,67 +667,89 @@
           "url": "https://ai.google.dev/gemini-api/docs/quota"
         }
       ],
-      "env_contracts": ["GOOGLE_API_KEY", "GEMINI_API_KEY"],
-      "litellm_aliases": ["gemini"],
+      "env_contracts": [
+        "GOOGLE_API_KEY",
+        "GEMINI_API_KEY"
+      ],
+      "litellm_aliases": [
+        "gemini"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-04-08T00:08:32Z"
+        "last_verified_at": "2026-04-16T14:43:42Z"
       },
       "provider_gate_posture": "optional_elasticity_demoted",
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "gemini",
-          "preferred_models": ["gemini"],
-          "served_model_match_tokens": ["gemini"],
+          "preferred_models": [
+            "gemini"
+          ],
+          "served_model_match_tokens": [
+            "gemini"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
           "status": "auth_failed",
-          "last_verified_at": "2026-04-08T05:24:28Z",
+          "last_verified_at": "2026-04-16T14:43:42Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
       },
-        "vault_remediation": {
-          "classification": "present_key_invalid",
-          "canonical_served_alias": "gemini",
-          "required_env_names": ["GOOGLE_API_KEY", "GEMINI_API_KEY"],
-          "present_env_names": ["GOOGLE_API_KEY", "GEMINI_API_KEY"],
-          "missing_env_names": [],
-          "last_verified_at": "2026-04-11T22:00:21Z",
+      "vault_remediation": {
+        "classification": "present_key_invalid",
+        "canonical_served_alias": "gemini",
+        "required_env_names": [
+          "GOOGLE_API_KEY",
+          "GEMINI_API_KEY"
+        ],
+        "present_env_names": [
+          "GOOGLE_API_KEY",
+          "GEMINI_API_KEY"
+        ],
+        "missing_env_names": [],
+        "last_verified_at": "2026-04-11T22:00:21Z",
         "source": [
           "reports/truth-inventory/vault-litellm-env-audit.json",
           "reports/truth-inventory/provider-usage-evidence.json"
         ]
       },
-        "verification_steps": [
-          "Rotate or correct the canonical Gemini credential path already present in the live VAULT LiteLLM secret-delivery surface without widening the env surface.",
-          "Keep `GEMINI_API_KEY` and `GOOGLE_API_KEY` scoped to the current VAULT auth path unless operator review decides one should become the single canonical env name.",
-          "Recreate or redeploy the `litellm` container only if the VAULT env surface changes again.",
-          "Re-probe the served model `gemini` and keep the lane demoted until the provider-specific completion succeeds."
-        ],
-        "notes": [
-          "Latest live VAULT provider probe now shows Gemini upstream returning explicit invalid-key errors while GEMINI_API_KEY and GOOGLE_API_KEY are both present in the container env.",
-          "Treat the current failure as a present-key validity problem first; only reopen auth-mode mismatch if a rotated or corrected key still fails on the same served alias."
-        ]
-      },
+      "verification_steps": [
+        "Rotate or correct the canonical Gemini credential path already present in the live VAULT LiteLLM secret-delivery surface without widening the env surface.",
+        "Keep `GEMINI_API_KEY` and `GOOGLE_API_KEY` scoped to the current VAULT auth path unless operator review decides one should become the single canonical env name.",
+        "Recreate or redeploy the `litellm` container only if the VAULT env surface changes again.",
+        "Re-probe the served model `gemini` and keep the lane demoted until the provider-specific completion succeeds."
+      ],
+      "notes": [
+        "Latest live VAULT provider probe now shows Gemini upstream returning explicit invalid-key errors while GEMINI_API_KEY and GOOGLE_API_KEY are both present in the container env.",
+        "Treat the current failure as a present-key validity problem first; only reopen auth-mode mismatch if a rotated or corrected key still fails on the same served alias."
+      ]
+    },
     {
       "id": "deepseek_api",
       "label": "DeepSeek API",
       "vendor": "DeepSeek",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "DeepSeek API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -567,31 +761,45 @@
           "url": "https://api-docs.deepseek.com/quick_start/pricing"
         }
       ],
-      "env_contracts": ["DEEPSEEK_API_KEY"],
-      "litellm_aliases": ["deepseek", "deepseek-chat", "deepseek-reasoner"],
+      "env_contracts": [
+        "DEEPSEEK_API_KEY"
+      ],
+      "litellm_aliases": [
+        "deepseek",
+        "deepseek-chat",
+        "deepseek-reasoner"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-04-08T00:08:31Z"
+        "last_verified_at": "2026-04-16T14:43:42Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "deepseek",
-          "preferred_models": ["deepseek", "deepseek-chat", "deepseek-reasoner"],
-          "served_model_match_tokens": ["deepseek"],
+          "preferred_models": [
+            "deepseek",
+            "deepseek-chat",
+            "deepseek-reasoner"
+          ],
+          "served_model_match_tokens": [
+            "deepseek"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
           "status": "observed",
-          "last_verified_at": "2026-04-08T00:08:31Z",
+          "last_verified_at": "2026-04-16T14:43:42Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -603,7 +811,7 @@
       ],
       "notes": [
         "DeepSeek is configured as an API lane via LiteLLM.",
-        "Provider-specific completion proof is current through 2026-04-08."
+        "Provider-specific completion proof is current through 2026-04-16."
       ]
     },
     {
@@ -612,8 +820,13 @@
       "vendor": "Moonshot AI",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "Moonshot API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -625,31 +838,41 @@
           "url": "https://platform.moonshot.ai/blog/posts/Kimi_API_Newsletter"
         }
       ],
-      "env_contracts": ["MOONSHOT_API_KEY"],
-      "litellm_aliases": ["kimi-k2.5"],
+      "env_contracts": [
+        "MOONSHOT_API_KEY"
+      ],
+      "litellm_aliases": [
+        "kimi-k2.5"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-04-08T05:24:28Z"
+        "last_verified_at": "2026-04-16T14:43:42Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "kimi-k2.5",
-          "preferred_models": ["kimi-k2.5"],
-          "served_model_match_tokens": ["kimi"],
+          "preferred_models": [
+            "kimi-k2.5"
+          ],
+          "served_model_match_tokens": [
+            "kimi"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
           "status": "observed",
-          "last_verified_at": "2026-04-08T05:24:28Z",
+          "last_verified_at": "2026-04-16T14:43:42Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -657,9 +880,13 @@
       "vault_remediation": {
         "classification": "direct_env_gap_not_currently_blocking",
         "canonical_served_alias": "kimi-k2.5",
-        "required_env_names": ["MOONSHOT_API_KEY"],
+        "required_env_names": [
+          "MOONSHOT_API_KEY"
+        ],
         "present_env_names": [],
-        "missing_env_names": ["MOONSHOT_API_KEY"],
+        "missing_env_names": [
+          "MOONSHOT_API_KEY"
+        ],
         "direct_env_gap_not_currently_blocking": true,
         "last_verified_at": "2026-04-11T22:00:21Z",
         "source": [
@@ -674,7 +901,7 @@
       ],
       "notes": [
         "Moonshot still exposes public API pricing through a pricing-specific official post rather than a dedicated stable pricing reference page.",
-        "Latest live VAULT provider proof records successful `kimi-k2.5` completions, but the direct `MOONSHOT_API_KEY` env contract is still absent on the live VAULT surface."
+        "Latest live VAULT provider proof records successful `kimi-k2.5` completions, so the missing direct `MOONSHOT_API_KEY` env contract is tracked as optional cleanup until Athanor chooses to make the direct Moonshot lane authoritative again."
       ]
     },
     {
@@ -683,8 +910,13 @@
       "vendor": "Alibaba Cloud",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "DashScope API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -696,32 +928,44 @@
           "url": "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
         }
       ],
-      "env_contracts": ["DASHSCOPE_API_KEY"],
-      "litellm_aliases": ["qwen-max", "qwen-plus"],
+      "env_contracts": [
+        "DASHSCOPE_API_KEY"
+      ],
+      "litellm_aliases": [
+        "qwen-max",
+        "qwen-plus"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-04-08T05:24:28Z"
+        "last_verified_at": "2026-04-16T14:43:42Z"
       },
       "provider_gate_posture": "optional_elasticity_demoted",
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "qwen-max",
-          "preferred_models": ["qwen-max", "qwen-plus"],
-          "served_model_match_tokens": ["qwen"],
+          "preferred_models": [
+            "qwen-max",
+            "qwen-plus"
+          ],
+          "served_model_match_tokens": [
+            "qwen"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
           "status": "auth_failed",
-          "last_verified_at": "2026-04-08T05:24:28Z",
+          "last_verified_at": "2026-04-16T14:43:42Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -729,9 +973,13 @@
       "vault_remediation": {
         "classification": "auth_surface_mismatch",
         "canonical_served_alias": "qwen-max",
-        "required_env_names": ["DASHSCOPE_API_KEY"],
+        "required_env_names": [
+          "DASHSCOPE_API_KEY"
+        ],
         "present_env_names": [],
-        "missing_env_names": ["DASHSCOPE_API_KEY"],
+        "missing_env_names": [
+          "DASHSCOPE_API_KEY"
+        ],
         "last_verified_at": "2026-04-11T22:00:21Z",
         "source": [
           "reports/truth-inventory/vault-litellm-env-audit.json",
@@ -739,13 +987,13 @@
         ]
       },
       "verification_steps": [
-        "Restore `DASHSCOPE_API_KEY` in the live VAULT LiteLLM secret-delivery surface.",
+        "Repair missing `DASHSCOPE_API_KEY` delivery in the live VAULT LiteLLM container env surface before attempting blind key rotation.",
         "Recreate or redeploy the `litellm` container so the repaired env set is applied.",
         "Re-probe the served model `qwen-max` and keep the lane demoted until the provider-specific completion succeeds."
       ],
       "notes": [
         "Official Model Studio pricing is published on the per-model list and can vary by deployment region.",
-        "Latest live VAULT provider probe classified this lane as auth_failed."
+        "Latest live VAULT provider probe classified this lane as auth_failed, and the current env audit shows `DASHSCOPE_API_KEY` absent from both container delivery and config-referenced resolution on the live surface."
       ]
     },
     {
@@ -754,8 +1002,13 @@
       "vendor": "Venice",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "Venice API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -767,43 +1020,55 @@
           "url": "https://docs.venice.ai/overview/pricing"
         }
       ],
-      "env_contracts": ["VENICE_API_KEY"],
-      "litellm_aliases": ["venice-uncensored", "venice-qwen3-235b"],
+      "env_contracts": [
+        "VENICE_API_KEY"
+      ],
+      "litellm_aliases": [
+        "venice-uncensored",
+        "venice-qwen3-235b"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
-        "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-04-08T05:24:29Z"
+        "provider_specific_usage_observed": false,
+        "last_verified_at": "2026-04-16T14:43:43Z"
       },
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "venice-uncensored",
-          "preferred_models": ["venice-uncensored", "venice-qwen3-235b"],
-          "served_model_match_tokens": ["venice"],
+          "preferred_models": [
+            "venice-uncensored",
+            "venice-qwen3-235b"
+          ],
+          "served_model_match_tokens": [
+            "venice"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
-          "status": "observed",
-          "last_verified_at": "2026-04-08T00:08:35Z",
+          "status": "request_failed",
+          "last_verified_at": "2026-04-16T14:43:43Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
       },
       "verification_steps": [
-        "Keep the lane in ordinary routing only while provider-specific completion probes continue succeeding.",
-        "Re-probe `venice-uncensored` after any VAULT LiteLLM config or secret-source change.",
-        "If a future probe fails, demote the lane and route it back into the VAULT repair packet."
+        "Restore usable Venice API balance or credits before treating this lane as a secret-delivery or config failure.",
+        "Re-probe `venice-uncensored` after the balance is restored and keep the lane demoted until provider-specific completion succeeds again.",
+        "If a post-credit probe still fails, route the lane back into the VAULT repair packet instead of assuming balance was the only blocker."
       ],
       "notes": [
         "Venice remains configured as an API lane.",
-        "Provider-specific completion proof is current through 2026-04-08."
+        "Latest live VAULT provider probe ended in `request_failed` on 2026-04-16 because Venice reported insufficient balance, so keep the lane demoted until credits are restored and completion succeeds again."
       ]
     },
     {
@@ -812,8 +1077,13 @@
       "vendor": "Z.ai",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "Z.ai API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -825,32 +1095,42 @@
           "url": "https://docs.z.ai/guides/overview/pricing"
         }
       ],
-      "env_contracts": ["ZAI_API_KEY"],
-      "litellm_aliases": ["glm-4.7"],
+      "env_contracts": [
+        "ZAI_API_KEY"
+      ],
+      "litellm_aliases": [
+        "glm-4.7"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": true,
-        "last_verified_at": "2026-04-13T00:03:44Z"
+        "last_verified_at": "2026-04-16T14:43:43Z"
       },
       "provider_gate_posture": "turnover_critical_overflow",
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "glm-4.7",
-          "preferred_models": ["glm-4.7"],
-          "served_model_match_tokens": ["glm"],
+          "preferred_models": [
+            "glm-4.7"
+          ],
+          "served_model_match_tokens": [
+            "glm"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
           "status": "observed",
-          "last_verified_at": "2026-04-13T00:03:44Z",
+          "last_verified_at": "2026-04-16T14:43:43Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -862,7 +1142,7 @@
         "If Athanor later changes the canonical Z.ai served alias, update the provider contract explicitly instead of letting the lane drift back into ambiguous remediation state."
       ],
       "notes": [
-        "The 2026-04-13 live VAULT provider probe now succeeds through the `glm-4.7` alias after restoring `ZAI_API_KEY` to the running LiteLLM container."
+        "The 2026-04-16 live VAULT provider probe now succeeds through the `glm-4.7` alias after restoring `ZAI_API_KEY` to the running LiteLLM container."
       ]
     },
     {
@@ -871,8 +1151,13 @@
       "vendor": "OpenRouter",
       "category": "api",
       "access_mode": "api",
-      "execution_modes": ["litellm_proxy"],
-      "state_classes": ["active-api", "configured-unused"],
+      "execution_modes": [
+        "litellm_proxy"
+      ],
+      "state_classes": [
+        "active-api",
+        "configured-unused"
+      ],
       "subscription_product": "OpenRouter API",
       "monthly_cost_usd": null,
       "official_pricing_status": "metered",
@@ -884,32 +1169,42 @@
           "url": "https://openrouter.ai/pricing"
         }
       ],
-      "env_contracts": ["OPENROUTER_API_KEY"],
-      "litellm_aliases": ["openrouter"],
+      "env_contracts": [
+        "OPENROUTER_API_KEY"
+      ],
+      "litellm_aliases": [
+        "openrouter"
+      ],
       "cli_commands": [],
-      "observed_hosts": ["vault"],
+      "observed_hosts": [
+        "vault"
+      ],
       "observed_runtime": {
         "routing_policy_enabled": false,
         "active_burn_observed": false,
         "api_configured": true,
         "proxy_activity_observed": true,
         "provider_specific_usage_observed": false,
-        "last_verified_at": "2026-04-08T05:24:28Z"
+        "last_verified_at": "2026-04-16T14:43:43Z"
       },
       "provider_gate_posture": "optional_elasticity_demoted",
       "evidence": {
         "kind": "vault_litellm_proxy",
         "proxy": {
           "alias": "openrouter",
-          "preferred_models": ["openrouter"],
-          "served_model_match_tokens": ["openrouter"],
+          "preferred_models": [
+            "openrouter"
+          ],
+          "served_model_match_tokens": [
+            "openrouter"
+          ],
           "host": "vault",
           "last_verified_at": "2026-03-28T06:00:00Z",
           "source": "scripts/collect_truth_inventory.py"
         },
         "provider_specific_usage": {
           "status": "auth_failed",
-          "last_verified_at": "2026-04-08T05:24:28Z",
+          "last_verified_at": "2026-04-16T14:43:43Z",
           "source": "reports/truth-inventory/provider-usage-evidence.json",
           "proof_kind": "litellm_model_completion"
         }
@@ -917,8 +1212,12 @@
       "vault_remediation": {
         "classification": "present_key_invalid",
         "canonical_served_alias": "openrouter",
-        "required_env_names": ["OPENROUTER_API_KEY"],
-        "present_env_names": ["OPENROUTER_API_KEY"],
+        "required_env_names": [
+          "OPENROUTER_API_KEY"
+        ],
+        "present_env_names": [
+          "OPENROUTER_API_KEY"
+        ],
         "missing_env_names": [],
         "last_verified_at": "2026-04-11T22:00:21Z",
         "source": [

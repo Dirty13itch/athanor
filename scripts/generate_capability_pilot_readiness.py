@@ -7,10 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from routing_contract_support import append_history, dump_json, iso_now
-from truth_inventory import REPO_ROOT, load_registry
+from truth_inventory import REPO_ROOT, load_registry, resolve_external_path
 
 
-DEVSTACK_ROOT = Path("C:/athanor-devstack")
+DEVSTACK_ROOT = resolve_external_path("C:/athanor-devstack")
 DEVSTACK_LANE_REGISTRY_PATH = DEVSTACK_ROOT / "configs" / "devstack-capability-lane-registry.json"
 DEVSTACK_PACKET_DIR = DEVSTACK_ROOT / "docs" / "promotion-packets"
 OUTPUT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "capability-pilot-readiness.json"
@@ -61,7 +61,7 @@ def _formal_eval_index() -> dict[str, dict[str, Any]]:
         artifact_path = str(run.get("formal_eval_artifact_path") or "").strip()
         if not run_id or not artifact_path:
             continue
-        path = Path(artifact_path)
+        path = resolve_external_path(artifact_path)
         if not path.exists():
             continue
         payload = _load_json(path)
@@ -126,10 +126,10 @@ def _formal_eval_scaffold(run: dict[str, Any]) -> dict[str, Any]:
     promptfoo_path = str(run.get("promptfoo_config_path") or "").strip() or None
     benchmark_spec_path = str(run.get("benchmark_spec_path") or "").strip() or None
     if promptfoo_path:
-        path = Path(promptfoo_path)
+        path = resolve_external_path(promptfoo_path)
         return {"type": "promptfoo", "path": str(path), "exists": path.exists()}
     if benchmark_spec_path:
-        path = Path(benchmark_spec_path)
+        path = resolve_external_path(benchmark_spec_path)
         return {"type": "benchmark_spec", "path": str(path), "exists": path.exists()}
     return {"type": None, "path": None, "exists": False}
 

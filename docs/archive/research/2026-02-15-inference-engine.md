@@ -1,6 +1,6 @@
 # AI Inference Engine
 
-> Historical note: archived research retained for ADR-005 decision history. Current inference deployment and routing truth lives in the model-deployment registry, topology, and generated reports.
+> Historical note: archived research retained for ADR-005 decision history. Current inference deployment and routing truth is tracked in the model-deployment registry, topology, and generated reports.
 
 **Date:** 2026-02-15
 **Status:** Complete — recommendation ready

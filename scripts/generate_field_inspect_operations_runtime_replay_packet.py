@@ -13,7 +13,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_PATH = (
     REPO_ROOT / "reports" / "reconciliation" / "field-inspect-operations-runtime-replay-latest.json"
 )
-FIELD_INSPECT_ROOT = Path(r"C:\Field Inspect")
 PRIMARY_BRANCH = "codex/perpetual-coo-loop"
 REPLAY_BRANCH = "codex/reconcile-operations-runtime"
 
@@ -62,22 +61,44 @@ DOCS_META_PREFIXES = (
     "docs/",
     "package-lock.json",
 )
+FIELD_INSPECT_ROOT_CANDIDATES = (
+    Path(r"C:\Field Inspect"),
+    Path("/mnt/c/Field Inspect"),
+)
+
+
+def _resolve_field_inspect_root() -> Path:
+    for candidate in FIELD_INSPECT_ROOT_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return FIELD_INSPECT_ROOT_CANDIDATES[-1]
+
+
+FIELD_INSPECT_ROOT = _resolve_field_inspect_root()
+
+
 TARGETED_VALIDATION_COMMANDS = [
     "npm run typecheck",
     "npm run test:run -- src/lib/__tests__/operations-assignment-guidance.test.ts src/lib/__tests__/operations-orchestration.test.ts src/components/dispatch/__tests__/operations-work-intake-board.test.tsx src/components/operations/today/__tests__/today-view.test.tsx src/components/operations/week/__tests__/week-view.test.tsx",
 ]
 
 
-def _run_git(*args: str) -> str:
-    completed = subprocess.run(
-        ["git", "-C", str(FIELD_INSPECT_ROOT), *args],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=60,
-        check=False,
-    )
+GIT_PROBE_TIMEOUT_SECONDS = 5
+
+
+def _run_git(*args: str) -> str | None:
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(FIELD_INSPECT_ROOT), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=GIT_PROBE_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return None
     if completed.returncode != 0:
         raise RuntimeError(
             f"git {' '.join(args)} failed with code {completed.returncode}: {(completed.stderr or completed.stdout).strip()}"
@@ -86,15 +107,18 @@ def _run_git(*args: str) -> str:
 
 
 def _git_ref_exists(ref: str) -> bool:
-    completed = subprocess.run(
-        ["git", "-C", str(FIELD_INSPECT_ROOT), "rev-parse", "--verify", "--quiet", ref],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=60,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(FIELD_INSPECT_ROOT), "rev-parse", "--verify", "--quiet", ref],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=GIT_PROBE_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return False
     return completed.returncode == 0
 
 
@@ -119,14 +143,15 @@ def _cached_replay_paths(existing_report: dict[str, Any]) -> list[str]:
     return sorted(replay_paths)
 
 
-def _status_dirty_paths() -> list[str]:
-    status_lines = _run_git("status", "--porcelain").splitlines()
+def _status_dirty_paths() -> tuple[list[str], bool]:
+    status_output = _run_git("status", "--porcelain")
+    status_lines = [] if status_output is None else status_output.splitlines()
     paths: list[str] = []
     for line in status_lines:
         cleaned = re.sub(r"^[ MARCUD?!]{1,3}", "", line).strip()
         if cleaned:
             paths.append(cleaned)
-    return paths
+    return paths, status_output is None
 
 
 def _matches_prefixes(path: str, prefixes: tuple[str, ...]) -> bool:
@@ -165,18 +190,17 @@ def _execution_posture(overlap_paths: list[str], safe_runtime_overlap_paths: lis
 
 def main() -> int:
     existing_report = _load_existing_report()
-    dirty_paths = _status_dirty_paths()
+    dirty_paths, dirty_status_incomplete = _status_dirty_paths()
     primary_branch_available = _git_ref_exists(PRIMARY_BRANCH)
     replay_branch_available = _git_ref_exists(REPLAY_BRANCH)
     replay_inventory_source = "live_branch_diff"
     if primary_branch_available and replay_branch_available:
-        primary_head = _run_git("rev-parse", "--short", PRIMARY_BRANCH)
-        replay_head = _run_git("rev-parse", "--short", REPLAY_BRANCH)
-        replay_paths = [
-            path for path in _run_git("diff", "--name-only", f"{PRIMARY_BRANCH}..{REPLAY_BRANCH}").splitlines() if path
-        ]
+        primary_head = _run_git("rev-parse", "--short", PRIMARY_BRANCH) or str(existing_report.get("primary_head") or "").strip() or None
+        replay_head = _run_git("rev-parse", "--short", REPLAY_BRANCH) or str(existing_report.get("replay_head") or "").strip() or None
+        replay_diff_output = _run_git("diff", "--name-only", f"{PRIMARY_BRANCH}..{REPLAY_BRANCH}")
+        replay_paths = [path for path in ([] if replay_diff_output is None else replay_diff_output.splitlines()) if path]
     else:
-        primary_head = str(existing_report.get("primary_head") or "").strip() or _run_git("rev-parse", "--short", "HEAD")
+        primary_head = str(existing_report.get("primary_head") or "").strip() or (_run_git("rev-parse", "--short", "HEAD") or None)
         replay_head = str(existing_report.get("replay_head") or "").strip() or None
         replay_paths = _cached_replay_paths(existing_report)
         replay_inventory_source = "cached_branch_inventory" if replay_paths else "no_branch_inventory_available"
@@ -197,7 +221,8 @@ def main() -> int:
 
     report: dict[str, Any] = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "field_inspect_root": str(FIELD_INSPECT_ROOT),
+        "field_inspect_root": r"C:\Field Inspect",
+        "field_inspect_resolved_root": str(FIELD_INSPECT_ROOT),
         "primary_branch": PRIMARY_BRANCH,
         "primary_head": primary_head,
         "replay_branch": REPLAY_BRANCH,
@@ -208,6 +233,7 @@ def main() -> int:
         "execution_posture": _execution_posture(overlap_paths, safe_runtime_overlap_paths),
         "dirty_primary_paths": dirty_paths,
         "dirty_primary_count": len(dirty_paths),
+        "dirty_status_incomplete": dirty_status_incomplete,
         "replay_path_count": len(replay_paths),
         "overlap_paths": overlap_paths,
         "overlap_count": len(overlap_paths),

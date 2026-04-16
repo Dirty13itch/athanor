@@ -2,16 +2,16 @@
 
 Source of truth: `config/automation-backbone/platform-topology.json`, `projects/agents/src/athanor_agents/task_store.py`, `projects/agents/src/athanor_agents/governor.py`, `projects/agents/src/athanor_agents/governor_backbone.py`, `projects/agents/src/athanor_agents/governor_runtime.py`
 Validated against registry version: `platform-topology.json@2026-03-26.1`, `program-operating-system.json@2026-03-25.1`
-Mutable facts policy: host placement and service ownership come from the topology registry. This document owns the code-level authority split between registry/backbone truth, durable task truth, and compatibility surfaces inside `projects/agents`.
+Mutable facts policy: host placement and service ownership come from the topology registry. This document records the code-level authority split between registry/backbone truth, durable task truth, and compatibility surfaces inside `projects/agents`.
 
 ---
 
 ## Purpose
 
 This matrix exists to prevent Athanor from drifting back into split-brain control logic.
-The live DEV governor facade is retired and the implementation-authority facade file is deleted. This document remains canonical while its durable rules still need an explicit code-level authority split outside the broader task-engine docs.
+The live DEV governor facade is retired and the implementation-authority facade file is deleted. This document remains the snapshot reference while its durable rules still need an explicit code-level authority split outside the broader task-engine docs.
 
-The rule is simple:
+For this snapshot, the rule is simple:
 
 - registry-backed facts are read from registry/backbone surfaces
 - mutable task truth is written through the task store

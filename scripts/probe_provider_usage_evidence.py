@@ -73,19 +73,37 @@ def _probe_provider(
         return _capture_for_missing_model(provider_id, alias, notes, base_url, matched_by)
 
     request_surface = f"POST {base_url}/v1/chat/completions"
-    response = client.post(
-        f"{base_url}/v1/chat/completions",
-        headers=litellm_headers(api_key),
-        json={
-            "model": selected_model,
-            "messages": [{"role": "user", "content": "Reply with OK only."}],
-            "temperature": 0,
-            "max_tokens": 4,
-        },
-    )
+    notes = list(extra_notes)
+    try:
+        response = client.post(
+            f"{base_url}/v1/chat/completions",
+            headers=litellm_headers(api_key),
+            json={
+                "model": selected_model,
+                "messages": [{"role": "user", "content": "Reply with OK only."}],
+                "temperature": 0,
+                "max_tokens": 4,
+            },
+        )
+    except httpx.HTTPError as exc:
+        notes.insert(0, f"Probe request errored for requested model `{selected_model}`.")
+        return {
+            "provider_id": provider_id,
+            "status": "request_failed",
+            "alias": alias,
+            "requested_model": selected_model,
+            "response_model": None,
+            "matched_by": matched_by,
+            "http_status": None,
+            "error_snippet": str(exc)[:240],
+            "proof_kind": "litellm_model_completion",
+            "observed_at": utc_now(),
+            "source": "vault-litellm-live-probe",
+            "request_surface": request_surface,
+            "notes": notes,
+        }
     error_snippet = None
     response_model = None
-    notes = list(extra_notes)
     try:
         payload = response.json()
     except Exception:

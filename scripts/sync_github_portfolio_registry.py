@@ -86,6 +86,28 @@ def _fetch_live_repos() -> list[dict[str, Any]]:
     return [dict(item) for item in payload if isinstance(item, dict)]
 
 
+
+
+def _is_github_auth_block(detail: str) -> bool:
+    normalized = str(detail or "").lower()
+    return any(
+        marker in normalized
+        for marker in (
+            "http 401",
+            "http 403",
+            "bad credentials",
+            "gh auth login",
+            "requires authentication",
+        )
+    )
+
+
+def _build_blocked_portfolio_snapshot(registry: dict[str, Any], reason: str) -> dict[str, Any]:
+    existing_registry = registry.get("github_portfolio") if isinstance(registry.get("github_portfolio"), dict) else {}
+    snapshot = dict(existing_registry or {})
+    snapshot.setdefault("owner", GITHUB_OWNER)
+    return snapshot
+
 def _mirror_registry_rows(table_rows: list[dict[str, str]], live_repos: list[dict[str, Any]]) -> dict[str, Any]:
     live_by_name = {str(item["name"]): item for item in live_repos}
     doc_by_name = {row["Repo"].split("/", 1)[1]: row for row in table_rows}
@@ -160,8 +182,20 @@ def _mirror_registry_rows(table_rows: list[dict[str, str]], live_repos: list[dic
 def main() -> int:
     registry = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
     table_rows = _parse_batch_tables(ECOSYSTEM_REGISTRY_PATH.read_text(encoding="utf-8"))
-    live_repos = _fetch_live_repos()
+    try:
+        live_repos = _fetch_live_repos()
+    except RuntimeError as exc:
+        detail = str(exc)
+        if not _is_github_auth_block(detail):
+            raise
+        blocked_snapshot = _build_blocked_portfolio_snapshot(registry, detail.removeprefix("gh repo list failed:").strip())
+        OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        OUTPUT_PATH.write_text(json.dumps(blocked_snapshot, indent=2) + "\n", encoding="utf-8")
+        print(f"GitHub portfolio sync external block: {detail.removeprefix('gh repo list failed:').strip()}")
+        return 0
+
     github_portfolio = _mirror_registry_rows(table_rows, live_repos)
+    github_portfolio["sync_status"] = "ok"
 
     registry["updated_at"] = github_portfolio["last_verified_at"]
     registry["github_portfolio"] = github_portfolio

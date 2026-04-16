@@ -1,10 +1,12 @@
-# Section C: Co-change Clusters & Temporal Coupling Analysis
+# Section C: Historical Co-change Clusters & Temporal Coupling Snapshot
 
 *Generated: 2026-03-14 | HEAD: b1d1ded | Branch: main | Last 300 commits analyzed*
 
+This file is a frozen scratch analysis from 2026-03-14. Treat the co-change counts, churn rankings, and architectural conclusions below as historical evidence only and recheck the restart brief, current registries, generated reports, and live repo state before using them operationally.
+
 ---
 
-## 1. Co-change Cluster Detection [VERIFIED]
+## 1. Co-change Cluster Detection [historical snapshot]
 
 ### Top 20 File Pairs That Change Together
 
@@ -33,13 +35,13 @@
 
 *(All paths abbreviated; full paths in raw data. server.py = `projects/agents/src/athanor_agents/server.py`)*
 
-### Interpretation
+### Interpretation [historical snapshot]
 
-BUILD-MANIFEST.md is the gravitational center of the codebase -- it co-changes with nearly everything because work tracking updates accompany code changes. The real architectural coupling signal is in the non-meta pairs: **server.py couples with scheduler.py (9x), context.py (7x), tasks.py (6x), and workspace.py (4x)** -- these form the core agent runtime cluster.
+BUILD-MANIFEST.md was the gravitational center of the codebase in this snapshot -- it co-changed with nearly everything because work tracking updates accompanied code changes. The real architectural coupling signal in this historical sample is in the non-meta pairs: **server.py coupled with scheduler.py (9x), context.py (7x), tasks.py (6x), and workspace.py (4x)** -- these formed the runtime cluster at that time.
 
 ---
 
-## 2. Churn Hotspot Analysis [VERIFIED]
+## 2. Churn Hotspot Analysis [historical snapshot]
 
 ### Raw Change Frequency (top 15)
 
@@ -61,7 +63,7 @@ BUILD-MANIFEST.md is the gravitational center of the codebase -- it co-changes w
 | 13 | context.py |
 | 12 | more/page.tsx |
 
-### Churn Score (changes x LOC, top 15) [VERIFIED]
+### Churn Score (changes x LOC, top 15) [historical snapshot]
 
 Churn score weights change frequency by file size, surfacing files that are both large and volatile -- the highest-risk maintenance targets.
 
@@ -83,13 +85,13 @@ Churn score weights change frequency by file size, surfacing files that are both
 | 4,367 | 11 | 397 | test_repo_contracts.py |
 | 3,395 | 7 | 485 | escalation.py |
 
-### Key Finding
+### Historical Key Finding
 
-**server.py** has a churn score of 131,716 -- nearly 2x the next entry. At 2,533 LOC and 52 changes across 300 commits (17% of all commits touch it), this file is the single highest-risk maintenance target in the codebase. It changes with scheduler.py, context.py, tasks.py, workspace.py, activity.py, and tools/__init__.py. This is the God Object pattern in action.
+**server.py** has a churn score of 131,716 -- nearly 2x the next entry. At 2,533 LOC and 52 changes across 300 commits (17% of all commits touch it), this file is the single highest-risk maintenance target in the codebase. It changes with scheduler.py, context.py, tasks.py, workspace.py, activity.py, and tools/__init__.py. This snapshot is consistent with a God Object pattern in the runtime core.
 
 ---
 
-## 3. Commit Pattern Analysis [VERIFIED]
+## 3. Commit Pattern Analysis [historical snapshot]
 
 ### Commit Type Distribution (300 commits)
 
@@ -108,7 +110,7 @@ Churn score weights change frequency by file size, surfacing files that are both
 
 ### Observations
 
-- **Feature-dominant (40%):** The project is in active build phase, consistent with 86/86 manifest items done.
+- **Feature-dominant (40%):** At the time of the snapshot, the project was in an active build phase, consistent with the manifest state recorded then.
 - **Fix ratio (23%):** Healthy -- roughly 1 fix per 2 features. Indicates iterative refinement rather than instability.
 - **State/status commits (15%):** Session continuity overhead. These are session bookkeeping (STATUS.md, MEMORY.md updates).
 - **Test commits (1%):** Critically low. Only 4 test-focused commits out of 300. Tests exist (10 test files) but are not being driven by their own commit cycle -- they are bundled into feat commits.
@@ -116,7 +118,7 @@ Churn score weights change frequency by file size, surfacing files that are both
 
 ---
 
-## 4. Directory-level Coupling [VERIFIED]
+## 4. Directory-level Coupling [historical snapshot]
 
 ### Top-level Directory Pairs
 
@@ -133,7 +135,7 @@ Churn score weights change frequency by file size, surfacing files that are both
 | 14 | CLAUDE.md | projects/agents |
 | 14 | ansible/roles | projects/dashboard |
 
-### Coupling Matrix (project-level, counts) [VERIFIED]
+### Coupling Matrix (project-level, counts) [historical snapshot]
 
 Self-change counts on diagonal. Off-diagonal = co-change frequency.
 
@@ -146,7 +148,7 @@ Self-change counts on diagonal. Off-diagonal = co-change frequency.
 | **eoq** | 3 | 7 | 6 | 3 | **13** | 7 |
 | **scripts** | 16 | 26 | 22 | 11 | 7 | **45** |
 
-### Tightest Directory Couplings by Jaccard Similarity [VERIFIED]
+### Tightest Directory Couplings by Jaccard Similarity [historical snapshot]
 
 Jaccard removes the bias of raw counts, revealing which pairs are *proportionally* coupled relative to their own change rates.
 
@@ -162,7 +164,7 @@ Jaccard removes the bias of raw counts, revealing which pairs are *proportionall
 
 ---
 
-## 5. Change Velocity [VERIFIED]
+## 5. Change Velocity [historical snapshot]
 
 ### Weekly Commit Volume
 
@@ -176,7 +178,7 @@ Jaccard removes the bias of raw counts, revealing which pairs are *proportionall
 - **Accelerating:** W11 is 50% higher than W09/W10 (sprint finishing energy).
 - **All 300 commits span only 20 calendar days** (Feb 23 - Mar 14).
 
-### Daily Distribution [VERIFIED]
+### Daily Distribution [historical snapshot]
 
 | Date | Commits | |
 |------|---------|---|
@@ -198,7 +200,7 @@ Jaccard removes the bias of raw counts, revealing which pairs are *proportionall
 - **9-day gap** (Feb 27 - Mar 6) is notable -- either vacation, blocked, or working in other repos.
 - **12 active days** produced 300 commits = 25 commits/active day average.
 
-### Commit Granularity [VERIFIED]
+### Commit Granularity [historical snapshot]
 
 - **Average: 10.9 files per commit** (last 100 commits).
 - This is high. Typical open-source projects average 2-4 files/commit. The high count reflects:
@@ -208,7 +210,7 @@ Jaccard removes the bias of raw counts, revealing which pairs are *proportionall
 
 ---
 
-## 6. Commit Isolation Analysis [VERIFIED]
+## 6. Commit Isolation Analysis [historical snapshot]
 
 | Category | Count | % |
 |----------|-------|---|
@@ -238,7 +240,7 @@ Jaccard removes the bias of raw counts, revealing which pairs are *proportionall
 
 ---
 
-## 7. Jaccard Temporal Coupling (Strongest File Pairs) [VERIFIED]
+## 7. Jaccard Temporal Coupling (Strongest File Pairs) [historical snapshot]
 
 Jaccard similarity = co-changes / (changes_A + changes_B - co-changes). A score of 1.0 means the files *always* change together.
 

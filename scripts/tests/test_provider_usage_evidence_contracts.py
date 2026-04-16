@@ -80,8 +80,20 @@ def test_classify_probe_failure_detects_auth_failures() -> None:
     )
 
     assert module.classify_probe_failure(401, "No cookie auth credentials found") == "auth_failed"
-    assert module.classify_probe_failure(500, "AuthenticationError: OPENAI_API_KEY missing") == "auth_failed"
+    assert module.classify_probe_failure(400, "API Key not found. Please pass a valid API key.") == "auth_failed"
+    assert module.classify_probe_failure(402, "Insufficient USD balance to complete request") == "request_failed"
+    assert module.classify_probe_failure(429, "All credentials for model gpt-5.4 are cooling down") == "request_failed"
     assert module.classify_probe_failure(500, "upstream timeout") == "request_failed"
+
+
+def test_normalize_litellm_base_url_strips_duplicate_v1_suffix() -> None:
+    module = _load_module(
+        f"provider_usage_evidence_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "provider_usage_evidence.py",
+    )
+
+    assert module.normalize_litellm_base_url("http://192.168.1.203:4000/v1") == "http://192.168.1.203:4000"
+    assert module.normalize_litellm_base_url("http://192.168.1.203:4000/") == "http://192.168.1.203:4000"
 
 
 def test_record_provider_usage_evidence_persists_richer_capture_fields(

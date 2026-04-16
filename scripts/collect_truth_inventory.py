@@ -34,11 +34,61 @@ from vault_litellm_env_audit import collect_vault_litellm_env_audit
 from vault_redis_audit import collect_vault_redis_audit
 
 
+ATHANOR_REPO_PROBE_FALLBACKS = [REPO_ROOT, Path("/home/shaun/repos/athanor")]
+GIT_PROBE_TIMEOUT_SECONDS = 8
+WINDOWS_GIT_CANDIDATES = [
+    Path('/mnt/c/Program Files/Git/cmd/git.exe'),
+    Path('/mnt/c/Program Files/Git/bin/git.exe'),
+    Path('/mnt/c/Program Files/Git/mingw64/bin/git.exe'),
+]
+
+
+def _current_repo_probe_root() -> Path:
+    for candidate in ATHANOR_REPO_PROBE_FALLBACKS:
+        if candidate.exists():
+            return candidate
+    return REPO_ROOT
+
+
+def _repo_runtime_prefixes() -> list[str]:
+    prefixes = [
+        '/home/shaun/repos/athanor/',
+        REPO_ROOT.as_posix().rstrip('/') + '/',
+        IMPLEMENTATION_AUTHORITY_ROOT.rstrip('/') + '/',
+        IMPLEMENTATION_AUTHORITY_ROOT.replace('\\', '/').rstrip('/') + '/',
+    ]
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for prefix in prefixes:
+        if prefix not in seen:
+            seen.add(prefix)
+            deduped.append(prefix)
+    return deduped
+
+
+def _git_probe_context(path: Path) -> tuple[list[str], str]:
+    normalized = path.as_posix()
+    if normalized.startswith('/mnt/c/'):
+        windows_path = 'C:\\' + normalized.removeprefix('/mnt/c/').replace('/', '\\')
+        for candidate in WINDOWS_GIT_CANDIDATES:
+            if candidate.exists():
+                return [str(candidate)], windows_path
+    return ['git'], normalized
+
+
+def _run_git_capture(path: Path, *args: str) -> subprocess.CompletedProcess[str] | None:
+    command, repo_path = _git_probe_context(path)
+    try:
+        return subprocess.run([*command, '-C', repo_path, *args], capture_output=True, text=True, timeout=GIT_PROBE_TIMEOUT_SECONDS, check=False)
+    except Exception:
+        return None
+
+
 def _normalize_runtime_caller_path(path: str) -> str:
-    normalized = str(path).strip()
-    prefix = "/home/shaun/repos/athanor/"
-    if normalized.startswith(prefix):
-        return normalized[len(prefix) :]
+    normalized = str(path).strip().replace('\\', '/')
+    for prefix in _repo_runtime_prefixes():
+        if normalized.startswith(prefix):
+            return normalized[len(prefix):]
     return normalized
 
 
@@ -415,15 +465,15 @@ def _normalized_file_sha256(path: Path):
         digest.update(b"\\r")
     return digest.hexdigest()
 
-for probe_path in ["/home/shaun/repos/athanor", "/opt/athanor", "/home/shaun/.athanor", "/var/log/athanor"]:
+repo = _current_repo_probe_root()
+for probe_path in [repo.as_posix(), "/opt/athanor", "/home/shaun/.athanor", "/var/log/athanor", "/home/shaun/repos/athanor"]:
     result["paths"][probe_path] = Path(probe_path).exists()
 
-repo = Path("/home/shaun/repos/athanor")
 if repo.exists():
-    proc = subprocess.run(["git", "-C", str(repo), "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=False)
-    result["repo_git_head"] = proc.stdout.strip() or None
-    status = subprocess.run(["git", "-C", str(repo), "status", "--short"], capture_output=True, text=True, check=False)
-    status_lines = [line.rstrip() for line in status.stdout.splitlines() if line.strip()]
+    proc = _run_git_capture(repo, "rev-parse", "--short", "HEAD")
+    result["repo_git_head"] = proc.stdout.strip() if proc and proc.returncode == 0 and proc.stdout.strip() else None
+    status = _run_git_capture(repo, "status", "--short")
+    status_lines = [line.rstrip() for line in status.stdout.splitlines() if line.strip()] if status and status.returncode == 0 else []
     result["repo_dirty_count"] = len(status_lines)
     result["repo_status_sample"] = status_lines[:20]
 
@@ -548,7 +598,7 @@ all_ref_hits = [
 ][:40]
 result["governor_facade"]["runtime_ref_hits"] = all_ref_hits
 caller_command = (
-    '(git -C /home/shaun/repos/athanor grep -n -E "8760|dispatch-and-run|ATHANOR_GOVERNOR_URL" -- services scripts 2>/dev/null; '
+    f'(git -C {repo_service_root} grep -n -E "8760|dispatch-and-run|ATHANOR_GOVERNOR_URL" -- services scripts 2>/dev/null; '
     'grep -R -n -E "8760|dispatch-and-run|ATHANOR_GOVERNOR_URL" '
     '/opt/athanor/scripts /home/shaun/.athanor/systemd /etc/systemd/system/athanor-* /etc/cron.d/athanor-* 2>/dev/null || true) '
     '| head -n 60'
@@ -575,12 +625,12 @@ result["governor_facade"]["caller_ref_hits"] = caller_hits[:20]
 result["governor_facade"]["caller_files"] = sorted(set(caller_files))[:20]
 caller_records = []
 for raw_path in sorted(set(caller_files))[:20]:
-    normalized_path = raw_path
+    normalized_path = _normalize_runtime_caller_path(raw_path)
     runtime_path = raw_path
     if not raw_path.startswith("/"):
         runtime_path = str(repo / raw_path)
-    elif raw_path.startswith("/home/shaun/repos/athanor/"):
-        normalized_path = raw_path[len("/home/shaun/repos/athanor/"):]
+    elif normalized_path != raw_path:
+        runtime_path = str(repo / normalized_path)
     runtime_file = Path(runtime_path)
     record = {
         "raw_path": raw_path,
@@ -1725,7 +1775,15 @@ async def build_snapshot() -> dict[str, Any]:
         "vault_redis_audit": vault_redis_audit,
         "local_tool_probes": _probe_local_tools(),
         "local_runtime_env_probe": runtime_env_status(
-            env_names=["ATHANOR_REDIS_URL", "ATHANOR_REDIS_PASSWORD", "ATHANOR_VAULT_KEY_PATH"]
+            env_names=[
+                "ATHANOR_REDIS_URL",
+                "ATHANOR_REDIS_PASSWORD",
+                "ATHANOR_VAULT_KEY_PATH",
+                "ATHANOR_LITELLM_URL",
+                "ATHANOR_LITELLM_API_KEY",
+                "OPENAI_API_BASE",
+                "OPENAI_API_KEY",
+            ]
         ),
         "dev_runtime_probe": dev_runtime_probe,
         "foundry_agents_runtime_probe": _probe_foundry_agents_runtime(topology),

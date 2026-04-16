@@ -1,0 +1,115 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T14:45:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/operator-mode-policy.json",
+  "modes": [
+    {
+      "id": "at_desk",
+      "allowed_lease_classes": [
+        "read_only_inspection",
+        "build_truth_mutation",
+        "generated_truth_regeneration",
+        "packet_and_registry_mutation",
+        "tenant_repo_mutation",
+        "runtime_packet_execution",
+        "live_runtime_mutation",
+        "operator_local_maintenance"
+      ],
+      "allowed_mutation_classes": [
+        "all_but_always_manual"
+      ],
+      "autonomy_ceiling": "review_required_plus_packet_backed_runtime",
+      "notification_posture": "full_detail",
+      "pilot_eligibility": "allowed",
+      "publication_expectation": "may_publish_when_green",
+      "runtime_mutation_policy": "packet_backed_and_approval_gated",
+      "cloud_elasticity_policy": "allowed_when_budget_green_and_profile_allows",
+      "worktree_policy": "preferred_for_non_trivial_work"
+    },
+    {
+      "id": "away",
+      "allowed_lease_classes": [
+        "read_only_inspection",
+        "generated_truth_regeneration",
+        "operator_local_maintenance"
+      ],
+      "allowed_mutation_classes": [
+        "read_only",
+        "artifact_refresh"
+      ],
+      "autonomy_ceiling": "bounded_artifact_only",
+      "notification_posture": "digest_plus_critical",
+      "pilot_eligibility": "hold",
+      "publication_expectation": "report_only",
+      "runtime_mutation_policy": "forbidden",
+      "cloud_elasticity_policy": "read_only_checks_only",
+      "worktree_policy": "no_new_lane_without_operator_reentry"
+    },
+    {
+      "id": "low_energy",
+      "allowed_lease_classes": [
+        "read_only_inspection",
+        "generated_truth_regeneration",
+        "operator_local_maintenance"
+      ],
+      "allowed_mutation_classes": [
+        "read_only",
+        "bounded_docs",
+        "artifact_refresh"
+      ],
+      "autonomy_ceiling": "bounded_reviewable_artifacts",
+      "notification_posture": "digest",
+      "pilot_eligibility": "hold",
+      "publication_expectation": "prepare_only",
+      "runtime_mutation_policy": "forbidden",
+      "cloud_elasticity_policy": "only_if_already_green_and_reviewable",
+      "worktree_policy": "reuse_existing_only"
+    },
+    {
+      "id": "incident_mode",
+      "allowed_lease_classes": [
+        "read_only_inspection",
+        "generated_truth_regeneration",
+        "runtime_packet_execution",
+        "live_runtime_mutation",
+        "operator_local_maintenance"
+      ],
+      "allowed_mutation_classes": [
+        "incident_recovery",
+        "packet_backed_runtime_repair",
+        "bounded_runtime_restore"
+      ],
+      "autonomy_ceiling": "incident_packet_and_recovery_only",
+      "notification_posture": "critical_only",
+      "pilot_eligibility": "forbidden",
+      "publication_expectation": "defer_until_stable",
+      "runtime_mutation_policy": "recovery_only_no_scope_widening",
+      "cloud_elasticity_policy": "no_policy_widening_during_incident",
+      "worktree_policy": "stabilize_existing_lane"
+    },
+    {
+      "id": "deep_build",
+      "allowed_lease_classes": [
+        "read_only_inspection",
+        "build_truth_mutation",
+        "generated_truth_regeneration",
+        "packet_and_registry_mutation",
+        "tenant_repo_mutation",
+        "operator_local_maintenance"
+      ],
+      "allowed_mutation_classes": [
+        "build_system",
+        "publication_prep",
+        "registry_hardening"
+      ],
+      "autonomy_ceiling": "broad_build_system_work",
+      "notification_posture": "focused",
+      "pilot_eligibility": "allowed_if_packet_backed",
+      "publication_expectation": "checkpoint_ready_is_expected",
+      "runtime_mutation_policy": "no_ungated_live_runtime_mutation",
+      "cloud_elasticity_policy": "allowed_when_profile_and_budget_are_green",
+      "worktree_policy": "create_dedicated_lane_by_default"
+    }
+  ]
+}

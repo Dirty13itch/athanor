@@ -1,8 +1,8 @@
-# Security Follow-Ups
+# Security Follow-Ups Reference Backlog
 
-Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/credential-surface-registry.json`, `docs/runbooks/credential-rotation.md`
-Validated against registry version: `platform-topology.json@2026-04-11.2`, `credential-surface-registry.json@2026-04-02.1`, `program-operating-system.json@2026-03-25.1`
-Mutable facts policy: service placement and auth class come from the topology registry. This document tracks secret ownership, rotation priority, and the still-open security backlog.
+Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/credential-surface-registry.json`, `docs/runbooks/credential-rotation.md`, `python scripts/session_restart_brief.py --refresh`, and `reports/truth-inventory/runtime-packet-inbox.json`
+Validated against registry version: `platform-topology.json@2026-04-11.2`, `credential-surface-registry.json@2026-04-16.1`, `program-operating-system.json@2026-03-25.1`
+Mutable facts policy: service placement, auth class, and approval-gated secret/runtime follow-through come from the topology registry plus the current runtime packet inbox. This document records the reference ownership map, historical rotation order, and still-open security follow-through backlog; it is not a live rotation schedule, runtime authority surface, or approval source for host mutation.
 
 ---
 
@@ -13,7 +13,7 @@ Mutable facts policy: service placement and auth class come from the topology re
 - Secrets belong in host-local env files, secret stores, or deployment-time injection.
 - Rotation is a separate operational program and must be executed intentionally, not implied by a code change.
 
-## Secret Ownership Map
+## Secret Ownership Reference Map
 
 ### Routing and control plane
 
@@ -50,9 +50,9 @@ Mutable facts policy: service placement and auth class come from the topology re
 |--------------|-------|---------|
 | `athanor_ulrich_database_url` | Ulrich Energy data plane | Ulrich Energy deployment |
 
-## Rotation Order
+## Historical Rotation Order
 
-Rotate in this order when running a full security pass:
+Use this order as historical planning reference when preparing a full security pass. Confirm current dependencies, delivery surfaces, approval boundaries, and runtime-packet posture from the current canonical reports before executing any live rotation:
 
 1. LiteLLM routing credentials
 2. Neo4j and Redis-backed runtime credentials
@@ -63,7 +63,7 @@ Rotate in this order when running a full security pass:
 
 This order keeps the main control-plane clients aligned with the routing layer before rotating more specialized integrations.
 
-## Open Follow-Ups
+## Open Security Follow-Through Backlog
 
 - Keep `credential-surface-registry.json` aligned with the live delivery surfaces before changing any secret-bearing runtime path.
 - Complete the reconciled credential-rotation runbook so it matches the current topology-backed service map.
@@ -75,7 +75,9 @@ This order keeps the main control-plane clients aligned with the routing layer b
 - Keep secret scanning in the acceptance program and avoid adding new tracked allowlists.
 - Keep generated recovery artifacts and automation evidence redacting credential-bearing URLs before writing to disk.
 
-## Credential Surface Remediation Priorities
+## Credential Surface Remediation Reference Priorities
+
+Treat the table below as reference sequencing, not as a self-sufficient operational runbook. Confirm live state in the generated secret-surface and runtime reports before making changes.
 
 | Surface id | Current delivery | Target delivery | State | Approval boundary |
 |------------|------------------|-----------------|-------|-------------------|
@@ -84,4 +86,4 @@ This order keeps the main control-plane clients aligned with the routing layer b
 | `vault-litellm-container-env` | `container_env` | `container_env` | `managed` | ask-first if changed |
 | `script-lane-redis-auth` | `local_runtime_envfile` | `local_runtime_envfile` | `managed` | repo/runtime shell prerequisite |
 
-Use the generated [Secret Surface Report](./operations/SECRET-SURFACE-REPORT.md) for the evidence-backed current state and recommended actions. This document owns the priority order and security intent, not the live secret material.
+Use the generated [Secret Surface Report](./operations/SECRET-SURFACE-REPORT.md), restart brief, and current registries for the evidence-backed current state and recommended actions. This document records the priority order and security intent; it should never be treated as the active control-plane truth source.

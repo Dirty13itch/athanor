@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Smoke-test the live Athanor dashboard and its critical chat paths."""
+"""Smoke-test the live Athanor dashboard and its critical chat paths.
+
+Evidence producer only; outputs from this harness are proof surfaces for UI verification, not runtime or queue authority.
+"""
 
 from __future__ import annotations
 

@@ -96,6 +96,17 @@ class TestModelRouting:
         decision = routing.route("Recommend a movie to watch")
         assert decision.tier == routing.ModelTier.FAST
 
+    def test_sovereign_request_ignores_cloud_execution_lease(self):
+        decision = routing.route(
+            "Draft the next EOQ scene.",
+            metadata={
+                "policy_class": "sovereign_only",
+                "execution_lease": {"provider": "openai_codex"},
+            },
+        )
+        assert decision.model == "reasoning"
+        assert decision.tier == routing.ModelTier.REASONING
+
 
 class TestPreferQuality:
     """prefer_quality flag bumps FAST to REASONING."""
@@ -140,6 +151,14 @@ class TestQueueDepthFallback:
         )
         # fast queue=3 > threshold=2, should fallback
         assert decision.model != "fast"
+
+    def test_sovereign_queue_fallback_stays_local(self):
+        decision = routing.route(
+            "Create an explicit scene outline.",
+            queue_depths={"reasoning": 10, "fast": 10, "worker": 1, "claude": 0},
+            metadata={"policy_class": "sovereign_only"},
+        )
+        assert decision.model == "worker"
 
 
 class TestRoutingDecision:
@@ -192,6 +211,9 @@ class TestFallbackChains:
     def test_all_tiers_have_fallbacks(self):
         for tier_model in routing.TIER_MODELS.values():
             assert tier_model in routing.FALLBACK_CHAINS
+
+    def test_sovereign_fallback_chain_strips_cloud_models(self):
+        assert routing._fallback_chain("reasoning", local_only=True) == ["fast", "worker"]
 
 
 class TestTaskRouting:

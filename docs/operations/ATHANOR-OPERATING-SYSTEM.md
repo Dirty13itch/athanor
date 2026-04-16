@@ -1,6 +1,6 @@
 # Athanor Operating System
 
-This file defines the standing operating model for Athanor after the shift to registry-backed truth and aggressive prune discipline.
+This file records the operating-model snapshot for Athanor after the shift to registry-backed truth and aggressive prune discipline.
 
 ## Source of Truth
 
@@ -24,14 +24,15 @@ Primary registries:
 - `repo-roots-registry.json`
 - `routing-taxonomy-map.json`
 
-Live loop surfaces:
+Loop evidence surfaces:
 - `scripts/run_ralph_loop_pass.py`
 - `reports/ralph-loop/latest.json`
 - `docs/operations/ATHANOR-RALPH-LOOP-PROGRAM.md`
 - `docs/operations/ATHANOR-RECONCILIATION-END-STATE.md`
 - `docs/operations/REPO-ROOT-AUTHORITY-AUDIT.md`
+- `projects/dashboard/src/generated/master-atlas.json` as a downstream consumer of `C:/athanor-devstack/reports/master-atlas/latest.json`, never as a separate authority surface
 
-## Authority Model
+## Authority Snapshot
 
 - `C:\Athanor` is the implementation authority for config, contracts, inventories, validation rules, and canonical current-state docs.
 - `C:\athanor-devstack` is the build-system authority for `concept`, `prototype`, and `proved` capability work and cannot define live truth without an explicit promotion packet recorded in `capability-adoption-registry.json`.
@@ -50,6 +51,7 @@ Live loop surfaces:
 - Runtime mutations remain approval-gated even after first activation.
 - Secret surfaces may be reported by presence, location, owner, and env contract only. Secret values never belong in tracked truth.
 - If a doc cannot justify its lifecycle class, it should be archived or deleted.
+- Startup docs are doctrine and re-entry surfaces only. Volatile build-state truth belongs in the devstack forge board, packets, and atlas, not in Athanor startup prose.
 
 ## End-State Contract
 
@@ -78,9 +80,16 @@ The operating rule is simple:
 
 ## Operator Shell Boundary
 
-- The bounded Goose shell path is owned by `config/automation-backbone/operator-surface-registry.json` surface `desk_goose_operator_shell` and runtime packet `desk-goose-operator-shell-rollout-packet`.
-- Goose is now the adopted bounded shell orchestrator path, but it must remain subordinate to Athanor control-plane truth and must not become a second control plane or bypass the dashboard plus terminal front door.
+- The adopted bounded shell orchestrator path is owned by the canonical operator-surface registry and its linked runtime packet surface, not by startup prose or ad hoc local helpers.
+- The bounded shell path must remain subordinate to Athanor control-plane truth and must not become a second control plane or bypass the dashboard plus terminal front door.
 - The DESK operator-local helper remains pinned to the governed LiteLLM lane with deny-by-default MCP extension posture and direct terminal plus specialist CLI as the rollback path.
+
+## Gateway Onboarding Boundary
+
+- The canonical gateway env contract is `ATHANOR_LITELLM_URL` plus `ATHANOR_LITELLM_API_KEY`.
+- Compatibility variables such as `OPENAI_API_BASE` and `OPENAI_API_KEY` are shims only and remain subordinate to the Athanor LiteLLM env contract.
+- Devstack onboarding notes may explain setup, but `provider-catalog.json`, `routing-taxonomy-map.json`, `credential-surface-registry.json`, and `operator-runbooks.json` remain the adopted authority for gateway posture.
+- Continue, Cline, and Roo Code adapter configs must be generated from the devstack adapter-profile generator and must not carry live secret values in tracked files.
 
 ## Prune Policy
 

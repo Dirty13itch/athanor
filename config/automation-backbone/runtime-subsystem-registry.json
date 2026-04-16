@@ -1,6 +1,6 @@
 {
-  "version": "2026-03-29.2",
-  "updated_at": "2026-03-29T04:20:00Z",
+  "version": "2026-04-14.1",
+  "updated_at": "2026-04-14T23:05:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-subsystem-registry.json",
   "known_drifts": [
@@ -65,6 +65,16 @@
       "dashboard_touchpoints": ["/services", "/gpu", "/home", "/topology", "/operator", "/media"],
       "notes": [
         "Status, home summary, operator audit stream, and system posture surfaces."
+      ]
+    },
+    {
+      "id": "runtime.subsystem.runtime-guard",
+      "title": "Runtime guard and bounded remediation",
+      "status_tag": "live",
+      "dashboard_touchpoints": ["/services", "/operator", "/topology"],
+      "notes": [
+        "Standalone FOUNDRY watchdog live canary bundle with packet-backed rollout and bounded remediation controls.",
+        "Restart authority is live for non-protected services, while protected-service exclusions and operator-envelope requirements remain fail-closed."
       ]
     },
     {

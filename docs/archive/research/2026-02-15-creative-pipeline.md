@@ -1,6 +1,6 @@
 # Creative Pipeline
 
-> Historical note: archived research retained for ADR-006 decision history. Current creative-service, model, and node truth lives in the canonical registries and reports.
+> Historical note: archived research retained for ADR-006 decision history. Current creative-service, model, and node truth is tracked in the canonical registries and reports.
 
 **Date:** 2026-02-15
 **Status:** Complete — recommendation ready

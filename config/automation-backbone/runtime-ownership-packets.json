@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-11.4",
-  "updated_at": "2026-04-12T04:05:00-05:00",
+  "version": "2026-04-16.2",
+  "updated_at": "2026-04-16T14:53:46Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-packets.json",
   "packets": [
@@ -495,6 +495,61 @@
       ]
     },
     {
+      "id": "foundry-watchdog-runtime-guard-rollout-packet",
+      "label": "FOUNDRY watchdog runtime-guard rollout packet",
+      "status": "executed",
+      "unblocks_capability_id": "watchdog-runtime-guard",
+      "lane_id": "foundry-watchdog-runtime-guard",
+      "host": "foundry",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Keep the Athanor-owned watchdog bundle under /opt/athanor/watchdog as the packet-backed live canary lane so monitoring, bounded restart controls, and rollback posture stay explicit while live remediation authority remains narrow.",
+      "path_mappings": [
+        {
+          "source_path": "projects/agents/watchdog",
+          "runtime_path": "/opt/athanor/watchdog",
+          "restart_units": [
+            "athanor-watchdog"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/watchdog/<timestamp>",
+      "preflight_commands": [
+        "C:/Athanor/projects/agents/.venv/Scripts/python.exe -m pytest C:/Athanor/projects/agents/tests/test_watchdog_runtime_guard.py -q",
+        "C:/Athanor/projects/agents/.venv/Scripts/python.exe -m pytest C:/Athanor/projects/agents/tests/test_watchdog_route_contract.py -q",
+        "python scripts/validate_platform_contract.py",
+        "ssh foundry \"cd /opt/athanor/watchdog && docker compose ps\"",
+        "ssh foundry \"curl -sS http://127.0.0.1:9301/health && curl -sS http://127.0.0.1:9301/status\""
+      ],
+      "exact_steps": [
+        "Create a timestamped backup root under /opt/athanor/backups/watchdog/<timestamp> and preserve the current /opt/athanor/watchdog bundle before replacement.",
+        "Sync the Athanor-owned projects/agents/watchdog bundle into /opt/athanor/watchdog without widening scope beyond the watchdog container and its compose root.",
+        "Set WATCHDOG_INITIAL_PAUSED=false, WATCHDOG_MUTATIONS_ENABLED=true, WATCHDOG_RUNTIME_PACKET_ID=foundry-watchdog-runtime-guard-rollout-packet, and WATCHDOG_RUNTIME_PACKET_STATUS=executed so the service boots into the active canary posture.",
+        "Rebuild and recreate only the athanor-watchdog container from the staged bundle, then verify /health and /status expose the open mutation gate, protected-service policy, and operator action contract.",
+        "Attach post-activation evidence, including the live canary probe and a bounded operator-envelope restart proof, before treating the lane as ordinary adopted runtime."
+      ],
+      "verification_commands": [
+        "ssh foundry \"cd /opt/athanor/watchdog && docker compose ps\"",
+        "ssh foundry \"curl -sS http://127.0.0.1:9301/health && curl -sS http://127.0.0.1:9301/status\"",
+        "python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the prior /opt/athanor/watchdog bundle from /opt/athanor/backups/watchdog/<timestamp>.",
+        "Recreate the athanor-watchdog container from the restored bundle with WATCHDOG_MUTATIONS_ENABLED=false and WATCHDOG_INITIAL_PAUSED=true so the service returns to guarded monitoring posture.",
+        "Re-run the watchdog tests, runtime-ownership reports, and validator sequence to confirm the rollback restored the prior bounded surface."
+      ],
+      "next_action": "Keep the packet executed as the live canary boundary, use the active watchdog bundle as the bounded remediation baseline, and reopen only when promoting to ordinary production or rolling back.",
+      "evidence_paths": [
+        "projects/agents/watchdog/README.md",
+        "projects/agents/tests/test_watchdog_runtime_guard.py",
+        "projects/agents/tests/test_watchdog_route_contract.py",
+        "reports/truth-inventory/watchdog-runtime-guard-formal-eval.json",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/OPERATOR_RUNBOOKS.md"
+      ]
+    },
+    {
       "id": "desk-goose-operator-shell-rollout-packet",
       "label": "DESK Goose operator-shell rollout packet",
       "status": "executed",
@@ -831,6 +886,108 @@
         "reports/live/vault-alert-rules.live.yml",
         "docs/operations/ATHANOR-RECONCILIATION-PACKET.md",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
+      ]
+    },
+    {
+      "id": "dev-runtime-ssh-access-recovery-packet",
+      "label": "DEV runtime SSH access recovery packet",
+      "status": "ready_for_approval",
+      "lane_id": "dev-runtime-state",
+      "host": "dev",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Restore one governed DEV SSH access path so truth collection, runtime verification, and repo-root maintenance no longer depend on a broken alias or remembered fallback guesses.",
+      "target_units": [
+        "governed `ssh dev` access path",
+        "explicit raw-host fallback blessing record"
+      ],
+      "backup_root": "/home/shaun/.athanor/backups/runtime-ownership/dev-ssh-access/<timestamp>",
+      "preflight_commands": [
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
+        "ssh dev \"hostname && whoami\"",
+        "ssh shaun@192.168.1.189 \"hostname && whoami\"",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "exact_steps": [
+        "Capture the current desktop SSH config plus any DEV-side access material needed for recovery under /home/shaun/.athanor/backups/runtime-ownership/dev-ssh-access/<timestamp> before mutation.",
+        "Verify the canonical DEV host mapping, preferred username, intended key path, and any blessed fallback record instead of editing aliases from memory.",
+        "Restore one governed access path so either `ssh dev` succeeds again or the raw-host fallback is intentionally blessed and documented as the supported recovery path.",
+        "Refresh truth inventory and runtime ownership reports immediately after access is restored so the collector output stops carrying stale reachability failure evidence."
+      ],
+      "verification_commands": [
+        "ssh dev \"hostname && whoami && ls -1 /home/shaun/.athanor\"",
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
+        "python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the previous desktop SSH config and any DEV-side authorized-key or access material captured under the timestamped backup root.",
+        "Re-run `ssh dev` and the truth refresh sequence to confirm the prior access posture is back in place.",
+        "Leave the packet in ready-for-approval state until a new bounded access repair is explicitly reviewed."
+      ],
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/runbooks/rebuild-dev.md"
+      ]
+    },
+    {
+      "id": "foundry-agents-runtime-alignment-packet",
+      "label": "FOUNDRY athanor-agents runtime alignment packet",
+      "status": "ready_for_approval",
+      "lane_id": "foundry-agents-compose",
+      "host": "foundry",
+      "approval_packet_type": "runtime_host_reconfiguration",
+      "goal": "Reconcile the live /opt/athanor/agents source tree and imported `athanor_agents` module path with implementation authority when the truth collector reports a source/runtime mismatch.",
+      "path_mappings": [
+        {
+          "source_path": "projects/agents/src/athanor_agents",
+          "runtime_path": "/opt/athanor/agents/src/athanor_agents",
+          "restart_units": [
+            "athanor-agents"
+          ]
+        },
+        {
+          "source_path": "projects/agents/src/athanor_agents",
+          "runtime_path": "/usr/local/lib/python3.12/site-packages/athanor_agents",
+          "restart_units": [
+            "athanor-agents"
+          ]
+        }
+      ],
+      "backup_root": "/opt/athanor/backups/agents-runtime-alignment/<timestamp>",
+      "preflight_commands": [
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
+        "ssh foundry \"cd /opt/athanor/agents && docker compose ps athanor-agents\"",
+        "ssh foundry \"docker exec athanor-agents python3 -c \\\"import json, pathlib, athanor_agents; print(json.dumps({'module': str(pathlib.Path(athanor_agents.__file__).resolve())}))\\\"\"",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "exact_steps": [
+        "Capture a timestamped backup root under /opt/athanor/backups/agents-runtime-alignment/<timestamp> and preserve the current /opt/athanor/agents bundle, the live source tree, and the imported module-path evidence before mutation.",
+        "Replace the governed /opt/athanor/agents build context from implementation authority with scripts/deploy-agents.sh instead of patching /usr/local/lib/python3.12/site-packages by hand.",
+        "Rebuild and recreate athanor-agents, then verify that `/opt/athanor/agents/src/athanor_agents` matches the approved implementation tree and that the imported module path is only the image-layout result of that same build.",
+        "If the mismatch persists after rebuild, capture the stale layer, source-tree, or import-path evidence in the packet output and stop instead of applying ad hoc hotfixes inside the running container."
+      ],
+      "verification_commands": [
+        "ssh foundry \"cd /opt/athanor/agents && docker compose ps athanor-agents\"",
+        "ssh foundry \"curl -sS http://localhost:9000/health\"",
+        "python scripts/collect_truth_inventory.py --write reports/truth-inventory/latest.json",
+        "python scripts/generate_truth_inventory_reports.py --report repo_roots --report runtime_ownership --report runtime_ownership_packets --report drift",
+        "python scripts/validate_platform_contract.py"
+      ],
+      "rollback_steps": [
+        "Restore the backed up /opt/athanor/agents bundle from /opt/athanor/backups/agents-runtime-alignment/<timestamp>.",
+        "Rebuild and restart athanor-agents from the restored compose root.",
+        "Re-run the same truth refresh and validator sequence to confirm the runtime tree returned to the pre-packet state."
+      ],
+      "evidence_paths": [
+        "reports/truth-inventory/latest.json",
+        "docs/operations/REPO-ROOTS-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/TRUTH-DRIFT-REPORT.md",
+        "scripts/deploy-agents.sh"
       ]
     }
   ]

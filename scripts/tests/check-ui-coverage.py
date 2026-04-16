@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Validate the UI surface registry coverage state and summarize manual/open surfaces."""
+"""Validate the UI surface registry coverage state and summarize manual/open surfaces.
+
+Evidence producer only; generated JSON from this script is proof surfaces for UI audit coverage, not runtime or queue authority.
+"""
 
 from __future__ import annotations
 
@@ -17,8 +20,6 @@ VALID_STATES = {
 ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = ROOT / "tests" / "ui-audit" / "surface-registry.json"
 UNCOVERED_PATH = ROOT / "tests" / "ui-audit" / "uncovered-surfaces.json"
-
-
 def main() -> int:
     if not REGISTRY_PATH.exists():
         raise SystemExit(f"Missing registry: {REGISTRY_PATH}")

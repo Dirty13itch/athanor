@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-11.9",
-  "updated_at": "2026-04-12T04:05:00-05:00",
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T14:45:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/capability-adoption-registry.json",
   "authority_classes": [
@@ -87,8 +87,19 @@
       "archive_instructions": "Archive superseded devstack gateway design notes once Athanor surfaces remain canonical and current.",
       "notes": [
         "Devstack remains the proving/configuration lane for future gateway work.",
-        "Athanor registries and docs remain the adopted-system truth."
-      ]
+        "Athanor registries and docs remain the adopted-system truth.",
+        "The 2026-04-14 onboarding hardening delta is now accepted as canonical operator-surface truth and remains subordinate to the existing runtime packets."
+      ],
+      "source_lane_id": "gateway-agent-onboarding-hardening",
+      "source_packet_id": "gateway-agent-onboarding-hardening-delta-packet",
+      "affected_domains": [
+        "operator_control",
+        "product_foundry"
+      ],
+      "affected_namespaces": [],
+      "landing_project": "config/automation-backbone",
+      "release_tier": "production",
+      "data_handling_profile_id": "sovereign_private"
     },
     {
       "id": "graphrag-hybrid-retrieval",
@@ -146,7 +157,20 @@
         "The current retrieval revision is now live through the governed foundry-agents-compose-deploy-packet, and the promotion eval reran green with valid shadow-tier evidence recorded in C:/Athanor/reports/truth-inventory/graphrag-promotion-eval.json.",
         "The 2026-04-13 wake-before-embed hardening closed the embedding sleep-state blocker, and the current hybrid proof now passes cleanly on route `hybrid` with valid shadow-tier evidence.",
         "The next adopted delta is packet acceptance and ordinary retrieval quality follow-through; the runtime revision is already live and green, so no more compose-recovery or vector-path unblock work remains."
-      ]
+      ],
+      "source_lane_id": "graphrag-hybrid-retrieval",
+      "source_packet_id": "graphrag-hybrid-retrieval-promotion-packet",
+      "affected_domains": [
+        "knowledge",
+        "operator_control"
+      ],
+      "affected_namespaces": [
+        "truth.docs",
+        "truth.graph"
+      ],
+      "landing_project": "projects/agents",
+      "release_tier": "shadow",
+      "data_handling_profile_id": "sovereign_private"
     },
     {
       "id": "watchdog-runtime-guard",
@@ -157,35 +181,54 @@
         "C:/athanor-devstack/services/watchdog",
         "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md"
       ],
-      "stage": "prototype",
-      "authority_class": "build_system",
-      "runtime_target": "Athanor runtime guard and remediation surfaces",
+      "stage": "adopted",
+      "authority_class": "adopted_system",
+      "runtime_target": "Athanor-owned FOUNDRY runtime guard live canary with packet-backed restart controls",
       "proof_artifacts": [
         "C:/athanor-devstack/services/watchdog",
         "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
-        "C:/athanor-devstack/designs/watchdog-mvw-implementation-plan.md"
+        "C:/athanor-devstack/designs/watchdog-mvw-implementation-plan.md",
+        "C:/Athanor/projects/agents/watchdog/README.md",
+        "C:/Athanor/reports/truth-inventory/watchdog-runtime-guard-formal-eval.json",
+        "C:/Athanor/docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "C:/Athanor/docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
       ],
       "acceptance_criteria": [
         "Pause, resume, restart, and remediation boundaries must be explicit and operator-safe.",
-        "Runtime guard adoption requires a bounded packet and a clean rollback story."
+        "Live runtime guard authority must remain packet-backed, bounded to Band A remediation, and protected-service safe.",
+        "Rollback and gate-closing paths must remain explicit before ordinary production widening."
       ],
       "athanor_target_surfaces": [
-        "projects/agents",
+        "projects/agents/watchdog",
+        "config/automation-backbone/runtime-ownership-contract.json",
+        "config/automation-backbone/runtime-ownership-packets.json",
         "config/automation-backbone/runtime-subsystem-registry.json",
         "config/automation-backbone/operator-runbooks.json"
       ],
-      "promotion_packet_id": "pending-watchdog-runtime-guard",
+      "promotion_packet_id": "watchdog-runtime-guard-promotion-packet",
       "runtime_ownership_lanes": [
-        "pending"
+        "foundry-watchdog-runtime-guard"
       ],
       "runtime_packet_ids": [
-        "pending"
+        "foundry-watchdog-runtime-guard-rollout-packet"
       ],
-      "rollback_or_disable_path": "Leave the capability paused or devstack-only until Athanor-side runtime and approval boundaries are packeted.",
+      "rollback_or_disable_path": "Pause the watchdog or close WATCHDOG_MUTATIONS_ENABLED, or restore the previous /opt/athanor/watchdog bundle if the live Athanor-owned runtime guard widens mutation scope.",
       "archive_instructions": "Archive superseded MVW iterations after a single Athanor-bound packet path exists.",
       "notes": [
-        "Runtime experiments are real, but Athanor adoption still needs a packeted safety boundary."
-      ]
+        "The Athanor-owned watchdog bundle, runtime-ownership lane, and rollout packet now exist.",
+        "The 2026-04-14 live canary rollout is active on FOUNDRY with bounded non-protected remediation enabled.",
+        "The Athanor-side formal eval is green against both the focused route tests and the live canary probe."
+      ],
+      "source_lane_id": "watchdog-runtime-guard",
+      "source_packet_id": "watchdog-runtime-guard-promotion-packet",
+      "affected_domains": [
+        "operator_control",
+        "product_foundry"
+      ],
+      "affected_namespaces": [],
+      "landing_project": "projects/agents",
+      "release_tier": "canary",
+      "data_handling_profile_id": "sovereign_private"
     },
     {
       "id": "gpu-scheduler-extension",
@@ -236,7 +279,17 @@
         "The runtime linkage is the existing foundry-gpu-orchestrator deployment lane plus a dedicated scheduler-state rollout packet for the new bounded delta.",
         "The 2026-04-12 rerun now pins the live six-zone orchestrator current state, and live probes show /scheduler/state plus the bounded request/preload/release routes with write-capability posture enabled in runtime.",
         "The bounded scheduler extension now has a valid formal promotion eval, and the canonical scheduler-state rollout packet is backfilled as executed from live evidence, so adoption is now packet-review plus bounded rollout governance rather than more scheduler implementation work."
-      ]
+      ],
+      "source_lane_id": "gpu-scheduler-extension",
+      "source_packet_id": "gpu-scheduler-extension-promotion-packet",
+      "affected_domains": [
+        "product_foundry",
+        "operator_control"
+      ],
+      "affected_namespaces": [],
+      "landing_project": "projects/gpu-orchestrator",
+      "release_tier": "shadow",
+      "data_handling_profile_id": "sovereign_private"
     },
     {
       "id": "creative-identity-pipeline",
@@ -245,78 +298,53 @@
       "source_repo": "C:/athanor-devstack",
       "source_artifacts": [
         "C:/athanor-devstack/docs/CODEX-STATE.md",
-        "C:/athanor-devstack/STATUS.md"
+        "C:/athanor-devstack/STATUS.md",
+        "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-baseline-latest.json",
+        "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-analysis-latest.json",
+        "C:/Athanor/reports/truth-inventory/creative-identity-promotion-eval.json"
       ],
-      "stage": "prototype",
-      "authority_class": "build_system",
-      "runtime_target": "EOQ and creative pipeline surfaces",
+      "stage": "adopted",
+      "authority_class": "adopted_system",
+      "runtime_target": "Shadow-adopted sovereign creative boundary across EOQ and the reusable ComfyUI workflow pack",
       "proof_artifacts": [
         "C:/athanor-devstack/docs/CODEX-STATE.md",
-        "C:/athanor-devstack/STATUS.md"
+        "C:/athanor-devstack/STATUS.md",
+        "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-baseline-latest.json",
+        "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-analysis-latest.json",
+        "C:/Athanor/reports/truth-inventory/creative-identity-promotion-eval.json"
       ],
       "acceptance_criteria": [
         "Identity-consistent image generation, Drive artifact discipline, and I2V proof must be stable enough to packetize.",
-        "The adopted boundary must be clear across EOQ, ComfyUI workflows, and project packets."
+        "The adopted boundary must be clear across EOQ, ComfyUI workflows, and project packets.",
+        "EOQ consumes pinned workflow copies while reusable promoted templates live in projects/comfyui-workflows."
       ],
       "athanor_target_surfaces": [
         "projects/eoq",
         "projects/comfyui-workflows",
         "config/automation-backbone/project-packet-registry.json"
       ],
-      "promotion_packet_id": "pending-creative-identity-pipeline",
-      "runtime_ownership_lanes": [
-        "workshop-product-compose"
-      ],
-      "runtime_packet_ids": [
-        "pending"
-      ],
-      "rollback_or_disable_path": "Leave the pipeline in devstack and do not promote it into Athanor runtime surfaces until the proof is stable.",
+      "promotion_packet_id": "creative-identity-pipeline-promotion-packet",
+      "runtime_rollout_state": "not_linked",
+      "runtime_ownership_lanes": [],
+      "runtime_packet_ids": [],
+      "rollback_or_disable_path": "Keep the creative pipeline at the shadow-adopted boundary, revert packet acceptance, and move reusable templates back to devstack if the Athanor landing contract regresses.",
       "archive_instructions": "Archive superseded prompt, LoRA, and workflow experiments once a stable Athanor-bound packet exists.",
       "notes": [
-        "The quality and workflow proof live in devstack first; Athanor adoption should wait for stable packet boundaries."
-      ]
-    },
-    {
-      "id": "gateway-agent-onboarding-hardening",
-      "label": "Gateway and Agent Onboarding Hardening",
-      "owner": "shaun",
-      "source_repo": "C:/athanor-devstack",
-      "source_artifacts": [
-        "C:/athanor-devstack/docs/agent-setup.md",
-        "C:/athanor-devstack/scripts/test-gateway.sh",
-        "C:/athanor-devstack/STATUS.md"
+        "The Athanor landing boundary is now explicit: EOQ owns pinned copies and project-specific workflow variants, while projects/comfyui-workflows owns reusable promoted sovereign templates.",
+        "The 2026-04-15 rerun on session4_eoq_obsidian_balcony.png cleared the technical visibility gate, the formal creative promotion eval passes, and the packet is accepted as a shadow-adopted creative boundary.",
+        "Runtime rollout remains intentionally not linked; this tranche adopts the project boundary and routing contract without widening into live creative runtime authority."
       ],
-      "stage": "prototype",
-      "authority_class": "build_system",
-      "runtime_target": "Athanor gateway onboarding and operator-facing routing surfaces",
-      "proof_artifacts": [
-        "C:/athanor-devstack/docs/agent-setup.md",
-        "C:/athanor-devstack/scripts/test-gateway.sh",
-        "C:/athanor-devstack/docs/promotion-packets/gateway-agent-onboarding-hardening.md"
+      "source_lane_id": "creative-identity-pipeline",
+      "source_packet_id": "creative-identity-pipeline-promotion-packet",
+      "affected_domains": [
+        "creative"
       ],
-      "acceptance_criteria": [
-        "Gateway alias guidance, onboarding instructions, and health checks must stay aligned with Athanor provider and routing registries.",
-        "No secret values may be copied into repo docs or adopted operator surfaces.",
-        "The adopted delta must land in Athanor control-plane truth instead of lingering only in devstack notes."
+      "affected_namespaces": [
+        "creative.assets"
       ],
-      "athanor_target_surfaces": [
-        "config/automation-backbone/provider-catalog.json",
-        "config/automation-backbone/routing-taxonomy-map.json",
-        "config/automation-backbone/operator-runbooks.json",
-        "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
-      ],
-      "promotion_packet_id": "pending-gateway-agent-onboarding-hardening",
-      "runtime_ownership_lanes": [
-        "pending"
-      ],
-      "runtime_packet_ids": [
-        "pending"
-      ],
-      "rollback_or_disable_path": "Keep onboarding and gateway hardening in devstack only until the Athanor packet is accepted; if adoption drifts, revert the Athanor-side registry and docs delta.",
-      "archive_instructions": "Archive superseded onboarding examples and gateway handoff notes after Athanor owns the adopted operator path for this delta.",
-      "notes": [
-        "The adopted gateway layer already exists in Athanor; this tracks the next hardening delta rather than a second gateway."
-      ]
+      "landing_project": "projects/eoq",
+      "release_tier": "shadow",
+      "data_handling_profile_id": "sovereign_adult"
     },
     {
       "id": "goose-operator-shell",
@@ -370,7 +398,17 @@
         "The 2026-04-12 formal shell comparison is green at 8 of 8 once Goose is pinned to the intended LiteLLM DeepSeek lane instead of the weaker workstation-local default model.",
         "The 2026-04-14 standing operator approval closes the remaining packet-review gate and promotes Goose into adopted shell truth.",
         "The governed DESK helper is now the ordinary bounded shell handoff path; future changes stay packet-backed instead of drifting through workstation-local defaults."
-      ]
+      ],
+      "source_lane_id": "goose-operator-shell",
+      "source_packet_id": "goose-operator-shell-promotion-packet",
+      "affected_domains": [
+        "operator_control",
+        "product_foundry"
+      ],
+      "affected_namespaces": [],
+      "landing_project": "config/automation-backbone",
+      "release_tier": "shadow",
+      "data_handling_profile_id": "sovereign_private"
     },
     {
       "id": "openhands-bounded-worker-lane",
@@ -414,7 +452,17 @@
       "notes": [
         "OpenHands is a bounded sidecar candidate, not a core stack replacement.",
         "Any worker-lane adoption must remain subordinate to Athanor routing and sidecar retention policy."
-      ]
+      ],
+      "source_lane_id": "openhands-bounded-worker-lane",
+      "source_packet_id": "pending-openhands-bounded-worker-lane",
+      "affected_domains": [
+        "product_foundry",
+        "operator_control"
+      ],
+      "affected_namespaces": [],
+      "landing_project": "config/automation-backbone",
+      "release_tier": "offline_eval",
+      "data_handling_profile_id": "cloud_safe"
     },
     {
       "id": "letta-memory-plane",
@@ -457,7 +505,20 @@
       "archive_instructions": "Archive memory-plane comparison notes or prompt-state experiments that do not become part of the accepted memory contract.",
       "notes": [
         "Letta is a memory-plane candidate only if it improves continuity without becoming another truth surface."
-      ]
+      ],
+      "source_lane_id": "letta-memory-plane",
+      "source_packet_id": "pending-letta-memory-plane",
+      "affected_domains": [
+        "knowledge",
+        "operator_control"
+      ],
+      "affected_namespaces": [
+        "truth.docs",
+        "truth.graph"
+      ],
+      "landing_project": "config/automation-backbone",
+      "release_tier": "offline_eval",
+      "data_handling_profile_id": "sovereign_private"
     },
     {
       "id": "agent-governance-toolkit-policy-plane",
@@ -512,7 +573,18 @@
         "The first implementation slice should stay narrow and protocol-boundary focused.",
         "The current benchmark bundle shows a narrow bridge that adds only an explanatory policy verdict and stricter blocked actions.",
         "The 2026-04-12 manual review concluded that this single approval-held-mutation scenario is still too redundant to justify a live adapter or release-tier advancement."
-      ]
+      ],
+      "source_lane_id": "agent-governance-toolkit-policy-plane",
+      "source_packet_id": "pending-agent-governance-toolkit-policy-plane",
+      "affected_domains": [
+        "operator_control",
+        "research"
+      ],
+      "affected_namespaces": [],
+      "landing_project": "config/automation-backbone",
+      "release_tier": "offline_eval",
+      "data_handling_profile_id": "sovereign_private"
     }
-  ]
+  ],
+  "data_handling_profile_contract": "Every capability must declare a governed handling profile aligned with its landing surface."
 }

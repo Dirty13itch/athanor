@@ -5,15 +5,15 @@ Do not edit manually.
 
 ## Summary
 
-- Registry version: `2026-04-02.1`
-- Surfaces tracked: `5`
-- VAULT LiteLLM env audit: `2026-04-14T21:50:45Z`
+- Registry version: `2026-04-16.1`
+- Surfaces tracked: `6`
+- VAULT LiteLLM env audit: `2026-04-16T15:23:16Z`
 
 ### Remediation states
 
 | Remediation state | Count |
 | --- | --- |
-| `managed` | 4 |
+| `managed` | 5 |
 | `remediation_required` | 1 |
 
 ### VAULT provider blockers
@@ -30,6 +30,7 @@ Do not edit manually.
 | `vault-litellm-container-env` | `vault` | `container_env` | `container_env` | `managed_container_surface` | `remediation_required` |
 | `script-lane-redis-auth` | `desk` | `local_runtime_envfile` | `local_runtime_envfile` | `managed_runtime_surface` | `managed` |
 | `script-lane-vault-ssh-auth` | `desk` | `local_runtime_envfile` | `local_runtime_envfile` | `managed_runtime_surface` | `managed` |
+| `script-lane-litellm-gateway-auth` | `desk` | `local_runtime_envfile` | `local_runtime_envfile` | `managed_runtime_surface` | `managed` |
 
 ## dev-user-crontab-inline-env
 
@@ -62,29 +63,29 @@ Do not edit manually.
 ## vault-litellm-container-env
 
 - Path: `appdata/litellm`
-- Owner surface: LiteLLM upstream provider keys
-- Env contracts: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`, `CODESTRAL_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `DASHSCOPE_API_KEY`, `VENICE_API_KEY`, `ZAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`
+- Owner surface: LiteLLM upstream provider keys plus local master-key contract
+- Env contracts: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `MISTRAL_API_KEY`, `CODESTRAL_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY`, `DASHSCOPE_API_KEY`, `VENICE_API_KEY`, `ZAI_API_KEY`, `OPENROUTER_API_KEY`, `LITELLM_MASTER_KEY`, `REDIS_PASSWORD`
 - Observed state: `partial_runtime_env_presence`
 - Target delivery: `container_env`
 - Remediation state: `remediation_required`
 - Ask-first required: `True`
 - Managed by: `vault-runtime-ops`
-- Evidence sources: `VAULT LiteLLM template and appdata layout review 2026-03-25`, `VAULT live docker inspect env-presence audit 2026-03-29`, `VAULT provider-specific LiteLLM probe 2026-03-29`, `VAULT LiteLLM implementation-authority role parity review 2026-03-29`, `VAULT live docker inspect env-presence audit 2026-04-08`
+- Evidence sources: `VAULT LiteLLM template and appdata layout review 2026-03-25`, `VAULT live docker inspect env-presence audit 2026-03-29`, `VAULT provider-specific LiteLLM probe 2026-03-29`, `VAULT LiteLLM implementation-authority role parity review 2026-03-29`, `VAULT live docker inspect env-presence audit 2026-04-08`, `VAULT live docker inspect env-presence audit 2026-04-16`
 - Recommended actions: `Keep LiteLLM provider keys in the managed VAULT container env surface or an equivalent host-local secret source.`, `Keep the live VAULT container env aligned with every provider key referenced by ansible/roles/vault-litellm/templates/litellm_config.yaml.j2.`, `Treat the tracked repo as env-contract authority only; the remaining missing keys are not recoverable from tracked source or the reviewed DESK-local runtime env surfaces.`, `Use the generated VAULT auth-repair packet to decide whether a lane needs missing-key restoration, present-key rotation, or auth-mode review before recreating or redeploying the container.`, `Keep repo truth focused on env contracts, delivery boundaries, and repair sequencing rather than freezing point-in-time live env presence into this registry.`, `Do not move provider keys into tracked source or ad hoc shell history during future routing changes.`
-- Notes: `Backed by the current LiteLLM template and runtime appdata layout.`, `Implementation-authority LiteLLM env-contract parity is already fixed and validator-enforced; the remaining work is runtime-only and should be driven by the current env-audit plus provider-probe artifacts.`, `This registry tracks contract names, delivery surface, and remediation posture; the generated reports own point-in-time present or missing env observations.`, `The running VAULT LiteLLM surface currently appears as a standalone Docker container with a config bind mount, not a discovered compose-managed env source.`, `Tracked `ansible/host_vars/vault.yml` does not hold the `vault_*` secret aliases for the remaining missing LiteLLM keys; the intended owner pattern is an untracked Ansible secret-vars surface adjacent to the VAULT host config or an equivalent host-local secret source.`, `This registry tracks contract names only, not secret material.`
-- Latest live env audit: `2026-04-14T21:50:45Z`
+- Notes: `Backed by the current LiteLLM template and runtime appdata layout.`, `Implementation-authority LiteLLM env-contract parity is already fixed and validator-enforced; the remaining work is runtime-only and should be driven by the current env-audit plus provider-probe artifacts.`, `This registry tracks contract names, delivery surface, and remediation posture; the generated reports own point-in-time present or missing env observations.`, `The running VAULT LiteLLM surface currently appears as a standalone Docker container with a config bind mount, not a discovered compose-managed env source.`, `Tracked `ansible/host_vars/vault.yml` does not hold the `vault_*` secret aliases for the remaining missing LiteLLM keys; the intended owner pattern is an untracked Ansible secret-vars surface adjacent to the VAULT host config or an equivalent host-local secret source.`, `This registry tracks contract names only, not secret material.`, `The live VAULT config now proves `LITELLM_MASTER_KEY` is part of the same container-env delivery contract as the provider keys and should stay modeled here.`
+- Latest live env audit: `2026-04-16T15:23:16Z`
 - Audit status: `ok`
 - Runtime owner surface: `standalone_docker_container`
 - Container image: `ghcr.io/berriai/litellm:main-stable`
 - Restart policy: `unless-stopped`
 - Env-change boundary: `container_recreate_or_redeploy`
 - Config-only boundary: `docker_restart_litellm`
-- Container envs present: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `VENICE_API_KEY`, `ZAI_API_KEY`
+- Container envs present: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `VENICE_API_KEY`, `ZAI_API_KEY`
 - Container envs missing: `DASHSCOPE_API_KEY`, `MOONSHOT_API_KEY`
 - Config-referenced envs present at runtime: `CODESTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `GOOGLE_API_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `VENICE_API_KEY`, `ZAI_API_KEY`
 - Config-referenced envs missing at runtime: `DASHSCOPE_API_KEY`
-- Host shell envs present: none
-- Host shell envs missing: `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `VENICE_API_KEY`, `ZAI_API_KEY`
+- Host shell envs present (informational snapshot only; not the LiteLLM delivery contract): none
+- Host shell envs missing (informational snapshot only; not a blocking delivery contract by itself): `ANTHROPIC_API_KEY`, `CODESTRAL_API_KEY`, `DASHSCOPE_API_KEY`, `DEEPSEEK_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `LITELLM_MASTER_KEY`, `MISTRAL_API_KEY`, `MOONSHOT_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `REDIS_PASSWORD`, `VENICE_API_KEY`, `ZAI_API_KEY`
 - dockerMan template matches: none
 - Compose-manager matches: none
 - docker.config.json template mapping: `none`
@@ -122,3 +123,17 @@ Do not edit manually.
 - Evidence sources: `VAULT browser-terminal recovery 2026-04-02`, `DESK runtime env audit 2026-04-02`, `DESK direct vault-ssh helper verification 2026-04-02`
 - Recommended actions: `Keep ATHANOR_VAULT_KEY_PATH in ~/.athanor/runtime.env or ATHANOR_RUNTIME_ENV_FILE so the VAULT helpers use the managed local SSH key path instead of ad hoc shell state or browser-only recovery.`, `Use python scripts/runtime_env.py --check ATHANOR_VAULT_KEY_PATH and python scripts/vault-ssh.py "echo CONNECTED && hostname" to verify the managed local env surface without printing secret values.`, `Treat ATHANOR_VAULT_USER and ATHANOR_VAULT_PASSWORD as optional overrides; the current contract uses the managed key path and the default VAULT root user.`
 - Notes: `The managed local runtime env surface now carries the explicit VAULT SSH key-path contract needed by scripts/vault-ssh.py and scripts/ssh-vault.ps1.`, `DESK-side VAULT operator access no longer depends on the authenticated browser terminal as the only working recovery path.`
+
+## script-lane-litellm-gateway-auth
+
+- Path: `~/.athanor/runtime.env`
+- Owner surface: gateway-backed CLI and editor adapters
+- Env contracts: `ATHANOR_LITELLM_API_KEY`, `ATHANOR_LITELLM_URL`
+- Observed state: `runtime_envfile_present`
+- Target delivery: `local_runtime_envfile`
+- Remediation state: `managed`
+- Ask-first required: `False`
+- Managed by: `desk-session-context`
+- Evidence sources: `DESK gateway env audit 2026-04-14`, `Goose wrapper smoke via managed runtime env 2026-04-14`, `Aider wrapper smoke via managed runtime env 2026-04-14`
+- Recommended actions: `Keep the canonical DESK LiteLLM contract anchored in ~/.athanor/runtime.env or ATHANOR_RUNTIME_ENV_FILE instead of ad hoc shell exports.`, `Allow LITELLM_API_KEY or LITELLM_MASTER_KEY to satisfy ATHANOR_LITELLM_API_KEY through scripts/runtime_env.py rather than copying the same secret into multiple local files.`, `Use python scripts/runtime_env.py --check ATHANOR_LITELLM_URL ATHANOR_LITELLM_API_KEY OPENAI_API_BASE OPENAI_API_KEY plus the Goose and Aider wrappers to verify the managed local env surface without printing secret values.`
+- Notes: `The DESK managed runtime env surface now resolves the Athanor LiteLLM gateway contract for Goose, Aider, and generated editor-adapter profiles.`, `Compatibility envs OPENAI_API_KEY, OPENAI_API_BASE, OPENAI_HOST, and OPENAI_BASE_PATH are derived at launcher time from the canonical Athanor contract rather than being tracked as independent secret-bearing surface entries.`

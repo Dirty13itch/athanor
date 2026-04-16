@@ -2,7 +2,7 @@
 
 Pipeline stages:
 1. Generate DNA (random or from parameters)
-2. Generate backstory via LLM (JOSIEFIED through LiteLLM `uncensored`)
+2. Generate backstory via the sovereign local LiteLLM `uncensored` lane
 3. Generate character portrait (ComfyUI on WORKSHOP:8188)
 4. Generate voice sample (speaches TTS on FOUNDRY:8200)
 5. Package into a CharacterCard
@@ -100,7 +100,7 @@ class SoulForge:
         extra_context: str = "",
         timeout: float = 90.0,
     ) -> str:
-        """Generate backstory via JOSIEFIED LLM through LiteLLM."""
+        """Generate backstory via the sovereign local uncensored lane through LiteLLM."""
         personality = dna_to_description(card.dna)
         dominant = card.dna.dominant_traits(0.75)
 

@@ -1,8 +1,8 @@
-# DEV Secret Delivery Normalization
+# DEV Secret Delivery Normalization Reference Runbook
 
 Source of truth: `config/automation-backbone/credential-surface-registry.json`, `config/automation-backbone/repo-roots-registry.json`, `docs/SECURITY-FOLLOWUPS.md`
-Validated against registry version: `credential-surface-registry.json@2026-04-02.1`, `repo-roots-registry.json@2026-04-06.1`, `program-operating-system.json@2026-03-25.1`
-Mutable facts policy: live secret-delivery surfaces, runtime-state roots, and approval boundaries come from the registries. This runbook owns the operator sequence for normalizing DEV cron and systemd delivery without printing secret values.
+Validated against registry version: `credential-surface-registry.json@2026-04-16.1`, `repo-roots-registry.json@2026-04-06.1`, `program-operating-system.json@2026-03-25.1`
+Mutable facts policy: live secret-delivery surfaces, runtime-state roots, and approval boundaries come from the registries. This runbook documents the operator sequence for normalizing DEV cron and systemd delivery without printing secret values.
 
 ---
 
@@ -10,9 +10,9 @@ Mutable facts policy: live secret-delivery surfaces, runtime-state roots, and ap
 
 Normalize and maintain the DEV secret-bearing runtime surfaces so recurring jobs and systemd units keep explicit envfile-backed delivery instead of drifting back toward inline assignments.
 
-This remains an ask-first runtime lane. Prepare and verify from the repo first, then execute on DEV during an intentional maintenance window whenever a future change touches the live secret-delivery contract.
+This remains an ask-first runtime reference lane. Prepare and verify from the repo first, then execute on DEV during an intentional maintenance window whenever a future change touches the live secret-delivery contract.
 
-## Current Truth
+## Last Confirmed Truth
 
 - User-crontab secret delivery now lives at `/home/shaun/.athanor/runtime.env`, sourced from `/var/spool/cron/crontabs/shaun` through `BASH_ENV`.
 - Dedicated system cron files also exist at `/etc/cron.d/athanor-drift-check` and `/etc/cron.d/athanor-overnight`.
@@ -20,7 +20,7 @@ This remains an ask-first runtime lane. Prepare and verify from the repo first, 
   - `athanor-classifier.service`, `athanor-dashboard.service`, and `athanor-heartbeat.service` use `EnvironmentFile`
   - the remaining reviewed Athanor units start envless by deliberate contract
 
-## Target State
+## Intended Managed State
 
 - User-crontab jobs that require secrets stay on the `BASH_ENV` plus host-local envfile pattern.
 - Systemd units that require secrets or runtime configuration stay on `EnvironmentFile`.

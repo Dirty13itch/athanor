@@ -1,0 +1,254 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T18:40:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/protocol-interop-registry.json",
+  "preferred_protocols": [
+    {
+      "id": "mcp_tasks",
+      "stance": "preferred_async_boundary",
+      "status": "Final",
+      "last_verified": "2026-04-15",
+      "source_url": "https://modelcontextprotocol.io/seps/1686-tasks",
+      "notes": [
+        "Use MCP Tasks for call-now / fetch-later workflows."
+      ]
+    },
+    {
+      "id": "mcp_transport_and_resumption",
+      "stance": "preferred_tool_boundary",
+      "status": "roadmap_priority",
+      "last_verified": "2026-04-15",
+      "source_url": "https://modelcontextprotocol.io/development/roadmap",
+      "notes": [
+        "Session creation, resumption, and migration remain active priority areas."
+      ]
+    },
+    {
+      "id": "a2a_edge_interop",
+      "stance": "optional_edge_only",
+      "status": "launched",
+      "last_verified": "2026-04-15",
+      "source_url": "https://www.linuxfoundation.org/press/linuxfoundation-launches-the-agent2agent-protocol-project-to-enable-secure-intelligent-communication-between-ai-agents",
+      "notes": [
+        "A2A may be used for external agent-to-agent interop but must not become the internal control-plane source of truth."
+      ]
+    }
+  ],
+  "protocol_boundary_classes": [
+    {
+      "id": "internal_control_plane",
+      "mutation_authority": "canonical_only",
+      "notes": [
+        "Never infer internal authority from discovery or edge metadata."
+      ]
+    },
+    {
+      "id": "mcp_tool_boundary",
+      "mutation_authority": "bounded_by_contract",
+      "notes": [
+        "Preferred external tool and task boundary."
+      ]
+    },
+    {
+      "id": "a2a_edge_boundary",
+      "mutation_authority": "none_by_default",
+      "notes": [
+        "Edge interop only until explicitly promoted."
+      ]
+    }
+  ],
+  "server_card_contract": {
+    "discovery_surface": "structured metadata over a .well-known URL once standardized",
+    "mutation_forbidden": true,
+    "scope_rule": "discovery metadata may describe capability but may not outrank canonical registry truth"
+  },
+  "well_known_metadata_record": {
+    "status": "pending_standardization",
+    "notes": [
+      "Until the Server Card WG output lands, treat well-known metadata as optional discovery only."
+    ]
+  },
+  "session_resumption_policies": [
+    {
+      "id": "bounded_resume_same_authority",
+      "duplicate_execution_forbidden": true,
+      "resume_window": "24h",
+      "notes": [
+        "Session resumption must not create duplicate authority or duplicate execution."
+      ]
+    },
+    {
+      "id": "resume_requires_scope_match",
+      "duplicate_execution_forbidden": true,
+      "resume_window": "12h",
+      "notes": [
+        "Resumption is denied when scope boundary or authority layer changed materially."
+      ]
+    }
+  ],
+  "task_retry_policies": [
+    {
+      "id": "never_implicit_without_contract",
+      "max_attempts": 1,
+      "owner": "operator_or_workflow_contract"
+    },
+    {
+      "id": "bounded_transient_retry",
+      "max_attempts": 3,
+      "owner": "workflow_contract",
+      "backoff": "exponential"
+    },
+    {
+      "id": "review_before_replay",
+      "max_attempts": 1,
+      "owner": "operator_review",
+      "backoff": "none"
+    }
+  ],
+  "task_result_expiry_policies": [
+    {
+      "id": "ephemeral_result",
+      "expiry_window": "24h",
+      "client_visibility_required": true
+    },
+    {
+      "id": "checkpoint_result",
+      "expiry_window": "30d",
+      "client_visibility_required": true
+    },
+    {
+      "id": "retained_until_archive_policy",
+      "expiry_window": "retention_controlled",
+      "client_visibility_required": true
+    }
+  ],
+  "task_retention_classes": [
+    {
+      "id": "ephemeral",
+      "retention_policy_id": "ret-cloud-safe"
+    },
+    {
+      "id": "private_checkpoint",
+      "retention_policy_id": "ret-general-private"
+    },
+    {
+      "id": "regulated_checkpoint",
+      "retention_policy_id": "ret-regulated-health"
+    }
+  ],
+  "portable_bundle_classes": [
+    {
+      "id": "portable_context_bundle",
+      "required_fields": [
+        "bundle_class",
+        "scope_boundary",
+        "source_artifacts",
+        "contradiction_audit_ref",
+        "import_contract_version",
+        "handoff_expiry",
+        "provider_specific_assumptions",
+        "rebuild_from_raw_ref"
+      ]
+    },
+    {
+      "id": "session_handoff_bundle",
+      "required_fields": [
+        "bundle_class",
+        "scope_boundary",
+        "source_artifacts",
+        "contradiction_audit_ref",
+        "import_contract_version",
+        "handoff_expiry",
+        "provider_specific_assumptions",
+        "rebuild_from_raw_ref"
+      ]
+    },
+    {
+      "id": "control_plane_ingest_bundle",
+      "required_fields": [
+        "bundle_class",
+        "scope_boundary",
+        "source_artifacts",
+        "contradiction_audit_ref",
+        "import_contract_version",
+        "handoff_expiry",
+        "provider_specific_assumptions",
+        "rebuild_from_raw_ref"
+      ]
+    }
+  ],
+  "telemetry_semconv_profiles": [
+    {
+      "id": "otel_genai_mcp_pinned_2026_04",
+      "status": "pinned_profile",
+      "genai_semconv_status": "Development",
+      "mcp_semconv_status": "Development",
+      "source_urls": [
+        "https://opentelemetry.io/docs/specs/semconv/gen-ai/",
+        "https://opentelemetry.io/docs/specs/semconv/gen-ai/mcp/"
+      ],
+      "pin_reason": "Adopt current official conventions without floating with every upstream change."
+    },
+    {
+      "id": "athenor_minimal_fallback",
+      "status": "fallback_only",
+      "genai_semconv_status": "N/A",
+      "mcp_semconv_status": "N/A",
+      "source_urls": [],
+      "pin_reason": "Used only when upstream profiles cannot be emitted on a surface yet."
+    }
+  ],
+  "trace_context_policies": [
+    {
+      "id": "mcp_traceparent_passthrough_when_supported",
+      "headers": [
+        "traceparent",
+        "tracestate",
+        "baggage"
+      ],
+      "recording_rule": "preserve upstream trace context where transport allows; annotate boundary truncation explicitly"
+    },
+    {
+      "id": "scope_bound_relay_only",
+      "headers": [
+        "traceparent"
+      ],
+      "recording_rule": "deny cross-boundary propagation when scope classification or data-handling profile forbids it"
+    }
+  ],
+  "mcp_trace_meta_contract": {
+    "required_fields": [
+      "protocol_boundary_class",
+      "server_card_ref",
+      "session_mode",
+      "task_retry_class",
+      "result_expiry_class",
+      "telemetry_profile"
+    ],
+    "mutation_forbidden": true
+  },
+  "defaults": {
+    "mcp_is_preferred_tool_boundary": true,
+    "a2a_is_optional_edge_interop_only": true,
+    "universal_merged_cross_system_authority_forbidden": true
+  },
+  "contracts": [
+    "portable_context_bundle",
+    "session_handoff_bundle",
+    "control_plane_ingest_bundle",
+    "export_bundle_record",
+    "interop_contract_record",
+    "provider_exit_packet",
+    "server_card_contract",
+    "well_known_metadata_record",
+    "session_resumption_policy",
+    "task_retry_policy",
+    "task_result_expiry_policy",
+    "task_retention_class",
+    "telemetry_semconv_profile",
+    "telemetry_stability_pin_policy",
+    "trace_context_propagation_policy",
+    "mcp_trace_meta_contract"
+  ]
+}

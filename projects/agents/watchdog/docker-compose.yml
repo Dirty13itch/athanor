@@ -1,0 +1,26 @@
+services:
+  watchdog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: athanor/watchdog:latest
+    container_name: athanor-watchdog
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - WATCHDOG_PORT=9301
+      - WATCHDOG_NTFY_URL=http://192.168.1.203:8880
+      - WATCHDOG_NTFY_TOPIC=athanor-infra
+      - WATCHDOG_TICK_SECONDS=15
+      - WATCHDOG_FAILURE_THRESHOLD=3
+      # Live canary by default: keep the mutation path packet-backed and bounded,
+      # but allow the watchdog to run active once the rollout packet is executed.
+      - WATCHDOG_INITIAL_PAUSED=false
+      - WATCHDOG_MUTATIONS_ENABLED=true
+      - WATCHDOG_RUNTIME_PACKET_ID=foundry-watchdog-runtime-guard-rollout-packet
+      - WATCHDOG_RUNTIME_PACKET_STATUS=executed
+      - WATCHDOG_AUDIT_LOG=/var/log/athanor/watchdog-operator-audit.log
+      - WATCHDOG_SSH_KEY=/ssh-keys/watchdog_key
+    volumes:
+      - /home/athanor/.ssh:/ssh-keys:ro
+      - /var/log/athanor:/var/log/athanor

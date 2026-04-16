@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-04-14T22:28:12.093625+00:00",
+  "generated_at": "2026-04-16T02:27:22.006965+00:00",
   "lane": "recovery_evidence",
   "action_class": "restore_drill_rehearsal",
   "success": true,
   "artifact_mode": "non_destructive_live_probe",
   "snapshot": {
-    "generated_at": "2026-04-14T22:28:12.055787+00:00",
+    "generated_at": "2026-04-16T02:27:21.976278+00:00",
     "status": "live_partial",
     "last_outcome": "partial",
-    "last_run_at": "2026-04-14T22:28:12.055436+00:00",
+    "last_run_at": "2026-04-16T02:27:21.974352+00:00",
     "flow_count": 17,
     "flows": [
       {
@@ -210,8 +210,8 @@
         "description": "Checks restore-drill readiness posture and recovery ordering for critical stores until live drill execution lands.",
         "status": "live_partial",
         "last_outcome": "passed",
-        "last_run_at": "2026-04-14T22:28:12.055436+00:00",
-        "last_duration_ms": 743,
+        "last_run_at": "2026-04-16T02:27:21.974352+00:00",
+        "last_duration_ms": 371,
         "checks_passed": 4,
         "checks_total": 4,
         "evidence": [
@@ -232,7 +232,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Redis ping and synthetic write/read/delete rehearsal succeeded.",
-              "checked_at": "2026-04-14T22:28:11.312734+00:00",
+              "checked_at": "2026-04-16T02:27:21.620247+00:00",
               "artifacts": [
                 "redis://192.168.1.203:6379/0"
               ]
@@ -243,7 +243,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Qdrant collections endpoint is healthy with 15 collections visible.",
-              "checked_at": "2026-04-14T22:28:11.825599+00:00",
+              "checked_at": "2026-04-16T02:27:21.734298+00:00",
               "artifacts": [
                 "http://192.168.1.203:6333/collections"
               ]
@@ -254,7 +254,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Neo4j endpoint is reachable; authenticated restore drill remains password-gated.",
-              "checked_at": "2026-04-14T22:28:11.825910+00:00",
+              "checked_at": "2026-04-16T02:27:21.734276+00:00",
               "artifacts": [
                 "http://192.168.1.203:7474"
               ]
@@ -265,7 +265,7 @@
               "verified": true,
               "probe_status": "verified",
               "probe_summary": "Agent and dashboard recovery surfaces are reachable for ordered recovery.",
-              "checked_at": "2026-04-14T22:28:12.055406+00:00",
+              "checked_at": "2026-04-16T02:27:21.974317+00:00",
               "artifacts": [
                 "http://192.168.1.244:9000/health",
                 "http://192.168.1.189:3001/api/operator/session"

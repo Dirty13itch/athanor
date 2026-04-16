@@ -13,13 +13,20 @@ from typing import Any
 
 import yaml
 
+from layered_master_plan import validate_layered_master_plan_contract
+
+from truth_inventory import resolve_external_path
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+DEVSTACK_ROOT = resolve_external_path("C:/athanor-devstack")
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 DOCS_DIR = REPO_ROOT / "docs"
 REPORTS_DIR = REPO_ROOT / "reports"
 PROJECTS_DIR = REPO_ROOT / "projects"
 CONFIG_DIR = REPO_ROOT / "config" / "automation-backbone"
+DEVSTACK_LANE_REGISTRY_PATH = DEVSTACK_ROOT / "configs" / "devstack-capability-lane-registry.json"
+DEVSTACK_ATLAS_SOURCE_PATH = DEVSTACK_ROOT / "reports" / "master-atlas" / "latest.json"
 PROVIDER_USAGE_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "provider-usage-evidence.json"
 PLANNED_SUBSCRIPTION_EVIDENCE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "planned-subscription-evidence.json"
 VAULT_LITELLM_ENV_AUDIT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "vault-litellm-env-audit.json"
@@ -47,6 +54,12 @@ FIELD_INSPECT_REPLAY_PACKET_REPORT_PATH = REPO_ROOT / "reports" / "reconciliatio
 RFI_HERS_DUPLICATE_EVIDENCE_PACKET_REPORT_PATH = REPO_ROOT / "reports" / "reconciliation" / "rfi-hers-duplicate-evidence-packet-latest.json"
 RFI_HERS_PRIMARY_ROOT_STABILIZATION_REPORT_PATH = REPO_ROOT / "reports" / "reconciliation" / "rfi-hers-primary-root-stabilization-latest.json"
 RALPH_LOOP_REPORT_PATH = REPO_ROOT / "reports" / "ralph-loop" / "latest.json"
+RALPH_CONTINUITY_STATE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "ralph-continuity-state.json"
+CLAUDE_PRE_COMPACT_SAVE_HOOK_PATH = REPO_ROOT / ".claude" / "hooks" / "pre-compact-save.sh"
+CLAUDE_POST_COMPACT_RELOAD_HOOK_PATH = REPO_ROOT / ".claude" / "hooks" / "post-compact-reload.sh"
+CLAUDE_STOP_AUTOCOMMIT_HOOK_PATH = REPO_ROOT / ".claude" / "hooks" / "stop-autocommit.sh"
+CLAUDE_SESSION_CONTINUITY_RULE_PATH = REPO_ROOT / ".claude" / "rules" / "session-continuity.md"
+MCP_CONFIG_PATH = REPO_ROOT / ".mcp.json"
 LITELLM_TEMPLATE_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "templates" / "litellm_config.yaml.j2"
 VAULT_LITELLM_TASKS_PATH = REPO_ROOT / "ansible" / "roles" / "vault-litellm" / "tasks" / "main.yml"
 VAULT_HOST_VARS_PATH = REPO_ROOT / "ansible" / "host_vars" / "vault.yml"
@@ -190,6 +203,20 @@ ALLOWED_PUBLICATION_SLICE_STATUSES = {
     "ready_for_checkpoint",
     "published",
 }
+ALLOWED_PUBLICATION_DEFERRED_DISPOSITIONS = {
+    "deferred_out_of_sequence",
+    "archive_or_reference",
+    "tenant_surface",
+    "operator_tooling",
+    "runtime_follow_on",
+    "audit_artifact",
+}
+ALLOWED_PUBLICATION_DEFERRED_EXECUTION_CLASSES = {
+    "cash_now",
+    "bounded_follow_on",
+    "program_slice",
+    "tenant_lane",
+}
 ALLOWED_COMPLETION_PRIORITY_LEVELS = {"critical", "high", "medium", "low"}
 ALLOWED_COMPLETION_LOOP_EXECUTION_STATES = {
     "active",
@@ -198,6 +225,13 @@ ALLOWED_COMPLETION_LOOP_EXECUTION_STATES = {
     "external_dependency_blocked",
     "steady_state_monitoring",
     "completed",
+    "blocked",
+    "claimed",
+    "executing",
+    "evidence_recorded",
+    "spin_detected",
+    "redirected",
+    "escalated",
 }
 ALLOWED_COMPLETION_LOOP_BLOCKER_TYPES = {
     "none",
@@ -206,6 +240,13 @@ ALLOWED_COMPLETION_LOOP_BLOCKER_TYPES = {
     "stale_evidence",
     "runtime_authority",
     "human_decision",
+}
+ALLOWED_RALPH_CONTINUITY_STOP_STATES = {
+    "none",
+    "approval_required",
+    "external_block",
+    "destructive_ambiguity",
+    "queue_exhausted",
 }
 DISALLOWED_REPO_ROOT_SCRATCH_PATTERNS = ("tmp_*",)
 DISALLOWED_SCRIPTS_TOP_LEVEL_SCRATCH_PATTERNS = ("tmp_*",)
@@ -288,6 +329,167 @@ def _validate_docs_lifecycle_registry_shape(errors: list[str], docs: dict) -> se
         )
     return seen_paths
 
+
+def _validate_archive_doc_metadata(errors: list[str], docs: dict) -> None:
+    required_keys = {
+        'layer',
+        'authority_plane',
+        'volatility',
+        'generated',
+        'validator',
+        'allowed_content_class',
+        'downstream_consumers',
+        'deprecation_state',
+        'replacement_surface',
+    }
+    for document in docs.get('documents', []):
+        if not isinstance(document, dict):
+            continue
+        relative_path = str(document.get('path') or '').strip()
+        if not relative_path.startswith('docs/archive/') or not relative_path.endswith('.md'):
+            continue
+        if str(document.get('class') or '').strip() != 'archive':
+            errors.append(f"{relative_path} must keep class=archive in docs-lifecycle-registry.json")
+        missing = sorted(key for key in required_keys if key not in document)
+        if missing:
+            errors.append(
+                f"{relative_path} is missing archive lifecycle metadata: {', '.join(missing)}"
+            )
+            continue
+        if str(document.get('layer') or '').strip() != 'archive_reference':
+            errors.append(f"{relative_path} must use layer=archive_reference")
+        if str(document.get('authority_plane') or '').strip() != 'adopted_system':
+            errors.append(f"{relative_path} must use authority_plane=adopted_system")
+        if str(document.get('volatility') or '').strip() != 'frozen_historical':
+            errors.append(f"{relative_path} must use volatility=frozen_historical")
+        if document.get('generated') is not False:
+            errors.append(f"{relative_path} must set generated=false")
+        if str(document.get('validator') or '').strip() != 'scripts/validate_platform_contract.py':
+            errors.append(f"{relative_path} must validate through scripts/validate_platform_contract.py")
+        if str(document.get('allowed_content_class') or '').strip() != 'archive_reference':
+            errors.append(f"{relative_path} must use allowed_content_class=archive_reference")
+        consumers = [str(item).strip() for item in document.get('downstream_consumers', []) if str(item).strip()]
+        if not consumers:
+            errors.append(f"{relative_path} must declare at least one archive downstream consumer")
+        if str(document.get('deprecation_state') or '').strip() != 'superseded':
+            errors.append(f"{relative_path} must use deprecation_state=superseded")
+        replacement_surface = str(document.get('replacement_surface') or '').strip()
+        if not replacement_surface:
+            errors.append(f"{relative_path} must declare a replacement_surface")
+            continue
+        replacement_path = REPO_ROOT / replacement_surface
+        if not replacement_path.exists():
+            errors.append(f"{relative_path} replacement_surface does not exist: {replacement_surface}")
+
+
+def _validate_high_risk_reference_doc_metadata(errors: list[str], docs: dict) -> None:
+    docs_by_path = {
+        str(document.get('path') or '').strip(): document
+        for document in docs.get('documents', [])
+        if isinstance(document, dict) and str(document.get('path') or '').strip()
+    }
+    required_docs = {
+        'MEMORY.md': {
+            'replacement_surface': 'STATUS.md',
+            'deprecation_state': 'superseded',
+        },
+        'CLAUDE.md': {
+            'replacement_surface': 'AGENTS.md',
+            'deprecation_state': 'active',
+        },
+        'SESSION-LOG.md': {
+            'replacement_surface': 'STATUS.md',
+            'deprecation_state': 'superseded',
+        },
+    }
+    required_keys = {
+        'layer',
+        'authority_plane',
+        'volatility',
+        'generated',
+        'validator',
+        'allowed_content_class',
+        'downstream_consumers',
+        'deprecation_state',
+        'replacement_surface',
+    }
+    for relative_path, expected in required_docs.items():
+        document = docs_by_path.get(relative_path)
+        if not document:
+            errors.append(f"docs-lifecycle-registry.json is missing {relative_path}")
+            continue
+        if str(document.get('class') or '').strip() != 'reference':
+            errors.append(f"{relative_path} must keep class=reference in docs-lifecycle-registry.json")
+        missing = sorted(key for key in required_keys if key not in document)
+        if missing:
+            errors.append(
+                f"{relative_path} is missing high-risk reference metadata: {', '.join(missing)}"
+            )
+            continue
+        if document.get('generated') is not False:
+            errors.append(f"{relative_path} must set generated=false")
+        if str(document.get('validator') or '').strip() != 'scripts/validate_platform_contract.py':
+            errors.append(f"{relative_path} must validate through scripts/validate_platform_contract.py")
+        if str(document.get('allowed_content_class') or '').strip() != 'reference_context':
+            errors.append(f"{relative_path} must use allowed_content_class=reference_context")
+        consumers = [str(item).strip() for item in document.get('downstream_consumers', []) if str(item).strip()]
+        if not consumers:
+            errors.append(f"{relative_path} must declare at least one downstream consumer")
+        replacement_surface = str(document.get('replacement_surface') or '').strip()
+        if replacement_surface != expected['replacement_surface']:
+            errors.append(
+                f"{relative_path} must use replacement_surface={expected['replacement_surface']}"
+            )
+        else:
+            replacement_path = REPO_ROOT / replacement_surface
+            if not replacement_path.exists():
+                errors.append(f"{relative_path} replacement_surface does not exist: {replacement_surface}")
+        if str(document.get('deprecation_state') or '').strip() != expected['deprecation_state']:
+            errors.append(
+                f"{relative_path} must use deprecation_state={expected['deprecation_state']}"
+            )
+
+
+
+def _validate_operator_helper_surfaces(errors: list[str]) -> None:
+    pre_compact_text = CLAUDE_PRE_COMPACT_SAVE_HOOK_PATH.read_text(encoding='utf-8')
+    if 'Reference-Only Compaction Handoff' not in pre_compact_text:
+        errors.append('.claude/hooks/pre-compact-save.sh must save a reference-only compaction handoff')
+    if 'reports/ralph-loop/latest.json' not in pre_compact_text or 'reports/truth-inventory/ralph-continuity-state.json' not in pre_compact_text:
+        errors.append('.claude/hooks/pre-compact-save.sh must point at live Ralph continuity surfaces')
+    if 'Infrastructure (quick check)' in pre_compact_text or 'ssh -o ConnectTimeout=2' in pre_compact_text:
+        errors.append('.claude/hooks/pre-compact-save.sh must not snapshot ad hoc infrastructure state into the handoff')
+
+    post_compact_text = CLAUDE_POST_COMPACT_RELOAD_HOOK_PATH.read_text(encoding='utf-8')
+    if 'Treat .claude/.session-state.md as a hint only, not authority' not in post_compact_text:
+        errors.append('.claude/hooks/post-compact-reload.sh must mark the saved session state as non-authoritative')
+    if 'reports/truth-inventory/governed-dispatch-state.json' not in post_compact_text:
+        errors.append('.claude/hooks/post-compact-reload.sh must refresh governed dispatch truth after compaction')
+    if 'Continue where you left off' in post_compact_text:
+        errors.append('.claude/hooks/post-compact-reload.sh must not tell the operator to continue blindly from stale state')
+
+    stop_autocommit_text = CLAUDE_STOP_AUTOCOMMIT_HOOK_PATH.read_text(encoding='utf-8')
+    if 'ATHANOR_ENABLE_STOP_AUTOCOMMIT' not in stop_autocommit_text:
+        errors.append('.claude/hooks/stop-autocommit.sh must stay opt-in via ATHANOR_ENABLE_STOP_AUTOCOMMIT')
+    if 'disabled by default' not in stop_autocommit_text:
+        errors.append('.claude/hooks/stop-autocommit.sh must explicitly state that auto-commit is disabled by default')
+
+    session_continuity_text = CLAUDE_SESSION_CONTINUITY_RULE_PATH.read_text(encoding='utf-8')
+    if 'git push' in session_continuity_text or 'git commit -m "status: update"' in session_continuity_text:
+        errors.append('.claude/rules/session-continuity.md must not require automatic commit or push at every stop')
+    if 'live runtime truth' not in session_continuity_text:
+        errors.append('.claude/rules/session-continuity.md must state that live runtime truth outranks narrative docs')
+
+    try:
+        mcp_config = json.loads(MCP_CONFIG_PATH.read_text(encoding='utf-8'))
+    except json.JSONDecodeError as exc:
+        errors.append(f'.mcp.json is not valid JSON: {exc}')
+        return
+    athanor_agents = dict(dict(mcp_config.get('mcpServers') or {}).get('athanor-agents') or {})
+    athanor_agent_env = dict(athanor_agents.get('env') or {})
+    token_binding = str(athanor_agent_env.get('ATHANOR_AGENT_API_TOKEN') or '').strip()
+    if token_binding != 'os.environ/ATHANOR_AGENT_API_TOKEN':
+        errors.append('.mcp.json must source ATHANOR_AGENT_API_TOKEN from os.environ/ATHANOR_AGENT_API_TOKEN')
 
 def _validate_repo_structure_contract(errors: list[str]) -> None:
     for pattern in DISALLOWED_REPO_ROOT_SCRATCH_PATTERNS:
@@ -432,6 +634,24 @@ GENERATED_DOC_GENERATORS = {
         "scripts/generate_truth_inventory_reports.py",
         "--report",
         "secret_surfaces",
+    ],
+    "docs/operations/SURFACE-OWNER-MATRIX.md": [
+        "scripts/generate_truth_inventory_reports.py",
+        "--report",
+        "surface_owner_matrix",
+    ],
+    "docs/operations/PUBLICATION-PROVENANCE-REPORT.md": [
+        "scripts/generate_truth_inventory_reports.py",
+        "--report",
+        "publication_provenance",
+    ],
+    "docs/operations/PUBLICATION-TRIAGE-REPORT.md": [
+        "scripts/triage_publication_tranche.py",
+        "--write",
+        "docs/operations/PUBLICATION-TRIAGE-REPORT.md",
+    ],
+    "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md": [
+        "scripts/generate_publication_deferred_family_queue.py",
     ],
 }
 CI_WORKFLOW_PATH = REPO_ROOT / ".gitea" / "workflows" / "ci.yml"
@@ -913,6 +1133,15 @@ def _load_json(name: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _load_optional_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
 def _is_parseable_iso_datetime(raw: Any) -> bool:
     if not isinstance(raw, str) or not raw.strip():
         return False
@@ -925,10 +1154,7 @@ def _is_parseable_iso_datetime(raw: Any) -> bool:
 
 def _resolve_declared_path(raw: Any) -> Path:
     text = str(raw or "").strip()
-    path = Path(text)
-    if path.is_absolute():
-        return path
-    return REPO_ROOT / text
+    return resolve_external_path(text, base=REPO_ROOT)
 
 
 def _validate_bootstrap_zero_ambiguity_contracts(
@@ -1489,6 +1715,74 @@ def _validate_startup_doc_contract(relative_path: str, text: str) -> list[str]:
     return errors
 
 
+def _validate_devstack_convergence_boundaries(
+    *,
+    errors: list[str],
+    master_atlas_dashboard_feed: dict[str, Any],
+) -> None:
+    if not DEVSTACK_LANE_REGISTRY_PATH.exists():
+        errors.append(f"Devstack lane registry is missing: {DEVSTACK_LANE_REGISTRY_PATH.as_posix()}")
+        return
+
+    devstack_lane_registry = _load_optional_json(DEVSTACK_LANE_REGISTRY_PATH)
+    devstack_lane_tokens: set[str] = set()
+    for lane in devstack_lane_registry.get("lanes", []):
+        if not isinstance(lane, dict):
+            continue
+        for raw_token in (
+            str(lane.get("id") or "").strip(),
+            str(lane.get("title") or "").strip(),
+            str(lane.get("name") or "").strip(),
+        ):
+            if raw_token:
+                devstack_lane_tokens.add(raw_token.lower())
+
+    startup_docs = {
+        "STATUS.md": REPO_ROOT / "STATUS.md",
+        "docs/operations/ATHANOR-OPERATING-SYSTEM.md": REPO_ROOT / "docs" / "operations" / "ATHANOR-OPERATING-SYSTEM.md",
+        "docs/operations/ATHANOR-COLD-START.md": REPO_ROOT / "docs" / "operations" / "ATHANOR-COLD-START.md",
+    }
+    for relative_path, path in startup_docs.items():
+        if not path.exists():
+            continue
+        lowered = path.read_text(encoding="utf-8").lower()
+        for token in sorted(devstack_lane_tokens, key=len, reverse=True):
+            if token and token in lowered:
+                errors.append(
+                    f"{relative_path} must not duplicate devstack volatile lane state token {token!r}; point readers to devstack board/atlas instead"
+                )
+                break
+
+    status_text = (REPO_ROOT / "STATUS.md").read_text(encoding="utf-8")
+    for required in (
+        "C:/athanor-devstack/docs/operations/DEVSTACK-FORGE-BOARD.md",
+        "C:/athanor-devstack/reports/master-atlas/latest.json",
+    ):
+        if required not in status_text:
+            errors.append(f"STATUS.md must point readers to {required}")
+
+    operating_system_text = (REPO_ROOT / "docs" / "operations" / "ATHANOR-OPERATING-SYSTEM.md").read_text(encoding="utf-8")
+    for required in (
+        "projects/dashboard/src/generated/master-atlas.json",
+        "C:/athanor-devstack/reports/master-atlas/latest.json",
+        "downstream consumer",
+    ):
+        if required not in operating_system_text:
+            errors.append(f"docs/operations/ATHANOR-OPERATING-SYSTEM.md must contain {required!r}")
+
+    if not DEVSTACK_ATLAS_SOURCE_PATH.exists():
+        errors.append(f"Devstack atlas source is missing: {DEVSTACK_ATLAS_SOURCE_PATH.as_posix()}")
+        return
+    devstack_atlas_source = _load_optional_json(DEVSTACK_ATLAS_SOURCE_PATH)
+    if not devstack_atlas_source:
+        errors.append(f"Devstack atlas source must contain valid JSON: {DEVSTACK_ATLAS_SOURCE_PATH.as_posix()}")
+        return
+    if master_atlas_dashboard_feed != devstack_atlas_source:
+        errors.append(
+            "projects/dashboard/src/generated/master-atlas.json must match C:/athanor-devstack/reports/master-atlas/latest.json exactly"
+        )
+
+
 def _validate_vault_prometheus_probe_contract(
     *,
     errors: list[str],
@@ -1664,8 +1958,6 @@ def _validate_capability_adoption_registry(
         "proof_artifacts",
         "acceptance_criteria",
         "athanor_target_surfaces",
-        "runtime_ownership_lanes",
-        "runtime_packet_ids",
     )
 
     for entry in capabilities:
@@ -1684,6 +1976,20 @@ def _validate_capability_adoption_registry(
                 )
         for field_name in required_list_fields:
             if not isinstance(entry.get(field_name), list) or not entry.get(field_name):
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} must declare non-empty {field_name}"
+                )
+
+        runtime_rollout_state = str(entry.get("runtime_rollout_state") or "").strip()
+        requires_runtime_linkage = runtime_rollout_state != "not_linked"
+        for field_name in ("runtime_ownership_lanes", "runtime_packet_ids"):
+            field_value = entry.get(field_name)
+            if not isinstance(field_value, list):
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} {field_name} must be a list"
+                )
+                continue
+            if requires_runtime_linkage and not field_value:
                 errors.append(
                     f"capability-adoption-registry.json capability {capability_id} must declare non-empty {field_name}"
                 )
@@ -1715,6 +2021,7 @@ def _validate_capability_adoption_registry(
             )
 
         packet_id = str(entry.get("promotion_packet_id") or "").strip()
+        runtime_rollout_state = str(entry.get("runtime_rollout_state") or "").strip()
         if stage in {"adopted", "retired"} and packet_id.startswith("pending"):
             errors.append(
                 f"capability-adoption-registry.json capability {capability_id} must not use a pending promotion_packet_id once stage is {stage!r}"
@@ -1722,12 +2029,13 @@ def _validate_capability_adoption_registry(
 
         lane_values = [str(item).strip() for item in entry.get("runtime_ownership_lanes", []) if str(item).strip()]
         packet_values = [str(item).strip() for item in entry.get("runtime_packet_ids", []) if str(item).strip()]
+        requires_runtime_linkage = runtime_rollout_state != "not_linked"
         if stage in {"adopted", "retired"}:
-            if not lane_values:
+            if requires_runtime_linkage and not lane_values:
                 errors.append(
                     f"capability-adoption-registry.json capability {capability_id} must declare runtime_ownership_lanes once stage is {stage!r}"
                 )
-            if not packet_values:
+            if requires_runtime_linkage and not packet_values:
                 errors.append(
                     f"capability-adoption-registry.json capability {capability_id} must declare runtime_packet_ids once stage is {stage!r}"
                 )
@@ -1740,6 +2048,74 @@ def _validate_capability_adoption_registry(
             if runtime_packet_id != "pending" and runtime_packet_id not in runtime_packet_ids:
                 errors.append(
                     f"capability-adoption-registry.json capability {capability_id} references unknown runtime_packet_id {runtime_packet_id!r}"
+                )
+
+
+def _validate_capability_adoption_boundary_fields(
+    *,
+    errors: list[str],
+    capability_adoption: dict[str, Any],
+    domain_packets: dict[str, Any],
+    memory_namespaces: dict[str, Any],
+) -> None:
+    allowed_release_tiers = {"offline_eval", "shadow", "canary", "production", "retired"}
+    allowed_runtime_rollout_states = {"", "not_linked", "shadow_live", "canary_live", "primary_live", "retired"}
+    domain_ids = {
+        str(item.get("id") or "").strip()
+        for item in domain_packets.get("domains", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+    namespace_ids = {
+        str(item.get("id") or "").strip()
+        for item in memory_namespaces.get("namespaces", [])
+        if isinstance(item, dict) and str(item.get("id") or "").strip()
+    }
+
+    for entry in capability_adoption.get("capabilities", []):
+        if not isinstance(entry, dict):
+            continue
+        capability_id = str(entry.get("id") or "").strip() or "<missing>"
+        if not str(entry.get("source_lane_id") or "").strip():
+            errors.append(f"capability-adoption-registry.json capability {capability_id} is missing source_lane_id")
+        if not str(entry.get("source_packet_id") or "").strip():
+            errors.append(f"capability-adoption-registry.json capability {capability_id} is missing source_packet_id")
+        if not str(entry.get("landing_project") or "").strip():
+            errors.append(f"capability-adoption-registry.json capability {capability_id} is missing landing_project")
+
+        release_tier = str(entry.get("release_tier") or "").strip()
+        if release_tier not in allowed_release_tiers:
+            errors.append(
+                f"capability-adoption-registry.json capability {capability_id} has invalid release_tier {release_tier!r}"
+            )
+
+        runtime_rollout_state = str(entry.get("runtime_rollout_state") or "").strip()
+        if runtime_rollout_state not in allowed_runtime_rollout_states:
+            errors.append(
+                f"capability-adoption-registry.json capability {capability_id} has invalid runtime_rollout_state {runtime_rollout_state!r}"
+            )
+
+        affected_domains = entry.get("affected_domains")
+        if not isinstance(affected_domains, list) or not affected_domains:
+            errors.append(
+                f"capability-adoption-registry.json capability {capability_id} must declare non-empty affected_domains"
+            )
+        else:
+            unknown_domains = [str(item).strip() for item in affected_domains if str(item).strip() not in domain_ids]
+            if unknown_domains:
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} references unknown affected_domains: {', '.join(sorted(unknown_domains))}"
+                )
+
+        affected_namespaces = entry.get("affected_namespaces")
+        if not isinstance(affected_namespaces, list):
+            errors.append(
+                f"capability-adoption-registry.json capability {capability_id} affected_namespaces must be a list"
+            )
+        else:
+            unknown_namespaces = [str(item).strip() for item in affected_namespaces if str(item).strip() not in namespace_ids]
+            if unknown_namespaces:
+                errors.append(
+                    f"capability-adoption-registry.json capability {capability_id} references unknown affected_namespaces: {', '.join(sorted(unknown_namespaces))}"
                 )
 
 
@@ -2406,6 +2782,8 @@ def main() -> int:
     completion_program = _load_json("completion-program-registry.json")
     portfolio = _load_json("project-maturity-registry.json")
     project_packets = _load_json("project-packet-registry.json")
+    domain_packets = _load_json("domain-packets-registry.json")
+    memory_namespaces = _load_json("memory-namespace-registry.json")
     bootstrap_programs = _load_json("bootstrap-program-registry.json")
     bootstrap_takeover = _load_json("bootstrap-takeover-registry.json")
     bootstrap_slice_catalog = _load_json("bootstrap-slice-catalog.json")
@@ -2421,6 +2799,8 @@ def main() -> int:
     capacity_envelope = _load_json("capacity-envelope-registry.json")
     restore_ledger = _load_json("restore-ledger.json")
     backup_restore_readiness = _load_json("backup-restore-readiness.json")
+    artifact_topology = _load_json("artifact-topology-registry.json")
+    data_lifecycle = _load_json("data-lifecycle-registry.json")
     docs = _load_json("docs-lifecycle-registry.json")
     provider_usage_evidence = {}
     if PROVIDER_USAGE_EVIDENCE_PATH.exists():
@@ -2528,6 +2908,8 @@ def main() -> int:
         "docs-lifecycle-registry.json": str(docs.get("version") or ""),
         "program-operating-system.json": str(operating_system.get("version") or ""),
     }
+    errors.extend(validate_layered_master_plan_contract())
+
     _validate_bootstrap_zero_ambiguity_contracts(
         errors=errors,
         bootstrap_programs=bootstrap_programs,
@@ -2557,6 +2939,12 @@ def main() -> int:
         runtime_ownership=runtime_ownership,
         runtime_ownership_packets=runtime_ownership_packets,
     )
+    _validate_capability_adoption_boundary_fields(
+        errors=errors,
+        capability_adoption=capability_adoption,
+        domain_packets=domain_packets,
+        memory_namespaces=memory_namespaces,
+    )
     _validate_repo_structure_contract(errors)
     _validate_master_atlas_contracts(
         errors=errors,
@@ -2577,6 +2965,10 @@ def main() -> int:
         failure_routing_matrix=failure_routing_matrix,
         subscription_burn_registry=subscription_burn,
     )
+    _validate_devstack_convergence_boundaries(
+        errors=errors,
+        master_atlas_dashboard_feed=master_atlas_dashboard_feed,
+    )
     _validate_routing_runtime_ledgers(
         errors=errors,
         quota_truth=quota_truth,
@@ -2587,6 +2979,9 @@ def main() -> int:
         project_packets=project_packets,
     )
     lifecycle_paths = _validate_docs_lifecycle_registry_shape(errors, docs)
+    _validate_archive_doc_metadata(errors, docs)
+    _validate_high_risk_reference_doc_metadata(errors, docs)
+    _validate_operator_helper_surfaces(errors)
     workflow_steps = _workflow_step_names()
 
     if BUILD_MANIFEST_ACTIVE_PATH.exists():
@@ -3587,7 +3982,7 @@ def main() -> int:
             for evidence_path in evidence_paths:
                 evidence_value = str(evidence_path).strip()
                 if re.match(r"^[A-Za-z]:/", evidence_value) or re.match(r"^[A-Za-z]:\\\\", evidence_value):
-                    if not Path(evidence_value).exists():
+                    if not resolve_external_path(evidence_value).exists():
                         errors.append(
                             f"reconciliation-source-registry.json source {source_id} evidence path is missing: {evidence_value}"
                         )
@@ -3599,7 +3994,7 @@ def main() -> int:
                             f"reconciliation-source-registry.json source {source_id} evidence path is missing: {evidence_value}"
                         )
         if path_value and re.match(r"^[A-Za-z]:/", path_value):
-            if not Path(path_value).exists():
+            if not resolve_external_path(path_value).exists():
                 errors.append(f"reconciliation-source-registry.json source {source_id} path is missing: {path_value}")
         if source_kind == "github_repo" and not path_value.startswith("https://github.com/"):
             errors.append(
@@ -4235,6 +4630,56 @@ def main() -> int:
     if not isinstance(publication_rules, list) or len(publication_rules) != 3 or not all(str(item).strip() for item in publication_rules):
         errors.append("completion-program-registry.json publication_slices.rules must be a 3-item non-empty string list")
 
+    deferred_family_entries = [
+        dict(entry) for entry in publication_slices.get("deferred_families", []) if isinstance(entry, dict)
+    ]
+    if not deferred_family_entries:
+        errors.append("completion-program-registry.json publication_slices.deferred_families must be a non-empty object list")
+    deferred_family_ids = [str(entry.get("id") or "").strip() for entry in deferred_family_entries]
+    if len(deferred_family_ids) != len(set(item for item in deferred_family_ids if item)):
+        errors.append("completion-program-registry.json publication_slices.deferred_families contains duplicate ids")
+    for entry in deferred_family_entries:
+        family_id = str(entry.get("id") or "").strip()
+        if not family_id:
+            errors.append("completion-program-registry.json publication_slices.deferred_families contains an entry without id")
+            continue
+        if not str(entry.get("title") or "").strip():
+            errors.append(f"completion-program-registry.json publication deferred family {family_id} is missing title")
+        if not str(entry.get("scope") or "").strip():
+            errors.append(f"completion-program-registry.json publication deferred family {family_id} is missing scope")
+        if str(entry.get("disposition") or "") not in ALLOWED_PUBLICATION_DEFERRED_DISPOSITIONS:
+            errors.append(
+                f"completion-program-registry.json publication deferred family {family_id} has invalid disposition {entry.get('disposition')!r}"
+            )
+        if int(entry.get("execution_rank") or 0) <= 0:
+            errors.append(
+                f"completion-program-registry.json publication deferred family {family_id} must declare a positive execution_rank"
+            )
+        if str(entry.get("execution_class") or "") not in ALLOWED_PUBLICATION_DEFERRED_EXECUTION_CLASSES:
+            errors.append(
+                f"completion-program-registry.json publication deferred family {family_id} has invalid execution_class {entry.get('execution_class')!r}"
+            )
+        if not str(entry.get("next_action") or "").strip():
+            errors.append(f"completion-program-registry.json publication deferred family {family_id} is missing next_action")
+        if not str(entry.get("success_condition") or "").strip():
+            errors.append(f"completion-program-registry.json publication deferred family {family_id} is missing success_condition")
+        owner_workstreams = entry.get("owner_workstreams", [])
+        if not isinstance(owner_workstreams, list) or not owner_workstreams or not all(str(item).strip() for item in owner_workstreams):
+            errors.append(
+                f"completion-program-registry.json publication deferred family {family_id} owner_workstreams must be a non-empty string list"
+            )
+        else:
+            for owner_workstream in owner_workstreams:
+                if str(owner_workstream) not in REQUIRED_COMPLETION_WORKSTREAM_IDS:
+                    errors.append(
+                        f"completion-program-registry.json publication deferred family {family_id} references unknown owner_workstream {owner_workstream!r}"
+                    )
+        path_hints = entry.get("path_hints", [])
+        if not isinstance(path_hints, list) or not path_hints or not all(str(item).strip() for item in path_hints):
+            errors.append(
+                f"completion-program-registry.json publication deferred family {family_id} path_hints must be a non-empty string list"
+            )
+
     publication_slice_entries = [
         dict(entry) for entry in publication_slices.get("slices", []) if isinstance(entry, dict)
     ]
@@ -4283,6 +4728,17 @@ def main() -> int:
                     errors.append(
                         f"completion-program-registry.json publication_slices slice {slice_id} references unknown owner_workstream {owner_workstream!r}"
                     )
+        for list_field in ("publication_artifact_refs", "generated_artifacts", "validator_run_set", "working_tree_path_hints"):
+            values = entry.get(list_field, [])
+            if not isinstance(values, list) or not all(str(item).strip() for item in values):
+                errors.append(
+                    f"completion-program-registry.json publication_slices slice {slice_id} {list_field} must be a non-empty string list"
+                )
+                continue
+            if list_field in {"publication_artifact_refs", "working_tree_path_hints"} and not values:
+                errors.append(
+                    f"completion-program-registry.json publication_slices slice {slice_id} must declare {list_field}"
+                )
 
     loop_family_entries = [
         dict(entry) for entry in completion_program.get("loop_families", []) if isinstance(entry, dict)
@@ -4337,6 +4793,44 @@ def main() -> int:
         errors.append("completion-program-registry.json ralph_loop.last_validation_run is missing")
     if str(ralph_loop.get("execution_posture") or "") not in {"active_remediation", "steady_state"}:
         errors.append("completion-program-registry.json ralph_loop.execution_posture must be active_remediation or steady_state")
+
+    continuity_policy = dict(completion_program.get("continuity_policy") or {})
+    if not continuity_policy:
+        errors.append("completion-program-registry.json continuity_policy is missing")
+    else:
+        if int(continuity_policy.get("no_delta_suppression_ttl_hours") or 0) <= 0:
+            errors.append("completion-program-registry.json continuity_policy.no_delta_suppression_ttl_hours must be > 0")
+        feeder_precedence = [
+            str(item).strip()
+            for item in continuity_policy.get("feeder_precedence", [])
+            if str(item).strip()
+        ]
+        if not feeder_precedence:
+            errors.append("completion-program-registry.json continuity_policy.feeder_precedence must be a non-empty list")
+        elif "cash_now_deferred_family" not in feeder_precedence:
+            errors.append("completion-program-registry.json continuity_policy.feeder_precedence must include cash_now_deferred_family")
+        elif "burn_class" not in feeder_precedence:
+            errors.append("completion-program-registry.json continuity_policy.feeder_precedence must include burn_class")
+        elif feeder_precedence.index("cash_now_deferred_family") > feeder_precedence.index("burn_class"):
+            errors.append(
+                "completion-program-registry.json continuity_policy.feeder_precedence must rank cash_now_deferred_family ahead of burn_class"
+            )
+        hard_brakes = {
+            str(item).strip()
+            for item in continuity_policy.get("hard_brakes", [])
+            if str(item).strip()
+        }
+        missing_hard_brakes = sorted(ALLOWED_RALPH_CONTINUITY_STOP_STATES - {"none"} - hard_brakes)
+        if missing_hard_brakes:
+            errors.append(
+                "completion-program-registry.json continuity_policy.hard_brakes is missing: " + ", ".join(missing_hard_brakes)
+            )
+        if continuity_policy.get("cash_now_deferred_families_are_autonomous_inputs") is not True:
+            errors.append("completion-program-registry.json continuity_policy.cash_now_deferred_families_are_autonomous_inputs must be true")
+        if continuity_policy.get("cash_now_requires_no_unsuppressed_workstream") is not True:
+            errors.append("completion-program-registry.json continuity_policy.cash_now_requires_no_unsuppressed_workstream must be true")
+        if continuity_policy.get("green_not_stop_condition") is not True:
+            errors.append("completion-program-registry.json continuity_policy.green_not_stop_condition must be true")
 
     role_ids = {
         str(item.get("id") or "").strip()
@@ -5502,6 +5996,18 @@ def main() -> int:
         errors.append("ATHANOR-RALPH-LOOP-PROGRAM.md must point readers to reports/ralph-loop/latest.json")
     if "ATHANOR-RECONCILIATION-END-STATE.md" not in ralph_loop_program_text:
         errors.append("ATHANOR-RALPH-LOOP-PROGRAM.md must point readers to ATHANOR-RECONCILIATION-END-STATE.md")
+    if "typed brake" not in ralph_loop_program_text or "green check" not in ralph_loop_program_text:
+        errors.append("ATHANOR-RALPH-LOOP-PROGRAM.md must state that Ralph continues until a typed brake, not until a green check")
+    completion_backlog_text = (REPO_ROOT / "docs" / "operations" / "CONTINUOUS-COMPLETION-BACKLOG.md").read_text(encoding="utf-8")
+    if "reports/truth-inventory/ralph-continuity-state.json" not in completion_backlog_text:
+        errors.append("CONTINUOUS-COMPLETION-BACKLOG.md must point readers to reports/truth-inventory/ralph-continuity-state.json")
+    session_restart_text = (REPO_ROOT / "docs" / "operations" / "SESSION-RESTART-RUNBOOK.md").read_text(encoding="utf-8")
+    if "session_restart_brief.py" not in session_restart_text:
+        errors.append("SESSION-RESTART-RUNBOOK.md must point readers to scripts/session_restart_brief.py")
+    if "reports/truth-inventory/ralph-continuity-state.json" not in session_restart_text:
+        errors.append("SESSION-RESTART-RUNBOOK.md must point readers to reports/truth-inventory/ralph-continuity-state.json")
+    if "typed brake" not in session_restart_text:
+        errors.append("SESSION-RESTART-RUNBOOK.md must state the typed-brake restart rule")
     operating_system_text = (REPO_ROOT / "docs" / "operations" / "ATHANOR-OPERATING-SYSTEM.md").read_text(encoding="utf-8")
     if "ATHANOR-RECONCILIATION-END-STATE.md" not in operating_system_text:
         errors.append("ATHANOR-OPERATING-SYSTEM.md must point readers to ATHANOR-RECONCILIATION-END-STATE.md")
@@ -5532,6 +6038,22 @@ def main() -> int:
         next_actions = ralph_loop_report.get("next_actions", [])
         if not isinstance(next_actions, list):
             errors.append("reports/ralph-loop/latest.json next_actions must be a list")
+        if not isinstance(ralph_loop_report.get("continue_allowed"), bool):
+            errors.append("reports/ralph-loop/latest.json continue_allowed must be boolean")
+        if str(ralph_loop_report.get("stop_state") or "") not in ALLOWED_RALPH_CONTINUITY_STOP_STATES:
+            errors.append("reports/ralph-loop/latest.json stop_state must be a valid Ralph continuity stop state")
+        next_unblocked_candidate = ralph_loop_report.get("next_unblocked_candidate")
+        if next_unblocked_candidate is not None and not isinstance(next_unblocked_candidate, dict):
+            errors.append("reports/ralph-loop/latest.json next_unblocked_candidate must be an object when present")
+        if str(loop_state.get("stop_state") or "") not in ALLOWED_RALPH_CONTINUITY_STOP_STATES:
+            errors.append("reports/ralph-loop/latest.json loop_state.stop_state must be a valid Ralph continuity stop state")
+        if bool(ralph_loop_report.get("continue_allowed")) != bool(loop_state.get("continue_allowed")):
+            errors.append("reports/ralph-loop/latest.json continue_allowed must match loop_state.continue_allowed")
+        if str(ralph_loop_report.get("stop_state") or "") != str(loop_state.get("stop_state") or ""):
+            errors.append("reports/ralph-loop/latest.json stop_state must match loop_state.stop_state")
+        continuity_block = dict(ralph_loop_report.get("continuity") or {})
+        if str(continuity_block.get("state_path") or "") != "reports/truth-inventory/ralph-continuity-state.json":
+            errors.append("reports/ralph-loop/latest.json continuity.state_path must point at reports/truth-inventory/ralph-continuity-state.json")
         if str(dict(ralph_loop_report.get("source_of_truth") or {}).get("completion_program_registry") or "") != "config/automation-backbone/completion-program-registry.json":
             errors.append("reports/ralph-loop/latest.json source_of_truth.completion_program_registry must point at completion-program-registry.json")
         if str(ralph_loop.get("current_loop_family") or "") != str(loop_state.get("current_loop_family") or ""):
@@ -5546,6 +6068,10 @@ def main() -> int:
             errors.append("completion-program-registry.json ralph_loop.execution_posture must match reports/ralph-loop/latest.json loop_state.execution_posture")
         if str(ralph_loop.get("evidence_freshness") or "") != str(loop_state.get("evidence_freshness") or ""):
             errors.append("completion-program-registry.json ralph_loop.evidence_freshness must match reports/ralph-loop/latest.json loop_state.evidence_freshness")
+        if str(ralph_loop_report.get("active_claim_task_id") or "").strip() != str(dict(ralph_loop_report.get("governed_dispatch_claim") or {}).get("current_task_id") or "").strip():
+            errors.append("reports/ralph-loop/latest.json active_claim_task_id must match governed_dispatch_claim.current_task_id")
+        if str(ralph_loop_report.get("active_claim_task_title") or "").strip() != str(dict(ralph_loop_report.get("governed_dispatch_claim") or {}).get("current_task_title") or "").strip():
+            errors.append("reports/ralph-loop/latest.json active_claim_task_title must match governed_dispatch_claim.current_task_title")
         report_end_state = dict(ralph_loop_report.get("reconciliation_end_state") or {})
         if str(report_end_state.get("source_of_truth") or "") != str(reconciliation_end_state.get("source_of_truth") or ""):
             errors.append("reports/ralph-loop/latest.json reconciliation_end_state.source_of_truth must match completion-program-registry.json")
@@ -5580,6 +6106,38 @@ def main() -> int:
             errors.append(
                 "reports/ralph-loop/latest.json reconciliation_end_state.steady_state_acceptance.ready_to_transition must match completion-program-registry.json"
             )
+
+    if not RALPH_CONTINUITY_STATE_PATH.exists():
+        errors.append("reports/truth-inventory/ralph-continuity-state.json is missing")
+    else:
+        try:
+            continuity_state = json.loads(RALPH_CONTINUITY_STATE_PATH.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continuity_state = {}
+            errors.append("reports/truth-inventory/ralph-continuity-state.json is invalid JSON")
+        if isinstance(continuity_state, dict):
+            if str(continuity_state.get("generated_at") or "").strip() == "":
+                errors.append("reports/truth-inventory/ralph-continuity-state.json is missing generated_at")
+            if not isinstance(continuity_state.get("continue_allowed"), bool):
+                errors.append("reports/truth-inventory/ralph-continuity-state.json continue_allowed must be boolean")
+            if str(continuity_state.get("current_stop_state") or "") not in ALLOWED_RALPH_CONTINUITY_STOP_STATES:
+                errors.append("reports/truth-inventory/ralph-continuity-state.json current_stop_state must be valid")
+            if not isinstance(continuity_state.get("recent_no_delta_task_ids", []), list):
+                errors.append("reports/truth-inventory/ralph-continuity-state.json recent_no_delta_task_ids must be a list")
+            if not isinstance(continuity_state.get("suppressed_until_by_task", {}), dict):
+                errors.append("reports/truth-inventory/ralph-continuity-state.json suppressed_until_by_task must be an object")
+            if not isinstance(continuity_state.get("claim_history", []), list):
+                errors.append("reports/truth-inventory/ralph-continuity-state.json claim_history must be a list")
+            if not isinstance(continuity_state.get("active_claim_history", []), list):
+                errors.append("reports/truth-inventory/ralph-continuity-state.json active_claim_history must be a list")
+            if RALPH_LOOP_REPORT_PATH.exists() and isinstance(ralph_loop_report, dict):
+                report_continuity = dict(ralph_loop_report.get("continuity") or {})
+                if bool(continuity_state.get("continue_allowed")) != bool(ralph_loop_report.get("continue_allowed")):
+                    errors.append("ralph-continuity-state.json continue_allowed must match reports/ralph-loop/latest.json")
+                if str(continuity_state.get("current_stop_state") or "") != str(ralph_loop_report.get("stop_state") or ""):
+                    errors.append("ralph-continuity-state.json current_stop_state must match reports/ralph-loop/latest.json stop_state")
+                if dict(report_continuity.get("suppressed_until_by_task") or {}) != dict(continuity_state.get("suppressed_until_by_task") or {}):
+                    errors.append("reports/ralph-loop/latest.json continuity.suppressed_until_by_task must match ralph-continuity-state.json")
 
     lens_ids = {str(item) for item in operating_system.get("lenses", [])}
     if lens_ids != REQUIRED_LENSES:

@@ -1,0 +1,333 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T14:45:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/execution-lease-policy.json",
+  "lease_classes": [
+    {
+      "lease_class_id": "read_only_inspection",
+      "allowed_authority_planes": [
+        "adopted_system",
+        "build_system",
+        "operator_control"
+      ],
+      "allowed_mutation_classes": [
+        "none"
+      ],
+      "approval_band_default": "auto_read_only",
+      "allowed_targets": [
+        "docs",
+        "reports",
+        "registries",
+        "runtime_reports"
+      ],
+      "allowed_runtime_scopes": [
+        "read_only"
+      ],
+      "allowed_repo_scopes": [
+        "bounded_repo_scan",
+        "generated_truth_review"
+      ],
+      "allowed_data_handling_profiles": [
+        "sovereign_adult",
+        "sovereign_private",
+        "regulated_health",
+        "tax_financial",
+        "business_confidential",
+        "general_private",
+        "cloud_safe"
+      ],
+      "allowed_operator_modes": [
+        "at_desk",
+        "away",
+        "low_energy",
+        "incident_mode",
+        "deep_build"
+      ],
+      "requires_packet_linkage": false,
+      "requires_publication_linkage": false,
+      "requires_worktree_binding": false,
+      "max_duration": "24h",
+      "escalation_path": "none"
+    },
+    {
+      "lease_class_id": "build_truth_mutation",
+      "allowed_authority_planes": [
+        "build_system"
+      ],
+      "allowed_mutation_classes": [
+        "bounded_registry_edit",
+        "bounded_doc_edit",
+        "build_queue_mutation"
+      ],
+      "approval_band_default": "auto_harvest",
+      "allowed_targets": [
+        "devstack_registry",
+        "packet",
+        "board_source",
+        "atlas_source"
+      ],
+      "allowed_runtime_scopes": [
+        "none"
+      ],
+      "allowed_repo_scopes": [
+        "devstack_only",
+        "bounded_cross_repo_contract"
+      ],
+      "allowed_data_handling_profiles": [
+        "sovereign_private",
+        "business_confidential",
+        "general_private",
+        "cloud_safe"
+      ],
+      "allowed_operator_modes": [
+        "at_desk",
+        "deep_build"
+      ],
+      "requires_packet_linkage": false,
+      "requires_publication_linkage": false,
+      "requires_worktree_binding": true,
+      "max_duration": "12h",
+      "escalation_path": "validation-and-publication"
+    },
+    {
+      "lease_class_id": "generated_truth_regeneration",
+      "allowed_authority_planes": [
+        "adopted_system",
+        "build_system",
+        "operator_control"
+      ],
+      "allowed_mutation_classes": [
+        "report_generation",
+        "derived_surface_refresh"
+      ],
+      "approval_band_default": "auto_harvest",
+      "allowed_targets": [
+        "generated_report",
+        "generated_dashboard_feed",
+        "compiled_summary"
+      ],
+      "allowed_runtime_scopes": [
+        "none"
+      ],
+      "allowed_repo_scopes": [
+        "bounded_generated_outputs"
+      ],
+      "allowed_data_handling_profiles": [
+        "sovereign_adult",
+        "sovereign_private",
+        "regulated_health",
+        "tax_financial",
+        "business_confidential",
+        "general_private",
+        "cloud_safe"
+      ],
+      "allowed_operator_modes": [
+        "at_desk",
+        "away",
+        "low_energy",
+        "incident_mode",
+        "deep_build"
+      ],
+      "requires_packet_linkage": false,
+      "requires_publication_linkage": false,
+      "requires_worktree_binding": false,
+      "max_duration": "8h",
+      "escalation_path": "startup-docs-and-prune"
+    },
+    {
+      "lease_class_id": "packet_and_registry_mutation",
+      "allowed_authority_planes": [
+        "adopted_system",
+        "build_system"
+      ],
+      "allowed_mutation_classes": [
+        "registry_contract_edit",
+        "packet_contract_edit",
+        "capability_metadata_change"
+      ],
+      "approval_band_default": "review_required",
+      "allowed_targets": [
+        "canonical_registry",
+        "promotion_packet",
+        "runtime_packet_metadata"
+      ],
+      "allowed_runtime_scopes": [
+        "none"
+      ],
+      "allowed_repo_scopes": [
+        "bounded_cross_repo_contract"
+      ],
+      "allowed_data_handling_profiles": [
+        "sovereign_adult",
+        "sovereign_private",
+        "business_confidential",
+        "general_private"
+      ],
+      "allowed_operator_modes": [
+        "at_desk",
+        "deep_build"
+      ],
+      "requires_packet_linkage": true,
+      "requires_publication_linkage": false,
+      "requires_worktree_binding": true,
+      "max_duration": "12h",
+      "escalation_path": "validation-and-publication"
+    },
+    {
+      "lease_class_id": "tenant_repo_mutation",
+      "allowed_authority_planes": [
+        "adopted_system",
+        "build_system"
+      ],
+      "allowed_mutation_classes": [
+        "tenant_scaffold_change",
+        "tenant_feature_change",
+        "tenant_docs_change"
+      ],
+      "approval_band_default": "review_required",
+      "allowed_targets": [
+        "governed_in_repo_project",
+        "tenant_repo"
+      ],
+      "allowed_runtime_scopes": [
+        "none"
+      ],
+      "allowed_repo_scopes": [
+        "bounded_tenant_repo"
+      ],
+      "allowed_data_handling_profiles": [
+        "sovereign_adult",
+        "sovereign_private",
+        "business_confidential",
+        "general_private"
+      ],
+      "allowed_operator_modes": [
+        "at_desk",
+        "deep_build"
+      ],
+      "requires_packet_linkage": true,
+      "requires_publication_linkage": false,
+      "requires_worktree_binding": true,
+      "max_duration": "12h",
+      "escalation_path": "tenant-architecture-and-classification"
+    },
+    {
+      "lease_class_id": "runtime_packet_execution",
+      "allowed_authority_planes": [
+        "adopted_system"
+      ],
+      "allowed_mutation_classes": [
+        "packet_apply",
+        "bounded_runtime_repair"
+      ],
+      "approval_band_default": "approval_required",
+      "allowed_targets": [
+        "runtime_packet",
+        "packet_backed_runtime_lane"
+      ],
+      "allowed_runtime_scopes": [
+        "packet_backed_only"
+      ],
+      "allowed_repo_scopes": [
+        "athanor_only"
+      ],
+      "allowed_data_handling_profiles": [
+        "sovereign_adult",
+        "sovereign_private",
+        "regulated_health",
+        "tax_financial",
+        "business_confidential",
+        "general_private"
+      ],
+      "allowed_operator_modes": [
+        "at_desk",
+        "incident_mode"
+      ],
+      "requires_packet_linkage": true,
+      "requires_publication_linkage": false,
+      "requires_worktree_binding": false,
+      "max_duration": "4h",
+      "escalation_path": "runtime-sync-and-governed-packets"
+    },
+    {
+      "lease_class_id": "live_runtime_mutation",
+      "allowed_authority_planes": [
+        "adopted_system"
+      ],
+      "allowed_mutation_classes": [
+        "live_runtime_change",
+        "release_tier_change",
+        "provider_routing_change"
+      ],
+      "approval_band_default": "approval_required",
+      "allowed_targets": [
+        "cluster_runtime",
+        "live_router",
+        "protected_service"
+      ],
+      "allowed_runtime_scopes": [
+        "approved_live_mutation"
+      ],
+      "allowed_repo_scopes": [
+        "athanor_only"
+      ],
+      "allowed_data_handling_profiles": [
+        "sovereign_adult",
+        "sovereign_private",
+        "regulated_health",
+        "tax_financial",
+        "business_confidential"
+      ],
+      "allowed_operator_modes": [
+        "at_desk",
+        "incident_mode"
+      ],
+      "requires_packet_linkage": true,
+      "requires_publication_linkage": true,
+      "requires_worktree_binding": false,
+      "max_duration": "2h",
+      "escalation_path": "runtime-sync-and-governed-packets"
+    },
+    {
+      "lease_class_id": "operator_local_maintenance",
+      "allowed_authority_planes": [
+        "operator_control"
+      ],
+      "allowed_mutation_classes": [
+        "audit_script_change",
+        "worktree_hygiene",
+        "wsl_tooling_repair"
+      ],
+      "approval_band_default": "auto_harvest",
+      "allowed_targets": [
+        "codex_home",
+        "codex_system_config",
+        "worktree_audit"
+      ],
+      "allowed_runtime_scopes": [
+        "none"
+      ],
+      "allowed_repo_scopes": [
+        "operator_local_only"
+      ],
+      "allowed_data_handling_profiles": [
+        "sovereign_private",
+        "general_private",
+        "cloud_safe"
+      ],
+      "allowed_operator_modes": [
+        "at_desk",
+        "away",
+        "low_energy",
+        "incident_mode",
+        "deep_build"
+      ],
+      "requires_packet_linkage": false,
+      "requires_publication_linkage": false,
+      "requires_worktree_binding": false,
+      "max_duration": "8h",
+      "escalation_path": "Codex System Config"
+    }
+  ]
+}

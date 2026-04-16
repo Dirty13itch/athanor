@@ -1,6 +1,6 @@
-# Athanor - Claude Code Setup Script
-# Run this ONCE from PowerShell to configure user-scoped MCP servers and environment
-# Prerequisites: Node.js (for npx), Claude Code installed
+# Athanor - Legacy Claude Code Bootstrap / Recovery Script
+# Recovery/bootstrap helper for older Windows Claude Code setup flows; do not treat this script as current operator truth.
+# Current setup truth lives in AGENTS.md, STATUS.md, and docs/operations/SESSION-RESTART-RUNBOOK.md.
 
 Write-Host "=== Athanor - Claude Code Environment Setup ===" -ForegroundColor Cyan
 Write-Host ""
@@ -24,7 +24,7 @@ Write-Host "  Claude Code: $claudeVersion" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "=== Installing User-Scoped MCP Servers ===" -ForegroundColor Cyan
-Write-Host "These will be available in ALL Claude Code projects." -ForegroundColor Gray
+Write-Host "These are user-scoped installs and may affect other Claude Code projects on this machine." -ForegroundColor Gray
 Write-Host ""
 
 # GitHub MCP
@@ -101,11 +101,10 @@ Write-Host "Environment variables set:" -ForegroundColor Green
 Write-Host "  - CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1" -ForegroundColor White
 Write-Host "  - CLAUDE_CODE_GIT_BASH_PATH (if Git found)" -ForegroundColor White
 Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Yellow
+Write-Host "Legacy bootstrap next steps (verify current docs before following):" -ForegroundColor Yellow
 Write-Host "  1. Close and reopen your terminal (for env vars to take effect)" -ForegroundColor White
-Write-Host "  2. cd into the athanor project directory" -ForegroundColor White
-Write-Host "  3. Run: git init && git add -A && git commit -m 'Athanor: initial commit'" -ForegroundColor White
-Write-Host "  4. Run: claude" -ForegroundColor White
-Write-Host "  5. Run: /project:orient" -ForegroundColor White
+Write-Host "  2. Open the current repo and verify AGENTS.md / STATUS.md / SESSION-RESTART-RUNBOOK.md" -ForegroundColor White
+Write-Host "  3. Run: claude (only if you are intentionally bootstrapping the older Claude Code flow)" -ForegroundColor White
+Write-Host "  4. Use current repo startup/orientation guidance instead of legacy git-init instructions" -ForegroundColor White
 Write-Host ""
 Write-Host "The furnace is ready to light." -ForegroundColor Cyan

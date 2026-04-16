@@ -1,0 +1,49 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T18:40:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/architecture-freeze-policy.json",
+  "architecture_freeze_policy": {
+    "freeze_new_planes_and_loops": true,
+    "activate_when_ready_for_checkpoint_gte": 3,
+    "blocked_change_classes": [
+      "new_plane",
+      "new_loop",
+      "speculative_reframe",
+      "shadow_authority_surface"
+    ],
+    "release_conditions": [
+      "publication_debt_below_threshold",
+      "top_execution_lanes_not_blocked_by_canon_churn"
+    ]
+  },
+  "rewrite_budget_policy": {
+    "max_canonical_backbone_rewrites_per_publication_wave": 1,
+    "require_validator_or_runtime_pain_evidence": true,
+    "disallow_speculative_reframes_while_blocked": true,
+    "review_trigger": "publication_debt_or_runtime_contradiction"
+  },
+  "canon_change_gate": {
+    "required_inputs": [
+      "runtime_pain_or_validator_evidence",
+      "affected_authority_layers",
+      "rollback_path",
+      "publication_slice_impact"
+    ],
+    "blocked_when": [
+      "publication_debt_blocking",
+      "new_architecture_without_runtime_evidence",
+      "shadow_authority_growth"
+    ],
+    "allow_when": [
+      "measured_failure",
+      "recurring_validator_evidence",
+      "explicit_operator_exception"
+    ]
+  },
+  "contracts": [
+    "architecture_freeze_policy",
+    "rewrite_budget_policy",
+    "canon_change_gate"
+  ]
+}

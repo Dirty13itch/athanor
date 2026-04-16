@@ -1,0 +1,122 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T14:45:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/retention-policy-registry.json",
+  "policies": [
+    {
+      "retention_policy_id": "ret-sovereign-adult",
+      "artifact_classes": [
+        "creative_packets",
+        "creative_eval_reports",
+        "selected_assets",
+        "redacted_logs"
+      ],
+      "retention_window": "90d active + archive_on_keep",
+      "archive_root": "C:/Athanor/output/archive/sovereign-adult",
+      "redaction_rules": [
+        "no_cloud_prompt_bodies",
+        "strip_provider_tokens",
+        "strip_operator_secrets"
+      ],
+      "delete_gate": "operator_review_required",
+      "review_cadence": "monthly"
+    },
+    {
+      "retention_policy_id": "ret-sovereign-private",
+      "artifact_classes": [
+        "registry_history",
+        "runtime_packets",
+        "eval_reports",
+        "redacted_logs"
+      ],
+      "retention_window": "180d active + archive_on_keep",
+      "archive_root": "C:/Athanor/reports/archive/sovereign-private",
+      "redaction_rules": [
+        "strip_secrets",
+        "strip_sensitive_payloads"
+      ],
+      "delete_gate": "packet_or_operator_review",
+      "review_cadence": "monthly"
+    },
+    {
+      "retention_policy_id": "ret-regulated-health",
+      "artifact_classes": [
+        "regulated_docs",
+        "regulated_reports",
+        "redacted_logs"
+      ],
+      "retention_window": "governed_by_case_and_regulatory_requirements",
+      "archive_root": "regulated_private_archive",
+      "redaction_rules": [
+        "deidentify_before_export",
+        "no_provider_payload_logs"
+      ],
+      "delete_gate": "regulated_review_required",
+      "review_cadence": "monthly"
+    },
+    {
+      "retention_policy_id": "ret-tax-financial",
+      "artifact_classes": [
+        "tax_source_index",
+        "tax_reports",
+        "handoff_packets"
+      ],
+      "retention_window": "7y_or_more_if_required",
+      "archive_root": "C:/Users/Shaun/My Drive/Taxes/archive",
+      "redaction_rules": [
+        "redact_ssn",
+        "redact_account_numbers",
+        "no_prompt_body_logs"
+      ],
+      "delete_gate": "tax_cycle_review_required",
+      "review_cadence": "quarterly"
+    },
+    {
+      "retention_policy_id": "ret-business-confidential",
+      "artifact_classes": [
+        "business_packets",
+        "reports",
+        "redacted_logs"
+      ],
+      "retention_window": "180d active + archive_on_keep",
+      "archive_root": "C:/Athanor/reports/archive/business-confidential",
+      "redaction_rules": [
+        "redact_customer_identifiers",
+        "strip_secrets"
+      ],
+      "delete_gate": "operator_review_required",
+      "review_cadence": "monthly"
+    },
+    {
+      "retention_policy_id": "ret-general-private",
+      "artifact_classes": [
+        "private_reports",
+        "packets",
+        "redacted_logs"
+      ],
+      "retention_window": "90d active + archive_on_keep",
+      "archive_root": "C:/Athanor/reports/archive/general-private",
+      "redaction_rules": [
+        "strip_secrets"
+      ],
+      "delete_gate": "operator_review_required",
+      "review_cadence": "monthly"
+    },
+    {
+      "retention_policy_id": "ret-cloud-safe",
+      "artifact_classes": [
+        "cloud_safe_reports",
+        "build_artifacts",
+        "logs"
+      ],
+      "retention_window": "60d active + archive_optional",
+      "archive_root": "C:/Athanor/reports/archive/cloud-safe",
+      "redaction_rules": [
+        "strip_tokens"
+      ],
+      "delete_gate": "normal_repo_hygiene",
+      "review_cadence": "monthly"
+    }
+  ]
+}

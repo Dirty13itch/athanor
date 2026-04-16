@@ -4,7 +4,7 @@ This document explains which Athanor sources still own truth, which sources are 
 
 ## Decision Rule
 
-When sources disagree, resolve them in this order:
+When sources disagree, use this precedence order for atlas reconciliation:
 
 1. Running code, route definitions, deployment manifests, and current config files
 2. Current operational docs that still match repo and runtime evidence
@@ -28,7 +28,7 @@ Archived atlas material that no longer owns live truth now lives under [`../arch
 
 ## Code and Config Sources That Still Own Truth
 
-| Source | Classification | Current authority | Notes |
+| Source | Classification | Current reference owner | Notes |
 | --- | --- | --- | --- |
 | `projects/dashboard/src/lib/navigation.ts` | canonical code source | dashboard route families, labels, and route inventory | UI atlas must stay synchronized with this file |
 | `projects/dashboard/src/app/**` | canonical code source | mounted route pages, layouts, and Next.js API route handlers | strongest source for actual dashboard surface area |
@@ -41,13 +41,13 @@ Archived atlas material that no longer owns live truth now lives under [`../arch
 | `services/` | deployment source | node-scoped service manifests, especially for compute nodes | currently stronger than some Ansible roles for parts of FOUNDRY and WORKSHOP |
 | `projects/*/docker-compose*` | deployment source | app-local deployment truth for dashboard, agents, and similar app surfaces | especially relevant when the project owns its own runtime stack |
 
-## Current Supporting Docs
+## Supporting Docs In The Current Snapshot
 
-| Source | Classification | What truth it still owns | Reconciliation note |
+| Source | Classification | What it currently helps explain | Reconciliation note |
 | --- | --- | --- | --- |
-| [`../SYSTEM-SPEC.md`](../SYSTEM-SPEC.md) | current operational spec | overall architecture, runtime responsibilities, flow descriptions | strongest prose source for system behavior when it matches code/runtime |
-| [`../SERVICES.md`](../SERVICES.md) | current operational spec | node placement, model routing, and service location | strongest prose source for deployment topology short of manifests |
-| [`../design/agent-contracts.md`](../design/agent-contracts.md) | legacy design contract doc | historical per-agent role summaries and boundaries | no longer authoritative for tasks, leases, schedules, or governor ownership; use command-hierarchy governance instead |
+| [`../SYSTEM-SPEC.md`](../SYSTEM-SPEC.md) | validated operational spec | overall architecture, runtime responsibilities, flow descriptions | best prose summary when rechecked against code/runtime |
+| [`../SERVICES.md`](../SERVICES.md) | validated operational spec | node placement, model routing, and service location | best prose summary for topology after registry/manifests are rechecked |
+| [`../design/agent-contracts.md`](../design/agent-contracts.md) | legacy design contract doc | historical per-agent role summaries and boundaries | no longer current authority for tasks, leases, schedules, or governor ownership; use command-hierarchy governance instead |
 | [`../design/command-hierarchy-governance.md`](../design/command-hierarchy-governance.md) | current design contract doc | current command hierarchy, governor posture, and subsystem ownership | subordinate to live code for exact runtime state, but the right prose source for authority split |
 | [`../design/athanor-next.md`](../design/athanor-next.md) | strategic design doc | north-star design direction and strategic intent | not a topology or route source of truth |
 | [`../design/command-center.md`](../design/command-center.md) | design doc | dashboard intent and operator-experience goals | subordinate to mounted dashboard code and route definitions |
@@ -72,12 +72,12 @@ Archived atlas material that no longer owns live truth now lives under [`../arch
 | Dashboard route surface | route files plus `navigation.ts` | mounted route definitions win over older UI planning docs |
 | Dormant UI capability like lens, bottom-nav, and ambient widgets | component code plus root shell wiring | code exists, but atlas tags these `implemented_not_live` unless mounted |
 | Agent roster and runtime endpoints | `server.py` plus runtime modules | runtime code wins over older contract docs when they disagree |
-| FOUNDRY and WORKSHOP deployment layout | `services/` and project-local manifests when they match live better | atlas records Ansible drift instead of pretending stale templates are authoritative |
+| FOUNDRY and WORKSHOP deployment layout | `services/` and project-local manifests when they match live better | atlas records Ansible drift instead of letting stale templates masquerade as current |
 | VAULT LiteLLM and monitoring drift | live-config evidence plus repo-side vault roles | live files are evidence; surviving truth must be promoted back into repo-owned deployment sources |
 
 ## How To Update The Atlas
 
-1. Change the real source first: code, route definition, operational doc, or deployment manifest.
+1. Update the real source first: code, route definition, operational doc, or deployment manifest.
 2. Update the relevant atlas prose doc and inventory JSON so the synthesis matches the real source.
 3. Run `python scripts/check-doc-refs.py docs/atlas`.
 4. If a formerly important document lost authority, move it under `docs/archive/atlas/` and update the atlas notes instead of leaving it in the active reference lane.

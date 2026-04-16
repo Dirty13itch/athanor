@@ -648,6 +648,24 @@ class SubscriptionPolicyTest(unittest.TestCase):
         self.assertNotIn("zai_glm_coding", lease.fallback)
         self.assertEqual(["zai_glm_coding"], lease.metadata["excluded_handoff_only_providers"])
 
+    def test_preview_execution_lease_forces_sovereign_project_work_local(self) -> None:
+        lease = preview_execution_lease(
+            LeaseRequest(
+                requester="coding-agent",
+                task_class="multi_file_implementation",
+                sensitivity="adult_sensitive",
+                metadata={
+                    "project_id": "eoq",
+                    "policy_class": "sovereign_only",
+                    "meta_lane": "sovereign_local",
+                },
+            )
+        )
+
+        self.assertEqual("athanor_local", lease.provider)
+        self.assertNotIn("openai_codex", lease.fallback)
+        self.assertTrue(lease.metadata["force_local_only"])
+
 
 if __name__ == "__main__":
     unittest.main()

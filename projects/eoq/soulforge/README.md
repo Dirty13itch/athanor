@@ -15,7 +15,7 @@ Procedural character generation for **Empire of Broken Queens** (EoBQ).
    Each trait is a float 0.0-1.0 with inverse/positive correlations enforced for
    internal consistency. Archetype biases shape the initial distribution.
 
-2. **Backstory Generation** (`engine.py`): Calls JOSIEFIED-Qwen3-8B via LiteLLM
+2. **Backstory Generation** (`engine.py`): Calls the sovereign local LiteLLM
    `uncensored` alias. The LLM receives the character's DNA-derived personality
    description and generates a dark fantasy backstory.
 
@@ -34,7 +34,7 @@ Procedural character generation for **Empire of Broken Queens** (EoBQ).
 Generates in-character dialogue by:
 - Building a system prompt from the character's DNA (dominant/recessive traits)
 - Injecting scene context and conversation history
-- Calling JOSIEFIED via LiteLLM with no-refusal directives
+- Calling the sovereign local `uncensored` lane via LiteLLM with no-refusal directives
 - Supporting both blocking and streaming responses
 
 ## 19-Trait DNA System
@@ -69,7 +69,7 @@ Generates in-character dialogue by:
 
 | Service | Node | Endpoint |
 |---------|------|----------|
-| LLM (JOSIEFIED) | WORKSHOP Ollama -> LiteLLM | VAULT:4000 `uncensored` alias |
+| LLM (sovereign local) | Foundry -> LiteLLM | VAULT:4000 `uncensored` alias |
 | Image Gen | WORKSHOP ComfyUI | WORKSHOP:8188 |
 | Voice TTS | FOUNDRY speaches | FOUNDRY:8200 |
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Run the Athanor UI audit loop across dashboard and tenants."""
+"""Run the Athanor UI audit loop across dashboard and tenants.
+
+Evidence producer only; generated JSON from this script is proof surfaces for UI audit coverage, not runtime or queue authority.
+"""
 
 from __future__ import annotations
 
@@ -18,8 +21,6 @@ RETRYABLE_LABELS = {
     "dashboard:e2e": 1,
     "live-smoke": 1,
 }
-
-
 def npm_command() -> str:
     return shutil.which("npm.cmd") or shutil.which("npm") or "npm"
 

@@ -17,12 +17,12 @@ VARIANT_IDS = {
 }
 
 
-def _load_rfi_family() -> dict[str, Any]:
+def _load_rfi_family() -> dict[str, Any] | None:
     audit = json.loads(TENANT_FAMILY_AUDIT_PATH.read_text(encoding="utf-8"))
     for family in audit.get("families", []):
         if str(family.get("root_id") or "") == RFI_ROOT_ID:
             return dict(family)
-    raise RuntimeError(f"Unable to find {RFI_ROOT_ID} in {TENANT_FAMILY_AUDIT_PATH}")
+    return None
 
 
 def _classify_artifact(path: str) -> str:
@@ -73,6 +73,29 @@ def _variant_report(member: dict[str, Any], only_vs_root: list[str]) -> dict[str
 
 def main() -> int:
     family = _load_rfi_family()
+    if family is None:
+        report = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "family_root_id": RFI_ROOT_ID,
+            "execution_posture": "upstream_audit_missing_family",
+            "audit_incomplete": True,
+            "missing_variant_ids": sorted(VARIANT_IDS),
+            "variant_count": 0,
+            "variants": [],
+            "rules": [
+                "Do not treat any C:/CodexBuild/rfi-hers-rater-assistant* tree as an authority candidate or replay lane.",
+                "Regenerate the tenant-family audit before using this packet for archive or preservation decisions.",
+            ],
+            "completion_condition": [
+                "The root workspace remains the only repo-backed authority candidate.",
+                "The upstream tenant-family audit contains the RFI family and all governed duplicate variants.",
+            ],
+        }
+        OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        OUTPUT_PATH.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        print(f"Wrote {OUTPUT_PATH.relative_to(REPO_ROOT).as_posix()}")
+        return 0
+
     file_delta_summary = {
         str(item.get("id") or ""): list(item.get("only_vs_root") or [])
         for item in family.get("file_delta_summary", [])
@@ -80,14 +103,21 @@ def main() -> int:
     }
     members = [dict(item) for item in family.get("members", []) if str(item.get("id") or "") in VARIANT_IDS]
     variant_ids = {str(item.get("id") or "") for item in members}
-    if variant_ids != VARIANT_IDS:
-        missing = sorted(VARIANT_IDS - variant_ids)
-        raise RuntimeError(f"RFI duplicate-evidence packet missing variants: {', '.join(missing)}")
+    missing_variant_ids = sorted(VARIANT_IDS - variant_ids)
 
     variants = [
         _variant_report(member, file_delta_summary.get(str(member.get("id") or ""), []))
         for member in sorted(members, key=lambda item: str(item.get("id") or ""))
     ]
+
+    root_metadata = family.get("root_metadata") or {}
+    member_index = {str(item.get("id") or ""): dict(item) for item in family.get("members", []) if isinstance(item, dict)}
+    audit_incomplete = bool(root_metadata.get("git_status_incomplete")) or bool(missing_variant_ids)
+    for variant_id in VARIANT_IDS:
+        member_metadata = (member_index.get(variant_id, {}).get("metadata") or {}) if variant_id in member_index else {}
+        if member_metadata.get("git_status_incomplete"):
+            audit_incomplete = True
+            break
 
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -98,9 +128,14 @@ def main() -> int:
         "root_authority_status": str(family.get("root_authority_status") or ""),
         "root_review_status": str(family.get("root_review_status") or ""),
         "variant_count": len(variants),
+        "expected_variant_ids": sorted(VARIANT_IDS),
+        "present_variant_ids": sorted(variant_ids),
+        "missing_variant_ids": missing_variant_ids,
+        "audit_incomplete": audit_incomplete,
         "variants": variants,
         "rules": [
             "Do not treat any C:/CodexBuild/rfi-hers-rater-assistant* tree as an authority candidate or replay lane.",
+            "If audit_incomplete is true, regenerate the tenant-family audit before making destructive cleanup decisions for missing variants.",
             "Preserve only the SQLite and drizzle artifacts listed under preserve_archive_evidence for each variant.",
             "Treat src/features/* deltas in the plain variant as superseded by the root workspace's current namespaced feature tree.",
             "Ignore disposable build residue such as tsconfig.tsbuildinfo when preserving archive evidence.",

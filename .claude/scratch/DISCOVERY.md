@@ -1,10 +1,12 @@
-# Phase 0 — Discovery Ground Truth
+# Phase 0 — Historical Discovery Snapshot
 
 *Generated: 2026-03-14 | HEAD: b1d1ded | Branch: main*
 
+This file is a frozen discovery snapshot from 2026-03-14. Treat all repository counts, branch lists, container inventories, GPU state, and configuration observations below as historical evidence only; recheck the restart brief, current registries, generated reports, and `STATUS.md` before using any fact operationally.
+
 ---
 
-## 1. Repository Structure
+## 1. Repository Structure [historical snapshot]
 
 - **Total files:** 1,137 (excluding .git, node_modules, __pycache__)
 - **Commits:** 359 on main
@@ -148,7 +150,7 @@
 
 ---
 
-## 4. Live Container State
+## 4. Historical Container State
 
 ### DEV (.189) — 3 containers
 | Container | Image | Port |
@@ -195,7 +197,7 @@ Observability: langfuse-web(:3030), langfuse-worker, langfuse-postgres, langfuse
 Media: plex(:32400), sonarr(:8989), radarr(:7878), prowlarr(:9696), sabnzbd(:8080), tautulli(:8181), stash(:9999), tdarr_server(:8265-8266), tdarr_node
 Home: homeassistant(:8123), wyoming-piper(:10200), wyoming-openwakeword(:10400)
 Apps: gitea(:3033), miniflux(:8070), n8n(:5678), vault-open-webui(:3090), spiderfoot(:5001), ntfy(:8880), field-inspect-candidate(:3081), field-inspect-s3(:9000-9001), field-inspect-db(:5433), ulrich-energy-website(:8088), backup-exporter(:9199), blackbox-exporter(:9115)
-**ISSUE:** field_inspect_app is in restart loop (exit 127)
+**ISSUE (at snapshot time):** field_inspect_app was in restart loop (exit 127)
 
 **Total: 71 containers across 4 nodes**
 
@@ -302,7 +304,7 @@ dashboard.md, agents.md, session-continuity.md, docker.md, scripts.md, eoq.md, k
 
 ## 11. Known Issues (from discovery)
 
-1. **field_inspect_app** on VAULT in restart loop (exit 127) [VERIFIED]
+1. **field_inspect_app** on VAULT was in restart loop (exit 127) in this snapshot [VERIFIED]
 2. **6 stale branches** on origin, oldest 2 weeks [VERIFIED]
 3. **FOUNDRY athanor-agents** restarted 6 minutes ago (recent instability?) [VERIFIED]
 4. **FOUNDRY GPUs 0,1 at 100% util** — expected for coordinator inference [VERIFIED]

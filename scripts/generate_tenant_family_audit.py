@@ -13,25 +13,44 @@ REGISTRY_PATH = REPO_ROOT / "config" / "automation-backbone" / "reconciliation-s
 OUTPUT_PATH = REPO_ROOT / "reports" / "reconciliation" / "tenant-family-audit-latest.json"
 INTERESTING_HASH_FILES = ("package.json", "PROJECT.md", "AGENTS.md", "next.config.ts", "tsconfig.json")
 EXCLUDED_FILE_DELTA_SEGMENTS = {".git", "node_modules", ".next", "__pycache__", "coverage", "dist", "build"}
+GIT_PROBE_TIMEOUT_SECONDS = 5
 
 
-def _run_git(path: Path, *args: str) -> str:
-    completed = subprocess.run(
-        ["git", "-C", str(path), *args],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=30,
-        check=False,
-    )
+NON_GIT_FILE_GLOBS = ("data/**/*.sqlite*", "drizzle/**/*.sql", "src/features/**/*", *INTERESTING_HASH_FILES)
+
+
+def _resolve_local_path(path_value: str) -> Path:
+    normalized = str(path_value or '').strip().replace('\\', '/')
+    if normalized.startswith('/mnt/'):
+        return Path(normalized)
+    if normalized.startswith('C:/'):
+        return Path('/mnt/c') / normalized.removeprefix('C:/')
+    return Path(normalized)
+
+
+def _run_git(path: Path, *args: str) -> str | None:
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(path), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=GIT_PROBE_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return None
+    if completed.returncode != 0:
+        return None
     return completed.stdout.strip()
 
 
 def _path_metadata(path_value: str) -> dict[str, Any]:
-    path = Path(path_value)
+    path = _resolve_local_path(path_value)
     metadata: dict[str, Any] = {
-        "path": path.as_posix(),
+        "path": str(path_value),
+        "resolved_path": path.as_posix(),
         "exists": path.exists(),
         "is_git": False,
         "top_level_entries": [],
@@ -53,10 +72,11 @@ def _path_metadata(path_value: str) -> dict[str, Any]:
     if not git_dir.exists():
         return metadata
 
-    status_lines = _run_git(path, "status", "--short", "--branch").splitlines()
-    branch = _run_git(path, "rev-parse", "--abbrev-ref", "HEAD")
-    head = _run_git(path, "rev-parse", "--short", "HEAD")
-    origin = _run_git(path, "remote", "get-url", "origin")
+    status_output = _run_git(path, "status", "--short", "--branch")
+    status_lines = status_output.splitlines() if status_output else []
+    branch = _run_git(path, "rev-parse", "--abbrev-ref", "HEAD") or ""
+    head = _run_git(path, "rev-parse", "--short", "HEAD") or ""
+    origin = _run_git(path, "remote", "get-url", "origin") or ""
     dirty_files = [line for line in status_lines[1:] if line.strip()]
     dirty_paths = [line[3:].strip() for line in dirty_files if len(line) >= 4]
 
@@ -70,6 +90,7 @@ def _path_metadata(path_value: str) -> dict[str, Any]:
             "dirty_file_count": len(dirty_files),
             "dirty_files": dirty_paths[:30],
             "has_origin": bool(origin),
+            "git_status_incomplete": status_output is None,
         }
     )
     return metadata
@@ -98,7 +119,7 @@ def _annotate_git_divergence(
     if not root_metadata.get("is_git"):
         return
 
-    root_path = Path(str(root_metadata["path"]))
+    root_path = _resolve_local_path(str(root_metadata.get("resolved_path") or root_metadata["path"]))
     root_head = str(root_metadata.get("head") or "")
     if not root_head:
         return
@@ -107,11 +128,12 @@ def _annotate_git_divergence(
         metadata = member["metadata"]
         if not metadata.get("is_git"):
             continue
-        member_path = Path(str(metadata["path"]))
+        member_path = _resolve_local_path(str(metadata.get("resolved_path") or metadata["path"]))
         member_head = str(metadata.get("head") or "")
         if not member_head:
             continue
-        counts = _run_git(member_path, "rev-list", "--left-right", "--count", f"{root_head}...{member_head}").split()
+        counts_output = _run_git(member_path, "rev-list", "--left-right", "--count", f"{root_head}...{member_head}")
+        counts = counts_output.split() if counts_output else []
         if len(counts) == 2 and all(item.isdigit() for item in counts):
             metadata["behind_root"] = int(counts[0])
             metadata["ahead_root"] = int(counts[1])
@@ -140,22 +162,41 @@ def _collect_file_set(path: Path) -> set[str]:
     file_set: set[str] = set()
     if not path.exists():
         return file_set
-    for candidate in path.rglob("*"):
-        if not candidate.is_file():
-            continue
-        relative = candidate.relative_to(path)
-        if any(segment in EXCLUDED_FILE_DELTA_SEGMENTS for segment in relative.parts):
-            continue
-        file_set.add(relative.as_posix())
+    if (path / ".git").exists():
+        tracked_output = _run_git(path, "ls-files")
+        tracked = tracked_output.splitlines() if tracked_output else []
+        untracked_output = _run_git(path, "ls-files", "--others", "--exclude-standard")
+        untracked = untracked_output.splitlines() if untracked_output else []
+        for relative_path in tracked + untracked:
+            normalized = relative_path.strip().replace("\\", "/")
+            if not normalized:
+                continue
+            if any(segment in EXCLUDED_FILE_DELTA_SEGMENTS for segment in normalized.split("/")):
+                continue
+            file_set.add(normalized)
+        return file_set
+    seen: set[str] = set()
+    for pattern in NON_GIT_FILE_GLOBS:
+        for candidate in path.glob(pattern):
+            if not candidate.is_file():
+                continue
+            relative = candidate.relative_to(path)
+            if any(segment in EXCLUDED_FILE_DELTA_SEGMENTS for segment in relative.parts):
+                continue
+            normalized = relative.as_posix()
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            file_set.add(normalized)
     return file_set
 
 
 def _file_delta_summary(root_metadata: dict[str, Any], member_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    root_path = Path(str(root_metadata["path"]))
+    root_path = _resolve_local_path(str(root_metadata.get("resolved_path") or root_metadata["path"]))
     root_files = _collect_file_set(root_path)
     summary: list[dict[str, Any]] = []
     for member in member_rows:
-        member_path = Path(str(member["metadata"]["path"]))
+        member_path = _resolve_local_path(str(member["metadata"].get("resolved_path") or member["metadata"]["path"]))
         member_files = _collect_file_set(member_path)
         summary.append(
             {
@@ -171,7 +212,7 @@ def _direct_replay_risk_summary(root_metadata: dict[str, Any], member_rows: list
     if not root_metadata.get("is_git"):
         return []
 
-    root_path = Path(str(root_metadata["path"]))
+    root_path = _resolve_local_path(str(root_metadata.get("resolved_path") or root_metadata["path"]))
     root_head = str(root_metadata.get("head") or "")
     root_dirty = set(root_metadata.get("dirty_files") or [])
     summary: list[dict[str, Any]] = []
@@ -199,7 +240,8 @@ def _direct_replay_risk_summary(root_metadata: dict[str, Any], member_rows: list
             )
             continue
 
-        changed_paths = set(_run_git(root_path, "diff", "--name-only", f"{root_head}..{member_head}").splitlines())
+        changed_output = _run_git(root_path, "diff", "--name-only", f"{root_head}..{member_head}")
+        changed_paths = set(changed_output.splitlines()) if changed_output else set()
         overlaps = sorted(root_dirty & changed_paths)
         summary.append(
             {

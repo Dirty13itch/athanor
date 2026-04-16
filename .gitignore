@@ -53,6 +53,9 @@ storybook-static/
 
 # Temp
 tmp/
+output/
+.letta/
+evals/.letta/
 /var/bootstrap/
 /var/foundry/
 /projects/agents/var/

@@ -1,0 +1,259 @@
+{
+  "version": "2026-04-15.2",
+  "updated_at": "2026-04-15T18:40:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/data-handling-policy.json",
+  "profiles": [
+    {
+      "profile_id": "sovereign_adult",
+      "allowed_model_classes": [
+        "sovereign_local_text",
+        "sovereign_local_image",
+        "sovereign_local_video",
+        "local_embedding",
+        "local_reranker"
+      ],
+      "allowed_provider_families": [
+        "athanor_local"
+      ],
+      "allowed_storage_roots": [
+        "C:/Athanor",
+        "C:/athanor-devstack",
+        "cluster_local_storage",
+        "google_drive_private_creative"
+      ],
+      "allowed_log_classes": [
+        "redacted_operational",
+        "artifact_lineage",
+        "no_prompt_body_cloud"
+      ],
+      "allowed_export_targets": [
+        "private_drive_only",
+        "sovereign_cluster_only"
+      ],
+      "allowed_runtime_surfaces": [
+        "workshop",
+        "foundry",
+        "vault",
+        "desk_wsl"
+      ],
+      "retention_policy_id": "ret-sovereign-adult",
+      "secret_handling_contract": "Secrets stay in local env or packet-backed secret surfaces only.",
+      "default_entity_boundary_class": "sovereign_creative",
+      "default_account_surface_class": "operator_and_runtime_services",
+      "default_counterparty_sensitivity_class": "creative_private"
+    },
+    {
+      "profile_id": "sovereign_private",
+      "allowed_model_classes": [
+        "sovereign_local_text",
+        "local_embedding",
+        "local_reranker",
+        "bounded_private_cloud_safe_coding"
+      ],
+      "allowed_provider_families": [
+        "athanor_local",
+        "cloud_safe_coding_only_when_explicit"
+      ],
+      "allowed_storage_roots": [
+        "C:/Athanor",
+        "C:/athanor-devstack",
+        "cluster_local_storage",
+        "private_drive"
+      ],
+      "allowed_log_classes": [
+        "redacted_operational",
+        "artifact_lineage"
+      ],
+      "allowed_export_targets": [
+        "private_drive_only",
+        "sovereign_cluster_only"
+      ],
+      "allowed_runtime_surfaces": [
+        "dev",
+        "foundry",
+        "vault",
+        "desk_wsl"
+      ],
+      "retention_policy_id": "ret-sovereign-private",
+      "secret_handling_contract": "Secrets stay in Athanor or Codex runtime env contracts and never in generated reports.",
+      "default_entity_boundary_class": "sovereign_personal",
+      "default_account_surface_class": "operator_and_runtime_services",
+      "default_counterparty_sensitivity_class": "none"
+    },
+    {
+      "profile_id": "regulated_health",
+      "allowed_model_classes": [
+        "sovereign_local_text",
+        "local_embedding",
+        "local_reranker"
+      ],
+      "allowed_provider_families": [
+        "athanor_local"
+      ],
+      "allowed_storage_roots": [
+        "regulated_private_roots",
+        "C:/Athanor",
+        "cluster_local_storage"
+      ],
+      "allowed_log_classes": [
+        "minimal_redacted_operational"
+      ],
+      "allowed_export_targets": [
+        "regulated_private_export_only"
+      ],
+      "allowed_runtime_surfaces": [
+        "dev",
+        "vault",
+        "desk_wsl"
+      ],
+      "retention_policy_id": "ret-regulated-health",
+      "secret_handling_contract": "No provider credential or patient-identifying payload may leave sovereign surfaces.",
+      "default_entity_boundary_class": "regulated_casebound",
+      "default_account_surface_class": "operator_local_only",
+      "default_counterparty_sensitivity_class": "regulated_external"
+    },
+    {
+      "profile_id": "tax_financial",
+      "allowed_model_classes": [
+        "sovereign_local_text",
+        "bounded_review_only_tools"
+      ],
+      "allowed_provider_families": [
+        "athanor_local"
+      ],
+      "allowed_storage_roots": [
+        "tax_repo",
+        "tax_source_docs",
+        "private_drive"
+      ],
+      "allowed_log_classes": [
+        "minimal_redacted_operational"
+      ],
+      "allowed_export_targets": [
+        "tax_repo_only",
+        "private_drive_only"
+      ],
+      "allowed_runtime_surfaces": [
+        "desk_wsl",
+        "dev"
+      ],
+      "retention_policy_id": "ret-tax-financial",
+      "secret_handling_contract": "Tax source material stays in the governed tax roots and redacted generated summaries only.",
+      "default_entity_boundary_class": "tax_casebound",
+      "default_account_surface_class": "operator_local_only",
+      "default_counterparty_sensitivity_class": "tax_sensitive"
+    },
+    {
+      "profile_id": "business_confidential",
+      "allowed_model_classes": [
+        "sovereign_local_text",
+        "bounded_private_cloud_safe_coding"
+      ],
+      "allowed_provider_families": [
+        "athanor_local",
+        "cloud_safe_coding_only_when_explicit"
+      ],
+      "allowed_storage_roots": [
+        "C:/Athanor",
+        "business_repos",
+        "private_drive"
+      ],
+      "allowed_log_classes": [
+        "redacted_operational",
+        "artifact_lineage"
+      ],
+      "allowed_export_targets": [
+        "business_repo_only",
+        "private_drive_only"
+      ],
+      "allowed_runtime_surfaces": [
+        "desk_wsl",
+        "dev",
+        "vault"
+      ],
+      "retention_policy_id": "ret-business-confidential",
+      "secret_handling_contract": "Confidential customer or business data must stay redacted in shared reports and prompts.",
+      "default_entity_boundary_class": "business_counterparty",
+      "default_account_surface_class": "client_workflow_accounts",
+      "default_counterparty_sensitivity_class": "business_confidential"
+    },
+    {
+      "profile_id": "general_private",
+      "allowed_model_classes": [
+        "sovereign_local_text",
+        "bounded_private_cloud_safe_coding",
+        "local_embedding"
+      ],
+      "allowed_provider_families": [
+        "athanor_local",
+        "cloud_safe_coding_only_when_explicit"
+      ],
+      "allowed_storage_roots": [
+        "C:/Athanor",
+        "C:/athanor-devstack",
+        "private_drive"
+      ],
+      "allowed_log_classes": [
+        "redacted_operational",
+        "artifact_lineage"
+      ],
+      "allowed_export_targets": [
+        "private_drive_only",
+        "repo_local_only"
+      ],
+      "allowed_runtime_surfaces": [
+        "desk_wsl",
+        "dev",
+        "vault"
+      ],
+      "retention_policy_id": "ret-general-private",
+      "secret_handling_contract": "Private material stays in private repos, local env contracts, and redacted reports.",
+      "default_entity_boundary_class": "product_private_cloud_safe",
+      "default_account_surface_class": "governed_preview_accounts",
+      "default_counterparty_sensitivity_class": "private_user_data"
+    },
+    {
+      "profile_id": "cloud_safe",
+      "allowed_model_classes": [
+        "sovereign_local_text",
+        "cloud_coding",
+        "cloud_reasoning",
+        "local_embedding"
+      ],
+      "allowed_provider_families": [
+        "athanor_local",
+        "openai",
+        "google",
+        "deepseek",
+        "zai",
+        "openrouter",
+        "venice_for_non_sensitive"
+      ],
+      "allowed_storage_roots": [
+        "repo_local_only",
+        "private_drive",
+        "generated_reports"
+      ],
+      "allowed_log_classes": [
+        "operational",
+        "artifact_lineage"
+      ],
+      "allowed_export_targets": [
+        "repo_local_only",
+        "private_drive_only",
+        "allowed_vendor_api"
+      ],
+      "allowed_runtime_surfaces": [
+        "desk_wsl",
+        "dev",
+        "vault"
+      ],
+      "retention_policy_id": "ret-cloud-safe",
+      "secret_handling_contract": "Cloud-safe work still uses the governed provider catalog and budget guardrails.",
+      "default_entity_boundary_class": "product_private_cloud_safe",
+      "default_account_surface_class": "governed_preview_accounts",
+      "default_counterparty_sensitivity_class": "none"
+    }
+  ]
+}

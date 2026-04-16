@@ -108,7 +108,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
         "driftStatus": "degraded",
         "notes": [
             "Project-local dashboard manifests are the strongest source for the UI layer.",
-            "DEV is the canonical production host; the WORKSHOP dashboard container is retired and no longer part of the production portal path.",
+            "DEV is the production host; the WORKSHOP dashboard container is retired and no longer part of the production portal path.",
         ],
     },
     {
@@ -123,7 +123,7 @@ DEPLOYMENT_SERVICE_MATRIX = [
         "liveEndpoint": f"http://{NODES['workshop']}:3100",
         "driftStatus": "aligned",
         "notes": [
-            "Owned by the command-center deployment surface; Workshop hosts the bridge, but not the canonical portal.",
+            "Owned by the command-center deployment surface; Workshop hosts the bridge, but not the portal.",
         ],
     },
     {

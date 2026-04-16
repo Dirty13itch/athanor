@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-02.1",
-  "updated_at": "2026-04-02T14:15:00Z",
+  "version": "2026-04-14.1",
+  "updated_at": "2026-04-14T23:05:00-05:00",
   "status": "live",
   "runbooks": [
     {
@@ -34,6 +34,14 @@
       "cadence": "as-needed",
       "related_surface": "/subscriptions",
       "evidence_flow_ids": ["provider_fallback", "economic_governance", "runtime_secret_delivery"]
+    },
+    {
+      "id": "gateway-onboarding-verification",
+      "label": "Gateway Onboarding Verification",
+      "description": "Verify the canonical LiteLLM env contract, generated adapter profiles, and gateway smoke-test path before treating devstack onboarding notes as current operator guidance.",
+      "cadence": "as-needed",
+      "related_surface": "/operator",
+      "evidence_flow_ids": ["provider_fallback", "runtime_secret_delivery", "sovereign_routing"]
     },
     {
       "id": "vault-litellm-provider-auth-repair",
@@ -162,6 +170,14 @@
       "cadence": "as-needed",
       "related_surface": "/models",
       "evidence_flow_ids": ["provider_fallback", "incident_review", "sovereign_routing"]
+    },
+    {
+      "id": "watchdog-runtime-guard",
+      "label": "Watchdog Runtime Guard",
+      "description": "Operate the live watchdog canary, use bounded operator-envelope restart proof first, and keep protected-service and scope-widening decisions explicitly approval-gated.",
+      "cadence": "as-needed",
+      "related_surface": "/services",
+      "evidence_flow_ids": ["incident_review", "pause_resume", "runtime_ownership"]
     },
     {
       "id": "operator-auth-failure",

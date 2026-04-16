@@ -1,6 +1,6 @@
 # Media Stack
 
-> Historical note: archived research retained for ADR-011 decision history. Current media/runtime truth lives in the canonical registries, reports, and live service probes.
+> Historical note: archived research retained for ADR-011 decision history. Current media/runtime truth is tracked in the canonical registries, reports, and live service probes.
 
 **Date:** 2026-02-15
 **Status:** Complete — recommendation ready

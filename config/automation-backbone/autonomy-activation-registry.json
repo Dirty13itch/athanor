@@ -1,6 +1,6 @@
 {
   "version": "2026-04-02.4",
-  "updated_at": "2026-04-02T14:15:00Z",
+  "updated_at": "2026-04-16T03:38:24.887919+00:00",
   "status": "live",
   "source_of_truth": "config/automation-backbone/autonomy-activation-registry.json",
   "current_phase_id": "full_system_phase_3",
@@ -72,8 +72,7 @@
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
         "docs/operations/RUNTIME-MIGRATION-REPORT.md",
         "docs/operations/TRUTH-DRIFT-REPORT.md",
-        "scripts/vault-ssh.py",
-        "scripts/ssh-vault.ps1"
+        "scripts/vault-ssh.py"
       ]
     }
   ],

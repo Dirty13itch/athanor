@@ -32,6 +32,7 @@ def _runtime_artifact_root() -> Path:
 ARTIFACT_ROOT = _runtime_artifact_root()
 ARTIFACT_PATH = ARTIFACT_ROOT / "audit" / "recovery" / "restore-drill-latest.json"
 REPORT_ARTIFACT_PATH = ARTIFACT_ROOT / "reports" / "recovery" / "latest.json"
+AUTHORITY_BOUNDARY = "Observed recovery drill evidence only; never runtime, queue, or portfolio authority."
 
 RUNNER = """
 import asyncio

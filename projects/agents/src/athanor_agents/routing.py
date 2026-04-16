@@ -19,6 +19,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Any
 
 
 class ModelTier(Enum):
@@ -59,6 +60,8 @@ TIER_MODELS = {
 
 # Cloud model pool — rotated for cost distribution
 CLOUD_MODELS = ["claude", "gpt", "gemini", "deepseek"]
+SOVEREIGN_POLICY_CLASSES = {"sovereign_only", "refusal_sensitive"}
+SOVEREIGN_SENSITIVITY = {"adult_sensitive", "lan_only", "sovereign_only"}
 
 # Fallback chains: if preferred model is busy, try these
 # Cloud escalation: when all local models are busy, escalate to cloud
@@ -81,6 +84,8 @@ PROVIDER_TO_MODEL = {
     "google_gemini": "gemini",
     "moonshot_kimi": "kimi-k2.5",
     "zai_glm_coding": "glm-4.7",
+    "deepseek_api": "deepseek",
+    "venice_api": "venice-uncensored",
     "deepseek": "deepseek",
     "venice": "venice-uncensored",
 }
@@ -148,7 +153,7 @@ SYSTEM_PATTERNS = [
 HOME_PATTERNS = [
     re.compile(p, re.IGNORECASE) for p in [
         r"(lights?|switch|thermostat|temperature|sensor|motion)",
-        r"(home assistant|automation|scene|device)",
+        r"(home assistant|automation|device)",
         r"(turn on|turn off|dim|brighten|set to)",
         r"(house|room|bedroom|kitchen|living room|garage)",
     ]
@@ -179,6 +184,24 @@ def _count_matches(text: str, patterns: list[re.Pattern]) -> int:
 
 def _estimate_tokens(text: str) -> int:
     return len(text) // 4
+
+
+def _is_sovereign_request(metadata: dict[str, Any] | None) -> bool:
+    meta = dict(metadata or {})
+    if bool(meta.get("sovereign_only")):
+        return True
+    if str(meta.get("policy_class") or "").strip() in SOVEREIGN_POLICY_CLASSES:
+        return True
+    if str(meta.get("meta_lane") or "").strip() == "sovereign_local":
+        return True
+    return str(meta.get("sensitivity") or "").strip().lower() in SOVEREIGN_SENSITIVITY
+
+
+def _fallback_chain(model: str, *, local_only: bool) -> list[str]:
+    chain = list(FALLBACK_CHAINS.get(model, []))
+    if not local_only:
+        return chain
+    return [candidate for candidate in chain if candidate not in CLOUD_MODELS]
 
 
 def classify_task(prompt: str, system_prompt: str | None = None) -> TaskType:
@@ -260,10 +283,11 @@ def route(
     """
     task_type = classify_task(prompt, system_prompt)
     metadata = metadata or {}
+    local_only = prefer_local or _is_sovereign_request(metadata)
 
     # Check for subscription lease in metadata → cloud routing
     lease = metadata.get("lease") or metadata.get("execution_lease")
-    if lease and not prefer_local:
+    if lease and not local_only:
         provider = lease.get("provider") or lease.get("recommended_provider", "")
         if provider and provider in PROVIDER_TO_MODEL:
             cloud_model = PROVIDER_TO_MODEL[provider]
@@ -277,18 +301,21 @@ def route(
 
     preferred_tier = TASK_ROUTING[task_type]
 
+    if local_only and task_type not in {TaskType.HOME, TaskType.MEDIA, TaskType.SYSTEM}:
+        preferred_tier = ModelTier.REASONING
+
     if prefer_quality and preferred_tier == ModelTier.FAST:
         preferred_tier = ModelTier.REASONING
 
     # Cloud-preferred tasks use cloud when not forced local
-    if preferred_tier == ModelTier.CLOUD and prefer_local:
+    if preferred_tier == ModelTier.CLOUD and local_only:
         preferred_tier = ModelTier.REASONING
 
     model = TIER_MODELS[preferred_tier]
 
     # Check queue depth and fallback if needed
     if queue_depths and queue_depths.get(model, 0) >= high_queue_threshold:
-        for fallback in FALLBACK_CHAINS.get(model, []):
+        for fallback in _fallback_chain(model, local_only=local_only):
             if queue_depths.get(fallback, 0) < high_queue_threshold:
                 # Resolve the tier of the fallback model
                 fallback_tier = next(

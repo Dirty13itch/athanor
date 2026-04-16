@@ -5,6 +5,26 @@
     "runtime_node": "dev",
     "runtime_root": "/home/shaun/repos/athanor"
   },
+  "automation_anti_spin_policy": {
+    "escalation_actions": [
+      "emit_blocker",
+      "demote_one_cycle",
+      "redirect_or_require_review"
+    ],
+    "require_new_artifact_or_state_delta": true,
+    "same_task_claims_12h_threshold": 2,
+    "same_task_claims_24h_threshold": 3
+  },
+  "budget_guardrails": {
+    "cloud_safe_requires_green_provider_and_budget": true,
+    "default_posture": "local_sovereignty_before_paid_elasticity",
+    "degraded_budget_response": [
+      "demote_optional_cloud_lanes",
+      "bias_to_local_harvestable_capacity",
+      "emit_escalation_in_ralph_and_provider_reports"
+    ],
+    "sovereign_profiles_never_widen_to_cloud": true
+  },
   "checkpoint_statuses": [
     "planned",
     "active",
@@ -93,6 +113,103 @@
       "status": "planned"
     }
   ],
+  "continuity_policy": {
+    "cash_now_deferred_families_are_autonomous_inputs": true,
+    "cash_now_requires_no_unsuppressed_workstream": true,
+    "claim_history_limit": 12,
+    "executive_reporting_contract": {
+      "generated_state_path": "reports/ralph-loop/latest.json",
+      "human_surface": "scripts/session_restart_brief.py",
+      "machine_owner": "scripts/run_ralph_loop_pass.py",
+      "required_sections": [
+        "program_state",
+        "landed_or_delta",
+        "proof",
+        "risks",
+        "delegation",
+        "next_moves",
+        "decision_needed"
+      ],
+      "required_trigger_points": [
+        "material_tranche_landed",
+        "active_claim_rotated",
+        "stop_state_changed",
+        "validator_state_changed",
+        "blocker_emerged"
+      ],
+      "use_active_claim_for_current_task": true
+    },
+    "feeder_precedence": [
+      "workstream",
+      "cash_now_deferred_family",
+      "burn_class",
+      "safe_surface",
+      "provider_gate"
+    ],
+    "green_not_stop_condition": true,
+    "hard_brakes": [
+      "approval_required",
+      "external_block",
+      "destructive_ambiguity",
+      "queue_exhausted"
+    ],
+    "material_repo_delta_prefixes": [
+      "STATUS.md",
+      "docs/",
+      "config/",
+      "scripts/",
+      "projects/",
+      "ansible/",
+      "services/",
+      "tests/",
+      "evals/",
+      "recipes/"
+    ],
+    "material_repo_delta_reopens_validation_publication": true,
+    "no_delta_suppression_ttl_hours": 12,
+    "workstream_continuity": {
+      "dispatch-and-work-economy-closure": {
+        "no_delta_closure_criteria": {
+          "required_evidence_refs": [
+            "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
+            "reports/truth-inventory/capacity-telemetry.json",
+            "reports/truth-inventory/quota-truth.json"
+          ],
+          "summary": "Baseline eval is green, quota truth is present and non-degraded, capacity telemetry is scheduler-backed, and no repo-side drift remains in the dispatch evidence chain."
+        },
+        "reopen_scope": {
+          "reason_scope": "dispatch_evidence_chain_only",
+          "repo_delta_prefixes": [
+            "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
+            "reports/truth-inventory/capacity-telemetry.json",
+            "reports/truth-inventory/quota-truth.json"
+          ]
+        }
+      },
+      "validation-and-publication": {
+        "no_delta_closure_criteria": {
+          "required_evidence_refs": [
+            "reports/truth-inventory/latest.json",
+            "audit/automation/contract-healer-latest.json",
+            "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md"
+          ],
+          "summary": "Validators are green, generated surfaces are fresh, and current slice debt is reduced or retyped."
+        },
+        "reopen_scope": {
+          "reason_scope": "material_repo_delta_any"
+        }
+      }
+    }
+  },
+  "cross_layer_arbitration": [
+    "runtime_breakage_and_validator_red",
+    "adopted_system_over_build_system",
+    "publication_debt_over_new_pilot_breadth",
+    "devstack_for_concept_prototype_and_proved_only",
+    "ecosystem_work_requires_registry_or_packet_reopen",
+    "codex_control_plane_contradictions_over_optional_breadth",
+    "strategic_docs_never_arbitrate_live_queue"
+  ],
   "current_phase": "active_reconciliation_and_runtime_split",
   "final_acceptance": [
     "Authority Gate: no shadow implementation authority remains.",
@@ -118,7 +235,14 @@
     "ready_for_operator_approval",
     "external_dependency_blocked",
     "steady_state_monitoring",
-    "completed"
+    "completed",
+    "blocked",
+    "claimed",
+    "executing",
+    "evidence_recorded",
+    "spin_detected",
+    "redirected",
+    "escalated"
   ],
   "loop_families": [
     {
@@ -172,9 +296,166 @@
   ],
   "program_id": "athanor-total-completion",
   "program_title": "Athanor Total Completion Program",
+  "publication_debt_policy": {
+    "blocking_after_days": 14,
+    "blocking_workstream_id": "validation-and-publication",
+    "escalation_after_days": 7,
+    "ready_for_checkpoint_blocking_threshold": 3
+  },
   "publication_slices": {
-    "active_sequence_id": "2026-04-12-bounded-checkpoint-publication",
+    "active_sequence_id": "2026-04-15-publication-triage-governance",
     "checkpoint_id": "final-publication-and-freeze",
+    "deferred_families": [
+      {
+        "disposition": "deferred_out_of_sequence",
+        "execution_class": "program_slice",
+        "execution_rank": 6,
+        "id": "control-plane-follow-on",
+        "next_action": "Break the broad control-plane tail into explicit follow-on publication slices before any wider checkpoint publish.",
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "validation-and-publication"
+        ],
+        "path_hints": [
+          "config/automation-backbone/",
+          "scripts/",
+          "projects/agents/",
+          "docs/operations/"
+        ],
+        "scope": "Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.",
+        "success_condition": "Control-plane residue is no longer one deferred mass; it is decomposed into explicit publication-ready tranches.",
+        "title": "Control-Plane Follow-on"
+      },
+      {
+        "disposition": "deferred_out_of_sequence",
+        "execution_class": "bounded_follow_on",
+        "execution_rank": 4,
+        "id": "deployment-authority-follow-on",
+        "next_action": "Break Ansible and deployment-authority drift into bounded packet-backed repairs instead of leaving it as one giant residual lane.",
+        "owner_workstreams": [
+          "deployment-authority-reconciliation",
+          "validation-and-publication"
+        ],
+        "path_hints": [
+          "ansible/"
+        ],
+        "scope": "Ansible inventory, role, and deployment-authority work that should stay explicit but not block the current bounded checkpoint wave.",
+        "success_condition": "Deployment-authority deltas are split into bounded repair tranches with explicit ownership and replay rules.",
+        "title": "Deployment Authority Follow-on"
+      },
+      {
+        "disposition": "archive_or_reference",
+        "execution_class": "cash_now",
+        "execution_rank": 1,
+        "id": "reference-and-archive-prune",
+        "next_action": "Prune or archive superseded top-level reference docs, repoint surviving references, and keep archive surfaces explicitly non-authoritative.",
+        "owner_workstreams": [
+          "startup-docs-and-prune",
+          "validation-and-publication"
+        ],
+        "path_hints": [
+          "docs/archive/",
+          "docs/research/",
+          "docs/decisions/",
+          "docs/design/",
+          "docs/runbooks/",
+          "docs/hardware/",
+          "docs/projects/",
+          "docs/atlas/",
+          "docs/"
+        ],
+        "scope": "Historical, research, design, runbook, archive, and top-level reference surfaces that must remain typed as reference or archive instead of masquerading as checkpoint-slice truth.",
+        "success_condition": "Top-level reference and archive surfaces stop presenting stale implementation or runtime truth from active-looking paths.",
+        "title": "Reference and Archive Prune"
+      },
+      {
+        "disposition": "tenant_surface",
+        "execution_class": "tenant_lane",
+        "execution_rank": 7,
+        "id": "tenant-product-lanes",
+        "next_action": "Push tenant roots through product-specific classification, packet lanes, and local-root governance instead of Athanor checkpoint publication.",
+        "owner_workstreams": [
+          "tenant-architecture-and-classification",
+          "validation-and-publication"
+        ],
+        "path_hints": [
+          "projects/eoq/",
+          "projects/ulrich-energy/",
+          "projects/kindred/",
+          "projects/comfyui-workflows/",
+          "projects/ws-pty-bridge/"
+        ],
+        "scope": "Tenant and product-lane repos that are governed local roots but not part of the current checkpoint publication sequence.",
+        "success_condition": "Tenant product changes route through their governed tenant lanes without leaking into Athanor checkpoint slices.",
+        "title": "Tenant Product Lanes"
+      },
+      {
+        "disposition": "operator_tooling",
+        "execution_class": "cash_now",
+        "execution_rank": 2,
+        "id": "operator-tooling-and-helper-surfaces",
+        "next_action": "Constrain helper surfaces, root guidance, and operator tooling so they stop accumulating shadow instructions or local-only churn.",
+        "owner_workstreams": [
+          "authority-and-mainline",
+          "startup-docs-and-prune"
+        ],
+        "path_hints": [
+          ".claude/",
+          ".aider.conf.yml",
+          ".claudeignore",
+          ".coderabbit.yaml",
+          ".gitea/",
+          ".gitignore",
+          "AGENTS.md",
+          "CLAUDE.md",
+          "PROJECT.md",
+          "README.md",
+          "SESSION-LOG.md",
+          "lefthook.yml",
+          "setup.ps1"
+        ],
+        "scope": "Operator helper rules, local agent tooling, repo scaffolding, and root guidance files that should stay governed but out of checkpoint-slice authority.",
+        "success_condition": "Operator helper surfaces remain bounded, intentional, and visibly non-authoritative outside their owned scope.",
+        "title": "Operator Tooling and Helper Surfaces"
+      },
+      {
+        "disposition": "runtime_follow_on",
+        "execution_class": "bounded_follow_on",
+        "execution_rank": 5,
+        "id": "runtime-service-follow-on",
+        "next_action": "Split live service deltas into runtime-owned packets and keep service truth aligned with canonical topology and contracts.",
+        "owner_workstreams": [
+          "runtime-sync-and-governed-packets",
+          "validation-and-publication"
+        ],
+        "path_hints": [
+          "services/"
+        ],
+        "scope": "Service-level runtime code and cluster helpers that remain active implementation work but are outside the current publication checkpoint order.",
+        "success_condition": "Runtime service changes are packet-backed and no service lane remains an undocumented side path.",
+        "title": "Runtime Service Follow-on"
+      },
+      {
+        "disposition": "audit_artifact",
+        "execution_class": "cash_now",
+        "execution_rank": 3,
+        "id": "audit-and-eval-artifacts",
+        "next_action": "Register, snapshot, or relocate evidence outputs so audit and eval artifacts stay as proof, not accidental authority.",
+        "owner_workstreams": [
+          "validation-and-publication",
+          "startup-docs-and-prune"
+        ],
+        "path_hints": [
+          "audit/",
+          "tests/",
+          "evals/",
+          "recipes/"
+        ],
+        "scope": "Audit bundles, eval outputs, recipe fixtures, and verification traces that should stay typed as evidence or harness material rather than publication-slice truth.",
+        "success_condition": "Evidence artifacts are either generated and freshness-checked or clearly typed as archive-only harness material.",
+        "title": "Audit and Eval Artifacts"
+      }
+    ],
     "owner_workstream_id": "validation-and-publication",
     "rules": [
       "Land slices in the order above.",
@@ -192,22 +473,99 @@
       {
         "blocking_gate": "none",
         "dependencies": [],
+        "generated_artifacts": [
+          "docs/operations/PUBLICATION-PROVENANCE-REPORT.md",
+          "docs/operations/SURFACE-OWNER-MATRIX.md",
+          "docs/operations/PUBLICATION-TRIAGE-REPORT.md",
+          "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md"
+        ],
+        "git_commit_range": null,
         "id": "backbone-contracts-and-truth-writers",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
         "order": 1,
         "owner_workstreams": [
           "authority-and-mainline",
           "validation-and-publication"
         ],
+        "publication_artifact_refs": [
+          "config/automation-backbone/contract-registry.json",
+          "config/automation-backbone/data-handling-policy.json",
+          "config/automation-backbone/project-packet-registry.json",
+          "config/automation-backbone/commitment-governance.json",
+          "config/automation-backbone/assumption-governance.json",
+          "config/automation-backbone/specialist-review-gates.json",
+          "config/automation-backbone/party-boundary-registry.json",
+          "config/automation-backbone/canonical-vocabulary-registry.json",
+          "config/automation-backbone/protocol-interop-registry.json",
+          "config/automation-backbone/compatibility-alias-policy.json",
+          "config/automation-backbone/architecture-freeze-policy.json",
+          "config/automation-backbone/execution-lease-policy.json",
+          "config/automation-backbone/operator-mode-policy.json",
+          "config/automation-backbone/retention-policy-registry.json",
+          "projects/agents/config/automation-backbone/contract-registry.json",
+          "scripts/layered_master_plan.py",
+          "scripts/triage_publication_tranche.py",
+          "config/automation-backbone/completion-program-registry.json",
+          "scripts/validate_platform_contract.py",
+          "scripts/generate_publication_deferred_family_queue.py"
+        ],
+        "published_at": "2026-04-16T05:32:19+00:00",
+        "rollback_reference": "git restore listed artifact refs and rerun publication validators",
         "scope": "Core control-plane registries, quota/capacity/override writers, validator expansion, and the source-of-truth layer that must land coherently before downstream consumers.",
-        "status": "ready_for_checkpoint",
-        "title": "Backbone Contracts and Truth Writers"
+        "status": "published",
+        "title": "Backbone Contracts and Truth Writers",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "python scripts/generate_truth_inventory_reports.py --check --report publication_provenance --report surface_owner_matrix"
+        ],
+        "working_tree_path_hints": [
+          "config/automation-backbone/contract-registry.json",
+          "config/automation-backbone/data-handling-policy.json",
+          "config/automation-backbone/project-packet-registry.json",
+          "config/automation-backbone/commitment-governance.json",
+          "config/automation-backbone/assumption-governance.json",
+          "config/automation-backbone/specialist-review-gates.json",
+          "config/automation-backbone/party-boundary-registry.json",
+          "config/automation-backbone/canonical-vocabulary-registry.json",
+          "config/automation-backbone/protocol-interop-registry.json",
+          "config/automation-backbone/compatibility-alias-policy.json",
+          "config/automation-backbone/architecture-freeze-policy.json",
+          "config/automation-backbone/execution-lease-policy.json",
+          "config/automation-backbone/operator-mode-policy.json",
+          "config/automation-backbone/retention-policy-registry.json",
+          "projects/agents/config/automation-backbone/contract-registry.json",
+          "scripts/layered_master_plan.py",
+          "scripts/triage_publication_tranche.py",
+          "scripts/tests/test_publication_tranche_triage.py",
+          "docs/operations/PUBLICATION-PROVENANCE-REPORT.md",
+          "docs/operations/SURFACE-OWNER-MATRIX.md",
+          "config/automation-backbone/completion-program-registry.json",
+          "scripts/validate_platform_contract.py",
+          "docs/operations/PUBLICATION-TRIAGE-REPORT.md",
+          "scripts/generate_publication_deferred_family_queue.py",
+          "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md"
+        ]
       },
       {
         "blocking_gate": "none",
         "dependencies": [
           "backbone-contracts-and-truth-writers"
         ],
+        "generated_artifacts": [
+          "reports/truth-inventory/latest.json",
+          "docs/operations/REPO-ROOTS-REPORT.md",
+          "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+          "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+          "docs/operations/PROVIDER-CATALOG-REPORT.md",
+          "docs/operations/SECRET-SURFACE-REPORT.md",
+          "reports/reconciliation/tenant-family-audit-latest.json",
+          "reports/reconciliation/rfi-hers-duplicate-evidence-packet-latest.json"
+        ],
+        "git_commit_range": null,
         "id": "runtime-ownership-provider-truth-and-reconciliation",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
         "order": 2,
         "owner_workstreams": [
           "deployment-authority-reconciliation",
@@ -218,23 +576,132 @@
           "tenant-architecture-and-classification",
           "validation-and-publication"
         ],
+        "publication_artifact_refs": [
+          "config/automation-backbone/runtime-ownership-contract.json",
+          "config/automation-backbone/runtime-ownership-packets.json",
+          "config/automation-backbone/provider-catalog.json",
+          "config/automation-backbone/credential-surface-registry.json",
+          "config/automation-backbone/reconciliation-source-registry.json",
+          "config/automation-backbone/repo-roots-registry.json",
+          "scripts/generate_truth_inventory_reports.py",
+          "scripts/collect_truth_inventory.py",
+          "scripts/probe_provider_usage_evidence.py",
+          "scripts/record_provider_usage_evidence.py",
+          "scripts/vault_litellm_env_audit.py",
+          "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
+          "docs/operations/ATHANOR-SHARED-EXTRACTION-QUEUE.md",
+          "docs/operations/ATHANOR-TENANT-QUEUE.md",
+          "docs/operations/ATHANOR-RECONCILIATION-LEDGER.md",
+          "docs/operations/REPO-ROOTS-REPORT.md",
+          "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+          "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+          "docs/operations/PROVIDER-CATALOG-REPORT.md",
+          "docs/operations/SECRET-SURFACE-REPORT.md",
+          "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md",
+          "scripts/generate_tenant_family_audit.py",
+          "scripts/generate_rfi_hers_duplicate_evidence_packet.py",
+          "docs/operations/ATHANOR-RECONCILIATION-END-STATE.md"
+        ],
+        "published_at": "2026-04-16T15:03:05Z",
+        "rollback_reference": null,
         "scope": "Runtime-ownership contract and packets, provider catalog and burn truth, reconciliation roots, truth-report generator updates, and the linked operations reports and runbooks that make runtime handoff explicit.",
-        "status": "ready_for_checkpoint",
-        "title": "Runtime Ownership, Provider Truth, and Reconciliation"
+        "status": "published",
+        "title": "Runtime Ownership, Provider Truth, and Reconciliation",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "python scripts/generate_truth_inventory_reports.py --check --report repo_roots --report runtime_ownership --report runtime_ownership_packets --report provider_catalog --report secret_surfaces"
+        ],
+        "working_tree_path_hints": [
+          "config/automation-backbone/runtime-ownership-",
+          "config/automation-backbone/provider-catalog.json",
+          "config/automation-backbone/credential-surface-registry.json",
+          "config/automation-backbone/reconciliation-source-registry.json",
+          "config/automation-backbone/repo-roots-registry.json",
+          "scripts/generate_truth_inventory_reports.py",
+          "scripts/collect_truth_inventory.py",
+          "scripts/probe_provider_usage_evidence.py",
+          "scripts/record_provider_usage_evidence.py",
+          "scripts/vault_litellm_env_audit.py",
+          "docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md",
+          "docs/operations/ATHANOR-SHARED-EXTRACTION-QUEUE.md",
+          "docs/operations/ATHANOR-TENANT-QUEUE.md",
+          "docs/operations/ATHANOR-RECONCILIATION-LEDGER.md",
+          "docs/operations/REPO-ROOTS-REPORT.md",
+          "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+          "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+          "docs/operations/PROVIDER-CATALOG-REPORT.md",
+          "docs/operations/SECRET-SURFACE-REPORT.md",
+          "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md",
+          "reports/reconciliation/",
+          "reports/truth-inventory/latest.json",
+          "scripts/generate_tenant_family_audit.py",
+          "scripts/generate_rfi_hers_duplicate_evidence_packet.py",
+          "docs/operations/ATHANOR-RECONCILIATION-END-STATE.md"
+        ]
       },
       {
         "blocking_gate": "none",
         "dependencies": [
           "backbone-contracts-and-truth-writers"
         ],
+        "generated_artifacts": [
+          "reports/bootstrap/takeover-promotion-packet.json",
+          "reports/truth-inventory/capability-pilot-readiness.json",
+          "reports/truth-inventory/capability-pilot-evals.json",
+          "reports/truth-inventory/capability-pilot-formal-preflight.json"
+        ],
+        "git_commit_range": null,
         "id": "pilot-eval-substrate-and-operator-test-machinery",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
         "order": 3,
         "owner_workstreams": [
           "validation-and-publication"
         ],
+        "publication_artifact_refs": [
+          "config/automation-backbone/eval-corpus-registry.json",
+          "config/automation-backbone/eval-run-ledger.json",
+          "config/automation-backbone/experiment-ledger-policy.json",
+          "config/automation-backbone/release-ritual.json",
+          "projects/agents/config/automation-backbone/eval-corpus-registry.json",
+          "projects/agents/config/automation-backbone/release-ritual.json",
+          "scripts/generate_capability_pilot_readiness.py",
+          "scripts/finalize_capability_pilot_manual_review.py",
+          "scripts/pilot_benchmark_support.py",
+          "scripts/run_capability_pilot_formal_preflight.py",
+          "scripts/run_capability_pilot_formal_eval.py",
+          "scripts/run_capability_pilot_evals.py",
+          "scripts/tests/test_capability_pilot_eval_contracts.py",
+          "projects/dashboard/src/app/api/governor/operator-tests/route.ts",
+          "projects/dashboard/src/app/api/governor/operator-tests/route.test.ts",
+          "projects/dashboard/src/components/operations-readiness-card.tsx"
+        ],
+        "published_at": "2026-04-16T15:10:55Z",
+        "rollback_reference": null,
         "scope": "Eval corpus and run ledgers, pilot provenance, operator-test flows, formal preflight and eval runners, and their test contracts as one formal pilot-infrastructure slice.",
-        "status": "ready_for_checkpoint",
-        "title": "Pilot Eval Substrate and Operator-Test Machinery"
+        "status": "published",
+        "title": "Pilot Eval Substrate and Operator-Test Machinery",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py",
+          "python scripts/generate_capability_pilot_readiness.py"
+        ],
+        "working_tree_path_hints": [
+          "config/automation-backbone/eval-corpus-registry.json",
+          "config/automation-backbone/eval-run-ledger.json",
+          "config/automation-backbone/experiment-ledger-policy.json",
+          "config/automation-backbone/release-ritual.json",
+          "projects/agents/config/automation-backbone/eval-corpus-registry.json",
+          "projects/agents/config/automation-backbone/release-ritual.json",
+          "reports/bootstrap/takeover-promotion-packet.json",
+          "reports/truth-inventory/capability-pilot-",
+          "scripts/generate_capability_pilot_readiness.py",
+          "scripts/finalize_capability_pilot_manual_review.py",
+          "scripts/pilot_benchmark_support.py",
+          "scripts/run_capability_pilot_",
+          "scripts/tests/test_capability_pilot_eval_contracts.py",
+          "projects/dashboard/src/app/api/governor/operator-tests/",
+          "projects/dashboard/src/components/operations-readiness-card.tsx"
+        ]
       },
       {
         "blocking_gate": "none",
@@ -242,15 +709,43 @@
           "pilot-eval-substrate-and-operator-test-machinery",
           "runtime-ownership-provider-truth-and-reconciliation"
         ],
+        "generated_artifacts": [
+          "reports/truth-inventory/graphrag-promotion-eval.json"
+        ],
+        "git_commit_range": null,
         "id": "graphrag-promotion-wave",
+        "included_capability_ids": [
+          "graphrag-hybrid-retrieval"
+        ],
+        "included_packet_ids": [
+          "graphrag-hybrid-retrieval-promotion-packet"
+        ],
         "order": 4,
         "owner_workstreams": [
           "runtime-sync-and-governed-packets",
           "validation-and-publication"
         ],
+        "publication_artifact_refs": [
+          "config/automation-backbone/capability-adoption-registry.json",
+          "projects/agents/src/athanor_agents/context.py",
+          "projects/agents/src/athanor_agents/graphrag_client.py",
+          "projects/agents/tests/test_context.py",
+          "scripts/run_graphrag_promotion_eval.py",
+          "C:/athanor-devstack/docs/promotion-packets/graphrag-hybrid-retrieval.md"
+        ],
+        "published_at": "2026-04-16T15:14:24Z",
+        "rollback_reference": null,
         "scope": "GraphRAG service, Athanor agents retrieval seam, promotion eval, packet, and linked capability truth as one governed knowledge-subsystem promotion slice.",
-        "status": "ready_for_checkpoint",
-        "title": "GraphRAG Promotion Wave"
+        "status": "published",
+        "title": "GraphRAG Promotion Wave",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py"
+        ],
+        "working_tree_path_hints": [
+          "services/graphrag/",
+          "scripts/run_graphrag_promotion_eval.py",
+          "reports/truth-inventory/graphrag-promotion-eval.json"
+        ]
       },
       {
         "blocking_gate": "none",
@@ -258,15 +753,44 @@
           "pilot-eval-substrate-and-operator-test-machinery",
           "runtime-ownership-provider-truth-and-reconciliation"
         ],
+        "generated_artifacts": [
+          "reports/truth-inventory/gpu-scheduler-promotion-eval.json"
+        ],
+        "git_commit_range": null,
         "id": "gpu-scheduler-extension-wave",
+        "included_capability_ids": [
+          "gpu-scheduler-extension"
+        ],
+        "included_packet_ids": [
+          "gpu-scheduler-extension-promotion-packet"
+        ],
         "order": 5,
         "owner_workstreams": [
           "runtime-sync-and-governed-packets",
           "validation-and-publication"
         ],
+        "publication_artifact_refs": [
+          "projects/gpu-orchestrator/docker-compose.yml",
+          "projects/gpu-orchestrator/src/gpu_orchestrator/config.py",
+          "projects/gpu-orchestrator/src/gpu_orchestrator/gpu.py",
+          "projects/gpu-orchestrator/tests/test_scheduler_mutations.py",
+          "projects/gpu-orchestrator/tests/test_scheduler_state.py",
+          "scripts/run_gpu_scheduler_baseline_eval.py",
+          "scripts/run_gpu_scheduler_promotion_eval.py"
+        ],
+        "published_at": "2026-04-16T15:15:39Z",
+        "rollback_reference": null,
         "scope": "Scheduler delta, rollout script, formal eval, packet, and orchestrator tests as one bounded runtime-extension slice.",
-        "status": "ready_for_checkpoint",
-        "title": "GPU Scheduler Extension Wave"
+        "status": "published",
+        "title": "GPU Scheduler Extension Wave",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py"
+        ],
+        "working_tree_path_hints": [
+          "projects/gpu-orchestrator/",
+          "scripts/run_gpu_scheduler_",
+          "reports/truth-inventory/gpu-scheduler-promotion-eval.json"
+        ]
       },
       {
         "blocking_gate": "depends_on_prior_slices",
@@ -277,15 +801,50 @@
           "graphrag-promotion-wave",
           "gpu-scheduler-extension-wave"
         ],
+        "generated_artifacts": [
+          "C:/athanor-devstack/reports/master-atlas/latest.json",
+          "projects/dashboard/src/generated/master-atlas.json",
+          "projects/dashboard/src/generated/operator-surfaces.json"
+        ],
+        "git_commit_range": null,
         "id": "forge-atlas-dashboard-and-startup-truth",
+        "included_capability_ids": [],
+        "included_packet_ids": [],
         "order": 6,
         "owner_workstreams": [
           "startup-docs-and-prune",
           "validation-and-publication"
         ],
+        "publication_artifact_refs": [
+          "STATUS.md",
+          "docs/CODEX-NEXT-STEPS.md",
+          "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+          "docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md",
+          "docs/operations/ATHANOR-COLD-START.md",
+          "docs/operations/OPERATOR-SURFACE-REPORT.md",
+          "projects/dashboard/src/generated/master-atlas.json",
+          "projects/dashboard/src/generated/operator-surfaces.json",
+          "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md"
+        ],
+        "published_at": "2026-04-16T15:17:20Z",
+        "rollback_reference": null,
         "scope": "Devstack forge and atlas compilers, dashboard consumers, generated master-atlas outputs, and top-entry startup and status docs that should land last so they reflect the earlier slices.",
-        "status": "ready_for_checkpoint",
-        "title": "Forge, Atlas, Dashboard, and Startup Truth"
+        "status": "published",
+        "title": "Forge, Atlas, Dashboard, and Startup Truth",
+        "validator_run_set": [
+          "python scripts/validate_platform_contract.py"
+        ],
+        "working_tree_path_hints": [
+          "STATUS.md",
+          "docs/CODEX-NEXT-STEPS.md",
+          "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
+          "docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md",
+          "docs/operations/ATHANOR-COLD-START.md",
+          "docs/operations/OPERATOR-SURFACE-REPORT.md",
+          "projects/dashboard/",
+          "reports/master-atlas/latest.json",
+          "docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md"
+        ]
       }
     ],
     "source_doc": "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md"
@@ -298,7 +857,7 @@
     "current_phase_scope": "full_system_phase_3",
     "evidence_freshness": "fresh",
     "execution_posture": "steady_state",
-    "last_validation_run": "2026-04-14T21:49:10.217130+00:00",
+    "last_validation_run": "2026-04-16T18:28:19.287254+00:00",
     "next_action_family": "dispatch_truth_and_queue_replenishment",
     "report_path": "reports/ralph-loop/latest.json",
     "selected_workstream": "dispatch-and-work-economy-closure",
@@ -502,8 +1061,8 @@
         "Validation and generated-doc checks pass cleanly.",
         "No new authority, provider, or portfolio ambiguity reopens on consecutive Ralph cycles."
       ],
-      "current_consecutive_clean_cycles": 2,
-      "last_clean_cycle_at": "2026-04-14T21:07:44.732317+00:00",
+      "current_consecutive_clean_cycles": 25,
+      "last_clean_cycle_at": "2026-04-16T18:28:35.623762+00:00",
       "ready_to_transition": true,
       "required_consecutive_clean_cycles": 2
     },
@@ -532,6 +1091,38 @@
       "reports/ralph-loop/latest.json"
     ]
   },
+  "recovery_drills": [
+    {
+      "artifact_path": "reports/governance/drills/constrained-mode.json",
+      "drill_id": "constrained-mode",
+      "next_due_rule": "monthly"
+    },
+    {
+      "artifact_path": "reports/governance/drills/degraded-mode.json",
+      "drill_id": "degraded-mode",
+      "next_due_rule": "monthly"
+    },
+    {
+      "artifact_path": "reports/governance/drills/recovery-only.json",
+      "drill_id": "recovery-only",
+      "next_due_rule": "monthly"
+    },
+    {
+      "artifact_path": "docs/operations/ATHANOR-COLD-START.md",
+      "drill_id": "athanor-cold-start",
+      "next_due_rule": "monthly_review"
+    },
+    {
+      "artifact_path": "C:/athanor-devstack/docs/DEVSTACK-COLD-START.md",
+      "drill_id": "devstack-cold-start",
+      "next_due_rule": "monthly_review"
+    },
+    {
+      "artifact_path": "C:/Codex System Config/docs/CODEX-WSL-FLIP-READY.md",
+      "drill_id": "wsl-codex-preflight",
+      "next_due_rule": "weekly_review"
+    }
+  ],
   "source_of_truth": "config/automation-backbone/completion-program-registry.json",
   "standing_rules": [
     "Do not publish from a stale local mainline.",
@@ -540,9 +1131,91 @@
     "Do not leave any repo, local root, or runtime lane in a 'maybe important' state once reviewed.",
     "Do not preserve stale startup guidance once replacement truth is verified."
   ],
+  "state_transition_contracts": {
+    "devstack_lanes": [
+      "active -> drafting_packet",
+      "active -> ready_for_review",
+      "active -> parked",
+      "active -> blocked",
+      "drafting_packet -> ready_for_review",
+      "drafting_packet -> hold",
+      "drafting_packet -> retired",
+      "ready_for_review -> parked",
+      "ready_for_review -> blocked",
+      "parked -> reopened_delta only_with_new_bounded_change_and_linked_packet"
+    ],
+    "packets": [
+      "draft -> ready_for_review -> accepted -> archived",
+      "ready_for_review -> rejected",
+      "accepted -> superseded -> archived",
+      "no_backward_transition_without_explicit_reopen_metadata"
+    ],
+    "pilots": [
+      "scaffolded -> preflight_ready -> smoke_only -> formal_eval_ready -> formal_eval_complete",
+      "formal_eval_complete -> promote|hold|retire|archive_as_lineage",
+      "blocked_and_failed_are_intermediate_only"
+    ],
+    "tenant_execution_modes": [
+      "incubating_tenant -> light_tenant_operator_managed -> active_program_managed",
+      "standalone_external_monitored -> shared_module_candidate only_by_explicit_extraction_decision",
+      "any -> archive_only allowed"
+    ],
+    "workstreams": [
+      "ready_for_execution -> claimed -> executing -> evidence_recorded -> completed",
+      "ready_for_execution -> blocked",
+      "blocked -> ready_for_execution",
+      "claimed -> spin_detected",
+      "spin_detected -> escalated",
+      "spin_detected -> redirected",
+      "completed -> ready_for_execution only_with_explicit_reopen_evidence"
+    ]
+  },
   "status": "active",
   "tenant_depth_default": "light-tenant",
-  "version": "2026-04-13.0",
+  "updated_at": "2026-04-15T14:45:00-05:00",
+  "version": "2026-04-15.1",
+  "workstream_execution_bindings": {
+    "capacity-and-harvest-truth": {
+      "branch_or_lane_ref": "codex/reconciliation-completion",
+      "execution_root": "C:/Athanor",
+      "lease_class_id": "build_truth_mutation",
+      "linked_packet_id": null,
+      "linked_publication_slice_id": null,
+      "worktree_path": "C:/Athanor"
+    },
+    "dispatch-and-work-economy-closure": {
+      "branch_or_lane_ref": "codex/reconciliation-completion",
+      "execution_root": "C:/Athanor",
+      "lease_class_id": "build_truth_mutation",
+      "linked_packet_id": null,
+      "linked_publication_slice_id": null,
+      "worktree_path": "C:/Athanor"
+    },
+    "provider-and-secret-remediation": {
+      "branch_or_lane_ref": "codex/reconciliation-completion",
+      "execution_root": "C:/Athanor",
+      "lease_class_id": "packet_and_registry_mutation",
+      "linked_packet_id": "vault-litellm-auth-repair",
+      "linked_publication_slice_id": "runtime-ownership-provider-truth-and-reconciliation",
+      "worktree_path": "C:/Athanor"
+    },
+    "startup-docs-and-prune": {
+      "branch_or_lane_ref": "codex/reconciliation-completion",
+      "execution_root": "C:/Athanor",
+      "lease_class_id": "build_truth_mutation",
+      "linked_packet_id": null,
+      "linked_publication_slice_id": "forge-atlas-dashboard-and-startup-truth",
+      "worktree_path": "C:/Athanor"
+    },
+    "validation-and-publication": {
+      "branch_or_lane_ref": "codex/reconciliation-completion",
+      "execution_root": "C:/Athanor",
+      "lease_class_id": "packet_and_registry_mutation",
+      "linked_packet_id": "final-publication-and-freeze",
+      "linked_publication_slice_id": "final-publication-and-freeze",
+      "worktree_path": "C:/Athanor"
+    }
+  },
   "workstream_statuses": [
     "planned",
     "active",

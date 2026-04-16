@@ -6,15 +6,16 @@ import time
 from dataclasses import asdict, dataclass
 from typing import Any
 
-import redis.asyncio as aioredis
+try:
+    import redis.asyncio as aioredis
+except ModuleNotFoundError:  # pragma: no cover - optional local dependency
+    aioredis = None
 
 from runtime_env import load_optional_runtime_env
 
 
 AUTOMATION_RUN_STREAM = "athanor:automation:runs"
 DEFAULT_REDIS_URL = "redis://192.168.1.203:6379/0"
-
-_redis: aioredis.Redis | None = None
 
 load_optional_runtime_env(env_names=["ATHANOR_REDIS_URL", "ATHANOR_REDIS_PASSWORD"])
 
@@ -61,16 +62,16 @@ def _parse_json_mapping(value: str) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
-async def _get_redis() -> aioredis.Redis:
-    global _redis
-    if _redis is None:
-        redis_url = os.getenv("ATHANOR_REDIS_URL", "").strip() or DEFAULT_REDIS_URL
-        redis_password = os.getenv("ATHANOR_REDIS_PASSWORD", "").strip() or None
-        _redis = aioredis.from_url(redis_url, password=redis_password, decode_responses=True)
-    return _redis
+async def _get_redis() -> Any:
+    if aioredis is None:
+        raise RuntimeError("redis.asyncio is not installed")
+    redis_url = os.getenv("ATHANOR_REDIS_URL", "").strip() or DEFAULT_REDIS_URL
+    redis_password = os.getenv("ATHANOR_REDIS_PASSWORD", "").strip() or None
+    return aioredis.from_url(redis_url, password=redis_password, decode_responses=True)
 
 
 async def emit_automation_run_record(record: AutomationRunRecord) -> AutomationRunEmitResult:
+    redis_client = None
     try:
         redis_client = await _get_redis()
         await redis_client.xadd(
@@ -82,6 +83,12 @@ async def emit_automation_run_record(record: AutomationRunRecord) -> AutomationR
         return AutomationRunEmitResult(persisted=True)
     except Exception as exc:
         return AutomationRunEmitResult(persisted=False, error=str(exc))
+    finally:
+        if redis_client is not None:
+            try:
+                await redis_client.aclose()
+            except Exception:
+                pass
 
 
 def _coerce_json_mapping(raw: Any) -> dict[str, Any]:
@@ -151,6 +158,9 @@ async def read_recent_automation_run_records(
     lanes: list[str] | None = None,
     automation_ids: list[str] | None = None,
 ) -> list[dict[str, Any]]:
+    if aioredis is None:
+        return []
+    redis_client = None
     try:
         redis_client = await _get_redis()
         raw_entries = await redis_client.xrevrange(
@@ -159,6 +169,12 @@ async def read_recent_automation_run_records(
         )
     except Exception:
         return []
+    finally:
+        if redis_client is not None:
+            try:
+                await redis_client.aclose()
+            except Exception:
+                pass
 
     lane_filter = {str(item).strip() for item in (lanes or []) if str(item).strip()}
     automation_filter = {str(item).strip() for item in (automation_ids or []) if str(item).strip()}

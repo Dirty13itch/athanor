@@ -42,8 +42,14 @@ export const config = {
     `http://${foundryHost}:6333`,
   ),
 
-  /** Model to use for dialogue generation */
-  dialogueModel: process.env.DIALOGUE_MODEL || "reasoning",
+  /** Sovereign local dialogue + narration lane for EOQ runtime outputs */
+  dialogueModel:
+    process.env.EOQ_DIALOGUE_MODEL ||
+    process.env.DIALOGUE_MODEL ||
+    "uncensored",
+
+  /** Sovereign local helper lane for structured creative support tasks */
+  helperModel: process.env.EOQ_HELPER_MODEL || "reasoning",
 
   /** Temperature for dialogue generation */
   dialogueTemperature: parseFloat(process.env.DIALOGUE_TEMPERATURE || "0.8"),

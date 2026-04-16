@@ -1,0 +1,66 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T18:40:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/assumption-governance.json",
+  "claim_types": [
+    {
+      "id": "observed",
+      "allowed_to_drive_execution": true,
+      "externalization_allowed": true,
+      "review_required": false
+    },
+    {
+      "id": "derived",
+      "allowed_to_drive_execution": true,
+      "externalization_allowed": true,
+      "review_required": false
+    },
+    {
+      "id": "inferred",
+      "allowed_to_drive_execution": false,
+      "externalization_allowed": false,
+      "review_required": true
+    },
+    {
+      "id": "assumed",
+      "allowed_to_drive_execution": false,
+      "externalization_allowed": false,
+      "review_required": true
+    },
+    {
+      "id": "superseded",
+      "allowed_to_drive_execution": false,
+      "externalization_allowed": false,
+      "review_required": false
+    }
+  ],
+  "supersession_precedence": [
+    "runtime_state_truth",
+    "validator_or_probe_evidence",
+    "adopted_registry_truth",
+    "generated_projection",
+    "operator_local_memory",
+    "strategy_only_truth"
+  ],
+  "required_claim_fields": [
+    "claim_type",
+    "evidence_basis",
+    "confidence",
+    "stale_risk",
+    "superseded_by",
+    "review_required"
+  ],
+  "defaults": {
+    "inference_may_guide_exploration_only": true,
+    "assumptions_must_be_marked_before_externalization": true,
+    "superseded_claims_must_not_remain_active_truth": true
+  },
+  "contracts": [
+    "assumption_register",
+    "inference_boundary_record",
+    "belief_revision_policy",
+    "evidence_conflict_record",
+    "supersession_record"
+  ]
+}

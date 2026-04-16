@@ -18,17 +18,13 @@ if str(REPO_ROOT) not in sys.path:
 
 AUTH_FAILURE_MARKERS = (
     "authenticationerror",
-    "api key",
     "missing anthropic api key",
-    "openaiexception",
-    "geminiexception",
-    "moonshotexception",
-    "dashscopeexception",
-    "zaiexception",
-    "openrouterexception",
-    "no cookie auth credentials",
+    "incorrect api key",
     "invalid api key",
+    "api key not found",
+    "no cookie auth credentials",
     "the api_key client option must be set",
+    "user not found",
 )
 
 
@@ -93,10 +89,17 @@ def resolve_litellm_api_key() -> str:
     )
 
 
+def normalize_litellm_base_url(base_url: str) -> str:
+    normalized = str(base_url or "").strip().rstrip("/")
+    if normalized.endswith("/v1"):
+        return normalized[:-3]
+    return normalized
+
+
 def litellm_base_url() -> str:
     from services.cluster_config import get_url
 
-    return get_url("litellm").rstrip("/")
+    return normalize_litellm_base_url(get_url("litellm"))
 
 
 def litellm_headers(api_key: str) -> dict[str, str]:

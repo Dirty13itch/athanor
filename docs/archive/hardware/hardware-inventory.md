@@ -1,7 +1,7 @@
 # Athanor Complete Hardware Inventory
 
 Archived historical owned-hardware ledger.
-Current hardware truth lives in `config/automation-backbone/hardware-inventory.json`
+Current hardware truth is tracked in `config/automation-backbone/hardware-inventory.json`
 and the generated `docs/operations/HARDWARE-REPORT.md`.
 Keep this file only as detailed owned-hardware history and audit evidence.
 

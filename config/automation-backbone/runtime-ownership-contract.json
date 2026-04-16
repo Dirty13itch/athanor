@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-11.5",
-  "updated_at": "2026-04-12T04:05:00-05:00",
+  "version": "2026-04-16.2",
+  "updated_at": "2026-04-16T14:53:46Z",
   "status": "active",
   "source_of_truth": "config/automation-backbone/runtime-ownership-contract.json",
   "promotion_gate_id": "runtime_ownership_maturity",
@@ -149,7 +149,7 @@
         "dev-cron",
         "dev-logs"
       ],
-      "runtime_scope": "Runtime envfiles, work queues, systemd units, cron definitions, and service logs that support live DEV operation.",
+      "runtime_scope": "Live DEV host-state estate for runtime envfiles, work queues, systemd units, cron definitions, and service logs; the current blocker is regaining the governed SSH access path needed to inspect or mutate it safely.",
       "runtime_paths": [
         "/home/shaun/.athanor",
         "/etc/systemd/system/athanor-*",
@@ -165,14 +165,16 @@
       "evidence_paths": [
         "reports/truth-inventory/latest.json",
         "docs/operations/REPO-ROOTS-REPORT.md",
-        "docs/runbooks/local-runtime-env.md"
+        "docs/runbooks/local-runtime-env.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md"
       ],
       "verification_commands": [
         "ssh dev \"ls -1 /home/shaun/.athanor && systemctl list-unit-files 'athanor-*' --no-legend && ls -1 /etc/cron.d/athanor-* 2>/dev/null\""
       ],
       "rollback_contract": "Capture timestamped backups under /home/shaun/.athanor/backups/runtime-state/<timestamp>/ before mutating envfiles, cron, or service units.",
       "approval_boundary": "Systemd, cron, and other host-level state mutations remain approval-gated.",
-      "next_action": "Keep these state surfaces explicit in reports so runtime maintenance is tied to named roots instead of operator memory."
+      "next_action": "Keep this lane on access-path recovery only until either the governed `ssh dev` path or an explicitly blessed raw-host fallback is restored through `dev-runtime-ssh-access-recovery-packet`, then refresh collector evidence before treating broader DEV runtime maintenance as current.",
+      "execution_packet_id": "dev-runtime-ssh-access-recovery-packet"
     },
     {
       "id": "desk-goose-operator-shell",
@@ -256,7 +258,8 @@
         "docs/operations/REPO-ROOTS-REPORT.md",
         "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
         "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
-        "scripts/deploy-agents.sh"
+        "scripts/deploy-agents.sh",
+        "docs/operations/TRUTH-DRIFT-REPORT.md"
       ],
       "verification_commands": [
         "ssh foundry \"cd /opt/athanor/agents && docker compose ps athanor-agents\"",
@@ -265,7 +268,7 @@
       ],
       "rollback_contract": "Preserve the previous /opt/athanor/agents bundle under /opt/athanor/backups/agents/<timestamp>/ before replacement, and rebuild the compose lane from that backup if the rollout regresses.",
       "approval_boundary": "Replacing /opt/athanor/agents contents or rebuilding the live athanor-agents container remains approval-gated.",
-      "next_action": "Use the foundry-agents-compose-deploy-packet and scripts/deploy-agents.sh as the only ordinary update path; do not hot-patch site-packages in the running container."
+      "next_action": "Keep `foundry-agents-compose-deploy-packet` as the ordinary update path, but treat the current blocker as the narrower `foundry-agents-runtime-alignment-packet`: prove the governed `/opt/athanor/agents/src/athanor_agents` tree matches the approved implementation tree and that the imported module path is only the image-layout result of that same build before any manual runtime patching or site-packages edits."
     },
     {
       "id": "foundry-graphrag-compose",
@@ -361,6 +364,60 @@
       "rollback_contract": "Preserve the previous /opt/athanor/gpu-orchestrator bundle under /opt/athanor/backups/gpu-orchestrator/<timestamp>/ before replacement, and restore it if the approved deploy regresses the active coordinator or zone-reporting surface.",
       "approval_boundary": "Replacing /opt/athanor/gpu-orchestrator contents or rebuilding the live gpu-orchestrator container remains approval-gated.",
       "next_action": "Use scripts/deploy-gpu-orchestrator.sh as the governed update path for future FOUNDRY GPU Orchestrator changes; the bounded scheduler surface should roll through foundry-gpu-orchestrator-scheduler-state-rollout-packet so /scheduler/state, write-capability posture, and scheduler request/preload/release route presence are verified explicitly before the lane advances beyond offline proof."
+    },
+    {
+      "id": "foundry-watchdog-runtime-guard",
+      "label": "FOUNDRY watchdog runtime-guard lane",
+      "host": "foundry",
+      "status": "active",
+      "deployment_mode": "opt_compose_service",
+      "owner_root_ids": [
+        "foundry-opt-athanor"
+      ],
+      "source_root_id": "desk-main",
+      "runtime_scope": "Athanor-owned FOUNDRY watchdog live canary bundle rooted at /opt/athanor/watchdog with operator-visible monitoring and bounded remediation controls. Runtime mutation is active through the executed packet and gate env contract, while protected-service and operator-envelope boundaries remain fail-closed.",
+      "source_paths": [
+        "projects/agents/watchdog/Dockerfile",
+        "projects/agents/watchdog/docker-compose.yml",
+        "projects/agents/watchdog/main.py",
+        "projects/agents/watchdog/catalog.py",
+        "projects/agents/watchdog/remediation.py",
+        "projects/agents/watchdog/circuit.py",
+        "projects/agents/watchdog/requirements.txt"
+      ],
+      "runtime_paths": [
+        "/opt/athanor/watchdog/Dockerfile",
+        "/opt/athanor/watchdog/docker-compose.yml",
+        "/opt/athanor/watchdog/main.py",
+        "/opt/athanor/watchdog/catalog.py",
+        "/opt/athanor/watchdog/remediation.py",
+        "/opt/athanor/watchdog/circuit.py",
+        "/opt/athanor/watchdog/requirements.txt"
+      ],
+      "active_surfaces": [
+        "athanor-watchdog container",
+        "http://foundry:9301/health",
+        "http://foundry:9301/status"
+      ],
+      "execution_packet_id": "foundry-watchdog-runtime-guard-rollout-packet",
+      "evidence_paths": [
+        "projects/agents/watchdog/README.md",
+        "projects/agents/tests/test_watchdog_runtime_guard.py",
+        "projects/agents/tests/test_watchdog_route_contract.py",
+        "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
+        "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
+        "docs/operations/OPERATOR_RUNBOOKS.md"
+      ],
+      "verification_commands": [
+        "C:/Athanor/projects/agents/.venv/Scripts/python.exe -m pytest C:/Athanor/projects/agents/tests/test_watchdog_runtime_guard.py -q",
+        "C:/Athanor/projects/agents/.venv/Scripts/python.exe -m pytest C:/Athanor/projects/agents/tests/test_watchdog_route_contract.py -q",
+        "python scripts/validate_platform_contract.py",
+        "ssh foundry \"cd /opt/athanor/watchdog && docker compose ps\"",
+        "ssh foundry \"curl -sS http://127.0.0.1:9301/health && curl -sS http://127.0.0.1:9301/status\""
+      ],
+      "rollback_contract": "Preserve the previous /opt/athanor/watchdog bundle under /opt/athanor/backups/watchdog/<timestamp>/ before replacement, and close the mutation gate or restore the prior bundle if the live canary widens scope or regresses the bounded monitoring/remediation surface.",
+      "approval_boundary": "Replacing /opt/athanor/watchdog contents, rebuilding the athanor-watchdog container, or widening protected-service or remediation scope remains approval-gated.",
+      "next_action": "Maintain the executed live canary as the packet-backed watchdog lane, keep operator-envelope and protected-service boundaries intact, and reopen only for a later production widening or rollback."
     },
     {
       "id": "foundry-vllm-compose",
@@ -672,8 +729,7 @@
         "reports/truth-inventory/vault-redis-audit.json",
         "reports/truth-inventory/vault-litellm-env-audit.json",
         "docs/operations/REPO-ROOTS-REPORT.md",
-        "scripts/vault-ssh.py",
-        "scripts/ssh-vault.ps1"
+        "scripts/vault-ssh.py"
       ],
       "verification_commands": [
         "python scripts/vault-ssh.py \"echo CONNECTED && hostname\"",
@@ -681,7 +737,10 @@
       ],
       "rollback_contract": "Back up /boot/config and any targeted appdata bundle before mutating live VAULT runtime state.",
       "approval_boundary": "VAULT Docker, env, and host-level mutations remain approval-gated.",
-      "next_action": "Keep VAULT maintenance reachable through repo-owned SSH helpers and route specific config drift through the named LiteLLM and Prometheus packets instead of generic host-state edits."
+      "next_action": "Keep VAULT maintenance reachable through repo-owned SSH helpers and route specific config drift through the named LiteLLM and Prometheus packets instead of generic host-state edits.",
+      "recovery_evidence_paths": [
+        "scripts/ssh-vault.ps1"
+      ]
     }
   ],
   "promotion_criteria": [
@@ -700,7 +759,6 @@
       "requirement": "VAULT maintenance must be reachable through repo-owned helpers instead of depending on the browser terminal.",
       "evidence_paths": [
         "scripts/vault-ssh.py",
-        "scripts/ssh-vault.ps1",
         "docs/operations/RUNTIME-OWNERSHIP-REPORT.md"
       ]
     },

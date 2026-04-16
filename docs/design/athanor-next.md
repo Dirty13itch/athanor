@@ -1,18 +1,18 @@
 # Athanor Next
 
-Status: Canonical strategic design layer  
+Status: Strategic design reference layer  
 Last updated: 2026-03-10
 
 ## Purpose
 
-This document is the program-level north star above:
+This document is the program-level north-star reference above:
 
 - `docs/VISION.md`
 - `docs/SYSTEM-SPEC.md`
 - `STATUS.md`
 - `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
 
-`STATUS.md` and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` are the live current-state and execution queue layers. This document defines what that queue is for.
+`STATUS.md` and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` are the live current-state and execution queue layers. This document records what that queue is for.
 
 ## Target State
 

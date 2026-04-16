@@ -1,6 +1,6 @@
 # Home Automation Integration
 
-> Historical note: archived research retained for ADR-010 decision history. Current home-service and runtime truth lives in the canonical registries and service inventories.
+> Historical note: archived research retained for ADR-010 decision history. Current home-service and runtime truth is tracked in the canonical registries and service inventories.
 
 **Date:** 2026-02-15
 **Status:** Complete — recommendation ready

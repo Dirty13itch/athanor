@@ -16,8 +16,8 @@ Those boundaries are already mostly correct. The structural goal is not to colla
 
 ### Well-separated
 
-- `config/automation-backbone/` is acting as the canonical control-plane source layer.
-  It already holds registries, contracts, ledgers, and policy truth well enough to stay authoritative.
+- `config/automation-backbone/` is acting as the control-plane source layer.
+  It already holds registries, contracts, ledgers, and policy truth well enough to stay the primary source layer.
 - `reports/` is mostly acting as the generated evidence lake.
   Families like `truth-inventory/`, `deployment-drift/`, `bootstrap/`, and `ralph-loop/` are already recognizable report lanes.
 - `projects/` is still the right home for implementation code.

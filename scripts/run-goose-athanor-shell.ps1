@@ -3,35 +3,49 @@ param(
   [string[]]$GooseArgs
 )
 
+$pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+if (-not $pythonCommand) {
+  throw "python command not found on PATH."
+}
+
 $gooseCommand = Get-Command goose -ErrorAction SilentlyContinue
 if (-not $gooseCommand) {
   throw "goose command not found on PATH."
 }
 
-if (-not $env:OPENAI_API_KEY) {
-  if (-not $env:LITELLM_API_KEY) {
-    throw "LITELLM_API_KEY is required when OPENAI_API_KEY is not already set."
+$runtimeEnvScript = Join-Path $PSScriptRoot "runtime_env.py"
+$resolvedJson = & $pythonCommand.Source $runtimeEnvScript --resolve ATHANOR_LITELLM_API_KEY ATHANOR_LITELLM_URL OPENAI_API_KEY OPENAI_API_BASE OPENAI_HOST OPENAI_BASE_PATH --format json
+if ($LASTEXITCODE -ne 0) {
+  throw "Managed DESK LiteLLM gateway contract is unavailable. Populate ~/.athanor/runtime.env or ATHANOR_RUNTIME_ENV_FILE."
+}
+
+$resolved = $resolvedJson | ConvertFrom-Json
+foreach ($property in $resolved.PSObject.Properties) {
+  $key = $property.Name
+  $value = [string]$property.Value
+  $currentValue = [System.Environment]::GetEnvironmentVariable($key, "Process")
+  if (-not $currentValue) {
+    Set-Item -Path "Env:$key" -Value $value
   }
-  $env:OPENAI_API_KEY = $env:LITELLM_API_KEY
 }
 
-if (-not $env:OPENAI_HOST) {
-  $env:OPENAI_HOST = "http://192.168.1.203:4000"
+if (-not $env:ATHANOR_LITELLM_API_KEY) {
+  throw "ATHANOR_LITELLM_API_KEY could not be resolved from the managed runtime env surface."
 }
 
-if (-not $env:OPENAI_BASE_PATH) {
-  $env:OPENAI_BASE_PATH = "v1/chat/completions"
+$finalArgs = @($GooseArgs)
+if ($finalArgs.Count -eq 0) {
+  $finalArgs = @("session")
 }
 
-$finalArgs = @()
-if ($GooseArgs) {
-  $finalArgs += $GooseArgs
+$subcommand = ""
+if ($finalArgs.Count -gt 0 -and -not $finalArgs[0].StartsWith("-")) {
+  $subcommand = $finalArgs[0]
 }
 
-$hasProvider = $finalArgs -contains "--provider"
-$hasModel = $finalArgs -contains "--model"
-
-if ($finalArgs.Count -gt 0 -and $finalArgs[0] -eq "run") {
+if (@("run", "session", "s", "term") -contains $subcommand) {
+  $hasProvider = $finalArgs -contains "--provider"
+  $hasModel = $finalArgs -contains "--model"
   $prefix = @($finalArgs[0])
   $suffix = @()
   if ($finalArgs.Count -gt 1) {
@@ -44,14 +58,6 @@ if ($finalArgs.Count -gt 0 -and $finalArgs[0] -eq "run") {
     $suffix = @("--model", "deepseek") + $suffix
   }
   $finalArgs = $prefix + $suffix
-}
-else {
-  if (-not $hasProvider) {
-    $finalArgs = @("--provider", "openai") + $finalArgs
-  }
-  if (-not $hasModel) {
-    $finalArgs = @("--model", "deepseek") + $finalArgs
-  }
 }
 
 & $gooseCommand.Source @finalArgs

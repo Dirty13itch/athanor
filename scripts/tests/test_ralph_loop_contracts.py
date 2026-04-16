@@ -977,6 +977,7 @@ def test_governed_dispatch_runtime_state_emits_durable_claim_artifact() -> None:
             "queue_count": 4,
             "dispatchable_queue_count": 3,
             "blocked_queue_count": 1,
+            "suppressed_queue_count": 0,
             "top_dispatchable_task_id": "workstream:dispatch-and-work-economy-closure",
             "top_dispatchable_title": "Dispatch and Work-Economy Closure",
             "top_dispatchable_lane_family": "dispatch_truth_repair",
@@ -1044,6 +1045,7 @@ def test_governed_dispatch_runtime_state_stays_truthful_when_idle() -> None:
             "queue_count": 0,
             "dispatchable_queue_count": 0,
             "blocked_queue_count": 0,
+            "suppressed_queue_count": 0,
             "recent_dispatch_outcome_count": 0,
             "recent_dispatch_outcomes": [],
         },
@@ -1967,6 +1969,7 @@ def test_operator_facing_state_aliases_surface_loop_mode_top_task_and_queue() ->
     )
 
     assert aliases["loop_mode"] == "governor_scheduling"
+    assert aliases["selected_workstream_id"] == "dispatch-and-work-economy-closure"
     assert aliases["dispatchable_queue_count"] == 1
     assert aliases["provider_gate_state"] == "completed"
     assert aliases["work_economy_status"] == "ready"
@@ -2025,3 +2028,321 @@ def test_refresh_commands_include_capacity_telemetry_collection() -> None:
 
     assert [module.sys.executable, "scripts/collect_capacity_telemetry.py"] in module.REFRESH_COMMANDS
     assert module.LOOP_FAMILY_NEXT_COMMANDS["evidence_refresh"] == module.REFRESH_COMMANDS
+
+
+def test_workstream_scoped_repo_delta_reopen_keeps_dispatch_closed_on_unrelated_churn() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    continuity_policy = {
+        "workstream_continuity": {
+            "dispatch-and-work-economy-closure": {
+                "reopen_scope": {
+                    "reason_scope": "dispatch_evidence_chain_only",
+                    "repo_delta_prefixes": [
+                        "scripts/run_ralph_loop_pass.py",
+                        "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
+                    ],
+                }
+            },
+            "validation-and-publication": {
+                "reopen_scope": {
+                    "reason_scope": "material_repo_delta_any",
+                    "repo_delta_prefixes": [],
+                }
+            },
+        }
+    }
+    repo_delta_paths = ["docs/operations/PUBLICATION-TRIAGE-REPORT.md"]
+    dispatch_detail = module._continuity_repo_delta_reopen_detail(
+        {
+            "task_id": "workstream:dispatch-and-work-economy-closure",
+            "source_type": "workstream",
+            "workstream_id": "dispatch-and-work-economy-closure",
+        },
+        enabled=True,
+        continuity_policy=continuity_policy,
+        repo_delta_paths=repo_delta_paths,
+    )
+    validation_detail = module._continuity_repo_delta_reopen_detail(
+        {
+            "task_id": "workstream:validation-and-publication",
+            "source_type": "workstream",
+            "workstream_id": "validation-and-publication",
+        },
+        enabled=True,
+        continuity_policy=continuity_policy,
+        repo_delta_paths=repo_delta_paths,
+    )
+
+    assert dispatch_detail["reopened"] is False
+    assert dispatch_detail["reopen_reason_scope"] == "dispatch_evidence_chain_only"
+    assert validation_detail["reopened"] is True
+    assert validation_detail["reopen_reason_scope"] == "material_repo_delta_any"
+
+
+def test_dispatch_repo_side_no_delta_marks_rotation_ready_with_green_evidence() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    continuity_policy = {
+        "workstream_continuity": {
+            "dispatch-and-work-economy-closure": {
+                "no_delta_closure_criteria": {
+                    "required_evidence_refs": [
+                        "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
+                        "reports/truth-inventory/capacity-telemetry.json",
+                        "reports/truth-inventory/quota-truth.json",
+                    ],
+                    "summary": "Dispatch closure is green.",
+                },
+                "reopen_scope": {
+                    "reason_scope": "dispatch_evidence_chain_only",
+                    "repo_delta_prefixes": ["scripts/run_ralph_loop_pass.py"],
+                },
+            }
+        }
+    }
+    original_loader = module._load_optional_repo_json
+    module._load_optional_repo_json = lambda _path: {
+        "summary": {
+            "baseline_alignment_status": "passed",
+            "capacity_truth_alignment_status": "passed",
+            "formal_eval_ready": True,
+        }
+    }
+    try:
+        detail = module._workstream_repo_side_no_delta_detail(
+            {
+                "task_id": "workstream:dispatch-and-work-economy-closure",
+                "source_type": "workstream",
+                "workstream_id": "dispatch-and-work-economy-closure",
+            },
+            continuity_policy,
+            [],
+            {
+                "records": [
+                    {
+                        "degraded_reason": None,
+                    }
+                ]
+            },
+            {
+                "capacity_summary": {
+                    "scheduler_slot_count": 5,
+                    "sample_posture": "scheduler_projection_backed",
+                }
+            },
+        )
+    finally:
+        module._load_optional_repo_json = original_loader
+
+    assert detail["repo_side_no_delta"] is True
+    assert detail["rotation_ready"] is True
+    assert detail["no_delta_evidence_refs"] == [
+        "reports/truth-inventory/gpu-scheduler-baseline-eval.json",
+        "reports/truth-inventory/capacity-telemetry.json",
+        "reports/truth-inventory/quota-truth.json",
+    ]
+
+
+
+def test_build_executive_brief_adds_burn_class_preflight_guidance() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    report = {
+        "stop_state": "none",
+        "stop_reason": None,
+        "active_claim_task_id": "workstream:validation-and-publication",
+        "active_claim_task_title": "Validation and Publication",
+        "active_claim_lane_family": "validation_and_checkpoint",
+        "active_claim_rotation_reason": "recent_no_delta_suppressed",
+        "repo_side_no_delta": False,
+        "rotation_ready": False,
+        "reopen_reason_scope": "material_repo_delta_any",
+        "no_delta_evidence_refs": ["reports/truth-inventory/latest.json"],
+        "selected_workstream": "dispatch-and-work-economy-closure",
+        "selected_workstream_title": "Dispatch and Work-Economy Closure",
+        "loop_mode": "governor_scheduling",
+        "next_action_family": "dispatch_truth_and_queue_replenishment",
+        "execution_posture": "steady_state",
+        "continue_allowed": True,
+        "dispatch_status": "already_dispatched",
+        "provider_gate_state": "completed",
+        "work_economy_status": "ready",
+        "validation_summary": "4/4 validation checks passed.",
+        "validation_checks": [{"status": "passed"}] * 4,
+        "autonomous_queue_summary": {
+            "blocked_queue_count": 0,
+            "dispatchable_queue_count": 7,
+            "suppressed_queue_count": 2,
+        },
+        "advisory_blockers": [],
+        "governed_dispatch_state": {
+            "execution": {"status": "already_dispatched", "ready": True},
+            "claim": {
+                "current_task_id": "workstream:validation-and-publication",
+                "current_task_title": "Validation and Publication",
+                "current_lane_family": "validation_and_checkpoint",
+                "claim_rotation_reason": "recent_no_delta_suppressed",
+            },
+        },
+        "publication_debt_status": {},
+        "next_unblocked_candidate": {
+            "task_id": "burn_class:local_bulk_sovereign",
+            "title": "Local Bulk Sovereign",
+            "preferred_lane_family": "capacity_truth_repair",
+            "source_type": "burn_class",
+        },
+    }
+    continuity_policy = {
+        "executive_reporting": {
+            "required_sections": [
+                "program_state",
+                "landed_or_delta",
+                "proof",
+                "risks",
+                "delegation",
+                "next_moves",
+                "decision_needed",
+            ],
+            "required_trigger_points": ["material_tranche_landed"],
+            "use_active_claim_for_current_task": True,
+        }
+    }
+
+    brief = module._build_executive_brief(report, continuity_policy)
+
+    assert any(
+        "preflight_burn_class.py local_bulk_sovereign --json" in item
+        for item in brief["delegation"]["delegate_now"]
+    )
+    assert any(
+        "burn_class:local_bulk_sovereign" in item and "preflight_burn_class.py local_bulk_sovereign --json" in item
+        for item in brief["next_moves"]
+    )
+
+
+def test_build_ranked_autonomous_queue_keeps_cash_now_deferred_family_ahead_of_burn_class_during_validation() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    workstream_rows = [
+        {
+            "workstream": {
+                "id": "validation-and-publication",
+                "title": "Validation and Publication",
+                "status": "continuous",
+                "execution_state": "ready_for_execution",
+                "loop_family": "publication_freeze",
+                "next_action_family": "validation_and_checkpoint",
+                "approval_required": False,
+            },
+            "dependency_state": "ready",
+            "evidence_state": {"state": "fresh"},
+        }
+    ]
+    burn_registry = {
+        "dispatch_policy": {
+            "ranked_dispatch_enabled": True,
+            "approved_mutation_classes": ["auto_harvest"],
+            "approved_work_classes": ["repo_safe_implementation"],
+        },
+        "providers": {"athanor_local": {"enabled": True}},
+        "burn_classes": [
+            {"id": "local_bulk_sovereign", "routing_chain": ["athanor_local"]},
+        ],
+    }
+    work_economy_detail = {
+        "status": "compounding_ready",
+        "harvest_ready": True,
+        "provider_availability": {"athanor_local": {"enabled": True, "label": "Athanor Local"}},
+        "eligible_burn_class_ids": ["local_bulk_sovereign"],
+        "records": [
+            {
+                "burn_class_id": "local_bulk_sovereign",
+                "status": "ready",
+                "selected_provider_id": "athanor_local",
+                "selected_provider_label": "Athanor Local",
+            }
+        ],
+        "local_compute_capacity": {
+            "present": True,
+            "sample_posture": "scheduler_projection_backed",
+            "harvestable_scheduler_slot_count": 2,
+            "scheduler_slot_count": 5,
+            "scheduler_queue_depth": 0,
+            "harvestable_by_zone": {"F": 1},
+        },
+    }
+    quota_truth = {
+        "records": [
+            {
+                "family_id": "athanor_local_compute",
+                "remaining_units": 6,
+                "capacity_breakdown": {
+                    "sample_posture": "scheduler_projection_backed",
+                    "scheduler_slot_count": 5,
+                    "harvestable_scheduler_slot_count": 2,
+                    "scheduler_queue_depth": 0,
+                    "harvestable_by_zone": {"F": 1},
+                },
+            }
+        ]
+    }
+    publication_queue = {
+        "families": [
+            {
+                "id": "reference-and-archive-prune",
+                "title": "Reference and Archive Prune",
+                "execution_class": "cash_now",
+                "execution_rank": 1,
+                "match_count": 34,
+                "next_action": "Prune reference debt.",
+            }
+        ],
+        "next_recommended_family": {
+            "id": "reference-and-archive-prune",
+            "title": "Reference and Archive Prune",
+        },
+    }
+
+    rows = module._build_ranked_autonomous_queue(
+        queue={"items": []},
+        workstream_rows=workstream_rows,
+        completion_program={
+            "continuity_policy": {
+                "cash_now_deferred_families_are_autonomous_inputs": True,
+                "cash_now_requires_no_unsuppressed_workstream": True,
+                "feeder_precedence": [
+                    "workstream",
+                    "cash_now_deferred_family",
+                    "burn_class",
+                    "safe_surface",
+                    "provider_gate",
+                ],
+            }
+        },
+        burn_registry=burn_registry,
+        work_economy_detail=work_economy_detail,
+        provider_gate_detail={"blocking_provider_count": 0},
+        quota_truth=quota_truth,
+        publication_queue=publication_queue,
+        continuity_state={"recent_no_delta_task_ids": [], "next_unblocked_candidate": {}},
+        capacity_telemetry=None,
+    )
+
+    task_ids = [row["task_id"] for row in rows]
+    assert "workstream:validation-and-publication" in task_ids
+    assert "deferred_family:reference-and-archive-prune" in task_ids
+    assert "burn_class:local_bulk_sovereign" in task_ids
+    assert task_ids.index("deferred_family:reference-and-archive-prune") < task_ids.index("burn_class:local_bulk_sovereign")

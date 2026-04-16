@@ -1,7 +1,7 @@
 # VAULT LiteLLM Provider Auth Repair
 
 Source of truth: `config/automation-backbone/credential-surface-registry.json`, `config/automation-backbone/provider-catalog.json`, `docs/operations/SECRET-SURFACE-REPORT.md`, `docs/operations/PROVIDER-CATALOG-REPORT.md`
-Validated against registry version: `credential-surface-registry.json@2026-04-02.1`, `provider-catalog.json@2026-04-13.0`, `program-operating-system.json@2026-03-25.1`
+Validated against registry version: `credential-surface-registry.json@2026-04-16.1`, `provider-catalog.json@2026-04-16.3`, `program-operating-system.json@2026-03-25.1`
 Mutable facts policy: live env names and provider auth posture come from the generated audit artifact and reports; this runbook owns the operator sequence and must never record secret values.
 
 ---
@@ -14,7 +14,7 @@ Current runtime evidence should come from:
 - [SECRET-SURFACE-REPORT.md](/C:/Athanor/docs/operations/SECRET-SURFACE-REPORT.md)
 - [PROVIDER-CATALOG-REPORT.md](/C:/Athanor/docs/operations/PROVIDER-CATALOG-REPORT.md)
 
-## Current runtime truth
+## Current runtime posture
 
 - Container: `litellm`
 - Host: `vault`

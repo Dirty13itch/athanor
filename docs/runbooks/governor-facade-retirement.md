@@ -1,8 +1,8 @@
 # Governor Compatibility Facade Retirement
 
 Source of truth: `config/automation-backbone/platform-topology.json`, `config/automation-backbone/runtime-subsystem-registry.json`, `config/automation-backbone/runtime-migration-registry.json`, `config/automation-backbone/repo-roots-registry.json`, `STATUS.md`
-Validated against registry version: `platform-topology.json@2026-04-11.2`, `runtime-subsystem-registry.json@2026-03-29.2`, `runtime-migration-registry.json@2026-03-29.2`, `repo-roots-registry.json@2026-04-06.1`
-Mutable facts policy: implementation authority stays in `C:\Athanor`, runtime authority stays on DEV until broader runtime convergence. This runbook now preserves the completed operator sequence, rollback evidence, and acceptance checks for the retired `athanor-governor.service` cutover.
+Validated against registry version: `platform-topology.json@2026-04-11.2`, `runtime-subsystem-registry.json@2026-04-14.1`, `runtime-migration-registry.json@2026-03-29.2`, `repo-roots-registry.json@2026-04-06.1`
+Mutable facts policy: implementation authority stays in `C:\Athanor`. DEV runtime evidence is retained here only as rollback and audit evidence. This runbook now preserves the completed operator sequence, rollback evidence, and acceptance checks for the retired `athanor-governor.service` cutover.
 
 ---
 
@@ -14,11 +14,11 @@ The 2026-03-29 maintenance window already removed the live `:8760` listener, dis
 
 This remains an ask-first runtime lane for any future rollback or reactivation because it touches live DEV systemd state.
 
-## Current Truth
+## Retired-State Evidence
 
 - `services/governor/main.py` has been deleted from implementation authority; the only remaining facade history is in rollback evidence, reports, and this runbook.
 - Legacy write-capable routes already fail closed with `410`.
-- Canonical task and posture truth live at Foundry agent-server surfaces such as `/v1/tasks`, `/v1/tasks/stats`, and `/v1/governor`.
+- Current task and posture evidence comes from Foundry agent-server surfaces such as `/v1/tasks`, `/v1/tasks/stats`, and `/v1/governor`.
 - The standalone governor `:8760` identity is no longer part of canonical topology, and the 2026-03-29 collector now proves DEV no longer runs `athanor-governor.service` as a live listener.
 - The completed maintenance window backed up the unit and journal under `/home/shaun/.athanor/backups/governor-facade-cutover`, stopped the service, removed the unit, and left `systemctl is-enabled athanor-governor.service` at `not-found`.
 - The last live caller set covered by the cutover included `scripts/drift-check.sh`, `scripts/smoke-test.sh`, `services/cluster_config.py`, `services/gateway/main.py`, `services/governor/status_report.py`, `services/governor/overnight.py`, `services/governor/act_first.py`, `services/governor/self_improve.py`, and `services/sentinel/checks.py`.

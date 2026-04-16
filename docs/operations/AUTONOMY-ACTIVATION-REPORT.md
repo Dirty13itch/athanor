@@ -28,7 +28,7 @@ No next phase is registered beyond the current active scope.
 | `dev_governor_facade_cutover` | `verified` | `software_core_phase_1` | `docs/operations/RUNTIME-MIGRATION-REPORT.md`, `docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md` |
 | `provider_routing_truth` | `verified` | `software_core_phase_1` | `config/automation-backbone/provider-catalog.json`, `projects/agents/config/subscription-routing-policy.yaml`, `docs/operations/PROVIDER-CATALOG-REPORT.md` |
 | `vault_provider_auth_repair` | `verified` | `expanded_core_phase_2` | `projects/agents/config/subscription-routing-policy.yaml`, `docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md`, `docs/operations/SECRET-SURFACE-REPORT.md`, `docs/operations/PROVIDER-CATALOG-REPORT.md` |
-| `runtime_ownership_maturity` | `verified` | `full_system_phase_3` | `config/automation-backbone/repo-roots-registry.json`, `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `docs/operations/RUNTIME-MIGRATION-REPORT.md`, `docs/operations/TRUTH-DRIFT-REPORT.md`, `scripts/vault-ssh.py`, `scripts/ssh-vault.ps1` |
+| `runtime_ownership_maturity` | `verified` | `full_system_phase_3` | `config/automation-backbone/repo-roots-registry.json`, `config/automation-backbone/runtime-ownership-contract.json`, `config/automation-backbone/runtime-ownership-packets.json`, `docs/operations/RUNTIME-OWNERSHIP-REPORT.md`, `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md`, `docs/operations/RUNTIME-MIGRATION-REPORT.md`, `docs/operations/TRUTH-DRIFT-REPORT.md`, `scripts/vault-ssh.py` |
 
 ## Approval Gates
 

@@ -1,0 +1,177 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T18:40:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/canonical-vocabulary-registry.json",
+  "canonical_terms": [
+    {
+      "canonical_term_id": "adopted_truth",
+      "scope": "truth_layers",
+      "allowed_aliases": [
+        "adopted-system truth"
+      ],
+      "forbidden_aliases": [
+        "runtime truth",
+        "live queue truth"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "runtime_state_truth",
+      "scope": "truth_layers",
+      "allowed_aliases": [
+        "live runtime truth"
+      ],
+      "forbidden_aliases": [
+        "implementation authority"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "data_knowledge_truth",
+      "scope": "truth_layers",
+      "allowed_aliases": [
+        "knowledge truth"
+      ],
+      "forbidden_aliases": [
+        "runtime state"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "operator_local_truth",
+      "scope": "truth_layers",
+      "allowed_aliases": [
+        "local operator context"
+      ],
+      "forbidden_aliases": [
+        "canonical truth"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "strategy_only_truth",
+      "scope": "truth_layers",
+      "allowed_aliases": [
+        "strategic reservoir truth"
+      ],
+      "forbidden_aliases": [
+        "live queue"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "obligation_commitment_compliance",
+      "scope": "loop_name",
+      "allowed_aliases": [
+        "obligation / commitment / compliance"
+      ],
+      "forbidden_aliases": [
+        "obligation / compliance"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "draft",
+      "scope": "externalization_state",
+      "allowed_aliases": [],
+      "forbidden_aliases": [
+        "commitment"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "proposal",
+      "scope": "externalization_state",
+      "allowed_aliases": [],
+      "forbidden_aliases": [
+        "commitment"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "commitment",
+      "scope": "externalization_state",
+      "allowed_aliases": [
+        "external promise"
+      ],
+      "forbidden_aliases": [
+        "draft"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "delivery",
+      "scope": "externalization_state",
+      "allowed_aliases": [],
+      "forbidden_aliases": [],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "closed_with_proof",
+      "scope": "externalization_state",
+      "allowed_aliases": [
+        "completed with proof"
+      ],
+      "forbidden_aliases": [
+        "done_without_proof"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "observed",
+      "scope": "claim_type",
+      "allowed_aliases": [],
+      "forbidden_aliases": [
+        "assumed"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "derived",
+      "scope": "claim_type",
+      "allowed_aliases": [],
+      "forbidden_aliases": [
+        "assumed"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "inferred",
+      "scope": "claim_type",
+      "allowed_aliases": [],
+      "forbidden_aliases": [
+        "observed"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "assumed",
+      "scope": "claim_type",
+      "allowed_aliases": [],
+      "forbidden_aliases": [
+        "observed"
+      ],
+      "superseded_term_ref": null
+    },
+    {
+      "canonical_term_id": "superseded",
+      "scope": "claim_type",
+      "allowed_aliases": [],
+      "forbidden_aliases": [
+        "current"
+      ],
+      "superseded_term_ref": null
+    }
+  ],
+  "defaults": {
+    "reject_ambiguous_top_level_terms": true,
+    "forbid_shadow_authority_nouns": true,
+    "superseded_terms_must_point_to_canonical": true
+  },
+  "contracts": [
+    "canonical_vocabulary_registry",
+    "term_alias_record",
+    "forbidden_alias_record"
+  ]
+}

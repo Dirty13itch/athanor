@@ -38,6 +38,8 @@ PROVIDER_SURFACES = {
 }
 
 PRIVATE_SENSITIVITY = {"private", "secret", "lan_only"}
+SOVEREIGN_SENSITIVITY = {"adult_sensitive", "lan_only", "sovereign_only"}
+SOVEREIGN_POLICY_CLASSES = {"sovereign_only", "refusal_sensitive"}
 
 
 def _policy_path() -> Path:
@@ -377,6 +379,21 @@ def _is_cloud_provider(policy: dict[str, Any], provider_id: str) -> bool:
     return _provider_meta(policy, provider_id).get("privacy", "cloud") == "cloud"
 
 
+def _request_policy_class(request: LeaseRequest) -> str:
+    return str((request.metadata or {}).get("policy_class") or "").strip()
+
+
+def _force_local_only(request: LeaseRequest) -> bool:
+    meta = dict(request.metadata or {})
+    if bool(meta.get("sovereign_only")):
+        return True
+    if str(meta.get("meta_lane") or "").strip() == "sovereign_local":
+        return True
+    if _request_policy_class(request) in SOVEREIGN_POLICY_CLASSES:
+        return True
+    return str(request.sensitivity or "").strip().lower() in SOVEREIGN_SENSITIVITY
+
+
 def _enabled_candidates(policy: dict[str, Any], task_class: str, requester: str) -> list[str]:
     task_meta = policy.get("task_classes", {}).get(task_class, {})
     ordered = _unique(list(task_meta.get("primary", [])) + list(task_meta.get("fallback", [])))
@@ -563,6 +580,11 @@ def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
     candidates = _enabled_candidates(policy, task_class, request.requester)
     if not candidates:
         candidates = ["athanor_local"]
+    force_local_only = _force_local_only(request)
+    if force_local_only:
+        candidates = [provider_id for provider_id in candidates if not _is_cloud_provider(policy, provider_id)]
+        if not candidates:
+            candidates = ["athanor_local"]
 
     provider_catalog_index = _provider_catalog_index()
     tooling_by_provider = _tooling_provider_index()
@@ -657,6 +679,8 @@ def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
             "priority": request.priority,
             "expected_context": request.expected_context,
             "parallelism": request.parallelism,
+            "policy_class": _request_policy_class(request),
+            "force_local_only": force_local_only,
             "policy_source": policy.get("_policy_source", "unknown"),
             "provider_evidence_posture": str(selected_context.get("evidence_posture") or ""),
             "provider_pricing_truth_label": str(selected_context.get("pricing_truth_label") or ""),
@@ -666,6 +690,7 @@ def preview_execution_lease(request: LeaseRequest) -> ExecutionLease:
             "provider_ordinary_routing_ready": bool(selected_context.get("ordinary_routing_ready")),
             "excluded_handoff_only_providers": policy_handoff_only_candidates if not allow_handoff_only else [],
             "excluded_unready_providers": evidence_unready_candidates,
+            "excluded_cloud_providers": [provider_id for provider_id in candidates + excluded_candidates if _is_cloud_provider(policy, provider_id)] if force_local_only else [],
         },
     )
 

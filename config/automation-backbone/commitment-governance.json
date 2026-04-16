@@ -1,0 +1,137 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T18:40:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/commitment-governance.json",
+  "output_classes": [
+    "draft",
+    "proposal",
+    "commitment",
+    "delivery",
+    "closed_with_proof",
+    "renegotiated",
+    "cancelled"
+  ],
+  "followthrough_states": [
+    {
+      "id": "open",
+      "meaning": "Commitment exists and is not yet delivered or renegotiated."
+    },
+    {
+      "id": "awaiting_delivery",
+      "meaning": "Downstream delivery work is in progress but proof is not yet captured."
+    },
+    {
+      "id": "delivered_pending_acceptance",
+      "meaning": "Delivery happened but acceptance or proof is still missing."
+    },
+    {
+      "id": "accepted",
+      "meaning": "Counterparty or operator acceptance is captured."
+    },
+    {
+      "id": "renegotiation_required",
+      "meaning": "The original promise cannot be met without explicit renegotiation."
+    },
+    {
+      "id": "closed_with_proof",
+      "meaning": "The commitment is completed and proof is attached."
+    },
+    {
+      "id": "cancelled",
+      "meaning": "The commitment is withdrawn or rejected with an explicit audit trail."
+    }
+  ],
+  "externalization_gate_classes": [
+    {
+      "id": "internal_only",
+      "review_required": false,
+      "allowed_external_states": [
+        "draft"
+      ],
+      "notes": [
+        "Internal shaping work may exist without counterparty exposure."
+      ]
+    },
+    {
+      "id": "counterparty_review_required",
+      "review_required": true,
+      "allowed_external_states": [
+        "proposal",
+        "commitment",
+        "delivery",
+        "closed_with_proof"
+      ],
+      "notes": [
+        "Anything that creates an expectation for another party must be typed and reviewable."
+      ]
+    },
+    {
+      "id": "specialist_review_required",
+      "review_required": true,
+      "allowed_external_states": [
+        "proposal",
+        "commitment",
+        "delivery",
+        "closed_with_proof"
+      ],
+      "notes": [
+        "High-risk externalization is blocked without the required specialist artifact."
+      ]
+    }
+  ],
+  "commitment_classes": [
+    {
+      "id": "internal_reversible_work",
+      "externalization_gate_class": "internal_only",
+      "default_state": "draft",
+      "required_reviewer_role": null,
+      "autonomy_default": "high_if_reversible"
+    },
+    {
+      "id": "counterparty_expectation",
+      "externalization_gate_class": "counterparty_review_required",
+      "default_state": "proposal",
+      "required_reviewer_role": "operator_reviewer",
+      "autonomy_default": "review_before_commitment"
+    },
+    {
+      "id": "client_deliverable",
+      "externalization_gate_class": "counterparty_review_required",
+      "default_state": "proposal",
+      "required_reviewer_role": "business_owner",
+      "autonomy_default": "review_before_commitment"
+    },
+    {
+      "id": "regulated_submission",
+      "externalization_gate_class": "specialist_review_required",
+      "default_state": "proposal",
+      "required_reviewer_role": "regulated_reviewer",
+      "autonomy_default": "specialist_gate_required"
+    }
+  ],
+  "required_external_item_fields": [
+    "commitment_class",
+    "counterparty",
+    "due_at",
+    "proof_of_completion_ref",
+    "renegotiation_path",
+    "externalization_gate_class",
+    "required_reviewer_role"
+  ],
+  "defaults": {
+    "external_promises_default_to_proposal": true,
+    "draft_is_not_commitment": true,
+    "closed_with_proof_required_for_completion": true,
+    "external_commitments_low_autonomy_by_default": true
+  },
+  "contracts": [
+    "commitment_record",
+    "counterparty_record",
+    "promise_deadline_record",
+    "followthrough_state_record",
+    "deliverable_acceptance_record",
+    "renegotiation_record",
+    "externalization_gate_record"
+  ]
+}

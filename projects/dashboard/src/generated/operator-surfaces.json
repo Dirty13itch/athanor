@@ -338,8 +338,8 @@
     }
   ],
   "frontDoor": {
-    "canonicalDetail": "200",
-    "canonicalState": "reachable",
+    "canonicalDetail": "URLError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1000)",
+    "canonicalState": "unreachable",
     "canonicalUrl": "https://athanor.local/",
     "deploymentMode": "containerized_service_behind_caddy",
     "description": "Canonical portal.",
@@ -352,7 +352,7 @@
     "status": "active_production",
     "targetDeploymentMode": "containerized_service_behind_caddy"
   },
-  "generatedAt": "2026-04-14T21:50:57.735918+00:00",
+  "generatedAt": "2026-04-16T15:23:28.419424+00:00",
   "quickLinks": [
     {
       "category": "ai",
@@ -482,6 +482,6 @@
     }
   ],
   "registryUpdatedAt": "2026-04-12T09:45:00Z",
-  "runtimeObservedAt": "2026-04-14T21:50:57.735918+00:00",
+  "runtimeObservedAt": "2026-04-16T15:23:28.419424+00:00",
   "sourceOfTruth": "config/automation-backbone/operator-surface-registry.json + reports/truth-inventory/latest.json#operator_surface_probe"
 }

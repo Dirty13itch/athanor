@@ -32,6 +32,8 @@ def render_documentation_index(registry: dict) -> str:
         "# Documentation Index",
         "",
         "Generated from `config/automation-backbone/docs-lifecycle-registry.json` by `scripts/generate_documentation_index.py`.",
+        "This is a generated navigation and lifecycle surface only; it does not upgrade any document into live authority.",
+        "Use each document's own class, authority plane, generator, and current canonical references before treating it as system truth.",
         "Do not edit manually.",
         "",
         "## Summary",

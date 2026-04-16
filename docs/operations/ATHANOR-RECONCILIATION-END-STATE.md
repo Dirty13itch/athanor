@@ -1,8 +1,8 @@
 # Athanor Reconciliation End State
 
 Source of truth: `config/automation-backbone/completion-program-registry.json`, `reports/ralph-loop/latest.json`, `STATUS.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, `docs/operations/ATHANOR-OPERATING-SYSTEM.md`
-Validated against registry version: `completion-program-registry.json@2026-04-13.0`
-Mutable facts policy: runtime truth outranks stale narrative, registry truth outranks helper prose, and this document defines the closure contract for the reconciliation program rather than a historical summary.
+Validated against registry version: `completion-program-registry.json@2026-04-15.1`
+Mutable facts policy: runtime truth outranks stale narrative, registry truth outranks helper prose, and this document records the closure contract for the reconciliation program rather than a historical summary.
 
 Sources:
 - `config/automation-backbone/completion-program-registry.json`
@@ -12,7 +12,7 @@ Sources:
 - `docs/operations/ATHANOR-OPERATING-SYSTEM.md`
 
 Versions:
-- `completion-program-registry.json`: `2026-04-13.0`
+- `completion-program-registry.json`: `2026-04-15.1`
 
 Last updated: 2026-04-12
 

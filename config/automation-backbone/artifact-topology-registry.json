@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-11.1",
-  "updated_at": "2026-04-11T09:00:00-05:00",
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T21:20:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/artifact-topology-registry.json",
   "artifacts": [

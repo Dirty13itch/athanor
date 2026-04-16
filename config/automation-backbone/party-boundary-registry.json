@@ -1,0 +1,99 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T18:40:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/party-boundary-registry.json",
+  "entity_boundary_classes": [
+    {
+      "id": "sovereign_personal",
+      "description": "Personal sovereign data and operator-system truth with no external tenant boundary."
+    },
+    {
+      "id": "sovereign_creative",
+      "description": "Creative sovereign work that stays local-first and private."
+    },
+    {
+      "id": "regulated_casebound",
+      "description": "Case-bound or regulated material with narrow handling rules."
+    },
+    {
+      "id": "tax_casebound",
+      "description": "Tax and financial casework with long retention and strict export rules."
+    },
+    {
+      "id": "business_counterparty",
+      "description": "Business or client-facing work with explicit counterparty boundaries."
+    },
+    {
+      "id": "product_private_cloud_safe",
+      "description": "Private product work that may use cloud-safe implementation lanes when allowed."
+    }
+  ],
+  "account_surface_classes": [
+    {
+      "id": "operator_local_only",
+      "description": "Only local/operator-owned accounts and surfaces are allowed."
+    },
+    {
+      "id": "operator_and_runtime_services",
+      "description": "Operator plus governed runtime services may act inside the same boundary."
+    },
+    {
+      "id": "governed_preview_accounts",
+      "description": "Preview, staging, or product accounts may exist but remain governed and scoped."
+    },
+    {
+      "id": "client_workflow_accounts",
+      "description": "Client or counterparty workflow accounts are in play and require explicit boundaries."
+    }
+  ],
+  "counterparty_sensitivity_classes": [
+    {
+      "id": "none",
+      "description": "No external counterparty sensitivity is expected."
+    },
+    {
+      "id": "creative_private",
+      "description": "Private creative material that must not drift into shared external surfaces."
+    },
+    {
+      "id": "private_user_data",
+      "description": "Private end-user or tenant data requiring explicit boundaries."
+    },
+    {
+      "id": "business_confidential",
+      "description": "Business or client data requiring confidentiality and review."
+    },
+    {
+      "id": "regulated_external",
+      "description": "Regulated or legally sensitive counterparty data."
+    },
+    {
+      "id": "tax_sensitive",
+      "description": "Tax or financial counterparty material with long retention and redaction constraints."
+    }
+  ],
+  "party_registry_schema": {
+    "required_fields": [
+      "party_id",
+      "party_class",
+      "boundary_owner",
+      "data_handling_profile_id",
+      "counterparty_sensitivity_class"
+    ],
+    "notes": [
+      "Party registry entries may live in higher-level domain or tenant registries; this file defines the required shape."
+    ]
+  },
+  "required_project_fields": [
+    "entity_boundary_class",
+    "account_surface_class",
+    "counterparty_sensitivity_class"
+  ],
+  "contracts": [
+    "entity_boundary_class",
+    "account_surface_class",
+    "counterparty_sensitivity_class",
+    "party_registry"
+  ]
+}

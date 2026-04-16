@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-11.1",
-  "updated_at": "2026-04-11T09:00:00-05:00",
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T11:40:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/vendor-policy-registry.json",
   "review_cadence": "monthly_or_material_terms_change",
@@ -22,6 +22,26 @@
       "commercial_status": "local_owned",
       "reviewed_at": "2026-04-11",
       "review_after": "2026-05-11"
+    },
+    {
+      "family_id": "anthropic_claude_code",
+      "allowed_sensitivity": [
+        "cloud_safe",
+        "private_but_cloud_allowed"
+      ],
+      "disallowed_sensitivity": [
+        "sovereign_only",
+        "adult_sensitive",
+        "refusal_sensitive"
+      ],
+      "allowed_use_scope": "cloud_safe_and_private_cloud_allowed_only",
+      "hosted_indexing_allowed": false,
+      "subscription_scope_limit": "subscription_cli_use",
+      "api_vs_subscription_split": "subscription_cli_and_api_are_distinct",
+      "adult_sensitive_allowed": false,
+      "commercial_status": "commercial_allowed",
+      "reviewed_at": "2026-04-15",
+      "review_after": "2026-05-15"
     },
     {
       "family_id": "openai_codex",
@@ -135,6 +155,26 @@
       "commercial_status": "commercial_allowed",
       "reviewed_at": "2026-04-11",
       "review_after": "2026-05-11"
+    },
+    {
+      "family_id": "venice_api",
+      "allowed_sensitivity": [
+        "cloud_safe"
+      ],
+      "disallowed_sensitivity": [
+        "sovereign_only",
+        "private_but_cloud_allowed",
+        "adult_sensitive",
+        "refusal_sensitive"
+      ],
+      "allowed_use_scope": "cloud_safe_only",
+      "hosted_indexing_allowed": false,
+      "subscription_scope_limit": "metered_api_only",
+      "api_vs_subscription_split": "not_applicable",
+      "adult_sensitive_allowed": false,
+      "commercial_status": "commercial_allowed",
+      "reviewed_at": "2026-04-15",
+      "review_after": "2026-05-15"
     },
     {
       "family_id": "augment_context_engine",

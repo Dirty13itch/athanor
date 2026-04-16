@@ -1,19 +1,21 @@
 # Athanor Full System Audit v3
 
+**Historical audit artifact:** Generated 2026-03-14 against `main` at `b1d1ded`. Do not treat repository counts, container state, topology, or recommendations below as current authority without rechecking the restart brief, `STATUS.md`, generated operations reports, and current registries first.
+
 **Generated:** 2026-03-14 | **HEAD:** b1d1ded | **Branch:** main | **Auditor:** Claude Code (COO)
 
-**Method:** Phase 0 live discovery (bash, SSH, docker) + 6 parallel subagents (A-F) analyzing repo structure, ownership zones, co-change patterns, service topology, token budget, and agent design. All read-only. All claims cite file paths, git history, or command output.
+**Method:** Phase 0 historical discovery (bash, SSH, docker) + 6 parallel subagents (A-F) analyzing repo structure, ownership zones, co-change patterns, service topology, token budget, and agent design. All read-only. All claims cite file paths, git history, or command output.
 
-**Ground Truth:** `.claude/scratch/DISCOVERY.md`
+**Historical discovery snapshot:** `.claude/scratch/DISCOVERY.md`
 
 ---
 
 ## Table of Contents
 
-- [A. Repository Structure & System Map](#a-repository-structure--system-map)
-- [B. File Ownership Zones](#b-file-ownership-zones)
+- [A. Historical Repository Structure & System Map](#a-historical-repository-structure--system-map)
+- [B. Historical File Ownership Zones](#b-historical-file-ownership-zones)
 - [C. Co-change Clusters & Temporal Coupling](#c-co-change-clusters--temporal-coupling)
-- [D. Service Topology & Dependencies](#d-service-topology--dependencies)
+- [D. Historical Service Topology & Dependencies](#d-historical-service-topology--dependencies)
 - [E. Token Budget & Model Configuration](#e-token-budget--model-configuration)
 - [F. Agent Design Constraints](#f-agent-design-constraints)
 - [G. Infrastructure Health Snapshot](#g-infrastructure-health-snapshot)
@@ -23,9 +25,9 @@
 
 ---
 
-## A. Repository Structure & System Map
+## A. Historical Repository Structure & System Map
 
-### Codebase Overview [VERIFIED]
+### Codebase Overview [historical snapshot]
 
 | Metric | Value |
 |--------|-------|
@@ -38,7 +40,7 @@
 | Shell scripts | 34 |
 | **Estimated total LOC** | **~90K+** |
 
-### Project Architecture [VERIFIED]
+### Project Architecture [historical snapshot]
 
 7 projects, zero cross-project imports. All communication via REST APIs + shared backends (Redis, Qdrant, Neo4j, LiteLLM).
 
@@ -52,7 +54,7 @@
 | **ws-pty-bridge** | Node.js, node-pty | WORKSHOP:3100 | <1K | WebSocket terminal bridge |
 | **kindred** | — | Not deployed | — | In development |
 
-### Agent Server Module Architecture [VERIFIED]
+### Agent Server Module Architecture [historical snapshot]
 
 Entry point: `server.py` (2,533 LOC). 6 module groups, 37 Python files, no circular dependencies.
 
@@ -67,7 +69,7 @@ server.py (FastAPI entry)
      └─ 12 Tool modules: tools/{agent_name}.py + execution.py, system.py, subscriptions.py
 ```
 
-### Ansible Infrastructure [VERIFIED]
+### Ansible Infrastructure [historical snapshot]
 
 30 roles, 6 playbooks, 3 host_vars files. Maps to 4 nodes:
 
@@ -78,7 +80,7 @@ server.py (FastAPI entry)
 | VAULT (.203) | 23 | LiteLLM, Redis, Neo4j, Postgres, Prometheus, Grafana, LangFuse, media, HA |
 | DEV (.189) | 2 | vLLM embedding/reranker |
 
-### Claude Code Extensions [VERIFIED]
+### Claude Code Extensions [historical snapshot]
 
 52 total: 12 hooks, 14 skills, 11 commands, 6 agents, 11 rules. Key items:
 - **Hooks:** bash-firewall (blocks destructive cmds), protect-paths (guards VAULT keys), typecheck (auto-checks TS on edit), session lifecycle (start/end/compact)
@@ -87,15 +89,15 @@ server.py (FastAPI entry)
 - **Agents:** node-inspector, debugger, researcher, doc-writer, coder, infra-auditor
 - **Rules:** vllm safety, ansible, dashboard, agents, session-continuity, docker
 
-### Script Inventory [VERIFIED]
+### Script Inventory [historical snapshot]
 
 87 files across 11 categories: backup (6), monitoring (4), data indexing (7), graph/analysis (4), model/training (3), deployment (4), eval/dataset (3), seeding (3), MCP bridges (5), utilities (7), Windows/PowerShell (6), admin (1).
 
 ---
 
-## B. File Ownership Zones
+## B. Historical File Ownership Zones
 
-### 9 Ownership Zones [VERIFIED]
+### 9 Ownership Zones [historical snapshot]
 
 | Zone | Location | Size | Frequency | Risk |
 |------|----------|------|-----------|------|
@@ -109,7 +111,7 @@ server.py (FastAPI entry)
 | Ulrich Energy | `projects/ulrich-energy/` | 2.5K LOC | Low | LOW |
 | Scripts | `scripts/` | 87 files | Low | LOW-MEDIUM |
 
-### Blast Radius Hotspots [VERIFIED]
+### Blast Radius Hotspots [historical snapshot]
 
 Files where a single change cascades to 20+ other files:
 
@@ -121,13 +123,13 @@ Files where a single change cascades to 20+ other files:
 | `ansible/host_vars/*.yml` | 15+ | All roles, all services (IPs, ports) | CRITICAL |
 | `projects/agents/.../config.py` | 13 | 21 imports across agent modules | HIGH |
 
-### Cross-cutting Dependencies [VERIFIED]
+### Cross-cutting Dependencies [historical snapshot]
 
-4-layer configuration chain: `ansible/host_vars/*.yml` -> env vars -> `config.ts`/`config.py` -> all API routes/modules. Changes at any layer propagate downward. Ansible is the single source of truth.
+4-layer configuration chain: `ansible/host_vars/*.yml` -> env vars -> `config.ts`/`config.py` -> all API routes/modules. Changes at any layer propagated downward. At the time of the snapshot, Ansible was treated as the deployment source of record.
 
-Central type contract: `contracts.ts` (2,116 LOC, 130+ Zod schemas) validates all dashboard API responses. No equivalent shared contract between dashboard and agent server — they communicate via REST convention.
+Central type contract: `contracts.ts` (2,116 LOC, 130+ Zod schemas) validated dashboard API responses in this historical snapshot. No equivalent shared contract between dashboard and agent server was observed there — they communicated via REST convention.
 
-### Dead Code [VERIFIED]
+### Dead Code [historical snapshot]
 
 **Confirmed deletable (0 references):** `scripts/extract-entities.py` (630 LOC), `scripts/graph-github.py`, `scripts/index-files.py`, `scripts/mcp-docker.py`
 
@@ -139,11 +141,11 @@ Central type contract: `contracts.ts` (2,116 LOC, 130+ Zod schemas) validates al
 
 ## C. Co-change Clusters & Temporal Coupling
 
-### God Object Alert [VERIFIED]
+### God Object Alert [historical snapshot]
 
 `server.py`: churn score 131,716 (2x next file), 106 unique co-change partners, touched in 17% of all commits. At 2,533 LOC, it is the single highest-risk maintenance target.
 
-### 6 Natural Clusters [VERIFIED]
+### 6 Natural Clusters [historical snapshot]
 
 | Cluster | Files | Coupling | Health |
 |---------|-------|----------|--------|
@@ -154,28 +156,28 @@ Central type contract: `contracts.ts` (2,116 LOC, 130+ Zod schemas) validates al
 | Dashboard Visual System | visual-system docs + globals.css (J=1.00) | Tight | Healthy |
 | Session Bookkeeping | CLAUDE.md + MEMORY.md + STATUS.md + BUILD-MANIFEST.md | Tight | Overhead (22% of commits) |
 
-### Velocity [VERIFIED]
+### Velocity [historical snapshot]
 
 - **100 commits/week** average (accelerating: W11 = 130)
 - **25 commits/active day**, 10.9 files/commit average
 - 300 commits span only 20 calendar days
 - **Commit types:** feat 40%, fix 23%, state/status 15%, docs 9%, chore 5%, ops 4%, test 1%, refactor 0.3%
 
-### Structural Risks [VERIFIED]
+### Structural Risks [historical snapshot]
 
 1. **Test deficit:** 4 test-focused commits out of 300 (1%). Tests exist but are bundled into feat commits.
 2. **Refactoring deficit:** 1 refactor commit in 300. Debt accumulates in server.py.
 3. **Session overhead:** 22% of commits are meta-only (STATUS/MEMORY/BUILD-MANIFEST bookkeeping).
 
-### Isolation Health [VERIFIED]
+### Isolation Health [historical snapshot]
 
 EoQ, Ulrich Energy, ws-pty-bridge, gpu-orchestrator all have 0-3 cross-zone co-changes. Clean boundaries confirmed.
 
 ---
 
-## D. Service Topology & Dependencies
+## D. Historical Service Topology & Dependencies
 
-### Container Census [VERIFIED]
+### Historical Container Census
 
 | Node | Running | Ansible-Managed | Manual/Unmanaged |
 |------|---------|-----------------|------------------|
@@ -187,7 +189,7 @@ EoQ, Ulrich Energy, ws-pty-bridge, gpu-orchestrator all have 0-3 cross-zone co-c
 
 **25 containers (35%) have no Ansible role** — manually deployed or managed via Unraid.
 
-### 5-Tier Dependency Graph [VERIFIED]
+### 5-Tier Dependency Graph [historical snapshot]
 
 ```
 Tier 0 — Foundational: Redis, Neo4j, Qdrant, Prometheus, Postgres (no deps)
@@ -198,7 +200,7 @@ Tier 4 — User-Facing: dashboard (depends on agents + 10+ services), Open WebUI
 Tier 5 — Media/Home: Plex, Sonarr, Radarr, HA (independent domain)
 ```
 
-### Single Points of Failure [VERIFIED]
+### Single Points of Failure [historical snapshot]
 
 | Service | Impact | Dependents |
 |---------|--------|------------|
@@ -209,7 +211,7 @@ Tier 5 — Media/Home: Plex, Sonarr, Radarr, HA (independent domain)
 | **Qdrant (FOUNDRY:6333)** | Context injection fails; dashboard search breaks | Agents, Dashboard |
 | **vllm-coordinator** | Primary reasoning gone; agents degrade | LiteLLM, agents |
 
-### Health Monitoring Gaps [VERIFIED]
+### Health Monitoring Gaps [historical snapshot]
 
 **28 services have blackbox probes.** 24 alert rules active.
 
@@ -218,7 +220,7 @@ Tier 5 — Media/Home: Plex, Sonarr, Radarr, HA (independent domain)
 
 **Critical services with NO alerts:** Redis, Postgres (VAULT), LangFuse external endpoint.
 
-### Config Drift [VERIFIED]
+### Config Drift [historical snapshot]
 
 | Drift Item | Severity |
 |------------|----------|
@@ -230,7 +232,7 @@ Tier 5 — Media/Home: Plex, Sonarr, Radarr, HA (independent domain)
 | `node1.yml` playbook missing `gpu-orchestrator` and `voice` roles (only in `site.yml`). Running `node1.yml` alone skips them. | LOW |
 | `site.yml` Node 2 section missing `ulrich-energy` role (only in `node2.yml`). | LOW |
 
-### Qdrant Version Mismatch [VERIFIED]
+### Qdrant Version Mismatch [historical snapshot]
 
 FOUNDRY: v1.13.2 | VAULT: v1.17.0. Different API versions could cause behavioral divergence.
 
@@ -238,7 +240,7 @@ FOUNDRY: v1.13.2 | VAULT: v1.17.0. Different API versions could cause behavioral
 
 ## E. Token Budget & Model Configuration
 
-### Model Inventory [VERIFIED]
+### Model Inventory [historical snapshot]
 
 | Model | Node | Format | VRAM | Context | Purpose | Status |
 |-------|------|--------|------|---------|---------|--------|
@@ -250,7 +252,7 @@ FOUNDRY: v1.13.2 | VAULT: v1.17.0. Different API versions could cause behavioral
 
 **Total VRAM allocated:** 82.4 GB of 152 GB (54% utilized). 70 GB headroom for ComfyUI, Crucible, etc.
 
-### LiteLLM Routing (VAULT:4000) [VERIFIED]
+### LiteLLM Routing (VAULT:4000) [historical snapshot]
 
 | Slot | Backend | Token Limit | Temp | Fallback Chain |
 |------|---------|-------------|------|----------------|
@@ -266,7 +268,7 @@ FOUNDRY: v1.13.2 | VAULT: v1.17.0. Different API versions could cause behavioral
 
 18 cloud model slots configured as fallbacks (Anthropic, OpenAI, DeepSeek, Mistral, Google, DashScope, Moonshot, Venice, ZAI, OpenRouter).
 
-### Router Tiers [VERIFIED]
+### Router Tiers [historical snapshot]
 
 | Tier | Model Slot | Max Tokens | Timeout | Agent Graph |
 |------|-----------|------------|---------|-------------|
@@ -274,11 +276,11 @@ FOUNDRY: v1.13.2 | VAULT: v1.17.0. Different API versions could cause behavioral
 | TACTICAL | worker | 1024 | 60s | Yes |
 | DELIBERATIVE | reasoning | 4096 | 300s | Yes |
 
-### Context Injection Budget [VERIFIED]
+### Context Injection Budget [historical snapshot]
 
 Max 6,000 chars (~1,500 tokens) injected per request. 4 parallel Qdrant queries (preferences, activity, knowledge, personal_data). Per-agent tuning controls which collections are queried and result counts. Time-decay: full weight 7 days, linear decay to 25% at 90 days.
 
-### Bottlenecks [VERIFIED]
+### Bottlenecks [historical snapshot]
 
 1. **WORKSHOP worker max_num_seqs=32** — single 5090 shared with dashboard/EoBQ/ComfyUI. Sustains ~15-20 concurrent agent requests.
 2. **Context injection latency** — embedding on DEV 5060 Ti, target <300ms, risk at high concurrency.
@@ -289,7 +291,7 @@ Max 6,000 chars (~1,500 tokens) injected per request. 4 parallel Qdrant queries 
 
 ## F. Agent Design Constraints
 
-### Agent Capability Matrix [VERIFIED]
+### Agent Capability Matrix [historical snapshot]
 
 | Agent | Model Slot | Temp | Tools | Schedule | Enabled |
 |-------|-----------|------|-------|----------|---------|
@@ -303,7 +305,7 @@ Max 6,000 chars (~1,500 tokens) injected per request. 4 parallel Qdrant queries 
 | Stash | reasoning | 0.7 | 5 (Stash GraphQL, library ops) | 6 hr | Yes |
 | Data Curator | reasoning | 0.3 | 9 (discover, parse, analyze, index) | 6 hr | Yes |
 
-### Escalation Protocol [VERIFIED]
+### Escalation Protocol [historical snapshot]
 
 3-tier confidence-based: **ACT** (above threshold, autonomous) -> **NOTIFY** (0.5-threshold, act+notify) -> **ASK** (below 0.5, block+wait).
 
@@ -318,17 +320,17 @@ Max 6,000 chars (~1,500 tokens) injected per request. 4 parallel Qdrant queries 
 
 Per-agent overrides: home-agent ROUTINE->0.4 (more autonomous), media-agent CONTENT->0.85 (more cautious).
 
-### Circuit Breaker [VERIFIED]
+### Circuit Breaker [historical snapshot]
 
 CLOSED -> 3 failures -> OPEN -> 30s timeout -> HALF_OPEN -> 1 success -> CLOSED. Applied to service endpoints (vLLM, LiteLLM, Qdrant, Neo4j).
 
-### Self-Improvement Loop [VERIFIED]
+### Self-Improvement Loop [historical snapshot]
 
 DGM-inspired: benchmarks -> failure analysis -> improvement proposals -> sandbox test -> deploy/rollback. Auto-deploy restricted to prompt/config changes. Code and infrastructure changes require human review. Max 100 iterations/day, human review at 10+. Sandbox: `docker_isolated`.
 
 6 benchmark categories: inference health, inference latency, memory recall, agent reliability, cache performance, routing accuracy.
 
-### Scheduled Background Tasks [VERIFIED]
+### Scheduled Background Tasks [historical snapshot]
 
 | Task | Time | Purpose |
 |------|------|---------|
@@ -342,7 +344,7 @@ DGM-inspired: benchmarks -> failure analysis -> improvement proposals -> sandbox
 | Cache Cleanup | Every 1 hr | Semantic cache eviction |
 | Benchmarks | Every 6 hr | Performance baselines |
 
-### CONSTITUTION.yaml Compliance [VERIFIED]
+### CONSTITUTION.yaml Compliance [historical snapshot]
 
 16 immutable constraints. Enforcement status:
 
@@ -361,7 +363,7 @@ DGM-inspired: benchmarks -> failure analysis -> improvement proposals -> sandbox
 
 ## G. Infrastructure Health Snapshot
 
-### GPU State (2026-03-14 11:44 PDT) [VERIFIED]
+### GPU State (2026-03-14 11:44 PDT) [historical snapshot]
 
 | Node | GPU | VRAM Used | VRAM Total | Util | Workload |
 |------|-----|-----------|------------|------|----------|
@@ -374,7 +376,7 @@ DGM-inspired: benchmarks -> failure analysis -> improvement proposals -> sandbox
 | WORKSHOP 0 | RTX 5090 | 31.3 GB | 32.6 GB | 0% | Worker (loaded, idle) |
 | WORKSHOP 1 | RTX 5060 Ti | 0.4 GB | 16.3 GB | 0% | ComfyUI (idle) |
 
-### Container Issues [VERIFIED]
+### Container Issues [historical snapshot]
 
 | Issue | Node | Severity |
 |-------|------|----------|
@@ -382,7 +384,7 @@ DGM-inspired: benchmarks -> failure analysis -> improvement proposals -> sandbox
 | `athanor-agents` restarted 6 minutes ago | FOUNDRY | INFO (recent restart, now stable) |
 | Crucible stack (4 containers) manually deployed, no Ansible | FOUNDRY | LOW (non-critical) |
 
-### Cluster Summary [VERIFIED]
+### Cluster Summary [historical snapshot]
 
 - **71 containers** across 4 nodes (DEV: 3, FOUNDRY: 14, WORKSHOP: 10, VAULT: 44)
 - **8 GPUs**, 152 GB total VRAM, 82.4 GB allocated to inference (54%)
@@ -392,7 +394,7 @@ DGM-inspired: benchmarks -> failure analysis -> improvement proposals -> sandbox
 
 ## H. Documentation Drift Detection
 
-### Verified Drift Items [VERIFIED]
+### Verified Drift Items [historical snapshot]
 
 | Document | Claim | Reality | Severity |
 |----------|-------|---------|----------|
@@ -403,7 +405,7 @@ DGM-inspired: benchmarks -> failure analysis -> improvement proposals -> sandbox
 | `site.yml` Node 2 | Lists roles | Missing ulrich-energy | LOW |
 | FOUNDRY vLLM Ansible template | Single-service compose | Live: dual-service (Phase 2) | HIGH (full divergence) |
 
-### Documentation Health [VERIFIED]
+### Documentation Health [historical snapshot]
 
 | Document | Last Modified | Accuracy |
 |----------|---------------|----------|
@@ -414,7 +416,7 @@ DGM-inspired: benchmarks -> failure analysis -> improvement proposals -> sandbox
 | docs/BUILD-MANIFEST.md | Ongoing | GOOD — 86/86 items tracked |
 | CONSTITUTION.yaml | v2.1.0 (2026-03-08) | GOOD — stable, immutable |
 
-### Stale Branches [VERIFIED]
+### Stale Branches [historical snapshot]
 
 6 remote branches, oldest 2 weeks. None blocking work. Candidates for cleanup:
 - `claude/companycam-alternative-E2fgM` (2w)
@@ -425,34 +427,34 @@ DGM-inspired: benchmarks -> failure analysis -> improvement proposals -> sandbox
 
 ## I. Security Posture
 
-### Constitutional Constraints [VERIFIED]
+### Constitutional Constraints [historical snapshot]
 
 16 immutable constraints in CONSTITUTION.yaml (v2.1.0). 9/16 code-enforced, 5 policy-only, 2 delegated. See Section F for full breakdown.
 
-### Credential Management [VERIFIED]
+### Credential Management [historical snapshot]
 
 - No `.env` files committed (only `.env.example` templates) [VERIFIED via git]
-- Secrets managed via environment variables, not in code [VERIFIED]
-- LiteLLM master key: env-backed [VERIFIED]
-- Database credentials: env-backed [VERIFIED]
-- VAULT SSH: key-only auth, password login disabled [VERIFIED]
+- Secrets managed via environment variables, not in code [historical snapshot]
+- LiteLLM master key: env-backed [historical snapshot]
+- Database credentials: env-backed [historical snapshot]
+- VAULT SSH: key-only auth, password login disabled [historical snapshot]
 
-### Access Control [VERIFIED]
+### Access Control [historical snapshot]
 
-- SSH: passwordless key auth (DEV -> foundry/workshop/vault) [VERIFIED]
-- VAULT: root key-only, `vault-ssh.py` paramiko wrapper [VERIFIED]
-- Grafana: default admin password (low risk — LAN only) [VERIFIED]
-- No services exposed to internet [VERIFIED]
-- No firewall rule modifications by agents (INFRA-001 delegated) [VERIFIED]
+- SSH: passwordless key auth (DEV -> foundry/workshop/vault) [historical snapshot]
+- VAULT: root key-only, `vault-ssh.py` paramiko wrapper [historical snapshot]
+- Grafana: default admin password (low risk — LAN only) [historical snapshot]
+- No services exposed to internet [historical snapshot]
+- No firewall rule modifications by agents (INFRA-001 delegated) [historical snapshot]
 
-### Safety Mechanisms [VERIFIED]
+### Safety Mechanisms [historical snapshot]
 
-- Claude Code bash firewall hook blocks `rm -rf /`, `git reset --hard`, `git push --force` [VERIFIED]
-- Path protection hook guards VAULT SSH keys, Unraid configs [VERIFIED]
-- Agent input guard sanitizes inputs, redacts outputs [VERIFIED]
-- Self-improvement sandboxed in Docker isolation [VERIFIED]
-- Forbidden modifications: CONSTITUTION.yaml, .env*, secrets/, /etc/ [VERIFIED]
-- Git: no force push, no secret commits (hooks + .gitignore) [VERIFIED]
+- Claude Code bash firewall hook blocks `rm -rf /`, `git reset --hard`, `git push --force` [historical snapshot]
+- Path protection hook guards VAULT SSH keys, Unraid configs [historical snapshot]
+- Agent input guard sanitizes inputs, redacts outputs [historical snapshot]
+- Self-improvement sandboxed in Docker isolation [historical snapshot]
+- Forbidden modifications: CONSTITUTION.yaml, .env*, secrets/, /etc/ [historical snapshot]
+- Git: no force push, no secret commits (hooks + .gitignore) [historical snapshot]
 
 ### Gaps [INFERRED]
 

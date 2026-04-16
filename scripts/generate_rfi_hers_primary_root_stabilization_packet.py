@@ -13,13 +13,27 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = REPO_ROOT / "config" / "automation-backbone" / "reconciliation-source-registry.json"
 OUTPUT_PATH = REPO_ROOT / "reports" / "reconciliation" / "rfi-hers-primary-root-stabilization-latest.json"
 RFI_ROOT_ID = "rfi-hers-rater-assistant-root"
-RFI_ROOT_PATH = Path(r"C:\RFI & HERS Rater Assistant")
+RFI_ROOT_CANDIDATES = (
+    Path(r"C:\RFI & HERS Rater Assistant"),
+    Path("/mnt/c/RFI & HERS Rater Assistant"),
+)
 VALIDATION_COMMANDS = [
     "npm run typecheck",
     "npm run test",
     "python scripts/validate_settlers_ridge_packet.py",
     "powershell -ExecutionPolicy Bypass -File scripts/codex/validate-safe.ps1",
 ]
+
+
+def _resolve_rfi_root() -> Path:
+    for candidate in RFI_ROOT_CANDIDATES:
+        if candidate.exists():
+            return candidate
+    return RFI_ROOT_CANDIDATES[-1]
+
+
+RFI_ROOT_PATH = _resolve_rfi_root()
+GIT_PROBE_TIMEOUT_SECONDS = 5
 
 
 def _load_source_entry() -> dict[str, Any]:
@@ -30,16 +44,19 @@ def _load_source_entry() -> dict[str, Any]:
     raise RuntimeError(f"Unable to find {RFI_ROOT_ID} in {REGISTRY_PATH}")
 
 
-def _run_git(*args: str) -> str:
-    completed = subprocess.run(
-        ["git", "-C", str(RFI_ROOT_PATH), *args],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=60,
-        check=False,
-    )
+def _run_git(*args: str) -> str | None:
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(RFI_ROOT_PATH), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=GIT_PROBE_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return None
     if completed.returncode != 0:
         raise RuntimeError(
             f"git {' '.join(args)} failed with code {completed.returncode}: {(completed.stderr or completed.stdout).strip()}"
@@ -48,23 +65,27 @@ def _run_git(*args: str) -> str:
 
 
 def _try_run_git(*args: str) -> str | None:
-    completed = subprocess.run(
-        ["git", "-C", str(RFI_ROOT_PATH), *args],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=60,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(RFI_ROOT_PATH), *args],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=GIT_PROBE_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return None
     if completed.returncode != 0:
         return None
     return completed.stdout.strip()
 
 
-def _status_rows() -> list[dict[str, str]]:
+def _status_rows() -> tuple[list[dict[str, str]], bool]:
     rows: list[dict[str, str]] = []
-    for line in _run_git("status", "--porcelain").splitlines():
+    status_output = _run_git("status", "--porcelain")
+    for line in ([] if status_output is None else status_output.splitlines()):
         if not line.strip():
             continue
         status = line[:2]
@@ -74,7 +95,7 @@ def _status_rows() -> list[dict[str, str]]:
         if not path:
             continue
         rows.append({"status": status, "path": path})
-    return rows
+    return rows, status_output is None
 
 
 def _classify_path(path: str) -> str:
@@ -112,7 +133,7 @@ def _execution_posture(dirty_count: int) -> str:
 
 def main() -> int:
     source_entry = _load_source_entry()
-    status_rows = _status_rows()
+    status_rows, status_incomplete = _status_rows()
     dirty_paths = [row["path"] for row in status_rows]
     tracked_dirty_paths = [row["path"] for row in status_rows if row["status"] != "??"]
     untracked_paths = [row["path"] for row in status_rows if row["status"] == "??"]
@@ -132,9 +153,11 @@ def main() -> int:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "root_id": RFI_ROOT_ID,
         "root_name": str(source_entry.get("name") or ""),
-        "root_path": str(RFI_ROOT_PATH),
+        "root_path": r"C:\RFI & HERS Rater Assistant",
+        "resolved_root_path": str(RFI_ROOT_PATH),
         "branch": _run_git("branch", "--show-current"),
         "head": _run_git("rev-parse", "--short", "HEAD"),
+        "git_status_incomplete": status_incomplete,
         "has_origin": bool(_try_run_git("remote", "get-url", "origin")),
         "execution_posture": _execution_posture(len(dirty_paths)),
         "authority_status": str(source_entry.get("authority_status") or ""),

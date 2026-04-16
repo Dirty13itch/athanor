@@ -1,6 +1,6 @@
 # Node Roles + Hardware Allocation
 
-> Historical note: archived research retained for ADR-004 decision history. Current node identity, hardware inventory, and placement truth lives in the registry-backed reports.
+> Historical note: archived research retained for ADR-004 decision history. Current node identity, hardware inventory, and placement truth is tracked in the registry-backed reports.
 
 **Date:** 2026-02-15
 **Status:** Complete — recommendation ready

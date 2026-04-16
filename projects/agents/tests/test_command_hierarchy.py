@@ -33,6 +33,24 @@ class CommandHierarchyTest(unittest.TestCase):
         self.assertEqual("sovereign_local", classification["meta_lane"])
         self.assertFalse(classification["cloud_allowed"])
 
+    def test_policy_class_inherits_sovereign_routing_from_project_packet(self) -> None:
+        classification = classify_policy_class(
+            "Implement the next EOQ route safely.",
+            metadata={"project_id": "eoq"},
+            task_class="multi_file_implementation",
+        )
+        self.assertEqual("sovereign_only", classification["policy_class"])
+        self.assertEqual("sovereign_local", classification["meta_lane"])
+        self.assertFalse(classification["cloud_allowed"])
+
+    def test_policy_class_treats_local_only_language_as_sovereign(self) -> None:
+        classification = classify_policy_class(
+            "Keep this local only and never leave the cluster.",
+            task_class="multi_file_implementation",
+        )
+        self.assertEqual("sovereign_only", classification["policy_class"])
+        self.assertEqual("sovereign_local", classification["meta_lane"])
+
     def test_governor_rights_remain_posture_only(self) -> None:
         governor = next(entry for entry in COMMAND_RIGHTS if entry["subject"] == "Athanor Governor")
         self.assertIn("route work", governor["can"])

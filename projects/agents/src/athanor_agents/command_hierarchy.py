@@ -17,6 +17,7 @@ from .model_governance import (
     get_platform_topology,
     get_policy_class_registry,
     get_program_operating_system,
+    get_project_packet_registry,
     get_release_ritual_registry,
     get_project_maturity_registry,
     get_system_constitution,
@@ -213,6 +214,11 @@ COMMAND_RIGHTS = get_command_rights_registry().get("profiles", [])
 
 POLICY_CLASSES = get_policy_class_registry().get("classes", [])
 WORKLOAD_CLASSES = get_workload_class_registry().get("classes", [])
+PROJECT_PACKET_INDEX = {
+    str(entry.get("id") or "").strip(): dict(entry)
+    for entry in get_project_packet_registry().get("projects", [])
+    if isinstance(entry, dict) and str(entry.get("id") or "").strip()
+}
 
 WORKLOAD_ALIASES = {
     "interactive_architecture": "architecture_planning",
@@ -577,6 +583,37 @@ def normalize_workload_class(task_class: str) -> str:
     return WORKLOAD_ALIASES.get(task_class, task_class)
 
 
+def _project_routing_class(metadata: dict[str, Any]) -> str:
+    candidates: list[str] = []
+    for key in ("project_id", "project", "landing_project", "project_surface"):
+        raw = str(metadata.get(key) or "").strip()
+        if raw:
+            candidates.append(raw)
+    workspace_dir = str(metadata.get("workspace_dir") or "").strip()
+    if workspace_dir:
+        candidates.append(workspace_dir)
+
+    normalized_candidates: list[str] = []
+    for candidate in candidates:
+        normalized = candidate.replace("\\", "/").strip().strip("/")
+        if not normalized:
+            continue
+        normalized_candidates.append(normalized)
+        parts = [part for part in normalized.split("/") if part]
+        if "projects" in parts:
+            project_index = parts.index("projects")
+            if project_index + 1 < len(parts):
+                normalized_candidates.append(parts[project_index + 1])
+        if parts:
+            normalized_candidates.append(parts[-1])
+
+    for project_id in normalized_candidates:
+        project = PROJECT_PACKET_INDEX.get(project_id)
+        if project:
+            return str(project.get("routing_class") or "").strip()
+    return ""
+
+
 def classify_policy_class(
     prompt: str,
     metadata: dict[str, Any] | None = None,
@@ -586,14 +623,22 @@ def classify_policy_class(
     meta = metadata or {}
     workload = _workload_profile(task_class)
     policy_class = str(meta.get("policy_class") or workload.get("policy_default", "cloud_safe"))
+    project_routing_class = _project_routing_class(meta)
+    sensitivity = str(meta.get("sensitivity") or "").strip().lower()
 
-    if bool(meta.get("sovereign_only")):
+    if bool(meta.get("sovereign_only")) or sensitivity in {"adult_sensitive", "lan_only", "sovereign_only"}:
+        policy_class = "sovereign_only"
+    elif project_routing_class == "sovereign_only":
+        policy_class = "sovereign_only"
+    elif any(token in text for token in ("local only", "lan only", "never leave", "sovereign")):
         policy_class = "sovereign_only"
     elif any(token in text for token in ("nsfw", "explicit", "uncensored", "taboo", "erotic")):
         policy_class = "refusal_sensitive"
+    elif project_routing_class:
+        policy_class = project_routing_class
     elif any(token in text for token in ("abstract", "redacted", "structure only", "outline first")):
         policy_class = "hybrid_abstractable"
-    elif any(token in text for token in ("private", "confidential", "local only", "lan only", "never leave")):
+    elif any(token in text for token in ("private", "confidential")):
         policy_class = "private_but_cloud_allowed"
 
     meta_lane = "sovereign_local" if policy_class in {"refusal_sensitive", "sovereign_only"} else "frontier_cloud"

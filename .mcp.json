@@ -16,7 +16,7 @@
       ],
       "env": {
         "ATHANOR_AGENT_URL": "http://192.168.1.244:9000",
-        "ATHANOR_AGENT_API_TOKEN": "OXydknsIRAC48gg0xv8t0J-iUnM0q4btx0t1GE-vQEw"
+        "ATHANOR_AGENT_API_TOKEN": "os.environ/ATHANOR_AGENT_API_TOKEN"
       }
     },
     "context7": {

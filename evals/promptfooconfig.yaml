@@ -1,3 +1,5 @@
+# Benchmark fixture only. Not routing truth or runtime authority.
+# Provider bindings here are benchmark inputs, not adopted-system canon.
 # Athanor Agent Evaluation Suite
 # Run: npx promptfoo eval -c evals/promptfooconfig.yaml
 # View: npx promptfoo view

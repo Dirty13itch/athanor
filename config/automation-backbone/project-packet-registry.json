@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-11.2",
-  "updated_at": "2026-04-11T11:15:00-05:00",
+  "version": "2026-04-15.2",
+  "updated_at": "2026-04-15T18:40:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/project-packet-registry.json",
   "routing_class_map": {
@@ -43,7 +43,12 @@
         "Launch-blocker health posture"
       ],
       "rollback_contract": "Revert candidate promotion, restore previous packet snapshot, and replay smoke evidence.",
-      "maintenance_cadence": "weekly"
+      "maintenance_cadence": "weekly",
+      "execution_mode": "active_program_managed",
+      "data_handling_profile_id": "sovereign_private",
+      "entity_boundary_class": "sovereign_personal",
+      "account_surface_class": "operator_and_runtime_services",
+      "counterparty_sensitivity_class": "none"
     },
     {
       "id": "eoq",
@@ -72,10 +77,53 @@
       ],
       "acceptance_bundle": [
         "Sovereign-only routing",
-        "Narrative + asset pipeline regression checks"
+        "Narrative + asset pipeline regression checks",
+        "Pinned dependency on the adopted ComfyUI workflow pack"
       ],
       "rollback_contract": "Restore the previous tenant bundle and invalidate the promoted candidate.",
-      "maintenance_cadence": "weekly"
+      "maintenance_cadence": "weekly",
+      "execution_mode": "governed_in_repo_project",
+      "data_handling_profile_id": "sovereign_adult",
+      "entity_boundary_class": "sovereign_creative",
+      "account_surface_class": "operator_and_runtime_services",
+      "counterparty_sensitivity_class": "creative_private"
+    },
+    {
+      "id": "comfyui-workflows",
+      "name": "ComfyUI Workflows",
+      "status": "live",
+      "stage": "active_build",
+      "template": "creative_workflow_pack",
+      "class": "tenant",
+      "visibility": "private",
+      "sensitivity": "adult_sensitive",
+      "routing_class": "sovereign_only",
+      "routing_reason": "Reusable uncensored creative workflow templates must remain on sovereign local lanes.",
+      "runtime_target": "cluster",
+      "deploy_target": "cluster",
+      "workspace_root": "C:\\Athanor\\projects\\comfyui-workflows",
+      "primary_route": "/projects",
+      "owner_domain": "creative",
+      "operators": [
+        "Shaun",
+        "Claude"
+      ],
+      "agents": [
+        "creative-agent",
+        "coding-agent"
+      ],
+      "acceptance_bundle": [
+        "Sovereign-only routing",
+        "Workflow reproducibility",
+        "Regression-tested creative templates"
+      ],
+      "rollback_contract": "Revert the promoted workflow pack and restore the prior template bundle.",
+      "maintenance_cadence": "weekly",
+      "execution_mode": "governed_in_repo_project",
+      "data_handling_profile_id": "sovereign_adult",
+      "entity_boundary_class": "sovereign_creative",
+      "account_surface_class": "operator_and_runtime_services",
+      "counterparty_sensitivity_class": "creative_private"
     },
     {
       "id": "kindred",
@@ -106,7 +154,12 @@
         "No public launch without auth, analytics, and rollback"
       ],
       "rollback_contract": "Drop preview candidate and keep scaffold stage unchanged.",
-      "maintenance_cadence": "monthly"
+      "maintenance_cadence": "monthly",
+      "execution_mode": "governed_in_repo_project",
+      "data_handling_profile_id": "general_private",
+      "entity_boundary_class": "product_private_cloud_safe",
+      "account_surface_class": "governed_preview_accounts",
+      "counterparty_sensitivity_class": "private_user_data"
     },
     {
       "id": "ulrich-energy",
@@ -138,7 +191,12 @@
         "Offline-first PWA checklist"
       ],
       "rollback_contract": "Retain scaffold packet and demote failed candidate.",
-      "maintenance_cadence": "monthly"
+      "maintenance_cadence": "monthly",
+      "execution_mode": "governed_in_repo_project",
+      "data_handling_profile_id": "business_confidential",
+      "entity_boundary_class": "business_counterparty",
+      "account_surface_class": "client_workflow_accounts",
+      "counterparty_sensitivity_class": "business_confidential"
     },
     {
       "id": "media",
@@ -168,7 +226,50 @@
         "Approval-gated destructive operations"
       ],
       "rollback_contract": "Revert domain packet changes and restore prior stack config snapshot.",
-      "maintenance_cadence": "weekly"
+      "maintenance_cadence": "weekly",
+      "execution_mode": "governed_in_repo_project",
+      "data_handling_profile_id": "sovereign_private",
+      "entity_boundary_class": "sovereign_personal",
+      "account_surface_class": "operator_and_runtime_services",
+      "counterparty_sensitivity_class": "none"
+    }
+  ],
+  "execution_modes": [
+    {
+      "id": "active_program_managed",
+      "definition": "Primary managed surface in the live Athanor execution program."
+    },
+    {
+      "id": "governed_in_repo_project",
+      "definition": "Governed in-repo project or product surface."
+    },
+    {
+      "id": "light_tenant_operator_managed",
+      "definition": "Lightweight tenant managed mainly by operator follow-through."
+    },
+    {
+      "id": "incubating_tenant",
+      "definition": "Incubating tenant not yet promoted into the main program."
+    },
+    {
+      "id": "standalone_external_monitored",
+      "definition": "External repo tracked for status but not merged into the main execution queue."
+    },
+    {
+      "id": "shared_module_candidate",
+      "definition": "Candidate for narrow extraction into shared surfaces."
+    },
+    {
+      "id": "operator_tooling_reference",
+      "definition": "Operator tooling reference surface, not a product lane."
+    },
+    {
+      "id": "lineage_reference",
+      "definition": "Lineage or reference-only surface."
+    },
+    {
+      "id": "archive_only",
+      "definition": "Archived surface retained only for lineage."
     }
   ]
 }

@@ -1,8 +1,8 @@
 # Athanor Capability Promotion
 
-This document defines how work moves from the Athanor build system into the adopted system.
+This document records how work moves from the Athanor build system into the adopted system.
 
-## Standing Model
+## Promotion Model Snapshot
 
 There are four lanes:
 
@@ -11,7 +11,7 @@ There are four lanes:
 - `C:\Users\Shaun\.codex` - operator-local and cross-repo control surface
 - Claude archives - searchable evidence only
 
-The rule is fixed:
+For this snapshot, the rule is:
 
 - invent and prove in devstack
 - adopt and govern in Athanor

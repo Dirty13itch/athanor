@@ -2,6 +2,8 @@
 
 *AI-driven interactive cinematic adult game. Adult content is intentional and central.*
 
+Architecture context only. Verify current EOQ implementation, deployment, and runtime details in the project code, deployment manifests, and current Athanor reports before treating any present-tense note below as live operational truth.
+
 ---
 
 ## Core Insight
@@ -46,7 +48,7 @@ The implementation reconciles three source documents from the Gaming-Ideas repo:
 
 ---
 
-## Current Stack
+## Reference Stack Snapshot
 
 ```
 Next.js 16 + React 19 + Tailwind + Zustand
@@ -134,7 +136,7 @@ Player input / click to continue
           - Emotional profile (Fear/Defiance/Arousal/Submission/Despair)
           - Scene context, memories
           - Content intensity ceiling
-      → Stream SSE via LiteLLM → vLLM (Qwen3-32B-AWQ)
+      → Stream SSE via LiteLLM → sovereign local `uncensored` alias on Foundry
       → Strip <think> blocks from reasoning models
   → Display with character-by-character streaming
   → Update state store after dialogue completes
@@ -168,14 +170,14 @@ Conditional exits require plot flags. Flags are earned through:
 
 ---
 
-## Infrastructure Dependencies
+## Reference Infrastructure Dependencies
 
 | Component | Provided By | Notes |
 |-----------|-------------|-------|
-| Dialogue LLM | vLLM on Node 1 via LiteLLM | Qwen3-32B-AWQ, SSE streaming |
+| Dialogue LLM | LiteLLM on VAULT -> sovereign local Foundry aliases | `uncensored` for dialogue/narration, `reasoning` for helper tasks |
 | Image generation | ComfyUI on Node 2 | Flux dev FP8 |
 | State storage | Zustand + localStorage | Client-side, JSON serialization |
-| Model routing | LiteLLM on VAULT:4000 | `reasoning` alias |
+| Model routing | LiteLLM on VAULT:4000 | Sovereign local aliases only for EOQ runtime generation |
 | Deploy target | Node 2:3002 | Docker, Ansible-managed |
 
 ---

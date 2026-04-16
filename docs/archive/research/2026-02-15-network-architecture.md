@@ -1,6 +1,6 @@
 # Network Architecture
 
-> Historical note: archived research retained for ADR-002 decision history. Current node, link, and service truth lives in the control-plane registries and reports.
+> Historical note: archived research retained for ADR-002 decision history. Current node, link, and service truth is tracked in the control-plane registries and reports.
 
 **Date:** 2026-02-15
 **Status:** In progress

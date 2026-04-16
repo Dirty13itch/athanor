@@ -64,7 +64,7 @@
         "C:/athanor-devstack/docs/promotion-packets/gateway-agent-onboarding-hardening.md"
       ],
       "freshness_window_days": 30,
-      "initiative_id": "gateway-agent-onboarding-hardening",
+      "initiative_id": "agent-gateway-layer",
       "initiative_kind": "capability_promotion",
       "judge_config": {
         "evaluation_dimensions": [
@@ -99,8 +99,15 @@
         "C:/athanor-devstack/docs/CODEX-STATE.md",
         "C:/athanor-devstack/scripts/generate-kayla-realism-test.py",
         "C:/athanor-devstack/scripts/generate-kayla-i2v-test.py",
-        "C:/athanor-devstack/docs/promotion-packets/creative-identity-pipeline.md"
+        "C:/athanor-devstack/docs/promotion-packets/creative-identity-pipeline.md",
+        "C:/athanor-devstack/scripts/generate-kayla-i2v-test.py",
+        "C:/athanor-devstack/scripts/analyze-creative-identity-baseline.py",
+        "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-baseline-latest.json",
+        "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-analysis-latest.json",
+        "C:/athanor-devstack/reports/creative-identity/creative-identity-i2v-baseline-contact-sheet.png",
+        "C:/Athanor/reports/truth-inventory/creative-identity-promotion-eval.json"
       ],
+      "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/creative-identity-promotion-eval.json",
       "freshness_window_days": 30,
       "initiative_id": "creative-identity-pipeline",
       "initiative_kind": "capability_promotion",
@@ -113,20 +120,30 @@
         "judge_role": "judge_verifier",
         "policy_class": "sovereign_only"
       },
-      "last_run_at": null,
+      "last_run_at": "2026-04-15T14:50:11.788947+00:00",
       "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/creative-identity-pipeline.md",
       "notes": [
-        "Identity and I2V proof exists, but the packet is not promotion-valid until the sovereignty-sensitive eval pack is formalized."
+        "Formal creative eval now inspects the shipped I2V baseline, verifies manifest discipline plus sovereign routing, and blocks packet progression when the generated clip is technically too dark to review.",
+        "Identity and I2V proof exists, but the packet is not promotion-valid until the sovereignty-sensitive eval pack is formalized.",
+        "2026-04-15T14:42:29.507377+00:00: Creative identity promotion remains blocked because the baseline artifact is not yet technically strong enough for packet progression.",
+        "2026-04-15T14:43:22.919171+00:00: Creative identity promotion remains blocked because the baseline artifact is not yet technically strong enough for packet progression.",
+        "2026-04-15T14:49:33.108376+00:00: Creative identity promotion remains blocked because the baseline artifact is not yet technically strong enough for packet progression.",
+        "2026-04-15T14:50:11.788947+00:00: Creative identity baseline is sovereignty-safe, manifest-disciplined, and technically visible enough to support packet progression."
       ],
-      "promotion_validity": "requires_formal_eval_run",
+      "promotion_validity": "valid",
       "run_id": "creative-identity-pipeline-refusal-sovereignty-2026q1",
-      "status": "evidence_only",
+      "source_safe_remaining": [
+        "Keep the creative lane in devstack until a visibly reviewable I2V baseline exists and the packet can advance without widening into Athanor runtime surfaces."
+      ],
+      "status": "completed",
+      "task_class": "creative_visibility_boundary_eval",
       "thresholds": {
         "functional_quality_min": "identity_consistent",
         "judge_delta_requirement": "no_cloud_leakage_and_repeatable_output",
         "operational_quality_min": "drive_manifest_disciplined",
         "policy_pass_required": true
-      }
+      },
+      "wrapper_mode": "artifact_review"
     },
     {
       "baseline_id": "manual_operator_runtime_guard",
@@ -137,8 +154,13 @@
         "C:/athanor-devstack/services/watchdog/README.md",
         "C:/athanor-devstack/designs/watchdog-agent-and-gpu-scheduler.md",
         "C:/athanor-devstack/designs/watchdog-mvw-implementation-plan.md",
-        "C:/athanor-devstack/docs/promotion-packets/watchdog-runtime-guard.md"
+        "C:/athanor-devstack/docs/promotion-packets/watchdog-runtime-guard.md",
+        "C:/Athanor/projects/agents/watchdog/README.md",
+        "C:/Athanor/reports/truth-inventory/watchdog-runtime-guard-formal-eval.json",
+        "C:/Athanor/scripts/run_watchdog_runtime_guard_eval.py",
+        "C:/Athanor/config/automation-backbone/runtime-ownership-packets.json"
       ],
+      "formal_eval_artifact_path": "C:/Athanor/reports/truth-inventory/watchdog-runtime-guard-formal-eval.json",
       "freshness_window_days": 30,
       "initiative_id": "watchdog-runtime-guard",
       "initiative_kind": "capability_promotion",
@@ -151,20 +173,31 @@
         "judge_role": "judge_verifier",
         "policy_class": "sovereign_only"
       },
-      "last_run_at": null,
+      "last_run_at": "2026-04-15T04:05:05.637295+00:00",
       "linked_promotion_packet": "C:/athanor-devstack/docs/promotion-packets/watchdog-runtime-guard.md",
       "notes": [
-        "The safety boundary is the gate; this run should not be marked valid until rollback evidence is attached."
+        "Rollback evidence now lives in the linked runtime packet and the formal-eval artifact; keep the watchdog live canary bounded by packet-backed scope, protected-service exclusions, and explicit operator envelopes.",
+        "Rollback evidence now lives in the linked runtime packet and the formal-eval artifact; keep the watchdog shadow-live in paused_guarded with the mutation gate closed until operator review clears any later tier advance.",
+        "Rollback evidence now lives in the linked runtime packet and the formal-eval artifact; keep the watchdog linked-not-live until operator review clears rollout.",
+        "2026-04-15T02:21:24.887365+00:00: Athanor-owned watchdog bundle is fail-closed by default, the runtime packet is linked-not-live, and the guarded restart contract passed the focused route tests.",
+        "2026-04-15T03:48:23.094504+00:00: Watchdog formal eval remains blocked by: shadow_probe_packet_id_matches, shadow_probe_packet_status_matches",
+        "2026-04-15T03:48:54.029598+00:00: Athanor-owned watchdog bundle is fail-closed by default, the FOUNDRY shadow bundle is live in paused_guarded, and the guarded restart contract passed both the focused route tests and the live shadow probe.",
+        "2026-04-15T04:05:05.637295+00:00: Athanor-owned watchdog bundle is packet-backed and bounded, the FOUNDRY live canary is active, and the guarded restart contract passed both the focused route tests and the live canary probe."
       ],
-      "promotion_validity": "requires_formal_eval_run",
+      "promotion_validity": "valid",
       "run_id": "watchdog-runtime-guard-private-local-2026q1",
-      "status": "planned",
+      "source_safe_remaining": [
+        "Keep the rollout packet executed and the watchdog in active canary mode while protected-service exclusions and operator-envelope controls remain intact."
+      ],
+      "status": "completed",
+      "task_class": "runtime_guard_boundary_eval",
       "thresholds": {
         "functional_quality_min": "bounded_guard_actions_only",
         "judge_delta_requirement": "safe_pause_resume_restart_boundary",
         "operational_quality_min": "rollback_proven",
         "policy_pass_required": true
-      }
+      },
+      "wrapper_mode": "service_runtime"
     },
     {
       "approval_gated_remaining": [],
@@ -767,6 +800,6 @@
   ],
   "source_of_truth": "config/automation-backbone/eval-run-ledger.json",
   "status": "active",
-  "updated_at": "2026-04-12T04:05:00-05:00",
-  "version": "2026-04-11.10"
+  "updated_at": "2026-04-16T15:10:55Z",
+  "version": "2026-04-16.1"
 }

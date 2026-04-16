@@ -13,31 +13,46 @@ from automation_records import AutomationRunRecord, emit_automation_run_record
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT_PATH = ROOT / "audit" / "automation" / "contract-healer-latest.json"
-
 COMMANDS = [
     [sys.executable, "scripts/validate_platform_contract.py"],
     [sys.executable, "scripts/generate_documentation_index.py", "--check"],
     [sys.executable, "scripts/generate_project_maturity_report.py", "--check"],
 ]
+COMMAND_TIMEOUT_SECONDS = 120
 
 
 def run_command(command: list[str]) -> dict[str, object]:
     started = time.perf_counter()
-    completed = subprocess.run(
-        command,
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    duration = time.perf_counter() - started
-    return {
-        "command": command,
-        "returncode": completed.returncode,
-        "stdout": completed.stdout.strip(),
-        "stderr": completed.stderr.strip(),
-        "duration_seconds": round(duration, 3),
-    }
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=COMMAND_TIMEOUT_SECONDS,
+        )
+        duration = time.perf_counter() - started
+        return {
+            "command": command,
+            "returncode": completed.returncode,
+            "stdout": completed.stdout.strip(),
+            "stderr": completed.stderr.strip(),
+            "duration_seconds": round(duration, 3),
+            "timed_out": False,
+        }
+    except subprocess.TimeoutExpired as exc:
+        duration = time.perf_counter() - started
+        stdout = (exc.stdout or "").strip() if isinstance(exc.stdout, str) else ""
+        stderr = (exc.stderr or "").strip() if isinstance(exc.stderr, str) else ""
+        return {
+            "command": command,
+            "returncode": 124,
+            "stdout": stdout,
+            "stderr": stderr or f"Command timed out after {COMMAND_TIMEOUT_SECONDS} seconds.",
+            "duration_seconds": round(duration, 3),
+            "timed_out": True,
+        }
 
 
 def main() -> int:

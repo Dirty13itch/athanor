@@ -84,10 +84,8 @@ ${buildNarrateIntensityDirective(worldState.contentIntensity)}`;
     { role: "user", content: "Describe this moment." },
   ];
 
-  // Route to abliterated model at intensity >= 3
-  const model = (worldState.contentIntensity ?? 1) >= 3
-    ? "uncensored"
-    : (process.env.DIALOGUE_MODEL ?? "reasoning");
+  // EOQ narration stays on the sovereign uncensored lane regardless of scene intensity.
+  const model = config.dialogueModel;
 
   const response = await fetch(`${config.litellmUrl}/v1/chat/completions`, {
     method: "POST",

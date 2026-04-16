@@ -1,0 +1,106 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T18:40:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/compatibility-alias-policy.json",
+  "defaults": {
+    "hidden_rewrites_forbidden": true,
+    "owner_required": true,
+    "expiry_required": true,
+    "stale_alias_fails_validation": true
+  },
+  "alias_scope_classes": [
+    {
+      "id": "desk_runtime_env",
+      "description": "Compatibility env names derived from the canonical DESK gateway contract."
+    },
+    {
+      "id": "vault_litellm_provider_alias",
+      "description": "Served-model or provider aliases on the VAULT LiteLLM boundary."
+    },
+    {
+      "id": "retired_facade_compatibility",
+      "description": "Temporary compatibility layer preserved only for bounded migration or rollback."
+    }
+  ],
+  "aliases": [
+    {
+      "id": "desk_openai_base_from_athanor_litellm_url",
+      "alias_scope": "desk_runtime_env",
+      "canonical_target": "ATHANOR_LITELLM_URL",
+      "reason": "OpenAI-compatible tools still expect OPENAI base fields even though the canonical contract is Athanor-native.",
+      "introduced_at": "2026-04-15T00:00:00-05:00",
+      "expiry_at": "2026-07-31T23:59:59-05:00",
+      "owner": "operator_runtime_env",
+      "removal_condition": "Goose, Aider, and generated adapter profiles no longer require OpenAI-compatible base variables.",
+      "aliases": [
+        "OPENAI_API_BASE",
+        "OPENAI_HOST",
+        "OPENAI_BASE_PATH"
+      ],
+      "source_refs": [
+        "docs/runbooks/local-runtime-env.md",
+        "docs/operations/ATHANOR-OPERATING-SYSTEM.md"
+      ]
+    },
+    {
+      "id": "desk_openai_key_from_athanor_litellm_key",
+      "alias_scope": "desk_runtime_env",
+      "canonical_target": "ATHANOR_LITELLM_API_KEY",
+      "reason": "OpenAI-compatible clients and legacy LiteLLM callers derive from the canonical Athanor key contract.",
+      "introduced_at": "2026-04-15T00:00:00-05:00",
+      "expiry_at": "2026-07-31T23:59:59-05:00",
+      "owner": "operator_runtime_env",
+      "removal_condition": "Compatibility callers are retired or taught the canonical Athanor env names directly.",
+      "aliases": [
+        "OPENAI_API_KEY",
+        "LITELLM_API_KEY",
+        "LITELLM_MASTER_KEY"
+      ],
+      "source_refs": [
+        "docs/runbooks/local-runtime-env.md",
+        "docs/operations/SECRET-SURFACE-REPORT.md"
+      ]
+    },
+    {
+      "id": "vault_anthropic_claude_served_alias",
+      "alias_scope": "vault_litellm_provider_alias",
+      "canonical_target": "anthropic_api",
+      "reason": "Current provider-specific proof runs through the served `claude` compatibility alias on VAULT LiteLLM.",
+      "introduced_at": "2026-04-08T00:00:00-05:00",
+      "expiry_at": "2026-06-30T23:59:59-05:00",
+      "owner": "provider_catalog",
+      "removal_condition": "Anthropic served-model contract uses canonical provider-specific ids without a compatibility alias or the lane is intentionally demoted.",
+      "aliases": [
+        "claude"
+      ],
+      "source_refs": [
+        "config/automation-backbone/provider-catalog.json",
+        "docs/operations/PROVIDER-CATALOG-REPORT.md"
+      ]
+    },
+    {
+      "id": "vault_moonshot_kimi_served_alias",
+      "alias_scope": "vault_litellm_provider_alias",
+      "canonical_target": "moonshot_api",
+      "reason": "Observed Moonshot proof currently rides the served `kimi-k2.5` alias while the direct env contract remains optional.",
+      "introduced_at": "2026-04-14T00:00:00-05:00",
+      "expiry_at": "2026-06-30T23:59:59-05:00",
+      "owner": "provider_catalog",
+      "removal_condition": "The direct Moonshot env-backed contract is restored and promoted, or the alias path is explicitly demoted.",
+      "aliases": [
+        "kimi-k2.5"
+      ],
+      "source_refs": [
+        "config/automation-backbone/provider-catalog.json",
+        "docs/operations/PROVIDER-CATALOG-REPORT.md"
+      ]
+    }
+  ],
+  "contracts": [
+    "compatibility_alias_record",
+    "compatibility_alias_expiry",
+    "compatibility_alias_owner",
+    "compatibility_alias_removal_gate"
+  ]
+}

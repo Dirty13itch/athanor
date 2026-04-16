@@ -153,6 +153,14 @@ These are the plain-language operating runbooks for the Athanor backbone.
 3. Reroute only to allowed fallback lanes.
 4. Capture provider evidence before closing the incident.
 
+## Watchdog runtime guard
+
+1. Start with the watchdog `/status` surface plus the runtime-ownership report and rollout packet, not memory.
+2. Keep `WATCHDOG_MUTATIONS_ENABLED=false` and the rollout packet non-executed until a deliberate operator-approved rollout opens the path.
+3. Use pause, resume dry-runs, and manual restart dry-runs before any live restart attempt.
+4. Do not use the watchdog to touch protected services; those stay manual until a separate packet widens scope explicitly.
+5. If the boundary looks wrong, re-pause immediately and treat the watchdog as an incident review input, not as an autonomous fixer.
+
 ## Operator auth failure
 
 1. Confirm the issue is auth and not a broader ingress outage.

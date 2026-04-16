@@ -4,7 +4,7 @@ Last updated: 2026-04-14
 
 ## Purpose
 
-This audit defines the durable authority split among:
+This audit records the current boundary split among:
 
 - `C:/Athanor`
 - `C:/athanor-devstack`
@@ -32,7 +32,7 @@ It is anchored to:
 | `C:/athanor-devstack` | Yes | `build-system` | concept/prototype/proved work, proving harnesses, promotion packets, strategy, atlas compile inputs, experimental services before adoption | live routing truth, live provider posture, runtime policy, secret or operator repair truth that exists only here after adoption |
 | `C:/Users/Shaun/dev/athanor-next` | No as a parallel build root; yes only as a bounded lineage/incubation archive | `incubation` | unique historical design intent, selective next-gen ideas not yet normalized elsewhere, archive evidence for harvest | active implementation work, live startup authority, duplicate project ownership, deployment truth, operator runbooks for the live system |
 
-## What Should Remain Separate
+## What Is Recommended To Remain Separate
 
 ### `C:/Athanor`
 

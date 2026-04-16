@@ -87,6 +87,8 @@ _PROVIDER_ADAPTER_HINTS: dict[str, dict[str, Any]] = {
     },
 }
 
+LOCAL_ONLY_POLICY_CLASSES = {"sovereign_only", "refusal_sensitive"}
+
 
 @dataclass
 class HandoffBundle:
@@ -990,15 +992,21 @@ async def create_handoff_bundle(
     prompt_mode = "abstracted" if policy_class == "hybrid_abstractable" else "raw"
     abstract_prompt = _abstract_prompt(prompt, task_class) if prompt_mode == "abstracted" else None
 
+    selected_provider = str(lease_payload.get("provider") or "athanor_local")
+    if policy_class in LOCAL_ONLY_POLICY_CLASSES and selected_provider != "athanor_local":
+        raise PermissionError(
+            f"{policy_class} work must remain on athanor_local, not {selected_provider}."
+        )
+
     adapter = await _build_adapter_record(
-        str(lease_payload.get("provider") or "athanor_local"),
+        selected_provider,
         dict(get_policy_snapshot().get("providers", {}).get(lease_payload.get("provider"), {})),
     )
     created_at = time.time()
     bundle = HandoffBundle(
         id=f"handoff-{uuid.uuid4().hex[:12]}",
         requester=requester,
-        provider=str(lease_payload.get("provider") or "athanor_local"),
+        provider=selected_provider,
         lease_id=lease_id,
         task_class=task_class,
         policy_class=policy_class,
@@ -1009,7 +1017,7 @@ async def create_handoff_bundle(
         completed_at=None,
         status="pending",
         outcome=None,
-        summary=f"{requester} -> {task_class} via {lease_payload.get('provider', 'athanor_local')}",
+        summary=f"{requester} -> {task_class} via {selected_provider}",
         prompt=prompt,
         prompt_mode=prompt_mode,
         abstract_prompt=abstract_prompt,
@@ -1017,7 +1025,7 @@ async def create_handoff_bundle(
         command_decision=command_decision,
         plan_packet=plan_packet,
         instructions=_handoff_instructions(
-            str(lease_payload.get("provider") or "athanor_local"),
+            selected_provider,
             str(adapter["execution_mode"]),
             prompt_mode,
         ),

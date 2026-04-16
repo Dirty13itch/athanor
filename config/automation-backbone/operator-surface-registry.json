@@ -24,7 +24,7 @@
     "current_runtime_mode": "containerized_service_behind_caddy",
     "target_runtime_mode": "containerized_service_behind_caddy",
     "allow_multiple_active_portals": false,
-    "phase_promotion_gate": "Canonical DEV command center remains reachable from operator desktops at athanor.local, the WORKSHOP shadow portal stays retired, and browser smoke stays green."
+    "phase_promotion_gate": "The DEV command center remains reachable from operator desktops at athanor.local, the WORKSHOP shadow portal stays retired, and browser smoke stays green."
   },
   "host_aliases": [
     {

@@ -134,6 +134,10 @@ def get_policy_class_registry() -> dict[str, Any]:
     return _load_registry("policy-class-registry.json")
 
 
+def get_project_packet_registry() -> dict[str, Any]:
+    return _load_registry("project-packet-registry.json")
+
+
 def get_model_role_registry() -> dict[str, Any]:
     return _load_registry("model-role-registry.json")
 

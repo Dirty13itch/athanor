@@ -36,7 +36,7 @@ Browser
 | Runtime | Next.js 16, React 19 | ADR-014 |
 | Styling | Tailwind CSS + Framer Motion | |
 | State | Zustand (client), SQLite (persistence) | |
-| LLM | LiteLLM proxy -> vLLM (Qwen3-32B-AWQ) | ADR-005, ADR-012 |
+| LLM | LiteLLM proxy -> sovereign local text aliases (`uncensored`, `reasoning`, `creative`) currently consolidated on Foundry | ADR-005, ADR-012 |
 | Images | ComfyUI + Flux dev FP8 | ADR-006 |
 | Memory | Qdrant vector search | |
 
@@ -44,7 +44,7 @@ Browser
 
 ```
 projects/eoq/
-  comfyui/          -- ComfyUI workflow JSONs and test outputs
+  comfyui/          -- EOQ-pinned workflow copies and EOQ-specific workflow variants
   src/
     app/
       api/chat/     -- Dialogue generation (LiteLLM proxy + streaming)
@@ -73,7 +73,9 @@ Mock mode is enabled by default in development — UI iteration without GPU cost
 
 ## Status
 
-**Scaffold phase.** Core types, stores, VN components, and API routes are in place. Not yet functional — needs:
+**Active scaffold.** Core types, stores, VN components, and API routes are in place. Runtime dialogue and narration stay on the sovereign local `uncensored` lane; reusable promoted workflow templates belong in `projects/comfyui-workflows` and EOQ keeps only pinned copies or EOQ-specific variants.
+
+Remaining build needs:
 
 1. Mock data for a playable test scene
 2. npm install + build verification

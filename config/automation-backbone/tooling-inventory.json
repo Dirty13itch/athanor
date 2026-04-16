@@ -1,13 +1,13 @@
 {
-  "version": "2026-04-11.1",
-  "updated_at": "2026-04-11T22:55:00Z",
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T11:40:00-05:00",
   "status": "active",
   "source_of_truth": "config/automation-backbone/tooling-inventory.json",
   "hosts": [
     {
       "id": "desk",
       "host": "DESK",
-      "verified_at": "2026-04-11T22:55:00Z",
+      "verified_at": "2026-04-14T23:07:08.3728092-05:00",
       "tools": [
         {
           "tool_id": "claude",
@@ -41,10 +41,13 @@
           "tool_id": "aider",
           "provider_id": null,
           "command": "aider",
-          "status": "degraded",
-          "version": null,
+          "status": "installed",
+          "version": "0.86.2",
           "notes": [
-            "Command exists but --version failed during the 2026-03-25 probe."
+            "Repaired on DESK through uv tool install aider-chat==0.86.2 during the 2026-04-14 tool-readiness pass.",
+            "Managed-runtime-env wrapper verified through C:/Athanor/scripts/run-aider-athanor-shell.ps1 during the 2026-04-14 tool-readiness pass.",
+            "A live gateway smoke succeeded on 2026-04-14 via C:/Athanor/scripts/run-aider-athanor-shell.ps1 --message \"Reply with OK only.\"",
+            "Preferred launcher is C:/Athanor/scripts/run-aider-athanor-shell.ps1 so the managed runtime env contract stays authoritative."
           ]
         },
         {
@@ -66,14 +69,57 @@
           "provider_id": null,
           "command": "goose",
           "status": "installed",
-          "version": "1.30.0"
+          "version": "1.30.0",
+          "notes": [
+            "Managed-runtime-env wrapper verified through C:/Athanor/scripts/run-goose-athanor-shell.ps1 during the 2026-04-14 tool-readiness pass.",
+            "A live gateway smoke succeeded on 2026-04-14 via C:/Athanor/scripts/run-goose-athanor-shell.ps1 run --no-session --quiet --output-format json --text \"Reply with OK only.\""
+          ]
+        },
+        {
+          "tool_id": "continue",
+          "provider_id": null,
+          "command": "continue.continue",
+          "status": "installed",
+          "version": "1.2.22",
+          "notes": [
+            "VS Code adapter verified on DESK through the installed continue.continue extension.",
+            "Use C:/athanor-devstack/configs/agent-profiles/generated/continue.generated.json as the Athanor gateway-backed profile source."
+          ]
+        },
+        {
+          "tool_id": "cline",
+          "provider_id": null,
+          "command": "saoudrizwan.claude-dev",
+          "status": "installed",
+          "version": "3.78.0",
+          "notes": [
+            "Generated adapter profile already exists at C:/athanor-devstack/configs/agent-profiles/generated/cline.generated.json.",
+            "Installed on DESK through the VS Code marketplace extension saoudrizwan.claude-dev during the 2026-04-14 tool-completion pass.",
+            "Treat Cline as an Athanor-routed adapter, not as a separate authority surface."
+          ]
+        },
+        {
+          "tool_id": "roo_code",
+          "provider_id": null,
+          "command": "rooveterinaryinc.roo-cline",
+          "status": "installed",
+          "version": "3.52.1",
+          "notes": [
+            "Generated adapter profile already exists at C:/athanor-devstack/configs/agent-profiles/generated/roo-code.generated.json.",
+            "Installed on DESK through the VS Code marketplace extension rooveterinaryinc.roo-cline during the 2026-04-14 tool-completion pass.",
+            "Roo Code remains an optional Athanor-routed adapter rather than a core authority surface."
+          ]
         },
         {
           "tool_id": "letta",
           "provider_id": null,
           "command": "letta",
           "status": "installed",
-          "version": "0.22.4"
+          "version": "0.22.4",
+          "notes": [
+            "CLI access was revalidated on DESK after the 2026-04-14 uv tool repair pass.",
+            "Letta remains pilot-only and is not part of the core operator path."
+          ]
         }
       ]
     },
@@ -130,6 +176,66 @@
           "command": "claudeman",
           "status": "missing",
           "version": null
+        }
+      ]
+    },
+    {
+      "id": "desk-wsl",
+      "host": "DESK WSL",
+      "verified_at": "2026-04-15T11:40:00-05:00",
+      "tools": [
+        {
+          "tool_id": "codex",
+          "provider_id": "openai_codex",
+          "command": "codex",
+          "status": "installed",
+          "version": "0.116.0",
+          "notes": [
+            "WSL is now the active Codex agent surface on DESK.",
+            "Refresh Linux ~/.codex and ~/.athanor/runtime.env through C:/Codex System Config/scripts/prepare-codex-wsl.ps1."
+          ]
+        },
+        {
+          "tool_id": "aider",
+          "provider_id": null,
+          "command": "aider",
+          "status": "installed",
+          "version": "0.86.2",
+          "notes": [
+            "Installed in WSL via uv tool install aider-chat==0.86.2.",
+            "Preferred launcher is /mnt/c/Athanor/scripts/run-aider-athanor-shell.sh so the canonical Athanor gateway env contract stays authoritative."
+          ]
+        },
+        {
+          "tool_id": "goose",
+          "provider_id": null,
+          "command": "goose",
+          "status": "installed",
+          "version": "1.30.0",
+          "notes": [
+            "Installed in WSL from the pinned upstream goose Linux release.",
+            "Preferred launcher is /mnt/c/Athanor/scripts/run-goose-athanor-shell.sh so the canonical Athanor gateway env contract stays authoritative."
+          ]
+        },
+        {
+          "tool_id": "jq",
+          "provider_id": null,
+          "command": "jq",
+          "status": "installed",
+          "version": "1.8.1",
+          "notes": [
+            "Required on the active WSL Codex lane for JSON truth inspection and report validation."
+          ]
+        },
+        {
+          "tool_id": "fd",
+          "provider_id": null,
+          "command": "fd",
+          "status": "installed",
+          "version": "10.4.2",
+          "notes": [
+            "Required on the active WSL Codex lane for fast file discovery."
+          ]
         }
       ]
     }

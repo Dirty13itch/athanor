@@ -317,16 +317,20 @@ def _registry_check(lane_id: str, lane: dict[str, Any], probe: dict[str, Any]) -
     drift_status = str(lane.get("drift_status") or "").strip().lower()
 
     if live_ok:
-        lane_ok = (
-            expected_model_id == live_model_id
-            and observed_model_id == live_model_id
-            and drift_status == "aligned"
-        )
-        message = (
-            f"live model {probe.get('observed_model_id')} matched expected and observed registry ids"
-            if lane_ok
-            else f"registry mismatch: expected={lane.get('expected_model_id')} observed={lane.get('observed_model_id')} live={probe.get('observed_model_id')}"
-        )
+        model_ids_match = expected_model_id == live_model_id and observed_model_id == live_model_id
+        lane_ok = model_ids_match
+        if lane_ok and drift_status == "aligned":
+            message = f"live model {probe.get('observed_model_id')} matched expected and observed registry ids"
+        elif lane_ok:
+            message = (
+                "live model ids matched expected and observed registry ids; "
+                f"registry drift status remains {lane.get('drift_status')} for non-model reasons"
+            )
+        else:
+            message = (
+                f"registry mismatch: expected={lane.get('expected_model_id')} "
+                f"observed={lane.get('observed_model_id')} live={probe.get('observed_model_id')}"
+            )
     else:
         lane_ok = drift_status == "drifted"
         message = (

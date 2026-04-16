@@ -1,28 +1,28 @@
 # Publication Triage Summary
 
-Generated: `2026-04-16T18:42:04.250791+00:00`
+Generated: `2026-04-16T19:31:37.013496+00:00`
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `222`
-- Slice-matched entries: `56`
-- Deferred-family entries: `164`
+- Dirty entries: `175`
+- Slice-matched entries: `52`
+- Deferred-family entries: `122`
 - Ambiguous entries: `0`
-- Unclassified entries: `2`
+- Unclassified entries: `1`
 - Local-noise entries: `0`
 
 ## Slice Coverage
 
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
-| `backbone-contracts-and-truth-writers` | `published` | `25` | `0` | `0` |
-| `runtime-ownership-provider-truth-and-reconciliation` | `published` | `18` | `0` | `0` |
+| `backbone-contracts-and-truth-writers` | `published` | `24` | `0` | `0` |
+| `runtime-ownership-provider-truth-and-reconciliation` | `published` | `17` | `0` | `0` |
 | `pilot-eval-substrate-and-operator-test-machinery` | `published` | `2` | `0` | `0` |
 | `graphrag-promotion-wave` | `published` | `1` | `0` | `0` |
 | `gpu-scheduler-extension-wave` | `published` | `1` | `0` | `0` |
-| `forge-atlas-dashboard-and-startup-truth` | `published` | `9` | `0` | `0` |
+| `forge-atlas-dashboard-and-startup-truth` | `published` | `7` | `0` | `0` |
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
-- Dirty matches: `25`
+- Dirty matches: `24`
 - Publication refs: `20`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
@@ -32,6 +32,8 @@ Sample dirty paths:
 - `M` config/automation-backbone/completion-program-registry.json
 - `M` config/automation-backbone/contract-registry.json
 - `M` config/automation-backbone/project-packet-registry.json
+- `M` docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md
+- `M` docs/operations/PUBLICATION-TRIAGE-REPORT.md
 - `M` projects/agents/config/automation-backbone/contract-registry.json
 - `M` scripts/validate_platform_contract.py
 - `??` config/automation-backbone/architecture-freeze-policy.json
@@ -39,12 +41,10 @@ Sample dirty paths:
 - `??` config/automation-backbone/canonical-vocabulary-registry.json
 - `??` config/automation-backbone/commitment-governance.json
 - `??` config/automation-backbone/compatibility-alias-policy.json
-- `??` config/automation-backbone/data-handling-policy.json
-- `??` config/automation-backbone/execution-lease-policy.json
 
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
-- Dirty matches: `18`
+- Dirty matches: `17`
 - Publication refs: `24`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
@@ -59,10 +59,10 @@ Sample dirty paths:
 - `M` docs/operations/ATHANOR-RECONCILIATION-END-STATE.md
 - `M` docs/operations/PROVIDER-CATALOG-REPORT.md
 - `M` docs/operations/REPO-ROOTS-REPORT.md
-- `M` docs/operations/RUNTIME-OWNERSHIP-PACKETS.md
 - `M` docs/operations/RUNTIME-OWNERSHIP-REPORT.md
 - `M` docs/operations/SECRET-SURFACE-REPORT.md
 - `M` docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md
+- `M` scripts/collect_truth_inventory.py
 
 ## Pilot Eval Substrate and Operator-Test Machinery (`pilot-eval-substrate-and-operator-test-machinery`)
 
@@ -100,18 +100,16 @@ Sample dirty paths:
 
 ## Forge, Atlas, Dashboard, and Startup Truth (`forge-atlas-dashboard-and-startup-truth`)
 
-- Dirty matches: `9`
+- Dirty matches: `7`
 - Publication refs: `9`
 - Working-tree hints: `9`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
 
 Sample dirty paths:
-- `M` STATUS.md
 - `M` docs/CODEX-NEXT-STEPS.md
 - `M` docs/operations/ATHANOR-TOTAL-COMPLETION-PROGRAM.md
 - `M` docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md
-- `M` docs/operations/OPERATOR-SURFACE-REPORT.md
 - `M` projects/dashboard/src/generated/master-atlas.json
 - `M` projects/dashboard/src/generated/operator-surfaces.json
 - `??` docs/operations/ATHANOR-COLD-START.md
@@ -121,9 +119,9 @@ Sample dirty paths:
 
 | Deferred family | Disposition | Dirty matches |
 | --- | --- | --- |
-| `reference-and-archive-prune` | `archive_or_reference` | `35` |
-| `operator-tooling-and-helper-surfaces` | `operator_tooling` | `25` |
-| `audit-and-eval-artifacts` | `audit_artifact` | `12` |
+| `reference-and-archive-prune` | `archive_or_reference` | `23` |
+| `operator-tooling-and-helper-surfaces` | `operator_tooling` | `5` |
+| `audit-and-eval-artifacts` | `audit_artifact` | `2` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `3` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
 | `control-plane-follow-on` | `deferred_out_of_sequence` | `82` |
@@ -132,7 +130,7 @@ Sample dirty paths:
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
 
 - Disposition: `archive_or_reference`
-- Dirty matches: `35`
+- Dirty matches: `23`
 - Path hints: `9`
 - Scope: Historical, research, design, runbook, archive, and top-level reference surfaces that must remain typed as reference or archive instead of masquerading as checkpoint-slice truth.
 - Execution class: `cash_now`
@@ -141,23 +139,23 @@ Sample dirty paths:
 - Owner workstreams: `startup-docs-and-prune`, `validation-and-publication`
 
 Sample dirty paths:
-- `M` docs/DOCUMENTATION-INDEX.md
-- `M` docs/MASTER-PLAN.md
-- `M` docs/RECOVERY.md
 - `M` docs/REFERENCE-INDEX.md
 - `M` docs/SECURITY-FOLLOWUPS.md
-- `M` docs/SERVICES.md
-- `M` docs/SYSTEM-SPEC.md
 - `M` docs/TROUBLESHOOTING.md
 - `M` docs/UI-AUDIT-LOOP.md
-- `M` docs/archive/ATHANOR-SYSTEM-MAP.md
-- `M` docs/archive/BLOCKED.md
-- `M` docs/archive/BUILD-MANIFEST.md
+- `M` docs/archive/hardware/hardware-inventory.md
+- `M` docs/archive/research/2026-02-15-base-platform.md
+- `M` docs/archive/research/2026-02-15-creative-pipeline.md
+- `M` docs/archive/research/2026-02-15-home-automation.md
+- `M` docs/archive/research/2026-02-15-inference-engine.md
+- `M` docs/archive/research/2026-02-15-media-stack.md
+- `M` docs/archive/research/2026-02-15-monitoring.md
+- `M` docs/archive/research/2026-02-15-network-architecture.md
 
 ## Deferred: Operator Tooling and Helper Surfaces (`operator-tooling-and-helper-surfaces`)
 
 - Disposition: `operator_tooling`
-- Dirty matches: `25`
+- Dirty matches: `5`
 - Path hints: `13`
 - Scope: Operator helper rules, local agent tooling, repo scaffolding, and root guidance files that should stay governed but out of checkpoint-slice authority.
 - Execution class: `cash_now`
@@ -166,23 +164,16 @@ Sample dirty paths:
 - Owner workstreams: `authority-and-mainline`, `startup-docs-and-prune`
 
 Sample dirty paths:
-- `M` .claude/agents/architect.md
-- `M` .claude/agents/doc-writer.md
-- `M` .claude/agents/infra-auditor.md
-- `M` .claude/commands/status.md
-- `M` .claude/hooks/post-compact-reload.sh
-- `M` .claude/hooks/pre-compact-save.sh
-- `M` .claude/hooks/stop-autocommit.sh
-- `M` .claude/rules/docs-sync.md
-- `M` .claude/rules/litellm.md
-- `M` .claude/rules/qdrant-operations.md
-- `M` .claude/rules/session-continuity.md
-- `M` .claude/rules/vllm.md
+- `M` .claude/scratch/AGENT-AUDIT-REPORT.md
+- `M` .claude/scratch/DISCOVERY.md
+- `M` .claude/scratch/SECTION-C-COCHANGE.md
+- `M` .gitignore
+- `M` setup.ps1
 
 ## Deferred: Audit and Eval Artifacts (`audit-and-eval-artifacts`)
 
 - Disposition: `audit_artifact`
-- Dirty matches: `12`
+- Dirty matches: `2`
 - Path hints: `4`
 - Scope: Audit bundles, eval outputs, recipe fixtures, and verification traces that should stay typed as evidence or harness material rather than publication-slice truth.
 - Execution class: `cash_now`
@@ -191,18 +182,8 @@ Sample dirty paths:
 - Owner workstreams: `validation-and-publication`, `startup-docs-and-prune`
 
 Sample dirty paths:
-- `M` audit/automation/contract-healer-latest.json
 - `M` audit/recovery/restore-drill-latest.json
-- `M` evals/ab-comparison.yaml
-- `M` evals/eoq/promptfooconfig.yaml
 - `M` evals/promptfooconfig.yaml
-- `M` recipes/port-hydra-module.yaml
-- `M` recipes/test-all-endpoints.yaml
-- `M` tests/harness.py
-- `M` tests/ui-audit/findings-ledger.json
-- `M` tests/ui-audit/last-run.json
-- `M` tests/ui-audit/surface-registry.json
-- `M` tests/ui-audit/uncovered-surfaces.json
 
 ## Deferred: Deployment Authority Follow-on (`deployment-authority-follow-on`)
 
@@ -279,4 +260,3 @@ Sample dirty paths:
 ## Unclassified Entries
 
 - `M` .mcp.json
-- `M` MEMORY.md

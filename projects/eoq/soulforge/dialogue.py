@@ -1,7 +1,6 @@
-"""Character dialogue generation via JOSIEFIED-Qwen3 through LiteLLM.
+"""Character dialogue generation through Athanor's sovereign local LiteLLM lane.
 
-All dialogue calls go through the LiteLLM `uncensored` alias, which routes
-to JOSIEFIED-Qwen3-8B on WORKSHOP Ollama. Zero cloud involvement.
+All dialogue calls go through the LiteLLM `uncensored` alias. Zero cloud involvement.
 """
 
 from __future__ import annotations
@@ -24,7 +23,7 @@ logger = logging.getLogger(__name__)
 # LiteLLM endpoint for chat completions.
 LITELLM_URL = SERVICES["litellm"]["url"]
 CHAT_ENDPOINT = f"{LITELLM_URL}/v1/chat/completions"
-MODEL_ALIAS = "uncensored"  # Routes to JOSIEFIED-Qwen3-8B on WORKSHOP Ollama.
+MODEL_ALIAS = "uncensored"  # Routes to the sovereign local uncensored lane.
 
 
 def build_character_system_prompt(card: CharacterCard) -> str:
@@ -32,7 +31,7 @@ def build_character_system_prompt(card: CharacterCard) -> str:
 
     This prompt:
     - Injects DNA-derived personality traits as behavioral directives
-    - Forces JOSIEFIED style: explicit, no refusals, fully in-character
+    - Forces explicit, no-refusal, fully in-character behavior on the sovereign local lane
     - Provides backstory context for consistent roleplay
     """
     personality = dna_to_description(card.dna)

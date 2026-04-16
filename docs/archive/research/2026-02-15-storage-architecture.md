@@ -1,6 +1,6 @@
 # Storage Architecture
 
-> Historical note: archived research retained for ADR-003 decision history. Current storage, model, and runtime ownership truth lives in the registries and generated reports.
+> Historical note: archived research retained for ADR-003 decision history. Current storage, model, and runtime ownership truth is tracked in the registries and generated reports.
 
 **Date:** 2026-02-15
 **Status:** Complete — recommendation ready

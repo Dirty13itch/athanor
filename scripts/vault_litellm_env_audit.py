@@ -210,6 +210,8 @@ print(
             "container_missing_env_names": container_missing,
             "host_shell_present_env_names": host_present,
             "host_shell_missing_env_names": host_missing,
+            "host_shell_authority_state": "non_authoritative_snapshot",
+            "host_shell_snapshot_note": "Host shell env inspection is informational only; the LiteLLM delivery contract is the managed container env surface.",
             "container_image": config.get("Image"),
             "container_entrypoint": [str(item) for item in (config.get("Entrypoint") or []) if str(item).strip()],
             "container_args": [str(item) for item in (config.get("Cmd") or []) if str(item).strip()],

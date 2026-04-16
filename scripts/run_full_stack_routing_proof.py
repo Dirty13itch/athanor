@@ -6,12 +6,13 @@ from pathlib import Path
 from typing import Any
 
 from routing_contract_support import append_history, dump_json, load_json
+from truth_inventory import resolve_external_path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = REPO_ROOT / "config" / "automation-backbone"
 OUTPUT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "routing-proof.json"
-SAFE_SURFACE_ROOT = Path("C:/Users/Shaun/.codex/control")
+SAFE_SURFACE_ROOT = resolve_external_path("C:/Users/Shaun/.codex/control")
 
 
 def _result(case_id: str, category: str, passed: bool, detail: str, metadata: dict[str, Any] | None = None) -> dict[str, Any]:

@@ -298,22 +298,23 @@ router_settings:
   num_retries: 2
   timeout: 120
   fallbacks:
-    - reasoning: ["fast", "gemini-sub", "deepseek"]
-    - coding: ["coder", "reasoning", "gpt-codex-sub", "deepseek"]
-    - creative: ["fast", "reasoning", "venice-uncensored"]
-    - utility: ["fast", "deepseek"]
-    - fast: ["reasoning", "deepseek"]
-    - worker: ["reasoning", "deepseek"]
-    - coder: ["reasoning", "gpt-codex-sub", "deepseek"]
+    # Local sovereign aliases must fail closed into other Athanor-local lanes only.
+    - reasoning: ["fast", "worker"]
+    - coding: ["coder", "reasoning", "worker"]
+    - creative: ["uncensored", "reasoning", "fast"]
+    - utility: ["fast", "reasoning"]
+    - fast: ["reasoning", "worker"]
+    - worker: ["reasoning", "fast"]
+    - coder: ["coding", "reasoning", "worker"]
     - gpt-5.4-sub: ["gemini-sub", "kimi-sub", "deepseek"]
     - gpt-codex-sub: ["gpt-5.4-sub", "gemini-sub"]
     - gemini-sub: ["gpt-5.4-sub", "deepseek"]
     - kimi-sub: ["gemini-sub", "deepseek"]
   context_window_fallbacks:
-    - reasoning: ["gemini-sub"]
-    - coding: ["gemini-sub"]
-    - fast: ["gemini-sub"]
-    - coder: ["gemini-sub"]
+    - reasoning: ["worker"]
+    - coding: ["worker"]
+    - fast: ["reasoning"]
+    - coder: ["reasoning"]
     - gpt-5.4-sub: ["gemini-sub"]
     - kimi-sub: ["gemini-sub"]
   model_group_alias:

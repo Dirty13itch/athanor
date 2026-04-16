@@ -3,11 +3,21 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
+import re
 import subprocess
 from collections import Counter
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from layered_master_plan import (
+    PUBLICATION_PROVENANCE_JSON_PATH,
+    SURFACE_OWNER_MATRIX_JSON_PATH,
+    build_publication_provenance_bundle,
+    build_surface_owner_matrix_bundle,
+    render_publication_provenance_report,
+    render_surface_owner_matrix_report,
+)
 from truth_inventory import (
     DASHBOARD_OPERATOR_SURFACES_PATH,
     PROVIDER_USAGE_EVIDENCE_PATH,
@@ -75,19 +85,57 @@ def _status_line_paths(line: str) -> list[str]:
     return [payload.replace("\\", "/")]
 
 
+def _windows_git_probe_context(path: str) -> tuple[list[str], str]:
+    normalized = _slash_path(path)
+    if os.name == "nt":
+        return ["git"], normalized
+    if re.match(r"^[A-Za-z]:/", normalized):
+        probe_path = normalized
+    elif normalized.startswith("/mnt/"):
+        match = PurePosixPath(normalized).parts
+        if len(match) < 4:
+            return ["git"], path
+        drive = match[2]
+        if len(drive) != 1 or not drive.isalpha():
+            return ["git"], path
+        remainder = "/".join(match[3:])
+        probe_path = f"{drive.upper()}:/{remainder}"
+    else:
+        return ["git"], path
+    for candidate in (
+        "/mnt/c/Program Files/Git/cmd/git.exe",
+        "/mnt/c/Program Files/Git/bin/git.exe",
+        "/mnt/c/Program Files/Git/mingw64/bin/git.exe",
+    ):
+        if Path(candidate).exists():
+            return [candidate], probe_path
+    return ["git"], path
+
+
 def _local_git_probe(path: str) -> dict[str, Any]:
-    head = subprocess.run(
-        ["git", "-C", path, "rev-parse", "--short", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    status = subprocess.run(
-        ["git", "-C", path, "status", "--short"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    git_command, probe_path = _windows_git_probe_context(path)
+    try:
+        head = subprocess.run(
+            [*git_command, "-C", probe_path, "rev-parse", "--short", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=GIT_PROBE_TIMEOUT_SECONDS,
+        )
+        status = subprocess.run(
+            [*git_command, "-C", probe_path, "status", "--short"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=GIT_PROBE_TIMEOUT_SECONDS,
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return {
+            "head": "",
+            "dirty_count": 0,
+            "status_sample": [],
+            "git_probe_incomplete": True,
+        }
     status_lines = [line.rstrip() for line in status.stdout.splitlines() if line.strip()] if status.returncode == 0 else []
     try:
         probe_root = Path(path).resolve()
@@ -106,11 +154,15 @@ def _local_git_probe(path: str) -> dict[str, Any]:
         "head": head.stdout.strip() if head.returncode == 0 else "",
         "dirty_count": len(status_lines),
         "status_sample": status_lines[:10],
+        "git_probe_incomplete": head.returncode != 0 or status.returncode != 0,
     }
 
 
 def _fenced_block(language: str, lines: list[str]) -> list[str]:
     return [f"```{language}", *lines, "```"]
+
+
+GIT_PROBE_TIMEOUT_SECONDS = 8
 
 
 VOLATILE_REPORT_LINE_PREFIXES: dict[str, tuple[str, ...]] = {
@@ -193,6 +245,66 @@ def _load_latest_truth_snapshot() -> dict[str, Any] | None:
         return load_json(TRUTH_SNAPSHOT_PATH)
     except Exception:
         return None
+
+
+def _probe_detail_text(value: Any) -> str:
+    if isinstance(value, dict):
+        try:
+            return json.dumps(value, sort_keys=True)
+        except TypeError:
+            return str(value)
+    text = str(value or "unavailable").strip()
+    return " ".join(text.split()) if text else "unavailable"
+
+
+def _probe_attempt_summaries(probe: dict[str, Any], *, limit: int = 2) -> list[str]:
+    attempts = [dict(entry) for entry in probe.get("attempts", []) if isinstance(entry, dict)]
+    summaries: list[str] = []
+    for entry in attempts[:limit]:
+        target = str(entry.get("target") or "unknown")
+        detail = _probe_detail_text(entry.get("detail"))
+        if len(detail) > 120:
+            detail = detail[:117] + "..."
+        summaries.append(f"`{target}` -> `{detail}`")
+    return summaries
+
+
+def _dev_runtime_probe_lines(dev_runtime_probe: dict[str, Any]) -> list[str]:
+    lines = [f"- DEV runtime probe: `{_probe_detail_text(dev_runtime_probe.get('detail'))}`"]
+    attempts = [dict(entry) for entry in dev_runtime_probe.get("attempts", []) if isinstance(entry, dict)]
+    targets = [str(entry.get("target") or "") for entry in attempts if str(entry.get("target") or "").strip()]
+    if targets:
+        lines.append(f"- DEV SSH targets attempted: {list_or_none(targets)}")
+    attempt_summaries = _probe_attempt_summaries(dev_runtime_probe)
+    if attempt_summaries:
+        lines.append(f"- DEV SSH failure samples: {', '.join(attempt_summaries)}")
+    return lines
+
+
+def _foundry_runtime_alignment_lines(foundry_agents_runtime_detail: dict[str, Any]) -> list[str]:
+    container = (
+        dict(foundry_agents_runtime_detail.get("container") or {})
+        if isinstance(foundry_agents_runtime_detail.get("container"), dict)
+        else {}
+    )
+    control_files = [
+        dict(entry)
+        for entry in foundry_agents_runtime_detail.get("control_files", [])
+        if isinstance(entry, dict)
+    ]
+    mismatch_paths = [
+        str(entry.get("relative_path") or "")
+        for entry in control_files
+        if entry.get("implementation_exists") and entry.get("runtime_exists") and not entry.get("implementation_matches_runtime", False)
+    ]
+    lines = [f"- Runtime source-tree mismatches: `{len(mismatch_paths)}`"]
+    if container.get("site_packages_import"):
+        lines.append(
+            "- Site-packages import is expected image layout; treat source-tree mismatch, not the import location alone, as the blocker."
+        )
+    if mismatch_paths:
+        lines.append(f"- Active alignment blocker: {list_or_none(mismatch_paths)}")
+    return lines
 
 
 def _surface_node_label(node_id: str) -> str:
@@ -965,8 +1077,8 @@ def _classify_vault_auth_failure(
         return {
             "code": "direct_env_gap_not_currently_blocking",
             "next_action": (
-                f"Keep the observed served model `{requested_model}` as the canonical live path for now, and only restore "
-                f"{list_or_none(missing_names or required_envs)} if Athanor chooses to make the direct provider env-backed lane authoritative again."
+                f"Keep the observed served model `{requested_model}` as the live path for now, and only restore "
+                f"{list_or_none(missing_names or required_envs)} if Athanor chooses to make the direct provider env-backed lane explicitly governed again."
             ),
         }
     if missing_names and any(
@@ -1685,13 +1797,16 @@ def render_repo_roots_report() -> str:
                     f"- Local dirty sample: {list_or_none(list(local_repo_probe.get('status_sample', [])))}",
                 ]
             )
-        elif str(root.get("id") or "") == "dev-runtime-repo" and dev_runtime_probe.get("ok"):
-            extra_lines.extend(
-                [
-                    f"- Runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`",
-                    f"- Runtime dirty sample: {list_or_none(list(dev_runtime_detail.get('repo_status_sample', [])))}",
-                ]
-            )
+        elif str(root.get("id") or "") == "dev-runtime-repo":
+            if dev_runtime_probe.get("ok"):
+                extra_lines.extend(
+                    [
+                        f"- Runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`",
+                        f"- Runtime dirty sample: {list_or_none(list(dev_runtime_detail.get('repo_status_sample', [])))}",
+                    ]
+                )
+            else:
+                extra_lines.extend(_dev_runtime_probe_lines(dev_runtime_probe))
         elif str(root.get("id") or "") == "foundry-opt-athanor" and foundry_agents_runtime_probe.get("ok"):
             deployment_root = (
                 dict(foundry_agents_runtime_detail.get("deployment_root") or {})
@@ -1709,6 +1824,7 @@ def render_repo_roots_report() -> str:
                     f"- Build root clean: `{deployment_root.get('build_root_clean', False)}`",
                     f"- Container running: `{container.get('running', False)}`",
                     f"- Runtime import path: `{container.get('module_file') or 'unknown'}`",
+                    *_foundry_runtime_alignment_lines(foundry_agents_runtime_detail),
                 ]
             )
         lines.extend(
@@ -1831,7 +1947,7 @@ def render_runtime_ownership_report() -> str:
             ]
         )
     else:
-        lines.append(f"- DEV runtime probe: `{dev_runtime_probe.get('detail') or 'unavailable'}`")
+        lines.extend(_dev_runtime_probe_lines(dev_runtime_probe))
     if foundry_agents_runtime_probe.get("ok"):
         foundry_container = (
             dict(foundry_agents_runtime_detail.get("container") or {})
@@ -1848,6 +1964,7 @@ def render_runtime_ownership_report() -> str:
                 f"- FOUNDRY compose root matches expected: `{foundry_deployment_root.get('compose_root_matches_expected', False)}`",
                 f"- FOUNDRY build root clean: `{foundry_deployment_root.get('build_root_clean', False)}`",
                 f"- FOUNDRY runtime import path: `{foundry_container.get('module_file') or 'unknown'}`",
+                *_foundry_runtime_alignment_lines(foundry_agents_runtime_detail),
             ]
         )
     else:
@@ -2177,6 +2294,7 @@ def render_runtime_ownership_report() -> str:
                     f"- Runtime import path: `{container.get('module_file') or 'unknown'}`",
                     f"- Site-packages import: `{container.get('site_packages_import', False)}`",
                     f"- Source mirrors: {list_or_none([str(entry.get('path') or '') for entry in source_mirrors])}",
+                    *_foundry_runtime_alignment_lines(foundry_agents_runtime_detail),
                 ]
             )
             if control_files:
@@ -2544,14 +2662,14 @@ def render_operator_surface_report() -> str:
         "",
         f"- Registry version: `{registry.get('version', 'unknown')}`",
         f"- Cached truth snapshot: `{latest_snapshot.get('collected_at', 'not available') if isinstance(latest_snapshot, dict) else 'not available'}`",
-        f"- Canonical portal id: `{front_door_contract.get('canonical_portal_id', 'unknown')}`",
-        f"- Canonical operator URL: `{front_door_contract.get('canonical_url', 'unknown')}`",
-        f"- Canonical node: `{front_door_contract.get('canonical_node', 'unknown')}`",
+        f"- Recorded portal id: `{front_door_contract.get('canonical_portal_id', 'unknown')}`",
+        f"- Recorded operator URL: `{front_door_contract.get('canonical_url', 'unknown')}`",
+        f"- Recorded front-door node: `{front_door_contract.get('canonical_node', 'unknown')}`",
         f"- Runtime service id: `{front_door_contract.get('runtime_service_id', 'unknown')}`",
         f"- Current runtime mode: `{front_door_contract.get('current_runtime_mode', 'unknown')}`",
         f"- Target runtime mode: `{front_door_contract.get('target_runtime_mode', 'unknown')}`",
         f"- Multiple active portals allowed: `{front_door_contract.get('allow_multiple_active_portals', False)}`",
-        f"- Promotion gate: {front_door_contract.get('phase_promotion_gate', 'unset')}",
+        f"- Recorded front-door gate: {front_door_contract.get('phase_promotion_gate', 'unset')}",
         "",
         "## Summary",
         "",
@@ -3327,7 +3445,7 @@ def render_autonomy_activation_report() -> str:
                     if dev_runtime_probe.get("ok"):
                         lines.append(f"- DEV runtime dirty file count: `{dev_runtime_detail.get('repo_dirty_count', 0)}`")
                     else:
-                        lines.append(f"- DEV runtime probe: `{dev_runtime_probe.get('detail') or 'unavailable'}`")
+                        lines.extend(_dev_runtime_probe_lines(dev_runtime_probe))
                 lines.append("")
         else:
             lines.extend(["No remaining blockers are registered for the next phase.", ""])
@@ -3617,8 +3735,8 @@ def render_vault_litellm_repair_packet() -> str:
         f"- Container envs missing: {list_or_none(vault_litellm_env_audit.get('container_missing_env_names', []))}",
         f"- Config-referenced envs present at runtime: {list_or_none(vault_litellm_env_audit.get('config_referenced_present_env_names', []))}",
         f"- Config-referenced envs missing at runtime: {list_or_none(vault_litellm_env_audit.get('config_referenced_missing_env_names', []))}",
-        f"- Host shell envs present: {list_or_none(vault_litellm_env_audit.get('host_shell_present_env_names', []))}",
-        f"- Host shell envs missing: {list_or_none(vault_litellm_env_audit.get('host_shell_missing_env_names', []))}",
+        f"- Host shell envs present (informational snapshot only; not the LiteLLM delivery contract): {list_or_none(vault_litellm_env_audit.get('host_shell_present_env_names', []))}",
+        f"- Host shell envs missing (informational snapshot only; not a blocking delivery contract by itself): {list_or_none(vault_litellm_env_audit.get('host_shell_missing_env_names', []))}",
         f"- Runtime appdata files: {list_or_none(vault_litellm_env_audit.get('appdata_files', []))}",
         (
             "- Historical inspect backups: "
@@ -4027,8 +4145,8 @@ def render_secret_surface_report() -> str:
                     f"- Container envs missing: {list_or_none(list(vault_litellm_env_audit.get('container_missing_env_names', [])))}",
                     f"- Config-referenced envs present at runtime: {list_or_none(list(vault_litellm_env_audit.get('config_referenced_present_env_names', [])))}",
                     f"- Config-referenced envs missing at runtime: {list_or_none(list(vault_litellm_env_audit.get('config_referenced_missing_env_names', [])))}",
-                    f"- Host shell envs present: {list_or_none(list(vault_litellm_env_audit.get('host_shell_present_env_names', [])))}",
-                    f"- Host shell envs missing: {list_or_none(list(vault_litellm_env_audit.get('host_shell_missing_env_names', [])))}",
+                    f"- Host shell envs present (informational snapshot only; not the LiteLLM delivery contract): {list_or_none(list(vault_litellm_env_audit.get('host_shell_present_env_names', [])))}",
+                    f"- Host shell envs missing (informational snapshot only; not a blocking delivery contract by itself): {list_or_none(list(vault_litellm_env_audit.get('host_shell_missing_env_names', [])))}",
                     f"- dockerMan template matches: {list_or_none(list(vault_litellm_env_audit.get('docker_template_matches', [])))}",
                     f"- Compose-manager matches: {list_or_none(list(vault_litellm_env_audit.get('compose_manager_matches', [])))}",
                     (
@@ -4173,6 +4291,14 @@ def render_dashboard_operator_surfaces() -> str:
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
 
 
+def render_surface_owner_matrix_artifact() -> str:
+    return json.dumps(build_surface_owner_matrix_bundle(), indent=2, sort_keys=True) + "\n"
+
+
+def render_publication_provenance_artifact() -> str:
+    return json.dumps(build_publication_provenance_bundle(), indent=2, sort_keys=True) + "\n"
+
+
 REPORT_RENDERERS = {
     "hardware": render_hardware_report,
     "models": render_model_report,
@@ -4189,10 +4315,14 @@ REPORT_RENDERERS = {
     "autonomy_activation": render_autonomy_activation_report,
     "drift": render_truth_drift_report,
     "secret_surfaces": render_secret_surface_report,
+    "surface_owner_matrix": render_surface_owner_matrix_report,
+    "publication_provenance": render_publication_provenance_report,
 }
 
 GENERATED_ARTIFACT_RENDERERS = {
     "operator_surfaces": (DASHBOARD_OPERATOR_SURFACES_PATH, render_dashboard_operator_surfaces),
+    "surface_owner_matrix": (SURFACE_OWNER_MATRIX_JSON_PATH, render_surface_owner_matrix_artifact),
+    "publication_provenance": (PUBLICATION_PROVENANCE_JSON_PATH, render_publication_provenance_artifact),
 }
 
 

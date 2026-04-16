@@ -8,11 +8,14 @@ This file is a short continuity layer for Codex sessions. It supplements `STATUS
 
 1. Keep `STATUS.md` as the first current-state source.
 2. Keep `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md` as the live execution queue.
+3. Use `docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md` as the plan-of-plans entrypoint instead of reopening flat roadmap docs.
 3. Start new sessions with `python scripts/session_restart_brief.py --refresh` before choosing a lane.
 4. Treat publication as a triage task first, not a blind commit:
    - the current working tree is intentionally dirty on `codex/reconciliation-completion`
    - the branch is already pushed, but the large local modified and untracked tranche is not on GitHub yet
    - separate intended publication slices from ambient generated/runtime/workstation churn before any staging
+   - use `docs/operations/PUBLICATION-TRIAGE-REPORT.md` for current slice vs deferred-family typing
+   - use `docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md` for the ordered follow-on queue after the six ready slices
 3. Treat the new reconciliation control surface as canonical for cross-repo and side-root work:
    - `config/automation-backbone/reconciliation-source-registry.json`
    - `docs/operations/ATHANOR-ECOSYSTEM-REGISTRY.md`

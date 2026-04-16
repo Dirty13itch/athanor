@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `207`
-- Local dirty sample: ` M .claude/agents/architect.md`, ` M .claude/agents/doc-writer.md`, ` M .claude/agents/infra-auditor.md`, ` M .claude/commands/status.md`, ` M .claude/hooks/post-compact-reload.sh`, ` M .claude/hooks/pre-compact-save.sh`, ` M .claude/hooks/stop-autocommit.sh`, ` M .claude/rules/docs-sync.md`, ` M .claude/rules/litellm.md`, ` M .claude/rules/qdrant-operations.md`
+- Local dirty file count: `163`
+- Local dirty sample: ` M .claude/scratch/AGENT-AUDIT-REPORT.md`, ` M .claude/scratch/DISCOVERY.md`, ` M .claude/scratch/SECTION-C-COCHANGE.md`, ` M .gitignore`, ` M .mcp.json`, ` M ansible/roles/eoq/defaults/main.yml`, ` M ansible/roles/eoq/templates/docker-compose.yml.j2`, ` M ansible/roles/vault-litellm/templates/litellm_config.yaml.j2`, ` M audit/recovery/restore-drill-latest.json`, ` M config/automation-backbone/artifact-topology-registry.json`
 
 ## dev-runtime-repo
 

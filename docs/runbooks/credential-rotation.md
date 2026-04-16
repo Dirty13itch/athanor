@@ -1,8 +1,8 @@
-# Credential Rotation Runbook
+# Credential Rotation Reference Runbook
 
 Source of truth: `docs/SECURITY-FOLLOWUPS.md`, `config/automation-backbone/platform-topology.json`, `config/automation-backbone/credential-surface-registry.json`
-Validated against registry version: `platform-topology.json@2026-04-11.2`, `credential-surface-registry.json@2026-04-02.1`, `program-operating-system.json@2026-03-25.1`
-Mutable facts policy: affected services, host placement, and auth classes come from the topology registry. This runbook owns the operator sequence for rotating credentials without reintroducing tracked secret values.
+Validated against registry version: `platform-topology.json@2026-04-11.2`, `credential-surface-registry.json@2026-04-16.1`, `program-operating-system.json@2026-03-25.1`
+Mutable facts policy: affected services, host placement, and auth classes come from the topology registry. This runbook documents the operator sequence for rotating credentials without reintroducing tracked secret values.
 
 ---
 

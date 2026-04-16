@@ -1,0 +1,141 @@
+{
+  "version": "2026-04-15.1",
+  "updated_at": "2026-04-15T18:40:00-05:00",
+  "status": "active",
+  "source_of_truth": "config/automation-backbone/specialist-review-gates.json",
+  "reviewer_roles": [
+    {
+      "id": "operator_reviewer",
+      "label": "Operator Reviewer",
+      "domains": [
+        "general externalization",
+        "normal outbound commitments"
+      ]
+    },
+    {
+      "id": "business_owner",
+      "label": "Business Owner",
+      "domains": [
+        "client deliverables",
+        "counterparty commitments"
+      ]
+    },
+    {
+      "id": "regulated_reviewer",
+      "label": "Regulated Reviewer",
+      "domains": [
+        "regulated health",
+        "privacy-sensitive exports"
+      ]
+    },
+    {
+      "id": "tax_legal_reviewer",
+      "label": "Tax or Legal Reviewer",
+      "domains": [
+        "tax",
+        "legal",
+        "obligation-sensitive deliverables"
+      ]
+    },
+    {
+      "id": "platform_operator",
+      "label": "Platform Operator",
+      "domains": [
+        "production runtime",
+        "blast-radius mutations",
+        "actuation safety"
+      ]
+    }
+  ],
+  "gate_classes": [
+    {
+      "id": "regulated_health_externalization",
+      "required_reviewer_role": "regulated_reviewer",
+      "trigger_domains": [
+        "regulated_health",
+        "health_adjacent_private_data"
+      ],
+      "externalization_blocked_without_review": true
+    },
+    {
+      "id": "tax_or_legal_commitment",
+      "required_reviewer_role": "tax_legal_reviewer",
+      "trigger_domains": [
+        "tax",
+        "legal",
+        "obligation_commitment_compliance"
+      ],
+      "externalization_blocked_without_review": true
+    },
+    {
+      "id": "production_runtime_mutation",
+      "required_reviewer_role": "platform_operator",
+      "trigger_domains": [
+        "live_runtime_mutation",
+        "blast_radius_high"
+      ],
+      "externalization_blocked_without_review": false
+    },
+    {
+      "id": "financial_or_counterparty_delivery",
+      "required_reviewer_role": "business_owner",
+      "trigger_domains": [
+        "client_delivery",
+        "financial_counterparty"
+      ],
+      "externalization_blocked_without_review": true
+    },
+    {
+      "id": "physical_world_side_effect",
+      "required_reviewer_role": "platform_operator",
+      "trigger_domains": [
+        "physical_world",
+        "actuation",
+        "home_automation"
+      ],
+      "externalization_blocked_without_review": true
+    }
+  ],
+  "routing_policies": [
+    {
+      "id": "regulated_and_obligation_sensitive_work",
+      "match_domains": [
+        "regulated_health",
+        "tax",
+        "legal",
+        "obligation_commitment_compliance"
+      ],
+      "default_gate_class": "tax_or_legal_commitment"
+    },
+    {
+      "id": "counterparty_or_client_delivery",
+      "match_domains": [
+        "client_delivery",
+        "external_commitment",
+        "financial_counterparty"
+      ],
+      "default_gate_class": "financial_or_counterparty_delivery"
+    },
+    {
+      "id": "high_side_effect_runtime",
+      "match_domains": [
+        "live_runtime_mutation",
+        "physical_world",
+        "actuation"
+      ],
+      "default_gate_class": "production_runtime_mutation"
+    }
+  ],
+  "required_review_artifact_fields": [
+    "specialist_gate_class",
+    "required_reviewer_role",
+    "expert_routing_policy",
+    "review_evidence_ref"
+  ],
+  "contracts": [
+    "specialist_gate_class",
+    "required_reviewer_role",
+    "expert_routing_policy",
+    "review_evidence_ref"
+  ]
+}

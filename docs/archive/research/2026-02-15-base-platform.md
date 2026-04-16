@@ -32,7 +32,7 @@ Derived from Athanor's principles (VISION.md):
 
 ## Hardware Context
 
-This decision governs the compute nodes. VAULT (Unraid) and DEV (Windows) are fixed — their role in the full system is addressed in ADR-002 through ADR-004. The historical hardware ledger is in `docs/archive/hardware/hardware-inventory.md`, and current hardware truth lives in `config/automation-backbone/hardware-inventory.json` plus `docs/operations/HARDWARE-REPORT.md`.
+This decision governs the compute nodes. VAULT (Unraid) and DEV (Windows) are fixed — their role in the full system is addressed in ADR-002 through ADR-004. The historical hardware ledger is in `docs/archive/hardware/hardware-inventory.md`, and current hardware truth is tracked in `config/automation-backbone/hardware-inventory.json` plus `docs/operations/HARDWARE-REPORT.md`.
 
 | Node | CPU | RAM | GPUs | Role |
 |------|-----|-----|------|------|

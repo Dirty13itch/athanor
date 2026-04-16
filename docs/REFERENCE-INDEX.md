@@ -1,6 +1,15 @@
 # Athanor Reference Index
 
-Athanor evolved through four predecessor iterations. Each contains unique knowledge not yet ported to this repo. This index catalogs what's there and where to find it.
+> **Last updated:** 2026-04-15
+> **Status:** Reference only.
+> **Current operator truth starts with:** `python scripts/session_restart_brief.py --refresh`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, `STATUS.md`, `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`, generated operations reports, and `config/automation-backbone/`.
+> **Purpose:** predecessor import catalog and historical reference only.
+> **Publication boundary:** this page is not a checkpoint, queue, runtime, or operator authority surface.
+> **Execution boundary:** do not trust commands, ports, service names, aliases, or routing assumptions from predecessor roots without rechecking current canon in the restart brief, `docs/SERVICES.md`, `docs/SYSTEM-SPEC.md`, and registry-backed reports.
+
+Athanor evolved through four predecessor iterations. Each contains historical material and import candidates that may still be useful. This index catalogs what is there and where to find it.
+
+Treat every subsection below as a predecessor import catalog, not an execution guide. If a pattern, port, alias, workflow, command, or architectural claim matters now, recheck it against the current restart brief and generated canon before operational use.
 
 All reference repos: `~/repos/reference/`
 
@@ -10,7 +19,7 @@ All reference repos: `~/repos/reference/`
 
 66 MCP tools, 710 API endpoints, 37 n8n workflows, 103 Python modules. The largest predecessor — a monolithic FastAPI system with NixOS (rejected in ADR-001) and TabbyAPI/ExLlamaV2 (rejected in ADR-005).
 
-**Worth porting:**
+**Historical references / import candidates:**
 - n8n workflows (37): `config/n8n/workflows/` — morning-briefing, self-improvement cycle, autonomous-research, health-digest, container-auto-restart, model-performance-monitor, database-backup, discord-notification-bridge, rss-feed-processor, character-consistency-clipvision, and more
 - Self-improvement engine (DGM): `src/hydra_tools/dgm_engine.py` + `self_improvement.py` + `self_diagnosis.py`
 - Autonomous trigger rules (12 categories): `autonomous/trigger_rules.yaml`
@@ -23,7 +32,7 @@ All reference repos: `~/repos/reference/`
 **Reference only (patterns, not code):**
 - Operational runbooks: `docs/runbooks/` (performance-tuning, backup-restore, model-management, maintenance, service-recovery)
 - Observability configs: `config/prometheus/prometheus.yml` (40+ targets), `config/loki/`, `config/alertmanager/`
-- LiteLLM cascade routing: `config/litellm/config.yaml` -- historical Hydra-only reference; current provider truth lives in `config/automation-backbone/provider-catalog.json` and `docs/operations/PROVIDER-CATALOG-REPORT.md`
+- LiteLLM cascade routing: `config/litellm/config.yaml` -- historical Hydra-only reference; current provider truth is tracked in `config/automation-backbone/provider-catalog.json` and `docs/operations/PROVIDER-CATALOG-REPORT.md`
 - Command center design (35+ React components): `design/hydra-command-center/`
 - Docker compose (60+ services): `docker-compose/hydra-stack.yml`
 - Home Assistant config: `homeassistant/configuration.yaml`
@@ -38,7 +47,7 @@ All reference repos: `~/repos/reference/`
 
 GWT (Global Workspace Theory) implementation with 8 specialists, Kubernetes deployment (rejected in ADR-001), SGLang inference (rejected in ADR-005). The cognitive architecture code is the unique value here.
 
-**Worth porting:**
+**Historical references / import candidates:**
 - GWT formal specification (620 lines): `specs/gwt-architecture.md`
 - Workspace Manager (557 lines, production-ready): `cognitive/workspace/src/manager.py` — 7-state FSM, Redis persistence, WebSocket support
 - Continuous State Tensor: `cognitive/workspace/cst.py` — 4096-dim embedding + goal stack + PAD emotional model
@@ -58,9 +67,9 @@ GWT (Global Workspace Theory) implementation with 8 specialists, Kubernetes depl
 
 ## Local-System (Mar 2026) — Service Implementation
 
-Docker Compose architecture (same as Athanor), LangGraph agents, 6-tier memory, EoBQ generation pipeline. Shares the same GitHub remote as Athanor's predecessor. Most operationally similar to current Athanor.
+Docker Compose architecture (same as Athanor), LangGraph agents, 6-tier memory, EoBQ generation pipeline. Shares the same GitHub remote as Athanor's predecessor. Historically the closest predecessor to current Athanor.
 
-**Worth porting:**
+**Historical references / import candidates:**
 - 6-tier memory system (full implementation): `services/memory/` — working (Redis), episodic (Qdrant), semantic (Neo4j), procedural (PostgreSQL), resource (Qdrant+Meilisearch), vault (PostgreSQL+Qdrant)
 - Memory consolidation pipeline: `services/memory/consolidation.py` — episodic→semantic→vault promotion
 - Hybrid search (vector + BM25): `services/memory/search.py`
@@ -85,7 +94,7 @@ Docker Compose architecture (same as Athanor), LangGraph agents, 6-tier memory, 
 Structured as 7 numbered chapters. Only chapter 02 (hardware) was completed. Everything else is outlines. The hardware inventory was physically verified item-by-item.
 
 **Worth preserving:**
-- Component-level hardware inventory (historical system-bible ledger, verified Feb 6 2026): `docs/archive/hardware/hardware-inventory.md` — preserved as a detailed owned-hardware record; current hardware truth now lives in `config/automation-backbone/hardware-inventory.json` and `docs/operations/HARDWARE-REPORT.md`
+- Component-level hardware inventory (historical system-bible ledger, verified Feb 6 2026): `docs/archive/hardware/hardware-inventory.md` — preserved as a detailed owned-hardware record; current hardware truth is now tracked in `config/automation-backbone/hardware-inventory.json` and `docs/operations/HARDWARE-REPORT.md`
 - Power budget analysis (PSU→node mapping): `02-hardware/power-budget.md` — NEXUS at 9% headroom warning, transient spike analysis
 - Pending acquisitions (RTX PRO 6000, InfiniBand): `02-hardware/pending-acquisitions.md`
 - AI archetype properties (10 beloved fictional AIs): `README.md` — properties derived from JARVIS, TARS, Culture Minds, etc.
@@ -95,6 +104,8 @@ Structured as 7 numbered chapters. Only chapter 02 (hardware) was completed. Eve
 ---
 
 ## Planning Documents (~/repos/ root)
+
+These are historical planning inputs outside the current repo authority boundary. Treat them as import candidates only, not as publication surfaces or live operator truth.
 
 - `ATHANOR-MAP.md` (28KB) — Complete system map from 10-hour planning session (2026-03-07)
 - `ATHANOR-MAP-ADDENDUM.md` — Corrections and additions to the map

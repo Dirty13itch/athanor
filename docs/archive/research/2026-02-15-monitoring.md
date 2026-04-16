@@ -1,6 +1,6 @@
 # Monitoring + Observability
 
-> Historical note: archived research retained for ADR-009 decision history. Current health, service, and observability truth lives in the topology registry, service contracts, and generated reports.
+> Historical note: archived research retained for ADR-009 decision history. Current health, service, and observability truth is tracked in the topology registry, service contracts, and generated reports.
 
 **Date:** 2026-02-15
 **Status:** Complete — recommendation ready

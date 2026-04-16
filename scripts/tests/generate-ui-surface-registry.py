@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Generate the canonical UI surface registry and uncovered-surface list."""
+"""Generate the canonical UI surface registry and uncovered-surface list.
+
+Evidence producer only; generated JSON from this script is proof surfaces for UI audit coverage, not runtime or queue authority.
+"""
 
 from __future__ import annotations
 
@@ -13,13 +16,12 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_DIR = ROOT / "tests" / "ui-audit"
 REGISTRY_PATH = OUTPUT_DIR / "surface-registry.json"
 UNCOVERED_PATH = OUTPUT_DIR / "uncovered-surfaces.json"
-
-
 def main() -> int:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    generated_at = datetime.now(timezone.utc).isoformat()
     registry = {
-        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "generatedAt": generated_at,
         "coverageStates": [
             "covered-automated",
             "covered-live",
@@ -30,20 +32,14 @@ def main() -> int:
         "surfaces": SURFACES,
     }
     uncovered = [surface for surface in SURFACES if surface["coverageStatus"] == "uncovered"]
+    uncovered_payload = {
+        "generatedAt": generated_at,
+        "count": len(uncovered),
+        "surfaces": uncovered,
+    }
 
     REGISTRY_PATH.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
-    UNCOVERED_PATH.write_text(
-        json.dumps(
-            {
-                "generatedAt": registry["generatedAt"],
-                "count": len(uncovered),
-                "surfaces": uncovered,
-            },
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    UNCOVERED_PATH.write_text(json.dumps(uncovered_payload, indent=2) + "\n", encoding="utf-8")
 
     print(
         json.dumps(

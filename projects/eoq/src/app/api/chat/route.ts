@@ -65,10 +65,8 @@ export async function POST(req: Request) {
     : buildSystemPrompt(character, worldState, memories, clientMemoryContext, playerStyle, noMercyActive);
   const messages = buildMessages(systemPrompt, recentHistory, playerInput);
 
-  // Route to abliterated model at intensity >= 3 — guaranteed no refusal
-  const model = (worldState.contentIntensity ?? 1) >= 3
-    ? "uncensored"
-    : (process.env.DIALOGUE_MODEL ?? "reasoning");
+  // EOQ dialogue stays on the sovereign uncensored lane regardless of scene intensity.
+  const model = config.dialogueModel;
 
   const response = await fetch(`${config.litellmUrl}/v1/chat/completions`, {
     method: "POST",

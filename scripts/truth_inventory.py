@@ -2,14 +2,34 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = REPO_ROOT / "config" / "automation-backbone"
+WINDOWS_ABS_PATH_RE = re.compile(r"^(?P<drive>[A-Za-z]):[\\/](?P<rest>.*)$")
+
+
+def resolve_external_path(raw: str | Path | None, *, base: Path | None = None) -> Path:
+    text = str(raw or "").strip()
+    if not text:
+        return base or REPO_ROOT
+    match = WINDOWS_ABS_PATH_RE.match(text)
+    if match:
+        rest = match.group("rest").replace("\\", "/").lstrip("/")
+        if os.name == "nt":
+            return Path(f"{match.group('drive').upper()}:/{rest}")
+        return Path("/mnt") / match.group("drive").lower() / rest
+    path = Path(text)
+    if path.is_absolute():
+        return path
+    return (base or REPO_ROOT) / text
+
+
 _implementation_authority_override = os.environ.get("ATHANOR_IMPLEMENTATION_AUTHORITY", "").strip()
-IMPLEMENTATION_AUTHORITY_ROOT = Path(_implementation_authority_override or REPO_ROOT)
+IMPLEMENTATION_AUTHORITY_ROOT = resolve_external_path(_implementation_authority_override or REPO_ROOT)
 
 _repo_roots_registry_path = CONFIG_DIR / "repo-roots-registry.json"
 if not _implementation_authority_override and _repo_roots_registry_path.exists():
@@ -26,7 +46,7 @@ if not _implementation_authority_override and _repo_roots_registry_path.exists()
             "",
         )
         if _implementation_root:
-            IMPLEMENTATION_AUTHORITY_ROOT = Path(_implementation_root)
+            IMPLEMENTATION_AUTHORITY_ROOT = resolve_external_path(_implementation_root)
     except json.JSONDecodeError:
         pass
 
@@ -46,6 +66,8 @@ REPORT_PATHS = {
     "autonomy_activation": REPO_ROOT / "docs" / "operations" / "AUTONOMY-ACTIVATION-REPORT.md",
     "drift": REPO_ROOT / "docs" / "operations" / "TRUTH-DRIFT-REPORT.md",
     "secret_surfaces": REPO_ROOT / "docs" / "operations" / "SECRET-SURFACE-REPORT.md",
+    "surface_owner_matrix": REPO_ROOT / "docs" / "operations" / "SURFACE-OWNER-MATRIX.md",
+    "publication_provenance": REPO_ROOT / "docs" / "operations" / "PUBLICATION-PROVENANCE-REPORT.md",
 }
 TRUTH_SNAPSHOT_PATH = REPO_ROOT / "reports" / "truth-inventory" / "latest.json"
 BOOTSTRAP_REPORTS_DIR = REPO_ROOT / "reports" / "bootstrap"

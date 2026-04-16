@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-13.1",
-  "updated_at": "2026-04-13T14:55:00-05:00",
+  "version": "2026-04-15.2",
+  "updated_at": "2026-04-15T21:20:00-05:00",
   "status": "live",
   "contracts": [
     {
@@ -218,6 +218,328 @@
       "label": "Governed Dispatch State",
       "owner": "ralph loop",
       "purpose": "durable claim and runtime posture for the current ranked autonomous dispatch item, on-deck follow-through, and work-economy readiness without fabricating safe-surface executor activity",
+      "status": "live"
+    },
+    {
+      "id": "commitment_record",
+      "label": "Commitment Record",
+      "owner": "operator commitments",
+      "purpose": "typed external or internal commitment with class, state, and proof posture",
+      "status": "live"
+    },
+    {
+      "id": "counterparty_record",
+      "label": "Counterparty Record",
+      "owner": "operator commitments",
+      "purpose": "counterparty identity, boundary, and sensitivity for externalized work",
+      "status": "live"
+    },
+    {
+      "id": "promise_deadline_record",
+      "label": "Promise Deadline Record",
+      "owner": "operator commitments",
+      "purpose": "deadline, due state, and escalation path for governed commitments",
+      "status": "live"
+    },
+    {
+      "id": "followthrough_state_record",
+      "label": "Follow-through State Record",
+      "owner": "operator commitments",
+      "purpose": "delivery and acceptance posture for commitments over time",
+      "status": "live"
+    },
+    {
+      "id": "deliverable_acceptance_record",
+      "label": "Deliverable Acceptance Record",
+      "owner": "operator commitments",
+      "purpose": "captures who accepted a delivery and under what proof",
+      "status": "live"
+    },
+    {
+      "id": "renegotiation_record",
+      "label": "Renegotiation Record",
+      "owner": "operator commitments",
+      "purpose": "explicit renegotiation path when a promise cannot be met as originally stated",
+      "status": "live"
+    },
+    {
+      "id": "externalization_gate_record",
+      "label": "Externalization Gate Record",
+      "owner": "operator commitments",
+      "purpose": "typed gate proving a draft or proposal may become an external commitment or delivery",
+      "status": "live"
+    },
+    {
+      "id": "assumption_register",
+      "label": "Assumption Register",
+      "owner": "epistemic governance",
+      "purpose": "active assumptions that may guide exploration but not masquerade as observed truth",
+      "status": "live"
+    },
+    {
+      "id": "inference_boundary_record",
+      "label": "Inference Boundary Record",
+      "owner": "epistemic governance",
+      "purpose": "declares where inference is allowed, blocked, or review-gated",
+      "status": "live"
+    },
+    {
+      "id": "belief_revision_policy",
+      "label": "Belief Revision Policy",
+      "owner": "epistemic governance",
+      "purpose": "how new evidence revises or supersedes prior assumptions and inferred claims",
+      "status": "live"
+    },
+    {
+      "id": "evidence_conflict_record",
+      "label": "Evidence Conflict Record",
+      "owner": "epistemic governance",
+      "purpose": "captures conflicts between runtime, registry, generated, and assumed truth layers",
+      "status": "live"
+    },
+    {
+      "id": "supersession_record",
+      "label": "Supersession Record",
+      "owner": "epistemic governance",
+      "purpose": "links stale or assumed claims to fresher replacing evidence",
+      "status": "live"
+    },
+    {
+      "id": "specialist_gate_class",
+      "label": "Specialist Gate Class",
+      "owner": "review governance",
+      "purpose": "high-risk review gate class that blocks externalization or widening without the right reviewer",
+      "status": "live"
+    },
+    {
+      "id": "required_reviewer_role",
+      "label": "Required Reviewer Role",
+      "owner": "review governance",
+      "purpose": "explicit reviewer role demanded by a specialist gate or commitment class",
+      "status": "live"
+    },
+    {
+      "id": "expert_routing_policy",
+      "label": "Expert Routing Policy",
+      "owner": "review governance",
+      "purpose": "routing rule from domain risk to reviewer role and gate class",
+      "status": "live"
+    },
+    {
+      "id": "review_evidence_ref",
+      "label": "Review Evidence Reference",
+      "owner": "review governance",
+      "purpose": "artifact reference that proves the required review happened",
+      "status": "live"
+    },
+    {
+      "id": "entity_boundary_class",
+      "label": "Entity Boundary Class",
+      "owner": "portfolio governance",
+      "purpose": "machine-readable boundary separating personal, product, client, or regulated entities",
+      "status": "live"
+    },
+    {
+      "id": "account_surface_class",
+      "label": "Account Surface Class",
+      "owner": "portfolio governance",
+      "purpose": "machine-readable account boundary for operator, runtime, preview, or client surfaces",
+      "status": "live"
+    },
+    {
+      "id": "counterparty_sensitivity_class",
+      "label": "Counterparty Sensitivity Class",
+      "owner": "portfolio governance",
+      "purpose": "sensitivity posture for external counterparties or customer-facing data",
+      "status": "live"
+    },
+    {
+      "id": "party_registry",
+      "label": "Party Registry",
+      "owner": "portfolio governance",
+      "purpose": "registry schema for parties, owners, and counterparty boundaries",
+      "status": "live"
+    },
+    {
+      "id": "canonical_vocabulary_registry",
+      "label": "Canonical Vocabulary Registry",
+      "owner": "semantic governance",
+      "purpose": "canonical nouns, aliases, and forbidden overlapping terms",
+      "status": "live"
+    },
+    {
+      "id": "term_alias_record",
+      "label": "Term Alias Record",
+      "owner": "semantic governance",
+      "purpose": "allowed alias mapped to a canonical governed noun",
+      "status": "live"
+    },
+    {
+      "id": "forbidden_alias_record",
+      "label": "Forbidden Alias Record",
+      "owner": "semantic governance",
+      "purpose": "disallowed alias that would create duplicate or shadow authority",
+      "status": "live"
+    },
+    {
+      "id": "portable_context_bundle",
+      "label": "Portable Context Bundle",
+      "owner": "interop governance",
+      "purpose": "scoped export bundle that preserves provenance, contradiction audits, and rebuild-from-raw references",
+      "status": "live"
+    },
+    {
+      "id": "session_handoff_bundle",
+      "label": "Session Handoff Bundle",
+      "owner": "interop governance",
+      "purpose": "explicit session handoff artifact between tools or providers",
+      "status": "live"
+    },
+    {
+      "id": "control_plane_ingest_bundle",
+      "label": "Control-plane Ingest Bundle",
+      "owner": "interop governance",
+      "purpose": "typed ingest artifact for importing external context into canonical control surfaces",
+      "status": "live"
+    },
+    {
+      "id": "export_bundle_record",
+      "label": "Export Bundle Record",
+      "owner": "interop governance",
+      "purpose": "governed export record with scope, assumptions, and rebuild path",
+      "status": "live"
+    },
+    {
+      "id": "interop_contract_record",
+      "label": "Interop Contract Record",
+      "owner": "interop governance",
+      "purpose": "protocol-specific portability contract for external tools or providers",
+      "status": "live"
+    },
+    {
+      "id": "provider_exit_packet",
+      "label": "Provider Exit Packet",
+      "owner": "interop governance",
+      "purpose": "bounded provider-exit and rebuild plan",
+      "status": "live"
+    },
+    {
+      "id": "server_card_contract",
+      "label": "Server Card Contract",
+      "owner": "interop governance",
+      "purpose": "discovery-only contract for MCP server-card style metadata",
+      "status": "live"
+    },
+    {
+      "id": "well_known_metadata_record",
+      "label": "Well-known Metadata Record",
+      "owner": "interop governance",
+      "purpose": "governed discovery metadata record that must stay mutation-forbidden",
+      "status": "live"
+    },
+    {
+      "id": "session_resumption_policy",
+      "label": "Session Resumption Policy",
+      "owner": "interop governance",
+      "purpose": "policy describing when sessions may resume without duplicate authority or execution",
+      "status": "live"
+    },
+    {
+      "id": "task_retry_policy",
+      "label": "Task Retry Policy",
+      "owner": "interop governance",
+      "purpose": "typed retry semantics for async task operations",
+      "status": "live"
+    },
+    {
+      "id": "task_result_expiry_policy",
+      "label": "Task Result Expiry Policy",
+      "owner": "interop governance",
+      "purpose": "policy describing result expiry and client visibility after completion",
+      "status": "live"
+    },
+    {
+      "id": "task_retention_class",
+      "label": "Task Retention Class",
+      "owner": "interop governance",
+      "purpose": "retention class for task results and async artifacts",
+      "status": "live"
+    },
+    {
+      "id": "telemetry_semconv_profile",
+      "label": "Telemetry Semantic Convention Profile",
+      "owner": "interop governance",
+      "purpose": "pinned telemetry profile aligned to official OTel GenAI/MCP conventions",
+      "status": "live"
+    },
+    {
+      "id": "telemetry_stability_pin_policy",
+      "label": "Telemetry Stability Pin Policy",
+      "owner": "interop governance",
+      "purpose": "pinning policy that prevents upstream convention churn from silently changing emitted telemetry",
+      "status": "live"
+    },
+    {
+      "id": "trace_context_propagation_policy",
+      "label": "Trace Context Propagation Policy",
+      "owner": "interop governance",
+      "purpose": "scope-bound trace propagation rules across MCP and related boundaries",
+      "status": "live"
+    },
+    {
+      "id": "mcp_trace_meta_contract",
+      "label": "MCP Trace Meta Contract",
+      "owner": "interop governance",
+      "purpose": "required metadata on protocol-bearing surfaces using MCP semantics",
+      "status": "live"
+    },
+    {
+      "id": "compatibility_alias_record",
+      "label": "Compatibility Alias Record",
+      "owner": "compatibility governance",
+      "purpose": "explicit compatibility shim with owner, reason, and scope",
+      "status": "live"
+    },
+    {
+      "id": "compatibility_alias_expiry",
+      "label": "Compatibility Alias Expiry",
+      "owner": "compatibility governance",
+      "purpose": "expiry contract for compatibility shims so hidden rewrites cannot become permanent truth",
+      "status": "live"
+    },
+    {
+      "id": "compatibility_alias_owner",
+      "label": "Compatibility Alias Owner",
+      "owner": "compatibility governance",
+      "purpose": "named owner responsible for removing or renewing a compatibility shim",
+      "status": "live"
+    },
+    {
+      "id": "compatibility_alias_removal_gate",
+      "label": "Compatibility Alias Removal Gate",
+      "owner": "compatibility governance",
+      "purpose": "removal condition proving a compatibility alias can be retired safely",
+      "status": "live"
+    },
+    {
+      "id": "architecture_freeze_policy",
+      "label": "Architecture Freeze Policy",
+      "owner": "canon governance",
+      "purpose": "policy that freezes new planes, loops, and speculative rewrites while publication debt is blocking",
+      "status": "live"
+    },
+    {
+      "id": "rewrite_budget_policy",
+      "label": "Rewrite Budget Policy",
+      "owner": "canon governance",
+      "purpose": "budget limiting canonical rewrites per publication wave",
+      "status": "live"
+    },
+    {
+      "id": "canon_change_gate",
+      "label": "Canon Change Gate",
+      "owner": "canon governance",
+      "purpose": "required evidence and rollback contract before canonical architecture changes are allowed",
       "status": "live"
     }
   ]
