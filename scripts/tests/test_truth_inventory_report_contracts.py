@@ -76,6 +76,17 @@ def test_report_check_ignores_vault_audit_timestamp_only_drift() -> None:
     )
 
 
+def test_generated_local_git_ignore_paths_include_publication_loop_outputs() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+
+    assert "docs/operations/PUBLICATION-TRIAGE-REPORT.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "reports/truth-inventory/publication-deferred-family-queue.json" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+
+
 def test_report_check_still_flags_real_content_drift() -> None:
     module = _load_module(
         f"truth_inventory_report_contracts_{uuid.uuid4().hex}",

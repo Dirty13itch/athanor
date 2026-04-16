@@ -71,6 +71,9 @@ GENERATED_LOCAL_GIT_IGNORE_PATHS = {
         VAULT_LITELLM_ENV_AUDIT_PATH,
         VAULT_REDIS_AUDIT_PATH,
         DASHBOARD_OPERATOR_SURFACES_PATH,
+        REPO_ROOT / "docs" / "operations" / "PUBLICATION-TRIAGE-REPORT.md",
+        REPO_ROOT / "docs" / "operations" / "PUBLICATION-DEFERRED-FAMILY-QUEUE.md",
+        REPO_ROOT / "reports" / "truth-inventory" / "publication-deferred-family-queue.json",
     ]
     if path.is_absolute() and REPO_ROOT in path.parents
 }
