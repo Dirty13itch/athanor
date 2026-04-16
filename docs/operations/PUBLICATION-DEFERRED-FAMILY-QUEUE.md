@@ -1,20 +1,10 @@
 # Publication Deferred-Family Queue
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `5`
+- Dirty entries: `3`
 - Slice-matched entries: `3`
-- Deferred-family entries: `2`
+- Deferred-family entries: `0`
 - Deferred families: `7`
-
-## Next Recommended Tranche
-
-- Family: `control-plane-follow-on`
-- Title: Control-Plane Follow-on
-- Execution class: `program_slice`
-- Dirty matches: `2`
-- Owner workstreams: `authority-and-mainline`, `validation-and-publication`
-- Next action: Break the broad control-plane tail into explicit follow-on publication slices before any wider checkpoint publish.
-- Success condition: Control-plane residue is no longer one deferred mass; it is decomposed into explicit publication-ready tranches.
 
 ## Ordered Queue
 
@@ -25,7 +15,7 @@
 | `3` | `audit-and-eval-artifacts` | `cash_now` | `0` | `audit_artifact` | `validation-and-publication, startup-docs-and-prune` |
 | `4` | `deployment-authority-follow-on` | `bounded_follow_on` | `0` | `deferred_out_of_sequence` | `deployment-authority-reconciliation, validation-and-publication` |
 | `5` | `runtime-service-follow-on` | `bounded_follow_on` | `0` | `runtime_follow_on` | `runtime-sync-and-governed-packets, validation-and-publication` |
-| `6` | `control-plane-follow-on` | `program_slice` | `2` | `deferred_out_of_sequence` | `authority-and-mainline, validation-and-publication` |
+| `6` | `control-plane-follow-on` | `program_slice` | `0` | `deferred_out_of_sequence` | `authority-and-mainline, validation-and-publication` |
 | `7` | `tenant-product-lanes` | `tenant_lane` | `0` | `tenant_surface` | `tenant-architecture-and-classification, validation-and-publication` |
 
 ## 1. Reference and Archive Prune (`reference-and-archive-prune`)
@@ -82,15 +72,11 @@
 
 - Execution class: `program_slice`
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `2`
+- Dirty matches: `0`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Next action: Break the broad control-plane tail into explicit follow-on publication slices before any wider checkpoint publish.
 - Success condition: Control-plane residue is no longer one deferred mass; it is decomposed into explicit publication-ready tranches.
 - Owner workstreams: `authority-and-mainline`, `validation-and-publication`
-
-Sample paths:
-- `scripts/tests/test_write_steady_state_status.py`
-- `scripts/write_steady_state_status.py`
 
 ## 7. Tenant Product Lanes (`tenant-product-lanes`)
 
