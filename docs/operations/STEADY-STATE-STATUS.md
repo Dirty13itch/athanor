@@ -7,8 +7,8 @@ Do not edit manually.
 - Reopen required: `False`
 - Repo-safe debt: cash_now=`0` | bounded_follow_on=`0` | program_slice=`0`
 - Runtime packet count: `0`
-- Queue posture: total=`12` | dispatchable=`7` | blocked=`0`
-- Active claim: `Audit and Eval Artifacts`
+- Queue posture: total=`12` | dispatchable=`6` | blocked=`0`
+- Active claim: `Local Bulk Sovereign`
 - Strategic workstream: `Dispatch and Work-Economy Closure`
 
 ## Next Operator Action
