@@ -404,7 +404,9 @@ def main() -> int:
             return 1
         return 0
     if args.write is not None:
-        args.write.write_text(rendered, encoding='utf-8')
+        existing = args.write.read_text(encoding='utf-8') if args.write.exists() else ''
+        if _normalize_rendered_for_check(existing, output_format=args.format) != _normalize_rendered_for_check(rendered, output_format=args.format):
+            args.write.write_text(rendered, encoding='utf-8')
         print(args.write)
     else:
         print(rendered, end='')

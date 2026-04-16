@@ -150,3 +150,59 @@ def test_render_markdown_surfaces_deferred_family_and_unclassified_entries(monke
     assert 'Deferred Family Coverage' in rendered
     assert '`archive`' in rendered
     assert 'Unclassified Entries' in rendered
+
+
+
+def test_main_does_not_rewrite_markdown_output_when_only_generated_timestamp_changes(monkeypatch, tmp_path: Path) -> None:
+    module = _load_module(
+        f"publication_tranche_triage_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / 'triage_publication_tranche.py',
+    )
+
+    registry_path = tmp_path / 'completion-program-registry.json'
+    registry_path.write_text(
+        """{
+  "publication_slices": {
+    "active_sequence_id": "sequence-3",
+    "slices": [
+      {
+        "id": "backbone",
+        "title": "Backbone",
+        "status": "published",
+        "publication_artifact_refs": ["docs/operations/PUBLICATION-PROVENANCE-REPORT.md"],
+        "generated_artifacts": [],
+        "working_tree_path_hints": ["docs/operations/"]
+      }
+    ],
+    "deferred_families": []
+  }
+}""",
+        encoding='utf-8',
+    )
+
+    repo_root = tmp_path / 'repo'
+    repo_root.mkdir()
+    monkeypatch.setattr(module, '_git_status_entries', lambda _repo_root: [])
+    monkeypatch.setattr(module, '_iso_now', lambda: '2026-04-16T19:00:00+00:00')
+    initial_bundle = module.build_triage_bundle(repo_root=repo_root, registry_path=registry_path)
+    output_path = tmp_path / 'PUBLICATION-TRIAGE-REPORT.md'
+    output_path.write_text(module.render_markdown(initial_bundle), encoding='utf-8')
+    initial_text = output_path.read_text(encoding='utf-8')
+
+    monkeypatch.setattr(module, '_iso_now', lambda: '2026-04-16T20:00:00+00:00')
+    monkeypatch.setattr(
+        sys,
+        'argv',
+        [
+            'triage_publication_tranche.py',
+            '--repo-root',
+            str(repo_root),
+            '--registry',
+            str(registry_path),
+            '--write',
+            str(output_path),
+        ],
+    )
+
+    assert module.main() == 0
+    assert output_path.read_text(encoding='utf-8') == initial_text
