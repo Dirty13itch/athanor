@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+import importlib.util
+import sys
+import uuid
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_DIR = REPO_ROOT / 'scripts'
+
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+
+def _load_module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_build_audit_covers_required_layers_and_subsystems() -> None:
+    module = _load_module(
+        f'generate_full_system_audit_{uuid.uuid4().hex}',
+        SCRIPTS_DIR / 'generate_full_system_audit.py',
+    )
+
+    def fake_run_command(cwd, command, timeout=90):
+        cmd = ' '.join(command)
+        if 'validate_platform_contract.py' in cmd:
+            return {'command': command, 'cwd': str(cwd), 'returncode': 1, 'stdout': '', 'stderr': 'stale Athanor docs'}
+        if 'validate_devstack_contract.py' in cmd:
+            return {'command': command, 'cwd': str(cwd), 'returncode': 1, 'stdout': '', 'stderr': 'stale forge board'}
+        return {'command': command, 'cwd': str(cwd), 'returncode': 0, 'stdout': '', 'stderr': ''}
+
+    def fake_run_json_command(cwd, command, timeout=90):
+        return {
+            'active_claim_task_id': 'burn_class:overnight_harvest',
+            'active_claim_task_title': 'Overnight Harvest',
+            'queue_dispatchable': 5,
+            'suppressed_task_count': 4,
+        }
+
+    def fake_git_status(repo):
+        if str(repo).endswith('athanor-devstack'):
+            return {
+                'lines': [' M MASTER-PLAN.md', '?? docs/operations/DEVSTACK-FORGE-BOARD.md'] * 20,
+                'counts': {'modified': 20, 'untracked': 20},
+                'total': 40,
+            }
+        return {
+            'lines': [' M docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
+            'counts': {'modified': 1},
+            'total': 1,
+        }
+
+    fake_json = {
+        'ralph_latest': {
+            'active_claim_task_id': 'burn_class:overnight_harvest',
+            'active_claim_task_title': 'Overnight Harvest',
+            'suppressed_task_count': 2,
+            'automation_feedback_summary': {'feedback_state': 'degraded', 'failure_count': 8, 'last_outcome': 'claimed'},
+        },
+        'finish_scoreboard': {
+            'closure_state': 'repo_safe_complete',
+            'active_claim_task_id': 'burn_class:local_bulk_sovereign',
+            'queue_dispatchable_count': 6,
+            'suppressed_queue_count': 7,
+        },
+        'runtime_packet_inbox': {'packet_count': 0},
+        'steady_state_status': {
+            'intervention_label': 'No action needed',
+            'queue_dispatchable': 5,
+            'suppressed_task_count': 4,
+            'current_work': {'task_id': 'burn_class:overnight_harvest'},
+        },
+        'devstack_atlas': {
+            'summary': {
+                'turnover_status': 'ready_for_low_touch_execution',
+                'top_priority_lane': 'codex_cloudsafe',
+            },
+            'readiness_ledger': {'records': [{'stage': 'adopted'}, {'stage': 'concept'}]},
+        },
+        'devstack_forge_board': {
+            'top_priority_lane': 'letta-memory-plane',
+        },
+    }
+
+    module._run_command = fake_run_command
+    module._run_json_command = fake_run_json_command
+    module._git_status = fake_git_status
+    module._discover_manifests = lambda repo: ['projects/dashboard/package.json'] if str(repo).endswith('Athanor') else ['services/watchdog/docker-compose.yml']
+    module._top_level_counts = lambda repo, folders: {folder: 1 for folder in folders}
+    module._path_exists_map = lambda root, mapping: {name: True for name in mapping}
+    module._load_json = lambda path: fake_json.get(path.stem.replace('-', '_'), fake_json.get(path.parent.name + '_' + path.stem.replace('-', '_'), {}))
+    module._load_text = lambda path: f'text from {path.name}'
+
+    audit = module.build_audit(run_checks=True)
+
+    assert audit['coverage']['required_subsystems_covered'] is True
+    assert set(audit['coverage']['authority_layers']) == {
+        'adopted_live_system',
+        'build_proving_system',
+        'membrane_and_adoption_boundary',
+        'strategic_reservoir',
+    }
+    assert 'ws-pty-bridge' in audit['coverage']['subsystem_ids']
+    assert 'devstack-packets-promotion' in audit['coverage']['subsystem_ids']
+    assert 'strategic-reservoir' in audit['coverage']['subsystem_ids']
+
+    finding = next(item for item in audit['findings'] if item['id'] == 'audit.athanor.surface_divergence.active_claim')
+    assert finding['source_of_truth_layer'] == 'adopted_live_system'
+    assert finding['blocking_status'] == 'trust'
+    assert finding['recommended_fix']
+
+    subsystem = next(item for item in audit['scorecard'] if item['id'] == 'devstack-forge-atlas')
+    assert subsystem['finding_count'] >= 1
+    assert subsystem['remediation_priority'] in {'medium', 'high'}
