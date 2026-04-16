@@ -98,3 +98,15 @@ def test_render_markdown_surfaces_reopen_reasons() -> None:
     assert "Reference and Archive Prune" in rendered
     assert "Active Reopen Reasons" in rendered
     assert "runtime packet inbox still has `1` packets" in rendered
+
+
+def test_normalized_payload_ignores_generated_at() -> None:
+    module = _load_module(
+        f"write_steady_state_status_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "write_steady_state_status.py",
+    )
+
+    older = {"generated_at": "2026-04-16T20:00:00+00:00", "operator_mode": "steady_state_monitoring"}
+    newer = {"generated_at": "2026-04-16T21:00:00+00:00", "operator_mode": "steady_state_monitoring"}
+
+    assert module._normalized_payload(older) == module._normalized_payload(newer)

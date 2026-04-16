@@ -154,6 +154,22 @@ def _json_render(payload: dict[str, Any]) -> str:
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
 
 
+def _normalized_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(payload)
+    normalized.pop("generated_at", None)
+    return normalized
+
+
+def _load_existing_json_payload() -> dict[str, Any] | None:
+    if not STEADY_STATE_STATUS_JSON_PATH.exists():
+        return None
+    try:
+        loaded = json.loads(STEADY_STATE_STATUS_JSON_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    return loaded if isinstance(loaded, dict) else None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Write the Athanor steady-state operator status surfaces.")
     parser.add_argument("--json", action="store_true", help="Print JSON output after writing the artifacts.")
@@ -161,6 +177,9 @@ def main() -> int:
     args = parser.parse_args()
 
     payload = build_payload()
+    existing_json_payload = _load_existing_json_payload()
+    if existing_json_payload and _normalized_payload(existing_json_payload) == _normalized_payload(payload):
+        payload["generated_at"] = str(existing_json_payload.get("generated_at") or payload["generated_at"])
     rendered_json = _json_render(payload)
     rendered_markdown = render_markdown(payload)
 
@@ -168,7 +187,8 @@ def main() -> int:
         stale = False
         existing_json = STEADY_STATE_STATUS_JSON_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_JSON_PATH.exists() else ""
         existing_markdown = STEADY_STATE_STATUS_DOC_PATH.read_text(encoding="utf-8") if STEADY_STATE_STATUS_DOC_PATH.exists() else ""
-        if existing_json != rendered_json:
+        existing_json_payload = _load_existing_json_payload()
+        if _normalized_payload(existing_json_payload or {}) != _normalized_payload(payload):
             print(f"{STEADY_STATE_STATUS_JSON_PATH} is stale")
             stale = True
         if existing_markdown != rendered_markdown:

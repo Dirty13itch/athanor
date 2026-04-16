@@ -2,18 +2,19 @@
 
 Do not edit manually.
 
-- Operator mode: `steady_state_monitoring`
-- Closure state: `repo_safe_complete`
-- Reopen required: `False`
-- Repo-safe debt: cash_now=`0` | bounded_follow_on=`0` | program_slice=`0`
+- Operator mode: `active_closure`
+- Closure state: `closure_in_progress`
+- Reopen required: `True`
+- Repo-safe debt: cash_now=`0` | bounded_follow_on=`0` | program_slice=`1`
 - Runtime packet count: `0`
 - Queue posture: total=`12` | dispatchable=`10` | blocked=`0`
 - Active claim: `Validation and Publication`
 - Strategic workstream: `Dispatch and Work-Economy Closure`
+- Next deferred family if reopened: `Control-Plane Follow-on`
 
 ## Next Operator Action
 
-- Monitor with `python scripts/run_steady_state_control_plane.py`; reopen only when finish-scoreboard debt reappears, runtime packets return, or a typed brake lands in live artifacts.
+- Re-enter closure work through `python scripts/session_restart_brief.py --refresh` and cash the next surfaced debt family or runtime packet.
 
 ## Reopen Triggers
 
@@ -21,6 +22,11 @@ Do not edit manually.
 - runtime-packet-inbox packet_count rises above zero
 - session restart brief or Ralph artifacts surface a typed brake
 - live validation/probe evidence materially reopens Athanor core truth
+
+## Active Reopen Reasons
+
+- program-slice debt remains (`1`)
+- finish scoreboard closure_state is `closure_in_progress`
 
 ## Artifacts
 
