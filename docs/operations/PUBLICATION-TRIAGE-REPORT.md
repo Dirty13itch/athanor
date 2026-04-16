@@ -1,10 +1,10 @@
 # Publication Triage Summary
 
-Generated: `2026-04-16T19:59:46.564270+00:00`
+Generated: `2026-04-16T20:39:40.343933+00:00`
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `0`
-- Slice-matched entries: `0`
-- Deferred-family entries: `0`
+- Dirty entries: `5`
+- Slice-matched entries: `4`
+- Deferred-family entries: `1`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
 - Local-noise entries: `0`
@@ -13,8 +13,8 @@ Generated: `2026-04-16T19:59:46.564270+00:00`
 
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
-| `backbone-contracts-and-truth-writers` | `published` | `0` | `0` | `0` |
-| `runtime-ownership-provider-truth-and-reconciliation` | `published` | `0` | `0` | `0` |
+| `backbone-contracts-and-truth-writers` | `published` | `2` | `0` | `0` |
+| `runtime-ownership-provider-truth-and-reconciliation` | `published` | `2` | `0` | `0` |
 | `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
 | `graphrag-promotion-wave` | `published` | `0` | `0` | `0` |
 | `gpu-scheduler-extension-wave` | `published` | `0` | `0` | `0` |
@@ -22,19 +22,27 @@ Generated: `2026-04-16T19:59:46.564270+00:00`
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
-- Dirty matches: `0`
+- Dirty matches: `2`
 - Publication refs: `20`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
 
+Sample dirty paths:
+- `M` config/automation-backbone/completion-program-registry.json
+- `M` docs/operations/SURFACE-OWNER-MATRIX.md
+
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
-- Dirty matches: `0`
+- Dirty matches: `2`
 - Publication refs: `24`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
+
+Sample dirty paths:
+- `M` docs/operations/REPO-ROOTS-REPORT.md
+- `M` docs/operations/RUNTIME-OWNERSHIP-REPORT.md
 
 ## Pilot Eval Substrate and Operator-Test Machinery (`pilot-eval-substrate-and-operator-test-machinery`)
 
@@ -72,7 +80,7 @@ Generated: `2026-04-16T19:59:46.564270+00:00`
 
 | Deferred family | Disposition | Dirty matches |
 | --- | --- | --- |
-| `reference-and-archive-prune` | `archive_or_reference` | `0` |
+| `reference-and-archive-prune` | `archive_or_reference` | `1` |
 | `operator-tooling-and-helper-surfaces` | `operator_tooling` | `0` |
 | `audit-and-eval-artifacts` | `audit_artifact` | `0` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
@@ -83,13 +91,16 @@ Generated: `2026-04-16T19:59:46.564270+00:00`
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
 
 - Disposition: `archive_or_reference`
-- Dirty matches: `0`
+- Dirty matches: `1`
 - Path hints: `9`
 - Scope: Historical, research, design, runbook, archive, and top-level reference surfaces that must remain typed as reference or archive instead of masquerading as checkpoint-slice truth.
 - Execution class: `cash_now`
 - Next action: Prune or archive superseded top-level reference docs, repoint surviving references, and keep archive surfaces explicitly non-authoritative.
 - Success condition: Top-level reference and archive surfaces stop presenting stale implementation or runtime truth from active-looking paths.
 - Owner workstreams: `startup-docs-and-prune`, `validation-and-publication`
+
+Sample dirty paths:
+- `M` docs/DOCUMENTATION-INDEX.md
 
 ## Deferred: Operator Tooling and Helper Surfaces (`operator-tooling-and-helper-surfaces`)
 

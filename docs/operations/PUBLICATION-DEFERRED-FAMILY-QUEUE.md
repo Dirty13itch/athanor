@@ -1,16 +1,26 @@
 # Publication Deferred-Family Queue
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `0`
-- Slice-matched entries: `0`
-- Deferred-family entries: `0`
+- Dirty entries: `5`
+- Slice-matched entries: `4`
+- Deferred-family entries: `1`
 - Deferred families: `7`
+
+## Next Recommended Tranche
+
+- Family: `reference-and-archive-prune`
+- Title: Reference and Archive Prune
+- Execution class: `cash_now`
+- Dirty matches: `1`
+- Owner workstreams: `startup-docs-and-prune`, `validation-and-publication`
+- Next action: Prune or archive superseded top-level reference docs, repoint surviving references, and keep archive surfaces explicitly non-authoritative.
+- Success condition: Top-level reference and archive surfaces stop presenting stale implementation or runtime truth from active-looking paths.
 
 ## Ordered Queue
 
 | Rank | Family | Class | Dirty matches | Disposition | Owner workstreams |
 | --- | --- | --- | --- | --- | --- |
-| `1` | `reference-and-archive-prune` | `cash_now` | `0` | `archive_or_reference` | `startup-docs-and-prune, validation-and-publication` |
+| `1` | `reference-and-archive-prune` | `cash_now` | `1` | `archive_or_reference` | `startup-docs-and-prune, validation-and-publication` |
 | `2` | `operator-tooling-and-helper-surfaces` | `cash_now` | `0` | `operator_tooling` | `authority-and-mainline, startup-docs-and-prune` |
 | `3` | `audit-and-eval-artifacts` | `cash_now` | `0` | `audit_artifact` | `validation-and-publication, startup-docs-and-prune` |
 | `4` | `deployment-authority-follow-on` | `bounded_follow_on` | `0` | `deferred_out_of_sequence` | `deployment-authority-reconciliation, validation-and-publication` |
@@ -22,11 +32,14 @@
 
 - Execution class: `cash_now`
 - Disposition: `archive_or_reference`
-- Dirty matches: `0`
+- Dirty matches: `1`
 - Scope: Historical, research, design, runbook, archive, and top-level reference surfaces that must remain typed as reference or archive instead of masquerading as checkpoint-slice truth.
 - Next action: Prune or archive superseded top-level reference docs, repoint surviving references, and keep archive surfaces explicitly non-authoritative.
 - Success condition: Top-level reference and archive surfaces stop presenting stale implementation or runtime truth from active-looking paths.
 - Owner workstreams: `startup-docs-and-prune`, `validation-and-publication`
+
+Sample paths:
+- `docs/DOCUMENTATION-INDEX.md`
 
 ## 2. Operator Tooling and Helper Surfaces (`operator-tooling-and-helper-surfaces`)
 

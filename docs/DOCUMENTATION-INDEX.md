@@ -8,12 +8,12 @@ Do not edit manually.
 ## Summary
 
 - Registry version: `2026-04-15.4`
-- Total tracked entries: `143`
+- Total tracked entries: `144`
 
 | Class | Count |
 | --- | ---: |
 | `canonical` | 55 |
-| `generated` | 21 |
+| `generated` | 22 |
 | `reference` | 21 |
 | `archive` | 46 |
 
@@ -97,6 +97,7 @@ Do not edit manually.
 | `docs/operations/RUNTIME-OWNERSHIP-PACKETS.md` | markdown | `shaun` |
 | `docs/operations/RUNTIME-OWNERSHIP-REPORT.md` | markdown | `shaun` |
 | `docs/operations/SECRET-SURFACE-REPORT.md` | markdown | `shaun` |
+| `docs/operations/STEADY-STATE-STATUS.md` | markdown | `shaun` |
 | `docs/operations/SURFACE-OWNER-MATRIX.md` | markdown | `shaun` |
 | `docs/operations/TOOLING-INVENTORY-REPORT.md` | markdown | `shaun` |
 | `docs/operations/TRUTH-DRIFT-REPORT.md` | markdown | `shaun` |
