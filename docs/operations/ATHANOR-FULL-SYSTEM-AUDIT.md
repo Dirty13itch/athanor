@@ -1,14 +1,14 @@
 # Athanor Full-System Audit
 
-Generated: `2026-04-16T22:43:10.588639+00:00`
+Generated: `2026-04-16T22:55:23.152338+00:00`
 
 ## Executive Summary
 
 - Adopted live system posture: closure=`closure_in_progress` | active_claim=`Validation and Publication` | runtime_packets=`0` | attention=`Review recommended`
-- Build/proving posture: turnover=`devstack_primary_build_and_shadow` | forge_top_lane=`letta-memory-plane` | atlas_top_lane=`letta-memory-plane` | atlas_routing_lane=`codex_cloudsafe`
-- Validator status: Athanor=`pass` | Devstack=`pass`
-- Git posture: Athanor dirty=`29` | Devstack dirty=`54`
-- Findings: critical=`0` | high=`0` | medium=`0` | low=`0`
+- Build/proving posture: turnover=`ready_for_low_touch_execution` | forge_top_lane=`letta-memory-plane` | atlas_top_lane=`letta-memory-plane` | atlas_routing_lane=`codex_cloudsafe`
+- Validator status: Athanor=`fail` | Devstack=`pass`
+- Git posture: Athanor dirty=`6` | Devstack dirty=`8`
+- Findings: critical=`0` | high=`1` | medium=`0` | low=`0`
 
 ## Audit Coverage
 
@@ -33,7 +33,7 @@ Generated: `2026-04-16T22:43:10.588639+00:00`
 
 ## Check Status
 
-- Athanor platform contract: `pass`
+- Athanor platform contract: `fail`
 - Devstack contract: `pass`
 - Restart snapshot active claim: `workstream:validation-and-publication`
 
@@ -41,15 +41,15 @@ Generated: `2026-04-16T22:43:10.588639+00:00`
 
 | Subsystem | Layer | Overall | Authority | Runtime | Visibility | Verification | Split-brain risk | Priority |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `Athanor control plane and truth surfaces` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
-| `Runtime and deployment reality across nodes` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
+| `Athanor control plane and truth surfaces` | `adopted_live_system` | `4.4` | `5.0` | `3.5` | `5.0` | `3.5` | `low` | `high` |
+| `Runtime and deployment reality across nodes` | `adopted_live_system` | `4.4` | `5.0` | `3.5` | `5.0` | `3.5` | `low` | `high` |
 | `Dashboard and operator product surfaces` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Agents and orchestration` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `GPU orchestration, capacity, and burn truth` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `WS PTY bridge` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Legacy and shared service surfaces` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Providers, routing, and secrets` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
-| `Scripts, validators, generators, and tooling` | `adopted_live_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
+| `Scripts, validators, generators, and tooling` | `adopted_live_system` | `4.4` | `5.0` | `3.5` | `5.0` | `3.5` | `low` | `high` |
 | `Devstack forge, atlas, and queue truth` | `build_proving_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Devstack services and proving workflows` | `build_proving_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
 | `Devstack packets and promotion surfaces` | `build_proving_system` | `5.0` | `5.0` | `5.0` | `5.0` | `5.0` | `low` | `low` |
@@ -91,24 +91,26 @@ Generated: `2026-04-16T22:43:10.588639+00:00`
 
 - Authority layer: `adopted_live_system` (Adopted live system)
 - Summary: Closure is complete, but active-claim and queue metrics still diverge across machine and human surfaces.
-- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
+- Scores: authority=`5.0` | runtime=`3.5` | visibility=`5.0` | verification=`3.5` | split-brain risk=`low` | remediation priority=`high`
 - Evidence:
   - `/mnt/c/Athanor/docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
   - `/mnt/c/Athanor/reports/ralph-loop/latest.json`
   - `/mnt/c/Athanor/reports/truth-inventory/finish-scoreboard.json`
   - `/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json`
-- Findings: none materialized from the current truth surfaces.
+- Findings:
+  - [HIGH] The Athanor platform validator is currently red. Impact: The adopted live system is not at a clean report/contract fixed point, so current report surfaces cannot be treated as fully converged operational truth.
 
 ## Runtime and deployment reality across nodes
 
 - Authority layer: `adopted_live_system` (Adopted live system)
 - Summary: Runtime packets are clear and the live lane is active, but validator drift still affects trust in the current report set.
-- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
+- Scores: authority=`5.0` | runtime=`3.5` | visibility=`5.0` | verification=`3.5` | split-brain risk=`low` | remediation priority=`high`
 - Evidence:
   - `/mnt/c/Athanor/reports/truth-inventory/runtime-packet-inbox.json`
   - `/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json`
   - `/mnt/c/Athanor/reports/ralph-loop/latest.json`
-- Findings: none materialized from the current truth surfaces.
+- Findings:
+  - [HIGH] The Athanor platform validator is currently red. Impact: The adopted live system is not at a clean report/contract fixed point, so current report surfaces cannot be treated as fully converged operational truth.
 
 ## Dashboard and operator product surfaces
 
@@ -174,11 +176,12 @@ Generated: `2026-04-16T22:43:10.588639+00:00`
 
 - Authority layer: `adopted_live_system` (Adopted live system)
 - Summary: The toolchain is strong, but the Athanor validator is currently red on stale generated docs.
-- Scores: authority=`5.0` | runtime=`5.0` | visibility=`5.0` | verification=`5.0` | split-brain risk=`low` | remediation priority=`low`
+- Scores: authority=`5.0` | runtime=`3.5` | visibility=`5.0` | verification=`3.5` | split-brain risk=`low` | remediation priority=`high`
 - Evidence:
   - `/mnt/c/Athanor/docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
   - `/mnt/c/Athanor/docs/operations/ATHANOR-LAYERED-MASTER-PLAN.md`
-- Findings: none materialized from the current truth surfaces.
+- Findings:
+  - [HIGH] The Athanor platform validator is currently red. Impact: The adopted live system is not at a clean report/contract fixed point, so current report surfaces cannot be treated as fully converged operational truth.
 
 ## Devstack forge, atlas, and queue truth
 
@@ -245,3 +248,4 @@ Generated: `2026-04-16T22:43:10.588639+00:00`
 
 ## Prioritized Remediation Backlog
 
+- `high` `operation` — The Athanor platform validator is currently red. Fix: Regenerate the stale publication and ownership reports in canonical order and re-run the platform validator until it is green before declaring the live report set converged.

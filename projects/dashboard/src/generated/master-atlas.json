@@ -1,6 +1,6 @@
 {
   "version": "2026-04-15.1",
-  "generated_at": "2026-04-16T22:40:50.251301+00:00",
+  "generated_at": "2026-04-16T22:52:31.979169+00:00",
   "status": "active",
   "source_of_truth": {
     "lane_registry": "configs/devstack-capability-lane-registry.json",
@@ -14,9 +14,9 @@
     "active_count": 0,
     "ready_for_review_count": 0,
     "publication_ready_count": 0,
-    "turnover_status": "devstack_primary_build_and_shadow",
-    "repo_dirty_file_count": 62,
-    "publication_checkpoint_required": true
+    "turnover_status": "ready_for_low_touch_execution",
+    "repo_dirty_file_count": 0,
+    "publication_checkpoint_required": false
   },
   "downstream_consumers": [
     {
@@ -27,7 +27,7 @@
     }
   ],
   "readiness_ledger": {
-    "generated_at": "2026-04-16T22:40:50.250229+00:00",
+    "generated_at": "2026-04-16T22:52:31.978142+00:00",
     "records": [
       {
         "capability_id": "agent-gateway-layer",
@@ -3430,7 +3430,7 @@
     ]
   },
   "governance_confidence": {
-    "generated_at": "2026-04-16T22:40:50.250147+00:00",
+    "generated_at": "2026-04-16T22:52:31.978054+00:00",
     "current_autonomy_phase": "full_system_phase_3",
     "freshness_window_days": 30,
     "overall_status": "healthy",
@@ -3487,20 +3487,16 @@
     ]
   },
   "turnover_readiness": {
-    "generated_at": "2026-04-16T22:40:50.251173+00:00",
+    "generated_at": "2026-04-16T22:52:31.979042+00:00",
     "current_mode": "devstack_primary_for_build_proving_and_shadow",
     "target_mode": "local_devstack_primary_for_low_touch_execution",
     "build_system_handoff_state": "active_now",
-    "autonomous_turnover_status": "devstack_primary_build_and_shadow",
-    "autonomous_turnover_ready_now": false,
-    "next_gate": "publication_checkpoint_required",
-    "blocker_count": 1,
-    "blockers": [
-      "publication_checkpoint_required"
-    ],
-    "required_before_turnover": [
-      "Publish or quarantine the current devstack dirty tranche into explicit checkpoint slices before advertising low-touch turnover readiness."
-    ],
+    "autonomous_turnover_status": "ready_for_low_touch_execution",
+    "autonomous_turnover_ready_now": true,
+    "next_gate": null,
+    "blocker_count": 0,
+    "blockers": [],
+    "required_before_turnover": [],
     "operator_answer": "Approved self-improvement dispatch is ready for live compounding now.",
     "shadow_phase": 1,
     "shadow_phase_label": "router_shadow_mode",
@@ -3537,39 +3533,11 @@
     "repo_dirty_summary": {
       "repo_path": "/mnt/c/athanor-devstack",
       "available": true,
-      "dirty_file_count": 62,
-      "status_counts": {
-        "modified": 42,
-        "untracked": 20
-      },
-      "top_level_counts": {
-        "reference": 19,
-        "reports": 10,
-        "configs": 7,
-        "designs": 7,
-        "services": 7,
-        "docs": 4,
-        "scripts": 4,
-        ".claude": 1,
-        ".gitignore": 1,
-        "CLAUDE.md": 1,
-        "MASTER-PLAN.md": 1
-      },
-      "sample_paths": [
-        ".claude/settings.local.json",
-        ".gitignore",
-        "CLAUDE.md",
-        "MASTER-PLAN.md",
-        "configs/agent-profiles/aider.env",
-        "configs/agent-profiles/cline.json",
-        "configs/agent-profiles/continue.json",
-        "configs/agent-profiles/generic.env",
-        "designs/graphrag-and-grpo-pipeline.md",
-        "designs/n8n-bootstrap/workflows/01-cluster-health-deepcheck.json",
-        "designs/n8n-bootstrap/workflows/02-cliproxy-token-check.json",
-        "designs/n8n-bootstrap/workflows/03-disk-monitor.json"
-      ],
-      "checkpoint_required": true,
+      "dirty_file_count": 0,
+      "status_counts": {},
+      "top_level_counts": {},
+      "sample_paths": [],
+      "checkpoint_required": false,
       "dirty_file_threshold": 25
     },
     "autonomous_queue_count": 12,
@@ -9067,7 +9035,7 @@
     }
   ],
   "router_shadow_summary": {
-    "generated_at": "2026-04-16T22:40:50.251058+00:00",
+    "generated_at": "2026-04-16T22:52:31.978921+00:00",
     "phase": 1,
     "phase_label": "router_shadow_mode",
     "shadow_disagreement_rate": 0.0,
@@ -9077,11 +9045,11 @@
     "ready_for_phase_2": true
   },
   "routing_decisions_latest": {
-    "generated_at": "2026-04-16T22:40:50.251266+00:00",
+    "generated_at": "2026-04-16T22:52:31.979134+00:00",
     "alert_state": "warning",
     "active_override_count": 0,
     "quota_posture": {
-      "generated_at": "2026-04-16T22:40:50.251250+00:00",
+      "generated_at": "2026-04-16T22:52:31.979117+00:00",
       "quota_posture": "max_burn_with_thin_reserve",
       "respect_vendor_policy_before_harvest": true,
       "other_metered_disabled_for_auto_harvest_by_default": true,
@@ -9134,7 +9102,7 @@
       }
     },
     "router_shadow_summary": {
-      "generated_at": "2026-04-16T22:40:50.251058+00:00",
+      "generated_at": "2026-04-16T22:52:31.978921+00:00",
       "phase": 1,
       "phase_label": "router_shadow_mode",
       "shadow_disagreement_rate": 0.0,
@@ -9729,7 +9697,7 @@
     }
   ],
   "dashboard_summary": {
-    "generated_at": "2026-04-16T22:40:50.251285+00:00",
+    "generated_at": "2026-04-16T22:52:31.979152+00:00",
     "capability_count": 9,
     "adopted_count": 6,
     "packet_ready_count": 0,
@@ -9742,12 +9710,12 @@
     "top_missing_proof": "formal_eval_run",
     "best_next_implementation_wave": null,
     "best_next_promotion_candidate": null,
-    "turnover_status": "devstack_primary_build_and_shadow",
-    "turnover_ready_now": false,
-    "turnover_next_gate": "publication_checkpoint_required",
+    "turnover_status": "ready_for_low_touch_execution",
+    "turnover_ready_now": true,
+    "turnover_next_gate": null,
     "turnover_current_mode": "devstack_primary_for_build_proving_and_shadow",
     "turnover_target_mode": "local_devstack_primary_for_low_touch_execution",
-    "turnover_blocker_count": 1,
+    "turnover_blocker_count": 0,
     "self_acceleration_status": "live_compounding_ready",
     "self_acceleration_ready_now": true,
     "capacity_harvest_state": "open_harvest_window",
@@ -9805,12 +9773,9 @@
         "next_step": "Repair the DESK WSL-first substrate only when the bounded worker pilot is intentionally reactivated."
       }
     ],
-    "repo_dirty_file_count": 62,
-    "publication_checkpoint_required": true,
-    "repo_dirty_status_counts": {
-      "modified": 42,
-      "untracked": 20
-    },
+    "repo_dirty_file_count": 0,
+    "publication_checkpoint_required": false,
+    "repo_dirty_status_counts": {},
     "next_required_approval": {
       "approval_class": "auto_harvest",
       "label": "No blocked human approval is currently leading the queue",
