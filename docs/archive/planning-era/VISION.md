@@ -1,6 +1,6 @@
 # Athanor
 
-Reference-only document. Current topology, deployment, provider, and operator-surface truth lives in [STATUS.md](/C:/Athanor/STATUS.md), [docs/operations/ATHANOR-OPERATING-SYSTEM.md](/C:/Athanor/docs/operations/ATHANOR-OPERATING-SYSTEM.md), and the registry-backed reports under [docs/operations](/C:/Athanor/docs/operations).
+Reference-only document. Current topology, deployment, provider, queue, and operator-surface truth is tracked in [STATUS.md](/C:/Athanor/STATUS.md), `python scripts/session_restart_brief.py --refresh`, [reports/truth-inventory/finish-scoreboard.json](/mnt/c/Athanor/reports/truth-inventory/finish-scoreboard.json), [reports/truth-inventory/runtime-packet-inbox.json](/mnt/c/Athanor/reports/truth-inventory/runtime-packet-inbox.json), [docs/operations/ATHANOR-OPERATING-SYSTEM.md](/C:/Athanor/docs/operations/ATHANOR-OPERATING-SYSTEM.md), and the registry-backed reports under [docs/operations](/C:/Athanor/docs/operations).
 
 ## The Name
 

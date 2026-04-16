@@ -1,6 +1,8 @@
 # Athanor Complete System Breakdown
 
-> Atlas note: [`docs/atlas/README.md`](../atlas/README.md) is now the canonical cross-layer system map. This file remains an exhaustive hardware reference, not the primary system map.
+> **Status:** Archive hardware reference only.
+> **Current topology and runtime truth lives here:** [`docs/atlas/README.md`](../atlas/README.md), [`STATUS.md`](../../STATUS.md), [`reports/truth-inventory/finish-scoreboard.json`](../../reports/truth-inventory/finish-scoreboard.json), [`docs/SERVICES.md`](../SERVICES.md), and [`docs/operations/HARDWARE-REPORT.md`](../operations/HARDWARE-REPORT.md).
+> **Boundary:** this file remains an exhaustive older hardware narrative, not the primary system map, queue surface, or runtime authority.
 
 **Last Updated:** 2026-02-21
 **Purpose:** Exhaustive hardware documentation for all 4 systems

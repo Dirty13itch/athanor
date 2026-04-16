@@ -1,5 +1,9 @@
 # Athanor System Audit
 
+> **Status:** Archive audit reference only.
+> **Current adopted-system truth lives here:** `python scripts/session_restart_brief.py --refresh`, `STATUS.md`, `docs/SERVICES.md`, `docs/SYSTEM-SPEC.md`, and generated reports under `docs/operations/`.
+> **Boundary:** this audit records a historical repo-backed drift assessment; it is not live topology, deployment, or queue authority.
+
 Date: March 9, 2026
 
 ## Scope

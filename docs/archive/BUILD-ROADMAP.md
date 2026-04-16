@@ -1,5 +1,9 @@
 # Athanor Build Roadmap
 
+> **Status:** Archive planning reference only.
+> **Current execution truth lives here:** `python scripts/session_restart_brief.py --refresh`, `reports/truth-inventory/finish-scoreboard.json`, `reports/truth-inventory/runtime-packet-inbox.json`, `STATUS.md`, and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`.
+> **Boundary:** every checklist item below is historical deployment context, not a live queue, runtime, or approval surface.
+
 *Historical build plan from the initial deployment phase. Active work now lives in `STATUS.md` and `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`.*
 
 Last updated: 2026-02-24 (Session 8: Post-deployment hardening, monitoring verified, git pushed)
