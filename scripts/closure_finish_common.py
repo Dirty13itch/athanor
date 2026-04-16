@@ -129,14 +129,15 @@ def build_finish_scoreboard(
     only_typed_brakes_remain = (
         not repo_safe_debt_remaining
         and approval_gated_runtime_packet_count > 0
-        and dispatchable_queue_count == 0
     )
-    if only_typed_brakes_remain:
-        closure_state = "typed_brakes_only"
-    elif repo_safe_debt_remaining or dispatchable_queue_count > 0:
+    if repo_safe_debt_remaining:
         closure_state = "closure_in_progress"
+    elif approval_gated_runtime_packet_count > 0:
+        closure_state = "typed_brakes_only"
     else:
         closure_state = "repo_safe_complete"
+
+    include_next_candidate = repo_safe_debt_remaining
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -174,10 +175,18 @@ def build_finish_scoreboard(
         "queue_dispatchable_count": dispatchable_queue_count,
         "queue_blocked_count": int(queue_summary.get("blocked_queue_count") or 0),
         "suppressed_queue_count": int(queue_summary.get("suppressed_queue_count") or 0),
-        "next_deferred_family_id": _clean_str(next_deferred_family.get("id")),
-        "next_deferred_family_title": _clean_str(next_deferred_family.get("title")),
-        "next_unblocked_candidate_task_id": _clean_str(
-            next_candidate.get("task_id") or next_candidate.get("id")
+        "next_deferred_family_id": (
+            _clean_str(next_deferred_family.get("id")) if include_next_candidate else None
         ),
-        "next_unblocked_candidate_title": _clean_str(next_candidate.get("title")),
+        "next_deferred_family_title": (
+            _clean_str(next_deferred_family.get("title")) if include_next_candidate else None
+        ),
+        "next_unblocked_candidate_task_id": (
+            _clean_str(next_candidate.get("task_id") or next_candidate.get("id"))
+            if include_next_candidate
+            else None
+        ),
+        "next_unblocked_candidate_title": (
+            _clean_str(next_candidate.get("title")) if include_next_candidate else None
+        ),
     }

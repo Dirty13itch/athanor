@@ -88,3 +88,54 @@ def test_build_payload_reports_closure_progress_and_runtime_packets(tmp_path: Pa
     assert payload["program_slice_remaining_count"] == 1
     assert payload["approval_gated_runtime_packet_count"] == 1
     assert payload["next_deferred_family_id"] == "reference-and-archive-prune"
+
+
+def test_build_payload_reports_repo_safe_complete_when_only_background_queue_remains(tmp_path: Path) -> None:
+    module = _load_module(
+        f"write_finish_scoreboard_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "write_finish_scoreboard.py",
+    )
+
+    ralph_path = tmp_path / "latest.json"
+    ralph_path.write_text(
+        json.dumps(
+            {
+                "active_claim_task_id": "workstream:validation-and-publication",
+                "active_claim_task_title": "Validation and Publication",
+                "selected_workstream_id": "dispatch-and-work-economy-closure",
+                "repo_side_no_delta": True,
+                "rotation_ready": True,
+                "autonomous_queue_summary": {
+                    "dispatchable_queue_count": 10,
+                    "blocked_queue_count": 0,
+                    "suppressed_queue_count": 2,
+                },
+                "next_unblocked_candidate": {
+                    "task_id": "deferred_family:reference-and-archive-prune",
+                    "title": "Reference and Archive Prune",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    module.RALPH_LATEST_PATH = ralph_path
+    module.load_publication_deferred_queue = lambda: {
+        "families": [
+            {"id": "reference-and-archive-prune", "execution_class": "cash_now", "match_count": 0},
+            {"id": "deployment-authority-follow-on", "execution_class": "bounded_follow_on", "match_count": 0},
+            {"id": "control-plane-follow-on", "execution_class": "program_slice", "match_count": 0},
+        ],
+        "next_recommended_family": {"id": "reference-and-archive-prune", "title": "Reference and Archive Prune"},
+    }
+    module.load_runtime_packets = lambda: {"packets": []}
+
+    payload = module.build_payload()
+
+    assert payload["closure_state"] == "repo_safe_complete"
+    assert payload["only_typed_brakes_remain"] is False
+    assert payload["cash_now_remaining_count"] == 0
+    assert payload["bounded_follow_on_remaining_count"] == 0
+    assert payload["program_slice_remaining_count"] == 0
+    assert payload["approval_gated_runtime_packet_count"] == 0
+    assert payload["next_deferred_family_id"] is None
+    assert payload["next_unblocked_candidate_task_id"] is None
