@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `4`
-- Local dirty sample: ` M docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md`, ` M docs/operations/AUDIT-REMEDIATION-BACKLOG.md`, ` M docs/operations/DEVSTACK-MEMBRANE-AUDIT.md`, ` M projects/dashboard/src/generated/master-atlas.json`
+- Local dirty file count: `1`
+- Local dirty sample: ` M config/automation-backbone/completion-program-registry.json`
 
 ## dev-runtime-repo
 
