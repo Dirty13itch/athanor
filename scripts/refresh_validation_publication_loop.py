@@ -13,18 +13,20 @@ PYTHON = sys.executable
 
 
 def build_commands(include_ralph: bool = True, include_restart_brief: bool = False) -> List[List[str]]:
-    commands: List[List[str]] = [
-        [PYTHON, 'scripts/generate_documentation_index.py'],
-        [PYTHON, 'scripts/generate_truth_inventory_reports.py'],
-        [PYTHON, 'scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
-        [PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
-        [PYTHON, 'scripts/validate_platform_contract.py'],
-    ]
+    commands: List[List[str]] = [[PYTHON, 'scripts/generate_documentation_index.py']]
     if include_ralph:
         commands.extend([
             [PYTHON, 'scripts/collect_capacity_telemetry.py'],
             [PYTHON, 'scripts/write_quota_truth_snapshot.py'],
             [PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh'],
+        ])
+    commands.extend([
+        [PYTHON, 'scripts/generate_truth_inventory_reports.py'],
+        [PYTHON, 'scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
+        [PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
+    ])
+    if include_ralph:
+        commands.extend([
             [PYTHON, 'scripts/write_next_rotation_preflight.py', '--json'],
             [PYTHON, 'scripts/write_finish_scoreboard.py', '--json'],
             [PYTHON, 'scripts/write_runtime_packet_inbox.py', '--json'],
@@ -32,6 +34,7 @@ def build_commands(include_ralph: bool = True, include_restart_brief: bool = Fal
         ])
     if include_restart_brief:
         commands.append([PYTHON, 'scripts/session_restart_brief.py', '--json'])
+    commands.append([PYTHON, 'scripts/validate_platform_contract.py'])
     return commands
 
 

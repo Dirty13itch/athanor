@@ -2020,6 +2020,54 @@ def test_sync_registry_loop_state_preserves_specific_next_action_family_for_disp
         module.CONFIG_DIR = original_config_dir
 
 
+def test_sync_registry_loop_state_avoids_timestamp_only_registry_rewrites(tmp_path) -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+    original_config_dir = module.CONFIG_DIR
+    module.CONFIG_DIR = tmp_path
+    try:
+        completion_program = {
+            "ralph_loop": {
+                "status": "active",
+                "current_phase_scope": "phase-3",
+                "controller_script": "scripts/run_ralph_loop_pass.py",
+                "report_path": "reports/ralph-loop/latest.json",
+                "current_loop_family": "governor_scheduling",
+                "selected_workstream": "dispatch-and-work-economy-closure",
+                "evidence_freshness": "fresh",
+                "approval_status": "not_required",
+                "blocker_type": "none",
+                "next_action_family": "dispatch_truth_and_queue_replenishment",
+                "last_validation_run": "2026-04-16T20:00:00+00:00",
+                "execution_posture": "active_remediation",
+            }
+        }
+        autonomy_activation = {"current_phase_id": "phase-3"}
+        selected_workstream = {
+            "id": "dispatch-and-work-economy-closure",
+            "title": "Dispatch and Work-Economy Closure",
+            "execution_state": "ready_for_execution",
+            "approval_required": False,
+            "blocker_type": "none",
+            "next_action_family": "dispatch_truth_and_queue_replenishment",
+        }
+
+        module._sync_registry_loop_state(
+            completion_program=completion_program,
+            autonomy_activation=autonomy_activation,
+            selected_family="governor_scheduling",
+            selected_workstream=selected_workstream,
+            any_stale_evidence=False,
+        )
+
+        assert completion_program["ralph_loop"]["last_validation_run"] == "2026-04-16T20:00:00+00:00"
+        assert not (tmp_path / "completion-program-registry.json").exists()
+    finally:
+        module.CONFIG_DIR = original_config_dir
+
+
 def test_refresh_commands_include_capacity_telemetry_collection() -> None:
     module = _load_module(
         f"run_ralph_loop_pass_{uuid.uuid4().hex}",

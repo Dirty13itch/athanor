@@ -3740,7 +3740,8 @@ def _sync_registry_loop_state(
     next_action_family = str(selected_workstream.get("next_action_family") or "").strip()
     if selected_family == "governor_scheduling":
         next_action_family = next_action_family or "ranked_autonomous_dispatch"
-    completion_program["ralph_loop"] = {
+    existing_ralph_loop = dict(completion_program.get("ralph_loop") or {})
+    next_ralph_loop = {
         "status": "active",
         "current_phase_scope": str(autonomy_activation.get("current_phase_id") or ""),
         "controller_script": "scripts/run_ralph_loop_pass.py",
@@ -3751,14 +3752,16 @@ def _sync_registry_loop_state(
         "approval_status": "required" if bool(selected_workstream.get("approval_required")) else "not_required",
         "blocker_type": str(selected_workstream.get("blocker_type") or "none"),
         "next_action_family": next_action_family,
-        "last_validation_run": _iso_now(),
+        "last_validation_run": str(existing_ralph_loop.get("last_validation_run") or _iso_now()),
         "execution_posture": (
             "steady_state"
             if selected_execution_state == "steady_state_monitoring"
             else "active_remediation"
         ),
     }
-    _write_json(CONFIG_DIR / "completion-program-registry.json", completion_program)
+    completion_program["ralph_loop"] = next_ralph_loop
+    if existing_ralph_loop != next_ralph_loop:
+        _write_json(CONFIG_DIR / "completion-program-registry.json", completion_program)
 
 
 def main() -> int:
@@ -4110,12 +4113,19 @@ def main() -> int:
         validation_passed=report["validation"]["all_passed"],
         any_stale_evidence=any_stale_evidence,
     )
+    previous_end_state_summary = dict(completion_program.get("reconciliation_end_state") or {})
     completion_program["reconciliation_end_state"] = end_state_summary
+    registry_dirty = previous_end_state_summary != end_state_summary
     if isinstance(completion_program.get("ralph_loop"), dict):
-        completion_program["ralph_loop"]["last_validation_run"] = report["generated_at"]
-        completion_program["ralph_loop"]["execution_posture"] = (
+        desired_execution_posture = (
             "steady_state" if end_state_summary.get("status") == "steady_state_monitoring" else "active_remediation"
         )
+        if str(completion_program["ralph_loop"].get("execution_posture") or "") != desired_execution_posture:
+            completion_program["ralph_loop"]["execution_posture"] = desired_execution_posture
+            registry_dirty = True
+        if registry_dirty:
+            completion_program["ralph_loop"]["last_validation_run"] = report["generated_at"]
+    if registry_dirty:
         _write_json(CONFIG_DIR / "completion-program-registry.json", completion_program)
     report["reconciliation_end_state"] = end_state_summary
     report["loop_state"]["execution_posture"] = str(
