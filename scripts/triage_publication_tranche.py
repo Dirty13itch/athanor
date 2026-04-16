@@ -18,6 +18,11 @@ LOCAL_NOISE_HINTS = [
     ".pytest_cache/",
     "node_modules/",
 ]
+PUBLICATION_LOOP_SELF_OUTPUTS = {
+    "docs/operations/PUBLICATION-TRIAGE-REPORT.md",
+    "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md",
+    "reports/truth-inventory/publication-deferred-family-queue.json",
+}
 
 
 GIT_STATUS_TIMEOUT_SECONDS = 20
@@ -183,7 +188,11 @@ def build_triage_bundle(*, repo_root: Path = REPO_ROOT, registry_path: Path = DE
     registry_payload = _load_json(registry_path)
     slice_records = _slice_records(registry_payload)
     deferred_records = _deferred_family_records(registry_payload)
-    entries = _git_status_entries(repo_root)
+    entries = [
+        entry
+        for entry in _git_status_entries(repo_root)
+        if entry['path'] not in PUBLICATION_LOOP_SELF_OUTPUTS
+    ]
 
     matched: dict[str, list[dict[str, str]]] = {record['id']: [] for record in slice_records}
     deferred: dict[str, list[dict[str, str]]] = {record['id']: [] for record in deferred_records}

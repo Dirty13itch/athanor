@@ -96,6 +96,52 @@ def test_build_triage_bundle_prefers_specific_slice_hints_and_classifies_deferre
     assert bundle['summary']['unclassified_entries'] == 1
 
 
+
+def test_build_triage_bundle_ignores_self_managed_publication_outputs(monkeypatch, tmp_path: Path) -> None:
+    module = _load_module(
+        f"publication_tranche_triage_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / 'triage_publication_tranche.py',
+    )
+
+    registry_path = tmp_path / 'completion-program-registry.json'
+    registry_path.write_text(
+        """{
+  "publication_slices": {
+    "active_sequence_id": "sequence-self",
+    "slices": [
+      {
+        "id": "backbone",
+        "title": "Backbone",
+        "status": "published",
+        "publication_artifact_refs": ["docs/operations/PUBLICATION-PROVENANCE-REPORT.md"],
+        "generated_artifacts": [],
+        "working_tree_path_hints": ["docs/operations/"]
+      }
+    ],
+    "deferred_families": []
+  }
+}""",
+        encoding='utf-8',
+    )
+
+    repo_root = tmp_path / 'repo'
+    repo_root.mkdir()
+    monkeypatch.setattr(
+        module,
+        '_git_status_entries',
+        lambda _repo_root: [
+            {'status': ' M', 'path': 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'},
+            {'status': ' M', 'path': 'docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md'},
+            {'status': '??', 'path': 'reports/truth-inventory/publication-deferred-family-queue.json'},
+        ],
+    )
+
+    bundle = module.build_triage_bundle(repo_root=repo_root, registry_path=registry_path)
+    assert bundle['summary']['dirty_entries'] == 0
+    assert bundle['summary']['slice_matched_entries'] == 0
+    assert bundle['slices'][0]['match_count'] == 0
+
+
 def test_render_markdown_surfaces_deferred_family_and_unclassified_entries(monkeypatch, tmp_path: Path) -> None:
     module = _load_module(
         f"publication_tranche_triage_{uuid.uuid4().hex}",
