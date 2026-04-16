@@ -88,6 +88,58 @@ def test_build_queue_bundle_orders_families_and_surfaces_next_tranche(monkeypatc
 
 
 
+def test_check_does_not_report_stale_when_triage_is_newer_but_outputs_match(monkeypatch, tmp_path: Path) -> None:
+    queue_module = _load_module(
+        f"publication_deferred_queue_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / 'generate_publication_deferred_family_queue.py',
+    )
+
+    bundle = {
+        'publication_config_fingerprint': 'fingerprint',
+        'active_sequence_id': 'sequence',
+        'dirty_entries': 0,
+        'slice_matched_entries': 0,
+        'deferred_entries': 0,
+        'deferred_family_count': 1,
+        'next_recommended_family': None,
+        'families': [
+            {
+                'id': 'reference',
+                'title': 'Reference',
+                'disposition': 'archive_or_reference',
+                'execution_rank': 1,
+                'execution_class': 'cash_now',
+                'next_action': 'Prune stale references.',
+                'success_condition': 'No stale active references remain.',
+                'owner_workstreams': ['startup-docs-and-prune'],
+                'match_count': 0,
+                'path_hints': ['docs/'],
+                'sample_paths': [],
+                'scope': 'Reference docs.',
+            }
+        ],
+    }
+    repo_root = tmp_path / 'repo'
+    markdown_output = repo_root / 'docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md'
+    json_output = repo_root / 'reports/truth-inventory/publication-deferred-family-queue.json'
+    triage_output = repo_root / 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'
+    markdown_output.parent.mkdir(parents=True, exist_ok=True)
+    json_output.parent.mkdir(parents=True, exist_ok=True)
+    triage_output.parent.mkdir(parents=True, exist_ok=True)
+    markdown_output.write_text(queue_module.render_markdown(bundle), encoding='utf-8')
+    json_output.write_text(queue_module._json_render(bundle), encoding='utf-8')
+    triage_output.write_text('newer triage marker\n', encoding='utf-8')
+
+    monkeypatch.setattr(queue_module, '_publication_config_fingerprint', lambda _path: 'fingerprint')
+
+    assert queue_module._check_via_dependency_freshness(
+        repo_root=repo_root,
+        registry_path=repo_root / 'completion-program-registry.json',
+        markdown_output=markdown_output,
+        json_output=json_output,
+    ) == 0
+
+
 def test_main_does_not_rewrite_outputs_when_bundle_is_unchanged(monkeypatch, tmp_path: Path) -> None:
     queue_module = _load_module(
         f"publication_deferred_queue_{uuid.uuid4().hex}",

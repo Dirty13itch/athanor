@@ -76,11 +76,7 @@ def _check_via_dependency_freshness(*, repo_root: Path, registry_path: Path, mar
         print(f'{triage_report_path} is stale')
         return 1
 
-    output_floor = min(markdown_output.stat().st_mtime, json_output.stat().st_mtime)
     stale = False
-    if triage_report_path.exists() and triage_report_path.stat().st_mtime > output_floor:
-        print(f'{markdown_output} is stale')
-        stale = True
 
     try:
         json_payload = json.loads(json_output.read_text(encoding='utf-8'))
