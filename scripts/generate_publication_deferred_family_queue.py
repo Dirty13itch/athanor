@@ -180,8 +180,12 @@ def main() -> int:
 
     args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
     args.json_output.parent.mkdir(parents=True, exist_ok=True)
-    args.markdown_output.write_text(markdown, encoding='utf-8')
-    args.json_output.write_text(json_payload, encoding='utf-8')
+    existing_markdown = args.markdown_output.read_text(encoding='utf-8') if args.markdown_output.exists() else ''
+    existing_json = args.json_output.read_text(encoding='utf-8') if args.json_output.exists() else ''
+    if existing_markdown != markdown:
+        args.markdown_output.write_text(markdown, encoding='utf-8')
+    if existing_json != json_payload:
+        args.json_output.write_text(json_payload, encoding='utf-8')
     print(args.markdown_output)
     print(args.json_output)
     return 0

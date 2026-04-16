@@ -85,3 +85,62 @@ def test_build_queue_bundle_orders_families_and_surfaces_next_tranche(monkeypatc
     assert bundle['families'][0]['match_count'] == 2
     assert bundle['families'][1]['id'] == 'runtime'
     assert 'Next Recommended Tranche' in queue_module.render_markdown(bundle)
+
+
+
+def test_main_does_not_rewrite_outputs_when_bundle_is_unchanged(monkeypatch, tmp_path: Path) -> None:
+    queue_module = _load_module(
+        f"publication_deferred_queue_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / 'generate_publication_deferred_family_queue.py',
+    )
+
+    bundle = {
+        'publication_config_fingerprint': 'fingerprint',
+        'active_sequence_id': 'sequence',
+        'dirty_entries': 0,
+        'slice_matched_entries': 0,
+        'deferred_entries': 0,
+        'deferred_family_count': 1,
+        'next_recommended_family': None,
+        'families': [
+            {
+                'id': 'reference',
+                'title': 'Reference',
+                'disposition': 'archive_or_reference',
+                'execution_rank': 1,
+                'execution_class': 'cash_now',
+                'next_action': 'Prune stale references.',
+                'success_condition': 'No stale active references remain.',
+                'owner_workstreams': ['startup-docs-and-prune'],
+                'match_count': 0,
+                'path_hints': ['docs/'],
+                'sample_paths': [],
+                'scope': 'Reference docs.',
+            }
+        ],
+    }
+    markdown_output = tmp_path / 'PUBLICATION-DEFERRED-FAMILY-QUEUE.md'
+    json_output = tmp_path / 'publication-deferred-family-queue.json'
+    markdown_output.write_text(queue_module.render_markdown(bundle), encoding='utf-8')
+    json_output.write_text(queue_module._json_render(bundle), encoding='utf-8')
+    initial_markdown = markdown_output.read_text(encoding='utf-8')
+    initial_json = json_output.read_text(encoding='utf-8')
+
+    monkeypatch.setattr(queue_module, 'build_queue_bundle', lambda repo_root, registry_path=None: bundle)
+    monkeypatch.setattr(
+        sys,
+        'argv',
+        [
+            'generate_publication_deferred_family_queue.py',
+            '--repo-root',
+            str(tmp_path),
+            '--markdown-output',
+            str(markdown_output),
+            '--json-output',
+            str(json_output),
+        ],
+    )
+
+    assert queue_module.main() == 0
+    assert markdown_output.read_text(encoding='utf-8') == initial_markdown
+    assert json_output.read_text(encoding='utf-8') == initial_json
