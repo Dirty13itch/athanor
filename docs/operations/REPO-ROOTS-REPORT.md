@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `3`
-- Local dirty sample: ` M config/automation-backbone/runtime-ownership-packets.json`, ` M docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md`, ` M docs/operations/PUBLICATION-TRIAGE-REPORT.md`
+- Local dirty file count: `2`
+- Local dirty sample: ` M docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md`, ` M docs/operations/PUBLICATION-TRIAGE-REPORT.md`
 
 ## dev-runtime-repo
 
