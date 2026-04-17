@@ -4,16 +4,27 @@ import { steadyStateSnapshotSchema, type SteadyStateSnapshot } from "@/lib/contr
 
 function steadyStateCandidatePaths() {
   return [
-    path.resolve(process.cwd(), "reports", "truth-inventory", "steady-state-status.json"),
-    path.resolve(process.cwd(), "..", "..", "reports", "truth-inventory", "steady-state-status.json"),
+    {
+      kind: "workspace_report" as const,
+      path: path.resolve(process.cwd(), "reports", "truth-inventory", "steady-state-status.json"),
+    },
+    {
+      kind: "repo_root_fallback" as const,
+      path: path.resolve(process.cwd(), "..", "..", "reports", "truth-inventory", "steady-state-status.json"),
+    },
   ];
 }
 
 export async function readSteadyStateFrontDoor(): Promise<SteadyStateSnapshot | null> {
   for (const candidate of steadyStateCandidatePaths()) {
     try {
-      await access(candidate);
-      const text = await readFile(candidate, "utf-8");
+      await access(candidate.path);
+    } catch {
+      continue;
+    }
+
+    try {
+      const text = await readFile(candidate.path, "utf-8");
       const raw = JSON.parse(text) as Record<string, any>;
       return steadyStateSnapshotSchema.parse({
         generatedAt: raw.generated_at,
@@ -44,9 +55,13 @@ export async function readSteadyStateFrontDoor(): Promise<SteadyStateSnapshot | 
               laneFamily: raw.next_up.lane_family ?? null,
             }
           : null,
+        sourceKind: candidate.kind,
+        sourcePath: candidate.path,
       });
-    } catch {
-      continue;
+    } catch (error) {
+      throw new Error(
+        `Invalid steady-state front door at ${candidate.path}: ${error instanceof Error ? error.message : "unknown parse error"}`,
+      );
     }
   }
 

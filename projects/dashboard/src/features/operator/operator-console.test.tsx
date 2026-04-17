@@ -103,6 +103,8 @@ describe("OperatorConsole", () => {
               providerLabel: "Athanor Local",
               laneFamily: "memory_plane",
             },
+            sourceKind: "workspace_report",
+            sourcePath: "/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json",
           },
         };
       }
@@ -192,6 +194,7 @@ describe("OperatorConsole", () => {
     expect(screen.getAllByText(/Dispatch and Work-Economy Closure/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/current governed handoff/i)).toBeInTheDocument();
     expect(screen.getAllByText(/No action needed/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/workspace report/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Cheap Bulk Cloud/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Letta Memory Plane/i).length).toBeGreaterThan(0);
     expect(await screen.findByText(/Advance GPU scheduler packet after verifying the rollout evidence\./i)).toBeInTheDocument();

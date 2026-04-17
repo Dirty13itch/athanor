@@ -1675,6 +1675,8 @@ const fixtureOverview: OverviewSnapshot = {
       providerLabel: 'DeepSeek API',
       laneFamily: 'cheap_bulk_cloud',
     },
+    sourceKind: 'workspace_report',
+    sourcePath: '/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json',
   },
 };
 

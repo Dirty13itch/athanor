@@ -24,8 +24,10 @@ import { PageHeader } from "@/components/page-header";
 import { RichText } from "@/components/rich-text";
 import { StatCard } from "@/components/stat-card";
 import { requestJson, postWithoutBody, postJson } from "@/features/workforce/helpers";
+import type { SteadyStateSnapshot } from "@/lib/contracts";
 import { formatRelativeTime } from "@/lib/format";
 import type { MasterAtlasRelationshipMap } from "@/lib/master-atlas";
+import { buildSteadyStateDecisionSummary } from "@/lib/steady-state-summary";
 import { readChatEventStream } from "@/lib/sse";
 
 interface ChatMessage {
@@ -97,29 +99,7 @@ interface OperatorSummaryPayload {
   detail?: string;
   source?: string;
   tasks?: TaskResidueSummary;
-  steadyState?: {
-    closureState?: string;
-    operatorMode?: string;
-    interventionLabel?: string;
-    interventionLevel?: string;
-    interventionSummary?: string;
-    needsYou?: boolean;
-    nextOperatorAction?: string;
-    queueDispatchable?: number;
-    queueTotal?: number;
-    suppressedTaskCount?: number;
-    runtimePacketCount?: number;
-    currentWork?: {
-      taskTitle?: string | null;
-      providerLabel?: string | null;
-      laneFamily?: string | null;
-    } | null;
-    nextUp?: {
-      taskTitle?: string | null;
-      providerLabel?: string | null;
-      laneFamily?: string | null;
-    } | null;
-  } | null;
+  steadyState?: SteadyStateSnapshot | null;
 }
 
 function createId(prefix: string) {
@@ -249,33 +229,30 @@ export function OperatorConsole() {
     masterAtlas?.error ??
     "Routing and topology own the wider dispatch and capacity context for this system.";
   const governedDispatch = masterAtlas?.governed_dispatch_execution ?? null;
-  const operatorNeedsYou =
-    steadyState?.needsYou ??
-    (approvalHeldTasks > 0 || actionableFailures > 0 || launchBlockers.length > 0);
-  const operatorAttentionLabel = steadyState?.interventionLabel ?? (governanceAvailable ? currentMode : "feed offline");
-  const operatorAttentionSummary =
-    steadyState?.interventionSummary ??
-    (!governanceAvailable
+  const steadyStateSummary = buildSteadyStateDecisionSummary(steadyState, {
+    attentionLabel: governanceAvailable ? currentMode : "feed offline",
+    attentionSummary: !governanceAvailable
       ? "Governance posture feed is temporarily unavailable."
       : governance.attention_posture?.recommended_mode
         ? `Recommended: ${governance.attention_posture.recommended_mode}`
-        : "No alternate mode recommendation is active right now.");
-  const operatorCurrentWork =
-    steadyState?.currentWork?.taskTitle ?? governedDispatch?.current_task_title ?? "No governed work published.";
-  const operatorCurrentWorkDetail =
-    steadyState?.currentWork?.providerLabel ??
-    steadyState?.currentWork?.laneFamily ??
-    governedDispatch?.dispatch_outcome ??
-    "No current provider or lane published.";
-  const operatorNextUp =
-    steadyState?.nextUp?.taskTitle ??
-    masterAtlas?.turnover_readiness?.top_dispatchable_autonomous_task_title ??
-    "No follow-on handoff published.";
-  const operatorNextUpDetail =
-    steadyState?.nextOperatorAction ??
-    (masterAtlas?.turnover_readiness?.dispatchable_autonomous_queue_count != null
-      ? `${masterAtlas.turnover_readiness.dispatchable_autonomous_queue_count} dispatchable lane(s) remain.`
-      : "No next operator action published.");
+        : "No alternate mode recommendation is active right now.",
+    currentWorkTitle: governedDispatch?.current_task_title ?? "No governed work published.",
+    currentWorkDetail: governedDispatch?.dispatch_outcome ?? "No current provider or lane published.",
+    nextUpTitle: masterAtlas?.turnover_readiness?.top_dispatchable_autonomous_task_title ?? "No follow-on handoff published.",
+    nextUpDetail:
+      masterAtlas?.turnover_readiness?.dispatchable_autonomous_queue_count != null
+        ? `${masterAtlas.turnover_readiness.dispatchable_autonomous_queue_count} dispatchable lane(s) remain.`
+        : "No next operator action published.",
+    queuePosture: `${approvalHeldTasks} approvals / ${staleLeases} stale leases / ${actionableFailures} failures`,
+    needsYou: approvalHeldTasks > 0 || actionableFailures > 0 || launchBlockers.length > 0,
+  });
+  const operatorNeedsYou = steadyStateSummary.needsYou;
+  const operatorAttentionLabel = steadyStateSummary.attentionLabel;
+  const operatorAttentionSummary = steadyStateSummary.attentionSummary;
+  const operatorCurrentWork = steadyStateSummary.currentWorkTitle;
+  const operatorCurrentWorkDetail = steadyStateSummary.currentWorkDetail;
+  const operatorNextUp = steadyStateSummary.nextUpTitle;
+  const operatorNextUpDetail = steadyStateSummary.nextUpDetail;
   const governedDispatchHealthy =
     Boolean(governedDispatch) &&
     !governedDispatch?.error &&
@@ -640,6 +617,7 @@ export function OperatorConsole() {
                   {steadyState?.operatorMode ? <Badge variant="outline">{steadyState.operatorMode}</Badge> : null}
                   {steadyState?.currentWork?.providerLabel ? <Badge variant="outline">{steadyState.currentWork.providerLabel}</Badge> : null}
                   {steadyState?.nextUp?.laneFamily ? <Badge variant="outline">{steadyState.nextUp.laneFamily}</Badge> : null}
+                  <Badge variant="outline">{steadyStateSummary.sourceLabel}</Badge>
                 </div>
                 <p className="mt-3 text-sm text-muted-foreground">
                   {steadyState

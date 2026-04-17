@@ -31,6 +31,7 @@ import {
 } from "@/lib/navigation";
 import { useOperatorUiPreferences } from "@/lib/operator-ui-preferences";
 import { queryKeys } from "@/lib/query-client";
+import { buildSteadyStateDecisionSummary } from "@/lib/steady-state-summary";
 import { cn } from "@/lib/utils";
 import { formatLatency, formatPercent, formatRelativeTime } from "@/lib/format";
 
@@ -167,6 +168,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const routeLabel = getRouteLabel(pathname);
   const shellIndicatorTone = degradedCount > 0 ? "danger" : warningCount > 0 ? "warning" : "healthy";
   const lastRefresh = overview ? formatRelativeTime(overview.generatedAt) : "Loading";
+  const steadyStateSummary = buildSteadyStateDecisionSummary(overview?.steadyState ?? null, {
+    attentionLabel:
+      degradedCount > 0 ? "Service pressure" : warningCount > 0 ? "Warnings under watch" : "No action needed",
+    attentionSummary: "Steady-state front door is not attached to this overview payload.",
+    currentWorkTitle: "No governed work published.",
+    currentWorkDetail: "Steady-state front door is not attached to this overview payload.",
+    nextUpTitle: "No follow-on handoff published.",
+    nextUpDetail: "Use the operator desk for the canonical attention lane.",
+    queuePosture: "Steady-state queue posture unavailable.",
+    needsYou: degradedCount > 0,
+  });
 
   return (
     <NavAttentionProvider overview={overview} pathname={pathname}>
@@ -229,6 +241,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "healthy"
                 }
                 detail="Fleet load"
+              />
+              <HeaderMetric
+                label="Operator"
+                value={overview ? steadyStateSummary.attentionLabel : "--"}
+                tone={overview ? steadyStateSummary.attentionTone : "warning"}
+                detail={overview ? `${steadyStateSummary.currentWorkTitle} · ${steadyStateSummary.sourceLabel}` : "Loading front door"}
               />
             </div>
 

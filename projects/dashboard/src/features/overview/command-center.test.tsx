@@ -76,6 +76,7 @@ describe("CommandCenter", () => {
     expect(screen.getByText("Cluster Posture")).toBeInTheDocument();
     expect(screen.getByText("Operator attention")).toBeInTheDocument();
     expect(screen.getAllByText(/No action needed/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/workspace report/i)).toBeInTheDocument();
     expect(screen.getByText(/Core closure is complete and no approval-held runtime work is waiting\./i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open operator desk/i })).toHaveAttribute('href', '/operator');
     expect(screen.getByText("Specialist routes")).toBeInTheDocument();

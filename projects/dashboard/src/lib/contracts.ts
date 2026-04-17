@@ -1660,6 +1660,8 @@ export const steadyStateSnapshotSchema = z.object({
   runtimePacketCount: z.number().int().nonnegative(),
   currentWork: steadyStateWorkItemSchema.nullable(),
   nextUp: steadyStateWorkItemSchema.nullable(),
+  sourceKind: z.enum(["workspace_report", "repo_root_fallback"]).nullable().optional(),
+  sourcePath: z.string().nullable().optional(),
 });
 
 export const overviewSnapshotSchema = z.object({
