@@ -1,13 +1,12 @@
 # Athanor Full-System Audit
 
-Generated: `2026-04-17T00:05:32.068506+00:00`
 
 ## Executive Summary
 
 - Adopted live system posture: closure=`closure_in_progress` | active_claim=`Validation and Publication` | runtime_packets=`0` | attention=`Review recommended`
 - Build/proving posture: turnover=`ready_for_low_touch_execution` | forge_top_lane=`letta-memory-plane` | atlas_top_lane=`letta-memory-plane` | atlas_routing_lane=`codex_cloudsafe`
 - Validator status: Athanor=`pass` | Devstack=`pass`
-- Git posture: Athanor dirty=`24` | Devstack dirty=`1`
+- Git posture: Athanor dirty=`17` | Devstack dirty=`1`
 - Findings: critical=`0` | high=`0` | medium=`0` | low=`0`
 
 ## Audit Coverage
@@ -59,7 +58,7 @@ Generated: `2026-04-17T00:05:32.068506+00:00`
 
 ## Tool and Manifest Inventory
 
-- Athanor top-level file counts: `{'projects': 1125, 'services': 49, 'scripts': 229, 'config': 82, 'docs': 326, 'reports': 204, 'ansible': 141, 'tests': 1, 'evals': 17}`
+- Athanor top-level file counts: `{'projects': 1125, 'services': 49, 'scripts': 229, 'config': 82, 'docs': 326, 'reports': 206, 'ansible': 141, 'tests': 1, 'evals': 17}`
 - Devstack top-level file counts: `{'services': 32, 'scripts': 29, 'configs': 26, 'docs': 25, 'reports': 22, 'research': 32, 'designs': 21, 'shipped': 7}`
 - Athanor manifests:
   - `projects/agents/docker-compose.yml`

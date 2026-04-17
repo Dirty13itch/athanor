@@ -1,10 +1,9 @@
 # Publication Triage Summary
 
-Generated: `2026-04-17T00:03:54.525733+00:00`
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `24`
-- Slice-matched entries: `7`
-- Deferred-family entries: `17`
+- Dirty entries: `16`
+- Slice-matched entries: `4`
+- Deferred-family entries: `12`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
 - Local-noise entries: `0`
@@ -13,16 +12,16 @@ Generated: `2026-04-17T00:03:54.525733+00:00`
 
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
-| `backbone-contracts-and-truth-writers` | `published` | `3` | `0` | `0` |
+| `backbone-contracts-and-truth-writers` | `published` | `2` | `0` | `0` |
 | `runtime-ownership-provider-truth-and-reconciliation` | `published` | `2` | `0` | `0` |
 | `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
 | `graphrag-promotion-wave` | `published` | `0` | `0` | `0` |
 | `gpu-scheduler-extension-wave` | `published` | `0` | `0` | `0` |
-| `forge-atlas-dashboard-and-startup-truth` | `published` | `2` | `0` | `0` |
+| `forge-atlas-dashboard-and-startup-truth` | `published` | `0` | `0` | `0` |
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
-- Dirty matches: `3`
+- Dirty matches: `2`
 - Publication refs: `20`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
@@ -30,8 +29,7 @@ Generated: `2026-04-17T00:03:54.525733+00:00`
 
 Sample dirty paths:
 - `M` config/automation-backbone/completion-program-registry.json
-- `M` docs/operations/SURFACE-OWNER-MATRIX.md
-- `M` scripts/validate_platform_contract.py
+- `M` scripts/triage_publication_tranche.py
 
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
@@ -71,32 +69,28 @@ Sample dirty paths:
 
 ## Forge, Atlas, Dashboard, and Startup Truth (`forge-atlas-dashboard-and-startup-truth`)
 
-- Dirty matches: `2`
+- Dirty matches: `0`
 - Publication refs: `9`
 - Working-tree hints: `9`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
 
-Sample dirty paths:
-- `M` STATUS.md
-- `M` docs/CODEX-NEXT-STEPS.md
-
 ## Deferred Family Coverage
 
 | Deferred family | Disposition | Dirty matches |
 | --- | --- | --- |
-| `reference-and-archive-prune` | `archive_or_reference` | `2` |
-| `operator-tooling-and-helper-surfaces` | `operator_tooling` | `2` |
+| `reference-and-archive-prune` | `archive_or_reference` | `1` |
+| `operator-tooling-and-helper-surfaces` | `operator_tooling` | `0` |
 | `audit-and-eval-artifacts` | `audit_artifact` | `0` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `13` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `11` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
 
 - Disposition: `archive_or_reference`
-- Dirty matches: `2`
+- Dirty matches: `1`
 - Path hints: `9`
 - Scope: Historical, research, design, runbook, archive, and top-level reference surfaces that must remain typed as reference or archive instead of masquerading as checkpoint-slice truth.
 - Execution class: `cash_now`
@@ -105,23 +99,18 @@ Sample dirty paths:
 - Owner workstreams: `startup-docs-and-prune`, `validation-and-publication`
 
 Sample dirty paths:
-- `M` docs/DOCUMENTATION-INDEX.md
-- `??` docs/architecture/
+- `M` docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md
 
 ## Deferred: Operator Tooling and Helper Surfaces (`operator-tooling-and-helper-surfaces`)
 
 - Disposition: `operator_tooling`
-- Dirty matches: `2`
+- Dirty matches: `0`
 - Path hints: `13`
 - Scope: Operator helper rules, local agent tooling, repo scaffolding, and root guidance files that should stay governed but out of checkpoint-slice authority.
 - Execution class: `cash_now`
 - Next action: Constrain helper surfaces, root guidance, and operator tooling so they stop accumulating shadow instructions or local-only churn.
 - Success condition: Operator helper surfaces remain bounded, intentional, and visibly non-authoritative outside their owned scope.
 - Owner workstreams: `authority-and-mainline`, `startup-docs-and-prune`
-
-Sample dirty paths:
-- `M` AGENTS.md
-- `M` PROJECT.md
 
 ## Deferred: Audit and Eval Artifacts (`audit-and-eval-artifacts`)
 
@@ -159,7 +148,7 @@ Sample dirty paths:
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `13`
+- Dirty matches: `11`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
@@ -168,18 +157,17 @@ Sample dirty paths:
 - Owner workstreams: `authority-and-mainline`, `validation-and-publication`
 
 Sample dirty paths:
-- `M` config/automation-backbone/docs-lifecycle-registry.json
+- `M` docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md
+- `M` docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md
 - `M` docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md
-- `M` docs/operations/AUDIT-REMEDIATION-BACKLOG.md
+- `M` docs/operations/ATHANOR-OPERATOR-MODEL.md
 - `M` docs/operations/DEVSTACK-MEMBRANE-AUDIT.md
+- `M` scripts/generate_ecosystem_master_plan.py
+- `M` scripts/generate_full_system_audit.py
+- `M` scripts/run_ralph_loop_pass.py
 - `M` scripts/run_steady_state_control_plane.py
-- `M` scripts/session_restart_brief.py
-- `M` scripts/tests/test_generate_full_system_audit.py
+- `M` scripts/tests/test_run_steady_state_control_plane.py
 - `M` scripts/write_steady_state_status.py
-- `??` docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md
-- `??` docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md
-- `??` docs/operations/ATHANOR-OPERATOR-MODEL.md
-- `??` scripts/generate_ecosystem_master_plan.py
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 

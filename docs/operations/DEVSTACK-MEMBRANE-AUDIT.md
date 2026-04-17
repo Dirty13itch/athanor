@@ -1,6 +1,5 @@
 # Devstack Membrane Audit
 
-Generated: `2026-04-17T00:05:32.068506+00:00`
 
 ## Posture
 

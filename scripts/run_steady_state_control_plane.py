@@ -26,6 +26,7 @@ def build_commands(include_restart_brief: bool = True) -> List[List[str]]:
         [PYTHON, 'scripts/write_runtime_packet_inbox.py', '--json'],
         [PYTHON, 'scripts/write_steady_state_status.py', '--json'],
         [PYTHON, 'scripts/generate_ecosystem_master_plan.py'],
+        [PYTHON, 'scripts/generate_full_system_audit.py', '--skip-checks'],
     ]
     if include_restart_brief:
         commands.append([PYTHON, 'scripts/session_restart_brief.py', '--json'])

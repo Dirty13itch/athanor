@@ -4129,8 +4129,6 @@ def main() -> int:
         if str(completion_program["ralph_loop"].get("execution_posture") or "") != desired_execution_posture:
             completion_program["ralph_loop"]["execution_posture"] = desired_execution_posture
             registry_dirty = True
-        if registry_dirty:
-            completion_program["ralph_loop"]["last_validation_run"] = report["generated_at"]
     if registry_dirty:
         _write_json(CONFIG_DIR / "completion-program-registry.json", completion_program)
     report["reconciliation_end_state"] = end_state_summary

@@ -764,7 +764,6 @@ def render_master_plan(payload: dict[str, Any]) -> str:
         '',
         'Do not edit manually.',
         '',
-        f"Generated: `{payload.get('generated_at', 'unknown')}`",
         '',
         '## Current Ecosystem Truth',
         '',
@@ -810,10 +809,21 @@ def render_master_plan(payload: dict[str, Any]) -> str:
         '',
     ])
     if recent_activity:
+        seen: set[tuple[str, str, str]] = set()
         for item in recent_activity:
-            lines.append(
-                f"- `{item.get('at', 'unknown')}` | `{item.get('title', 'unknown')}` | `{item.get('lane_family', 'unknown')}` | {item.get('summary', 'No summary available.')}"
+            signature = (
+                str(item.get('title', 'unknown')),
+                str(item.get('lane_family', 'unknown')),
+                str(item.get('summary', 'No summary available.')),
             )
+            if signature in seen:
+                continue
+            seen.add(signature)
+            lines.append(
+                f"- `{signature[0]}` | `{signature[1]}` | {signature[2]}"
+            )
+            if len(seen) >= 6:
+                break
     else:
         lines.append('- No recent cross-system activity was materialized.')
 
@@ -868,7 +878,6 @@ def render_system_bible(payload: dict[str, Any]) -> str:
         '',
         'Do not edit manually.',
         '',
-        f"Generated: `{payload.get('generated_at', 'unknown')}`",
         '',
         '## Scope',
         '',
@@ -931,7 +940,6 @@ def render_dependency_map(payload: dict[str, Any]) -> str:
         '',
         'Do not edit manually.',
         '',
-        f"Generated: `{payload.get('generated_at', 'unknown')}`",
         '',
         '## Current Sequence',
         '',
@@ -1006,7 +1014,6 @@ def render_operator_model(payload: dict[str, Any]) -> str:
         '',
         'Do not edit manually.',
         '',
-        f"Generated: `{payload.get('generated_at', 'unknown')}`",
         '',
         '## Front Door Sequence',
         '',

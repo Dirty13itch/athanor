@@ -2,7 +2,6 @@
 
 Do not edit manually.
 
-Generated: `2026-04-16T23:58:13.741450+00:00`
 
 ## Current Ecosystem Truth
 
@@ -63,12 +62,9 @@ Generated: `2026-04-16T23:58:13.741450+00:00`
 
 ### Recent Activity
 
-- `2026-04-16 21:50 UTC` | `Validation and Publication` | `validation_and_checkpoint` | Current governed dispatch claim.
-- `2026-04-16 23:57 UTC` | `Validation and Publication` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.
-- `2026-04-16 23:04 UTC` | `Validation and Publication` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.
-- `2026-04-16 23:04 UTC` | `Validation and Publication` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.
-- `2026-04-16 23:03 UTC` | `Validation and Publication` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under evidence_refresh with evidence stale and claim workstream:validation-and-publication via already_dispatched.
-- `2026-04-16 22:19 UTC` | `Validation and Publication` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.
+- `Validation and Publication` | `validation_and_checkpoint` | Current governed dispatch claim.
+- `Validation and Publication` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.
+- `Reference and Archive Prune` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:reference-and-archive-prune via already_dispatched.
 
 ## Activation Program
 

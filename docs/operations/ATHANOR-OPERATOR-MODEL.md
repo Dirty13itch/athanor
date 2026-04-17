@@ -2,7 +2,6 @@
 
 Do not edit manually.
 
-Generated: `2026-04-16T23:58:13.741450+00:00`
 
 ## Front Door Sequence
 

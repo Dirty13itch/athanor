@@ -301,7 +301,6 @@ def render_markdown(bundle: dict[str, Any], *, limit: int = 12) -> str:
     lines = [
         '# Publication Triage Summary',
         '',
-        f"Generated: `{bundle['generated_at']}`",
         f"- Active sequence: `{bundle['active_sequence_id']}`",
         f"- Dirty entries: `{bundle['summary']['dirty_entries']}`",
         f"- Slice-matched entries: `{bundle['summary']['slice_matched_entries']}`",

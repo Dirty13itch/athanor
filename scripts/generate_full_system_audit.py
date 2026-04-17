@@ -691,7 +691,6 @@ def render_master_report(audit: dict[str, Any]) -> str:
     lines = [
         '# Athanor Full-System Audit',
         '',
-        f"Generated: `{audit['generated_at']}`",
         '',
         '## Executive Summary',
         '',
@@ -791,7 +790,6 @@ def render_membrane_report(audit: dict[str, Any]) -> str:
     lines = [
         '# Devstack Membrane Audit',
         '',
-        f"Generated: `{audit['generated_at']}`",
         '',
         '## Posture',
         '',

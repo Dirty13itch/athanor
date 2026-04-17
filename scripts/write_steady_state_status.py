@@ -258,10 +258,21 @@ def render_markdown(payload: dict[str, Any]) -> str:
         "",
     ]
     if recent_activity:
-        for item in recent_activity[:6]:
-            lines.append(
-                f"- `{item.get('at', 'unknown')}` | `{item.get('task_title', 'unknown')}` | outcome=`{item.get('dispatch_outcome', 'unknown')}` | {item.get('summary', 'No summary available.')}"
+        seen: set[tuple[str, str, str]] = set()
+        for item in recent_activity:
+            signature = (
+                str(item.get('task_title', 'unknown')),
+                str(item.get('dispatch_outcome', 'unknown')),
+                str(item.get('summary', 'No summary available.')),
             )
+            if signature in seen:
+                continue
+            seen.add(signature)
+            lines.append(
+                f"- `{signature[0]}` | outcome=`{signature[1]}` | {signature[2]}"
+            )
+            if len(seen) >= 6:
+                break
     else:
         lines.append("- No recent activity was materialized from the live Ralph record.")
 
