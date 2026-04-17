@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from collections import Counter
@@ -1686,6 +1687,13 @@ def _run_generator_check(command_parts: list[str]) -> subprocess.CompletedProces
         text=True,
         cwd=str(REPO_ROOT),
     )
+
+
+def _parse_registry_generator_command(command: str) -> list[str]:
+    parts = shlex.split(command)
+    if parts and parts[0] in {"python", "python3", Path(sys.executable).name, sys.executable}:
+        parts = parts[1:]
+    return parts
 
 
 def _looks_like_secret(value: str) -> bool:
@@ -5974,7 +5982,14 @@ def main() -> int:
                 )
             )
         if doc_class == "generated":
-            generator_command = GENERATED_DOC_GENERATORS.get(relative_path)
+            generator_command = None
+            registry_generator = str(document.get("generator") or "").strip()
+            if registry_generator:
+                parsed = _parse_registry_generator_command(registry_generator)
+                if parsed:
+                    generator_command = parsed
+            if generator_command is None:
+                generator_command = GENERATED_DOC_GENERATORS.get(relative_path)
             if not generator_command:
                 errors.append(f"Generated doc {relative_path} has no registered freshness generator")
                 continue

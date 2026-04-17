@@ -7,7 +7,7 @@ Do not edit manually.
 
 - Registry version: `2026-04-16.1`
 - Total tracked surfaces: `151`
-- Generated surfaces: `12`
+- Generated surfaces: `29`
 
 ## Layer Counts
 
@@ -18,11 +18,11 @@ Do not edit manually.
 | `ecosystem_governance` | 5 |
 | `historical_working_memory` | 2 |
 | `live_execution` | 7 |
-| `operator_control` | 12 |
+| `operator_control` | 29 |
 | `startup_doctrine` | 4 |
 | `startup_reference` | 1 |
 | `strategic_reference` | 1 |
-| `unspecified` | 72 |
+| `unspecified` | 55 |
 
 ## Top-entry and Plan Surfaces
 

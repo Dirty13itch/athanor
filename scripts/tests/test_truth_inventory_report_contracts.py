@@ -92,6 +92,27 @@ def test_generated_local_git_ignore_paths_include_publication_loop_outputs() -> 
     assert "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
 
 
+def test_docs_lifecycle_registry_generated_reports_have_generators() -> None:
+    registry = json.loads((REPO_ROOT / 'config' / 'automation-backbone' / 'docs-lifecycle-registry.json').read_text(encoding='utf-8'))
+    docs_by_path = {doc['path']: doc for doc in registry['documents']}
+
+    for path in [
+        'docs/operations/PROVIDER-CATALOG-REPORT.md',
+        'docs/operations/OPERATOR-SURFACE-REPORT.md',
+        'docs/operations/REPO-ROOTS-REPORT.md',
+        'docs/operations/RUNTIME-OWNERSHIP-REPORT.md',
+        'docs/operations/RUNTIME-OWNERSHIP-PACKETS.md',
+        'docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md',
+        'docs/operations/SECRET-SURFACE-REPORT.md',
+        'docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md',
+        'docs/operations/VAULT-REDIS-REPAIR-PACKET.md',
+    ]:
+        document = docs_by_path[path]
+        assert document['class'] == 'generated'
+        assert document['generator']
+        assert document['validator']
+
+
 def test_report_check_still_flags_real_content_drift() -> None:
     module = _load_module(
         f"truth_inventory_report_contracts_{uuid.uuid4().hex}",

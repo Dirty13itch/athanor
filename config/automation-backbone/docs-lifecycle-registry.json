@@ -164,7 +164,20 @@
     {
       "path": "docs/DOCUMENTATION-INDEX.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_documentation_index.py",
+      "validator": "python scripts/generate_documentation_index.py --check",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/MASTER-PLAN.md",
@@ -1319,7 +1332,20 @@
     {
       "path": "docs/operations/AUTONOMY-ACTIVATION-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report autonomy_activation",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report autonomy_activation",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md",
@@ -1370,22 +1396,74 @@
     {
       "path": "docs/operations/GOVERNOR-FACADE-CUTOVER-PACKET.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report runtime_cutover",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report runtime_cutover",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/HARDWARE-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report hardware",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report hardware",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/MODEL-DEPLOYMENT-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report models",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report models",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/OPERATOR-SURFACE-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report operator_surfaces",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report operator_surfaces",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/OPERATOR_RUNBOOKS.md",
@@ -1395,12 +1473,38 @@
     {
       "path": "docs/operations/PROJECT-MATURITY-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_project_maturity_report.py",
+      "validator": "python scripts/generate_project_maturity_report.py --check",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/PROVIDER-CATALOG-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report providers",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report providers",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md",
@@ -1464,7 +1568,20 @@
     {
       "path": "docs/operations/REPO-ROOTS-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report repo_roots",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report repo_roots",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/REPO-STRUCTURE-RULES.md",
@@ -1484,22 +1601,74 @@
     {
       "path": "docs/operations/RUNTIME-MIGRATION-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report runtime_migrations",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report runtime_migrations",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/RUNTIME-OWNERSHIP-PACKETS.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report runtime_ownership_packets",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report runtime_ownership_packets",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/RUNTIME-OWNERSHIP-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report runtime_ownership",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report runtime_ownership",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/SECRET-SURFACE-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report secret_surfaces",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report secret_surfaces",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/SESSION-RESTART-RUNBOOK.md",
@@ -1545,22 +1714,74 @@
     {
       "path": "docs/operations/TOOLING-INVENTORY-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report tooling",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report tooling",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/TRUTH-DRIFT-REPORT.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report drift",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report drift",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/VAULT-LITELLM-AUTH-REPAIR-PACKET.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report vault_litellm_repair_packet",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report vault_litellm_repair_packet",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/VAULT-REDIS-REPAIR-PACKET.md",
       "class": "generated",
-      "owner": "shaun"
+      "owner": "shaun",
+      "layer": "operator_control",
+      "authority_plane": "adopted_system",
+      "volatility": "generated_current",
+      "generated": true,
+      "generator": "python scripts/generate_truth_inventory_reports.py --report vault_redis_repair_packet",
+      "validator": "python scripts/generate_truth_inventory_reports.py --check --report vault_redis_repair_packet",
+      "allowed_content_class": "operator_control",
+      "downstream_consumers": [
+        "operator_audit",
+        "codex_startup"
+      ],
+      "deprecation_state": "active",
+      "replacement_surface": null
     },
     {
       "path": "docs/operations/WAN2GP-REMOTE-ONLY-WATCH-PACKET.md",

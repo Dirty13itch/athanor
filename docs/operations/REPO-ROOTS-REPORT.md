@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `4`
-- Local dirty sample: ` M scripts/refresh_validation_publication_loop.py`, ` M scripts/run_steady_state_control_plane.py`, ` M scripts/tests/test_refresh_validation_publication_loop.py`, ` M scripts/tests/test_run_steady_state_control_plane.py`
+- Local dirty file count: `3`
+- Local dirty sample: ` M config/automation-backbone/docs-lifecycle-registry.json`, ` M scripts/tests/test_truth_inventory_report_contracts.py`, ` M scripts/validate_platform_contract.py`
 
 ## dev-runtime-repo
 
