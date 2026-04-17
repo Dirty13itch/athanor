@@ -1650,6 +1650,32 @@ const fixtureOverview: OverviewSnapshot = {
     updatedAt: FIXTURE_BASE_TIME,
   }),
   workforce: fixtureWorkforce,
+  steadyState: {
+    generatedAt: FIXTURE_BASE_TIME,
+    closureState: 'repo_safe_complete',
+    operatorMode: 'steady_state_monitoring',
+    interventionLabel: 'No action needed',
+    interventionLevel: 'no_action_needed',
+    interventionSummary: 'Core closure is complete and no approval-held runtime work is waiting.',
+    needsYou: false,
+    nextOperatorAction: 'Keep monitoring the operator surface and only intervene on state change.',
+    queueDispatchable: 3,
+    queueTotal: 5,
+    suppressedTaskCount: 1,
+    runtimePacketCount: 0,
+    currentWork: {
+      taskId: 'burn_class:overnight_harvest',
+      taskTitle: 'Overnight Harvest',
+      providerLabel: 'Athanor Local',
+      laneFamily: 'capacity_truth_repair',
+    },
+    nextUp: {
+      taskId: 'cheap_bulk_cloud',
+      taskTitle: 'Cheap Bulk Cloud',
+      providerLabel: 'DeepSeek API',
+      laneFamily: 'cheap_bulk_cloud',
+    },
+  },
 };
 
 const fixtureServicesSnapshot: ServicesSnapshot = {

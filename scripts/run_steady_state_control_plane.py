@@ -18,25 +18,22 @@ def build_commands(include_restart_brief: bool = True) -> List[List[str]]:
         [PYTHON, 'scripts/collect_capacity_telemetry.py'],
         [PYTHON, 'scripts/write_quota_truth_snapshot.py'],
         [PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh', '--skip-validation'],
-        [PYTHON, 'scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
-        [PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
+        [PYTHON, 'scripts/collect_truth_inventory.py'],
+        [PYTHON, 'scripts/generate_truth_inventory_reports.py'],
         [PYTHON, 'scripts/write_next_rotation_preflight.py', '--json'],
         [PYTHON, 'scripts/write_finish_scoreboard.py', '--json'],
         [PYTHON, 'scripts/write_runtime_packet_inbox.py', '--json'],
         [PYTHON, 'scripts/write_steady_state_status.py', '--json'],
         [PYTHON, 'scripts/generate_ecosystem_master_plan.py'],
         [PYTHON, 'scripts/generate_full_system_audit.py', '--skip-checks'],
-        [PYTHON, 'scripts/generate_truth_inventory_reports.py'],
-        [PYTHON, 'scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
-        [PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
-        [PYTHON, 'scripts/write_finish_scoreboard.py', '--json'],
-        [PYTHON, 'scripts/write_steady_state_status.py', '--json'],
-        [PYTHON, 'scripts/generate_ecosystem_master_plan.py'],
-        [PYTHON, 'scripts/generate_full_system_audit.py', '--skip-checks'],
     ]
     if include_restart_brief:
         commands.append([PYTHON, 'scripts/session_restart_brief.py', '--json'])
-    commands.append([PYTHON, 'scripts/validate_platform_contract.py'])
+    commands.extend([
+        [PYTHON, 'scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
+        [PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
+        [PYTHON, 'scripts/validate_platform_contract.py'],
+    ])
     return commands
 
 

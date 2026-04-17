@@ -67,13 +67,17 @@ describe("CommandCenter", () => {
     expect(screen.getByRole("heading", { name: /Current work, next move, and live pressure\./i })).toBeInTheDocument();
     expect(screen.getByText("Current plan")).toBeInTheDocument();
     expect(screen.getByText("wp-1741531200")).toBeInTheDocument();
-    expect(screen.getAllByText(/Push EoBQ content and keep Athanor drift in check\./i).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText(/Push EoBQ content and keep Athanor drift in check\./i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Implement the next EoBQ scene renderer state machine and branching transitions\./i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open workforce planner/i })).toHaveAttribute("href", "/workforce");
     expect(screen.getByText("Priority Queue")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open backlog/i })).toHaveAttribute("href", "/backlog");
     expect(screen.getByText("Critical Signals")).toBeInTheDocument();
     expect(screen.getByText("Cluster Posture")).toBeInTheDocument();
+    expect(screen.getByText("Operator attention")).toBeInTheDocument();
+    expect(screen.getAllByText(/No action needed/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Core closure is complete and no approval-held runtime work is waiting\./i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open operator desk/i })).toHaveAttribute('href', '/operator');
     expect(screen.getByText("Specialist routes")).toBeInTheDocument();
     expect(screen.getByText(/Depth lives on the specialist routes/i)).toBeInTheDocument();
     expect(screen.getByText("First Read")).toBeInTheDocument();
@@ -86,12 +90,13 @@ describe("CommandCenter", () => {
       screen.getAllByText(/Recent agent-runtime restarts are interrupting governed execution\./i).length,
     ).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/recovered from server restart/i)).toBeInTheDocument();
+    expect(screen.getByText(/Cheap Bulk Cloud/i)).toBeInTheDocument();
     expect(screen.getAllByText(/restart interfering/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("link", { name: /Open this surface/i })).toHaveAttribute(
       "href",
       "/routing",
     );
-    const routeOwnershipPanel = screen.getByText(/Depth lives on the specialist routes/i).closest(".surface-panel");
+    const routeOwnershipPanel = screen.getByText(/Depth lives on the specialist routes/i).closest(".surface-panel") as HTMLElement | null;
     expect(routeOwnershipPanel).toBeTruthy();
     if (!routeOwnershipPanel) return;
     expect(
@@ -109,7 +114,7 @@ describe("CommandCenter", () => {
         .getAllByRole("link", { name: /Subscriptions/ })
         .some((link) => link.getAttribute("href") === "/subscriptions"),
     ).toBe(true);
-    const proofDrilldownPanel = screen.getByText("Proof drill-down").closest("div")?.parentElement?.parentElement;
+    const proofDrilldownPanel = screen.getByText("Proof drill-down").closest("div")?.parentElement?.parentElement as HTMLElement | null;
     expect(proofDrilldownPanel).toBeTruthy();
     if (!proofDrilldownPanel) return;
     expect(within(proofDrilldownPanel).getByRole("link", { name: /Route index/i })).toHaveAttribute("href", "/more");

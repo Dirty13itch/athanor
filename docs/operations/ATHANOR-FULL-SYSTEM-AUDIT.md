@@ -6,7 +6,7 @@
 - Adopted live system posture: closure=`closure_in_progress` | runtime_packets=`0` | attention=`Review recommended` | live_dispatch_surface=`/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md`
 - Build/proving posture: turnover=`ready_for_low_touch_execution` | forge_top_lane=`letta-memory-plane` | atlas_top_lane=`letta-memory-plane` | atlas_routing_lane=`codex_cloudsafe`
 - Validator status: Athanor=`pass` | Devstack=`pass`
-- Git posture: Athanor dirty=`2` | Devstack dirty=`1`
+- Git posture evidence: `reports/truth-inventory/full-system-audit-index.json` and `reports/truth-inventory/full-system-audit-findings.json`
 - Findings: critical=`0` | high=`0` | medium=`0` | low=`0`
 
 ## Audit Coverage
@@ -58,7 +58,7 @@
 
 ## Tool and Manifest Inventory
 
-- Athanor top-level file counts: `{'projects': 1125, 'services': 49, 'scripts': 229, 'config': 82, 'docs': 326, 'reports': 207, 'ansible': 141, 'tests': 1, 'evals': 17}`
+- Athanor top-level file counts: `{'projects': 1126, 'services': 49, 'scripts': 229, 'config': 82, 'docs': 326, 'reports': 207, 'ansible': 141, 'tests': 1, 'evals': 17}`
 - Devstack top-level file counts: `{'services': 32, 'scripts': 29, 'configs': 26, 'docs': 25, 'reports': 22, 'research': 32, 'designs': 21, 'shipped': 7}`
 - Athanor manifests:
   - `projects/agents/docker-compose.yml`

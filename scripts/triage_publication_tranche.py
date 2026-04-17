@@ -22,6 +22,13 @@ PUBLICATION_LOOP_SELF_OUTPUTS = {
     "docs/operations/PUBLICATION-TRIAGE-REPORT.md",
     "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md",
     "docs/operations/STEADY-STATE-STATUS.md",
+    "docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md",
+    "docs/operations/DEVSTACK-MEMBRANE-AUDIT.md",
+    "docs/operations/AUDIT-REMEDIATION-BACKLOG.md",
+    "docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md",
+    "docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md",
+    "docs/operations/ATHANOR-OPERATOR-MODEL.md",
+    "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md",
     "reports/truth-inventory/publication-deferred-family-queue.json",
     "reports/truth-inventory/steady-state-status.json",
 }

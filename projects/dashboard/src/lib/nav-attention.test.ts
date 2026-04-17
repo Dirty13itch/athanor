@@ -39,6 +39,23 @@ describe("buildNavAttentionSignals", () => {
     expect(signal?.count).toBe(2);
   });
 
+  it("surfaces operator pressure on / and /operator", () => {
+    const signals = buildNavAttentionSignals({
+      workforce: getFixtureWorkforceSnapshot(),
+      services: getFixtureServicesSnapshot().services,
+      agents: getFixtureAgentsSnapshot().agents,
+      judge: fixtureJudge,
+      updatedAt: "2026-03-09T15:00:00.000Z",
+    });
+
+    const rootSignal = signals.find((entry) => entry.routeHref === "/");
+    const operatorSignal = signals.find((entry) => entry.routeHref === "/operator");
+    expect(rootSignal?.tier).toBe("urgent");
+    expect(rootSignal?.source).toBe("pending_approvals");
+    expect(operatorSignal?.tier).toBe("urgent");
+    expect(operatorSignal?.source).toBe("pending_approvals");
+  });
+
   it("classifies review backlog on /review as urgent", () => {
     const signals = buildNavAttentionSignals({
       workforce: getFixtureWorkforceSnapshot(),

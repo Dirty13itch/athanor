@@ -316,6 +316,7 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const currentWorkplan = snapshot.workforce.workplan.current;
   const currentWorkplanApprovalCount = currentWorkplan?.tasks.filter((task) => task.requiresApproval).length ?? 0;
   const currentWorkplanTasks = currentWorkplan?.tasks.slice(0, 3) ?? [];
+  const steadyState = snapshot.steadyState;
   const liveWorkCount = pendingTasks + runningTasks;
   const liveTone: SignalTone =
     governedDispatchRestartInterfering || degradedServices > 0
@@ -440,6 +441,11 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
     },
   ];
 
+  const operatorAttentionTone: SignalTone = steadyState?.needsYou
+    ? 'danger'
+    : steadyState && (steadyState.runtimePacketCount > 0 || steadyState.queueDispatchable > 0)
+      ? 'warning'
+      : 'healthy';
   const topAction =
     triageItems.find((item) => item.tone === "danger") ??
     triageItems.find((item) => item.tone === "warning") ??
@@ -626,6 +632,41 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
             </div>
 
             <div className="surface-panel border border-border/70 p-4">
+              <p className="page-eyebrow">Operator attention</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge variant={operatorAttentionTone === 'danger' ? 'destructive' : operatorAttentionTone === 'warning' ? 'outline' : 'secondary'}>
+                  {steadyState?.interventionLabel ?? 'Review recommended'}
+                </Badge>
+                {steadyState?.currentWork?.providerLabel ? <Badge variant="outline">{steadyState.currentWork.providerLabel}</Badge> : null}
+                {steadyState?.nextUp?.laneFamily ? <Badge variant="outline">{steadyState.nextUp.laneFamily}</Badge> : null}
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[color:var(--text-secondary)]">
+                {steadyState?.interventionSummary ?? 'Use the operator desk for approvals, overrides, and governed blockers.'}
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <LiveReadoutRow
+                  label="Needs you"
+                  value={steadyState?.needsYou ? 'Yes' : 'No'}
+                  tone={steadyState?.needsYou ? 'danger' : 'healthy'}
+                />
+                <LiveReadoutRow
+                  label="Decision queue"
+                  value={`${pendingApprovals} approvals / ${steadyState?.runtimePacketCount ?? 0} runtime packets`}
+                  tone={pendingApprovals > 0 || (steadyState?.runtimePacketCount ?? 0) > 0 ? 'warning' : 'healthy'}
+                />
+              </div>
+              <p className="mt-4 text-xs leading-5 text-muted-foreground">
+                {steadyState?.nextOperatorAction ?? 'Open the operator desk when approvals or runtime packets appear.'}
+              </p>
+              <Button asChild variant="outline" size="sm" className="mt-4 w-full justify-between">
+                <Link href="/operator">
+                  Open operator desk
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="surface-panel border border-border/70 p-4">
               <p className="page-eyebrow">Specialist routes</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Depth lives on the specialist routes. Keep the front door focused on the current plan, next move,
@@ -646,18 +687,18 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                     <div className="space-y-3">
                       <LiveReadoutRow
                         label="System state"
-                        value={governedDispatch?.status ?? "steady-state monitoring"}
+                        value={steadyState?.closureState ?? governedDispatch?.status ?? "steady-state monitoring"}
                         tone={liveTone}
                       />
                       <LiveReadoutRow
                         label="Attention"
-                        value={
+                        value={steadyState?.interventionLabel ?? (
                           topAction.tone === "danger"
                             ? "operator attention required"
                             : pendingApprovals > 0 || pendingTasks > 0
                               ? "review recommended"
                               : "no action needed"
-                        }
+                        )}
                         tone={
                           topAction.tone === "danger"
                             ? "danger"
@@ -668,16 +709,16 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                       />
                       <LiveReadoutRow
                         label="Current work"
-                        value={currentWorkplan?.focus ?? "No current plan loaded"}
-                        tone={currentWorkplan ? "healthy" : "warning"}
+                        value={steadyState?.currentWork?.taskTitle ?? currentWorkplan?.focus ?? "No current plan loaded"}
+                        tone={steadyState?.currentWork?.taskTitle || currentWorkplan ? "healthy" : "warning"}
                       />
                     </div>
                     <div className="space-y-3">
-                      <LiveReadoutRow label="Next up" value={topAction.title} tone="warning" />
+                      <LiveReadoutRow label="Next up" value={steadyState?.nextUp?.taskTitle ?? topAction.title} tone="warning" />
                       <LiveReadoutRow
                         label="Queue posture"
-                        value={`${pendingTasks} queued / ${runningTasks} running / ${pendingApprovals} approvals`}
-                        tone={pendingTasks > 0 || pendingApprovals > 0 ? "warning" : "healthy"}
+                        value={steadyState ? `${steadyState.queueDispatchable} dispatchable / ${steadyState.suppressedTaskCount} suppressed / ${steadyState.runtimePacketCount} runtime packets` : `${pendingTasks} queued / ${runningTasks} running / ${pendingApprovals} approvals`}
+                        tone={steadyState ? (steadyState.needsYou || steadyState.runtimePacketCount > 0 ? "warning" : "healthy") : (pendingTasks > 0 || pendingApprovals > 0 ? "warning" : "healthy")}
                       />
                       <LiveReadoutRow
                         label="Updated"

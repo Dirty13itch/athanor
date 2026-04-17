@@ -87,6 +87,9 @@ def test_generated_local_git_ignore_paths_include_publication_loop_outputs() -> 
     assert "reports/truth-inventory/publication-deferred-family-queue.json" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
     assert "docs/operations/STEADY-STATE-STATUS.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
     assert "reports/truth-inventory/steady-state-status.json" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
+    assert "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md" in module.GENERATED_LOCAL_GIT_IGNORE_PATHS
 
 
 def test_report_check_still_flags_real_content_drift() -> None:

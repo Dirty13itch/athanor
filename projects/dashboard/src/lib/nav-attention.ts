@@ -23,6 +23,8 @@ const CORE_OPERATOR_SERVICE_IDS = new Set([
 ]);
 
 const V1_ATTENTION_ROUTES = [
+  "/",
+  "/operator",
   "/runs",
   "/inbox",
   "/review",
@@ -135,6 +137,61 @@ function getRunsSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
   }
 
   return createNoneSignal("/runs", updatedAt);
+}
+
+function getOperatorDecisionSignal(
+  routeHref: "/" | "/operator",
+  workforce: WorkforceSnapshot,
+): NavAttentionSignal {
+  const updatedAt = workforce.generatedAt;
+  const approvals = byNewestId(workforce.tasks.filter((task) => task.status === "pending_approval"));
+  if (approvals.length > 0) {
+    return createSignal(
+      routeHref,
+      "urgent",
+      "pending_approvals",
+      approvals.length === 1
+        ? "1 operator decision is waiting for approval."
+        : `${approvals.length} operator decisions are waiting for approval.`,
+      updatedAt,
+      approvals.length,
+      approvals.map((task) => task.id),
+    );
+  }
+
+  const failed = byNewestId(workforce.tasks.filter((task) => task.status === "failed"));
+  if (failed.length > 0) {
+    return createSignal(
+      routeHref,
+      "action",
+      "failed_tasks",
+      failed.length === 1
+        ? "1 failed run still needs operator review."
+        : `${failed.length} failed runs still need operator review.`,
+      updatedAt,
+      failed.length,
+      failed.map((task) => task.id),
+    );
+  }
+
+  const active = byNewestId(
+    workforce.tasks.filter((task) => task.status === "pending" || task.status === "running"),
+  );
+  if (active.length > 0) {
+    return createSignal(
+      routeHref,
+      "watch",
+      "queued_work",
+      active.length === 1
+        ? "1 governed lane is actively moving."
+        : `${active.length} governed lanes are actively moving.`,
+      updatedAt,
+      active.length,
+      active.map((task) => task.id),
+    );
+  }
+
+  return createNoneSignal(routeHref, updatedAt);
 }
 
 function getInboxSignal(workforce: WorkforceSnapshot): NavAttentionSignal {
@@ -351,6 +408,8 @@ export function buildNavAttentionSignals({
   updatedAt: string;
 }): NavAttentionSignal[] {
   const signals = [
+    getOperatorDecisionSignal("/", workforce),
+    getOperatorDecisionSignal("/operator", workforce),
     getRunsSignal(workforce),
     getInboxSignal(workforce),
     getReviewSignal(judge),

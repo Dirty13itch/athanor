@@ -16,7 +16,7 @@ Do not edit manually.
 - This tracked document is durable by design.
 - Live claim rotation, provider routing, queue posture, and recent activity move through the ignored live operator feed and machine JSON, not this repo-tracked markdown surface.
 - Strategic workstream family: `Dispatch and Work-Economy Closure`
-- Repo-safe debt gates: cash_now=`1` | bounded_follow_on=`0` | program_slice=`1` | runtime_packets=`0`
+- Repo-safe debt gates: cash_now=`0` | bounded_follow_on=`0` | program_slice=`1` | runtime_packets=`0`
 
 ## Operator Action
 
@@ -31,7 +31,6 @@ Do not edit manually.
 
 ## Active Reopen Reasons
 
-- cash_now repo-safe debt remains (`1`)
 - program-slice debt remains (`1`)
 - finish scoreboard closure_state is `closure_in_progress`
 

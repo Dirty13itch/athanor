@@ -97,6 +97,29 @@ interface OperatorSummaryPayload {
   detail?: string;
   source?: string;
   tasks?: TaskResidueSummary;
+  steadyState?: {
+    closureState?: string;
+    operatorMode?: string;
+    interventionLabel?: string;
+    interventionLevel?: string;
+    interventionSummary?: string;
+    needsYou?: boolean;
+    nextOperatorAction?: string;
+    queueDispatchable?: number;
+    queueTotal?: number;
+    suppressedTaskCount?: number;
+    runtimePacketCount?: number;
+    currentWork?: {
+      taskTitle?: string | null;
+      providerLabel?: string | null;
+      laneFamily?: string | null;
+    } | null;
+    nextUp?: {
+      taskTitle?: string | null;
+      providerLabel?: string | null;
+      laneFamily?: string | null;
+    } | null;
+  } | null;
 }
 
 function createId(prefix: string) {
@@ -196,7 +219,9 @@ export function OperatorConsole() {
   const pendingApprovalsPayload = pendingApprovalsQuery.data ?? {};
   const pendingApprovals = pendingApprovalsPayload.approvals ?? [];
   const governance = governanceQuery.data ?? {};
-  const taskResidue = summaryQuery.data?.tasks ?? {};
+  const operatorSummary = summaryQuery.data ?? {};
+  const taskResidue = operatorSummary.tasks ?? {};
+  const steadyState = operatorSummary.steadyState ?? null;
   const masterAtlas =
     masterAtlasQuery.data && typeof masterAtlasQuery.data.generated_at === "string"
       ? masterAtlasQuery.data
@@ -224,6 +249,33 @@ export function OperatorConsole() {
     masterAtlas?.error ??
     "Routing and topology own the wider dispatch and capacity context for this system.";
   const governedDispatch = masterAtlas?.governed_dispatch_execution ?? null;
+  const operatorNeedsYou =
+    steadyState?.needsYou ??
+    (approvalHeldTasks > 0 || actionableFailures > 0 || launchBlockers.length > 0);
+  const operatorAttentionLabel = steadyState?.interventionLabel ?? (governanceAvailable ? currentMode : "feed offline");
+  const operatorAttentionSummary =
+    steadyState?.interventionSummary ??
+    (!governanceAvailable
+      ? "Governance posture feed is temporarily unavailable."
+      : governance.attention_posture?.recommended_mode
+        ? `Recommended: ${governance.attention_posture.recommended_mode}`
+        : "No alternate mode recommendation is active right now.");
+  const operatorCurrentWork =
+    steadyState?.currentWork?.taskTitle ?? governedDispatch?.current_task_title ?? "No governed work published.";
+  const operatorCurrentWorkDetail =
+    steadyState?.currentWork?.providerLabel ??
+    steadyState?.currentWork?.laneFamily ??
+    governedDispatch?.dispatch_outcome ??
+    "No current provider or lane published.";
+  const operatorNextUp =
+    steadyState?.nextUp?.taskTitle ??
+    masterAtlas?.turnover_readiness?.top_dispatchable_autonomous_task_title ??
+    "No follow-on handoff published.";
+  const operatorNextUpDetail =
+    steadyState?.nextOperatorAction ??
+    (masterAtlas?.turnover_readiness?.dispatchable_autonomous_queue_count != null
+      ? `${masterAtlas.turnover_readiness.dispatchable_autonomous_queue_count} dispatchable lane(s) remain.`
+      : "No next operator action published.");
   const governedDispatchHealthy =
     Boolean(governedDispatch) &&
     !governedDispatch?.error &&
@@ -431,30 +483,24 @@ export function OperatorConsole() {
             tone={!approvalsAvailable || approvalHeldTasks > 0 ? "warning" : "success"}
           />
           <StatCard
-            label="System Mode"
-            value={governanceAvailable ? currentMode : "feed offline"}
+            label="Operator Attention"
+            value={summaryAvailable ? operatorAttentionLabel : "offline"}
             detail={
-              !governanceAvailable
-                ? "Governance posture feed is temporarily unavailable."
-                : governance.attention_posture?.recommended_mode
-                ? `Recommended: ${governance.attention_posture.recommended_mode}`
-                : "Governance posture"
+              summaryAvailable
+                ? operatorAttentionSummary
+                : "Operator summary feed is temporarily unavailable."
             }
             icon={<ShieldCheck className="h-5 w-5" />}
-            tone={governanceAvailable && currentMode === "normal" ? "success" : "warning"}
+            tone={!summaryAvailable || operatorNeedsYou ? "warning" : "success"}
           />
           <StatCard
-            label="Launch Blockers"
-            value={governanceAvailable ? `${launchBlockers.length}` : "offline"}
+            label="Current Work"
+            value={summaryAvailable ? operatorCurrentWork : "offline"}
             detail={
-              governanceAvailable
-                ? governance.launch_ready
-                  ? "Launch posture is clear."
-                  : "Still blocking promotion."
-                : "Launch blocker feed is temporarily unavailable."
+              summaryAvailable ? `${operatorCurrentWorkDetail} Next: ${operatorNextUp}` : "Operator summary feed is temporarily unavailable."
             }
-            icon={<AlertTriangle className="h-5 w-5" />}
-            tone={!governanceAvailable || launchBlockers.length > 0 ? "warning" : "success"}
+            icon={<MessageSquare className="h-5 w-5" />}
+            tone={summaryAvailable && steadyState?.currentWork?.taskTitle ? "success" : "warning"}
           />
         </div>
       </PageHeader>
@@ -472,14 +518,15 @@ export function OperatorConsole() {
           <div className="surface-panel rounded-[28px] border px-5 py-5 sm:px-6">
             <div className="grid gap-3 md:grid-cols-3">
               <OperatorMetric
-                label="Current mode"
-                value={currentMode}
+                label="Attention"
+                value={operatorAttentionLabel}
                 detail={
-                  governance.current_mode?.trigger
+                  steadyState?.nextOperatorAction ??
+                  (governance.current_mode?.trigger
                     ? `Entered via ${governance.current_mode.trigger}`
-                    : "No mode trigger recorded"
+                    : "No explicit next operator action recorded")
                 }
-                tone={currentMode === "normal" ? "success" : "warning"}
+                tone={operatorNeedsYou ? "warning" : "success"}
               />
               <OperatorMetric
                 label="Launch blockers"
@@ -488,10 +535,10 @@ export function OperatorConsole() {
                 tone={launchBlockers.length > 0 ? "warning" : "success"}
               />
               <OperatorMetric
-                label="Task residue"
-                value={`${approvalHeldTasks}`}
-                detail={`${actionableFailures} actionable failures / ${staleLeases} live stale leases`}
-                tone={approvalHeldTasks > 0 || actionableFailures > 0 ? "warning" : "success"}
+                label="Current work"
+                value={operatorCurrentWork}
+                detail={`${operatorCurrentWorkDetail} Next: ${operatorNextUp}`}
+                tone={steadyState?.currentWork?.taskTitle ? "success" : "warning"}
               />
             </div>
 
@@ -586,6 +633,26 @@ export function OperatorConsole() {
             <p className="page-eyebrow">Governance posture</p>
             <h2 className="mt-1 font-heading text-2xl font-medium tracking-[-0.03em]">Current guardrails</h2>
             <div className="mt-4 space-y-3">
+              <div className="surface-instrument rounded-2xl border px-4 py-4">
+                <p className="page-eyebrow text-[10px]">Steady-state front door</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {steadyState?.closureState ? <Badge variant="outline">{steadyState.closureState}</Badge> : null}
+                  {steadyState?.operatorMode ? <Badge variant="outline">{steadyState.operatorMode}</Badge> : null}
+                  {steadyState?.currentWork?.providerLabel ? <Badge variant="outline">{steadyState.currentWork.providerLabel}</Badge> : null}
+                  {steadyState?.nextUp?.laneFamily ? <Badge variant="outline">{steadyState.nextUp.laneFamily}</Badge> : null}
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {steadyState
+                    ? `${operatorAttentionLabel}. ${operatorAttentionSummary}`
+                    : "The steady-state front door is not currently attached to the operator summary route."}
+                </p>
+                <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  <p>Current work: {operatorCurrentWork}</p>
+                  <p>Next up: {operatorNextUp}</p>
+                  <p>{operatorNextUpDetail}</p>
+                </div>
+              </div>
+
               <div className="surface-instrument rounded-2xl border px-4 py-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant={governance.launch_ready ? "secondary" : "outline"}>

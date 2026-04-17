@@ -1638,6 +1638,30 @@ export const workforceSnapshotSchema = z.object({
   schedules: z.array(workforceScheduleEntrySchema),
 });
 
+export const steadyStateWorkItemSchema = z.object({
+  taskId: z.string().nullable().optional(),
+  taskTitle: z.string().nullable().optional(),
+  providerLabel: z.string().nullable().optional(),
+  laneFamily: z.string().nullable().optional(),
+});
+
+export const steadyStateSnapshotSchema = z.object({
+  generatedAt: z.string(),
+  closureState: z.string(),
+  operatorMode: z.string(),
+  interventionLabel: z.string(),
+  interventionLevel: z.string(),
+  interventionSummary: z.string(),
+  needsYou: z.boolean(),
+  nextOperatorAction: z.string(),
+  queueDispatchable: z.number().int().nonnegative(),
+  queueTotal: z.number().int().nonnegative(),
+  suppressedTaskCount: z.number().int().nonnegative(),
+  runtimePacketCount: z.number().int().nonnegative(),
+  currentWork: steadyStateWorkItemSchema.nullable(),
+  nextUp: steadyStateWorkItemSchema.nullable(),
+});
+
 export const overviewSnapshotSchema = z.object({
   generatedAt: z.string(),
   summary: z.object({
@@ -1666,6 +1690,7 @@ export const overviewSnapshotSchema = z.object({
   externalTools: z.array(externalToolSchema),
   navAttention: z.array(navAttentionSignalSchema).default([]),
   workforce: workforceSnapshotSchema,
+  steadyState: steadyStateSnapshotSchema.nullable().default(null),
 });
 
 export const servicesSnapshotSchema = z.object({
@@ -2311,6 +2336,7 @@ export type ServiceHistorySeries = z.infer<typeof serviceHistorySeriesSchema>;
 export type ChartPoint = z.infer<typeof chartPointSchema>;
 export type GpuSnapshot = z.infer<typeof gpuSnapshotSchema>;
 export type GpuNodeSummary = z.infer<typeof gpuNodeSummarySchema>;
+export type SteadyStateSnapshot = z.infer<typeof steadyStateSnapshotSchema>;
 export type OverviewSnapshot = z.infer<typeof overviewSnapshotSchema>;
 export type ServicesSnapshot = z.infer<typeof servicesSnapshotSchema>;
 export type ServicesHistorySnapshot = z.infer<typeof servicesHistorySnapshotSchema>;

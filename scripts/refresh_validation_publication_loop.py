@@ -21,9 +21,8 @@ def build_commands(include_ralph: bool = True, include_restart_brief: bool = Fal
             [PYTHON, 'scripts/run_ralph_loop_pass.py', '--skip-refresh', '--skip-validation'],
         ])
     commands.extend([
+        [PYTHON, 'scripts/collect_truth_inventory.py'],
         [PYTHON, 'scripts/generate_truth_inventory_reports.py'],
-        [PYTHON, 'scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
-        [PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
     ])
     if include_ralph:
         commands.extend([
@@ -34,7 +33,11 @@ def build_commands(include_ralph: bool = True, include_restart_brief: bool = Fal
         ])
     if include_restart_brief:
         commands.append([PYTHON, 'scripts/session_restart_brief.py', '--json'])
-    commands.append([PYTHON, 'scripts/validate_platform_contract.py'])
+    commands.extend([
+        [PYTHON, 'scripts/triage_publication_tranche.py', '--write', 'docs/operations/PUBLICATION-TRIAGE-REPORT.md'],
+        [PYTHON, 'scripts/generate_publication_deferred_family_queue.py'],
+        [PYTHON, 'scripts/validate_platform_contract.py'],
+    ])
     return commands
 
 

@@ -81,6 +81,29 @@ describe("OperatorConsole", () => {
             stale_lease_recovered_historical: 2,
             failed_historical_repaired: 3,
           },
+          steadyState: {
+            closureState: "repo_safe_complete",
+            operatorMode: "steady_state_monitoring",
+            interventionLabel: "No action needed",
+            interventionLevel: "ambient",
+            interventionSummary: "Queue is moving without operator intervention.",
+            needsYou: false,
+            nextOperatorAction: "Monitor the next governed handoff and only intervene when approvals appear.",
+            queueDispatchable: 4,
+            queueTotal: 7,
+            suppressedTaskCount: 3,
+            runtimePacketCount: 0,
+            currentWork: {
+              taskTitle: "Cheap Bulk Cloud",
+              providerLabel: "deepseek_api",
+              laneFamily: "capacity_truth_repair",
+            },
+            nextUp: {
+              taskTitle: "Letta Memory Plane",
+              providerLabel: "Athanor Local",
+              laneFamily: "memory_plane",
+            },
+          },
         };
       }
 
@@ -168,6 +191,9 @@ describe("OperatorConsole", () => {
     expect(await screen.findByText(/Governed dispatch handoff/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Dispatch and Work-Economy Closure/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/current governed handoff/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/No action needed/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Cheap Bulk Cloud/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Letta Memory Plane/i).length).toBeGreaterThan(0);
     expect(await screen.findByText(/Advance GPU scheduler packet after verifying the rollout evidence\./i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open Routing/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open Topology/i })).toBeInTheDocument();

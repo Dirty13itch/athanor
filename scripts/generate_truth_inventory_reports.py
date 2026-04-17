@@ -76,6 +76,13 @@ GENERATED_LOCAL_GIT_IGNORE_PATHS = {
         REPO_ROOT / "reports" / "truth-inventory" / "publication-deferred-family-queue.json",
         REPO_ROOT / "docs" / "operations" / "STEADY-STATE-STATUS.md",
         REPO_ROOT / "reports" / "truth-inventory" / "steady-state-status.json",
+        REPO_ROOT / "docs" / "operations" / "ATHANOR-FULL-SYSTEM-AUDIT.md",
+        REPO_ROOT / "docs" / "operations" / "DEVSTACK-MEMBRANE-AUDIT.md",
+        REPO_ROOT / "docs" / "operations" / "AUDIT-REMEDIATION-BACKLOG.md",
+        REPO_ROOT / "docs" / "operations" / "ATHANOR-ECOSYSTEM-MASTER-PLAN.md",
+        REPO_ROOT / "docs" / "operations" / "ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md",
+        REPO_ROOT / "docs" / "operations" / "ATHANOR-OPERATOR-MODEL.md",
+        REPO_ROOT / "docs" / "architecture" / "ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md",
     ]
     if path.is_absolute() and REPO_ROOT in path.parents
 }
