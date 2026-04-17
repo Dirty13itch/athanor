@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `0`
-- Local dirty sample: none
+- Local dirty file count: `3`
+- Local dirty sample: ` M audit/automation/contract-healer-latest.json`, ` M scripts/run_ralph_loop_pass.py`, ` M scripts/tests/test_ralph_loop_contracts.py`
 
 ## dev-runtime-repo
 

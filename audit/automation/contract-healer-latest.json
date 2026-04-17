@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-04-17T20:07:58.412912+00:00",
+  "generated_at": "2026-04-17T21:44:51.357052+00:00",
   "lane": "contract_healer",
   "action_class": "drift_report_generation",
-  "success": true,
+  "success": false,
   "checks": [
     {
       "command": [
         "/usr/bin/python3",
         "scripts/validate_platform_contract.py"
       ],
-      "returncode": 0,
-      "stdout": "Platform contract OK: 5 nodes, 43 services, 11 projects, 151 doc lifecycle entries.",
-      "stderr": "",
-      "duration_seconds": 65.18,
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "FAIL: Generated doc is stale: docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale\n/mnt/c/Athanor/docs/operations/AUDIT-REMEDIATION-BACKLOG.md is stale)\nFAIL: Generated doc is stale: docs/operations/AUDIT-REMEDIATION-BACKLOG.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale\n/mnt/c/Athanor/docs/operations/AUDIT-REMEDIATION-BACKLOG.md is stale)\nFAIL: Generated doc is stale: docs/operations/DEVSTACK-MEMBRANE-AUDIT.md (/mnt/c/Athanor/docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md is stale\n/mnt/c/Athanor/docs/operations/AUDIT-REMEDIATION-BACKLOG.md is stale)\nFAIL: Generated doc is stale: docs/operations/PUBLICATION-TRIAGE-REPORT.md (docs/operations/PUBLICATION-TRIAGE-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/REPO-ROOTS-REPORT.md (docs/operations/REPO-ROOTS-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/RUNTIME-OWNERSHIP-REPORT.md (docs/operations/RUNTIME-OWNERSHIP-REPORT.md is stale)\nFAIL: Generated doc is stale: docs/operations/STEADY-STATE-STATUS.md (/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json is stale\n/mnt/c/Athanor/reports/truth-inventory/steady-state-live.md is stale)\nFAIL: Generated doc is stale: docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md (/mnt/c/Athanor/reports/truth-inventory/ecosystem-master-plan.json is stale)\nFAIL: Generated doc is stale: docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md (/mnt/c/Athanor/reports/truth-inventory/ecosystem-master-plan.json is stale)\nFAIL: Generated doc is stale: docs/operations/ATHANOR-OPERATOR-MODEL.md (/mnt/c/Athanor/reports/truth-inventory/ecosystem-master-plan.json is stale)\nFAIL: Generated doc is stale: docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md (/mnt/c/Athanor/reports/truth-inventory/ecosystem-master-plan.json is stale)",
+      "duration_seconds": 35.101,
       "timed_out": false
     },
     {
@@ -24,7 +24,7 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.178,
+      "duration_seconds": 0.17,
       "timed_out": false
     },
     {
@@ -36,11 +36,11 @@
       "returncode": 0,
       "stdout": "",
       "stderr": "",
-      "duration_seconds": 0.062,
+      "duration_seconds": 0.067,
       "timed_out": false
     }
   ],
-  "operator_visible_summary": "Contract healer regenerated drift evidence successfully.",
+  "operator_visible_summary": "Contract healer detected drift or generator failures.",
   "automation_record_persisted": true,
   "automation_record_error": null
 }

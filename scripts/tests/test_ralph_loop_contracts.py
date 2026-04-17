@@ -2496,3 +2496,158 @@ def test_build_ranked_autonomous_queue_keeps_cash_now_deferred_family_ahead_of_b
     assert "deferred_family:reference-and-archive-prune" in task_ids
     assert "burn_class:local_bulk_sovereign" in task_ids
     assert task_ids.index("deferred_family:reference-and-archive-prune") < task_ids.index("burn_class:local_bulk_sovereign")
+
+
+def test_build_publication_deferred_family_items_marks_zero_match_family_non_dispatchable() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    rows = module._build_publication_deferred_family_items(
+        {
+            "families": [
+                {
+                    "id": "reference-and-archive-prune",
+                    "title": "Reference and Archive Prune",
+                    "execution_class": "cash_now",
+                    "execution_rank": 1,
+                    "match_count": 0,
+                    "next_action": "Prune reference debt.",
+                    "path_hints": ["docs/archive/"],
+                    "sample_paths": [],
+                }
+            ]
+        }
+    )
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["task_id"] == "deferred_family:reference-and-archive-prune"
+    assert row["dispatchable"] is False
+    assert row["status"] == "deferred_no_delta"
+    assert row["blocking_reason"] == "no_repo_delta"
+    assert row["repo_side_no_delta"] is True
+    assert "no matched repo paths" in row["no_delta_summary"]
+
+
+
+def test_build_capability_adoption_items_exposes_proved_builder_rollout() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    rows = module._build_capability_adoption_items(
+        {
+            "capabilities": [
+                {
+                    "id": "protocol-first-builder-kernel",
+                    "label": "Protocol-First Builder Kernel",
+                    "authority_class": "build_system",
+                    "stage": "proved",
+                    "release_tier": "shadow",
+                    "next_release_tier_on_green": "shadow",
+                    "runtime_packet_ids": ["dev-dashboard-compose-deploy-packet"],
+                    "runtime_target": "Athanor builder front door",
+                    "source_repo": "C:/athanor-devstack",
+                    "proof_artifacts": [
+                        "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-formal-eval.json"
+                    ],
+                    "notes": [
+                        "Carry the linked builder proof through operator packet review and an explicit dashboard deploy decision before any wider builder takeover or release-tier advance."
+                    ],
+                }
+            ]
+        },
+        {
+            "packets": [
+                {
+                    "id": "dev-dashboard-compose-deploy-packet",
+                    "status": "executed",
+                }
+            ]
+        },
+    )
+
+    assert len(rows) == 1
+    row = rows[0]
+    assert row["task_id"] == "capability:protocol-first-builder-kernel"
+    assert row["dispatchable"] is True
+    assert row["preferred_lane_family"] == "promotion_wave_closure"
+    assert row["approved_mutation_class"] == "auto_read_only"
+    assert row["runtime_packet_ids"] == ["dev-dashboard-compose-deploy-packet"]
+
+
+def test_build_ranked_autonomous_queue_prioritizes_proved_capability_over_zero_match_deferred_family() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    rows = module._build_ranked_autonomous_queue(
+        queue={"items": []},
+        workstream_rows=[],
+        completion_program={
+            "continuity_policy": {
+                "cash_now_deferred_families_are_autonomous_inputs": True,
+                "cash_now_requires_no_unsuppressed_workstream": True,
+                "feeder_precedence": [
+                    "workstream",
+                    "cash_now_deferred_family",
+                    "burn_class",
+                    "safe_surface",
+                    "provider_gate",
+                ],
+            }
+        },
+        burn_registry={"burn_classes": []},
+        work_economy_detail={"records": [], "provider_availability": {}},
+        provider_gate_detail={"blocking_provider_count": 0},
+        quota_truth={"records": []},
+        publication_queue={
+            "families": [
+                {
+                    "id": "reference-and-archive-prune",
+                    "title": "Reference and Archive Prune",
+                    "execution_class": "cash_now",
+                    "execution_rank": 1,
+                    "match_count": 0,
+                }
+            ]
+        },
+        continuity_state={"recent_no_delta_task_ids": [], "next_unblocked_candidate": {}},
+        capacity_telemetry=None,
+        capability_registry={
+            "capabilities": [
+                {
+                    "id": "protocol-first-builder-kernel",
+                    "label": "Protocol-First Builder Kernel",
+                    "authority_class": "build_system",
+                    "stage": "proved",
+                    "release_tier": "shadow",
+                    "next_release_tier_on_green": "shadow",
+                    "runtime_packet_ids": ["dev-dashboard-compose-deploy-packet"],
+                    "runtime_target": "Athanor builder front door",
+                    "source_repo": "C:/athanor-devstack",
+                    "proof_artifacts": [
+                        "C:/Athanor/reports/truth-inventory/protocol-first-builder-kernel-formal-eval.json"
+                    ],
+                    "notes": [
+                        "Carry the linked builder proof through operator packet review and an explicit dashboard deploy decision before any wider builder takeover or release-tier advance."
+                    ],
+                }
+            ]
+        },
+        runtime_packets_payload={
+            "packets": [
+                {
+                    "id": "dev-dashboard-compose-deploy-packet",
+                    "status": "executed",
+                }
+            ]
+        },
+    )
+
+    assert rows[0]["task_id"] == "capability:protocol-first-builder-kernel"
+    assert rows[1]["task_id"] == "deferred_family:reference-and-archive-prune"

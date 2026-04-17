@@ -1,9 +1,9 @@
 # Publication Triage Summary
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `0`
+- Dirty entries: `3`
 - Slice-matched entries: `0`
-- Deferred-family entries: `0`
+- Deferred-family entries: `3`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
 - Local-noise entries: `0`
@@ -73,10 +73,10 @@
 | --- | --- | --- |
 | `reference-and-archive-prune` | `archive_or_reference` | `0` |
 | `operator-tooling-and-helper-surfaces` | `operator_tooling` | `0` |
-| `audit-and-eval-artifacts` | `audit_artifact` | `0` |
+| `audit-and-eval-artifacts` | `audit_artifact` | `1` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `0` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `2` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
@@ -104,13 +104,16 @@
 ## Deferred: Audit and Eval Artifacts (`audit-and-eval-artifacts`)
 
 - Disposition: `audit_artifact`
-- Dirty matches: `0`
+- Dirty matches: `1`
 - Path hints: `4`
 - Scope: Audit bundles, eval outputs, recipe fixtures, and verification traces that should stay typed as evidence or harness material rather than publication-slice truth.
 - Execution class: `cash_now`
 - Next action: Register, snapshot, or relocate evidence outputs so audit and eval artifacts stay as proof, not accidental authority.
 - Success condition: Evidence artifacts are either generated and freshness-checked or clearly typed as archive-only harness material.
 - Owner workstreams: `validation-and-publication`, `startup-docs-and-prune`
+
+Sample dirty paths:
+- `M` audit/automation/contract-healer-latest.json
 
 ## Deferred: Deployment Authority Follow-on (`deployment-authority-follow-on`)
 
@@ -137,13 +140,17 @@
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `0`
+- Dirty matches: `2`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
 - Next action: Break the broad control-plane tail into explicit follow-on publication slices before any wider checkpoint publish.
 - Success condition: Control-plane residue is no longer one deferred mass; it is decomposed into explicit publication-ready tranches.
 - Owner workstreams: `authority-and-mainline`, `validation-and-publication`
+
+Sample dirty paths:
+- `M` scripts/run_ralph_loop_pass.py
+- `M` scripts/tests/test_ralph_loop_contracts.py
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 

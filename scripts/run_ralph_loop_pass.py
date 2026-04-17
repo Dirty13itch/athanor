@@ -49,6 +49,7 @@ PUBLICATION_DEFERRED_QUEUE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "p
 RALPH_CONTINUITY_STATE_PATH = REPO_ROOT / "reports" / "truth-inventory" / "ralph-continuity-state.json"
 BURN_REGISTRY_PATH = CONFIG_DIR / "subscription-burn-registry.json"
 PROVIDER_CATALOG_PATH = CONFIG_DIR / "provider-catalog.json"
+CAPABILITY_ADOPTION_PATH = CONFIG_DIR / "capability-adoption-registry.json"
 APPROVAL_MATRIX_PATH = CONFIG_DIR / "approval-matrix.json"
 RUNTIME_PACKETS_PATH = CONFIG_DIR / "runtime-ownership-packets.json"
 SAFE_SURFACE_STATE_PATH = resolve_external_path("C:/Users/Shaun/.codex/control/safe-surface-state.json")
@@ -532,7 +533,7 @@ def _queue_item_effectively_dispatchable(item: dict[str, Any]) -> bool:
     return bool(item.get("dispatchable")) and not bool(item.get("suppressed_by_continuity"))
 
 
-def _queue_source_precedence_key(item: dict[str, Any], continuity_policy: dict[str, Any]) -> int:
+def _queue_source_precedence_key(item: dict[str, Any], continuity_policy: dict[str, Any]) -> float:
     feeder_precedence = [
         str(entry).strip()
         for entry in continuity_policy.get("feeder_precedence", [])
@@ -546,8 +547,14 @@ def _queue_source_precedence_key(item: dict[str, Any], continuity_policy: dict[s
         "safe_surface_queue": "safe_surface",
         "provider_gate": "provider_gate",
         "publication_deferred_family": "cash_now_deferred_family",
+        "capability_adoption": "capability_adoption",
     }.get(source_type, source_type)
-    return precedence_index.get(source_family, len(precedence_index))
+    if source_family == "capability_adoption" and source_family not in precedence_index:
+        if "cash_now_deferred_family" in precedence_index:
+            return float(precedence_index["cash_now_deferred_family"]) - 0.5
+        if "burn_class" in precedence_index:
+            return float(precedence_index["burn_class"]) - 0.5
+    return float(precedence_index.get(source_family, len(precedence_index)))
 
 
 def _queue_candidate_ref(item: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -2041,6 +2048,14 @@ def _build_publication_deferred_family_items(publication_queue: dict[str, Any]) 
         title = str(family.get("title") or family_id).strip()
         proof_surface = sample_paths[0] if sample_paths else (path_hints[0] if path_hints else "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md")
         preferred_lane_family = "publication_freeze" if "validation-and-publication" in owner_workstreams else "steady_state_maintenance"
+        match_count = int(family.get("match_count") or 0)
+        dispatchable = bool(match_count > 0 or sample_paths)
+        blocking_reason = None if dispatchable else "no_repo_delta"
+        no_delta_summary = (
+            "Deferred family currently has no matched repo paths, so it should stay visible as a follow-on candidate rather than an active claim."
+            if not dispatchable
+            else None
+        )
         rows.append(
             {
                 "task_id": f"deferred_family:{family_id}",
@@ -2061,19 +2076,114 @@ def _build_publication_deferred_family_items(publication_queue: dict[str, Any]) 
                     value_class="repo_safe_system_hardening",
                     priority="high",
                     evidence_state="fresh",
-                    dispatchable=True,
+                    dispatchable=dispatchable,
                     blocker_type="none",
                 ) + float(max(0, 12 - int(family.get("execution_rank") or 12))),
-                "status": "deferred_ready",
-                "dispatchable": True,
-                "blocking_reason": None,
+                "status": "deferred_ready" if dispatchable else "deferred_no_delta",
+                "dispatchable": dispatchable,
+                "blocking_reason": blocking_reason,
                 "evidence_state": "fresh",
                 "priority": "high",
-                "match_count": int(family.get("match_count") or 0),
+                "match_count": match_count,
                 "path_hints": path_hints,
                 "sample_paths": sample_paths,
                 "disposition": str(family.get("disposition") or "").strip() or None,
                 "next_action": str(family.get("next_action") or "").strip() or None,
+                "repo_side_no_delta": not dispatchable,
+                "no_delta_summary": no_delta_summary,
+            }
+        )
+    return rows
+
+
+
+def _build_capability_adoption_items(
+    capability_registry: dict[str, Any],
+    runtime_packets_payload: dict[str, Any],
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    packet_index = {
+        str(packet.get("id") or "").strip(): dict(packet)
+        for packet in runtime_packets_payload.get("packets", [])
+        if isinstance(packet, dict) and str(packet.get("id") or "").strip()
+    }
+    for capability in capability_registry.get("capabilities", []):
+        if not isinstance(capability, dict):
+            continue
+        capability_id = str(capability.get("id") or "").strip()
+        if not capability_id:
+            continue
+        if str(capability.get("authority_class") or "").strip() != "build_system":
+            continue
+        if str(capability.get("stage") or "").strip() != "proved":
+            continue
+        runtime_packet_ids = [
+            str(item).strip()
+            for item in capability.get("runtime_packet_ids", [])
+            if str(item).strip() and str(item).strip().lower() != "pending"
+        ]
+        missing_packet_ids = [packet_id for packet_id in runtime_packet_ids if packet_id not in packet_index]
+        unexecuted_packet_ids = [
+            packet_id for packet_id in runtime_packet_ids if str(packet_index.get(packet_id, {}).get("status") or "").strip() != "executed"
+        ]
+        dispatchable = not missing_packet_ids and not unexecuted_packet_ids
+        blocker_type = "external_dependency" if missing_packet_ids else "none"
+        blocking_reason = None
+        if missing_packet_ids:
+            blocking_reason = "external_dependency_blocked"
+        elif unexecuted_packet_ids:
+            blocking_reason = "approval_required"
+        proof_artifacts = [str(item).strip() for item in capability.get("proof_artifacts", []) if str(item).strip()]
+        preferred_artifact = next(
+            (
+                artifact
+                for artifact in proof_artifacts
+                if "formal-eval" in artifact.lower() or "live-smoke" in artifact.lower() or "promotion-packet" in artifact.lower()
+            ),
+            proof_artifacts[0] if proof_artifacts else str(capability.get("runtime_target") or "").strip() or None,
+        )
+        notes = [str(item).strip() for item in capability.get("notes", []) if str(item).strip()]
+        closure_rule = notes[-1] if notes else (
+            f"Carry {capability_id} through bounded rollout review without widening beyond the proved slice."
+        )
+        rows.append(
+            {
+                "id": f"capability:{capability_id}",
+                "task_id": f"capability:{capability_id}",
+                "title": str(capability.get("label") or capability_id.replace("-", " ").title()),
+                "repo": str(REPO_ROOT),
+                "source_type": "capability_adoption",
+                "capability_id": capability_id,
+                "workstream_id": None,
+                "value_class": "promotion_wave_closure",
+                "risk_class": "medium",
+                "approved_mutation_class": "auto_read_only" if dispatchable else "approval_required",
+                "preferred_lane_family": "promotion_wave_closure",
+                "fallback_lane_family": "operator_follow_through",
+                "proof_command_or_eval_surface": preferred_artifact,
+                "closure_rule": closure_rule,
+                "success_condition": (
+                    f"Keep {capability_id} packet-linked and proof-green until {str(capability.get('next_release_tier_on_green') or 'the next release tier')} is ready for explicit promotion."
+                ),
+                "ranking_score": _autonomous_ranking_score(
+                    value_class="promotion_wave_closure",
+                    priority="high",
+                    evidence_state="fresh",
+                    dispatchable=dispatchable,
+                    blocker_type=blocker_type,
+                ),
+                "status": "ready_for_review" if dispatchable else "blocked_packet_linkage",
+                "dispatchable": dispatchable,
+                "blocking_reason": blocking_reason,
+                "evidence_state": "fresh",
+                "priority": "high",
+                "release_tier": str(capability.get("release_tier") or "").strip() or None,
+                "next_release_tier": str(capability.get("next_release_tier_on_green") or "").strip() or None,
+                "runtime_packet_ids": runtime_packet_ids,
+                "missing_runtime_packet_ids": missing_packet_ids,
+                "unexecuted_runtime_packet_ids": unexecuted_packet_ids,
+                "runtime_target": str(capability.get("runtime_target") or "").strip() or None,
+                "source_repo": str(capability.get("source_repo") or "").strip() or None,
             }
         )
     return rows
@@ -2152,6 +2262,8 @@ def _build_ranked_autonomous_queue(
     publication_queue: dict[str, Any],
     continuity_state: dict[str, Any],
     capacity_telemetry: dict[str, Any] | None = None,
+    capability_registry: dict[str, Any] | None = None,
+    runtime_packets_payload: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     workstream_items = _build_workstream_autonomous_items(workstream_rows, quota_truth, capacity_telemetry)
     continuity_policy = _continuity_policy(completion_program)
@@ -2174,6 +2286,7 @@ def _build_ranked_autonomous_queue(
         _queue_item_effectively_dispatchable(item) for item in workstream_items
     )
     rows = [
+        *_build_capability_adoption_items(capability_registry or {}, runtime_packets_payload or {}),
         *_build_burn_class_autonomous_items(burn_registry, work_economy_detail),
         *_build_safe_surface_autonomous_items(queue),
         *_build_provider_gate_item(completion_program, provider_gate_detail),
@@ -3814,6 +3927,7 @@ def main() -> int:
     operating_system = _load_json(CONFIG_DIR / "program-operating-system.json")
     burn_registry = _load_json(BURN_REGISTRY_PATH)
     provider_catalog = _load_json(PROVIDER_CATALOG_PATH)
+    capability_registry = _load_json(CAPABILITY_ADOPTION_PATH)
     approval_matrix = _load_json(APPROVAL_MATRIX_PATH)
     provider_gate_detail = _provider_gate_detail(provider_catalog)
     _sync_provider_gate_registry_state(completion_program, provider_gate_detail)
@@ -3880,6 +3994,8 @@ def main() -> int:
         publication_queue=publication_deferred_queue,
         continuity_state=preexisting_continuity_state,
         capacity_telemetry=capacity_telemetry,
+        capability_registry=capability_registry,
+        runtime_packets_payload=runtime_packets_payload,
     )
     reopened_task_ids = {
         str(item.get("task_id") or "").strip()
