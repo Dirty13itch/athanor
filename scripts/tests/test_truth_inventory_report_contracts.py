@@ -130,6 +130,28 @@ def test_operator_surface_artifact_check_still_flags_real_content_drift() -> Non
     assert module._artifact_is_stale("operator_surfaces", existing=existing, rendered=rendered) is True
 
 
+def test_report_check_ignores_runtime_container_uptime_only_drift() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+    existing = "- Container status: `Up 18 minutes`\n"
+    rendered = "- Container status: `Up 42 minutes`\n"
+
+    assert module._report_is_stale("runtime_ownership", existing=existing, rendered=rendered) is False
+
+
+def test_report_check_ignores_redis_probe_pid_only_drift() -> None:
+    module = _load_module(
+        f"truth_inventory_report_contracts_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "generate_truth_inventory_reports.py",
+    )
+    existing = "- Persistence blocker detail: <3>WSL (170164 - ) ERROR: UtilAcceptVsock:271: accept4 failed 110\n"
+    rendered = "- Persistence blocker detail: <3>WSL (176828 - ) ERROR: UtilAcceptVsock:271: accept4 failed 110\n"
+
+    assert module._report_is_stale("vault_redis_repair_packet", existing=existing, rendered=rendered) is False
+
+
 def test_generated_local_git_ignore_paths_include_publication_loop_outputs() -> None:
     module = _load_module(
         f"truth_inventory_report_contracts_{uuid.uuid4().hex}",

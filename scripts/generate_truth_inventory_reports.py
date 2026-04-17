@@ -191,6 +191,7 @@ VOLATILE_REPORT_LINE_PREFIXES: dict[str, tuple[str, ...]] = {
     ),
     "runtime_ownership": (
         "- Cached truth snapshot: `",
+        "- Container status: `",
     ),
     "runtime_ownership_packets": (
         "- Cached truth snapshot: `",
@@ -205,6 +206,7 @@ VOLATILE_REPORT_LINE_PREFIXES: dict[str, tuple[str, ...]] = {
     "vault_redis_repair_packet": (
         "- Cached truth snapshot: `",
         "- Cached redis audit: `",
+        "- Persistence blocker detail: ",
         "- Latest temp-RDB no-space error: `",
         "- Latest background-save error: `",
         "- Latest cross-protocol warning: `",
@@ -464,8 +466,8 @@ def _normalize_report_for_check(report_id: str, text: str) -> str:
     lines = normalized.split("\n")
     for index, line in enumerate(lines):
         for prefix in volatile_prefixes:
-            if line.startswith(prefix) and line.endswith("`"):
-                lines[index] = f"{prefix}<volatile>`"
+            if line.startswith(prefix):
+                lines[index] = f"{prefix}<volatile>"
                 break
     return "\n".join(lines)
 
