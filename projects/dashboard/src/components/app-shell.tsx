@@ -23,7 +23,7 @@ import { NavAttentionProvider, useNavAttention } from "@/components/nav-attentio
 import { OperatorPresenceHeartbeat } from "@/components/operator-presence-heartbeat";
 import { RouteIcon } from "@/components/route-icon";
 import { StatusDot } from "@/components/status-dot";
-import { getOverview } from "@/lib/api";
+import { getCapabilityPilotReadiness, getOverview } from "@/lib/api";
 import {
   getRouteFamiliesWithRoutes,
   getRouteLabel,
@@ -167,8 +167,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
   });
+  const pilotReadinessQuery = useQuery({
+    queryKey: ["app-shell-pilot-readiness"],
+    queryFn: getCapabilityPilotReadiness,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+  });
 
   const overview = overviewQuery.data;
+  const pilotReadiness = pilotReadinessQuery.data;
+  const blockedPilotCount = pilotReadiness?.summary.blocked ?? 0;
+  const topBlockedPilot =
+    pilotReadiness?.records.find(
+      (record) => record.readinessState === "blocked" || record.formalEvalStatus === "failed",
+    ) ?? pilotReadiness?.records[0] ?? null;
   const warningCount = overview?.summary.warningServices ?? 0;
   const degradedCount = overview?.summary.degradedServices ?? 0;
   const routeLabel = getRouteLabel(pathname);
@@ -286,6 +298,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 tone={overview ? steadyStateSummary.attentionTone : "warning"}
                 detail={overview ? `${steadyStateDigest.currentWorkTitle} · ${digestChangeSummary}` : "Loading front door"}
               />
+              <HeaderMetric
+                label="Activation"
+                value={pilotReadiness ? `${blockedPilotCount} blocked` : "--"}
+                tone={blockedPilotCount > 0 ? "warning" : "healthy"}
+                detail={
+                  pilotReadiness
+                    ? topBlockedPilot?.label ?? "No activation blockers published."
+                    : "Loading pilot readiness"
+                }
+              />
             </div>
 
             <div className="lg:hidden">
@@ -350,6 +372,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </p>
               <p>
                 <span className="text-foreground">Source:</span> {steadyStateDigest.sourceLabel}
+              </p>
+              <p>
+                <span className="text-foreground">Activation:</span>{" "}
+                {pilotReadiness ? `${blockedPilotCount} blocked` : "Loading"}
+                {topBlockedPilot ? ` · ${topBlockedPilot.label}` : ""}
               </p>
               <p>Overview refreshed {lastRefresh.toLowerCase()}.</p>
             </div>

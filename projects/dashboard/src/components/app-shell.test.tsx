@@ -5,8 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getFixtureOverviewSnapshot } from "@/lib/dashboard-fixtures";
 import { AppShell } from "./app-shell";
 
-const { getOverview, usePathname } = vi.hoisted(() => ({
+const { getOverview, getCapabilityPilotReadiness, usePathname } = vi.hoisted(() => ({
   getOverview: vi.fn(),
+  getCapabilityPilotReadiness: vi.fn(),
   usePathname: vi.fn(),
 }));
 
@@ -23,6 +24,7 @@ vi.mock("@/lib/api", async () => {
   return {
     ...actual,
     getOverview,
+    getCapabilityPilotReadiness,
   };
 });
 
@@ -117,6 +119,7 @@ function buildWrapper() {
 describe("AppShell", () => {
   beforeEach(() => {
     getOverview.mockReset();
+    getCapabilityPilotReadiness.mockReset();
     usePathname.mockReset();
     window.localStorage.clear();
   });
@@ -124,6 +127,59 @@ describe("AppShell", () => {
   it("renders the thinner mission-control shell with primary routes and live posture", async () => {
     const snapshot = getFixtureOverviewSnapshot();
     getOverview.mockResolvedValue(snapshot);
+    getCapabilityPilotReadiness.mockResolvedValue({
+      generatedAt: "2026-04-16T15:11:19.861884+00:00",
+      available: true,
+      degraded: false,
+      detail: null,
+      sourceKind: "workspace_generated_atlas",
+      sourcePath: "/mnt/c/Athanor/projects/dashboard/src/generated/master-atlas.json",
+      summary: {
+        total: 3,
+        formalEvalComplete: 0,
+        formalEvalFailed: 0,
+        manualReviewPending: 0,
+        readyForFormalEval: 0,
+        operatorSmokeOnly: 0,
+        scaffoldOnly: 0,
+        blocked: 3,
+      },
+      records: [
+        {
+          capabilityId: "letta-memory-plane",
+          label: "Letta Memory Plane",
+          laneStatus: null,
+          capabilityStage: null,
+          hostId: "desk",
+          readinessState: "blocked",
+          proofTier: "operator_smoke_plus_formal_scaffold",
+          blockingReasons: ["missing_packet", "missing_env:LETTA_API_KEY"],
+          commandChecks: [],
+          packetPath: null,
+          latestEvalRunId: null,
+          latestEvalStatus: null,
+          latestEvalOutcome: null,
+          latestEvalAt: null,
+          formalEvalStatus: null,
+          formalEvalAt: null,
+          formalEvalDecisionReason: null,
+          formalEvalPrimaryFailureHint: null,
+          formalPreflightStatus: null,
+          formalPreflightAt: null,
+          formalPreflightBlockerClass: "env_wiring",
+          formalPreflightBlockingReasons: ["missing_env:LETTA_API_KEY"],
+          formalPreflightMissingCommands: [],
+          formalPreflightMissingEnvVars: ["LETTA_API_KEY"],
+          formalPreflightMissingFixtureFiles: [],
+          formalPreflightMissingResultFiles: [],
+          manualReviewOutcome: null,
+          manualReviewSummary: null,
+          nextAction: null,
+          nextFormalGate: null,
+          formalRunnerSupport: null,
+        },
+      ],
+    });
     usePathname.mockReturnValue("/");
 
     render(
@@ -145,6 +201,10 @@ describe("AppShell", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Overview refreshed/i)).toBeInTheDocument();
+    });
+    expect(screen.getAllByText(/Activation/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByText(/Letta Memory Plane/i).length).toBeGreaterThan(0);
     });
     expect(screen.getByText(/Needs Shaun:/i)).toBeInTheDocument();
     expect(screen.getByText(/Current:/i)).toBeInTheDocument();
@@ -222,6 +282,59 @@ describe("AppShell", () => {
       },
     };
     getOverview.mockResolvedValue(currentSnapshot);
+    getCapabilityPilotReadiness.mockResolvedValue({
+      generatedAt: "2026-04-16T15:11:19.861884+00:00",
+      available: true,
+      degraded: false,
+      detail: null,
+      sourceKind: "workspace_generated_atlas",
+      sourcePath: "/mnt/c/Athanor/projects/dashboard/src/generated/master-atlas.json",
+      summary: {
+        total: 3,
+        formalEvalComplete: 0,
+        formalEvalFailed: 0,
+        manualReviewPending: 0,
+        readyForFormalEval: 0,
+        operatorSmokeOnly: 0,
+        scaffoldOnly: 0,
+        blocked: 2,
+      },
+      records: [
+        {
+          capabilityId: "letta-memory-plane",
+          label: "Letta Memory Plane",
+          laneStatus: null,
+          capabilityStage: null,
+          hostId: "desk",
+          readinessState: "blocked",
+          proofTier: "operator_smoke_plus_formal_scaffold",
+          blockingReasons: ["missing_env:LETTA_API_KEY"],
+          commandChecks: [],
+          packetPath: null,
+          latestEvalRunId: null,
+          latestEvalStatus: null,
+          latestEvalOutcome: null,
+          latestEvalAt: null,
+          formalEvalStatus: null,
+          formalEvalAt: null,
+          formalEvalDecisionReason: null,
+          formalEvalPrimaryFailureHint: null,
+          formalPreflightStatus: null,
+          formalPreflightAt: null,
+          formalPreflightBlockerClass: "env_wiring",
+          formalPreflightBlockingReasons: ["missing_env:LETTA_API_KEY"],
+          formalPreflightMissingCommands: [],
+          formalPreflightMissingEnvVars: ["LETTA_API_KEY"],
+          formalPreflightMissingFixtureFiles: [],
+          formalPreflightMissingResultFiles: [],
+          manualReviewOutcome: null,
+          manualReviewSummary: null,
+          nextAction: null,
+          nextFormalGate: null,
+          formalRunnerSupport: null,
+        },
+      ],
+    });
     usePathname.mockReturnValue("/operator");
 
     render(
