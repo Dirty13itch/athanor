@@ -271,6 +271,15 @@ export const ROUTES: RouteDefinition[] = [
     mobile: true,
   },
   {
+    href: "/builder",
+    label: "Builder",
+    description: "Canonical builder intake, routing, approvals, artifacts, and recovery surface.",
+    family: "build",
+    icon: "workplanner",
+    primary: true,
+    mobile: true,
+  },
+  {
     href: "/chat",
     label: "Direct Chat",
     description: "Operator chat sessions against configured model backends.",

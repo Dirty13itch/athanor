@@ -1,5 +1,8 @@
 import {
   agentsSnapshotSchema,
+  builderExecutionSessionSchema,
+  builderFrontDoorSummarySchema,
+  builderSessionEventsResponseSchema,
   executionRunsResponseSchema,
   gallerySnapshotSchema,
   governorResponseSchema,
@@ -26,6 +29,11 @@ import {
   systemMapSnapshotSchema,
   workforceSnapshotResponseSchema,
   type AgentsSnapshot,
+  type BuilderExecutionSession,
+  type BuilderFrontDoorSummary,
+  type BuilderSessionControlRequest,
+  type BuilderSessionEventsResponse,
+  type BuilderTaskEnvelope,
   type ExecutionRunsResponse,
   type GallerySnapshot,
   type GovernorSnapshot,
@@ -106,6 +114,63 @@ export async function queryPrometheusRange(
 
 export async function getOverview(): Promise<OverviewSnapshot> {
   return fetchJson("/api/overview", { cache: "no-store" }, overviewSnapshotSchema);
+}
+
+export async function getBuilderSummary(): Promise<BuilderFrontDoorSummary> {
+  return fetchJson("/api/builder/summary", { cache: "no-store" }, builderFrontDoorSummarySchema);
+}
+
+export async function createBuilderSession(payload: BuilderTaskEnvelope): Promise<BuilderExecutionSession> {
+  const response = await fetch("/api/builder/sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Builder session create failed: ${response.status}`);
+  }
+  const body = (await response.json()) as { session: BuilderExecutionSession };
+  return builderExecutionSessionSchema.parse(body.session);
+}
+
+export async function getBuilderSession(sessionId: string): Promise<BuilderExecutionSession> {
+  return fetchJson(
+    `/api/builder/sessions/${encodeURIComponent(sessionId)}`,
+    { cache: "no-store" },
+    builderExecutionSessionSchema,
+  );
+}
+
+export async function controlBuilderSession(
+  sessionId: string,
+  payload: BuilderSessionControlRequest,
+): Promise<{ session: BuilderExecutionSession; terminal_href: string | null }> {
+  const response = await fetch(`/api/builder/sessions/${encodeURIComponent(sessionId)}/control`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Builder session control failed: ${response.status}`);
+  }
+  const body = (await response.json()) as {
+    session: BuilderExecutionSession;
+    terminal_href: string | null;
+  };
+  return {
+    session: builderExecutionSessionSchema.parse(body.session),
+    terminal_href: typeof body.terminal_href === "string" || body.terminal_href === null ? body.terminal_href : null,
+  };
+}
+
+export async function getBuilderSessionEvents(sessionId: string): Promise<BuilderSessionEventsResponse> {
+  return fetchJson(
+    `/api/builder/sessions/${encodeURIComponent(sessionId)}/events`,
+    { cache: "no-store" },
+    builderSessionEventsResponseSchema,
+  );
 }
 
 export async function getServices(): Promise<ServicesSnapshot> {

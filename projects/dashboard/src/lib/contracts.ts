@@ -1736,6 +1736,231 @@ export const capabilityPilotReadinessSnapshotSchema = z.object({
   records: z.array(capabilityPilotReadinessRecordSchema),
 });
 
+export const builderTaskClassSchema = z.enum([
+  "multi_file_implementation",
+  "deterministic_refactor",
+  "architecture_review",
+  "repo_wide_audit",
+  "sovereign_private_coding",
+  "creative_batch",
+]);
+
+export const builderSensitivityClassSchema = z.enum([
+  "cloud_safe",
+  "private_but_cloud_allowed",
+  "sovereign_only",
+]);
+
+export const builderWorkspaceModeSchema = z.enum([
+  "same_repo",
+  "repo_worktree",
+  "docs_only",
+]);
+
+export const builderExecutionModeSchema = z.enum([
+  "direct_cli",
+  "goose_wrapped",
+  "litellm_routed",
+  "sovereign_local",
+]);
+
+export const builderRouteActivationStateSchema = z.enum([
+  "shadow_ready",
+  "planned_future",
+  "local_only",
+]);
+
+export const builderSessionStatusSchema = z.enum([
+  "draft",
+  "waiting_approval",
+  "queued",
+  "blocked",
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
+export const builderApprovalStatusSchema = z.enum(["pending", "approved", "rejected"]);
+export const builderVerificationStatusSchema = z.enum([
+  "not_started",
+  "planned",
+  "running",
+  "passed",
+  "failed",
+  "blocked",
+]);
+export const builderResultOutcomeSchema = z.enum([
+  "planned",
+  "running",
+  "succeeded",
+  "failed",
+  "cancelled",
+  "blocked",
+]);
+export const builderProgressEventToneSchema = z.enum(["info", "success", "warning", "danger"]);
+export const builderControlActionSchema = z.enum([
+  "resume",
+  "cancel",
+  "approve",
+  "reject",
+  "open_terminal",
+]);
+
+export const builderTaskEnvelopeSchema = z.object({
+  goal: z.string().min(1),
+  task_class: builderTaskClassSchema,
+  sensitivity_class: builderSensitivityClassSchema,
+  workspace_mode: builderWorkspaceModeSchema,
+  needs_background: z.boolean(),
+  needs_github: z.boolean(),
+  acceptance_criteria: z.array(z.string().min(1)).min(1),
+});
+
+export const builderAgentAdapterSchema = z.object({
+  adapter_id: z.string(),
+  methods: z.array(z.enum(["prepare", "start", "resume", "cancel", "collect_result"])),
+  supports_acp: z.boolean(),
+  supports_mcp: z.boolean(),
+  supports_background: z.boolean(),
+  supports_subagents: z.boolean(),
+});
+
+export const builderRouteDecisionSchema = z.object({
+  route_id: z.string(),
+  route_label: z.string(),
+  primary_adapter: z.string(),
+  execution_mode: builderExecutionModeSchema,
+  fallback_chain: z.array(z.string()),
+  workspace_plan: z.string(),
+  verification_profile: z.string(),
+  policy_basis: z.array(z.string()),
+  activation_state: builderRouteActivationStateSchema,
+});
+
+export const builderApprovalRequestSchema = z.object({
+  id: z.string(),
+  requested_action: z.string(),
+  privilege_class: operatorAuthClassSchema,
+  reason: z.string(),
+  status: builderApprovalStatusSchema,
+  created_at: z.string(),
+  resolved_at: z.string().nullable(),
+});
+
+export const builderArtifactSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  kind: z.string(),
+  href: z.string().nullable(),
+  local_path: z.string().nullable(),
+});
+
+export const builderValidationRecordSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  status: z.enum(["pending", "passed", "failed", "blocked"]),
+  detail: z.string(),
+});
+
+export const builderResultPacketSchema = z.object({
+  outcome: builderResultOutcomeSchema,
+  summary: z.string(),
+  artifacts: z.array(builderArtifactSchema),
+  files_changed: z.array(z.string()),
+  validation: z.array(builderValidationRecordSchema),
+  remaining_risks: z.array(z.string()),
+  resumable_handle: z.string().nullable(),
+  recovery_gate: z.string().nullable(),
+});
+
+export const builderVerificationContractSchema = z.object({
+  required_checks: z.array(z.string()),
+  blocking_failures: z.array(z.string()),
+  non_blocking_failures: z.array(z.string()),
+  fallback_behavior: z.string(),
+});
+
+export const builderVerificationStateSchema = z.object({
+  status: builderVerificationStatusSchema,
+  summary: z.string(),
+  completed_checks: z.array(z.string()),
+  failed_checks: z.array(z.string()),
+  last_updated_at: z.string().nullable(),
+});
+
+export const builderLinkedSurfacesSchema = z.object({
+  runs_href: z.string(),
+  review_href: z.string(),
+  terminal_href: z.string(),
+});
+
+export const builderProgressEventSchema = z.object({
+  id: z.string(),
+  event_type: z.string(),
+  label: z.string(),
+  detail: z.string(),
+  tone: builderProgressEventToneSchema,
+  timestamp: z.string(),
+});
+
+export const builderExecutionSessionSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  status: builderSessionStatusSchema,
+  created_at: z.string(),
+  updated_at: z.string(),
+  task_envelope: builderTaskEnvelopeSchema,
+  route_decision: builderRouteDecisionSchema,
+  verification_contract: builderVerificationContractSchema,
+  verification_state: builderVerificationStateSchema,
+  latest_result_packet: builderResultPacketSchema.nullable(),
+  approvals: z.array(builderApprovalRequestSchema),
+  current_worker: z.string().nullable(),
+  current_route: z.string().nullable(),
+  shadow_mode: z.boolean(),
+  fallback_state: z.string().nullable(),
+  linked_surfaces: builderLinkedSurfacesSchema,
+});
+
+export const builderSessionPreviewSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  status: builderSessionStatusSchema,
+  primary_adapter: z.string(),
+  current_route: z.string(),
+  verification_status: builderVerificationStatusSchema,
+  pending_approval_count: z.number().int().nonnegative(),
+  artifact_count: z.number().int().nonnegative(),
+  shadow_mode: z.boolean(),
+  fallback_state: z.string().nullable(),
+  updated_at: z.string(),
+});
+
+export const builderFrontDoorSummarySchema = z.object({
+  available: z.boolean(),
+  degraded: z.boolean(),
+  detail: z.string().nullable(),
+  updated_at: z.string(),
+  session_count: z.number().int().nonnegative(),
+  active_count: z.number().int().nonnegative(),
+  pending_approval_count: z.number().int().nonnegative(),
+  recent_artifact_count: z.number().int().nonnegative(),
+  current_session: builderSessionPreviewSchema.nullable(),
+  sessions: z.array(builderSessionPreviewSchema),
+});
+
+export const builderSessionEventsResponseSchema = z.object({
+  session_id: z.string(),
+  count: z.number().int().nonnegative(),
+  events: z.array(builderProgressEventSchema),
+});
+
+export const builderSessionControlRequestSchema = z.object({
+  action: builderControlActionSchema,
+  approval_id: z.string().nullable().optional(),
+});
+
 export const overviewSnapshotSchema = z.object({
   generatedAt: z.string(),
   summary: z.object({
@@ -1764,6 +1989,7 @@ export const overviewSnapshotSchema = z.object({
   externalTools: z.array(externalToolSchema),
   navAttention: z.array(navAttentionSignalSchema).default([]),
   workforce: workforceSnapshotSchema,
+  builderFrontDoor: builderFrontDoorSummarySchema,
   steadyState: steadyStateSnapshotSchema.nullable().default(null),
   steadyStateReadStatus: steadyStateReadStatusSchema.default({
     available: false,
@@ -2421,6 +2647,32 @@ export type CapabilityPilotReadinessCommandCheck = z.infer<typeof capabilityPilo
 export type CapabilityPilotReadinessRecord = z.infer<typeof capabilityPilotReadinessRecordSchema>;
 export type CapabilityPilotReadinessSummary = z.infer<typeof capabilityPilotReadinessSummarySchema>;
 export type CapabilityPilotReadinessSnapshot = z.infer<typeof capabilityPilotReadinessSnapshotSchema>;
+export type BuilderTaskClass = z.infer<typeof builderTaskClassSchema>;
+export type BuilderSensitivityClass = z.infer<typeof builderSensitivityClassSchema>;
+export type BuilderWorkspaceMode = z.infer<typeof builderWorkspaceModeSchema>;
+export type BuilderExecutionMode = z.infer<typeof builderExecutionModeSchema>;
+export type BuilderRouteActivationState = z.infer<typeof builderRouteActivationStateSchema>;
+export type BuilderSessionStatus = z.infer<typeof builderSessionStatusSchema>;
+export type BuilderApprovalStatus = z.infer<typeof builderApprovalStatusSchema>;
+export type BuilderVerificationStatus = z.infer<typeof builderVerificationStatusSchema>;
+export type BuilderResultOutcome = z.infer<typeof builderResultOutcomeSchema>;
+export type BuilderControlAction = z.infer<typeof builderControlActionSchema>;
+export type BuilderTaskEnvelope = z.infer<typeof builderTaskEnvelopeSchema>;
+export type BuilderAgentAdapter = z.infer<typeof builderAgentAdapterSchema>;
+export type BuilderRouteDecision = z.infer<typeof builderRouteDecisionSchema>;
+export type BuilderApprovalRequest = z.infer<typeof builderApprovalRequestSchema>;
+export type BuilderArtifact = z.infer<typeof builderArtifactSchema>;
+export type BuilderValidationRecord = z.infer<typeof builderValidationRecordSchema>;
+export type BuilderResultPacket = z.infer<typeof builderResultPacketSchema>;
+export type BuilderVerificationContract = z.infer<typeof builderVerificationContractSchema>;
+export type BuilderVerificationState = z.infer<typeof builderVerificationStateSchema>;
+export type BuilderLinkedSurfaces = z.infer<typeof builderLinkedSurfacesSchema>;
+export type BuilderProgressEvent = z.infer<typeof builderProgressEventSchema>;
+export type BuilderExecutionSession = z.infer<typeof builderExecutionSessionSchema>;
+export type BuilderSessionPreview = z.infer<typeof builderSessionPreviewSchema>;
+export type BuilderFrontDoorSummary = z.infer<typeof builderFrontDoorSummarySchema>;
+export type BuilderSessionEventsResponse = z.infer<typeof builderSessionEventsResponseSchema>;
+export type BuilderSessionControlRequest = z.infer<typeof builderSessionControlRequestSchema>;
 export type OverviewSnapshot = z.infer<typeof overviewSnapshotSchema>;
 export type ServicesSnapshot = z.infer<typeof servicesSnapshotSchema>;
 export type ServicesHistorySnapshot = z.infer<typeof servicesHistorySnapshotSchema>;

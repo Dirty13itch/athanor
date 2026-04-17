@@ -1,5 +1,8 @@
 export const queryKeys = {
   overview: ["overview"] as const,
+  builderSummary: ["builder-summary"] as const,
+  builderSession: (sessionId: string) => ["builder-session", sessionId] as const,
+  builderSessionEvents: (sessionId: string) => ["builder-session-events", sessionId] as const,
   workforce: ["workforce"] as const,
   services: ["services"] as const,
   servicesHistory: (window: string) => ["services-history", window] as const,

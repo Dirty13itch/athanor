@@ -10,6 +10,8 @@ const PRIVILEGED_MUTATION_PATHS: RegExp[] = [
   /^\/api\/bootstrap\/programs\/[^/]+\/nudge$/,
   /^\/api\/bootstrap\/slices\/[^/]+\/(?:claim|handoff|complete)$/,
   /^\/api\/bootstrap\/integrations\/[^/]+\/replay$/,
+  /^\/api\/builder\/sessions$/,
+  /^\/api\/builder\/sessions\/[^/]+\/control$/,
   /^\/api\/consolidation$/,
   /^\/api\/gallery\/rate$/,
   /^\/api\/containers\/[^/]+\/restart$/,

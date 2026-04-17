@@ -25,11 +25,13 @@ describe("navigation", () => {
     expect(getRouteByHref("/subscriptions")?.description).toContain("Canonical home for provider burn posture");
     expect(getRouteByHref("/routing")?.description).toContain("burn posture lives in Subscriptions");
     expect(getRouteByHref("/models")?.description).toContain("provider economics live in Subscriptions");
+    expect(getRouteByHref("/builder")?.description).toContain("Canonical builder intake");
   });
 
   it("keeps the quick-access primary set focused", () => {
     const primaryHrefs = getPrimaryRoutes().map((route) => route.href);
 
+    expect(primaryHrefs).toContain("/builder");
     expect(primaryHrefs).not.toContain("/ideas");
     expect(primaryHrefs).not.toContain("/inbox");
     expect(primaryHrefs).not.toContain("/todos");

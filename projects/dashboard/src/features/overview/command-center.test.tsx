@@ -215,6 +215,12 @@ describe("CommandCenter", () => {
     expect(screen.getByText(/workspace report/i)).toBeInTheDocument();
     expect(screen.getByText(/Core closure is complete and no approval-held runtime work is waiting\./i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open operator desk/i })).toHaveAttribute('href', '/operator');
+    expect(screen.getByText("Builder front door")).toBeInTheDocument();
+    expect(screen.getAllByText(/Codex direct implementation/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("link", { name: /Open builder desk/i })).toHaveAttribute(
+      "href",
+      "/builder?session=builder-fixture-1",
+    );
     expect(await screen.findByText(/Pilot readiness/i)).toBeInTheDocument();
     expect((await screen.findAllByText(/Letta Memory Plane/i)).length).toBeGreaterThan(0);
     expect((await screen.findAllByText(/OpenHands Bounded Worker Lane/i)).length).toBeGreaterThan(0);

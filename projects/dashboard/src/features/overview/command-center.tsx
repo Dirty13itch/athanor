@@ -318,6 +318,8 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
   const currentWorkplan = snapshot.workforce.workplan.current;
   const currentWorkplanApprovalCount = currentWorkplan?.tasks.filter((task) => task.requiresApproval).length ?? 0;
   const currentWorkplanTasks = currentWorkplan?.tasks.slice(0, 3) ?? [];
+  const builderFrontDoor = snapshot.builderFrontDoor;
+  const builderCurrent = builderFrontDoor.current_session;
   const steadyState = snapshot.steadyState;
   const steadyStateReadStatus = snapshot.steadyStateReadStatus;
   const liveWorkCount = pendingTasks + runningTasks;
@@ -328,6 +330,11 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
         ? "warning"
         : "healthy";
   const proofDrilldowns: ProofDrilldownItem[] = [
+    {
+      href: "/builder",
+      label: "Builder",
+      description: "Canonical builder intake, routing, approvals, artifacts, and recovery.",
+    },
     {
       href: "/operator",
       label: "Operator",
@@ -355,6 +362,12 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
     },
   ];
   const routeOwnershipItems: RouteOwnershipItem[] = [
+    {
+      href: "/builder",
+      label: "Builder",
+      description: "Goal intake, route selection, approvals, artifacts, and recovery.",
+      metric: builderCurrent ? builderCurrent.primary_adapter : "ready for intake",
+    },
     {
       href: "/operator",
       label: "Operator",
@@ -494,6 +507,16 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
                 : service.lastError ?? "Service is warning and worth watching.",
             tone: service.state === "degraded" ? ("danger" as const) : ("warning" as const),
           }));
+  const builderTone: SignalTone =
+    builderFrontDoor.degraded
+      ? "danger"
+      : (builderCurrent?.pending_approval_count ?? 0) > 0 ||
+          builderCurrent?.status === "waiting_approval" ||
+          builderCurrent?.fallback_state
+        ? "warning"
+        : builderCurrent
+          ? "healthy"
+          : "warning";
 
   return (
     <div className="space-y-6 lg:space-y-7">
@@ -648,6 +671,54 @@ export function CommandCenter({ initialSnapshot }: { initialSnapshot: OverviewSn
               <Button asChild className="mt-5 w-full justify-between">
                 <Link href={topAction.href}>
                   Open this surface
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="surface-panel border border-border/70 p-4">
+              <p className="page-eyebrow">Builder front door</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge variant={builderTone === "danger" ? "destructive" : builderTone === "healthy" ? "secondary" : "outline"}>
+                  {builderFrontDoor.degraded
+                    ? "feed degraded"
+                    : builderCurrent
+                      ? builderCurrent.status.replaceAll("_", " ")
+                      : "ready for intake"}
+                </Badge>
+                {builderCurrent ? <Badge variant="outline">{builderCurrent.primary_adapter}</Badge> : null}
+                {builderCurrent?.shadow_mode ? <Badge variant="outline">shadow mode</Badge> : null}
+              </div>
+              <h2 className="mt-2 font-sans text-2xl font-semibold tracking-[-0.04em] text-foreground">
+                {builderCurrent?.title ?? "Open the canonical builder surface."}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-[color:var(--text-secondary)]">
+                {builderFrontDoor.degraded
+                  ? builderFrontDoor.detail ?? "Builder summary is currently degraded."
+                  : builderCurrent
+                    ? `${builderCurrent.current_route} is active on ${builderCurrent.primary_adapter}, with ${builderCurrent.pending_approval_count} approval holds and ${builderCurrent.artifact_count} recorded artifacts.`
+                    : "Builder intake, route selection, approvals, artifacts, and recovery now live on a dedicated surface instead of the compatibility workspace shells."}
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <LiveReadoutRow
+                  label="Verification"
+                  value={builderCurrent?.verification_status.replaceAll("_", " ") ?? "not started"}
+                  tone={builderTone}
+                />
+                <LiveReadoutRow
+                  label="Session count"
+                  value={`${builderFrontDoor.session_count} sessions / ${builderFrontDoor.pending_approval_count} approvals`}
+                  tone={builderFrontDoor.pending_approval_count > 0 ? "warning" : "healthy"}
+                />
+              </div>
+              {builderCurrent?.fallback_state ? (
+                <p className="mt-4 text-xs leading-5 text-muted-foreground">
+                  Current fallback state: {builderCurrent.fallback_state.replaceAll("_", " ")}.
+                </p>
+              ) : null}
+              <Button asChild variant="outline" size="sm" className="mt-4 w-full justify-between">
+                <Link href={builderCurrent ? `/builder?session=${builderCurrent.id}` : "/builder"}>
+                  Open builder desk
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
