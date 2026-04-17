@@ -27,7 +27,7 @@ This appendix is exhaustive by subsystem. It exists to make every ecosystem doma
 - `reports/truth-inventory/finish-scoreboard.json`
 - `reports/ralph-loop/latest.json`
 - `docs/operations/CONTINUOUS-COMPLETION-BACKLOG.md`
-- Current state: Core posture is `closure_in_progress` with `active_closure`; current governed claim is `Validation and Publication` and the runtime inbox is `0`.
+- Current state: Core posture is `closure_in_progress` with `active_closure`; current governed claim is `Reference and Archive Prune` and the runtime inbox is `0`.
 - Blockers: none
 - Failure mode: If this layer drifts, the system loses authoritative state, operator visibility, and safe execution ordering.
 - Next maturity move: Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence.

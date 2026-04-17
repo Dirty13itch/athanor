@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `4`
-- Local dirty sample: ` M docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md`, ` M docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md`, ` M scripts/run_steady_state_control_plane.py`, ` M scripts/tests/test_run_steady_state_control_plane.py`
+- Local dirty file count: `3`
+- Local dirty sample: ` M docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md`, ` M docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md`, ` M docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md`
 
 ## dev-runtime-repo
 

@@ -3,10 +3,10 @@
 
 ## Executive Summary
 
-- Adopted live system posture: closure=`closure_in_progress` | active_claim=`Validation and Publication` | runtime_packets=`0` | attention=`Review recommended`
+- Adopted live system posture: closure=`closure_in_progress` | active_claim=`Reference and Archive Prune` | runtime_packets=`0` | attention=`Review recommended`
 - Build/proving posture: turnover=`ready_for_low_touch_execution` | forge_top_lane=`letta-memory-plane` | atlas_top_lane=`letta-memory-plane` | atlas_routing_lane=`codex_cloudsafe`
 - Validator status: Athanor=`pass` | Devstack=`pass`
-- Git posture: Athanor dirty=`8` | Devstack dirty=`1`
+- Git posture: Athanor dirty=`7` | Devstack dirty=`1`
 - Findings: critical=`0` | high=`0` | medium=`0` | low=`0`
 
 ## Audit Coverage
@@ -34,7 +34,7 @@
 
 - Athanor platform contract: `pass`
 - Devstack contract: `pass`
-- Restart snapshot active claim: `workstream:validation-and-publication`
+- Restart snapshot active claim: `deferred_family:reference-and-archive-prune`
 
 ## Subsystem Score Matrix
 

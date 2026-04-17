@@ -1,9 +1,9 @@
 # Publication Triage Summary
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `6`
+- Dirty entries: `5`
 - Slice-matched entries: `2`
-- Deferred-family entries: `4`
+- Deferred-family entries: `3`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
 - Local-noise entries: `0`
@@ -75,24 +75,27 @@ Sample dirty paths:
 
 | Deferred family | Disposition | Dirty matches |
 | --- | --- | --- |
-| `reference-and-archive-prune` | `archive_or_reference` | `0` |
+| `reference-and-archive-prune` | `archive_or_reference` | `1` |
 | `operator-tooling-and-helper-surfaces` | `operator_tooling` | `0` |
 | `audit-and-eval-artifacts` | `audit_artifact` | `0` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `4` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `2` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
 
 - Disposition: `archive_or_reference`
-- Dirty matches: `0`
+- Dirty matches: `1`
 - Path hints: `9`
 - Scope: Historical, research, design, runbook, archive, and top-level reference surfaces that must remain typed as reference or archive instead of masquerading as checkpoint-slice truth.
 - Execution class: `cash_now`
 - Next action: Prune or archive superseded top-level reference docs, repoint surviving references, and keep archive surfaces explicitly non-authoritative.
 - Success condition: Top-level reference and archive surfaces stop presenting stale implementation or runtime truth from active-looking paths.
 - Owner workstreams: `startup-docs-and-prune`, `validation-and-publication`
+
+Sample dirty paths:
+- `M` docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md
 
 ## Deferred: Operator Tooling and Helper Surfaces (`operator-tooling-and-helper-surfaces`)
 
@@ -141,7 +144,7 @@ Sample dirty paths:
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `4`
+- Dirty matches: `2`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
@@ -152,8 +155,6 @@ Sample dirty paths:
 Sample dirty paths:
 - `M` docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md
 - `M` docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md
-- `M` scripts/run_steady_state_control_plane.py
-- `M` scripts/tests/test_run_steady_state_control_plane.py
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 

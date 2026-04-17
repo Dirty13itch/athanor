@@ -8,7 +8,7 @@ Do not edit manually.
 ### Live
 
 - Athanor adopted system is `closure_in_progress` with operator mode `active_closure`.
-- Current governed work is `Validation and Publication` and the next staged handoff is `Reference and Archive Prune`.
+- Current governed work is `Reference and Archive Prune` and the next staged handoff is `Cheap Bulk Cloud`.
 - Runtime packet inbox currently holds `0` packets.
 - The canonical command center is `https://athanor.local/`.
 
@@ -44,7 +44,7 @@ Do not edit manually.
 
 | Domain | Owner | State Class | Current State | Blockers | Next Maturity Move |
 | --- | --- | --- | --- | --- | --- |
-| `Athanor core adopted system` | `C:/Athanor` | `adopted` | Core posture is `closure_in_progress` with `active_closure`; current governed claim is `Validation and Publication` and the runtime inbox is `0`. | none | Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence. |
+| `Athanor core adopted system` | `C:/Athanor` | `adopted` | Core posture is `closure_in_progress` with `active_closure`; current governed claim is `Reference and Archive Prune` and the runtime inbox is `0`. | none | Keep the steady-state control-plane pass green and reopen only on typed debt, packet, or validator evidence. |
 | `devstack forge` | `C:/athanor-devstack` | `proving` | Turnover is `ready_for_low_touch_execution`, top lane is `letta-memory-plane`, and packet drafting lanes total `3`. | Provider secret repair, LETTA_API_KEY, OpenHands substrate readiness | Advance the next bounded promotion lane through proof, packet, and Athanor landing surfaces without leaking build truth into runtime truth. |
 | `cluster and host substrate` | `FOUNDRY / WORKSHOP / VAULT / DEV / DESK` | `runtime` | Topology tracks `5` nodes; atlas harvest posture is `open_harvest_window` and work-economy posture is `ready`. | OpenHands substrate readiness on DESK | Keep runtime mutations packet-backed, preserve host-role clarity, and only widen pilot substrate work when a specific activation lane needs it. |
 | `operator-local systems` | `C:/Users/Shaun/.codex and C:/Codex System Config` | `local_only` | Codex System Config is the machine-level control plane, WSL-first execution is the default, and the safe-surface loop remains explicitly non-Athanor by policy. | none | Keep worktree audits, WSL tooling parity, and machine-level control proof current without letting global defaults absorb repo-local truth. |
@@ -55,17 +55,17 @@ Do not edit manually.
 
 ## Active Execution Lanes
 
-- Running now: Athanor is on `Validation and Publication`.
-- Next in Athanor: `Reference and Archive Prune`.
+- Running now: Athanor is on `Reference and Archive Prune`.
+- Next in Athanor: `Cheap Bulk Cloud`.
 - Next in devstack: `letta-memory-plane`.
 - Safe-surface queue count: `27` with last outcome `idle`.
 
 ### Recent Activity
 
 - `Validation and Publication` | `validation_and_checkpoint` | Current governed dispatch claim.
+- `Reference and Archive Prune` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:reference-and-archive-prune via already_dispatched.
 - `Validation and Publication` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim workstream:validation-and-publication via already_dispatched.
 - `Audit and Eval Artifacts` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:audit-and-eval-artifacts via already_dispatched.
-- `Operator Tooling and Helper Surfaces` | `ralph_loop` | Ralph loop selected dispatch-and-work-economy-closure under governor_scheduling with evidence fresh and claim deferred_family:operator-tooling-and-helper-surfaces via already_dispatched.
 
 ## Activation Program
 
