@@ -1,34 +1,31 @@
 # Publication Triage Summary
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `14`
-- Slice-matched entries: `7`
-- Deferred-family entries: `5`
+- Dirty entries: `4`
+- Slice-matched entries: `0`
+- Deferred-family entries: `4`
 - Ambiguous entries: `0`
-- Unclassified entries: `2`
+- Unclassified entries: `0`
 - Local-noise entries: `0`
 
 ## Slice Coverage
 
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
-| `backbone-contracts-and-truth-writers` | `published` | `1` | `0` | `0` |
+| `backbone-contracts-and-truth-writers` | `published` | `0` | `0` | `0` |
 | `runtime-ownership-provider-truth-and-reconciliation` | `published` | `0` | `0` | `0` |
-| `pilot-eval-substrate-and-operator-test-machinery` | `published` | `1` | `0` | `0` |
-| `graphrag-promotion-wave` | `published` | `1` | `0` | `0` |
+| `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
+| `graphrag-promotion-wave` | `published` | `0` | `0` | `0` |
 | `gpu-scheduler-extension-wave` | `published` | `0` | `0` | `0` |
-| `forge-atlas-dashboard-and-startup-truth` | `published` | `4` | `0` | `0` |
+| `forge-atlas-dashboard-and-startup-truth` | `published` | `0` | `0` | `0` |
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
-- Dirty matches: `1`
+- Dirty matches: `0`
 - Publication refs: `20`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
-
-Sample dirty paths:
-- `M` scripts/validate_platform_contract.py
 
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
@@ -40,25 +37,19 @@ Sample dirty paths:
 
 ## Pilot Eval Substrate and Operator-Test Machinery (`pilot-eval-substrate-and-operator-test-machinery`)
 
-- Dirty matches: `1`
+- Dirty matches: `0`
 - Publication refs: `16`
 - Working-tree hints: `15`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
 
-Sample dirty paths:
-- `M` config/automation-backbone/eval-run-ledger.json
-
 ## GraphRAG Promotion Wave (`graphrag-promotion-wave`)
 
-- Dirty matches: `1`
+- Dirty matches: `0`
 - Publication refs: `6`
 - Working-tree hints: `3`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
-
-Sample dirty paths:
-- `M` config/automation-backbone/capability-adoption-registry.json
 
 ## GPU Scheduler Extension Wave (`gpu-scheduler-extension-wave`)
 
@@ -70,17 +61,11 @@ Sample dirty paths:
 
 ## Forge, Atlas, Dashboard, and Startup Truth (`forge-atlas-dashboard-and-startup-truth`)
 
-- Dirty matches: `4`
+- Dirty matches: `0`
 - Publication refs: `9`
 - Working-tree hints: `9`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
-
-Sample dirty paths:
-- `M` projects/dashboard/src/generated/master-atlas.json
-- `M` projects/dashboard/src/generated/operator-surfaces.json
-- `M` projects/dashboard/src/lib/builder-store.test.ts
-- `M` projects/dashboard/src/lib/builder-store.ts
 
 ## Deferred Family Coverage
 
@@ -91,7 +76,7 @@ Sample dirty paths:
 | `audit-and-eval-artifacts` | `audit_artifact` | `0` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `5` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `4` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
@@ -152,7 +137,7 @@ Sample dirty paths:
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `5`
+- Dirty matches: `4`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
@@ -161,11 +146,10 @@ Sample dirty paths:
 - Owner workstreams: `authority-and-mainline`, `validation-and-publication`
 
 Sample dirty paths:
-- `M` config/automation-backbone/failure-routing-matrix.json
-- `M` config/automation-backbone/lane-selection-matrix.json
-- `M` config/automation-backbone/operator-surface-registry.json
-- `M` docs/operations/ATHANOR-OPERATING-SYSTEM.md
-- `M` scripts/run_protocol_first_builder_kernel_formal_eval.py
+- `M` scripts/run_ralph_loop_pass.py
+- `M` scripts/tests/test_ralph_loop_contracts.py
+- `M` scripts/tests/test_write_steady_state_status.py
+- `M` scripts/write_steady_state_status.py
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 
@@ -177,8 +161,3 @@ Sample dirty paths:
 - Next action: Push tenant roots through product-specific classification, packet lanes, and local-root governance instead of Athanor checkpoint publication.
 - Success condition: Tenant product changes route through their governed tenant lanes without leaking into Athanor checkpoint slices.
 - Owner workstreams: `tenant-architecture-and-classification`, `validation-and-publication`
-
-## Unclassified Entries
-
-- `M` reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json
-- `??` .data/

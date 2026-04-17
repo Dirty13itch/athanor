@@ -34,8 +34,8 @@ Do not edit manually.
 - Host: `desk`
 - Authority: `implementation-authority`
 - Notes: `Primary code and control-plane root.`
-- Local dirty file count: `13`
-- Local dirty sample: ` M config/automation-backbone/capability-adoption-registry.json`, ` M config/automation-backbone/eval-run-ledger.json`, ` M config/automation-backbone/failure-routing-matrix.json`, ` M config/automation-backbone/lane-selection-matrix.json`, ` M config/automation-backbone/operator-surface-registry.json`, ` M docs/operations/ATHANOR-OPERATING-SYSTEM.md`, ` M projects/dashboard/src/generated/master-atlas.json`, ` M projects/dashboard/src/lib/builder-store.test.ts`, ` M projects/dashboard/src/lib/builder-store.ts`, ` M reports/truth-inventory/protocol-first-builder-kernel-live-smoke.json`
+- Local dirty file count: `4`
+- Local dirty sample: ` M scripts/run_ralph_loop_pass.py`, ` M scripts/tests/test_ralph_loop_contracts.py`, ` M scripts/tests/test_write_steady_state_status.py`, ` M scripts/write_steady_state_status.py`
 
 ## dev-runtime-repo
 

@@ -2579,6 +2579,59 @@ def test_build_capability_adoption_items_exposes_proved_builder_rollout() -> Non
     assert row["runtime_packet_ids"] == ["dev-dashboard-compose-deploy-packet"]
 
 
+def test_build_capability_adoption_items_surfaces_concept_pilot_blockers() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    rows = module._build_capability_adoption_items(
+        {
+            "capabilities": [
+                {
+                    "id": "letta-memory-plane",
+                    "label": "Letta Memory Plane",
+                    "authority_class": "build_system",
+                    "stage": "concept",
+                    "pilot_blocker_class": "env_wiring",
+                    "release_tier": "offline_eval",
+                    "runtime_target": "Athanor memory plane",
+                    "proof_artifacts": ["C:/athanor-devstack/docs/promotion-packets/letta-memory-plane.md"],
+                    "notes": ["Letta needs explicit env wiring before the lane can reopen."],
+                },
+                {
+                    "id": "agent-governance-toolkit-policy-plane",
+                    "label": "Agent Governance Toolkit Policy Plane",
+                    "authority_class": "build_system",
+                    "stage": "concept",
+                    "pilot_blocker_class": "non_duplicative_value_unproven",
+                    "release_tier": "offline_eval",
+                    "runtime_target": "Athanor protocol policy plane",
+                    "proof_artifacts": ["C:/Athanor/reports/truth-inventory/agt-policy-plane-formal-eval.json"],
+                    "source_safe_remaining": [
+                        "Only reopen this lane if a second protocol-boundary scenario shows non-duplicative value over the native approval matrix without widening permissions."
+                    ],
+                    "notes": ["AGT still needs non-duplicative value proof."],
+                },
+            ]
+        },
+        {"packets": []},
+    )
+
+    by_id = {row["task_id"]: row for row in rows}
+    letta = by_id["capability:letta-memory-plane"]
+    assert letta["dispatchable"] is False
+    assert letta["blocking_reason"] == "external_dependency_blocked"
+    assert letta["pilot_blocker_class"] == "env_wiring"
+    assert letta["status"] == "blocked_env_wiring"
+
+    agt = by_id["capability:agent-governance-toolkit-policy-plane"]
+    assert agt["dispatchable"] is False
+    assert agt["blocking_reason"] == "proof_required"
+    assert agt["pilot_blocker_class"] == "non_duplicative_value_unproven"
+    assert agt["status"] == "blocked_proof_required"
+
+
 def test_build_ranked_autonomous_queue_prioritizes_proved_capability_over_zero_match_deferred_family() -> None:
     module = _load_module(
         f"run_ralph_loop_pass_{uuid.uuid4().hex}",
@@ -2651,3 +2704,30 @@ def test_build_ranked_autonomous_queue_prioritizes_proved_capability_over_zero_m
 
     assert rows[0]["task_id"] == "capability:protocol-first-builder-kernel"
     assert rows[1]["task_id"] == "deferred_family:reference-and-archive-prune"
+
+
+
+def test_build_loop_continuity_status_prefers_typed_proof_required_brake() -> None:
+    module = _load_module(
+        f"run_ralph_loop_pass_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "run_ralph_loop_pass.py",
+    )
+
+    payload = module._build_loop_continuity_status(
+        ranked_autonomous_queue=[
+            {
+                "task_id": "capability:agent-governance-toolkit-policy-plane",
+                "title": "Agent Governance Toolkit Policy Plane",
+                "dispatchable": False,
+                "suppressed_by_continuity": False,
+                "blocking_reason": "proof_required",
+                "pilot_blocker_class": "non_duplicative_value_unproven",
+            }
+        ],
+        governed_dispatch_claim={},
+        publication_next_family={},
+    )
+
+    assert payload["continue_allowed"] is False
+    assert payload["stop_state"] == "proof_required"
+    assert "non-duplicative proof slice" in str(payload["stop_reason"])

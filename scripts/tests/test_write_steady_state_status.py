@@ -229,6 +229,57 @@ def test_render_live_markdown_surfaces_volatile_operator_feed() -> None:
     assert "None." in rendered
 
 
+def test_build_payload_prefers_specific_next_operator_action_for_proof_brake() -> None:
+    module = _load_module(
+        f"write_steady_state_status_{uuid.uuid4().hex}",
+        SCRIPTS_DIR / "write_steady_state_status.py",
+    )
+
+    module.build_restart_snapshot = lambda: {
+        "selected_workstream_id": "dispatch-and-work-economy-closure",
+        "selected_workstream_title": "Dispatch and Work-Economy Closure",
+        "active_claim_task_id": None,
+        "active_claim_task_title": None,
+        "active_claim_lane_family": None,
+        "queue_total": 1,
+        "queue_dispatchable": 0,
+        "queue_blocked": 1,
+        "current_stop_state": "proof_required",
+        "next_unblocked_candidate": {},
+        "finish_scoreboard": {
+            "closure_state": "repo_safe_complete",
+            "cash_now_remaining_count": 0,
+            "bounded_follow_on_remaining_count": 0,
+            "program_slice_remaining_count": 0,
+            "only_typed_brakes_remain": False,
+            "suppressed_queue_count": 0,
+        },
+        "runtime_packet_inbox": {"packet_count": 0, "packets": []},
+        "artifacts": {},
+    }
+    module._load_optional_json = lambda path: {
+        "active_claim_task_id": None,
+        "active_claim_task_title": None,
+        "active_claim_lane_family": None,
+        "autonomous_queue": [
+            {
+                "task_id": "capability:agent-governance-toolkit-policy-plane",
+                "title": "Agent Governance Toolkit Policy Plane",
+                "dispatchable": False,
+                "suppressed_by_continuity": False,
+                "blocking_reason": "proof_required",
+                "pilot_blocker_class": "non_duplicative_value_unproven",
+            }
+        ],
+        "automation_feedback_summary": {"recent_dispatch_outcomes": []},
+    }
+
+    payload = module.build_payload()
+
+    assert payload["intervention_level"] == "system_attention_required"
+    assert payload["next_operator_action"].startswith("Capture a bounded non-duplicative proof slice for Agent Governance Toolkit Policy Plane")
+
+
 def test_normalized_payload_ignores_generated_at() -> None:
     module = _load_module(
         f"write_steady_state_status_{uuid.uuid4().hex}",

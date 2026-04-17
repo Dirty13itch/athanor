@@ -763,10 +763,17 @@ def _stop_state_from_queue_item(item: dict[str, Any] | None) -> tuple[str, str |
         return "queue_exhausted", "No dispatchable or blocked tranche remains."
     blocking_reason = str(item.get("blocking_reason") or "").strip()
     title = str(item.get("title") or item.get("task_id") or "queue item").strip() or "queue item"
+    pilot_blocker_class = str(item.get("pilot_blocker_class") or "").strip()
     if blocking_reason == "approval_required":
         return "approval_required", f"{title} requires approval before autonomous continuation."
     if blocking_reason in {"external_dependency_blocked", "no_eligible_provider"}:
+        if pilot_blocker_class == "env_wiring":
+            return "external_block", f"{title} is blocked on environment wiring before autonomous continuation."
+        if pilot_blocker_class == "install_required":
+            return "external_block", f"{title} is blocked on substrate install or runtime readiness before autonomous continuation."
         return "external_block", f"{title} is blocked on an external dependency or unavailable provider."
+    if blocking_reason == "proof_required":
+        return "proof_required", f"{title} needs a non-duplicative proof slice before autonomous continuation."
     if blocking_reason == "destructive_ambiguity":
         return "destructive_ambiguity", f"{title} needs disambiguation before destructive cleanup can proceed."
     return "queue_exhausted", "No unblocked autonomous tranche remains after continuity suppression."
@@ -2115,8 +2122,10 @@ def _build_capability_adoption_items(
             continue
         if str(capability.get("authority_class") or "").strip() != "build_system":
             continue
-        if str(capability.get("stage") or "").strip() != "proved":
+        stage = str(capability.get("stage") or "").strip()
+        if stage not in {"proved", "concept"}:
             continue
+
         runtime_packet_ids = [
             str(item).strip()
             for item in capability.get("runtime_packet_ids", [])
@@ -2126,13 +2135,6 @@ def _build_capability_adoption_items(
         unexecuted_packet_ids = [
             packet_id for packet_id in runtime_packet_ids if str(packet_index.get(packet_id, {}).get("status") or "").strip() != "executed"
         ]
-        dispatchable = not missing_packet_ids and not unexecuted_packet_ids
-        blocker_type = "external_dependency" if missing_packet_ids else "none"
-        blocking_reason = None
-        if missing_packet_ids:
-            blocking_reason = "external_dependency_blocked"
-        elif unexecuted_packet_ids:
-            blocking_reason = "approval_required"
         proof_artifacts = [str(item).strip() for item in capability.get("proof_artifacts", []) if str(item).strip()]
         preferred_artifact = next(
             (
@@ -2143,9 +2145,48 @@ def _build_capability_adoption_items(
             proof_artifacts[0] if proof_artifacts else str(capability.get("runtime_target") or "").strip() or None,
         )
         notes = [str(item).strip() for item in capability.get("notes", []) if str(item).strip()]
-        closure_rule = notes[-1] if notes else (
-            f"Carry {capability_id} through bounded rollout review without widening beyond the proved slice."
-        )
+        pilot_blocker_class = str(capability.get("pilot_blocker_class") or "").strip() or None
+
+        if stage == "proved":
+            dispatchable = not missing_packet_ids and not unexecuted_packet_ids
+            blocker_type = "external_dependency" if missing_packet_ids else "none"
+            blocking_reason = None
+            if missing_packet_ids:
+                blocking_reason = "external_dependency_blocked"
+            elif unexecuted_packet_ids:
+                blocking_reason = "approval_required"
+            closure_rule = notes[-1] if notes else (
+                f"Carry {capability_id} through bounded rollout review without widening beyond the proved slice."
+            )
+            approved_mutation_class = "auto_read_only" if dispatchable else "approval_required"
+            preferred_lane_family = "promotion_wave_closure"
+            fallback_lane_family = "operator_follow_through"
+            success_condition = (
+                f"Keep {capability_id} packet-linked and proof-green until {str(capability.get('next_release_tier_on_green') or 'the next release tier')} is ready for explicit promotion."
+            )
+            status = "ready_for_review" if dispatchable else "blocked_packet_linkage"
+        else:
+            dispatchable = False
+            blocker_type = "external_dependency" if pilot_blocker_class in {"env_wiring", "install_required"} else "none"
+            blocking_reason = "external_dependency_blocked" if blocker_type == "external_dependency" else "proof_required"
+            source_safe_remaining = [
+                str(item).strip() for item in capability.get("source_safe_remaining", []) if str(item).strip()
+            ]
+            closure_rule = source_safe_remaining[0] if source_safe_remaining else (
+                notes[-1] if notes else f"Clear the primary proof blocker on {capability_id} before reopening the pilot lane."
+            )
+            approved_mutation_class = "approval_required"
+            preferred_lane_family = "operator_follow_through"
+            fallback_lane_family = "operator_follow_through"
+            status = {
+                "env_wiring": "blocked_env_wiring",
+                "install_required": "blocked_install_required",
+                "non_duplicative_value_unproven": "blocked_proof_required",
+            }.get(pilot_blocker_class or "", "blocked_concept")
+            success_condition = (
+                f"Clear the {pilot_blocker_class.replace('_', ' ') if pilot_blocker_class else 'recorded'} blocker on {capability_id} and capture the next bounded proof slice without widening permissions."
+            )
+
         rows.append(
             {
                 "id": f"capability:{capability_id}",
@@ -2157,14 +2198,12 @@ def _build_capability_adoption_items(
                 "workstream_id": None,
                 "value_class": "promotion_wave_closure",
                 "risk_class": "medium",
-                "approved_mutation_class": "auto_read_only" if dispatchable else "approval_required",
-                "preferred_lane_family": "promotion_wave_closure",
-                "fallback_lane_family": "operator_follow_through",
+                "approved_mutation_class": approved_mutation_class,
+                "preferred_lane_family": preferred_lane_family,
+                "fallback_lane_family": fallback_lane_family,
                 "proof_command_or_eval_surface": preferred_artifact,
                 "closure_rule": closure_rule,
-                "success_condition": (
-                    f"Keep {capability_id} packet-linked and proof-green until {str(capability.get('next_release_tier_on_green') or 'the next release tier')} is ready for explicit promotion."
-                ),
+                "success_condition": success_condition,
                 "ranking_score": _autonomous_ranking_score(
                     value_class="promotion_wave_closure",
                     priority="high",
@@ -2172,9 +2211,10 @@ def _build_capability_adoption_items(
                     dispatchable=dispatchable,
                     blocker_type=blocker_type,
                 ),
-                "status": "ready_for_review" if dispatchable else "blocked_packet_linkage",
+                "status": status,
                 "dispatchable": dispatchable,
                 "blocking_reason": blocking_reason,
+                "pilot_blocker_class": pilot_blocker_class,
                 "evidence_state": "fresh",
                 "priority": "high",
                 "release_tier": str(capability.get("release_tier") or "").strip() or None,

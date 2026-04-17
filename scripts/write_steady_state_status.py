@@ -54,6 +54,13 @@ def _find_task(queue: list[dict[str, Any]], task_id: str | None) -> dict[str, An
     return {}
 
 
+def _first_blocked_task(queue: list[dict[str, Any]]) -> dict[str, Any]:
+    for item in queue:
+        if not bool(item.get("dispatchable")) and not bool(item.get("suppressed_by_continuity")):
+            return item
+    return {}
+
+
 def _parse_event_time(value: Any) -> str | None:
     if value is None:
         return None
@@ -155,6 +162,7 @@ def build_payload() -> dict[str, Any]:
 
     active_claim_task_id = _pick_string(ralph.get("active_claim_task_id"), snapshot.get("active_claim_task_id"))
     active_claim = _find_task(queue, active_claim_task_id)
+    blocked_candidate = _first_blocked_task(queue)
     next_candidate = dict(ralph.get("next_unblocked_candidate") or snapshot.get("next_unblocked_candidate") or {})
 
     current_work = {
@@ -177,7 +185,19 @@ def build_payload() -> dict[str, Any]:
     }
 
     if reopen_required:
-        next_operator_action = "Re-enter closure work through `python scripts/session_restart_brief.py --refresh` and cash the next surfaced debt family or runtime packet."
+        blocked_title = _pick_string(blocked_candidate.get("title"), blocked_candidate.get("task_id")) or "the next blocked lane"
+        if stop_state == "proof_required":
+            next_operator_action = (
+                f"Capture a bounded non-duplicative proof slice for {blocked_title} before reopening autonomous continuation."
+            )
+        elif stop_state == "external_block":
+            next_operator_action = (
+                f"Clear the recorded external blocker on {blocked_title} before reopening autonomous continuation."
+            )
+        elif runtime_packet_count > 0:
+            next_operator_action = "Review the runtime packet inbox and execute or approve the next bounded mutation packet."
+        else:
+            next_operator_action = "Re-enter closure work through `python scripts/session_restart_brief.py --refresh` and cash the next surfaced debt family or runtime packet."
     else:
         next_operator_action = "Run `python scripts/run_steady_state_control_plane.py` for a fresh pass. Intervene only if attention level rises above `No action needed`."
 
