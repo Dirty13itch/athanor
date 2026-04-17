@@ -1,9 +1,9 @@
 # Publication Triage Summary
 
 - Active sequence: `2026-04-15-publication-triage-governance`
-- Dirty entries: `0`
-- Slice-matched entries: `0`
-- Deferred-family entries: `0`
+- Dirty entries: `10`
+- Slice-matched entries: `9`
+- Deferred-family entries: `1`
 - Ambiguous entries: `0`
 - Unclassified entries: `0`
 - Local-noise entries: `0`
@@ -12,20 +12,25 @@
 
 | Slice | Status | Dirty matches | Missing publication refs | Missing generated artifacts |
 | --- | --- | --- | --- | --- |
-| `backbone-contracts-and-truth-writers` | `published` | `0` | `0` | `0` |
+| `backbone-contracts-and-truth-writers` | `published` | `3` | `0` | `0` |
 | `runtime-ownership-provider-truth-and-reconciliation` | `published` | `0` | `0` | `0` |
 | `pilot-eval-substrate-and-operator-test-machinery` | `published` | `0` | `0` | `0` |
 | `graphrag-promotion-wave` | `published` | `0` | `0` | `0` |
 | `gpu-scheduler-extension-wave` | `published` | `0` | `0` | `0` |
-| `forge-atlas-dashboard-and-startup-truth` | `published` | `0` | `0` | `0` |
+| `forge-atlas-dashboard-and-startup-truth` | `published` | `6` | `0` | `0` |
 
 ## Backbone Contracts and Truth Writers (`backbone-contracts-and-truth-writers`)
 
-- Dirty matches: `0`
+- Dirty matches: `3`
 - Publication refs: `20`
 - Working-tree hints: `25`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
+
+Sample dirty paths:
+- `M` scripts/generate_publication_deferred_family_queue.py
+- `M` scripts/tests/test_publication_tranche_triage.py
+- `M` scripts/triage_publication_tranche.py
 
 ## Runtime Ownership, Provider Truth, and Reconciliation (`runtime-ownership-provider-truth-and-reconciliation`)
 
@@ -61,11 +66,19 @@
 
 ## Forge, Atlas, Dashboard, and Startup Truth (`forge-atlas-dashboard-and-startup-truth`)
 
-- Dirty matches: `0`
+- Dirty matches: `6`
 - Publication refs: `9`
 - Working-tree hints: `9`
 - Missing publication refs: `0`
 - Missing generated artifacts: `0`
+
+Sample dirty paths:
+- `M` projects/dashboard/src/components/app-shell.test.tsx
+- `M` projects/dashboard/src/components/app-shell.tsx
+- `M` projects/dashboard/src/lib/state.ts
+- `M` projects/dashboard/src/lib/steady-state-summary.test.ts
+- `M` projects/dashboard/src/lib/steady-state-summary.ts
+- `??` projects/dashboard/src/lib/state.test.ts
 
 ## Deferred Family Coverage
 
@@ -76,7 +89,7 @@
 | `audit-and-eval-artifacts` | `audit_artifact` | `0` |
 | `deployment-authority-follow-on` | `deferred_out_of_sequence` | `0` |
 | `runtime-service-follow-on` | `runtime_follow_on` | `0` |
-| `control-plane-follow-on` | `deferred_out_of_sequence` | `0` |
+| `control-plane-follow-on` | `deferred_out_of_sequence` | `1` |
 | `tenant-product-lanes` | `tenant_surface` | `0` |
 
 ## Deferred: Reference and Archive Prune (`reference-and-archive-prune`)
@@ -137,13 +150,16 @@
 ## Deferred: Control-Plane Follow-on (`control-plane-follow-on`)
 
 - Disposition: `deferred_out_of_sequence`
-- Dirty matches: `0`
+- Dirty matches: `1`
 - Path hints: `4`
 - Scope: Implementation-authority control-plane, agent-runtime, and operations packet work that is real but intentionally outside the six ready checkpoint slices.
 - Execution class: `program_slice`
 - Next action: Break the broad control-plane tail into explicit follow-on publication slices before any wider checkpoint publish.
 - Success condition: Control-plane residue is no longer one deferred mass; it is decomposed into explicit publication-ready tranches.
 - Owner workstreams: `authority-and-mainline`, `validation-and-publication`
+
+Sample dirty paths:
+- `M` scripts/tests/test_publication_deferred_family_queue.py
 
 ## Deferred: Tenant Product Lanes (`tenant-product-lanes`)
 

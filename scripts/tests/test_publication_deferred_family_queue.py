@@ -70,6 +70,10 @@ def test_build_queue_bundle_orders_families_and_surfaces_next_tranche(monkeypatc
 }""",
         encoding='utf-8',
     )
+    docs_lifecycle_registry_path = tmp_path / 'docs-lifecycle-registry.json'
+    docs_lifecycle_registry_path.write_text('{"documents": []}', encoding='utf-8')
+    fallback_registry_path = registry_path
+    fallback_docs_lifecycle_registry_path = docs_lifecycle_registry_path
 
     entries = [
         {'status': ' M', 'path': 'docs/REFERENCE-INDEX.md'},
@@ -77,9 +81,21 @@ def test_build_queue_bundle_orders_families_and_surfaces_next_tranche(monkeypatc
         {'status': ' M', 'path': 'services/brain/main.py'},
     ]
     monkeypatch.setattr(triage_module, '_git_status_entries', lambda _repo_root: entries)
-    monkeypatch.setattr(queue_module, 'build_triage_bundle', lambda repo_root: triage_module.build_triage_bundle(repo_root=repo_root, registry_path=registry_path))
+    monkeypatch.setattr(
+        queue_module,
+        'build_triage_bundle',
+        lambda repo_root, registry_path=None, docs_lifecycle_registry_path=None: triage_module.build_triage_bundle(
+            repo_root=repo_root,
+            registry_path=registry_path or fallback_registry_path,
+            docs_lifecycle_registry_path=docs_lifecycle_registry_path or fallback_docs_lifecycle_registry_path,
+        ),
+    )
 
-    bundle = queue_module.build_queue_bundle(repo_root=tmp_path)
+    bundle = queue_module.build_queue_bundle(
+        repo_root=tmp_path,
+        registry_path=registry_path,
+        docs_lifecycle_registry_path=docs_lifecycle_registry_path,
+    )
     assert bundle['next_recommended_family']['id'] == 'reference'
     assert bundle['families'][0]['id'] == 'reference'
     assert bundle['families'][0]['match_count'] == 2
@@ -178,7 +194,11 @@ def test_main_does_not_rewrite_outputs_when_bundle_is_unchanged(monkeypatch, tmp
     initial_markdown = markdown_output.read_text(encoding='utf-8')
     initial_json = json_output.read_text(encoding='utf-8')
 
-    monkeypatch.setattr(queue_module, 'build_queue_bundle', lambda repo_root, registry_path=None: bundle)
+    monkeypatch.setattr(
+        queue_module,
+        'build_queue_bundle',
+        lambda repo_root, registry_path=None, docs_lifecycle_registry_path=None: bundle,
+    )
     monkeypatch.setattr(
         sys,
         'argv',

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getFixtureOverviewSnapshot } from "@/lib/dashboard-fixtures";
 import { AppShell } from "./app-shell";
 
@@ -115,6 +115,12 @@ function buildWrapper() {
 }
 
 describe("AppShell", () => {
+  beforeEach(() => {
+    getOverview.mockReset();
+    usePathname.mockReset();
+    window.localStorage.clear();
+  });
+
   it("renders the thinner mission-control shell with primary routes and live posture", async () => {
     const snapshot = getFixtureOverviewSnapshot();
     getOverview.mockResolvedValue(snapshot);
@@ -140,5 +146,96 @@ describe("AppShell", () => {
     await waitFor(() => {
       expect(screen.getByText(/Overview refreshed/i)).toBeInTheDocument();
     });
+    expect(screen.getByText(/Needs Shaun:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Current:/i)).toBeInTheDocument();
+  });
+
+  it("shows a persistent what-changed digest after the front door shifts", async () => {
+    const previousSnapshot = getFixtureOverviewSnapshot();
+    previousSnapshot.steadyState = {
+      generatedAt: "2026-04-16T00:00:00.000Z",
+      closureState: "repo_safe_complete",
+      operatorMode: "steady_state_monitoring",
+      interventionLabel: "No action needed",
+      interventionLevel: "no_action_needed",
+      interventionSummary: "Queue is moving without operator intervention.",
+      needsYou: false,
+      nextOperatorAction: "Keep monitoring.",
+      queueDispatchable: 1,
+      queueTotal: 1,
+      suppressedTaskCount: 0,
+      runtimePacketCount: 0,
+      currentWork: {
+        taskTitle: "Cheap Bulk Cloud",
+        providerLabel: "deepseek_api",
+        laneFamily: "capacity_truth_repair",
+      },
+      nextUp: {
+        taskTitle: "Reference and Archive Prune",
+        providerLabel: "Athanor Local",
+        laneFamily: "cleanup",
+      },
+      sourceKind: "workspace_report",
+      sourcePath: "/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json",
+    };
+    previousSnapshot.steadyStateReadStatus = {
+      available: true,
+      degraded: false,
+      detail: null,
+      sourceKind: "workspace_report",
+      sourcePath: "/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json",
+    };
+    window.localStorage.setItem(
+      "athanor-steady-state-digest",
+      JSON.stringify({
+        comparisonKey: "healthy|No action needed|Cheap Bulk Cloud|Reference and Archive Prune|1 dispatchable / 0 suppressed / 0 runtime packets",
+        degraded: false,
+        needsYou: false,
+        attentionLabel: "No action needed",
+        attentionTone: "warning",
+        changeHeadline: "Queue is moving without operator intervention.",
+        currentWorkTitle: "Cheap Bulk Cloud",
+        nextUpTitle: "Reference and Archive Prune",
+        queuePosture: "1 dispatchable / 0 suppressed / 0 runtime packets",
+        sourceLabel: "workspace report",
+      }),
+    );
+
+    const currentSnapshot = getFixtureOverviewSnapshot();
+    currentSnapshot.steadyState = {
+      ...previousSnapshot.steadyState,
+      interventionLabel: "Review recommended",
+      interventionLevel: "review_recommended",
+      interventionSummary: "Promotion work is ready for review.",
+      needsYou: true,
+      nextOperatorAction: "Review the next activation lane.",
+      queueDispatchable: 2,
+      currentWork: {
+        taskTitle: "Letta Memory Plane",
+        providerLabel: "Athanor Local",
+        laneFamily: "memory_plane",
+      },
+      nextUp: {
+        taskTitle: "Agent Governance Toolkit Policy Plane",
+        providerLabel: "Athanor Local",
+        laneFamily: "policy_plane",
+      },
+    };
+    getOverview.mockResolvedValue(currentSnapshot);
+    usePathname.mockReturnValue("/operator");
+
+    render(
+      <AppShell>
+        <div>workspace body</div>
+      </AppShell>,
+      { wrapper: buildWrapper() },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Shaun attention is now required.")).toBeInTheDocument();
+    });
+    expect(screen.getByText(/Needs Shaun: Yes/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Current:/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Letta Memory Plane").length).toBeGreaterThan(0);
   });
 });

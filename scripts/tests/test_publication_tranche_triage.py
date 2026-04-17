@@ -104,6 +104,7 @@ def test_build_triage_bundle_ignores_self_managed_publication_outputs(monkeypatc
     )
 
     registry_path = tmp_path / 'completion-program-registry.json'
+    docs_lifecycle_registry_path = tmp_path / 'docs-lifecycle-registry.json'
     registry_path.write_text(
         """{
   "publication_slices": {
@@ -120,6 +121,37 @@ def test_build_triage_bundle_ignores_self_managed_publication_outputs(monkeypatc
     ],
     "deferred_families": []
   }
+}""",
+        encoding='utf-8',
+    )
+    docs_lifecycle_registry_path.write_text(
+        """{
+  "documents": [
+    {
+      "path": "docs/operations/PUBLICATION-TRIAGE-REPORT.md",
+      "generator": "python scripts/triage_publication_tranche.py --write docs/operations/PUBLICATION-TRIAGE-REPORT.md"
+    },
+    {
+      "path": "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md",
+      "generator": "python scripts/generate_publication_deferred_family_queue.py"
+    },
+    {
+      "path": "docs/operations/STEADY-STATE-STATUS.md",
+      "generator": "python scripts/write_steady_state_status.py"
+    },
+    {
+      "path": "docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md",
+      "generator": "python scripts/generate_full_system_audit.py"
+    },
+    {
+      "path": "docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md",
+      "generator": "python scripts/generate_ecosystem_master_plan.py"
+    },
+    {
+      "path": "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md",
+      "generator": "python scripts/generate_ecosystem_master_plan.py"
+    }
+  ]
 }""",
         encoding='utf-8',
     )
@@ -141,7 +173,11 @@ def test_build_triage_bundle_ignores_self_managed_publication_outputs(monkeypatc
         ],
     )
 
-    bundle = module.build_triage_bundle(repo_root=repo_root, registry_path=registry_path)
+    bundle = module.build_triage_bundle(
+        repo_root=repo_root,
+        registry_path=registry_path,
+        docs_lifecycle_registry_path=docs_lifecycle_registry_path,
+    )
     assert bundle['summary']['dirty_entries'] == 0
     assert bundle['summary']['slice_matched_entries'] == 0
     assert bundle['slices'][0]['match_count'] == 0

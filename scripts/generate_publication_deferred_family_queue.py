@@ -19,6 +19,7 @@ DOC_OUTPUT_PATH = REPO_ROOT / 'docs' / 'operations' / 'PUBLICATION-DEFERRED-FAMI
 JSON_OUTPUT_PATH = REPO_ROOT / 'reports' / 'truth-inventory' / 'publication-deferred-family-queue.json'
 TRIAGE_REPORT_PATH = REPO_ROOT / 'docs' / 'operations' / 'PUBLICATION-TRIAGE-REPORT.md'
 REGISTRY_PATH = REPO_ROOT / 'config' / 'automation-backbone' / 'completion-program-registry.json'
+DOCS_LIFECYCLE_REGISTRY_PATH = REPO_ROOT / 'config' / 'automation-backbone' / 'docs-lifecycle-registry.json'
 
 
 def _publication_config_fingerprint(registry_path: Path) -> str:
@@ -28,8 +29,16 @@ def _publication_config_fingerprint(registry_path: Path) -> str:
     return hashlib.sha256(rendered.encode('utf-8')).hexdigest()
 
 
-def build_queue_bundle(repo_root: Path = REPO_ROOT, registry_path: Path = REGISTRY_PATH) -> dict[str, Any]:
-    triage = build_triage_bundle(repo_root=repo_root)
+def build_queue_bundle(
+    repo_root: Path = REPO_ROOT,
+    registry_path: Path = REGISTRY_PATH,
+    docs_lifecycle_registry_path: Path = DOCS_LIFECYCLE_REGISTRY_PATH,
+) -> dict[str, Any]:
+    triage = build_triage_bundle(
+        repo_root=repo_root,
+        registry_path=registry_path,
+        docs_lifecycle_registry_path=docs_lifecycle_registry_path,
+    )
     families = []
     for record in triage['deferred_families']:
         families.append({
@@ -170,7 +179,15 @@ def main() -> int:
             json_output=args.json_output,
         )
 
-    bundle = build_queue_bundle(repo_root=args.repo_root, registry_path=REGISTRY_PATH if args.repo_root == REPO_ROOT else args.repo_root / REGISTRY_PATH.relative_to(REPO_ROOT))
+    bundle = build_queue_bundle(
+        repo_root=args.repo_root,
+        registry_path=REGISTRY_PATH if args.repo_root == REPO_ROOT else args.repo_root / REGISTRY_PATH.relative_to(REPO_ROOT),
+        docs_lifecycle_registry_path=(
+            DOCS_LIFECYCLE_REGISTRY_PATH
+            if args.repo_root == REPO_ROOT
+            else args.repo_root / DOCS_LIFECYCLE_REGISTRY_PATH.relative_to(REPO_ROOT)
+        ),
+    )
     markdown = render_markdown(bundle)
     json_payload = _json_render(bundle)
 

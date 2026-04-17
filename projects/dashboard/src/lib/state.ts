@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   agentThreads: "athanor-agent-threads",
   promptHistory: "athanor-prompt-history",
   navAttention: "athanor-nav-attention-state",
+  steadyStateDigest: "athanor-steady-state-digest",
 } as const;
 
 export const LEGACY_STORAGE_KEYS = {
@@ -17,6 +18,21 @@ export const LEGACY_STORAGE_KEYS = {
   agentThreads: "athanor-agent-threads",
   navAttention: "athanor-nav-attention-state",
 } as const;
+
+export interface ComparisonKeyRecord {
+  comparisonKey: string;
+}
+
+export function shouldPersistComparisonKey(
+  previous: ComparisonKeyRecord | null | undefined,
+  next: ComparisonKeyRecord | null | undefined,
+) {
+  if (!next?.comparisonKey) {
+    return false;
+  }
+
+  return previous?.comparisonKey !== next.comparisonKey;
+}
 
 export function readJsonStorage<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") {

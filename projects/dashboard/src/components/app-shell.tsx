@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Menu, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +31,13 @@ import {
 } from "@/lib/navigation";
 import { useOperatorUiPreferences } from "@/lib/operator-ui-preferences";
 import { queryKeys } from "@/lib/query-client";
-import { buildSteadyStateDecisionSummary } from "@/lib/steady-state-summary";
+import {
+  buildSteadyStateDecisionSummary,
+  type SteadyStateDigestSnapshot,
+  buildSteadyStateDigestSnapshot,
+  describeSteadyStateDigestChange,
+} from "@/lib/steady-state-summary";
+import { STORAGE_KEYS, shouldPersistComparisonKey, usePersistentState } from "@/lib/state";
 import { cn } from "@/lib/utils";
 import { formatLatency, formatPercent, formatRelativeTime } from "@/lib/format";
 
@@ -179,6 +185,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     queuePosture: "Steady-state queue posture unavailable.",
     needsYou: degradedCount > 0,
   });
+  const steadyStateDigest = buildSteadyStateDigestSnapshot(
+    overview?.steadyState ?? null,
+    overview?.steadyStateReadStatus ?? null,
+    {
+      attentionLabel: steadyStateSummary.attentionLabel,
+      attentionSummary: steadyStateSummary.attentionSummary,
+      currentWorkTitle: steadyStateSummary.currentWorkTitle,
+      currentWorkDetail: steadyStateSummary.currentWorkDetail,
+      nextUpTitle: steadyStateSummary.nextUpTitle,
+      nextUpDetail: steadyStateSummary.nextUpDetail,
+      queuePosture: steadyStateSummary.queuePosture,
+      needsYou: steadyStateSummary.needsYou,
+    },
+  );
+  const [previousDigest, setPreviousDigest, digestHydrated] = usePersistentState<SteadyStateDigestSnapshot | null>(
+    STORAGE_KEYS.steadyStateDigest,
+    null,
+  );
+
+  useEffect(() => {
+    if (!overview || !digestHydrated) {
+      return;
+    }
+
+    if (shouldPersistComparisonKey(previousDigest, steadyStateDigest)) {
+      setPreviousDigest(steadyStateDigest);
+    }
+  }, [digestHydrated, overview, previousDigest, setPreviousDigest, steadyStateDigest]);
+
+  const digestChangeSummary = digestHydrated
+    ? describeSteadyStateDigestChange(previousDigest, steadyStateDigest)
+    : "Loading local operator digest.";
 
   return (
     <NavAttentionProvider overview={overview} pathname={pathname}>
@@ -246,7 +284,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 label="Operator"
                 value={overview ? steadyStateSummary.attentionLabel : "--"}
                 tone={overview ? steadyStateSummary.attentionTone : "warning"}
-                detail={overview ? `${steadyStateSummary.currentWorkTitle} · ${steadyStateSummary.sourceLabel}` : "Loading front door"}
+                detail={overview ? `${steadyStateDigest.currentWorkTitle} · ${digestChangeSummary}` : "Loading front door"}
               />
             </div>
 
@@ -291,12 +329,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="mt-5 border-t border-border/70 px-3 pt-4">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Posture</p>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Operator digest</p>
             <div className="mt-2 flex items-center gap-2">
-              <StatusDot tone={shellIndicatorTone} pulse={degradedCount > 0 || warningCount > 0} />
-              <p className="text-sm font-medium text-foreground">{routeLabel}</p>
+              <StatusDot tone={steadyStateDigest.attentionTone} pulse={steadyStateDigest.attentionTone !== "healthy"} />
+              <p className="text-sm font-medium text-foreground">{steadyStateDigest.attentionLabel}</p>
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">Overview refreshed {lastRefresh.toLowerCase()}.</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Needs Shaun: {steadyStateDigest.needsYou ? "Yes" : "No"}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">{digestChangeSummary}</p>
+            <div className="mt-3 space-y-2 text-xs text-muted-foreground">
+              <p>
+                <span className="text-foreground">Current:</span> {steadyStateDigest.currentWorkTitle}
+              </p>
+              <p>
+                <span className="text-foreground">Next:</span> {steadyStateDigest.nextUpTitle}
+              </p>
+              <p>
+                <span className="text-foreground">Queue:</span> {steadyStateDigest.queuePosture}
+              </p>
+              <p>
+                <span className="text-foreground">Source:</span> {steadyStateDigest.sourceLabel}
+              </p>
+              <p>Overview refreshed {lastRefresh.toLowerCase()}.</p>
+            </div>
           </div>
         </aside>
 

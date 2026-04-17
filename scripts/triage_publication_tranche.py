@@ -10,6 +10,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY_PATH = REPO_ROOT / "config" / "automation-backbone" / "completion-program-registry.json"
+DEFAULT_DOCS_LIFECYCLE_REGISTRY_PATH = REPO_ROOT / "config" / "automation-backbone" / "docs-lifecycle-registry.json"
 LOCAL_NOISE_HINTS = [
     ".letta/",
     "evals/.letta/",
@@ -18,19 +19,31 @@ LOCAL_NOISE_HINTS = [
     ".pytest_cache/",
     "node_modules/",
 ]
-PUBLICATION_LOOP_SELF_OUTPUTS = {
-    "docs/operations/PUBLICATION-TRIAGE-REPORT.md",
-    "docs/operations/PUBLICATION-DEFERRED-FAMILY-QUEUE.md",
-    "docs/operations/STEADY-STATE-STATUS.md",
-    "docs/operations/ATHANOR-FULL-SYSTEM-AUDIT.md",
-    "docs/operations/DEVSTACK-MEMBRANE-AUDIT.md",
-    "docs/operations/AUDIT-REMEDIATION-BACKLOG.md",
-    "docs/operations/ATHANOR-ECOSYSTEM-MASTER-PLAN.md",
-    "docs/operations/ATHANOR-ECOSYSTEM-DEPENDENCY-MAP.md",
-    "docs/operations/ATHANOR-OPERATOR-MODEL.md",
-    "docs/architecture/ATHANOR-ECOSYSTEM-SYSTEM-BIBLE.md",
-    "reports/truth-inventory/publication-deferred-family-queue.json",
-    "reports/truth-inventory/steady-state-status.json",
+
+SELF_MANAGED_GENERATOR_SCRIPTS = (
+    'scripts/triage_publication_tranche.py',
+    'scripts/generate_publication_deferred_family_queue.py',
+    'scripts/write_steady_state_status.py',
+    'scripts/generate_full_system_audit.py',
+    'scripts/generate_ecosystem_master_plan.py',
+)
+
+SELF_MANAGED_GENERATOR_SIDECARS = {
+    'scripts/generate_publication_deferred_family_queue.py': [
+        'reports/truth-inventory/publication-deferred-family-queue.json',
+    ],
+    'scripts/write_steady_state_status.py': [
+        'reports/truth-inventory/steady-state-status.json',
+        'reports/truth-inventory/steady-state-live.md',
+    ],
+    'scripts/generate_full_system_audit.py': [
+        'reports/truth-inventory/full-system-audit-index.json',
+        'reports/truth-inventory/full-system-audit-findings.json',
+        'reports/truth-inventory/full-system-audit-scorecard.json',
+    ],
+    'scripts/generate_ecosystem_master_plan.py': [
+        'reports/truth-inventory/ecosystem-master-plan.json',
+    ],
 }
 
 
@@ -43,6 +56,27 @@ def _iso_now() -> str:
 
 def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _self_managed_output_paths(docs_lifecycle_registry_path: Path) -> set[str]:
+    if not docs_lifecycle_registry_path.exists():
+        return set()
+
+    payload = _load_json(docs_lifecycle_registry_path)
+    outputs: set[str] = set()
+    for entry in payload.get('documents', []):
+        if not isinstance(entry, dict):
+            continue
+        generator = _normalize_path(str(entry.get('generator') or ''))
+        path = _normalize_path(str(entry.get('path') or ''))
+        if not generator or not path:
+            continue
+        matched_script = next((script for script in SELF_MANAGED_GENERATOR_SCRIPTS if script in generator), None)
+        if matched_script is None:
+            continue
+        outputs.add(path)
+        outputs.update(_normalize_path(item) for item in SELF_MANAGED_GENERATOR_SIDECARS.get(matched_script, []))
+    return outputs
 
 
 def _normalize_path(value: str) -> str:
@@ -224,14 +258,20 @@ def _best_matches(path: str, records: list[dict[str, Any]], *, hint_field: str) 
     return [record for record, score in scored if score == strongest]
 
 
-def build_triage_bundle(*, repo_root: Path = REPO_ROOT, registry_path: Path = DEFAULT_REGISTRY_PATH) -> dict[str, Any]:
+def build_triage_bundle(
+    *,
+    repo_root: Path = REPO_ROOT,
+    registry_path: Path = DEFAULT_REGISTRY_PATH,
+    docs_lifecycle_registry_path: Path = DEFAULT_DOCS_LIFECYCLE_REGISTRY_PATH,
+) -> dict[str, Any]:
     registry_payload = _load_json(registry_path)
     slice_records = _slice_records(registry_payload)
     deferred_records = _deferred_family_records(registry_payload)
+    self_managed_outputs = _self_managed_output_paths(docs_lifecycle_registry_path)
     entries = [
         entry
         for entry in _git_status_entries(repo_root)
-        if entry['path'] not in PUBLICATION_LOOP_SELF_OUTPUTS
+        if entry['path'] not in self_managed_outputs
     ]
 
     matched: dict[str, list[dict[str, str]]] = {record['id']: [] for record in slice_records}
@@ -301,6 +341,7 @@ def build_triage_bundle(*, repo_root: Path = REPO_ROOT, registry_path: Path = DE
         'generated_at': _iso_now(),
         'repo_root': str(repo_root),
         'registry_path': str(registry_path),
+        'docs_lifecycle_registry_path': str(docs_lifecycle_registry_path),
         'active_sequence_id': str(publication.get('active_sequence_id') or ''),
         'summary': {
             'dirty_entries': len(entries),
@@ -431,13 +472,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description='Classify the current Athanor dirty tranche against publication-slice manifests.')
     parser.add_argument('--repo-root', type=Path, default=REPO_ROOT)
     parser.add_argument('--registry', type=Path, default=DEFAULT_REGISTRY_PATH)
+    parser.add_argument('--docs-lifecycle-registry', type=Path, default=DEFAULT_DOCS_LIFECYCLE_REGISTRY_PATH)
     parser.add_argument('--format', choices=('markdown', 'json'), default='markdown')
     parser.add_argument('--limit', type=int, default=12)
     parser.add_argument('--write', type=Path, default=None)
     parser.add_argument('--check', action='store_true')
     args = parser.parse_args()
 
-    bundle = build_triage_bundle(repo_root=args.repo_root, registry_path=args.registry)
+    bundle = build_triage_bundle(
+        repo_root=args.repo_root,
+        registry_path=args.registry,
+        docs_lifecycle_registry_path=args.docs_lifecycle_registry,
+    )
     rendered = (
         json.dumps(bundle, indent=2, sort_keys=True) + '\n'
         if args.format == 'json'

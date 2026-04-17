@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildSteadyStateDecisionSummary, getSteadyStateAttentionTone } from "./steady-state-summary";
+import {
+  buildSteadyStateDecisionSummary,
+  buildSteadyStateDigestSnapshot,
+  describeSteadyStateDigestChange,
+  getSteadyStateAttentionTone,
+} from "./steady-state-summary";
 
 describe("steady-state summary", () => {
   it("derives healthy attention and provenance from a steady-state snapshot", () => {
@@ -73,5 +78,72 @@ describe("steady-state summary", () => {
         nextUp: null,
       }),
     ).toBe("danger");
+  });
+
+  it("builds a stable digest snapshot and detects front-door changes", () => {
+    const previous = buildSteadyStateDigestSnapshot(
+      {
+        generatedAt: "2026-04-16T00:00:00.000Z",
+        closureState: "repo_safe_complete",
+        operatorMode: "steady_state_monitoring",
+        interventionLabel: "No action needed",
+        interventionLevel: "no_action_needed",
+        interventionSummary: "Queue is moving without operator intervention.",
+        needsYou: false,
+        nextOperatorAction: "Keep monitoring.",
+        queueDispatchable: 1,
+        queueTotal: 2,
+        suppressedTaskCount: 1,
+        runtimePacketCount: 0,
+        currentWork: {
+          taskTitle: "Cheap Bulk Cloud",
+          providerLabel: "deepseek_api",
+          laneFamily: "capacity_truth_repair",
+        },
+        nextUp: {
+          taskTitle: "Reference and Archive Prune",
+          providerLabel: "Athanor Local",
+          laneFamily: "cleanup",
+        },
+        sourceKind: "workspace_report",
+        sourcePath: "/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json",
+      },
+      { available: true, degraded: false, detail: null, sourceKind: "workspace_report", sourcePath: "/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json" },
+    );
+
+    const current = buildSteadyStateDigestSnapshot(
+      {
+        generatedAt: "2026-04-16T00:10:00.000Z",
+        closureState: "repo_safe_complete",
+        operatorMode: "steady_state_monitoring",
+        interventionLabel: "Review recommended",
+        interventionLevel: "review_recommended",
+        interventionSummary: "Promotion work is ready for review.",
+        needsYou: true,
+        nextOperatorAction: "Review the next activation lane.",
+        queueDispatchable: 2,
+        queueTotal: 2,
+        suppressedTaskCount: 0,
+        runtimePacketCount: 0,
+        currentWork: {
+          taskTitle: "Letta Memory Plane",
+          providerLabel: "Athanor Local",
+          laneFamily: "memory_plane",
+        },
+        nextUp: {
+          taskTitle: "Agent Governance Toolkit Policy Plane",
+          providerLabel: "Athanor Local",
+          laneFamily: "policy_plane",
+        },
+        sourceKind: "workspace_report",
+        sourcePath: "/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json",
+      },
+      { available: true, degraded: false, detail: null, sourceKind: "workspace_report", sourcePath: "/mnt/c/Athanor/reports/truth-inventory/steady-state-status.json" },
+    );
+
+    expect(current.comparisonKey).toContain("Letta Memory Plane");
+    expect(describeSteadyStateDigestChange(previous, current)).toBe(
+      "Shaun attention is now required.",
+    );
   });
 });
